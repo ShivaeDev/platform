@@ -15,6 +15,6 @@ it("round trips exact board, filter, sort, and selection values without confusin
 it("bounds search text and uses the supported default for unknown sorting", () => {
 	const state = stateOf(`/_board/work?sort=mtime&q=${"a".repeat(500)}`);
 	expect(state.sort).toBe("title");
-	expect(stateOf("/_board/work?view=unknown").view).toBe("board");
+	expect(stateOf("/_board/work?view=unknown").view).toBe("now");
 	expect(state.query).toHaveLength(200);
 });

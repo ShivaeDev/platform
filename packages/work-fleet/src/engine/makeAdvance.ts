@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { authorizeBriefContext, briefChanged, stopChangedBrief } from "#engine/boardBrief.ts";
+import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { makeAdopt } from "#engine/makeAdopt.ts";
 import { makeDeliver } from "#engine/makeDeliver.ts";
@@ -9,6 +9,7 @@ import { makeObserve } from "#engine/makeObserve.ts";
 import { makeReview } from "#engine/makeReview.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { makeValidate } from "#engine/makeValidate.ts";
+import { reconcileBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -24,21 +25,18 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 			stored = (yield* releaseClosedPreparation(state, stored, yield* state.board.get(workId))) ?? stored;
 		}
 		stored = yield* makeHuman(state)(stored);
-		if (
-			stored.value.stage === "executing"
-			&& stored.value.attempts.at(-1)?.receipt === undefined
-			&& briefChanged(stored.value, yield* state.board.get(workId))
-		) {
-			return yield* stopChangedBrief(state)(stored);
+		if (stored.value.stage === "executing" && stored.value.attempts.at(-1)?.receipt === undefined) {
+			stored = yield* reconcileBrief(state, stored);
+			if (stored.value.stage === "needs-human") {
+				return stored;
+			}
 		}
 		stored = yield* makeObserve(state)(stored);
 		stored = yield* makeDeliver(state)(stored);
 		if (stored.value.stage === "needs-human") {
 			stored = (yield* releaseClosedPreparation(state, stored, yield* state.board.get(workId))) ?? stored;
 		}
-		if (!["completed", "released"].includes(stored.value.stage) && briefChanged(stored.value, yield* state.board.get(workId))) {
-			return yield* stopChangedBrief(state)(stored);
-		}
+		stored = yield* reconcileBrief(state, stored);
 		return yield* advanceExecution(state, launch)(stored);
 	});
 }

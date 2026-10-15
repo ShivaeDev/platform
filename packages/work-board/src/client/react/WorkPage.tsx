@@ -1,5 +1,6 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { viewUrl } from "#browser/views/state.ts";
+import { SavedViews } from "./SavedViews.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
 import { WorkControls } from "./WorkControls.tsx";
@@ -14,11 +15,14 @@ export function WorkPage({ data, api }: { readonly data: WorkProjection; readonl
 			<header className="work-head">
 				<p className="work-eyebrow">WORK · {state.view.toUpperCase()} VIEW</p>
 				<h1>{data.validBoard ? data.title : "Board unavailable"}</h1>
-				<p>Views use recorded fields. A section heading does not set an item's status.</p>
 				{Boolean(state.board) && data.validBoard && <a href={source}>Board source</a>}
 			</header>
 			<WorkTools state={state} />
-			<WorkControls data={data} key={viewUrl(state)} />
+			<details className="work-options" open={state.view !== "now"}>
+				<summary>Filter</summary>
+				<SavedViews url={viewUrl(state, { item: "" })} />
+				<WorkControls data={data} key={viewUrl(state)} />
+			</details>
 			{data.validBoard ? (
 				<WorkContent api={api} data={data} />
 			) : (
@@ -40,9 +44,11 @@ function WorkContent({ data, api }: { readonly data: WorkProjection; readonly ap
 					<ul>{issues}</ul>
 				</details>
 			)}
-			<p className="work-total" role="status">
-				{data.rows.length} shown · {data.items.length} items in this view
-			</p>
+			{data.state.view !== "now" && (
+				<p className="work-total" role="status">
+					{data.rows.length} shown · {data.items.length} items in this view
+				</p>
+			)}
 			<div className={data.state.item ? "work-layout has-detail" : "work-layout"}>
 				<section aria-label="Work items" id={shellIds.workResults} tabIndex={-1}>
 					{data.items.length === 0 && (

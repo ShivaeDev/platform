@@ -36,7 +36,7 @@ export function Sidebar({
 	const destinations = [
 		{ count: data?.inboxCount, href: "/_board/inbox", id: "inbox-open", label: "Today", view: "inbox" },
 		{ count: data?.counts.goals, href: "/_board/goals", id: "goals-open", label: "Goals", view: "goals" },
-		{ count: data?.counts.now, href: "/_board/work?view=board", id: "work-open", label: "Now", view: "work" },
+		{ count: data?.counts.now, href: "/_board/work", id: "work-open", label: "Now", view: "work" },
 		{ count: data?.counts.library, href: "/_board/library", id: "documents-open", label: "Library", view: "library" },
 		{ count: data?.counts.system, href: "/_board/diagnostics", id: "diagnostics-open", label: "System", view: "diagnostics" },
 	];

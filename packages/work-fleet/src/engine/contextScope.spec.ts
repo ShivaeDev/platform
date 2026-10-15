@@ -42,27 +42,6 @@ for (const stage of ["preparation", "execution", "review"] as const) {
 		));
 }
 
-test("criteria edited during execution stop adoption and further worker turns", () =>
-	withFleetBoard({}, (fixture, root, source) =>
-		Effect.gen(function* () {
-			const fleet = yield* Fleet;
-			yield* prepareWork("one");
-			const dispatched = yield* fleet.dispatch("one");
-			const current = source.replace("kind: task\n", "kind: task\ncriteria:\n  - id: persistence\n    text: Preserve transactions.\n");
-			boardHttpFiles(root).write("one.md", current);
-			const stopped = yield* fleet.reconcile("one");
-			expect(stopped.value.stage).toBe("needs-human");
-			expect(stopped.value.decision?.reason).toBe("Board context changed");
-			expect(stopped.value.boardContext).toBe(source);
-			expect(stopped.value.result).toBeUndefined();
-			expect(stopped.value.attempts[0]?.receipt).toEqual(dispatched.value.attempts[0]?.receipt);
-			finishWorkers(fixture);
-			expect((yield* fleet.reconcile("one")).value.decision).toEqual(stopped.value.decision);
-			expect(fixture.launched).toHaveLength(1);
-			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
-		}),
-	));
-
 test("an answer recorded immediately before unrelated Board edits reaches the worker after restart", () =>
 	withFleetBoard({}, (fixture, root, source) =>
 		Effect.gen(function* () {

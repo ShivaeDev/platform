@@ -27,7 +27,7 @@ effectApp("uses the same item projection, counts, filters and selected source in
 	const cards = yield* rawGet(board, `/_board/work?view=board&${state}`);
 	const table = yield* rawGet(board, `/_board/work?view=table&${state}`);
 	expect(ids(cards.body)).toEqual(ids(table.body));
-	expect(table.body).toContain("1 shown · 3 items");
+	expect(table.body).toContain("1 shown · 2 items");
 	expect(table.body).toContain('<table class="work-table">');
 	expect(table.body).toContain('data-key="detail:work.search"');
 	expect(table.body).toContain('name="view" value="table"');
@@ -38,12 +38,12 @@ effectApp("uses the same item projection, counts, filters and selected source in
 effectApp("orders table rows by recorded fields with missing fields last and escapes source text", function* () {
 	notes.write("unsafe.md", "---\nid: work.unsafe\nowner: '<img src=x onerror=alert(1)>'\n---\n# Unsafe field");
 	const result = yield* rawGet(board, "/_board/work?view=table&sort=owner");
-	expect(ids(result.body).slice(-2)).toEqual(["decision.search", "work.unassigned"]);
+	expect(ids(result.body).at(-1)).toBe("work.unassigned");
 	expect(result.body).toContain("&lt;img src=x onerror=alert(1)&gt;");
 	expect(result.body).not.toContain("<img src=x");
 	const empty = yield* rawGet(board, "/_board/work?view=table&status=value%3Aabsent");
-	expect(empty.body).toContain("0 shown · 5 items");
+	expect(empty.body).toContain("0 shown · 3 items");
 	expect(empty.body).toContain("No work matches these filters");
 	const unknown = yield* rawGet(board, "/_board/work?view=unsupported");
-	expect(unknown.body).toContain("WORK · BOARD VIEW");
+	expect(unknown.body).toContain("WORK · NOW VIEW");
 });

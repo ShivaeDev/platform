@@ -7,6 +7,10 @@ import type { SessionFailure, SessionObservation } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
 import type { Versioned } from "#storage/model.ts";
 
+function missingObservation(observation: SessionObservation, singleReceipt: boolean) {
+	return singleReceipt && observation.turnMissing === true && observation.progress?.length === 0;
+}
+
 function observationFailure(error: SessionFailure) {
 	return new ServiceUnavailable({ message: error.message });
 }
@@ -30,15 +34,14 @@ export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (s
 		const observations: SessionObservation[] = [];
 		for (const receipt of receipts) {
 			yield* validateReceipt(receipt, { sessionId: acknowledged.sessionId }).pipe(Effect.mapError(observationFailure));
-			const observation = yield* state.sessions
-				.observe(receipt)
-				.pipe(
-					Effect.catch((error) =>
-						receipts.length === 1 && error.code === "session-turn-missing" && error.reason === "ambiguous"
-							? Effect.succeed(undefined)
-							: Effect.fail(observationFailure(error)),
-					),
-				);
+			const observation = yield* state.sessions.observe(receipt).pipe(
+				Effect.map((observed) => (missingObservation(observed, receipts.length === 1) ? undefined : observed)),
+				Effect.catch((error) =>
+					receipts.length === 1 && error.code === "session-turn-missing" && error.reason === "ambiguous"
+						? Effect.succeed(undefined)
+						: Effect.fail(observationFailure(error)),
+				),
+			);
 			if (observation !== undefined) {
 				observations.push(observation);
 			}

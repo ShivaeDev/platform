@@ -7,6 +7,7 @@ import { observedAttempt } from "#engine/observedAttempt.ts";
 import { obtainReview, reviewMatchesBrief } from "#engine/obtainReview.ts";
 import { readOrContinueReview } from "#engine/readOrContinueReview.ts";
 import { recoverStall } from "#engine/recoverStall.ts";
+import { recoverUnobservable } from "#engine/recoverUnobservable.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
 import { retryTerminal } from "#engine/retryTerminal.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
@@ -32,7 +33,7 @@ export function makeReview(state: EngineState) {
 		const attempts = recordObservation(stored.value.attempts, observation, state.policy.now());
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: undefined });
 		const latest = stored.value.attempts.at(-1);
-		const recovered = yield* recoverStall(state, stored, latest);
+		const recovered = (yield* recoverUnobservable(state, stored, latest)) ?? (yield* recoverStall(state, stored, latest));
 		if (recovered !== undefined) {
 			return recovered;
 		}

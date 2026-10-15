@@ -6,6 +6,7 @@ const TurnParams = Schema.Struct({ threadId: Schema.String, turnId: Schema.Strin
 export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInterrupt = false) {
 	const requests: WireRequest[] = [];
 	const states = new Map<string, string>();
+	const hidden = new Set<string>();
 	let turns = 0;
 	let threads = 0;
 	let items = [{ id: "command", status: "inProgress", type: "commandExecution" }];
@@ -22,7 +23,7 @@ export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInter
 				return { turn: { id } };
 			}
 			case "thread/turns/list":
-				return { data: [...states].map(([id, status]) => ({ id, items, status })), nextCursor: null };
+				return { data: [...states].filter(([id]) => !hidden.has(id)).map(([id, status]) => ({ id, items, status })), nextCursor: null };
 			case "thread/items/list":
 				return { data: [], nextCursor: null };
 			case "turn/interrupt": {
@@ -44,6 +45,7 @@ export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInter
 		changeStatus: () => {
 			items = items.map((item) => ({ ...item, status: item.status === "inProgress" ? "completed" : "inProgress" }));
 		},
+		hidden,
 		requests,
 		states,
 	};
