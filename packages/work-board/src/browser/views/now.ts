@@ -23,7 +23,13 @@ export function isWork(metadata: Metadata): boolean {
 }
 
 export function laneOf(metadata: Metadata, fleet: FleetWork | undefined, approved = false): NowLane | undefined {
-	if (metadata.kind !== "task" || metadata.requestReceipt || ["superseded", "deferred", "cancelled", "canceled"].includes(metadata.status ?? "")) {
+	if (metadata.kind !== "task" || metadata.requestReceipt) {
+		return undefined;
+	}
+	if (fleet && ["adopting", "executing", "reviewing", "repairing", "validating", "delivering"].includes(fleet.stage)) {
+		return stages[fleet.stage];
+	}
+	if (["superseded", "deferred", "cancelled", "canceled"].includes(metadata.status ?? "")) {
 		return undefined;
 	}
 	if (["done", "completed"].includes(metadata.status ?? "") && fleet?.stage !== "completed") {
@@ -32,7 +38,10 @@ export function laneOf(metadata: Metadata, fleet: FleetWork | undefined, approve
 	if (fleet) {
 		return stages[fleet.stage];
 	}
-	const status = metadata.status;
+	return authoredLane(metadata.status, approved);
+}
+
+function authoredLane(status: string | undefined, approved: boolean): NowLane | undefined {
 	if (["active", "running", "in-progress", "agent-working", "executing", "adopting"].includes(status ?? "")) {
 		return "Executing";
 	}
