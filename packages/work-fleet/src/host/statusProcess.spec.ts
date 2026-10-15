@@ -4,6 +4,8 @@ import { dispatchWork } from "#host/commands.ts";
 import { task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { daemonCli } from "#test/readDaemon.ts";
+import { statusRecord } from "#test/status.ts";
+import { storeState } from "#test/storeState.ts";
 
 describe("work-fleet status process against PostgreSQL", () => {
 	const test = postgresTests("live");
@@ -26,6 +28,24 @@ describe("work-fleet status process against PostgreSQL", () => {
 					completed: [],
 					waiting: { automation: [], maintainer: [], orchestrator: [] },
 				});
+			}),
+		);
+	});
+
+	test("a stored prepared dependency wait belongs to automation and offers no answer command", function* () {
+		yield* withHost({}, {}, (fixture) =>
+			Effect.gen(function* () {
+				yield* storeState(fixture.host, "dependent", {
+					...statusRecord("dependent", "prepared"),
+					attentionOwner: "orchestrator",
+					blocker: "waiting for dependency upstream",
+				});
+				const text = yield* daemonCli(fixture.host, ["status"]);
+				expect(text.code).toBe(0);
+				expect(text.stdout).toContain(
+					"Waiting on orchestrator (0)\nWaiting on automation (1)\n  dependent  prepared  waiting for dependency upstream",
+				);
+				expect(text.stdout).not.toContain("work-fleet answer dependent");
 			}),
 		);
 	});

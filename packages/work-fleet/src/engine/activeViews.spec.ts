@@ -61,7 +61,7 @@ test("native Automation waiting query exposes the exact quota admission blocker"
 		),
 	));
 
-test("native Orchestrator waiting query preserves dependency blockers without preventing unrelated dispatch", () =>
+test("native Automation waiting query preserves dependency blockers without preventing unrelated dispatch", () =>
 	withEngine({}, () =>
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -71,9 +71,10 @@ test("native Orchestrator waiting query preserves dependency blockers without pr
 				yield* client("fleet.dispatch", { workId: "dependent" }).pipe(Effect.result);
 				yield* client("fleet.dispatch", { workId: "two" });
 				const result = yield* client("fleet.views", undefined);
-				expect(result.waiting.orchestrator.find((item) => item.workId === "dependent")?.blocker).toContain(
+				expect(result.waiting.automation.find((item) => item.workId === "dependent")?.blocker).toContain(
 					"accepted outcome for current Board revision board-one",
 				);
+				expect(result.waiting.orchestrator).toEqual([]);
 				expect(result.active.find((item) => item.workId === "two")?.stage).toBe("executing");
 			}),
 		),

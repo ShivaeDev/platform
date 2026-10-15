@@ -31,8 +31,8 @@ postgresTests("live")("area and dependency admission reasons reach status, wait 
 				yield* fleet.dispatch("second").pipe(Effect.result);
 				const records = (yield* fleet.list()).map(({ value }) => value);
 				const grouped = views(records);
-				expect(grouped.waiting.automation.map((record) => record.workId)).toEqual(["second"]);
-				expect(grouped.waiting.orchestrator.map((record) => record.workId)).toEqual(["dependent"]);
+				expect(grouped.waiting.automation.map((record) => record.workId)).toEqual(["second", "dependent"]);
+				expect(grouped.waiting.orchestrator.map((record) => record.workId)).toEqual([]);
 				const status = renderStatus(grouped);
 				const board = statusMarkdown(records);
 				const areaReason = "waiting for area fleet/host held by first";

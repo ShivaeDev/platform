@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { workRevision } from "#board/workRevision.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardFailure, BoardWork } from "#policy.ts";
 
@@ -31,9 +32,12 @@ export const qualifyDependencies = Effect.fn("Fleet.qualifyDependencies")(functi
 			const fallback = hasFleetWork ? "" : " or Board status done without Fleet work";
 			if (!accepted) {
 				return yield* Effect.fail(
-					new Forbidden({
-						message: `waiting for dependency ${reference}: needs an accepted outcome for current Board revision ${current.revision}${fallback}`,
-					}),
+					withFailureContext(
+						new Forbidden({
+							message: `waiting for dependency ${reference}: needs an accepted outcome for current Board revision ${current.revision}${fallback}`,
+						}),
+						{ attentionOwner: "automation" },
+					),
 				);
 			}
 		}),
