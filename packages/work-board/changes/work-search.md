@@ -4,4 +4,4 @@
 
 ### Fixed
 
-- Search ranks open work before closed and deferred work, then title and ID matches before body matches within each status group, then recently changed sources before older ones, excludes Fleet records unless the query starts with `records:`, and omits structured metadata from snippets.
+- Search ranks items before headings and passages, open work before closed and deferred work, then title and ID matches before body matches and recently changed sources before older ones. Fleet records, including `fleet/status.md` and `responses/fleet-report.*`, require `records:`. Snippets omit structured metadata, each anchor appears once, and rows without a recorded status omit the status chip.

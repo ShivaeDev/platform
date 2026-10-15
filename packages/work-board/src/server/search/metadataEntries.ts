@@ -58,7 +58,11 @@ export function metadataEntries(
 			id: fields?.id,
 			inactive: document ? closedItem(document) || deferredItem(document) : false,
 			itemKind: fields?.kind,
-			record: records.has(entry.file) || Boolean(fields?.question || fields?.response || fields?.requestReceipt),
+			record:
+				entry.file === "fleet/status.md"
+				|| entry.file.startsWith("responses/fleet-report.")
+				|| records.has(entry.file)
+				|| Boolean(fields?.question || fields?.response || fields?.requestReceipt),
 			status: fields?.status,
 		};
 	});

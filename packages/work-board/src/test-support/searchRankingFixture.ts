@@ -40,3 +40,25 @@ export function identityRankingFixture(titleStatus: string, passageStatus: strin
 		]),
 	};
 }
+
+export function fleetRankingFixture() {
+	const report = `# Watch report\n\n${Array.from({ length: 18 }, (_, index) => `## Watch ${index}\n\nWatch progress.\n\nWatch details.`).join("\n\n")}`;
+	return {
+		files: {
+			"done.md": "---\nid: task.watch-done\nkind: task\nstatus: done\n---\n# Done watch\n",
+			"fleet/status.md": report,
+			"notes.md": "# Notes\n\n## Watch notes\n\nWatch details.\n\nWatch updates.\n",
+			"open.md": "---\nid: task.review\nkind: task\nstatus: active\n---\n# Keep reviews visible\n\nThe watch keeps running.\n",
+			"responses/fleet-report.2026-10-15.md": "# Archived watch report\n\nWatch context.\n",
+			"responses/fleet-report.md": report,
+		},
+		modified: new Map([
+			["open.md", 1000],
+			["done.md", 2000],
+			["notes.md", 3000],
+			["fleet/status.md", 4000],
+			["responses/fleet-report.md", 5000],
+			["responses/fleet-report.2026-10-15.md", 6000],
+		]),
+	};
+}

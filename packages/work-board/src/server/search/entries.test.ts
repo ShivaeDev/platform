@@ -36,7 +36,11 @@ describe("search passages", () => {
 
 	it.live("ranks titles then headings then passages, bounds results, and matches terms deterministically", function* () {
 		const entries = yield* Effect.promise(() =>
-			entriesOf(`# Needle\n\n## Needle section\n\n${Array.from({ length: 50 }, (_, i) => `Needle ${i} other.`).join("\n\n")}`, "needle.md", false),
+			entriesOf(
+				`# Needle\n\n## Needle section\n\n${Array.from({ length: 50 }, (_, i) => `### Entry ${i}\n\nNeedle ${i} other.`).join("\n\n")}`,
+				"needle.md",
+				false,
+			),
 		);
 		const found = searchMatch(entries, "needle");
 		expect(found.total).toBe(53);
@@ -45,5 +49,20 @@ describe("search passages", () => {
 		expect(searchMatch(entries, "other 49").results[0]?.snippet).toBe("Needle 49 other.");
 		expect(searchMatch(entries, "missing").results).toEqual([]);
 		expect(searchMatch(entries, "  ").total).toBe(0);
+	});
+
+	it.live("keeps the best matching block per anchor before limiting and counting results", function* () {
+		const entries = yield* Effect.promise(() =>
+			entriesOf(
+				`# Notes\n\n## Needle\n\n${Array.from({ length: 50 }, (_, i) => `Needle detail ${i}.`).join("\n\n")}\n\n## Other\n\nNeedle elsewhere.`,
+				"note.md",
+				false,
+			),
+		);
+		const found = searchMatch(entries, "needle");
+		expect(found.total).toBe(2);
+		expect(found.results.map((entry) => entry.kind)).toEqual(["heading", "passage"]);
+		expect(found.results.map((entry) => entry.href)).toEqual(["/note.md#heading-needle", "/note.md#heading-other"]);
+		expect(found.results[0]?.snippet).toBe("Needle");
 	});
 });

@@ -49,6 +49,6 @@ it.live.each([
 			status: titleStatus,
 			title: "Inbox triage",
 		});
-		expect(results.find((entry) => entry.id === "task.notes")).toMatchObject({ kind: "passage", status: passageStatus });
+		expect(results.find((entry) => entry.id === "task.notes")).toMatchObject({ kind: "document", status: passageStatus });
 	}
 });

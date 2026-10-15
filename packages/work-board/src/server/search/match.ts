@@ -5,6 +5,13 @@ function normalize(text: string): string {
 	return text.normalize("NFKC").toLowerCase().replace(/\s+/gu, " ").trim();
 }
 
+function resultType(entry: Entry): number {
+	if (entry.record) {
+		return 2;
+	}
+	return entry.kind === "document" && entry.itemKind ? 0 : 1;
+}
+
 function relevance(entry: Entry, terms: readonly string[], phrase: string, text: string) {
 	const identity = normalize(`${entry.title} ${entry.id ?? ""}`);
 	const titleMatch = entry.kind === "document" && terms.every((term) => identity.includes(term));
@@ -20,6 +27,7 @@ export function searchMatch(entries: readonly Entry[], query: string, modified: 
 	if (terms.length === 0) {
 		return { results: [], total: 0 };
 	}
+	const items = new Map(entries.filter((entry) => entry.kind === "document" && entry.itemKind && !entry.record).map((entry) => [entry.file, entry]));
 	const matches = entries
 		.flatMap((entry, order) => {
 			const text = normalize(entry.text);
@@ -27,19 +35,29 @@ export function searchMatch(entries: readonly Entry[], query: string, modified: 
 				return [];
 			}
 			const snippet = searchSnippet(entry.kind === "document" ? entry.title : entry.text, terms[0] ?? "");
-			return [
-				{
-					...relevance(entry, terms, phrase, text),
-					entry: { ...entry, snippet },
-					group: entry.inactive ? 1 : 0,
-					modified: modified.get(entry.file) ?? 0,
-					order,
-				},
-			];
+			const item = entry.kind === "document" ? undefined : items.get(entry.file);
+			return (item ? [item, entry] : [entry]).map((result) => ({
+				...relevance(result, terms, phrase, text),
+				entry: { ...result, snippet },
+				group: result.inactive ? 1 : 0,
+				modified: modified.get(result.file) ?? 0,
+				order,
+				type: resultType(result),
+			}));
 		})
 		.sort(
 			(left, right) =>
-				left.group - right.group || left.title - right.title || right.modified - left.modified || left.rank - right.rank || left.order - right.order,
+				left.type - right.type
+				|| left.group - right.group
+				|| left.title - right.title
+				|| right.modified - left.modified
+				|| left.rank - right.rank
+				|| left.order - right.order,
 		);
-	return { results: matches.slice(0, 40).map((match) => match.entry), total: matches.length };
+	const anchors = new Map<string, (typeof matches)[number]["entry"]>();
+	for (const match of matches) {
+		anchors.set(match.entry.href, anchors.get(match.entry.href) ?? match.entry);
+	}
+	const results = [...anchors.values()];
+	return { results: results.slice(0, 40), total: results.length };
 }

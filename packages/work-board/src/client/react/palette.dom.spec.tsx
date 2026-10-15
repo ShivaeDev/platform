@@ -56,6 +56,20 @@ it("offers go-to views and open goals, ranks a matching command first and shows 
 		expect(rows()[0]?.querySelector("small")?.textContent).toContain("task");
 		expect(rows()[0]?.querySelector("[data-status-token]")?.textContent).toBe("active");
 		expect(view.container.textContent).not.toContain("Inbox decision");
+		type("records: inbox");
+		await eventually(() => expect(rows().some((row) => row.querySelector("strong")?.textContent === "Inbox decision 9")).toBe(true));
+		expect(rows()[0]?.querySelector("strong")?.textContent).toBe("Build the inbox");
+		expect(
+			new Set(
+				rows()
+					.map((row) => row.querySelector("code")?.textContent)
+					.filter((id) => id?.startsWith("decision.delivery.")),
+			).size,
+		).toBe(10);
+		expect(view.container.textContent).not.toContain("Not recorded");
+		for (const row of rows()) {
+			expect(row.querySelector("p")?.textContent ?? "").not.toMatch(/^(?:\{|---)|(?:id|kind|next_action):/u);
+		}
 		type("workspace");
 		await eventually(() => expect(rows()[0]?.querySelector("strong")?.textContent).toBe("Open workspace"));
 		expect(rows().findIndex((row) => row.querySelector("strong")?.textContent === "A calmer workspace")).toBeGreaterThan(0);

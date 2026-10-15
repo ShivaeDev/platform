@@ -39,7 +39,7 @@ export function SearchResults({
 						<small>
 							{item.itemKind ?? item.kind}
 							{Boolean(item.id) && <code className="font-mono">{item.id}</code>}
-							{item.kind !== "command" && <StatusChip status={item.status} />}
+							{Boolean(item.status) && <StatusChip status={item.status} />}
 							{!item.id && item.file ? ` · ${item.file}${item.line ? `:${item.line}` : ""}` : ""}
 						</small>
 						{Boolean(item.snippet) && <p>{item.snippet}</p>}
