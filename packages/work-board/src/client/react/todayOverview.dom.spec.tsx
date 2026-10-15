@@ -63,7 +63,7 @@ it("opens Today with the exact human lane and one honest card per goal, retainin
 		expect(view.container.querySelector("#doc")?.textContent).not.toContain("Resolved elsewhere");
 		expect(view.container.querySelector("#doc")?.textContent).not.toContain("Parked");
 		expect(view.container.querySelectorAll("[data-progress-id]")).toHaveLength(8);
-		expect(view.container.querySelector("#in-progress a[href='/_board/work?view=board']")?.textContent).toBe("All in Now →");
+		expect(view.container.querySelector("#in-progress a[href='/_board/work']")?.textContent).toBe("All in Now →");
 		const criteria = [...view.container.querySelectorAll<HTMLDetailsElement>(".today-goal details")];
 		expect(criteria).toHaveLength(goals.goals.length);
 		expect(criteria.every((entry) => !entry.open)).toBe(true);

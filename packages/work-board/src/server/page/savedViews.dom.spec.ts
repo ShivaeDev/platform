@@ -77,7 +77,7 @@ effectApp("saves applied table context without selection or unsent input, reopen
 	save("Review queue");
 	yield* Effect.promise(frame);
 	expect(JSON.parse(page.window.localStorage.getItem(key()) ?? "[]")).toHaveLength(1);
-	expect(JSON.parse(page.window.localStorage.getItem(key()) ?? "[]")[0].url).toContain("view=board");
+	expect(JSON.parse(page.window.localStorage.getItem(key()) ?? "[]")[0].url).toContain("view=now");
 	click("#remove-saved-view");
 	yield* Effect.promise(frame);
 	expect(JSON.parse(page.window.localStorage.getItem(key()) ?? "[]")).toEqual([]);

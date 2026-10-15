@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect";
 
-const View = Schema.Literals(["board", "table"]);
+const View = Schema.Literals(["now", "board", "table"]);
 const Sort = Schema.Literals(["title", "owner", "status"]);
 export const State = Schema.Struct({
 	board: Schema.String,
@@ -22,7 +22,7 @@ export function stateOf(url: string): State {
 		query: (params.get("q") ?? "").slice(0, 200),
 		sort: Option.getOrElse(Schema.decodeUnknownOption(Sort)(params.get("sort")), () => "title"),
 		status: params.get("status") ?? "",
-		view: Option.getOrElse(Schema.decodeUnknownOption(View)(params.get("view")), () => "board"),
+		view: Option.getOrElse(Schema.decodeUnknownOption(View)(params.get("view")), () => "now"),
 	};
 }
 export function viewUrl(state: State, changes: Partial<State> = {}, hash = ""): string {

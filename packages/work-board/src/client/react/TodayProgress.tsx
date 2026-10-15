@@ -24,7 +24,7 @@ export function TodayProgress({ data, failed }: { readonly data: FleetItemsProje
 					Fleet refresh failed. Displayed work is retained.
 				</p>
 			)}
-			<a className="inline-block text-sm" href="/_board/work?view=board">
+			<a className="inline-block text-sm" href="/_board/work">
 				All in Now →
 			</a>
 		</div>

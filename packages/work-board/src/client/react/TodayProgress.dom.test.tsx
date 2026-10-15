@@ -16,7 +16,7 @@ it("caps Fleet-held work at eight rows with stages, titles, PR links and a Now l
 		expect(view.container.querySelector('a[aria-label="Pull request for Workspace task 0"]')?.getAttribute("href")).toBe(
 			"https://github.com/example/project/pull/1",
 		);
-		expect(view.container.querySelector('a[href="/_board/work?view=board"]')?.textContent).toBe("All in Now →");
+		expect(view.container.querySelector('a[href="/_board/work"]')?.textContent).toBe("All in Now →");
 	} finally {
 		await view.unmount();
 	}
@@ -57,7 +57,7 @@ it.each([false, true])("distinguishes loading Fleet work from an available empty
 	const view = await render(<TodayProgress data={data} failed={false} />);
 	try {
 		expect(view.container.textContent).toContain(ready ? "Fleet holds no work" : "Loading Fleet work");
-		expect(view.container.querySelector('a[href="/_board/work?view=board"]')).not.toBeNull();
+		expect(view.container.querySelector('a[href="/_board/work"]')).not.toBeNull();
 	} finally {
 		await view.unmount();
 	}

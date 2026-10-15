@@ -20,7 +20,7 @@ export function missingTurnTransport() {
 	return {
 		decorate: (transport: typeof SessionTransport.Service): typeof SessionTransport.Service => ({
 			...transport,
-			observe: provider.observe,
+			observe: (receipt) => provider.reconcile({ ...receipt, operationId: "legacy-observation" }).pipe(Effect.flatMap(provider.observe)),
 			reconcile: (input) => {
 				recoveries.push(input);
 				return provider.reconcile(input);

@@ -80,7 +80,8 @@ it.live("serves the Inbox count on reader pages and exposes waiting work in Over
 	expect(inbox).toContain('data-modified="');
 	for (const path of ["/_board/overview", "/_board/work?view=board", "/_board/work?view=table"]) {
 		const view = (yield* rawGet(board, path)).body;
-		expect(view).toContain(path === "/_board/overview" ? "Open Inbox" : "Waiting on you");
+		const attention = path === "/_board/work?view=board" ? 'data-status-token="needs-you"' : "Waiting on you";
+		expect(view).toContain(path === "/_board/overview" ? "Open Inbox" : attention);
 		expect(view).not.toContain("All quiet");
 	}
 	const question = (yield* rawGet(board, "/question.md")).body;

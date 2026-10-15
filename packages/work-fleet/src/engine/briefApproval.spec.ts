@@ -11,7 +11,7 @@ import { withFleetBoard } from "#test/withFleetBoard.ts";
 
 const test = postgresTests("test");
 
-test("approval adopts a repair that finished while the changed brief was awaiting approval", () =>
+test("an approved brief edit preserves the repair session and adopts its result", () =>
 	withFleetBoard({ repairs: true, reviewRunning: true }, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -24,9 +24,6 @@ test("approval adopts a repair that finished while the changed brief was awaitin
 			boardHttpFiles(root).write("one.md", `${source}\nRevised repair criteria.\n`);
 			yield* fleet.reconcile("one");
 			finishWorkers(fixture);
-			const paused = yield* fleet.reconcile("one");
-			expect(paused.value.attempts.at(-1)?.status).toBe("completed");
-			yield* fleet.dispatch("one");
 			const reviewed = yield* fleet.reconcile("one");
 			expect(reviewed.value.stage).toBe("reviewing");
 			expect(reviewed.value.result).toMatchObject({ head: "head-one-1", pr: "https://example.invalid/pr/one" });
@@ -73,13 +70,14 @@ for (const action of ["dispatch", "retry"] as const) {
 				yield* prepareWork("one");
 				const worker = yield* fleet.dispatch("one");
 				const current = `${source}\nUpdated acceptance criteria.\n`;
-				boardHttpFiles(root).write("one.md", current);
+				boardHttpFiles(root).write("one.md", current.replace("kind: task", "kind: task\nowner: human"));
 				boardHttpFiles(root).move("one.md", "revised.md");
 				const stopped = yield* fleet.reconcile("one");
 				const decision = stopped.value.decision;
 				if (decision?.published === undefined) {
 					return yield* Effect.die("Missing decision");
 				}
+				boardHttpFiles(root).write("revised.md", current);
 				const approved =
 					action === "dispatch"
 						? yield* fleet.dispatch("one")
@@ -121,7 +119,7 @@ test("retry of a context decision cannot approve a subsequent edit", () =>
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			const files = boardHttpFiles(root);
-			files.write("one.md", `${source}\nFirst criteria edit.\n`);
+			files.write("one.md", `${source.replace("kind: task", "kind: task\nowner: human")}\nFirst criteria edit.\n`);
 			const decision = (yield* fleet.reconcile("one")).value.decision;
 			if (decision?.published === undefined) {
 				return yield* Effect.die("Missing decision");

@@ -41,10 +41,10 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 			code: "fleet-stale" as const,
 			enter: Effect.fnUntraced(function* (context) {
 				yield* prepareWork("one");
-				writeFileSync(join(context.root, "one.md"), `${context.source}\nChanged criteria.\n`);
+				writeFileSync(join(context.root, "one.md"), `${context.source.replace("kind: task", "kind: task\nowner: human")}\nChanged criteria.\n`);
 				yield* (yield* Fleet).dispatch("one");
 			}),
-			name: "authored brief changed before dispatch",
+			name: "authored brief reassigned before dispatch",
 			progress: (_context, _before, after) => {
 				expect(after.attempts).toHaveLength(1);
 				expect(after.stage).toBe("executing");
@@ -56,11 +56,11 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 			code: "fleet-stale" as const,
 			enter: Effect.fnUntraced(function* (context) {
 				yield* launchRecoveryWorker();
-				writeFileSync(join(context.root, "one.md"), `${context.source}\nChanged criteria.\n`);
+				writeFileSync(join(context.root, "one.md"), `${context.source.replace("kind: task", "kind: task\nowner: human")}\nChanged criteria.\n`);
 				setLastObservation(context, { execution: "completed", output: REPORT });
 				yield* (yield* Fleet).reconcile("one");
 			}),
-			name: "authored brief changed during execution",
+			name: "authored brief reassigned during execution",
 			progress: (_context, before, after) => {
 				expect(after.attempts[0]?.receipt).toEqual(before.attempts[0]?.receipt);
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");

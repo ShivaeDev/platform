@@ -23,16 +23,16 @@ afterEach(() => {
 
 effectApp("projects explicitly shared items without inferring work from legacy headings or board definitions", function* () {
 	const all = yield* rawGet(board, "/_board/work");
-	expect(all.body).toContain("4 shown · 4 items");
+	expect(all.body).toContain("1 shown · 2 items");
 	expect(all.body).not.toContain('data-item="board.review"');
 	expect(all.body).not.toContain("Plain item");
 	const review = yield* rawGet(board, "/_board/work?board=board.review&item=work.search");
-	expect(review.body).toContain("3 shown · 3 items");
+	expect(review.body).toContain("1 shown · 2 items");
 	expect(review.body).toContain('data-item="work.search"');
 	expect(review.body).toContain('href="/evidence.md"');
 	expect(review.body).toContain("not independently verified");
 	const shared = yield* rawGet(board, "/_board/work?board=board.shared&item=work.search");
-	expect(shared.body).toContain("2 shown · 2 items");
+	expect(shared.body).toContain("1 shown · 1 items");
 	expect(shared.body).toContain('data-key="detail:work.search"');
 	expect((yield* rawGet(board, "/")).body).toContain('class="item"');
 	expect((yield* rawGet(board, "/boards/review.md")).body).toContain("View this board");
@@ -43,16 +43,17 @@ effectApp("filters exact recorded fields, sorts consistently, and retains detail
 		board,
 		"/_board/work?board=board.review&owner=value%3Aagent-navigation&status=value%3Ain-review&q=search&item=work.other",
 	);
-	expect(result.body).toContain("1 shown · 3 items");
+	expect(result.body).toContain("1 shown · 2 items");
 	expect(result.body).toContain("outside the current board or filters");
 	expect(result.body).toContain('data-key="detail:work.other"');
-	const missing = yield* rawGet(board, "/_board/work?board=board.review&owner=missing&status=missing");
-	expect(missing.body).toContain("1 shown · 3 items");
+	const missing = yield* rawGet(board, "/_board/work?view=board&board=board.review&owner=missing&status=missing");
+	expect(missing.body).toContain("1 shown · 2 items");
 	expect(missing.body).toContain('data-item="work.unassigned"');
 	const sorted = yield* rawGet(board, "/_board/work?board=board.shared&sort=title");
-	expect(sorted.body.indexOf('data-item="decision.search"')).toBeLessThan(sorted.body.indexOf('data-item="work.search"'));
+	expect(sorted.body).not.toContain('data-item="decision.search"');
+	expect(sorted.body).toContain('data-item="work.search"');
 	const empty = yield* rawGet(board, "/_board/work?board=board.review&status=value%3Agone");
-	expect(empty.body).toContain("0 shown · 3 items");
+	expect(empty.body).toContain("0 shown · 2 items");
 	expect(empty.body).toContain("gone (no current matches)");
 });
 
@@ -60,7 +61,7 @@ effectApp("explains missing and ambiguous members and selections without silentl
 	notes.write("duplicate.md", "---\nid: work.search\n---\n# Duplicate");
 	notes.write("boards/review.md", "---\nid: board.review\nkind: board\nitems: [work.search, work.other, work.other, gone]\n---\n# Review work");
 	const result = yield* rawGet(board, "/_board/work?board=board.review&item=work.search");
-	expect(result.body).toContain("1 shown · 1 items");
+	expect(result.body).toContain("0 shown · 0 items");
 	expect(result.body).toContain("repeated membership, shown once");
 	expect(result.body).toContain("gone: missing or invalid ID");
 	expect(result.body).toContain("work.search: ambiguous ID");
@@ -74,11 +75,11 @@ effectApp("refreshes counts and explains a removed selection while keeping URL f
 	yield* events.next();
 	try {
 		const path = "/_board/work?board=board.review&status=value%3Ain-review&item=work.search";
-		expect((yield* rawGet(board, path)).body).toContain("1 shown · 3 items");
+		expect((yield* rawGet(board, path)).body).toContain("1 shown · 2 items");
 		notes.write("items/search & review.md", viewsFixture()["items/search & review.md"]?.replace("status: in-review", "status: done") ?? "");
 		yield* changesUntil(events, "items/search & review.md");
 		const changed = yield* rawGet(board, path);
-		expect(changed.body).toContain("0 shown · 3 items");
+		expect(changed.body).toContain("0 shown · 2 items");
 		expect(changed.body).toContain("in-review (no current matches)");
 		expect(changed.body).toContain("outside the current board or filters");
 		rmSync(join(notes.root, "items/search & review.md"));

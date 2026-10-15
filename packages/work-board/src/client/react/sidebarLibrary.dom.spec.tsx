@@ -51,6 +51,8 @@ it("bounds document shell links with 1,500 files and shows titled pinned, goal a
 			expect(navigation.value).not.toHaveProperty("tree");
 			expect(navigation.value).not.toHaveProperty("records");
 		}
+		click("#work-open");
+		await eventually(() => expect(document.querySelector(".work-head h1")?.textContent).toBe("Now"));
 	} finally {
 		await view.unmount();
 	}

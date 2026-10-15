@@ -45,7 +45,7 @@ postgresTests("test")("a queue-full answer retries the exact response as a worke
 	);
 });
 
-postgresTests("test")("a queued answer stops at an authored brief edit without submitting its launch intent", () => {
+postgresTests("test")("a queued answer continues on its existing thread after an approved brief edit", () => {
 	let now = 100;
 	let reject = false;
 	const launch = { model: "initial-model" };
@@ -75,21 +75,21 @@ postgresTests("test")("a queued answer stops at an authored brief edit without s
 				now = 30_099;
 				yield* fixture.restart(cycle);
 				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
-				expect((yield* fleet.get("one")).value.decision?.reason).toBe("Board context changed");
+				expect((yield* fleet.get("one")).value.decision).toBeUndefined();
 				now = 30_100;
 				yield* fixture.restart(cycle);
 				const accepted = (yield* fleet.get("one")).value;
 				const attempt = accepted.attempts.at(-1);
-				expect(accepted.stage).toBe("needs-human");
-				expect(accepted.decision?.reason).toBe("Board context changed");
-				expect(accepted.boardContext).toBe(source);
+				expect(accepted.stage).toBe("executing");
+				expect(accepted.decision).toBeUndefined();
+				expect(accepted.boardContext).toBe(current);
 				expect(accepted.launchRetry).toBeUndefined();
-				expect(attempt).toEqual(failed);
-				expect(accepted.attempts).toEqual(queued.attempts);
+				expect(attempt).toMatchObject({ receipt: { sessionId: decision.worker?.sessionId }, role: "worker", settings: failed?.settings });
+				expect(accepted.attempts.slice(0, -1)).toEqual(queued.attempts);
 				expect(accepted.responses).toEqual(queued.responses);
 				expect(accepted.history ?? []).toEqual([]);
 				expect(fixture.launched).toHaveLength(1);
-				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
+				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(3);
 			}),
 	);
 });
