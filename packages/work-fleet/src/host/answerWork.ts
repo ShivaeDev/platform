@@ -19,7 +19,7 @@ export function answerWork(host: FleetHost, workId: string, text = "", release =
 				if (recorded !== undefined && hasResponse(current, recorded)) {
 					return yield* fleet.resolve(workId, recorded.decisionId, recorded.responseId);
 				}
-				if (!release && text.trim() && ["repairing", "executing"].includes(current.stage)) {
+				if (canQueueAnswer(current, text, release)) {
 					return yield* fleet.queueAnswer(workId, text);
 				}
 				yield* checkDecision(current, original);
@@ -67,6 +67,9 @@ const publishAnswer = Effect.fn("FleetHost.publishAnswer")(function* (
 ) {
 	const fleet = yield* Fleet;
 	const stored = yield* fleet.publishDecision(workId);
+	if (canQueueAnswer(stored.value, text, release)) {
+		return yield* new Conflict({ message: "Decision changed" });
+	}
 	yield* checkDecision(stored.value, original);
 	const decision = stored.value.decision;
 	if (decision?.published === undefined) {
@@ -95,3 +98,7 @@ const decisionConflict = Effect.fn("FleetHost.decisionConflict")(function* (
 		current.stage !== "needs-human" || current.decision?.id !== decisionId ? new Conflict({ message: "Decision changed" }) : error,
 	);
 });
+
+function canQueueAnswer(record: FleetRecord, text: string, release: boolean) {
+	return !release && text.trim() !== "" && ["repairing", "executing"].includes(record.stage);
+}

@@ -14,9 +14,12 @@ export const deliverPendingAnswers = Effect.fn("Fleet.deliverPendingAnswers")(fu
 		return undefined;
 	}
 	const current = yield* reconcileBrief(state, stored);
-	const prompt =
-		current.value.stage === "repairing" || current.value.boardRevision !== stored.value.boardRevision
-			? current.value.prompt
-			: "Apply the following human guidance to the existing work.";
-	return yield* launch(current, "repair", prompt);
+	return yield* launch(current, "repair", deliveryPrompt(current.value, current.value.boardRevision !== stored.value.boardRevision));
 });
+
+function deliveryPrompt(record: FleetRecord, briefChanged: boolean) {
+	if (record.stage === "repairing") {
+		return record.checks?.repairPrompt ?? record.review?.repairPrompt ?? record.prompt;
+	}
+	return briefChanged ? record.prompt : "Apply the following human guidance to the existing work.";
+}
