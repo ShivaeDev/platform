@@ -17,9 +17,9 @@ export const daemonResync = Effect.fn("DaemonTest.daemonResync")(function* (fixt
 			Effect.gen(function* () {
 				const client = yield* daemonClient(port);
 				const ready = yield* Deferred.make<void>();
-				const stages: (string | undefined)[] = [];
+				const received: unknown[] = [];
 				yield* client("daemon.follow", { follow: true, workIds: ["one"] }).pipe(
-					Stream.tap((states) => Effect.sync(() => stages.push(states[0]?.stage))),
+					Stream.tap((states) => Effect.sync(() => received.push(states))),
 					Stream.tap(() => Deferred.succeed(ready, undefined)),
 					Stream.runDrain,
 					Effect.forkScoped,
@@ -29,10 +29,10 @@ export const daemonResync = Effect.fn("DaemonTest.daemonResync")(function* (fixt
 					Effect.provideService(Reactivity.Reactivity, yield* Reactivity.make),
 				);
 				yield* Effect.sleep("100 millis");
-				expect(stages).toEqual(["executing"]);
+				expect(received).toMatchObject([[{ stage: "executing", workId: "one" }]]);
 				yield* (yield* AppChanges).resync;
-				yield* until(() => Effect.succeed(stages.length === 2));
-				expect(stages).toEqual(["executing", "completed"]);
+				yield* until(() => Effect.succeed(received.length === 2));
+				expect(received).toMatchObject([[{ stage: "executing", workId: "one" }], [{ stage: "completed", workId: "one" }]]);
 			}),
 		fixture.parts,
 	);
