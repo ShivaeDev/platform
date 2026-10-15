@@ -5,6 +5,7 @@ import { bootstrapPage } from "#client/react/mainLocation.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { expectTitleInFirstScreen } from "#test/expectTitleInFirstScreen.ts";
+import { followLink } from "#test/followLink.ts";
 import { itemFixture } from "#test/itemFixture.ts";
 import { waitFor } from "#test/live.ts";
 
@@ -49,7 +50,9 @@ it.live.each([1440, 390])("starts document content with title, authored status a
 	expect(page.document.querySelectorAll("#doc h1")).toHaveLength(1);
 	expect(context().tagName).toBe("ASIDE");
 	expect(context().querySelector('[aria-label="Document source"]')?.textContent).toContain("Source: release.md");
-	expect(context().querySelector(".work-context")?.textContent).toContain("compatibility.md");
+	const backlink = context().querySelector('.work-context a[href="/compatibility.md"]');
+	expect(backlink?.textContent).toBe("Compatibility notes");
+	expect(backlink?.getAttribute("title")).toBe("compatibility.md");
 	expect(introduction?.querySelector("#favorite-toggle")).not.toBeNull();
 	expect(context().querySelector('a[href="#heading-evidence"]')).not.toBeNull();
 	expect(page.document.querySelector('.doc a[href="/compatibility.md"]')).not.toBeNull();
@@ -84,9 +87,7 @@ it.live("shows unknown authored values, moves a top-level title before preamble 
 it.live("keeps criteria open on narrow screens and reveals a referenced criterion after navigation", function* () {
 	yield* open(390);
 	expect(context().querySelector("#criterion-review")?.closest("details")).toBeNull();
-	page.document
-		.querySelector('#files a[href="/unknown.md"]')
-		?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true }));
+	followLink(page, "/unknown.md");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".item-introduction h1")?.textContent).toBe("Unknown status")));
 	const link = page.document.createElement("a");
 	link.href = "/_board/item/work.release/#criterion-review";

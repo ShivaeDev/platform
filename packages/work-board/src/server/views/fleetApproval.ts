@@ -2,7 +2,7 @@ import { parseDocument } from "yaml";
 import type { ParsedMetadata } from "#integration/metadata.ts";
 
 export function fleetApproval(parsed: ParsedMetadata): boolean {
-	if (!(parsed.raw && parsed.diagnostics.some((diagnostic) => diagnostic.field === "fleet"))) {
+	if (!(parsed.raw && parsed.lines.fleet !== undefined)) {
 		return false;
 	}
 	const lines = parsed.raw.split(/\r?\n/u);

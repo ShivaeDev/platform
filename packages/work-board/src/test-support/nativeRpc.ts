@@ -21,6 +21,15 @@ function call<A, E>(board: Pick<RunningBoard, "url">, read: (client: Client) => 
 	return Effect.scoped(Effect.flatMap(makeClient(), read)).pipe(Effect.provide(protocol(board)));
 }
 
+export function rpcLibrary(board: RunningBoard) {
+	return call(board, (client) => client("work-board.library", {}));
+}
+export function rpcPaths(board: RunningBoard) {
+	return Effect.map(rpcLibrary(board), (data) => data.files.map((file) => file.href));
+}
+export function rpcNavigation(board: RunningBoard) {
+	return call(board, (client) => client("work-board.navigation", { current: "" }));
+}
 export function rpcSearch(board: RunningBoard, query: string) {
 	return call(board, (client) => client("work-board.search", { query }));
 }

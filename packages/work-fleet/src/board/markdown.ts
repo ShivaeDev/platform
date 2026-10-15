@@ -6,7 +6,7 @@ import { briefRevision } from "#board/briefRevision.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
 import { decisionReading } from "#board/decisionReading.ts";
 import { boundDocuments, boundSnapshot, refreshSnapshotDocument, snapshotDocument } from "#board/documents.ts";
-import { boardDiagnostics, fleetApproved, fleetDeliverable } from "#board/fleetField.ts";
+import { fleetApproved, fleetDeliverable } from "#board/fleetField.ts";
 import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
 import { workMetadata } from "#board/readPass.ts";
@@ -66,7 +66,7 @@ const MarkdownBoard = defineService({
 					return;
 				}
 				const parsed = boardApi.metadataParse(content);
-				if (parsed.fields.id !== workId || boardDiagnostics(parsed).length > 0 || briefRevision(parsed) !== work.revision) {
+				if (parsed.fields.id !== workId || parsed.diagnostics.length > 0 || briefRevision(parsed) !== work.revision) {
 					return yield* Effect.fail(new BoardFailure({ message: "Completion bookkeeping would change authored Board context or identity." }));
 				}
 				yield* writeCompletion(root, realRoot, path.relative(realRoot, sourcePath), work.context, content).pipe(
@@ -81,7 +81,7 @@ const MarkdownBoard = defineService({
 					work.workId !== workId
 					|| workRevision(work.revision, work.context) !== briefRevision(parsed)
 					|| parsed.fields.id !== workId
-					|| boardDiagnostics(parsed).length > 0
+					|| parsed.diagnostics.length > 0
 					|| relativeSource === "."
 					|| !Schema.is(RepositoryPath)(relativeSource)
 				) {

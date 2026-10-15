@@ -33,7 +33,11 @@ for (const evidence of ["matching", "unrelated", "empty"] as const) {
 		} else {
 			expect(result).toMatchObject({
 				_tag: "Failure",
-				failure: { message: "No matching accepted turn is observable; absence does not authorize replay", reason: "ambiguous" },
+				failure: {
+					code: "session-turn-missing",
+					message: "No matching accepted turn is observable; absence does not authorize replay",
+					reason: "ambiguous",
+				},
 			});
 		}
 		expect(requests.length).toBeGreaterThan(1);

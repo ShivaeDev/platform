@@ -1,4 +1,4 @@
-import type { Navigation } from "#browser/navigation/schema.ts";
+import type { Navigation } from "#browser/Navigation.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
 import { documentRoute } from "./documentRoute.ts";
 import type { MainLocation } from "./mainLocation.ts";

@@ -4,6 +4,12 @@ import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 export function pageQuery(api: ShellApi, kind: string, url: string, baseline: string | null): Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>> {
+	if (kind === "library") {
+		return api.library.query({}, routeQueryOptions);
+	}
+	if (kind === "goals") {
+		return api.goals.query(undefined, routeQueryOptions);
+	}
 	if (kind === "changes") {
 		return api.history.query({ action: "compare", baseline });
 	}

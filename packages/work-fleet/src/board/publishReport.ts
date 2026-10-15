@@ -4,7 +4,6 @@ import { board } from "@shivaedev/work-board/integration/board.ts";
 import { responses } from "@shivaedev/work-board/integration/responses.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import type { BoardDocument } from "#board/documents.ts";
-import { boardDiagnostics } from "#board/fleetField.ts";
 import { recordBoardSource, workMetadata } from "#board/readPass.ts";
 import { reportContent } from "#board/reportContent.ts";
 import { reportIdentity } from "#board/reportIdentity.ts";
@@ -25,7 +24,7 @@ export function publishReport(root: string, realRoot: string, documents: Effect.
 			matches?.length !== 1
 			|| source?.parsed.fields.id !== work.workId
 			|| parsed.fields.id !== work.workId
-			|| boardDiagnostics(parsed).length > 0
+			|| parsed.diagnostics.length > 0
 			|| briefRevision(source.parsed) !== workRevision(work.revision, work.context)
 			|| workRevision(work.revision, work.context) !== briefRevision(parsed)
 			|| observation.execution !== "completed"

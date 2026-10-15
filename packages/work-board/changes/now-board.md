@@ -6,3 +6,4 @@
 ### Fixed
 
 - Keep tasks visible in their live Fleet execution, review or delivery lane when their authored status is already done, completed or otherwise inactive.
+- Keep approved waiting tasks queued when Fleet addon fields are recognized without diagnostics.

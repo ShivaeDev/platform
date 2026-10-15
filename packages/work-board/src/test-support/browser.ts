@@ -78,7 +78,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		!(
 			window.document.documentElement.dataset.boardReady
 			&& window.document.getElementById("doc")
-			&& window.document.querySelector("#files [data-inbox-count]")
+			&& window.document.querySelector("#primary-navigation[data-inbox-count]")
 		)
 	) {
 		if ((yield* Clock.currentTimeMillis) >= deadline) {

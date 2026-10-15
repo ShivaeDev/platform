@@ -5,7 +5,7 @@ import { afterEach, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { faultyWatch } from "#test/faults.ts";
-import { changesUntil, type EventStream, rpcSearch, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
+import { changesUntil, type EventStream, rpcNavigation, rpcPaths, rpcSearch, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
 import { referenceLink } from "#test/referenceLink.ts";
 
 let workspace: Folder;
@@ -56,12 +56,13 @@ effectApp("reads linked reference Markdown with logical links, search, aliases a
 	board = yield* startBoard(workspace.root, "plan.md");
 	const html = yield* Effect.promise(async () => (await get("/reference/guide/start.md")).text());
 	expect(html).toContain("Reference guide");
-	expect(html).toContain('href="/reference/guide/next.md"');
-	expect(html).toContain('href="/second-reference/guide/start.md"');
-	expect(html).not.toContain("/loop/");
-	expect(html).not.toContain("workspace-loop/");
-	expect(html).not.toContain("private.md");
-	expect(html).not.toContain("secret.md");
+	expect(yield* rpcPaths(board)).toContain("/reference/guide/next.md");
+	expect(yield* rpcPaths(board)).toContain("/second-reference/guide/start.md");
+	const paths = (yield* rpcPaths(board)).join(" ");
+	expect(paths).not.toContain("/loop/");
+	expect(paths).not.toContain("workspace-loop/");
+	expect(paths).not.toContain("private.md");
+	expect(paths).not.toContain("secret.md");
 	for (const path of [
 		"/reference/.drafts/private.md",
 		"/reference/node_modules/secret.md",
@@ -79,10 +80,10 @@ effectApp("selects the requested linked nested home at / and resolves its relati
 	yield* board.stop();
 	referenceLink(workspace, "a-reference", reference.root);
 	board = yield* startBoard(workspace.root, "reference/guide/start.md");
-	const html = yield* Effect.promise(async () => (await get("/")).text());
-	expect(html).toContain('href="/reference/guide/start.md" aria-current="page"');
-	expect(html).toContain('href="/reference/guide/next.md"');
-	expect(html).not.toContain('href="/a-reference/guide/start.md" aria-current="page"');
+	yield* Effect.promise(() => get("/"));
+	expect((yield* rpcNavigation(board)).home?.file).toBe("reference/guide/start.md");
+	expect(yield* rpcPaths(board)).toContain("/reference/guide/next.md");
+	expect((yield* rpcNavigation(board)).home?.file).not.toBe("a-reference/guide/start.md");
 });
 
 effectApp("watches external edits, additions, renames and removals using workspace-relative paths", function* () {
@@ -171,9 +172,8 @@ effectApp("retains internal directory aliases alongside their original paths and
 	workspace.write("other/start.md", "# Other internal note\n");
 	referenceLink(workspace, "alias", "notes");
 	board = yield* startBoard(workspace.root, "plan.md");
-	const html = yield* Effect.promise(async () => (await get("/")).text());
-	expect(html).toContain('href="/notes/start.md"');
-	expect(html).toContain('href="/alias/start.md"');
+	expect(yield* rpcPaths(board)).toContain("/notes/start.md");
+	expect(yield* rpcPaths(board)).toContain("/alias/start.md");
 	const events = yield* subscribe(board);
 	try {
 		yield* ready(events);

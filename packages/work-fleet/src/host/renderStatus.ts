@@ -23,6 +23,11 @@ export function renderStatus(current: typeof FleetViews.Type, port: number = DAE
 		["Completed", current.completed],
 	];
 	return sections
-		.map(([title, items]) => [`${title} (${items.length})`, ...items.map((item) => line(item, title.startsWith("Waiting"), port))].join("\n"))
+		.map(([title, items]) =>
+			[
+				`${title} (${items.length})`,
+				...items.map((item) => line(item, title === "Waiting on maintainer" || title === "Waiting on orchestrator", port)),
+			].join("\n"),
+		)
 		.join("\n");
 }

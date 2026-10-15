@@ -18,10 +18,10 @@ it.live("shows criteria on load, resolved target status and backlinks counted by
 				"board.md": "---\nid: board.fixture\nkind: board\nitems: [task.fixture]\n---\n# Board",
 				"goal.md": "---\nid: goal.fixture\nkind: goal\nstatus: blocked\ncriteria:\n  - id: design\n    text: Design\n---\n# Ship the feature",
 				"notes.md": "# Notes\n\n[Task](task.md)",
-				"one.md": "---\nid: report.one\nrelationships:\n  - kind: informs\n    target: task.fixture\n---\n# One",
+				"one.md": "---\nid: report.one\nstatus: done\nrelationships:\n  - kind: informs\n    target: task.fixture\n---\n# One",
 				"task.md":
 					"---\nid: task.fixture\nkind: task\nrelationships:\n  - kind: implements\n    target: goal.fixture#design\ncriteria:\n  - id: proof\n    text: Visible without a click\n---\n# Readable task\n\nBody.",
-				"two.md": "---\nid: report.two\nrelationships:\n  - kind: informs\n    target: task.fixture\n---\n# Two",
+				"two.md": "---\nid: report.two\nstatus: planned\nrelationships:\n  - kind: informs\n    target: task.fixture\n---\n# Two",
 			},
 			(api) => <Page api={api} />,
 		),
@@ -42,6 +42,11 @@ it.live("shows criteria on load, resolved target status and backlinks counted by
 		expect(
 			[...view.container.querySelectorAll(".work-context h4")].map((node) => node.textContent).sort((a, b) => (a ?? "").localeCompare(b ?? "")),
 		).toEqual(["Board membership (1)", "Informs (2)", "Markdown link (1)"]);
+		const backlinks = view.container.querySelector('[aria-label="Informs backlinks"]');
+		expect([...(backlinks?.querySelectorAll("a") ?? [])].map((node) => node.textContent)).toEqual(["One", "Two"]);
+		expect([...(backlinks?.querySelectorAll("[data-status-token]") ?? [])].map((node) => node.textContent)).toEqual(["done", "planned"]);
+		expect(backlinks?.querySelector("a")?.getAttribute("title")).toBe("one.md:6");
+		expect(view.container.querySelector('[aria-label="Markdown link backlinks"] a')?.textContent).toBe("Notes");
 		expect(view.container.textContent).not.toContain("Context and tools");
 		expect(view.container.textContent).not.toContain("Status (source)");
 		expect(view.container.textContent).not.toContain("Recorded work ·");

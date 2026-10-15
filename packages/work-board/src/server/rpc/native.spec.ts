@@ -30,8 +30,8 @@ it.live("reads typed documents, stable item URLs, navigation, search and explici
 	const page = yield* Effect.promise(() => client.read(client.api.document.query({ url: "/_board/item/note/" })));
 	expect(page.source).toContain("Read this.");
 
-	expect((yield* Effect.promise(() => client.read(client.api.navigation.query({ current: "note.md" })))).tree.files).toEqual(
-		expect.arrayContaining([expect.objectContaining({ current: true, href: "/note.md" })]),
+	expect((yield* Effect.promise(() => client.read(client.api.library.query({})))).files).toEqual(
+		expect.arrayContaining([expect.objectContaining({ href: "/note.md" })]),
 	);
 	expect((yield* Effect.promise(() => client.read(client.api.search.query({ query: "Read this" })))).results).toEqual(
 		expect.arrayContaining([expect.objectContaining({ file: "note.md", kind: "passage" })]),

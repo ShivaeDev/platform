@@ -11,7 +11,7 @@ export function waitingOwner(record: {
 	readonly launchRetry?: { readonly retryAt: number } | undefined;
 	readonly stage: string;
 }): AttentionOwner | undefined {
-	if (record.launchRetry !== undefined) {
+	if (record.launchRetry !== undefined || (record.stage === "prepared" && record.blocker?.startsWith("waiting for dependency "))) {
 		return "automation";
 	}
 	if (record.stage === "needs-human") {
