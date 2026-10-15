@@ -20,7 +20,7 @@ const files = {
 	"notes/deep/review.md": "# Review\n\nThe review page.\n",
 	"notes/design.md": "# Design\n\nThe design page.\n",
 };
-it.live("renders a fixture Board tree through the navigation query with the selected file and ancestry", function* () {
+it.live("renders compact navigation and the selected document title", function* () {
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
 			const router = boardRouter({ api, initial: "", registry });
@@ -30,11 +30,10 @@ it.live("renders a fixture Board tree through the navigation query with the sele
 	);
 	try {
 		yield* Effect.promise(() =>
-			eventually(() => expect(view.container.querySelector('#files a[aria-current="page"]')?.getAttribute("href")).toBe("/notes/deep/review.md")),
+			eventually(() => expect(view.container.querySelector('section[aria-label="Recent"] a[aria-current="page"]')?.textContent).toBe("Review")),
 		);
-		expect([...view.container.querySelectorAll("#files a")].map((link) => link.textContent)).toEqual(["home", "design", "review"]);
-		expect(view.container.querySelector('#files details[data-key="folder:notes"] > summary')?.textContent).toBe("notes/ (2)");
-		expect(view.container.querySelector<HTMLDetailsElement>('#files details[data-key="folder:notes/deep"]')?.open).toBe(true);
+		expect(view.container.querySelector("#files")).toBeNull();
+		expect(view.container.querySelectorAll("#primary-navigation a")).toHaveLength(5);
 		expect(view.container.querySelector("header")).not.toBeNull();
 	} finally {
 		yield* Effect.promise(() => view.unmount());

@@ -94,7 +94,7 @@ export function BoardShell(options: ShellOptions) {
 	);
 	return (
 		<AgeTicker>
-			<ReadingLibrary close={() => setLibraryOpen(false)} data={data} open={libraryOpen}>
+			<ReadingLibrary api={api} close={() => setLibraryOpen(false)} open={libraryOpen}>
 				<a className="skip" href="#doc">
 					Skip to content
 				</a>
@@ -103,7 +103,7 @@ export function BoardShell(options: ShellOptions) {
 					data-board-workspace
 					data-sidebar={sidebar.open ? "open" : "closed"}
 				>
-					<Sidebar controls={sidebar} data={data} home={location.pathname === "/"} main={main} openLibrary={() => setLibraryOpen(true)} />
+					<Sidebar api={api} controls={sidebar} data={data} home={location.pathname === "/"} main={main} openLibrary={() => setLibraryOpen(true)} />
 					<button
 						aria-label="Close files"
 						className="fixed inset-0 z-30 hidden border-0 bg-black/45 p-0 data-[open=true]:block md:hidden"

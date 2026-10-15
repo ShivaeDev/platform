@@ -5,6 +5,7 @@ import { bootstrapPage } from "#client/react/mainLocation.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { expectTitleInFirstScreen } from "#test/expectTitleInFirstScreen.ts";
+import { followLink } from "#test/followLink.ts";
 import { itemFixture } from "#test/itemFixture.ts";
 import { waitFor } from "#test/live.ts";
 
@@ -84,9 +85,7 @@ it.live("shows unknown authored values, moves a top-level title before preamble 
 it.live("keeps criteria open on narrow screens and reveals a referenced criterion after navigation", function* () {
 	yield* open(390);
 	expect(context().querySelector("#criterion-review")?.closest("details")).toBeNull();
-	page.document
-		.querySelector('#files a[href="/unknown.md"]')
-		?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true }));
+	followLink(page, "/unknown.md");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".item-introduction h1")?.textContent).toBe("Unknown status")));
 	const link = page.document.createElement("a");
 	link.href = "/_board/item/work.release/#criterion-review";

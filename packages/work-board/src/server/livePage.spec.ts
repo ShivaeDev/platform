@@ -59,7 +59,9 @@ describe("live page", () => {
 		notes.write("board.md", `${BOARD}\n### \`ops\` Rotate the key\n`);
 		notes.write("later/idea.md", "# Idea\n");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".counts")?.textContent).toBe("2 to do")));
-		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('#files a[href="/later/idea.md"]')?.textContent).toBe("idea")));
+		yield* Effect.promise(() =>
+			waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe(`Library${Object.keys(FILES).length + 1}`)),
+		);
 	});
 
 	effectApp("shows that it is reconnecting and catches up once the connection is back", function* () {
@@ -122,7 +124,7 @@ describe("live page", () => {
 		yield* open("/plan.md");
 		rmSync(join(notes.root, "plan.md"));
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#doc .empty")?.textContent).toBe("No markdown file at plan.md.")));
-		expect(page.document.querySelector('#files a[href="/plan.md"]')).toBeNull();
+		expect(page.document.getElementById("documents-open")?.textContent).toBe(`Library${Object.keys(FILES).length - 1}`);
 		yield* Effect.promise(() => waitFor(() => expect(status()).toBe("live")));
 	});
 
@@ -174,8 +176,7 @@ describe("live page", () => {
 		const file = join(notes.root, "plan.md");
 		const twoHoursEarlier = statSync(file).mtimeMs / 1000 - 2 * 60 * 60;
 		utimesSync(file, twoHoursEarlier, twoHoursEarlier);
-		yield* open("/plan.md");
-		expect(page.document.querySelector('#files a[href="/plan.md"] + [data-modified]')?.textContent).toBe("2h");
-		expect(page.document.querySelector("#doc .item-context [data-modified]")?.textContent).toBe("updated 2h ago");
+		yield* open("/_board/library");
+		expect(page.document.querySelector('#doc li:has(a[href="/plan.md"]) [data-modified]')?.textContent).toBe("updated 2h ago");
 	});
 });

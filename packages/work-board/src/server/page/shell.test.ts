@@ -21,12 +21,12 @@ it.live("serves a large workspace with board and document layouts and escaped fi
 	);
 	expect(home).toContain('class="board-view"');
 	expect(home.match(/class="item"/gu)).toHaveLength(100);
-	expect(home.match(/class="age short"/gu)).toHaveLength(50);
-	expect(home).toContain('aria-label="Project files"');
+	expect(home).not.toContain('data-key="folder:');
+	expect(home).toContain('href="/_board/library"');
 	expect(home).toContain('class="skip" href="#doc"');
 	const document = yield* Effect.promise(async () => (await fetch(`${board.url}/notes/flow%20%26%20details.md`)).text());
 	expect(document).toContain('class="document-view"');
 	expect(document).toContain('<span>notes</span><span class="separator">/</span><span>flow &amp; details.md</span>');
-	expect(document).toContain('aria-current="page"');
+	expect(document).toContain('href="/_board/library"');
 	expect(document).toContain('class="diagram"');
 });
