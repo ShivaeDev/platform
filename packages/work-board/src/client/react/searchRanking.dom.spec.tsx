@@ -9,14 +9,24 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
 it.each([
-	{ first: "A running watch sees reviews finish", fixture: searchRankingFixture(), queries: ["watch"], status: "planned" },
+	{ first: "A running watch sees reviews finish", fixture: searchRankingFixture(), id: "", queries: ["watch"], status: "planned" },
 	...["active", "done", "deferred"].map((status) => ({
 		first: "Inbox triage",
-		fixture: identityRankingFixture(status, "active"),
+		fixture: identityRankingFixture(status, status),
+		id: "task.inbox",
 		queries: ["inbox", "task.inbox"],
 		status,
 	})),
-])("ranks title and ID matches first, then status and recency ($status)", async ({ fixture, first, queries, status }) => {
+	...["planned", "active"].flatMap((passageStatus) =>
+		["done", "deferred"].map((titleStatus) => ({
+			first: "Captured notes",
+			fixture: identityRankingFixture(titleStatus, passageStatus),
+			id: "task.notes",
+			queries: ["inbox", "task.inbox"],
+			status: passageStatus,
+		})),
+	),
+])("ranks status first, then title/ID relevance and recency ($status, $id)", async ({ fixture, first, id, queries, status }) => {
 	const { files, modified } = fixture;
 	const view = await renderBoard(
 		files,
@@ -51,14 +61,15 @@ it.each([
 					"Watch needs you",
 					"Active watch",
 					"Held watch",
+					"Keep reviews visible",
 					"Done watch",
 					"Deferred watch",
 					"Superseded watch",
-					"Keep reviews visible",
 					"Finished",
 				]);
 			} else {
-				expect(rows[0]?.querySelector("code")?.textContent).toBe("task.inbox");
+				expect(rows[0]?.querySelector("code")?.textContent).toBe(id);
+				expect(rows.some((row) => row.querySelector("strong")?.textContent === "Inbox triage")).toBe(true);
 				expect(rows.some((row) => row.querySelector("strong")?.textContent === "Captured notes")).toBe(true);
 			}
 		}

@@ -39,7 +39,7 @@ export function searchMatch(entries: readonly Entry[], query: string, modified: 
 		})
 		.sort(
 			(left, right) =>
-				left.title - right.title || left.group - right.group || right.modified - left.modified || left.rank - right.rank || left.order - right.order,
+				left.group - right.group || left.title - right.title || right.modified - left.modified || left.rank - right.rank || left.order - right.order,
 		);
 	return { results: matches.slice(0, 40).map((match) => match.entry), total: matches.length };
 }
