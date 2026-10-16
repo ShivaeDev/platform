@@ -88,12 +88,12 @@
 			"board/plan.md": "# Plan\n\n## To do\n\n### `ops` Rotate the key\n"
 		},
 		"pages": {
-			"/": "<span><b>1</b> to do</span>",
+			"/": "data-board-react-root",
 			"/_board/mermaid/mermaid.esm.min.mjs": "",
 			"/_board/native.js": "/* @shivaedev/work-board native browser bundle */",
 			"/_board/react.css": "--background:",
 			"/_board/react.js": "data-board-react-root",
-			"/_board/style.css": ""
+			"/_board/system": "data-board-react-root"
 		}
 	},
 	"work-fleet": {

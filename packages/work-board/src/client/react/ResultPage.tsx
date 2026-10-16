@@ -1,6 +1,7 @@
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { fileUrl } from "#files/url.ts";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
+import { ReadingPanel } from "./ReadingPanel.tsx";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 import { ResultCriteria } from "./ResultCriteria.tsx";
 import { ResultFeedback } from "./ResultFeedback.tsx";
@@ -18,7 +19,7 @@ export function ResultPage({ data }: { readonly data: ResultProjection }) {
 		</li>
 	));
 	return (
-		<section className="response-panel">
+		<ReadingPanel className="response-panel">
 			<h1>Review returned result · {document.identity}</h1>
 			<p>
 				<span title="A supplied claim does not establish execution or work acceptance.">
@@ -46,6 +47,6 @@ export function ResultPage({ data }: { readonly data: ResultProjection }) {
 				<ResponseMarkdown file={document.file} source={document.source} />
 			</section>
 			<ResultFeedback data={data} />
-		</section>
+		</ReadingPanel>
 	);
 }

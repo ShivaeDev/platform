@@ -12,7 +12,7 @@ export const PageUrl = Schema.String.check(
 				path === "/"
 				|| [
 					"/_board/inbox",
-					"/_board/diagnostics",
+					"/_board/system",
 					"/_board/work",
 					"/_board/overview",
 					"/_board/changes",

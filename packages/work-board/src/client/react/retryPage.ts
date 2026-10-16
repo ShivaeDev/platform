@@ -4,12 +4,7 @@ import type { ShellApi } from "./ShellApi.ts";
 
 export function retryPage(api: ShellApi, registry: AtomRegistry.AtomRegistry, url: string) {
 	const doc = document.getElementById("doc");
-	const queries = pageQueries(
-		api,
-		doc?.dataset.projection ?? "document",
-		url,
-		doc?.querySelector<HTMLElement>("[data-baseline]")?.dataset.baseline || null,
-	);
+	const queries = pageQueries(api, doc?.dataset.projection ?? "document", url);
 	if (Number(doc?.dataset.status ?? 200) < 400 && !queries.some((query) => registry.get(query)._tag === "Failure")) {
 		return false;
 	}

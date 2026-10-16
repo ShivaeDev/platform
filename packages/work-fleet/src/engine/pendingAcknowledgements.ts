@@ -12,7 +12,12 @@ export function pendingAcknowledgements(record: FleetRecord) {
 	for (const [cycle, value] of cycles.entries()) {
 		pending.push(...supersededAcknowledgements(value, cycle));
 		for (const [response, receipt] of (value.responses ?? []).entries()) {
-			if (receipt.action !== undefined && receipt.published !== undefined && !receipt.boardAcknowledged) {
+			if (
+				receipt.action !== undefined
+				&& receipt.published !== undefined
+				&& !receipt.boardAcknowledged
+				&& receipt.boardAcknowledgementDisposition === undefined
+			) {
 				pending.push({
 					cycle,
 					input: { decision: receipt.published, disposition: "applied", recordedAt: receipt.processedAt, responseId: receipt.responseId },
@@ -20,7 +25,12 @@ export function pendingAcknowledgements(record: FleetRecord) {
 				});
 			}
 		}
-		if ("archivedAt" in value && value.decision?.published !== undefined && !value.decisionAcknowledged) {
+		if (
+			"archivedAt" in value
+			&& value.decision?.published !== undefined
+			&& !value.decisionAcknowledged
+			&& value.decision.boardAcknowledgementDisposition === undefined
+		) {
 			pending.push({ cycle, input: { decision: value.decision.published, disposition: "superseded", recordedAt: value.archivedAt } });
 		}
 	}
@@ -29,7 +39,7 @@ export function pendingAcknowledgements(record: FleetRecord) {
 
 function supersededAcknowledgements(value: FleetRecord | NonNullable<FleetRecord["history"]>[number], cycle: number) {
 	return (value.supersededDecisions ?? []).flatMap((receipt, superseded) =>
-		receipt.boardAcknowledged
+		receipt.boardAcknowledged || receipt.boardAcknowledgementDisposition !== undefined
 			? []
 			: [
 					{

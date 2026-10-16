@@ -13,12 +13,11 @@ export interface SearchItem {
 	readonly title: string;
 }
 export const searchCommands: readonly SearchItem[] = [
-	{ href: "/", kind: "command", title: "Open workspace" },
-	{ href: "/_board/inbox", kind: "command", title: "Go to Today" },
+	{ href: "/", kind: "command", title: "Go to Today" },
 	{ href: "/_board/goals", kind: "command", title: "Go to Goals" },
 	{ href: "/_board/work?view=board", kind: "command", title: "Go to Now" },
 	{ href: "/_board/library", kind: "command", title: "Go to Library" },
-	{ href: "/_board/diagnostics", kind: "command", title: "Go to System" },
+	{ href: "/_board/system", kind: "command", title: "Go to System" },
 	{ command: "sidebar-toggle", kind: "command", title: "Show or hide files" },
 	{ command: "density", kind: "command", title: "Toggle compact density" },
 	{ command: "theme", kind: "command", title: "Toggle light or dark theme" },

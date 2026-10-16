@@ -27,8 +27,7 @@ const files = {
 		"---\nid: task.fixture\nkind: task\nstatus: planned\nnext_action: Check the proof\ncriteria:\n - id: proof\n   text: Show the result\nattention:\n - id: direction\n   kind: decision\n   reason: Choose a direction\n   state: open\n   response_from: [maintainer]\n   unblocks: [task.fixture]\n---\n# A task\n\nTask context.\n",
 };
 const routes = [
-	{ kind: "changes", selector: ".history", text: "Changes since seen", url: "/_board/changes" },
-	{ kind: "diagnostics", selector: ".diagnostics-grid", text: "Source missing", url: "/_board/diagnostics" },
+	{ kind: "system", selector: "[data-source=codex]", text: "Source missing", url: "/_board/system" },
 	{ kind: "start", selector: ".start-template textarea", text: "example.project", url: "/_board/start" },
 	{ kind: "respond", selector: ".response-panel", text: "Choose a direction", url: "/_board/respond?item=task.fixture&request=direction" },
 	{ kind: "handoff", selector: "#handoff-form", text: "Recipient", url: "/_board/handoff?item=task.fixture" },
@@ -39,7 +38,7 @@ it.live.each(routes)("renders $kind from typed queries without an HTML page requ
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
 			page = vi.spyOn(api.page, "query");
-			const router = boardRouter({ api, initial: "<main id='doc'>Legacy HTML must not be shown</main>", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -66,7 +65,7 @@ it.live("updates Respond context while retaining answer text, node and caret", f
 	const view = yield* Effect.promise(() =>
 		renderBoard(sources, (api, registry) => {
 			refresh = () => registry.refresh(api.document.query({ url }, routeQueryOptions));
-			const router = boardRouter({ api, initial: "", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -101,7 +100,7 @@ it.live("shows Today and getting-started guidance for an empty workspace", funct
 	const view = yield* Effect.promise(() =>
 		renderBoard({}, (api, registry) => {
 			page = vi.spyOn(api.page, "query");
-			const router = boardRouter({ api, initial: "", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/"] }) });
 			return <RouterProvider router={router} />;
 		}),

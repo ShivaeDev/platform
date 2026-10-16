@@ -20,7 +20,7 @@ handoff:
   reviewed_revision: 691e2b8c3ca54cd66afa1533e9917cbef69e8a13a5bb79275abf65a101ee6dde
   prepared_at: 1791319869349
   goal: Fix keyboard focus
-  constraints: Preserve no-JavaScript links and local-only operation.
+  constraints: Preserve keyboard navigation and local-only operation.
   next_action: Inspect the current source and report browser evidence.
 ---
 ---

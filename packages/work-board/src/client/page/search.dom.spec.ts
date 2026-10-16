@@ -74,7 +74,7 @@ effectApp("moves between commands, closes with focus restored, and re-searches o
 	key("ArrowDown");
 	yield* Effect.promise(frame);
 	expect(input()?.getAttribute("aria-activedescendant")).toBe("search-result-1");
-	expect(page.document.querySelector('#search-results [aria-selected="true"]')?.getAttribute("href")).toBe("/_board/inbox");
+	expect(page.document.querySelector('#search-results [aria-selected="true"]')?.getAttribute("href")).toBe("/_board/goals");
 	query("files");
 	yield* Effect.promise(() =>
 		waitFor(() => expect(page.document.querySelector('#search-results [aria-selected="true"]')?.getAttribute("data-command")).toBe("sidebar-toggle")),

@@ -28,7 +28,7 @@ it("opens Today with the exact human lane and one honest card per goal, retainin
 		(client, registry) => {
 			api = client;
 			vi.spyOn(client.fleetItems, "query").mockReturnValue(Atom.make(AsyncResult.success(todayFleetFixture())));
-			const router = boardRouter({ api: client, initial: "", registry });
+			const router = boardRouter({ api: client, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/"] }) });
 			return <RouterProvider router={router} />;
 		},

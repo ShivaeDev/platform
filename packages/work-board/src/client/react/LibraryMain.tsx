@@ -17,7 +17,7 @@ export function LibraryMain({
 			atom={api.library.query({}, routeQueryOptions)}
 			location={() => ({ file: "Library", status: 200, view: "library" })}
 			onPage={onPage}
-			render={() => <LibraryPage api={api} />}
+			render={() => <LibraryPage api={api} key={url} url={url} />}
 			route="library"
 			url={url}
 		/>

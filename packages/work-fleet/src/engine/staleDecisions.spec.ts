@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
-import { boardHttp, boardHttpFiles, boardInbox, boardOverview } from "#test/boardHttp.ts";
+import { boardAskFiles, boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { answerReport } from "#test/report.ts";
@@ -23,7 +23,7 @@ for (const status of ["planned", "deferred"]) {
 					return yield* Effect.die("Missing decision");
 				}
 				const published = decision.published;
-				expect(yield* boardInbox(root, "orchestrator")).toContain(`data-key="inbox:${published.sourcePath}"`);
+				expect(yield* boardAskFiles(root, "orchestrator")).toContain(published.sourcePath);
 				const files = boardHttpFiles(root);
 				files.write("one.md", `---\nid: one\nkind: task\nstatus: ${status}\n---\n# Changed scope\n`);
 				files.move("one.md", "moved.md");
@@ -48,8 +48,8 @@ for (const status of ["planned", "deferred"]) {
 				} else {
 					expect(released.value.responses).toMatchObject([{ action: "release", boardAcknowledged: true, responseId: answer.id }]);
 				}
-				expect(yield* boardOverview(root)).not.toContain(`data-attention-item="${published.itemId}"`);
-				expect(yield* boardInbox(root, "orchestrator")).not.toContain('data-key="inbox:');
+				expect(yield* boardAskFiles(root)).not.toContain(published.sourcePath);
+				expect(yield* boardAskFiles(root, "orchestrator")).toEqual([]);
 				yield* fixture.restart(
 					Fleet.pipe(
 						Effect.flatMap((resumed) => (status === "deferred" ? resumed.reconcile("one") : resumed.resolve("one", decision.id, answer.id))),
@@ -86,7 +86,7 @@ test("concurrent retries cannot authorize a changed brief or consume the origina
 			expect(prepared.decision).toEqual(decision);
 			expect(prepared.responses).toBeUndefined();
 
-			expect(yield* boardOverview(root)).toContain("data-attention-item=");
+			expect(yield* boardAskFiles(root)).not.toEqual([]);
 			yield* fixture.restart(
 				Effect.gen(function* () {
 					const restarted = yield* Fleet;

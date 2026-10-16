@@ -27,16 +27,11 @@ function expectSource() {
 
 it.each([
 	{ mode: "direct", url: SOURCE },
-	{ mode: "overview", url: "/_board/overview" },
 	{ mode: "search", url: "/attention/review.md" },
 	{ mode: "same-document", url: "/attention/review.md" },
 ])("reveals and focuses an attention source passage through $mode navigation", async ({ mode, url }) => {
 	const view = await renderRouter(attentionFixture(), url);
 	try {
-		if (mode === "overview") {
-			await eventually(() => expect(view.container.querySelector('[data-request="keyboard-review"] .attention-source')).not.toBeNull());
-			click('[data-request="keyboard-review"] .attention-source');
-		}
 		if (mode === "search") {
 			await eventually(() => expect(view.container.querySelector(".item-summary")).not.toBeNull());
 			click("#search-open");

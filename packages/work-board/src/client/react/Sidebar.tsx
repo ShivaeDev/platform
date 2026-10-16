@@ -5,16 +5,16 @@ import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { Navigation } from "#browser/Navigation.ts";
 import { Badge } from "#client/react/components/ui/Badge.tsx";
 import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
+import { GoalProgress } from "#client/react/GoalProgress.tsx";
+import { InboxCount } from "#client/react/Header.tsx";
 import { cn } from "#client/react/lib/cn.ts";
+import type { MainLocation } from "#client/react/mainLocation.ts";
+import { type Item, LibraryContext } from "#client/react/readingLibrary.ts";
+import type { ShellApi } from "#client/react/ShellApi.ts";
+import { shellIds } from "#client/react/shellIds.ts";
+import type { SidebarControls } from "#client/react/useSidebar.ts";
+import { workspaceDestinations } from "#client/react/workspaceDestinations.ts";
 import { fileUrl } from "#files/url.ts";
-import { GoalProgress } from "./GoalProgress.tsx";
-import { InboxCount } from "./Header.tsx";
-import type { MainLocation } from "./mainLocation.ts";
-import { type Item, LibraryContext } from "./readingLibrary.ts";
-import type { ShellApi } from "./ShellApi.ts";
-import { shellIds } from "./shellIds.ts";
-import type { SidebarControls } from "./useSidebar.ts";
-import { workspaceDestinations } from "./workspaceDestinations.ts";
 
 export function Sidebar({
 	api,

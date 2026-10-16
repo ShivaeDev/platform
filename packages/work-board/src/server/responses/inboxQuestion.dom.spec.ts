@@ -4,7 +4,7 @@ import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
-import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { enterField } from "#test/enterField.ts";
 import { followLink } from "#test/followLink.ts";
@@ -40,7 +40,6 @@ const answer = Effect.fn("Test.answer")(function* () {
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Saved:")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("inbox-count")?.textContent).toBe("0")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("inbox-topbar-count")?.textContent).toBe("0")));
-	expect((yield* rawGet(board, "/_board/inbox")).body).toContain("0 waiting");
 	expect(readFileSync(join(notes.root, "question.md"), "utf8")).toBe(inboxQuestion);
 	const saved = readdirSync(join(notes.root, "responses")).find((file) => file.startsWith("response."));
 	if (!saved) {
@@ -57,7 +56,6 @@ it.live("records a recommended option from the item page and updates the live In
 		throw new Error("Missing Clear selection control");
 	}
 	expect(clear.nextElementSibling?.tagName).toBe("LABEL");
-	expect(page.window.getComputedStyle(clear).marginBottom).toBe("16px");
 	yield* formEvent(page, () =>
 		page.document.querySelector('[data-choice="option-1"]')?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true })),
 	);
@@ -103,15 +101,15 @@ it.live("records a free-text answer and returns an edited question to the Inbox"
 it.live("opens a question through native Inbox navigation and refreshes a closed question out of the queue", function* () {
 	yield* open();
 	yield* Effect.promise(() => page.close());
-	page = yield* openPage(board, "/_board/inbox");
+	page = yield* openPage(board, "/");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.getAttribute("data-state")).toBe("live")));
-	expect(page.document.querySelectorAll(".inbox-row")).toHaveLength(1);
+	expect(page.document.querySelectorAll("[data-attention-row]")).toHaveLength(1);
 	expect(page.document.getElementById("inbox-topbar")?.getAttribute("aria-current")).toBe("page");
 	for (const id of ["inbox-count", "inbox-topbar-count"]) {
 		expect(page.document.getElementById(id)?.textContent).toBe("1");
 	}
 	yield* formEvent(page, () =>
-		page.document.querySelector(".inbox-row a")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
+		page.document.querySelector("[data-attention-row] a")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
 	);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-form")).not.toBeNull()));
 	expect(page.window.location.pathname).toBe("/_board/item/question.storage/");
@@ -130,8 +128,8 @@ it.live("opens a question through native Inbox navigation and refreshes a closed
 	yield* formEvent(page, () =>
 		page.document.getElementById("inbox-topbar")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
 	);
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("inbox")));
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelectorAll(".inbox-row")).toHaveLength(0)));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("today")));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelectorAll("[data-attention-row]")).toHaveLength(0)));
 });
 
 it.live("updates both Inbox counts when a question closes while an unrelated document stays mounted", function* () {

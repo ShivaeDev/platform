@@ -25,7 +25,7 @@ it.live("reuses validated response history across HTTP and RPC document opens an
 		for (const file of ["document-1.md", "document-2.md", "decisions/decision-9.md"]) {
 			const page = yield* Effect.promise(() => fetch(`${board.url}/${file}`));
 			expect(page.status).toBe(200);
-			expect(yield* Effect.promise(() => page.text())).toContain("2 waiting");
+			expect(yield* Effect.promise(() => page.text())).toContain("data-board-react-root");
 			const content = yield* Effect.promise(() => client.run(client.api.document.run({ url: `/${file}` })));
 			expect(content.file).toBe(file);
 		}

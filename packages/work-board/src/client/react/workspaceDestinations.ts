@@ -3,5 +3,5 @@ export const workspaceDestinations = [
 	{ href: "/_board/goals", id: "goals-open", label: "Goals", view: "goals" },
 	{ href: "/_board/work", id: "work-open", label: "Now", view: "work" },
 	{ href: "/_board/library", id: "documents-open", label: "Library", view: "library" },
-	{ href: "/_board/diagnostics", id: "diagnostics-open", label: "System", view: "diagnostics" },
+	{ href: "/_board/system", id: "diagnostics-open", label: "System", view: "system" },
 ] as const;

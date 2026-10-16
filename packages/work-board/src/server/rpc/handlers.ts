@@ -1,4 +1,4 @@
-import { Clock, Effect, Layer, Ref, Stream } from "effect";
+import { Effect, Layer, Ref, Stream } from "effect";
 import { InternalServerError, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
 import { requestTracingLayer } from "@shivaedev/platform/rpc-server/tracing.ts";
@@ -6,7 +6,6 @@ import { Diagnostics } from "#diagnostics/source.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { DocumentRejection, ResponseRejection } from "#rpc/rejections.ts";
 import { HandoffsService } from "#server/handoffs/Service.ts";
-import { historyResponse } from "#server/history/response.ts";
 import { libraryData } from "#server/navigation/libraryData.ts";
 import { navigationData } from "#server/navigation/model.ts";
 import { Responses } from "#server/responses/service.ts";
@@ -45,12 +44,6 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.handoff": ({ url }) => remaining.handoff(url).pipe(documentBoundary),
 			"work-board.handoffSource": ({ item }) => Effect.suspend(() => handoffs.locate(item)).pipe(responseBoundary),
 			"work-board.handoffs": ({ item }) => Effect.suspend(() => handoffs.read(item)).pipe(responseBoundary),
-			"work-board.history": ({ action, baseline }) =>
-				Effect.gen(function* () {
-					const now = yield* Clock.currentTimeMillis;
-					const snapshot = action === "check" ? undefined : yield* index;
-					return historyResponse(baseline, now, snapshot);
-				}).pipe(readBoundary),
 			"work-board.inbox": () => Effect.suspend(() => projections.inbox()).pipe(readBoundary),
 			"work-board.library": (input) =>
 				Effect.gen(function* () {
@@ -60,7 +53,6 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 				Effect.gen(function* () {
 					return navigationData(yield* changes.files, current, home, yield* index);
 				}).pipe(readBoundary),
-			"work-board.overview": () => Effect.suspend(() => projections.overview()).pipe(readBoundary),
 			"work-board.prepareHandoff": (input) => Effect.suspend(() => handoffs.prepare(input)).pipe(responseBoundary),
 			"work-board.question": ({ item, request }) => Effect.suspend(() => responses.locate(item, request)).pipe(responseBoundary),
 			"work-board.recordResponse": (input) => Effect.suspend(() => responses.record(input)).pipe(responseBoundary),

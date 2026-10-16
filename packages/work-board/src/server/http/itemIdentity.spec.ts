@@ -26,9 +26,6 @@ it.live.each([false, true])("resolves .md item identities through HTTP and RPC w
 			const url = `/_board/item/${id}${slash}`;
 			const page = yield* rawGet(board, url);
 			expect(page.status).toBe(200);
-			expect(page.body).toContain('data-identity="source.md"');
-			expect(page.body).toContain("Identified item");
-			expect(page.body).not.toContain("Colliding file");
 			const document = yield* Effect.promise(() => client.run(client.api.document.run({ url })));
 			expect(document).toMatchObject({ file: "identified.md", identity: "source.md", source: "# Identified item" });
 		}
@@ -37,7 +34,6 @@ it.live.each([false, true])("resolves .md item identities through HTTP and RPC w
 		const url = `/_board/item/missing.md${slash}`;
 		const missing = yield* rawGet(board, url);
 		expect(missing.status).toBe(404);
-		expect(missing.body).toContain("No item with ID missing.md");
 		yield* Effect.promise(() => expect(client.run(client.api.document.run({ url }))).rejects.toBeInstanceOf(NotFound));
 	}
 });

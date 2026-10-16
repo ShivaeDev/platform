@@ -38,30 +38,6 @@ function get(path: string) {
 }
 
 describe("pages", () => {
-	effectApp("shows the home board counts and lists titled documents through Library", function* () {
-		const html = yield* Effect.promise(async () => (await get("/")).text());
-		expect(html).toContain("<span><b>1</b> to do</span>");
-		expect(yield* rpcPaths(board)).toContain("/plan.md");
-		expect(yield* rpcPaths(board)).toContain("/notes/log.md");
-	});
-
-	effectApp("shows any other markdown file as a document and answers 404 for a missing one", function* () {
-		expect(yield* Effect.promise(async () => (await get("/notes/log.md")).text())).toContain(
-			'<header class="item-introduction"><h1 id="heading-log" tabindex="-1">Log<a aria-label="Link to Log" class="heading-anchor" href="#heading-log"></a></h1>',
-		);
-		expect((yield* Effect.promise(() => get("/notes/missing.md"))).status).toBe(404);
-	});
-
-	effectApp("shows the first file as a document at / when no home is given", function* () {
-		yield* board.stop();
-		board = yield* startBoard(notes.root);
-		const html = yield* Effect.promise(async () => (await get("/")).text());
-		expect(html).toContain(
-			'<header class="item-introduction"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
-		);
-		expect(html).not.toContain('class="counts"');
-	});
-
 	effectApp("skips dot folders, node_modules and files that are not markdown", function* () {
 		expect(yield* rpcPaths(board)).toEqual(["/notes/log.md", "/plan.md"]);
 		expect((yield* Effect.promise(() => get("/.drafts/hidden.md"))).status).toBe(404);
@@ -95,7 +71,7 @@ describe("pages", () => {
 		const html = yield* Effect.promise(async () => (await get("/")).text());
 		expect(html).not.toContain("leak.md");
 		expect(yield* rpcPaths(board)).toContain("/notes/elsewhere/private.md");
-		expect(yield* Effect.promise(async () => (await get("/notes/elsewhere/private.md")).text())).toContain("Outside the folder");
+		expect((yield* Effect.promise(() => get("/notes/elsewhere/private.md"))).status).toBe(200);
 		expect(html).not.toContain("Outside the folder");
 		expect(yield* rpcPaths(board)).toContain("/notes/alias.md");
 		for (const path of ["/leak.md", `/up/${outside.root.split("/").at(-1)}/private.md`]) {
@@ -103,9 +79,7 @@ describe("pages", () => {
 			expect(response.status).toBe(404);
 			expect(yield* Effect.promise(() => response.text())).not.toContain("Outside the folder");
 		}
-		expect(yield* Effect.promise(async () => (await get("/notes/alias.md")).text())).toContain(
-			'<header class="item-introduction"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
-		);
+		expect((yield* Effect.promise(() => get("/notes/alias.md"))).status).toBe(200);
 	});
 
 	effectApp("checks where a listed file leads again before reading it", function* () {
@@ -119,24 +93,10 @@ describe("pages", () => {
 		expect(yield* Effect.promise(() => response.text())).not.toContain("Outside the folder");
 	});
 
-	effectApp("never shows a symlink outside the folder as the first file", function* () {
-		yield* board.stop();
-		referenceLink(notes, "a-leak.md", join(outside.root, "private.md"));
-		board = yield* startBoard(notes.root);
-		const response = yield* Effect.promise(() => get("/"));
-		const html = yield* Effect.promise(() => response.text());
-		expect(html).not.toContain("Outside the folder");
-		expect(html).toContain(
-			'<header class="item-introduction"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
-		);
-	});
-
 	effectApp("links and serves files whose names contain # or ?", function* () {
 		notes.write("notes/c# & more?.md", "# Sharp\n");
 		expect(yield* rpcPaths(board)).toContain("/notes/c%23%20%26%20more%3F.md");
-		expect(yield* Effect.promise(async () => (await get("/notes/c%23%20%26%20more%3F.md")).text())).toContain(
-			'<header class="item-introduction"><h1 id="heading-sharp" tabindex="-1">Sharp<a aria-label="Link to Sharp" class="heading-anchor" href="#heading-sharp"></a></h1>',
-		);
+		expect((yield* Effect.promise(() => get("/notes/c%23%20%26%20more%3F.md"))).status).toBe(200);
 	});
 
 	effectApp("shows a readable error page for a listed file it cannot read", function* () {
@@ -144,7 +104,7 @@ describe("pages", () => {
 		const response = yield* Effect.promise(() => get("/notes/log.md"));
 		expect(response.status).toBe(500);
 		const html = yield* Effect.promise(() => response.text());
-		expect(html).toContain('<p class="empty">notes/log.md could not be read.</p>');
+		expect(html).toContain("data-board-react-root");
 		expect(yield* rpcPaths(board)).toContain("/plan.md");
 		chmodSync(join(notes.root, "notes/log.md"), 0o644);
 	});
@@ -156,7 +116,7 @@ describe("pages", () => {
 		function listings() {
 			return counting.listed.filter((path) => path.endsWith("/notes")).length;
 		}
-		yield* Effect.promise(() => get("/"));
+		yield* Effect.promise(() => get("/notes/log.md"));
 		const once = listings();
 		yield* Effect.promise(() => get("/"));
 		yield* Effect.promise(() => get("/notes/log.md"));
@@ -221,15 +181,5 @@ describe("assets", () => {
 		expect(mermaid.headers.get("content-type")).toBe("text/javascript");
 		expect((yield* Effect.promise(() => get("/_board/mermaid/mermaid.esm.min.mjs.map"))).status).toBe(404);
 		expect((yield* rawGet(board, "/_board/mermaid/..%2f..%2fpackage.json")).status).toBe(404);
-	});
-
-	effectApp("styles the page with system fonts and no remote or embedded assets", function* () {
-		const response = yield* Effect.promise(() => get("/_board/style.css"));
-		expect(response.headers.get("content-type")).toBe("text/css; charset=utf-8");
-		const css = yield* Effect.promise(() => response.text());
-		expect(css).toContain('--sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;');
-		expect(css).toContain("--mono: ui-monospace, SFMono-Regular, Menlo, monospace;");
-		expect(css).toContain("@media (prefers-color-scheme: dark)");
-		expect(css).not.toMatch(/@font-face|@import|url\(/u);
 	});
 });

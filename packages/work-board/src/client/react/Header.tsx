@@ -56,14 +56,14 @@ export function Header({
 			<span className="min-w-0 flex-1 truncate font-medium md:hidden">{main.title ?? main.file}</span>
 			<Breadcrumbs file={main.title ?? main.file} />
 			<a
-				aria-current={main.view === "inbox" ? "page" : undefined}
-				aria-label="Inbox"
+				aria-current={main.view === "today" ? "page" : undefined}
+				aria-label="Today"
 				className={cn(buttonVariants({ size: "sm", variant: "ghost" }), "hidden md:inline-flex")}
-				href="/_board/inbox"
+				href="/"
 				id={shellIds.inboxTopbar}
 			>
 				<Inbox aria-hidden="true" />
-				<span className="hidden sm:inline">Inbox</span>
+				<span className="hidden sm:inline">Today</span>
 				<InboxCount count={count} id={shellIds.inboxTopbarCount} />
 			</a>
 			<Button

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import { afterEach, describe, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { browserClient } from "#client/client.ts";
 import { type Folder, folder, startBoard } from "#test/board.ts";
 import { inboxAudienceFixture } from "#test/inboxAudienceFixture.ts";
 import { subscribe } from "#test/nativeRpc.ts";
@@ -54,7 +55,7 @@ describe("the server", () => {
 		try {
 			const address = yield* Effect.promise(() => listening(child));
 			expect(address).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/u);
-			expect(yield* Effect.promise(async () => (await fetch(address)).text())).toContain("<span><b>1</b> to do</span>");
+			expect(yield* Effect.promise(async () => (await fetch(address)).text())).toContain("data-board-react-root");
 		} finally {
 			child.kill();
 		}
@@ -67,11 +68,14 @@ describe("the server", () => {
 		});
 		try {
 			const address = yield* Effect.promise(() => listening(child));
-			const html = yield* Effect.promise(async () => (await fetch(`${address}/_board/inbox`)).text());
-			expect(html).toContain("2 waiting");
-			const start = html.indexOf('<section class="inbox-list"');
-			expect(html.slice(start, html.indexOf("</section>", start))).not.toContain("Question for orchestrator");
-			expect(html).toContain("Waiting on agents (1)");
+			const client = browserClient(address);
+			try {
+				const data = yield* Effect.promise(() => client.run(client.api.inbox.run(undefined)));
+				expect(data.you).toHaveLength(2);
+				expect(data.agents).toHaveLength(1);
+			} finally {
+				client.registry.dispose();
+			}
 		} finally {
 			child.kill();
 		}

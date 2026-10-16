@@ -1,6 +1,5 @@
 export const shellIds = {
 	"breadcrumbs": "breadcrumbs",
-	changesContent: "changes-content",
 	clearSavedViews: "clear-saved-views",
 	"density": "density",
 	"doc": "doc",
@@ -14,9 +13,6 @@ export const shellIds = {
 	handoffPreviewContent: "handoff-preview-content",
 	handoffStatus: "handoff-status",
 	handoffSubmit: "handoff-submit",
-	historyClear: "history-clear",
-	historyMark: "history-mark",
-	historyStorage: "history-storage",
 	"homeOpen": "home-open",
 	"inboxCount": "inbox-count",
 	"inboxOpen": "inbox-open",

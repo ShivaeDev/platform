@@ -5,7 +5,7 @@ import { afterEach, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { faultyWatch } from "#test/faults.ts";
-import { changesUntil, type EventStream, rpcNavigation, rpcPaths, rpcSearch, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
+import { changesUntil, type EventStream, rpcDocument, rpcNavigation, rpcPaths, rpcSearch, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
 import { referenceLink } from "#test/referenceLink.ts";
 
 let workspace: Folder;
@@ -54,7 +54,7 @@ effectApp("reads linked reference Markdown with logical links, search, aliases a
 	referenceLink(reference, "workspace-loop", workspace.root);
 	referenceLink(workspace, "broken", "missing-folder");
 	board = yield* startBoard(workspace.root, "plan.md");
-	const html = yield* Effect.promise(async () => (await get("/reference/guide/start.md")).text());
+	const html = yield* Effect.map(rpcDocument(board, "/reference/guide/start.md"), (data) => data.source);
 	expect(html).toContain("Reference guide");
 	expect(yield* rpcPaths(board)).toContain("/reference/guide/next.md");
 	expect(yield* rpcPaths(board)).toContain("/second-reference/guide/start.md");
@@ -93,7 +93,7 @@ effectApp("watches external edits, additions, renames and removals using workspa
 		yield* rpcSearch(board, "Reference passage");
 		reference.write("guide/start.md", "# Reference guide\n\nUpdated linked passage.\n");
 		yield* changesUntil(events, "reference/guide/start.md");
-		expect(yield* Effect.promise(async () => (await get("/reference/guide/start.md")).text())).toContain("Updated linked passage");
+		expect(yield* Effect.map(rpcDocument(board, "/reference/guide/start.md"), (data) => data.source)).toContain("Updated linked passage");
 		expect(JSON.stringify(yield* rpcSearch(board, "Updated linked passage"))).toContain("reference/guide/start.md");
 		expect((yield* rpcSearch(board, "Reference passage")).total).toBe(0);
 		reference.write("guide/added.md", "# Added reference\n");
@@ -117,13 +117,13 @@ effectApp("discovers newly linked folders and retargeted links without restartin
 		yield* ready(events);
 		referenceLink(workspace, "new-reference", replacement.root);
 		yield* ready(events);
-		expect(yield* Effect.promise(async () => (await get("/new-reference/guide/start.md")).text())).toContain("Replacement guide");
+		expect(yield* Effect.map(rpcDocument(board, "/new-reference/guide/start.md"), (data) => data.source)).toContain("Replacement guide");
 		replacement.write("guide/start.md", "# New live replacement\n");
 		yield* changesUntil(events, "new-reference/guide/start.md");
 		rmSync(join(workspace.root, "reference"));
 		referenceLink(workspace, "reference", replacement.root);
 		yield* ready(events);
-		expect(yield* Effect.promise(async () => (await get("/reference/guide/start.md")).text())).toContain("New live replacement");
+		expect(yield* Effect.map(rpcDocument(board, "/reference/guide/start.md"), (data) => data.source)).toContain("New live replacement");
 		expect((yield* Effect.promise(() => get("/reference/guide/next.md"))).status).toBe(404);
 		replacement.write("guide/start.md", "# Retargeted live reference\n");
 		yield* changesUntil(events, "reference/guide/start.md");
@@ -138,7 +138,7 @@ effectApp("keeps escaping file links outside an explicitly included reference di
 	referenceLink(reference, "guide/leak.md", join(replacement.root, "guide/start.md"));
 	board = yield* startBoard(workspace.root, "plan.md");
 	expect((yield* Effect.promise(() => get("/reference/guide/leak.md"))).status).toBe(404);
-	expect(yield* Effect.promise(async () => (await get("/")).text())).not.toContain("leak.md");
+	expect(yield* Effect.map(rpcDocument(board, "/"), (data) => data.source)).not.toContain("leak.md");
 	expect((yield* rpcSearch(board, "Replacement guide")).total).toBe(0);
 });
 
@@ -180,10 +180,10 @@ effectApp("retains internal directory aliases alongside their original paths and
 		rmSync(join(workspace.root, "alias"));
 		referenceLink(workspace, "alias", "other");
 		yield* ready(events);
-		expect(yield* Effect.promise(async () => (await get("/alias/start.md")).text())).toContain("Other internal note");
+		expect(yield* Effect.map(rpcDocument(board, "/alias/start.md"), (data) => data.source)).toContain("Other internal note");
 		workspace.write("other/start.md", "# Updated internal note\n");
 		yield* changesUntil(events, "alias/start.md");
-		expect(yield* Effect.promise(async () => (await get("/alias/start.md")).text())).toContain("Updated internal note");
+		expect(yield* Effect.map(rpcDocument(board, "/alias/start.md"), (data) => data.source)).toContain("Updated internal note");
 	} finally {
 		yield* events.close();
 	}

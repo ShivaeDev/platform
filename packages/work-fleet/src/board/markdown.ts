@@ -51,11 +51,11 @@ const MarkdownBoard = defineService({
 			};
 		});
 		const publish = publishBoard(root, realRoot, documents);
-		return { documents, get, path, publish, realRoot, root };
+		return { documents, get, path, publish, realRoot, root, snapshot };
 	}),
-	methods: ({ root, realRoot, documents, get, publish, path }) =>
+	methods: ({ root, realRoot, documents, get, publish, path, snapshot }) =>
 		BoardGateway.of({
-			acknowledgeDecision: acknowledgeDecision(root, realRoot, documents),
+			acknowledgeDecision: acknowledgeDecision(root, realRoot, snapshot),
 			complete: Effect.fn("FleetBoard.complete")(function* (workId, sourcePath, nextAction) {
 				const work = yield* get(workId);
 				if (work.sourcePath !== sourcePath) {

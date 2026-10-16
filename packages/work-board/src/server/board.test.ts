@@ -30,7 +30,7 @@ describe("embedding", () => {
 	effectApp("serves the board as a fetch handler", function* () {
 		const response = yield* Effect.promise(() => board.handler(new Request("http://localhost/", { headers: { host: "localhost" } })));
 		expect(response.status).toBe(200);
-		expect(yield* Effect.promise(() => response.text())).toContain("<span><b>1</b> to do</span>");
+		expect(yield* Effect.promise(() => response.text())).toContain("data-board-react-root");
 	});
 
 	effectApp("serves the React shell and its bundle beside the native client", function* () {
@@ -51,11 +51,11 @@ describe("embedding", () => {
 		}
 		const page = yield* Effect.promise(() => handler(new Request("http://localhost/", { headers: { host: "localhost" } })));
 		const html = yield* Effect.promise(() => page.text());
-		expect(html).toContain("<span><b>1</b> to do</span>");
+		expect(html).toContain("data-board-react-root");
 		expect(html).toContain("/_board/react.js");
 		expect(html).toContain("/_board/react.css");
 		expect(html).not.toContain("/_board/client.js");
-		expect(html).toContain('<div data-board-react-root></div><template id="board-legacy-page">');
+		expect(html).toContain("<div data-board-react-root></div>");
 	});
 
 	effectApp("refuses a request without a Host header", function* () {

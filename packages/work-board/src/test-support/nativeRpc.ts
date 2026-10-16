@@ -5,10 +5,9 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { expect } from "vitest";
 import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { eventually } from "@shivaedev/effect-test/eventually.ts";
-import type { HistoryInput } from "#history/schema.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { documents } from "#rpc/keys.ts";
-import type { RunningBoard } from "./board.ts";
+import type { RunningBoard } from "#test/board.ts";
 
 function protocol(board: Pick<RunningBoard, "url">, native = false) {
 	return RpcClient.layerProtocolHttp({ url: `${board.url}/_board/rpc` }).pipe(
@@ -37,10 +36,6 @@ export function rpcNavigation(board: RunningBoard) {
 }
 export function rpcSearch(board: RunningBoard, query: string) {
 	return call(board, (client) => client("work-board.search", { query }));
-}
-
-export function rpcHistory(board: RunningBoard, action: typeof HistoryInput.Type.action, baseline: string | null = null) {
-	return call(board, (client) => client("work-board.history", { action, baseline }));
 }
 
 export function rpcWatcher(board: RunningBoard) {
@@ -92,4 +87,8 @@ export function waitForLibraryCount(board: RunningBoard, count: number) {
 		),
 		{ interval: "10 millis", times: 100 },
 	);
+}
+
+export function rpcDocument(board: Pick<RunningBoard, "url">, url: string) {
+	return call(board, (client) => client("work-board.document", { url }));
 }

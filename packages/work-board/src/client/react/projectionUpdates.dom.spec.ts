@@ -15,8 +15,6 @@ const routes = [
 	{ file: "home.md", next: HOME.replace("Home board", "Updated board"), selector: ".board-head h1", text: "Updated board", url: "/home.md" },
 	{ file: "task.md", next: task("Updated task"), selector: ".work-card h3", text: "Updated task", url: "/_board/work?view=board" },
 	{ file: "task.md", next: task("Updated task"), selector: ".work-table tbody th a", text: "Updated task", url: "/_board/work?view=table" },
-	{ file: "task.md", next: task("Updated task"), selector: ".attention-card h3", text: "Updated task", url: "/_board/overview" },
-	{ file: "task.md", next: task("Updated task"), selector: ".inbox-row h3", text: "Updated task", url: "/_board/inbox" },
 ];
 it.live.each(routes)(
 	"updates $url through native projection invalidation without requesting page HTML",

@@ -4,7 +4,6 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import { renderMarkdown } from "#server/render/markdown.ts";
-import { templateHtml } from "#server/responses/templateHtml.ts";
 import { RenderFailed } from "./failed.ts";
 
 vi.mock("shiki", async (importOriginal) => {
@@ -40,13 +39,4 @@ it.live("keeps Markdown plugin failures typed for the rendering caller", functio
 	expect(failure).toBeInstanceOf(RenderFailed);
 	expect(failure.cause).toBe(cause);
 	expect(failure.message).toContain("Check the Markdown source and retry");
-});
-
-it.live("captures malformed composer templates in the declared rendering channel", function* () {
-	const failure = yield* templateHtml('::::question{id="next"}\nChoose.\n::::\n', "direction", "note.md").pipe(
-		Effect.provide(Highlighter.layer),
-		Effect.flip,
-	);
-	expect(failure).toBeInstanceOf(RenderFailed);
-	expect(failure.cause).toBeInstanceOf(BadRequest);
 });

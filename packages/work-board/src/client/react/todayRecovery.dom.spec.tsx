@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 function Health({ api }: { readonly api: ShellApi }) {
-	const atom = useMemo(() => activeRead(api, "today", "/", null), [api]);
+	const atom = useMemo(() => activeRead(api, "today", "/"), [api]);
 	const reading = useAtomValue(atom);
 	const settled = reading.pending ? "pending" : "settled";
 	const state = reading.failed ? "failed" : settled;
@@ -88,7 +88,7 @@ it.each(["inbox", "goals", "fleetItems"] as const)(
 					reads.push(input.url);
 					return documentQuery(input);
 				});
-				const router = boardRouter({ api, initial: "", registry });
+				const router = boardRouter({ api, registry });
 				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/"] }) });
 				return (
 					<>

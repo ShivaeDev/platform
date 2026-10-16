@@ -77,7 +77,7 @@ it.live("reads finished result and in-review work separately through real HTTP a
 	expect(yield* html()).toContain("Review returned result");
 	expect(readdirSync(notes.root)).toEqual(before);
 	expect(readFileSync(join(notes.root, "items/task.md"), "utf8")).toBe(REVIEW_TASK);
-	expect(yield* Effect.promise(async () => (await fetch(`${board.url}/items/result.md`)).text())).toContain(`href="${REVIEW_PATH}"`);
+	expect(yield* Effect.promise(async () => (await fetch(`${board.url}/items/result.md`)).text())).toContain("data-board-react-root");
 });
 
 it.live("records revision request and exact-version acceptance without changing task status or inventing missing evidence", function* () {

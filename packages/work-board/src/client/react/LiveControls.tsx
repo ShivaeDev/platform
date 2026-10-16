@@ -10,7 +10,6 @@ import { shellIds } from "./shellIds.ts";
 
 const opening = Atom.make({ failed: false, pending: true });
 interface Page {
-	readonly baseline: string | null;
 	readonly kind: string;
 	readonly url: string;
 }
@@ -37,7 +36,6 @@ export function LiveControls({
 				return;
 			}
 			setPage({
-				baseline: doc?.querySelector<HTMLElement>("[data-baseline]")?.dataset.baseline || null,
 				kind: doc?.dataset.projection ?? "document",
 				url: current,
 			});
@@ -46,7 +44,7 @@ export function LiveControls({
 		document.addEventListener("board-page", sync);
 		return () => document.removeEventListener("board-page", sync);
 	}, [current]);
-	const atom = useMemo(() => (page ? activeRead(client.api, page.kind, page.url, page.baseline) : opening), [client, page]);
+	const atom = useMemo(() => (page ? activeRead(client.api, page.kind, page.url) : opening), [client, page]);
 	const reading = useAtomValue(atom);
 	const displayed = liveStatus({
 		connection: status.connection,

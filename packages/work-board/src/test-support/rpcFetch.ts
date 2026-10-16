@@ -12,11 +12,8 @@ function pageRead(call: RpcRequest | undefined, path: string) {
 	if (!call) {
 		return false;
 	}
-	if (call.tag === "work-board.history") {
-		return path === "/_board/changes";
-	}
 	if (call.tag === "work-board.diagnostics") {
-		return path === "/_board/diagnostics";
+		return path === "/_board/system";
 	}
 	if (call.tag === "work-board.library") {
 		return path === "/_board/library";
@@ -32,9 +29,6 @@ function pageRead(call: RpcRequest | undefined, path: string) {
 	}
 	if (call.tag === "work-board.inbox") {
 		return path === "/_board/inbox" || path === "/";
-	}
-	if (call.tag === "work-board.overview") {
-		return path === "/_board/overview";
 	}
 	return (
 		["work-board.document", "work-board.board", "work-board.work", "work-board.respond", "work-board.handoff", "work-board.result"].includes(call.tag)
