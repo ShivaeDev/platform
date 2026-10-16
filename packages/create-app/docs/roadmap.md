@@ -4,6 +4,8 @@
 
 - A folder argument creates and installs the starter with exact published Platform versions.
 - Packing snapshots `examples/starter` without local dependencies, build output, lockfiles or environment secrets.
+- A generated app receives its own README and guidance, symlinked `CLAUDE.md`, app-specific names, standalone test configuration and normal file permissions.
+- Release checks reject dependency pins behind npm latest, while allowing newer workspace versions released together.
 - Existing nonempty folders are refused before any write or install.
 - Each generated app has a git-ignored local environment with a fresh authentication secret and app-specific development and test database URLs.
 - The generated app prepares both local databases before development and loads its test database URL from the local environment.

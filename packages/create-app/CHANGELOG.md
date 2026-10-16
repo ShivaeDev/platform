@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 - 2026-10-16
+
+### Fixed
+
+- Give a generated app its own guidance and README, a symlinked CLAUDE.md, app-specific names and database examples, and no version manifest or repository-only configuration.
+- Keep generated files and the installed lockfile at 0644 while the local environment stays private at 0600.
+- Pin current framework releases and reject stale dependency pins when releasing the generated app command.
+
 ## 0.3.0 - 2026-10-16
 
 ### Added

@@ -1,23 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { NodeServices } from "@effect/platform-node";
-import { Effect } from "effect";
 import { afterEach, beforeAll, expect, it } from "vitest";
-import { appFolder, cleanup, testEnvironment } from "#test/cli.ts";
-import { packTemplate } from "./packTemplate.ts";
+import { appFolder, appScript, cleanup, packAppTemplate, testEnvironment } from "#test/cli.ts";
 
 const version: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
-beforeAll(() =>
-	Effect.runPromise(
-		packTemplate(
-			fileURLToPath(new URL("../../../examples/starter", import.meta.url)),
-			fileURLToPath(new URL("../template.json", import.meta.url)),
-		).pipe(Effect.provide(NodeServices.layer)),
-	),
-);
+beforeAll(packAppTemplate);
 afterEach(cleanup);
 
 it("creates a named app in a new parent path, installs, and prints only navigation and development steps", () => {
@@ -27,7 +16,7 @@ it("creates a named app in a new parent path, installs, and prints only navigati
 	const app = join(root, "apps/my-app");
 	expect(JSON.parse(readFileSync(join(app, "package.json"), "utf8"))).toMatchObject({ name: "my-app" });
 	expect(readFileSync(join(app, "package.json"), "utf8")).toMatch(/^\{\n\t"name": "my-app",/u);
-	expect(readFileSync(join(app, "installation.json"), "utf8")).toBe('["install"]');
+	expect(readFileSync(join(app, "installation.json"), "utf8")).toBe('[["install"],["format"]]');
 	expect(result.stdout).toBe("Created apps/my-app.\n\nNext steps:\n  cd 'apps/my-app'\n  pnpm dev\n");
 });
 
@@ -42,6 +31,9 @@ it("writes app-specific local database URLs and a fresh secret on every run, ign
 		const { root, run } = appFolder();
 		expect(run([name]).status).toBe(0);
 		const app = join(root, name);
+		const example = readFileSync(join(app, ".env.example"), "utf8");
+		expect(example).toContain(`/${database}_dev\n`);
+		expect(example).toContain(`/${database}_test\n`);
 		const env = readFileSync(join(app, ".env.local"), "utf8");
 		expect(env).toContain(`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\n`);
 		expect(env).toContain(`TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\n`);
@@ -63,11 +55,13 @@ it("preserves an existing environment and refuses to run again even after instal
 	expect(readFileSync(path, "utf8")).toBe(env);
 });
 
-it("runs generated pnpm test with TEST_DATABASE_URL loaded from .env.local", () => {
+it("typechecks a generated app named app and loads its local test database URL", () => {
 	const { root, run } = appFolder();
-	expect(run(["my-app"]).status).toBe(0);
-	const app = join(root, "my-app");
-	const result = testEnvironment(app).run();
+	expect(run(["app"]).status).toBe(0);
+	const app = join(root, "app");
+	const typecheck = appScript(app, "typecheck", ["--customConditions", "source"]);
+	expect(typecheck.status, typecheck.stdout + typecheck.stderr).toBe(0);
+	const result = testEnvironment(app, { name: "app" }).run();
 	expect(result.status, result.stdout + result.stderr).toBe(0);
 });
 

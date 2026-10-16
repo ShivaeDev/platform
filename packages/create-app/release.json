@@ -2,9 +2,9 @@
 	"date": "2026-10-16",
 	"fragments": [
 		{
-			"name": "starter-stories.md",
-			"text": "### Added\n\n- Generated apps include a story kit for authenticated HTTP and PostgreSQL tests, plus screen and migration stories, with guidance to extend the kit for new features.\n"
+			"name": "generated-app-files.md",
+			"text": "### Fixed\n\n- Give a generated app its own guidance and README, a symlinked CLAUDE.md, app-specific names and database examples, and no version manifest or repository-only configuration.\n- Keep generated files and the installed lockfile at 0644 while the local environment stays private at 0600.\n- Pin current framework releases and reject stale dependency pins when releasing the generated app command.\n"
 		}
 	],
-	"version": "0.3.0"
+	"version": "0.3.1"
 }

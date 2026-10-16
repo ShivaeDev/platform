@@ -60,6 +60,15 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 }
 
 export function prepareFile(path: string, content: string, versions: Readonly<Record<string, string>>) {
+	if (path === ".env.example") {
+		return content.replaceAll("starter_", "__APP_DATABASE___");
+	}
+	if (path === "src/test-support/postgres.ts") {
+		return content.replace(
+			'Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.orElse(() => Config.Redacted("TEST_DATABASE_URL")))',
+			'Config.Redacted("TEST_DATABASE_URL")',
+		);
+	}
 	if (path === "src/server/dev.ts") {
 		return content.replaceAll('"--conditions=source", ', "");
 	}

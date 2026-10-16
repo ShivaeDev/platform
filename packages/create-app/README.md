@@ -31,4 +31,6 @@ The command writes a git-ignored `.env.local` with a fresh authentication secret
 
 `pnpm dev` first runs `pnpm db:setup` to prepare both databases through `@shivaedev/local-postgres`. Have local PostgreSQL 18.6 on port 55432 or Docker available; see [local-postgres machine setup](https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#install-and-machine-setup). `pnpm test` loads `TEST_DATABASE_URL` from `.env.local`.
 
+The generated app has its own README and agent guidance, with `CLAUDE.md` linked to `AGENTS.md`. Its database examples use the app name; its test support reads `TEST_DATABASE_URL`. Maintainer instructions and the published-version manifest stay in the repository. Generated files and the installed lockfile use mode 0644; `.env.local` uses 0600.
+
 The command also supports `--help` and `--version`. See the [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for the starter's application and deployment workflow.
