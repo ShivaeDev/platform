@@ -55,7 +55,11 @@ it.live("coalesces more than 256 simultaneous writes into one revision and share
 });
 
 it.live("ignores socket preparation events without restarting the watcher or rescanning Markdown", function* () {
-	const notes = folder({ ".board.sock.starting/pending.md": "# Socket preparation", "note.md": "# Notes" });
+	const notes = folder({
+		".board.sock.starting/pending.md": "# Startup lock",
+		".sABC123/pending.md": "# Socket preparation",
+		"note.md": "# Notes",
+	});
 	const events = yield* PubSub.unbounded<FileSystem.WatchEvent>();
 	let listings = 0;
 	const services = Layer.effect(
@@ -81,6 +85,8 @@ it.live("ignores socket preparation events without restarting the watcher or res
 				const burst: FileSystem.WatchEvent[] = [
 					{ _tag: "Create", path: ".board.sock.starting" },
 					{ _tag: "Update", path: ".board.sock.starting/pending.md" },
+					{ _tag: "Create", path: ".sABC123" },
+					{ _tag: "Update", path: ".sABC123/pending.md" },
 					{ _tag: "Update", path: "note.md" },
 				];
 				yield* PubSub.publishAll(events, burst);

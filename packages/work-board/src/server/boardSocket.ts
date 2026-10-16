@@ -61,9 +61,9 @@ export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 			if (state === "stale") {
 				yield* fs.remove(path, { force: true });
 			}
-			// Bind behind a private directory so permissive umasks never expose an unprotected listener.
-			const staging = yield* fs.makeTempDirectoryScoped({ directory: lock });
-			const pending = paths.join(staging, "socket");
+			// Short private names preserve owner-only access within board.sock's pathname budget.
+			const staging = yield* fs.makeTempDirectoryScoped({ directory: root, prefix: ".s" });
+			const pending = paths.join(staging, "s");
 			const server = yield* NodeHttpServer.make(createServer, { disablePreemptiveShutdown: true, path: pending }).pipe(Scope.provide(scope));
 			yield* fs.chmod(pending, 0o600);
 			yield* server

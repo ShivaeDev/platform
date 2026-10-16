@@ -1,14 +1,39 @@
-import { chmodSync, existsSync, rmSync, statSync } from "node:fs";
+import { chmodSync, existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Cause, Effect, Exit } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, startBoard } from "#test/board.ts";
 import { socketRpc, staleSocket } from "#test/socketRpc.ts";
-import { abandonedSocketStartup, socketStartup } from "#test/socketStartup.ts";
+import { abandonedSocketStartup, nestedSocketFolder, socketStartup } from "#test/socketStartup.ts";
 
 let notes: Folder;
 afterEach(() => notes?.remove());
+
+it.live("serves a nested directory whose public socket fits but a longer staging address would exceed Unix limits", function* () {
+	notes = nestedSocketFolder();
+	const socket = join(notes.root, "board.sock");
+	expect(Buffer.byteLength(notes.root)).toBe(83);
+	expect(Buffer.byteLength(socket)).toBe(94);
+	let pending = "";
+	const board = yield* startBoard(notes.root, undefined, (fs) => ({
+		...fs,
+		chmod: (path, mode) => {
+			pending = path;
+			return fs.chmod(path, mode);
+		},
+	}));
+	expect(Buffer.byteLength(pending)).toBeLessThanOrEqual(Buffer.byteLength(socket));
+	expect(statSync(socket).mode & 0o777).toBe(0o600);
+	expect(yield* Effect.promise(() => socketRpc(socket, "work-board.server"))).toEqual(
+		expect.arrayContaining([expect.objectContaining({ exit: { _tag: "Success", value: { directory: notes.root, url: `${board.url}/` } } })]),
+	);
+	expect(yield* Effect.promise(() => socketRpc(socket, "work-board.inbox"))).toEqual(
+		expect.arrayContaining([expect.objectContaining({ exit: { _tag: "Success", value: expect.any(Object) } })]),
+	);
+	yield* board.stop();
+	expect(readdirSync(notes.root)).toEqual(["note.md"]);
+});
 
 it.live("keeps a newly bound socket private before chmod under umask 0002", function* () {
 	notes = folder({ "note.md": "# Notes\n" });

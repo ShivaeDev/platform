@@ -4,6 +4,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
+import { type Folder, folder } from "#test/board.ts";
 
 interface Message {
 	readonly error?: string;
@@ -16,6 +17,17 @@ export function abandonedSocketStartup(root: string) {
 	const lock = join(root, ".board.sock.starting");
 	mkdirSync(lock);
 	return lock;
+}
+
+export function nestedSocketFolder(): Folder {
+	const parent = folder({});
+	const nested = "notes-".padEnd(83 - Buffer.byteLength(parent.root) - 1, "x");
+	parent.write(`${nested}/note.md`, "# Notes\n");
+	return {
+		remove: parent.remove,
+		root: join(parent.root, nested),
+		write: (path, content) => parent.write(`${nested}/${path}`, content),
+	};
 }
 
 export const socketStartup = Effect.fn("Test.socketStartup")(function* (root: string, phase = "none") {
