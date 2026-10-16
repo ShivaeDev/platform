@@ -1,8 +1,15 @@
+import { registerHooks } from "node:module";
 import { parentPort, workerData } from "node:worker_threads";
-import { Effect, Layer, Redacted } from "effect";
-import { HttpServer } from "effect/http";
-import * as NetAddress from "effect/net/NetAddress";
-import { starterHost } from "#server/starterHost.ts";
+
+registerHooks({
+	resolve(specifier, context, nextResolve) {
+		return nextResolve(specifier, { ...context, conditions: context.conditions.filter((condition) => condition !== "source") });
+	},
+});
+const { Effect, Layer, Redacted } = await import("effect");
+const { HttpServer } = await import("effect/http");
+const NetAddress = await import("effect/net/NetAddress");
+const { starterHost } = await import("#server/starterHost.ts");
 
 if (typeof workerData !== "string" || parentPort === null) {
 	throw new Error("The story host needs a database URL and a parent port");
