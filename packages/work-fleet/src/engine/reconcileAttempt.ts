@@ -19,6 +19,7 @@ export function reconcileAttempt({ sessions, policy, board }: EngineState) {
 				: {
 						resume: {
 							...(attempt.role === "reviewer" ? { access: "read-only" as const } : {}),
+							afterTimeout: attempt.submissionTimedOut,
 							prompt,
 							settings: attempt.settings ?? { ...policy.launch, ...stored.value.launch },
 						},

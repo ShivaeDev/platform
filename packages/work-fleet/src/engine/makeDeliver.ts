@@ -80,7 +80,9 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 		return released;
 	}
 	if (Result.isFailure(observed)) {
-		return ["delivering", "needs-human"].includes(record.stage) && !deliveryPending(record)
+		return (["delivering", "needs-human"].includes(record.stage)
+			|| (failureCode(observed.failure) === "pr-head-moved" && ["reviewing", "validating"].includes(record.stage) && !executing(record)))
+			&& !deliveryPending(record)
 			? yield* observeDeliveryFailure(state, stored, result, observed.failure)
 			: stored;
 	}

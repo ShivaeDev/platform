@@ -68,9 +68,11 @@ export function codexTurns(rpc: CodexRequest) {
 		const matching: (typeof Turn.Type)[] = [];
 		const cursors = new Set<string>();
 		let empty = true;
+		let idle = true;
 		do {
 			const page: typeof TurnsResponse.Type = yield* turns(sessionId, cursor, true);
 			empty = empty && page.data.length === 0;
+			idle = idle && page.data.every((turn) => turn.status === "completed" || turn.status === "failed" || turn.status === "interrupted");
 			matching.push(...page.data.filter((turn) => turn.items.some((item) => item.type === "userMessage" && item.clientId === operationId)));
 			cursor = page.nextCursor;
 			yield* rememberCursor(cursors, cursor, "Codex repeated a turn pagination cursor");
@@ -88,7 +90,7 @@ export function codexTurns(rpc: CodexRequest) {
 			);
 		}
 		const turnId = matching[0]?.id;
-		return { empty, turnId };
+		return { empty, idle, turnId };
 	});
 	const readItems = Effect.fn("Codex.readItems")(function* (receipt: SessionReceipt, byteLimit?: number) {
 		let cursor: string | null = null;

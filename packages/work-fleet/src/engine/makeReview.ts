@@ -57,7 +57,7 @@ function finishReviewObservation(state: EngineState) {
 		observation: SessionObservation,
 	) {
 		const stored = yield* makeDeliver(state)(input);
-		if (stored.value.stage === "released") {
+		if (stored.value.stage === "released" || stored.value.result?.head !== result.head) {
 			return stored;
 		}
 		const currentWork = yield* state.board.get(work.workId);
