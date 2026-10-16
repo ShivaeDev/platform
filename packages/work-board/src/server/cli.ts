@@ -2,7 +2,10 @@
 import process from "node:process";
 
 const action = process.argv[2];
-if (action === "wait" || action === "response" || action === "question") {
+if (action === "mcp") {
+	const entry = await import("#server/mcp/run.ts");
+	entry.runMcp();
+} else if (action === "wait" || action === "response" || action === "question") {
 	try {
 		const entry: typeof import("#server/responses/agent-cli.ts") = await import(new URL("../../assets/agent.js", import.meta.url).href);
 		await entry.runAgent(process.argv.slice(2));
