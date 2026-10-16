@@ -14,6 +14,7 @@ on:
       - .github/workflows/published-starter.yml
       - script/starter-published.ts
       - script/starter-published/**
+      - examples/starter/.github/workflows/**
   # A release pins the starter to versions that reach npm only when it publishes, so its check runs right after.
   workflow_run:
     workflows: [Publish packages]
@@ -108,5 +109,5 @@ jobs:
         if: github.event_name == 'workflow_run' || github.event_name == 'pull_request'
         # pnpm resolves `latest` only to a version past its one-day release age, which for a day after a publish is the previous release, so a publish or a change to this check generates from the create-app version the pins job found on npm.
         run: echo "CREATE_APP_VERSION=$(jq -r .version packages/create-app/package.json)" >> "$GITHUB_ENV"
-      - name: Generate an app from npm and check published APIs and PostgreSQL behavior
+      - name: Generate an app from npm and run its CI and published API checks
         run: pnpm --filter @shivaedev/starter check:published --registry --create-app-version "$CREATE_APP_VERSION"
