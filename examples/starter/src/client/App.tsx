@@ -1,8 +1,10 @@
-import { authClient } from "./auth.ts";
+import type { Auth } from "./auth.ts";
 import { SessionApp } from "./SessionApp.tsx";
 
-export function App() {
-	const session = authClient.useSession();
+type SessionProps = Parameters<typeof SessionApp>[0];
+
+export function App({ auth, connect, history }: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history">) {
+	const session = auth.client.useSession();
 	if (session.isPending) {
 		return (
 			<p className="p-8" role="status">
@@ -20,5 +22,13 @@ export function App() {
 			</main>
 		);
 	}
-	return <SessionApp recheck={() => void session.refetch()} sessionId={session.data?.session.id ?? "anonymous"} />;
+	return (
+		<SessionApp
+			auth={auth.actions}
+			connect={connect}
+			history={history}
+			recheck={() => void session.refetch()}
+			sessionId={session.data?.session.id ?? "anonymous"}
+		/>
+	);
 }

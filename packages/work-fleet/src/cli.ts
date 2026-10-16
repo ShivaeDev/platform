@@ -13,6 +13,7 @@ import * as Option from "effect/Option";
 import { answerCommand, continueCommand, nameThreadsCommand, reassignCommand, releaseCommand } from "#host/actionCommands.ts";
 import { board, config, host, port } from "#host/cliOptions.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
+import { VERSION } from "#packageInfo.ts";
 
 const serveCommand = Command.make(
 	"serve",
@@ -72,7 +73,7 @@ const cli = Command.make("work-fleet").pipe(
 	]),
 );
 
-const main = Command.run(cli, { version: "0.0.0" }).pipe(
+const main = Command.run(cli, { version: VERSION }).pipe(
 	Effect.catchCauseIf(
 		(cause) => !Cause.hasInterrupts(cause),
 		(cause) => {

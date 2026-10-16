@@ -58,7 +58,7 @@ export function appHostHttp<
 				options.assets === undefined
 					? Layer.empty
 					: HttpStaticServer.layer(typeof options.assets === "string" ? { root: options.assets } : options.assets);
-			const application = options.services;
+			const application = Layer.mergeAll(options.services ?? Layer.empty);
 			const server = Layer.unwrap(
 				Effect.gen(function* () {
 					const port = options.config?.port ?? (yield* Config.Int("PORT").pipe(Config.withDefault(3000)));
@@ -97,5 +97,6 @@ export function migratedHost<
 		| AppLocalHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations>,
 	database: ReturnType<typeof databaseLayer<TMigrations>>,
 ) {
-	return appHostHttp({ ...options, services: options.services.pipe(Layer.provideMerge(database)) });
+	const services = Layer.mergeAll(options.services ?? Layer.empty);
+	return appHostHttp({ ...options, services: services.pipe(Layer.provideMerge(database)) });
 }

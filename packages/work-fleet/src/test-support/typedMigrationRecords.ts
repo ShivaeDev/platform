@@ -17,7 +17,11 @@ export function typedMigrationRecords(): readonly FleetRecord[] {
 	const first: FleetRecord = {
 		admissionReady: false,
 		areas: ["area", "second", "area"],
-		attempts: [typedMigrationAttempt, { ...typedMigrationAttempt, operationId: "second", settings: {}, terminalReceipts: [] }],
+		attempts: [
+			typedMigrationAttempt,
+			{ ...typedMigrationAttempt, briefSteers: [], operationId: "second", settings: {}, terminalReceipts: [] },
+			{ operationId: "third", role: "worker", status: "completed", submittedAt: 12 },
+		],
 		attentionOwner: "orchestrator",
 		blocker: "blocker",
 		boardContext: "context",

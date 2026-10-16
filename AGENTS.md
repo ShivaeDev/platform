@@ -1,6 +1,6 @@
 # ShivaeDev Platform
 
-You are working in Platform, the monorepo of reusable TypeScript packages that ShivaeDev publishes to npm under `@shivaedev`. It aims to be the default foundation for Effect applications, so a change to a public type, export or behavior reaches every consumer. The packages are pre-1.0 and change quickly, and the maintainer decides API shape, scope and releases. Think of yourself as a senior Effect engineer on this team: a careful colleague who owns every line they touch and leaves every file in better shape than they found it.
+You are working in Platform, the monorepo of reusable TypeScript packages that ShivaeDev publishes to npm under `@shivaedev`. It aims to be the default foundation for Effect applications, so a change to a public type, export or behavior reaches every consumer. The packages are pre-1.0 and change quickly, and the maintainer sets their direction. Think of yourself as a senior Effect engineer on this team: a careful colleague who owns every line they touch and leaves every file in better shape than they found it.
 
 ## How we work
 
@@ -10,7 +10,7 @@ Each job has one path, and you extend it instead of adding a second one. Service
 
 Follow this guidance over a bad pattern in the surrounding code, and fix the debt you touch in the same change, including deleting superseded code and docs. The quality baseline only goes down: when a check fails, fix the code, and the finding tells you how. A behavior that a README, changelog or roadmap states needs a test that fails without it, and the claim covers only what that test proves. A library test is not adoption proof, and SQLite or DOM fixtures prove nothing about PostgreSQL, real HTTP, SSR or mobile. Test PostgreSQL behavior against real PostgreSQL; those tests skip without their database URL, and a skipped test proves nothing. A comment states only why the code is this way. Docs state the current truth; status lives in the roadmap and history in git.
 
-Ask the maintainer before you change a public API, add a package or dependency, cut a release, or settle a question the roadmap leaves open. Otherwise do the work and report what you did.
+Releases are routine: cut one whenever a change needs to reach npm, following the release steps. Ask the maintainer only before a breaking change to a framework package's public API, a new package or a new external dependency, because consumers and the npm account carry those. Otherwise do the work and report what you did.
 
 ## Daily commands
 

@@ -15,22 +15,25 @@ const options = {
 	migrations: { loader: Migrator.fromRecord({}) },
 	sessions: { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } },
 };
-const incomplete = appHost({ ...options, services: Layer.empty });
+const incomplete = appHost(options);
 const complete = appHost({ ...options, services: Layer.effect(Required, Effect.fail(new BuildFailure())) });
 const sqlHandlers = Api.toLayer({ read: () => SqlClient.SqlClient.pipe(Effect.as("ready")) });
-const withoutDatabase = appHost({ group: Api, handlers: sqlHandlers, policy: "loopback", services: Layer.empty });
-const withDatabase = appHost({ ...options, handlers: sqlHandlers, services: Layer.empty });
-const typedOptions: AppHostOptions<
+const withoutDatabase = appHost({ group: Api, handlers: sqlHandlers, policy: "loopback" });
+const withDatabase = appHost({ ...options, handlers: sqlHandlers });
+const withoutServices = appHost({ group: Api, handlers: Api.toLayer({ read: () => Effect.succeed("ready") }), sessions: options.sessions });
+const localWithDatabase = appHost({ group: Api, handlers: sqlHandlers, migrations: options.migrations, policy: "loopback" });
+type TypedOptions<TServices = never, TServiceError = never, TServiceRequirements = never> = AppHostOptions<
 	RpcGroup.Rpcs<typeof Api>,
 	Layer.Success<typeof handlers>,
 	never,
 	Required,
-	never,
-	never,
-	never,
+	TServices,
+	TServiceError,
+	TServiceRequirements,
 	never,
 	{ readonly user: { readonly id: string } }
-> = { ...options, services: Layer.empty };
+>;
+const typedOptions: TypedOptions = options;
 const failingRouteHost = appHost({
 	group: Api,
 	handlers: Api.toLayer({ read: () => Effect.succeed("ready") }),
@@ -48,6 +51,20 @@ it("host composition preserves application requirements and build failures", () 
 	expectTypeOf<Extract<Layer.Error<typeof complete>, Config.ConfigError>>().toEqualTypeOf<Config.ConfigError>();
 	expectTypeOf<Layer.Services<typeof withoutDatabase>>().toEqualTypeOf<SqlClient.SqlClient>();
 	expectTypeOf<Layer.Services<typeof withDatabase>>().toEqualTypeOf<never>();
+	expectTypeOf<Layer.Services<typeof withoutServices>>().toEqualTypeOf<never>();
+	expectTypeOf<Layer.Error<typeof withoutServices>>().not.toBeUnknown();
+	expectTypeOf<Layer.Services<typeof localWithDatabase>>().toEqualTypeOf<never>();
 	expectTypeOf<Layer.Services<typeof typedHost>>().toEqualTypeOf<Required>();
 	expectTypeOf<Effect.Success<typeof providerSession>>().toEqualTypeOf<Option.Option<{ readonly user: { readonly id: string } }>>();
+});
+
+it("annotated options require a Layer for declared service types", () => {
+	// @ts-expect-error Declared service outputs must be supplied by a Layer.
+	const missingServices: TypedOptions<Required> = options;
+	void missingServices;
+	expectTypeOf(options).not.toExtend<TypedOptions<never, BuildFailure>>();
+	expectTypeOf(options).not.toExtend<TypedOptions<never, never, Required>>();
+	const suppliedOptions: TypedOptions<Required> = { ...options, services: Layer.succeed(Required, "ready") };
+	const suppliedHost = appHost(suppliedOptions);
+	expectTypeOf<Layer.Services<typeof suppliedHost>>().toEqualTypeOf<never>();
 });

@@ -3,6 +3,11 @@ import type { Attempt } from "#model.ts";
 export const migrationReceipt = { sessionId: "session", turnId: "turn" };
 export const migrationSettings = { effort: "high", model: "model", serviceTier: "tier" };
 export const typedMigrationAttempt: Attempt = {
+	briefSteers: [
+		{ requestedAt: 0, revision: "pending-revision" },
+		{ error: 'Steer failed: Ω\n"quoted"', requestedAt: 1, revision: "failed-revision" },
+		{ requestedAt: 2, revision: "steered-revision", steeredAt: 0 },
+	],
 	checkFailures: ["failed", "failed"],
 	missingSince: 0,
 	observationRetries: 2,

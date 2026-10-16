@@ -9,7 +9,15 @@ import { CAMEL, KEBAB, sameWord, wordsOf } from "#naming/words.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { parse } from "#rules/syntax.ts";
 
-const DEFAULT_TOOL_OWNED: readonly string[] = ["*.config.*", "*.d.ts", "*.d.mts", "*.d.cts"];
+const DEFAULT_TOOL_OWNED: readonly string[] = [
+	"*.config.*",
+	"*.d.ts",
+	"*.d.mts",
+	"*.d.cts",
+	"**/.railway/railway.ts",
+	"**/.railway/railway.py",
+	"**/.railway/railway.go",
+];
 
 const TEST = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
 

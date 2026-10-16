@@ -5,6 +5,7 @@ import { noJsdoc } from "#rules/comments/no-jsdoc.ts";
 import { noLineReference } from "#rules/comments/no-line-reference.ts";
 import { noPrReference } from "#rules/comments/no-pr-reference.ts";
 import { noTodo } from "#rules/comments/no-todo.ts";
+import { distinctCase } from "#rules/files/distinctCase.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { otherNames } from "#rules/files/otherNames.ts";
@@ -52,6 +53,7 @@ export const builtInRules = [
 	manifestsSorted,
 	namedAfterExport,
 	folderNames,
+	distinctCase,
 	otherNames,
 	testsFollow,
 	testsColocated,

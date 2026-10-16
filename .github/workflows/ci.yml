@@ -278,9 +278,34 @@ jobs:
       - name: Generate an app from the packed command and test packed workspace dependencies
         run: pnpm --filter @shivaedev/starter check:published --archives .ci/packages
 
+  macos-proxy:
+    name: macOS forwarding proxy
+    runs-on: macos-15
+    timeout-minutes: 10
+    env:
+      PLATFORM_EFFECT_SQL_TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:55432/platform_test_effect_sql
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Start native PostgreSQL
+        run: |
+          brew install postgresql@18
+          export PATH="$(brew --prefix postgresql@18)/bin:$PATH"
+          initdb -D "$RUNNER_TEMP/proxy-postgres" -U postgres -A trust
+          pg_ctl -D "$RUNNER_TEMP/proxy-postgres" -l "$RUNNER_TEMP/proxy-postgres.log" -o '-h 127.0.0.1 -p 55432' -w start
+          createdb --host=127.0.0.1 --port=55432 --username=postgres platform_test_effect_sql
+      - name: Test real HTTP forwarding and deployed authentication
+        env:
+          NODE_OPTIONS: --conditions=source
+        run: |
+          pnpm --filter @shivaedev/platform test src/server/appHostProxy.spec.ts src/server/rpc-server/proxy.spec.ts
+          pnpm --filter @shivaedev/starter test src/server/starterDeploy.spec.ts
+
   verify:
     if: always()
-    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter]
+    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-proxy]
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:

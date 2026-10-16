@@ -3,16 +3,16 @@ import { useEffect, useState } from "react";
 import type { RouterShell } from "#client/react/loadBoardPage.ts";
 import { currentEntry, navigationFailure, readingKey, sameReadingLocation } from "#client/react/navigationLocation.ts";
 import { readerLink } from "#client/react/readerLink.ts";
-import { readingEntry, readingHistory } from "#client/react/readingHistory.ts";
 import { captureReading } from "#client/react/readingState.ts";
 import { retryPage } from "#client/react/retryPage.ts";
 import { scheduleReading } from "#client/react/scheduleReading.ts";
+import { readingEntry, storedReadings } from "#client/react/storedReadings.ts";
 
 export function useBoardNavigation(shell: RouterShell) {
 	const router = useRouter();
 	const [status, setStatus] = useState("");
 	useEffect(() => {
-		const readings = readingHistory();
+		const readings = storedReadings();
 		const initial = readingEntry(shell.reading ?? window.history.state?.workBoard);
 		const aliases = new Map<string, string>();
 		let displayed = "";

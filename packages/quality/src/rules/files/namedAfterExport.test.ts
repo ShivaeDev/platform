@@ -88,4 +88,23 @@ describe("files/named-after-export", () => {
 		const sources = [{ content: "export function loadItem() {}\n", path: "src/fetch.ts" }];
 		expect(await checkRule(namedAfterExport, { toolOwned: ["src/fetch.ts"] }, { sources })).toEqual([]);
 	});
+
+	it("leaves only Railway's authoring paths tool-owned, including in nested projects", async () => {
+		const content = "export default function infrastructure() {}\n";
+		const paths = [
+			".railway/railway.ts",
+			".railway/railway.py",
+			".railway/railway.go",
+			"apps/web/.railway/railway.ts",
+			"apps/web/.railway/railway.py",
+			"apps/web/.railway/railway.go",
+			".railway/helpers.ts",
+			"src/railway.ts",
+			".railway/nested/railway.ts",
+			".railway/railway.tsx",
+			".railways/railway.ts",
+		];
+		const findings = await checkRule(namedAfterExport, undefined, { sources: paths.map((path) => ({ content, path })) });
+		expect([...new Set(findings.map((finding) => finding.file))]).toEqual(paths.slice(6));
+	});
 });

@@ -625,7 +625,7 @@
 			"includes": ["**", "!**/package.json"]
 		},
 		{
-			"includes": ["**/*.config.*"],
+			"includes": ["**/*.config.*", "**/.railway/railway.ts", "**/.railway/railway.py", "**/.railway/railway.go"],
 			"linter": {
 				"rules": {
 					"style": {

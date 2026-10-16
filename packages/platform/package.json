@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.8.0",
+	"version": "0.11.0",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {
@@ -168,6 +168,12 @@
 		}
 	},
 	"exports": {
+		"./boundedBody.ts": {
+			"types": "./dist/server/boundedBody.d.ts",
+			"source": "./src/server/boundedBody.ts",
+			"import": "./dist/server/boundedBody.js",
+			"default": "./dist/server/boundedBody.js"
+		},
 		"./appHost.ts": {
 			"types": "./dist/server/appHost.d.ts",
 			"source": "./src/server/appHost.ts",

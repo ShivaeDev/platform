@@ -7,6 +7,7 @@ import { expect, it } from "vitest";
 import { appHost } from "#appHost.ts";
 import { AuthUnavailable, Conflict, Unauthorized } from "#errors/taxonomy.ts";
 import { Api, call, feature, handlers, post, sessions, staticAssets } from "#test/app-host/fixture.ts";
+import { Ping, ping } from "#test/app-host/ping.ts";
 
 const database = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
 const test = it.runIf(database._tag === "Some");
@@ -16,6 +17,23 @@ function destination() {
 	}
 	return database.value;
 }
+test("omitting services keeps migrated SQL available to RPC handlers", async () => {
+	const runtime = ManagedRuntime.make(
+		appHost({
+			config: { databaseUrl: Redacted.make(destination()), port: 0 },
+			group: Ping,
+			handlers: Ping.toLayer({ ping: () => SqlClient.SqlClient.use((sql) => sql`select 1`).pipe(Effect.orDie, Effect.as("pong")) }),
+			migrations: { loader: Migrator.fromRecord({}) },
+			policy: "loopback",
+		}),
+	);
+	try {
+		const server = await runtime.runPromise(HttpServer.HttpServer);
+		expect(await ping(`${HttpServer.formatAddress(server.address)}/rpc`)).toBe("pong");
+	} finally {
+		await runtime.dispose();
+	}
+});
 test("the host migrates before services, serves assets and guarded typed RPC, and releases its scope", async () => {
 	const assets = await staticAssets();
 	const table = `host_${crypto.randomUUID().replaceAll("-", "")}`;
