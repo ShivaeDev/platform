@@ -44,7 +44,7 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const code = yield* spawner.exitCode(ChildProcess.make("pnpm", ["run", "setup"], { cwd: target, stderr: "inherit", stdout: "inherit" }));
 	if (code !== 0) {
-		return yield* new CreateAppError({ message: `pnpm run setup failed (exit ${code}). Run pnpm setup in ${folder} to retry.` });
+		return yield* new CreateAppError({ message: `pnpm run setup failed (exit ${code}). Run pnpm run setup in ${folder} to retry.` });
 	}
 	if (initialized) {
 		yield* commitGit(target);

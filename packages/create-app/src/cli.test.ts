@@ -169,7 +169,7 @@ it("reports installation failure and leaves the generated app available for retr
 	const result = run(["my-app"]);
 	expect(result.status).toBe(1);
 	expect(result.stderr).toContain("pnpm run setup failed (exit 7)");
-	expect(result.stderr).toContain("Run pnpm setup in my-app to retry");
+	expect(result.stderr).toContain("Run pnpm run setup in my-app to retry");
 	expect(result.stdout).not.toContain("Next steps");
 	expect(existsSync(join(root, "my-app/package.json"))).toBe(true);
 	expect(spawnSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: join(root, "my-app") }).status).not.toBe(0);
