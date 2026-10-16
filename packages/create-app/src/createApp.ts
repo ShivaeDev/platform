@@ -4,6 +4,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { Console, Effect, FileSystem, Schema } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { CreateAppError } from "./CreateAppError.ts";
+import { appDatabase, renderAppFile } from "./renderAppFile.ts";
 import { Template } from "./template.ts";
 
 const decodeName = Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)));
@@ -21,28 +22,37 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 	const template = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Template))(yield* fs.readFileString(templatePath));
 	yield* fs.makeDirectory(target, { recursive: true });
 	for (const entry of template) {
-		const path = join(target, entry.path);
-		let content = Buffer.from(entry.content, "base64");
+		const path = join(target, renderAppFile(entry.path, name));
+		let content = Buffer.from(renderAppFile(Buffer.from(entry.content, "base64").toString(), name));
 		if (entry.path === "package.json") {
 			const manifest = yield* decodeName(content.toString());
 			content = Buffer.from(`${JSON.stringify({ ...manifest, name }, null, "\t")}\n`);
 		}
 		yield* fs.makeDirectory(dirname(path), { recursive: true });
 		yield* fs.writeFile(path, content);
+		yield* fs.chmod(path, 0o644);
 	}
-	const database = name
-		.replaceAll(/[.-]/gu, "_")
-		.replace(/^[^a-z]/u, "app_$&")
-		.slice(0, 58);
+	yield* fs.symlink("AGENTS.md", join(target, "CLAUDE.md"));
+	const database = appDatabase(name);
 	yield* fs.writeFileString(
 		join(target, ".env.local"),
 		`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\nTEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\nBETTER_AUTH_SECRET=${randomBytes(32).toString("base64url")}\n`,
 		{ flag: "wx", mode: 0o600 },
 	);
+	yield* fs.chmod(join(target, ".env.local"), 0o600);
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	const code = yield* spawner.exitCode(ChildProcess.make("pnpm", ["install"], { cwd: target, stderr: "inherit", stdout: "inherit" }));
-	if (code !== 0) {
-		return yield* new CreateAppError({ message: `pnpm install failed (exit ${code}). Run pnpm install in ${folder} to retry.` });
+	for (const command of ["install", "format"]) {
+		const code = yield* spawner.exitCode(ChildProcess.make("pnpm", [command], { cwd: target, stderr: "inherit", stdout: "inherit" }));
+		for (const entry of template) {
+			yield* fs.chmod(join(target, renderAppFile(entry.path, name)), 0o644);
+		}
+		const lockfile = join(target, "pnpm-lock.yaml");
+		if (yield* fs.exists(lockfile)) {
+			yield* fs.chmod(lockfile, 0o644);
+		}
+		if (code !== 0) {
+			return yield* new CreateAppError({ message: `pnpm ${command} failed (exit ${code}). Run pnpm ${command} in ${folder} to retry.` });
+		}
 	}
 	const quotedFolder = `'${folder.replaceAll("'", "'\"'\"'")}'`;
 	yield* Console.log(`Created ${folder}.\n\nNext steps:\n  cd ${quotedFolder}\n  pnpm dev`);

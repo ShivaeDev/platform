@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2 - 2026-10-16
+
+### Fixed
+
+- A generated app has its own README and agent guidance, with CLAUDE.md linked to AGENTS.md, and excludes maintainer version metadata.
+- A generated app uses its own name in source paths, source text and example database URLs, keeps non-secret files and its installed lockfile at mode 0644, and keeps .env.local at mode 0600.
+- A generated app pins local-postgres 0.2.1 and types 0.2.1.
+- A generated app formats renamed source after installation and reports formatting failures with retry instructions.
+
 ## 0.2.1 - 2026-10-14
 
 ### Changed

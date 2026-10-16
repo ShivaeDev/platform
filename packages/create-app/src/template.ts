@@ -60,6 +60,9 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 }
 
 export function prepareFile(path: string, content: string, versions: Readonly<Record<string, string>>) {
+	if (path === ".env.example") {
+		return content.replaceAll("starter", "__APP_DATABASE__");
+	}
 	if (path === "src/server/dev.ts") {
 		return content.replaceAll('"--conditions=source", ', "");
 	}

@@ -1,10 +1,21 @@
 import { Buffer } from "node:buffer";
 import { basename, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, type PlatformError, Schema } from "effect";
 import { CreateAppError } from "./CreateAppError.ts";
 import { prepareFile, type Template, Versions } from "./template.ts";
 
-const excluded = new Set(["node_modules", "dist", "coverage", "pnpm-lock.yaml", ".git"]);
+const excluded = new Set([
+	"node_modules",
+	"dist",
+	"coverage",
+	"pnpm-lock.yaml",
+	".git",
+	"published-versions.json",
+	"AGENTS.md",
+	"CLAUDE.md",
+	"README.md",
+]);
 function included(path: string) {
 	return !excluded.has(basename(path)) && (!basename(path).startsWith(".env") || basename(path) === ".env.example");
 }
@@ -29,7 +40,7 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 				const content = yield* Effect.try({
 					catch: (cause) => new CreateAppError({ message: String(cause) }),
 					try: () =>
-						["biome.json", "package.json", "tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"].includes(path)
+						[".env.example", "biome.json", "package.json", "tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"].includes(path)
 							? Buffer.from(prepareFile(path, source.toString(), versions))
 							: source,
 				});
@@ -38,5 +49,12 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 		}
 	});
 	yield* visit("");
+	for (const [name, source] of [
+		["AGENTS", "app-guidance"],
+		["README", "app-readme"],
+	]) {
+		const content = yield* fs.readFile(fileURLToPath(new URL(`../template/${source}.md`, import.meta.url)));
+		entries.push({ content: Buffer.from(content).toString("base64"), path: `${name}.md` });
+	}
 	yield* fs.writeFileString(output, `${JSON.stringify(entries)}\n`);
 });

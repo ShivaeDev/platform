@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
@@ -27,22 +27,56 @@ it("creates a named app in a new parent path, installs, and prints only navigati
 	const app = join(root, "apps/my-app");
 	expect(JSON.parse(readFileSync(join(app, "package.json"), "utf8"))).toMatchObject({ name: "my-app" });
 	expect(readFileSync(join(app, "package.json"), "utf8")).toMatch(/^\{\n\t"name": "my-app",/u);
-	expect(readFileSync(join(app, "installation.json"), "utf8")).toBe('["install"]');
+	expect(readFileSync(join(app, "installation.json"), "utf8")).toBe('[["install"],["format"]]');
 	expect(result.stdout).toBe("Created apps/my-app.\n\nNext steps:\n  cd 'apps/my-app'\n  pnpm dev\n");
+});
+
+it("gives a generated app its own documentation, names and normal permissions under a restrictive umask", () => {
+	const { root, run } = appFolder();
+	expect(run(["demo"]).status).toBe(0);
+	const app = join(root, "demo");
+	for (const name of ["AGENTS.md", "README.md"]) {
+		const content = readFileSync(join(app, name), "utf8");
+		expect(content).toMatch(/^# demo\n/u);
+		expect(content).not.toMatch(/starter|create-app|check:published|published-versions|--registry/iu);
+	}
+	expect(lstatSync(join(app, "CLAUDE.md")).isSymbolicLink()).toBe(true);
+	expect(readlinkSync(join(app, "CLAUDE.md"))).toBe("AGENTS.md");
+	expect(existsSync(join(app, "published-versions.json"))).toBe(false);
+	function visit(directory: string) {
+		for (const entry of readdirSync(directory, { withFileTypes: true })) {
+			const path = join(directory, entry.name);
+			expect(entry.name).not.toMatch(/starter/iu);
+			if (entry.isDirectory()) {
+				visit(path);
+			} else if (entry.isFile() && entry.name !== "installation.json") {
+				expect(readFileSync(path, "utf8")).not.toMatch(/starter/iu);
+				expect(lstatSync(path).mode & 0o777, path).toBe(entry.name === ".env.local" ? 0o600 : 0o644);
+			}
+		}
+	}
+	visit(app);
+	expect(readFileSync(join(app, ".env.example"), "utf8")).toContain("/demo_dev\n");
+	expect(readFileSync(join(app, ".env.example"), "utf8")).toContain("/demo_test\n");
 });
 
 it("writes app-specific local database URLs and a fresh secret on every run, ignored by Git", () => {
 	const secrets = new Set<string>();
-	for (const [name, database] of [
-		["my-app", "my_app"],
-		["my-app", "my_app"],
-		["2.app", "app_2_app"],
-		["a".repeat(70), "a".repeat(58)],
+	for (const [name, database, identifier] of [
+		["my-app", "my_app", "myapp"],
+		["my-app", "my_app", "myapp"],
+		["2.app", "app_2_app", "app2app"],
+		["a".repeat(70), "a".repeat(58), "a".repeat(48)],
 	] as const) {
 		const { root, run } = appFolder();
 		expect(run([name]).status).toBe(0);
 		const app = join(root, name);
 		const env = readFileSync(join(app, ".env.local"), "utf8");
+		const example = readFileSync(join(app, ".env.example"), "utf8");
+		expect(existsSync(join(app, `src/server/${identifier}Host.ts`))).toBe(true);
+		expect(example).toContain(`/${database}_dev\n`);
+		expect(example).toContain(`/${database}_test\n`);
+		expect(readFileSync(join(app, "src/server/makeNotesRepository.ts"), "utf8")).toContain(`tableName: "${database.slice(0, 48)}_notes"`);
 		expect(env).toContain(`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\n`);
 		expect(env).toContain(`TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\n`);
 		const secret = env.match(/^BETTER_AUTH_SECRET=(?<secret>.+)$/mu)?.groups?.secret ?? "";
@@ -131,6 +165,16 @@ it("reports installation failure and leaves the generated app available for retr
 	expect(result.stderr).toContain("Run pnpm install in my-app to retry");
 	expect(result.stdout).not.toContain("Next steps");
 	expect(existsSync(join(root, "my-app/package.json"))).toBe(true);
+});
+
+it("reports formatting failure after installation and leaves the generated app available for retry", () => {
+	const { root, run } = appFolder({ formattingExit: 7 });
+	const result = run(["my-app"]);
+	expect(result.status).toBe(1);
+	expect(result.stderr).toContain("pnpm format failed (exit 7)");
+	expect(result.stderr).toContain("Run pnpm format in my-app to retry");
+	expect(result.stdout).not.toContain("Next steps");
+	expect(lstatSync(join(root, "my-app/AGENTS.md")).mode & 0o777).toBe(0o644);
 });
 
 it("rejects invalid package names before creating a folder", () => {

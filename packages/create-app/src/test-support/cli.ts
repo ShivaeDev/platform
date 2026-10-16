@@ -56,9 +56,11 @@ export function testEnvironment(app: string, { databases = false, name = "my-app
 
 export function appFolder({
 	installationExit = 0,
+	formattingExit = 0,
 	destination = "absent",
 }: {
 	readonly installationExit?: number;
+	readonly formattingExit?: number;
 	readonly destination?: "absent" | "empty" | "file" | "nonempty" | "environment";
 } = {}) {
 	const root = mkdtempSync(join(tmpdir(), "create-app-cli-"));
@@ -67,7 +69,15 @@ export function appFolder({
 	mkdirSync(bin);
 	writeFileSync(
 		join(bin, "pnpm"),
-		`#!/usr/bin/env node\nrequire('node:fs').writeFileSync('installation.json', JSON.stringify(process.argv.slice(2)));\nprocess.exit(${installationExit});\n`,
+		`#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+const calls = fs.existsSync('installation.json') ? JSON.parse(fs.readFileSync('installation.json', 'utf8')) : [];
+fs.writeFileSync('installation.json', JSON.stringify([...calls, args]));
+fs.writeFileSync('pnpm-lock.yaml', 'lockfileVersion: 9', { mode: 0o600 });
+if (args[0] === 'format') fs.chmodSync('AGENTS.md', 0o600);
+process.exit(args[0] === 'install' ? ${installationExit} : ${formattingExit});
+`,
 		{ mode: 0o755 },
 	);
 	const target = join(root, "my-app");
@@ -87,10 +97,25 @@ export function appFolder({
 	return {
 		root,
 		run: (args: readonly string[]) =>
-			spawnSync("env", [`PATH=${bin}:${path}`, "NODE_OPTIONS=", process.execPath, "--conditions=source", cli, ...args], {
-				cwd: root,
-				encoding: "utf8",
-			}),
+			spawnSync(
+				"sh",
+				[
+					"-c",
+					'umask 077; exec "$@"',
+					"create-app",
+					"env",
+					`PATH=${bin}:${path}`,
+					"NODE_OPTIONS=",
+					process.execPath,
+					"--conditions=source",
+					cli,
+					...args,
+				],
+				{
+					cwd: root,
+					encoding: "utf8",
+				},
+			),
 	};
 }
 

@@ -50,10 +50,10 @@ it("packages the real starter with registry dependencies, standalone configurati
 	for (const path of ["tsconfig.json", "vite.config.ts", "vitest.config.ts"]) {
 		expect(files[path]).not.toContain('"source"');
 	}
+	expect(files[".env.example"]).toContain("/__APP_DATABASE___dev\n");
 	expect(files["pnpm-workspace.yaml"]).toBe(readFileSync(join(starter, "pnpm-workspace.copy.yaml"), "utf8"));
 	expect(files["pnpm-workspace.copy.yaml"]).toBeUndefined();
 	for (const path of [
-		".env.example",
 		"src/server/setup-database.ts",
 		"src/server/starterHost.test.ts",
 		"src/server/committedJobs.spec.ts",
@@ -64,11 +64,24 @@ it("packages the real starter with registry dependencies, standalone configurati
 	}
 });
 
+it("packages app guidance and a README without maintainer documentation or version internals", async () => {
+	const files = await templateSource({ realStarter: true }).pack();
+	for (const path of ["AGENTS.md", "README.md"]) {
+		expect(files[path]).toContain("# __APP_NAME__");
+		expect(files[path]).not.toMatch(/starter|create-app|check:published|published-versions|--registry/iu);
+	}
+	expect(files["CLAUDE.md"]).toBeUndefined();
+	expect(files["published-versions.json"]).toBeUndefined();
+});
+
 it("omits local output and secrets and picks up template changes on each pack", async () => {
 	const source = templateSource({ localArtifacts: true });
 	for (const value of ["first", "changed"]) {
 		source.changeApp(value);
 		const files = await source.pack();
-		expect(files).toEqual({ ".env.example": "example", "app.ts": value, "published-versions.json": "{}" });
+		expect(Object.keys(files)).toHaveLength(4);
+		expect(Object.keys(files)).toEqual(expect.arrayContaining([".env.example", "AGENTS.md", "README.md", "app.ts"]));
+		expect(files["app.ts"]).toBe(value);
+		expect(files[".env.example"]).toBe("example");
 	}
 });
