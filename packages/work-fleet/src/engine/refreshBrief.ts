@@ -11,12 +11,13 @@ import type { Versioned } from "#storage/model.ts";
 
 export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork) {
 	const ready = stored.value.stage === "needs-human" && stored.value.decision?.code === "reviewed-pr-ready" && stored.value.result?.kind === "change";
+	const changed = briefChanged(stored.value, work) || preparedAreasChanged(stored.value, work);
 	if (
 		["completed", "released"].includes(stored.value.stage)
 		|| (!ready && (stored.value.stage === "needs-human" || stored.value.decision !== undefined))
 		|| !work.approved
 		|| ["done", "superseded", "deferred"].includes(work.status ?? "")
-		|| !briefChanged(stored.value, work)
+		|| !changed
 	) {
 		return stored;
 	}
@@ -43,6 +44,10 @@ export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: En
 		work.context,
 	);
 });
+
+function preparedAreasChanged(record: FleetRecord, work: BoardWork): boolean {
+	return record.stage === "prepared" && JSON.stringify(record.areas ?? []) !== JSON.stringify(work.areas ?? []);
+}
 
 export const reconcileBrief = Effect.fn("Fleet.reconcileBrief")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
 	if (["completed", "released"].includes(stored.value.stage)) {
