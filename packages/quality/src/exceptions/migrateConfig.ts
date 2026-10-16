@@ -34,10 +34,13 @@ export function migrateConfig(text: string | undefined, file: string, exceptions
 		if (name === "registry" || name === "exceptions") {
 			return [];
 		}
-		if (name !== "rules" || !hasDeclarations || !ts.isPropertyAssignment(property)) {
+		if (name !== "rules" || !hasDeclarations) {
 			return [{ name: name ?? "", text: property.getFullText(source).trim() }];
 		}
-		if (!ts.isObjectLiteralExpression(property.initializer) || property.initializer.properties.some(ts.isSpreadAssignment)) {
+		if (
+			!(ts.isPropertyAssignment(property) && ts.isObjectLiteralExpression(property.initializer))
+			|| property.initializer.properties.some(ts.isSpreadAssignment)
+		) {
 			throw new Error(`Inline the rules object in ${file}, then run quality exceptions migrate again.`);
 		}
 		const rules = property.initializer.properties.filter((rule) => nameOf(rule) !== "suppressions/biome-overrides");
