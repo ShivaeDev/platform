@@ -2,7 +2,7 @@ import { Effect, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import { RpcSerialization } from "effect/rpc";
 import { expect, it } from "vitest";
-import { localRpcGuard } from "./local.ts";
+import { localRpcGuard, trustedProxyPeer } from "./local.ts";
 
 const forwarded = {
 	"content-type": "application/ndjson",
@@ -52,6 +52,12 @@ it.each([
 	[undefined, "100.64.0.0/10", false],
 ])("matches transport peer %s against %s", async (address, trust, accepted) => {
 	expect(await guarded(address, trust)).toEqual({ calls: accepted ? 1 : 0, status: accepted ? 204 : 403 });
+	if (address !== undefined) {
+		expect(trustedProxyPeer(trust)(address)).toBe(accepted);
+	}
+});
+it.each([undefined, "", "not-an-address", "127.0.0.1/33", "127.0.0.1,invalid"])("matches no peer with absent or malformed trust: %s", (trust) => {
+	expect(trustedProxyPeer(trust)("127.0.0.1")).toBe(false);
 });
 it.each([
 	{ origin: "https://elsewhere.example" },

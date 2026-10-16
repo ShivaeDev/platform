@@ -2,9 +2,9 @@
 	"date": "2026-10-16",
 	"fragments": [
 		{
-			"name": "session-profile.md",
-			"text": "### Changed\n\n- Generated apps use Platform 0.9.0 and read signed-in user profiles through `SessionUser`, including a `notes.whoami` query without auth-table SQL.\n"
+			"name": "auth-client-ip.md",
+			"text": "### Fixed\n\n- Generated apps use `TRUSTED_PROXY` for Better Auth client IP rate limiting and the host's forwarded authority. Auth ignores forwarded IP headers from untrusted peers, and trusted visitors have separate sign-in buckets.\n"
 		}
 	],
-	"version": "0.2.2"
+	"version": "0.2.3"
 }

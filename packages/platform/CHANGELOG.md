@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 - 2026-10-16
+
+### Added
+
+- `trustedProxyPeer(trustedProxy?)` from `@shivaedev/platform/rpc-server/local.ts` compiles the host's IP address and CIDR proxy matching into a reusable address predicate. Missing or malformed configuration matches no peer.
+
 ## 0.10.0 - 2026-10-16
 
 ### Added

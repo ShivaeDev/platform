@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 - 2026-10-16
+
+### Fixed
+
+- Generated apps use `TRUSTED_PROXY` for Better Auth client IP rate limiting and the host's forwarded authority. Auth ignores forwarded IP headers from untrusted peers, and trusted visitors have separate sign-in buckets.
+
 ## 0.2.2 - 2026-10-16
 
 ### Changed
