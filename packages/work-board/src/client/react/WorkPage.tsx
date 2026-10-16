@@ -1,25 +1,25 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { viewUrl } from "#browser/views/state.ts";
-import { SavedViews } from "./SavedViews.tsx";
-import type { ShellApi } from "./ShellApi.ts";
-import { shellIds } from "./shellIds.ts";
-import { WorkControls } from "./WorkControls.tsx";
-import { WorkDetail } from "./WorkDetail.tsx";
-import { WorkResults } from "./WorkResults.tsx";
-import { WorkTools } from "./WorkTools.tsx";
+import { SavedViews } from "#client/react/SavedViews.tsx";
+import type { ShellApi } from "#client/react/ShellApi.ts";
+import { shellIds } from "#client/react/shellIds.ts";
+import { WorkControls } from "#client/react/WorkControls.tsx";
+import { WorkDetail } from "#client/react/WorkDetail.tsx";
+import { WorkResults } from "#client/react/WorkResults.tsx";
+import { WorkTools } from "#client/react/WorkTools.tsx";
 export function WorkPage({ data, api }: { readonly data: WorkProjection; readonly api?: ShellApi | undefined }) {
 	const { state } = data;
 	const source = `/_board/item/${encodeURIComponent(state.board)}/`;
 	return (
 		<>
-			<header className="work-head">
+			<header className="work-head mb-4 space-y-2">
 				{state.view !== "now" && <p className="work-eyebrow">WORK · {state.view.toUpperCase()} VIEW</p>}
-				<h1>{data.validBoard ? data.title : "Board unavailable"}</h1>
+				<h1 className="m-0 font-semibold text-2xl">{data.validBoard ? data.title : "Board unavailable"}</h1>
 				{Boolean(state.board) && data.validBoard && <a href={source}>Board source</a>}
 			</header>
 			<WorkTools state={state} />
-			<details className="work-options" open={state.view !== "now"}>
-				<summary>Filter</summary>
+			<details className="work-options mb-4" open={state.view !== "now"}>
+				<summary className="cursor-pointer text-muted-foreground text-sm">Filter</summary>
 				<SavedViews url={viewUrl(state, { item: "" })} />
 				<WorkControls data={data} key={viewUrl(state)} />
 			</details>

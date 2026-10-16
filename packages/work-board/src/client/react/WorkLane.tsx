@@ -2,7 +2,8 @@ import { useState } from "react";
 import type { FleetWork, NowLane } from "#browser/views/now.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
-import { WorkCardList } from "./WorkCardList.tsx";
+import { Button } from "#client/react/components/ui/Button.tsx";
+import { WorkCardList } from "#client/react/WorkCardList.tsx";
 
 export function WorkLane({
 	lane,
@@ -21,16 +22,16 @@ export function WorkLane({
 }) {
 	const [open, setOpen] = useState(!collapsed);
 	return (
-		<section aria-label={lane} className="work-column">
-			<h2>
+		<section aria-label={lane} className="work-column min-w-0">
+			<h2 className="m-0 mb-3 flex min-h-8 items-center justify-between gap-3 whitespace-nowrap font-semibold text-sm">
 				{collapsed ? (
-					<button aria-expanded={open} onClick={() => setOpen(!open)} type="button">
+					<Button aria-expanded={open} onClick={() => setOpen(!open)} size="sm" variant="outline">
 						{lane}
-					</button>
+					</Button>
 				) : (
 					lane
 				)}
-				<span className="work-count">{rows.length}</span>
+				<span className="work-count shrink-0 text-muted-foreground text-xs tabular-nums">{rows.length}</span>
 			</h2>
 			{Boolean(open) && <WorkCardList fleet={fleet} rows={rows} state={state} virtual={virtual} />}
 		</section>
