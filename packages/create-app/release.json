@@ -6,5 +6,5 @@
 			"text": "### Added\n\n- Generated apps use Platform 0.12.0 and export Effect spans from the host and word-count worker when standard OTLP endpoint variables are set.\n"
 		}
 	],
-	"version": "0.4.0"
+	"version": "0.5.0"
 }
