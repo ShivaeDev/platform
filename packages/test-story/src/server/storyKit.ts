@@ -58,6 +58,7 @@ export interface StoryKitDefinition<
 	readonly inspect?: (engine: TEngine) => unknown;
 	readonly layer?: Layer.Layer<TProvided, unknown, never>;
 	readonly name: string;
+	readonly outbound?: Readonly<Record<string, string>>;
 	readonly run?: RunHooks<TEngine, TStep, TFailed, TDiagnose>;
 	readonly stages: readonly [TStage, ...TStage[]];
 	readonly verbs: (engine: TEngine, story: Story<TEngine, TStep | TFailed | TDiagnose>) => TVerbs;

@@ -25,6 +25,7 @@ export interface LooseDefinition {
 	readonly inspect?: (engine: unknown) => unknown;
 	readonly layer?: AnyTestLayer;
 	readonly name: string;
+	readonly outbound?: Readonly<Record<string, string>>;
 	readonly run?: LooseRunHooks<unknown>;
 	readonly stages: readonly string[];
 	readonly verbs: (engine: unknown, story: LooseStory) => object;
