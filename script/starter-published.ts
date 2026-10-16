@@ -48,7 +48,7 @@ const program = Effect.gen(function* () {
 	yield* Effect.log(`Installing documented framework APIs from ${source}.`);
 	yield* installDocumentation(root, documentation, versions, tarballs);
 	yield* checkDocumentation(documentation, entries, versions, source);
-	const starter = join(temporary, "starter");
+	const starter = join(temporary, "demo-app");
 	yield* generateStarter(
 		root,
 		temporary,

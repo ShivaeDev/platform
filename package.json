@@ -22,7 +22,7 @@
 		"report:bundles": "node --conditions=source script/ci/bundles.ts",
 		"setup": "pnpm install --frozen-lockfile && pnpm hooks && pnpm db:setup",
 		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",
-		"test:orchestration": "node --conditions=source --test script/ci/*.test.ts script/package-check/archives.test.ts script/package-check/server.test.ts script/changelog/*.test.ts script/starter-published/*.test.ts",
+		"test:orchestration": "node --conditions=source --test script/ci/*.test.ts script/create-app/*.test.ts script/package-check/archives.test.ts script/package-check/server.test.ts script/changelog/*.test.ts script/starter-published/*.test.ts",
 		"test:package": "node --conditions=source packages/heavy-lock/src/cli.ts -- node script/package-check.ts",
 		"typecheck": "node --conditions=source packages/heavy-lock/src/cli.ts -- sh -c 'pnpm typecheck:root && pnpm --recursive --workspace-concurrency=${CI_WORKSPACE_CONCURRENCY:-1} --if-present typecheck'",
 		"typecheck:root": "tsc --noEmit"

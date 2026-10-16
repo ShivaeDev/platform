@@ -41,6 +41,8 @@ jobs:
         run: pnpm run changelog:release --check
         env:
           CHANGELOG_BASE_REF: ${{ github.event.before }}
+      - name: Reject stale framework pins in a create-app release
+        run: node script/create-app/checkReleasePins.ts
       - name: Build packages
         run: pnpm build
       - name: Check packed consumers and bins

@@ -18,7 +18,7 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 				"pnpm",
 				"create",
 				`@shivaedev/app@${registryVersion}`,
-				"starter",
+				"demo-app",
 			]),
 		);
 		return;
@@ -37,9 +37,9 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 	yield* Effect.log("Generating and installing the starter with the packed create-app command.");
 	const bin = join(generator, "node_modules/.bin/create-app");
 	if (Object.keys(tarballs).length === 0) {
-		yield* command(temporary, bin, ["starter"]);
+		yield* command(temporary, bin, ["demo-app"]);
 	} else {
 		const path = yield* packedInstaller(root, temporary, tarballs);
-		yield* command(temporary, "env", [`PATH=${path}`, bin, "starter"]);
+		yield* command(temporary, "env", [`PATH=${path}`, bin, "demo-app"]);
 	}
 });

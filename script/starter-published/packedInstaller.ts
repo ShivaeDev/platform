@@ -21,7 +21,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { withTarballOverrides } from ${JSON.stringify(join(root, "script/packed-workspace.ts"))};
 const workspace = join(process.cwd(), "pnpm-workspace.yaml");
-writeFileSync(workspace, withTarballOverrides(readFileSync(workspace, "utf8"), ${JSON.stringify(tarballs)}));
+if (process.argv[2] === "install") writeFileSync(workspace, withTarballOverrides(readFileSync(workspace, "utf8"), ${JSON.stringify(tarballs)}));
 const result = spawnSync(${JSON.stringify(pnpm)}, process.argv.slice(2), { stdio: "inherit" });
 if (result.error) throw result.error;
 process.exitCode = result.status ?? 1;
