@@ -38,7 +38,7 @@ describe("the home file", () => {
 	effectApp("is resolved relative to the folder", function* () {
 		yield* board.stop();
 		board = yield* startBoard(notes.root, "./notes/../plan.md");
-		expect(yield* Effect.promise(async () => (await get("/")).text())).toContain("<span><b>1</b> to do</span>");
+		expect((yield* rpcNavigation(board)).home?.file).toBe("plan.md");
 	});
 
 	effectApp("refuses a home symlink that leads outside the folder", function* () {

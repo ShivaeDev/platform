@@ -34,6 +34,7 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	const props = {
 		"aria-describedby": `${id}-error`,
 		"aria-invalid": Boolean(error),
+		className: "w-full rounded-md border bg-background px-3 py-2 text-sm",
 		id,
 		name,
 		onBlur: field.onBlur,
@@ -60,10 +61,10 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 		control = <input {...props} autoComplete={autoComplete} maxLength={maxLength} onInput={(event) => change(event.currentTarget.value)} />;
 	}
 	return (
-		<label htmlFor={id}>
+		<label className="grid gap-2 text-sm" htmlFor={id}>
 			{label}
 			{control}
-			<span className="response-field-error" hidden={!error} id={`${id}-error`}>
+			<span className="response-field-error text-destructive text-xs" hidden={!error} id={`${id}-error`}>
 				{error}
 			</span>
 		</label>

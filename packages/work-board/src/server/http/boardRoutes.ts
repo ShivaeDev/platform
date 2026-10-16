@@ -6,18 +6,14 @@ import type { BoardOptions } from "#server/board.ts";
 import type { boardRuntime } from "#server/boardRuntime.ts";
 import type { HandoffsService } from "#server/handoffs/Service.ts";
 import { identityUrl } from "#server/metadata/links.ts";
-import { navHtml } from "#server/page/nav.ts";
 import { shell } from "#server/page/shell.ts";
 import type { Highlighter } from "#server/render/Highlighter.ts";
 import { Responses } from "#server/responses/service.ts";
 import { ASSET_HANDLERS, MERMAID_ROUTE, mermaidFile } from "./assets.ts";
 import { attachment } from "./attachment.ts";
 import { identity } from "./identity.ts";
-import { inbox } from "./inbox.ts";
-import { overview } from "./overview.ts";
 import { page } from "./page.ts";
 import { respond } from "./respond.ts";
-import { work } from "./work.ts";
 
 type Services = Highlighter | Responses | HandoffsService | Diagnostics | FileSystem.FileSystem | Path.Path;
 type Handler<E> = (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, Services | Scope.Scope>;
@@ -34,12 +30,14 @@ export function boardRoutes(options: BoardOptions, runtime: Effect.Success<Retur
 				);
 			}
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
-			const inboxPage = inbox(index, changes, home);
-			yield* serve("/_board/inbox", inboxPage);
-			const workPage = work(index, changes, home);
-			const overviewPage = overview(index, changes, home);
-			yield* serve("/_board/work", workPage);
-			yield* serve("/_board/overview", overviewPage);
+			for (const [route, target] of [
+				["overview", "/"],
+				["inbox", "/"],
+				["changes", "/_board/library?view=recently-changed"],
+				["diagnostics", "/_board/system"],
+			] as const) {
+				yield* serve(`/_board/${route}`, () => Effect.succeed(HttpServerResponse.redirect(target)));
+			}
 			for (const [route, asset] of ASSET_HANDLERS) {
 				yield* serve(route, asset);
 			}
@@ -52,17 +50,11 @@ export function boardRoutes(options: BoardOptions, runtime: Effect.Success<Retur
 					return HttpServerResponse.redirect(`${identityUrl(preview.item)}#answer-card-${encodeURIComponent(preview.request)}`);
 				}).pipe(Effect.catch(() => Effect.succeed(respond("Response unavailable", "text/html", 409)))),
 			);
-			for (const view of ["changes", "diagnostics", "start", "handoff", "result", "library", "goals"] as const) {
-				yield* serve(`/_board/${view}`, () =>
-					Effect.gen(function* () {
-						const snapshot = yield* index;
-						const nav = navHtml(yield* changes.files, "", home, snapshot);
-						return respond(shell(view, nav, "", changes.realRoot, false, undefined, view, snapshot), "text/html");
-					}),
-				);
+			for (const view of ["system", "start", "handoff", "result", "library", "goals", "work"] as const) {
+				yield* serve(`/_board/${view}`, () => Effect.succeed(respond(shell(view, changes.realRoot), "text/html")));
 			}
 			const pages = page({ home, root: options.root, writable: options.responses === true }, changes, index);
-			const items = identity(index, pages, changes, home);
+			const items = identity(index, pages, changes);
 			yield* serve("/_board/item/*", items);
 			yield* serve("/", pages);
 			yield* serve("/*", pages);

@@ -50,14 +50,14 @@ export function Header({
 			</Button>
 			<Breadcrumbs file={main.title ?? main.file} />
 			<a
-				aria-current={main.view === "inbox" ? "page" : undefined}
-				aria-label="Inbox"
+				aria-current={main.view === "today" ? "page" : undefined}
+				aria-label="Today"
 				className={buttonVariants({ size: "sm", variant: "ghost" })}
-				href="/_board/inbox"
+				href="/"
 				id={shellIds.inboxTopbar}
 			>
 				<Inbox aria-hidden="true" />
-				<span className="hidden sm:inline">Inbox</span>
+				<span className="hidden sm:inline">Today</span>
 				<InboxCount count={count} id={shellIds.inboxTopbarCount} />
 			</a>
 			<Button

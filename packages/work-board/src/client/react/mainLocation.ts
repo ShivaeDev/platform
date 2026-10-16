@@ -3,15 +3,6 @@ export interface MainLocation {
 	readonly title?: string | undefined;
 	readonly view: string;
 }
-export function bootstrapPage(html: string): Document {
-	const page = new DOMParser().parseFromString(/<body[^>]*>(?<body>[\s\S]*)<\/body>/iu.exec(html)?.groups?.body ?? html, "text/html");
-	const template = page.querySelector<HTMLTemplateElement>("#board-legacy-page");
-	if (template) {
-		page.body.replaceChildren(template.content.cloneNode(true));
-	}
-	return page;
-}
-
 export function displayedLocation(main: HTMLElement | null): MainLocation {
 	const file = main?.dataset.file ?? "";
 	const title = /[a-f\d]{64}/iu.test(file) ? main?.querySelector("h1")?.textContent?.trim() : undefined;

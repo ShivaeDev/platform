@@ -10,8 +10,6 @@ import { type RpcRequest, rpcCall, rpcFailure } from "#test/rpc.ts";
 const routes = [
 	{ kind: "board", url: "/board.md" },
 	{ kind: "work", url: "/_board/work?view=table" },
-	{ kind: "overview", url: "/_board/overview" },
-	{ kind: "inbox", url: "/_board/inbox" },
 ];
 
 it.live.each(routes.flatMap((route) => [false, true].map((failed) => ({ ...route, failed }))))(
@@ -61,7 +59,7 @@ it.live.each(routes.flatMap((route) => [false, true].map((failed) => ({ ...route
 		const projections = reads.filter((call) => call.tag === tag);
 		expect(projections.length).toBe(failed ? before + 1 : before);
 		for (const call of projections) {
-			expect(call.payload).toEqual(kind === "overview" || kind === "inbox" ? null : { url });
+			expect(call.payload).toEqual({ url });
 		}
 	},
 );

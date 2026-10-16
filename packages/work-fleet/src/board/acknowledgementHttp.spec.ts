@@ -5,7 +5,7 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardFolder } from "#test/boardFolder.ts";
-import { boardHttp, boardHttpFiles, boardOverview } from "#test/boardHttp.ts";
+import { boardAskFiles, boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
 
 const decision = {
 	id: "fleet.denied",
@@ -36,7 +36,7 @@ it.effect("closes only an applied exact answer, retains source bytes, and keeps 
 		expect(
 			(yield* Effect.result(board.acknowledgeDecision({ decision: receipt, disposition: "applied", recordedAt: 1000, responseId: clarify.id })))._tag,
 		).toBe("Failure");
-		expect(yield* boardOverview(root)).toContain(`data-attention-item="${receipt.itemId}"`);
+		expect(yield* boardAskFiles(root)).toContain(receipt.sourcePath);
 		const answer = yield* Effect.tryPromise(() =>
 			client.mutate(
 				client.responses.recordResponse.run({
@@ -55,18 +55,18 @@ it.effect("closes only an applied exact answer, retains source bytes, and keeps 
 		yield* board.acknowledgeDecision(acknowledgement);
 		expect(files.receipts()).toHaveLength(1);
 		expect(files.read(receipt.sourcePath)).toBe(source);
-		expect(yield* boardOverview(root)).not.toContain(`data-attention-item="${receipt.itemId}"`);
-		const { client: current, url } = yield* boardHttp(root);
+		expect(yield* boardAskFiles(root)).not.toContain(receipt.sourcePath);
+		const { client: current } = yield* boardHttp(root);
 		expect(
 			(yield* Effect.result(Effect.tryPromise(() => current.run(current.responses.question.run({ item: receipt.itemId, request: receipt.request })))))
 				._tag,
 		).toBe("Failure");
-		const pageResponse = yield* Effect.tryPromise(() => fetch(`${url}/${receipt.sourcePath}`));
-		expect(yield* Effect.tryPromise(() => pageResponse.text())).toContain("Managed request acknowledged: applied");
+		const sourceData = yield* Effect.tryPromise(() => current.run(current.api.document.run({ url: `/${receipt.sourcePath}` })));
+		expect(sourceData.reading?.receipts[receipt.request]?.disposition).toBe("applied");
 		const next = yield* board.decision("task.one", { ...decision, id: "fleet.denied-again" });
-		const overview = yield* boardOverview(root);
-		expect(overview).not.toContain(`data-attention-item="${receipt.itemId}"`);
-		expect(overview).toContain(`data-attention-item="${next.itemId}"`);
+		const asks = yield* boardAskFiles(root);
+		expect(asks).not.toContain(receipt.sourcePath);
+		expect(asks).toContain(next.sourcePath);
 	}).pipe(Effect.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));
 });
 
@@ -86,7 +86,7 @@ it.effect(
 			expect(files.read(recovered.sourcePath)).toBe(oldSource);
 			expect((yield* board.readDecision(recovered))._tag).toBe("Pending");
 			yield* board.acknowledgeDecision({ decision: recovered, disposition: "superseded", recordedAt: 2000 });
-			expect(yield* boardOverview(root)).not.toContain(`data-attention-item="${lost.itemId}"`);
+			expect(yield* boardAskFiles(root)).not.toContain(lost.sourcePath);
 			expect(files.receipts().map(files.read).join("\n")).not.toContain('"response":');
 			expect((yield* Effect.result(board.decision("task.one", decision, { ...original, revision: "wrong-hash" })))._tag).toBe("Failure");
 		}).pipe(Effect.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));
@@ -109,13 +109,13 @@ it.effect("keeps duplicates, malformed metadata and changed decision contexts ou
 		const saved = files.receipts()[0];
 		expect(saved).toBeDefined();
 		files.write("responses/duplicate-receipt.md", files.read(saved ?? ""));
-		expect(yield* boardOverview(root)).toContain(`data-attention-item="${receipt.itemId}"`);
+		expect(yield* boardAskFiles(root)).toContain(receipt.sourcePath);
 		files.write("responses/duplicate-receipt.md", "# No duplicate receipt\n");
 		files.write(receipt.sourcePath, source.replace('"managed":true', '"managed":true,"unsupported":true'));
 		expect((yield* Effect.result(board.acknowledgeDecision({ decision: receipt, disposition: "superseded", recordedAt: 3000 })))._tag).toBe(
 			"Failure",
 		);
 		files.write(receipt.sourcePath, source.replace('"managed":true', '"managed":false'));
-		expect(yield* boardOverview(root)).toContain(`data-attention-item="${receipt.itemId}"`);
+		expect(yield* boardAskFiles(root)).toContain(receipt.sourcePath);
 	}).pipe(Effect.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));
 });

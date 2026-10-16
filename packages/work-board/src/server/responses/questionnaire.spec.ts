@@ -4,7 +4,7 @@ import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { browserClient } from "#client/client.ts";
-import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { questionnaireAnswers, questionnaireSource } from "#test/questionnaire.ts";
 import { agentRequest } from "./agent.ts";
 
@@ -121,8 +121,5 @@ it.live("qualifies old decisions and records explicit supersession after a move,
 		),
 	);
 	expect(saved.response.supersedes).toBe(first.id);
-	const html = (yield* rawGet(board, "/_board/item/investigation.choices/")).body;
-	expect(html).toContain("Earlier reviewed context — does not approve the current source");
-	expect(html).toContain("Explicitly supersedes");
 	expect((yield* Effect.promise(() => client.run(client.responses.responses.run({ question: old.id })))).responses).toEqual([first]);
 });

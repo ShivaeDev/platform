@@ -65,7 +65,7 @@ function Usage({ name, window, now }: { readonly name: string; readonly window: 
 }
 export function DiagnosticsWindows({ value, now }: { readonly value: CodexLimits; readonly now: number }) {
 	return (
-		<ul className="diagnostics-windows">
+		<ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 [&_meter]:w-full">
 			<Usage name="Primary" now={now} window={value.primary} />
 			<Usage name="Secondary" now={now} window={value.secondary} />
 		</ul>
@@ -80,8 +80,8 @@ export function DiagnosticsGithub({ value, now }: { readonly value: GithubLimits
 	).map(([name, window]) => <GithubWindow key={name} name={name} now={now} window={window} />);
 	return (
 		<>
-			<dl className="diagnostics-metrics">{windows}</dl>
-			<p className="diagnostics-freshness">Cached for one minute across all tabs.</p>
+			<dl className="grid gap-4 text-sm [&_dt]:text-muted-foreground">{windows}</dl>
+			<p className="text-muted-foreground text-xs">Cached for one minute across all tabs.</p>
 		</>
 	);
 }

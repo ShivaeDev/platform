@@ -4,7 +4,7 @@ import { Effect } from "effect";
 import type { BoardDecision } from "#board/schema.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
-import { boardHttpFiles, boardInbox, boardOverview } from "#test/boardHttp.ts";
+import { boardAskFiles, boardHttpFiles } from "#test/boardHttp.ts";
 import { codexServer } from "#test/codex.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
@@ -53,9 +53,7 @@ const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function*
 		fixture.write(`${id}.md`, `---\nid: ${id}\nkind: task\nstatus: ${status}\n---\n# Finished scope\n`);
 	}
 	for (const [index, published] of decisions.entries()) {
-		expect(yield* boardInbox(fixture.host.boardDir, index === 0 ? "orchestrator" : "automation")).toContain(
-			`data-key="inbox:${published.sourcePath}"`,
-		);
+		expect(yield* boardAskFiles(fixture.host.boardDir, index === 0 ? "orchestrator" : "automation")).toContain(published.sourcePath);
 	}
 	const args = ["release", "one", "two", "--port", String(port), "--config", "unused.json"];
 	let errors = "";
@@ -67,8 +65,8 @@ const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function*
 		}),
 	);
 	expect(released, errors).toEqual({ code: 0, stdout: "one released\ntwo released" });
-	expect(yield* boardOverview(fixture.host.boardDir)).not.toContain("data-attention-item=");
-	expect(yield* boardInbox(fixture.host.boardDir, "orchestrator")).not.toContain('data-key="inbox:');
+	expect(yield* boardAskFiles(fixture.host.boardDir)).toEqual([]);
+	expect(yield* boardAskFiles(fixture.host.boardDir, "orchestrator")).toEqual([]);
 	const files = boardHttpFiles(fixture.host.boardDir);
 	expect(files.receipts()).toHaveLength(2);
 	for (const published of decisions) {

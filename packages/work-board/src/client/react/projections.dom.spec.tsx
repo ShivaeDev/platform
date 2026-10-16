@@ -23,15 +23,13 @@ const routes = [
 	{ kind: "board", selector: ".board .item", text: "Read task", url: "/_board/item/board.fixture/" },
 	{ kind: "work", selector: ".work-card[data-item='task.fixture']", text: "A task", url: "/_board/work?view=board" },
 	{ kind: "work", selector: ".work-table", text: "A task", url: "/_board/work?view=table&owner=value%3Areader&q=task&item=task.fixture" },
-	{ kind: "overview", selector: ".attention-card", text: "Choose a direction", url: "/_board/overview" },
-	{ kind: "inbox", selector: ".inbox-list", text: "A question", url: "/_board/inbox" },
 ];
 it.live.each(routes)("renders $url from its typed projection without requesting HTML", function* ({ url, selector, text, kind }) {
 	let page: unknown;
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
 			page = vi.spyOn(api.page, "query");
-			const router = boardRouter({ api, initial: "<main id='doc'>Old HTML</main>", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -72,7 +70,7 @@ it.live("retains inline answer edits and selected detail through a Work projecti
 		renderBoard(files, (api, registry) => {
 			page = vi.spyOn(api.page, "query");
 			refresh = () => registry.refresh(api.work.query({ url }, routeQueryOptions));
-			const router = boardRouter({ api, initial: "", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
 		}),

@@ -1,7 +1,8 @@
 import type { StartProjection } from "#browser/views/remaining.ts";
+import { ReadingPanel } from "./ReadingPanel.tsx";
 export function StartPage({ data }: { readonly data: StartProjection }) {
 	return (
-		<article className="doc onboarding">
+		<ReadingPanel className="onboarding">
 			<h1>{data.empty ? "Start your local workspace" : "Project and report templates"}</h1>
 			<p>
 				Work Board reads Markdown files from your workspace folder. Use your editor or existing agent tools to create and update them; this viewer
@@ -21,10 +22,10 @@ export function StartPage({ data }: { readonly data: StartProjection }) {
 			</ol>
 			<p>
 				Unknown checks stay unknown. Add criterion evidence only after a real observation; a finished agent run is not verified acceptance. No project
-				content is created or marked seen by opening these templates.
+				content is created by opening these templates.
 			</p>
 			{data.templates.map((template) => (
-				<section className="start-template" key={template.file}>
+				<section className="start-template rounded-lg border p-4" key={template.file}>
 					<h2>{template.label}</h2>
 					<p>
 						Suggested file: <code>{template.file}</code>
@@ -32,10 +33,17 @@ export function StartPage({ data }: { readonly data: StartProjection }) {
 					<details data-key={`template:${template.file}`}>
 						<summary>Read and copy {template.label.toLowerCase()} Markdown</summary>
 						<label htmlFor={`template-${template.file}`}>{template.label} template Markdown</label>
-						<textarea defaultValue={template.source} id={`template-${template.file}`} readOnly rows={16} spellCheck={false} />
+						<textarea
+							className="mt-3 w-full rounded-md border bg-background p-3 font-mono text-sm"
+							defaultValue={template.source}
+							id={`template-${template.file}`}
+							readOnly
+							rows={16}
+							spellCheck={false}
+						/>
 					</details>
 				</section>
 			))}
-		</article>
+		</ReadingPanel>
 	);
 }

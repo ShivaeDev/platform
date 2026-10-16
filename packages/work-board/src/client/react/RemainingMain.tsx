@@ -1,6 +1,4 @@
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
-import { ChangesMain } from "./ChangesMain.tsx";
-import { DiagnosticsMain } from "./DiagnosticsMain.tsx";
 import { GoalsPage } from "./GoalsPage.tsx";
 import { HandoffPage } from "./HandoffPage.tsx";
 import { LibraryMain } from "./LibraryMain.tsx";
@@ -11,6 +9,7 @@ import { ResultPage } from "./ResultPage.tsx";
 import type { RemainingRoute } from "./remainingRoute.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { StartPage } from "./StartPage.tsx";
+import { SystemMain } from "./SystemMain.tsx";
 export function RemainingMain({
 	api,
 	onPage,
@@ -35,8 +34,6 @@ export function RemainingMain({
 					render={(data) => <GoalsPage data={data} />}
 				/>
 			);
-		case "changes":
-			return <ChangesMain api={api} onPage={onPage} url={url} />;
 		case "start":
 			return (
 				<ProjectionFrame
@@ -46,8 +43,8 @@ export function RemainingMain({
 					render={(data) => <StartPage data={data} />}
 				/>
 			);
-		case "diagnostics":
-			return <DiagnosticsMain api={api} onPage={onPage} url={url} />;
+		case "system":
+			return <SystemMain api={api} onPage={onPage} url={url} />;
 		case "respond":
 			return (
 				<ProjectionFrame

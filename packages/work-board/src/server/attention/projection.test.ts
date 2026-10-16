@@ -19,8 +19,7 @@ it("partitions asks and reports source diagnostics separately with one count for
 	expect(projection.issues.map((issue) => issue.file)).toEqual(["unknown.md", "unresolved.md"]);
 	const queries = projectionQueries({ document: undefined, index: Effect.succeed(snapshot) });
 	const inbox = await Effect.runPromise(queries.inbox());
-	const overview = await Effect.runPromise(queries.overview());
-	expect([inbox.you.length, overview.inboxCount, inboxCount(snapshot)]).toEqual([3, 3, 3]);
+	expect([inbox.you.length, inboxCount(snapshot)]).toEqual([3, 3]);
 	expect(inbox).toEqual(projection);
 });
 

@@ -24,7 +24,7 @@ it.live.each(["/notes/task.md", "/_board/item/task.fixture/"])(
 			renderBoard(files, (api, registry) => {
 				const page = vi.spyOn(api.page, "query");
 				queries.push(page);
-				const router = boardRouter({ api, initial: "<main id='doc'>Old HTML</main>", registry });
+				const router = boardRouter({ api, registry });
 				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 				return <RouterProvider router={router} />;
 			}),
@@ -56,7 +56,7 @@ it.live.each(["/notes/task.md", "/_board/item/task.fixture/"])(
 it.live.each(["/missing.md", "/_board/item/missing/"])("shows a failed initial document read at %s in React", function* (url) {
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
-			const router = boardRouter({ api, initial: "", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -80,7 +80,7 @@ it.live("keeps response history readable when a question's prompt template is in
 		'---\nid: question.invalid\nkind: question\n---\n# Invalid controls\n\n> ::::question{id="next" select="text"}\n> What next?\n> ::::\n';
 	const view = yield* Effect.promise(() =>
 		renderBoard({ ...files, "question.md": question }, (api, registry) => {
-			const router = boardRouter({ api, initial: "", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/question.md"] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -103,7 +103,7 @@ it.live("renders a document at its file URL when no home board is configured", f
 			files,
 			(api, registry) => {
 				pageQuery = vi.spyOn(api.page, "query");
-				const router = boardRouter({ api, initial: "", registry });
+				const router = boardRouter({ api, registry });
 				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/home.md"] }) });
 				return <RouterProvider router={router} />;
 			},

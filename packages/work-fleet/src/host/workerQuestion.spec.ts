@@ -27,9 +27,8 @@ test("worker questions appear on Board, wait exits needs-human, and an answer co
 			expect(data.request.preview?.reason).toContain("Which storage should I use?");
 			expect(data.document.source).not.toContain("Which storage should I use?");
 			expect(data.request.prompts?.map((prompt) => prompt.id) ?? []).not.toContain("fleet-action");
-			const overview = yield* Effect.tryPromise(() => fetch(`${url}/_board/overview`).then((response) => response.text()));
-			expect(overview).toContain(`data-attention-item="${published.itemId}" data-request="${published.request}"`);
-			expect(overview).toContain("one");
+			const asks = yield* Effect.tryPromise(() => client.run(client.api.inbox.run(undefined)));
+			expect(asks.agents).toEqual(expect.arrayContaining([expect.objectContaining({ file: published.sourcePath })]));
 			expect(yield* Effect.promise(() => waitProcess(fixture.configFile, "one"))).toEqual({
 				code: WAIT_EXIT.waitingDecision,
 				stdout: `one needs-human (waiting on orchestrator): ${QUESTION}`,

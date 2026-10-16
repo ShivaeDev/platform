@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { decisionId, paragraphDecisionFixture } from "#test/answerCardFixture.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { capturedQuestionnaire, questionnaireSource, scopedQuestionnaire } from "#test/questionnaire.ts";
@@ -45,7 +44,7 @@ it.live("retains the readable packet when its request is closed", function* () {
 	expect(page.document.querySelectorAll(".questionnaire-option")).toHaveLength(4);
 });
 
-it.live.each(["managed", "registered", "needs-human"])("links an open packet from Inbox straight to the response form (%s)", function* (mode) {
+it.live.each(["managed", "registered", "needs-human"])("links an open packet from Today straight to the response form (%s)", function* (mode) {
 	const registered = mode !== "managed";
 	let source = questionnaireSource;
 	if (mode === "managed") {
@@ -56,8 +55,8 @@ it.live.each(["managed", "registered", "needs-human"])("links an open packet fro
 	}
 	notes = folder({ "decision.md": source, ...(registered ? { "responses/question.md": capturedQuestionnaire(source) } : {}) });
 	board = yield* startBoard(notes.root, undefined, (fs) => fs, true);
-	page = yield* openPage(board, "/_board/inbox");
-	const links = [...page.document.querySelectorAll(".inbox-row h3 a")];
+	page = yield* openPage(board, "/");
+	const links = [...page.document.querySelectorAll("[data-attention-row] a[title]")];
 	expect(links).toHaveLength(1);
 	expect(links[0]?.getAttribute("href")).toBe("/_board/respond?item=investigation.choices&request=direction");
 });
@@ -77,12 +76,4 @@ it.live.each(["open", "closed"])("keeps answer cards scoped when the second requ
 		const ids = [...page.document.querySelectorAll(".answer-cards [id]")].map((element) => element.id);
 		expect(new Set(ids).size).toBe(ids.length);
 	}
-});
-
-it.live("renders the unblocked item's title in the server answer card", function* () {
-	notes = folder(paragraphDecisionFixture);
-	board = yield* startBoard(notes.root, "home.md", undefined, true);
-	const response = yield* rawGet(board, `/_board/item/${decisionId}/`);
-	expect(response.status).toBe(200);
-	expect(response.body).toContain("<h2>Answer: Publish the install guide</h2>");
 });

@@ -50,7 +50,7 @@ it.each(cases)(
 					query === "document"
 						? registry.refresh(api.document.query({ url }, routeQueryOptions))
 						: registry.refresh(api.handoff.query({ url }, routeQueryOptions));
-				const router = boardRouter({ api, initial: "", registry });
+				const router = boardRouter({ api, registry });
 				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 				return <RouterProvider router={router} />;
 			});

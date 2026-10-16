@@ -83,7 +83,7 @@ it.live("shares one navigation query across the shell, document loaders and back
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
 			navigation = vi.spyOn(api.navigation, "query");
-			router = boardRouter({ api, initial: "", registry });
+			router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/notes/first.md"] }) });
 			return <RouterProvider router={router} />;
 		}),

@@ -8,9 +8,8 @@ import { navigationQuery } from "#client/page/routeQuery.ts";
 import { AgeTicker } from "./Age.tsx";
 import { FleetMain } from "./FleetMain.tsx";
 import { Header } from "./Header.tsx";
-import { HistoryRetention } from "./HistoryRetention.tsx";
 import { LiveControls } from "./LiveControls.tsx";
-import { bootstrapPage, displayedLocation, type MainLocation, sameMainLocation } from "./mainLocation.ts";
+import { displayedLocation, type MainLocation, sameMainLocation } from "./mainLocation.ts";
 import { ReadingLibrary } from "./ReadingLibrary.tsx";
 import { SearchDialog } from "./SearchDialog.tsx";
 import type { ShellApi } from "./ShellApi.ts";
@@ -25,27 +24,19 @@ import { VisualInspection } from "./VisualInspection.tsx";
 export interface ShellOptions {
 	readonly api: ShellApi;
 	readonly client?: BrowserClient;
-	readonly initial: string;
 	readonly reading?: unknown;
 	readonly ready?: () => void;
 	readonly registry: AtomRegistry.AtomRegistry;
 }
 export function BoardShell(options: ShellOptions) {
-	const { api, initial, ready, client } = options;
+	const { api, ready, client } = options;
 	const appearance = useAppearance();
 	const sidebar = useSidebar(appearance);
 	const status = useBoardNavigation(options);
 	const search = useSearchDialog();
 	const [libraryOpen, setLibraryOpen] = useState(false);
 	const location = useRouterState({ select: (state) => state.location });
-	const [main, setMain] = useState<MainLocation>(() => {
-		const doc = bootstrapPage(initial).getElementById("doc");
-		return displayedLocation(doc);
-	});
-	const [bootstrapHome] = useState(() => {
-		const doc = bootstrapPage(initial).getElementById("doc");
-		return doc?.classList.contains("board-view") ? { file: doc.dataset.file ?? "", identity: doc.dataset.identity } : undefined;
-	});
+	const [main, setMain] = useState<MainLocation>({ file: "", view: "" });
 	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const data = Option.getOrUndefined(query.data);
 	const onPage = useCallback((next: MainLocation) => setMain((previous) => (sameMainLocation(previous, next) ? previous : next)), []);
@@ -95,7 +86,7 @@ export function BoardShell(options: ShellOptions) {
 	return (
 		<AgeTicker>
 			<ReadingLibrary api={api} close={() => setLibraryOpen(false)} open={libraryOpen}>
-				<a className="skip" href="#doc">
+				<a className="sr-only rounded-md bg-background p-3 focus:not-sr-only focus:absolute focus:z-50" href="#doc">
 					Skip to content
 				</a>
 				<div
@@ -124,11 +115,10 @@ export function BoardShell(options: ShellOptions) {
 							status={status}
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
-						<FleetMain api={api} home={data ? data.home : bootstrapHome} onPage={onPage} url={location.pathname + location.searchStr} />
+						<FleetMain api={api} home={data?.home} onPage={onPage} url={location.pathname + location.searchStr} />
 					</div>
 				</div>
 				{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}
-				{main.view !== "changes" && <HistoryRetention api={api} />}
 				<VisualInspection />
 				<SearchDialog
 					api={api}

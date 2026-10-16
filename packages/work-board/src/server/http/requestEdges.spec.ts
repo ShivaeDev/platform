@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { MAX_BYTES } from "#server/history/limits.ts";
+import { MAX_BYTES } from "#server/http/rpcPolicy.ts";
 import { type Folder, folder, type RunningBoard, rawGet, rawPost, startBoard } from "#test/board.ts";
 import { growBeforeRead } from "#test/fileRaces.ts";
 import { imageNamedDirectory, screenshotFile } from "#test/imageFixtures.ts";

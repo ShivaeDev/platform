@@ -1,9 +1,7 @@
 import { documentSourceId } from "#client/document/layout.ts";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { HomeBoard } from "./HomeBoard.tsx";
-import { InboxPage } from "./InboxPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
-import { OverviewPage } from "./OverviewPage.tsx";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
 import type { ProjectionRoute } from "./projectionRoute.ts";
 import type { ShellApi } from "./ShellApi.ts";
@@ -49,24 +47,6 @@ export function ProjectionMain({
 					location={(data) => ({ file: "Work", status: data.validBoard ? 200 : 404, view: "work" })}
 					render={(data) => <WorkPage data={data} />}
 					source={(data) => (data.selected ? documentSourceId(data.selected) : undefined)}
-				/>
-			);
-		case "overview":
-			return (
-				<ProjectionFrame
-					{...options}
-					atom={api.overview.query(undefined, routeQueryOptions)}
-					location={(data) => ({ file: "Overview", status: data.complete ? 200 : 503, view: "overview" })}
-					render={(data) => <OverviewPage data={data} />}
-				/>
-			);
-		case "inbox":
-			return (
-				<ProjectionFrame
-					{...options}
-					atom={api.inbox.query(undefined, routeQueryOptions)}
-					location={(data) => ({ file: "Inbox", status: data.complete ? 200 : 503, view: "inbox" })}
-					render={(data) => <InboxPage data={data} />}
 				/>
 			);
 	}

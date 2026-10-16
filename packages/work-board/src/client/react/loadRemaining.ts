@@ -15,12 +15,13 @@ export function loadRemaining(
 			return loadQuery(registry, api.library.query({}, routeQueryOptions), { abortController });
 		case "goals":
 			return loadQuery(registry, api.goals.query(undefined, routeQueryOptions), { abortController });
-		case "changes":
-			return undefined;
 		case "start":
 			return loadQuery(registry, api.start.query(undefined, routeQueryOptions), { abortController });
-		case "diagnostics":
-			return loadQuery(registry, api.diagnostics.query(undefined, routeQueryOptions), { abortController });
+		case "system":
+			return Promise.all([
+				loadQuery(registry, api.diagnostics.query(undefined, routeQueryOptions), { abortController }),
+				loadQuery(registry, api.fleetItems.query(undefined, routeQueryOptions), { abortController }),
+			]);
 		case "respond":
 			return loadQuery(registry, api.respond.query({ url }, routeQueryOptions), { abortController });
 		case "handoff":

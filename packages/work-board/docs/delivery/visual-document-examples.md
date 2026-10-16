@@ -71,4 +71,4 @@ Use GitHub's five alert markers: NOTE, TIP, IMPORTANT, WARNING and CAUTION. Unkn
 - Inline/leaf visual forms are unsupported. Inline directives retain their literal source; unsupported leaf forms show source and a diagnostic. Unclosed or malformed syntax follows the established directive parser's reading rules.
 - A component is limited to 64 KiB of source. Nested visual directives are unsupported; original source remains visible.
 - Render fixed semantic elements on the server. No author-supplied JavaScript, JSX, executable MDX, templates, queries, plugin loading or remote data fetching.
-- Preserve headings, local links, search/backlinks, print text alternatives, native update ownership and the explicit Mark seen baseline. No source writes, new D1 fields, YAML visual fences or acceptance inference.
+- Preserve headings, local links, search/backlinks, print text alternatives, native update ownership. No source writes, new D1 fields, YAML visual fences or acceptance inference.

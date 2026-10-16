@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { Fleet } from "#fleet.ts";
-import { boardHttpFiles, boardOverview } from "#test/boardHttp.ts";
+import { boardAskFiles, boardHttpFiles } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
@@ -23,7 +23,7 @@ test("new authored Board context renews SQL work and acknowledges its superseded
 				return yield* Effect.die(new Error("Expected a published Board question"));
 			}
 			const question = files.read(published.sourcePath);
-			expect(yield* boardOverview(root)).toContain(`data-attention-item="${published.itemId}"`);
+			expect(yield* boardAskFiles(root)).toContain(published.sourcePath);
 			const nextSource = `${source}\n## Approved revised scope\n\nInspect the next independent behavior.\n`;
 			files.write("one.md", nextSource);
 			const renewed = yield* prepareWork("one");
@@ -35,7 +35,7 @@ test("new authored Board context renews SQL work and acknowledges its superseded
 			expect(renewed.value.history?.[0]?.boardContext).toBe(source);
 			expect(renewed.value.history?.[0]?.decision?.published).toEqual(published);
 			expect(renewed.value.history?.[0]?.decisionAcknowledged).toBe(true);
-			expect(yield* boardOverview(root)).not.toContain(`data-attention-item="${published.itemId}"`);
+			expect(yield* boardAskFiles(root)).not.toContain(published.sourcePath);
 			expect(files.receipts()).toHaveLength(1);
 			expect(files.read(published.sourcePath)).toBe(question);
 			expect(files.read("one.md")).toBe(nextSource);

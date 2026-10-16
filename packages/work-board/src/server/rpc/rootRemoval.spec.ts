@@ -24,11 +24,6 @@ it.live("returns specific native read errors when an external process removes th
 		}),
 	);
 	yield* Effect.promise(() =>
-		expect(client.run(client.api.history.run({ action: "observe", baseline: null }))).rejects.toMatchObject({
-			_tag: "InternalServerError",
-		}),
-	);
-	yield* Effect.promise(() =>
 		expect(client.run(client.api.document.run({ url: "/proposal.md" }))).rejects.toMatchObject({
 			_tag: "InternalServerError",
 		}),

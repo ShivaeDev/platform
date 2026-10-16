@@ -38,7 +38,7 @@ export function Sidebar({
 		{ count: data?.counts.goals, href: "/_board/goals", id: "goals-open", label: "Goals", view: "goals" },
 		{ count: data?.counts.now, href: "/_board/work", id: "work-open", label: "Now", view: "work" },
 		{ count: data?.counts.library, href: "/_board/library", id: "documents-open", label: "Library", view: "library" },
-		{ count: data?.counts.system, href: "/_board/diagnostics", id: "diagnostics-open", label: "System", view: "diagnostics" },
+		{ count: data?.counts.system, href: "/_board/system", id: "diagnostics-open", label: "System", view: "system" },
 	];
 	useEffect(() => {
 		const sidebar = document.getElementById(shellIds.sidebar);

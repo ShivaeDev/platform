@@ -33,7 +33,7 @@ it.live("navigates from the fixed sidebar, polls native page reads, pauses, resu
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live")));
 	page.document.getElementById("diagnostics-open")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-source="fleet"]')?.textContent).toContain("3 / 8")));
-	expect(page.window.location.pathname).toBe("/_board/diagnostics");
+	expect(page.window.location.pathname).toBe("/_board/system");
 	expect(page.document.querySelector("#primary-navigation #diagnostics-open")).not.toBeNull();
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("time[data-reset]")?.textContent).toContain(", 14:20")));
 	expect(page.document.getElementById("diagnostics-open")?.getAttribute("aria-current")).toBe("page");

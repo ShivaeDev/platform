@@ -27,19 +27,14 @@ The [delivery plan](./README.md) explains gates and verification. These steps de
 **Outcome:** a result leads to its criteria, plan, decision, and supporting files. Render decision options, rationale, backlinks, dependencies, and criterion-level evidence. Show origin, checked revision, and observed time where explicitly provided. Missing evidence and an agent's unsupported claim remain distinct from verified results. Begin with readable links; inline asset previews arrive in 10. **Depends on:** 04–05. **Accept:** the sample result reaches its source rationale in two navigation steps; broken links and evidence for an old revision stay visible.
 
 
-## 07 An attention-first overview
+## 07 Human attention on Today
 
 **Outcome:** returning users can identify the next judgment without reading a log. Derive queues for explicit decision requests, blockers, and review requests. Each entry names why it appears, whose response is needed, and what it unblocks. Use simple visible ordering and link directly to 05/06's context. Include quiet and empty states. Do not treat file churn, heartbeat, or a finished agent run as progress. **Depends on:** 05–06. **Accept:** representative users can find the intended next judgment within the proposed 30-second target; ambiguous items stay unclassified.
 
 
-## 08 What changed since I last looked
-
-**Outcome:** readers distinguish meaningful changes from an unchanged busy process. Track local last-viewed markers and compare retained source revisions for explicit field/content changes. Show additions, removals, changed decisions, and evidence updates with source links. Define bounded retention and clearing before retaining snapshots. If history is unavailable, say so; modification time is not a diff. **Depends on:** 04 and 07. **Accept:** a returning view summarizes a known sequence of edits correctly; a first visit, cleared storage, or renamed source never invents history or authorship. No durable event journal is required.
-
-
 ## 09 Live updates that preserve orientation
 
-**Outcome:** the workspace stays current without disturbing active reading. Use changed paths to invalidate affected documents, derived views, search results, and backlinks. Keep navigation updates when files are added/deleted. Add pause, pending-change count, restrained highlighting, and resume. Recover with a full reconciliation after reconnect or uncertain watcher state; never trust a path-only optimization when events may have been missed. **Depends on:** 05–08. **Accept:** unrelated edits avoid full active-document rerenders; focused controls, open details, and diagrams survive relevant changes; paused and reconnecting states catch up without claiming stale data is current.
+**Outcome:** the workspace stays current without disturbing active reading. Use changed paths to invalidate affected documents, derived views, search results, and backlinks. Keep navigation updates when files are added/deleted. Add pause, pending-change count, restrained highlighting, and resume. Recover with a full reconciliation after reconnect or uncertain watcher state; never trust a path-only optimization when events may have been missed. **Depends on:** 05–07. **Accept:** unrelated edits avoid full active-document rerenders; focused controls, open details, and diagrams survive relevant changes; paused and reconnecting states catch up without claiming stale data is current.
 
 
 ## 10 Local visual evidence
@@ -56,7 +51,7 @@ The [delivery plan](./README.md) explains gates and verification. These steps de
 
 **Outcome:** a new user can begin locally and read useful project and agent reports. Provide copyable Markdown templates for a project, investigation, and agent result; useful empty-state instructions; and preserve basic browser print readability. Reports are ordinary source documents read through normal Work Board views, with links to plans, decisions and recorded criterion-level evidence. No report format creates verified acceptance or a new execution/handoff protocol.
 
-Document export is outside product scope: external shareable artifacts, portable snapshots and meeting packets have no demonstrated Work Board use case. Do not build HTML/PDF/ZIP packet generation, export previews, selection manifests, or a deferred export feature in another wave. Native browser printing remains a reading affordance, not a PDF service or artifact builder. An `init` CLI command still needs a separate API decision; copyable templates do not write source files. **Depends on:** 07 and 10–11. **Accept:** start from an empty folder, use the copyable templates through an existing editor/agent tool, and inspect the resulting project, investigation and result in ordinary Work Board views. Unknown outcomes and recorded evidence remain distinct from verified acceptance; the viewer does not create source files or mark history seen implicitly.
+Document export is outside product scope: external shareable artifacts, portable snapshots and meeting packets have no demonstrated Work Board use case. Do not build HTML/PDF/ZIP packet generation, export previews, selection manifests, or a deferred export feature in another wave. Native browser printing remains a reading affordance, not a PDF service or artifact builder. An `init` CLI command still needs a separate API decision; copyable templates do not write source files. **Depends on:** 07 and 10–11. **Accept:** start from an empty folder, use the copyable templates through an existing editor/agent tool, and inspect the resulting project, investigation and result in ordinary Work Board views. Unknown outcomes and recorded evidence remain distinct from verified acceptance; the viewer does not create source files.
 
 
 ## 13 Prove the complete reading workflow

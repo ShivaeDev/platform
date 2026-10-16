@@ -34,8 +34,7 @@ function figure() {
 }
 
 function sourceDisplay() {
-	const source = page.document.querySelector(".diagram-source");
-	return source === null ? "missing" : page.window.getComputedStyle(source).display;
+	return figure()?.querySelector(".diagram-source")?.hasAttribute("hidden") ? "none" : "block";
 }
 
 describe("diagrams", () => {
@@ -57,7 +56,6 @@ describe("diagrams", () => {
 		yield* Effect.promise(() => waitFor(() => expect(page.mermaid.calls).toHaveLength(1)));
 		expect(figure()?.getAttribute("data-state")).toBe("pending");
 		expect(sourceDisplay()).toBe("none");
-		expect(page.window.getComputedStyle(figure() ?? page.document.body).minHeight).toBe("192px");
 		drawing.release();
 		yield* Effect.promise(() => waitFor(() => expect(figure()?.getAttribute("data-state")).toBe("drawn")));
 		expect(figure()?.querySelector("svg")?.getAttribute("data-source")).toBe(encodeURIComponent("graph TD; A-->B"));
@@ -121,7 +119,7 @@ describe("diagrams", () => {
 		const added = page.document.querySelectorAll("figure.diagram")[1];
 		expect(added?.getAttribute("data-state")).toBe("pending");
 		expect(added?.querySelector("svg")).toBeNull();
-		expect(page.window.getComputedStyle(added?.querySelector(".diagram-source") ?? page.document.body).display).toBe("none");
+		expect(added?.querySelector(".diagram-source")?.hasAttribute("hidden")).toBe(true);
 	});
 
 	effectApp("shows a diagram's source and the error when it does not parse", function* () {

@@ -32,11 +32,11 @@ function Shell({ count }: { readonly count: number | null }) {
 	);
 }
 
-it.each([0, 4, null])("names the Files and Inbox controls independently of responsive text and count %s", async (count) => {
+it.each([0, 4, null])("names the Files and Today controls independently of responsive text and count %s", async (count) => {
 	const view = await renderBoard({}, () => <Shell count={count} />);
 	try {
 		expect(control(`#${shellIds.sidebarToggle}`, HTMLButtonElement).getAttribute("aria-label")).toBe("Files");
-		expect(control(`#${shellIds.inboxTopbar}`, HTMLAnchorElement).getAttribute("aria-label")).toBe("Inbox");
+		expect(control(`#${shellIds.inboxTopbar}`, HTMLAnchorElement).getAttribute("aria-label")).toBe("Today");
 		expect(control(`#${shellIds.inboxTopbarCount}`, HTMLElement).getAttribute("aria-label")).toBe(`${count ?? "?"} waiting`);
 	} finally {
 		await view.unmount();
