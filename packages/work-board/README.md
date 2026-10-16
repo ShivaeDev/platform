@@ -507,6 +507,25 @@ The snapshot retains parsed documents, identity diagnostics and unavailable path
 
 Fleet's production imports are fenced to these six entry points by `pnpm lint`; its test fixtures may still use Board modules directly. The packed-package consumer exercises the headless read, response and receipt path through these exports.
 
+#### Read the running board through MCP
+
+Start the board with `work-board /absolute/path/to/notes`. Register its read-only stdio MCP server with Claude Code or Codex:
+
+```sh
+claude mcp add --transport stdio work-board -- work-board mcp /absolute/path/to/notes
+codex mcp add work-board -- work-board mcp /absolute/path/to/notes
+```
+
+Both commands require `work-board` on the client's PATH. `work-board mcp <dir>` reads the running board through `<dir>/board.sock`; it uses the same computed queries as the browser. If no board answers, every tool returns one error naming the directory and the `work-board <dir>` command to start it.
+
+| Tool | Returns |
+| --- | --- |
+| `board_overview` | Needs-you count and items, in-flight Fleet items with stage and PR, and active and closed goal progress counts |
+| `needs_you` | The `you` lane with reason, frontmatter options, computed question prompts and their choices, recommendation, and `ageMs` since the source's last modification (`null` when unknown) |
+| `item` with `{ "id": "task.example" }` | Computed status, owner, criteria, relationships, Fleet stage and open decisions |
+
+Fleet unavailability stays explicit in results. These tools read state without changing files or starting a board.
+
 #### CLI reference
 
 | Server argument | Default | Meaning |

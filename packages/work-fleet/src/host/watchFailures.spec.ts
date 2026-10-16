@@ -1,23 +1,7 @@
-import { createServer } from "node:http";
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { cliProcess } from "#test/fleetCli.ts";
-
-function unusedPort() {
-	return new Promise<number>((resolve, reject) => {
-		const server = createServer();
-		server.on("error", reject);
-		server.listen(0, "127.0.0.1", () => {
-			const address = server.address();
-			if (address === null || typeof address === "string") {
-				reject(new Error("Expected TCP address"));
-				return;
-			}
-			server.close((error) => (error ? reject(error) : resolve(address.port)));
-		});
-	});
-}
 
 describe("Fleet commands without a daemon", () => {
 	for (const [command, args] of [
@@ -32,7 +16,7 @@ describe("Fleet commands without a daemon", () => {
 		["answer", ["unknown", "Retry work"]],
 	] as const) {
 		it.live(`${command} names the missing daemon and how to start it`, function* () {
-			const port = yield* Effect.promise(unusedPort);
+			const port = 0;
 			let stderr = "";
 			const result = yield* Effect.promise(() =>
 				cliProcess([command, ...args, "--port", String(port)], {
