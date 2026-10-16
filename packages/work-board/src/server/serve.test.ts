@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -109,6 +110,7 @@ describe("the server", () => {
 				const stopped = exited(child);
 				child.kill("SIGINT");
 				expect(yield* Effect.promise(() => stopped)).toBeLessThan(3000);
+				expect(existsSync(join(notes.root, "board.sock"))).toBe(false);
 				yield* subscription.close();
 			} finally {
 				child.kill();
@@ -116,4 +118,19 @@ describe("the server", () => {
 		},
 		10_000,
 	);
+	it.live("removes its socket on SIGTERM", function* () {
+		notes = folder({ "plan.md": "# Plan\n" });
+		const child = spawn(process.execPath, ["--conditions=source", cli, notes.root, "--port", "0"], { stdio: ["ignore", "pipe", "pipe"] });
+		try {
+			const address = yield* Effect.promise(() => listening(child));
+			yield* Effect.promise(() => fetch(address));
+			expect(existsSync(join(notes.root, "board.sock"))).toBe(true);
+			const stopped = exited(child);
+			child.kill("SIGTERM");
+			yield* Effect.promise(() => stopped);
+			expect(existsSync(join(notes.root, "board.sock"))).toBe(false);
+		} finally {
+			child.kill();
+		}
+	});
 });

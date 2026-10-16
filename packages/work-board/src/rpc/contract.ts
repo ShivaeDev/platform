@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { query, stream } from "@shivaedev/effect-contract/operation.ts";
-import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
+import { InternalServerError, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { Document } from "#browser/document/schema.ts";
 import { Navigation } from "#browser/Navigation.ts";
@@ -19,6 +19,7 @@ import { index, navigation, watcher, workspace } from "./keys.ts";
 import { PageUrl } from "./PageUrl.ts";
 import { pageKeys } from "./pageKeys.ts";
 import { documentRejections } from "./rejections.ts";
+import { Server } from "./Server.ts";
 
 const Entry = Schema.Struct({
 	file: Schema.String,
@@ -56,6 +57,7 @@ const ReadOverview = query("overview", {
 	success: OverviewProjection,
 });
 const ReadInbox = query("inbox", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: InboxProjection });
+const ReadServer = query("server", { reads: () => [], rejections: { ServiceUnavailable }, success: Server });
 const ReadDiagnostics = query("diagnostics", { reads: () => [workspace.list], rejections: { InternalServerError }, success: DiagnosticsProjection });
 const ReadFleetItems = query("fleetItems", { reads: () => [workspace.list, index.list], success: FleetItemsProjection });
 const ReadGoals = query("goals", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: GoalsProjection });
@@ -110,6 +112,7 @@ const ReadWatcher = query("watcher", {
 export const Subscribe = stream("subscribe", { reads: () => [workspace.list], rejections: { InternalServerError }, success: LiveHint });
 export const workContract = contract("work-board", {
 	queries: [
+		ReadServer,
 		ReadDocument,
 		ReadBoard,
 		ReadWork,

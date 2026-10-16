@@ -532,6 +532,18 @@ Fleet's production imports are fenced to these six entry points by `pnpm lint`; 
 
 The browser uses local NDJSON RPC at `POST /_board/rpc`. Ordinary document GETs, `/_board/start`, `/_board/work`, `/_board/overview`, `/_board/changes`, `/_board/respond`, `/_board/handoff`, `/_board/result`, and identity links remain available alongside it. Search, retained-source history and live subscriptions use the same RPC route. There is no automatic workspace discovery or server launch in agent commands.
 
+A running `work-board <dir>` also serves that NDJSON RPC at `POST /_board/rpc` over the Unix socket `<dir>/board.sock`, using the same handlers and services as TCP. Tools can read `work-board.inbox`, `work-board.fleetItems` and `work-board.goals` from the board directory without knowing its port. Each board directory has its own socket. For example:
+
+```sh
+printf '%s\n' '{"_tag":"Request","id":"1","tag":"work-board.server","payload":null,"headers":[]}' |
+  curl --unix-socket ./notes/board.sock http://localhost/_board/rpc \
+    -H 'Content-Type: application/ndjson' --data-binary @-
+```
+
+The `work-board.server` query takes no payload and returns `{ url, directory }`, for example `{ "url": "http://127.0.0.1:4747/", "directory": "/home/me/project/notes" }`. It is available over both TCP and the socket; `url` uses the actual browser port, including when `--port 0` selects a free port.
+
+The socket has owner-only permissions. Startup removes an unanswered stale socket and refuses to start when another board already answers there. Closing the board removes its socket, including on SIGINT and SIGTERM. If the board directory is committed, add `board.sock` to that directory's ignore rules.
+
 ### Install and limits
 
 ```sh

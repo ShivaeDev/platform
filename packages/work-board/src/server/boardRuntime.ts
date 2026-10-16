@@ -8,10 +8,11 @@ import { watchChanges } from "#server/files/changes.ts";
 import { homeIn } from "#server/files/home.ts";
 import { checkBrowserAssets, mermaidRoot } from "#server/http/assets.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
+import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
 import { handlers } from "#server/rpc/handlers.ts";
 import { type Snapshot, searchSnapshot } from "#server/search/snapshot.ts";
 
-export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (options: BoardOptions) {
+export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (options: BoardOptions, server?: HandlerOptions["server"]) {
 	const home = yield* homeIn(options.root, options.home);
 	const mermaid = yield* mermaidRoot();
 	yield* checkBrowserAssets();
@@ -49,6 +50,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 			),
 		home,
 		index: Effect.provideContext(index, context),
+		...(server === undefined ? {} : { server }),
 		writable: options.responses === true,
 	}).pipe(Effect.provideContext(context));
 	return { changes, context, home, index, mermaid, rpcHandlers };
