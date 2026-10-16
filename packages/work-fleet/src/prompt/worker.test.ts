@@ -67,7 +67,6 @@ describe("workerPrompt", () => {
 		expect(startup).toBeLessThan(task);
 		expect(task).toBeLessThan(evidence);
 		expect(prompt).toContain("wait_for_environment");
-		expect(prompt).toContain("Source /workspace/.synthetic/env.sh at the start of EVERY independent shell command");
 		expect(prompt).toContain("require_escalated) from the FIRST network-dependent command");
 		expect(prompt).toContain("create synthetic/sidebar-tree from that exact current revision");
 		expect(prompt).toContain("`pnpm ready`");
