@@ -1,16 +1,20 @@
 import { Effect, Array as EffectArray, Schema } from "effect";
 import { SqlClient } from "effect/sql";
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { makeRepository, OptimisticConcurrencyError } from "@shivaedev/effect-sql/repository.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import { checkRecordAdmission } from "#storage/admission.ts";
 import { admissionReads } from "#storage/admissionReads.ts";
 import { StorageConflict } from "#storage/errors.ts";
 import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
+import { makeForeignReservations } from "#storage/makeForeignReservations.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
-import { type AdmissionLimits, ForeignReservationRow, recordColumns, recordInput, recordModel, type Versioned } from "#storage/model.ts";
+import { type AdmissionLimits, recordInput, recordModel, type Versioned } from "#storage/model.ts";
 import { nextAdmissionOrder } from "#storage/nextAdmissionOrder.ts";
 import { operationEntries } from "#storage/operationEntries.ts";
+import { readRecords } from "#storage/readRecords.ts";
+import { writeChildren } from "#storage/recordChildren.ts";
+import { recordShape } from "#storage/recordShape.ts";
 import { withRecordTimes } from "#storage/recordTimes.ts";
 import { recordValue, recordValues } from "#storage/recordValue.ts";
 
@@ -25,36 +29,39 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 	const namespace = options.namespace ?? "work_fleet";
 	const commit = yield* makeFleetTransaction;
 	const records = `${namespace}_records`;
-	const foreign = `${namespace}_foreign_reservations`;
-	const columns = recordColumns(schema);
+	const shape = recordShape(schema);
 	const model = recordModel(schema);
 	const rows = yield* makeRepository(model, { idColumn: "work_id", spanPrefix: "FleetRow", tableName: records, versionColumn: "version" });
-	const reservations = yield* makeRepository(ForeignReservationRow, { idColumn: "owner", spanPrefix: "FleetForeign", tableName: foreign });
+	const foreign = yield* makeForeignReservations(namespace);
 	const encodeRecord = Schema.encodeEffect(schema);
 	const decodeObject = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const decodeInsert = Schema.decodeUnknownEffect(model.insert);
 	const decodeRecord = Schema.decodeUnknownEffect(schema);
 	const decodeRecords = Schema.decodeUnknownEffect(Schema.Array(schema));
 	function decode(row: { readonly "work_id": string; readonly version: number }) {
-		return recordValue(row, columns).pipe(
+		return recordValue(row, shape, namespace).pipe(
 			Effect.flatMap(decodeRecord),
+			Effect.provideService(SqlClient.SqlClient, sql),
 			Effect.map((value) => ({ value, version: row.version + 1 })),
 		);
 	}
-	const loadEntry = Effect.fn("FleetStore.loadEntry")(function* (workId: string) {
+	const readEntry = Effect.fn("FleetStore.readEntry")(function* (workId: string) {
 		const found = yield* rows.findById(workId).pipe(Effect.catchTag("NoSuchElementError", () => Effect.succeed(undefined)));
 		return found === undefined ? undefined : { order: found.admission_order, stored: yield* decode(found) };
 	});
+	function loadEntry(workId: string) {
+		return readRecords(namespace, readEntry(workId)).pipe(Effect.provideService(SqlClient.SqlClient, sql));
+	}
 	function load(workId: string) {
 		return loadEntry(workId).pipe(Effect.map((entry) => entry?.stored));
 	}
-	const list = Effect.fn("FleetStore.list")(function* () {
+	const readList = Effect.fn("FleetStore.readList")(function* () {
 		const found = yield* rows.findMany({ orderBy: { direction: "asc", field: "admission_order" } });
-		const values = yield* decodeRecords(yield* recordValues(found, columns));
+		const values = yield* decodeRecords(yield* recordValues(found, shape, namespace).pipe(Effect.provideService(SqlClient.SqlClient, sql)));
 		return EffectArray.zipWith(values, found, (value, row) => ({ value, version: row.version + 1 }));
 	});
-	function foreignReservations() {
-		return reservations.findMany({ orderBy: { direction: "asc", field: "owner" } });
+	function list() {
+		return readRecords(namespace, readList()).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 	}
 	const lock = sql`select pg_advisory_xact_lock(hashtextextended(${`work_fleet_admission:${namespace}`}, 0))`.pipe(Effect.asVoid);
 	const persist = Effect.fn("FleetStore.persist")(function* (
@@ -65,13 +72,14 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		entry: { readonly order: bigint; readonly stored: Versioned<TSchema["Type"]> } | undefined,
 	) {
 		const requeue = entry !== undefined && options.requeue?.(record, entry.stored.value) === true;
-		const input = yield* decodeInsert({ ...recordInput(encoded, columns), "work_id": workId });
+		const input = yield* decodeInsert({ ...recordInput(encoded, schema), "work_id": workId });
 		if (entry === undefined) {
 			yield* rows.insertVoid(input);
 		} else {
 			const order = requeue ? yield* nextAdmissionOrder(sql, records) : entry.order;
 			yield* rows.updateVoid({ ...input, "admission_order": order, version: expectedVersion === null ? 0 : expectedVersion - 1 });
 		}
+		yield* writeChildren(namespace, workId, encoded, shape);
 		return { value: record, version: (expectedVersion ?? 0) + 1 };
 	});
 	const write = Effect.fn("FleetStore.write")(function* (
@@ -96,52 +104,30 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 				}
 				const reads = admissionReads(options, record, previous?.value, limits);
 				const entries = reads.records ? yield* list() : [];
-				const external = reads.foreign ? yield* foreignReservations() : [];
+				const external = reads.foreign ? yield* foreign.foreignReservations() : [];
 				yield* checkRecordAdmission(options, record, previous?.value, entries, external, limits);
 				const timed = yield* withRecordTimes(schema, encoded, previous?.value);
 				return yield* persist(workId, expectedVersion, timed.value, timed.encoded, entry);
 			}),
 		).pipe(
-			Effect.catchTag("OptimisticConcurrencyError", () =>
-				Effect.flatMap(load(workId), (actual) =>
-					Effect.fail(new StorageConflict({ actualVersion: actual?.version ?? null, expectedVersion, workId })),
-				),
+			Effect.catchIf(
+				(error) => error instanceof OptimisticConcurrencyError,
+				() =>
+					Effect.flatMap(load(workId), (actual) =>
+						Effect.fail(new StorageConflict({ actualVersion: actual?.version ?? null, expectedVersion, workId })),
+					),
 			),
 		);
 	});
 	return {
 		compareAndSet: (workId: string, expectedVersion: number, record: TSchema["Type"], limits?: AdmissionLimits) =>
 			write(workId, expectedVersion, record, limits),
-		foreignReservations,
+		...foreign,
 		hasLaunchRetry: () => rows.findMany({ select: ["launchRetry"] }).pipe(Effect.map((entries) => entries.some((row) => row.launchRetry !== null))),
 		initialize: () => commit([fleetRecords.list], migrateFleet(namespace)),
 		insert: (record: TSchema["Type"], limits?: AdmissionLimits) => write(record.workId, null, record, limits),
 		list,
 		load,
-		operationEntries: (operationId: string) =>
-			rows
-				.findMany({ select: ["work_id", "version", "attempts", "history"] })
-				.pipe(Effect.flatMap((entries) => operationEntries(entries, operationId))),
-		releaseForeign: (owner: string) =>
-			commit(
-				[fleetRecords.list],
-				Effect.gen(function* () {
-					yield* lock;
-					yield* reservations.delete(owner);
-				}),
-			),
-		reserveForeign: (owner: string, occupancy: { readonly executing: boolean; readonly backlog: boolean } = { backlog: true, executing: true }) =>
-			commit(
-				[fleetRecords.list],
-				Effect.gen(function* () {
-					yield* lock;
-					const existing = yield* reservations.findMany({ where: { owner } });
-					if (existing.length === 0) {
-						yield* reservations.insertVoid({ owner, ...occupancy });
-					} else {
-						yield* reservations.updateVoid({ owner, ...occupancy });
-					}
-				}),
-			),
+		operationEntries: (operationId: string) => operationEntries(namespace, operationId).pipe(Effect.provideService(SqlClient.SqlClient, sql)),
 	};
 });

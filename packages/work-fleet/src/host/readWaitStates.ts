@@ -1,16 +1,24 @@
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
+import { Model } from "effect/schema";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { State } from "#host/waitOutcome.ts";
-import { recordColumns, recordJson, recordModel } from "#storage/model.ts";
+import { readRecords } from "#storage/readRecords.ts";
+import { columnSchema, schemaShape, shapeColumns } from "#storage/recordShape.ts";
+import { recordValues } from "#storage/recordValue.ts";
 
 export interface ReadOptions {
 	readonly namespace: string;
 }
 
 export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* (options: ReadOptions, ids?: readonly string[]) {
+	const shape = schemaShape(State);
+	class SnapshotRow extends Model.Class<SnapshotRow>("FleetSnapshot")({
+		...Object.fromEntries(Object.entries(shapeColumns(shape)).map(([name, kind]) => [name, columnSchema(kind)])),
+		"work_id": Schema.String,
+	}) {}
 	const read = Effect.gen(function* () {
-		const repository = yield* makeRepository(recordModel(), {
+		const repository = yield* makeRepository(SnapshotRow, {
 			idColumn: "work_id",
 			spanPrefix: "FleetReader",
 			tableName: `${options.namespace}_records`,
@@ -18,7 +26,6 @@ export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* 
 		const rows = yield* repository
 			.findMany({
 				orderBy: { direction: "asc", field: "work_id" },
-				select: ["work_id", "stage", "blocker", "attentionOwner", "checks", "decision", "outcome"],
 			})
 			.pipe(
 				Effect.catchTag("SqlError", (error) => {
@@ -26,14 +33,9 @@ export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* 
 					return typeof cause === "object" && cause !== null && "code" in cause && cause.code === "42P01" ? Effect.succeed([]) : Effect.fail(error);
 				}),
 			);
-		return yield* Effect.forEach(
-			rows.filter((row) => ids === undefined || ids.includes(row.work_id)),
-			(row) =>
-				recordJson(row, recordColumns()).pipe(
-					Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(State))),
-					Effect.map((state) => ({ ...state, outcome: state.outcome ?? {} })),
-				),
-		);
+		const selected = rows.filter((row) => ids === undefined || ids.includes(row.work_id));
+		const states = yield* Schema.decodeUnknownEffect(Schema.Array(State))(yield* recordValues(selected, shape, options.namespace));
+		return states.map((state) => ({ ...state, outcome: state.outcome ?? {} }));
 	});
-	return yield* read;
+	return yield* readRecords(options.namespace, read);
 });

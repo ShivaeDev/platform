@@ -1,20 +1,12 @@
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
-import { modelTableColumns, modelTables } from "#storage/modelTables.ts";
+import { modelTables } from "#storage/modelTables.ts";
 import { pruneEmptyCycles } from "#storage/pruneEmptyCycles.ts";
 import { recordTimeColumns } from "#storage/recordTimes.ts";
+import { typedTables } from "#storage/typedTables.ts";
 
 const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
-
-// PostgreSQL text cannot distinguish scalar strings from serialized JSON.
-export const fleetMigrationColumns = {
-	...modelTableColumns,
-	[releaseReasonColumn.name]: releaseReasonColumn.kind,
-	...recordTimeColumns,
-	integrationRetry: "json",
-	pendingAnswers: "json",
-} as const;
 
 export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function* (namespace: string, legacyOnly = false) {
 	const sql = yield* SqlClient.SqlClient;
@@ -55,6 +47,7 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 					"9_integration_retry": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("integrationRetry")} text`,
 					"10_prune_empty_cycles": pruneEmptyCycles(namespace),
 					"11_pending_answers": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("pendingAnswers")} text`,
+					"12_typed_tables": typedTables(namespace),
 				}),
 	});
 });
