@@ -20,15 +20,17 @@ export function recoverTurn(
 		});
 	}
 	const operations = new Map<string, Recovery>();
-	function resumeEmptyThread(input: ContinueSession, emptyThread: boolean) {
-		return emptyThread ? startTurn(input) : Effect.fail(missingTurn());
+	function resumeMissingTurn(input: ContinueSession, replayable: boolean) {
+		return replayable ? startTurn(input) : Effect.fail(missingTurn());
 	}
 	const recover = Effect.fn("Codex.recover")(function* (input: ReconcileSession & { readonly sessionId: string }) {
 		const deadline = (yield* Clock.currentTimeMillis) + (graceMs ?? 0);
 		let emptyThread = true;
+		let idleThread = true;
 		while (true) {
-			const { empty, turnId } = yield* operationTurn(input.sessionId, input.operationId);
+			const { empty, idle, turnId } = yield* operationTurn(input.sessionId, input.operationId);
 			emptyThread = emptyThread && empty;
+			idleThread = idleThread && idle;
 			if (turnId !== undefined) {
 				return { sessionId: input.sessionId, turnId };
 			}
@@ -37,7 +39,10 @@ export function recoverTurn(
 			}
 			const remaining = deadline - (yield* Clock.currentTimeMillis);
 			if (remaining <= 0) {
-				return yield* resumeEmptyThread({ ...input.resume, operationId: input.operationId, sessionId: input.sessionId }, emptyThread);
+				return yield* resumeMissingTurn(
+					{ ...input.resume, operationId: input.operationId, sessionId: input.sessionId },
+					replayableThread(input.resume.afterTimeout, emptyThread, idleThread),
+				);
 			}
 			yield* Effect.sleep(Math.min(250, remaining));
 		}
@@ -57,4 +62,8 @@ export function recoverTurn(
 			operations.set(key, state);
 			return Semaphore.withPermit(state.lock)(recoverOnce(input, state));
 		});
+}
+
+function replayableThread(afterTimeout: boolean | undefined, empty: boolean, idle: boolean) {
+	return empty || (afterTimeout === true && idle);
 }

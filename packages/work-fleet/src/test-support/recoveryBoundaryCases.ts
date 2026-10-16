@@ -56,7 +56,11 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 			code: "checks-result-invalid" as const,
 			enter: finishRecoveryReview,
 			name: "malformed adopted commit",
-			options: { checksQuery: checks, resultQuery: () => Effect.succeed({ head: "short", kind: "change", paths: ["src/one.ts"], pr: PR }) },
+			options: {
+				checksQuery: checks,
+				deliveryQuery: () => Effect.succeed(undefined),
+				resultQuery: () => Effect.succeed({ head: "short", kind: "change", paths: ["src/one.ts"], pr: PR }),
+			},
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{

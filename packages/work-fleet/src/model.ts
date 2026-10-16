@@ -33,6 +33,7 @@ export const Attempt = Schema.Struct({
 		}),
 	),
 	status: Schema.Literals(["submitting", "accepted", "running", "completed", "failed", "interrupted"]),
+	submissionTimedOut: Schema.optional(Schema.Boolean),
 	submissionUncertain: Schema.optional(Schema.Boolean),
 	submittedAt: Schema.Number,
 	terminalReceipts: Schema.optional(Schema.Array(SessionReceipt)),

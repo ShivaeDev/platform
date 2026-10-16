@@ -6,7 +6,7 @@ export const exhaustReadRetries = Effect.fn("Test.exhaustReadRetries")(function*
 	const fleet = yield* Fleet;
 	for (let count = 0; count < 4; count += 1) {
 		const current = yield* fleet.get("one");
-		const retry = current.value.integrationRetry;
+		const retry = current.value.integrationRetry ?? current.value.attempts.at(-1)?.readRetry;
 		if (retry === undefined) {
 			return current;
 		}

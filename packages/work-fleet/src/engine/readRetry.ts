@@ -8,7 +8,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import { BoardFailure } from "#policy.ts";
 import { SessionFailure } from "#session/schema.ts";
-import { transientFailure } from "#session/transientFailure.ts";
+import { requestTimedOut, transientFailure } from "#session/transientFailure.ts";
 import type { Versioned } from "#storage/model.ts";
 
 function retryKind(error: unknown, record: FleetRecord) {
@@ -24,6 +24,7 @@ function retryKind(error: unknown, record: FleetRecord) {
 function retryProviderRead(error: SessionFailure, record: FleetRecord) {
 	return (
 		transientFailure(error)
+		|| requestTimedOut(error)
 		|| (error.reason === "unavailable" && record.attempts.at(-1)?.submissionUncertain === true)
 		|| (error.reason === "ambiguous"
 			&& (error.code === "session-unavailable" || (record.attempts.at(-1)?.readRetry !== undefined && error.code !== "duplicate-turns")))

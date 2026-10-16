@@ -33,7 +33,8 @@ export const observeDeliveryFailure = Effect.fn("Fleet.observeDeliveryFailure")(
 		failureCode(error) === "pr-head-moved"
 		&& failureContext(error).head !== undefined
 		&& !executing(record)
-		&& (record.stage === "delivering" || (record.review?.verdict === "approved" && record.review.head === result.head))
+		&& (["delivering", "reviewing", "validating"].includes(record.stage)
+			|| (record.review?.verdict === "approved" && record.review.head === result.head))
 	) {
 		const work = yield* state.board.get(record.workId);
 		current = yield* invalidateMergeReadiness(state, stored);

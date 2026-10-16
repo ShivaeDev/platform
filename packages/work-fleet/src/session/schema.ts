@@ -55,6 +55,7 @@ export const ReconcileSession = Schema.Struct({
 	resume: Schema.optional(
 		Schema.Struct({
 			access: ContinueSession.fields.access,
+			afterTimeout: Schema.optional(Schema.Boolean),
 			prompt: ContinueSession.fields.prompt,
 			settings: ContinueSession.fields.settings,
 		}),

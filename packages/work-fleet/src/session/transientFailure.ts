@@ -24,3 +24,9 @@ export function transientFailure(error: SessionFailure) {
 			|| providerMessage(error.message).startsWith("selected model is at capacity"))
 	);
 }
+
+export function requestTimedOut(error: SessionFailure) {
+	return (
+		(error.reason === "ambiguous" || error.reason === "unavailable") && error.message === "Codex request timed out; preserve submission ownership"
+	);
+}
