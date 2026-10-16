@@ -10,6 +10,7 @@ import { FleetMain } from "./FleetMain.tsx";
 import { Header } from "./Header.tsx";
 import { LiveControls } from "./LiveControls.tsx";
 import { displayedLocation, type MainLocation, sameMainLocation } from "./mainLocation.ts";
+import { PhoneNavigation } from "./PhoneNavigation.tsx";
 import { ReadingLibrary } from "./ReadingLibrary.tsx";
 import { SearchDialog } from "./SearchDialog.tsx";
 import type { ShellApi } from "./ShellApi.ts";
@@ -104,7 +105,7 @@ export function BoardShell(options: ShellOptions) {
 						onClick={() => sidebar.close()}
 						type="button"
 					/>
-					<div className="min-w-0" data-board-page inert={sidebar.narrow && sidebar.open}>
+					<div className="min-w-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" data-board-page inert={sidebar.narrow && sidebar.open}>
 						<Header
 							appearance={appearance}
 							count={data?.inboxCount ?? null}
@@ -116,6 +117,7 @@ export function BoardShell(options: ShellOptions) {
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
 						<FleetMain api={api} home={data?.home} onPage={onPage} url={location.pathname + location.searchStr} />
+						<PhoneNavigation main={main} openSearch={search.show} />
 					</div>
 				</div>
 				{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}

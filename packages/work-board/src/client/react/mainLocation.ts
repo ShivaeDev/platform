@@ -5,7 +5,7 @@ export interface MainLocation {
 }
 export function displayedLocation(main: HTMLElement | null): MainLocation {
 	const file = main?.dataset.file ?? "";
-	const title = /[a-f\d]{64}/iu.test(file) ? main?.querySelector("h1")?.textContent?.trim() : undefined;
+	const title = main?.querySelector("h1")?.textContent?.trim();
 	return { file, title, view: main?.dataset.view ?? "" };
 }
 export function sameMainLocation(previous: MainLocation, next: MainLocation) {
