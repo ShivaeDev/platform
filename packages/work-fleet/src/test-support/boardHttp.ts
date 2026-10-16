@@ -1,12 +1,16 @@
-import { NodeServices } from "@effect/platform-node";
+import { createServer } from "node:http";
+import { NodeHttpServer, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, ManagedRuntime } from "effect";
-import { HttpServer } from "effect/http";
+import { HttpRouter, HttpServer } from "effect/http";
+import { boardLayer } from "@shivaedev/work-board/board.ts";
 import { browserClient } from "@shivaedev/work-board/browser/client.ts";
-import { serveBoard } from "@shivaedev/work-board/serve.ts";
 
 export const boardHttp = Effect.fn("BoardStory.boardHttp")(function* (root: string, home?: string, maintainer?: string, fleetPort?: number) {
 	const runtime = ManagedRuntime.make(
-		serveBoard({ ...(fleetPort === undefined ? {} : { fleetPort }), home, maintainer, port: 0, responses: true, root }).pipe(
+		HttpRouter.serve(boardLayer({ ...(fleetPort === undefined ? {} : { fleetPort }), home, maintainer, responses: true, root }), {
+			disableLogger: true,
+		}).pipe(
+			Layer.provideMerge(NodeHttpServer.layer(createServer, { disablePreemptiveShutdown: true, host: "127.0.0.1", port: 0 })),
 			Layer.provide(NodeServices.layer),
 		),
 	);
