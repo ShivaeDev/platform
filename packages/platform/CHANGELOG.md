@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.0 - 2026-10-16
+
+### Added
+
+- `otlpTracing` in `otlpTracing.ts`: a scoped Effect Config Layer for OTLP/HTTP JSON trace export. `appHost` enables it when an exporter endpoint is set; workers can provide the same Layer. Collector failures preserve requests and scoped shutdown; serialization redacts sensitive diagnostics.
+
 ## 0.11.0 - 2026-10-16
 
 ### Added

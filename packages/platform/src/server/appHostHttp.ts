@@ -11,6 +11,7 @@ import type { AppHostOptions, AppLocalHostOptions } from "./appHost.ts";
 import { boundedRpcRequest } from "./boundedRpcRequest.ts";
 import type { databaseLayer } from "./databaseLayer.ts";
 import type { HostOptions, HostPolicy } from "./hostOptions.ts";
+import { otlpTracing } from "./otlpTracing.ts";
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
 	THandlers,
@@ -78,7 +79,7 @@ export function appHostHttp<
 				Layer.provide(NodeServices.layer),
 			);
 		}),
-	);
+	).pipe(Layer.provide(otlpTracing));
 }
 
 export function migratedHost<

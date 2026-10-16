@@ -2,6 +2,7 @@ import { Config, Effect, Layer, Redacted } from "effect";
 import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 import { appDatabase } from "@shivaedev/platform/appHost.ts";
+import { otlpTracing } from "@shivaedev/platform/otlpTracing.ts";
 import { notes } from "#notes.ts";
 import { makeAuth } from "./auth.ts";
 import { databaseOptions } from "./databaseOptions.ts";
@@ -16,7 +17,7 @@ const countWords = CountWords.handle(({ noteId }) =>
 			yield* repository.update({ ...row, wordCount: row.title.split(/\s+/u).length });
 		}
 		yield* invalidateOnCommit(invalidationKeys([notes.item(noteId)]));
-	}).pipe(transact({ onSqlError: (error) => error })),
+	}).pipe(transact({ onSqlError: (error) => error }), Effect.withSpan("CountWords", { kind: "consumer" })),
 );
 
 export function noteWorker(config?: { readonly databaseUrl?: Redacted.Redacted<string>; readonly secret?: Redacted.Redacted<string> }) {
@@ -28,5 +29,5 @@ export function noteWorker(config?: { readonly databaseUrl?: Redacted.Redacted<s
 				Layer.provideMerge(appDatabase(databaseOptions(auth, databaseUrl))),
 			);
 		}),
-	);
+	).pipe(Layer.provide(otlpTracing));
 }

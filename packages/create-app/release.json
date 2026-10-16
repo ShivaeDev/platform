@@ -2,9 +2,9 @@
 	"date": "2026-10-16",
 	"fragments": [
 		{
-			"name": "starter-stories.md",
-			"text": "### Added\n\n- Generated apps include a story kit for authenticated HTTP and PostgreSQL tests, plus screen and migration stories, with guidance to extend the kit for new features.\n"
+			"name": "otlp-export.md",
+			"text": "### Added\n\n- Generated apps use Platform 0.12.0 and export Effect spans from the host and word-count worker when standard OTLP endpoint variables are set.\n"
 		}
 	],
-	"version": "0.3.0"
+	"version": "0.4.0"
 }

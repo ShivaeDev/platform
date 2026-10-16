@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2026-10-16
+
+### Added
+
+- Generated apps use Platform 0.12.0 and export Effect spans from the host and word-count worker when standard OTLP endpoint variables are set.
+
 ## 0.3.0 - 2026-10-16
 
 ### Added
