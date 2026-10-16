@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts";
-import { trustedProxyPeer } from "@shivaedev/platform/rpc-server/local.ts";
+import { trustedProxyPeer, trustedProxyRanges } from "@shivaedev/platform/rpc-server/local.ts";
 import { authDatabase } from "./authDatabase.ts";
 
 export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: {
@@ -14,12 +14,13 @@ export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: {
 	const origin = Option.map(publicUrl, (url) => url.origin);
 	const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
 	const isTrustedProxy = trustedProxyPeer(trustedProxy);
+	const trustedProxies = trustedProxyRanges(trustedProxy);
 	const pool = yield* authDatabase(config.databaseUrl);
 	const auth = betterAuth({
 		advanced: {
 			ipAddress: {
-				ipAddressHeaders: trustedProxy === undefined ? [] : ["x-forwarded-for"],
-				trustedProxies: trustedProxy?.split(",").map((entry) => entry.trim()) ?? [],
+				ipAddressHeaders: trustedProxies.length === 0 ? [] : ["x-forwarded-for"],
+				trustedProxies,
 			},
 			useSecureCookies: Option.isSome(publicUrl) && publicUrl.value.protocol === "https:",
 		},
