@@ -20,7 +20,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 	const navigation = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const home = Option.getOrUndefined(navigation.data)?.home;
 	return (
-		<div className="today-page min-w-0 space-y-6">
+		<div className="today-page min-w-0 space-y-3 md:space-y-6">
 			<header className="flex items-center justify-between gap-3">
 				<h1 className="m-0 font-semibold text-2xl">Today</h1>
 				{home !== undefined && (

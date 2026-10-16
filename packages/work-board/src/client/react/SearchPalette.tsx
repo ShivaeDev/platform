@@ -7,6 +7,7 @@ import { matchingCommands, type SearchItem } from "#client/react/searchCommands.
 import { searchStatus } from "#client/react/searchStatus.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import type { AppearanceControls } from "#client/react/useAppearance.ts";
+import { KeyboardHints } from "./KeyboardHints.tsx";
 
 export function SearchPalette({
 	api,
@@ -103,7 +104,10 @@ export function SearchPalette({
 				/>
 				<button type="submit">Search</button>
 			</form>
-			<p className="search-help">↑/↓ to choose · Enter to open · Escape to close · records: to include Fleet records</p>
+			<KeyboardHints>
+				<p className="search-help">↑/↓ to choose · Enter to open · Escape to close</p>
+			</KeyboardHints>
+			<p className="mx-4 my-2 text-muted-foreground text-xs">Use records: to include Fleet records.</p>
 			<p id={shellIds.searchStatus} role="status">
 				{status}
 			</p>
