@@ -71,7 +71,9 @@ function ItemFields({ fields }: { readonly fields: Document["metadata"] }) {
 
 function ItemStatus({ document, answering }: { readonly document: Document; readonly answering: boolean }) {
 	const fields = document.metadata;
-	const requestState = document.requests.some((request) => request.open || (request.sourceOpen && fields.kind === "question"))
+	const requestState = document.requests.some(
+		(request) => request.open || (request.id === "answer" && request.sourceOpen && fields.kind === "question" && fields.question === undefined),
+	)
 		? "needs-you"
 		: fields.status;
 	return fields.id && (!answering || requestState !== undefined) ? <StatusChip status={answering ? requestState : fields.status} /> : null;
