@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0 - 2026-10-16
+
+### Added
+
+- `appHost` and its options types accept an omitted `services` Layer for apps without services of their own. Annotated options require a Layer when they declare service outputs, errors or requirements. Existing service Layers keep their behavior, and migrated hosts still provide database services to handlers.
+- Signed-in handlers can read the current user's id, name and email: declare `AuthenticatedUser`, read `SessionUser`, and merge `authenticatedUserLayer(sessions)` beside the handlers. `Identity` keeps its `{ id }` shape.
+
 ## 0.9.0 - 2026-10-16
 
 ### Added
