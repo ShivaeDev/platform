@@ -107,7 +107,7 @@ it("typechecks and runs tests in a generated app named app with its local test d
 	const { root, run } = appFolder();
 	expect(run(["app"]).status).toBe(0);
 	const app = join(root, "app");
-	const typecheck = appScript(app, "typecheck");
+	const typecheck = appScript(app, "typecheck", ["--customConditions", "source"]);
 	expect(typecheck.status, typecheck.stdout + typecheck.stderr).toBe(0);
 	const result = testEnvironment(app, { name: "app" }).run();
 	expect(result.status, result.stdout + result.stderr).toBe(0);
