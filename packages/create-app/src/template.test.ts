@@ -41,6 +41,7 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(manifest.scripts.test).toBe("node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run");
 	expect(manifest.dependencies["@shivaedev/local-postgres"]).toBe(versions["@shivaedev/local-postgres"]);
 	expect(manifest.devDependencies["@shivaedev/quality"]).toBe(versions["@shivaedev/quality"]);
+	expect(manifest.devDependencies["@shivaedev/test-story"]).toBe(versions["@shivaedev/test-story"]);
 	expect(files["quality.config.ts"]).toBeUndefined();
 	expect(files["quality/baseline.jsonl"]).toBeUndefined();
 	expect(manifest.scripts.dev).not.toContain("--conditions=source");
@@ -58,6 +59,12 @@ it("packages the real starter with registry dependencies, standalone configurati
 		".env.example",
 		"src/server/setup-database.ts",
 		"src/server/starterHost.test.ts",
+		"src/server/starterDeploy.spec.ts",
+		"src/test-support/application.ts",
+		"src/test-support/requests.ts",
+		"src/test-support/screens.ts",
+		"AGENTS.md",
+		"README.md",
 		"src/server/committedJobs.spec.ts",
 		"src/server/notesMigration.spec.ts",
 		"src/server/deployReadiness.spec.ts",

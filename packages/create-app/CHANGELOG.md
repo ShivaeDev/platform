@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.3 - 2026-10-16
+## 0.3.1 - 2026-10-16
 
 ### Fixed
 
@@ -8,6 +8,12 @@
 - A generated app runs migrations in web’s Railway pre-deploy step. Web and worker check the schema at startup without migrating; an outdated schema prevents authentication, HTTP and jobs from starting. The migrate command is idempotent.
 - A generated app’s worker logs its applied-migrations check and readiness to take jobs through Effect’s logger.
 - A generated app includes separate Railway web and worker configurations; the web healthcheck uses the database-backed `/health` route.
+
+## 0.3.0 - 2026-10-16
+
+### Added
+
+- Generated apps include a story kit for authenticated HTTP and PostgreSQL tests, plus screen and migration stories, with guidance to extend the kit for new features.
 
 ## 0.2.2 - 2026-10-16
 

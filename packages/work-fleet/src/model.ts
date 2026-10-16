@@ -4,8 +4,26 @@ import { AttentionOwner } from "#attention.ts";
 import { BoardReport } from "#board/schema.ts";
 import { Checks, Decision, DecisionResponse, Delivery, Review, SupersededDecision, WorkResult } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
-import { LaunchSettings, SessionReceipt } from "#session/schema.ts";
+import { LaunchSettings, SessionObservation, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
+	abandoned: Schema.optional(
+		Schema.Struct({
+			at: Schema.Number,
+			interruptError: Schema.optional(Schema.String),
+			observation: Schema.optional(SessionObservation),
+			observationError: Schema.optional(Schema.String),
+		}),
+	),
+	briefSteers: Schema.optional(
+		Schema.Array(
+			Schema.Struct({
+				error: Schema.optional(Schema.String),
+				requestedAt: Schema.Number,
+				revision: Schema.String,
+				steeredAt: Schema.optional(Schema.Number),
+			}),
+		),
+	),
 	checkFailures: Schema.optional(Schema.Array(Schema.String)),
 	missingSince: Schema.optional(Schema.Number),
 	observationRetries: Schema.optional(Schema.Number),
@@ -99,6 +117,7 @@ export const FleetView = Schema.Struct({
 	sessions: Schema.Array(
 		Schema.Struct({
 			...SessionReceipt.fields,
+			briefSteers: Attempt.fields.briefSteers,
 			interruptedAt: Schema.optional(Schema.Number),
 			interruptRequestedAt: Schema.optional(Schema.Number),
 			lastProgressAt: Schema.optional(Schema.Number),

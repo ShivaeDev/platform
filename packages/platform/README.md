@@ -67,6 +67,21 @@ The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABAS
 
 RPC request bodies are limited to 1 MiB by default. Set `MAX_BODY_SIZE` to a byte count or override it with `config.maxBodySize`, a nonnegative safe integer. An oversized NDJSON body returns a 4xx before any RPC handler runs; real HTTP tests cover fixed-length and chunked requests, byte counting, and configuration precedence. This limit applies to the host's RPC route.
 
+For a native Node HTTP route, use `readBoundedBody` from `@shivaedev/platform/boundedBody.ts` with Effect's `HttpIncomingMessage.MaxBodySize`. It returns an `ArrayBuffer` without decoding the bytes. Oversized `content-length` headers are rejected before reading; chunked overflow drains the remaining body and preserves the connection for another request. `RequestBodyTooLarge` is a typed failure that implements Effect's `HttpServerRespondable` protocol with status 413; other read errors remain native `HttpServerError` failures. Consume the body once through this reader and decode the result in the application.
+
+```ts
+import { ByteSize, Effect } from "effect";
+import { HttpIncomingMessage, HttpRouter, HttpServerResponse } from "effect/http";
+import { readBoundedBody } from "@shivaedev/platform/boundedBody.ts";
+
+const routes = HttpRouter.add("POST", "/webhook", (request) =>
+  readBoundedBody(request).pipe(
+    Effect.map((body) => HttpServerResponse.uint8Array(new Uint8Array(body))),
+    Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(64 * 1024)),
+  ),
+);
+```
+
 RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. With a session policy, contracts declare `Authenticated`, `MaybeAuthenticated` and `RequestTracing` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer(sessions)` beside the handlers as shown below. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
 
 For local tools, use `policy: "loopback"` with contracts that do not use session middleware to serve RPC without a session provider. The guard requires a loopback peer and Host, absent or same-origin Origin, and NDJSON content type. This policy does not use `TRUSTED_PROXY` or `config.trustedProxy`. Set `rpcPath` to choose another native RPC route; `/rpc` remains the default.

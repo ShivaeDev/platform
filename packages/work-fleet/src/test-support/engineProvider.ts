@@ -32,6 +32,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 	const observations = new Map<string, SessionObservation>();
 	const failedObservations = new Set<string>();
 	const operations = new Map<string, SessionReceipt>();
+	const steered: { readonly receipt: SessionReceipt; readonly prompt: string }[] = [];
 	let turns = 0;
 	let lost = options.lostAcknowledgement ?? false;
 	let rejectNext = false;
@@ -114,6 +115,10 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 				}
 				return receipt;
 			}),
+		steer: (receipt, prompt) =>
+			Effect.sync(() => {
+				steered.push({ prompt, receipt });
+			}),
 	};
 	const transport = Layer.succeed(SessionTransport)(options.decorateTransport?.(service) ?? service);
 	return {
@@ -130,6 +135,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 		},
 		settings,
 		starts,
+		steered,
 		transport,
 	};
 }

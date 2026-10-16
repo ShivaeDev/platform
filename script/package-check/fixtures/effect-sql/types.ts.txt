@@ -30,6 +30,16 @@ const program = Effect.gen(function* () {
   lines.findMany({ orderBy: { field: "missing", direction: "asc" } })
   // @ts-expect-error Selections cannot be empty.
   lines.findMany({ select: [] })
+  const ingest = yield* makeRepository(InvoiceLine, { tableName: "invoice_line", idColumn: ["id", "name"], conflictColumns: ["id", "name"], spanPrefix: "InvoiceLine" })
+  const ignored = yield* ingest.insertOrIgnore({ id: 1, name: "Consulting", amount: 42 })
+  const upserted: InvoiceLine = yield* ingest.upsert({ id: 1, name: "Consulting", amount: 52 }, { updateColumns: ["amount"] })
+  const found: InvoiceLine = yield* ingest.findById({ id: 1, name: "Consulting" })
+  yield* ingest.delete({ id: 1, name: "Consulting" })
+  void [ignored, upserted, found]
+  // @ts-expect-error Composite reads require every key column.
+  ingest.findById({ id: 1 })
+  // @ts-expect-error Primary and conflict columns cannot be updated by an upsert.
+  ingest.upsert({ id: 1, name: "Consulting", amount: 52 }, { updateColumns: ["name"] })
   const saved: string = yield* Effect.as(invalidateOnCommit({ invoiceLines: [1] }), "saved").pipe(transact({ onSqlError: () => "unavailable" as const }))
   void saved
   const documents = yield* makeRepository(Document, { tableName: "documents", idColumn: "id", spanPrefix: "Document", versionColumn: "lockVersion" })
