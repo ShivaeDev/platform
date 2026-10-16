@@ -49,6 +49,16 @@ it("packages the real starter with registry dependencies, standalone configurati
 	}
 	expect(manifest.scripts["check:published"]).toBeUndefined();
 	expect(manifest.scripts.lint).toBe("quality lint");
+	expect(manifest.scripts.migrate).toBe("node --env-file-if-exists=.env.local src/server/migrate.ts");
+	expect(JSON.parse(files["railway.json"] ?? "{}")).toMatchObject({
+		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
+		deploy: { healthcheckPath: "/health", preDeployCommand: "pnpm migrate", startCommand: "pnpm start" },
+	});
+	expect(JSON.parse(files["railway.worker.json"] ?? "{}")).toEqual({
+		"$schema": "https://railway.com/railway.schema.json",
+		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
+		deploy: { preDeployCommand: "pnpm migrate", startCommand: "pnpm worker" },
+	});
 	expect(manifest.scripts.format).toBe("quality fix");
 	expect(manifest.scripts["db:setup"]).toBe("node --env-file-if-exists=.env.local src/server/setup-database.ts");
 	expect(files["script/setup-database.ts"]).toBeUndefined();
@@ -71,6 +81,8 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(files["pnpm-workspace.copy.yaml"]).toBeUndefined();
 	for (const path of [
 		".env.example",
+		"src/server/migrate.ts",
+		"src/server/migrateDatabase.ts",
 		"src/server/setup-database.ts",
 		"src/server/starterHost.test.ts",
 		"src/server/starterDeploy.spec.ts",

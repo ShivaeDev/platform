@@ -14,6 +14,7 @@
 		"dev": "pnpm db:setup && node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
 		"format": "quality fix",
 		"lint": "quality lint",
+		"migrate": "node --conditions=source --env-file-if-exists=.env.local src/server/migrate.ts",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
 		"test": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run",
 		"typecheck": "tsc6 --noEmit",

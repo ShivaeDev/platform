@@ -28,7 +28,49 @@ it("creates a named app in a new parent path, installs, and prints only navigati
 	expect(JSON.parse(readFileSync(join(app, "package.json"), "utf8"))).toMatchObject({ name: "my-app" });
 	expect(readFileSync(join(app, "package.json"), "utf8")).toMatch(/^\{\n\t"name": "my-app",/u);
 	expect(readFileSync(join(app, "installation.json"), "utf8")).toBe('["install"]');
+	expect(spawnSync("git", ["rev-list", "--count", "HEAD"], { cwd: app, encoding: "utf8" }).stdout).toBe("1\n");
+	expect(spawnSync("git", ["log", "-1", "--format=%an <%ae>"], { cwd: app, encoding: "utf8" }).stdout).toBe("Create App <create-app@localhost>\n");
+	expect(spawnSync("git", ["status", "--porcelain"], { cwd: app, encoding: "utf8" }).stdout).toBe("");
+	const tracked = spawnSync("git", ["ls-files"], { cwd: app, encoding: "utf8" }).stdout.split("\n");
+	expect(tracked).toEqual(expect.arrayContaining(["package.json", "pnpm-lock.yaml", ".github/workflows/ci.yml", "railway.json", "src/notes.ts"]));
+	expect(tracked).not.toContain(".env.local");
 	expect(result.stdout).toBe("Created apps/my-app.\n\nNext steps:\n  cd 'apps/my-app'\n  pnpm dev\n");
+});
+
+it("preserves the configured Git identity for the initial commit", () => {
+	const { root, run } = appFolder();
+	expect(
+		run(
+			["my-app"],
+			[
+				"GIT_AUTHOR_NAME=App Author",
+				"GIT_AUTHOR_EMAIL=author@example.com",
+				"GIT_COMMITTER_NAME=App Author",
+				"GIT_COMMITTER_EMAIL=author@example.com",
+			],
+		).status,
+	).toBe(0);
+	expect(spawnSync("git", ["log", "-1", "--format=%an <%ae>"], { cwd: join(root, "my-app"), encoding: "utf8" }).stdout).toBe(
+		"App Author <author@example.com>\n",
+	);
+});
+
+it("skips git when disabled or unavailable", () => {
+	for (const gitAvailable of [true, false]) {
+		const { root, run } = appFolder({ gitAvailable });
+		const result = run(gitAvailable ? ["my-app", "--no-git"] : ["my-app"]);
+		expect(result.status, result.stderr).toBe(0);
+		expect(existsSync(join(root, "my-app/.git"))).toBe(false);
+	}
+});
+
+it("leaves an enclosing repository without a nested repository or a new commit", () => {
+	const { root, run } = appFolder();
+	expect(spawnSync("git", ["init", "--quiet"], { cwd: root }).status).toBe(0);
+	expect(run(["apps/my-app"]).status).toBe(0);
+	expect(existsSync(join(root, "apps/my-app/.git"))).toBe(false);
+	expect(spawnSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: root }).status).not.toBe(0);
+	expect(spawnSync("git", ["diff", "--cached", "--name-only"], { cwd: root, encoding: "utf8" }).stdout).toBe("");
 });
 
 it("writes app-specific local database URLs and a fresh secret on every run, ignored by Git", () => {
@@ -48,7 +90,6 @@ it("writes app-specific local database URLs and a fresh secret on every run, ign
 		const secret = env.match(/^BETTER_AUTH_SECRET=(?<secret>.+)$/mu)?.groups?.secret ?? "";
 		expect(secret.length).toBeGreaterThanOrEqual(32);
 		secrets.add(secret);
-		expect(spawnSync("git", ["init", "--quiet"], { cwd: app }).status).toBe(0);
 		expect(spawnSync("git", ["check-ignore", ".env.local"], { cwd: app, encoding: "utf8" }).stdout).toBe(".env.local\n");
 	}
 	expect(secrets.size).toBe(4);
@@ -131,6 +172,7 @@ it("reports installation failure and leaves the generated app available for retr
 	expect(result.stderr).toContain("Run pnpm install in my-app to retry");
 	expect(result.stdout).not.toContain("Next steps");
 	expect(existsSync(join(root, "my-app/package.json"))).toBe(true);
+	expect(existsSync(join(root, "my-app/.git"))).toBe(false);
 });
 
 it("rejects invalid package names before creating a folder", () => {

@@ -9,7 +9,7 @@ Run `pnpm test` to load `TEST_DATABASE_URL` from `.env.local` and test the app a
 
 To try it inside this repository, first run `./script/update` at the root, then copy `.env.example` to `.env.local` inside `examples/starter`, replace `BETTER_AUTH_SECRET` with the output of `openssl rand -base64 32`, and run `pnpm dev`. Keep the `workspace:*` dependencies for repository development.
 
-In your generated app's Git repository, run `pnpm exec quality hooks install` once to install the pre-commit gate. Run `pnpm lint` to check the shared Quality policy and `pnpm format` to apply its fixes and formatting. The starter's `biome.json` extends `@shivaedev/quality/biome`; no Quality config or baseline is needed.
+The command initializes Git and makes an initial commit of the generated files and installed lockfile when Git is available and the target is outside an existing repository. Pass `--no-git` to skip it. In the generated repository, run `pnpm exec quality hooks install` once to install the pre-commit gate. Run `pnpm lint` to check the shared Quality policy and `pnpm format` to apply its fixes and formatting. The starter's `biome.json` extends `@shivaedev/quality/biome`; no Quality config or baseline is needed. The included `.github/workflows/ci.yml` runs `pnpm run ci` (lint, typecheck, build and tests) against a PostgreSQL service on pushes and pull requests.
 
 To verify the generated app against published packages, run `pnpm --filter @shivaedev/starter check:published` at the root. The command creates temporary folders outside the workspace, installs the exact npm versions in `published-versions.json`, checks framework README imports, packs and installs `@shivaedev/create-app`, generates an app, then runs that app's Quality lint, typecheck, Vite build and PostgreSQL/authenticated HTTP round-trip tests. It uses the shared local test database prepared by `./script/update`; set `TEST_DATABASE_URL` to use another dedicated PostgreSQL database whose role can create disposable databases. Missing database access fails the check. Temporary copies are removed on completion or failure.
 
@@ -31,7 +31,19 @@ After the worker writes, call `invalidateOnCommit` with the contract's invalidat
 
 ## Deploy
 
-Set these environment variables on the server; the worker uses the same `DATABASE_URL`:
+### Railway with PostgreSQL
+
+1. Push the generated repository to GitHub. In Railway, create a project, add a PostgreSQL service, then add an application service from that GitHub repository. Keep the service root at the repository root. Before deploying, configure the variables below.
+2. Set the application's `DATABASE_URL` to the PostgreSQL service reference `${{Postgres.DATABASE_URL}}` (replace `Postgres` if you renamed the service). Set `BETTER_AUTH_SECRET` to the output of `openssl rand -base64 32`, `HOST=0.0.0.0`, and `TRUSTED_PROXY=100.64.0.0/10`. Railway supplies `PORT`.
+3. In the application's Networking settings, generate a public domain. Set `PUBLIC_URL` to its full HTTPS URL. Redeploy after changing the domain or variables.
+4. Railway reads the included `railway.json`: Railpack installs dependencies and runs `pnpm build`; `pnpm migrate` applies the numbered notes and Better Auth migrations as a pre-deploy command; `pnpm start` starts HTTP. A failed migration stops deployment. The host also checks migrations before listening. Railway checks `GET /health` before routing traffic to the deployment.
+5. Add a second service from the same repository for the background worker. In its Settings, set the Railway Config File path to `/railway.worker.json` and give it the same variables. That config starts `pnpm worker` without an HTTP health check and keeps the pre-deploy migration command; the migration ledger coordinates repeated runs. The worker needs no public domain. Deploy it, then open the application domain, sign up and create a note. Confirm the word count appears, then sign out and back in to check the saved note.
+
+The server and worker use the same PostgreSQL database. Keep PostgreSQL's persistent volume and credentials in Railway; local `pnpm db:setup` is for development and must not run against the hosted database.
+
+### Server environment
+
+Set these environment variables on the server; the worker uses the same `DATABASE_URL`, authentication secret and public URL:
 
 | Variable | Value |
 | --- | --- |

@@ -1,0 +1,13 @@
+{
+	"$schema": "https://railway.com/railway.schema.json",
+	"build": {
+		"buildCommand": "pnpm build",
+		"builder": "RAILPACK"
+	},
+	"deploy": {
+		"healthcheckPath": "/health",
+		"healthcheckTimeout": 120,
+		"preDeployCommand": "pnpm migrate",
+		"startCommand": "pnpm start"
+	}
+}

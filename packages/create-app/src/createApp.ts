@@ -4,11 +4,12 @@ import { basename, dirname, join, resolve } from "node:path";
 import { Console, Effect, FileSystem, Schema } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { CreateAppError } from "./CreateAppError.ts";
+import { initializeGit } from "./initializeGit.ts";
 import { Template } from "./template.ts";
 
 const decodeName = Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)));
 
-export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: string, templatePath: string) {
+export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: string, templatePath: string, options: { readonly git: boolean }) {
 	const fs = yield* FileSystem.FileSystem;
 	const target = resolve(folder);
 	const name = basename(target);
@@ -43,6 +44,9 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 	const code = yield* spawner.exitCode(ChildProcess.make("pnpm", ["install"], { cwd: target, stderr: "inherit", stdout: "inherit" }));
 	if (code !== 0) {
 		return yield* new CreateAppError({ message: `pnpm install failed (exit ${code}). Run pnpm install in ${folder} to retry.` });
+	}
+	if (options.git) {
+		yield* initializeGit(target);
 	}
 	const quotedFolder = `'${folder.replaceAll("'", "'\"'\"'")}'`;
 	yield* Console.log(`Created ${folder}.\n\nNext steps:\n  cd ${quotedFolder}\n  pnpm dev`);
