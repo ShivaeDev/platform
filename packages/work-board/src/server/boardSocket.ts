@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { createConnection } from "node:net";
 import { NodeHttpServer } from "@effect/platform-node";
-import { Effect, FileSystem, Layer, Path } from "effect";
+import { Effect, FileSystem, Layer, Path, Scope } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 import { workRpcs } from "#rpc/contract.ts";
@@ -33,31 +33,49 @@ export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 	handlers: Effect.Success<ReturnType<typeof boardRuntime>>["rpcHandlers"],
 ) {
 	const fs = yield* FileSystem.FileSystem;
-	const path = (yield* Path.Path).join(root, "board.sock");
+	const paths = yield* Path.Path;
+	const path = paths.join(root, "board.sock");
+	const scope = yield* Scope.Scope;
 	function occupied() {
 		return new Error(`Another board is already running at ${path}. Stop it before starting this board.`);
 	}
-	const state = yield* socketState(path);
-	if (state === "live") {
-		return yield* Effect.fail(occupied());
-	}
-	if (state === "stale") {
-		yield* fs.remove(path, { force: true });
-	}
-	let owned = false;
-	yield* Effect.addFinalizer(() => (owned ? fs.remove(path, { force: true }).pipe(Effect.orDie) : Effect.void));
-	const server = yield* NodeHttpServer.make(createServer, { disablePreemptiveShutdown: true, path }).pipe(
-		Effect.mapError((error) => (Reflect.get(error.cause ?? {}, "code") === "EADDRINUSE" ? occupied() : error)),
-	);
-	owned = true;
-	yield* fs.chmod(path, 0o600);
 	const context = yield* Layer.build(handlers.pipe(Layer.provideMerge(RpcSerialization.layerNdjson)));
-	// Unix requests have no TCP peer address; the socket's mode is their access boundary.
 	const rpc = yield* RpcServer.toHttpEffect(workRpcs).pipe(Effect.provideContext(context));
-	yield* server.serve(
+	yield* Effect.scoped(
 		Effect.gen(function* () {
-			const request = yield* HttpServerRequest.HttpServerRequest;
-			return request.method === "POST" && request.url === RPC_PATH ? yield* rpc : HttpServerResponse.empty({ status: 404 });
+			const lock = `${path}.starting`;
+			yield* Effect.acquireRelease(
+				fs.makeDirectory(lock, { mode: 0o700 }).pipe(
+					Effect.catchIf(
+						(error) => error.reason._tag === "AlreadyExists",
+						() =>
+							Effect.fail(new Error(`${occupied().message} A startup lock exists at ${lock}; remove it only if its startup was forcibly killed.`)),
+					),
+				),
+				() => fs.remove(lock, { recursive: true }).pipe(Effect.orDie),
+			);
+			const state = yield* socketState(path);
+			if (state === "live") {
+				return yield* Effect.fail(occupied());
+			}
+			if (state === "stale") {
+				yield* fs.remove(path, { force: true });
+			}
+			// Bind behind a private directory so permissive umasks never expose an unprotected listener.
+			const staging = yield* fs.makeTempDirectoryScoped({ directory: lock });
+			const pending = paths.join(staging, "socket");
+			const server = yield* NodeHttpServer.make(createServer, { disablePreemptiveShutdown: true, path: pending }).pipe(Scope.provide(scope));
+			yield* fs.chmod(pending, 0o600);
+			yield* server
+				.serve(
+					Effect.gen(function* () {
+						const request = yield* HttpServerRequest.HttpServerRequest;
+						return request.method === "POST" && request.url === RPC_PATH ? yield* rpc : HttpServerResponse.empty({ status: 404 });
+					}),
+				)
+				.pipe(Scope.provide(scope));
+			// Unpublish while this listener still answers probes, before Node closes its private bind path.
+			yield* Effect.acquireRelease(fs.rename(pending, path), () => fs.remove(path, { force: true }).pipe(Effect.orDie)).pipe(Scope.provide(scope));
 		}),
 	);
 });
