@@ -16,8 +16,9 @@ export function exceptionConfig(declarations: readonly ExceptionDeclaration[]): 
 	readonly includes: readonly string[];
 	readonly overrides: readonly unknown[];
 } {
+	const includes = declarations.filter((entry) => entry.rules.includes("biome/files/includes")).flatMap((entry) => entry.files);
 	return {
-		includes: declarations.filter((entry) => entry.rules.includes("biome/files/includes")).flatMap((entry) => entry.files),
+		includes: includes.length === 0 ? [] : ["**", ...includes.filter((pattern) => pattern !== "**")],
 		overrides: declarations.flatMap(({ files, rules }) =>
 			rules.filter((rule) => /^biome\/(?:lint|assist)\//u.test(rule)).map((rule) => nativeOverride(files, rule)),
 		),
@@ -57,7 +58,7 @@ export async function withExceptionConfig<TValue>(
 	const previousOverrides = Array.isArray(own.overrides) ? own.overrides : [];
 	const generated = {
 		...own,
-		files: { ...files, includes: [...previousIncludes, ...includes, `!${name}`] },
+		files: { ...files, includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), `!${name}`] },
 		overrides: [...previousOverrides, ...overrides],
 	};
 	try {

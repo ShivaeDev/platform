@@ -14,7 +14,17 @@ function objectOf(expression: ts.Expression): ts.ObjectLiteralExpression | undef
 }
 
 function nameOf(property: ts.ObjectLiteralElementLike): string | undefined {
-	return property.name !== undefined && (ts.isStringLiteral(property.name) || ts.isIdentifier(property.name)) ? property.name.text : undefined;
+	const name = property.name;
+	if (name === undefined) {
+		return undefined;
+	}
+	if (ts.isComputedPropertyName(name)) {
+		if (ts.isStringLiteral(name.expression) || ts.isNoSubstitutionTemplateLiteral(name.expression) || ts.isNumericLiteral(name.expression)) {
+			return name.expression.text;
+		}
+		throw new Error("Cannot migrate a computed property automatically. Use literal property keys, then run quality exceptions migrate again.");
+	}
+	return ts.isStringLiteral(name) || ts.isIdentifier(name) || ts.isNumericLiteral(name) ? name.text : undefined;
 }
 
 export function migrateConfig(text: string | undefined, file: string, exceptions: readonly ExceptionDeclaration[], hasDeclarations: boolean): string {

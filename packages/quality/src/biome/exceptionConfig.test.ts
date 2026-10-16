@@ -28,6 +28,28 @@ describe("Biome exception config", () => {
 		});
 	});
 
+	it.each([undefined, ["**", "!**/vendor"], ["src/**", "!src/vendor"]])(
+		"merges multiple directory declarations without re-including exclusions from %j",
+		async (previous) => {
+			const declarations = [
+				{ files: ["**", "!**/generated"], reason: REASON, rules: ["biome/files/includes"] },
+				{ files: ["**", "!**/fixtures"], reason: REASON, rules: ["biome/files/includes"] },
+			] as const;
+			expect(exceptionConfig(declarations).includes).toEqual(["**", "!**/generated", "!**/fixtures"]);
+			const root = seedTree([{ content: JSON.stringify({ files: { includes: previous } }), path: "biome.json" }]);
+			await withExceptionConfig(root, declarations, (args) => {
+				const path = args[0]?.slice("--config-path=".length) ?? "";
+				expect(JSON.parse(readFileSync(path, "utf8")).files.includes).toEqual([
+					...(previous ?? ["**"]),
+					"!**/generated",
+					"!**/fixtures",
+					`!${path.slice(root.length + 1)}`,
+				]);
+				return Promise.resolve();
+			});
+		},
+	);
+
 	it.each([{ files: false }, { files: { includes: "src/**" } }, { overrides: {} }])(
 		"rejects malformed native config before running Biome: %j",
 		async (native) => {

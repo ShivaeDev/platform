@@ -11,6 +11,11 @@
 
 - Exceptable findings show the config location and declaration shape. Missing Biome exception files fail the gate, and manual Biome overrides still require repair or migration.
 
+### Fixed
+
+- Multiple directory exception declarations keep all exclusions and preserve the root Biome config's file selection.
+- Exception migration recognizes literal computed config and legacy rule keys, and rejects dynamic keys before changing the config, Biome settings or registry.
+
 ## 0.21.1 - 2026-10-16
 
 ### Fixed

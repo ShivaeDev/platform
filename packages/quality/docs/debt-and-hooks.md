@@ -73,7 +73,7 @@ quality lint
 
 The command reads the legacy registry (the configured `registry` path, or `quality/registry.json`) and `suppressions/biome-overrides.options.declared`. It moves them into `exceptions`, merges declarations with the same files, reason and subject, deletes the old registry and removes the old rule setting and matching root Biome settings. It keeps other config properties. `--from <registry>` selects another legacy registry and `--config <file>` selects a config. Without a config it creates one.
 
-Export an object or `defineConfig({ ... })` without spreads for automatic editing; inline the `rules` object when it contains old Biome declarations. Unsupported shapes fail before any writes. Review the diff and remove unused declaration imports and files. For declarations of settings in nested or extended local Biome configs, remove those settings too; automatic removal covers the root `biome.json` and `biome.jsonc`. Legacy readers keep existing consumers running during upgrades; new exceptions go in `exceptions`.
+Export an object or `defineConfig({ ... })` without spreads for automatic editing; inline the `rules` object when it contains old Biome declarations. Literal computed keys such as `["exceptions"]` are supported; replace dynamic computed keys with literal keys before migrating. Unsupported shapes fail before any writes. Review the diff and remove unused declaration imports and files. For declarations of settings in nested or extended local Biome configs, remove those settings too; automatic removal covers the root `biome.json` and `biome.jsonc`. Legacy readers keep existing consumers running during upgrades; new exceptions go in `exceptions`.
 
 ## Pre-commit hook
 
