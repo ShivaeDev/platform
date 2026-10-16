@@ -11,19 +11,19 @@ import { forwardingProxy } from "#test/app-host/forwardingProxy.ts";
 
 const database = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
 it.runIf(database._tag === "Some").each([
-	{ accepted: true, config: undefined, env: { "HOST": "0.0.0.0", "TRUSTED_PROXY": "127.0.0.2" }, host: "0.0.0.0", name: "environment" },
+	{ accepted: true, config: undefined, env: { "HOST": "0.0.0.0", "TRUSTED_PROXY": "127.0.0.1" }, host: "0.0.0.0", name: "environment" },
 	{
 		accepted: true,
-		config: { host: "0.0.0.0", trustedProxy: "127.0.0.2" },
+		config: { host: "0.0.0.0", trustedProxy: "127.0.0.1" },
 		env: { "HOST": "127.0.0.1", "TRUSTED_PROXY": "127.0.0.3" },
 		host: "0.0.0.0",
 		name: "config overrides environment",
 	},
 	{ accepted: false, config: undefined, env: {}, host: "127.0.0.1", name: "no trust" },
-	{ accepted: false, config: { trustedProxy: "127.0.0.3" }, env: { "TRUSTED_PROXY": "127.0.0.2" }, host: "127.0.0.1", name: "wrong configured peer" },
-	{ accepted: true, config: undefined, env: { "TRUSTED_PROXY": "127.0.0.2/31" }, host: "127.0.0.1", name: "environment range" },
-	{ accepted: true, config: { trustedProxy: "192.0.2.1, 127.0.0.2/31, 2001:db8::/32" }, env: {}, host: "127.0.0.1", name: "configured list" },
-	{ accepted: false, config: { trustedProxy: "127.0.0.0/31" }, env: {}, host: "127.0.0.1", name: "peer just outside range" },
+	{ accepted: false, config: { trustedProxy: "127.0.0.2" }, env: { "TRUSTED_PROXY": "127.0.0.1" }, host: "127.0.0.1", name: "wrong configured peer" },
+	{ accepted: true, config: undefined, env: { "TRUSTED_PROXY": "127.0.0.0/31" }, host: "127.0.0.1", name: "environment range" },
+	{ accepted: true, config: { trustedProxy: "192.0.2.1, 127.0.0.0/31, 2001:db8::/32" }, env: {}, host: "127.0.0.1", name: "configured list" },
+	{ accepted: false, config: { trustedProxy: "127.0.0.2/31" }, env: {}, host: "127.0.0.1", name: "peer just outside range" },
 ])("forwards real HTTP RPC with $name", async ({ config, env, accepted, host }) => {
 	if (database._tag === "None") {
 		throw new Error("PostgreSQL URL is required");
@@ -51,14 +51,15 @@ it.runIf(database._tag === "Some").each([
 		}
 		expect(NetAddress.formatIp(server.address.address)).toBe(host);
 		proxy = await forwardingProxy(`http://127.0.0.1:${server.address.port}`);
+		const headers = { origin: "https://app.example", "x-forwarded-for": "127.0.0.2" };
 		if (!accepted) {
-			const refused = await call(proxy.url, "alice", false, { origin: "https://app.example" });
+			const refused = await call(proxy.url, "alice", false, headers);
 			expect(Result.isFailure(refused) && refused.failure._tag).toBe("RpcClientError");
-			expect(await post(proxy.url, { origin: "https://app.example" })).toBe(403);
+			expect(await post(proxy.url, headers)).toBe(403);
 			expect(lookups).toEqual([]);
 			return;
 		}
-		const result = await call(proxy.url, "alice", false, { origin: "https://app.example" });
+		const result = await call(proxy.url, "alice", false, headers);
 		expect(Result.isSuccess(result) && result.success).toBe("Hello, alice");
 		for (const [token, reject, expected] of [
 			["", false, Unauthorized],

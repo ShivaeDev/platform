@@ -16,7 +16,7 @@ effectApp("authenticates and serves protected RPC behind an HTTPS forwarding pro
 		starterHost({ databaseUrl: database.url, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }).pipe(
 			Layer.provide(
 				ConfigProvider.layer(
-					ConfigProvider.fromEnv({ env: { "HOST": "0.0.0.0", "PORT": "0", "PUBLIC_URL": PUBLIC_URL, "TRUSTED_PROXY": "127.0.0.2" } }),
+					ConfigProvider.fromEnv({ env: { "HOST": "0.0.0.0", "PORT": "0", "PUBLIC_URL": PUBLIC_URL, "TRUSTED_PROXY": "127.0.0.1" } }),
 				),
 			),
 		),
