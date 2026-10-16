@@ -14,7 +14,7 @@ function evidenceFor(reference: string, model: MetadataModel): string {
 	if (records.length === 0) {
 		return "";
 	}
-	return `<p>${records.length} recorded ${records.length === 1 ? "claim" : "claims"}, not verified acceptance:</p><ul>${records.map((record) => `<li><a href="${escapeHtml(documentReference(record.file, model, `#recorded-evidence-${record.index}`))}">${escapeHtml(record.file)}${record.line === undefined ? "" : `:${record.line}`} — open recorded evidence</a></li>`).join("")}</ul>`;
+	return `<p title="Recorded claims do not establish verified acceptance.">${records.length} recorded ${records.length === 1 ? "claim" : "claims"}:</p><ul>${records.map((record) => `<li><a href="${escapeHtml(documentReference(record.file, model, `#recorded-evidence-${record.index}`))}">${escapeHtml(record.file)}${record.line === undefined ? "" : `:${record.line}`} — open recorded evidence</a></li>`).join("")}</ul>`;
 }
 
 export function criteriaEvidence(parsed: ParsedMetadata, model: MetadataModel): string {

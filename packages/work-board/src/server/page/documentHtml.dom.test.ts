@@ -75,7 +75,7 @@ it.live.each([1440, 390])("rejects title spacing that pushes the CSS placement b
 it.live("shows unknown authored values, moves a top-level title before preamble and keeps unique heading anchors", function* () {
 	yield* open(390, "/_board/item/work.unknown/");
 	expect(page.document.querySelector(".item-introduction h1")?.textContent).toBe("Unknown status");
-	expect(page.document.querySelector(".item-summary")?.textContent).toContain("Owner: Not recorded · Next action: Not recorded");
+	expect(page.document.querySelector(".item-summary")?.textContent).not.toMatch(/not recorded/iu);
 	expect(page.document.querySelector(".doc > p")?.textContent).toBe("A preamble remains readable.");
 	expect(page.document.querySelector(".doc h2:last-child")?.id).toBe("heading-unknown-status-2");
 	const plain = bootstrapPage((yield* rawGet(board, "/plain.md")).body);

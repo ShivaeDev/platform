@@ -10,9 +10,9 @@ function card(item: Item, state: State, waiting: ReadonlyMap<string, string>): s
 	const holder = holderOf(fields, undefined);
 	const status = cardStatus(fields, undefined, waiting.get(item.id));
 	return `<article class="work-card" data-key="item:${escapeHtml(item.id)}" data-item="${escapeHtml(item.id)}"${selected ? ' data-selected="true"' : ""}>
- <p class="work-kind">${escapeHtml(fields.kind ?? "Kind not recorded")}</p>
+ <p class="work-kind">${escapeHtml(fields.kind ?? "")}</p>
  <h3><a href="${escapeHtml(viewUrl(state, { item: item.id }, "work-detail"))}"${selected ? ' aria-current="true"' : ""}>${escapeHtml(item.title)}</a></h3>
- <span data-status-token="${escapeHtml(status ?? "")}">${escapeHtml(status ?? "Not recorded")}</span>
+ ${status ? `<span data-status-token="${escapeHtml(status)}">${escapeHtml(status)}</span>` : ""}
  ${holder ? `<p class="work-owner">Holder: ${escapeHtml(holder)}</p>` : ""}
  ${fields.nextAction ? `<p class="work-next">Next: ${escapeHtml(fields.nextAction)}</p>` : ""}</article>`;
 }
@@ -27,10 +27,10 @@ export function workCards(items: readonly Item[], state: State, waiting: Readonl
 		state.view === "now"
 			? nowLanes.map((lane) => [lane, grouped.get(lane) ?? []] as const)
 			: [...grouped].sort(([left], [right]) => compareStatuses(left, right));
-	return `<div class="work-columns">${columns
+	return `<div class="work-columns${state.view === "now" ? " work-now" : ""}">${columns
 		.map(
 			([status, rows]) => `<section class="work-column" data-key="status:${escapeHtml(status ?? "")}"
- aria-label="${escapeHtml(status ?? "Status not recorded")}"><h2>${escapeHtml(status ?? "Status not recorded")} <span class="work-count">${state.view === "now" && status === nowLanes[5] ? 0 : rows.length}</span></h2>
+ aria-label="${escapeHtml(status ?? "")}">${status ? `<h2>${escapeHtml(status)} <span class="work-count">${state.view === "now" && status === nowLanes[5] ? 0 : rows.length}</span></h2>` : ""}
  <div class="work-card-list">${(state.view === "now" && status === nowLanes[5] ? [] : rows).map((item) => card(item, state, waiting)).join("")}</div></section>`,
 		)
 		.join("")}</div>`;

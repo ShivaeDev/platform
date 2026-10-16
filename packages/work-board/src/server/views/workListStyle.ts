@@ -2,7 +2,8 @@ export function workListStyle(): string {
 	return `
 .work-options{margin:12px 0}.work-options>summary{cursor:pointer;width:fit-content}
 .work-columns{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:16px;overflow-x:auto;padding-bottom:12px}
-.work-now{grid-template-columns:repeat(6,minmax(240px,1fr));grid-auto-columns:auto}
+.work-now{grid-template-columns:repeat(6,minmax(260px,1fr));grid-auto-columns:auto}
+.work-now .work-column>h2{align-items:center;white-space:nowrap;overflow-wrap:normal}.work-count{flex-shrink:0;white-space:nowrap}
 .work-card-list{height:min(60vh,600px);overflow:auto;padding:2px}
 .work-card-slot{height:224px;padding-bottom:12px}
 .work-card-slot .work-card{height:212px;overflow:hidden;margin:0;display:flex;flex-direction:column;gap:6px;padding:12px}
@@ -15,6 +16,6 @@ export function workListStyle(): string {
 .work-virtual-row .work-cell{max-height:72px;overflow:hidden}
 .work-virtual-row td{max-width:220px}
 .work-table-wrap{max-height:min(60vh,600px)}
-@media(min-width:1280px){.work-now{grid-template-columns:repeat(6,minmax(0,1fr))}.work-now .work-column>h2{min-height:40px}.has-detail .work-now{grid-template-columns:repeat(6,minmax(240px,1fr))}}
+
 `;
 }

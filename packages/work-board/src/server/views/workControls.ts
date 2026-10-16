@@ -8,9 +8,9 @@ function option(value: string, title: string, current: string): string {
 }
 function fieldOptions(items: readonly Item[], field: "owner" | "status", current: string): string {
 	const values = new Map(
-		items.map((item) => {
+		items.flatMap((item) => {
 			const value = item.document.parsed.fields[field];
-			return [fieldFilter(value), value ?? `${field === "owner" ? "Owner" : "Status"} not recorded`];
+			return value ? [[fieldFilter(value), value]] : [];
 		}),
 	);
 	if (current && !values.has(current)) {

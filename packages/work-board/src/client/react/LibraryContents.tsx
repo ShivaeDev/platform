@@ -33,7 +33,8 @@ function DocumentList({ files }: { readonly files: readonly LibraryFile[] }) {
 							{file.title}
 						</a>
 						<p className="m-0 text-muted-foreground text-xs">
-							{file.kind} · {file.status}
+							{file.kind}
+							{file.status ? ` · ${file.status}` : ""}
 						</p>
 					</div>
 					<Age modified={file.modified} />

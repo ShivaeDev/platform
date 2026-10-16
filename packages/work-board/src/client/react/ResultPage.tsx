@@ -21,8 +21,9 @@ export function ResultPage({ data }: { readonly data: ResultProjection }) {
 		<section className="response-panel">
 			<h1>Review returned result · {document.identity}</h1>
 			<p>
-				Result status (source): <b>{document.metadata.status ?? "Not recorded"}</b>. This is a supplied claim, not an execution receipt or work
-				acceptance.
+				<span title="A supplied claim does not establish execution or work acceptance.">
+					Result status: <b>{document.metadata.status}</b>
+				</span>
 			</p>
 			<p>
 				Current report SHA-256: <code>{data.revision}</code> · <a href={fileUrl(document.file)}>Read source</a>

@@ -4,9 +4,7 @@ import { shellIds } from "./shellIds.ts";
 export function WorkControls({ data }: { readonly data: WorkProjection }) {
 	const { state } = data;
 	function fields(field: "owner" | "status") {
-		const values = new Map(
-			data.items.map((item) => [fieldFilter(item.metadata[field]), item.metadata[field] ?? `${field === "owner" ? "Owner" : "Status"} not recorded`]),
-		);
+		const values = new Map(data.items.flatMap((item) => (item.metadata[field] ? [[fieldFilter(item.metadata[field]), item.metadata[field]]] : [])));
 		const current = state[field];
 		if (current && !values.has(current)) {
 			values.set(current, `${current.startsWith("value:") ? current.slice(6) : current} (no current matches)`);

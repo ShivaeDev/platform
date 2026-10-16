@@ -35,8 +35,7 @@ export function metadataHtml(parsed: ParsedMetadata, file: string, model: Metada
 		diagnostics.length > 0
 			? `<div class="metadata-problems" role="status"><b>Source diagnostics</b><ul>${diagnostics.map((problem) => `<li>${escapeHtml(file)}:${problem.line} — ${escapeHtml(problem.message)}</li>`).join("")}</ul></div>`
 			: "";
-	const identity =
-		unique && fields.id ? `<a href="${identityUrl(fields.id)}">${escapeHtml(fields.id)}</a>` : `ID: ${escapeHtml(fields.id ?? "Not recorded")}`;
+	const identity = unique && fields.id ? `<a href="${identityUrl(fields.id)}">${escapeHtml(fields.id)}</a>` : `ID: ${escapeHtml(fields.id ?? "")}`;
 	const details = metadataDetails(parsed, file, model);
 	const boardLink =
 		unique && fields.kind === "board" && fields.id

@@ -19,7 +19,10 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 			{goal ? (
 				<>
 					<p>
-						{goal.linked} linked items · <span data-goal-open-asks>{goal.openAsks} open asks</span>
+						{goal.linked} linked items ·{" "}
+						<span data-goal-open-asks>
+							{goal.openAsks} open {goal.openAsks === 1 ? "ask" : "asks"}
+						</span>
 					</p>
 					<GoalProgressSummary bar counts={goal.counts} />
 				</>

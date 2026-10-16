@@ -1,6 +1,8 @@
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { DocumentRequest } from "#browser/document/schema.ts";
+import { responseUrl } from "#responses/url.ts";
 import { authoredQuestion, openItem } from "#server/attention/inbox.ts";
+import { requestInbox } from "#server/attention/requestInbox.ts";
 import { attentionRequests } from "#server/attention/requests.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 import { responseHistory } from "#server/responses/history.ts";
@@ -13,6 +15,9 @@ import { requestTitle } from "./requestTitle.ts";
 export function documentRequests(document: MetadataDocument, source: string, snapshot: Snapshot): readonly DocumentRequest[] {
 	const own = sourceRequests(document, source, snapshot);
 	const item = document.parsed.fields.id;
+	if (!openItem(document)) {
+		return own.map((request) => ({ ...request, open: false, preview: undefined }));
+	}
 	const linked = attentionRequests(snapshot).entries.flatMap((entry) => {
 		if (entry.document.file === document.file || !entry.request.unblocks.some((target) => target.split("#")[0] === item)) {
 			return [];
@@ -35,7 +40,7 @@ function sourceRequests(document: MetadataDocument, source: string, snapshot: Sn
 	];
 	const reviewedRevision = revisionOf(source);
 	return ids.map((id) => {
-		const active = requestSource(snapshot, item, id);
+		const active = activeSource(document, snapshot, item, id);
 		const preview = {
 			context: source,
 			id: questionId(item, id, reviewedRevision, document.file),
@@ -75,4 +80,10 @@ function requestOpenInSource(document: MetadataDocument, id: string): boolean {
 		return openItem(document);
 	}
 	return document.parsed.fields.attention?.find((entry) => entry.id === id)?.state === "open";
+}
+
+function activeSource(document: MetadataDocument, snapshot: Snapshot, item: string, id: string) {
+	const managed = document.parsed.fields.attention?.find((entry) => entry.id === id)?.managed;
+	const eligible = !managed || requestInbox(snapshot).items.some((entry) => entry.href === responseUrl(item, id));
+	return eligible ? requestSource(snapshot, item, id) : undefined;
 }

@@ -29,10 +29,10 @@ describe("visual document directives", () => {
 		"keeps incomplete or zero-total tallies explicit (%s)",
 		function* (attributes) {
 			const html = yield* render(progress(attributes));
-			expect(html).toContain("Percentage unavailable.");
+			expect(html).not.toContain("Percentage unavailable.");
 			expect(html).not.toContain("<progress");
 			if (attributes !== '{completed="0" total="0"}') {
-				expect(html).toContain("Not recorded");
+				expect(html).not.toContain("Not recorded");
 			}
 		},
 	);
@@ -57,7 +57,7 @@ describe("visual document directives", () => {
 		const html = yield* render(
 			':::metric{value="unknown" unit="seconds"}\nReader orientation\n\nSource: [Study](../study.md)\n:::\n\n:::metric{value="0" unit="documents"}\nDocuments measured\n\nSource: [Study](../study.md)\n:::\n',
 		);
-		expect(html).toContain("Not recorded");
+		expect(html).not.toContain("Not recorded");
 		expect(html).toContain("0 documents");
 		const missing = yield* render(':::metric{value="50" unit="documents"}\nFixture target\n:::');
 		expect(missing).toContain("Name a source");

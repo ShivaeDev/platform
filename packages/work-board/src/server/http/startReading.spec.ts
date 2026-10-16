@@ -58,7 +58,7 @@ effectApp("keeps templates available after source creation and resolves their re
 	const result = yield* Effect.promise(async () => (await fetch(`${board.url}/result.md`)).text());
 	expect(result).toContain('href="/investigation.md"');
 	expect(result).toContain('href="/project.md"');
-	expect(result).toContain("Not recorded.");
+	expect(result).toContain("Add actual commands, observations and local evidence links.");
 	expect(result).toContain("Recorded evidence does not by itself establish verified acceptance.");
 	const help = yield* Effect.promise(() => renderRemaining(board.url, "/_board/start"));
 	expect(help).toContain("Project and report templates");

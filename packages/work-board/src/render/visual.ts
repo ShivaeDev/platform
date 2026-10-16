@@ -42,7 +42,9 @@ function metric(node: ContainerDirective) {
 	if (!provenance(node)) {
 		throw new BadRequest({ message: "Name a source with a Source: Markdown link." });
 	}
-	node.children.splice(1, 0, paragraph(value === undefined || value === "unknown" ? "Not recorded" : `${value} ${unit}`, "visual-value"));
+	if (typeof value === "number") {
+		node.children.splice(1, 0, paragraph(`${value} ${unit}`, "visual-value"));
+	}
 }
 
 function progress(node: ContainerDirective, label: string) {
@@ -54,11 +56,11 @@ function progress(node: ContainerDirective, label: string) {
 	if (known && completed > total) {
 		throw new BadRequest({ message: "Completed count exceeds total. Reduce completed or correct total." });
 	}
-	function display(value: number | "unknown" | undefined) {
-		return typeof value === "number" ? String(value) : "Not recorded";
+	if (!known) {
+		return;
 	}
-	const tally = `Recorded tally: ${display(completed)} of ${display(total)}`;
-	node.children.splice(1, 0, paragraph(tally + (known && total > 0 ? "" : ". Percentage unavailable."), "visual-value"));
+	const tally = `Recorded tally: ${completed} of ${total}`;
+	node.children.splice(1, 0, paragraph(tally, "visual-value"));
 	if (known && total > 0) {
 		node.children.splice(2, 0, {
 			children: [{ type: "text", value: tally }],

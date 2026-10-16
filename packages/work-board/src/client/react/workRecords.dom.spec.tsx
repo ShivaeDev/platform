@@ -22,7 +22,11 @@ it.each(["", "?view=table", "?view=board"])("excludes records from Work%s throug
 	try {
 		await eventually(() => expect(view.container.querySelector('[data-item="task"]')).not.toBeNull());
 		expect(view.container.querySelectorAll("[data-item]")).toHaveLength(1);
-		expect(view.container.querySelector(".work-total")?.textContent).toContain("1 shown · 1 items");
+		if (query) {
+			expect(view.container.querySelector(".work-total")?.textContent).toContain("1 shown · 1 items");
+		} else {
+			expect(view.container.querySelector(".work-total")).toBeNull();
+		}
 		expect(view.container.querySelector('[aria-label="Work layout"]')?.textContent).toContain("NowAll workTable");
 	} finally {
 		await view.unmount();

@@ -11,7 +11,7 @@ export function attentionDetails(parsed: ParsedMetadata, file: string, model: Me
 	if (requests.length === 0) {
 		return "";
 	}
-	return `<h3>Recorded attention requests</h3><p>Open/closed is source state. Closing a request does not establish acceptance or record an answer.</p><ul>${requests
+	return `<h3 title="Open/closed is source state. Closing a request does not establish acceptance or record an answer.">Recorded attention requests</h3><ul>${requests
 		.map((request, index) => {
 			const receipt = managedRequestReceipt({ file, parsed }, request, model);
 			const acknowledged = receipt

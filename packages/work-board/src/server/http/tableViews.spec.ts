@@ -45,5 +45,5 @@ effectApp("orders table rows by recorded fields with missing fields last and esc
 	expect(empty.body).toContain("0 shown · 3 items");
 	expect(empty.body).toContain("No work matches these filters");
 	const unknown = yield* rawGet(board, "/_board/work?view=unsupported");
-	expect(unknown.body).toContain("WORK · NOW VIEW");
+	expect(unknown.body).not.toContain("WORK · NOW VIEW");
 });

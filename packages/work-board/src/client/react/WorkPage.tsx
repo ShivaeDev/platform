@@ -13,7 +13,7 @@ export function WorkPage({ data, api }: { readonly data: WorkProjection; readonl
 	return (
 		<>
 			<header className="work-head">
-				<p className="work-eyebrow">WORK · {state.view.toUpperCase()} VIEW</p>
+				{state.view !== "now" && <p className="work-eyebrow">WORK · {state.view.toUpperCase()} VIEW</p>}
 				<h1>{data.validBoard ? data.title : "Board unavailable"}</h1>
 				{Boolean(state.board) && data.validBoard && <a href={source}>Board source</a>}
 			</header>

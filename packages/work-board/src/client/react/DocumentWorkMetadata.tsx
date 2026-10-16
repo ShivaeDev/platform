@@ -1,6 +1,5 @@
 import type { Document } from "#browser/document/schema.ts";
 import { DocumentEvidence } from "./DocumentEvidence.tsx";
-import { DocumentRecords } from "./DocumentRecords.tsx";
 import { DocumentRelationships } from "./DocumentRelationships.tsx";
 import { keyed } from "./keyed.ts";
 export function DocumentWorkMetadata({ document }: { readonly document: Document }) {
@@ -9,7 +8,6 @@ export function DocumentWorkMetadata({ document }: { readonly document: Document
 			<MetadataLead document={document} />
 			<DocumentEvidence document={document} />
 			<DocumentRelationships document={document} />
-			<DocumentRecords document={document} />
 		</section>
 	);
 }

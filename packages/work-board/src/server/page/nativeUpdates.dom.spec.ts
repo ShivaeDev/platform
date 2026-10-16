@@ -4,6 +4,7 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { waitFor } from "#test/live.ts";
+import { waitForLibraryCount } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -37,7 +38,7 @@ it.live("keeps unrelated documents intact and catches up paused source changes w
 	const paragraph = page.document.querySelector("#doc p");
 	const count = page.pageRequests.count;
 	notes.write("added.md", "# Another document");
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe("Library3")));
+	yield* waitForLibraryCount(board, 3);
 
 	expect(page.pageRequests.count).toBe(count);
 	expect(page.document.querySelector("#doc p")).toBe(paragraph);

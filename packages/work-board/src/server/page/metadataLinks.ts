@@ -31,5 +31,5 @@ export function documentReference(file: string, model: MetadataModel, hash = "")
 }
 
 export function valueHtml(text: string | undefined): string {
-	return escapeHtml(text ?? "Not recorded");
+	return escapeHtml(text ?? "");
 }

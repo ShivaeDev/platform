@@ -37,25 +37,33 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 				<a href={`#${todayIds.goals}`}>{goals?.goals.length ?? "?"} active goals</a>
 			</nav>
 			<div className="today-grid grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-				<section className="min-w-0" id={todayIds.needs}>
-					<h2 className="mt-0 mb-3 font-semibold text-lg">Needs you</h2>
-					<TodayNeeds api={api} data={data} />
-					{data.complete && data.you.length === 0 && (
-						<a className="text-sm" href="/_board/start">
-							Getting started
-						</a>
-					)}
-				</section>
-				<section className="min-w-0 xl:col-start-1" id={todayIds.progress}>
-					<h2 className="mt-0 mb-3 font-semibold text-lg">In progress</h2>
-					<TodayProgress data={fleet} failed={Option.isSome(fleetQuery.cause)} />
-				</section>
-				<section className="min-w-0 xl:col-start-2 xl:row-span-2 xl:row-start-1" id={todayIds.goals}>
+				<div className="min-w-0 space-y-6">
+					<NeedsYou api={api} data={data} />
+					<section className="min-w-0" id={todayIds.progress}>
+						<h2 className="mt-0 mb-3 font-semibold text-lg">In progress</h2>
+						<TodayProgress data={fleet} failed={Option.isSome(fleetQuery.cause)} />
+					</section>
+				</div>
+				<section className="min-w-0" id={todayIds.goals}>
 					<h2 className="mt-0 mb-3 font-semibold text-lg">Goals</h2>
 					{goals ? <TodayGoals data={goals} /> : <p role="status">{Option.isSome(query.cause) ? "Goals unavailable." : "Loading goals…"}</p>}
 					{goals && Option.isSome(query.cause) && <p role="status">Goal refresh failed. Displayed goals are retained.</p>}
 				</section>
 			</div>
 		</div>
+	);
+}
+
+function NeedsYou({ api, data }: { readonly api: ShellApi; readonly data: InboxProjection }) {
+	return (
+		<section className="min-w-0" id={todayIds.needs}>
+			<h2 className="mt-0 mb-3 font-semibold text-lg">Needs you</h2>
+			<TodayNeeds api={api} data={data} />
+			{data.complete && data.you.length === 0 && (
+				<a className="text-sm" href="/_board/start">
+					Getting started
+				</a>
+			)}
+		</section>
 	);
 }

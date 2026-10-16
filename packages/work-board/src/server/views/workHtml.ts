@@ -48,8 +48,8 @@ export const workHtml = Effect.fn("WorkBoard.workHtml")(function* (snapshot: Sna
 			: "";
 	const detail = yield* workDetail(projection, state, snapshot);
 	return {
-		html: `<header class="work-head"><p class="work-eyebrow">WORK · ${state.view.toUpperCase()} VIEW</p><h1>${escapeHtml(projection.title)}</h1>${source}</header>
- ${tools}${state.view === "now" ? "<p>Fleet is unavailable in this source fallback. Lanes use authored status.</p>" : ""}${issues}<p class="work-total" role="status">${shown} shown · ${total} items in this view</p>
+		html: `<header class="work-head">${state.view === "now" ? "" : `<p class="work-eyebrow">WORK · ${state.view.toUpperCase()} VIEW</p>`}<h1>${escapeHtml(projection.title)}</h1>${source}</header>
+ ${tools}${state.view === "now" ? "<p>Fleet is unavailable in this source fallback. Lanes use authored status.</p>" : ""}${issues}${state.view === "now" ? "" : `<p class="work-total" role="status">${shown} shown · ${total} items in this view</p>`}
  <div class="work-layout${state.item ? " has-detail" : ""}"><section id="work-results" tabindex="-1" aria-label="Work items">${empty}${state.view === "table" ? workTable(projection.rows, state, waiting) : workCards(projection.rows, state, waiting)}</section>${detail}</div>`,
 		status: 200,
 	};

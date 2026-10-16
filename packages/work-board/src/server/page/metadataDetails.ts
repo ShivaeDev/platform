@@ -1,22 +1,20 @@
 import { escapeHtml } from "#browser/escapeHtml.ts";
 import type { MetadataModel } from "#server/metadata/model.ts";
 import type { ParsedMetadata } from "#server/metadata/parse.ts";
-import { relationshipLabel } from "#server/metadata/relationshipLabel.ts";
 import { attentionDetails } from "./attentionDetails.ts";
 import { criteriaEvidence } from "./criteriaEvidence.ts";
 import { referenceHtml, valueHtml } from "./metadataLinks.ts";
 import { recordedEvidence } from "./recordedEvidence.ts";
+import { relationshipSources } from "./relationshipSources.ts";
 
 export function metadataDetails(parsed: ParsedMetadata, file: string, model: MetadataModel): string {
 	const fields = parsed.fields;
 	const details = [
 		fields.handoff
-			? `<h3>Agent handoff</h3><p>${referenceHtml(fields.handoff.item, fields.handoff.item, model)} · ${escapeHtml(fields.handoff.recipient)} · ${escapeHtml(fields.handoff.state)}</p><p>Receipt is separate from execution and acceptance.</p><p>${escapeHtml(fields.handoff.by ?? "Attribution not recorded")}${fields.handoff.note ? ` · ${escapeHtml(fields.handoff.note)}` : ""}</p><p>Reviewed SHA-256: <code>${fields.handoff.reviewedRevision}</code></p><p><a href="/_board/handoff?item=${encodeURIComponent(fields.handoff.item)}">Read handoff history and copy its prompt</a></p>`
+			? `<h3>Agent handoff</h3><p>${referenceHtml(fields.handoff.item, fields.handoff.item, model)} · ${escapeHtml(fields.handoff.recipient)} · ${escapeHtml(fields.handoff.state)}</p><p>Receipt is separate from execution and acceptance.</p><p>${escapeHtml(fields.handoff.by ?? "")}${fields.handoff.note ? ` · ${escapeHtml(fields.handoff.note)}` : ""}</p><p>Reviewed SHA-256: <code>${fields.handoff.reviewedRevision}</code></p><p><a href="/_board/handoff?item=${encodeURIComponent(fields.handoff.item)}">Read handoff history and copy its prompt</a></p>`
 			: "",
 		`<dl><dt>Kind</dt><dd>${valueHtml(fields.kind)}</dd><dt>Status</dt><dd>${valueHtml(fields.status)}</dd><dt>Owner</dt><dd>${valueHtml(fields.owner)}</dd><dt>Next action</dt><dd>${valueHtml(fields.nextAction)}</dd></dl>`,
-		fields.relationships?.length
-			? `<h3>Relationships</h3><ul>${fields.relationships.map((link) => `<li>${escapeHtml(relationshipLabel(link.kind))}: ${referenceHtml(link.target, link.target, model)}</li>`).join("")}</ul>`
-			: "",
+		relationshipSources(parsed, model),
 		fields.items?.length
 			? `<h3>Declared board membership</h3><ul>${fields.items.map((id) => `<li>${referenceHtml(id, id, model)}</li>`).join("")}</ul>`
 			: "",
@@ -31,7 +29,7 @@ export function metadataDetails(parsed: ParsedMetadata, file: string, model: Met
 			? `<h3>Managed request receipt</h3><p>${referenceHtml(fields.requestReceipt.question, fields.requestReceipt.question, model)} · ${fields.requestReceipt.disposition}</p><p>Reviewed SHA-256: <code>${fields.requestReceipt.reviewedRevision}</code>. This acknowledges request handling, not execution, acceptance or delivery authority.</p>${fields.requestReceipt.response ? `<p>Applied response: ${referenceHtml(fields.requestReceipt.response, fields.requestReceipt.response, model)}</p>` : ""}`
 			: "",
 		criteriaEvidence(parsed, model),
-		attentionDetails(parsed, file, model),
+		fields.attention?.length ? `<details><summary>Request source records</summary>${attentionDetails(parsed, file, model)}</details>` : "",
 		recordedEvidence(parsed, file, model),
 	].join("");
 	return details;

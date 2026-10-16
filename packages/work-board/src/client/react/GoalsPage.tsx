@@ -12,7 +12,7 @@ export function GoalsPage({ data }: { readonly data: GoalsProjection }) {
 					</h2>
 					<GoalProgress counts={goal.counts} title={goal.title} />
 					<p>
-						{goal.linked} linked work · {goal.openAsks} open asks
+						{goal.linked} linked work · {goal.openAsks} open {goal.openAsks === 1 ? "ask" : "asks"}
 					</p>
 					{goal.criteria.map((criterion) => (
 						<p key={criterion.id}>

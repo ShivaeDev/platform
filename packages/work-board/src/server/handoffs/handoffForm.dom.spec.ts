@@ -6,6 +6,7 @@ import { type OpenPage, openPage } from "#test/browser.ts";
 import { followLink } from "#test/followLink.ts";
 import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
+import { waitForLibraryCount } from "#test/nativeRpc.ts";
 
 const SOURCE = "---\nid: task.focus\nkind: task\nnext_action: Inspect focus\n---\n# Focus\n\nReviewed source.\n";
 
@@ -58,7 +59,7 @@ it.live("preserves the owned handoff draft on live reads and requires preview af
 	yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 	expect(page.document.querySelector('[name="goal"]')).toBe(goal);
 	notes.write("unrelated.md", "# Another file\n");
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe("Library2")));
+	yield* waitForLibraryCount(board, 2);
 	expect(page.document.querySelector('[name="goal"]')).toBe(goal);
 	yield* formEvent(page, () => click("handoff-preview"));
 	expect(page.document.getElementById("handoff-submit")?.hasAttribute("disabled")).toBe(false);

@@ -41,7 +41,7 @@ effectApp("connects a result to its plan and decision options/rationale through 
 
 effectApp("associates criterion claims across source files without turning missing evidence or old revisions into acceptance", function* () {
 	const task = yield* rawGet(board, "/_board/item/work.search/");
-	expect(task.body).toContain("2 recorded claims, not verified acceptance");
+	expect(task.body).toContain("2 recorded claims:");
 	expect(task.body).toContain('href="/_board/item/result.search/#recorded-evidence-0"');
 	expect(task.body).toContain("1 of 2 criteria have recorded evidence");
 	expect(task.body).not.toContain("No recorded evidence naming this criterion");
@@ -66,7 +66,7 @@ effectApp("finds Markdown, board, relationship and evidence-source backlinks, in
 	const task = yield* rawGet(board, "/_board/item/work.search/");
 	expect(task.body).toContain("Criterion evidence");
 	expect(task.body).toContain("Board membership");
-	expect(task.body).toContain("Depends on");
+	expect(task.body).not.toContain("Depends on backlinks");
 	const decision = yield* rawGet(board, "/decision.md");
 	expect(decision.body).toContain("notes/backlink &amp; review.md");
 	expect(decision.body).not.toContain("example.com/decision.md</a>");

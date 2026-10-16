@@ -17,16 +17,24 @@ it.each([
 	["deferred", "deferred", "circle-pause"],
 	["superseded", "deferred", "clock"],
 	["unexpected", "deferred", "circle-help"],
-	[undefined, "deferred", "circle-help"],
-	["", "deferred", "circle-help"],
 ])("renders %s with its semantic token, icon and source word", async (status, token, icon) => {
 	const view = await render(<StatusChip status={status} />);
 	try {
 		const chip = view.container.querySelector("[data-status-token]");
 		expect(chip?.getAttribute("data-status-token")).toBe(token);
 		expect(chip?.classList.contains(`text-${token}`)).toBe(true);
-		expect(chip?.textContent).toBe(status || "Not recorded");
+		expect(chip?.textContent).toBe(status);
 		expect(chip?.querySelector(`svg.lucide-${icon}`)?.getAttribute("aria-hidden")).toBe("true");
+	} finally {
+		await view.unmount();
+	}
+});
+
+it.each([undefined, ""])("omits absent status chips (%s)", async (status) => {
+	const view = await render(<StatusChip status={status} />);
+	try {
+		expect(view.container.textContent).toBe("");
+		expect(view.container.querySelector("[data-status-token]")).toBeNull();
 	} finally {
 		await view.unmount();
 	}

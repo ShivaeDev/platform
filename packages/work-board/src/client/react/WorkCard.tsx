@@ -19,7 +19,7 @@ export function WorkCard({
 	const holder = holderOf(item.metadata, fleet);
 	return (
 		<Card className="work-card" data-item={item.id} data-selected={item.id === state.item ? "true" : undefined}>
-			<p className="work-kind">{item.metadata.kind ?? "Kind not recorded"}</p>
+			<p className="work-kind">{item.metadata.kind ?? ""}</p>
 			<h3>
 				<WorkItemTitle item={item} state={state} />
 			</h3>

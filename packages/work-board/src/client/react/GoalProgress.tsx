@@ -36,7 +36,7 @@ export function GoalProgress({
 	const amount = compact ? `${grouped.done}/${total}` : `${grouped.done} of ${total} done`;
 	return (
 		<div className="mt-2 space-y-1">
-			<SegmentedBar counts={grouped} label={`${title}: linked work by status`} />
+			<SegmentedBar counts={grouped} label={`${title}: ${grouped.done} of ${total} done`} />
 			<p className="m-0 text-muted-foreground text-xs tabular-nums" title={`${grouped.done} of ${total} done`}>
 				{amount}
 			</p>

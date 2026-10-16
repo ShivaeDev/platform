@@ -10,5 +10,5 @@ it("keeps fallback navigation bounded for 1,500 documents", () => {
 	);
 	expect(nav.querySelectorAll("a")).toHaveLength(5);
 	expect(nav.querySelector("#work-open")?.getAttribute("href")).toBe("/_board/work");
-	expect(nav.textContent).toContain("Library (1500)");
+	expect(nav.textContent).toContain("Library");
 });

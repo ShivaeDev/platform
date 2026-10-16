@@ -15,11 +15,6 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 			: [],
 	);
 	const groups = Map.groupBy(data.rows, (item) => laneOf(item.metadata, items.get(item.id), item.fleetApproved));
-	const shown = data.rows.filter((item) => {
-		const lane = laneOf(item.metadata, items.get(item.id), item.fleetApproved);
-		return lane !== undefined && (lane !== nowLanes[5] || recent.has(item.id));
-	}).length;
-	const total = data.items.filter((item) => item.metadata.kind === "task" && !item.metadata.requestReceipt).length;
 	return (
 		<>
 			{!ready && (
@@ -27,9 +22,6 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 					Fleet is unavailable. Lanes use authored status. {fleet?.state === "unavailable" ? fleet.reason : "Fleet data has not loaded."}
 				</p>
 			)}
-			<p className="work-total" role="status">
-				{shown} shown · {total} items in this view
-			</p>
 			<div className="work-columns work-now">
 				{nowLanes.map((lane, index) => {
 					const rows = (groups.get(lane) ?? []).filter((item) => index !== 5 || recent.has(item.id));

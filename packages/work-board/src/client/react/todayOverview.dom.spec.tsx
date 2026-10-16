@@ -84,11 +84,9 @@ it("opens Today with the exact human lane and one honest card per goal, retainin
 			}
 		});
 		expect(criteria[0]?.open).toBe(true);
-		expect([...view.container.querySelectorAll(".today-grid > section h2")].map((node) => node.textContent)).toEqual([
-			"Needs you",
-			"In progress",
-			"Goals",
-		]);
+		expect([...view.container.querySelectorAll(".today-grid h2")].map((node) => node.textContent)).toEqual(["Needs you", "In progress", "Goals"]);
+		expect(view.container.querySelector("#needs-you")?.nextElementSibling?.id).toBe("in-progress");
+		expect(view.container.querySelector("#needs-you")?.parentElement).not.toBe(view.container.querySelector("#today-goals")?.parentElement);
 		expect(view.container.querySelector(".today-page a[href='/home.md']")?.textContent).toBe("Workspace notes");
 	} finally {
 		await view.unmount();

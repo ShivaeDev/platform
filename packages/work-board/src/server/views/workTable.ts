@@ -7,13 +7,13 @@ function row(item: Item, state: State, waiting: ReadonlyMap<string, string>): st
 	const selected = item.id === state.item;
 	const values = [
 		fields.kind,
-		waiting.has(item.id) ? `Waiting on you · ${fields.status ?? "Status not recorded"}` : fields.status,
+		waiting.has(item.id) ? `Waiting on you${fields.status ? ` · ${fields.status}` : ""}` : fields.status,
 		fields.owner,
 		fields.nextAction,
 	];
 	return `<tr data-item="${escapeHtml(item.id)}"${selected ? ' data-selected="true"' : ""}>
  <th scope="row"><a href="${escapeHtml(viewUrl(state, { item: item.id }, "work-detail"))}"${selected ? ' aria-current="true"' : ""}>${escapeHtml(item.title)}</a><span class="work-id">${escapeHtml(item.id)}</span></th>
- ${values.map((value) => `<td>${escapeHtml(value ?? "Not recorded")}</td>`).join("")}</tr>`;
+ ${values.map((value) => `<td>${escapeHtml(value ?? "")}</td>`).join("")}</tr>`;
 }
 
 export function workTable(items: readonly Item[], state: State, waiting: ReadonlyMap<string, string> = new Map()): string {

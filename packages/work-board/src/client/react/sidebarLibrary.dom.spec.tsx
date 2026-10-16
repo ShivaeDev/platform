@@ -36,12 +36,15 @@ it("bounds document shell links with 1,500 files and shows titled pinned, goal a
 		expect(document.querySelectorAll('section[aria-label="Recent"] a')).toHaveLength(5);
 		expect(document.querySelector('section[aria-label="Pinned"] a')?.textContent).toBe("Document title 0");
 		await eventually(() =>
-			expect(
-				document.querySelector('section[aria-label="Active goals"] [role="img"][aria-label^="Example goal"]')?.getAttribute("aria-label"),
-			).toContain("done: 2"),
+			expect(document.querySelector('section[aria-label="Active goals"] [role="img"][aria-label^="Example goal"]')?.getAttribute("aria-label")).toBe(
+				"Example goal: 2 of 5 done",
+			),
 		);
 		expect(document.querySelector('section[aria-label="Active goals"]')?.textContent).toContain("2/5");
 		expect(document.querySelectorAll('section[aria-label="Active goals"] [data-status-token]')).toHaveLength(0);
+		for (const id of ["#documents-open", "#diagnostics-open", "#goals-open"]) {
+			expect(document.querySelector(id)?.textContent).not.toMatch(/[0-9?]/u);
+		}
 		expect(document.querySelector("#files")).toBeNull();
 		expect(document.querySelectorAll("a").length).toBeLessThan(100);
 		const navigation = view.registry.get(navigationQuery(view.api));

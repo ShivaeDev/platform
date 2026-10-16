@@ -12,11 +12,13 @@ export function WorkCards({ data }: { readonly data: WorkProjection }) {
 	return (
 		<div className="work-columns">
 			{columns.map(([status, rows]) => (
-				<section aria-label={status ?? "Status not recorded"} className="work-column" key={status ?? ""}>
-					<h2>
-						<StatusChip status={status} />
-						<span className="work-count">{rows.length}</span>
-					</h2>
+				<section aria-label={status ?? ""} className="work-column" key={status ?? ""}>
+					{Boolean(status) && (
+						<h2>
+							<StatusChip status={status} />
+							<span className="work-count">{rows.length}</span>
+						</h2>
+					)}
 					<WorkCardList fleet={items} rows={rows} state={data.state} virtual={data.rows.length > 200} />
 				</section>
 			))}

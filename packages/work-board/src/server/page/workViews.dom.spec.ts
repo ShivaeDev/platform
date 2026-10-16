@@ -15,7 +15,7 @@ let page: OpenPage;
 const setupBoard = Effect.gen(function* () {
 	notes = folder(viewsFixture());
 	board = yield* startBoard(notes.root, "legacy.md");
-	page = yield* openPage(board, "/_board/work");
+	page = yield* openPage(board, "/_board/work?view=board");
 	yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 });
 

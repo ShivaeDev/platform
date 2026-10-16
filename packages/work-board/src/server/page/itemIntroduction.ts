@@ -6,5 +6,5 @@ export function itemIntroduction(parsed: ParsedMetadata): string {
 		return "";
 	}
 	const fields = parsed.fields;
-	return `<div class="item-summary" aria-label="Authored work"><p>Status: <b>${escapeHtml(fields.status ?? "Not recorded")}</b>${fields.owner ? ` · Owner: ${escapeHtml(fields.owner)}` : ""}</p><p>Next action: ${escapeHtml(fields.nextAction ?? "Not recorded")}</p></div>`;
+	return `<div class="item-summary" aria-label="Authored work">${fields.status ? `<p>Status: <b>${escapeHtml(fields.status)}</b></p>` : ""}${fields.owner ? `<p>Owner: ${escapeHtml(fields.owner)}</p>` : ""}${fields.nextAction ? `<p>Next action: ${escapeHtml(fields.nextAction)}</p>` : ""}</div>`;
 }

@@ -7,7 +7,7 @@ import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.
 import { held, type OpenPage } from "#test/browser.ts";
 import { faultyWatch } from "#test/faults.ts";
 import { BOARD, FILES, openLive, PLAN, paragraphOf, STEPS, settle, TWINS, waitFor } from "#test/live.ts";
-import { changesUntil, subscribe } from "#test/nativeRpc.ts";
+import { changesUntil, rpcNavigation, subscribe, waitForLibraryCount } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -59,9 +59,7 @@ describe("live page", () => {
 		notes.write("board.md", `${BOARD}\n### \`ops\` Rotate the key\n`);
 		notes.write("later/idea.md", "# Idea\n");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".counts")?.textContent).toBe("2 to do")));
-		yield* Effect.promise(() =>
-			waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe(`Library${Object.keys(FILES).length + 1}`)),
-		);
+		yield* waitForLibraryCount(board, Object.keys(FILES).length + 1);
 	});
 
 	effectApp("shows that it is reconnecting and catches up once the connection is back", function* () {
@@ -124,7 +122,7 @@ describe("live page", () => {
 		yield* open("/plan.md");
 		rmSync(join(notes.root, "plan.md"));
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#doc .empty")?.textContent).toBe("No markdown file at plan.md.")));
-		expect(page.document.getElementById("documents-open")?.textContent).toBe(`Library${Object.keys(FILES).length - 1}`);
+		expect((yield* rpcNavigation(board)).counts.library).toBe(Object.keys(FILES).length - 1);
 		yield* Effect.promise(() => waitFor(() => expect(status()).toBe("live")));
 	});
 

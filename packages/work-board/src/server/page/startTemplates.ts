@@ -47,8 +47,8 @@ Explain the decision in context; do not require the reader to reconstruct it.
 ## Options and tradeoffs
 | Option | Benefit | Cost | Evidence |
 | --- | --- | --- | --- |
-| First option | Not recorded | Not recorded | Not recorded |
-| Second option | Not recorded | Not recorded | Not recorded |
+| First option | | | |
+| Second option | | | |
 
 ## Recommendation
 State your take and what remains uncertain.
@@ -96,7 +96,7 @@ Explain what changed and why. Link the relevant source files or patch.
 [Investigation and alternatives](investigation.md)
 
 ## Checks and evidence
-Not recorded. Replace this with actual commands, observations and local evidence links.
+Add actual commands, observations and local evidence links.
 Recorded evidence does not by itself establish verified acceptance.
 
 ## Limits and unresolved questions

@@ -5,6 +5,7 @@ import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
+import { waitForLibraryCount } from "#test/nativeRpc.ts";
 
 const source = `---
 id: question.source
@@ -59,7 +60,7 @@ it.live(
 		yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 		expect(page.document.querySelector('[name="body"]')).toBe(body);
 		notes.write("other.md", "# Unrelated source addition");
-		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe("Library2")));
+		yield* waitForLibraryCount(board, 2);
 		expect(page.document.querySelector('[name="body"]')).toBe(body);
 		expect(body.value).toBe("Keep my conditions.");
 		notes.write("item.md", source.replace("The exact reviewed proposal.", "Changed reviewed proposal."));

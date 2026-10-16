@@ -1,14 +1,19 @@
+import { NodeHttpClient } from "@effect/platform-node";
 import { Effect, Exit, Layer, Scope, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
+import { expect } from "vitest";
 import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
+import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import type { HistoryInput } from "#history/schema.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { documents } from "#rpc/keys.ts";
 import type { RunningBoard } from "./board.ts";
 
-function protocol(board: Pick<RunningBoard, "url">) {
-	return RpcClient.layerProtocolHttp({ url: `${board.url}/_board/rpc` }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
+function protocol(board: Pick<RunningBoard, "url">, native = false) {
+	return RpcClient.layerProtocolHttp({ url: `${board.url}/_board/rpc` }).pipe(
+		Layer.provide([native ? NodeHttpClient.layerNodeHttp : FetchHttpClient.layer, RpcSerialization.layerNdjson]),
+	);
 }
 
 function makeClient() {
@@ -17,8 +22,8 @@ function makeClient() {
 
 type Client = Effect.Success<ReturnType<typeof makeClient>>;
 
-function call<A, E>(board: Pick<RunningBoard, "url">, read: (client: Client) => Effect.Effect<A, E>) {
-	return Effect.scoped(Effect.flatMap(makeClient(), read)).pipe(Effect.provide(protocol(board)));
+function call<A, E>(board: Pick<RunningBoard, "url">, read: (client: Client) => Effect.Effect<A, E>, native = false) {
+	return Effect.scoped(Effect.flatMap(makeClient(), read)).pipe(Effect.provide(protocol(board, native)));
 }
 
 export function rpcLibrary(board: RunningBoard) {
@@ -78,3 +83,13 @@ export const changesUntil = Effect.fn("Test.changesUntil")(function* (events: Ev
 		}
 	}
 });
+
+export function waitForLibraryCount(board: RunningBoard, count: number) {
+	return eventually(
+		Effect.flatMap(
+			call(board, (client) => client("work-board.navigation", { current: "" }), true),
+			(data) => Effect.try(() => expect(data.counts.library).toBe(count)),
+		),
+		{ interval: "10 millis", times: 100 },
+	);
+}

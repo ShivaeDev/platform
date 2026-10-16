@@ -52,7 +52,7 @@ it.live.each(routes)("renders $kind from typed queries without an HTML page requ
 		expect(page).not.toHaveBeenCalled();
 		if (kind === "result") {
 			expect(view.container.querySelector("#result-report")?.textContent).toContain("Report limitations");
-			expect(view.container.querySelector("#result-criteria")?.textContent).toContain("not verified acceptance");
+			expect(view.container.querySelector("#result-criteria h2")?.getAttribute("title")).toContain("authored records");
 		}
 	} finally {
 		yield* Effect.promise(() => view.unmount());

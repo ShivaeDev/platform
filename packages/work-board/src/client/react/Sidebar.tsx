@@ -78,7 +78,8 @@ export function Sidebar({
 						key={view}
 					>
 						<span>{label}</span>
-						{view === "today" ? <InboxCount count={count ?? null} id={shellIds.inboxCount} /> : <Badge>{count ?? "?"}</Badge>}
+						{view === "today" && <InboxCount count={count ?? null} id={shellIds.inboxCount} />}
+						{view === "work" && <Badge>{count ?? "?"}</Badge>}
 					</a>
 				))}
 			</nav>

@@ -49,8 +49,8 @@ function HandoffEntry({
 				<a href={fileUrl(record.file)}>{record.id}</a> · {h.recipient}
 			</h3>
 			<p>
-				<b>Receipt: {h.state}</b>
-				{h.state === "requested" ? " — prepared; receipt not confirmed" : ""}. Execution and acceptance are not recorded by this state.
+				<b title="Receipt state does not establish execution or acceptance.">Receipt: {h.state}</b>
+				{h.state === "requested" ? " — prepared; receipt not confirmed" : ""}
 			</p>
 			<p>
 				{same ? "Current reviewed source" : "Earlier or unavailable reviewed source; recheck before acting"} ·{" "}
@@ -58,7 +58,7 @@ function HandoffEntry({
 			</p>
 			{Boolean(h.by || h.note) && (
 				<p>
-					{h.by ?? "Attribution not recorded"}
+					{h.by ?? ""}
 					{h.note ? ` · ${h.note}` : ""}
 				</p>
 			)}

@@ -47,8 +47,8 @@ export function CriterionClaims({ document, id, valid }: { readonly document: Do
 	}
 	return (
 		<>
-			<p>
-				{claims.length} recorded {claims.length === 1 ? "claim" : "claims"}, not verified acceptance:
+			<p title="Recorded claims do not establish verified acceptance.">
+				{claims.length} recorded {claims.length === 1 ? "claim" : "claims"}:
 			</p>
 			<ul>
 				{keyed(claims, (claim) => `${claim.href}:${claim.label}`).map(({ key, value: claim }) => (
