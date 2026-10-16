@@ -15,7 +15,7 @@ export const startHost = Effect.fn("StarterStory.startHost")(function* (deployed
 				Layer.provide(
 					ConfigProvider.layer(
 						ConfigProvider.fromEnv({
-							env: { "HOST": "0.0.0.0", "PORT": "0", "PUBLIC_URL": PUBLIC_URL, "TRUSTED_PROXY": "127.0.0.2" },
+							env: { "HOST": "0.0.0.0", "PORT": "0", "PUBLIC_URL": PUBLIC_URL, "TRUSTED_PROXY": "127.0.0.1" },
 						}),
 					),
 				),
