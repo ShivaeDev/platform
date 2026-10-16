@@ -32,11 +32,11 @@ export interface AppHostOptions<
 	THandlers,
 	THandlerError,
 	THandlerRequirements,
-	TServices,
-	TServiceError,
-	TServiceRequirements,
-	TMigrations,
-	TSession extends SessionShape,
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+	TMigrations = never,
+	TSession extends SessionShape = SessionShape,
 > extends HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> {
 	readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
 	readonly policy?: undefined;
@@ -48,10 +48,10 @@ export type AppLocalHostOptions<
 	THandlers,
 	THandlerError,
 	THandlerRequirements,
-	TServices,
-	TServiceError,
-	TServiceRequirements,
-	TMigrations,
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+	TMigrations = never,
 > = HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & {
 	readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
 	readonly policy: "loopback";
@@ -63,10 +63,10 @@ export type AppHttpHostOptions<
 	THandlers,
 	THandlerError,
 	THandlerRequirements,
-	TServices,
-	TServiceError,
-	TServiceRequirements,
-	TSession extends SessionShape,
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+	TSession extends SessionShape = SessionShape,
 > = HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
 	HostPolicy<TSession> & { readonly migrations?: undefined };
 
@@ -75,11 +75,11 @@ export function appHost<
 	THandlers,
 	THandlerError,
 	THandlerRequirements,
-	TServices,
-	TServiceError,
-	TServiceRequirements,
-	TMigrations,
-	TSession extends SessionShape,
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+	TMigrations = never,
+	TSession extends SessionShape = SessionShape,
 >(
 	options:
 		| AppHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>
@@ -87,7 +87,15 @@ export function appHost<
 ): ReturnType<
 	typeof migratedHost<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>
 >;
-export function appHost<TRpcs extends Rpc.Any, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements>(
+export function appHost<
+	TRpcs extends Rpc.Any,
+	THandlers,
+	THandlerError,
+	THandlerRequirements,
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+>(
 	options: HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & {
 		readonly policy: "loopback";
 		readonly sessions?: never;
@@ -101,10 +109,10 @@ export function appHost<
 	THandlers,
 	THandlerError,
 	THandlerRequirements,
-	TServices,
-	TServiceError,
-	TServiceRequirements,
-	TSession extends SessionShape,
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+	TSession extends SessionShape = SessionShape,
 >(
 	options: AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
 ): ReturnType<typeof appHostHttp<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>>;
@@ -113,11 +121,11 @@ export function appHost<
 	THandlers,
 	THandlerError,
 	THandlerRequirements,
-	TServices,
-	TServiceError,
-	TServiceRequirements,
-	TMigrations,
-	TSession extends SessionShape,
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+	TMigrations = never,
+	TSession extends SessionShape = SessionShape,
 >(
 	options:
 		| AppHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>
