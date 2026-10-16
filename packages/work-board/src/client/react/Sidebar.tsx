@@ -14,6 +14,7 @@ import { type Item, LibraryContext } from "./readingLibrary.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
 import type { SidebarControls } from "./useSidebar.ts";
+import { workspaceDestinations } from "./workspaceDestinations.ts";
 
 export function Sidebar({
 	api,
@@ -33,13 +34,13 @@ export function Sidebar({
 	const reading = useContext(LibraryContext);
 	const query = useQuery(api.goals.query(undefined, { timeToLive: 60_000 }), { keepPreviousData: true });
 	const goals = Option.getOrUndefined(query.data)?.goals;
-	const destinations = [
-		{ count: data?.inboxCount, href: "/", id: "home-open", label: "Today", view: "today" },
-		{ count: data?.counts.goals, href: "/_board/goals", id: "goals-open", label: "Goals", view: "goals" },
-		{ count: data?.counts.now, href: "/_board/work", id: "work-open", label: "Now", view: "work" },
-		{ count: data?.counts.library, href: "/_board/library", id: "documents-open", label: "Library", view: "library" },
-		{ count: data?.counts.system, href: "/_board/diagnostics", id: "diagnostics-open", label: "System", view: "diagnostics" },
-	];
+	const counts = {
+		diagnostics: data?.counts.system,
+		goals: data?.counts.goals,
+		library: data?.counts.library,
+		today: data?.inboxCount,
+		work: data?.counts.now,
+	};
 	useEffect(() => {
 		const sidebar = document.getElementById(shellIds.sidebar);
 		if (controls.narrow && controls.open) {
@@ -65,7 +66,7 @@ export function Sidebar({
 				work board
 			</a>
 			<nav aria-label="Workspace" className="grid shrink-0 gap-1" data-inbox-count={String(data?.inboxCount ?? "?")} id={shellIds.primaryNavigation}>
-				{destinations.map(({ label, href, view, count, id }) => (
+				{workspaceDestinations.map(({ label, href, view, id }) => (
 					<a
 						aria-current={(view === "today" ? home : main.view === view) ? "page" : undefined}
 						className={cn(
@@ -78,7 +79,7 @@ export function Sidebar({
 						key={view}
 					>
 						<span>{label}</span>
-						{view === "today" ? <InboxCount count={count ?? null} id={shellIds.inboxCount} /> : <Badge>{count ?? "?"}</Badge>}
+						{view === "today" ? <InboxCount count={counts[view] ?? null} id={shellIds.inboxCount} /> : <Badge>{counts[view] ?? "?"}</Badge>}
 					</a>
 				))}
 			</nav>

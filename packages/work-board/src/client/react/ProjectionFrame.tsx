@@ -56,7 +56,7 @@ export function ProjectionFrame<A, E>({
 				}
 				renderedRef.current = projectionChanges(mainElement, renderedRef.current, url);
 				mainElement.dataset.route = url;
-				flushSync(() => onPage({ file: main.file, view: main.view }));
+				flushSync(() => onPage({ file: main.file, title: mainElement.querySelector("h1")?.textContent?.trim(), view: main.view }));
 				document.dispatchEvent(new Event("board-page"));
 			});
 		}

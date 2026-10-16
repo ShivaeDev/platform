@@ -8,6 +8,7 @@ import { type SearchItem, searchCommands } from "#client/react/searchCommands.ts
 import { searchStatus } from "#client/react/searchStatus.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import type { AppearanceControls } from "#client/react/useAppearance.ts";
+import { KeyboardHints } from "./KeyboardHints.tsx";
 
 export function SearchDialog({
 	api,
@@ -126,7 +127,9 @@ function Search({
 				/>
 				<button type="submit">Search</button>
 			</form>
-			<p className="search-help">Ctrl/Cmd+K to open · ↑/↓ to choose · Enter to open · Escape to close</p>
+			<KeyboardHints>
+				<p className="search-help">Ctrl/Cmd+K to open · ↑/↓ to choose · Enter to open · Escape to close</p>
+			</KeyboardHints>
 			<p id={shellIds.searchStatus} role="status">
 				{status}
 			</p>
