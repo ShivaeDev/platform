@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-10-16
+
+### Added
+
+- Generated apps include a story kit for authenticated HTTP and PostgreSQL tests, plus screen and migration stories, with guidance to extend the kit for new features.
+
 ## 0.2.2 - 2026-10-16
 
 ### Changed

@@ -86,7 +86,8 @@ for (const action of ["dispatch", "retry"] as const) {
 				expect(approved.value.boardSourcePath).not.toBe(worker.value.boardSourcePath);
 				expect(approved.value.boardSourcePath).toMatch(/revised\.md$/u);
 				expect(approved.value.prompt).toContain(current);
-				expect(approved.value.attempts).toEqual(stopped.value.attempts);
+				expect(approved.value.attempts.map(({ briefSteers: _steers, ...attempt }) => attempt)).toEqual(stopped.value.attempts);
+				expect(approved.value.attempts[0]?.briefSteers).toHaveLength(1);
 				expect(approved.value.history ?? []).toEqual([]);
 				expect(approved.value.decision).toBeUndefined();
 				expect(approved.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: decision.published }]);

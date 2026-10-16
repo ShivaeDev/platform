@@ -10,7 +10,7 @@
 		"rule": "lint/correctness/noUnusedFunctionParameters"
 	},
 	{
-		"includes": ["**/*.config.*"],
+		"includes": ["**/*.config.*", "**/.railway/railway.ts", "**/.railway/railway.py", "**/.railway/railway.go"],
 		"reason": "Tools load their config files through the default export.",
 		"rule": "lint/style/noDefaultExport"
 	},
