@@ -33,6 +33,7 @@ function sessionView(attempt: Attempt) {
 		: [
 				{
 					...attempt.receipt,
+					briefSteers: attempt.briefSteers,
 					interruptedAt: attempt.stallRecovery?.interruptedAt,
 					interruptRequestedAt: attempt.stallRecovery?.interruptRequestedAt,
 					lastProgressAt: attempt.progress?.at,
