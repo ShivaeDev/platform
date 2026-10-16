@@ -43,7 +43,7 @@ export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 	const rpc = yield* RpcServer.toHttpEffect(workRpcs).pipe(Effect.provideContext(context));
 	yield* Effect.scoped(
 		Effect.gen(function* () {
-			const lock = `${path}.starting`;
+			const lock = paths.join(root, ".board.sock.starting");
 			yield* Effect.acquireRelease(
 				fs.makeDirectory(lock, { mode: 0o700 }).pipe(
 					Effect.catchIf(

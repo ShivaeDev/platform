@@ -13,7 +13,7 @@ const settled = Effect.gen(function* () {
 	const fleet = yield* Fleet;
 	while (true) {
 		const current = (yield* fleet.get("one")).value;
-		if (current.decision !== undefined || current.attempts[0]?.receipt !== undefined) {
+		if (current.decision?.published !== undefined || current.attempts[0]?.receipt !== undefined) {
 			return current;
 		}
 		yield* Effect.yieldNow;

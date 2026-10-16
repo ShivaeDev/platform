@@ -13,7 +13,7 @@ interface Message {
 }
 
 export function abandonedSocketStartup(root: string) {
-	const lock = join(root, "board.sock.starting");
+	const lock = join(root, ".board.sock.starting");
 	mkdirSync(lock);
 	return lock;
 }

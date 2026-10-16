@@ -56,7 +56,7 @@ it.live("serializes stale reclamation across processes and loser cleanup preserv
 	yield* winner.send("close");
 	expect((yield* winner.next()).phase).toBe("closed");
 	expect(existsSync(socket)).toBe(false);
-	expect(existsSync(`${socket}.starting`)).toBe(false);
+	expect(existsSync(join(notes.root, ".board.sock.starting"))).toBe(false);
 });
 
 it.live("releases the startup lock after failed preparation so another startup can recover", function* () {
@@ -67,7 +67,7 @@ it.live("releases the startup lock after failed preparation so another startup c
 	).pipe(Effect.exit);
 	expect(Exit.isFailure(failed)).toBe(true);
 	expect(existsSync(socket)).toBe(false);
-	expect(existsSync(`${socket}.starting`)).toBe(false);
+	expect(existsSync(join(notes.root, ".board.sock.starting"))).toBe(false);
 	const board = yield* startBoard(notes.root);
 	yield* board.stop();
 });
