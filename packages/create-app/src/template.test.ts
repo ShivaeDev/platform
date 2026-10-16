@@ -10,6 +10,7 @@ it("packages pinned GitHub Actions running the generated app's own CI script aga
 	const files = await templateSource({ realStarter: true }).pack();
 	const manifest = JSON.parse(files["package.json"] ?? "{}");
 	expect(manifest.scripts.ci).toBe("pnpm lint && pnpm typecheck && pnpm build && pnpm test");
+	expect(manifest.scripts.ready).toBe("pnpm run ci");
 	const workflow = files[".github/workflows/ci.yml"] ?? "";
 	expect(workflow).toContain("run: pnpm run ci");
 	expect(workflow).toContain("run: pnpm install --frozen-lockfile");
