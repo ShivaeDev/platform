@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { retryLostReview } from "#engine/capacityRetry.ts";
+import { retryLostReview, retryMissingReview } from "#engine/capacityRetry.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -47,7 +47,7 @@ export const readRetry = Effect.fn("Fleet.readRetry")(function* (
 ) {
 	const kind = retryKind(error, current.value);
 	if (kind === undefined) {
-		return undefined;
+		return yield* retryMissingReview(state, current.value, error);
 	}
 	if (current.value.decision !== undefined) {
 		return current;
