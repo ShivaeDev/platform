@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { LibraryContext, restoreLibrary } from "#client/react/LibraryContext.ts";
 import { Modal } from "./Modal.tsx";
 import { ReadingHistory } from "./ReadingHistory.tsx";
-import { LibraryContext, restoreLibrary } from "./readingLibrary.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
 

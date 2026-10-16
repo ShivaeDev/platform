@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { LibraryContext } from "./readingLibrary.ts";
+import { LibraryContext } from "#client/react/LibraryContext.ts";
 import { shellIds } from "./shellIds.ts";
 export function Favorite({ file, title }: { readonly file: string; readonly title: string }) {
 	const library = useContext(LibraryContext);

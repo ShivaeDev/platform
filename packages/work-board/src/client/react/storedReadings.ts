@@ -6,7 +6,7 @@ const Entry = Schema.Struct({ id: Schema.String, reading: Schema.optional(Schema
 export function readingEntry(value: unknown) {
 	return Option.getOrUndefined(Schema.decodeUnknownOption(Entry)(value));
 }
-export function readingHistory() {
+export function storedReadings() {
 	const key = `work-board:reading:${document.documentElement.dataset.workspace}`;
 	let entries: Record<string, ReadingState>;
 	try {

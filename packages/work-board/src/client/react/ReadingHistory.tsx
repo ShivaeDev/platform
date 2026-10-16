@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import type { Item } from "#client/react/LibraryContext.ts";
 import { fileUrl } from "#files/url.ts";
-import type { Item } from "./readingLibrary.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 function LibraryList({

@@ -1,4 +1,4 @@
-import { readingEntry } from "./readingHistory.ts";
+import { readingEntry } from "#client/react/storedReadings.ts";
 
 export function navigationFailure(status: string | undefined) {
 	const code = Number(status ?? 200);
