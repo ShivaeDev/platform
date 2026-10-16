@@ -4,7 +4,13 @@ export default defineRailway((ctx) => {
 	const database = postgres("Postgres");
 	const web = service("web", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
-		env: { "DATABASE_URL": database.env.DATABASE_URL, "HOST": "0.0.0.0", "TRUSTED_PROXY": "100.64.0.0/10" },
+		env: {
+			"BETTER_AUTH_SECRET": ctx.shared.BETTER_AUTH_SECRET,
+			"DATABASE_URL": database.env.DATABASE_URL,
+			"HOST": "0.0.0.0",
+			"PUBLIC_URL": ctx.shared.PUBLIC_URL,
+			"TRUSTED_PROXY": "100.64.0.0/10",
+		},
 		healthcheck: "/health",
 		healthcheckTimeout: 120,
 		preDeploy: "pnpm migrate",
@@ -12,7 +18,11 @@ export default defineRailway((ctx) => {
 	});
 	const worker = service("worker", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
-		env: { "DATABASE_URL": database.env.DATABASE_URL },
+		env: {
+			"BETTER_AUTH_SECRET": ctx.shared.BETTER_AUTH_SECRET,
+			"DATABASE_URL": database.env.DATABASE_URL,
+			"PUBLIC_URL": ctx.shared.PUBLIC_URL,
+		},
 		preDeploy: "pnpm migrate",
 		start: "pnpm worker",
 	});
