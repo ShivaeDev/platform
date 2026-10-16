@@ -3,9 +3,8 @@ import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, Option, Path } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
+import { VERSION } from "#server/packageInfo.ts";
 import { HOST, serveBoard } from "./serve.ts";
-
-const VERSION = "0.13.0";
 
 const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	readonly dir: string;

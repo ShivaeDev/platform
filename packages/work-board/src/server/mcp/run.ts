@@ -3,6 +3,7 @@ import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, Logger, Path } from "effect";
 import { McpProtocol, McpServer } from "effect/ai";
 import { Argument, Command } from "effect/cli";
+import { NAME, VERSION } from "#server/packageInfo.ts";
 import { mcpTools } from "./tools.ts";
 
 const command = Command.make(
@@ -17,9 +18,9 @@ const command = Command.make(
 				mcpTools(path.resolve(dir)).pipe(
 					Layer.provide(
 						McpServer.layerStdio({
-							name: "work-board",
+							name: NAME,
 							protocols: [McpProtocol.v2025_11_25, McpProtocol.v2025_06_18, McpProtocol.v2025_03_26, McpProtocol.v2024_11_05],
-							version: "0.13.0",
+							version: VERSION,
 						}),
 					),
 				),
@@ -28,7 +29,7 @@ const command = Command.make(
 );
 
 export function runMcp() {
-	Command.runWith(command, { version: "0.13.0" })(process.argv.slice(3)).pipe(
+	Command.runWith(command, { version: VERSION })(process.argv.slice(3)).pipe(
 		Effect.provideService(Logger.LogToStderr, true),
 		Effect.provide(NodeServices.layer),
 		NodeRuntime.runMain,

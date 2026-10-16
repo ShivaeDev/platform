@@ -2,6 +2,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { Clock, Config, Effect, FileSystem, Option, Redacted, Schema, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { NAME, TITLE, VERSION } from "#packageInfo.ts";
 import { failure } from "#providers/codexRpc.ts";
 
 export interface CodexLogin {
@@ -48,7 +49,7 @@ const readToken = Effect.fn("CodexLogin.readToken")(function* (authFile: string)
 const refreshLogin = Effect.fn("CodexLogin.refreshLogin")(function* (command: NonNullable<CodexLogin["refreshCommand"]>) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const messages = [
-		{ id: 1, method: "initialize", params: { capabilities: null, clientInfo: { name: "work-fleet", title: "Work Fleet", version: "0.0.0" } } },
+		{ id: 1, method: "initialize", params: { capabilities: null, clientInfo: { name: NAME, title: TITLE, version: VERSION } } },
 		{ method: "initialized" },
 		{ id: 2, method: "account/read", params: { refreshToken: true } },
 	];
