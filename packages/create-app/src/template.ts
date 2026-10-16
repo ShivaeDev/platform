@@ -63,6 +63,12 @@ export function prepareFile(path: string, content: string, versions: Readonly<Re
 	if (path === ".env.example") {
 		return content.replaceAll("starter", "__APP_DATABASE__");
 	}
+	if (path === "src/test-support/postgres.ts") {
+		return content.replace(
+			'Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.orElse(() => Config.Redacted("TEST_DATABASE_URL")))',
+			'Config.Redacted("TEST_DATABASE_URL")',
+		);
+	}
 	if (path === "src/server/dev.ts") {
 		return content.replaceAll('"--conditions=source", ', "");
 	}

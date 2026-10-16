@@ -43,6 +43,12 @@ it("gives a generated app its own documentation, names and normal permissions un
 	expect(lstatSync(join(app, "CLAUDE.md")).isSymbolicLink()).toBe(true);
 	expect(readlinkSync(join(app, "CLAUDE.md"))).toBe("AGENTS.md");
 	expect(existsSync(join(app, "published-versions.json"))).toBe(false);
+	expect(readFileSync(join(app, "src/test-support/postgres.ts"), "utf8")).not.toContain("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+	const config = JSON.parse(readFileSync(join(app, "tsconfig.json"), "utf8"));
+	expect(config.include).toEqual(["src", "vite.config.ts", "vitest.config.ts"]);
+	for (const path of config.include) {
+		expect(existsSync(join(app, path)), path).toBe(true);
+	}
 	function visit(directory: string) {
 		for (const entry of readdirSync(directory, { withFileTypes: true })) {
 			const path = join(directory, entry.name);
@@ -107,7 +113,7 @@ it("typechecks and runs tests in a generated app named app with its local test d
 	expect(result.status, result.stdout + result.stderr).toBe(0);
 });
 
-it("prepares both generated databases with db:setup and connects to each on real PostgreSQL", () => {
+it("uses its own test database despite a conflicting monorepo URL and prepares both databases on real PostgreSQL", () => {
 	const { root, run } = appFolder();
 	const name = `setup_${basename(root).slice(-6).toLowerCase()}`;
 	expect(run([name]).status).toBe(0);
