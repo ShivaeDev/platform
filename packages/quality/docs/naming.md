@@ -60,7 +60,7 @@ The plugins report under the one Biome category `plugin`, so their findings shar
 | `maxItems.ts` | `MAX_ITEMS` alone | No: constants live in a topic file with related constants |
 | `items/listItems.ts` | `listItems` | No: the folder is the prefix, so it is `items/list.ts` |
 
-Test files are left to the test rules. The `toolOwned` option lists `.gitignore` patterns of files whose names a tool fixes, `*.config.*` and declaration files by default.
+Test files are left to the test rules. The `toolOwned` option lists `.gitignore` patterns of files whose names a tool fixes, `*.config.*`, declaration files and `.railway/railway.ts` (also `.py` and `.go`) by default. The Railway paths apply at any project root; other files in `.railway/` still follow the naming rules. The shared Biome preset also permits default exports in these config paths.
 
 ### Folders
 

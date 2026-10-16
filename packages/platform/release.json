@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-14",
+	"date": "2026-10-16",
 	"fragments": [
 		{
-			"name": "better-auth-1-7.md",
-			"text": "### Breaking\n\n- The optional `better-auth` peer is now `1.7.7`. Upgrade Better Auth with Platform; Better Auth 1.7 accepts Vitest 5 as a peer.\n- Better Auth 1.7 moved native joins from `experimental.joins` to `advanced.database.joins`. The Effect Prisma storage adapter still rejects native joins, and its error no longer calls them experimental.\n"
+			"name": "native-body-reader.md",
+			"text": "### Added\n\n- Export `readBoundedBody` and `RequestBodyTooLarge` from `@shivaedev/platform/boundedBody.ts`. Native Node HTTP routes can apply Effect's `HttpIncomingMessage.MaxBodySize` and return 413 for oversized content lengths or chunked bodies while keeping the connection usable and preserving accepted bytes.\n"
 		}
 	],
-	"version": "0.8.0"
+	"version": "0.11.0"
 }

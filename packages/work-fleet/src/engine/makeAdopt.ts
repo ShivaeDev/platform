@@ -40,6 +40,18 @@ export function makeAdopt(state: EngineState) {
 		}
 		const result = adopted.success;
 		yield* validateResult(stored.value, result);
+		if (
+			latest.role === "repair"
+			&& latest.checkFailures !== undefined
+			&& result.kind === "change"
+			&& stored.value.result?.kind === "change"
+			&& result.pr === stored.value.result.pr
+			&& result.head === stored.value.result.head
+			&& stored.value.review?.head === result.head
+			&& stored.value.review.verdict === "approved"
+		) {
+			return yield* save(stored, { ...stored.value, checks: undefined, result, stage: "validating" });
+		}
 		return yield* save(stored, { ...stored.value, checks: undefined, result, review: undefined, stage: "reviewing" });
 	});
 }

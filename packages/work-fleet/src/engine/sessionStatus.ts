@@ -10,5 +10,10 @@ export function sessionStatus(session: (typeof FleetView.Type)["sessions"][numbe
 	return [
 		`session ${session.sessionId} turn ${session.turnId}`,
 		...times.flatMap(([label, time]) => (time === undefined ? [] : [`${label} ${new Date(time).toISOString()}`])),
+		...(session.briefSteers ?? []).map((steer) =>
+			steer.steeredAt === undefined
+				? `brief edit steer requested ${new Date(steer.requestedAt).toISOString()}; ${steer.error === undefined ? "delivery unconfirmed" : `failed: ${steer.error}`}`
+				: `brief edit steered ${new Date(steer.steeredAt).toISOString()}`,
+		),
 	].join("; ");
 }

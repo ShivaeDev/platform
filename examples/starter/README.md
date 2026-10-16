@@ -20,9 +20,26 @@ The app uses Tailwind's neutral shadcn theme and application-owned `Button` and 
 
 `pnpm build && pnpm start` serves the built UI, Better Auth endpoints and HTTP/NDJSON RPC together at `http://127.0.0.1:3000`. Set `DATABASE_URL` and `BETTER_AUTH_SECRET` in `.env.local` or the shell. The secret needs at least 32 random characters; generate one with `openssl rand -base64 32`. For hosting behind a proxy, follow the quickstart's [Deploy section](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy), setting `PUBLIC_URL` to your public app URL.
 
-The starter's numbered migration path creates Better Auth's tables with `getMigrations(auth.options)` followed by `runMigrations()`. No separate auth migration command is needed. The protected query and command receive identity from the host's `betterAuthSessions` provider; signed-out calls return typed `Unauthorized` failures. The UI shows a sign-in prompt, and `SessionBoundary` replaces cached queries and drafts when the session changes.
+The starter's numbered migration path creates Better Auth's tables with `getMigrations(auth.options)` followed by `runMigrations()`. No separate auth migration command is needed. Protected operations declare `AuthenticatedUser`; `authenticatedUserLayer(sessions)` supplies `SessionUser` from the `betterAuthSessions` provider. Note handlers use its id for ownership, and `notes.whoami` returns id, name and email without querying auth tables; signed-out calls return typed `Unauthorized` failures. The UI shows a sign-in prompt, and `SessionBoundary` replaces cached queries and drafts when the session changes.
+
+The browser entry point creates `makeAuth({ baseUrl })` and supplies it to `App`. Session checking and auth actions use that instance. Stories can create an auth client for their own HTTP host with the application kit’s `authClient()` verb.
 
 The TypeScript configuration keeps strict application checking and sets `skipLibCheck: true` for dependencies that declare unused runtime types. Existing notes from the unauthenticated starter have no account owner and are not shown to signed-in users.
+
+Write new tests as stories. The kit in [`src/test-support/application.ts`](src/test-support/application.ts) owns a disposable PostgreSQL database and the real HTTP app host. Traits such as `signedIn()`, `legacyNote(title)` and `behindProxy()` describe setup; verbs drive authenticated notes requests, rerun migrations through another host and start the word-count worker. Extend the kit with a trait or verb when a feature needs another setup or action.
+
+```ts
+import { expect } from "vitest";
+import { app, signedIn } from "#test-support/application.ts";
+
+app.it("saves a title for the signed-in account", [signedIn()], function* ({ actor }) {
+ const notes = actor().notes;
+ const saved = yield* notes.create({ title: "First note" });
+ expect(yield* notes.list()).toEqual([saved]);
+});
+```
+
+The kit uses `@shivaedev/test-story` on `effect-test`. Database stories run serially within each worker, use a live clock, commit HTTP writes and dispose their database clones after the host and pools close. Failures print the story and account aliases and host details, without session cookies. The deploy story uses a loopback proxy with HTTPS forwarding headers and checks secure session cookies and foreign-origin rejection. It does not exercise a browser or TLS termination. [`src/test-support/screens.ts`](src/test-support/screens.ts) supplies the separate happy-dom story kit; those stories use the in-memory RPC fixture to prove screen and form behavior. [`src/test-support/migration.ts`](src/test-support/migration.ts) isolates the migration upgrade story without starting a host.
 
 `pnpm test` loads `.env.local` and runs the React tests, the PostgreSQL/HTTP round trips and the notes migration upgrade check. The upgrade check applies an older migration prefix, upgrades to the latest migrations, and compares the live column names and PostgreSQL types with the notes repository model. Set `TEST_DATABASE_URL` to a dedicated PostgreSQL database whose role can create databases; the tests create disposable clones. Repository test runs supply `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` instead. Missing database configuration fails the test.
 

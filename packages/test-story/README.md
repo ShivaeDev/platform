@@ -298,7 +298,7 @@ const cookieApp = storyKit({
   around: withIsolatedDatabase,
   clock: "live",
   *create() {
-    const { baseUrl } = yield* starterApplication;
+    const { baseUrl } = yield* startHost();
     return { fetch: domFetch(baseUrl) };
   },
   layer: postgres,
@@ -308,7 +308,7 @@ const cookieApp = storyKit({
 });
 ```
 
-`starterApplication`, `postgres` and `authVerbs` are application plumbing. The starter's [cookie application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/cookieApp.ts) shows the full setup. Its Better Auth client signs up and signs in, and its verbs read `/api/auth/get-session` and post to `/api/auth/sign-out` through the DOM fetch. They do not copy cookies into request headers or use bearer tokens.
+`startHost`, `postgres` and `authVerbs` are application plumbing. The starter's [cookie application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/cookieApp.ts) shows the full setup. Its Better Auth client signs up and signs in, and its verbs read `/api/auth/get-session` and post to `/api/auth/sign-out` through the DOM fetch. They do not copy cookies into request headers or use bearer tokens.
 
 ```ts
 cookieApp.it("sign-up and sign-in keep their cookie sessions against the PostgreSQL host", [], function* ({ signUp, signIn, signOut, sessionIs }) {

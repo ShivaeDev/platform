@@ -1,18 +1,19 @@
-import { createAuthClient } from "better-auth/client";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { domFetch } from "@shivaedev/test-story/domFetch.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { makeAuth } from "#client/auth.ts";
 import { credentials } from "./authHttp.ts";
-import { postgres, starterApplication } from "./postgres.ts";
+import { startHost } from "./host.ts";
+import { postgres } from "./postgres.ts";
 
 const alice = credentials("alice");
 export const cookieApp = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const { baseUrl } = yield* starterApplication;
+		const { baseUrl } = yield* startHost();
 		const previousLocation = window.location.href;
 		const fetch = domFetch(baseUrl);
 		yield* Effect.addFinalizer(() =>
@@ -26,7 +27,7 @@ export const cookieApp = storyKit({
 				}
 			}).pipe(Effect.timeout("5 seconds"), Effect.orDie),
 		);
-		return { baseUrl, client: createAuthClient({ "baseURL": baseUrl }), fetch };
+		return { baseUrl, client: makeAuth({ baseUrl }).client, fetch };
 	},
 	inspect: () => ({ authentication: "cookie session" }),
 	layer: postgres,

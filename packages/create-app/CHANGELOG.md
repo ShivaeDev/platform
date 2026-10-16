@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 - 2026-10-16
+
+### Added
+
+- Generated apps include a story kit for authenticated HTTP and PostgreSQL tests, plus screen and migration stories, with guidance to extend the kit for new features.
+
+## 0.2.2 - 2026-10-16
+
+### Changed
+
+- Generated apps use Platform 0.9.0 and read signed-in user profiles through `SessionUser`, including a `notes.whoami` query without auth-table SQL.
+
 ## 0.2.1 - 2026-10-14
 
 ### Changed

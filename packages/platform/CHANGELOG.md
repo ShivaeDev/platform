@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.11.0 - 2026-10-16
+
+### Added
+
+- Export `readBoundedBody` and `RequestBodyTooLarge` from `@shivaedev/platform/boundedBody.ts`. Native Node HTTP routes can apply Effect's `HttpIncomingMessage.MaxBodySize` and return 413 for oversized content lengths or chunked bodies while keeping the connection usable and preserving accepted bytes.
+
+## 0.10.0 - 2026-10-16
+
+### Added
+
+- `appHost` and its options types accept an omitted `services` Layer for apps without services of their own. Annotated options require a Layer when they declare service outputs, errors or requirements. Existing service Layers keep their behavior, and migrated hosts still provide database services to handlers.
+- Signed-in handlers can read the current user's id, name and email: declare `AuthenticatedUser`, read `SessionUser`, and merge `authenticatedUserLayer(sessions)` beside the handlers. `Identity` keeps its `{ id }` shape.
+
+## 0.9.0 - 2026-10-16
+
+### Added
+
+- `SessionUser` and `SessionUserValue` expose the signed-in user’s id, name and email beside the unchanged `Identity`. `AuthenticatedUser` and `authenticatedUserLayer` provide both services from a `UserSessionShape` provider, with typed authentication failures and request-local profiles.
+
 ## 0.8.0 - 2026-10-14
 
 ### Breaking

@@ -6,7 +6,7 @@ import { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { command, query, stream } from "@shivaedev/effect-contract/operation.ts";
 import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
 import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
+import { AuthenticatedUser } from "@shivaedev/platform/rpc/middleware.ts";
 
 export class Note extends Model.Class<Note>("Note")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
@@ -52,4 +52,10 @@ export const Delete = command("delete", {
 	rejections: { Conflict, NotFound, ServiceUnavailable },
 	success: Schema.Void,
 });
-export const Notes = contract("notes", { commands: [Create, Update, Delete], queries: [List, Get], streams: [Subscribe] }).middleware(Authenticated);
+export const Whoami = query("whoami", {
+	reads: () => [],
+	success: Schema.Struct({ email: Schema.String, id: Schema.String, name: Schema.String }),
+});
+export const Notes = contract("notes", { commands: [Create, Update, Delete], queries: [List, Get, Whoami], streams: [Subscribe] }).middleware(
+	AuthenticatedUser,
+);
