@@ -14,23 +14,24 @@ export const postgres = Layer.unwrap(
 	),
 );
 
+export const starterApplication = Effect.gen(function* () {
+	const database = yield* PostgresTestDatabase;
+	const context = yield* Layer.build(
+		starterHost({ databaseUrl: database.url, port: 0, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }),
+	);
+	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
+	if (!NetAddress.isInetAddress(server.address)) {
+		return yield* Effect.die("Expected a TCP server");
+	}
+	const baseUrl = `http://127.0.0.1:${server.address.port}`;
+	return { baseUrl, context, url: `${baseUrl}/rpc` };
+});
+
 export const { effectApp } = makeEffectIt({
 	around: withIsolatedDatabase,
 	clock: "live",
 	layer: postgres,
-	makeHarness: () =>
-		Effect.gen(function* () {
-			const database = yield* PostgresTestDatabase;
-			const context = yield* Layer.build(
-				starterHost({ databaseUrl: database.url, port: 0, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }),
-			);
-			const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
-			if (!NetAddress.isInetAddress(server.address)) {
-				return yield* Effect.die("Expected a TCP server");
-			}
-			const baseUrl = `http://127.0.0.1:${server.address.port}`;
-			return { baseUrl, context, url: `${baseUrl}/rpc` };
-		}),
+	makeHarness: () => starterApplication,
 });
 
 export const { effectApp: effectMigration } = makeEffectIt({

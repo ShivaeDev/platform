@@ -1,20 +1,20 @@
+import { createAuthClient } from "better-auth/client";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { domFetch } from "@shivaedev/test-story/domFetch.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { credentials } from "./authHttp.ts";
-import { postgres } from "./postgres.ts";
-import { storyHost } from "./storyHost.ts";
+import { postgres, starterApplication } from "./postgres.ts";
 
 const alice = credentials("alice");
 export const cookieApp = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const url = yield* storyHost;
+		const { baseUrl } = yield* starterApplication;
 		const previousLocation = window.location.href;
-		const fetch = domFetch(url);
+		const fetch = domFetch(baseUrl);
 		yield* Effect.addFinalizer(() =>
 			Effect.promise(async () => {
 				try {
@@ -26,20 +26,22 @@ export const cookieApp = storyKit({
 				}
 			}).pipe(Effect.timeout("5 seconds"), Effect.orDie),
 		);
-		return { fetch };
+		return { baseUrl, client: createAuthClient({ "baseURL": baseUrl }), fetch };
 	},
 	inspect: () => ({ authentication: "cookie session" }),
 	layer: postgres,
 	name: "cookie auth",
 	stages: ["account"],
-	verbs: ({ fetch }, story) => {
+	verbs: ({ baseUrl, client, fetch }, story) => {
 		function post(path: string, body: object) {
 			return Effect.promise(async () => {
-				const response = await fetch(`/api/auth/${path}`, {
-					body: JSON.stringify(body),
-					headers: { "content-type": "application/json" },
-					method: "POST",
-				});
+				const response = await fetch(
+					new Request(`${baseUrl}/api/auth/${path}`, {
+						body: JSON.stringify(body),
+						headers: { "content-type": "application/json" },
+						method: "POST",
+					}),
+				);
 				expect(response.status).toBe(200);
 				await response.text();
 			});
@@ -48,18 +50,28 @@ export const cookieApp = storyKit({
 			sessionIs: (email: string | null) =>
 				Effect.promise(async () => {
 					story.tell(email === null ? "Alice has no session" : "Alice reads her cookie session");
-					const response = await fetch("/api/auth/get-session", { cache: "no-store" });
+					const response = await fetch(new Request(`${baseUrl}/api/auth/get-session`, { cache: "no-store" }));
+					expect(response.ok).toBe(true);
 					expect(response.status).toBe(200);
+					expect(response.headers.get("content-type")).toContain("application/json");
+					expect(response.headers.get("set-cookie")).toBeNull();
 					const session: unknown = await response.json();
+					const result = await client.getSession();
+					expect(result.error).toBeNull();
+
 					if (email === null) {
 						expect(session).toBeNull();
+						expect(result.data).toBeNull();
 					} else {
 						expect(session).toMatchObject({ user: { email } });
+						expect(result.data).toMatchObject({ user: { email } });
 					}
 				}),
 			signIn: () => {
 				story.tell("Alice signs in");
-				return post("sign-in/email", alice);
+				return Effect.promise(async () => {
+					expect((await client.signIn.email(alice)).error).toBeNull();
+				});
 			},
 			signOut: () => {
 				story.tell("Alice signs out");
@@ -67,7 +79,9 @@ export const cookieApp = storyKit({
 			},
 			signUp: () => {
 				story.tell("Alice signs up");
-				return post("sign-up/email", alice);
+				return Effect.promise(async () => {
+					expect((await client.signUp.email(alice)).error).toBeNull();
+				});
 			},
 		};
 	},
