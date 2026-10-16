@@ -16,10 +16,10 @@ afterEach(() => {
 it.live("links Diagnostics from the sidebar and renders all three sources through normal HTTP", function* () {
 	notes = folder({ "home.md": "# Home" });
 	board = yield* startBoard(notes.root, "home.md", undefined, false, syntheticSources());
-	const response = yield* rawGet(board, "/_board/diagnostics");
+	const response = yield* rawGet(board, "/_board/system");
 	expect(response.status).toBe(200);
 	expect(response.body).toContain("/_board/react.js");
-	const body = yield* Effect.promise(() => renderRemaining(board.url, "/_board/diagnostics"));
+	const body = yield* Effect.promise(() => renderRemaining(board.url, "/_board/system"));
 	for (const text of [
 		"24% used",
 		"63% used",
@@ -37,8 +37,7 @@ it.live("links Diagnostics from the sidebar and renders all three sources throug
 	for (const [owner, count] of Object.entries(health.waiting)) {
 		expect(body).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>${count}</strong>`);
 	}
-	expect((yield* rawGet(board, "/")).body).toContain('href="/_board/diagnostics"');
-	expect((yield* rawGet(board, "/_board/diagnostics", "example.invalid")).status).toBe(403);
+	expect((yield* rawGet(board, "/_board/system", "example.invalid")).status).toBe(403);
 });
 
 it.live("source failures leave the page usable and escape their causes", function* () {
@@ -53,9 +52,9 @@ it.live("source failures leave the page usable and escape their causes", functio
 			github: Effect.fail(new SourceFailure({ kind: "error", message: "<script>bad</script>" })),
 		}),
 	);
-	const response = yield* rawGet(board, "/_board/diagnostics");
+	const response = yield* rawGet(board, "/_board/system");
 	expect(response.status).toBe(200);
-	const body = yield* Effect.promise(() => renderRemaining(board.url, "/_board/diagnostics"));
+	const body = yield* Effect.promise(() => renderRemaining(board.url, "/_board/system"));
 	expect(body).toContain("Not configured");
 	expect(body).toContain("Unavailable");
 	expect(body).toContain("&lt;script&gt;bad&lt;/script&gt;");
@@ -96,7 +95,7 @@ it("marks stale Fleet counts and uses the snapshot observation instead of the Bo
 	);
 	const fleet = html.slice(html.indexOf('data-source="fleet"'));
 	expect(fleet).toContain('data-state="stale"');
-	expect(fleet).toContain('class="diagnostics-status">Stale</span>');
+	expect(fleet).toContain(">Stale</span>");
 	expect(fleet).toContain(`Observed <time dateTime="${new Date(health.observedAt).toISOString()}"`);
 	expect(fleet).not.toContain(new Date(readAt).toISOString());
 });

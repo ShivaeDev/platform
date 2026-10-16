@@ -2,11 +2,12 @@ import type { HandoffProjection } from "#browser/views/remaining.ts";
 import { fileUrl } from "#files/url.ts";
 import { HandoffForm } from "./HandoffForm.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
+import { ReadingPanel } from "./ReadingPanel.tsx";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 import { shellIds } from "./shellIds.ts";
 export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 	return (
-		<section className="response-panel">
+		<ReadingPanel className="response-panel">
 			<h1>Agent handoff · {data.item}</h1>
 			<p>
 				Prepare a Markdown file, then copy a tiny prompt into your existing agent session. Sessions may poll or wait for human answers. Agents record
@@ -30,7 +31,7 @@ export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 					<HandoffEntry current={data.source} key={record.id} record={record} />
 				))}
 			</section>
-		</section>
+		</ReadingPanel>
 	);
 }
 

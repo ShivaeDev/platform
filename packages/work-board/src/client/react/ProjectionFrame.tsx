@@ -82,7 +82,7 @@ export function ProjectionFrame<A, E>({
 	return (
 		<>
 			<main
-				className="board-view"
+				className="board-view min-w-0 p-4 md:p-8"
 				data-file={main.file}
 				data-identity={"identity" in main ? main.identity : undefined}
 				data-projection={route}
@@ -99,7 +99,7 @@ export function ProjectionFrame<A, E>({
 						{loadingMessage(query.pending, missing, failure)}
 					</p>
 				)}
-				<div hidden={data === undefined} style={{ display: data === undefined ? "none" : "contents" }}>
+				<div className={data === undefined ? "hidden" : "contents"} hidden={data === undefined}>
 					{content === undefined ? null : render(content)}
 				</div>
 			</main>

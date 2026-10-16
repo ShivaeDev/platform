@@ -14,3 +14,5 @@ export const rpcPolicy = HttpRouter.middleware(
 		}),
 	{ global: true },
 );
+
+export const MAX_BYTES = 2 * 1024 * 1024;

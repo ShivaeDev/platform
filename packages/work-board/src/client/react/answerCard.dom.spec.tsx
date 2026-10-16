@@ -83,7 +83,7 @@ it("retains an option and free text through a document query refresh and records
 		files,
 		(api, registry) => {
 			refresh = () => registry.refresh(documentQuery(api, url));
-			const router = boardRouter({ api, initial: "", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
 		},

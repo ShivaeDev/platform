@@ -1,10 +1,10 @@
+import { fileUrl } from "#files/url.ts";
 import { managedRequestReceipt } from "#server/attention/managedRequestReceipt.ts";
 import { backlinksOf } from "#server/metadata/backlinks.ts";
 import { referenceTarget } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { relationshipLabel } from "#server/metadata/relationshipLabel.ts";
 import { sourceFile, sourceHref } from "#server/metadata/sourceLinks.ts";
-import { documentReference } from "#server/page/metadataLinks.ts";
 
 export function readingContext(document: MetadataDocument, model: MetadataModel, board: boolean, titles: ReadonlyMap<string, string> = new Map()) {
 	const { fields, lines, raw, bodyLine } = document.parsed;
@@ -61,4 +61,9 @@ function criterionClaims(document: MetadataDocument, model: MetadataModel) {
 			claims.filter((claim) => claim.criterion === `${document.parsed.fields.id}#${criterion.id}`).map(({ href, label }) => ({ href, label })),
 		]),
 	);
+}
+
+function documentReference(file: string, model: MetadataModel, hash = ""): string {
+	const id = model.documents.find((document) => document.file === file)?.parsed.fields.id;
+	return ((id ? referenceTarget(id, model) : undefined) ?? fileUrl(file)) + hash;
 }

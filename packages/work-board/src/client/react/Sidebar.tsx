@@ -35,9 +35,9 @@ export function Sidebar({
 	const query = useQuery(api.goals.query(undefined, { timeToLive: 60_000 }), { keepPreviousData: true });
 	const goals = Option.getOrUndefined(query.data)?.goals;
 	const counts = {
-		diagnostics: data?.counts.system,
 		goals: data?.counts.goals,
 		library: data?.counts.library,
+		system: data?.counts.system,
 		today: data?.inboxCount,
 		work: data?.counts.now,
 	};

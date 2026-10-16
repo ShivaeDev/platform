@@ -2,7 +2,6 @@ import { Effect, Exit, Layer, Scope, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
-import type { HistoryInput } from "#history/schema.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { documents } from "#rpc/keys.ts";
 import type { RunningBoard } from "./board.ts";
@@ -32,10 +31,6 @@ export function rpcNavigation(board: RunningBoard) {
 }
 export function rpcSearch(board: RunningBoard, query: string) {
 	return call(board, (client) => client("work-board.search", { query }));
-}
-
-export function rpcHistory(board: RunningBoard, action: typeof HistoryInput.Type.action, baseline: string | null = null) {
-	return call(board, (client) => client("work-board.history", { action, baseline }));
 }
 
 export function rpcWatcher(board: RunningBoard) {
@@ -78,3 +73,7 @@ export const changesUntil = Effect.fn("Test.changesUntil")(function* (events: Ev
 		}
 	}
 });
+
+export function rpcDocument(board: Pick<RunningBoard, "url">, url: string) {
+	return call(board, (client) => client("work-board.document", { url }));
+}

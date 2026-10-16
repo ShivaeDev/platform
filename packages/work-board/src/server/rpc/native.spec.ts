@@ -25,7 +25,7 @@ const open = Effect.fn("Test.open")(function* () {
 	yield* Effect.promise(() => waitFor(() => expect(client.registry.get(client.updates.status).connection).toBe("live")));
 });
 
-it.live("reads typed documents, stable item URLs, navigation, search and explicit history through native HTTP RPC", function* () {
+it.live("reads typed documents, stable item URLs, navigation, search through native HTTP RPC", function* () {
 	yield* open();
 	const page = yield* Effect.promise(() => client.read(client.api.document.query({ url: "/_board/item/note/" })));
 	expect(page.source).toContain("Read this.");
@@ -36,8 +36,6 @@ it.live("reads typed documents, stable item URLs, navigation, search and explici
 	expect((yield* Effect.promise(() => client.read(client.api.search.query({ query: "Read this" })))).results).toEqual(
 		expect.arrayContaining([expect.objectContaining({ file: "note.md", kind: "passage" })]),
 	);
-	const seen = yield* Effect.promise(() => client.run(client.api.history.run({ action: "observe", baseline: null })));
-	expect(seen.snapshot).toContain("Read this.");
 	expect((yield* Effect.promise(() => fetch(`${board.url}/note.md`))).status).toBe(200);
 	expect((yield* Effect.promise(() => fetch(`${board.url}/_board/native.js`))).headers.get("content-type")).toContain("javascript");
 	const boardUrl = board.url;
@@ -139,7 +137,7 @@ it.live("sets the Board response headers on native RPC responses", function* () 
 	yield* open();
 	const response = yield* Effect.promise(() =>
 		fetch(`${board.url}/_board/rpc`, {
-			body: `${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { action: "check", baseline: null }, tag: "work-board.history" })}\n`,
+			body: `${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: null, tag: "work-board.start" })}\n`,
 			headers: { "content-type": "application/ndjson" },
 			method: "POST",
 		}),
@@ -148,5 +146,5 @@ it.live("sets the Board response headers on native RPC responses", function* () 
 	for (const [name, value] of Object.entries(HEADERS)) {
 		expect(response.headers.get(name)).toBe(value);
 	}
-	expect(yield* Effect.promise(() => response.text())).toContain("No previous snapshot");
+	expect(yield* Effect.promise(() => response.text())).toContain("example.project");
 });

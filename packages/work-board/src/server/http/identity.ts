@@ -1,72 +1,32 @@
 import { Effect } from "effect";
 import type { HttpServerRequest } from "effect/http";
-import { escapeHtml } from "#browser/escapeHtml.ts";
-import { fileUrl } from "#files/url.ts";
 import type { Changes } from "#server/files/changes.ts";
-import { navHtml } from "#server/page/nav.ts";
 import { shell } from "#server/page/shell.ts";
 import type { searchSnapshot } from "#server/search/snapshot.ts";
 import type { page } from "./page.ts";
 import { respond } from "./respond.ts";
 
-function requestedIdentity(pathname: string): string | undefined {
-	const encodedId = /^\/_board\/item\/(?<id>[^/]+)\/?$/u.exec(pathname)?.groups?.id;
-	try {
-		return encodedId === undefined ? undefined : decodeURIComponent(encodedId);
-	} catch {
-		return "";
-	}
-}
-
-export function identity(
-	index: Effect.Success<ReturnType<typeof searchSnapshot>>,
-	pages: ReturnType<typeof page>,
-	changes: Changes,
-	home: string | undefined,
-) {
+export function identity(index: Effect.Success<ReturnType<typeof searchSnapshot>>, pages: ReturnType<typeof page>, changes: Changes) {
 	return Effect.fn("WorkBoard.identity")(function* (request: HttpServerRequest.HttpServerRequest) {
-		const pathname = new URL(request.url, "http://127.0.0.1").pathname;
-		const id = requestedIdentity(pathname);
-		if (id === undefined) {
+		const encoded = /^\/_board\/item\/(?<id>[^/]+)\/?$/u.exec(new URL(request.url, "http://127.0.0.1").pathname)?.groups?.id;
+		if (encoded === undefined) {
 			return yield* pages(request);
+		}
+		let id: string;
+		try {
+			id = decodeURIComponent(encoded);
+		} catch {
+			id = "";
 		}
 		const snapshot = yield* index;
 		const matches = snapshot.model.ids.get(id) ?? [];
-		if (snapshot.unavailable.length > 0) {
-			return respond(
-				shell(
-					`Item ${id}`,
-					"",
-					`<p class="empty">The workspace index is incomplete. Could not read ${escapeHtml(snapshot.unavailable.join(", "))}; item identity could not be validated. Retry when the files are readable.</p>`,
-					changes.realRoot,
-					false,
-				),
-				"text/html",
-				503,
-			);
-		}
-		if (matches.length === 1 && matches[0]) {
+		if (snapshot.unavailable.length === 0 && matches.length === 1 && matches[0]) {
 			return yield* pages(request, matches[0].file, id);
 		}
-		const text =
-			matches.length > 0
-				? `The ID ${id} is duplicated. No document was selected.`
-				: `No item with ID ${id} is available. It may be missing, renamed, or invalid.`;
-		const choices = matches.map((document) => `<li><a href="${escapeHtml(fileUrl(document.file))}">${escapeHtml(document.file)}</a></li>`).join("");
-		const nav = navHtml(yield* changes.files, "", home, snapshot);
-		return respond(
-			shell(
-				`Item ${id}`,
-				nav,
-				`<p class="empty">${escapeHtml(text)}</p>${choices ? `<ul>${choices}</ul>` : ""}`,
-				changes.realRoot,
-				false,
-				undefined,
-				false,
-				snapshot,
-			),
-			"text/html",
-			matches.length > 0 ? 409 : 404,
-		);
+		let status = matches.length > 0 ? 409 : 404;
+		if (snapshot.unavailable.length > 0) {
+			status = 503;
+		}
+		return respond(shell(`Item ${id}`, changes.realRoot), "text/html", status);
 	});
 }

@@ -2,9 +2,8 @@ import { Effect, Layer } from "effect";
 import { appHost } from "@shivaedev/platform/appHost.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { boardRuntime } from "#server/boardRuntime.ts";
-import { MAX_BYTES } from "#server/history/limits.ts";
 import { boardRoutes } from "#server/http/boardRoutes.ts";
-import { RPC_PATH, rpcPolicy } from "#server/http/rpcPolicy.ts";
+import { MAX_BYTES, RPC_PATH, rpcPolicy } from "#server/http/rpcPolicy.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import type { BoardOptions } from "./board.ts";
 

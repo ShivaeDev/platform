@@ -15,7 +15,7 @@ const files = {
 
 it.each(["", "?view=table", "?view=board"])("excludes records from Work%s through the projection query", async (query) => {
 	const view = await renderBoard(files, (api, registry) => {
-		const router = boardRouter({ api, initial: "", registry });
+		const router = boardRouter({ api, registry });
 		router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [`/_board/work${query}`] }) });
 		return <RouterProvider router={router} />;
 	});

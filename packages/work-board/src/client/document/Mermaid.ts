@@ -94,7 +94,7 @@ export function Mermaid({ source }: { readonly source: string }) {
 					ref: svgRef,
 				})
 			: null,
-		createElement("pre", { className: "diagram-source" }, source),
+		createElement("pre", { className: "diagram-source", hidden: !(shown && "error" in shown) }, source),
 		createElement(
 			"span",
 			{ "data-visual-tools": "" },

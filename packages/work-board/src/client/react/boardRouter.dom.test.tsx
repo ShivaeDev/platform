@@ -23,7 +23,7 @@ const files = {
 it.live("renders compact navigation and the selected document title", function* () {
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
-			const router = boardRouter({ api, initial: "", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/notes/deep/review.md"] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -43,7 +43,7 @@ it.live("changes the React main area through TanStack Router while retaining the
 	let router: ReturnType<typeof boardRouter> | undefined;
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
-			router = boardRouter({ api, initial: "", registry });
+			router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/notes/design.md"] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -68,7 +68,7 @@ it.live("changes the React main area through TanStack Router while retaining the
 it.live("renders a document from its typed query with React context tools", function* () {
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
-			const router = boardRouter({ api, initial: "", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/notes/design.md"] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -92,7 +92,7 @@ it.live("retains form text and focus when a hosted page query refreshes", functi
 	const view = yield* Effect.promise(() =>
 		renderBoard(source, (api, registry) => {
 			refresh = () => view.registry.refresh(documentQuery(api, "/question.md"));
-			const router = boardRouter({ api, initial: "", registry });
+			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/question.md"] }) });
 			return <RouterProvider router={router} />;
 		}),

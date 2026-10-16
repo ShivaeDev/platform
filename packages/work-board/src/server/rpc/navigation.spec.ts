@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { navigationHtml } from "#browser/navigation/html.ts";
 import { browserClient } from "#client/client.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { navigationFixture } from "#test/navigationFixture.ts";
@@ -20,12 +19,12 @@ const open = Effect.fn("Test.open")(function* () {
 		(resource) => Effect.sync(() => resource.registry.dispose()),
 	);
 });
-it.live("returns compact counts without a tree and keeps Library available in the fallback", function* () {
+it.live("returns compact counts without a tree and loads it independently of the shell", function* () {
 	yield* open();
 	const data = yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "packages/form/README.md" })));
 	expect(data).toEqual({ counts: { goals: 0, library: 7, now: 0, system: expect.any(Number) }, home: { file: "packages/README.md" }, inboxCount: 1 });
 	const response = yield* rawGet(board, "/packages/form/README.md");
-	expect(response.body).toContain(navigationHtml(data));
+	expect(response.body).toContain("data-board-react-root");
 	expect(response.body).not.toContain('data-key="folder:');
 });
 it.live("loads Fleet records only when Library requests them", function* () {

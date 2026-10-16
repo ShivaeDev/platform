@@ -4,10 +4,8 @@ export function remainingRoute(pathname: string) {
 			return "library";
 		case "/_board/goals":
 			return "goals";
-		case "/_board/changes":
-			return "changes";
-		case "/_board/diagnostics":
-			return "diagnostics";
+		case "/_board/system":
+			return "system";
 		case "/_board/start":
 			return "start";
 		case "/_board/respond":

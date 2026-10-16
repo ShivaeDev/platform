@@ -56,7 +56,7 @@ it("keeps primary destinations and Search available from Today, Now, goals and d
 it("opens Library and System through More and closes the sheet on navigation or dismissal", async () => {
 	const view = await chrome(todayFixture(), "/");
 	try {
-		for (const href of ["/_board/library", "/_board/diagnostics"]) {
+		for (const href of ["/_board/library", "/_board/system"]) {
 			click(`${PHONE} button[aria-controls="phone-more"]`);
 			expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
 			expect([...document.querySelectorAll("#phone-more a")].map((link) => link.textContent)).toEqual(["Library", "System"]);
