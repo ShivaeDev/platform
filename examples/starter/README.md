@@ -22,6 +22,8 @@ The app uses Tailwind's neutral shadcn theme and application-owned `Button` and 
 
 The starter's numbered migration path creates Better Auth's tables with `getMigrations(auth.options)` followed by `runMigrations()`. No separate auth migration command is needed. Protected operations declare `AuthenticatedUser`; `authenticatedUserLayer(sessions)` supplies `SessionUser` from the `betterAuthSessions` provider. Note handlers use its id for ownership, and `notes.whoami` returns id, name and email without querying auth tables; signed-out calls return typed `Unauthorized` failures. The UI shows a sign-in prompt, and `SessionBoundary` replaces cached queries and drafts when the session changes.
 
+The browser entry point creates `makeAuth({ baseUrl })` and supplies it to `App`. Session checking and auth actions use that instance. Stories can create an auth client for their own HTTP host with the application kit’s `authClient()` verb.
+
 The TypeScript configuration keeps strict application checking and sets `skipLibCheck: true` for dependencies that declare unused runtime types. Existing notes from the unauthenticated starter have no account owner and are not shown to signed-in users.
 
 Write new tests as stories. The kit in [`src/test-support/application.ts`](src/test-support/application.ts) owns a disposable PostgreSQL database and the real HTTP app host. Traits such as `signedIn()`, `legacyNote(title)` and `behindProxy()` describe setup; verbs drive authenticated notes requests, rerun migrations through another host and start the word-count worker. Extend the kit with a trait or verb when a feature needs another setup or action.

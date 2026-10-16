@@ -4,12 +4,13 @@ import { expect, onTestFinished } from "vitest";
 import { eventually, render } from "@shivaedev/effect-react/testing.ts";
 import { appRouter } from "#client/appRouter.tsx";
 import { notesClient } from "./notesClient.ts";
+import { screenAuth } from "./screenAuth.ts";
 
 export async function openNote(tell: (line: string) => void) {
 	const client = notesClient([{ id: 1, title: "First note", version: 0, wordCount: null }]);
 	const view = await render(null);
 	onTestFinished(view.unmount);
-	const router = appRouter(view.registry, client, createMemoryHistory({ initialEntries: ["/notes/1"] }));
+	const router = appRouter(view.registry, client, screenAuth(), createMemoryHistory({ initialEntries: ["/notes/1"] }));
 	await view.render(<RouterProvider router={router} />);
 	await eventually(() => expect(view.container.querySelector("input")?.value).toBe("First note"));
 	async function enter(value: string) {

@@ -4,6 +4,7 @@ import { beforeEach, expect, onTestFinished, vi } from "vitest";
 import { eventually, render } from "@shivaedev/effect-react/testing.ts";
 import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { notesClient } from "#test-support/notesClient.ts";
+import { screenAuth } from "#test-support/screenAuth.ts";
 import { screens } from "#test-support/screens.ts";
 import { appRouter } from "./appRouter.tsx";
 import { NotesScreen } from "./NotesScreen.tsx";
@@ -34,7 +35,7 @@ screens.it("shows the protected route's typed Unauthorized failure and links to 
 		];
 		const view = await render(null);
 		onTestFinished(view.unmount);
-		const router = appRouter(view.registry, client, createMemoryHistory({ initialEntries: ["/"] }));
+		const router = appRouter(view.registry, client, screenAuth(), createMemoryHistory({ initialEntries: ["/"] }));
 		await view.render(<RouterProvider router={router} />);
 		await eventually(() => expect(view.container.querySelector("[role=alert]")?.textContent).toBe("Sign in to view your notes."));
 		expect(view.container.querySelector("a")?.getAttribute("href")).toBe("/sign-in");

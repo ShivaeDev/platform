@@ -3,6 +3,7 @@ import { act } from "react";
 import { expect, onTestFinished } from "vitest";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
 import { notesClient } from "#test-support/notesClient.ts";
+import { screenAuth } from "#test-support/screenAuth.ts";
 import { screens } from "#test-support/screens.ts";
 import { appRouter } from "./appRouter.tsx";
 
@@ -17,7 +18,7 @@ screens.it(
 			const client = notesClient();
 			const view = await render(null);
 			onTestFinished(view.unmount);
-			const router = appRouter(view.registry, client, createMemoryHistory({ initialEntries: ["/"] }));
+			const router = appRouter(view.registry, client, screenAuth(), createMemoryHistory({ initialEntries: ["/"] }));
 			await view.render(<RouterProvider router={router} />);
 			await eventually(() => expect(view.container.textContent).toContain("No notes yet"));
 			expect(client.calls).toEqual(["list"]);

@@ -3,6 +3,7 @@ import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { makeAuth } from "#client/auth.ts";
 import { noteWorker } from "#server/noteWorker.ts";
 import { type RunningHost, secret, startHost } from "./host.ts";
 import { liveNotes } from "./liveNotes.ts";
@@ -54,6 +55,11 @@ export const app = storyKit({
 				return actor;
 			},
 			anonymous: () => http().notes(),
+			authClient: (cookie = "") => {
+				story.tell("connect an auth client to this story's app host");
+				const { baseUrl, origin } = host();
+				return makeAuth({ baseUrl, fetchOptions: { headers: { cookie, origin } } });
+			},
 			authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
 			foreignRequest: (cookie: string) => http().foreignRequest(cookie),
 			liveNotes: (name = "alice") => {

@@ -2,14 +2,14 @@ import { createRootRouteWithContext, createRoute, createRouter, type RouterHisto
 import { Schema } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
-import { type AuthActions, authActions } from "./auth.ts";
+import type { AuthActions } from "./auth.ts";
 import { LoginScreen } from "./LoginScreen.tsx";
 import type { NotesClient } from "./makeNotes.ts";
 import { NoteEdit } from "./NoteEdit.tsx";
 import { NotesScreen } from "./NotesScreen.tsx";
 import { RouteFailure } from "./RouteFailure.tsx";
 
-export function appRouter(registry: AtomRegistry.AtomRegistry, client: NotesClient, history?: RouterHistory, auth: AuthActions = authActions) {
+export function appRouter(registry: AtomRegistry.AtomRegistry, client: NotesClient, auth: AuthActions, history?: RouterHistory) {
 	const root = createRootRouteWithContext<{ readonly registry: AtomRegistry.AtomRegistry }>()();
 	const notes = createRoute({
 		component: () => <NotesScreen client={client} onSignOut={() => auth.signOut()} />,
