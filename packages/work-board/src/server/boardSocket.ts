@@ -52,6 +52,7 @@ export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 	owned = true;
 	yield* fs.chmod(path, 0o600);
 	const context = yield* Layer.build(handlers.pipe(Layer.provideMerge(RpcSerialization.layerNdjson)));
+	// Unix requests have no TCP peer address; the socket's mode is their access boundary.
 	const rpc = yield* RpcServer.toHttpEffect(workRpcs).pipe(Effect.provideContext(context));
 	yield* server.serve(
 		Effect.gen(function* () {

@@ -11,13 +11,14 @@ function frames(body: string): readonly unknown[] {
 
 export function socketRpc(address: string, tag: string): Promise<readonly unknown[]> {
 	return new Promise((resolve, reject) => {
-		const url = address.startsWith("http:") ? new URL(address) : undefined;
+		const tcp = address.startsWith("http:");
+		const url = new URL("/_board/rpc", tcp ? address : "http://localhost");
 		const outgoing = request(
+			url,
 			{
-				...(url ? { hostname: url.hostname, port: url.port } : { socketPath: address }),
-				headers: { "content-type": "application/ndjson" },
+				...(tcp ? {} : { socketPath: address }),
+				headers: { "content-type": "application/ndjson", host: "localhost" },
 				method: "POST",
-				path: "/_board/rpc",
 			},
 			(response) => {
 				let body = "";

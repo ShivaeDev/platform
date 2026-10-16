@@ -542,7 +542,7 @@ printf '%s\n' '{"_tag":"Request","id":"1","tag":"work-board.server","payload":nu
 
 The `work-board.server` query takes no payload and returns `{ url, directory }`, for example `{ "url": "http://127.0.0.1:4747/", "directory": "/home/me/project/notes" }`. It is available over both TCP and the socket; `url` uses the actual browser port, including when `--port 0` selects a free port. Its `Server` schema is exported from `@shivaedev/work-board/rpc/Server.ts`.
 
-The socket has owner-only permissions. Startup removes an unanswered stale socket and refuses to start when another board already answers there. Closing the board removes its socket, including on SIGINT and SIGTERM. If the board directory is committed, add `board.sock` to that directory's ignore rules.
+The socket has owner-only permissions, which provide its access boundary because Unix connections have no TCP remote address. Requests to `http://localhost/_board/rpc` with `Host: localhost` work over the socket; TCP retains its loopback Host and remote-address checks. Startup removes an unanswered stale socket and refuses to start when another board already answers there. Closing the board removes its socket, including on SIGINT and SIGTERM. If the board directory is committed, add `board.sock` to that directory's ignore rules.
 
 ### Install and limits
 
