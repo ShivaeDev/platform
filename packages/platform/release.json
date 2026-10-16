@@ -2,13 +2,9 @@
 	"date": "2026-10-16",
 	"fragments": [
 		{
-			"name": "optional-host-services.md",
-			"text": "### Added\n\n- `appHost` and its options types accept an omitted `services` Layer for apps without services of their own. Annotated options require a Layer when they declare service outputs, errors or requirements. Existing service Layers keep their behavior, and migrated hosts still provide database services to handlers.\n"
-		},
-		{
-			"name": "session-user.md",
-			"text": "### Added\n\n- Signed-in handlers can read the current user's id, name and email: declare `AuthenticatedUser`, read `SessionUser`, and merge `authenticatedUserLayer(sessions)` beside the handlers. `Identity` keeps its `{ id }` shape.\n"
+			"name": "native-body-reader.md",
+			"text": "### Added\n\n- Export `readBoundedBody` and `RequestBodyTooLarge` from `@shivaedev/platform/boundedBody.ts`. Native Node HTTP routes can apply Effect's `HttpIncomingMessage.MaxBodySize` and return 413 for oversized content lengths or chunked bodies while keeping the connection usable and preserving accepted bytes.\n"
 		}
 	],
-	"version": "0.10.0"
+	"version": "0.11.0"
 }

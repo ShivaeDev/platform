@@ -1,46 +1,29 @@
-import { Effect, Layer, Redacted } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/http";
+import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { SqlClient } from "effect/sql";
 import { expect, vi } from "vitest";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { makeNotesClient } from "#client/makeNotes.ts";
-import { authPost, credentials, notesHttp } from "#test-support/authHttp.ts";
-import { effectApp } from "#test-support/postgres.ts";
-import { noteWorker } from "./noteWorker.ts";
+import { app, signedIn } from "#test-support/application.ts";
 
-effectApp(
+app.it(
 	"enqueues committed notes through the producer and refetches the live client after worker updates",
-	function* ({ baseUrl }) {
+	[signedIn()],
+	function* ({ actor, startWorker, liveNotes }) {
 		const sql = yield* SqlClient.SqlClient;
-		const database = yield* PostgresTestDatabase;
-		const cookie = yield* authPost(baseUrl, "sign-up/email", credentials("alice"));
-		const http = yield* notesHttp(baseUrl, cookie);
-		const client = makeNotesClient(`${baseUrl}/rpc`, (transport) =>
-			HttpClient.mapRequest(transport, HttpClientRequest.setHeaders({ cookie, origin: baseUrl })),
-		);
-		const registry = yield* Effect.acquireRelease(
-			Effect.sync(() => AtomRegistry.make()),
-			(value) => Effect.sync(() => value.dispose()),
-		);
-		const list = client.api.list.query();
-		registry.mount(list);
-		registry.mount(client.connection);
-		yield* Effect.promise(() => vi.waitFor(() => expect(registry.get(client.status).connection).toBe("live")));
-		const note = yield* http["notes.create"]({ title: "Count these three words" });
+		const { notes: http } = actor();
+		const { list, registry } = yield* liveNotes();
+		const note = yield* http.create({ title: "Count these three words" });
 		expect(note.wordCount).toBeNull();
 		yield* Effect.promise(() => vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual([note])));
 		expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 1 }]);
 		yield* Effect.sleep("1200 millis");
 		expect(yield* sql`select "wordCount" from starter_notes where id = ${note.id}`).toEqual([{ wordCount: null }]);
-		yield* Layer.build(noteWorker({ databaseUrl: database.url, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }));
+		yield* startWorker();
 		yield* Effect.promise(() =>
 			vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual([{ ...note, version: 1, wordCount: 4 }]), {
 				timeout: 5000,
 			}),
 		);
-		const second = yield* http["notes.create"]({ title: "After commit" });
+		const second = yield* http.create({ title: "After commit" });
 		yield* Effect.promise(() =>
 			vi.waitFor(
 				() =>

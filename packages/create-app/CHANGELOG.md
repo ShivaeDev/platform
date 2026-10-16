@@ -1,10 +1,16 @@
 # Changelog
 
-## 0.2.3 - 2026-10-16
+## 0.3.1 - 2026-10-16
 
 ### Fixed
 
 - Generated apps register producer queues and dead-letter queues through effect-pg-boss's producer-only Layer. Note writes enqueue separately after their transaction and remain successful when the queue is unavailable.
+
+## 0.3.0 - 2026-10-16
+
+### Added
+
+- Generated apps include a story kit for authenticated HTTP and PostgreSQL tests, plus screen and migration stories, with guidance to extend the kit for new features.
 
 ## 0.2.2 - 2026-10-16
 

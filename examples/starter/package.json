@@ -45,6 +45,7 @@
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/effect-test-sql": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@tailwindcss/vite": "catalog:",
 		"@types/node": "catalog:",
 		"@types/pg": "catalog:",

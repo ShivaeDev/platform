@@ -5,3 +5,5 @@ This private application is the source template that `@shivaedev/create-app` pac
 The application owns its UI and local session policy. Shared declarations stay browser safe; PostgreSQL, services and the app host stay on the server. Keep the pnpm catalog and TypeScript configuration self-contained so generating the app does not require repository files.
 
 Use the root repository guidance while developing this template. The [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) explains creating and running the app. A server change needs the real PostgreSQL round-trip test; a form change needs its happy-dom test.
+
+Write new tests as stories on the kits in `src/test-support/`: `application.ts` for real PostgreSQL and HTTP, `screens.ts` for focused happy-dom behavior, and `migration.ts` for schema upgrades. Add domain traits and verbs to the kit instead of building hosts, proxies, sessions or requests inline in specs. Keep infrastructure scoped, use a live clock for HTTP and DOM stories, and retain independent SQL assertions where persistence is the behavior. See the README for the smallest story.

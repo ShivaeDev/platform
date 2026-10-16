@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 - 2026-10-16
+
+### Added
+
+- Export `readBoundedBody` and `RequestBodyTooLarge` from `@shivaedev/platform/boundedBody.ts`. Native Node HTTP routes can apply Effect's `HttpIncomingMessage.MaxBodySize` and return 413 for oversized content lengths or chunked bodies while keeping the connection usable and preserving accepted bytes.
+
 ## 0.10.0 - 2026-10-16
 
 ### Added
