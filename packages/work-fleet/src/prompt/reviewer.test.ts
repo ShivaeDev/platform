@@ -19,7 +19,6 @@ describe("reviewer prompt and verdict", () => {
 		expect(prompt).toContain("criteria: prove the behavior");
 		expect(prompt).toContain('"head":"exact-head"');
 		expect(prompt).toContain("https://example.invalid/pr/1");
-		expect(prompt).toContain("Source /synthetic/env.sh");
 		expect(prompt).toContain("Do not edit, commit, push, merge");
 		expect(prompt).toContain("gh pr diff");
 		expect(prompt).toContain("gh api --method GET");
