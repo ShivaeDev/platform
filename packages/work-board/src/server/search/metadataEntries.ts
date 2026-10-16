@@ -1,4 +1,6 @@
 import { fileUrl } from "#files/url.ts";
+import { fleetRecords } from "#server/attention/inbox.ts";
+import { closedItem, deferredItem } from "#server/attention/status.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { attentionEntries } from "./attentionEntries.ts";
@@ -8,18 +10,26 @@ function itemUrl(document: MetadataDocument, model: MetadataModel): string {
 	const id = document.parsed.fields.id;
 	return model.unavailable.length === 0 && id && model.ids.get(id)?.length === 1 ? identityUrl(id) : fileUrl(document.file);
 }
-export function metadataEntries(entries: readonly Entry[], documents: readonly MetadataDocument[], model: MetadataModel): readonly Entry[] {
+export function metadataEntries(
+	entries: readonly Entry[],
+	documents: readonly MetadataDocument[],
+	model: MetadataModel,
+	records: ReadonlySet<string> = fleetRecords(model),
+): readonly Entry[] {
 	const sources = new Map(documents.map((document) => [document.file, document]));
 	const enriched = entries.map((entry) => {
 		const document = sources.get(entry.file);
-		if (entry.kind !== "document" || !document) {
+		if (!document) {
 			return entry;
 		}
 		const fields = document.parsed.fields;
 		return {
 			...entry,
-			href: itemUrl(document, model),
-			text: [entry.text, fields.id, fields.kind, fields.status, fields.owner, fields.nextAction].filter(Boolean).join(" "),
+			href: entry.kind === "document" ? itemUrl(document, model) : entry.href,
+			text:
+				entry.kind === "document"
+					? [entry.text, fields.id, fields.kind, fields.status, fields.owner, fields.nextAction].filter(Boolean).join(" ")
+					: entry.text,
 		};
 	});
 	for (const document of documents) {
@@ -40,5 +50,20 @@ export function metadataEntries(entries: readonly Entry[], documents: readonly M
 			});
 		}
 	}
-	return enriched;
+	return enriched.map((entry) => {
+		const document = sources.get(entry.file);
+		const fields = document?.parsed.fields;
+		return {
+			...entry,
+			id: fields?.id,
+			inactive: document ? closedItem(document) || deferredItem(document) : false,
+			itemKind: fields?.kind,
+			record:
+				entry.file === "fleet/status.md"
+				|| entry.file.startsWith("responses/fleet-report.")
+				|| records.has(entry.file)
+				|| Boolean(fields?.question || fields?.response || fields?.requestReceipt),
+			status: fields?.status,
+		};
+	});
 }

@@ -13,8 +13,13 @@ import { linkCollector } from "./linkCollector.ts";
 export interface Entry {
 	readonly file: string;
 	readonly href: string;
+	readonly id?: string | undefined;
+	readonly inactive?: boolean;
+	readonly itemKind?: string | undefined;
 	readonly kind: "document" | "heading" | "passage";
 	readonly line?: number;
+	readonly record?: boolean;
+	readonly status?: string | undefined;
 	readonly text: string;
 	readonly title: string;
 }

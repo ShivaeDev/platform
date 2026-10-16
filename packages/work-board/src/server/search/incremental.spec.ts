@@ -8,6 +8,7 @@ import { inboxHtml } from "#server/attention/inboxHtml.ts";
 import { type Folder, folder } from "#test/board.ts";
 import { incrementalIndex } from "#test/incrementalIndex.ts";
 import { indexState } from "#test/indexState.ts";
+import { searchMatch } from "./match.ts";
 
 let notes: Folder;
 let index: Effect.Success<ReturnType<typeof incrementalIndex>>;
@@ -85,12 +86,14 @@ it.live("carries source modification times into Inbox order and age while retain
 	index = yield* incrementalIndex(notes.root);
 	const before = yield* index.read();
 	expect(inboxItems(before).map((item) => item.id)).toEqual(["a", "b"]);
+	expect(searchMatch(before.entries, "question", before.modified).results.map((entry) => entry.id)).toEqual(["b", "a"]);
 	expect(inboxHtml(before, false, 3 * 86_400_000)).toContain("updated 3d ago");
 	notes.write("a.md", `${source("a")}\nChanged context`);
 	utimesSync(join(notes.root, "a.md"), 10, 10);
 	yield* index.update(["a.md"]);
 	const edited = yield* index.read();
 	expect(inboxItems(edited).map((item) => item.id)).toEqual(["b", "a"]);
+	expect(searchMatch(edited.entries, "question", edited.modified).results.map((entry) => entry.id)).toEqual(["a", "b"]);
 	expect(edited.documents[0]?.modified).toBe(10_000);
 	expect(edited.documents[1]).toBe(before.documents[1]);
 	expect(edited.model.ids.get("b")).toBe(before.model.ids.get("b"));
@@ -101,6 +104,7 @@ it.live("carries source modification times into Inbox order and age while retain
 	expect(unchanged.model.ids.get("b")).toBe(edited.model.ids.get("b"));
 	expect(unchanged.documents[1]?.modified).toBe(2000);
 	expect(inboxItems(unchanged).map((item) => item.id)).toEqual(["a", "b"]);
+	expect(searchMatch(unchanged.entries, "question", unchanged.modified).results.map((entry) => entry.id)).toEqual(["b", "a"]);
 	const now = 3 * 86_400_000;
 	expect(inboxHtml(unchanged, false, now)).toContain('data-modified="172800000">updated 24h ago');
 	expect(inboxHtml(unchanged, false, now)).toBe(inboxHtml(yield* index.fresh(), false, now));
@@ -109,6 +113,7 @@ it.live("carries source modification times into Inbox order and age while retain
 	const reconciled = yield* index.read();
 	expect(reconciled.documents[0]).toBe(unchanged.documents[0]);
 	expect(inboxItems(reconciled).map((item) => item.id)).toEqual(["b", "a"]);
+	expect(searchMatch(reconciled.entries, "question", reconciled.modified).results.map((entry) => entry.id)).toEqual(["a", "b"]);
 	expect(inboxHtml(reconciled, false, now)).toContain('data-modified="259200000">updated 0m ago');
 	expect(inboxHtml(reconciled, false, now)).toBe(inboxHtml(yield* index.fresh(), false, now));
 });

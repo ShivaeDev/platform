@@ -1,3 +1,4 @@
+import { fleetRecords } from "#server/attention/inbox.ts";
 import type { MetadataModel } from "#server/metadata/model.ts";
 import type { Entry } from "./entries.ts";
 import { metadataEntries } from "./metadataEntries.ts";
@@ -5,9 +6,11 @@ import type { IndexedDocument } from "./readDocument.ts";
 
 export function updateEntries() {
 	let previous: MetadataModel | undefined;
+	let grouped: ReadonlySet<string> = new Set();
 	let sources = new Map<string, IndexedDocument>();
 	let enriched = new Map<string, readonly Entry[]>();
 	return (records: ReadonlyMap<string, IndexedDocument>, model: MetadataModel): readonly Entry[] => {
+		const recordsNow = fleetRecords(model);
 		const next = new Map<string, readonly Entry[]>();
 		for (const [file, record] of records) {
 			const id = record.document.parsed.fields.id;
@@ -18,12 +21,13 @@ export function updateEntries() {
 			const hit = enriched.get(file);
 			next.set(
 				file,
-				hit && sources.get(file) === record && unique === wasUnique && complete === wasComplete
+				hit && sources.get(file) === record && unique === wasUnique && complete === wasComplete && recordsNow.has(file) === grouped.has(file)
 					? hit
-					: metadataEntries(record.entries, [record.document], model),
+					: metadataEntries(record.entries, [record.document], model, recordsNow),
 			);
 		}
 		previous = model;
+		grouped = recordsNow;
 		sources = new Map(records);
 		enriched = next;
 		return [

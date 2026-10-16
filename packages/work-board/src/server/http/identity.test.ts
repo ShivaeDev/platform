@@ -101,10 +101,11 @@ effectApp("indexes declared IDs/status/owner and criteria at exact source locati
 	expect(body.results[0]?.href).toBe("/_board/item/work.search/");
 	expect(body.results[0]?.line).toBe(23);
 	const criteria = yield* rpcSearch(board, "Escape returns focus");
-	expect(criteria.results[0]?.href).toBe("/_board/item/work.search/#criterion-keyboard");
-	expect(criteria.results[0]?.line).toBe(8);
+	expect(criteria.results[0]?.href).toBe("/_board/item/work.search/");
+	expect(criteria.results.find((result) => result.href.endsWith("#criterion-keyboard"))?.line).toBe(8);
 	const prose = yield* rpcSearch(board, "Readable project prose");
-	expect(prose.results[0]?.line).toBe(25);
+	expect(prose.results[0]?.href).toBe("/_board/item/work.search/");
+	expect(prose.results.find((result) => result.kind === "passage")?.line).toBe(25);
 });
 
 effectApp("keeps invalid and unknown metadata visible without making prose unreadable", function* () {
