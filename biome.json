@@ -1,41 +1,6 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"extends": ["@shivaedev/quality/biome"],
-	"files": {
-		"includes": ["**", "!**/test-support/generated", "!**/test-support/*/generated"]
-	},
-	"overrides": [
-		{
-			"includes": ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/server/testing/AnyTestLayer.ts"],
-			"linter": {
-				"rules": {
-					"suspicious": {
-						"noExplicitAny": "off"
-					}
-				}
-			}
-		},
-		{
-			"includes": ["packages/effect-prisma/src/test-support/controlled-collection.ts"],
-			"linter": {
-				"rules": {
-					"suspicious": {
-						"noThenProperty": "off"
-					}
-				}
-			}
-		},
-		{
-			"includes": ["packages/effect-test/src/vitest.ts"],
-			"linter": {
-				"rules": {
-					"correctness": {
-						"noEmptyPattern": "off"
-					}
-				}
-			}
-		}
-	],
 	"plugins": [
 		{
 			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
