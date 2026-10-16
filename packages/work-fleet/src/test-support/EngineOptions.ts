@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
-import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
+import type { BoardAcknowledgementStale, BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardFailure, BoardGateway, BoardWork, ChangeResult, Checks, Delivery, FleetConfiguration, WorkResult } from "#policy.ts";
@@ -11,7 +11,7 @@ import type { SessionTransport } from "#session/service.ts";
 export interface EngineOptions {
 	readonly acknowledgeFailure?: boolean;
 	readonly acknowledgementGate?: Effect.Effect<void>;
-	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
+	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure | BoardAcknowledgementStale>;
 	readonly archiveFailure?: boolean;
 	readonly areaMergeWaitMs?: number;
 	readonly backlog?: number;
