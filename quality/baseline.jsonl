@@ -214,7 +214,6 @@
 {"path":"packages/effect-service/src/test-support/fixtures/valid.ts","rule":"biome/lint/suspicious/noShadow","count":2}
 {"path":"packages/effect-sql/src/postgresMigrationBootstrap.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-sql/src/postgresMigrations.spec.ts","rule":"biome/plugin","count":1}
-{"path":"packages/effect-sql/src/repository.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-sql/src/test-support/environment.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-sql/src/test-support/postgres-transact.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-sql/src/transact.ts","rule":"biome/lint/style/useNamingConvention","count":4}

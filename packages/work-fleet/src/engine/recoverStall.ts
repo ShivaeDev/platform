@@ -34,7 +34,7 @@ export const recoverStall = Effect.fn("Fleet.recoverStall")(function* (
 			stored,
 			"session-stalled",
 			"Provider turn stalled after automatic steer and interrupt recovery",
-			"Inspect the worker thread and retry or safely release",
+			"Retry in a fresh session or abandon the stalled turn and release ownership",
 		);
 	}
 	if (count === 0) {

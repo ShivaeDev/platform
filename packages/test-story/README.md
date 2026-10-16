@@ -47,7 +47,7 @@ An application has an **engine**: the real thing a test drives, such as a bakery
 
 Every story belongs to a **genre**, the kind of engine it runs. The kit names each of its tests after its genre, such as `Bakery Story: steps until the condition holds`, so a report shows which engine a test runs and one run can pick the bakery's stories and leave the others.
 
-The package runs on Effect and Vitest, but an engine needs neither: every hook, trait and test body may be a plain function. A hook that needs a service or fails with a typed error is a generator function that yields Effects, and the kit runs it, so no definition writes `Effect.gen`.
+The package runs on Effect and Vitest, but an engine needs neither: every hook, trait and test body may be a plain function. Use a generator function to yield Effects when a hook needs a service or fails with a typed error; the kit runs it, so no definition needs `Effect.gen`. Creation, stage `after` hooks and traits may also be plain functions that return an Effect directly. The kit runs that Effect in the story's Scope, with the services from its layer.
 
 The work splits into three layers, and each is written by a different hand at a different time:
 
@@ -208,6 +208,8 @@ bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, o
 A spec starts a story, acts through verbs and checks what a user would see. When it needs a setup or an action the kit lacks, add a trait or verb to the kit instead of building it in the spec.
 
 ### Running the engine
+
+Hooks and steps that wait for real workers can use `withLive(Effect.sleep(...))` or `withLive(eventually(...))` from `@shivaedev/effect-test/withLive.ts` and `@shivaedev/effect-test/eventually.ts`. Both work under the kit's live clock and a story's TestClock override. The wrapped work uses live time without advancing the story's virtual time; outside it, the selected clock still applies. Unwrapped `eventually` uses the active clock and advances TestClock between attempts.
 
 `story.runUntil(condition, { maxSteps })` returns an Effect that asks three questions before every step:
 

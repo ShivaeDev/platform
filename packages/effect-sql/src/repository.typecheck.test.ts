@@ -43,6 +43,10 @@ const program = Effect.gen(function* () {
 	makeRepository(Document, { ...options, versionColumn: "id" });
 	// @ts-expect-error Unknown columns are rejected.
 	makeRepository(Document, { ...options, versionColumn: "missing" });
+	// @ts-expect-error Conflict writes cannot bypass optimistic concurrency.
+	makeRepository(Document, { ...options, conflictColumns: ["name"], versionColumn: "lockVersion" });
+	// @ts-expect-error Versioned repositories do not expose unconditional upserts.
+	documents.upsert({ name: "draft" }, { updateColumns: ["name"] });
 	const plain = yield* makeRepository(Document, options);
 	plain.delete(1);
 	// @ts-expect-error Unversioned delete retains its one-argument signature.
