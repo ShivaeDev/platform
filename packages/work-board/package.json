@@ -444,7 +444,10 @@
 		"./views/savedScript.ts": null,
 		"./document/answerBody.ts": null,
 		"./document/answerCardsHtml.ts": null,
-		"./document/requestTitle.ts": null
+		"./document/requestTitle.ts": null,
+		"./browser/document/sourceGroups.ts": null,
+		"./page/relationshipSources.ts": null,
+		"./page/sourceListHtml.ts": null
 	},
 	"bin": {
 		"work-board": "./dist/server/cli.js"
