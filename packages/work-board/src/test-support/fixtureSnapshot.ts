@@ -6,7 +6,11 @@ import { entriesOf } from "#server/search/entries.ts";
 import { metadataEntries } from "#server/search/metadataEntries.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
-export const fixtureSnapshot = Effect.fn("Test.fixtureSnapshot")(function* (files: Readonly<Record<string, string>>, home: string | undefined) {
+export const fixtureSnapshot = Effect.fn("Test.fixtureSnapshot")(function* (
+	files: Readonly<Record<string, string>>,
+	home: string | undefined,
+	modified: ReadonlyMap<string, number> = new Map(),
+) {
 	const documents: Array<MetadataDocument & { links: string[] }> = Object.entries(files).map(([file, source]) => ({
 		file,
 		links: [],
@@ -28,7 +32,7 @@ export const fixtureSnapshot = Effect.fn("Test.fixtureSnapshot")(function* (file
 		documents,
 		entries: metadataEntries(entries.flat(), documents, model),
 		model,
-		modified: new Map(),
+		modified,
 		revision: 0,
 		unavailable: [],
 	} satisfies Snapshot;

@@ -1,3 +1,4 @@
+import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
 import type { SearchItem } from "./searchCommands.ts";
 import { shellIds } from "./shellIds.ts";
 export function SearchResults({
@@ -11,7 +12,7 @@ export function SearchResults({
 }) {
 	const occurrences = new Map<string, number>();
 	function resultKey(item: SearchItem) {
-		const identity = JSON.stringify([item.command, item.href, item.file, item.kind, item.line, item.snippet, item.title]);
+		const identity = JSON.stringify([item.command, item.href, item.file, item.id, item.kind, item.line, item.snippet, item.title]);
 		const occurrence = occurrences.get(identity) ?? 0;
 		occurrences.set(identity, occurrence + 1);
 		return `${identity}:${occurrence}`;
@@ -36,8 +37,10 @@ export function SearchResults({
 					>
 						<strong>{item.title}</strong>
 						<small>
-							{item.kind}
-							{item.file ? ` · ${item.file}${item.line ? `:${item.line}` : ""}` : ""}
+							{item.itemKind ?? item.kind}
+							{Boolean(item.id) && <code className="font-mono">{item.id}</code>}
+							{Boolean(item.status) && <StatusChip status={item.status} />}
+							{!item.id && item.file ? ` · ${item.file}${item.line ? `:${item.line}` : ""}` : ""}
 						</small>
 						{Boolean(item.snippet) && <p>{item.snippet}</p>}
 					</a>

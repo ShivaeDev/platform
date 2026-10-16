@@ -65,7 +65,9 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.responses": ({ question }) => Effect.suspend(() => responses.read(question)).pipe(responseBoundary),
 			"work-board.result": ({ url }) => remaining.result(url).pipe(documentBoundary),
 			"work-board.search": ({ query }) =>
-				Effect.map(index, (snapshot) => ({ ...searchMatch(snapshot.entries, query), unavailable: snapshot.unavailable })).pipe(readBoundary),
+				Effect.map(index, (snapshot) => ({ ...searchMatch(snapshot.entries, query, snapshot.modified), unavailable: snapshot.unavailable })).pipe(
+					readBoundary,
+				),
 			"work-board.start": () => remaining.start().pipe(readBoundary),
 			"work-board.subscribe": () =>
 				hints(changes, index).pipe(Stream.catchCause((cause) => Stream.fromEffect(Effect.failCause(cause).pipe(readBoundary)))),

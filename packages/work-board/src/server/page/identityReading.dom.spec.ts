@@ -92,10 +92,10 @@ effectApp("keeps focus on a criterion opened through search within the active it
 	input.value = "Escape returns focus";
 	input.dispatchEvent(new page.window.Event("input", { bubbles: true }));
 	yield* Effect.promise(() =>
-		waitFor(() =>
-			expect(page.document.querySelector("#search-results a")?.getAttribute("href")).toBe("/_board/item/work.search/#criterion-keyboard"),
-		),
+		waitFor(() => expect(page.document.querySelector('#search-results a[href="/_board/item/work.search/#criterion-keyboard"]')).not.toBeNull()),
 	);
+	input.dispatchEvent(new page.window.KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "ArrowDown" }));
+	yield* Effect.promise(() => waitFor(() => expect(input.getAttribute("aria-activedescendant")).toBe("search-result-1")));
 	input.dispatchEvent(new page.window.KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" }));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("criterion-keyboard")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-meta")?.closest("[hidden]") === null).toBe(true)));
