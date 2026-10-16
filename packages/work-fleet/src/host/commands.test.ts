@@ -120,7 +120,8 @@ describe("work-fleet host against PostgreSQL", () => {
 				const [prompt] = prompts(fixture.provider);
 				expect(prompt).toMatch(/^Work Board task: a\n/u);
 				expect(prompt).toContain("create fleet/a from that exact current revision");
-				expect(prompt).toContain("Source /workspace/env.sh");
+				expect(prompt).toContain("source /workspace/env.sh once in that command and say so in the final message");
+				expect(prompt).toContain("run `./script/update` with escalation");
 				expect(prompt).toContain("Report the main revision.");
 				const invalid = yield* dispatchWork(fixture.host, "b", fixture.parts).pipe(Effect.flip);
 				expect(invalid).toMatchObject({ message: "b has an invalid fleet-launch; use model, effort and serviceTier strings" });

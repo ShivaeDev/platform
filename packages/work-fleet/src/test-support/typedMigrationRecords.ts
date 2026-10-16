@@ -1,6 +1,6 @@
 import type { FleetRecord } from "#model.ts";
 import { prepared } from "#test/preparation.ts";
-import { migrationReceipt, migrationSettings, typedMigrationAttempt } from "#test/typedMigrationAttempt.ts";
+import { migrationReceipt, migrationSettings, typedMigrationAttempts } from "#test/typedMigrationAttempt.ts";
 
 const published = {
 	itemId: "item",
@@ -17,11 +17,7 @@ export function typedMigrationRecords(): readonly FleetRecord[] {
 	const first: FleetRecord = {
 		admissionReady: false,
 		areas: ["area", "second", "area"],
-		attempts: [
-			typedMigrationAttempt,
-			{ ...typedMigrationAttempt, briefSteers: [], operationId: "second", settings: {}, terminalReceipts: [] },
-			{ operationId: "third", role: "worker", status: "completed", submittedAt: 12 },
-		],
+		attempts: typedMigrationAttempts,
 		attentionOwner: "orchestrator",
 		blocker: "blocker",
 		boardContext: "context",

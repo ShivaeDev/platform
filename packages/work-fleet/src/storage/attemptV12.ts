@@ -2,6 +2,25 @@ import type { Shape } from "#storage/recordShape.ts";
 
 export const attemptV12 = {
 	fields: {
+		abandoned: {
+			fields: {
+				at: "number",
+				interruptError: "string",
+				observation: {
+					fields: {
+						capacity: "string",
+						error: "string",
+						execution: "string",
+						output: "string",
+						progress: { array: { fields: { id: "string", status: "string" } } },
+						provisioning: "string",
+						receipt: { fields: { sessionId: "string", turnId: "string" } },
+						turnMissing: "boolean",
+					},
+				},
+				observationError: "string",
+			},
+		},
 		briefSteers: {
 			array: {
 				fields: {
