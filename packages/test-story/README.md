@@ -209,6 +209,8 @@ A spec starts a story, acts through verbs and checks what a user would see. When
 
 ### Running the engine
 
+Hooks and steps that wait for real workers can use `withLive(Effect.sleep(...))` or `withLive(eventually(...))` from `@shivaedev/effect-test/withLive.ts` and `@shivaedev/effect-test/eventually.ts`. Both work under the kit's live clock and a story's TestClock override. The wrapped work uses live time without advancing the story's virtual time; outside it, the selected clock still applies. Unwrapped `eventually` uses the active clock and advances TestClock between attempts.
+
 `story.runUntil(condition, { maxSteps })` returns an Effect that asks three questions before every step:
 
 1. `run.failed` returns a sentence: it dies with it, even when the condition also holds.
