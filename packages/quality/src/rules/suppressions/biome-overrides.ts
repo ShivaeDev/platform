@@ -1,30 +1,10 @@
 import { Effect, Schema } from "effect";
+import { biomeExceptionHint, missingBiomeFiles } from "#exceptions/biomeFindings.ts";
 import { defineRule, type Finding } from "#rule.ts";
+import { ConsumerDeclaration } from "#rules/suppressions/biome/ConsumerDeclaration.ts";
 import { biomeConfigs, type Chain } from "#rules/suppressions/biome/configs.ts";
-import { Declaration, matches, type Scoped, scoped, scopeText } from "#rules/suppressions/biome/declarations.ts";
+import { matches, type Scoped, scoped, scopeText } from "#rules/suppressions/biome/declarations.ts";
 import { type Weakening, weakeningsOf } from "#rules/suppressions/biome/weakenings.ts";
-
-const GLOB = /[*!?[\]{}]/u;
-const DIRECTORY = /^\.?[^./\\*!?[\]{}]+$/u;
-const INDIVIDUAL = /^(?:lint|assist)\/(?!domains\/)[a-zA-Z]+\/[a-zA-Z]+$/u;
-
-function namedExclusion(pattern: string): boolean {
-	const segments = pattern.slice(pattern.startsWith("!**/") ? 4 : 1).split("/");
-	return pattern.startsWith("!") && DIRECTORY.test(segments.at(-1) ?? "") && segments.every((segment) => segment === "*" || DIRECTORY.test(segment));
-}
-
-const ConsumerDeclaration = Declaration.check(
-	Schema.makeFilter(
-		({ includes, rule }) =>
-			rule === "files/includes"
-				? includes.includes("**") && includes.length > 1 && includes.every((pattern) => pattern === "**" || namedExclusion(pattern))
-				: INDIVIDUAL.test(rule) && includes.every((path) => !GLOB.test(path) && /[^/]+\.[^/]+$/u.test(path)),
-		{
-			message:
-				"Declare one lint rule or assist action for explicit files, or files/includes with ** and named directory exclusions. Whole checks, groups and blanket scopes cannot be weakened.",
-		},
-	),
-);
 
 const BiomeOverridesOptions = Schema.Struct({
 	declared: Schema.Array(ConsumerDeclaration).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
@@ -41,12 +21,12 @@ const shippedBy = ({ base, layers }: Chain): readonly Shipped[] =>
 			: preset.declared.map(({ includes, rule }) => ({ includes: includes.map((glob) => scoped(base, glob)), rule, specifier: preset.specifier })),
 	);
 
-const undeclared = ({ includes, layer, line, rule }: Weakening): Finding =>
+const undeclared = ({ includes, layer, line, rule }: Weakening, configFile: string): Finding =>
 	layer.preset === undefined
 		? {
 				file: layer.path,
 				line,
-				message: `Weakens "${rule}" for ${scopeText(includes)} without a declaration. Repair the code and remove the weakening setting.`,
+				message: `Weakens "${rule}" for ${scopeText(includes)} without a declaration. Repair the code and remove the weakening setting.${Schema.is(ConsumerDeclaration)({ includes, reason: "Permanent exception.", rule }) ? biomeExceptionHint(includes, rule, configFile) : ""}`,
 				subject: rule,
 			}
 		: {
@@ -85,7 +65,8 @@ export const biomeOverrides = defineRule({
 		const covered = (weakening: Weakening): boolean => [...declared, ...shipped].some((declaration) => matches(declaration, weakening));
 		return [
 			...problems,
-			...weakenings.filter((weakening) => !covered(weakening)).map(undeclared),
+			...(await missingBiomeFiles(inputs)),
+			...weakenings.filter((weakening) => !covered(weakening)).map((weakening) => undeclared(weakening, inputs.configFile ?? "quality.config.ts")),
 			...declared.flatMap(staleOrRepeated(root, weakenings, shipped)),
 		];
 	},

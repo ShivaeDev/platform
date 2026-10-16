@@ -1,4 +1,5 @@
 import type { Bivariant } from "@shivaedev/types/bivariant.ts";
+import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { describeIssue, type StandardSchemaV1 } from "./standard-schema.ts";
 
 export interface Finding {
@@ -19,6 +20,8 @@ export interface SourceFile {
 }
 
 export interface RuleInputs {
+	readonly configFile?: string;
+	readonly exceptions?: readonly ExceptionDeclaration[];
 	readonly files: readonly string[];
 	readonly readText: (path: string) => Promise<string | undefined>;
 	readonly root: string;

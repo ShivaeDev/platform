@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.22.0 - 2026-10-16
+
+### Added
+
+- Declare permanent exceptions once in `QualityConfig.exceptions` as `{ files, rules, reason, subject? }`. One declaration covers Quality rules and individual `biome/lint/<group>/<rule>` or `biome/assist/<group>/<action>` rules. Quality merges the Biome settings during lint and fix without editing the repository's Biome config.
+- Move legacy registry entries and reasoned Biome declarations into the config with `quality exceptions migrate [--config <file>] [--from <registry>]`. Matching root Biome overrides are removed; legacy readers remain available during upgrades.
+
+### Changed
+
+- Exceptable findings show the config location and declaration shape. Missing Biome exception files fail the gate, and manual Biome overrides still require repair or migration.
+
 ## 0.21.0 - 2026-10-16
 
 ### Added

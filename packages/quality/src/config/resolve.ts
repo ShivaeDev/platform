@@ -21,6 +21,17 @@ const duplicateIssues = (rules: readonly Rule[]): readonly string[] =>
 		rules.findIndex((other) => other.id === rule.id) === index ? [] : [`local: rule id "${rule.id}" is already defined`],
 	);
 
+function activeRule(rule: Rule, check: ActiveRule["check"]): ActiveRule {
+	return {
+		check,
+		description: rule.description,
+		family: rule.family === true,
+		id: rule.id,
+		level: "error",
+		registrable: rule.registrable !== false,
+	};
+}
+
 const activate = (rule: Rule, setting: Setting | undefined): Effect.Effect<Decoded<ActiveRule>> =>
 	Effect.tryPromise({ catch: messageOf, try: () => rule.configure(optionsOf(setting)) }).pipe(
 		Effect.map(
@@ -29,7 +40,7 @@ const activate = (rule: Rule, setting: Setting | undefined): Effect.Effect<Decod
 					? { _tag: "Invalid", issues: configured.issues.map((issue) => `rules.${rule.id}.options: ${issue}`) }
 					: {
 							_tag: "Valid",
-							value: { check: configured.check, description: rule.description, family: rule.family === true, id: rule.id, level: "error" },
+							value: activeRule(rule, configured.check),
 						},
 		),
 		Effect.catch((failure: string) =>

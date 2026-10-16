@@ -1,8 +1,9 @@
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { Effect, type FileSystem } from "effect";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
 import { validOrFail } from "#decoded.ts";
 import { decodeRegistry, type RegistryEntry } from "#exceptions/registry.ts";
+import { registryEntries } from "#exceptions/registryEntries.ts";
 import { SetupFailure } from "#failure.ts";
 import { collectInventory, type Inventory } from "#inventory/collect.ts";
 import { type FilesystemFailure, readOptionalText } from "#inventory/filesystem.ts";
@@ -27,7 +28,14 @@ export const scan = (config: ResolvedConfig): Effect.Effect<Pick<Session, "inven
 		const inventory = yield* setup(collectInventory(config.root, config));
 		const services = yield* Effect.context<FileSystem.FileSystem>();
 		const readText = (path: string): Promise<string | undefined> => Effect.runPromiseWith(services)(readOptionalText(resolve(config.root, path)));
-		const violations = yield* runRules(config.active, { files: inventory.files, readText, root: config.root, sources: inventory.sources });
+		const violations = yield* runRules(config.active, {
+			configFile: relative(config.root, config.file),
+			exceptions: config.exceptions,
+			files: inventory.files,
+			readText,
+			root: config.root,
+			sources: inventory.sources,
+		});
 		return { inventory, violations };
 	});
 
@@ -38,5 +46,5 @@ export const openSession = (cwd: string, configPath: string | undefined): Effect
 		const registry = yield* validOrFail(config.registry, yield* Effect.promise(() => decodeRegistry(registryRaw)));
 		const baseline = yield* readBaseline(config);
 		const { inventory, violations } = yield* scan(config);
-		return { baseline, config, inventory, registry, violations };
+		return { baseline, config, inventory, registry: [...registry, ...registryEntries(config.exceptions)], violations };
 	});

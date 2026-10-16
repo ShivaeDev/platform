@@ -2,6 +2,7 @@ import { relative } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
 import { biomeReport, type Report } from "#biome/report.ts";
 import { loadConfig } from "#config/load.ts";
+import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { SetupFailure } from "#failure.ts";
 import { posix } from "#inventory/ignore-scope.ts";
 import { walk } from "#inventory/walk.ts";
@@ -10,10 +11,10 @@ import { plural } from "#report/plural.ts";
 
 export const MAX_FIX_ROUNDS = 5;
 
-function biome(root: string, args: readonly string[]): Effect.Effect<Report, SetupFailure> {
+function biome(root: string, args: readonly string[], exceptions: readonly ExceptionDeclaration[]): Effect.Effect<Report, SetupFailure> {
 	return Effect.tryPromise({
 		catch: (cause) => new SetupFailure({ message: cause instanceof Error ? cause.message : String(cause) }),
-		try: () => biomeReport(root, args),
+		try: () => biomeReport(root, args, exceptions),
 	});
 }
 
@@ -43,17 +44,21 @@ export interface Settling<TFailure, TRequirements> {
 	readonly snapshot: Effect.Effect<ReadonlyMap<string, string>, TFailure, TRequirements>;
 }
 
-function changedBy(root: string, args: readonly string[]): Effect.Effect<number, SetupFailure> {
-	return Effect.map(biome(root, args), (report) => report.summary.changed);
+function changedBy(root: string, args: readonly string[], exceptions: readonly ExceptionDeclaration[]): Effect.Effect<number, SetupFailure> {
+	return Effect.map(biome(root, args, exceptions), (report) => report.summary.changed);
 }
 
-function biomePasses(root: string): readonly Pass<SetupFailure, never>[] {
+function biomePasses(root: string, exceptions: readonly ExceptionDeclaration[]): readonly Pass<SetupFailure, never>[] {
 	return [
 		{
 			label: "with fixes",
-			run: changedBy(root, ["check", "--write", "--unsafe", "--skip=assist/source/useSortedKeys", "--skip=lint/suspicious/noDuplicateObjectKeys"]),
+			run: changedBy(
+				root,
+				["check", "--write", "--unsafe", "--skip=assist/source/useSortedKeys", "--skip=lint/suspicious/noDuplicateObjectKeys"],
+				exceptions,
+			),
 		},
-		{ label: "with the format pass", run: changedBy(root, ["format", "--write"]) },
+		{ label: "with the format pass", run: changedBy(root, ["format", "--write"], exceptions) },
 	];
 }
 
@@ -122,9 +127,9 @@ export function settle<TFailure, TRequirements>({
 
 export function fix(cwd: string, config: string | undefined): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> {
 	return Effect.gen(function* () {
-		const { root } = yield* loadConfig(cwd, config);
+		const { root, exceptions } = yield* loadConfig(cwd, config);
 		const sorted = yield* Effect.mapError(sortManifests(root), (failure) => new SetupFailure({ message: failure.message }));
 		yield* Console.log(`quality: sort-package-json rewrote ${plural(sorted, "manifest")}.`);
-		yield* settle({ passes: biomePasses(root), snapshot: snapshotOf(root) });
+		yield* settle({ passes: biomePasses(root, exceptions), snapshot: snapshotOf(root) });
 	});
 }

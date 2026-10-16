@@ -33,7 +33,7 @@ quality lint
 
 ### Baseline growth
 
-An error-level finding that neither the registry nor the baseline covers fails `quality lint`; that is how new debt gets noticed. The baseline itself may grow: a reviewer sees each new or raised entry in the diff and judges it. When the failing findings are debt the baseline should keep, such as the debt of a file that moved or was renamed, record the rule again with `quality baseline write --rule <id>`. The report ends with that command for the rules that failed. Then call out the baseline growth in the pull request description.
+An error-level finding that neither the config exceptions nor the baseline covers fails `quality lint`; that is how new debt gets noticed. The baseline itself may grow: a reviewer sees each new or raised entry in the diff and judges it. When the failing findings are debt the baseline should keep, such as the debt of a file that moved or was renamed, record the rule again with `quality baseline write --rule <id>`. The report ends with that command for the rules that failed. Then call out the baseline growth in the pull request description.
 
 When an upgrade adds a shared check, keep its default error level, inspect its findings and record retained debt with `quality baseline write --rule <id>`. Review any new counts in the commit.
 
@@ -41,19 +41,39 @@ When an upgrade adds a shared check, keep its default error level, inspect its f
 
 A count depends on the rule's limit, so a Quality policy change that adjusts a limit shifts every count of that rule. The public API also exposes numeric overrides; that does not make tuning thresholds an adoption step. Prefer the shared defaults. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit can make an error-level rule's files fail `quality lint`, since each is now further over the limit. Inspect the findings under the new policy before recording retained debt again with `quality baseline write --rule <id>`. Commit the counts with the policy upgrade. The raised entries show in the diff, and the pull request calls them out.
 
-## Registry
+## Exceptions
 
-```json
-[
-	{
-		"rule": "structure/max-lines",
-		"file": "src/generated/client.ts",
-		"reason": "Generated from the OpenAPI document; splitting it would mean forking the generator."
-	}
-]
+Declare permanent exceptions in `quality.config.ts`, in `exceptions`. One entry names `files`, `rules` and one `reason`; it can cover both Quality and Biome rules on the same file:
+
+```ts
+export default defineConfig({
+	exceptions: [
+		{
+			files: ["src/parse.ts"],
+			reason: "This parser documents and returns the external format unchanged.",
+			rules: ["comments/no-jsdoc", "biome/lint/suspicious/noExplicitAny"],
+		},
+	],
+});
 ```
 
-An entry covers a rule's violations in one file, for good, and must say why. With a `subject`, it covers only the violations with that subject. The registry applies before the baseline. An entry that covers nothing, or names a rule that is off, unknown or takes no exceptions, fails the gate until it is removed.
+Paths are explicit, relative to the config folder. A Quality exception can add `subject` to cover only that finding's subject. Rules that refuse exceptions still refuse them. Quality exceptions apply before the baseline and must cover a current finding; unknown rules, refused rules and stale entries fail the gate. Biome declarations permit individual lint rules and assist actions on explicit files, without a subject. A Biome declaration naming a missing file fails too.
+
+Quality merges the native Biome overrides into a temporary config beside the root config, preserving the repository's settings, preset and plugins, and removes the temporary file after the command. Both `quality lint` and `quality fix` use it. Keep `biome.json` free of consumer exception settings; a manual weakening is still reported. Direct editor or Biome commands use the checked-in config; run Quality to apply its exceptions.
+
+For a generated directory exclusion, use `rules: ["biome/files/includes"]` and `files: ["**", "!**/test-support/generated"]`. The [rule reference](./rules.md#declared-biome-overrides) describes the narrow directory pattern policy.
+
+### Upgrade existing exceptions
+
+```sh
+quality exceptions migrate
+quality fix
+quality lint
+```
+
+The command reads the legacy registry (the configured `registry` path, or `quality/registry.json`) and `suppressions/biome-overrides.options.declared`. It moves them into `exceptions`, merges declarations with the same files, reason and subject, deletes the old registry and removes the old rule setting and matching root Biome settings. It keeps other config properties. `--from <registry>` selects another legacy registry and `--config <file>` selects a config. Without a config it creates one.
+
+Export an object or `defineConfig({ ... })` without spreads for automatic editing; inline the `rules` object when it contains old Biome declarations. Unsupported shapes fail before any writes. Review the diff and remove unused declaration imports and files. For declarations of settings in nested or extended local Biome configs, remove those settings too; automatic removal covers the root `biome.json` and `biome.jsonc`. Legacy readers keep existing consumers running during upgrades; new exceptions go in `exceptions`.
 
 ## Pre-commit hook
 
