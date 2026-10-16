@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 - 2026-10-16
+
+### Fixed
+
+- Let `create`, stage `after` hooks and traits return an Effect directly, with inferred engine types, checked service requirements and the story's Scope, alongside generators and synchronous functions.
+
 ## 0.2.0 - 2026-10-13
 
 ### Breaking
