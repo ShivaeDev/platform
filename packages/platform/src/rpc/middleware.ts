@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { RpcMiddleware } from "effect/rpc";
 import { AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
-import type { Identity, OptionalIdentity, RequestId } from "./identity.ts";
+import type { Identity, OptionalIdentity, RequestId, SessionUser } from "./identity.ts";
 export class RequestTracing extends RpcMiddleware.Service<
 	RequestTracing,
 	{
@@ -22,3 +22,11 @@ export class MaybeAuthenticated extends RpcMiddleware.Service<
 		provides: OptionalIdentity;
 	}
 >()("@shivaedev/platform/rpc/MaybeAuthenticated", { error: Schema.Union([AuthUnavailable, Forbidden]) }) {}
+export class AuthenticatedUser extends RpcMiddleware.Service<
+	AuthenticatedUser,
+	{
+		provides: Identity | SessionUser;
+	}
+>()("@shivaedev/platform/rpc/AuthenticatedUser", {
+	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden]),
+}) {}

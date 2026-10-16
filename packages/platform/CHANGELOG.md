@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-10-16
+
+### Added
+
+- `SessionUser` and `SessionUserValue` expose the signed-in user’s id, name and email beside the unchanged `Identity`. `AuthenticatedUser` and `authenticatedUserLayer` provide both services from a `UserSessionShape` provider, with typed authentication failures and request-local profiles.
+
 ## 0.8.0 - 2026-10-14
 
 ### Breaking

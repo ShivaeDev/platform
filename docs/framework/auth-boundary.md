@@ -13,6 +13,14 @@ import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/bett
 
 Use these with the shared error classes described in [errors and request context](./request-context.md). The test described here is the minimal example, written without those helpers.
 
+## Reading the current user
+
+For a signed-in handler that needs id, name and email, declare `AuthenticatedUser` from `@shivaedev/platform/rpc/middleware.ts` and read `SessionUser` from `@shivaedev/platform/rpc/identity.ts`. Merge `authenticatedUserLayer(sessions)` from `@shivaedev/platform/rpc-server/session.ts` beside the handler Layer. The policy's provider must return those three fields in `session.user`; Better Auth's session lookup already does. The [Platform guide](../../packages/platform/README.md#reading-the-signed-in-user) shows the complete composition.
+
+`SessionUser` carries only `{ id, name, email }` for that invocation. The same middleware also provides `Identity` with its existing `{ id }` shape. Missing sessions fail with typed `Unauthorized`, rejected origins with `Forbidden`, and provider outages with `AuthUnavailable`. Applications use this profile instead of querying Better Auth's `user` table.
+
+The starter uses this path in its signed-in note handlers and its `notes.whoami` query. [sessionUser.spec.ts](../../examples/starter/src/server/sessionUser.spec.ts) runs against real PostgreSQL and loopback HTTP: concurrent requests return the matching users' profiles, the profile id owns a saved note, and anonymous and signed-out requests return typed `Unauthorized` failures. It does not establish deployed browser behavior.
+
 ## Request flow
 
 ```text

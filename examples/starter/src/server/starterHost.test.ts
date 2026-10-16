@@ -66,8 +66,8 @@ app.it(
 		const bob = actor("bob").notes;
 		expect(yield* bob.list()).toEqual([]);
 		expect(yield* alice.list()).toEqual([note]);
-		const users = yield* sql<{ id: string }>`select id from "user" where email = 'alice@starter.test'`;
-		expect(yield* sql`select "ownerId" from starter_notes where title = ${note.title}`).toEqual([{ ownerId: users[0]?.id }]);
+		const user = yield* alice.whoami();
+		expect(yield* sql`select "ownerId" from starter_notes where title = ${note.title}`).toEqual([{ ownerId: user.id }]);
 		expect(yield* sql`select "ownerId" from starter_notes where title = 'Legacy note'`).toEqual([{ ownerId: null }]);
 		yield* authenticate("alice", "sign-out", aliceCookie);
 		const revoked = yield* alice.create({ title: "Revoked note" }).pipe(Effect.result);
