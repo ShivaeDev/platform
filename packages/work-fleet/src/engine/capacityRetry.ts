@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { failureCode } from "#engine/failureCode.ts";
+import { lostReviewThread } from "#engine/lostReviewThread.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { retryPrompt } from "#engine/retryPrompt.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
@@ -8,16 +9,25 @@ import { busyThread, transientFailure } from "#session/transientFailure.ts";
 
 const retryStages: Readonly<Record<Attempt["role"], FleetRecord["stage"]>> = { repair: "repairing", reviewer: "reviewing", worker: "prepared" };
 
+export const retryLostReview = Effect.fn("Fleet.retryLostReview")(function* (state: EngineState, record: FleetRecord, error: unknown) {
+	const attempt = record.attempts.at(-1);
+	return attempt !== undefined && lostReviewThread(record, error) ? yield* capacityRetry(state, record, attempt.operationId, error) : false;
+});
+
 export const capacityRetry = Effect.fn("Fleet.capacityRetry")(function* (
 	state: EngineState,
 	previous: FleetRecord,
 	operationId: string,
 	error: SessionFailure,
 ) {
-	if (!transientFailure(error)) {
+	const restartReview = lostReviewThread(previous, error);
+	if (!(transientFailure(error) || restartReview)) {
 		return false;
 	}
 	const current = yield* state.load(previous.workId);
+	if (restartReview && (current.value.attempts.at(-1)?.operationId !== operationId || !lostReviewThread(current.value, error))) {
+		return false;
+	}
 	const rejected = current.value.attempts.find((item) => item.operationId === operationId);
 	if (rejected === undefined || (rejected.receipt !== undefined && rejected.status !== "failed")) {
 		return false;
@@ -33,6 +43,8 @@ export const capacityRetry = Effect.fn("Fleet.capacityRetry")(function* (
 				? {
 						...attempt,
 						output: error.message,
+						readRetry: undefined,
+						...(restartReview ? { sessionUnusable: true } : {}),
 						...(freshThread ? { prompt: retryPrompt(previous, attempt), sessionUnusable: true } : {}),
 						status: "failed" as const,
 					}

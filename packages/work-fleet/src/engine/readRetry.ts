@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { retryLostReview } from "#engine/capacityRetry.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -58,10 +59,13 @@ export const readRetry = Effect.fn("Fleet.readRetry")(function* (
 		return undefined;
 	}
 	const previous = kind === "provider" ? attempt?.readRetry : current.value.integrationRetry;
-	if (previous !== undefined && state.policy.now() < previous.retryAt) {
+	if (retryPending(state, current.value)) {
 		return current;
 	}
 	const failures = (previous?.failures ?? 0) + 1;
+	if (failures >= 5 && (yield* retryLostReview(state, current.value, error))) {
+		return yield* state.load(current.value.workId);
+	}
 	const retryAt = state.policy.now() + 30_000 * 2 ** (failures - 1);
 	const message = failureMessage(error);
 	const subject = { integration: "integration evidence", provider: "provider state" }[kind];
