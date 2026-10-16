@@ -87,6 +87,7 @@ export function inboxItems(snapshot: Snapshot) {
 						problem,
 						reason,
 						title: titles.get(document.file) ?? document.file,
+						unblocks: [id ?? ""],
 					},
 				]
 			: [];

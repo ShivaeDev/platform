@@ -61,7 +61,8 @@ const deliverRepair = Effect.fn("AnswerQueueTest.deliverRepair")(function* (
 		expect(running.attempts.map((entry) => entry.receipt)).toEqual(previous.attempts.map((entry) => entry.receipt));
 		fixture.finishWorker(running);
 	}
-	const next = yield* client("fleet.reconcile", { workId: "one" });
+	yield* client("fleet.reconcile", { workId: "one" });
+	const next = yield* fixture.started(client, "repair");
 	const attempt = next.attempts.at(-1);
 	if (attempt?.receipt === undefined || attempt.prompt === undefined) {
 		return yield* Effect.die("Expected the next repair turn");

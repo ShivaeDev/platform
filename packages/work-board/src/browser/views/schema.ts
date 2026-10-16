@@ -3,7 +3,7 @@ import { Document } from "#browser/document/schema.ts";
 import { Metadata } from "#metadata/schema.ts";
 import { State } from "./state.ts";
 
-const WorkItem = Schema.Struct({
+export const WorkItem = Schema.Struct({
 	file: Schema.String,
 	fleetApproved: Schema.optional(Schema.Boolean),
 	id: Schema.String,

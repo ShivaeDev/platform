@@ -10,6 +10,7 @@ import { fixtureSnapshot } from "./fixtureSnapshot.ts";
 
 export interface BoardFixtureOptions {
 	readonly beforeRead?: (kind: "document" | "page", url: string) => Effect.Effect<void>;
+	readonly fleetPort?: number;
 	readonly home: string | undefined;
 	readonly modified?: ReadonlyMap<string, number>;
 	readonly writable?: boolean;
@@ -43,7 +44,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 						Effect.andThen(readDocument({ ...options, home, writable: configuration?.writable === true })(url)),
 						Effect.provideContext(context),
 					),
-				fleetPort: null,
+				fleetPort: configuration?.fleetPort ?? null,
 				home,
 			}).pipe(Effect.provideContext(context));
 		}),

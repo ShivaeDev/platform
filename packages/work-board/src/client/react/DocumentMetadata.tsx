@@ -5,7 +5,7 @@ import { DocumentWorkMetadata } from "./DocumentWorkMetadata.tsx";
 import { keyed } from "./keyed.ts";
 export function DocumentMetadata({ document }: { readonly document: Document }) {
 	const reading = document.reading;
-	const backlinks = reading?.backlinks ?? [];
+	const backlinks = (reading?.backlinks ?? []).filter((link) => document.metadata.kind !== "project" || link.kind !== "Implements");
 	const groups = [...new Set(backlinks.map((link) => link.kind))].map((kind) => (
 		<section aria-label={`${kind} backlinks`} key={kind}>
 			<h4>
