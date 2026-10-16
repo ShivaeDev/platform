@@ -5,6 +5,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Config, Effect, Schema } from "effect";
+import { setupInstaller } from "./setupInstaller.ts";
 
 const folders: string[] = [];
 const cli = fileURLToPath(new URL("../cli.ts", import.meta.url));
@@ -57,10 +58,14 @@ export function testEnvironment(app: string, { databases = false, name = "my-app
 export function appFolder({
 	installationExit = 0,
 	gitAvailable = true,
+	realSetup = false,
+	typecheckExit,
 	destination = "absent",
 }: {
 	readonly installationExit?: number;
 	readonly gitAvailable?: boolean;
+	readonly realSetup?: boolean;
+	readonly typecheckExit?: number;
 	readonly destination?: "absent" | "empty" | "file" | "nonempty" | "environment";
 } = {}) {
 	const root = mkdtempSync(join(tmpdir(), "create-app-cli-"));
@@ -72,6 +77,11 @@ export function appFolder({
 		`#!/usr/bin/env node\nrequire('node:fs').writeFileSync('installation.json', JSON.stringify(process.argv.slice(2)));\nrequire('node:fs').writeFileSync('pnpm-lock.yaml', 'lockfileVersion: 9.0\\n');\nprocess.exit(${installationExit});\n`,
 		{ mode: 0o755 },
 	);
+	if (realSetup) {
+		const pnpm = spawnSync("which", ["pnpm"], { encoding: "utf8" }).stdout.trim();
+		const modules = fileURLToPath(new URL("../../../../examples/starter/node_modules", import.meta.url));
+		writeFileSync(join(bin, "pnpm"), setupInstaller(pnpm, modules, typecheckExit), { mode: 0o755 });
+	}
 	const target = join(root, "my-app");
 	if (["empty", "nonempty", "environment"].includes(destination)) {
 		mkdirSync(target);

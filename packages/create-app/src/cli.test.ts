@@ -20,21 +20,21 @@ beforeAll(() =>
 );
 afterEach(cleanup);
 
-it("creates a named app in a new parent path, installs, and prints only navigation and development steps", () => {
+it("creates a named app in a new parent path, installs, and prints navigation and development steps", () => {
 	const { root, run } = appFolder();
 	const result = run(["apps/my-app"]);
 	expect(result.status).toBe(0);
 	const app = join(root, "apps/my-app");
 	expect(JSON.parse(readFileSync(join(app, "package.json"), "utf8"))).toMatchObject({ name: "my-app" });
 	expect(readFileSync(join(app, "package.json"), "utf8")).toMatch(/^\{\n\t"name": "my-app",/u);
-	expect(readFileSync(join(app, "installation.json"), "utf8")).toBe('["install"]');
+	expect(readFileSync(join(app, "installation.json"), "utf8")).toBe('["run","setup"]');
 	expect(spawnSync("git", ["rev-list", "--count", "HEAD"], { cwd: app, encoding: "utf8" }).stdout).toBe("1\n");
 	expect(spawnSync("git", ["log", "-1", "--format=%an <%ae>"], { cwd: app, encoding: "utf8" }).stdout).toBe("Create App <create-app@localhost>\n");
 	expect(spawnSync("git", ["status", "--porcelain"], { cwd: app, encoding: "utf8" }).stdout).toBe("");
 	const tracked = spawnSync("git", ["ls-files"], { cwd: app, encoding: "utf8" }).stdout.split("\n");
 	expect(tracked).toEqual(expect.arrayContaining(["package.json", "pnpm-lock.yaml", ".github/workflows/ci.yml", "railway.json", "src/notes.ts"]));
 	expect(tracked).not.toContain(".env.local");
-	expect(result.stdout).toBe("Created apps/my-app.\n\nNext steps:\n  cd 'apps/my-app'\n  pnpm dev\n");
+	expect(result.stdout).toMatch(/Created apps\/my-app\.\n\nNext steps:\n {2}cd 'apps\/my-app'\n {2}pnpm dev\n$/u);
 });
 
 it("preserves the configured Git identity for the initial commit", () => {
@@ -168,11 +168,11 @@ it("reports installation failure and leaves the generated app available for retr
 	const { root, run } = appFolder({ installationExit: 7 });
 	const result = run(["my-app"]);
 	expect(result.status).toBe(1);
-	expect(result.stderr).toContain("pnpm install failed (exit 7)");
-	expect(result.stderr).toContain("Run pnpm install in my-app to retry");
+	expect(result.stderr).toContain("pnpm run setup failed (exit 7)");
+	expect(result.stderr).toContain("Run pnpm setup in my-app to retry");
 	expect(result.stdout).not.toContain("Next steps");
 	expect(existsSync(join(root, "my-app/package.json"))).toBe(true);
-	expect(existsSync(join(root, "my-app/.git"))).toBe(false);
+	expect(spawnSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: join(root, "my-app") }).status).not.toBe(0);
 });
 
 it("rejects invalid package names before creating a folder", () => {

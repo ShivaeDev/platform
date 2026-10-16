@@ -18,7 +18,7 @@ Use Node 24 or newer and pnpm. The package contains a snapshot of the starter ma
 pnpm create @shivaedev/app my-app
 ```
 
-The folder argument may include a parent path. Its final folder name becomes the package name and must be a lowercase npm name. The destination must be absent or empty, including hidden files. The command runs `pnpm install` in the generated app and reports an installation failure with a nonzero exit status.
+The folder argument may include a parent path. Its final folder name becomes the package name and must be a lowercase npm name. The destination must be absent or empty, including hidden files. The command runs `pnpm setup` in the generated app to install dependencies and Quality's pre-commit hook, and reports setup failure with a nonzero exit status. Setup installs the hook only when the app has its own `.git`; it leaves an enclosing repository's hooks alone.
 
 After installation, follow the printed steps:
 
@@ -29,7 +29,9 @@ pnpm dev
 
 The command writes a git-ignored `.env.local` with a fresh authentication secret and local development and test database URLs. Existing files are never overwritten. Database names replace dots and hyphens in the app name with underscores, prefix a name starting with a digit with `app_`, and limit the stem to 58 characters before adding `_dev` and `_test`.
 
-When Git is available and the destination is outside an existing repository, the command initializes a repository and commits the generated files and installed lockfile. It uses your Git identity, with a local commit identity when none is configured. Pass `--no-git` to skip this step. A generated app includes a GitHub Actions workflow that runs `pnpm run ci` against PostgreSQL and a `railway.json` that builds the app, runs migrations before deployment, starts the server and checks `/health`.
+When Git is available and the destination is outside an existing repository, the command initializes a repository before setup and commits the generated files and installed lockfile afterward. The first commit runs Quality's lint and typecheck gates; a failed gate leaves it uncommitted. It uses your Git identity, with a local commit identity when none is configured. Pass `--no-git` to skip repository creation. A generated app includes a GitHub Actions workflow that runs `pnpm run ci` against PostgreSQL and a `railway.json` that builds the app, runs migrations before deployment, starts the server and checks `/health`.
+
+Run `pnpm setup` after cloning the generated repository to install dependencies and the hook for that checkout. Run `pnpm ready` for the full local gate: lint, typecheck, build and tests, using the same script as CI.
 
 `pnpm dev` first runs `pnpm db:setup` to prepare both databases through `@shivaedev/local-postgres`. Have local PostgreSQL 18.6 on port 55432 or Docker available; see [local-postgres machine setup](https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#install-and-machine-setup). `pnpm test` loads `TEST_DATABASE_URL` from `.env.local`.
 

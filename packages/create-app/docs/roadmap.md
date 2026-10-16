@@ -9,6 +9,7 @@
 - The generated app prepares both local databases before development and loads its test database URL from the local environment.
 - The published-starter check runs the packed command's output through typecheck, build and PostgreSQL/authenticated HTTP tests.
 - A generated app gets an initial Git commit outside an enclosing repository when Git is available; `--no-git` opts out.
+- Setup installs dependencies and Quality's hook after repository initialization; the initial commit runs lint and typecheck, and `pnpm ready` runs the full local gate.
 - A generated app includes GitHub Actions checks against PostgreSQL and Railway build, migration, start and health-check configuration.
 
 ## Open questions

@@ -4,7 +4,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { Console, Effect, FileSystem, Schema } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { CreateAppError } from "./CreateAppError.ts";
-import { initializeGit } from "./initializeGit.ts";
+import { commitGit, initializeGit } from "./initializeGit.ts";
 import { Template } from "./template.ts";
 
 const decodeName = Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)));
@@ -40,13 +40,14 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 		`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\nTEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\nBETTER_AUTH_SECRET=${randomBytes(32).toString("base64url")}\n`,
 		{ flag: "wx", mode: 0o600 },
 	);
+	const initialized = options.git && (yield* initializeGit(target));
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	const code = yield* spawner.exitCode(ChildProcess.make("pnpm", ["install"], { cwd: target, stderr: "inherit", stdout: "inherit" }));
+	const code = yield* spawner.exitCode(ChildProcess.make("pnpm", ["run", "setup"], { cwd: target, stderr: "inherit", stdout: "inherit" }));
 	if (code !== 0) {
-		return yield* new CreateAppError({ message: `pnpm install failed (exit ${code}). Run pnpm install in ${folder} to retry.` });
+		return yield* new CreateAppError({ message: `pnpm run setup failed (exit ${code}). Run pnpm setup in ${folder} to retry.` });
 	}
-	if (options.git) {
-		yield* initializeGit(target);
+	if (initialized) {
+		yield* commitGit(target);
 	}
 	const quotedFolder = `'${folder.replaceAll("'", "'\"'\"'")}'`;
 	yield* Console.log(`Created ${folder}.\n\nNext steps:\n  cd ${quotedFolder}\n  pnpm dev`);

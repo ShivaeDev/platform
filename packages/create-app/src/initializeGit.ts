@@ -2,27 +2,33 @@ import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { CreateAppError } from "./CreateAppError.ts";
 
-export const initializeGit = Effect.fn("CreateApp.initializeGit")(function* (cwd: string) {
-	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	function exitCode(args: readonly string[]) {
-		return spawner.exitCode(ChildProcess.make("git", args, { cwd }));
+function git(cwd: string, args: readonly string[], inherit = false) {
+	return Effect.flatMap(ChildProcessSpawner.ChildProcessSpawner, (spawner) =>
+		spawner.exitCode(ChildProcess.make("git", args, { cwd, stderr: inherit ? "inherit" : "pipe", stdout: inherit ? "inherit" : "pipe" })),
+	);
+}
+
+const checkedGit = Effect.fn("CreateApp.checkedGit")(function* (cwd: string, args: readonly string[]) {
+	const code = yield* git(cwd, args, true);
+	if (code !== 0) {
+		return yield* new CreateAppError({ message: `git ${args.join(" ")} failed (exit ${code}). The generated files remain in ${cwd}.` });
 	}
-	const available = yield* exitCode(["--version"]).pipe(
+});
+
+export const initializeGit = Effect.fn("CreateApp.initializeGit")(function* (cwd: string) {
+	const available = yield* git(cwd, ["--version"]).pipe(
 		Effect.catch((error) => (error.reason._tag === "NotFound" ? Effect.succeed(-1) : Effect.fail(error))),
 	);
-	if (available !== 0 || (yield* exitCode(["rev-parse", "--git-dir"])) === 0) {
-		return;
+	if (available !== 0 || (yield* git(cwd, ["rev-parse", "--git-dir"])) === 0) {
+		return false;
 	}
-	const identity = yield* exitCode(["var", "GIT_AUTHOR_IDENT"]);
+	yield* checkedGit(cwd, ["init", "--initial-branch=main"]);
+	return true;
+});
+
+export const commitGit = Effect.fn("CreateApp.commitGit")(function* (cwd: string) {
+	const identity = yield* git(cwd, ["var", "GIT_AUTHOR_IDENT"]);
 	const fallback = identity === 0 ? [] : ["-c", "user.name=Create App", "-c", "user.email=create-app@localhost"];
-	for (const args of [
-		["init", "--initial-branch=main"],
-		["add", "--all"],
-		[...fallback, "commit", "-m", "Initialize a generated app"],
-	]) {
-		const code = yield* exitCode(args);
-		if (code !== 0) {
-			return yield* new CreateAppError({ message: `git ${args.join(" ")} failed (exit ${code}). The generated files remain in ${cwd}.` });
-		}
-	}
+	yield* checkedGit(cwd, ["add", "--all"]);
+	yield* checkedGit(cwd, [...fallback, "commit", "-m", "Initialize a generated app"]);
 });

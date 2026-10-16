@@ -50,6 +50,7 @@ it("packages the real starter with registry dependencies, standalone configurati
 	}
 	expect(manifest.scripts["check:published"]).toBeUndefined();
 	expect(manifest.scripts.lint).toBe("quality lint");
+	expect(manifest.scripts.setup).toBe("pnpm install && node src/setup.ts");
 	expect(manifest.scripts.migrate).toBe("node --env-file-if-exists=.env.local src/server/migrate.ts");
 	expect(JSON.parse(files["railway.json"] ?? "{}")).toMatchObject({
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
@@ -82,6 +83,7 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(files["pnpm-workspace.copy.yaml"]).toBeUndefined();
 	for (const path of [
 		".env.example",
+		"src/setup.ts",
 		"src/server/migrate.ts",
 		"src/server/migrateDatabase.ts",
 		"src/server/setup-database.ts",
