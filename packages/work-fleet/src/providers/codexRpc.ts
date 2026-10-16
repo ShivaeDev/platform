@@ -1,4 +1,5 @@
 import { Effect, Schedule, Schema } from "effect";
+import { NAME, TITLE, VERSION } from "#packageInfo.ts";
 import { capacity } from "#providers/capacity.ts";
 import { Envelope } from "#providers/codexProtocol.ts";
 import { genericRejection } from "#providers/genericRejection.ts";
@@ -103,7 +104,7 @@ export function connect(endpoint: CodexEndpoint, timeoutMs: number) {
 export function initialize(connection: CodexConnection, timeoutMs: number, experimentalApi: boolean) {
 	return request(connection, timeoutMs, "initialize", {
 		capabilities: experimentalApi ? { experimentalApi } : null,
-		clientInfo: { name: "work-fleet", title: "Work Fleet", version: "0.0.0" },
+		clientInfo: { name: NAME, title: TITLE, version: VERSION },
 	}).pipe(Effect.andThen(Effect.sync(() => connection.socket.send(JSON.stringify({ method: "initialized" })))));
 }
 export function request(connection: CodexConnection, timeoutMs: number, method: string, params: unknown, mutation = false) {
