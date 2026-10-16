@@ -45,7 +45,7 @@ relationships:
 Use deterministic local matching first. Keep Markdown authoritative.
 ```
 
-Every top-level field is optional. Missing values show as **Not recorded** in work details. `owner` records responsibility, without claiming authorship. `status` and `next_action` are explicit source text; no status vocabulary or transition rules are inferred.
+Every top-level field is optional. Missing values stay blank in work details. `owner` records responsibility, without claiming authorship. `status` and `next_action` are explicit source text; no status vocabulary or transition rules are inferred.
 
 | Field | Source shape |
 | --- | --- |
@@ -104,7 +104,7 @@ evidence:
     outcome: passed
 ```
 
-This example deliberately has no revision or observation time; they remain **Not recorded**. Supply real values when available. Relative source links resolve from the file containing the record. HTTP(S) sources are ordinary links; executable URL schemes stay plain text. Local image sources use the contained PNG/JPEG/GIF/WebP attachment route described in the README; other non-Markdown assets are not served.
+This example deliberately has no revision or observation time; they remain blank. Supply real values when available. Relative source links resolve from the file containing the record. HTTP(S) sources are ordinary links; executable URL schemes stay plain text. Local image sources use the contained PNG/JPEG/GIF/WebP attachment route described in the README; other non-Markdown assets are not served.
 
 Records are labeled **Source claims — not independently verified**. A recorded outcome, test link, agent run completion, or proposed decision does not establish verified acceptance. Work Board neither runs checks nor verifies freshness here.
 

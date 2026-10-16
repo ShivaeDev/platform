@@ -1,24 +1,17 @@
-import type { ReadingContext } from "#browser/document/ReadingContext.ts";
 import type { Document } from "#browser/document/schema.ts";
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { specificSources } from "#browser/document/sourceGroups.ts";
 import { DocumentWorkMetadata } from "./DocumentWorkMetadata.tsx";
-import { keyed } from "./keyed.ts";
+import { SourceList } from "./SourceList.tsx";
+
 export function DocumentMetadata({ document }: { readonly document: Document }) {
 	const reading = document.reading;
-	const backlinks = (reading?.backlinks ?? []).filter((link) => document.metadata.kind !== "project" || link.kind !== "Implements");
-	const groups = [...new Set(backlinks.map((link) => link.kind))].map((kind) => (
+	const backlinks = specificSources(reading?.backlinks ?? []).filter((link) => document.metadata.kind !== "project" || link.kind !== "Implements");
+	const groups = [...Map.groupBy(backlinks, (link) => link.kind)].map(([kind, links]) => (
 		<section aria-label={`${kind} backlinks`} key={kind}>
 			<h4>
-				{kind} ({backlinks.filter((link) => link.kind === kind).length})
+				{kind} ({links.length})
 			</h4>
-			<ul>
-				{keyed(
-					backlinks.filter((link) => link.kind === kind),
-					(link) => `${link.href}:${link.label}`,
-				).map(({ key, value: link }) => (
-					<Backlink key={key} link={link} />
-				))}
-			</ul>
+			<SourceList links={links} />
 		</section>
 	));
 	return (
@@ -31,24 +24,10 @@ export function DocumentMetadata({ document }: { readonly document: Document }) 
 			)}
 			{backlinks.length > 0 && (
 				<section aria-label="Source backlinks" className="work-context">
-					<h3>Referenced by ({backlinks.length})</h3>
+					<h3 title="These are explicit source links, not inferred blockers or workflow rules.">Referenced by ({backlinks.length})</h3>
 					{groups}
-					<p>These are explicit source links, not inferred blockers or workflow rules.</p>
 				</section>
 			)}
 		</>
-	);
-}
-
-function Backlink({ link }: { readonly link: ReadingContext["backlinks"][number] }) {
-	return (
-		<li>
-			<span className="inline-flex flex-wrap items-center gap-2">
-				<a href={link.href} title={link.label}>
-					{link.title ?? link.label}
-				</a>
-				<StatusChip status={link.status} />
-			</span>
-		</li>
 	);
 }

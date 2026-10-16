@@ -13,7 +13,7 @@ export function libraryData(files: readonly MarkdownFile[], snapshot: Snapshot, 
 		...file,
 		href: fileUrl(file.path),
 		kind: documents.get(file.path)?.kind ?? "document",
-		status: documents.get(file.path)?.status ?? "not recorded",
+		status: documents.get(file.path)?.status ?? "",
 		title: titles.get(file.path) ?? file.path,
 	}));
 	const visible = all.filter(
@@ -38,6 +38,6 @@ export function libraryData(files: readonly MarkdownFile[], snapshot: Snapshot, 
 		fleetCount: all.filter((file) => records.has(file.path)).length,
 		folders: [...folders].sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => ({ count, name, path: `${prefix}${name}` })),
 		kinds: [...new Set(all.map((file) => file.kind))].sort(),
-		statuses: [...new Set(all.map((file) => file.status))].sort(),
+		statuses: [...new Set(all.map((file) => file.status).filter(Boolean))].sort(),
 	};
 }

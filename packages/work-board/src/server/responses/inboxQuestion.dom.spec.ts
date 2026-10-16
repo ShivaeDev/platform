@@ -11,6 +11,7 @@ import { followLink } from "#test/followLink.ts";
 import { formEvent } from "#test/formEvent.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
 import { waitFor } from "#test/live.ts";
+import { waitForLibraryCount } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -75,7 +76,7 @@ it.live("keeps the remembered author under More across questions with one visibl
 		expect(page.document.querySelector(`[name="${name}"]`)?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 	}
 	notes.write("other.md", inboxQuestion.replace("question.storage", "question.backup"));
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe("Library3")));
+	yield* waitForLibraryCount(board, 3);
 	yield* formEvent(page, () => followLink(page, "/other.md"));
 	yield* Effect.promise(() =>
 		waitFor(() => expect(page.document.getElementById("response-form")?.getAttribute("data-item")).toBe("question.backup")),

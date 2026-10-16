@@ -1,3 +1,4 @@
+import { specificSources } from "#browser/document/sourceGroups.ts";
 import { fileUrl } from "#files/url.ts";
 import { managedRequestReceipt } from "#server/attention/managedRequestReceipt.ts";
 import { backlinksOf } from "#server/metadata/backlinks.ts";
@@ -11,13 +12,15 @@ export function readingContext(document: MetadataDocument, model: MetadataModel,
 	const sources = new Map(model.documents.map((entry) => [entry.file, entry]));
 	const backlinks = [...new Map(backlinksOf(document.file, model).map((link) => [`${link.file}:${link.kind}:${link.line ?? ""}`, link])).values()];
 	return {
-		backlinks: backlinks.map((link) => ({
-			href: documentReference(link.file, model),
-			kind: relationshipLabel(link.kind),
-			label: link.file + (link.line === undefined ? "" : `:${link.line}`),
-			status: sources.get(link.file)?.parsed.fields.status,
-			title: titles.get(link.file) ?? link.file,
-		})),
+		backlinks: specificSources(
+			backlinks.map((link) => ({
+				href: documentReference(link.file, model),
+				kind: relationshipLabel(link.kind),
+				label: link.file + (link.line === undefined ? "" : `:${link.line}`),
+				status: sources.get(link.file)?.parsed.fields.status,
+				title: titles.get(link.file) ?? link.file,
+			})),
+		),
 		board,
 		claims: criterionClaims(document, model),
 		evidenceSources: (fields.evidence ?? []).map((entry) => {

@@ -32,7 +32,7 @@ it.each(["superseded", "deferred", "done", "completed", "cancelled", "canceled",
 		);
 		try {
 			expect(view.container.querySelector("[data-item]")).toBeNull();
-			expect(view.container.querySelector(".work-total")?.textContent).toContain("1 shown");
+			expect(view.container.querySelector(".work-total")).toBeNull();
 			await act(async () => view.container.querySelector<HTMLButtonElement>('[aria-expanded="false"]')?.click());
 			const cards = view.container.querySelectorAll('[aria-label="Done in the last 7 days"] [data-item]');
 			expect([...cards].map((card) => card.getAttribute("data-item"))).toEqual(["task-0"]);

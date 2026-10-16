@@ -67,10 +67,10 @@ it.live("reads finished result and in-review work separately through real HTTP a
 	const page = yield* Effect.promise(() => fetch(board.url + REVIEW_PATH));
 	expect(page.status).toBe(200);
 	const body = yield* html();
-	expect(body).toContain("Result status (source): <b>finished</b>");
+	expect(body).toContain("Result status: <b>finished</b>");
 	expect(body).toContain("source status: in-review");
-	expect(body).toContain("No recorded evidence in this result naming this criterion");
-	expect(body).toContain("Observed time</dt><dd>Not recorded");
+	expect(body).not.toContain("No recorded evidence in this result naming this criterion");
+	expect(body).toContain("Observed time</dt><dd></dd>");
 	expect(body).toContain("missing Markdown source");
 	expect(body).toContain("Evidence freshness is unknown");
 	expect(body).toContain("not compare them with the current checkout");
@@ -97,7 +97,7 @@ it.live("records revision request and exact-version acceptance without changing 
 	expect(body).toContain("Explicitly supersedes");
 	expect(body).toContain("Feedback on this exact result revision");
 	expect(body).toContain("Earlier or moved result context");
-	expect(body).toContain("No recorded evidence in this result naming this criterion");
+	expect(body).not.toContain("No recorded evidence in this result naming this criterion");
 	expect(readFileSync(join(notes.root, "items/task.md"), "utf8")).toBe(REVIEW_TASK);
 	notes.write("items/result.md", reviewResult("Third report after acceptance"));
 	yield* eventually(
@@ -177,7 +177,7 @@ it.live("uses safe rich report rendering and never promotes source markup to res
 	expect(body).not.toContain('<form id="response-form">');
 	expect(body).not.toContain("<script>window.injected=true</script>");
 	expect(body).toContain("diagram-source");
-	expect(body).toContain("Respond to this request");
+	expect(body).toContain("Review review");
 });
 
 it.live("pins CRLF source feedback to exact bytes rather than a normalized report", function* () {

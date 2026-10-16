@@ -23,7 +23,7 @@ it.live.each([false, true])("summarizes criterion evidence once and retains reco
 		expect(view.container.querySelector("#criterion-links p")).toBeNull();
 		if (evidence) {
 			expect(view.container.querySelector("#criterion-layout a")?.getAttribute("href")).toBe("/_board/item/report.review/#recorded-evidence-0");
-			expect(view.container.querySelector("#criterion-layout")?.textContent).toContain("1 recorded claim, not verified acceptance");
+			expect(view.container.querySelector("#criterion-layout")?.textContent).toContain("1 recorded claim:");
 		} else {
 			expect(view.container.querySelector("#criterion-layout a")).toBeNull();
 		}

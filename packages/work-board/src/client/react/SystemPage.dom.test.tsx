@@ -2,9 +2,9 @@ import { expect, it } from "vitest";
 import { render } from "@shivaedev/effect-react/testing.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { DiagnosticsProjection } from "#browser/views/remaining.ts";
+import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";
+import { SystemPage } from "#client/react/SystemPage.tsx";
 import { todayFleetFixture } from "#test/todayFleetFixture.ts";
-import { FleetItemsContext } from "./FleetItemsContext.ts";
-import { SystemPage } from "./SystemPage.tsx";
 
 const missing = { cause: "Source missing", observedAt: 0, state: "not-configured" } as const;
 const data: DiagnosticsProjection = { now: 0, sources: { codex: missing, fleet: missing, github: missing } };
@@ -36,9 +36,26 @@ it("shows every running and waiting item by source title, stage and PR independe
 		for (const stage of ["prepared", "executing", "adopting", "reviewing", "repairing", "validating", "delivering", "needs-human"]) {
 			expect(view.container.querySelector('[aria-label="Fleet work"]')?.textContent).toContain(stage);
 		}
-		expect(view.container.querySelector('[data-fleet-id="task.needs-human"]')?.textContent).toContain("PR not recorded");
 		expect(view.container.querySelector('[data-fleet-id="task.needs-human"]')?.textContent).toContain("Waiting on maintainer");
 		expect(view.container.querySelector('[data-fleet-id="task.released"]')).toBeNull();
+	} finally {
+		await view.unmount();
+	}
+});
+it("keeps an active Fleet row visible without a placeholder or link for its missing PR", async () => {
+	const fleet = todayFleetFixture();
+	if (fleet.state !== "ready" || !fleet.items[0]) {
+		throw new Error("Missing Fleet fixture");
+	}
+	const { prUrl, ...item } = fleet.items[0];
+	const view = await system({ ...fleet, items: [item] });
+	try {
+		const row = view.container.querySelector('[data-fleet-id="task.sample.0"]');
+		expect(row?.textContent).toContain("Workspace task 0");
+		expect(row?.textContent).toContain("executing");
+		expect(row?.querySelectorAll("a")).toHaveLength(1);
+		expect(view.container.querySelector('[aria-label^="Pull request"]')).toBeNull();
+		expect(view.container.textContent).not.toMatch(/not recorded/iu);
 	} finally {
 		await view.unmount();
 	}

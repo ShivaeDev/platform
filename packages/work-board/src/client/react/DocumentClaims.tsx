@@ -9,11 +9,9 @@ export function DocumentClaims({ document }: { readonly document: Document }) {
 	}
 	return (
 		<>
-			<h3>Recorded evidence</h3>
-			<p>
-				Source claims — not independently verified. A recorded outcome does not establish human acceptance. Work Board does not check recorded
-				revisions against the current workspace.
-			</p>
+			<h3 title="Source claims are not independently verified. A recorded outcome does not establish human acceptance. Work Board does not check recorded revisions against the current workspace.">
+				Recorded evidence
+			</h3>
 			<ul>
 				{keyed(evidence, (entry) => entry.source).map(({ index, key }) => (
 					<Claim document={document} index={index} key={key} />
@@ -36,7 +34,7 @@ function Claim({ document, index }: { readonly document: Document; readonly inde
 	].map(([label, value]) => (
 		<Fragment key={label}>
 			<dt>{label}</dt>
-			<dd>{label === "Checked revision" ? <code>{value ?? "Not recorded"}</code> : (value ?? "Not recorded")}</dd>
+			<dd>{label === "Checked revision" ? <code>{value ?? ""}</code> : (value ?? "")}</dd>
 		</Fragment>
 	));
 	return (
@@ -57,7 +55,7 @@ function Claim({ document, index }: { readonly document: Document; readonly inde
 					</code>
 				</dd>
 				<dt>Criterion</dt>
-				<dd>{entry.criterion ? <Reference document={document} target={entry.criterion} /> : "Not recorded"}</dd>
+				<dd>{entry.criterion ? <Reference document={document} target={entry.criterion} /> : ""}</dd>
 				{details}
 			</dl>
 		</li>

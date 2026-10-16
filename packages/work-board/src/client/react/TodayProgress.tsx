@@ -45,11 +45,7 @@ function ProgressRow({ item }: { readonly item: NonNullable<ReturnType<typeof in
 				<a aria-label={`Pull request for ${title}`} className="shrink-0 text-xs" href={item.prUrl}>
 					PR ↗
 				</a>
-			) : (
-				<span aria-label="Pull request not recorded" className="text-muted-foreground text-xs" role="img">
-					—
-				</span>
-			)}
+			) : null}
 		</li>
 	);
 }

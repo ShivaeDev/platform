@@ -32,7 +32,7 @@ it.each([
 			expect(card?.querySelectorAll("[data-status-token]")).toHaveLength(1);
 			expect(card?.querySelector("[data-status-token]")?.textContent).toBe(stage === "needs-human" ? "needs-you" : stage);
 		}
-		expect(view.container.querySelector(".work-total")?.textContent).toContain("6 shown");
+		expect(view.container.querySelector(".work-total")).toBeNull();
 	} finally {
 		await view.unmount();
 	}

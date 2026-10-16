@@ -45,7 +45,8 @@ it("keeps held work visible when its source or PR is missing and reports retaine
 	const view = await render(<TodayProgress data={{ ...data, items: [{ ...item, document: null }] }} failed />);
 	try {
 		expect(view.container.querySelector("[data-progress-id] a")?.textContent).toBe("task.sample.0");
-		expect(view.container.querySelector('[aria-label="Pull request not recorded"]')).not.toBeNull();
+		expect(view.container.querySelector('[aria-label^="Pull request"]')).toBeNull();
+		expect(view.container.textContent).not.toMatch(/not recorded/iu);
 		expect(view.container.querySelector('[role="status"]')?.textContent).toContain("Displayed work is retained");
 	} finally {
 		await view.unmount();

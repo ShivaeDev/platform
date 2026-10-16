@@ -13,7 +13,7 @@ export function DocumentRecords({ document: data }: { readonly document: Documen
 					</p>
 					<p>Receipt is separate from execution and acceptance.</p>
 					<p>
-						{handoff.by ?? "Attribution not recorded"}
+						{handoff.by ?? ""}
 						{Boolean(handoff.note) && ` · ${handoff.note}`}
 					</p>
 					<p>

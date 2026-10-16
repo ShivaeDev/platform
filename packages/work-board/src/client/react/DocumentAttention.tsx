@@ -9,8 +9,7 @@ export function DocumentAttention({ document }: { readonly document: Document })
 	}
 	return (
 		<>
-			<h3>Recorded attention requests</h3>
-			<p>Open/closed is source state. Closing a request does not establish acceptance or record an answer.</p>
+			<h3 title="Open/closed is source state. Closing a request does not establish acceptance or record an answer.">Recorded attention requests</h3>
 			<ul>
 				{keyed(requests, (entry) => entry.id).map(({ index, key }) => (
 					<Request document={document} index={index} key={key} />

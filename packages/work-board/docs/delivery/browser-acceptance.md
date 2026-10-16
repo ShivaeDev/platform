@@ -55,7 +55,7 @@ Search observations from a named machine may be recorded as a baseline; they are
 Add `identityFixture()` from `src/test-support/identityFixture.ts` to the large fixture.
 
 1. Open the legacy board: its 100 cards remain unchanged. Search an explicit ID, owner, and criterion phrase. Check source line labels, then use Enter to open an item/criterion. Criteria expand work details and receive keyboard focus, including when searching within the already active item.
-2. Inspect work details, relationship/source links, and original frontmatter. Missing fields say Not recorded. Evidence shows recorded revision/time/method and outcome with an explicit notice that the claim is not independently verified.
+2. Inspect work details, relationship/source links, and original frontmatter. Missing fields stay blank. Evidence shows recorded revision/time/method and outcome; its heading tooltip explains that the claim is not independently verified.
 3. Open content details and select prose. Rename the source file while its stable item URL is open; details, selection, and location remain. Edit the heading; its title updates. Navigate to its decision and use Back to restore details.
 4. Add a duplicate ID; the active item must become a conflict explanation with source choices. Remove the duplicate and recover. Delete the remaining source; its stable URL must show an explicit missing-item page.
 5. Read a malformed/unknown field and an unresolved reference. Prose and original metadata remain readable. Repeat item/criterion navigation at 390 × 844, in dark mode. Check narrow overflow and page errors.

@@ -30,12 +30,10 @@ function FleetRow({ item }: { readonly item: Item }) {
 			</a>
 			<Badge variant="outline">{item.stage}</Badge>
 			{Boolean(item.attentionOwner) && <span className="text-muted-foreground text-xs">Waiting on {item.attentionOwner}</span>}
-			{item.prUrl ? (
+			{Boolean(item.prUrl) && (
 				<a aria-label={`Pull request for ${title}`} className="text-sm underline" href={item.prUrl}>
 					PR ↗
 				</a>
-			) : (
-				<span className="text-muted-foreground text-xs">PR not recorded</span>
 			)}
 		</li>
 	);

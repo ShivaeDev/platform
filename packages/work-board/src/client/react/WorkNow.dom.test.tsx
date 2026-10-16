@@ -25,6 +25,7 @@ it.each(["title", "owner", "status"] as const)("keeps stage lanes fixed under %s
 		</FleetItemsContext.Provider>,
 	);
 	try {
+		expect(view.container.querySelector(".work-total")).toBeNull();
 		expect([...view.container.querySelectorAll(".work-column")].map((lane) => lane.getAttribute("aria-label"))).toEqual(nowLanes);
 		const card = view.container.querySelector('[aria-label="Executing"] [data-item="task-1"]');
 		expect(card?.querySelector("h3")?.textContent).toBe("Work 5");
@@ -85,7 +86,7 @@ it.each(["title", "owner", "status"] as const)("keeps All work status columns fi
 			"blocked",
 			"done",
 			"custom",
-			"Status not recorded",
+			"",
 		]);
 		expect(compareStatuses("done", "planned")).toBeGreaterThan(0);
 	} finally {

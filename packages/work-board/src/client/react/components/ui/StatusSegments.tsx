@@ -25,10 +25,11 @@ export function StatusSegments({
 	return (
 		<section aria-label={label} className={large ? "space-y-3" : undefined} data-goal-counts={large ? true : undefined}>
 			<div
-				aria-label={`${label}: ${description}`}
+				aria-description={description}
+				aria-label={label}
 				className={large ? "flex h-8 overflow-hidden rounded-lg bg-muted" : "flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-muted"}
 				role="img"
-				title={description}
+				title={label}
 			>
 				{segments.map(([status, count]) => (
 					<span

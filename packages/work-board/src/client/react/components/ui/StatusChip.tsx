@@ -17,12 +17,15 @@ const colors = cva("", {
 	},
 });
 export function StatusChip({ status, className, ...props }: ComponentProps<"span"> & { readonly status: string | undefined }) {
+	if (!status) {
+		return null;
+	}
 	const value = statusPresentation(status);
 	const Icon = value.icon;
 	return (
 		<Badge className={cn(colors({ status: value.token }), className)} data-status-token={value.token} variant="outline" {...props}>
 			<Icon aria-hidden="true" />
-			{status || "Not recorded"}
+			{status}
 		</Badge>
 	);
 }

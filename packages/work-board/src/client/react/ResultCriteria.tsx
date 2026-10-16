@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { keyed } from "./keyed.ts";
 import { shellIds } from "./shellIds.ts";
@@ -10,13 +10,10 @@ export function ResultCriteria({ data }: { readonly data: ResultProjection }) {
 	const targets = data.targets.map((target) => <TargetRow key={target.link.label} target={target} />);
 	return (
 		<section id={shellIds.resultCriteria}>
-			<h2>Criteria and this result’s claims</h2>
-			<p>
-				Only explicit relationships and criterion references are associated. Missing provenance stays missing. Git revisions are authored records;
-				Work Board does not compare them with the current checkout. Evidence freshness is unknown.
-			</p>
+			<h2 title="Only explicit relationships and criterion references are associated. Git revisions are authored records; Work Board does not compare them with the current checkout. Evidence freshness is unknown. This result does not change the linked work’s status.">
+				Criteria and this result’s claims
+			</h2>
 			{targets.length > 0 ? <ul>{targets}</ul> : <p>No explicitly linked work or criteria.</p>}
-			<p>{data.document.file} does not change the linked work’s status.</p>
 		</section>
 	);
 }
@@ -27,7 +24,7 @@ function TargetRow({ target }: { readonly target: Target }) {
 			<a href={target.link.href}>{target.link.label}</a>
 			{target.available ? (
 				<>
-					<span> · source status: {target.status ?? "Not recorded"}</span>
+					{Boolean(target.status) && <span> · source status: {target.status}</span>}
 					{criteria.length > 0 ? <ul>{criteria}</ul> : <p>No criteria declared in this source.</p>}
 				</>
 			) : (
@@ -37,14 +34,16 @@ function TargetRow({ target }: { readonly target: Target }) {
 	);
 }
 function CriterionRow({ criterion }: { readonly criterion: Criterion }) {
-	let evidence = <p>No recorded evidence in this result naming this criterion. Acceptance is not established.</p>;
+	let evidence: ReactNode = null;
 	if (!criterion.link.href) {
 		evidence = <p>This criterion identity is ambiguous; evidence association unavailable.</p>;
 	} else if (criterion.claims.length > 0) {
 		const claims = keyed(criterion.claims, (entry) => entry.source.label).map(({ key, value }) => <ClaimRow claim={value} key={key} />);
 		evidence = (
 			<>
-				<p>{criterion.claims.length} recorded claim(s) in this result; not verified acceptance.</p>
+				<p title="Recorded claims do not establish verified acceptance.">
+					{criterion.claims.length} recorded {criterion.claims.length === 1 ? "claim" : "claims"}
+				</p>
 				<ul>{claims}</ul>
 			</>
 		);
@@ -65,7 +64,7 @@ function ClaimRow({ claim }: { readonly claim: Claim }) {
 	].map(([label, value]) => (
 		<Fragment key={label}>
 			<dt>{label}</dt>
-			<dd>{value ?? "Not recorded"}</dd>
+			<dd>{value ?? ""}</dd>
 		</Fragment>
 	));
 	return (

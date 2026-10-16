@@ -1,5 +1,7 @@
 import type { Document } from "#browser/document/schema.ts";
 import { fileUrl } from "#files/url.ts";
+import { DocumentAttention } from "./DocumentAttention.tsx";
+import { DocumentRecords } from "./DocumentRecords.tsx";
 export function DocumentSource({ document }: { readonly document: Document }) {
 	const reading = document.reading;
 	return (
@@ -21,6 +23,8 @@ export function DocumentSource({ document }: { readonly document: Document }) {
 					<pre className="overflow-auto whitespace-pre-wrap font-mono text-xs">{reading.raw}</pre>
 				</>
 			)}
+			<DocumentAttention document={document} />
+			<DocumentRecords document={document} />
 		</section>
 	);
 }

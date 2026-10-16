@@ -47,7 +47,7 @@ function Row({ item, state, virtual }: { readonly item: WorkProjection["rows"][n
 				</div>
 			</th>
 			<td>
-				<div className="work-cell">{item.metadata.kind ?? "Not recorded"}</div>
+				<div className="work-cell">{item.metadata.kind ?? ""}</div>
 			</td>
 			<td>
 				<div className="work-cell">
@@ -55,10 +55,10 @@ function Row({ item, state, virtual }: { readonly item: WorkProjection["rows"][n
 				</div>
 			</td>
 			<td>
-				<div className="work-cell">{item.metadata.owner ?? "Not recorded"}</div>
+				<div className="work-cell">{item.metadata.owner ?? ""}</div>
 			</td>
 			<td>
-				<div className="work-cell">{item.metadata.nextAction ?? "Not recorded"}</div>
+				<div className="work-cell">{item.metadata.nextAction ?? ""}</div>
 			</td>
 		</tr>
 	);

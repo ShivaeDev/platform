@@ -34,7 +34,7 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 				{item !== undefined && <Badge variant="outline">Fleet · {item.stage}</Badge>}
 				{item !== undefined && <PrChip url={item.prUrl} />}
 			</div>
-			<ItemFields answering={answering} fields={fields} />
+			<ItemFields fields={fields} />
 			<div className="flex flex-wrap items-center gap-3 text-sm">
 				<Favorite file={document.file} title={document.file} />
 				{document.identity && !["question", "response", "handoff"].includes(fields.kind ?? "") && (
@@ -51,12 +51,12 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 	);
 }
 
-function ItemFields({ fields, answering }: { readonly fields: Document["metadata"]; readonly answering: boolean }) {
+function ItemFields({ fields }: { readonly fields: Document["metadata"] }) {
 	if (!fields.id) {
 		return null;
 	}
-	const owner = fields.owner ?? (answering ? undefined : "Not recorded");
-	const next = fields.nextAction ?? (answering ? undefined : "Not recorded");
+	const owner = fields.owner;
+	const next = fields.nextAction;
 	if (!(owner || next)) {
 		return null;
 	}
@@ -71,6 +71,10 @@ function ItemFields({ fields, answering }: { readonly fields: Document["metadata
 
 function ItemStatus({ document, answering }: { readonly document: Document; readonly answering: boolean }) {
 	const fields = document.metadata;
-	const requestState = document.requests.some((request) => request.open || request.sourceOpen) ? "needs-you" : fields.status;
+	const requestState = document.requests.some(
+		(request) => request.open || (request.id === "answer" && request.sourceOpen && fields.kind === "question" && fields.question === undefined),
+	)
+		? "needs-you"
+		: fields.status;
 	return fields.id && (!answering || requestState !== undefined) ? <StatusChip status={answering ? requestState : fields.status} /> : null;
 }

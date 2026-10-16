@@ -22,7 +22,7 @@ Source: [Reader acceptance](../roadmap.md)
 :::
 ```
 
-`unit` is required and nonblank. `value` is a finite number, `unknown`, or omitted. An unknown or omitted value displays “Not recorded”, never zero. Preserve a source paragraph beginning `Source:` with a Markdown link. Source links identify provenance; their existence or statements are not verified by the component.
+`unit` is required and nonblank. `value` is a finite number, `unknown`, or omitted. An unknown or omitted value renders nothing. A progress tally renders only when both counts are known. Preserve a source paragraph beginning `Source:` with a Markdown link. Source links identify provenance; their existence or statements are not verified by the component.
 
 ### Progress
 

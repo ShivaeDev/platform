@@ -2,8 +2,8 @@ import { Clock, Effect } from "effect";
 import { useContext } from "react";
 import { laneOf, nowLanes } from "#browser/views/now.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
-import { FleetItemsContext } from "./FleetItemsContext.ts";
-import { WorkLane } from "./WorkLane.tsx";
+import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";
+import { WorkLane } from "#client/react/WorkLane.tsx";
 
 export function WorkNow({ data }: { readonly data: WorkProjection }) {
 	const fleet = useContext(FleetItemsContext);
@@ -15,11 +15,6 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 			: [],
 	);
 	const groups = Map.groupBy(data.rows, (item) => laneOf(item.metadata, items.get(item.id), item.fleetApproved));
-	const shown = data.rows.filter((item) => {
-		const lane = laneOf(item.metadata, items.get(item.id), item.fleetApproved);
-		return lane !== undefined && (lane !== nowLanes[5] || recent.has(item.id));
-	}).length;
-	const total = data.items.filter((item) => item.metadata.kind === "task" && !item.metadata.requestReceipt).length;
 	return (
 		<>
 			{!ready && (
@@ -27,10 +22,7 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 					Fleet is unavailable. Lanes use authored status. {fleet?.state === "unavailable" ? fleet.reason : "Fleet data has not loaded."}
 				</p>
 			)}
-			<p className="work-total" role="status">
-				{shown} shown · {total} items in this view
-			</p>
-			<div className="work-columns work-now">
+			<div className="work-columns work-now grid auto-cols-[minmax(260px,1fr)] grid-flow-col gap-4 overflow-x-auto pb-2 max-md:auto-cols-auto max-md:grid-flow-row">
 				{nowLanes.map((lane, index) => {
 					const rows = (groups.get(lane) ?? []).filter((item) => index !== 5 || recent.has(item.id));
 					return (

@@ -7,7 +7,8 @@ import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 
 export function AnswerPanel({ document: data }: { readonly document: Document }) {
 	const requests = data.requests.filter(
-		(request) => request.open || (request.id === "answer" && data.metadata.kind === "question" && data.metadata.question === undefined),
+		(request) =>
+			request.open || (request.id === "answer" && request.sourceOpen && data.metadata.kind === "question" && data.metadata.question === undefined),
 	);
 	return requests.length > 0 ? (
 		<div className="answer-cards col-span-full space-y-4">

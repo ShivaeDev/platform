@@ -5,16 +5,16 @@ import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { Navigation } from "#browser/Navigation.ts";
 import { Badge } from "#client/react/components/ui/Badge.tsx";
 import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
+import { GoalProgress } from "#client/react/GoalProgress.tsx";
+import { InboxCount } from "#client/react/Header.tsx";
 import { cn } from "#client/react/lib/cn.ts";
+import type { MainLocation } from "#client/react/mainLocation.ts";
+import { type Item, LibraryContext } from "#client/react/readingLibrary.ts";
+import type { ShellApi } from "#client/react/ShellApi.ts";
+import { shellIds } from "#client/react/shellIds.ts";
+import type { SidebarControls } from "#client/react/useSidebar.ts";
+import { workspaceDestinations } from "#client/react/workspaceDestinations.ts";
 import { fileUrl } from "#files/url.ts";
-import { GoalProgress } from "./GoalProgress.tsx";
-import { InboxCount } from "./Header.tsx";
-import type { MainLocation } from "./mainLocation.ts";
-import { type Item, LibraryContext } from "./readingLibrary.ts";
-import type { ShellApi } from "./ShellApi.ts";
-import { shellIds } from "./shellIds.ts";
-import type { SidebarControls } from "./useSidebar.ts";
-import { workspaceDestinations } from "./workspaceDestinations.ts";
 
 export function Sidebar({
 	api,
@@ -35,9 +35,6 @@ export function Sidebar({
 	const query = useQuery(api.goals.query(undefined, { timeToLive: 60_000 }), { keepPreviousData: true });
 	const goals = Option.getOrUndefined(query.data)?.goals;
 	const counts = {
-		goals: data?.counts.goals,
-		library: data?.counts.library,
-		system: data?.counts.system,
 		today: data?.inboxCount,
 		work: data?.counts.now,
 	};
@@ -79,7 +76,8 @@ export function Sidebar({
 						key={view}
 					>
 						<span>{label}</span>
-						{view === "today" ? <InboxCount count={counts[view] ?? null} id={shellIds.inboxCount} /> : <Badge>{counts[view] ?? "?"}</Badge>}
+						{view === "today" && <InboxCount count={counts.today ?? null} id={shellIds.inboxCount} />}
+						{view === "work" && <Badge>{counts.work ?? "?"}</Badge>}
 					</a>
 				))}
 			</nav>
