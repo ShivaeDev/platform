@@ -1,7 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
-import { finishWorkers } from "#test/engine.ts";
 import { REPORT } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { finishRecoveryReview, setLastObservation } from "#test/recoverySteps.ts";
@@ -15,8 +14,6 @@ export function recoveryCheckRepairCase(): RecoveryCase {
 			const fleet = yield* Fleet;
 			for (let repair = 0; repair < 3; repair += 1) {
 				setLastObservation(context, { execution: "completed", output: REPORT });
-				yield* fleet.reconcile("one");
-				finishWorkers(context.fixture);
 				yield* fleet.reconcile("one");
 			}
 			const stopped = (yield* fleet.get("one")).value;

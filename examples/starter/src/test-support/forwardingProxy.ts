@@ -7,7 +7,6 @@ export async function forwardingProxy(upstream: string) {
 			`${upstream}${incoming.url}`,
 			{
 				headers: { ...incoming.headers, host: "internal.test", "x-forwarded-host": "app.example", "x-forwarded-proto": "https" },
-				localAddress: "127.0.0.2",
 				method: incoming.method,
 			},
 			(result) => {

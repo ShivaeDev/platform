@@ -81,8 +81,8 @@ effectApp("protects queries and commands, isolates users, and revokes the signed
 	const bob = yield* notesHttp(baseUrl, bobCookie);
 	expect(yield* bob["notes.list"]()).toEqual([]);
 	expect(yield* alice["notes.list"]()).toEqual([note]);
-	const users = yield* sql<{ id: string }>`select id from "user" where email = 'alice@starter.test'`;
-	expect(yield* sql`select "ownerId" from starter_notes where title = ${note.title}`).toEqual([{ ownerId: users[0]?.id }]);
+	const user = yield* alice["notes.whoami"]();
+	expect(yield* sql`select "ownerId" from starter_notes where title = ${note.title}`).toEqual([{ ownerId: user.id }]);
 	expect(yield* sql`select "ownerId" from starter_notes where title = 'Legacy note'`).toEqual([{ ownerId: null }]);
 	yield* authPost(baseUrl, "sign-out", {}, aliceCookie);
 	const revoked = yield* alice["notes.create"]({ title: "Revoked note" }).pipe(Effect.result);
