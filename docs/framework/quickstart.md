@@ -15,7 +15,7 @@ To verify the generated app against published packages, run `pnpm --filter @shiv
 
 For changes awaiting a framework release, `pnpm ready` runs the same documentation and generated-app checks with verified workspace archives, adding tarball overrides only to the temporary consumers. Registry mode remains the release check against the pinned npm versions.
 
-The starter uses effect-pg-boss's published `clientFactory` option to create its producer queues before serving requests, with an empty `jobs` list so the host starts no consumer. The separate worker registers the handler. The published-version check includes their PostgreSQL/live-update round trip.
+The starter provides `NoteJobs.layer({ connectionString, jobs: [CountWords] })` to create its producer queue and dead-letter queue before serving requests, without starting a consumer. The separate worker registers the handler. The published-version check includes their PostgreSQL/live-update round trip.
 
 Change the shared operations in `src/notes.ts`, the table and services in `src/server`, and the screen in `src/client`. The CSS declaration is local; no `vite/client` types are needed. `pnpm build && pnpm start` serves the built app on port 3000; run `pnpm worker` in a second process to handle jobs.
 
@@ -26,7 +26,7 @@ The starter uses strict application checking with `skipLibCheck: true`, matching
 ## Add a job
 
 Define a payload Schema with `defineQueue` in `src/server/noteJobs.ts`, and register its handler in `src/server/noteWorker.ts`; the worker uses the host's `appDatabase` Layer.
-Enqueue from a command inside `transact`, passing `{ db: yield* jobDatabase }` so the queue insert commits or rolls back with the command.
+Enqueue after the command's write transaction, using `jobs.enqueue(CountWords, { noteId })`. Queueing uses its own connection. The starter logs enqueue errors and returns the saved note; a queue outage cannot roll back that write. This does not guarantee atomic delivery between saving and enqueueing. Applications that need durable handoff own their outbox policy.
 After the worker writes, call `invalidateOnCommit` with the contract's invalidation keys; PostgreSQL delivers the hint to the server and the mounted live subscription refetches the query.
 
 ## Deploy

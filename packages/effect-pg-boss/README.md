@@ -195,7 +195,17 @@ Overlapping Layer builds with the same `clientCacheKey` share one started client
 
 ### Separate producers and workers
 
-Pass a queue definition directly in `Jobs.layer({ jobs: [SendEmail] })` to create its queue and dead-letter queue without starting a consumer. A separate worker process registers `SendEmail.handle(...)` against the same database. Producer queues use the same retry options and appear in `health`; only worker registrations capture handler services.
+Pass queue definitions directly to the producer Layer:
+
+```ts
+import { SendEmail } from "./jobs.ts";
+import { Jobs } from "./services.ts";
+
+export const producerLayer = (databaseUrl: string) =>
+  Jobs.layer({ connectionString: databaseUrl, jobs: [SendEmail] });
+```
+
+This creates the queue and its dead-letter queue without starting a consumer. Enqueue with `jobs.enqueue(SendEmail, payload)` through the provided service. A separate worker process registers `SendEmail.handle(...)` against the same database. Producer queues use the same retry options and appear in `health`; only worker registrations capture handler services. The PostgreSQL producer test starts the producer alone, enqueues a transformed payload, then starts a worker and verifies that the job reaches the dead-letter queue after exhausting its configured retry.
 
 ### API
 
@@ -232,7 +242,7 @@ pnpm add @shivaedev/effect-pg-boss effect@4.0.4 pg-boss@12.23.1
 
 The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` are peers; use versions that satisfy the package's published peer ranges.
 
-Provide the database connection and job registrations at the application runtime boundary. Application services own the domain work and provider calls; pg-boss owns queue execution. Treat enqueueing and an application database transaction as separate operations, and choose any required transaction or outbox policy in the application.
+Provide the database connection and job registrations at the application runtime boundary. Application services own the domain work and provider calls; pg-boss owns queue execution. Enqueueing and an application database transaction are separate operations. The starter enqueues after its note write transaction and logs queue failures so the saved note remains successful. There is no atomic delivery guarantee between that write and the enqueue; applications that require durable handoff must choose their own outbox policy.
 
 For package development, the real PostgreSQL test uses `PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL` and skips when the variable is absent. A skipped test does not establish durable queue behavior. Fake-client tests cover registration and lifecycle calls; they do not establish real cron execution, retry timing or deployment behavior. The package is built for ShivaeDev applications and may change without a deprecation period.
 

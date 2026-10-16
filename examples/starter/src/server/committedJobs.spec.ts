@@ -1,20 +1,18 @@
-import { Effect, Layer, Redacted, Result } from "effect";
+import { Effect, Layer, Redacted } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { SqlClient } from "effect/sql";
 import { expect, vi } from "vitest";
-import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { makeNotesClient } from "#client/makeNotes.ts";
 import { authPost, credentials, notesHttp } from "#test-support/authHttp.ts";
 import { effectApp } from "#test-support/postgres.ts";
-import { NotesService } from "./NotesService.ts";
 import { noteWorker } from "./noteWorker.ts";
 
 effectApp(
-	"runs committed jobs once through the worker database and refetches the live client, while rollback discards a job",
-	function* ({ baseUrl, context }) {
+	"enqueues committed notes through the producer and refetches the live client after worker updates",
+	function* ({ baseUrl }) {
 		const sql = yield* SqlClient.SqlClient;
 		const database = yield* PostgresTestDatabase;
 		const cookie = yield* authPost(baseUrl, "sign-up/email", credentials("alice"));
@@ -33,17 +31,6 @@ effectApp(
 		const note = yield* http["notes.create"]({ title: "Count these three words" });
 		expect(note.wordCount).toBeNull();
 		yield* Effect.promise(() => vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual([note])));
-		const users = yield* sql<{ id: string }>`select id from "user" where email = 'alice@starter.test'`;
-		const ownerId = users[0]?.id;
-		if (ownerId === undefined) {
-			return yield* Effect.die("Missing account");
-		}
-		const rollback = yield* Effect.gen(function* () {
-			const service = yield* NotesService;
-			yield* service.create({ title: "Rolled back" }, ownerId);
-			return yield* Effect.fail("rollback");
-		}).pipe(transact({ onSqlError: (error) => error }), Effect.provide(context), Effect.result);
-		expect(Result.isFailure(rollback) && rollback.failure).toBe("rollback");
 		expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 1 }]);
 		yield* Effect.sleep("1200 millis");
 		expect(yield* sql`select "wordCount" from starter_notes where id = ${note.id}`).toEqual([{ wordCount: null }]);
@@ -53,15 +40,7 @@ effectApp(
 				timeout: 5000,
 			}),
 		);
-		const second = yield* Effect.gen(function* () {
-			const service = yield* NotesService;
-			const pending = yield* service.create({ title: "After commit" }, ownerId);
-			expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 1 }]);
-			yield* Effect.sleep("1200 millis");
-			const transactionSql = yield* SqlClient.SqlClient;
-			expect(yield* transactionSql`select "wordCount" from starter_notes where id = ${pending.id}`).toEqual([{ wordCount: null }]);
-			return pending;
-		}).pipe(transact({ onSqlError: (error) => error }), Effect.provide(context));
+		const second = yield* http["notes.create"]({ title: "After commit" });
 		yield* Effect.promise(() =>
 			vi.waitFor(
 				() =>
