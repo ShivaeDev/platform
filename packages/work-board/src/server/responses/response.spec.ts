@@ -67,7 +67,7 @@ it.live("requires explicit write opt-in and rejects source forms at the HTTP bou
 	expect(yield* register().pipe(Effect.matchCause({ onFailure: Cause.squash, onSuccess: () => undefined }))).toMatchObject({
 		message: expect.stringContaining("explicitly enable"),
 	});
-	expect(readdirSync(notes.root)).toEqual(["investigation.md"]);
+	expect(readdirSync(notes.root).sort()).toEqual(["board.sock", "investigation.md"]);
 	yield* board.stop();
 	client.registry.dispose();
 	board = yield* startBoard(notes.root, undefined, (fs) => fs, true);

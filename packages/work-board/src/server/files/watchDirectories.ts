@@ -36,6 +36,9 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 			);
 			const pending = new Set<string>();
 			const watch = Stream.mergeAll(streams, { concurrency: "unbounded" }).pipe(
+				Stream.filter(
+					(relative) => !relative.split("/").some((segment) => segment === ".board.sock.starting" || /^\.s[A-Za-z0-9]{6}$/u.test(segment)),
+				),
 				Stream.tap((relative) => (isMarkdown(relative) || attachmentType(relative) !== undefined ? observed : Effect.void)),
 				Stream.tap((relative) =>
 					Effect.gen(function* () {

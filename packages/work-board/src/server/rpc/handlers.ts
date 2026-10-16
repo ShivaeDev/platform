@@ -1,5 +1,5 @@
 import { Effect, Layer, Ref, Stream } from "effect";
-import { InternalServerError, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
+import { InternalServerError, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
 import { requestTracingLayer } from "@shivaedev/platform/rpc-server/tracing.ts";
 import { Diagnostics } from "#diagnostics/source.ts";
@@ -64,6 +64,7 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 				Effect.map(index, (snapshot) => ({ ...searchMatch(snapshot.entries, query, snapshot.modified), unavailable: snapshot.unavailable })).pipe(
 					readBoundary,
 				),
+			"work-board.server": () => options.server ?? Effect.fail(new ServiceUnavailable({ message: "The board server address is unavailable." })),
 			"work-board.start": () => remaining.start().pipe(readBoundary),
 			"work-board.subscribe": () =>
 				hints(changes, index).pipe(Stream.catchCause((cause) => Stream.fromEffect(Effect.failCause(cause).pipe(readBoundary)))),

@@ -24,7 +24,7 @@ afterEach(() => {
 	notes.remove();
 });
 
-effectApp("serves copyable source on an empty root without creating files or hiding missing-document errors", function* () {
+effectApp("serves copyable source on an empty root without creating project files or hiding missing-document errors", function* () {
 	const response = yield* Effect.promise(() => fetch(board.url));
 	expect(response.status).toBe(200);
 	const html = yield* Effect.promise(() => renderRemaining(board.url, "/_board/start"));
@@ -33,7 +33,7 @@ effectApp("serves copyable source on an empty root without creating files or hid
 	for (const template of startTemplates) {
 		expect(html).toContain(`>${escapeHtml(template.source)}</textarea>`);
 	}
-	expect(readdirSync(notes.root)).toEqual([]);
+	expect(readdirSync(notes.root)).toEqual(["board.sock"]);
 	expect((yield* Effect.promise(() => fetch(`${board.url}/missing.md`))).status).toBe(404);
 	expect((yield* rawGet(board, "/_board/start", "outside.example")).status).toBe(403);
 });
@@ -58,5 +58,5 @@ effectApp("keeps templates available after source creation and resolves their re
 	const help = yield* Effect.promise(() => renderRemaining(board.url, "/_board/start"));
 	expect(help).toContain("Project and report templates");
 	expect(yield* Effect.promise(async () => (await fetch(board.url)).text())).not.toContain("Start your local workspace");
-	expect(readdirSync(notes.root).sort()).toEqual(startTemplates.map((template) => template.file).sort());
+	expect(readdirSync(notes.root).sort()).toEqual(["board.sock", ...startTemplates.map((template) => template.file)].sort());
 });

@@ -4,7 +4,8 @@ import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { browserClient } from "#client/client.ts";
-import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard } from "#test/board.ts";
+import { embeddedBoard } from "#test/embeddedBoard.ts";
 
 const SOURCE =
 	"---\nid: task.choice\nkind: task\nattention:\n  - id: direction\n    kind: decision\n    state: open\n    response_from: [reviewer]\n    unblocks: [task.choice]\n    reason: Choose a direction\n---\n# Direction\n";
@@ -24,7 +25,7 @@ afterEach(async () => {
 });
 
 const connectBoard = Effect.fn("Test.connectBoard")(function* () {
-	const board = yield* startBoard(notes.root, undefined, undefined, true);
+	const board = yield* embeddedBoard(notes.root, true);
 	boards.push(board);
 	const result = browserClient(board.url);
 	clients.push(result);

@@ -246,6 +246,12 @@
 			"import": "./dist/server/rpc/*.js",
 			"default": "./dist/server/rpc/*.js"
 		},
+		"./rpc/Server.ts": {
+			"types": "./dist/rpc/Server.d.ts",
+			"source": "./src/rpc/Server.ts",
+			"import": "./dist/rpc/Server.js",
+			"default": "./dist/rpc/Server.js"
+		},
 		"./rpc/pageKeys.ts": {
 			"types": "./dist/rpc/pageKeys.d.ts",
 			"source": "./src/rpc/pageKeys.ts",
