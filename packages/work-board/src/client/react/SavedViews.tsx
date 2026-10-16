@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSavedViews } from "./savedViews.ts";
+import { useSavedViews } from "#client/react/useSavedViews.ts";
 import { shellIds } from "./shellIds.ts";
 
 export function SavedViews({ url }: { readonly url: string }) {
