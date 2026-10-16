@@ -80,7 +80,8 @@ export function appFolder({
 	if (realSetup) {
 		const pnpm = spawnSync("which", ["pnpm"], { encoding: "utf8" }).stdout.trim();
 		const modules = fileURLToPath(new URL("../../../../examples/starter/node_modules", import.meta.url));
-		writeFileSync(join(bin, "pnpm"), setupInstaller(pnpm, modules, typecheckExit), { mode: 0o755 });
+		const quality = fileURLToPath(new URL("../../../quality/src/cli.ts", import.meta.url));
+		writeFileSync(join(bin, "pnpm"), setupInstaller(pnpm, modules, quality, typecheckExit), { mode: 0o755 });
 	}
 	const target = join(root, "my-app");
 	if (["empty", "nonempty", "environment"].includes(destination)) {
