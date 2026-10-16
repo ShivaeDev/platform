@@ -16,7 +16,14 @@ if (args[0] === "install") {
   const modules = ${JSON.stringify(modules)};
   fs.mkdirSync("node_modules/.bin", { recursive: true });
   for (const name of fs.readdirSync(modules)) {
-    if (name !== ".bin") fs.symlinkSync(join(modules, name), join("node_modules", name));
+    if (name.startsWith("@")) {
+      fs.mkdirSync(join("node_modules", name));
+      for (const dependency of fs.readdirSync(join(modules, name))) {
+        fs.symlinkSync(fs.realpathSync(join(modules, name, dependency)), join("node_modules", name, dependency));
+      }
+    } else if (name !== ".bin") {
+      fs.symlinkSync(fs.realpathSync(join(modules, name)), join("node_modules", name));
+    }
   }
   for (const name of fs.readdirSync(join(modules, ".bin"))) {
     if (name !== "quality") fs.symlinkSync(join(modules, ".bin", name), join("node_modules/.bin", name));
