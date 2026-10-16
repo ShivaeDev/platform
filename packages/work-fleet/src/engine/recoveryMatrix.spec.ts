@@ -3,11 +3,14 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "@effect/vitest";
 import { DecisionCode } from "#DecisionCode.ts";
 import { decisionSites, sourceDecisionSites } from "#test/decisionSites.ts";
+import { diagnoseWorkerShutdown } from "#test/diagnoseWorkerShutdown.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { recoveryCapacityCases } from "#test/recoveryCapacityCases.ts";
 import { recoveryCases } from "#test/recoveryCases.ts";
 import { recoveryDaemon } from "#test/recoveryDaemon.ts";
 import { runRecoveryCase } from "#test/runRecoveryCase.ts";
+
+diagnoseWorkerShutdown();
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const scenarios = recoveryCases();
