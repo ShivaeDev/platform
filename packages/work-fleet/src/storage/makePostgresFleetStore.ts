@@ -9,11 +9,11 @@ import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 import { makeForeignReservations } from "#storage/makeForeignReservations.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
-import { type AdmissionLimits, recordInput, recordModel, type Versioned } from "#storage/model.ts";
+import { type AdmissionLimits, recordModel, type Versioned } from "#storage/model.ts";
 import { nextAdmissionOrder } from "#storage/nextAdmissionOrder.ts";
 import { operationEntries } from "#storage/operationEntries.ts";
 import { readRecords } from "#storage/readRecords.ts";
-import { writeChildren } from "#storage/recordChildren.ts";
+import { inputColumns, makeRecordChildren } from "#storage/recordChildren.ts";
 import { recordShape } from "#storage/recordShape.ts";
 import { withRecordTimes } from "#storage/recordTimes.ts";
 import { recordValue, recordValues } from "#storage/recordValue.ts";
@@ -31,6 +31,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 	const records = `${namespace}_records`;
 	const shape = recordShape(schema);
 	const model = recordModel(schema);
+	const saveChildren = yield* makeRecordChildren(namespace, shape);
 	const rows = yield* makeRepository(model, { idColumn: "work_id", spanPrefix: "FleetRow", tableName: records, versionColumn: "version" });
 	const foreign = yield* makeForeignReservations(namespace);
 	const encodeRecord = Schema.encodeEffect(schema);
@@ -72,14 +73,14 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		entry: { readonly order: bigint; readonly stored: Versioned<TSchema["Type"]> } | undefined,
 	) {
 		const requeue = entry !== undefined && options.requeue?.(record, entry.stored.value) === true;
-		const input = yield* decodeInsert({ ...recordInput(encoded, schema), "work_id": workId });
+		const input = yield* decodeInsert({ ...inputColumns(encoded, shape), "work_id": workId });
 		if (entry === undefined) {
 			yield* rows.insertVoid(input);
 		} else {
 			const order = requeue ? yield* nextAdmissionOrder(sql, records) : entry.order;
 			yield* rows.updateVoid({ ...input, "admission_order": order, version: expectedVersion === null ? 0 : expectedVersion - 1 });
 		}
-		yield* writeChildren(namespace, workId, encoded, shape);
+		yield* saveChildren(workId, encoded, entry !== undefined);
 		return { value: record, version: (expectedVersion ?? 0) + 1 };
 	});
 	const write = Effect.fn("FleetStore.write")(function* (

@@ -3,7 +3,6 @@ import * as Schema from "effect/Schema";
 import { Model } from "effect/schema";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { State } from "#host/waitOutcome.ts";
-import { readRecords } from "#storage/readRecords.ts";
 import { columnSchema, schemaShape, shapeColumns } from "#storage/recordShape.ts";
 import { recordValues } from "#storage/recordValue.ts";
 
@@ -37,5 +36,5 @@ export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* 
 		const states = yield* Schema.decodeUnknownEffect(Schema.Array(State))(yield* recordValues(selected, shape, options.namespace));
 		return states.map((state) => ({ ...state, outcome: state.outcome ?? {} }));
 	});
-	return yield* readRecords(options.namespace, read);
+	return yield* read;
 });

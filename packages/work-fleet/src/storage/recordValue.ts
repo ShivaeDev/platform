@@ -13,10 +13,16 @@ export const recordValues = Effect.fn("FleetRow.recordValues")(function* (rows: 
 		return [];
 	}
 	for (const collection of collections(shape)) {
-		const found = yield* sql<Row>`select * from ${sql(childTable(namespace, collection.path))} where ${sql.in(
-			"work_id",
-			roots.map((row) => row.work_id),
-		)} order by ${sql.csv(Array.from({ length: collection.parents.length + 1 }, (_unused, index) => sql`${sql(`position${index}`)}`))}`;
+		const parent = collection.parents.at(-1);
+		const sources = parent === undefined ? roots : (children.get(parent) ?? []);
+		const offset = parent === undefined ? 0 : parent.split(".").length;
+		const marker = collection.path.slice(offset).join("__");
+		const workIds = [...new Set(sources.filter((row) => row[marker] !== null && row[marker] !== undefined).map((row) => row.work_id))];
+		if (workIds.length === 0) {
+			continue;
+		}
+		const found =
+			yield* sql<Row>`select * from ${sql(childTable(namespace, collection.path))} where ${sql.in("work_id", workIds)} order by ${sql.csv(Array.from({ length: collection.parents.length + 1 }, (_unused, index) => sql`${sql(`position${index}`)}`))}`;
 		children.set(collection.path.join("."), found);
 	}
 	function read(node: Shape, row: Row, path: readonly string[], prefix: readonly string[], indices: readonly number[]): unknown {
