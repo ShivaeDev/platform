@@ -1,9 +1,10 @@
 import type { TestContext } from "@effect/vitest";
 import type { Effect, Layer, Scope } from "effect";
 import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test/types.ts";
-import { type AnyEffect, type ErrorOf, type Hook, hooked, type ServicesOf } from "#internal/hooked.ts";
-import type { LooseDefinition, LooseTrait } from "#internal/seed.ts";
-import { type LooseIt, storyIt } from "#internal/storyIt.ts";
+import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#internal/hooked.ts";
+import type { AfterResults, InferredDefinition, LegacyDefinition } from "#internal/hookInference.ts";
+import type { LooseDefinition } from "#internal/seed.ts";
+import { storyIt } from "#internal/storyIt.ts";
 import { type Parts, trait, traits } from "#internal/traits.ts";
 
 export type Trait<TEngine, TStage extends string, R = never> = Parts<TStage, (engine: TEngine) => Effect.Effect<void, unknown, R>>;
@@ -11,13 +12,6 @@ export type Trait<TEngine, TStage extends string, R = never> = Parts<TStage, (en
 type TraitServices<TTrait> = TTrait extends Parts<string, (engine: never) => Effect.Effect<void, unknown, infer R>> ? R : never;
 
 type Needs<TProvided> = Effect.Effect<unknown, unknown, TProvided>;
-
-// A plain after hook yields nothing to infer, so TypeScript leaves its effect at the AnyEffect constraint.
-type AfterEffects<TAfter> = { readonly [TKey in keyof TAfter]-?: AnyEffect extends TAfter[TKey] ? never : TAfter[TKey] }[keyof TAfter];
-
-type LayerFor<THooks, TProvided> = [Exclude<ServicesOf<THooks>, Scope.Scope>] extends [TProvided]
-	? unknown
-	: { readonly layer: Layer.Layer<Exclude<ServicesOf<THooks>, Scope.Scope>, unknown, never> };
 
 export interface RunUntilOptions {
 	readonly maxSteps?: number | undefined;
@@ -51,10 +45,10 @@ export interface StoryKitDefinition<
 	TFailed extends AnyEffect,
 	TDiagnose extends AnyEffect,
 > {
-	readonly after?: { readonly [TKey in keyof TAfter]: Hook<[engine: TEngine], TAfter[TKey] & AnyEffect, void> };
+	readonly after?: { readonly [TKey in keyof TAfter]: EffectHook<[engine: TEngine], TAfter[TKey] & AnyEffect, void> };
 	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | NoInfer<TProvided> | Scope.Scope>;
 	readonly clock?: EffectClock;
-	readonly create: Hook<[], TCreate, TEngine>;
+	readonly create: EffectHook<[], TCreate, TEngine>;
 	readonly inspect?: (engine: TEngine) => unknown;
 	readonly layer?: Layer.Layer<TProvided, unknown, never>;
 	readonly name: string;
@@ -90,23 +84,32 @@ export interface StoryIt<TEngine, TStage extends string, TVerbs, TRun extends An
 
 export interface StoryKit<TEngine, TStage extends string, TVerbs, TRun extends AnyEffect, TProvided> {
 	readonly it: StoryIt<TEngine, TStage, TVerbs, TRun, TProvided>;
-	readonly trait: <TEffect extends AnyEffect = never>(
-		stage: TStage,
-		line: string,
-		apply: Hook<[engine: TEngine], TEffect, void>,
-	) => Trait<TEngine, TStage, ServicesOf<TEffect>>;
+	readonly trait: {
+		<TEffect extends AnyEffect = never>(
+			stage: TStage,
+			line: string,
+			apply: Hook<[engine: TEngine], TEffect, void>,
+		): Trait<TEngine, TStage, ServicesOf<TEffect>>;
+		<E, R>(stage: TStage, line: string, apply: (engine: TEngine) => Effect.Effect<void, E, R>): Trait<TEngine, TStage, R>;
+	};
 	readonly traits: <const TGiven extends readonly Trait<TEngine, TStage, unknown>[]>(
 		...given: TGiven
 	) => Trait<TEngine, TStage, TraitServices<TGiven[number]>>;
 }
 
-interface LooseKit {
-	readonly it: LooseIt;
-	readonly trait: (stage: string, line: string, apply: Hook<[engine: unknown], AnyEffect, void>) => LooseTrait;
-	readonly traits: (...given: readonly LooseTrait[]) => LooseTrait;
-}
-
-// The implementation works on loose types; the overload states what the definition infers.
+export function storyKit<
+	TCreate extends () => unknown,
+	const TStage extends string,
+	TVerbs extends object,
+	TProvided = never,
+	TAfter extends AfterResults<TStage> = Record<never, never>,
+	TStep extends AnyEffect = never,
+	TFailed extends AnyEffect = never,
+	TDiagnose extends AnyEffect = never,
+>(
+	definition: InferredDefinition<TCreate, TStage, TVerbs, TProvided, TAfter, TStep, TFailed, TDiagnose>,
+): StoryKit<HookValue<ReturnType<TCreate>>, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided>;
+// Keep explicit engine and effect type arguments accepted by existing kits.
 export function storyKit<
 	TEngine,
 	const TStage extends string,
@@ -118,13 +121,13 @@ export function storyKit<
 	TFailed extends AnyEffect = never,
 	TDiagnose extends AnyEffect = never,
 >(
-	definition: StoryKitDefinition<TEngine, TStage, TVerbs, TProvided, TCreate, TAfter, TStep, TFailed, TDiagnose> &
-		LayerFor<TCreate | AfterEffects<TAfter> | TStep | TFailed | TDiagnose, TProvided>,
+	definition: LegacyDefinition<TEngine, TStage, TVerbs, TProvided, TCreate, TAfter, TStep, TFailed, TDiagnose>,
 ): StoryKit<TEngine, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided>;
-export function storyKit(definition: LooseDefinition): LooseKit {
+export function storyKit(definition: LooseDefinition): unknown {
 	return {
 		it: storyIt(definition),
-		trait: (stage, line, apply) => trait(stage, line, (engine) => hooked(() => apply(engine))),
+		trait: (stage: string, line: string, apply: EffectHook<[engine: unknown], AnyEffect, void>) =>
+			trait(stage, line, (engine: unknown) => hooked(() => apply(engine))),
 		traits,
 	};
 }

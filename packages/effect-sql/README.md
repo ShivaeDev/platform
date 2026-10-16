@@ -113,6 +113,51 @@ The filters are equality conditions joined together. A null filter matches SQL `
 
 If a field codec requires a service, provide it for the query. Filter encoding and selected-row decoding retain their required services in the Effect environment.
 
+### Composite keys and idempotent writes
+
+A generated app can ingest the same reading more than once. Declare the table's primary key with an `idColumn` tuple and its unique conflict key with `conflictColumns`:
+
+```ts
+class Reading extends Model.Class<Reading>("Reading")({
+  source: Schema.String,
+  sequence: Schema.NumberFromString,
+  amount: Schema.NumberFromString,
+  label: Schema.String,
+}) {}
+
+const ingest = Effect.gen(function* () {
+  const readings = yield* makeRepository(Reading, {
+    tableName: "readings",
+    idColumn: ["source", "sequence"],
+    conflictColumns: ["source", "sequence"],
+    spanPrefix: "Reading",
+  });
+  const input = { source: "meter", sequence: 1, amount: 52, label: "Imported" };
+  const inserted = yield* readings.insertOrIgnore(input);
+  const saved = yield* readings.upsert(
+    { ...input, amount: 60 },
+    { updateColumns: ["amount"] },
+  );
+  const found = yield* readings.findById({ source: "meter", sequence: 1 });
+  return { inserted, saved, found };
+});
+```
+
+The application creates `readings` with `PRIMARY KEY (source, sequence)`; `sequence` and `amount` are text columns for these codecs. Composite keys contain at least two model fields. `findById` and `delete` take an object containing every key field and encode each through its field schema. `update` and `updateVoid` use the full key from the model's update input and leave the key columns unchanged. Missing key fields fail with `SchemaError` before SQL runs. A scalar `idColumn` keeps native CRUD signatures.
+
+`conflictColumns` is a nonempty tuple of inserted model fields backed by a database unique constraint or primary key. It can differ from the primary key, including a unique external key beside a generated ID. Declaring it adds two methods:
+
+| Method | Input | Result |
+| --- | --- | --- |
+| `insertOrIgnore` | Model insert input | `Option.some` of the decoded inserted model, or `Option.none` when the declared key conflicts. |
+| `upsert` | Model insert input and `{ updateColumns: [...] }` | The decoded inserted or updated model. |
+
+Both methods encode with the model's insert schema and retain its codec services. `upsert` requires a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. Only those columns take their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in the encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
+
+These methods use `ON CONFLICT (...) DO NOTHING` or `DO UPDATE SET ...` and `RETURNING`; [PostgreSQL tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresUpsert.spec.ts) establish composite-key CRUD, duplicate ignores, selected-column updates and rollback. [Unique-key tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresConflictWrites.spec.ts) establish generated fields, codec services and unrelated constraint failures. Other SQL dialects are not established by those tests. Use native `SqlClient` and `SqlSchema` for partial-index conflict predicates, SQL expressions or other conflict policies.
+
+Conflict writes belong to unversioned repositories. They cannot be combined with `versionColumn`, whose writes must compare the version read by the caller. `versionColumn` takes a scalar `idColumn`.
+
 ### Optimistic concurrency
 
 Declare a numeric version field in the model's select and update variants, leave it out of insert, and select it with `versionColumn`:
@@ -221,7 +266,7 @@ Import the module that defines the name; there is no root entry.
 
 | Module | Export | Input or role |
 | --- | --- | --- |
-| `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, `idColumn`, `spanPrefix`, optional `versionColumn`; requires native `SqlClient`. |
+| `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn` or `conflictColumns`; requires native `SqlClient`. |
 | `@shivaedev/effect-sql/repository.ts` | `FindMany` | Query options derived from the model's fields. |
 | `@shivaedev/effect-sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`. |
 | `@shivaedev/effect-sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |

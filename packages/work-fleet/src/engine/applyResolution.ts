@@ -69,6 +69,9 @@ function retryRework(state: EngineState) {
 			return undefined;
 		}
 		const latest = record.attempts.at(-1);
+		if (latest?.role === "reviewer" && latest.abandoned !== undefined) {
+			return undefined;
+		}
 		let changes = body.trim();
 		if (record.decision?.code === "pr-conflicting") {
 			changes = ["GitHub reports a conflict with main. Fetch and merge main, resolve the conflicts, and retain the requested changes.", changes]

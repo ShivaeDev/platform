@@ -1,10 +1,20 @@
 # Changelog
 
-## 0.3.1 - 2026-10-16
+## 0.4.1 - 2026-10-16
 
 ### Fixed
 
 - Generated apps use `TRUSTED_PROXY` for Better Auth client IP rate limiting and the host's forwarded authority. Auth ignores forwarded IP headers from untrusted peers, and trusted visitors have separate sign-in buckets, including with mapped IPv6 CIDRs such as `::ffff:127.0.0.0/104` and appended forwarding chains.
+
+## 0.4.0 - 2026-10-16
+
+### Added
+
+- Initialize a generated app's Git repository with one commit after installation when Git is available and no repository encloses the destination; `--no-git` skips initialization.
+- Include a GitHub Actions workflow that runs the generated app's lint, typecheck, build and PostgreSQL tests through its `ci` script.
+- Include Railway TypeScript infrastructure configuration for PostgreSQL, web and worker services, deployment migrations and an HTTP health check, with a CLI deployment walkthrough in the quickstart.
+- Run setup after Git initialization to install dependencies and Quality's pre-commit hook before the initial commit; failed lint or typecheck gates block that commit.
+- Include `setup` for dependencies and checkout hooks, and `ready` for the same lint, typecheck, build and test gate as CI.
 
 ## 0.3.0 - 2026-10-16
 

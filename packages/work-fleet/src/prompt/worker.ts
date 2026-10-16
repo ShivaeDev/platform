@@ -36,7 +36,8 @@ export function cloudStartup({ sharedEnvironment }: CloudStartup, access?: "read
 	return [
 		"Cloud startup:",
 		"- Your workspace may still be provisioning when this message arrives. If the cloud-environment runtime skill offers wait_for_environment, call it and wait calmly until the environment is ready; this usually takes about 90 seconds. Do not explore the snapshot or retry commands while waiting. Your instructions below stay valid.",
-		`- Source ${sharedEnvironment} at the start of EVERY independent shell command when it exists. The pinned Node, pnpm and Bun, the proxy, CA trust, caches and database settings come from it.`,
+		"- Default login shells activate the pinned Node, pnpm, Bun, gh and psql and every shared environment export through the profile hook, including the proxy, CA trust, caches and database settings.",
+		`- If \`node -v\` does not report the repository's \`.node-version\`, source ${sharedEnvironment} once in that command and say so in the final message.`,
 		...(access === "read-only"
 			? []
 			: [
@@ -47,13 +48,21 @@ export function cloudStartup({ sharedEnvironment }: CloudStartup, access?: "read
 
 export function workerPrompt(input: WorkerPrompt) {
 	if (input.deliverable === "report") {
-		return [`Work Board task: ${input.workId}`, "", cloudStartup(input), "", reportPrompt(input.task.trim())].join("\n");
+		return [
+			`Work Board task: ${input.workId}`,
+			"",
+			cloudStartup(input),
+			"- Before executing repository commands, run `./script/update` with escalation (require_escalated), since it installs dependencies.",
+			"",
+			reportPrompt(input.task.trim()),
+		].join("\n");
 	}
 	return [
 		`Work Board task: ${input.workId}`,
 		"",
 		cloudStartup(input),
 		`- Fetch origin/main and create ${input.branch} from that exact current revision, not from the environment snapshot. Use the supplied checkout and leave unrelated state alone.`,
+		"- Immediately after fetching origin/main and creating the branch, run `./script/update` with escalation (require_escalated), since it installs dependencies, before any other command or task work.",
 		"",
 		"Implement this approved Board task:",
 		"---",

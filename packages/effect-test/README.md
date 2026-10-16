@@ -160,7 +160,7 @@ Worker acquisition is separate: a Layer that reads the default Clock while it is
 
 ### Waiting for a typed readiness condition
 
-`eventually(effect, options)` retries the Effect's typed failures until it succeeds or uses its retry budget. Under TestClock it advances time with `TestClock.adjust`; under live time it retries with `Schedule.spaced`.
+`eventually(effect, options)` retries the Effect's typed failures until it succeeds or uses its retry budget. It uses the active Clock: under TestClock it advances time with `TestClock.adjust`; under live time it retries with `Schedule.spaced`.
 
 ```ts
 import { eventually } from "@shivaedev/effect-test/eventually.ts";
@@ -200,6 +200,19 @@ effectApp("retries a readiness assertion", function* () {
 
 This distinction applies under both clocks. The helper preserves the Effect's success, error and service types.
 
+### Waiting in live time without advancing TestClock
+
+Use `withLive(effect)` from `@shivaedev/effect-test/withLive.ts` for a real-time sleep or readiness poll in a harness, hook or story step. Under TestClock it delegates to native `TestClock.withLive`; under a live clock it runs the Effect directly. The surrounding clock is restored afterward, so waiting for external work does not move virtual token expiry.
+
+```ts
+import { withLive } from "@shivaedev/effect-test/withLive.ts";
+
+yield* withLive(Effect.sleep("10 millis"));
+yield* withLive(eventually(queueIsEmpty, { interval: "10 millis", times: 100 }));
+```
+
+The entire wrapped Effect, including readiness checks and retry delays, uses live time. The same call works when a kit defaults to a live clock and one story opts into TestClock. Success, typed failure and service requirements are preserved.
+
 ### API
 
 Import the module that defines the name; the package has no root entry.
@@ -209,6 +222,7 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/effect-test/it.ts` | `it`, with generator-aware `effect` and `live` testers. |
 | `@shivaedev/effect-test/vitest.ts` | `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`. |
 | `@shivaedev/effect-test/eventually.ts` | `eventually(effect, options?)` and `EventuallyOptions`. |
+| `@shivaedev/effect-test/withLive.ts` | `withLive(effect)`, a live-time region under either clock. |
 | `@shivaedev/effect-test/any-test-layer.ts` | `AnyTestLayer` and `buildTestLayer(layer, scope)`, an Effect that builds the Layer's service Context in the supplied scope. |
 | `@shivaedev/effect-test/types.ts` | `EffectClock`, `EffectTestOptions`, `EffectTestBody`, `EffectTest`, `EffectTester`, `MakeEffectItOptions`, `MakeEffectItResult`, `EffectItTest`, `EffectItTester` and `EffectIt`. |
 
