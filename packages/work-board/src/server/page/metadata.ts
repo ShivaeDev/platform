@@ -4,6 +4,7 @@ import type { MetadataModel } from "#server/metadata/model.ts";
 import type { ParsedMetadata } from "#server/metadata/parse.ts";
 import { backlinksHtml } from "#server/page/backlinksHtml.ts";
 import { metadataDetails } from "#server/page/metadataDetails.ts";
+import { metadataRecords } from "#server/page/metadataRecords.ts";
 import { stateOf, viewUrl } from "#server/views/state.ts";
 
 function handoffLink(id: string | undefined, kind: string | undefined, unique: boolean) {
@@ -42,7 +43,7 @@ export function metadataHtml(parsed: ParsedMetadata, file: string, model: Metada
 			? `<p><a href="${escapeHtml(viewUrl(stateOf("/"), { board: fields.id }))}">View this board</a></p>`
 			: "";
 	const lead = recordedSummary(parsed, identity, summary);
-	return `<section class="work-meta" aria-label="Recorded work">${lead}${boardLink}${resultLink(fields.id, fields.kind, unique)}${handoffLink(fields.id, fields.kind, unique)}${problems}${details}<details data-key="frontmatter-source"><summary>Source</summary><p>Source: ${escapeHtml(file)}:${parsed.lines.id ?? 1}; prose starts at line ${parsed.bodyLine}.</p>${parsed.raw ? `<h3>Original frontmatter</h3><pre>${escapeHtml(parsed.raw)}</pre>` : ""}</details></section>${backlinks}`;
+	return `<section class="work-meta" aria-label="Recorded work">${lead}${boardLink}${resultLink(fields.id, fields.kind, unique)}${handoffLink(fields.id, fields.kind, unique)}${problems}${details}<details data-key="frontmatter-source"><summary>Source</summary><p>Source: ${escapeHtml(file)}:${parsed.lines.id ?? 1}; prose starts at line ${parsed.bodyLine}.</p>${parsed.raw ? `<h3>Original frontmatter</h3><pre>${escapeHtml(parsed.raw)}</pre>` : ""}${metadataRecords(parsed, model)}</details></section>${backlinks}`;
 }
 
 export const metadataStyles = `

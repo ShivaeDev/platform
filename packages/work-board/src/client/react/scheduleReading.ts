@@ -1,5 +1,6 @@
 import { flushSync } from "react-dom";
-import { type captureReading, passageStatus, restoreReading, scrollToPassage } from "./readingState.ts";
+import { passageStatus, revealPassage, scrollToPassage } from "#client/react/readingPassage.ts";
+import { type captureReading, restoreReading } from "#client/react/readingState.ts";
 export function scheduleReading(
 	doc: HTMLElement,
 	reading: ReturnType<typeof captureReading> | null,
@@ -26,15 +27,19 @@ export function scheduleReading(
 		const passage = hash ? `#${hash}` : "";
 		if (reading) {
 			restoreReading(reading);
-			// Readiness can arrive from a React effect; commit the warning before the next paint.
-			queueMicrotask(() => {
-				if (active()) {
-					flushSync(() => setStatus(passageStatus(passage)));
-				}
-			});
-		} else {
-			setStatus(scrollToPassage(passage));
 		}
+		// Readiness can arrive from a React effect; reveal the target before scrolling or focusing it.
+		queueMicrotask(() => {
+			if (!active()) {
+				return;
+			}
+			flushSync(() => revealPassage(passage));
+			if (reading) {
+				flushSync(() => setStatus(passageStatus(passage)));
+			} else {
+				setStatus(scrollToPassage(passage));
+			}
+		});
 	}
 	document.addEventListener("board-reading-ready", restore);
 	requestAnimationFrame(restore);

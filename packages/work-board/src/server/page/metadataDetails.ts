@@ -1,33 +1,20 @@
-import { escapeHtml } from "#browser/escapeHtml.ts";
 import type { MetadataModel } from "#server/metadata/model.ts";
 import type { ParsedMetadata } from "#server/metadata/parse.ts";
-import { attentionDetails } from "./attentionDetails.ts";
-import { criteriaEvidence } from "./criteriaEvidence.ts";
-import { referenceHtml, valueHtml } from "./metadataLinks.ts";
-import { recordedEvidence } from "./recordedEvidence.ts";
-import { relationshipSources } from "./relationshipSources.ts";
+import { attentionDetails } from "#server/page/attentionDetails.ts";
+import { criteriaEvidence } from "#server/page/criteriaEvidence.ts";
+import { referenceHtml, valueHtml } from "#server/page/metadataLinks.ts";
+import { recordedEvidence } from "#server/page/recordedEvidence.ts";
+import { relationshipSources } from "#server/page/relationshipSources.ts";
 
 export function metadataDetails(parsed: ParsedMetadata, file: string, model: MetadataModel): string {
 	const fields = parsed.fields;
 	const details = [
-		fields.handoff
-			? `<h3>Agent handoff</h3><p>${referenceHtml(fields.handoff.item, fields.handoff.item, model)} · ${escapeHtml(fields.handoff.recipient)} · ${escapeHtml(fields.handoff.state)}</p><p>Receipt is separate from execution and acceptance.</p><p>${escapeHtml(fields.handoff.by ?? "")}${fields.handoff.note ? ` · ${escapeHtml(fields.handoff.note)}` : ""}</p><p>Reviewed SHA-256: <code>${fields.handoff.reviewedRevision}</code></p><p><a href="/_board/handoff?item=${encodeURIComponent(fields.handoff.item)}">Read handoff history and copy its prompt</a></p>`
-			: "",
 		`<dl><dt>Kind</dt><dd>${valueHtml(fields.kind)}</dd><dt>Status</dt><dd>${valueHtml(fields.status)}</dd><dt>Owner</dt><dd>${valueHtml(fields.owner)}</dd><dt>Next action</dt><dd>${valueHtml(fields.nextAction)}</dd></dl>`,
 		relationshipSources(parsed, model),
 		fields.items?.length
 			? `<h3>Declared board membership</h3><ul>${fields.items.map((id) => `<li>${referenceHtml(id, id, model)}</li>`).join("")}</ul>`
 			: "",
 
-		fields.question
-			? `<h3>Reviewed question</h3><p>${referenceHtml(fields.question.item, fields.question.item, model)} / ${escapeHtml(fields.question.request)} · ${escapeHtml(fields.question.reason)}</p><p>Reviewed SHA-256: <code>${fields.question.reviewedRevision}</code>. Registered: ${new Date(fields.question.registeredAt).toISOString()}. Unanswered deadline: ${new Date(fields.question.deadline).toISOString()}.</p>`
-			: "",
-		fields.response
-			? `<h3>Recorded response</h3><p>${referenceHtml(fields.response.question, fields.response.question, model)} · ${escapeHtml(fields.response.author)} · ${escapeHtml(fields.response.type)}</p><p>Reviewed SHA-256: <code>${fields.response.reviewedRevision}</code>. This is authored feedback, not verified acceptance.</p>${fields.response.supersedes ? `<p>Explicitly supersedes ${referenceHtml(fields.response.supersedes, fields.response.supersedes, model)}.</p>` : ""}`
-			: "",
-		fields.requestReceipt
-			? `<h3>Managed request receipt</h3><p>${referenceHtml(fields.requestReceipt.question, fields.requestReceipt.question, model)} · ${fields.requestReceipt.disposition}</p><p>Reviewed SHA-256: <code>${fields.requestReceipt.reviewedRevision}</code>. This acknowledges request handling, not execution, acceptance or delivery authority.</p>${fields.requestReceipt.response ? `<p>Applied response: ${referenceHtml(fields.requestReceipt.response, fields.requestReceipt.response, model)}</p>` : ""}`
-			: "",
 		criteriaEvidence(parsed, model),
 		fields.attention?.length ? `<details><summary>Request source records</summary>${attentionDetails(parsed, file, model)}</details>` : "",
 		recordedEvidence(parsed, file, model),
