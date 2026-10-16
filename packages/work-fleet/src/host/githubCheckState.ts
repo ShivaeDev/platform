@@ -2,13 +2,17 @@ import { Schema } from "effect";
 import type { Checks } from "#policy.ts";
 
 const CheckRun = Schema.Struct({
+	completedAt: Schema.optional(Schema.NullOr(Schema.String)),
 	conclusion: Schema.NullOr(Schema.String),
 	detailsUrl: Schema.NullOr(Schema.String),
 	headSha: Schema.String,
 	htmlUrl: Schema.String,
 	name: Schema.String,
+	startedAt: Schema.optional(Schema.NullOr(Schema.String)),
 	status: Schema.String,
-}).pipe(Schema.encodeKeys({ detailsUrl: "details_url", headSha: "head_sha", htmlUrl: "html_url" }));
+}).pipe(
+	Schema.encodeKeys({ completedAt: "completed_at", detailsUrl: "details_url", headSha: "head_sha", htmlUrl: "html_url", startedAt: "started_at" }),
+);
 export const CheckPages = Schema.Array(Schema.Struct({ checkRuns: Schema.Array(CheckRun) }).pipe(Schema.encodeKeys({ checkRuns: "check_runs" })));
 const Status = Schema.Struct({ context: Schema.String, state: Schema.String, targetUrl: Schema.NullOr(Schema.String) }).pipe(
 	Schema.encodeKeys({ targetUrl: "target_url" }),
@@ -35,6 +39,19 @@ function statusState(state: string): Observation["state"] {
 	}
 	return ["error", "failure"].includes(state) ? "fail" : "pending";
 }
+function newestChecks(pages: typeof CheckPages.Type) {
+	const newest = new Map<string, typeof CheckRun.Type>();
+	function time(check: typeof CheckRun.Type) {
+		return Date.parse(check.completedAt ?? check.startedAt ?? "") || 0;
+	}
+	for (const check of pages.flatMap((page) => page.checkRuns)) {
+		const previous = newest.get(check.name);
+		if (previous === undefined || time(check) > time(previous)) {
+			newest.set(check.name, check);
+		}
+	}
+	return [...newest.values()];
+}
 export function githubCheckState(
 	head: string,
 	pr: string,
@@ -43,9 +60,7 @@ export function githubCheckState(
 	required: readonly string[],
 ): Checks {
 	const observations: Observation[] = [
-		...checks.flatMap((page) =>
-			page.checkRuns.map((check) => ({ name: check.name, state: checkState(check), url: check.detailsUrl ?? check.htmlUrl })),
-		),
+		...newestChecks(checks).map((check) => ({ name: check.name, state: checkState(check), url: check.detailsUrl ?? check.htmlUrl })),
 		...statuses.flatMap((page) =>
 			page.statuses.map(
 				(status): Observation => ({
