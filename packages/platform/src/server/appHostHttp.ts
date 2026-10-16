@@ -10,6 +10,7 @@ import { TrustedProxy } from "#rpc-server/trustedProxy.ts";
 import type { AppHostOptions, AppLocalHostOptions } from "./appHost.ts";
 import { boundedRpcRequest } from "./boundedRpcRequest.ts";
 import type { databaseLayer } from "./databaseLayer.ts";
+import { healthRoute } from "./healthRoute.ts";
 import type { HostOptions, HostPolicy } from "./hostOptions.ts";
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
@@ -72,7 +73,7 @@ export function appHostHttp<
 					});
 				}),
 			);
-			return HttpRouter.serve(Layer.mergeAll(routes, assets, options.routes ?? Layer.empty), { disableLogger: true }).pipe(
+			return HttpRouter.serve(Layer.mergeAll(routes, healthRoute, assets, options.routes ?? Layer.empty), { disableLogger: true }).pipe(
 				Layer.provideMerge(application),
 				Layer.provideMerge(server),
 				Layer.provide(NodeServices.layer),

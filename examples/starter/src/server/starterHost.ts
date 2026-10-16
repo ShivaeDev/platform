@@ -1,11 +1,12 @@
 import { Config, Effect, Layer, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
-import { AppChanges, appHost } from "@shivaedev/platform/appHost.ts";
+import { AppChanges, appDatabase, appHost } from "@shivaedev/platform/appHost.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { authenticatedUserLayer } from "@shivaedev/platform/rpc-server/session.ts";
 import { Notes, Subscribe } from "#notes.ts";
-import { makeAuth } from "./auth.ts";
+import { authDatabase } from "./authDatabase.ts";
 import { databaseOptions } from "./databaseOptions.ts";
+import { makeAuth } from "./makeAuth.ts";
 import { NotesService } from "./NotesService.ts";
 import { noteProducer } from "./noteProducer.ts";
 
@@ -33,17 +34,22 @@ export function starterHost(config?: {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
-			const { auth, routes, sessions } = yield* makeAuth({ databaseUrl, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
-			const database = databaseOptions(auth, databaseUrl);
-			const producer = noteProducer(Redacted.value(databaseUrl));
-			return appHost({
-				config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
-				group: Notes,
-				handlers: Layer.mergeAll(handlers, authenticatedUserLayer(sessions), routes, HttpStaticServer.layer({ root: "dist", spa: true })),
-				migrations: database.migrations,
-				services: NotesService.layer.pipe(Layer.provideMerge(producer)),
-				sessions,
-			});
+			const pool = yield* authDatabase(databaseUrl);
+			const database = databaseOptions(pool, databaseUrl);
+			const host = Layer.unwrap(
+				Effect.gen(function* () {
+					const { routes, sessions } = yield* makeAuth({ database: pool, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
+					const producer = noteProducer(Redacted.value(databaseUrl));
+					return appHost({
+						config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
+						group: Notes,
+						handlers: Layer.mergeAll(handlers, authenticatedUserLayer(sessions), routes, HttpStaticServer.layer({ root: "dist", spa: true })),
+						services: NotesService.layer.pipe(Layer.provideMerge(producer)),
+						sessions,
+					});
+				}),
+			);
+			return host.pipe(Layer.provideMerge(appDatabase(database)));
 		}),
 	);
 }

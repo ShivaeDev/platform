@@ -1,4 +1,4 @@
-import { Effect, Layer, Redacted, Result } from "effect";
+import { Effect, Layer, Result } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect, vi } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
@@ -17,7 +17,7 @@ effectApp(
 		const deleted = yield* client["notes.create"]({ title: "Deleted before counting" });
 		yield* client["notes.delete"]({ id: deleted.id, version: deleted.version });
 		const database = yield* PostgresTestDatabase;
-		yield* Layer.build(noteWorker({ databaseUrl: database.url, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }));
+		yield* Layer.build(noteWorker({ databaseUrl: database.url }));
 		const counted = { ...edited, version: 2, wordCount: 3 };
 		yield* Effect.promise(() =>
 			vi.waitFor(

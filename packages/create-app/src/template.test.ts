@@ -36,7 +36,8 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(manifest.scripts.format).toBe("quality fix");
 	expect(manifest.scripts["db:setup"]).toBe("node --env-file-if-exists=.env.local src/server/setup-database.ts");
 	expect(files["script/setup-database.ts"]).toBeUndefined();
-	expect(manifest.scripts.dev).toBe("pnpm db:setup && node --env-file-if-exists=.env.local src/server/dev.ts");
+	expect(manifest.scripts.dev).toBe("pnpm db:setup && pnpm migrate && node --env-file-if-exists=.env.local src/server/dev.ts");
+	expect(manifest.scripts.migrate).toBe("node --env-file-if-exists=.env.local src/server/migrate.ts");
 	expect(manifest.scripts.test).toBe("node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run");
 	expect(manifest.dependencies["@shivaedev/local-postgres"]).toBe(versions["@shivaedev/local-postgres"]);
 	expect(manifest.devDependencies["@shivaedev/quality"]).toBe(versions["@shivaedev/quality"]);
@@ -44,6 +45,7 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(files["quality/baseline.jsonl"]).toBeUndefined();
 	expect(manifest.scripts.dev).not.toContain("--conditions=source");
 	expect(files["src/server/dev.ts"]).not.toContain("--conditions=source");
+	expect(files["src/test-support/deployChild.ts"]).not.toContain("--conditions=source");
 	expect(files["src/server/dev.ts"]).toContain('"--watch"');
 	expect(JSON.parse(files["biome.json"] ?? "{}")).toMatchObject({ root: true });
 	expect(files["biome.json"]).toBe(readFileSync(join(starter, "biome.json"), "utf8").replace('"root": false', '"root": true'));
@@ -58,6 +60,11 @@ it("packages the real starter with registry dependencies, standalone configurati
 		"src/server/starterHost.test.ts",
 		"src/server/committedJobs.spec.ts",
 		"src/server/notesMigration.spec.ts",
+		"src/server/deployReadiness.spec.ts",
+		"src/server/migrate.ts",
+		"src/server/migrateDatabase.ts",
+		"railway.toml",
+		"railway.worker.toml",
 		"src/notes.ts",
 	]) {
 		expect(files[path]).toBe(readFileSync(join(starter, path), "utf8"));

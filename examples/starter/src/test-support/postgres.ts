@@ -6,6 +6,7 @@ import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
+import { migrateDatabase } from "#server/migrateDatabase.ts";
 import { starterHost } from "#server/starterHost.ts";
 
 const layer = Layer.unwrap(
@@ -21,6 +22,7 @@ export const { effectApp } = makeEffectIt({
 	makeHarness: () =>
 		Effect.gen(function* () {
 			const database = yield* PostgresTestDatabase;
+			yield* Effect.scoped(migrateDatabase(database.url));
 			const context = yield* Layer.build(
 				starterHost({ databaseUrl: database.url, port: 0, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }),
 			);

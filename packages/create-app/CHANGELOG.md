@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.3 - 2026-10-16
+
+### Fixed
+
+- A generated app’s worker and `pnpm migrate` command need only `DATABASE_URL`; shared migrations derive Better Auth’s schema without constructing an auth instance.
+- A generated app runs migrations in web’s Railway pre-deploy step. Web and worker check the schema at startup without migrating; an outdated schema prevents authentication, HTTP and jobs from starting. The migrate command is idempotent.
+- A generated app’s worker logs its applied-migrations check and readiness to take jobs through Effect’s logger.
+- A generated app includes separate Railway web and worker configurations; the web healthcheck uses the database-backed `/health` route.
+
 ## 0.2.2 - 2026-10-16
 
 ### Changed

@@ -18,6 +18,7 @@ export interface AppDatabaseOptions<R = never> {
 	};
 	readonly migrations: {
 		readonly loader: Migrator.Loader<R>;
+		readonly mode?: "migrate" | "check";
 		readonly table?: string;
 		readonly lockTimeout?: Duration.Input;
 	};

@@ -4,10 +4,10 @@ import { toPgBossError } from "@shivaedev/effect-pg-boss/error.ts";
 import { deadLetterQueueName } from "@shivaedev/effect-pg-boss/health.ts";
 import { CountWords, NoteJobs } from "./noteJobs.ts";
 
-export function noteProducer(connectionString: string) {
+export function noteProducer(connectionString: string, migrate = false) {
 	return Layer.unwrap(
 		Effect.sync(() => {
-			const client = defaultClientFactory({ connectionString });
+			const client = defaultClientFactory({ connectionString, migrate });
 			const queues = Effect.tryPromise({
 				catch: (error) => toPgBossError("register", error),
 				try: async () => {
@@ -16,7 +16,9 @@ export function noteProducer(connectionString: string) {
 					await client.createQueue(CountWords.name, { ...CountWords.queueOptions, deadLetter });
 				},
 			});
-			return Layer.effectDiscard(queues).pipe(Layer.provideMerge(NoteJobs.layer({ clientFactory: () => client, connectionString, jobs: [] })));
+			return Layer.effectDiscard(queues).pipe(
+				Layer.provideMerge(NoteJobs.layer({ clientFactory: () => client, connectionString, jobs: [], migrate })),
+			);
 		}),
 	);
 }

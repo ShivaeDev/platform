@@ -1,4 +1,4 @@
-import { Effect, Layer, Redacted, Result } from "effect";
+import { Effect, Layer, Result } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -47,7 +47,7 @@ effectApp(
 		expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 1 }]);
 		yield* Effect.sleep("1200 millis");
 		expect(yield* sql`select "wordCount" from starter_notes where id = ${note.id}`).toEqual([{ wordCount: null }]);
-		yield* Layer.build(noteWorker({ databaseUrl: database.url, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }));
+		yield* Layer.build(noteWorker({ databaseUrl: database.url }));
 		yield* Effect.promise(() =>
 			vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual([{ ...note, version: 1, wordCount: 4 }]), {
 				timeout: 5000,

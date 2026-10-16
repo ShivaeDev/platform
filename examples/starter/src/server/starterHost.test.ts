@@ -6,9 +6,10 @@ import { expect } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { authPost, credentials, notesHttp } from "#test-support/authHttp.ts";
 import { effectApp } from "#test-support/postgres.ts";
+import { migrateDatabase } from "./migrateDatabase.ts";
 import { starterHost } from "./starterHost.ts";
 
-effectApp("migrates PostgreSQL and creates and queries a persisted note over authenticated HTTP/NDJSON", function* ({ baseUrl }) {
+effectApp("creates and queries a persisted note over authenticated HTTP/NDJSON after migration", function* ({ baseUrl }) {
 	const cookie = yield* authPost(baseUrl, "sign-up/email", credentials("alice"));
 	const client = yield* notesHttp(baseUrl, cookie);
 	expect(yield* client["notes.list"]()).toEqual([]);
@@ -22,11 +23,12 @@ effectApp("migrates PostgreSQL and creates and queries a persisted note over aut
 	expect(yield* client["notes.list"]()).toEqual([created]);
 });
 
-effectApp("reruns the starter migration path without losing auth accounts or notes", function* ({ baseUrl }) {
+effectApp("reruns migrations before restarting web without losing auth accounts or notes", function* ({ baseUrl }) {
 	const cookie = yield* authPost(baseUrl, "sign-up/email", credentials("alice"));
 	const client = yield* notesHttp(baseUrl, cookie);
 	const note = yield* client["notes.create"]({ title: "Keep this note" });
 	const database = yield* PostgresTestDatabase;
+	yield* Effect.scoped(migrateDatabase(database.url));
 	const context = yield* Layer.build(
 		starterHost({ databaseUrl: database.url, port: 0, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }),
 	);
@@ -49,6 +51,7 @@ effectApp("adds word counts to notes saved before the job migration", function* 
 	yield* sql`alter table starter_notes drop column version`;
 	yield* sql`delete from starter_migrations where migration_id >= 4`;
 	const database = yield* PostgresTestDatabase;
+	yield* Effect.scoped(migrateDatabase(database.url));
 	yield* Layer.build(starterHost({ databaseUrl: database.url, port: 0, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }));
 	expect(yield* client["notes.list"]()).toEqual([{ ...note, wordCount: 4 }]);
 });
@@ -61,6 +64,7 @@ effectApp("upgrades existing notes with version zero and accepts their first ver
 	yield* sql`alter table starter_notes drop column version`;
 	yield* sql`delete from starter_migrations where migration_id = 5`;
 	const database = yield* PostgresTestDatabase;
+	yield* Effect.scoped(migrateDatabase(database.url));
 	yield* Layer.build(starterHost({ databaseUrl: database.url, port: 0, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }));
 	expect(yield* client["notes.get"]({ id: note.id })).toEqual({ ...note, version: 0 });
 	expect(yield* client["notes.update"]({ ...note, title: "Edited old note" })).toEqual({ ...note, title: "Edited old note", version: 1 });

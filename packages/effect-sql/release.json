@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-13",
+	"date": "2026-10-16",
 	"fragments": [
 		{
-			"name": "effect-4-stable.md",
-			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/sql-pg` 4.0.4 alongside it, whose native PostgreSQL client replaces `pg`.\n- `PostgresChangeClient.listen` returns a scoped `Queue` of notifications, matching `PgClient.listen` in `@effect/sql-pg` 4.0.4.\n- JSON and JSONB columns are not supported. A repository write of a plain object to one fails with `SqlError`; give structured data its own columns or table.\n- PostgreSQL `int8` values read as `bigint` (use `Schema.BigInt`), `date` values read as `YYYY-MM-DD` strings, and `timestamp without time zone` values are read and written as UTC wall time.\n\n### Changed\n\n- A failed `COMMIT` inside `transact` fails with a typed `SqlError` mapped through `onSqlError` instead of a defect.\n"
+			"name": "deploy-readiness.md",
+			"text": "### Added\n\n- `assertPostgresMigrations({ loader, table? })` in `assertPostgresMigrations.ts` verifies required migration IDs and names in the native ledger without executing migrations or creating a ledger. Missing or pending migrations fail with native `MigrationError` (`kind: \"BadState\"`); later ledger entries are allowed for rolling deployments.\n"
 		}
 	],
-	"version": "0.3.0"
+	"version": "0.4.0"
 }
