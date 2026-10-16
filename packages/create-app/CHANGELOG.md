@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 - 2026-10-16
+
+### Changed
+
+- Generated apps use Platform 0.9.0 and read signed-in user profiles through `SessionUser`, including a `notes.whoami` query without auth-table SQL.
+
 ## 0.2.1 - 2026-10-14
 
 ### Changed
