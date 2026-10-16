@@ -1,9 +1,15 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
+import { makeAuth } from "./auth.ts";
+import { makeNotesClient } from "./makeNotes.ts";
 import "#client/entry.css";
 
 const container = document.getElementById("root");
 if (container === null) {
 	throw new Error("Missing application root");
 }
-createRoot(container).render(<App />);
+const auth = makeAuth({ baseUrl: window.location.origin });
+function connect() {
+	return makeNotesClient(new URL("/rpc", window.location.href).href);
+}
+createRoot(container).render(<App auth={auth} connect={connect} />);
