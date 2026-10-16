@@ -1,0 +1,10 @@
+{
+	"date": "2026-10-16",
+	"fragments": [
+		{
+			"name": "migrated-unreleased.md",
+			"text": "### Changed\n\n- Document local service preparation, application-owned database names and schemas, data-preservation priorities and test boundaries in the README, agent guidance, north star and roadmap. Publish `docs/` with the README while keeping agent guidance out of the package.\n\n- Build package JavaScript, declarations and source maps with TypeScript 7.\n"
+		}
+	],
+	"version": "0.2.1"
+}
