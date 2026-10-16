@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { afterEach, beforeAll, expect, it } from "vitest";
-import { appFolder, cleanup, testEnvironment } from "#test/cli.ts";
+import { appFolder, appScript, cleanup, testEnvironment } from "#test/cli.ts";
 import { packTemplate } from "./packTemplate.ts";
 
 const version: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
@@ -97,11 +97,13 @@ it("preserves an existing environment and refuses to run again even after instal
 	expect(readFileSync(path, "utf8")).toBe(env);
 });
 
-it("runs generated pnpm test with TEST_DATABASE_URL loaded from .env.local", () => {
+it("typechecks and runs tests in a generated app named app with its local test database URL", () => {
 	const { root, run } = appFolder();
-	expect(run(["my-app"]).status).toBe(0);
-	const app = join(root, "my-app");
-	const result = testEnvironment(app).run();
+	expect(run(["app"]).status).toBe(0);
+	const app = join(root, "app");
+	const typecheck = appScript(app, "typecheck");
+	expect(typecheck.status, typecheck.stdout + typecheck.stderr).toBe(0);
+	const result = testEnvironment(app, { name: "app" }).run();
 	expect(result.status, result.stdout + result.stderr).toBe(0);
 });
 

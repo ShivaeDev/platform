@@ -1,6 +1,6 @@
 import { Config, Effect, Layer, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
-import { AppChanges, appHost } from "@shivaedev/platform/appHost.ts";
+import { AppChanges, appHost as frameworkAppHost } from "@shivaedev/platform/appHost.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { Notes, Subscribe } from "#notes.ts";
 import { makeAuth } from "./auth.ts";
@@ -34,7 +34,7 @@ export function starterHost(config?: {
 			const { auth, routes, sessions } = yield* makeAuth({ databaseUrl, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
 			const database = databaseOptions(auth, databaseUrl);
 			const producer = noteProducer(Redacted.value(databaseUrl));
-			return appHost({
+			return frameworkAppHost({
 				config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 				group: Notes,
 				handlers: Layer.mergeAll(handlers, routes, HttpStaticServer.layer({ root: "dist", spa: true })),
