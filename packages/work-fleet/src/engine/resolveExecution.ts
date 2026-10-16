@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { abandonStalled } from "#engine/abandonStalled.ts";
 import { authorizeResolution } from "#engine/authorizeResolution.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { releaseExecution } from "#engine/releaseExecution.ts";
@@ -14,7 +15,8 @@ export const resolveExecution = Effect.fn("Fleet.resolveExecution")(function* (
 	if (action === "retry") {
 		yield* authorizeResolution(state, stored.value, action);
 	}
-	const fenced = yield* retireUnacknowledged(state, stored);
+	const resolved = stored.value.decision?.code === "session-stalled" ? yield* abandonStalled(state, stored) : stored;
+	const fenced = yield* retireUnacknowledged(state, resolved);
 	const current = action === "release" && executing(fenced.value) ? yield* releaseExecution(state, fenced) : fenced;
 	if (action === "release") {
 		yield* authorizeResolution(state, current.value, action);

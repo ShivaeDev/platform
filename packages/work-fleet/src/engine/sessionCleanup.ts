@@ -24,7 +24,9 @@ export function cleanupSessions({ sessions, load, save }: EngineState) {
 	return Effect.fn("Fleet.cleanupSessions")(function* (input: Versioned<FleetRecord>) {
 		let stored = input;
 		for (const id of pendingSessionCleanup(stored.value)) {
-			const result = yield* sessions.archive(id).pipe(Effect.result);
+			const abandoned = allAttempts(stored.value).some((attempt) => sessionId(attempt) === id && attempt.abandoned !== undefined);
+			const archive = sessions.archive(id);
+			const result = yield* (abandoned ? archive.pipe(Effect.timeout("5 seconds")) : archive).pipe(Effect.result);
 			if (result._tag === "Failure") {
 				yield* Effect.logWarning("Fleet session cleanup failed; reconciliation will retry", Cause.fail(result.failure)).pipe(
 					Effect.annotateLogs({ sessionId: id }),
