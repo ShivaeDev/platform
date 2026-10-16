@@ -7,23 +7,22 @@ import type { IdColumn, NativeRepository } from "#versionedRepository.ts";
 
 export type CompositeKey<TModel extends Model.Any> = readonly [IdColumn<TModel>, IdColumn<TModel>, ...IdColumn<TModel>[]];
 export type PrimaryKey<TModel extends Model.Any> = IdColumn<TModel> | CompositeKey<TModel>;
-export type Repository<TModel extends Model.Any, TId extends PrimaryKey<TModel>> =
-	TId extends IdColumn<TModel>
-		? NativeRepository<TModel, TId>
-		: TId extends CompositeKey<TModel>
-			? Omit<NativeRepository<TModel, TId[number]>, "findById" | "delete"> & {
-					readonly findById: (
-						id: Pick<TModel["Type"], TId[number]>,
-					) => Effect.Effect<
-						TModel["Type"],
-						SqlError | Schema.SchemaError | Cause.NoSuchElementError,
-						TModel["DecodingServices"] | TModel["fields"][TId[number]]["EncodingServices"]
-					>;
-					readonly delete: (
-						id: Pick<TModel["Type"], TId[number]>,
-					) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][TId[number]]["EncodingServices"]>;
-				}
-			: never;
+export type Repository<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = [TId] extends [IdColumn<TModel>]
+	? NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>
+	: TId extends CompositeKey<TModel>
+		? Omit<NativeRepository<TModel, TId[number]>, "findById" | "delete"> & {
+				readonly findById: (
+					id: Pick<TModel["Type"], TId[number]>,
+				) => Effect.Effect<
+					TModel["Type"],
+					SqlError | Schema.SchemaError | Cause.NoSuchElementError,
+					TModel["DecodingServices"] | TModel["fields"][TId[number]]["EncodingServices"]
+				>;
+				readonly delete: (
+					id: Pick<TModel["Type"], TId[number]>,
+				) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][TId[number]]["EncodingServices"]>;
+			}
+		: never;
 
 export function makeCompositeCrud(
 	model: Model.Any,

@@ -59,6 +59,12 @@ const program = Effect.gen(function* () {
 	makeRepository(Reading, { ...options, conflictColumns: [] });
 	// @ts-expect-error Primary keys must name model fields.
 	makeRepository(Reading, { ...options, idColumn: ["source", "missing"] });
+	const scalarId: "source" | "sequence" = JSON.parse('"sequence"');
+	const scalar = yield* makeRepository(Reading, { ...options, idColumn: scalarId });
+	scalar.findById("meter");
+	scalar.findById(1);
+	scalar.delete("meter");
+	scalar.delete(1);
 	const plain = yield* makeRepository(Reading, options);
 	// @ts-expect-error Idempotent writes require declared conflict columns.
 	plain.insertOrIgnore(input);
