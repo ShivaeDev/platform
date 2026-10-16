@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 - 2026-10-16
+
+### Fixed
+
+- Generated apps use `TRUSTED_PROXY` for Better Auth client IP rate limiting and the host's forwarded authority. Auth ignores forwarded IP headers from untrusted peers, and trusted visitors have separate sign-in buckets, including with mapped IPv6 CIDRs such as `::ffff:127.0.0.0/104` and appended forwarding chains.
+
 ## 0.4.0 - 2026-10-16
 
 ### Added

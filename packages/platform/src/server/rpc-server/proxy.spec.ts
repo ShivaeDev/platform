@@ -2,7 +2,7 @@ import { Effect, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import { RpcSerialization } from "effect/rpc";
 import { expect, it } from "vitest";
-import { localRpcGuard } from "./local.ts";
+import { localRpcGuard, trustedProxyPeer } from "./local.ts";
 
 const forwarded = {
 	"content-type": "application/ndjson",
@@ -45,6 +45,16 @@ it.each([
 	["2001:0DB8:0001:0:0:0:0:2", "2001:db8:1::2", true],
 	["::ffff:a00:2", "10.0.0.0/24", true],
 	["10.0.0.2", "::ffff:10.0.0.0/120", true],
+	["127.0.0.1", "::ffff:127.0.0.0/104", true],
+	["::ffff:7fff:ffff", "::ffff:127.0.0.0/104", true],
+	["126.255.255.255", "::ffff:127.0.0.0/104", false],
+	["128.0.0.0", "::ffff:127.0.0.0/104", false],
+	["2001:db8::1", "::ffff:127.0.0.0/104", false],
+	["203.0.113.1", "::ffff:127.0.0.0/95", true],
+	["::fffe:1234:5678", "::ffff:127.0.0.0/95", true],
+	["::fffd:1234:5678", "::ffff:127.0.0.0/95", false],
+	["203.0.113.1", "::/64", true],
+	["2001:db8::1", "::/64", false],
 	["10.0.0.2", " 192.0.2.1, 10.0.0.0/24, 2001:db8::/32 ", true],
 	["2001:db8::1", "192.0.2.1, 10.0.0.0/24, 2001:db8::/32", true],
 	["192.0.2.1", "192.0.2.1, 10.0.0.0/24, 2001:db8::/32", true],
@@ -52,6 +62,12 @@ it.each([
 	[undefined, "100.64.0.0/10", false],
 ])("matches transport peer %s against %s", async (address, trust, accepted) => {
 	expect(await guarded(address, trust)).toEqual({ calls: accepted ? 1 : 0, status: accepted ? 204 : 403 });
+	if (address !== undefined) {
+		expect(trustedProxyPeer(trust)(address)).toBe(accepted);
+	}
+});
+it.each([undefined, "", "not-an-address", "127.0.0.1/33", "127.0.0.1,invalid"])("matches no peer with absent or malformed trust: %s", (trust) => {
+	expect(trustedProxyPeer(trust)("127.0.0.1")).toBe(false);
 });
 it.each([
 	{ origin: "https://elsewhere.example" },
