@@ -41,6 +41,9 @@ export const migrateExceptions = Effect.fnUntraced(function* (
 	const config = yield* loadConfig(cwd, configPath);
 	const registryPath = from ?? config.registry;
 	const raw = yield* readInput(config.root, registryPath);
+	if (from !== undefined && raw === undefined) {
+		return yield* new SetupFailure({ message: `${registryPath} does not exist. Pass an existing registry file with --from.` });
+	}
 	const registry = yield* validOrFail(registryPath, yield* Effect.promise(() => decodeRegistry(raw)));
 	const entries = merge([
 		...config.exceptions,
