@@ -29,6 +29,8 @@ export const shellIds = {
 	"live": "live",
 	"navigationStatus": "navigation-status",
 	openSavedView: "open-saved-view",
+	phoneMore: "phone-more",
+	phoneMoreTitle: "phone-more-title",
 	"preferenceStatus": "preference-status",
 	"primaryNavigation": "primary-navigation",
 	readingLibrary: "reading-library",

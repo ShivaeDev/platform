@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { KeyboardHints } from "./KeyboardHints.tsx";
 import { shellIds } from "./shellIds.ts";
 import { VisualControls } from "./VisualControls.tsx";
 import { graphicWidth, visualFilename } from "./visualDimensions.ts";
@@ -140,7 +141,8 @@ export function VisualViewer({ selection, close }: { readonly selection: VisualS
 				</div>
 			</section>
 			<p className="visual-help">
-				Arrow keys choose images · Zoom and scroll to inspect · Escape returns to the source. Recorded evidence does not verify acceptance.
+				<KeyboardHints>Arrow keys choose images · Escape returns to the source. </KeyboardHints>
+				Zoom and scroll to inspect. Recorded evidence does not verify acceptance.
 			</p>
 		</div>
 	);

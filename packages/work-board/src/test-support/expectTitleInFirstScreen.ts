@@ -21,7 +21,12 @@ export function expectTitleInFirstScreen(page: OpenPage): void {
 	const layout = element(".document-layout");
 	const introduction = element(".item-introduction");
 	const title = element(".item-introduction h1");
-	expect([...element("[data-board-page]").children]).toEqual([element("header"), main]);
+	expect([...element("[data-board-page]").children]).toEqual([
+		element("[data-workspace-header]"),
+		main,
+		element('nav[aria-label="Phone navigation"]'),
+		element("#phone-more"),
+	]);
 	expect(main.firstElementChild).toBe(layout);
 	expect(layout.firstElementChild).toBe(introduction);
 	expect(introduction.firstElementChild).toBe(title);
@@ -30,10 +35,11 @@ export function expectTitleInFirstScreen(page: OpenPage): void {
 		expect(element("#sidebar").hidden).toBe(true);
 	}
 	const header = element("header");
-	expect(header.classList.contains("h-14")).toBe(true);
+	expect(header.classList.contains("h-12")).toBe(true);
+	expect(header.classList.contains("md:h-14")).toBe(true);
 	expect(header.classList.contains("flex")).toBe(true);
 	expect(header.classList.contains("flex-wrap")).toBe(false);
-	let maximumTitleTop = 56;
+	let maximumTitleTop = window.innerWidth < 768 ? 48 : 56;
 
 	for (const selector of [
 		"body",
