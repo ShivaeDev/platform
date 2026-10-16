@@ -10,7 +10,7 @@ export const storyHost = Effect.gen(function* () {
 		Effect.sync(
 			() =>
 				new Worker(fileURLToPath(new NodeUrl("./storyHostProcess.ts", import.meta.url)), {
-					execArgv: [],
+					execArgv: ["--conditions=source"],
 					workerData: Redacted.value(database.url),
 				}),
 		),

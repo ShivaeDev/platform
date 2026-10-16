@@ -1,9 +1,17 @@
-import { registerHooks } from "node:module";
+import { findPackageJSON, registerHooks } from "node:module";
+import { pathToFileURL } from "node:url";
 import { parentPort, workerData } from "node:worker_threads";
 
 registerHooks({
 	resolve(specifier, context, nextResolve) {
-		return nextResolve(specifier, { ...context, conditions: context.conditions.filter((condition) => condition !== "source") });
+		const manifest = specifier.startsWith("@shivaedev/")
+			? findPackageJSON(`${specifier.split("/").slice(0, 2).join("/")}/package.json`, context.parentURL)
+			: undefined;
+		const location = manifest === undefined ? (context.parentURL ?? "") : pathToFileURL(manifest).href;
+		return nextResolve(
+			specifier,
+			location.includes("/node_modules/") ? { ...context, conditions: context.conditions.filter((condition) => condition !== "source") } : context,
+		);
 	},
 });
 const { Effect, Layer, Redacted } = await import("effect");
