@@ -11,6 +11,18 @@ const common = { config: { port: 0 }, group: Ping, handlers: pingHandlers, servi
 const options = { ...common, sessions: sessions([]) };
 const noEnvironment = ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }));
 
+it.each([{ sessions: sessions([]) }, { policy: "loopback" as const }])("omitting services serves RPC with %o", async (policy) => {
+	const runtime = ManagedRuntime.make(
+		appHost({ config: { port: 0 }, group: Ping, handlers: pingHandlers, ...policy }).pipe(Layer.provide(noEnvironment)),
+	);
+	try {
+		const server = await runtime.runPromise(HttpServer.HttpServer);
+		expect(await ping(`${HttpServer.formatAddress(server.address)}/rpc`)).toBe("pong");
+	} finally {
+		await runtime.dispose();
+	}
+});
+
 it("omitting migrations serves RPC without database configuration or SQL services", async () => {
 	const lifecycle: string[] = [];
 	const services = Layer.effectDiscard(

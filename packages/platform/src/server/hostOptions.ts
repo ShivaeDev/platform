@@ -4,7 +4,7 @@ import type { Rpc, RpcGroup } from "effect/rpc";
 import type { SessionPolicy, SessionShape } from "#rpc-server/session.ts";
 import type { AppDatabaseOptions } from "./appHost.ts";
 
-export interface HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> {
+export type HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> = {
 	readonly assets?: string | Parameters<typeof HttpStaticServer.layer>[0];
 	readonly config?: AppDatabaseOptions["config"] & {
 		readonly port?: number;
@@ -17,8 +17,10 @@ export interface HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, TH
 	readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements>;
 	readonly routes?: Layer.Layer<never, never, HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>>;
 	readonly rpcPath?: HttpRouter.PathInput;
-	readonly services: Layer.Layer<TServices, TServiceError, TServiceRequirements>;
-}
+	readonly services?: Layer.Layer<TServices, TServiceError, TServiceRequirements>;
+} & ([TServices | TServiceError | TServiceRequirements] extends [never]
+	? unknown
+	: { readonly services: Layer.Layer<TServices, TServiceError, TServiceRequirements> });
 
 export type HostPolicy<TSession extends SessionShape> =
 	| { readonly policy?: undefined; readonly sessions: SessionPolicy<TSession> }
