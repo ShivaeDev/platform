@@ -24,6 +24,21 @@ The starter's numbered migration path creates Better Auth's tables with `getMigr
 
 The TypeScript configuration keeps strict application checking and sets `skipLibCheck: true` for dependencies that declare unused runtime types. Existing notes from the unauthenticated starter have no account owner and are not shown to signed-in users.
 
+Write new tests as stories. The kit in [`src/test-support/application.ts`](src/test-support/application.ts) owns a disposable PostgreSQL database and the real HTTP app host. Traits such as `signedIn()`, `legacyNote(title)` and `behindProxy()` describe setup; verbs drive authenticated notes requests, rerun migrations through another host and start the word-count worker. Extend the kit with a trait or verb when a feature needs another setup or action.
+
+```ts
+import { expect } from "vitest";
+import { app, signedIn } from "#test-support/application.ts";
+
+app.it("saves a title for the signed-in account", [signedIn()], function* ({ actor }) {
+ const notes = actor().notes;
+ const saved = yield* notes.create({ title: "First note" });
+ expect(yield* notes.list()).toEqual([saved]);
+});
+```
+
+The kit uses `@shivaedev/test-story` on `effect-test`. Database stories run serially within each worker, use a live clock, commit HTTP writes and dispose their database clones after the host and pools close. Failures print the story and account aliases and host details, without session cookies. The deploy story uses a loopback proxy with HTTPS forwarding headers and checks secure session cookies and foreign-origin rejection. It does not exercise a browser or TLS termination. [`src/test-support/screens.ts`](src/test-support/screens.ts) supplies the separate happy-dom story kit; those stories use the in-memory RPC fixture to prove screen and form behavior. [`src/test-support/migration.ts`](src/test-support/migration.ts) isolates the migration upgrade story without starting a host.
+
 `pnpm test` loads `.env.local` and runs the React tests, the PostgreSQL/HTTP round trips and the notes migration upgrade check. The upgrade check applies an older migration prefix, upgrades to the latest migrations, and compares the live column names and PostgreSQL types with the notes repository model. Set `TEST_DATABASE_URL` to a dedicated PostgreSQL database whose role can create databases; the tests create disposable clones. Repository test runs supply `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` instead. Missing database configuration fails the test.
 
 To verify the generated app, run `pnpm --filter @shivaedev/starter check:published` from the repository root. It installs the exact versions in `published-versions.json` into temporary folders outside the workspace, checks imports from the framework READMEs and quickstart, packs the create command, generates an app, and runs its Quality lint, typecheck, build, PostgreSQL/authenticated HTTP tests and notes migration upgrade check. It exercises published declaration and runtime exports without the workspace's `source` condition. Use the local test database from setup or set `TEST_DATABASE_URL`; the check fails if PostgreSQL is unavailable. Update the version file when adopting another published framework release, then run the check again.

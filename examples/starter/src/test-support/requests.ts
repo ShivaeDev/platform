@@ -1,0 +1,43 @@
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { authPost, credentials, notesHttp } from "./authHttp.ts";
+import type { RunningHost } from "./host.ts";
+
+export function requests(host: RunningHost, tell: (line: string) => void) {
+	const authenticate = Effect.fn("StarterStory.authenticate")(function* (name: string, path = "sign-up/email", cookie = "") {
+		tell(`${name} calls ${path}`);
+		return yield* authPost(host.baseUrl, path, path === "sign-out" ? {} : credentials(name), cookie, host.origin);
+	});
+	const notes = Effect.fn("StarterStory.notes")(function* (cookie = "") {
+		const client = yield* notesHttp(host.baseUrl, cookie, host.origin);
+		function call<A, E, R>(line: string, effect: Effect.Effect<A, E, R>) {
+			return Effect.suspend(() => {
+				tell(line);
+				return effect;
+			});
+		}
+		return {
+			create: (input: Parameters<(typeof client)["notes.create"]>[0]) =>
+				call(`create note ${JSON.stringify(input.title)}`, client["notes.create"](input)),
+			delete: (input: Parameters<(typeof client)["notes.delete"]>[0]) =>
+				call(`delete note ${input.id} at version ${input.version}`, client["notes.delete"](input)),
+			get: (input: Parameters<(typeof client)["notes.get"]>[0]) => call(`open note ${input.id}`, client["notes.get"](input)),
+			list: () => call("list notes", client["notes.list"]()),
+			update: (input: Parameters<(typeof client)["notes.update"]>[0]) =>
+				call(`edit note ${input.id} at version ${input.version}`, client["notes.update"](input)),
+		};
+	});
+	const foreignRequest = Effect.fn("StarterStory.foreignRequest")(function* (cookie: string) {
+		tell("a foreign origin calls protected RPC");
+		const response = yield* Effect.promise(() =>
+			fetch(`${host.baseUrl}/rpc`, {
+				body: "[]",
+				headers: { "content-type": "application/ndjson", cookie, origin: "https://foreign.example" },
+				method: "POST",
+			}),
+		);
+		expect(response.status).toBe(403);
+		yield* Effect.promise(() => response.text());
+	});
+	return { authenticate, foreignRequest, notes };
+}
