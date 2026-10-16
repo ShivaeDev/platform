@@ -27,7 +27,7 @@ export function appDatabase<R>(options: AppDatabaseOptions<R>) {
 	return databaseLayer(options, AppChanges);
 }
 
-export interface AppHostOptions<
+export type AppHostOptions<
 	TRpcs extends Rpc.Any,
 	THandlers,
 	THandlerError,
@@ -37,11 +37,11 @@ export interface AppHostOptions<
 	TServiceRequirements = never,
 	TMigrations = never,
 	TSession extends SessionShape = SessionShape,
-> extends HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> {
+> = HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & {
 	readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
 	readonly policy?: undefined;
 	readonly sessions: SessionPolicy<TSession>;
-}
+};
 
 export type AppLocalHostOptions<
 	TRpcs extends Rpc.Any,
