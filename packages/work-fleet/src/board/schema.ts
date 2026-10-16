@@ -35,6 +35,10 @@ export const BoardDecisionAcknowledgement = Schema.Struct({
 });
 export type BoardDecisionAcknowledgement = typeof BoardDecisionAcknowledgement.Type;
 
+export class BoardAcknowledgementStale extends Schema.TaggedError<BoardAcknowledgementStale>()("BoardAcknowledgementStale", {
+	message: Schema.String,
+}) {}
+
 export const BoardDecisionReading = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Pending") }),
 	Schema.Struct({ _tag: Schema.Literal("Stale"), reason: Schema.String }),
