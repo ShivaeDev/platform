@@ -12,12 +12,12 @@ Use `### Added`, `### Changed`, `### Fixed` or `### Breaking` with Markdown bull
 
 ## Release a package
 
-The maintainer authorizes releases. In the release pull request:
+Cut a release whenever a change needs to reach npm. In the release pull request:
 
-1. Bump `packages/<package>/package.json` to the approved version.
+1. Bump `packages/<package>/package.json`: a minor version for new or breaking behavior while the package is pre-1.0, a patch otherwise.
 2. Run `pnpm run changelog:release <package>` from the repository root, for example `pnpm run changelog:release effect-sql`.
 3. Review and commit the generated `CHANGELOG.md`, `release.json` and the deleted fragment files with the version bump.
-4. Run `pnpm ready`, then open the pull request for human review.
+4. Run `pnpm ready`, then open the pull request.
 
 The collector uses the package's version and the current UTC date. It prepends that version's notes in Added, Changed, Fixed, Breaking order, with fragments sorted by filename inside each section, and preserves released history. It deletes the collected Markdown fragments. An empty fragment set leaves the changelog unchanged; a version that already has notes cannot collect more entries.
 
