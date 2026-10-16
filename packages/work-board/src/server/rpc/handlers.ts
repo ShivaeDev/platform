@@ -37,7 +37,11 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.document": ({ url }) =>
 				Effect.suspend(() => (document ? document(url) : Effect.fail(new NotFound({ message: "The document is missing." })))).pipe(documentBoundary),
 			"work-board.fleetItems": () => fleetItems(options),
-			"work-board.goals": () => Effect.map(index, goals).pipe(readBoundary),
+			"work-board.goals": () =>
+				Effect.gen(function* () {
+					const snapshot = yield* index;
+					return goals(snapshot, yield* fleetItems({ ...options, index: Effect.succeed(snapshot) }));
+				}).pipe(readBoundary),
 			"work-board.handoff": ({ url }) => remaining.handoff(url).pipe(documentBoundary),
 			"work-board.handoffSource": ({ item }) => Effect.suspend(() => handoffs.locate(item)).pipe(responseBoundary),
 			"work-board.handoffs": ({ item }) => Effect.suspend(() => handoffs.read(item)).pipe(responseBoundary),

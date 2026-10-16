@@ -11,9 +11,14 @@ interface Selection {
 interface Counts {
 	readonly counts: Readonly<Record<string, number>>;
 	readonly label: string;
+	readonly size?: "small" | "large";
 }
 export function SegmentedBar(props: Selection | Counts) {
-	return "counts" in props ? <StatusSegments {...props} /> : <SelectionBar {...props} />;
+	return "counts" in props ? (
+		<StatusSegments counts={props.counts} label={props.label} large={props.size === "large"} />
+	) : (
+		<SelectionBar {...props} />
+	);
 }
 function SelectionBar({ label, value, options, onValueChange }: Selection) {
 	return (

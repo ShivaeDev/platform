@@ -12,7 +12,7 @@ export function attentionProjection(snapshot: Snapshot): InboxProjection {
 		return cached;
 	}
 	const requests = requestInbox(snapshot);
-	function project({ document, ...item }: ReturnType<typeof inboxItems>[number]) {
+	function project({ document, unblocks: _unblocks, ...item }: ReturnType<typeof inboxItems>[number]) {
 		return { ...item, file: document.file };
 	}
 	const you = inboxItems(snapshot).map(project);

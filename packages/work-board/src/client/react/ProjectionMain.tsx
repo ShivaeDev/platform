@@ -47,7 +47,7 @@ export function ProjectionMain({
 					{...options}
 					atom={api.work.query({ url }, routeQueryOptions)}
 					location={(data) => ({ file: "Work", status: data.validBoard ? 200 : 404, view: "work" })}
-					render={(data) => <WorkPage data={data} />}
+					render={(data) => <WorkPage api={api} data={data} />}
 					source={(data) => (data.selected ? documentSourceId(data.selected) : undefined)}
 				/>
 			);

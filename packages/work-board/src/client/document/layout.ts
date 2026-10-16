@@ -20,7 +20,7 @@ export function documentLayout(source: string) {
 			{ children: title ? [title] : [], properties: { className: ["item-introduction"] }, tagName: "header", type: "element" },
 			{
 				children: tree.children.filter((node) => node.type !== "doctype"),
-				properties: { className: ["doc", "reading-column", "lg:col-start-1", "lg:row-start-2"], dataSource: source },
+				properties: { className: ["doc", "reading-column", "lg:col-start-1", "row-start-2"], dataSource: source },
 				tagName: "article",
 				type: "element",
 			},

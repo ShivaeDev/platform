@@ -6,12 +6,12 @@ import { folder, startBoard } from "#test/board.ts";
 import { goalsFixture } from "#test/goalsFixture.ts";
 import { waitFor } from "#test/live.ts";
 
-it.live("counts authored linked work, criterion claims and open asks through the typed goals query", function* () {
+it.live("counts linked work, criterion claims and eligible Inbox asks through the typed goals query", function* () {
 	const notes = yield* Effect.acquireRelease(
 		Effect.sync(() => folder(goalsFixture())),
 		(value) => Effect.sync(value.remove),
 	);
-	const board = yield* startBoard(notes.root);
+	const board = yield* startBoard(notes.root, undefined, undefined, false, undefined, undefined, null);
 	const client = yield* Effect.acquireRelease(
 		Effect.sync(() => browserClient(board.url)),
 		(value) => Effect.sync(() => value.registry.dispose()),
@@ -20,10 +20,22 @@ it.live("counts authored linked work, criterion claims and open asks through the
 	const release = client.registry.mount(atom);
 	const result = yield* Effect.promise(() => client.read(atom));
 	expect(result).toEqual({
+		closedGoals: [
+			{
+				counts: { done: 0, "in progress": 0, planned: 0 },
+				criteria: [],
+				id: "project.closed",
+				linked: 0,
+				openAsks: 1,
+				status: "completed",
+				title: "Closed goal",
+				unlinked: true,
+			},
+		],
 		goals: [
 			{
-				counts: {},
-				criteria: [{ counts: {}, evidence: 1, id: "untouched", linked: 0, text: "No linked work" }],
+				counts: { done: 0, "in progress": 0, planned: 0 },
+				criteria: [{ counts: { done: 0, "in progress": 0, planned: 0 }, evidence: 1, id: "untouched", linked: 0, text: "No linked work" }],
 				id: "project.empty",
 				linked: 0,
 				openAsks: 0,
@@ -32,33 +44,51 @@ it.live("counts authored linked work, criterion claims and open asks through the
 				unlinked: true,
 			},
 			{
-				counts: { deferred: 1, done: 2, "not recorded": 1, planned: 1 },
+				counts: { done: 2, "in progress": 0, planned: 3 },
 				criteria: [
-					{ counts: { done: 1, planned: 1 }, evidence: 2, id: "first", linked: 2, text: "First criterion" },
-					{ counts: { deferred: 1 }, evidence: 1, id: "second", linked: 1, text: "Second criterion" },
+					{ counts: { done: 1, "in progress": 0, planned: 1 }, evidence: 2, id: "first", linked: 2, text: "First criterion" },
+					{ counts: { done: 0, "in progress": 0, planned: 1 }, evidence: 1, id: "second", linked: 1, text: "Second criterion" },
 				],
 				id: "project.example",
 				linked: 5,
 				nextAction: "Review linked work",
-				openAsks: 3,
+				openAsks: 2,
 				owner: "agent",
 				status: "planned",
 				title: "Example goal",
 				unlinked: false,
 			},
 		],
+		items: expect.arrayContaining([
+			expect.objectContaining({ file: "first.md", id: "task.first", title: "First task" }),
+			expect.objectContaining({ file: "fifth.md", id: "task.fifth", title: "Fifth task" }),
+		]),
 	});
+	expect(result.items).toHaveLength(5);
 	notes.write("fifth.md", goalsFixture()["fifth.md"]?.replace("kind: task", "kind: task\nstatus: In Review") ?? "");
 	yield* Effect.promise(() =>
 		waitFor(() => {
 			const updated = client.registry.get(atom);
 			expect(updated._tag === "Success" && updated.value.goals.find((goal) => goal.id === "project.example")?.counts).toEqual({
-				deferred: 1,
 				done: 2,
-				"In Review": 1,
-				planned: 1,
+				"in progress": 1,
+				planned: 2,
 			});
 		}),
 	);
+	notes.write("goal.md", goalsFixture()["goal.md"]?.replace("status: planned", "status: completed") ?? "");
+	yield* Effect.promise(() =>
+		waitFor(() => {
+			const updated = client.registry.get(atom);
+			expect(updated._tag === "Success" && updated.value.goals.map((goal) => goal.id)).toEqual(["project.empty"]);
+			expect(updated._tag === "Success" && updated.value.closedGoals.find((goal) => goal.id === "project.example")?.counts).toEqual({
+				done: 2,
+				"in progress": 1,
+				planned: 2,
+			});
+		}),
+	);
+	const navigation = yield* Effect.promise(() => client.read(client.api.navigation.query({ current: "/goal.md" })));
+	expect(navigation.counts.goals).toBe(1);
 	release();
 });

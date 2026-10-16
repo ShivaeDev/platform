@@ -7,7 +7,7 @@ import { Favorite } from "./Favorite.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { PrChip } from "./PrChip.tsx";
 
-const icons = { board: PanelsTopLeft, goal: Flag, question: MessageCircle, report: FileText, result: FileText, task: ClipboardList };
+const icons = { board: PanelsTopLeft, goal: Flag, project: Flag, question: MessageCircle, report: FileText, result: FileText, task: ClipboardList };
 function kindIcon(kind: string) {
 	return Object.entries(icons).find(([name]) => name === kind)?.[1] ?? FileText;
 }

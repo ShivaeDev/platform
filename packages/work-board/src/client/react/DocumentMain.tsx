@@ -43,7 +43,7 @@ export function DocumentMain({
 		<>
 			<main className="document-view" data-file="" data-react-document data-url="" id={shellIds.doc} ref={hostRef} tabIndex={-1}>
 				{data ? (
-					<DocumentPage document={data} key={data.identity ?? data.file} />
+					<DocumentPage api={api} document={data} key={data.identity ?? data.file} />
 				) : (
 					<p className="empty" role="status">
 						{loadingMessage(failure?._tag, Option.isSome(query.cause), url)}
