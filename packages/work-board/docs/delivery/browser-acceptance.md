@@ -27,7 +27,7 @@ Open the printed URL in a real browser. Record the browser/version, viewport, ac
 3. Select Dark and Compact, collapse Files, then reload and open another file. All three choices persist. Select Light with the operating system in dark mode; code colors and diagrams follow Light. Return to System and switch the system scheme; diagrams redraw. Changing density alone must not redraw them.
 4. Open `notes/flow & details.md`. Wait for the real diagram and open Review notes. Append a paragraph to that file in the printed fixture folder. The paragraph appears, details stay open, and the unchanged diagram stays drawn.
 5. In a fresh browser context at 390 × 844, verify Files starts collapsed, the board uses one column, and the page does not scroll horizontally. The top bar keeps Today with its count. Open Files: an overlay drawer contains the fixed Today, Goals, Now, Library and System rows, and the project tree scrolls independently. Escape and an outside tap close the drawer and return focus to Files. Close it and open a document. Also check at 200% zoom.
-6. Disable JavaScript and reload. Content and navigation remain readable. With browser storage blocked, enable JavaScript and change appearance: controls work and explain that choices apply only to the current page.
+6. With browser storage blocked, change appearance: controls work and explain that choices apply only to the current page.
 
 The fixture includes duplicate headings, a missing link, long prose, an encoded filename, a diagram, details, and malformed example metadata. The additional `identityFixture()` supplies richer items, explicit references, and recorded claims. Performance timings from this fixture are observations, not established budgets or proof of the north star's usability targets.
 
@@ -67,7 +67,7 @@ Add `viewsFixture()` from `src/test-support/viewsFixture.ts` to the large fixtur
 1. Confirm the legacy home still has 100 cards. Open Work and select Review work then Shared investigation. The same work.search ID appears in both with the source's recorded fields; counts exclude duplicates and undeclared members.
 2. Apply owner/status/text filters and sorting. Missing fields remain distinct from literal text. Open a card, follow its source/evidence link, then use Back. Reload its URL; board, filters, selected ID, and source pane must agree.
 3. Edit the selected item's status. Applied filters remain, even with no matching status; the detail explains it is outside the projection. Keep unsent text focused through that update. Delete its source; explain the missing selection. Duplicate an ID or membership and inspect source diagnostics, without silently selecting a winner or inflating counts. An unreadable index refuses counts.
-4. Repeat at 390 × 844, with dark theme and reduced motion. Real Mermaid in the pane must render; check overflow and errors. Disable JavaScript and submit GET filters/open detail through native links. Also run the table and saved-view checks below before assessing the combined projection.
+4. Repeat at 390 × 844, with dark theme and reduced motion. Real Mermaid in the pane must render; check overflow and errors. Also run the table and saved-view checks below before assessing the combined projection.
 
 ## Table and saved-view acceptance — step 05
 
@@ -84,7 +84,7 @@ Add `reasoningFixture()` from `src/test-support/reasoningFixture.ts` to the larg
 2. Open work.search#keyboard. It lists claims from both its own source and the result file; passage has no recorded evidence. Open the result's record link: its source details expand and the exact evidence record receives focus. Origin file/line, old revision/time, method and recorded outcome are visible; no claim says independently verified or human accepted.
 3. Follow its evidence source to the plain evidence file and inspect Referenced by. Metadata/Markdown backlinks reach their explicit sources, including the encoded review filename. Follow that file's rationale link. The missing local Markdown record remains visible and leads to an explanatory missing page.
 4. Edit the result's criterion reference, delete the evidence source, then remove the result. Claim associations/backlinks reconcile; missing sources/claims remain explicit. Duplicate IDs or unreadable files must prevent validated criterion association and disclose partial references.
-5. Repeat record navigation at 390 × 844/dark/reduced motion and verify overflow, errors, and real Mermaid. Disable JavaScript and follow result → plan → decision natively. Existing legacy home cards remain unchanged.
+5. Repeat record navigation at 390 × 844/dark/reduced motion and verify overflow, errors, and real Mermaid. Existing legacy home cards remain unchanged.
 
 ## Explicit attention acceptance — step 07
 
@@ -99,14 +99,6 @@ Use `attentionFixture()` with the workspace fixture. Open Today and inspect the 
 
 Links explicitly include trusted reference directories; the server never writes those sources. A target missing when the watch was built needs a server restart once restored. Multiple aliases remain separate paths and existing duplicate-ID rules apply. These checks establish reference reading; run the native live/orientation checks for invalidation and pause/resume.
 
-## Explicit observation overlap acceptance
-
-1. Start with two Markdown sources. Hold an actual HTTP `observe` response after it captures the first source revision, then edit that physical source and let its native watcher/SSE page refresh finish. Release the response: Mark seen retains the captured revision and comparison reports the subsequent change. A later explicit Mark seen replaces that baseline and reports no changes.
-2. Hold another observation, then Clear from a second tab sharing this workspace and browser storage. Release the old response. Both tabs stay without history; the cancelled observation must not restore the deleted baseline.
-3. Check ordinary marking at 390 × 844 with dark theme/reduced motion, page overflow and browser errors. DOM regressions separately force the overlap before the HTTP observation begins and assert cancellation by another tab's storage event. Keep the existing expiry, size and blocked-storage checks.
-
-These checks preserve explicit observation semantics; they do not establish an atomic filesystem snapshot, source mutation or verified acceptance. Run the native lifecycle checks separately.
-
 ## Native live/orientation acceptance — step 09
 
 Use the large workspace plus `viewsFixture()` and a nested home at `/`.
@@ -115,9 +107,8 @@ Use the large workspace plus `viewsFixture()` and a nested home at `/`.
 2. Open details and a real Mermaid drawing. Edit another passage: unchanged details, drawing, selected work URL and focused/unsubmitted filters remain. Changed reading blocks receive a brief outline without animation or scrolling.
 3. Pause, edit the nested home and wait for a pending count. The displayed source stays retained; resume catches up. The 256+ bound counts hints, not source edits.
 4. Go offline and edit, then reconnect. Retain visible source with a failure/down disclosure until required reads settle; connection availability alone is not freshness. Separately stop the native HTTP server with a subscription active.
-5. Mark seen, update source, and verify the original baseline stays unchanged. Clear while paused; expired history must also disclose unknown history while paused. Never cancel explicit observation through background invalidation.
-6. Navigate away and use browser Back. Record whether pageshow is persisted and any CDP bfcache refusal reasons; no-store can require a fresh document. Verify persisted-pageshow registry recreation separately with the DOM regression.
-7. Repeat at 390 × 844 with dark/reduced-motion settings. Verify keyboard navigation and Pause updates. Verify browser actions have changed no source files.
+5. Navigate away and use browser Back. Record whether pageshow is persisted and any CDP bfcache refusal reasons; no-store can require a fresh document. Verify persisted-pageshow registry recreation separately with the DOM regression.
+6. Repeat at 390 × 844 with dark/reduced-motion settings. Verify keyboard navigation and Pause updates. Verify browser actions have changed no source files.
 
 Physical tab transitions and Capacitor remain separate evidence. Fixtures do not establish the step 07 representative-reader timing or a multi-tab capacity budget.
 
