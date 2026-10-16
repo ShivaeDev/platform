@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-13",
+	"date": "2026-10-16",
 	"fragments": [
 		{
-			"name": "effect-4-stable.md",
-			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/vitest` 4.0.4 and Vitest 5 alongside it.\n"
+			"name": "dom-cookie-sessions.md",
+			"text": "### Added\n\n- `domFetch(baseUrl)` from `@shivaedev/test-story/domFetch.ts` connects a happy-dom window to its real HTTP host and resolves relative fetch requests. The window keeps and sends cookie sessions, with Better Auth sign-up, sign-in, session reads and sign-out tested against the starter's PostgreSQL host.\n"
 		}
 	],
-	"version": "0.2.0"
+	"version": "0.3.0"
 }

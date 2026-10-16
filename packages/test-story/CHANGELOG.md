@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-10-16
+
+### Added
+
+- `domFetch(baseUrl)` from `@shivaedev/test-story/domFetch.ts` connects a happy-dom window to its real HTTP host and resolves relative fetch requests. The window keeps and sends cookie sessions, with Better Auth sign-up, sign-in, session reads and sign-out tested against the starter's PostgreSQL host.
+
 ## 0.2.0 - 2026-10-13
 
 ### Breaking

@@ -268,7 +268,49 @@ Application-authored seed builders reuse application schemas, validate overrides
 
 React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events and use bounded observations of rendered output. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook, not HTTP or DOM polling. Creation forms can use the same pattern with the existing `useCreate` path.
 
-The example proves DOM and loopback HTTP behavior, not browser credentials, BetterAuth cookies, SSR, mobile or a deployed proxy. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. Failure inspection is synchronous: keep redacted observed values in the engine instead of trying to query PostgreSQL inside `inspect`.
+The order example proves DOM and loopback HTTP behavior with bearer tokens. For cookie sessions, use the DOM host setup below. These fixtures do not prove browser networking, SSR, mobile or a deployed proxy. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. Failure inspection is synchronous: keep redacted observed values in the engine instead of trying to query PostgreSQL inside `inspect`.
+
+### DOM stories with cookie sessions
+
+`domFetch(baseUrl)` from `@shivaedev/test-story/domFetch.ts` connects the current happy-dom window to a real HTTP host and returns its bound fetch. It sets the window's location to the host URL and resolves relative request strings against that URL. The window's own fetch keeps and sends the host's cookies, including HttpOnly session cookies; application code can also use the global fetch of that same window. Keep requests on the default `same-origin` credentials policy for a same-origin application.
+
+Call it in the kit's `create` hook after starting the host, before any auth request or screen render:
+
+```ts
+import { domFetch } from "@shivaedev/test-story/domFetch.ts";
+
+const cookieApp = storyKit({
+  around: withIsolatedDatabase,
+  clock: "live",
+  *create() {
+    const url = yield* storyHost;
+    return { fetch: domFetch(url) };
+  },
+  layer: postgres,
+  name: "cookie auth",
+  stages: ["account"],
+  verbs: ({ fetch }, story) => authVerbs(fetch, story.tell),
+});
+```
+
+`storyHost`, `postgres` and `authVerbs` are application plumbing. The starter's [cookie application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/cookieApp.ts) shows the full setup. Its verbs post JSON to Better Auth's `/api/auth/sign-up/email`, `/api/auth/sign-in/email` and `/api/auth/sign-out`, and read `/api/auth/get-session` through that fetch. They do not copy cookies into request headers or use bearer tokens.
+
+```ts
+cookieApp.it("sign-up and sign-in keep their cookie sessions against the PostgreSQL host", [], function* ({ signUp, signIn, signOut, sessionIs }) {
+  yield* signUp();
+  yield* sessionIs("alice@starter.test");
+  yield* signOut();
+  yield* sessionIs(null);
+  yield* signIn();
+  yield* sessionIs("alice@starter.test");
+  yield* signOut();
+  yield* sessionIs(null);
+});
+```
+
+Run the Node host outside the DOM test's global context. happy-dom's web globals also affect a host built inside the test: its `Request` removes incoming cookie headers, and its `Headers` does not copy Node's native response headers correctly. The starter's [host fixture](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/storyHost.ts) starts the real starter host in a Node worker thread with native web globals, gives it an isolated PostgreSQL database and closes it in Scope. This proves Better Auth cookie sessions across real loopback HTTP requests from happy-dom, rather than browser behavior.
+
+`domFetch` uses the current window and its cookie jar; it does not create a separate browser or isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
 
 ### Install and limits
 

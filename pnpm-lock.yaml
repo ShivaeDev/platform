@@ -480,6 +480,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../../packages/quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../../packages/test-story
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.3.3(vite@8.3.3(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))

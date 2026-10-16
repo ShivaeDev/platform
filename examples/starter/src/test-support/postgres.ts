@@ -8,7 +8,7 @@ import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { starterHost } from "#server/starterHost.ts";
 
-const layer = Layer.unwrap(
+export const postgres = Layer.unwrap(
 	Effect.map(Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.orElse(() => Config.Redacted("TEST_DATABASE_URL"))), (url) =>
 		makePostgresTestLayer({ migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" }, url }),
 	),
@@ -17,7 +17,7 @@ const layer = Layer.unwrap(
 export const { effectApp } = makeEffectIt({
 	around: withIsolatedDatabase,
 	clock: "live",
-	layer,
+	layer: postgres,
 	makeHarness: () =>
 		Effect.gen(function* () {
 			const database = yield* PostgresTestDatabase;
@@ -36,6 +36,6 @@ export const { effectApp } = makeEffectIt({
 export const { effectApp: effectMigration } = makeEffectIt({
 	around: withIsolatedDatabase,
 	clock: "live",
-	layer,
+	layer: postgres,
 	makeHarness: () => Effect.void,
 });
