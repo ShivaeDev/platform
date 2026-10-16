@@ -2,9 +2,9 @@
 	"date": "2026-10-16",
 	"fragments": [
 		{
-			"name": "effect-returning-hooks.md",
-			"text": "### Fixed\n\n- Let `create`, stage `after` hooks and traits return an Effect directly, with inferred engine types, checked service requirements and the story's Scope, alongside generators and synchronous functions.\n"
+			"name": "outbound-hosts.md",
+			"text": "### Added\n\n- `storyKit` accepts `outbound: Readonly<Record<string, string>>` to route selected hostnames from Node's built-in `fetch` to fake server origins for each story, then restore the previous dispatcher after success or failure. Other hosts pass through unchanged.\n"
 		}
 	],
-	"version": "0.2.1"
+	"version": "0.3.0"
 }
