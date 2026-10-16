@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import { findPackageJSON, registerHooks } from "node:module";
 import { pathToFileURL } from "node:url";
 import { parentPort, workerData } from "node:worker_threads";
@@ -7,7 +8,7 @@ registerHooks({
 		const manifest = specifier.startsWith("@shivaedev/")
 			? findPackageJSON(`${specifier.split("/").slice(0, 2).join("/")}/package.json`, context.parentURL)
 			: undefined;
-		const location = manifest === undefined ? (context.parentURL ?? "") : pathToFileURL(manifest).href;
+		const location = manifest === undefined ? (context.parentURL ?? "") : pathToFileURL(realpathSync(manifest)).href;
 		return nextResolve(
 			specifier,
 			location.includes("/node_modules/") ? { ...context, conditions: context.conditions.filter((condition) => condition !== "source") } : context,
