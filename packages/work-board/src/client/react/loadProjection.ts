@@ -13,14 +13,10 @@ export function loadProjection(
 ) {
 	switch (route) {
 		case "today":
-			return Promise.all(pageQueries(api, route, url, null).map((query) => loadQuery(registry, query, { abortController })));
+			return Promise.all(pageQueries(api, route, url).map((query) => loadQuery(registry, query, { abortController })));
 		case "board":
 			return loadQuery(registry, api.board.query({ url }, routeQueryOptions), { abortController });
 		case "work":
 			return loadQuery(registry, api.work.query({ url }, routeQueryOptions), { abortController });
-		case "overview":
-			return loadQuery(registry, api.overview.query(undefined, routeQueryOptions), { abortController });
-		case "inbox":
-			return loadQuery(registry, api.inbox.query(undefined, routeQueryOptions), { abortController });
 	}
 }

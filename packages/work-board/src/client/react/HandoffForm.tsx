@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import type { HandoffPreview } from "#browser/handoffs/schema.ts";
 import type { HandoffProjection } from "#browser/views/remaining.ts";
+import { Button } from "#client/react/components/ui/Button.tsx";
 import { FormField } from "./FormField.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
 import { shellIds } from "./shellIds.ts";
@@ -25,6 +26,7 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 				<pre>{source.context}</pre>
 			</details>
 			<form
+				className="space-y-4 [&_button]:mr-2 [&_button]:mb-2"
 				{...focus}
 				data-item={source.item}
 				data-question={source.id}
@@ -49,23 +51,23 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 					The file includes the full reviewed source and its declared acceptance criteria. Preparing it does not change the item or start an agent.
 					Drafts stay in this browser for seven days after the last edit, with a 256 KiB limit per draft.
 				</p>
-				<button
+				<Button
 					disabled={typeof window === "undefined" || state.created.saving}
 					id={shellIds.handoffPreview}
 					onClick={state.showPreview}
 					type="button"
 				>
 					Preview Markdown
-				</button>
+				</Button>
 				<pre hidden={!state.preview} id={shellIds.handoffPreviewContent}>
 					{state.preview}
 				</pre>
-				<button disabled={!(data.writable && state.preview && state.valid) || state.created.saving} id={shellIds.handoffSubmit} type="submit">
+				<Button disabled={!(data.writable && state.preview && state.valid) || state.created.saving} id={shellIds.handoffSubmit} type="submit">
 					Prepare handoff
-				</button>
-				<button disabled={typeof window === "undefined" || state.created.saving} id={shellIds.handoffClear} onClick={state.clear} type="button">
+				</Button>
+				<Button disabled={typeof window === "undefined" || state.created.saving} id={shellIds.handoffClear} onClick={state.clear} type="button">
 					Clear draft
-				</button>
+				</Button>
 				<p id={shellIds.handoffStatus} role="status">
 					{data.writable ? writableStatus : `${state.status} Read-only mode. Restart with --responses to enable local writes.`}
 				</p>

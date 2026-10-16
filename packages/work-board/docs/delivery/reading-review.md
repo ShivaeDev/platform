@@ -4,7 +4,7 @@ Use this investigation to assess the combined reading experience, rather than ac
 
 ## Read the actual project
 
-Serve the package's north star, roadmap and delivery requirements through an explicit reference-directory link. Read them at desktop and narrow viewports in light/dark themes and reduced motion. Follow the source relationships without JavaScript, then repeat with native navigation and real Mermaid enabled.
+Serve the package's north star, roadmap and delivery requirements through an explicit reference-directory link. Read them at desktop and narrow viewports in light/dark themes and reduced motion. Follow source relationships with native navigation and real Mermaid enabled.
 
 Return to changed notes as a representative reader. Find the next judgment without coaching, explain what it unblocks, then follow its rationale and evidence. Record the elapsed orientation time and confusing moments separately from technical checks. A working queue cannot prove that a person understands its contents.
 

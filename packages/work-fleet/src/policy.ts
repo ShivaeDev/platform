@@ -1,6 +1,12 @@
 import { Context, type Effect, Schema } from "effect";
 import { AttentionOwner } from "#attention.ts";
-import { BoardDecision, type BoardDecisionAcknowledgement, type BoardDecisionReading, type BoardReport } from "#board/schema.ts";
+import {
+	type BoardAcknowledgementStale,
+	BoardDecision,
+	type BoardDecisionAcknowledgement,
+	type BoardDecisionReading,
+	type BoardReport,
+} from "#board/schema.ts";
 import { DecisionCode } from "#DecisionCode.ts";
 import type { FleetError } from "#errors.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
@@ -21,6 +27,7 @@ export const BoardWork = Schema.Struct({
 export type BoardWork = typeof BoardWork.Type;
 export const Decision = Schema.Struct({
 	attentionOwner: Schema.optional(AttentionOwner),
+	boardAcknowledgementDisposition: Schema.optional(Schema.Literal("superseded")),
 	code: Schema.optional(DecisionCode),
 	id: Schema.String,
 	links: Schema.Array(Schema.String),
@@ -33,6 +40,7 @@ export const Decision = Schema.Struct({
 export type Decision = typeof Decision.Type;
 export const SupersededDecision = Schema.Struct({
 	boardAcknowledged: Schema.optional(Schema.Boolean),
+	boardAcknowledgementDisposition: Schema.optional(Schema.Literal("superseded")),
 	published: BoardDecision,
 	reassignedTo: Schema.optional(Schema.Struct({ attentionOwner: AttentionOwner, decisionId: Schema.String })),
 	supersededAt: Schema.Number,
@@ -40,6 +48,7 @@ export const SupersededDecision = Schema.Struct({
 export const DecisionResponse = Schema.Struct({
 	action: Schema.optional(Schema.Literals(["retry", "release", "continue"])),
 	boardAcknowledged: Schema.optional(Schema.Boolean),
+	boardAcknowledgementDisposition: Schema.optional(Schema.Literal("superseded")),
 	decisionId: Schema.String,
 	processedAt: Schema.Number,
 	published: Schema.optional(BoardDecision),
@@ -56,7 +65,7 @@ export class BoardFailure extends Schema.TaggedError<BoardFailure>()("BoardFailu
 export class BoardGateway extends Context.Service<
 	BoardGateway,
 	{
-		readonly acknowledgeDecision: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
+		readonly acknowledgeDecision: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure | BoardAcknowledgementStale>;
 		readonly complete?: (workId: string, sourcePath: string, nextAction: string) => Effect.Effect<void, BoardFailure>;
 		readonly get: (workId: string, options?: { readonly fresh?: boolean }) => Effect.Effect<BoardWork, BoardFailure>;
 		readonly decision: (workId: string, decision: Decision, original?: BoardWork) => Effect.Effect<BoardDecision, BoardFailure>;

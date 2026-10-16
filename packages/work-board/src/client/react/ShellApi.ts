@@ -6,11 +6,9 @@ export interface ShellApi {
 	readonly fleetItems: Pick<BrowserClient["api"]["fleetItems"], "query">;
 	readonly goals: Pick<BrowserClient["api"]["goals"], "query">;
 	readonly handoff: Pick<BrowserClient["api"]["handoff"], "query">;
-	readonly history: Pick<BrowserClient["api"]["history"], "query">;
 	readonly inbox: Pick<BrowserClient["api"]["inbox"], "query">;
 	readonly library: Pick<BrowserClient["api"]["library"], "query">;
 	readonly navigation: Pick<BrowserClient["api"]["navigation"], "query">;
-	readonly overview: Pick<BrowserClient["api"]["overview"], "query">;
 	readonly respond: Pick<BrowserClient["api"]["respond"], "query">;
 	readonly result: Pick<BrowserClient["api"]["result"], "query">;
 	readonly search: Pick<BrowserClient["api"]["search"], "query">;

@@ -11,8 +11,7 @@ import { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { DiagnosticsProjection, HandoffProjection, RespondProjection, StartProjection } from "#browser/views/remaining.ts";
-import { BoardProjection, InboxProjection, OverviewProjection, WorkProjection } from "#browser/views/schema.ts";
-import { HistoryInput, HistoryOutput } from "#history/schema.ts";
+import { BoardProjection, InboxProjection, WorkProjection } from "#browser/views/schema.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 import { index, navigation, watcher, workspace } from "./keys.ts";
@@ -50,11 +49,6 @@ const ReadWork = query("work", {
 	reads: () => [workspace.list, index.list],
 	rejections: documentRejections,
 	success: WorkProjection,
-});
-const ReadOverview = query("overview", {
-	reads: () => [workspace.list, index.list],
-	rejections: { InternalServerError },
-	success: OverviewProjection,
 });
 const ReadInbox = query("inbox", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: InboxProjection });
 const ReadServer = query("server", { reads: () => [], rejections: { ServiceUnavailable }, success: Server });
@@ -98,12 +92,6 @@ const ReadSearch = query("search", {
 	rejections: { InternalServerError },
 	success: Schema.Struct({ results: Schema.Array(Entry), total: Schema.Number, unavailable: Schema.Array(Schema.String) }),
 });
-const ReadHistory = query("history", {
-	payload: HistoryInput,
-	reads: () => [workspace.list, index.list],
-	rejections: { InternalServerError },
-	success: HistoryOutput,
-});
 const ReadWatcher = query("watcher", {
 	reads: () => [workspace.list, watcher.list],
 	rejections: { InternalServerError },
@@ -116,7 +104,6 @@ export const workContract = contract("work-board", {
 		ReadDocument,
 		ReadBoard,
 		ReadWork,
-		ReadOverview,
 		ReadInbox,
 		ReadDiagnostics,
 		ReadFleetItems,
@@ -128,7 +115,6 @@ export const workContract = contract("work-board", {
 		ReadNavigation,
 		ReadLibrary,
 		ReadSearch,
-		ReadHistory,
 		ReadWatcher,
 	],
 	streams: [Subscribe],

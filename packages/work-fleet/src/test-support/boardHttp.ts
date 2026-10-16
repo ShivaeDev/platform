@@ -43,23 +43,15 @@ export function boardHttpFiles(root: string) {
 	return { move, read, receipts, write };
 }
 
-export const boardOverview = Effect.fn("BoardStory.boardOverview")((root: string) => boardPage(root, "overview"));
-export const boardInbox = Effect.fn("BoardStory.boardInbox")((root: string, maintainer?: string) => boardPage(root, "inbox", maintainer));
-
-function boardPage(root: string, view: string, maintainer?: string) {
-	return Effect.scoped(
+export const boardAskFiles = Effect.fn("BoardStory.boardAskFiles")(function* (root: string, maintainer?: string) {
+	return yield* Effect.scoped(
 		Effect.gen(function* () {
-			const { url } = yield* boardHttp(root, undefined, maintainer);
-			const page = yield* Effect.tryPromise(() => fetch(`${url}/_board/${view}`));
-			const html = yield* Effect.tryPromise(() => page.text());
-			const content = /<template id="board-legacy-page">(?<content>[\s\S]*?)<\/template>/u.exec(html)?.groups?.content;
-			if (content === undefined) {
-				return yield* Effect.die(new Error("Board did not return its page content."));
-			}
-			return content;
+			const { client } = yield* boardHttp(root, undefined, maintainer);
+			const data = yield* Effect.tryPromise(() => client.run(client.api.inbox.run(undefined)));
+			return [...data.you, ...data.agents, ...data.resolved, ...data.parked].map((item) => item.file);
 		}),
 	);
-}
+});
 
 import { readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

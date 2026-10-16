@@ -36,10 +36,10 @@ it("offers go-to views and open goals, ranks a matching command first and shows 
 	try {
 		await eventually(() => expect(rows().map((row) => row.querySelector("strong")?.textContent)).toContain("Go to A calmer workspace"));
 		for (const [title, href] of [
-			["Go to Today", "/_board/inbox"],
+			["Go to Today", "/"],
 			["Go to Goals", "/_board/goals"],
 			["Go to Now", "/_board/work?view=board"],
-			["Go to System", "/_board/diagnostics"],
+			["Go to System", "/_board/system"],
 			["Go to Library", "/_board/library"],
 			["Go to A calmer workspace", "/_board/item/project.workspace/"],
 		]) {
@@ -71,7 +71,7 @@ it("offers go-to views and open goals, ranks a matching command first and shows 
 			expect(row.querySelector("p")?.textContent ?? "").not.toMatch(/^(?:\{|---)|(?:id|kind|next_action):/u);
 		}
 		type("workspace");
-		await eventually(() => expect(rows()[0]?.querySelector("strong")?.textContent).toBe("Open workspace"));
+		await eventually(() => expect(rows()[0]?.querySelector("strong")?.textContent).toBe("Go to A calmer workspace"));
 		expect(rows().findIndex((row) => row.querySelector("strong")?.textContent === "A calmer workspace")).toBeGreaterThan(0);
 		for (const query of ["project.workspace", "calmer"]) {
 			type(query);

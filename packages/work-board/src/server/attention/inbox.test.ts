@@ -3,20 +3,10 @@ import { libraryData } from "#server/navigation/libraryData.ts";
 import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "#server/responses/records.ts";
 import { inboxFixture, inboxQuestion, inboxSnapshot } from "#test/inboxFixture.ts";
 import { fleetRecords, inboxItems } from "./inbox.ts";
-import { inboxHtml } from "./inboxHtml.ts";
 
 it("collects human-owned next actions, open questions, needs-human work and managed Fleet requests once", () => {
 	const snapshot = inboxSnapshot();
 	expect(inboxItems(snapshot).map((item) => item.id)).toEqual(["task.review", "question.storage", "task.fleet"]);
-	const html = inboxHtml(snapshot);
-	expect(html.match(/>Waiting on you</gu)).toHaveLength(1);
-	expect(html).toContain("Casey: Review the keyboard evidence");
-	expect(html).toContain("A question needs your answer");
-	expect(html).toContain('href="/_board/respond?item=question.storage&amp;request=answer"');
-	expect(html).toContain("Deployment is blocked");
-	expect(html.match(/class="inbox-row"/gu)).toHaveLength(3);
-	expect(html).toContain("Managed decision: Delivery needs approval");
-	expect(html).toContain('data-modified="3000"');
 });
 
 it("excludes closed questions, automation labels and missing actions while disclosing ambiguous identities", () => {
@@ -29,11 +19,8 @@ it("excludes closed questions, automation labels and missing actions while discl
 	expect(inboxItems(inboxSnapshot(files)).some((item) => item.id === "task.review")).toBe(false);
 	files["duplicate.md"] = files["fleet.md"] ?? "";
 	expect(inboxItems(inboxSnapshot(files)).map((item) => item.id)).toEqual(["task.fleet", "task.fleet"]);
-	expect(inboxHtml(inboxSnapshot(files))).toContain("Duplicate item ID: task.fleet");
 	const incomplete = inboxSnapshot(files, ["unreadable.md"]);
 	expect(inboxItems(incomplete)).toEqual([]);
-	expect(inboxHtml(incomplete)).toContain("Count unavailable");
-	expect(inboxHtml(incomplete)).not.toContain("0 waiting");
 });
 
 it("removes only a uniquely recorded answer to the current question and groups the full Fleet record chain", () => {

@@ -10,8 +10,8 @@ function health(value: { readonly _tag: string; readonly waiting: boolean; reado
 		pending: value.waiting || value._tag === "Initial",
 	};
 }
-export function activeRead(api: ShellApi, kind: string, url: string, baseline: string | null) {
-	const queries = pageQueries(api, kind, url, baseline);
+export function activeRead(api: ShellApi, kind: string, url: string) {
+	const queries = pageQueries(api, kind, url);
 	return Atom.make((get) => {
 		const readings = queries.map((query) => health(get(query)));
 		return { failed: readings.some((reading) => reading.failed), pending: readings.some((reading) => reading.pending) };

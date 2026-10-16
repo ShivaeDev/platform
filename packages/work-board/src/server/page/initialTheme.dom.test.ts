@@ -48,7 +48,7 @@ it("uses the system theme when storage is unavailable", async () => {
 });
 
 it("places theme initialization before the stylesheets and React entry", () => {
-	const html = shell("plan.md", "", "", "theme-fixture", false);
+	const html = shell("plan.md", "theme-fixture");
 	const initialization = html.indexOf('<script src="/_board/theme.js"></script>');
 	expect(initialization).toBeGreaterThan(html.indexOf("<head>"));
 	expect(initialization).toBeLessThan(html.indexOf('<link rel="stylesheet"'));

@@ -40,7 +40,7 @@ it.live(
 				expect(result.reading?.backlinks).toEqual(expect.arrayContaining([expect.objectContaining({ kind: "Markdown link" })]));
 			}
 			const response = yield* Effect.promise(() => fetch(`${board.url}/document-3.md`));
-			expect(yield* Effect.promise(() => response.text())).toContain("Document 3");
+			expect(yield* Effect.promise(() => response.text())).toContain("data-board-react-root");
 			expect(reads.map((path) => path.slice(notes.root.length + 1))).toEqual(["document-1.md", "document-2.md", "document-10.md", "document-3.md"]);
 			expect(parsed).not.toHaveBeenCalled();
 			expect(built).not.toHaveBeenCalled();

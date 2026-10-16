@@ -9,7 +9,7 @@ export async function renderRouter(files: Readonly<Record<string, string>>, url:
 	const view = await renderBoard(
 		files,
 		(api, registry) => {
-			router = boardRouter({ api, initial: "", reading, registry });
+			router = boardRouter({ api, reading, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
 		},

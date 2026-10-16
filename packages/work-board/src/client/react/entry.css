@@ -1,4 +1,4 @@
-@layer theme, base, legacy, components, utilities;
+@layer theme, base, components, utilities;
 
 @import "tailwindcss" source("./");
 @import "./command-palette.css";
@@ -114,26 +114,6 @@
 	}
 }
 
-.history-controls {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.6rem;
-	align-items: center;
-}
-.history-change {
-	padding: 1rem 0;
-	border-top: 1px solid var(--border);
-}
-.history-source {
-	max-height: 32rem;
-	overflow: auto;
-	overflow-wrap: anywhere;
-	white-space: pre-wrap;
-}
-.history h2 {
-	overflow-wrap: anywhere;
-}
-
 @layer components {
 	.document-layout .reading-column {
 		@apply w-full max-w-[68ch] text-base leading-[1.65] [overflow-wrap:anywhere];
@@ -243,4 +223,95 @@
 	max-width: 72ch;
 	padding: 1rem;
 	margin: 0;
+}
+
+@layer components {
+	figure.diagram {
+		@apply mx-0;
+	}
+	figure.diagram[data-state="pending"] {
+		@apply min-h-48 rounded-md bg-muted;
+	}
+	figure.diagram .diagram-source {
+		@apply hidden;
+	}
+	figure.diagram[data-state="failed"] .diagram-source {
+		@apply block;
+	}
+	[data-diagram-error] {
+		@apply text-destructive text-sm;
+	}
+	.shiki span {
+		color: var(--shiki-light);
+	}
+	.dark .shiki span {
+		color: var(--shiki-dark);
+	}
+	.visual-document,
+	.visual-callout {
+		@apply my-5 rounded-lg border p-4 [overflow-wrap:anywhere];
+	}
+	.visual-label {
+		@apply font-semibold;
+	}
+	.visual-value {
+		@apply text-xl tabular-nums;
+	}
+	.visual-document progress {
+		@apply block w-full accent-primary;
+	}
+	.visual-callout {
+		@apply border-l-4 bg-muted;
+	}
+	.visual-warning,
+	.visual-caution {
+		@apply border-l-needs-you;
+	}
+	.visual-diagnostic {
+		@apply font-semibold text-muted-foreground;
+	}
+	.questionnaire-option {
+		@apply my-4 border-l-2 py-1 pl-4 [overflow-wrap:anywhere];
+	}
+	.questionnaire-answer {
+		@apply inline-block rounded-md border px-4 py-2;
+	}
+}
+
+.phone-more {
+	position: fixed;
+	inset: auto 0 0;
+	width: 100%;
+	max-width: 100%;
+	max-height: 80dvh;
+	padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
+	margin: 0;
+	overflow-y: auto;
+	color: var(--foreground);
+	background: var(--background);
+	border: 1px solid var(--border);
+	border-radius: 1rem 1rem 0 0;
+}
+.phone-more::backdrop {
+	background: rgb(0 0 0 / 0.45);
+}
+
+@media (max-width: 767px) {
+	[data-board-page] .work-columns {
+		grid-template-columns: minmax(0, 1fr);
+		grid-auto-columns: auto;
+		grid-auto-flow: row;
+		overflow-x: visible;
+	}
+	[data-board-page] .work-card-list {
+		height: auto;
+		max-height: min(60vh, 600px);
+	}
+	[data-board-page] .item-introduction {
+		position: static;
+		z-index: auto;
+	}
+	[data-board-page] #doc {
+		overflow-wrap: anywhere;
+	}
 }

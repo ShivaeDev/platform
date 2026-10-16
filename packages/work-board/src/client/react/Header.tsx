@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Badge } from "#client/react/components/ui/Badge.tsx";
 import { Button } from "#client/react/components/ui/Button.tsx";
 import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
+import { cn } from "#client/react/lib/cn.ts";
+import { KeyboardHints } from "./KeyboardHints.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { SettingsPopover } from "./SettingsPopover.tsx";
 import { shellIds } from "./shellIds.ts";
@@ -35,7 +37,10 @@ export function Header({
 	readonly status: string;
 }) {
 	return (
-		<header className="flex h-14 min-w-0 items-center gap-2 border-b bg-background px-3 text-sm md:px-6 print:hidden">
+		<header
+			className="sticky top-0 z-20 flex h-12 min-w-0 items-center gap-2 border-b bg-background px-3 text-sm md:static md:h-14 md:px-6 print:hidden"
+			data-workspace-header
+		>
 			<Button
 				aria-controls="sidebar"
 				aria-expanded={sidebar.open}
@@ -48,22 +53,24 @@ export function Header({
 				<PanelLeft aria-hidden="true" />
 				<span className="hidden sm:inline">Files</span>
 			</Button>
+			<span className="min-w-0 flex-1 truncate font-medium md:hidden">{main.title ?? main.file}</span>
 			<Breadcrumbs file={main.title ?? main.file} />
 			<a
-				aria-current={main.view === "inbox" ? "page" : undefined}
-				aria-label="Inbox"
-				className={buttonVariants({ size: "sm", variant: "ghost" })}
-				href="/_board/inbox"
+				aria-current={main.view === "today" ? "page" : undefined}
+				aria-label="Today"
+				className={cn(buttonVariants({ size: "sm", variant: "ghost" }), "hidden md:inline-flex")}
+				href="/"
 				id={shellIds.inboxTopbar}
 			>
 				<Inbox aria-hidden="true" />
-				<span className="hidden sm:inline">Inbox</span>
+				<span className="hidden sm:inline">Today</span>
 				<InboxCount count={count} id={shellIds.inboxTopbarCount} />
 			</a>
 			<Button
 				aria-controls="search-dialog"
 				aria-haspopup="dialog"
 				aria-label="Search"
+				className="hidden md:inline-flex"
 				id={shellIds.searchOpen}
 				onClick={() => openSearch()}
 				size="sm"
@@ -71,7 +78,9 @@ export function Header({
 			>
 				<Search aria-hidden="true" />
 				<span className="hidden sm:inline">Search</span>
-				<kbd className="hidden text-muted-foreground text-xs lg:inline">⌘/Ctrl K</kbd>
+				<KeyboardHints>
+					<kbd className="hidden text-muted-foreground text-xs lg:inline">⌘/Ctrl K</kbd>
+				</KeyboardHints>
 			</Button>
 			<div className="hidden shrink-0 md:block">{live}</div>
 			<span className="shrink-0 text-destructive" id={shellIds.navigationStatus} role="status" title={status}>
@@ -88,7 +97,7 @@ function Breadcrumbs({ file }: { readonly file: string }) {
 	return (
 		<nav
 			aria-label="File location"
-			className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-muted-foreground text-xs"
+			className="hidden min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-muted-foreground text-xs md:flex"
 			id={shellIds.breadcrumbs}
 		>
 			<a className="shrink-0 text-foreground" href="/">

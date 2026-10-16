@@ -17,6 +17,7 @@ export async function loadBoardPage({
 	location,
 	abortController,
 }: Pick<LoaderFnContext, "location" | "abortController"> & { readonly context: { readonly shell?: RouterShell } }) {
+	redirectRetired(location.pathname);
 	if (!shell) {
 		return undefined;
 	}
@@ -67,4 +68,17 @@ async function redirectResponse({ api, registry }: RouterShell, url: string, pat
 
 function mustRethrow(controller: AbortController, error: unknown) {
 	return controller.signal.aborted || isRedirect(error);
+}
+
+function redirectRetired(pathname: string) {
+	const retired: Readonly<Record<string, string>> = {
+		"/_board/changes": "/_board/library?view=recently-changed",
+		"/_board/diagnostics": "/_board/system",
+		"/_board/inbox": "/",
+		"/_board/overview": "/",
+	};
+	const target = retired[pathname];
+	if (target) {
+		throw redirect({ href: target, replace: true });
+	}
 }

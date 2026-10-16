@@ -5,11 +5,11 @@ import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { LibraryContents } from "./LibraryContents.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 
-export function LibraryPage({ api }: { readonly api: ShellApi }) {
+export function LibraryPage({ api, url = "/_board/library" }: { readonly api: ShellApi; readonly url?: string }) {
 	const [kind, setKind] = useState("");
 	const [status, setStatus] = useState("");
 	const [showFleet, setShowFleet] = useState(false);
-	const [view, setView] = useState("titles");
+	const [view, setView] = useState(new URL(url, "http://localhost").searchParams.get("view") === "recently-changed" ? "recently changed" : "titles");
 	const filters = { ...(kind ? { kind } : {}), ...(status ? { status } : {}), ...(showFleet ? { showFleet } : {}) };
 	const query = useQuery(api.library.query({ ...filters, ...(view === "folders" ? { folder: "" } : {}) }, routeQueryOptions), {
 		keepPreviousData: true,

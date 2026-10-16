@@ -82,8 +82,7 @@ it.live("requires explicit write opt-in and rejects source forms at the HTTP bou
 	const page = yield* Effect.promise(() => fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`));
 	expect(page.headers.get("content-security-policy")).toContain("form-action 'none'");
 	const html = yield* Effect.promise(() => page.text());
-	expect(html).toContain('id="answer-card-review-model"');
-	expect(html).toContain("Original frontmatter");
+	expect(html).toContain("data-board-react-root");
 });
 
 it.live("publishes one durable question and response, leaves original bytes unchanged, and reconciles repeated writes", function* () {

@@ -3,12 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
-export function pageQueries(
-	api: ShellApi,
-	kind: string,
-	url: string,
-	baseline: string | null,
-): readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[] {
+export function pageQueries(api: ShellApi, kind: string, url: string): readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[] {
 	if (kind === "today") {
 		return [
 			api.inbox.query(undefined, routeQueryOptions),
@@ -22,20 +17,11 @@ export function pageQueries(
 	if (kind === "goals") {
 		return [api.goals.query(undefined, routeQueryOptions)];
 	}
-	if (kind === "changes") {
-		return [api.history.query({ action: "compare", baseline })];
-	}
-	if (kind === "overview") {
-		return [api.overview.query(undefined, routeQueryOptions)];
-	}
-	if (kind === "inbox") {
-		return [api.inbox.query(undefined, routeQueryOptions)];
-	}
 	if (kind === "start") {
 		return [api.start.query(undefined, routeQueryOptions)];
 	}
-	if (kind === "diagnostics") {
-		return [api.diagnostics.query(undefined, routeQueryOptions)];
+	if (kind === "system") {
+		return [api.diagnostics.query(undefined, routeQueryOptions), api.fleetItems.query(undefined, routeQueryOptions)];
 	}
 	if (kind === "work") {
 		return [api.work.query({ url }, routeQueryOptions)];

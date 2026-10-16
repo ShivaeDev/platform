@@ -3,7 +3,6 @@ import { Document } from "#browser/document/schema.ts";
 import { Metadata } from "#metadata/schema.ts";
 import { State } from "./state.ts";
 
-const Link = Schema.Struct({ href: Schema.optional(Schema.String), label: Schema.String });
 export const WorkItem = Schema.Struct({
 	file: Schema.String,
 	fleetApproved: Schema.optional(Schema.Boolean),
@@ -47,27 +46,6 @@ export const InboxProjection = Schema.Struct({
 	you: Schema.Array(InboxItem),
 });
 export type InboxProjection = typeof InboxProjection.Type;
-export const OverviewProjection = Schema.Struct({
-	complete: Schema.Boolean,
-	entries: Schema.Array(
-		Schema.Struct({
-			file: Schema.String,
-			href: Schema.String,
-			id: Schema.String,
-			itemId: Schema.String,
-			kind: Schema.Literals(["decision", "review", "blocker"]),
-			line: Schema.Number,
-			reason: Schema.String,
-			responseFrom: Schema.Array(Schema.String),
-			title: Schema.String,
-			unblocks: Schema.Array(Link),
-		}),
-	),
-	inboxCount: Schema.Number,
-	issues: Schema.Array(Schema.Struct({ file: Schema.String, line: Schema.Number, message: Schema.String })),
-	unavailable: Schema.Array(Schema.String),
-});
-export type OverviewProjection = typeof OverviewProjection.Type;
 export const BoardProjection = Schema.Struct({
 	counts: Schema.Array(Schema.Struct({ count: Schema.Number, title: Schema.String })),
 	document: Document,

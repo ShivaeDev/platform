@@ -1,6 +1,5 @@
 import { expect, it, vi } from "vitest";
 import { inboxCount, navigationData } from "#server/navigation/model.ts";
-import { shell } from "#server/page/shell.ts";
 import * as records from "#server/responses/records.ts";
 import { inboxSnapshot } from "#test/inboxFixture.ts";
 import { responseWorkspace } from "#test/responseWorkspace.ts";
@@ -18,7 +17,6 @@ it("validates response records once per model and does not revisit them for repe
 		questions.mockClear();
 		for (const current of ["document-1.md", "document-2.md", "decisions/decision-1.md"]) {
 			expect(navigationData([], current, undefined, snapshot).inboxCount).toBe(2);
-			expect(shell(current, "", "", "/notes", false, undefined, false, snapshot)).toContain("2 waiting");
 		}
 		expect(responses).not.toHaveBeenCalled();
 		expect(questions).not.toHaveBeenCalled();

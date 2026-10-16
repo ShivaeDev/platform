@@ -6,11 +6,7 @@ import { boardRouter } from "./boardRouter.ts";
 import "#client/react/entry.css";
 
 const container = document.querySelector("[data-board-react-root]");
-const bootstrap = document.querySelector<HTMLTemplateElement>("#board-legacy-page");
-if (container && bootstrap) {
-	document.querySelector("[data-board-fallback]")?.remove();
-	const initial = bootstrap.innerHTML;
-	bootstrap.remove();
+if (container) {
 	const root = createRoot(container);
 	let native = session(window);
 	let started = false;
@@ -23,7 +19,7 @@ if (container && bootstrap) {
 		document.documentElement.dataset.js = "true";
 	}
 	const reading = history.state?.workBoard;
-	const router = boardRouter({ api: native.api, client: native, initial, reading, ready, registry: native.registry });
+	const router = boardRouter({ api: native.api, client: native, reading, ready, registry: native.registry });
 	if (reading) {
 		history.replaceState({ ...history.state, workBoard: reading }, "");
 	}
@@ -40,7 +36,7 @@ if (container && bootstrap) {
 			return;
 		}
 		native = session(window);
-		router.update({ context: { shell: { api: native.api, client: native, initial, reading, ready, registry: native.registry } } });
+		router.update({ context: { shell: { api: native.api, client: native, reading, ready, registry: native.registry } } });
 		void router.invalidate();
 		render();
 	});

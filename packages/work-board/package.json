@@ -186,18 +186,6 @@
 			"import": "./dist/server/handoffs/*.js",
 			"default": "./dist/server/handoffs/*.js"
 		},
-		"./history/*.ts": {
-			"types": "./dist/server/history/*.d.ts",
-			"source": "./src/server/history/*.ts",
-			"import": "./dist/server/history/*.js",
-			"default": "./dist/server/history/*.js"
-		},
-		"./history/schema.ts": {
-			"types": "./dist/history/schema.d.ts",
-			"source": "./src/history/schema.ts",
-			"import": "./dist/history/schema.js",
-			"default": "./dist/history/schema.js"
-		},
 		"./http/*.ts": {
 			"types": "./dist/server/http/*.d.ts",
 			"source": "./src/server/http/*.ts",
@@ -330,12 +318,6 @@
 			"import": "./dist/browser/Navigation.js",
 			"default": "./dist/browser/Navigation.js"
 		},
-		"./browser/navigation/html.ts": {
-			"types": "./dist/browser/navigation/html.d.ts",
-			"source": "./src/browser/navigation/html.ts",
-			"import": "./dist/browser/navigation/html.js",
-			"default": "./dist/browser/navigation/html.js"
-		},
 		"./serve-cli.ts": {
 			"types": "./dist/server/serve-cli.d.ts",
 			"source": "./src/server/serve-cli.ts",
@@ -401,18 +383,6 @@
 		"./rpc/PageUrl.ts": null,
 		"./http/boardRoutes.ts": null,
 		"./http/rpcPolicy.ts": null,
-		"./page/board.ts": {
-			"types": "./dist/server/page/boardHtml.d.ts",
-			"source": "./src/server/page/boardHtml.ts",
-			"import": "./dist/server/page/boardHtml.js",
-			"default": "./dist/server/page/boardHtml.js"
-		},
-		"./page/document.ts": {
-			"types": "./dist/server/page/documentHtml.d.ts",
-			"source": "./src/server/page/documentHtml.ts",
-			"import": "./dist/server/page/documentHtml.js",
-			"default": "./dist/server/page/documentHtml.js"
-		},
 		"./page/escape.ts": {
 			"types": "./dist/browser/escapeHtml.d.ts",
 			"source": "./src/browser/escapeHtml.ts",
