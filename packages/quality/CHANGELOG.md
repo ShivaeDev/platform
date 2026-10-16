@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.1 - 2026-10-16
+
+### Fixed
+
+- Treat `.railway/railway.ts` and its `.py` and `.go` siblings as tool config files at any project root: `files/named-after-export` leaves them alone and the shared Biome preset permits their default export. Other files in `.railway/` and `src/railway.ts` remain checked.
+
 ## 0.21.0 - 2026-10-16
 
 ### Added

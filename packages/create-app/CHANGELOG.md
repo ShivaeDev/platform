@@ -1,10 +1,16 @@
 # Changelog
 
-## 0.2.3 - 2026-10-16
+## 0.3.1 - 2026-10-16
 
 ### Fixed
 
 - Generated apps use `TRUSTED_PROXY` for Better Auth client IP rate limiting and the host's forwarded authority. Auth ignores forwarded IP headers from untrusted peers, and trusted visitors have separate sign-in buckets.
+
+## 0.3.0 - 2026-10-16
+
+### Added
+
+- Generated apps include a story kit for authenticated HTTP and PostgreSQL tests, plus screen and migration stories, with guidance to extend the kit for new features.
 
 ## 0.2.2 - 2026-10-16
 

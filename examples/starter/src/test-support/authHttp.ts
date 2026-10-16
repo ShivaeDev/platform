@@ -4,20 +4,21 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { expect } from "vitest";
 import { Notes } from "#notes.ts";
 
-export const authPost = Effect.fn("StarterTest.authPost")(function* (baseUrl: string, path: string, body: object, cookie = "") {
+export const authPost = Effect.fn("StarterTest.authPost")(function* (baseUrl: string, path: string, body: object, cookie = "", origin = baseUrl) {
 	const response = yield* Effect.promise(() =>
 		fetch(`${baseUrl}/api/auth/${path}`, {
 			body: JSON.stringify(body),
-			headers: { "content-type": "application/json", cookie, origin: baseUrl },
+			headers: { "content-type": "application/json", cookie, origin },
 			method: "POST",
 		}),
 	);
 	expect(response.status).toBe(200);
 	yield* Effect.promise(() => response.text());
-	return response.headers
-		.getSetCookie()
-		.map((value) => value.split(";")[0])
-		.join("; ");
+	const cookies = response.headers.getSetCookie();
+	if (origin.startsWith("https://")) {
+		expect(cookies.some((value) => value.startsWith("__Secure-better-auth.session_token=") && /; Secure(?:;|$)/iv.test(value))).toBe(true);
+	}
+	return cookies.map((value) => value.split(";")[0]).join("; ");
 });
 
 export function notesHttp(baseUrl: string, cookie = "", origin = baseUrl) {
