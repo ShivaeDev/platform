@@ -52,15 +52,16 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(manifest.scripts.lint).toBe("quality lint");
 	expect(manifest.scripts.setup).toBe("pnpm install && node src/setup.ts");
 	expect(manifest.scripts.migrate).toBe("node --env-file-if-exists=.env.local src/server/migrate.ts");
-	expect(JSON.parse(files["railway.json"] ?? "{}")).toMatchObject({
-		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
-		deploy: { healthcheckPath: "/health", preDeployCommand: "pnpm migrate", startCommand: "pnpm start" },
-	});
-	expect(JSON.parse(files["railway.worker.json"] ?? "{}")).toEqual({
-		"$schema": "https://railway.com/railway.schema.json",
-		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
-		deploy: { preDeployCommand: "pnpm migrate", startCommand: "pnpm worker" },
-	});
+	expect(manifest.devDependencies.railway).toBe("catalog:");
+	expect(files["pnpm-workspace.yaml"]).toContain("railway: 3.13.1");
+	for (const path of ["railway.json", "railway.worker.json", "railway.toml"]) {
+		expect(files[path]).toBeUndefined();
+	}
+	for (const path of [".railway/railway.ts", ".railway/railway.test.ts"]) {
+		expect(files[path]).toBeDefined();
+		expect(files[path]).toBe(readFileSync(join(starter, path), "utf8"));
+	}
+	expect(JSON.parse(files["tsconfig.json"] ?? "{}").include).toContain(".railway");
 	expect(manifest.scripts.format).toBe("quality fix");
 	expect(manifest.scripts["db:setup"]).toBe("node --env-file-if-exists=.env.local src/server/setup-database.ts");
 	expect(files["script/setup-database.ts"]).toBeUndefined();

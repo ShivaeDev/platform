@@ -6,10 +6,10 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { effectMigration } from "#test-support/postgres.ts";
+import { migration } from "#test-support/migration.ts";
 import { migrateDatabase } from "./migrateDatabase.ts";
 
-effectMigration("applies deployment migrations without starting HTTP and safely runs again", function* () {
+migration.it("applies deployment migrations without starting HTTP and safely runs again", [], function* () {
 	const database = yield* PostgresTestDatabase;
 	const environment = {
 		"BETTER_AUTH_SECRET": "migration-test-secret-with-at-least-32-characters",

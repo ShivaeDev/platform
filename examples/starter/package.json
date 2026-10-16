@@ -57,6 +57,7 @@
 		"@types/react-dom": "catalog:",
 		"@vitejs/plugin-react": "catalog:",
 		"happy-dom": "catalog:",
+		"railway": "catalog:",
 		"tailwindcss": "catalog:",
 		"typescript": "catalog:",
 		"vite": "catalog:",

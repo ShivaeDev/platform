@@ -32,7 +32,9 @@ it("creates a named app in a new parent path, installs, and prints navigation an
 	expect(spawnSync("git", ["log", "-1", "--format=%an <%ae>"], { cwd: app, encoding: "utf8" }).stdout).toBe("Create App <create-app@localhost>\n");
 	expect(spawnSync("git", ["status", "--porcelain"], { cwd: app, encoding: "utf8" }).stdout).toBe("");
 	const tracked = spawnSync("git", ["ls-files"], { cwd: app, encoding: "utf8" }).stdout.split("\n");
-	expect(tracked).toEqual(expect.arrayContaining(["package.json", "pnpm-lock.yaml", ".github/workflows/ci.yml", "railway.json", "src/notes.ts"]));
+	expect(tracked).toEqual(
+		expect.arrayContaining(["package.json", "pnpm-lock.yaml", ".github/workflows/ci.yml", ".railway/railway.ts", "src/notes.ts"]),
+	);
 	expect(tracked).not.toContain(".env.local");
 	expect(result.stdout).toMatch(/Created apps\/my-app\.\n\nNext steps:\n {2}cd 'apps\/my-app'\n {2}pnpm dev\n$/u);
 });
