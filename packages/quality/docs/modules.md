@@ -188,6 +188,7 @@ A module link opens its source. Type and value declarations with the same name a
 
 | Module | Exported names |
 | --- | --- |
+| [rules/files/distinctCase.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/files/distinctCase.ts) | `distinctCase` |
 | [rules/files/folderNames.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/files/folderNames.ts) | `folderNames` |
 | [rules/files/namedAfterExport.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/files/namedAfterExport.ts) | `namedAfterExport` |
 | [rules/files/otherNames.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/files/otherNames.ts) | `otherNames` |

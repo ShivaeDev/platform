@@ -84,6 +84,10 @@ The `toolOwned` option lists folders a tool names, `migrations/` by default. Aut
 
 The `toolOwned` option lists files a tool names: dotfiles, `package.json`, `tsconfig*.json`, `biome.json`, `*.config.*` and `migrations/` by default.
 
+### Case
+
+`files/distinct-case` keeps every path apart on a case-insensitive filesystem, such as macOS or Windows. Two files or folders in one folder must differ by more than case, and so must the files a build makes of them: `ReadingHistory.tsx` and `readingHistory.ts` both build to `readingHistory.js`, so they are a finding. A folder pair is one finding, not one per file inside it.
+
 ### Tests
 
 A test sits beside the code it covers, and its name says what it covers and where it runs.
