@@ -1,5 +1,8 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { vi } from "vitest";
+import { board as metadata } from "@shivaedev/work-board/integration/board.ts";
+import { withBoardReadPass } from "#board/readPass.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
@@ -87,6 +90,20 @@ test("scheduler passes leave an unchanged area wait unwritten", function* () {
 			yield* cycle;
 			yield* cycle;
 			expect(yield* fleet.get("two")).toEqual(waiting);
+		}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts))),
+	);
+});
+
+test("one scheduler pass parses each approved brief once to admit it and once to launch it", function* () {
+	const ids = ["one", "two", "three"];
+	yield* withHost(Object.fromEntries(ids.map((id) => [`${id}.md`, task(id, "approved")])), { concurrency: ids.length }, (fixture) =>
+		Effect.gen(function* () {
+			const parse = vi.spyOn(metadata, "metadataParse");
+			yield* Effect.addFinalizer(() => Effect.sync(() => parse.mockRestore()));
+			const result = yield* withBoardReadPass(admitApproved(fixture.host).pipe(Effect.andThen(cycle)));
+			expect(result.dispatched.map((dispatch) => dispatch._tag)).toEqual(ids.map(() => "Success"));
+			expect(fixture.provider.launched).toHaveLength(ids.length);
+			expect(parse).toHaveBeenCalledTimes(ids.length * 2);
 		}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts))),
 	);
 });
