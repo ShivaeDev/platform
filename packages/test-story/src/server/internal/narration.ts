@@ -24,7 +24,8 @@ export interface Subject<TEngine> {
 	readonly name: string;
 }
 
-export function narrate<TEngine>(subject: Subject<TEngine>, { onTestFailed }: Pick<TestContext, "onTestFailed">): Narration {
+export function narrate<TEngine>(subject: Subject<TEngine>, { onTestFailed, task }: Pick<TestContext, "onTestFailed" | "task">) {
+	let captured: string | undefined;
 	const narration: Narration = {
 		at: undefined,
 		given: 0,
@@ -40,13 +41,18 @@ export function narrate<TEngine>(subject: Subject<TEngine>, { onTestFailed }: Pi
 			narration.at = site;
 		},
 	};
-	onTestFailed(({ task }) => {
-		const failure = task.result?.errors?.[0];
+	onTestFailed(({ task: failedTask }) => {
+		const failure = failedTask.result?.errors?.[0];
 		if (failure !== undefined) {
-			failure.message = `${failure.message === "" ? describeFailure(failure) : failure.message}\n\n${failureReport(narration, subject, { file: task.file.filepath, name: task.name, stack: failure.stack })}`;
+			failure.message = `${failure.message === "" ? describeFailure(failure) : failure.message}\n\n${captured ?? failureReport(narration, subject, { file: task.file.filepath, name: task.name, stack: failure.stack })}`;
 		}
 	});
-	return narration;
+	return {
+		captureFailure: (stack: string | undefined) => {
+			captured = failureReport(narration, subject, { file: task.file.filepath, name: task.name, stack });
+		},
+		narration,
+	};
 }
 
 export function tellGiven(narration: Narration, given: readonly { readonly line: string; readonly site: Error }[]): void {
