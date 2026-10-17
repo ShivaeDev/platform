@@ -1,11 +1,18 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Layer } from "effect";
+import { Config, Effect, Layer, type Redacted } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { assertPostgresMigrations } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
-import { postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
+import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
 import type { AppChanges, AppDatabaseOptions } from "#server/appHost.ts";
+
+export interface DatabaseConfig {
+	readonly applicationName?: string;
+	readonly changes?: Omit<PostgresChangesOptions, "client" | "resync">;
+	readonly databaseUrl?: Redacted.Redacted<string>;
+	readonly maxConnections?: number;
+}
 
 export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService: typeof AppChanges) {
 	const pool = Layer.unwrap(

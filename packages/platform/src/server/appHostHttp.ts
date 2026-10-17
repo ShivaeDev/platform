@@ -3,7 +3,7 @@ import { NodeHttpServer, NodeServices } from "@effect/platform-node";
 import { ByteSize, Config, Effect, Layer, Option, Schema } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/http";
 import { type Rpc, RpcSerialization, RpcServer } from "effect/rpc";
-import type { AppHostOptions, AppLocalHostOptions } from "#appHost.ts";
+import type { AppHostOptions, AppHttpHostOptions, AppLocalHostOptions } from "#appHost.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";
 import type { databaseLayer } from "#databaseLayer.ts";
 import type { HostOptions, HostPolicy } from "#hostOptions.ts";
@@ -102,4 +102,27 @@ export function migratedHost<
 ) {
 	const services = Layer.mergeAll(options.services ?? Layer.empty);
 	return appHostHttp({ ...options, services: services.pipe(Layer.provideMerge(database)) });
+}
+
+export function deferredHost<
+	TRpcs extends Rpc.Any,
+	THandlers,
+	THandlerError,
+	THandlerRequirements,
+	TServices,
+	TServiceError,
+	TServiceRequirements,
+	TMigrations,
+	TSession extends SessionShape,
+	TApplicationError,
+	TApplicationRequirements,
+>(
+	application: Effect.Effect<
+		AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
+		TApplicationError,
+		TApplicationRequirements
+	>,
+	database: ReturnType<typeof databaseLayer<TMigrations>>,
+) {
+	return Layer.unwrap(Effect.map(application, (options) => appHostHttp(options))).pipe(Layer.provideMerge(database));
 }
