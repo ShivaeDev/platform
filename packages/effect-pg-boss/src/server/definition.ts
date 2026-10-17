@@ -1,5 +1,6 @@
-import type { Effect, Schema } from "effect";
+import { Clock, Duration, Effect, type Schema } from "effect";
 import type { Job, Queue, ScheduleOptions, WorkOptions } from "pg-boss";
+import { deadlineOf } from "#internal/deadlineOf.ts";
 
 export interface JobPayloadSchema extends Schema.Top {
 	readonly Encoded: object;
@@ -11,6 +12,7 @@ export interface JobContext {
 	readonly heartbeatSeconds: number | null;
 	readonly id: string;
 	readonly name: string;
+	readonly remainingBudget: Effect.Effect<Duration.Duration>;
 	readonly signal: AbortSignal;
 }
 
@@ -116,5 +118,6 @@ export const jobContext = (job: Job<unknown>): JobContext => ({
 	heartbeatSeconds: job.heartbeatSeconds,
 	id: job.id,
 	name: job.name,
+	remainingBudget: Effect.map(Clock.currentTimeMillis, (now) => Duration.millis(Math.max(0, deadlineOf(job) - now))),
 	signal: job.signal,
 });

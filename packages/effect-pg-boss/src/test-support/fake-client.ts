@@ -1,3 +1,4 @@
+import { Clock, Effect } from "effect";
 import type {
 	ConstructorOptions,
 	Job,
@@ -119,7 +120,7 @@ export class FakeClient implements PgBossClient {
 	}
 }
 
-export function job(name: string, data: unknown): Job<unknown> {
+export function job(name: string, data: unknown): Job<unknown> & { readonly startedOn: Date } {
 	return {
 		data,
 		expireInSeconds: 900,
@@ -128,6 +129,7 @@ export function job(name: string, data: unknown): Job<unknown> {
 		name,
 		retryCount: 0,
 		signal: new AbortController().signal,
+		startedOn: new Date(Effect.runSync(Clock.currentTimeMillis)),
 	};
 }
 

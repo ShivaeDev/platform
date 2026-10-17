@@ -1,9 +1,11 @@
-import { Context, Effect, type Layer, Option, Schema, SchemaGetter } from "effect";
+import { Context, type Duration, Effect, type Layer, Option, Schema, SchemaGetter } from "effect";
 import { expectTypeOf } from "vitest";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue, defineSchedule, type JobContext } from "#definition.ts";
 import { makePgBoss, type PgBossDefinition } from "#service.ts";
 
 class HandlerDependency extends Context.Service<HandlerDependency, number>()("@test/HandlerDependency") {}
+
+expectTypeOf<JobContext["remainingBudget"]>().toEqualTypeOf<Effect.Effect<Duration.Duration>>();
 
 const Queue = defineQueue({
 	name: "typed",

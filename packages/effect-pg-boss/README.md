@@ -116,6 +116,43 @@ This worker runs up to five handlers at once. `worker` accepts pg-boss 12's `Wor
 
 Apps do not need to shorten the polling backstop to drain a backlog. With `notify: true` and an active LISTEN/NOTIFY listener, pg-boss wakes workers on notifications and defaults to a 30-second backstop (`notifyPollingIntervalSeconds`). Without active notifications its base poll defaults to two seconds (`pollingIntervalSeconds`). Bursting takes precedence over both intervals. Override the backstop only when the application needs a different bound for work that becomes runnable without a notification, such as delayed jobs or retries. The PostgreSQL backlog tests insert 30 jobs at once and verify completion within 2.5 seconds with both defaults and configured batches and concurrency.
 
+### Size batches against expiry
+
+pg-boss marks every job in a fetched batch active together. Each job's expiry window starts at its stored `startedOn`, including time waiting for earlier handlers. Size each queue's batch so its sequential work fits within that window; use a small batch for long-running work and keep the default for short work:
+
+```ts
+const Ingest = defineQueue({
+  name: "ingest",
+  schema: Schema.Struct({ sourceId: Schema.String }),
+  queue: { expireInSeconds: 300 },
+  worker: { batchSize: 1 },
+});
+
+const IndexTitle = defineQueue({
+  name: "index-title",
+  schema: Schema.Struct({ titleId: Schema.String }),
+});
+```
+
+`Ingest` fetches one job at a time; `IndexTitle` keeps the default batch of ten. Configure the expiry for the work's expected duration. Increasing `localConcurrency` adds batches; it does not extend any job's window.
+
+The adapter enforces each queue or scheduled job's deadline using pg-boss's `startedOn` and `expireInSeconds`. It skips jobs whose window has already passed and interrupts a running Effect at its deadline. Expired jobs remain for pg-boss's expiry and retry engine. Interruption stops the rest of that batch, as described above.
+
+Queue handlers can yield `job.remainingBudget`, an `Effect.Effect<Duration.Duration>` that recomputes the time left at each read and clamps it to zero. Use it to size a downstream operation's timeout:
+
+```ts
+import { Duration, Effect } from "effect";
+
+const ingestWorker = Ingest.handle(({ sourceId }, job) =>
+  Effect.gen(function* () {
+    const budget = yield* job.remainingBudget;
+    yield* Effect.log({ sourceId, remainingMilliseconds: Duration.toMillis(budget) });
+  }),
+);
+```
+
+Keep handler work interruptible and use cancellation-aware Effect integrations for external operations. A deadline interrupts the Effect fiber; it cannot stop an uninterruptible region or an external side effect that ignores cancellation. Handlers must tolerate retries.
+
 ### Once per runtime: provide the workers
 
 Build the jobs Layer in `runtime.ts`:
@@ -313,7 +350,7 @@ The application's service has these operations:
 
 `onError` handles pg-boss client `error` events using the services captured by the Layer. The Layer's requirement type includes the workers' services and their payload Schemas' `DecodingServices`, excluding its own jobs identifier, plus the callback's services. Only the owning jobs service is supplied automatically; a handler using another jobs definition still requires that definition's Layer. `enqueue` includes the payload Schema's `EncodingServices` in its requirement type.
 
-`JobContext` has `id`, `name`, `signal`, `expireInSeconds` and `heartbeatSeconds`. `QueueHealth` has `name`, `activeCount`, `deadLetteredCount`, `failedCount`, `queuedCount` and `readyCount`. `JobsHealth` has `jobs` and the corresponding `activeTotal`, `deadLetteredTotal`, `failedTotal`, `queuedTotal` and `readyTotal` fields.
+`JobContext` has `id`, `name`, `signal`, `expireInSeconds`, `heartbeatSeconds` and `remainingBudget`. Worker registration always requests `includeMetadata: true`, including when `worker` supplies `includeMetadata: false`; custom clients must return pg-boss's `startedOn` metadata. When calling `jobContext` directly, reading `remainingBudget` requires that same metadata. `QueueHealth` has `name`, `activeCount`, `deadLetteredCount`, `failedCount`, `queuedCount` and `readyCount`. `JobsHealth` has `jobs` and the corresponding `activeTotal`, `deadLetteredTotal`, `failedTotal`, `queuedTotal` and `readyTotal` fields.
 
 `PgBossError` has `operation`, optional `queue` and a `Redacted` `original`. `PgBossPayloadError` has `direction`, `queue` and a `Redacted` `original`. Those fields distinguish the pg-boss operation from the payload boundary.
 
