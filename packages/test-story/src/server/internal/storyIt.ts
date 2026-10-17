@@ -4,6 +4,7 @@ import type { EffectTest, EffectTestOptions } from "@shivaedev/effect-test/types
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Genre, genreOf } from "#internal/genre.ts";
 import { type AnyEffect, hooked } from "#internal/hooked.ts";
+import { routeOutbound } from "#internal/routeOutbound.ts";
 import type { LooseDefinition, LooseTrait } from "#internal/seed.ts";
 import { start } from "#internal/start.ts";
 
@@ -52,8 +53,16 @@ function declaring(definition: LooseDefinition, genre: Genre, declare: EffectTes
 
 export function storyIt(definition: LooseDefinition): LooseIt {
 	const genre = genreOf(definition.name);
+	const outbound = definition.outbound;
 	const { effectApp } = makeEffectIt({
-		around: definition.around,
+		around:
+			outbound === undefined
+				? definition.around
+				: (effect) =>
+						Effect.gen(function* () {
+							yield* routeOutbound(outbound);
+							return yield* definition.around?.(effect) ?? effect;
+						}),
 		clock: definition.clock,
 		layer: definition.layer ?? Layer.empty,
 		makeHarness: () => Effect.void,
