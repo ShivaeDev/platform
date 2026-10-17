@@ -1,0 +1,4 @@
+### Fixed
+
+- Run each queue and scheduled job attempt inside a root consumer span named for its queue, with job identity, attempt and retry-count attributes and handler failures. Handler steps share that job trace.
+- Persist the enqueueing Effect span context in pg-boss job data and link the job span to it. Handlers and `getJob` still decode the original payload Schema; direct pg-boss data readers see an envelope for traced sends.

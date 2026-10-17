@@ -1,21 +1,15 @@
-import { Context, type Duration, type Effect, type Redacted } from "effect";
+import { Context, type Duration, type Effect } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { Migrator } from "effect/sql";
 import type { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
-import type { PostgresChangesOptions } from "@shivaedev/effect-sql/postgresChanges.ts";
 import type { SessionPolicy, SessionShape } from "#rpc-server/session.ts";
-import { appHostHttp, migratedHost } from "#server/appHostHttp.ts";
-import { databaseLayer } from "#server/databaseLayer.ts";
+import { appHostHttp, deferredHost, migratedHost } from "#server/appHostHttp.ts";
+import { type DatabaseConfig, databaseLayer } from "#server/databaseLayer.ts";
 import type { HostOptions, HostPolicy } from "#server/hostOptions.ts";
 
 export class AppChanges extends Context.Service<AppChanges, Effect.Success<typeof makeLiveServer>>()("@shivaedev/platform/AppChanges") {}
 export interface AppDatabaseOptions<R = never> {
-	readonly config?: {
-		readonly databaseUrl?: Redacted.Redacted<string>;
-		readonly applicationName?: string;
-		readonly maxConnections?: number;
-		readonly changes?: Omit<PostgresChangesOptions, "client" | "resync">;
-	};
+	readonly config?: DatabaseConfig;
 	readonly migrations: {
 		readonly loader: Migrator.Loader<R>;
 		readonly mode?: "migrate" | "check";
@@ -81,30 +75,35 @@ export function appHost<
 	TServiceRequirements = never,
 	TMigrations = never,
 	TSession extends SessionShape = SessionShape,
+	TApplicationError = never,
+	TApplicationRequirements = never,
 >(
 	options:
+		| (AppDatabaseOptions<TMigrations> & {
+				readonly application: Effect.Effect<
+					AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
+					TApplicationError,
+					TApplicationRequirements
+				>;
+		  })
 		| AppHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>
 		| AppLocalHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations>,
 ): ReturnType<
-	typeof migratedHost<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>
+	typeof deferredHost<
+		TRpcs,
+		THandlers,
+		THandlerError,
+		THandlerRequirements,
+		TServices,
+		TServiceError,
+		TServiceRequirements,
+		TMigrations,
+		TSession,
+		TApplicationError,
+		TApplicationRequirements
+	>
 >;
-export function appHost<
-	TRpcs extends Rpc.Any,
-	THandlers,
-	THandlerError,
-	THandlerRequirements,
-	TServices = never,
-	TServiceError = never,
-	TServiceRequirements = never,
->(
-	options: HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & {
-		readonly policy: "loopback";
-		readonly sessions?: never;
-		readonly migrations?: undefined;
-	},
-): ReturnType<
-	typeof appHostHttp<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, SessionShape>
->;
+
 export function appHost<
 	TRpcs extends Rpc.Any,
 	THandlers,
@@ -127,12 +126,24 @@ export function appHost<
 	TServiceRequirements = never,
 	TMigrations = never,
 	TSession extends SessionShape = SessionShape,
+	TApplicationError = never,
+	TApplicationRequirements = never,
 >(
 	options:
+		| (AppDatabaseOptions<TMigrations> & {
+				readonly application: Effect.Effect<
+					AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
+					TApplicationError,
+					TApplicationRequirements
+				>;
+		  })
 		| AppHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>
 		| AppLocalHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations>
 		| AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
 ) {
+	if ("application" in options) {
+		return deferredHost(options.application, appDatabase(options));
+	}
 	return options.migrations === undefined
 		? appHostHttp(options)
 		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations }));

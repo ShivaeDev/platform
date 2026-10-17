@@ -154,6 +154,14 @@ Provide `Jobs` through the application's existing runtime. `enqueue` takes the d
 
 `PgBossPayloadError` names a payload boundary failure; malformed durable input is rejected before the worker's domain code runs. The PostgreSQL test also checks that invalid data sent directly to pg-boss reaches the dead-letter queue without reaching the handler.
 
+### Trace jobs
+
+Each queue or scheduled job attempt runs in one root consumer span named for its queue. The span encloses payload decoding and the whole handler, so top-level `Effect.fn` steps are children of the job span. Its attributes include `job.id`, `job.queue`, `job.name`, the one-based `job.attempt` and pg-boss's zero-based `job.retry_count`. A failed handler ends the span with its failure.
+
+`enqueue` captures the current Effect span, including an external parent span, when present. It stores that context in a typed envelope in pg-boss's existing job `data`; the adapter unwraps the envelope before Schema decoding in the handler and `getJob`, so the application's payload Schema stays unchanged. Jobs sent without a span keep their ordinary encoded payload, and workers also accept those unwrapped jobs. Direct pg-boss data readers see the envelope for traced sends.
+
+The consumer span links to the sender rather than sharing its parent trace, following OpenTelemetry messaging conventions for asynchronous processing. Each retry gets its own job trace. Provide the application's Effect tracer when building the worker Layer; the worker uses that captured tracer. The PostgreSQL tracing tests use Effect's in-memory tracer and a producer that shuts down before its worker starts; the scheduled-worker test checks the same span boundary with a fake client.
+
 ### Read health
 
 ```ts
