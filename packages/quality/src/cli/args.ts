@@ -31,7 +31,9 @@ const OPTIONS = {
 	warnings: { type: "string" },
 } as const;
 
-const usage = (problem: string): Parsed => ({ _tag: "Usage", problem });
+function usage(problem: string): Parsed {
+	return { _tag: "Usage", problem };
+}
 
 const SUBCOMMANDS: Readonly<Record<string, string>> = {
 	baseline: "baseline takes write, prune, tighten or migrate.",
@@ -39,7 +41,9 @@ const SUBCOMMANDS: Readonly<Record<string, string>> = {
 	hooks: "hooks takes install, uninstall or pre-commit.",
 };
 
-const parsed = (command: Command): Parsed => ({ _tag: "Parsed", command });
+function parsed(command: Command): Parsed {
+	return { _tag: "Parsed", command };
+}
 
 type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allowPositionals: true }>>["values"];
 
@@ -60,16 +64,17 @@ const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	lint: ["warnings"],
 };
 
-const misplaced = (name: string, values: Values): string | undefined => {
+function misplaced(name: string, values: Values): string | undefined {
 	const option = COMMAND_OPTIONS.find((key) => values[key] !== undefined && !(ACCEPTS[name] ?? []).includes(key));
 	const owners = Object.keys(ACCEPTS).filter((owner) => option !== undefined && (ACCEPTS[owner] ?? []).includes(option));
 	return option === undefined ? undefined : `--${option} applies only to ${owners.join(" and ")}.`;
-};
+}
 
-const ref = (against: string | undefined, command: Command): Parsed =>
-	against?.startsWith("-") === true ? usage(`--against takes a git ref, not "${against}".`) : parsed(command);
+function ref(against: string | undefined, command: Command): Parsed {
+	return against?.startsWith("-") === true ? usage(`--against takes a git ref, not "${against}".`) : parsed(command);
+}
 
-const commandFor = (name: string, values: Values): Parsed => {
+function commandFor(name: string, values: Values): Parsed {
 	const config = values.config;
 	switch (name) {
 		case "lint": {
@@ -97,9 +102,9 @@ const commandFor = (name: string, values: Values): Parsed => {
 		default:
 			return parsed({ _tag: "BaselineMigrate", config, from: values.from });
 	}
-};
+}
 
-export const parseCommand = (args: readonly string[]): Parsed => {
+export function parseCommand(args: readonly string[]): Parsed {
 	const result = Result.try({
 		catch: (error) => (error instanceof Error ? error.message : String(error)),
 		try: () => parseArgs({ allowPositionals: true, args: [...args], options: OPTIONS, strict: true }),
@@ -122,4 +127,4 @@ export const parseCommand = (args: readonly string[]): Parsed => {
 	}
 	const problem = misplaced(name, values);
 	return problem === undefined ? commandFor(name, values) : usage(problem);
-};
+}

@@ -4,7 +4,7 @@ import { Cause, Effect, Exit } from "effect";
 import { afterEach, expect } from "vitest";
 import { loadConfig } from "#config/load.ts";
 import { builtInRules } from "#rules/built-in.ts";
-import { it } from "#test/it.ts";
+import { it as effectIt } from "#test/it.ts";
 import { config, linkMissingFile, removeSeededTrees, seedTree } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
@@ -13,7 +13,7 @@ function failureOf(cwd: string, path?: string) {
 	return Effect.map(Effect.exit(loadConfig(cwd, path)), (exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "(it loaded)"));
 }
 
-it.layer(NodeFileSystem.layer)("config loading", (it) => {
+effectIt.layer(NodeFileSystem.layer)("config loading", (it) => {
 	it.effect("loads quality.config.ts with the defaults filled in", function* () {
 		const root = seedTree([config("{}")]);
 		const loaded = yield* loadConfig(root, undefined);

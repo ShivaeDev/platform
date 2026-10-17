@@ -8,7 +8,7 @@ import { afterEach, expect } from "vitest";
 import { collectInventory, type InventoryScope } from "#inventory/collect.ts";
 import { readOptionalText, readRequiredText } from "#inventory/filesystem.ts";
 import { walk } from "#inventory/walk.ts";
-import { it } from "#test/it.ts";
+import { it as effectIt } from "#test/it.ts";
 import { removeSeededTrees, seedTree } from "#test/tree.ts";
 
 const roots: string[] = [];
@@ -26,7 +26,9 @@ afterEach(() => {
 	}
 });
 
-function failureText<Value, TError, Requirements>(effect: Effect.Effect<Value, TError, Requirements>): Effect.Effect<string, never, Requirements> {
+function failureText<TValue, TError, TRequirements>(
+	effect: Effect.Effect<TValue, TError, TRequirements>,
+): Effect.Effect<string, never, TRequirements> {
 	return Effect.map(Effect.exit(effect), (exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "(it succeeded)"));
 }
 
@@ -46,7 +48,7 @@ function repository() {
 	]);
 }
 
-it.layer(NodeFileSystem.layer)("filesystem adapter", (it) => {
+effectIt.layer(NodeFileSystem.layer)("filesystem adapter", (it) => {
 	it.effect("treats a missing optional file as absent", function* () {
 		expect(yield* readOptionalText(join(makeRoot(), ".gitignore"))).toBeUndefined();
 	});
@@ -77,7 +79,7 @@ it.layer(NodeFileSystem.layer)("filesystem adapter", (it) => {
 	});
 });
 
-it.layer(NodeFileSystem.layer)("inventory", (it) => {
+effectIt.layer(NodeFileSystem.layer)("inventory", (it) => {
 	it.effect("lists every file and reads the sources with the configured extensions", function* () {
 		const inventory = yield* collectInventory(repository(), scope({}));
 		expect(inventory.files).toEqual(["docs/notes.md", "scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]);

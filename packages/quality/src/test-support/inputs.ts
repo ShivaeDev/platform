@@ -18,7 +18,7 @@ export function inputsOf(seed: Seed): RuleInputs {
 	};
 }
 
-export async function checkRule<Input>(rule: Rule<string, Input>, options: Input | undefined, seed: Seed): Promise<Findings> {
+export async function checkRule<TInput>(rule: Rule<string, TInput>, options: TInput | undefined, seed: Seed): Promise<Findings> {
 	const configured = await rule.configure(options);
 	if (configured._tag === "Invalid") {
 		throw new Error(`invalid options: ${configured.issues.join("; ")}`);

@@ -8,31 +8,39 @@ interface StaleFiles {
 	readonly registry: string;
 }
 
-const section = (label: string, file: string, guidance: string, lines: readonly string[]): readonly string[] =>
-	lines.length === 0 ? [] : [[`${label} ${file}: ${plural(lines.length, "stale entry", "stale entries")}`, `  ${guidance}`, ...lines].join("\n")];
+function section(label: string, file: string, guidance: string, lines: readonly string[]): readonly string[] {
+	return lines.length === 0
+		? []
+		: [[`${label} ${file}: ${plural(lines.length, "stale entry", "stale entries")}`, `  ${guidance}`, ...lines].join("\n")];
+}
 
-const baselineLine = ({ entry, problem }: StaleBaselineEntry): string => `  ${entry.rule} ${entry.file} ${problem}.`;
+function baselineLine({ entry, problem }: StaleBaselineEntry): string {
+	return `  ${entry.rule} ${entry.file} ${problem}.`;
+}
 
-const registryLine = ({ entry, problem }: StaleRegistryEntry): string =>
-	`  ${entry.rule} ${entry.file}${entry.subject === undefined ? "" : ` (${entry.subject})`} ${problem}.`;
+function registryLine({ entry, problem }: StaleRegistryEntry): string {
+	return `  ${entry.rule} ${entry.file}${entry.subject === undefined ? "" : ` (${entry.subject})`} ${problem}.`;
+}
 
-export const staleSections = (outcome: Outcome, files: StaleFiles): readonly string[] => [
-	...section(
-		"error",
-		files.baseline,
-		"An entry for a rule that is off or unknown covers nothing. Run `quality baseline prune` to drop it.",
-		outcome.staleBaseline.map(baselineLine),
-	),
-	...section(
-		"note",
-		files.baseline,
-		"These pass, and `quality baseline tighten` lowers them when their files change. `quality baseline prune` lowers them all.",
-		outcome.looseBaseline.map(baselineLine),
-	),
-	...section(
-		"error",
-		files.registry,
-		"Every registered exception must still apply. Remove the entries whose exception is gone.",
-		outcome.staleRegistry.map(registryLine),
-	),
-];
+export function staleSections(outcome: Outcome, files: StaleFiles): readonly string[] {
+	return [
+		...section(
+			"error",
+			files.baseline,
+			"An entry for a rule that is off or unknown covers nothing. Run `quality baseline prune` to drop it.",
+			outcome.staleBaseline.map(baselineLine),
+		),
+		...section(
+			"note",
+			files.baseline,
+			"These pass, and `quality baseline tighten` lowers them when their files change. `quality baseline prune` lowers them all.",
+			outcome.looseBaseline.map(baselineLine),
+		),
+		...section(
+			"error",
+			files.registry,
+			"Every registered exception must still apply. Remove the entries whose exception is gone.",
+			outcome.staleRegistry.map(registryLine),
+		),
+	];
+}

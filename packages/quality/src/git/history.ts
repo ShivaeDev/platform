@@ -7,7 +7,7 @@ export interface Changes {
 	readonly moves: ReadonlyMap<string, string>;
 }
 
-const parse = (output: string): Changes => {
+function parse(output: string): Changes {
 	const fields = output.split("\0");
 	const files = new Set<string>();
 	const moves = new Map<string, string>();
@@ -24,11 +24,12 @@ const parse = (output: string): Changes => {
 		index += paths.length + 1;
 	}
 	return { files, moves };
-};
+}
 
 // Paths are relative to the root, and only tracked files count: a move is seen once both of its sides are staged.
-export const changesSince = (root: string, revision: readonly string[]): Effect.Effect<Changes, SetupFailure, Git> =>
-	Effect.map(
+export function changesSince(root: string, revision: readonly string[]): Effect.Effect<Changes, SetupFailure, Git> {
+	return Effect.map(
 		gitOrFail(root, ["diff", "--no-color", "--no-ext-diff", "--find-renames", "--name-status", "-z", "--relative", ...revision, "--"]),
 		parse,
 	);
+}

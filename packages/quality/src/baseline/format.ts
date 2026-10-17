@@ -16,18 +16,22 @@ export interface BaselineEntry {
 	readonly rule: string;
 }
 
-const codepoints = (left: string, right: string): number => (left < right ? -1 : Number(left > right));
+function codepoints(left: string, right: string): number {
+	return left < right ? -1 : Number(left > right);
+}
 
-export const byPathAndRule = (left: BaselineEntry, right: BaselineEntry): number =>
-	codepoints(left.file, right.file) || codepoints(left.rule, right.rule);
+export function byPathAndRule(left: BaselineEntry, right: BaselineEntry): number {
+	return codepoints(left.file, right.file) || codepoints(left.rule, right.rule);
+}
 
-export const linesOf = (raw: string | undefined): ReadonlyArray<{ readonly line: number; readonly text: string }> =>
-	(raw ?? "")
+export function linesOf(raw: string | undefined): ReadonlyArray<{ readonly line: number; readonly text: string }> {
+	return (raw ?? "")
 		.split("\n")
 		.map((text, index) => ({ line: index + 1, text }))
 		.filter((row) => row.text.trim() !== "");
+}
 
-export const decodeBaseline = async (raw: string | undefined): Promise<Decoded<readonly BaselineEntry[]>> => {
+export async function decodeBaseline(raw: string | undefined): Promise<Decoded<readonly BaselineEntry[]>> {
 	const issues: string[] = [];
 	const entries: BaselineEntry[] = [];
 	const seen = new Set<string>();
@@ -45,14 +49,17 @@ export const decodeBaseline = async (raw: string | undefined): Promise<Decoded<r
 		entries.push({ ...stored, file: path });
 	}
 	return issues.length === 0 ? { _tag: "Valid", value: entries } : { _tag: "Invalid", issues };
-};
+}
 
 const LINE_KEYS = ["path", "rule", "count"];
 
-export const encodeEntry = (entry: BaselineEntry): string => JSON.stringify({ count: entry.count, path: entry.file, rule: entry.rule }, LINE_KEYS);
+export function encodeEntry(entry: BaselineEntry): string {
+	return JSON.stringify({ count: entry.count, path: entry.file, rule: entry.rule }, LINE_KEYS);
+}
 
-export const encodeBaseline = (entries: readonly BaselineEntry[]): string =>
-	[...entries]
+export function encodeBaseline(entries: readonly BaselineEntry[]): string {
+	return [...entries]
 		.sort(byPathAndRule)
 		.map((entry) => `${encodeEntry(entry)}\n`)
 		.join("");
+}

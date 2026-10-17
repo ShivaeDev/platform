@@ -5,25 +5,23 @@ import { openSession } from "#engine/session.ts";
 import { GateFailed, type SetupFailure } from "#failure.ts";
 import { render, type WarningDetail } from "#report/render.ts";
 
-export const lint = (
+export const lint = Effect.fn("Cli.lint")(function* (
 	cwd: string,
 	config: string | undefined,
 	warnings: WarningDetail,
-): Effect.Effect<void, SetupFailure | GateFailed, FileSystem.FileSystem> =>
-	Effect.gen(function* () {
-		const session = yield* openSession(cwd, config);
-		const outcome = evaluate(session.violations, session.registry, session.baseline.entries, session.config);
-		yield* Console.log(
-			render(outcome, {
-				baseline: session.config.baseline,
-				checked: session.inventory.sources.length,
-				descriptions: new Map(session.config.active.map((rule) => [rule.id, rule.description])),
-				registry:
-					session.config.exceptions.length === 0 ? session.config.registry : `${relative(session.config.root, session.config.file)} exceptions`,
-				warnings,
-			}),
-		);
-		if (!passes(outcome)) {
-			return yield* new GateFailed();
-		}
-	});
+): Effect.fn.Return<void, SetupFailure | GateFailed, FileSystem.FileSystem> {
+	const session = yield* openSession(cwd, config);
+	const outcome = evaluate(session.violations, session.registry, session.baseline.entries, session.config);
+	yield* Console.log(
+		render(outcome, {
+			baseline: session.config.baseline,
+			checked: session.inventory.sources.length,
+			descriptions: new Map(session.config.active.map((rule) => [rule.id, rule.description])),
+			registry: session.config.exceptions.length === 0 ? session.config.registry : `${relative(session.config.root, session.config.file)} exceptions`,
+			warnings,
+		}),
+	);
+	if (!passes(outcome)) {
+		return yield* new GateFailed();
+	}
+});

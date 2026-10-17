@@ -62,24 +62,22 @@ function biomePasses(root: string, exceptions: readonly ExceptionDeclaration[]):
 	];
 }
 
-function round<TFailure, TRequirements>(
+const round = Effect.fn("Cli.round")(function* <TFailure, TRequirements>(
 	passes: readonly Pass<TFailure, TRequirements>[],
 	index: number,
 	afterEachPass: Effect.Effect<void, TFailure, TRequirements>,
-): Effect.Effect<number, TFailure, TRequirements> {
-	return Effect.gen(function* () {
-		let total = 0;
-		const parts: string[] = [];
-		for (const pass of passes) {
-			const changed = yield* pass.run;
-			total += changed;
-			parts.push(`${plural(changed, "file")} ${pass.label}`);
-			yield* afterEachPass;
-		}
-		yield* Console.log(`quality: Biome round ${index} rewrote ${parts.join(" and ")}.`);
-		return total;
-	});
-}
+): Effect.fn.Return<number, TFailure, TRequirements> {
+	let total = 0;
+	const parts: string[] = [];
+	for (const pass of passes) {
+		const changed = yield* pass.run;
+		total += changed;
+		parts.push(`${plural(changed, "file")} ${pass.label}`);
+		yield* afterEachPass;
+	}
+	yield* Console.log(`quality: Biome round ${index} rewrote ${parts.join(" and ")}.`);
+	return total;
+});
 
 function changedBetween(before: ReadonlyMap<string, string>, after: ReadonlyMap<string, string>): readonly string[] {
 	return [...new Set([...before.keys(), ...after.keys()])].filter((path) => before.get(path) !== after.get(path));
@@ -100,36 +98,35 @@ function unsettled(changed: ReadonlySet<string>): SetupFailure {
 	});
 }
 
-export function settle<TFailure, TRequirements>({
+export const settle = Effect.fn("Cli.settle")(function* <TFailure, TRequirements>({
 	passes,
 	snapshot,
-}: Settling<TFailure, TRequirements>): Effect.Effect<void, TFailure | SetupFailure, TRequirements> {
-	return Effect.gen(function* () {
-		for (let index = 1; index < MAX_FIX_ROUNDS; index += 1) {
-			if ((yield* round(passes, index, Effect.void)) === 0) {
-				return;
-			}
-		}
-		const changed = new Set<string>();
-		let previous = yield* snapshot;
-		const record = Effect.map(snapshot, (current) => {
-			for (const path of changedBetween(previous, current)) {
-				changed.add(path);
-			}
-			previous = current;
-		});
-		if ((yield* round(passes, MAX_FIX_ROUNDS, record)) === 0) {
+}: Settling<TFailure, TRequirements>): Effect.fn.Return<void, TFailure | SetupFailure, TRequirements> {
+	for (let index = 1; index < MAX_FIX_ROUNDS; index += 1) {
+		if ((yield* round(passes, index, Effect.void)) === 0) {
 			return;
 		}
-		return yield* unsettled(changed);
+	}
+	const changed = new Set<string>();
+	let previous = yield* snapshot;
+	const record = Effect.map(snapshot, (current) => {
+		for (const path of changedBetween(previous, current)) {
+			changed.add(path);
+		}
+		previous = current;
 	});
-}
+	if ((yield* round(passes, MAX_FIX_ROUNDS, record)) === 0) {
+		return;
+	}
+	return yield* unsettled(changed);
+});
 
-export function fix(cwd: string, config: string | undefined): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> {
-	return Effect.gen(function* () {
-		const { root, exceptions } = yield* loadConfig(cwd, config);
-		const sorted = yield* Effect.mapError(sortManifests(root), (failure) => new SetupFailure({ message: failure.message }));
-		yield* Console.log(`quality: sort-package-json rewrote ${plural(sorted, "manifest")}.`);
-		yield* settle({ passes: biomePasses(root, exceptions), snapshot: snapshotOf(root) });
-	});
-}
+export const fix = Effect.fn("Cli.fix")(function* (
+	cwd: string,
+	config: string | undefined,
+): Effect.fn.Return<void, SetupFailure, FileSystem.FileSystem> {
+	const { root, exceptions } = yield* loadConfig(cwd, config);
+	const sorted = yield* Effect.mapError(sortManifests(root), (failure) => new SetupFailure({ message: failure.message }));
+	yield* Console.log(`quality: sort-package-json rewrote ${plural(sorted, "manifest")}.`);
+	yield* settle({ passes: biomePasses(root, exceptions), snapshot: snapshotOf(root) });
+});
