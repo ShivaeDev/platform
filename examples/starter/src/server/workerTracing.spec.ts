@@ -15,6 +15,7 @@ app.it(
 		const note = yield* actor().notes.create({ title: "Count these words" });
 		yield* startWorker({
 			"OTEL_EXPORTER_OTLP_HEADERS": "x-collector-token=worker%20collector%20secret",
+			"OTEL_EXPORTER_OTLP_PROTOCOL": "http/json",
 			"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": `${receiver.url}/v1/traces`,
 			"OTEL_RESOURCE_ATTRIBUTES": "deployment.environment=worker-test",
 			"OTEL_SERVICE_NAME": "worker-test",
