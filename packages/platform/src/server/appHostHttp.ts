@@ -13,6 +13,7 @@ import { localRpcGuard } from "#rpc-server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "#rpc-server/session.ts";
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
 import { TrustedProxy } from "#rpc-server/trustedProxy.ts";
+import { healthRoute } from "#server/healthRoute.ts";
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
 	THandlers,
@@ -74,7 +75,7 @@ export function appHostHttp<
 					});
 				}),
 			);
-			return HttpRouter.serve(Layer.mergeAll(routes, assets, options.routes ?? Layer.empty), { disableLogger: true }).pipe(
+			return HttpRouter.serve(Layer.mergeAll(routes, healthRoute, assets, options.routes ?? Layer.empty), { disableLogger: true }).pipe(
 				Layer.provideMerge(application),
 				Layer.provideMerge(server),
 				Layer.provide(NodeServices.layer),
