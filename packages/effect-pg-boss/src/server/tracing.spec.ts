@@ -18,7 +18,8 @@ it("parents scheduled Effect.fn steps to a job span and records scheduled failur
 				yield* Layer.build(
 					Jobs.layer({ ...constructorOptions, clientFactory: () => client, jobs: [Schedule.run(Effect.suspend(scheduledStep))] }),
 				).pipe(Effect.withSpan("startup"));
-				yield* Effect.promise(() => expect(client.workers[0]?.run([job(Schedule.name, null)])).rejects.toThrow("Scheduled failure"));
+				yield* Effect.promise(() => client.workers[0]?.run([job(Schedule.name, null)]) ?? Promise.resolve());
+				expect(client.failCalls[0]?.error).toEqual(new Error("Scheduled failure"));
 			}),
 		).pipe(Effect.withTracer(tracer)),
 	);
@@ -76,7 +77,8 @@ it("records payload decoding failures on the job span before running the handler
 		Effect.scoped(
 			Effect.gen(function* () {
 				yield* Jobs;
-				yield* Effect.promise(() => expect(client.workers[0]?.run([job(Queue.name, { id: "invalid" })])).rejects.toBeInstanceOf(PgBossPayloadError));
+				yield* Effect.promise(() => client.workers[0]?.run([job(Queue.name, { id: "invalid" })]) ?? Promise.resolve());
+				expect(client.failCalls[0]?.error).toBeInstanceOf(PgBossPayloadError);
 			}).pipe(Effect.provide(Jobs.layer({ ...constructorOptions, clientFactory: () => client, jobs: [worker] }))),
 		).pipe(Effect.withTracer(tracer)),
 	);

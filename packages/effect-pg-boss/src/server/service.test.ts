@@ -4,7 +4,8 @@ import { defineQueue, defineSchedule } from "#definition.ts";
 import { PgBossPayloadError } from "#error.ts";
 import { deadLetterQueueName } from "#health.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions, FakeClient, job, queueResult } from "#test/fake-client.ts";
+import { constructorOptions, FakeClient, job } from "#test/fake-client.ts";
+import { queueResult } from "#test/queueResult.ts";
 
 class Prefix extends Context.Service<Prefix, string>()("@test/Prefix") {}
 
@@ -95,7 +96,8 @@ describe("pg-boss service", () => {
 			Effect.scoped(
 				Effect.gen(function* () {
 					yield* Jobs;
-					yield* Effect.promise(() => expect(client.workers[0]?.run([job("typed", { count: "wrong" })])).rejects.toBeInstanceOf(PgBossPayloadError));
+					yield* Effect.promise(() => client.workers[0]?.run([job("typed", { count: "wrong" })]) ?? Promise.resolve());
+					expect(client.failCalls[0]?.error).toBeInstanceOf(PgBossPayloadError);
 				}).pipe(
 					Effect.provide(
 						Jobs.layer({

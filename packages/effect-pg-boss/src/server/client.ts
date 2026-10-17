@@ -13,7 +13,9 @@ import type {
 import { PgBoss } from "pg-boss";
 
 export interface PgBossClient {
+	readonly complete?: PgBoss["complete"];
 	readonly createQueue: (name: string, options?: Omit<Queue, "name">) => Promise<void>;
+	readonly fail?: PgBoss["fail"];
 	readonly findJobs?: (name: string, options?: FindJobsOptions) => Promise<readonly JobWithMetadata<unknown>[]>;
 	readonly getDb?: PgBoss["getDb"];
 	readonly getQueue: (name: string) => Promise<QueueResult | null>;
