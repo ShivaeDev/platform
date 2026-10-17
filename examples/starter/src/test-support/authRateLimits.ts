@@ -1,36 +1,44 @@
-import { Effect, type Redacted } from "effect";
+import { request } from "node:http";
+import { Effect } from "effect";
 import { credentials } from "./authHttp.ts";
-import { forwardingProxy } from "./forwardingProxy.ts";
-import { productionAuth } from "./productionAuth.ts";
+import type { RunningHost } from "./host.ts";
 
-export const authRateLimits = Effect.fn("AppStory.authRateLimits")(function* (
-	databaseUrl: Redacted.Redacted<string>,
-	trustedProxy: string | undefined,
-	tell: (line: string) => void,
-) {
-	const host = yield* productionAuth(databaseUrl, trustedProxy);
+export function authRateLimits(host: RunningHost, tell: (line: string) => void) {
 	return {
-		output: host.output,
-		visitor: Effect.fn("AppStory.visitor")(function* (clientIp: string) {
-			tell(`a visitor connects through a proxy forwarding ${clientIp}`);
-			const proxy = yield* Effect.acquireRelease(
-				Effect.promise(() => forwardingProxy(host.url, clientIp)),
-				(fixture) => Effect.promise(() => fixture.close()),
-			);
+		visitor: (clientIp: string) => {
+			tell(`a visitor connects from ${clientIp}`);
 			return {
-				signIn: Effect.fn("AppStory.signIn")(function* () {
-					tell(`the visitor at ${clientIp} attempts sign-in`);
-					return yield* Effect.promise(async () => {
-						const response = await fetch(`${proxy.url}/api/auth/sign-in/email`, {
-							body: JSON.stringify(credentials("unknown")),
-							headers: { "content-type": "application/json", origin: "https://app.example" },
-							method: "POST",
-						});
-						await response.text();
-						return response.status;
-					});
+				signIn: Effect.fn("AppStory.signIn")(function* (forwardedFor?: string) {
+					tell(`the visitor at ${clientIp} attempts sign-in${forwardedFor === undefined ? "" : ` with X-Forwarded-For ${forwardedFor}`}`);
+					return yield* Effect.promise(() => signInStatus(host, clientIp, forwardedFor));
 				}),
 			};
-		}),
+		},
 	};
-});
+}
+
+function signInStatus(host: RunningHost, clientIp: string, forwardedFor?: string) {
+	const url = new URL("/api/auth/sign-in/email", host.baseUrl);
+	url.hostname = clientIp.includes(":") ? "[::1]" : "127.0.0.1";
+	return new Promise<number>((resolve, reject) => {
+		const outgoing = request(
+			url,
+			{
+				headers: {
+					"content-type": "application/json",
+					origin: host.origin,
+					...(forwardedFor === undefined ? {} : { "x-forwarded-for": forwardedFor }),
+				},
+				localAddress: clientIp,
+				method: "POST",
+			},
+			(response) => {
+				response.on("error", reject);
+				response.on("end", () => resolve(response.statusCode ?? 500));
+				response.resume();
+			},
+		);
+		outgoing.on("error", reject);
+		outgoing.end(JSON.stringify(credentials("unknown")));
+	});
+}

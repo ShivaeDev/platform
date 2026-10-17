@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { makeAuth } from "#client/auth.ts";
 import { noteWorker } from "#server/noteWorker.ts";
 import { authRateLimits } from "#test-support/authRateLimits.ts";
-import { type RunningHost, secret, startHost } from "#test-support/host.ts";
+import { type HostOptions, type RunningHost, secret, startHost } from "#test-support/host.ts";
 import { liveNotes } from "#test-support/liveNotes.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { requests } from "#test-support/requests.ts";
@@ -18,21 +18,21 @@ interface Actor {
 
 interface Engine {
 	actors: Map<string, Actor>;
-	deployed: boolean;
 	host: RunningHost | undefined;
+	hostOptions: HostOptions;
 	tell: (line: string) => void;
 }
 
 export const app = storyKit({
 	after: {
 		*hosting(engine) {
-			engine.host = yield* startHost(engine.deployed);
+			engine.host = yield* startHost(engine.hostOptions);
 		},
 	},
 	around: withIsolatedDatabase,
 	clock: "live",
-	create: (): Engine => ({ actors: new Map(), deployed: false, host: undefined, tell: () => undefined }),
-	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.deployed }),
+	create: (): Engine => ({ actors: new Map(), host: undefined, hostOptions: {}, tell: () => undefined }),
+	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),
 	layer: postgres,
 	name: "app",
 	stages: ["hosting", "accounts", "notes"],
@@ -62,11 +62,7 @@ export const app = storyKit({
 				return makeAuth({ baseUrl, fetchOptions: { headers: { cookie, origin } } });
 			},
 			authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
-			authRateLimits: Effect.fn("AppStory.authRateLimits")(function* (trustedProxy?: string) {
-				story.tell(`start production auth with proxy trust ${trustedProxy ?? "unset"}`);
-				const database = yield* PostgresTestDatabase;
-				return yield* authRateLimits(database.url, trustedProxy, story.tell);
-			}),
+			authRateLimits: () => authRateLimits(host(), story.tell),
 			foreignRequest: (cookie: string) => http().foreignRequest(cookie),
 			liveNotes: (name = "alice") => {
 				story.tell(`${name} watches the live notes list`);
@@ -79,7 +75,7 @@ export const app = storyKit({
 			notes: (cookie: string) => http().notes(cookie),
 			rerunMigrations: Effect.fn("AppStory.rerunMigrations")(function* () {
 				story.tell("open another app host and rerun its migrations");
-				engine.host = yield* startHost(engine.deployed);
+				engine.host = yield* startHost(engine.hostOptions);
 			}),
 			runningHost: host,
 			startWorker: Effect.fn("AppStory.startWorker")(function* (env?: Record<string, string>) {
@@ -103,9 +99,15 @@ export function signedIn(name = "alice") {
 	});
 }
 
-export function behindProxy() {
+export function behindProxy(options: { readonly trustedProxy?: string | undefined } = { trustedProxy: "127.0.0.1" }) {
 	return app.trait("hosting", "the app is behind an HTTPS forwarding proxy", (engine) => {
-		engine.deployed = true;
+		engine.hostOptions = { ...engine.hostOptions, deployed: true, ...options };
+	});
+}
+
+export function authRateLimiting(enabled: boolean) {
+	return app.trait("hosting", `auth rate limiting is ${enabled ? "enabled" : "disabled"}`, (engine) => {
+		engine.hostOptions = { ...engine.hostOptions, rateLimitEnabled: enabled };
 	});
 }
 
