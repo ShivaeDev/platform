@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 - 2026-10-17
+
+### Added
+
+- Generated apps include a DOM story that signs up, signs out, signs in and reads Better Auth cookie sessions against the real PostgreSQL host, using `@shivaedev/test-story`.
+- Generated apps use Platform 0.13.0 and export Effect spans from the host and word-count worker when standard OTLP endpoint variables are set.
+
 ## 0.4.2 - 2026-10-16
 
 ### Fixed
