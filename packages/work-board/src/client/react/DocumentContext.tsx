@@ -4,12 +4,17 @@ import { Tabs } from "#client/react/components/ui/Tabs.tsx";
 import { Age } from "./Age.tsx";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
 import { DocumentSource } from "./DocumentSource.tsx";
+import { useMainLocation } from "./MainLocationContext.ts";
 
 export function DocumentContext({ document: data }: { readonly document: Document }) {
+	const page = useMainLocation();
 	const [headings, setHeadings] = useState<readonly { readonly id: string; readonly title: string; readonly depth: number }[]>([]);
 	const contextRef = useRef<HTMLElement>(null);
 	const [tab, setTab] = useState("details");
 	useEffect(() => {
+		if (page.route && page.projection === "document" && page.file !== data.file) {
+			return;
+		}
 		function outline() {
 			const entries = [
 				...(contextRef.current
@@ -21,10 +26,8 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 				.map((heading) => ({ depth: Number(heading.tagName.slice(1)), id: heading.id, title: heading.textContent?.replace(/#$/u, "") ?? "" }));
 			setHeadings((current) => (JSON.stringify(current) === JSON.stringify(entries) ? current : entries));
 		}
-		document.addEventListener("board-page", outline);
 		outline();
-		return () => document.removeEventListener("board-page", outline);
-	}, []);
+	}, [page, data]);
 
 	useLayoutEffect(() => {
 		const context = contextRef.current;
