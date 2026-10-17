@@ -6,11 +6,18 @@ import { originalWork } from "#engine/originalWork.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
-import { BoardGateway, type BoardWork, type Decision, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { BoardGateway, type BoardWork, type Decision, type FleetConfiguration, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { DEFAULT_AREA_MERGE_WAIT_MS } from "#scheduling/areas.ts";
 import type { SessionReceipt } from "#session/schema.ts";
 import { SessionService } from "#session/service.ts";
-import type { Versioned } from "#storage/model.ts";
+import type { AdmissionLimits, Versioned } from "#storage/model.ts";
+export interface LaunchAdmission {
+	readonly ignoreAreas?: boolean;
+	readonly implementer?: boolean;
+	readonly overLimit?: boolean;
+	readonly quota: FleetConfiguration["quota"];
+	readonly role: Attempt["role"];
+}
 export const makeState = Effect.gen(function* () {
 	const store = yield* FleetRepository;
 	const board = yield* BoardGateway;
@@ -29,28 +36,12 @@ export const makeState = Effect.gen(function* () {
 				),
 			);
 	}
-	function save(
-		stored: Versioned<FleetRecord>,
-		value: FleetRecord,
-		admission?: {
-			readonly role: Attempt["role"];
-			readonly quota: typeof policy.quota;
-		},
-	) {
+	function save(stored: Versioned<FleetRecord>, value: FleetRecord, admission?: LaunchAdmission) {
 		return store.compareAndSet(
 			value.workId,
 			stored.version,
 			{ ...value, attentionOwner: waitingOwner(value) },
-			admission === undefined
-				? undefined
-				: {
-						scheduling: { areaMergeWaitMs: policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS, now: policy.now() },
-						...(admission.quota.available === undefined
-							? {}
-							: { quota: { available: admission.quota.available, observedAt: admission.quota.observedAt } }),
-						...(policy.executionConcurrency === undefined ? {} : { maxExecuting: policy.executionConcurrency }),
-						...(admission.role !== "worker" || policy.deliveryBacklog === undefined ? {} : { maxBacklog: policy.deliveryBacklog }),
-					},
+			admission === undefined ? undefined : launchLimits(policy, admission),
 		);
 	}
 	const decision = Effect.fn("Fleet.decision")(function* (
@@ -87,3 +78,16 @@ export const makeState = Effect.gen(function* () {
 	return { board, decision, integrations, launching, launchScope, load, policy, reportInspection, save, sessions, store };
 });
 export type EngineState = Effect.Success<typeof makeState>;
+
+function launchLimits(policy: FleetConfiguration, admission: LaunchAdmission): AdmissionLimits {
+	const concurrency = admission.overLimit ? undefined : policy.executionConcurrency;
+	return {
+		...(admission.ignoreAreas ? {} : { scheduling: { areaMergeWaitMs: policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS, now: policy.now() } }),
+		...(admission.quota.available === undefined ? {} : { quota: { available: admission.quota.available, observedAt: admission.quota.observedAt } }),
+		...(concurrency === undefined ? {} : { maxExecuting: concurrency }),
+		...(admission.role !== "worker" || admission.overLimit || policy.deliveryBacklog === undefined ? {} : { maxBacklog: policy.deliveryBacklog }),
+		...(concurrency === undefined || !admission.implementer
+			? {}
+			: { implementers: { concurrency, ...(policy.openPullRequests === undefined ? {} : { openPullRequests: policy.openPullRequests }) } }),
+	};
+}

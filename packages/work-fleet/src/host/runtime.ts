@@ -66,6 +66,7 @@ export function hostPolicy(host: FleetHost) {
 				launch: host.launch,
 				...(localPath === undefined ? {} : { localOnlyBoardPath: localPath }),
 				now,
+				...(host.openPullRequests === undefined ? {} : { openPullRequests: host.openPullRequests }),
 				operationId: () => crypto.randomUUID(),
 				quota: { expiresAt: 0, observedAt: 0 },
 				readGuidance: (role) =>

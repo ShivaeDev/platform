@@ -4,12 +4,15 @@ import { SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import type { DispatchRequest } from "#DispatchRequest.ts";
 import { fleetRecords } from "#fleetRecords.ts";
+import type { DispatchNow } from "#model.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 
 class DispatchRow extends Model.Class<DispatchRow>("FleetDispatch")({
 	"accepted_at": Schema.Number,
 	"completed_at": Schema.NullOr(Schema.Number),
 	error: Schema.NullOr(Schema.String),
+	"ignore_areas": Schema.NullOr(Schema.Boolean),
+	now: Schema.NullOr(Schema.Boolean),
 	"request_id": Schema.String,
 	status: Schema.Literals(["pending", "completed", "failed"]),
 	"work_id": Schema.String,
@@ -21,6 +24,8 @@ function receipt(row: DispatchRow): DispatchRequest {
 		...(row.completed_at === null ? {} : { completedAt: row.completed_at }),
 		...(row.error === null ? {} : { error: row.error }),
 		id: row.request_id,
+		...(row.ignore_areas === true ? { ignoreAreas: true } : {}),
+		...(row.now === true ? { now: true } : {}),
 		status: row.status,
 		workId: row.work_id,
 	};
@@ -49,7 +54,7 @@ export const dispatchStore = Effect.fn("FleetDispatch.dispatchStore")(function* 
 			sql`select pg_advisory_xact_lock(hashtextextended(${`${namespace}:dispatch:${workId}`}, 0))`.pipe(Effect.andThen(body)),
 		);
 	}
-	const accept = Effect.fn("FleetDispatch.accept")(function* (workId: string) {
+	const accept = Effect.fn("FleetDispatch.accept")(function* (workId: string, now?: DispatchNow) {
 		return yield* locked(
 			workId,
 			Effect.gen(function* () {
@@ -62,11 +67,13 @@ export const dispatchStore = Effect.fn("FleetDispatch.dispatchStore")(function* 
 						"accepted_at": yield* Clock.currentTimeMillis,
 						"completed_at": null,
 						error: null,
+						"ignore_areas": now?.ignoreAreas ?? null,
+						now: now === undefined ? null : true,
 						"request_id": crypto.randomUUID(),
 						status: "pending",
 						"work_id": workId,
 					},
-					{ updateColumns: ["accepted_at", "completed_at", "error", "request_id", "status"] },
+					{ updateColumns: ["accepted_at", "completed_at", "error", "ignore_areas", "now", "request_id", "status"] },
 				);
 				return receipt(row);
 			}),
@@ -84,6 +91,8 @@ export const dispatchStore = Effect.fn("FleetDispatch.dispatchStore")(function* 
 					"accepted_at": current.acceptedAt,
 					"completed_at": yield* Clock.currentTimeMillis,
 					error: error ?? null,
+					"ignore_areas": current.ignoreAreas ?? null,
+					now: current.now ?? null,
 					"request_id": request.id,
 					status: error === undefined ? "completed" : "failed",
 					"work_id": request.workId,

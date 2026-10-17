@@ -12,13 +12,17 @@ import type { FleetError } from "#errors.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { type LaunchSettings, SessionReceipt } from "#session/schema.ts";
+import type { OpenPullRequestCurve } from "#storage/model.ts";
 
+export const Priority = Schema.Literals(["urgent", "high", "normal"]);
+export type Priority = typeof Priority.Type;
 export const BoardWork = Schema.Struct({
 	approved: Schema.Boolean,
 	areas: Schema.optional(Schema.Array(Schema.String)),
 	context: Schema.String,
 	deliverable: Schema.optional(Schema.Literal("report")),
 	dependsOn: Schema.Array(Schema.String),
+	priority: Schema.optional(Priority),
 	revision: Schema.String,
 	sourcePath: Schema.String,
 	status: Schema.optional(Schema.String),
@@ -110,6 +114,7 @@ export interface FleetConfiguration {
 	readonly launch?: LaunchSettings;
 	readonly localOnlyBoardPath?: string;
 	readonly now: () => number;
+	readonly openPullRequests?: OpenPullRequestCurve;
 	readonly operationId: () => string;
 	readonly quota: { readonly available?: number; readonly observedAt: number; readonly expiresAt: number };
 	readonly readGuidance?: (role: "worker" | "reviewer") => Effect.Effect<string | undefined, FleetError>;

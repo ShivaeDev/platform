@@ -32,7 +32,7 @@ export const ClientContract = contract("daemon", {
 		}),
 		command("dispatch", {
 			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
-			payload: { workId: Schema.String },
+			payload: { ignoreAreas: Schema.optional(Schema.Boolean), now: Schema.optional(Schema.Boolean), workId: Schema.String },
 			rejections: fleetRejections,
 			success: DispatchRequest,
 		}),
