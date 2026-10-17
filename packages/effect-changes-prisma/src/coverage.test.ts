@@ -1,49 +1,65 @@
-import { expect, it } from "vitest";
-import type { Observation } from "@shivaedev/effect-changes/observe.ts";
+import { Effect } from "effect";
+import { expect } from "vitest";
 import { checkCoverage } from "#coverage.ts";
+import { prisma } from "#test/prisma.ts";
+import { coverageIsChecked, ordersExist } from "#test/prismaTraits.ts";
 
-interface Change {
-	readonly domain: string;
-}
+prisma.it(
+	"a written table is covered by a recorded change of its model, including changes that were later discarded",
+	[coverageIsChecked()],
+	function* ({ coverageOf, order, use, transaction }) {
+		const { violations, input } = yield* coverageOf(
+			Effect.gen(function* () {
+				yield* order("o1");
+				yield* Effect.ignore(
+					Effect.andThen(
+						use((db) => db.invoice.create({ data: { id: "i1", ownerId: "ada" } })),
+						Effect.fail("discard invoice"),
+					).pipe(transaction),
+				);
+				yield* use((db) => db.auditNote.create({ data: { id: "n1", text: "checked" } }));
+			}),
+		);
+		expect(input.observations.some((o) => o._tag === "Discarded" && o.changes.some((c) => c.domain === "invoices"))).toBe(true);
+		expect(violations).toEqual([]);
+	},
+);
 
-const tables = new Map([
-	["orders", "Order"],
-	["invoices", "Invoice"],
-	["notes", "AuditNote"],
-]);
-const models = { AuditNote: null, Invoice: () => [], Order: () => [] };
-function covers(model: string, change: Change) {
-	return change.domain === model.toLowerCase();
-}
-function recorded(...domains: readonly string[]): Observation<Change> {
-	return { _tag: "Recorded", changes: domains.map((domain) => ({ domain })) };
-}
+prisma.it(
+	"a written table without a covering change, or without a model, is reported once; Published alone does not cover it",
+	[coverageIsChecked()],
+	function* ({ coverageOf, order, use, schema }) {
+		const { input } = yield* coverageOf(
+			Effect.gen(function* () {
+				yield* order("o1");
+				yield* use((db) => db.invoice.create({ data: { id: "i1", ownerId: "ada" } }));
+				yield* use((db) => db.$executeRawUnsafe(`insert into "${schema}".changes_prisma_unmodeled (id) values ('u1')`));
+			}),
+		);
+		expect(input.observations.some((o) => o._tag === "Published" && o.changes.some((c) => c.domain === "invoices"))).toBe(true);
+		const observations = input.observations.filter((o) => o._tag !== "Recorded" || o.changes.every((c) => c.domain !== "invoices"));
+		expect(checkCoverage({ ...input, observations, written: [...input.written, ...input.written] })).toEqual([
+			{ _tag: "Unrecorded", model: "Invoice", table: "changes_prisma_invoice" },
+			{ _tag: "Unrecorded", model: undefined, table: "changes_prisma_unmodeled" },
+		]);
+	},
+);
 
-it("a written table is covered by a recorded change of its model, including changes that were later discarded", () => {
-	const observations: readonly Observation<Change>[] = [
-		recorded("order"),
-		{ _tag: "Discarded", changes: [{ domain: "order" }] },
-		recorded("invoice"),
-		{ _tag: "Published", changes: [{ domain: "order" }] },
-	];
-	expect(checkCoverage({ covers, models, observations, tables, unnamed: [], written: ["orders", "invoices", "notes"] })).toEqual([]);
-});
-
-it("a written table without a covering change, or without a model, is reported once", () => {
-	const observations: readonly Observation<Change>[] = [recorded("order"), { _tag: "Published", changes: [{ domain: "invoice" }] }];
-	expect(checkCoverage({ covers, models, observations, tables, unnamed: [], written: ["orders", "invoices", "invoices", "_OrderToTag"] })).toEqual([
-		{ _tag: "Unrecorded", model: "Invoice", table: "invoices" },
-		{ _tag: "Unrecorded", model: undefined, table: "_OrderToTag" },
-	]);
-});
-
-it("every distinct unnamed write is a violation even when its table is covered", () => {
-	const countOnly = { model: "Order", operation: "updateMany", reason: "countOnly" } as const;
-	const narrowed = { field: "ownerId", model: "Order", operation: "update", reason: "narrowed" } as const;
-	expect(
-		checkCoverage({ covers, models, observations: [recorded("order")], tables, unnamed: [countOnly, narrowed, countOnly], written: ["orders"] }),
-	).toEqual([
-		{ _tag: "Unnamed", write: countOnly },
-		{ _tag: "Unnamed", write: narrowed },
-	]);
-});
+prisma.it(
+	"every distinct unnamed write is a violation even when its table is covered",
+	[coverageIsChecked(), ordersExist({ id: "o1", ownerId: "ada", total: 1 })],
+	function* ({ coverageOf, order, use }) {
+		const { violations } = yield* coverageOf(
+			Effect.gen(function* () {
+				yield* order("o2");
+				yield* use((db) => db.order.updateMany({ data: { total: 2 } }));
+				yield* use((db) => db.order.update({ data: { total: 3 }, select: { id: true }, where: { id: "o1" } }));
+				yield* use((db) => db.order.updateMany({ data: { total: 4 } }));
+			}),
+		);
+		expect(violations).toEqual([
+			{ _tag: "Unnamed", write: { model: "Order", operation: "updateMany", reason: "countOnly" } },
+			{ _tag: "Unnamed", write: { field: "ownerId", model: "Order", operation: "update", reason: "narrowed" } },
+		]);
+	},
+);

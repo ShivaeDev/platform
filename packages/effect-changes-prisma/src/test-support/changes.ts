@@ -24,14 +24,18 @@ export function label(change: Change) {
 	return `${change.subject}:${change.domain}`;
 }
 
-export function makeChanges(client: PrismaClient, publish?: (changes: readonly Change[]) => Effect.Effect<void>) {
+export function makeChanges(
+	client: PrismaClient,
+	publish?: (changes: readonly Change[]) => Effect.Effect<void>,
+	mapping: Partial<ChangeMap<PrismaClient, Change>> = models,
+) {
 	const published: (readonly string[])[] = [];
 	const observations: Observation<Change>[] = [];
 	const unnamed: UnnamedWrite[] = [];
 	const changes = makePrismaChanges({
 		client,
 		key: label,
-		models,
+		models: mapping,
 		name: "TestChanges",
 		publish: (batch: readonly Change[]) =>
 			Effect.andThen(

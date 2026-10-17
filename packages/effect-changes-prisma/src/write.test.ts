@@ -1,67 +1,27 @@
-import { Effect } from "effect";
-import { expect, it } from "vitest";
-import { makePrismaChanges } from "#changes.ts";
-import type { UnnamedWrite } from "#write.ts";
+import { expect } from "vitest";
+import { prisma } from "#test/prisma.ts";
+import { invoicesAreUnmapped, membershipsExist } from "#test/prismaTraits.ts";
 
-interface Row {
-	readonly memberId: string;
-	readonly ownerId: string;
-}
-
-interface Delegate<TName extends string, TScalars> {
-	readonly [key: symbol]: { readonly types: { readonly payload: { readonly name: TName; readonly scalars: TScalars } } };
-}
-
-interface Client {
-	$transaction: <TX>(run: (tx: Client) => Promise<TX>) => Promise<TX>;
-	readonly auditNote: Delegate<"AuditNote", { readonly id: string }>;
-	readonly invoice: Delegate<"Invoice", { readonly ownerId: string }>;
-	readonly membership: Delegate<"Membership", Row>;
-}
-
-const client: Client = { $transaction: (run) => run(client), auditNote: {}, invoice: {}, membership: {} };
-
-function harness() {
-	const published: (readonly string[])[] = [];
-	const unnamed: UnnamedWrite[] = [];
-	const changes = makePrismaChanges({
-		client,
-		models: {
-			AuditNote: null,
-			Membership: (row) => [row.ownerId, row.memberId],
-		},
-		name: "Writes",
-		publish: (batch: readonly string[]) => Effect.sync(() => published.push(batch)),
-	});
-	function record(model: string, operation: string, result: unknown) {
-		return changes
-			.recordWrite({ model, operation, result })
-			.pipe(Effect.provideService(changes.Unnamed, (write: UnnamedWrite) => Effect.sync(() => unnamed.push(write))));
-	}
-	return { published, record, unnamed };
-}
-
-it("recordWrite applies the map to a write observed by the application's own client", () =>
-	Effect.runPromise(
-		Effect.gen(function* () {
-			const { published, unnamed, record } = harness();
-			yield* record("Membership", "create", { memberId: "bob", ownerId: "ada" });
-			yield* record("Membership", "updateManyAndReturn", [
-				{ memberId: "cyd", ownerId: "ada" },
-				{ memberId: "ada", ownerId: "dan" },
-			]);
-			yield* record("Membership", "deleteMany", { count: 2 });
-			yield* record("Membership", "update", { ownerId: "ada" });
-			yield* record("Membership", "findMany", [{ memberId: "fay", ownerId: "eve" }]);
-			yield* record("AuditNote", "create", { id: "n1" });
-			yield* record("Invoice", "create", { ownerId: "ada" });
-			expect(published).toEqual([
-				["ada", "bob"],
-				["ada", "cyd", "dan"],
-			]);
-			expect(unnamed).toEqual([
-				{ model: "Membership", operation: "deleteMany", reason: "countOnly" },
-				{ field: "memberId", model: "Membership", operation: "update", reason: "narrowed" },
-			]);
-		}),
-	));
+prisma.it(
+	"recordWrite applies the map to a write observed by the application's own client",
+	[invoicesAreUnmapped(), membershipsExist({ id: "m2", memberId: "cyd", ownerId: "ada" }, { id: "m3", memberId: "ada", ownerId: "dan" })],
+	function* ({ recordClientWrite, published, unnamed }) {
+		yield* recordClientWrite("Membership", "create", (db) => db.membership.create({ data: { id: "m1", memberId: "bob", ownerId: "ada" } }));
+		yield* recordClientWrite("Membership", "updateManyAndReturn", (db) =>
+			db.membership.updateManyAndReturn({ data: { memberId: "cyd" }, where: { id: { in: ["m2", "m3"] } } }),
+		);
+		yield* recordClientWrite("Membership", "deleteMany", (db) => db.membership.deleteMany({ where: { id: { in: ["m2", "m3"] } } }));
+		yield* recordClientWrite("Membership", "update", (db) => db.membership.update({ data: {}, select: { ownerId: true }, where: { id: "m1" } }));
+		yield* recordClientWrite("Membership", "findMany", (db) => db.membership.findMany());
+		yield* recordClientWrite("AuditNote", "create", (db) => db.auditNote.create({ data: { id: "n1", text: "checked" } }));
+		yield* recordClientWrite("Invoice", "create", (db) => db.invoice.create({ data: { id: "i1", ownerId: "ada" } }));
+		expect(published()).toEqual([
+			["ada:memberships", "bob:memberships"],
+			["ada:memberships", "cyd:memberships", "dan:memberships"],
+		]);
+		expect(unnamed).toEqual([
+			{ model: "Membership", operation: "deleteMany", reason: "countOnly" },
+			{ field: "memberId", model: "Membership", operation: "update", reason: "narrowed" },
+		]);
+	},
+);
