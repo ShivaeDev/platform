@@ -35,9 +35,7 @@ function expireOnClosed(Expiry: Context.Reference<Expire>, exit: Exit.Exit<unkno
 	});
 }
 
-export const makePrismaChanges = <TTx extends Transactional<TTx>, A, R = never>(
-	options: PrismaChangesOptions<TTx, A, R>,
-): PrismaChanges<TTx, A, R> => {
+export function makePrismaChanges<TTx extends Transactional<TTx>, A, R = never>(options: PrismaChangesOptions<TTx, A, R>): PrismaChanges<TTx, A, R> {
 	const { client, models: typed, ...channelOptions } = options;
 	const models: LooseMap<A> = typed;
 	const prefix = `@shivaedev/effect-changes-prisma/${options.name}/${crypto.randomUUID()}`;
@@ -67,8 +65,8 @@ export const makePrismaChanges = <TTx extends Transactional<TTx>, A, R = never>(
 		return yield* exit;
 	}, Effect.uninterruptible);
 
-	const transaction = <TX, E, TR2>(body: Effect.Effect<TX, E, TR2>, transactionOptions?: TransactionOptions) =>
-		Effect.flatMap(Effect.service(Client), (current) => {
+	function transaction<TX, E, TR2>(body: Effect.Effect<TX, E, TR2>, transactionOptions?: TransactionOptions) {
+		return Effect.flatMap(Effect.service(Client), (current) => {
 			const savepoint = isTransactionClient(current);
 			const run = runTransaction({
 				body: (tx: TTx) => Effect.provideService(body, Client, tx),
@@ -81,6 +79,7 @@ export const makePrismaChanges = <TTx extends Transactional<TTx>, A, R = never>(
 			});
 			return savepoint ? run : Effect.provideService(run, Expiry, unlinked);
 		}).pipe(Effect.withSpan("PrismaChanges.transaction"));
+	}
 
 	return { Client, channel, recordWrite, transaction, Unnamed, use };
-};
+}
