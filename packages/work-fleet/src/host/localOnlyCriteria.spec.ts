@@ -4,9 +4,13 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { dispatchApproved } from "#host/admission.ts";
 import { hostLayer } from "#host/commands.ts";
+import { daemonClient } from "#host/daemonClient.ts";
+import { waitForRecord } from "#test/daemonActions.ts";
+import { cliProcess } from "#test/fleetCli.ts";
 import { task, withHost } from "#test/fleetHost.ts";
 import { localBoardHost } from "#test/localBoardHost.ts";
 import { postgresTests } from "#test/postgres.ts";
+import { withReadDaemon } from "#test/readDaemon.ts";
 
 const test = postgresTests("live");
 
@@ -44,6 +48,33 @@ test("Cloud dispatch publishes a local-only criterion decision before session st
 			expect(launched.decision).toBeUndefined();
 			expect(fixture.provider.launched).toHaveLength(1);
 		}).pipe(Effect.provide(hostLayer(local.host, local.parts)));
+	}));
+
+test("CLI dispatch launches an edited criterion after a local-only criterion blocked its first attempt", () =>
+	withHost({}, { provider: "cloud" }, (fixture) => {
+		const local = localBoardHost(fixture);
+		local.write(source("Measure documents in private/board/notes."));
+		return withReadDaemon(
+			local.host,
+			(port) =>
+				Effect.gen(function* () {
+					const client = yield* daemonClient(port);
+					const dispatch = Effect.promise(() => cliProcess(["dispatch", "one", "--port", String(port)]));
+					expect((yield* dispatch).code).toBe(0);
+					const blocked = yield* waitForRecord(client, "one", (record) => record.stage === "needs-human" && record.decisionPublished === true);
+					expect(blocked.attempts).toEqual([]);
+					expect(blocked.decision?.reason).toContain("private/board");
+					expect(fixture.provider.launched).toHaveLength(0);
+					local.write(source("Measure repository fixtures."));
+					expect(yield* dispatch).toMatchObject({ code: 0, stdout: expect.stringContaining("dispatch recorded; launching in the background") });
+					const launched = yield* waitForRecord(client, "one", (record) => record.stage === "executing" && record.attempts[0]?.receipt !== undefined);
+					expect(launched.decision).toBeUndefined();
+					expect(launched.boardContext).toContain("Measure repository fixtures.");
+					expect(fixture.provider.launched).toHaveLength(1);
+					expect([...fixture.provider.observations.values()][0]?.output).toContain("Measure repository fixtures.");
+				}),
+			local.parts,
+		);
 	}));
 
 for (const scenario of [

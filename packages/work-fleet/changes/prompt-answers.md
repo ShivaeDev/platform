@@ -6,4 +6,5 @@
 ### Fixed
 
 - Daemon answer and dispatch commands acknowledge durable recording before provider work completes. Reconciliation applies saved answers after a restart, and watch reports the outcome.
+- Background dispatch preserves explicit approval and the current launch prompt, including when an edited criterion unblocks work before its first attempt.
 - CLI request errors distinguish refused connections from timeouts and server failures, name answer and dispatch requests, and say when answer recording is unconfirmed.
