@@ -11,7 +11,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 		function* ({ actor, startWorker }) {
 			const receiver = yield* otlpReceiver();
 			const note = yield* actor().notes.create({ title: "Count these words" });
-			yield* startWorker({
+			const stopWorker = yield* startWorker({
 				"OTEL_EXPORTER_OTLP_HEADERS": "x-collector-token=worker%20collector%20secret",
 				"OTEL_EXPORTER_OTLP_PROTOCOL": protocol,
 				"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": `${receiver.url}/v1/traces`,
@@ -23,11 +23,12 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 				vi.waitFor(
 					async () => {
 						expect(await Effect.runPromise(sql`select "wordCount" from notes where id = ${note.id}`)).toEqual([{ wordCount: 3 }]);
-						expect(receiver.spans.some((span) => span.name === "CountWords")).toBe(true);
 					},
 					{ timeout: 8000 },
 				),
 			);
+			yield* stopWorker;
+			expect(receiver.spans.some((span) => span.name === "CountWords")).toBe(true);
 			expect(receiver.requests).toContainEqual(
 				expect.objectContaining({ headers: expect.objectContaining({ "x-collector-token": "worker collector secret" }), path: "/v1/traces" }),
 			);
@@ -57,20 +58,21 @@ for (const status of [undefined, 500]) {
 				yield* Scope.close(scope, Exit.void);
 			}
 			const note = yield* actor().notes.create({ title: "Collector has failed" });
-			yield* startWorker({ "OTEL_EXPORTER_OTLP_ENDPOINT": receiver.url });
+			const stopWorker = yield* startWorker({ "OTEL_EXPORTER_OTLP_ENDPOINT": receiver.url });
 			const sql = yield* SqlClient.SqlClient;
 			yield* Effect.promise(() =>
 				vi.waitFor(
 					async () => {
 						expect(await Effect.runPromise(sql`select "wordCount" from notes where id = ${note.id}`)).toEqual([{ wordCount: 3 }]);
 						expect(await Effect.runPromise(sql`select state from pgboss.job where name = 'count-note-words'`)).toEqual([{ state: "completed" }]);
-						if (status !== undefined) {
-							expect(receiver.requests.length).toBeGreaterThan(0);
-						}
 					},
 					{ timeout: 8000 },
 				),
 			);
+			yield* stopWorker;
+			if (status !== undefined) {
+				expect(receiver.requests.length).toBeGreaterThan(0);
+			}
 		},
 		15_000,
 	);
