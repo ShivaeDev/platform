@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.12.1",
+	"version": "0.13.0",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {
@@ -165,6 +165,31 @@
 			"source": "./src/server/testing/makePlatformIt.ts",
 			"types": "./dist/server/testing/makePlatformIt.d.ts",
 			"default": "./dist/server/testing/makePlatformIt.js"
+		},
+		"#otlpTracing.ts": {
+			"source": "./src/server/otlpTracing.ts",
+			"types": "./dist/server/otlpTracing.d.ts",
+			"default": "./dist/server/otlpTracing.js"
+		},
+		"#boundedRpcRequest.ts": {
+			"source": "./src/server/boundedRpcRequest.ts",
+			"types": "./dist/server/boundedRpcRequest.d.ts",
+			"default": "./dist/server/boundedRpcRequest.js"
+		},
+		"#databaseLayer.ts": {
+			"source": "./src/server/databaseLayer.ts",
+			"types": "./dist/server/databaseLayer.d.ts",
+			"default": "./dist/server/databaseLayer.js"
+		},
+		"#hostOptions.ts": {
+			"source": "./src/server/hostOptions.ts",
+			"types": "./dist/server/hostOptions.d.ts",
+			"default": "./dist/server/hostOptions.js"
+		},
+		"#safeOtlpSerialization.ts": {
+			"source": "./src/server/safeOtlpSerialization.ts",
+			"types": "./dist/server/safeOtlpSerialization.d.ts",
+			"default": "./dist/server/safeOtlpSerialization.js"
 		}
 	},
 	"exports": {
@@ -318,7 +343,13 @@
 			"import": "./dist/server/testing/makePlatformIt.js",
 			"default": "./dist/server/testing/makePlatformIt.js"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./otlpTracing.ts": {
+			"types": "./dist/server/otlpTracing.d.ts",
+			"source": "./src/server/otlpTracing.ts",
+			"import": "./dist/server/otlpTracing.js",
+			"default": "./dist/server/otlpTracing.js"
+		}
 	},
 	"files": [
 		"dist",
