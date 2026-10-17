@@ -15,7 +15,7 @@ To verify the generated app against published packages, run `pnpm --filter @shiv
 
 For changes awaiting a framework release, `pnpm ready` runs the same documentation and generated-app checks with verified workspace archives, adding tarball overrides only to the temporary consumers. Registry mode remains the release check against the pinned npm versions.
 
-The starter uses effect-pg-boss's published `clientFactory` option to create its producer queues before serving requests, with an empty `jobs` list so the host starts no consumer. The separate worker registers the handler. The published-version check includes their PostgreSQL/live-update round trip.
+The starter passes queue definitions to effect-pg-boss's `NoteJobs.layer({ connectionString, jobs: [CountWords] })` to create its queues and dead-letter queues before serving requests, without starting a consumer. The separate worker registers the handler. The published-version check includes their PostgreSQL/live-update round trip.
 
 Change the shared operations in `src/notes.ts`, the table and services in `src/server`, and the screen in `src/client`. The CSS declaration is local; no `vite/client` types are needed. `pnpm build && pnpm migrate && pnpm start` serves the built app on port 3000; run `pnpm worker` in a second process to handle jobs.
 
@@ -26,10 +26,12 @@ The starter uses strict application checking with `skipLibCheck: true`, matching
 ## Add a job
 
 Define a payload Schema with `defineQueue` in `src/server/noteJobs.ts`, and register its handler in `src/server/noteWorker.ts`; the worker uses the host's `appDatabase` Layer.
-Enqueue from a command inside `transact`, passing `{ db: yield* jobDatabase }` so the queue insert commits or rolls back with the command.
+Register the queue definition in the request runtime's jobs Layer, then call `jobs.enqueue(queue, payload)` after the command's database transaction completes. Keep enqueueing independent of application SQL transactions and handle queue failures so a queue error cannot fail a note write. The starter logs failures and returns the saved note, leaving its word count pending when enqueueing fails.
 After the worker writes, call `invalidateOnCommit` with the contract's invalidation keys; PostgreSQL delivers the hint to the server and the mounted live subscription refetches the query.
 
 ## Deploy
+
+Enable Railway's per-service tracing setting separately for the web and worker services to supply the standard OpenTelemetry exporter variables. Both export their Effect spans through Effect's OTLP/HTTP JSON tracer. For another collector, set `OTEL_EXPORTER_OTLP_ENDPOINT` to its base URL (the exporter appends `/v1/traces`) or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to its complete traces URL, which takes precedence. Set `OTEL_EXPORTER_OTLP_HEADERS` to comma-separated `key=value` headers with URL-encoded values, `OTEL_SERVICE_NAME` to the service identity, and optional `OTEL_RESOURCE_ATTRIBUTES` to comma-separated resource attributes. Without an endpoint, no exporter runs. eBPF auto-instrumentation is not part of the framework path.
 
 ### Railway with PostgreSQL
 

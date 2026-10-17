@@ -69,6 +69,8 @@ A module link opens its source. Type and value declarations with the same name a
 
 | Module | Exported names |
 | --- | --- |
+| [exceptions/declaration.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/exceptions/declaration.ts) | `ExceptionDeclaration`, `decodeExceptions` |
+| [exceptions/registryEntries.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/exceptions/registryEntries.ts) | `registryEntries` |
 | [exceptions/registry.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/exceptions/registry.ts) | `RegistryEntry`, `decodeRegistry`, `StaleRegistryEntry`, `RegistryCheck`, `applyRegistry` |
 
 ## git

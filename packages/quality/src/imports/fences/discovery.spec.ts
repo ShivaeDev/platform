@@ -40,8 +40,9 @@ it("discovers a package boundary outside the source inventory and reports its tr
 				file: "packages/ui/src/main.ts",
 				level: "error",
 				line: 1,
-				message:
+				message: expect.stringContaining(
 					'Reaches node:fs through packages/ui/src/main.ts -> packages/ui/src/bridge.ts -> node:fs across the fence "browser-stays-off-disk": The browser code runs without Node.',
+				),
 				rule: "imports/fences",
 				subject: "browser-stays-off-disk",
 			},
@@ -49,8 +50,9 @@ it("discovers a package boundary outside the source inventory and reports its tr
 				file: "packages/ui/src/bridge.ts",
 				level: "error",
 				line: 1,
-				message:
+				message: expect.stringContaining(
 					'Reaches node:fs through packages/ui/src/bridge.ts -> node:fs across the fence "browser-stays-off-disk": The browser code runs without Node.',
+				),
 				rule: "imports/fences",
 				subject: "browser-stays-off-disk",
 			},

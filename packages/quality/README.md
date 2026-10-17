@@ -20,18 +20,18 @@ Adopt Quality's policy as a whole. Quality owns the shared rules, their defaults
 
 A **rule** checks a repository and returns **findings**, each naming a file and what to change. Built-in and local rules always run at `error`. A finding normally counts once; a limit rule counts how far the file exceeds its limit. Use the defaults and keep checks strict. The config rejects warning levels, disabled rules, raised thresholds and inventory exclusions.
 
-Two files explain findings the repository deliberately keeps:
+Two records explain findings the repository deliberately keeps:
 
 - The **baseline** records existing debt by rule and file, as a maximum count. It makes strict checks usable before every file is cleaned up. `tighten` and `prune` lower the counts as debt disappears; explicitly writing a named rule again can raise them, and that diff needs review.
-- The **registry** records permanent exceptions, each with a reason and optionally a finding's `subject`. A rule may refuse registry exceptions. An entry that no longer applies fails the gate instead of silently excusing future code.
+- The config's **exceptions** list records permanent exceptions once, each with files, rules, a reason and optionally a Quality finding's `subject`. One declaration covers both Quality and Biome rules. A rule may refuse exceptions. An entry that no longer applies fails the gate instead of silently excusing future code.
 
-The registry applies first, then the baseline. With the default rule settings, remaining findings fail in one report grouped by rule. A baseline entry with fewer findings left is a note, so removing debt passes immediately. An entry for an unknown or disabled rule fails; debt records must still name a check that runs.
+Exceptions apply first, then the baseline. With the default rule settings, remaining findings fail in one report grouped by rule. A baseline entry with fewer findings left is a note, so removing debt passes immediately. An entry for an unknown or disabled rule fails; debt records must still name a check that runs.
 
 The work has three parts: connect the repository to the shared tools once; describe an import boundary when its architecture needs one; run the gate and repair findings every day. Writing local rules is not an adoption requirement.
 
 ### 1. Once per repository: connect the shared policy
 
-A new repository needs no `quality.config.ts`. Quality checks sources from the current directory with every built-in rule at its default error level. The default baseline and registry paths are `quality/baseline.jsonl` and `quality/registry.json`.
+A new repository needs no `quality.config.ts`. Quality checks sources from the current directory with every built-in rule at its default error level. The default baseline path is `quality/baseline.jsonl`; permanent exceptions belong in `quality.config.ts`.
 
 Create a root `biome.json`:
 
@@ -164,7 +164,8 @@ Import names from their defining module; there is no root entry. The package's `
 | `sources` | `["."]` | Directories or files the source rules check, relative to the repository root. |
 | `extensions` | `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs` | Source extensions. |
 | `baseline` | `quality/baseline.jsonl` | Counts of existing findings. |
-| `registry` | `quality/registry.json` | Permanent exceptions with reasons. |
+| `exceptions` | `[]` | Permanent exceptions as `{ files, rules, reason, subject? }`. |
+| `registry` | `quality/registry.json` | Legacy input for upgrades; run `quality exceptions migrate`. |
 | `local` | `[]` | Exposed extension API for rules made with `defineRule`; not required for adoption. |
 | `rules` | Every rule at `error` | Options by rule id, such as import boundaries. An explicit `error` or `{ level: "error", options }` is also accepted. |
 
@@ -188,6 +189,7 @@ A limit rule reports its amount over the limit as `count` and the limit as `thre
 ```text
 quality lint [--config <file>]
 quality fix [--config <file>]
+quality exceptions migrate [--config <file>] [--from <registry>]
 quality baseline write [--config <file>] [--rule <id>]...
 quality baseline prune [--config <file>] [--against <ref>]
 quality baseline tighten [--config <file>] [--staged]
@@ -202,7 +204,7 @@ quality hooks pre-commit [--config <file>]
 | Exit code | Meaning |
 | --- | --- |
 | `0` | Passed. Retained debt or loose baseline entries may remain; see the severity limitation below. |
-| `1` | Failed: uncovered errors, stale registry entries or baseline entries for unknown or disabled rules. |
+| `1` | Failed: uncovered errors, stale exceptions or baseline entries for unknown or disabled rules. |
 | `2` | Could not run: invalid input or config, missing files or git history, a failed rule, fixes that do not settle, or invalid usage. |
 
 ### Install, shared tooling and limits
@@ -245,7 +247,21 @@ const integration = test.skipIf(databaseUrl === undefined);
 
 All built-in and local rules run at `error`. Config settings cannot disable a rule or downgrade it to a warning. Record existing debt in the baseline instead. Source and test line limits can only be lowered from 150 and 300, and the comment limit from 2; custom test-file patterns and inventory exclusions are rejected.
 
-Consumer Biome declarations require a reason and matching scope. An individual lint rule or assist action can be excepted only for explicit files; whole checks, rule groups and blanket scopes are rejected. `files/includes` declarations keep `**` and list named directory exclusions, such as generated test clients. The [rule reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md#declared-biome-overrides) describes the matching and stale-declaration checks. Quality's shipped exceptions remain part of its internal policy.
+Declare exceptions in the config once, with a reason:
+
+```ts
+export default defineConfig({
+	exceptions: [
+		{
+			files: ["src/parse.ts"],
+			reason: "This parser documents and returns the external format unchanged.",
+			rules: ["comments/no-jsdoc", "biome/lint/suspicious/noExplicitAny"],
+		},
+	],
+});
+```
+
+Quality merges the Biome settings at lint and fix time; do not add or mirror an override in `biome.json`. Files are explicit repository paths. Biome exceptions cover individual lint rules or assist actions; whole checks, rule groups and globs are rejected. `biome/files/includes` is the directory exclusion form: keep `**` and list negative patterns naming directories, such as `!**/test-support/generated`. Quality's shipped exceptions remain part of its internal policy. [Exceptions and upgrades](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/debt-and-hooks.md#exceptions) describes subjects, stale entries and the upgrade command.
 
 Local-rule APIs supplement the shared policy. They are not setup requirements. Use the shared defaults; repository-specific inputs such as source locations and fences supply information the policy needs.
 
@@ -254,4 +270,4 @@ Local-rule APIs supplement the shared policy. They are not setup requirements. U
 - The installed hook checks files on disk and uses each committing worktree's config and dependencies. It runs later commands after a reported lint failure or a nonzero command exit; a setup or process-launch failure stops the run.
 - A pre-existing `core.hooksPath` decides which hook git runs. Quality keeps it and reports when its installed hook needs to be called from that hook.
 - Workspace imports require a declaration in the importing package’s `dependencies`, `peerDependencies` or `optionalDependencies`. Tests, `test-support`, package-root tooling folders (`script`, `scripts`, `tooling`) and package-root config files may also use `devDependencies`. Explicitly export-blocked bundle inputs may use them when no runtime module reaches those inputs in the scanned import graph; an executable or another public export keeps its imports in the runtime boundary. See the [manifest rule](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md#manifest-dependencies).
-- Import fences skip test code. Keep the tests honest through their real fixtures and review; use the registry only where the rule allows it.
+- Import fences skip test code. Keep the tests honest through their real fixtures and review; declare exceptions only where the rule allows it.

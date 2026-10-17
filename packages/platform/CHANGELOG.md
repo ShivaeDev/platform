@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.0 - 2026-10-17
+
+### Added
+
+- `otlpTracing` in `otlpTracing.ts`: a scoped Effect Config Layer for OTLP/HTTP JSON trace export. `appHost` enables it when an exporter endpoint is set; workers can provide the same Layer. Collector failures preserve requests and scoped shutdown; serialization redacts sensitive diagnostics.
+
+## 0.12.1 - 2026-10-16
+
+### Fixed
+
+- `appHost` infers service requirements from inline generic service factories inside `Layer.unwrap`, including hosts returned after generator yields. Hosts with no remaining requirements can launch through `NodeRuntime.runMain` without binding the service Layer or generator first; omitted services and annotated options keep their existing behavior.
+
 ## 0.12.0 - 2026-10-16
 
 ### Added

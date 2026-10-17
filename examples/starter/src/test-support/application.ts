@@ -1,15 +1,15 @@
-import { Effect, Layer } from "effect";
+import { ConfigProvider, Effect, Layer } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { makeAuth } from "#client/auth.ts";
 import { noteWorker } from "#server/noteWorker.ts";
-import { authRateLimits } from "./authRateLimits.ts";
-import { type RunningHost, startHost } from "./host.ts";
-import { liveNotes } from "./liveNotes.ts";
-import { postgres } from "./postgres.ts";
-import { requests } from "./requests.ts";
+import { authRateLimits } from "#test-support/authRateLimits.ts";
+import { type RunningHost, startHost } from "#test-support/host.ts";
+import { liveNotes } from "#test-support/liveNotes.ts";
+import { postgres } from "#test-support/postgres.ts";
+import { requests } from "#test-support/requests.ts";
 
 interface Actor {
 	readonly cookie: string;
@@ -82,10 +82,11 @@ export const app = storyKit({
 				engine.host = yield* startHost(engine.deployed);
 			}),
 			runningHost: host,
-			startWorker: Effect.fn("StarterStory.startWorker")(function* () {
+			startWorker: Effect.fn("StarterStory.startWorker")(function* (env?: Record<string, string>) {
 				story.tell("start the word-count worker");
 				const database = yield* PostgresTestDatabase;
-				yield* Layer.build(noteWorker({ databaseUrl: database.url }));
+				const worker = noteWorker({ databaseUrl: database.url });
+				yield* Layer.build(env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))));
 			}),
 		};
 	},
@@ -112,5 +113,23 @@ export function legacyNote(title: string) {
 	return app.trait("notes", `PostgreSQL contains the unowned note ${JSON.stringify(title)}`, function* () {
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`insert into starter_notes (title) values (${title})`;
+	});
+}
+
+export function rejectedNoteJobs() {
+	return app.trait("notes", "PostgreSQL rejects word-count jobs", function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`alter table pgboss.job add constraint reject_note_jobs check (name <> 'count-note-words')`;
+	});
+}
+
+export function rejectedNoteCommits() {
+	return app.trait("notes", "PostgreSQL rejects note writes at commit", function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`create function reject_note_commit() returns trigger language plpgsql as $$
+			begin raise exception 'rejected at commit'; end;
+		$$`;
+		yield* sql`create constraint trigger reject_note_commit after insert on starter_notes
+			deferrable initially deferred for each row execute function reject_note_commit()`;
 	});
 }

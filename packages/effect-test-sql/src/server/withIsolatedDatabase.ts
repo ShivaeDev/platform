@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { connectionLimitHint } from "#internal/connectionLimitHint.ts";
 import { PostgresTestDatabase } from "./database.ts";
 
 export function withIsolatedDatabase<A, E, R>(effect: Effect.Effect<A, E, R>) {
@@ -8,5 +9,5 @@ export function withIsolatedDatabase<A, E, R>(effect: Effect.Effect<A, E, R>) {
 			const services = yield* database.isolated;
 			return yield* effect.pipe(Effect.provideContext(services));
 		}),
-	);
+	).pipe(Effect.mapError(connectionLimitHint));
 }

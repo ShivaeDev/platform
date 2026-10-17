@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-16",
+	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "auth-proxy-peer.md",
-			"text": "### Added\n\n- `trustedProxyPeer(trustedProxy?)` from `@shivaedev/platform/rpc-server/local.ts` compiles the host's IP address and CIDR proxy matching into a reusable address predicate. Missing or malformed configuration matches no peer.\n- `trustedProxyRanges(trustedProxy?)` from the same module returns equivalent ranges for forwarded-header integrations. The host matcher uses the same normalization: mapped IPv6 addresses and CIDRs become IPv4 entries, including hexadecimal forms, while broader IPv6 ranges retain both address families. Missing or malformed configuration returns an empty list.\n"
+			"name": "otlp-export.md",
+			"text": "### Added\n\n- `otlpTracing` in `otlpTracing.ts`: a scoped Effect Config Layer for OTLP/HTTP JSON trace export. `appHost` enables it when an exporter endpoint is set; workers can provide the same Layer. Collector failures preserve requests and scoped shutdown; serialization redacts sensitive diagnostics.\n"
 		}
 	],
-	"version": "0.12.0"
+	"version": "0.13.0"
 }
