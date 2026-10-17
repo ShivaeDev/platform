@@ -1,0 +1,62 @@
+import { Effect } from "effect";
+import { expect, vi } from "vitest";
+import { type Rendered, render } from "@shivaedev/effect-react/testing.ts";
+import type { appRouter } from "#client/appRouter.tsx";
+import type { Credentials } from "#client/auth.ts";
+import type { appAuth } from "./appAuth.ts";
+import { notesClient } from "./notesClient.ts";
+
+export interface Screen {
+	auth: ReturnType<typeof appAuth> | undefined;
+	client: ReturnType<typeof notesClient>;
+	expectedErrors: readonly (readonly unknown[])[];
+	login: {
+		authenticated: number;
+		calls: { credentials: Credentials; mode: string }[];
+		outcome: string | undefined;
+		unavailable: boolean;
+	};
+	router: ReturnType<typeof appRouter> | undefined;
+	signOutCalls: number;
+	switchSession: ((id: string) => Promise<void>) | undefined;
+	view: Rendered | undefined;
+}
+
+export const createScreen = Effect.fn("ScreenStory.createScreen")(function* () {
+	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+	const engine: Screen = {
+		auth: undefined,
+		client: notesClient(),
+		expectedErrors: [],
+		login: { authenticated: 0, calls: [], outcome: undefined, unavailable: false },
+		router: undefined,
+		signOutCalls: 0,
+		switchSession: undefined,
+		view: undefined,
+	};
+	yield* Effect.acquireRelease(
+		Effect.sync(() => vi.spyOn(console, "error")),
+		(errors) =>
+			Effect.sync(() => {
+				const calls = [...errors.mock.calls];
+				errors.mockRestore();
+				expect(calls).toEqual(engine.expectedErrors);
+			}),
+	);
+	return engine;
+});
+
+export const acquireScreen = Effect.fn("ScreenStory.acquireScreen")(function* (engine: Screen) {
+	engine.view = yield* Effect.acquireRelease(
+		Effect.promise(() => render(null)),
+		(view) => Effect.promise(view.unmount),
+	);
+	return engine.view;
+});
+
+export function screenView(engine: Screen) {
+	if (engine.view === undefined) {
+		throw new Error("No screen is open; give the story a screen trait");
+	}
+	return engine.view;
+}
