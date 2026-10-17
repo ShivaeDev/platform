@@ -4,9 +4,9 @@ import type { Migrator } from "effect/sql";
 import type { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import type { PostgresChangesOptions } from "@shivaedev/effect-sql/postgresChanges.ts";
 import type { SessionPolicy, SessionShape } from "#rpc-server/session.ts";
-import { appHostHttp, migratedHost } from "./appHostHttp.ts";
-import { databaseLayer } from "./databaseLayer.ts";
-import type { HostOptions, HostPolicy } from "./hostOptions.ts";
+import { appHostHttp, migratedHost } from "#server/appHostHttp.ts";
+import { databaseLayer } from "#server/databaseLayer.ts";
+import type { HostOptions, HostPolicy } from "#server/hostOptions.ts";
 
 export class AppChanges extends Context.Service<AppChanges, Effect.Success<typeof makeLiveServer>>()("@shivaedev/platform/AppChanges") {}
 export interface AppDatabaseOptions<R = never> {

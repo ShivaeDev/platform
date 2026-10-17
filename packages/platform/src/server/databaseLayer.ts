@@ -5,7 +5,7 @@ import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { assertPostgresMigrations } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
-import type { AppChanges, AppDatabaseOptions } from "./appHost.ts";
+import type { AppChanges, AppDatabaseOptions } from "#server/appHost.ts";
 
 export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService: typeof AppChanges) {
 	const pool = Layer.unwrap(

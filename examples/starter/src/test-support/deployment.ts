@@ -3,8 +3,8 @@ import { Effect } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { deployChild, deployPort } from "./deployChild.ts";
-import { postgres } from "./postgres.ts";
+import { deployChild, deployPort } from "#test-support/deployChild.ts";
+import { postgres } from "#test-support/postgres.ts";
 
 export const deployment = storyKit({
 	around: withIsolatedDatabase,

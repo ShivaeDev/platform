@@ -1,8 +1,8 @@
 import { Config, Effect, Layer, Redacted } from "effect";
 import { appDatabase } from "@shivaedev/platform/appHost.ts";
-import { authDatabase } from "./authDatabase.ts";
-import { migrations } from "./migrations.ts";
-import { noteProducer } from "./noteProducer.ts";
+import { authDatabase } from "#server/authDatabase.ts";
+import { migrations } from "#server/migrations.ts";
+import { noteProducer } from "#server/noteProducer.ts";
 
 export const migrateDatabase = Effect.fn("Starter.migrateDatabase")(function* (databaseUrl?: Redacted.Redacted<string>) {
 	const url = databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));

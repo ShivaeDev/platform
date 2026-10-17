@@ -4,11 +4,11 @@ import { AppChanges, appDatabase, appHost } from "@shivaedev/platform/appHost.ts
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { authenticatedUserLayer } from "@shivaedev/platform/rpc-server/session.ts";
 import { Notes, Subscribe } from "#notes.ts";
-import { authDatabase } from "./authDatabase.ts";
-import { databaseOptions } from "./databaseOptions.ts";
-import { makeAuth } from "./makeAuth.ts";
-import { NotesService } from "./NotesService.ts";
-import { noteProducer } from "./noteProducer.ts";
+import { authDatabase } from "#server/authDatabase.ts";
+import { databaseOptions } from "#server/databaseOptions.ts";
+import { makeAuth } from "#server/makeAuth.ts";
+import { NotesService } from "#server/NotesService.ts";
+import { noteProducer } from "#server/noteProducer.ts";
 
 const handlers = Notes.toLayer(
 	Effect.gen(function* () {

@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
+import { registryDependencies } from "#template.ts";
 import { removeTemplates, templateSource } from "#test/templateSource.ts";
-import { registryDependencies } from "./template.ts";
 
 afterEach(removeTemplates);
 

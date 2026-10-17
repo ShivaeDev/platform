@@ -1,6 +1,6 @@
 import type { Redacted } from "effect";
 import type { Pool } from "pg";
-import { migrations } from "./migrations.ts";
+import { migrations } from "#server/migrations.ts";
 
 export function databaseOptions(database: Pool, databaseUrl: Redacted.Redacted<string>) {
 	return {

@@ -2,7 +2,7 @@ import { getMigrations } from "better-auth/db/migration";
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import type { Pool } from "pg";
-import { authOptions } from "./authOptions.ts";
+import { authOptions } from "#server/authOptions.ts";
 
 export function migrations(database: Pool) {
 	return {

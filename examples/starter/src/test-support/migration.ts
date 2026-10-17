@@ -5,7 +5,7 @@ import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { authDatabase } from "#server/authDatabase.ts";
 import { migrations } from "#server/migrations.ts";
-import { postgres } from "./postgres.ts";
+import { postgres } from "#test-support/postgres.ts";
 
 export const migration = storyKit({
 	around: withIsolatedDatabase,

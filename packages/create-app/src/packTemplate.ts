@@ -1,8 +1,8 @@
 import { Buffer } from "node:buffer";
 import { basename, join } from "node:path";
 import { Effect, FileSystem, type PlatformError, Schema } from "effect";
-import { CreateAppError } from "./CreateAppError.ts";
-import { prepareFile, type Template, Versions } from "./template.ts";
+import { CreateAppError } from "#CreateAppError.ts";
+import { prepareFile, type Template, Versions } from "#template.ts";
 
 const excluded = new Set(["node_modules", "dist", "coverage", "pnpm-lock.yaml", ".git"]);
 function included(path: string) {

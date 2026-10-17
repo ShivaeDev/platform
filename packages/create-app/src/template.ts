@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { CreateAppError } from "./CreateAppError.ts";
+import { CreateAppError } from "#CreateAppError.ts";
 
 export const Versions = Schema.Record(Schema.String, Schema.String);
 export const Template = Schema.Array(Schema.Struct({ content: Schema.String, path: Schema.String }));
