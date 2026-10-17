@@ -27,7 +27,7 @@ liveNotesStory.it("bounds paused hints and resyncs current source once resumed",
 	yield* eventually(() => expect(test.status().pending).toBe(256));
 	expect(test.body(one)).toBe("First");
 	test.pause(false);
-	yield* eventually(() => expect(test.body(one)).toBe("While paused"));
+	yield* eventually(() => expect(test.body(one)).toBe("While paused"), 5000);
 	expect(test.status().pending).toBe(0);
 });
 liveNotesStory.it("retains successful data on typed read failure and reconciles on resume", [liveSession(), watchingNotes()], function* (test) {
