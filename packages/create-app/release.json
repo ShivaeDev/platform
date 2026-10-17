@@ -2,6 +2,10 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
+			"name": "auth-rate-limit-config.md",
+			"text": "### Changed\n\n- Generated apps control Better Auth rate limiting through Effect Config `AUTH_RATE_LIMIT_ENABLED`, enabled by default in every environment. Client-IP and rate-limit stories use the ordinary in-process host, including coverage with the switch disabled.\n"
+		},
+		{
 			"name": "framework-version-agreement.md",
 			"text": "### Fixed\n\n- Generate an app with aligned framework versions, including `effect-sql` 0.5.0 and its matching SQL test package, so framework dependencies do not install conflicting versions.\n"
 		},
@@ -10,5 +14,5 @@
 			"text": "### Fixed\n\n- A generated app registers producer queues and their dead-letter queues through `effect-pg-boss` queue definitions. Note writes enqueue independently after their transaction and log queue failures without failing the saved write; the starter no longer supplies a transactional database adapter.\n"
 		}
 	],
-	"version": "0.5.1"
+	"version": "0.6.0"
 }
