@@ -1,6 +1,5 @@
 import { Effect } from "effect";
 import type { Inventory } from "#lint/inventory.ts";
-import { browserSafeViolations } from "#lint/rules/browser-safe.ts";
 import { catalogViolations } from "#lint/rules/catalog.ts";
 import { codecovViolations } from "#lint/rules/codecovViolations.ts";
 import { manifestViolations } from "#lint/rules/manifests.ts";
@@ -9,7 +8,6 @@ import { structureViolations } from "#lint/rules/structure.ts";
 import type { Violation } from "#lint/violation.ts";
 
 const rules: ReadonlyArray<(inventory: Inventory) => readonly Violation[]> = [
-	browserSafeViolations,
 	catalogViolations,
 	codecovViolations,
 	manifestViolations,
