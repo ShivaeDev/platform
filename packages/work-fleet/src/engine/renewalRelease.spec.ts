@@ -51,6 +51,29 @@ describe("renewal after explicit safe release", () => {
 				expect(fixture.launched).toHaveLength(1);
 			}),
 		));
+	for (const changed of ["scope", "cwd"] as const) {
+		test(`a prepared retry renews ownership when its ${changed} changes`, () =>
+			withEngine({ rejectTurn: true, resultUnavailable: true }, (fixture) =>
+				Effect.gen(function* () {
+					yield* prepareWork("one");
+					const fleet = yield* Fleet;
+					const rejected = yield* fleet.dispatch("one");
+					const decisionId = rejected.value.decision?.id ?? "missing";
+					const retried = yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "retry"));
+					expect(retried.value.stage).toBe("prepared");
+					const renewed = yield* fleet.prepare({
+						cwd: changed === "cwd" ? "/different-repository" : retried.value.cwd,
+						preparation: changed === "scope" ? prepared({ ownedPaths: ["src/other.ts"] }) : retried.value.preparation,
+						prompt: retried.value.prompt,
+						workId: "one",
+					});
+					expect(renewed.value.attempts).toEqual([]);
+					expect(renewed.value.history?.[0]?.attempts[0]).toEqual({ ...retried.value.attempts[0], sessionCleanupComplete: true });
+					expect(renewed.value.history?.[0]?.responses).toEqual(retried.value.responses);
+					expect(fixture.launched).toHaveLength(1);
+				}),
+			));
+	}
 	it.effect("old stored records still decode without history or Board snapshots", function* () {
 		const legacy = yield* Schema.decodeUnknownEffect(FleetRecord)({
 			attempts: [],

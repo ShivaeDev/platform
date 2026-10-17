@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-16",
+	"date": "2026-10-17",
 	"fragments": [
 		{
 			"name": "otlp-export.md",
 			"text": "### Added\n\n- `otlpTracing` in `otlpTracing.ts`: a scoped Effect Config Layer for OTLP/HTTP JSON trace export. `appHost` enables it when an exporter endpoint is set; workers can provide the same Layer. Collector failures preserve requests and scoped shutdown; serialization redacts sensitive diagnostics.\n"
 		}
 	],
-	"version": "0.12.0"
+	"version": "0.13.0"
 }

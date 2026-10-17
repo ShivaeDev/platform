@@ -43,11 +43,32 @@ export function prepareCommand(state: EngineState) {
 		if (unusedPreparation(existing.value)) {
 			return yield* save(existing, { ...current, history: existing.value.history });
 		}
+		if (refreshablePreparation(existing.value, work, input)) {
+			return yield* save(existing, {
+				...existing.value,
+				cwd: input.cwd,
+				launch: input.launch,
+				preparation: input.preparation,
+				prompt: input.prompt,
+			});
+		}
 		return yield* renewPreparation(state, existing, current, work);
 	});
 }
 function unusedPreparation(record: FleetRecord): boolean {
 	return record.stage === "prepared" && record.attempts.length === 0 && record.decision === undefined && (record.responses?.length ?? 0) === 0;
+}
+function refreshablePreparation(record: FleetRecord, work: BoardWork, input: PrepareWork): boolean {
+	return (
+		record.stage === "prepared"
+		&& record.decision === undefined
+		&& record.result === undefined
+		&& !executing(record)
+		&& !briefChanged(record, work)
+		&& record.cwd === input.cwd
+		&& record.preparation.ownedPaths.length === input.preparation.ownedPaths.length
+		&& record.preparation.ownedPaths.every((path, index) => path === input.preparation.ownedPaths[index])
+	);
 }
 const renewPreparation = Effect.fn("Fleet.renewPreparation")(function* (
 	state: EngineState,

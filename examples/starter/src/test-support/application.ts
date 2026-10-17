@@ -5,6 +5,7 @@ import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { makeAuth } from "#client/auth.ts";
 import { noteWorker } from "#server/noteWorker.ts";
+import { authRateLimits } from "./authRateLimits.ts";
 import { type RunningHost, secret, startHost } from "./host.ts";
 import { liveNotes } from "./liveNotes.ts";
 import { postgres } from "./postgres.ts";
@@ -61,6 +62,11 @@ export const app = storyKit({
 				return makeAuth({ baseUrl, fetchOptions: { headers: { cookie, origin } } });
 			},
 			authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
+			authRateLimits: Effect.fn("StarterStory.authRateLimits")(function* (trustedProxy?: string) {
+				story.tell(`start production auth with proxy trust ${trustedProxy ?? "unset"}`);
+				const database = yield* PostgresTestDatabase;
+				return yield* authRateLimits(database.url, trustedProxy, story.tell);
+			}),
 			foreignRequest: (cookie: string) => http().foreignRequest(cookie),
 			liveNotes: (name = "alice") => {
 				story.tell(`${name} watches the live notes list`);

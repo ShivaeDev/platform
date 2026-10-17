@@ -1,10 +1,17 @@
 # Changelog
 
-## 0.12.0 - 2026-10-16
+## 0.13.0 - 2026-10-17
 
 ### Added
 
 - `otlpTracing` in `otlpTracing.ts`: a scoped Effect Config Layer for OTLP/HTTP JSON trace export. `appHost` enables it when an exporter endpoint is set; workers can provide the same Layer. Collector failures preserve requests and scoped shutdown; serialization redacts sensitive diagnostics.
+
+## 0.12.0 - 2026-10-16
+
+### Added
+
+- `trustedProxyPeer(trustedProxy?)` from `@shivaedev/platform/rpc-server/local.ts` compiles the host's IP address and CIDR proxy matching into a reusable address predicate. Missing or malformed configuration matches no peer.
+- `trustedProxyRanges(trustedProxy?)` from the same module returns equivalent ranges for forwarded-header integrations. The host matcher uses the same normalization: mapped IPv6 addresses and CIDRs become IPv4 entries, including hexadecimal forms, while broader IPv6 ranges retain both address families. Missing or malformed configuration returns an empty list.
 
 ## 0.11.0 - 2026-10-16
 

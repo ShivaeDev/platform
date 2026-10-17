@@ -1,9 +1,9 @@
 {
-	"date": "2026-10-16",
+	"date": "2026-10-17",
 	"fragments": [
 		{
 			"name": "otlp-export.md",
-			"text": "### Added\n\n- Generated apps use Platform 0.12.0 and export Effect spans from the host and word-count worker when standard OTLP endpoint variables are set.\n"
+			"text": "### Added\n\n- Generated apps use Platform 0.13.0 and export Effect spans from the host and word-count worker when standard OTLP endpoint variables are set.\n"
 		}
 	],
 	"version": "0.5.0"

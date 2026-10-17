@@ -44,6 +44,7 @@ integration("stalled listener cleanup cannot delay resync, a new listener or sco
 				yield* waitFor(() => changes === 1);
 			}).pipe(Effect.onError(() => Effect.sync(() => gate.resolve()))),
 			state,
+			{ heartbeatInterval: "50 millis", heartbeatTimeout: "150 millis", retryDelay: "20 millis" },
 		);
 		expect(closing).toBe(2);
 	} finally {

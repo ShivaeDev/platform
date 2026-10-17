@@ -107,6 +107,7 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 | Hook | Says |
 | --- | --- |
 | `name` | What the engine is called in failures, "the bakery", and the kit's genre, "Bakery Story". |
+| `outbound` | Optional. A map of exact hostnames to fake server origins for the host's Node built-in `fetch`. |
 | `around(effect)` | Optional. Wraps creation, staged seeding and the body; worker Layer acquisition remains outside it. It may require the worker services and per-test Scope. |
 | `clock` | Optional. `"test"` by default, or `"live"` for HTTP and DOM stories. A story’s `options.clock` takes precedence. |
 | `create()` | A fresh engine. Every story starts from a new one. |
@@ -129,6 +130,21 @@ export default defineConfig({
 ```
 
 `genreTags(...kitNames)` declares one tag per kit, named after it: `bakery-story` and `mill-story` here, and `game-store-story` for a kit named "game store". A kit tags its tests only with a genre the config declares, because Vitest refuses a test whose tag the config leaves out, so a config without the line runs every story untagged and prints nothing about it. With the tags declared, `vitest run --tags-filter=mill-story` runs the mill's stories and skips the bakery's, and `--tags-filter` takes any of Vitest's tag expressions, such as `'!mill-story'`. A root config whose inline projects extend the package's config gets these tags from it, so `--tags-filter` works from the root too.
+
+#### Routing outbound HTTP
+
+When application code calls a hard-coded third-party URL, set `outbound` on its kit to send those requests to a fake server:
+
+```ts
+const app = storyKit({
+  ...appDefinition,
+  outbound: { "github.com": fakeUrl, "api.github.com": fakeUrl },
+});
+```
+
+`appDefinition` holds the application's kit hooks, and `fakeUrl` is the listening fake server's HTTP or HTTPS origin, such as `http://127.0.0.1:4321`. The map matches exact URL hostnames, across ports. It replaces the destination origin while keeping the request's path, query, method, headers and body. For example, a POST to `https://github.com/login/oauth/access_token` reaches the fake's `/login/oauth/access_token`. Other hostnames pass through the previous dispatcher unchanged.
+
+Routing uses the global dispatcher that Node's built-in `fetch` already uses. It is installed before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. Routing affects host-side Node fetches.
 
 ### 2. Once per feature: traits and verbs
 

@@ -6,7 +6,9 @@ import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import type { FleetHost } from "#host/config.ts";
-import { recordColumns, recordInput, recordModel } from "#storage/model.ts";
+import { recordInput, recordModel } from "#storage/model.ts";
+import { writeChildren } from "#storage/recordChildren.ts";
+import { recordShape } from "#storage/recordShape.ts";
 
 function hostSql(host: FleetHost) {
 	return PgClient.layer({ maxConnections: 2, url: Redacted.make(host.databaseUrl) });
@@ -26,7 +28,7 @@ export function storeState(host: FleetHost, workId: string, payload: Readonly<Re
 					versionColumn: "version",
 				});
 				const input = yield* Schema.decodeUnknownEffect(model.insert)({
-					...recordInput(JSON.stringify(payload), recordColumns()),
+					...recordInput(payload),
 					"work_id": workId,
 				});
 				const previous = yield* repository.findMany({ where: { "work_id": workId } });
@@ -35,6 +37,7 @@ export function storeState(host: FleetHost, workId: string, payload: Readonly<Re
 				} else {
 					yield* repository.updateVoid({ ...previous[0], ...input });
 				}
+				yield* writeChildren(host.namespace, workId, payload, recordShape());
 				yield* invalidateOnCommit(invalidationKeys([fleetRecords.item(workId), fleetRecords.list]));
 			}),
 			{ onSqlError: (error) => error },
