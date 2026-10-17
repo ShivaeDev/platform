@@ -14,6 +14,7 @@ inside a transaction.
 | --- | --- | --- | --- |
 | `numeric(36,12)` | `Schema.BigDecimalFromString` | Insert, selected read, equality filter, and update preserve `9007199254740993.123456789012` exactly. | PostgreSQL returns a string; converting it to JS `number` first loses precision. Database scale/precision still constrain writes. `numeric 'NaN'` is rejected by this schema. |
 | `int8` | `Schema.BigInt` | Insert, selected read and update preserve `9007199254740993n`, beyond `Number.MAX_SAFE_INTEGER`. | The driver returns `bigint`; a `Schema.Number` field rejects it. |
+| `int4[]` | Integer-array schema with native `PgTypes.array(values, PgTypes.OID.int4)` encoding | Empty and non-empty arrays round-trip through inserts, reads, equality filters, updates and batch writes. | Empty arrays require an explicit element OID. Use the storage codec for select, insert and update, and an ordinary array schema for JSON; see the [model declaration](../../packages/effect-sql/README.md#1-once-per-model-fields-and-writable-variants) and [PostgreSQL evidence](../../packages/effect-sql/src/postgresArrays.spec.ts). |
 | `date` | `Schema.String` | Insert, read and update keep `2026-09-30` as a `YYYY-MM-DD` string. | The driver returns the calendar date, not a `Date`, so no time zone shifts it. |
 | `timestamptz` | `Schema.Date` | Insert/read preserves the instant; a SQL value with `+02` offset reads as the equivalent UTC instant. | The driver produces a JS `Date`, retaining milliseconds, losing sub-millisecond precision and the originally supplied zone/offset. |
 | `timestamp without time zone` | `Schema.Date` | A `Date` is written as its UTC wall time and read back as that UTC instant, even when the Node process runs in `America/New_York`. | The column holds UTC wall time. A value written by another client in local time reads as if it were UTC. |
@@ -98,7 +99,7 @@ explicit encoding policy before adoption. This slice does not introduce custom
 type handling or imply that changing a schema can recover precision already
 discarded by a driver.
 
-Arrays, enums, ranges, binary data and custom type policies remain unproven.
+Arrays other than the demonstrated one-dimensional `int4[]`, enums, ranges, binary data and custom type policies remain unproven.
 `findMany` still supports only its existing selected fields, equality filters,
 ordering and limit; the tests add no query DSL or relationship engine.
 
