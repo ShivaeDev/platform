@@ -3,15 +3,22 @@ import { Deferred, Effect, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 import type { FleetHost } from "#host/config.ts";
 
-// Holds the admission lock that every Fleet record read and write queues behind, as a long admission pass does.
-export const busyAdmission = Effect.fn("FleetFixture.busyAdmission")(function* (host: FleetHost) {
+export function busyAdmission(host: FleetHost) {
+	return holdLock(host, `work_fleet_admission:${host.namespace}`);
+}
+
+export function busyAnswerRecording(host: FleetHost, workId: string) {
+	return holdLock(host, `${host.namespace}:answer:${workId}`);
+}
+
+const holdLock = Effect.fn("FleetFixture.holdLock")(function* (host: FleetHost, key: string) {
 	const held = yield* Deferred.make<void>();
 	const release = yield* Deferred.make<void>();
 	yield* Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql.withTransaction(
 			Effect.gen(function* () {
-				yield* sql`select pg_advisory_xact_lock(hashtextextended(${`work_fleet_admission:${host.namespace}`}, 0))`;
+				yield* sql`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
 				yield* Deferred.succeed(held, undefined);
 				yield* Deferred.await(release);
 			}),

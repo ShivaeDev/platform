@@ -56,5 +56,9 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			yield* addShapeColumns(namespace, shapeV12, shapeV14);
 			yield* sql`alter table ${sql(`${namespace}_dispatches`)} add column now boolean, add column ignore_areas boolean`;
 		}),
+		"15_answer_requests": sql`create table ${sql(`${namespace}_answers`)} (
+			work_id text primary key, request_id text not null, decision_id text not null, accepted_at double precision not null,
+			decision_code text, decision_reason text not null, text text not null, release boolean not null, error text
+		)`,
 	});
 });

@@ -35,11 +35,13 @@ const steerRequest = Effect.fn("AnswerTimeoutTest.steerRequest")(function* (
 	expect(accepted.workId).toBe("one");
 	if (command === "answer") {
 		expect("blocker" in accepted ? accepted.blocker : undefined).toBe("Answer recorded; applying in the background");
+	}
+	yield* delay.entered;
+	if (command === "answer") {
 		expect(boardHttpFiles(fixture.host.boardDir).read(`responses/response.fleet-retry.${stopped.decision?.published?.questionId}.md`)).toContain(
 			"author: orchestrator",
 		);
 	}
-	yield* delay.entered;
 	const pending = yield* client("fleet.get", { workId: "one" });
 	expect(pending.boardContext).toBe(current);
 	expect(pending.attempts[0]?.receipt).toEqual(started.attempts[0]?.receipt);

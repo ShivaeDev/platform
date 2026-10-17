@@ -12,10 +12,11 @@ export const answerWork = Effect.fn("FleetHost.answerWork")(function* (
 	text = "",
 	release = false,
 	background = false,
+	originalDecision?: Pick<Decision, "code" | "reason">,
 ) {
 	const fleet = yield* Fleet;
 	const resolve = background ? fleet.recordResponse : fleet.resolve;
-	const original = (yield* fleet.get(workId)).value.decision;
+	const original = originalDecision ?? (yield* fleet.get(workId)).value.decision;
 	let recorded: { readonly decisionId: string; readonly responseId: string } | undefined;
 	return yield* Effect.gen(function* () {
 		const current = (yield* fleet.get(workId)).value;
@@ -36,7 +37,7 @@ export const answerWork = Effect.fn("FleetHost.answerWork")(function* (
 	);
 });
 
-function checkDecision(record: FleetRecord, original: Decision | undefined) {
+function checkDecision(record: FleetRecord, original: Pick<Decision, "code" | "reason"> | undefined) {
 	const current = record.decision;
 	if (original !== undefined && (record.stage !== "needs-human" || current === undefined || !sameKind(original, current))) {
 		return Effect.fail(
@@ -50,7 +51,7 @@ function checkDecision(record: FleetRecord, original: Decision | undefined) {
 		: Effect.fail(new BadRequest({ message: `${record.workId} waits on no answer in stage ${record.stage}` }));
 }
 
-function sameKind(original: Decision, current: Decision) {
+function sameKind(original: Pick<Decision, "code" | "reason">, current: Decision) {
 	return original.code === undefined ? original.code === current.code && original.reason === current.reason : original.code === current.code;
 }
 
@@ -62,7 +63,7 @@ function hasResponse(record: FleetRecord, recorded: { readonly decisionId: strin
 const publishAnswer = Effect.fn("FleetHost.publishAnswer")(function* (
 	host: FleetHost,
 	workId: string,
-	original: Decision | undefined,
+	original: Pick<Decision, "code" | "reason"> | undefined,
 	text: string,
 	release: boolean,
 ) {
