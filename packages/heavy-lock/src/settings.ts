@@ -20,8 +20,8 @@ export const readSettings = Effect.fn("HeavyLock.readSettings")(function* (lockP
 		Effect.mapError((cause) => new HeavyLockError({ cause, message: "Could not read the heavy-lock environment." })),
 	);
 	const path = yield* Path.Path;
-	const home = Option.map(environment.home, (home) => path.join(home, ".cache", "heavy-process.lock"));
-	const lock = Option.firstSomeOf([Option.fromUndefinedOr(lockPath), environment.lock, home]);
+	const homeLock = Option.map(environment.home, (home) => path.join(home, ".cache", "heavy-process.lock"));
+	const lock = Option.firstSomeOf([Option.fromUndefinedOr(lockPath), environment.lock, homeLock]);
 	if (Option.isNone(lock)) {
 		return yield* new HeavyLockError({ message: "Set HOME or HEAVY_PROCESS_LOCK to locate the lock file." });
 	}
