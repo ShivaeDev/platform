@@ -9,19 +9,10 @@ const appPaths = new Map([
 	["app-readme.md", "README.md"],
 	["pnpm-workspace.copy.yaml", "pnpm-workspace.yaml"],
 ]);
-const excluded = new Set([
-	"node_modules",
-	"dist",
-	"coverage",
-	"pnpm-lock.yaml",
-	".git",
-	"published-versions.json",
-	"AGENTS.md",
-	"CLAUDE.md",
-	"README.md",
-]);
+const excluded = new Set(["node_modules", "dist", "coverage", "pnpm-lock.yaml", ".git"]);
+const rootExcluded = new Set(["published-versions.json", "AGENTS.md", "CLAUDE.md", "README.md"]);
 function included(path: string) {
-	return !excluded.has(basename(path)) && (!basename(path).startsWith(".env") || basename(path) === ".env.example");
+	return !(rootExcluded.has(path) || excluded.has(basename(path))) && (!basename(path).startsWith(".env") || basename(path) === ".env.example");
 }
 
 export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (starter: string, output: string) {
@@ -43,18 +34,7 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 				const source = Buffer.from(yield* fs.readFile(join(starter, path)));
 				const content = yield* Effect.try({
 					catch: (cause) => new CreateAppError({ message: String(cause) }),
-					try: () =>
-						[
-							"biome.json",
-							"package.json",
-							"tsconfig.json",
-							"vite.config.ts",
-							"vitest.config.ts",
-							"src/server/dev.ts",
-							"src/test-support/deployChild.ts",
-						].includes(path)
-							? Buffer.from(prepareFile(path, source.toString(), versions))
-							: source,
+					try: () => prepareFile(path, source, versions),
 				});
 				entries.push({ content: content.toString("base64"), path: target });
 			}
