@@ -1,38 +1,49 @@
-import { builtinEnvironments, type Environment } from "vitest/runtime";
+import { createRequire } from "node:module";
+import { GlobalWindow } from "happy-dom";
+import { type Environment, populateGlobal } from "vitest/runtime";
 
 const domEnvironment: Environment = {
 	name: "test-story-dom",
-	async setup(global: typeof globalThis, options) {
-		const { AbortController, AbortSignal, Headers, Request, Response } = global;
-		const environment = await builtinEnvironments["happy-dom"].setup(global, options);
-		// Vitest's setters also replace happy-dom's internal classes, which its fetch needs.
-		for (const [name, value] of Object.entries({ AbortController, AbortSignal, Headers, Request, Response })) {
+	async setup(global: typeof globalThis, { happyDOM = {} }) {
+		// Vitest loads environments outside the project's source resolution conditions.
+		const load = createRequire(import.meta.url);
+		const { documentTransport }: typeof import("#internal/documentTransport.ts") = load("#internal/documentTransport.ts");
+		const { installOutbound }: typeof import("#internal/routeOutbound.ts") = load("#internal/routeOutbound.ts");
+		const native = Object.fromEntries(
+			["fetch", "AbortController", "AbortSignal", "Headers", "Request", "Response"].map((name) => [name, Reflect.get(global, name)]),
+		);
+		const restoreOutbound = await installOutbound({}, true);
+		const win = new GlobalWindow({
+			...happyDOM,
+			console: global.console,
+			settings: { ...happyDOM.settings, disableErrorCapturing: true },
+			url: happyDOM.url ?? "http://localhost:3000",
+		});
+		win.happyDOM.settings.fetch.interceptor = documentTransport(global.fetch);
+		const { keys, originals } = populateGlobal(global, win, { bindFunctions: true });
+		for (const [name, value] of Object.entries(native)) {
 			Object.defineProperty(global, name, { configurable: true, value, writable: true });
 		}
-		const transport = global.fetch.bind(global);
-		Object.defineProperty(global, "fetch", {
-			configurable: true,
-			value: (input: RequestInfo | URL, init?: RequestInit) => {
-				if (input instanceof Request) {
-					const request = new Request(input, init);
-					return transport(request.url, {
-						body: request.body,
-						cache: request.cache,
-						credentials: request.credentials,
-						headers: [...request.headers],
-						method: request.method,
-						mode: request.mode,
-						redirect: request.redirect,
-						referrer: request.referrer,
-						referrerPolicy: request.referrerPolicy,
-						signal: request.signal,
-					});
+		Object.defineProperty(global, "window", { configurable: true, value: win, writable: true });
+		Object.defineProperty(win.document, "defaultView", { configurable: true, get: () => win });
+		Object.defineProperty(global, Symbol.for("test-story.dom"), { configurable: true, value: true });
+		return {
+			async teardown(target) {
+				try {
+					await win.happyDOM.abort();
+					win.close();
+				} finally {
+					for (const key of keys) {
+						Reflect.deleteProperty(target, key);
+					}
+					for (const [key, descriptor] of originals) {
+						Object.defineProperty(target, key, descriptor);
+					}
+					Reflect.deleteProperty(target, Symbol.for("test-story.dom"));
+					restoreOutbound();
 				}
-				return transport(input, init?.headers instanceof Headers ? { ...init, headers: [...init.headers] } : init);
 			},
-			writable: true,
-		});
-		return environment;
+		};
 	},
 	viteEnvironment: "client",
 };
