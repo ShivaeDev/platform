@@ -404,8 +404,6 @@
 {"path":"script/lint/adapters/run.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/program.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/lint/program.ts","rule":"files/named-after-export","count":1}
-{"path":"script/lint/rules/browser-safe.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
-{"path":"script/lint/rules/browser-safe.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/rules/catalog.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
 {"path":"script/lint/rules/catalog.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":9}
 {"path":"script/lint/rules/catalog.ts","rule":"files/named-after-export","count":1}
@@ -413,7 +411,6 @@
 {"path":"script/lint/rules/manifests.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/rules/nesting.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"script/lint/rules/nesting.ts","rule":"files/named-after-export","count":1}
-{"path":"script/lint/rules/specifiers.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"script/lint/rules/structure.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/violation.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/package-check/archives.test.ts","rule":"tests/story-setup","count":4}
