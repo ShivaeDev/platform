@@ -734,6 +734,9 @@ importers:
       '@shivaedev/effect-test':
         specifier: workspace:*
         version: link:../effect-test
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.0
     devDependencies:
       '@effect/vitest':
         specifier: 'catalog:'
