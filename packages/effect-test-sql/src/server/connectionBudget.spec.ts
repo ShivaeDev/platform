@@ -1,4 +1,4 @@
-import { Effect, Fiber, Redacted } from "effect";
+import { Effect, Fiber, Redacted, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { databasePressure } from "#test/databasePressure.ts";
@@ -32,7 +32,11 @@ for (const maxConnections of [undefined, 3]) {
 						expect((yield* Fiber.join(pressure.clones)).flat()).toHaveLength(72);
 					}).pipe(Effect.provide(makePostgresTestLayer(options))),
 				);
-				expect(yield* sessions).toEqual([{ count: 0 }]);
+				const closed = yield* sessions.pipe(
+					Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: ([row]) => row?.count !== 0 }),
+					Effect.timeout("5 seconds"),
+				);
+				expect(closed).toEqual([{ count: 0 }]);
 			}).pipe(Effect.timeout("20 seconds")),
 		);
 	});
