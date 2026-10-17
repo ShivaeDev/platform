@@ -1,4 +1,5 @@
 import { Stream } from "effect";
+import { ANSWER_RECORDED } from "#attention.ts";
 import type { FleetError } from "#errors.ts";
 import type { State } from "#host/waitOutcome.ts";
 
@@ -12,7 +13,11 @@ export function snapshotStream(snapshots: Stream.Stream<States, FleetError>, ids
 				if (continuous && selected === undefined) {
 					return states;
 				}
-				selected ??= new Set(states.filter((state) => !["completed", "needs-human", "released"].includes(state.stage)).map((state) => state.workId));
+				selected ??= new Set(
+					states
+						.filter((state) => state.blocker === ANSWER_RECORDED || !["completed", "needs-human", "released"].includes(state.stage))
+						.map((state) => state.workId),
+				);
 				const selection = selected;
 				return states.filter((state) => selection.has(state.workId));
 			}),

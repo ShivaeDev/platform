@@ -7,17 +7,18 @@ import { withDecisionResponses } from "#host/releaseWork.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Decision } from "#policy.ts";
 
-export function answerWork(host: FleetHost, workId: string, text = "", release = false) {
+export function answerWork(host: FleetHost, workId: string, text = "", release = false, background = false) {
 	return withDecisionResponses(
 		host,
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
+			const resolve = background ? fleet.recordResponse : fleet.resolve;
 			const original = (yield* fleet.get(workId)).value.decision;
 			let recorded: { readonly decisionId: string; readonly responseId: string } | undefined;
 			return yield* Effect.gen(function* () {
 				const current = (yield* fleet.get(workId)).value;
 				if (recorded !== undefined && hasResponse(current, recorded)) {
-					return yield* fleet.resolve(workId, recorded.decisionId, recorded.responseId);
+					return yield* resolve(workId, recorded.decisionId, recorded.responseId);
 				}
 				if (canQueueAnswer(current, text, release)) {
 					return yield* fleet.queueAnswer(workId, text);
@@ -25,9 +26,9 @@ export function answerWork(host: FleetHost, workId: string, text = "", release =
 				yield* checkDecision(current, original);
 				const response = yield* publishAnswer(host, workId, original, text, release);
 				recorded = response;
-				return yield* fleet
-					.resolve(workId, response.decisionId, response.responseId)
-					.pipe(Effect.catchTag("Conflict", (error) => decisionConflict(fleet, workId, response.decisionId, error)));
+				return yield* resolve(workId, response.decisionId, response.responseId).pipe(
+					Effect.catchTag("Conflict", (error) => decisionConflict(fleet, workId, response.decisionId, error)),
+				);
 			}).pipe(
 				Effect.retry({ while: (error) => error._tag === "StorageConflict" || (error._tag === "Conflict" && error.message === "Decision changed") }),
 			);

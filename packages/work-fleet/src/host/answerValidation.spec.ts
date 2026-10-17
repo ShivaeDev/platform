@@ -4,6 +4,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { daemonClient } from "#host/daemonClient.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
+import { answerAndWait, dispatchAndWait } from "#test/daemonActions.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -28,14 +29,14 @@ const answerValidationStory = Effect.fn("AnswerValidationTest.answerValidationSt
 	release: boolean,
 ) {
 	const client = yield* daemonClient(port);
-	const started = yield* client("daemon.dispatch", { workId: "one" });
+	const started = yield* dispatchAndWait(client, "one");
 	if (worker) {
 		yield* askWorker(fixture.provider);
 	} else {
 		finishWorkers(fixture.provider);
 	}
 	const waiting = yield* client("fleet.reconcile", { workId: "one" });
-	const error = yield* client("daemon.answer", { release, text: "x".repeat(32_769), workId: "one" }).pipe(Effect.flip);
+	const error = yield* answerAndWait(client, { release, text: "x".repeat(32_769), workId: "one" }).pipe(Effect.flip);
 	const files = boardHttpFiles(fixture.host.boardDir);
 	expect(readdirSync(join(fixture.host.boardDir, "responses")).filter((file) => file.startsWith("response."))).toEqual([]);
 	expect(files.receipts()).toEqual([]);
@@ -44,7 +45,7 @@ const answerValidationStory = Effect.fn("AnswerValidationTest.answerValidationSt
 	expect(rejected.decision).toEqual(waiting.decision);
 	expect(rejected.responses).toEqual(waiting.responses);
 	const text = "v".repeat(32_768);
-	const answered = yield* client("daemon.answer", { release, text, workId: "one" });
+	const answered = yield* answerAndWait(client, { release, text, workId: "one" });
 	const stage = worker ? "executing" : "adopting";
 	expect(answered.stage).toBe(release ? "released" : stage);
 	expect(answered.responses?.at(-1)).toMatchObject({ boardAcknowledged: true });

@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { daemonClient } from "#host/daemonClient.ts";
 import type { FleetRecord } from "#model.ts";
 import { type ApprovedPrFixture, type PrDaemonClient, repairAttempts, withApprovedPrDaemon } from "#test/approvedPrDaemon.ts";
+import { dispatchAndWait } from "#test/daemonActions.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { task, withHost } from "#test/fleetHost.ts";
@@ -90,7 +91,7 @@ test("answer during the initial worker turn queues multiple messages in order an
 			(port) =>
 				Effect.gen(function* () {
 					const client = yield* daemonClient(port);
-					const started = yield* client("daemon.dispatch", { workId: "one" });
+					const started = yield* dispatchAndWait(client, "one");
 					expect(yield* client("daemon.answer", { text: "x".repeat(32_769), workId: "one" }).pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });
 					yield* client("daemon.answer", { text: TEXT, workId: "one" });
 					yield* client("daemon.answer", { text: "Preserve the empty state.", workId: "one" });
@@ -112,7 +113,7 @@ test("queued guidance uses the current approved brief when the active turn ends"
 			(port) =>
 				Effect.gen(function* () {
 					const client = yield* daemonClient(port);
-					const started = yield* client("daemon.dispatch", { workId: "one" });
+					const started = yield* dispatchAndWait(client, "one");
 					yield* client("daemon.answer", { text: TEXT, workId: "one" });
 					const current = task("one", "approved", "Use the revised acceptance criteria.");
 					fixture.write("one.md", current);

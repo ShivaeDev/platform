@@ -11,6 +11,7 @@ import { prepareCommand } from "#engine/prepareCommand.ts";
 import { queueAnswerCommand } from "#engine/queueAnswerCommand.ts";
 import { reassignCommand } from "#engine/reassignCommand.ts";
 import { reconcileCommand } from "#engine/reconcileCommand.ts";
+import { recordResponseCommand } from "#engine/recordResponseCommand.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import { resolveCommand } from "#engine/resolveCommand.ts";
 import { cleanupSessions } from "#engine/sessionCleanup.ts";
@@ -43,6 +44,7 @@ export const Fleet = defineService({
 		queueAnswer: queueAnswerCommand(state),
 		reassign: reassignCommand(state),
 		reconcile: (workId: string) => reconcileCommand(state, state.advance)(workId).pipe(Effect.flatMap(cleanupSessions(state))),
+		recordResponse: recordResponseCommand(state),
 		resolve: (workId: string, decisionId: string, responseId: string) =>
 			resolveCommand(state)(workId, decisionId, responseId).pipe(Effect.flatMap(cleanupSessions(state))),
 	}),

@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { daemonClient } from "#host/daemonClient.ts";
 import { renderStatus } from "#host/renderStatus.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
+import { appliedAnswer, dispatchAndWait } from "#test/daemonActions.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -27,7 +28,7 @@ const workerQuestionStory = Effect.fn("DaemonCommandsTest.workerQuestionStory")(
 	source: "argument" | "stdin" | "release",
 ) {
 	const client = yield* daemonClient(port);
-	const started = yield* client("daemon.dispatch", { workId: "one" });
+	const started = yield* dispatchAndWait(client, "one");
 	const turnId = started.attempts.at(-1)?.receipt?.turnId ?? "missing";
 	const observation = fixture.provider.observations.get(turnId);
 	if (observation === undefined) {
@@ -48,8 +49,8 @@ const workerQuestionStory = Effect.fn("DaemonCommandsTest.workerQuestionStory")(
 			stdin: source === "stdin" ? answer : "",
 		}),
 	);
-	expect(result).toEqual({ code: 0, stdout: source === "release" ? "one released" : "one executing" });
-	const queued = yield* client("fleet.get", { workId: "one" });
+	expect(result).toEqual({ code: 0, stdout: "one needs-human: Answer recorded; applying in the background" });
+	const queued = yield* appliedAnswer(client, "one");
 	expect(queued.responses).toMatchObject([{ action: source === "release" ? "release" : "continue", boardAcknowledged: true }]);
 	const published = waiting.decision?.published;
 	if (published === undefined) {

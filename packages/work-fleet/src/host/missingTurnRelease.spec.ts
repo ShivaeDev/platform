@@ -4,6 +4,7 @@ import { daemonClient } from "#host/daemonClient.ts";
 import { executing } from "#model.ts";
 import { SessionTransport } from "#session/service.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
+import { appliedAnswer, dispatchAndWait } from "#test/daemonActions.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { task, withHost } from "#test/fleetHost.ts";
 import { missingTurnTransport } from "#test/missingTurnTransport.ts";
@@ -25,7 +26,7 @@ postgresTests("live")(
 					Effect.gen(function* () {
 						const client = yield* daemonClient(port);
 						for (const workId of ["one", "two"]) {
-							yield* client("daemon.dispatch", { workId });
+							yield* dispatchAndWait(client, workId);
 							const waiting = yield* client("fleet.reconcile", { workId });
 							expect(waiting.stage).toBe("needs-human");
 							expect(executing(waiting)).toBe(true);
@@ -39,9 +40,9 @@ postgresTests("live")(
 						expect((yield* client("fleet.reconcile", { workId: "two" })).stage).toBe("needs-human");
 						expect(yield* Effect.promise(() => cliProcess(["answer", "--release", "two", "--port", String(port)]))).toEqual({
 							code: 0,
-							stdout: "two released",
+							stdout: "two needs-human: Answer recorded; applying in the background",
 						});
-						const open = yield* client("fleet.get", { workId: "two" });
+						const open = yield* appliedAnswer(client, "two");
 						expect(open.stage).toBe("released");
 						expect(executing(open)).toBe(false);
 						expect(open.responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);

@@ -5,6 +5,8 @@ import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { admitApproved } from "#host/admission.ts";
 import { hostLayer } from "#host/commands.ts";
+import { daemonClient } from "#host/daemonClient.ts";
+import { waitForRecord } from "#test/daemonActions.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
@@ -19,7 +21,8 @@ const dispatchStory = Effect.fn("DaemonClientsTest.dispatchStory")(function* (fi
 	function dispatch(id: string) {
 		return Effect.promise(() => cliProcess(["dispatch", id, "--port", String(port), "--config", `${fixture.host.boardDir}/unused.json`]));
 	}
-	expect(yield* dispatch("one")).toEqual({ code: 0, stdout: "one executing" });
+	expect(yield* dispatch("one")).toEqual({ code: 0, stdout: "one prepared: dispatch recorded; launching in the background" });
+	yield* waitForRecord(yield* daemonClient(port), "one", (record) => record.attempts.at(-1)?.receipt !== undefined);
 	expect(fixture.provider.launched).toHaveLength(1);
 	expect([...fixture.provider.observations.values()][0]?.output).toContain("Edited approved revision.");
 	expect((yield* dispatch("denied")).code).toBe(1);

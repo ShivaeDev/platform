@@ -5,6 +5,7 @@ import { Effect } from "effect";
 import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
+import { appliedAnswer, dispatchAndWait } from "#test/daemonActions.ts";
 import { daemonResources } from "#test/daemonResources.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
@@ -21,7 +22,7 @@ const decisionStory = Effect.fn("DaemonCommandsTest.decisionStory")(function* (
 	resources: Effect.Success<ReturnType<typeof daemonResources>>,
 ) {
 	const client = yield* daemonClient(port);
-	yield* client("daemon.dispatch", { workId: "one" });
+	yield* dispatchAndWait(client, "one");
 	finishWorkers(fixture.provider);
 	const waiting = yield* client("fleet.reconcile", { workId: "one" });
 	expect(waiting.stage).toBe("needs-human");
@@ -32,9 +33,9 @@ const decisionStory = Effect.fn("DaemonCommandsTest.decisionStory")(function* (
 	const args = ["answer", "one", ...(action === "release" ? ["--release"] : []), "--port", String(port), "--config", "unused.json"];
 	expect(yield* Effect.promise(() => cliProcess(args))).toEqual({
 		code: 0,
-		stdout: `one ${action === "retry" ? "adopting" : "released"}`,
+		stdout: "one needs-human: Answer recorded; applying in the background",
 	});
-	const current = yield* client("fleet.get", { workId: "one" });
+	const current = yield* appliedAnswer(client, "one");
 	expect(current.decision).toBeUndefined();
 	expect(current.responses).toMatchObject([{ action, boardAcknowledged: true, decisionId: waiting.decision?.id, questionId: published.questionId }]);
 	const files = boardHttpFiles(fixture.host.boardDir);
@@ -74,7 +75,7 @@ test(
 
 const activeStory = Effect.fn("DaemonCommandsTest.activeStory")(function* (fixture: HostFixture, port: number) {
 	const client = yield* daemonClient(port);
-	yield* client("daemon.dispatch", { workId: "one" });
+	yield* dispatchAndWait(client, "one");
 	let stderr = "";
 	function captureError(text: string) {
 		stderr += text;

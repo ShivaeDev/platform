@@ -3,6 +3,8 @@ import { Schema } from "effect";
 export const AttentionOwner = Schema.Literals(["maintainer", "orchestrator", "automation"]);
 export type AttentionOwner = typeof AttentionOwner.Type;
 
+export const ANSWER_RECORDED = "Answer recorded; applying in the background";
+
 export function waitingOwner(record: {
 	readonly attentionOwner?: AttentionOwner | undefined;
 	readonly blocker?: string | undefined;
@@ -11,6 +13,9 @@ export function waitingOwner(record: {
 	readonly launchRetry?: { readonly retryAt: number } | undefined;
 	readonly stage: string;
 }): AttentionOwner | undefined {
+	if (record.blocker === ANSWER_RECORDED) {
+		return "automation";
+	}
 	if (record.launchRetry !== undefined || (record.stage === "prepared" && record.blocker?.startsWith("waiting for dependency "))) {
 		return "automation";
 	}

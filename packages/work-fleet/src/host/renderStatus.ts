@@ -7,7 +7,7 @@ const { DAEMON_PORT } = diagnosticsApi;
 type View = (typeof FleetViews.Type)["active"][number];
 
 function line(view: View, waiting: boolean, port: number) {
-	const reason = view.decision?.reason ?? view.blocker;
+	const reason = view.blocker ?? view.decision?.reason;
 	const detail = reason === undefined ? "" : `  ${reason}`;
 	const links = [...view.links, ...view.sessions.map(sessionStatus)];
 	const answer = waiting ? `\n    work-fleet answer ${view.workId}${port === DAEMON_PORT ? "" : ` --port ${port}`}` : "";

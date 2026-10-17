@@ -6,6 +6,7 @@ import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import { BoardFailure, BoardGateway } from "#policy.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
+import { answerAndWait, dispatchAndWait } from "#test/daemonActions.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
 import { cliProcess } from "#test/fleetCli.ts";
@@ -82,14 +83,14 @@ const staleStory = Effect.fn("StaleAcknowledgementTest.staleStory")(function* (
 	attempts: () => number,
 ) {
 	const client = yield* daemonClient(port);
-	const started = yield* client("daemon.dispatch", { workId: "one" });
+	const started = yield* dispatchAndWait(client, "one");
 	expect(started.stage).toBe("executing");
 	const turn = started.attempts.at(-1)?.receipt?.turnId ?? "missing";
 	const observation = fixture.provider.observations.get(turn) ?? (yield* Effect.die("Missing worker"));
 	fixture.provider.observations.set(turn, { ...observation, execution: "completed", output: "FLEET_QUESTION: Which storage?" });
 	const waiting = yield* client("fleet.reconcile", { workId: "one" });
 	const published = waiting.decision?.published ?? (yield* Effect.die("Missing published question"));
-	const answered = yield* client("daemon.answer", { release, text: "Use PostgreSQL.", workId: "one" });
+	const answered = yield* answerAndWait(client, { release, text: "Use PostgreSQL.", workId: "one" });
 	expect(answered.blocker).toContain("Board request acknowledgement pending");
 	expect(pendingAcknowledgements(answered)).toHaveLength(1);
 	const response = answered.responses?.[0] ?? (yield* Effect.die("Missing recorded answer"));

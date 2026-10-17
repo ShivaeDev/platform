@@ -116,7 +116,7 @@ export const admitApproved = Effect.fn("FleetHost.admitApproved")(function* (hos
 	return failures;
 }, inBoardReadPass);
 
-export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function* (host: FleetHost, workId: string) {
+export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function* (host: FleetHost, workId: string, prepareOnly = false) {
 	const fleet = yield* Fleet;
 	const work = yield* (yield* BoardGateway).get(workId);
 	if (!work.approved) {
@@ -127,5 +127,5 @@ export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function
 	if (existing === undefined || ["completed", "released"].includes(existing.stage) || unlaunched(existing) || !briefChanged(existing, work)) {
 		yield* prepareApproved(host, work, existing, "explicit");
 	}
-	return yield* fleet.dispatch(workId, launchPrompt(host, work));
+	return yield* prepareOnly ? fleet.get(workId) : fleet.dispatch(workId, launchPrompt(host, work));
 }, inBoardReadPass);

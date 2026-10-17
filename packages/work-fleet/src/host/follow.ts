@@ -34,7 +34,7 @@ export function follow(options: FollowOptions, workIds: readonly string[]) {
 			Stream.catch((error) => {
 				failures += 1;
 				if (!connected || isFleetError(error) || failures >= 20) {
-					return Stream.fail(daemonError(error, port));
+					return Stream.fail(daemonError(error, port, "follow"));
 				}
 				return Stream.unwrap(Effect.sleep(options.intervalMs).pipe(Effect.as(connect())));
 			}),

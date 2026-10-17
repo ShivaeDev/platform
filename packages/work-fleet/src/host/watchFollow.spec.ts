@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { daemonClient } from "#host/daemonClient.ts";
+import { dispatchAndWait } from "#test/daemonActions.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -30,7 +31,7 @@ const launchStory = Effect.fn("WatchFollowTest.launchStory")(function* (fixture:
 				decision: { attentionOwner: "orchestrator", id: "first", links: [], reason: "Choose the next step", recommendation: "retry" },
 			});
 			yield* untilOutput(follower, "a needs-human (waiting on orchestrator): Choose the next step\n");
-			expect((yield* client("daemon.dispatch", { workId: "b" })).stage).toBe("executing");
+			expect((yield* dispatchAndWait(client, "b")).stage).toBe("executing");
 			expect(fixture.provider.launched).toHaveLength(1);
 			yield* storeState(fixture.host, "b", { stage: "completed" });
 			yield* untilOutput(follower, "b completed\n");
