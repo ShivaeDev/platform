@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2 - 2026-10-16
+
+### Fixed
+
+- A generated app excludes `@shivaedev/*` from pnpm's release-age wait so framework releases can install immediately, while third-party packages keep pnpm's default wait.
+
 ## 0.4.1 - 2026-10-16
 
 ### Fixed
