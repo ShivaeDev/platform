@@ -20,11 +20,12 @@ const create = Effect.gen(function* () {
 	};
 });
 export type DatabaseEngine = Effect.Success<typeof create>;
-const kit = storyKit({
+export const databases = storyKit({
 	clock: "live",
 	create: () => create,
 	inspect: (engine) => ({ database: engine.name, leases: [...engine.leases.keys()] }),
 	name: "order database",
+	runIf: hasPostgres,
 	stages: ["leases"],
 	verbs: (engine, story) => ({
 		...databaseFailures(engine, story.tell),
@@ -67,7 +68,6 @@ const kit = storyKit({
 		overlappingStoriesKeepTheirRows: () => overlappingStories(story.tell),
 	}),
 });
-export const databases = { ...kit, it: kit.it.runIf(hasPostgres) };
 export function twoLeasesAreOpen() {
 	return databases.trait("leases", "two callers lease the worker database", function* (engine) {
 		for (const name of ["first", "second"]) {

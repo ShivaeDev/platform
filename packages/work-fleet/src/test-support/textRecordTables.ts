@@ -1,16 +1,11 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
-import { fleetMigrations } from "#storage/fleetMigrations.ts";
 import { legacyColumns } from "#storage/legacyColumns.ts";
+import { migrateFleet } from "#test/migrateFleet.ts";
 
 export const textRecordTables = Effect.fn("FleetFixture.textRecordTables")(function* (namespace: string, records: readonly object[]) {
 	const sql = yield* SqlClient.SqlClient;
-	yield* migratePostgres({
-		loader: fleetMigrations(namespace).pipe(Effect.map((migrations) => migrations.filter(([id]) => id <= 11))),
-		lockTimeout: "5 seconds",
-		table: `${namespace}_migrations`,
-	});
+	yield* migrateFleet(namespace, "pending_answers");
 	for (const [index, record] of records.entries()) {
 		const value: Record<string, unknown> = { ...record };
 		const fields = Object.fromEntries(

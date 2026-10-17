@@ -6,7 +6,7 @@ import { hasPostgres, workerDatabase } from "#test/order-example/postgres.ts";
 import { createLiveEngine } from "./liveEngine.ts";
 import { liveVerbs } from "./liveVerbs.ts";
 
-const kit = storyKit({
+export const app = storyKit({
 	around: isolate(wholeStack),
 	clock: "live",
 	create: () => createLiveEngine,
@@ -18,10 +18,11 @@ const kit = storyKit({
 	}),
 	layer: workerDatabase,
 	name: "composed orders",
+	runIf: hasPostgres,
 	stages: ["database", "commit", "editors"],
 	verbs: (engine, story) => liveVerbs(engine, story.tell),
 });
-export const app = { ...kit, fails: hasPostgres ? kit.it.fails : kit.it.skip, it: kit.it.runIf(hasPostgres) };
+
 export function realPostgres() {
 	return app.trait("database", "the reference feature uses a leased disposable PostgreSQL database", function* ({ database }) {
 		expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);

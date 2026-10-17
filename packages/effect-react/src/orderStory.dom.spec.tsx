@@ -48,7 +48,7 @@ app.it(
 	},
 );
 
-app.fails(
+app.it.fails(
 	"a failing story still unmounts and resets",
 	[realPostgres(), aliceHasOrder("paper"), orderEditorIsOpen("paper")],
 	function* ({ formIsReady, saveOrder }) {
