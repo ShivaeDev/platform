@@ -8,6 +8,10 @@
 		{
 			"name": "postgres-image-export.md",
 			"text": "### Added\n\n- `POSTGRES_IMAGE` exports the pinned PostgreSQL image, so CI can pull it before `db:setup` starts the container.\n"
+		},
+		{
+			"name": "readiness-options.md",
+			"text": "### Added\n\n- `localPostgres(environment, { attempts, delayMillis })` sets how many readiness checks `startPostgres` makes after it starts the container and how long it waits between them. The defaults stay at 30 checks one second apart.\n"
 		}
 	],
 	"version": "0.3.0"
