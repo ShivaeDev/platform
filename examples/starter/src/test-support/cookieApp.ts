@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { credentials } from "./authHttp.ts";
-import { createCookieHost } from "./createCookieHost.ts";
-import { postgres } from "./postgres.ts";
+import { credentials } from "#test-support/authHttp.ts";
+import { createCookieHost } from "#test-support/createCookieHost.ts";
+import { postgres } from "#test-support/postgres.ts";
 
 const alice = credentials("alice");
 export const cookieApp = storyKit({

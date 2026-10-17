@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { act } from "react";
 import { expect } from "vitest";
-import { observeScreen } from "./screenObservations.ts";
-import { type Screen, screenView } from "./screenState.ts";
+import { observeScreen } from "#test-support/screenObservations.ts";
+import { type Screen, screenView } from "#test-support/screenState.ts";
 
 export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 	const observe = observeScreen(tell);

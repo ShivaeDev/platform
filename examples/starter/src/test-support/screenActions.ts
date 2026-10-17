@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { type ScreenSurface, screenView } from "./screenState.ts";
+import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
 
 export function screenInput(engine: ScreenSurface, label?: string) {
 	const container = screenView(engine).container;

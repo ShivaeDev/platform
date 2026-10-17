@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { domFetch } from "@shivaedev/test-story/domFetch.ts";
 import { makeAuth } from "#client/auth.ts";
-import { startHost } from "./host.ts";
+import { startHost } from "#test-support/host.ts";
 
 export const createCookieHost = Effect.fn("CookieStory.createCookieHost")(function* () {
 	const { baseUrl } = yield* startHost();

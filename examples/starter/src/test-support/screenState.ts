@@ -3,8 +3,8 @@ import { expect, vi } from "vitest";
 import { type Rendered, render } from "@shivaedev/effect-react/testing.ts";
 import type { appRouter } from "#client/appRouter.tsx";
 import type { Credentials } from "#client/auth.ts";
-import type { appAuth } from "./appAuth.ts";
-import { notesClient } from "./notesClient.ts";
+import type { appAuth } from "#test-support/appAuth.ts";
+import { notesClient } from "#test-support/notesClient.ts";
 
 export interface Screen {
 	auth: ReturnType<typeof appAuth> | undefined;

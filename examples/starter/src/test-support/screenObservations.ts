@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/testing.ts";
-import { screenInput } from "./screenActions.ts";
-import { type ScreenSurface, screenView } from "./screenState.ts";
+import { screenInput } from "#test-support/screenActions.ts";
+import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
 
 export function observeScreen(tell: (line: string) => void) {
 	return (line: string, check: () => void) =>

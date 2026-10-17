@@ -7,12 +7,12 @@ import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { App } from "#client/App.tsx";
 import { makeNotesClient } from "#client/makeNotes.ts";
-import { credentials } from "./authHttp.ts";
-import { createCookieHost } from "./createCookieHost.ts";
-import { postgres } from "./postgres.ts";
-import { screenActions } from "./screenActions.ts";
-import { observeScreen, screenObservations } from "./screenObservations.ts";
-import { acquireScreen, type ScreenSurface } from "./screenState.ts";
+import { credentials } from "#test-support/authHttp.ts";
+import { createCookieHost } from "#test-support/createCookieHost.ts";
+import { postgres } from "#test-support/postgres.ts";
+import { screenActions } from "#test-support/screenActions.ts";
+import { observeScreen, screenObservations } from "#test-support/screenObservations.ts";
+import { acquireScreen, type ScreenSurface } from "#test-support/screenState.ts";
 
 const alice = credentials("alice");
 
