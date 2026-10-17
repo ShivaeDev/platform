@@ -6,6 +6,9 @@ import type { Versioned } from "#storage/model.ts";
 
 export const abandonStalled = Effect.fn("Fleet.abandonStalled")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
 	const latest = stored.value.attempts.at(-1);
+	if (!hasStalledAttempt(stored.value) || latest?.abandoned !== undefined) {
+		return stored;
+	}
 	const targets = stored.value.attempts.filter((attempt) => attempt === latest || ["submitting", "accepted", "running"].includes(attempt.status));
 	const at = state.policy.now();
 	let current = yield* state.save(stored, {
@@ -42,6 +45,11 @@ export const abandonStalled = Effect.fn("Fleet.abandonStalled")(function* (state
 	}
 	return current;
 });
+
+function hasStalledAttempt(record: FleetRecord): boolean {
+	const latest = record.attempts.at(-1);
+	return record.decision?.code === "session-stalled" || (latest?.sessionUnusable === true && (latest.stallRecovery?.count ?? 0) >= 2);
+}
 
 function lastObservation(attempt: Attempt): SessionObservation | undefined {
 	return attempt.receipt === undefined || attempt.status === "submitting"

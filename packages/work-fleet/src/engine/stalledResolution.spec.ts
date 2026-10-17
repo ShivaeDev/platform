@@ -1,12 +1,19 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
+import type { Decision } from "#policy.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
 import { parkStalled, stalledProgress } from "#test/parkStalled.ts";
 import { postgresTests } from "#test/postgres.ts";
 
-for (const action of ["retry", "release"] as const) {
-	postgresTests("test")(`a stalled running turn can ${action} without provider cooperation and rejects late output`, () => {
+for (const scenario of [
+	{ action: "retry", replaceDecision: false },
+	{ action: "release", replaceDecision: false },
+	{ action: "retry", replaceDecision: true },
+	{ action: "release", replaceDecision: true },
+] as const) {
+	const { action, replaceDecision } = scenario;
+	postgresTests("test")(`stalled ${action} fences late output, replacement=${replaceDecision}`, () => {
 		let now = 0;
 		const interrupted: string[] = [];
 		return withEngine(
@@ -31,6 +38,7 @@ for (const action of ["retry", "release"] as const) {
 						now += 31 * 60_000;
 					});
 					expect(stalled.value.decision?.code).toBe("session-stalled");
+					yield* fixture.replaceRecord({ ...stalled.value, decision: replacement(stalled.value.decision, replaceDecision) });
 					const attempt = stalled.value.attempts[0];
 					const receipt = attempt?.receipt;
 					if (attempt === undefined || receipt === undefined) {
@@ -65,4 +73,8 @@ for (const action of ["retry", "release"] as const) {
 				}),
 		);
 	});
+}
+
+function replacement(decision: Decision | undefined, replaceDecision: boolean): Decision | undefined {
+	return decision === undefined || !replaceDecision ? decision : { ...decision, code: "fleet-invalid", reason: "Replacement decision" };
 }
