@@ -1,3 +1,4 @@
+import { useRouter } from "@tanstack/react-router";
 import { CalendarDays, Ellipsis, Flag, Search, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "#client/react/components/ui/Button.tsx";
@@ -12,6 +13,7 @@ const TAB_CLASS =
 	"flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md border-0 bg-transparent p-0 text-foreground text-xs no-underline aria-[current=page]:bg-accent aria-[current=page]:text-primary";
 
 export function PhoneNavigation({ main, openSearch }: { readonly main: MainLocation; readonly openSearch: () => void }) {
+	const router = useRouter();
 	const [more, setMore] = useState(false);
 	const narrow = useMedia("(max-width: 767px)");
 	useEffect(() => {
@@ -19,13 +21,7 @@ export function PhoneNavigation({ main, openSearch }: { readonly main: MainLocat
 			setMore(false);
 		}
 	}, [narrow]);
-	useEffect(() => {
-		function close() {
-			setMore(false);
-		}
-		document.addEventListener("board-navigate", close);
-		return () => document.removeEventListener("board-navigate", close);
-	}, []);
+	useEffect(() => router.subscribe("onBeforeNavigate", () => setMore(false)), [router]);
 	return (
 		<>
 			<nav

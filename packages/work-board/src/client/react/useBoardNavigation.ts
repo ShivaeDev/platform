@@ -1,8 +1,9 @@
 import { useRouter } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import type { RouterShell } from "#client/react/loadBoardPage.ts";
 import { useMainLocation } from "#client/react/MainLocationContext.ts";
 import { currentEntry, navigationFailure, readingKey, sameReadingLocation } from "#client/react/navigationLocation.ts";
+import { ReadingReadyContext, readingReady } from "#client/react/ReadingReadyContext.ts";
 import { readerLink } from "#client/react/readerLink.ts";
 import { captureReading } from "#client/react/readingState.ts";
 import { retryPage } from "#client/react/retryPage.ts";
@@ -12,12 +13,15 @@ import { readingEntry, storedReadings } from "#client/react/storedReadings.ts";
 export function useBoardNavigation(shell: RouterShell) {
 	const router = useRouter();
 	const main = useMainLocation();
+	const { element } = useContext(ReadingReadyContext);
+	const readyRef = useRef(element);
 	const mainRef = useRef(main);
 	const pageRef = useRef<(() => void) | undefined>(undefined);
 	useEffect(() => {
 		mainRef.current = main;
+		readyRef.current = element;
 		pageRef.current?.();
-	}, [main]);
+	}, [main, element]);
 	const [status, setStatus] = useState("");
 	useEffect(() => {
 		const readings = storedReadings();
@@ -42,7 +46,7 @@ export function useBoardNavigation(shell: RouterShell) {
 			const location = router.state.resolvedLocation ?? router.state.location;
 			const nextRoute = location.pathname + location.searchStr;
 			const doc = document.getElementById("doc");
-			if (!doc || mainRef.current.route !== nextRoute) {
+			if (!doc || mainRef.current.route !== nextRoute || !readingReady(doc, readyRef.current)) {
 				return;
 			}
 			const previousFailure = failure;
@@ -69,7 +73,6 @@ export function useBoardNavigation(shell: RouterShell) {
 		}
 		async function open(target: URL) {
 			save();
-			document.dispatchEvent(new Event("board-navigate"));
 			const url = target.pathname + target.search + target.hash;
 			if (
 				url === router.state.location.href

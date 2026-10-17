@@ -1,7 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { BrowserClient } from "#client/client.ts";
 import { navigationQuery } from "#client/page/routeQuery.ts";
@@ -14,10 +14,13 @@ import { MainLocationContext, useMainLocation } from "./MainLocationContext.ts";
 import { emptyMainLocation, type MainLocation } from "./mainLocation.ts";
 import { PhoneNavigation } from "./PhoneNavigation.tsx";
 import { ReadingLibrary } from "./ReadingLibrary.tsx";
+import { ReadingReadyContext, readingReady } from "./ReadingReadyContext.ts";
 import { SearchDialog } from "./SearchDialog.tsx";
+import { SessionContext } from "./SessionContext.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { Sidebar } from "./Sidebar.tsx";
 import { shellIds } from "./shellIds.ts";
+import { ThemeContext } from "./ThemeContext.ts";
 import { UpdatesToggle } from "./UpdatesToggle.tsx";
 import { useAppearance } from "./useAppearance.ts";
 import { useBoardNavigation } from "./useBoardNavigation.ts";
@@ -33,16 +36,33 @@ export interface ShellOptions {
 }
 export function BoardShell(options: ShellOptions) {
 	const [main, onPage] = useState(emptyMainLocation);
+	const appearance = useAppearance();
+	const [element, setElement] = useState<HTMLElement | null>(null);
+	const report = useCallback((next: HTMLElement, ready: boolean) => {
+		setElement((current) => {
+			if (ready) {
+				return next;
+			}
+			return current === next ? null : current;
+		});
+	}, []);
 	return (
 		<MainLocationContext.Provider value={main}>
-			<BoardWorkspace {...options} onPage={onPage} />
+			<ReadingReadyContext.Provider value={{ element, report }}>
+				<SessionContext.Provider value={options.client}>
+					<ThemeContext.Provider value={appearance.scheme}>
+						<BoardWorkspace {...options} appearance={appearance} onPage={onPage} />
+					</ThemeContext.Provider>
+				</SessionContext.Provider>
+			</ReadingReadyContext.Provider>
 		</MainLocationContext.Provider>
 	);
 }
-function BoardWorkspace(options: ShellOptions & { readonly onPage: (location: MainLocation) => void }) {
-	const { api, ready, client, onPage } = options;
+function BoardWorkspace(
+	options: ShellOptions & { readonly appearance: ReturnType<typeof useAppearance>; readonly onPage: (location: MainLocation) => void },
+) {
+	const { api, ready, client, onPage, appearance } = options;
 	const main = useMainLocation();
-	const appearance = useAppearance();
 	const sidebar = useSidebar(appearance);
 	const status = useBoardNavigation(options);
 	const search = useSearchDialog();
@@ -50,25 +70,13 @@ function BoardWorkspace(options: ShellOptions & { readonly onPage: (location: Ma
 	const location = useRouterState({ select: (state) => state.location });
 	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const data = Option.getOrUndefined(query.data);
+	const { element } = useContext(ReadingReadyContext);
 	useEffect(() => {
-		function start() {
-			const doc = document.getElementById("doc");
-			const context = doc?.querySelector<HTMLElement>(".item-context");
-			if (data && main.route && (!context || context.dataset.readingReady === "true")) {
-				ready?.();
-			}
+		const doc = document.getElementById("doc");
+		if (data && main.route && doc && readingReady(doc, element)) {
+			ready?.();
 		}
-		start();
-		document.addEventListener("board-reading-ready", start);
-		return () => {
-			document.removeEventListener("board-reading-ready", start);
-		};
-	}, [ready, data, main]);
-	useEffect(() => {
-		if (data) {
-			document.dispatchEvent(new Event("board-index-change"));
-		}
-	}, [data]);
+	}, [ready, data, main, element]);
 	const live = client ? (
 		<LiveControls client={client} navigationFailed={Option.isSome(query.cause)} navigationPending={query.pending} />
 	) : (
