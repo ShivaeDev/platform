@@ -1,4 +1,4 @@
-import { Context, Effect, Exit, Layer, Redacted, Scope } from "effect";
+import { Context, Effect, Exit, Layer, Redacted, Schedule, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
@@ -49,7 +49,11 @@ integration("idle fixtures need no admin session and scope close drops every dat
 			).pipe(Effect.provideContext(services));
 			yield* Scope.close(scope, Exit.void);
 			expect(idleAdminConnections).toBe(0);
-			expect(yield* connections(url.pathname.slice(1))).toBe(0);
+			const closedAdminConnections = yield* connections(url.pathname.slice(1)).pipe(
+				Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: (total) => total !== 0 }),
+				Effect.timeout("5 seconds"),
+			);
+			expect(closedAdminConnections).toBe(0);
 			expect([template, shared, isolated].every((name) => name !== "")).toBe(true);
 			for (const name of [template, shared, isolated]) {
 				expect(yield* admin`select datname from pg_database where datname = ${name}`).toEqual([]);
