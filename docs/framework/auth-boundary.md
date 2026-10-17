@@ -49,7 +49,7 @@ The test issues sessions through BetterAuth's actual sign-up HTTP handler, passe
 - Sign-out through BetterAuth's HTTP handler revokes the session, even if a client retains the old cookie.
 - A persisted expired session is rejected by the provider. The test backdates the database row to establish this condition without waiting for wall time.
 
-The test exercises real Web `Request`/`Response` handling and the native generated RPC client through an injected fetch transport. It does not open a TCP listener and does not simulate a browser cookie jar. The earlier order example separately exercises a loopback HTTP server.
+The test exercises real Web `Request`/`Response` handling and the native generated RPC client through an injected fetch transport. It does not open a TCP listener and does not simulate a browser cookie jar. The [order example](./order-example.md) separately exercises a loopback HTTP server.
 
 Cookie caching is explicitly disabled in this example. Immediate revocation here is a database-backed session property, not a promise about every possible BetterAuth cache or secondary-storage configuration.
 
@@ -59,6 +59,6 @@ This is an independently executable provider-boundary example, not an applicatio
 
 The example requires an exact trusted Origin for every RPC call, including reads. This is intentionally simple for a same-origin browser application. The Platform middleware instead takes an explicit Origin policy function, and `trustedOrigins` requires a decision about missing headers; see [Origin policy](./request-context.md#origin-policy) for the trade-offs. Browser deployment still needs explicit credential/cookie settings, CSRF review, CORS/preflight behavior where applicable, and tests through the actual host. Native clients and server-to-server callers need a deliberate authentication policy; allowing a missing Origin unconditionally would erase the demonstrated browser boundary.
 
-The remaining lifecycle questions are user experience policy: after sign-out or session expiry, clear user-scoped atom data, unmount/reset the user runtime, and preserve or discard drafts according to the app's explicit policy. The middleware alone cannot ensure that previously cached data disappears from the UI.
+The authenticated application shell supplies `SessionBoundary` with the auth owner's session and `recheck`. When that session changes or ends, the boundary replaces or disposes its registry and subtree, clearing cached query data and drafts. The [client lifecycle guide](./client-lifecycle.md) links the rendered session-transition tests; [editing](./editing.md) describes draft ownership. The middleware resolves identity for a request; the auth owner decides when to end the UI session.
 
-BetterAuth storage failure is mapped distinctly. The Platform middleware test closes the provider's database and checks that requests fail with `AuthUnavailable`, not `Unauthorized`. Recovery after an outage is not yet covered. OAuth, session refresh cookies, cross-origin hosts, and native mobile cookie persistence also remain outside this test.
+BetterAuth storage failure is mapped distinctly. The Platform middleware test closes the provider's database and checks that requests fail with `AuthUnavailable`, not `Unauthorized`. This test covers the outage response, not recovery. OAuth, session refresh cookies, cross-origin hosts and native mobile cookie persistence are outside its scope; application and deployment acceptance is tracked in the [roadmap](./roadmap.md).

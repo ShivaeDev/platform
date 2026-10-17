@@ -53,7 +53,7 @@ The session implementation is an injected example boundary, not a replacement
 for Better Auth. Production cookie handling, CSRF policy, session storage and
 mobile authentication still need application integration.
 
-The original boundary tests use SQLite. The [application story kit](../../packages/effect-react/src/test-support/order-example/application.ts) runs the same service, repository, contracts and components against real PostgreSQL and a loopback HTTP listener with native RPC serialization. Its DOM tests do not prove browser networking, SSR hydration,
+The [boundary tests](../../packages/effect-react/src/orderExample.dom.spec.tsx) use SQLite. The [application story kit](../../packages/effect-react/src/test-support/order-example/application.ts) runs the same service, repository, contracts and components against real PostgreSQL and a loopback HTTP listener with native RPC serialization. Its DOM tests do not prove browser networking, SSR hydration,
 Capacitor resume, offline writes or cross-process invalidation. The PostgreSQL story coverage uses the kit described below; broader codec coverage remains separate from this feature.
 
 The small Node HTTP bridge is test infrastructure, not a production server
