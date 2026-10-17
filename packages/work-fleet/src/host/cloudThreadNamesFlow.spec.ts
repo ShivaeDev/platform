@@ -59,7 +59,7 @@ test(
 	"backfills sessions across all records and history once, including legacy names and continued repairs",
 	() =>
 		withNamedCloudHost("Automation: ", (fixture) =>
-			withReadDaemon(fixture.host, (port) => backfillStory(fixture, port), { ...fixture.parts, provider: hostProvider(fixture.host) }),
+			withReadDaemon(fixture.host, (port) => backfillStory(fixture, port), { parts: { ...fixture.parts, provider: hostProvider(fixture.host) } }),
 		),
 	30_000,
 );
@@ -68,7 +68,9 @@ test(
 	"reports read and rename failures, continues other sessions, and retries only failed names",
 	() =>
 		withNamedCloudHost(undefined, (fixture) =>
-			withReadDaemon(fixture.host, (port) => namingFailureStory(fixture, port), { ...fixture.parts, provider: hostProvider(fixture.host) }),
+			withReadDaemon(fixture.host, (port) => namingFailureStory(fixture, port), {
+				parts: { ...fixture.parts, provider: hostProvider(fixture.host) },
+			}),
 		),
 	30_000,
 );

@@ -1,14 +1,13 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { githubRead } from "#host/githubRead.ts";
+import { GithubApi } from "#host/githubApi.ts";
 import { githubResult } from "#host/githubResult.ts";
-import { githubCli } from "#test/githubCli.ts";
+import { githubCliApi } from "#test/githubApi.ts";
 import { BASE, completed, HEAD, PR, resultFixture, work } from "#test/githubResult.ts";
 
 const ENDPOINT = "repos/example/repository/pulls/7";
 const responses = new Map([
-	["nameWithOwner", JSON.stringify({ nameWithOwner: "example/repository" })],
 	[
 		ENDPOINT,
 		JSON.stringify({
@@ -21,27 +20,26 @@ const responses = new Map([
 			state: "open",
 		}),
 	],
-	["--slurp", JSON.stringify([[{ filename: "src/one.ts" }], [{ filename: "src/two.ts" }]])],
+	[`${ENDPOINT}/files?per_page=100`, JSON.stringify([{ filename: "src/one.ts" }, { filename: "src/two.ts" }])],
 ]);
 
-it.live("adopts a result with the shared gh process reader in the host repository", function* () {
-	const { host, main } = resultFixture();
-	const cli = githubCli(responses);
-	const adopt = githubResult(host, main, (args) => githubRead(args, main.repositoryRoot).pipe(Effect.provide(cli.layer)));
-	expect(yield* adopt(work, completed())).toEqual({ head: HEAD, kind: "change", paths: ["src/one.ts", "src/two.ts"], pr: PR, prNumber: 7 });
-	expect(cli.commands).toHaveLength(4);
-	expect(cli.commands[0]).toMatchObject({ args: ["repo", "view", "--json", "nameWithOwner"], command: "gh", options: { cwd: main.repositoryRoot } });
-	expect(cli.commands[2]).toMatchObject({
-		args: ["api", `${ENDPOINT}/files?per_page=100`, "--paginate", "--slurp"],
-		command: "gh",
-		options: { cwd: main.repositoryRoot },
-	});
+function adopt(cli: ReturnType<typeof githubCliApi>) {
+	const { host } = resultFixture();
+	return GithubApi.pipe(
+		Effect.flatMap((github) => githubResult(host, github, Effect.succeed("example/repository"))(work, completed())),
+		Effect.provide(cli.layer),
+	);
+}
+
+it.live("adopts a result with REST reads through the shared gh seam", function* () {
+	const cli = githubCliApi(responses);
+	expect(yield* adopt(cli)).toEqual({ head: HEAD, kind: "change", paths: ["src/one.ts", "src/two.ts"], pr: PR, prNumber: 7 });
+	expect(cli.commands).toHaveLength(3);
+	expect(cli.commands[1]).toMatchObject({ args: ["api", "--include", "--method", "GET", `${ENDPOINT}/files?per_page=100`], command: "gh" });
 });
 
-it.live("rejects a failed gh process even when its stdout contains a valid result", function* () {
-	const { host, main } = resultFixture();
-	const cli = githubCli(responses, 1);
-	const adopt = githubResult(host, main, (args) => githubRead(args, main.repositoryRoot).pipe(Effect.provide(cli.layer)));
-	expect(yield* adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
+it.live("rejects a failed gh response even when its body contains a valid result", function* () {
+	const cli = githubCliApi(responses, 502);
+	expect(yield* adopt(cli).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
 	expect(cli.commands).toHaveLength(1);
 });

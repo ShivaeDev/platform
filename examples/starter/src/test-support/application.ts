@@ -1,4 +1,4 @@
-import { ConfigProvider, Effect, Layer } from "effect";
+import { ConfigProvider, Effect, Exit, Layer, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
@@ -82,7 +82,15 @@ export const app = storyKit({
 				story.tell("start the word-count worker");
 				const database = yield* PostgresTestDatabase;
 				const worker = noteWorker({ databaseUrl: database.url });
-				yield* Layer.build(env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))));
+				const scope = yield* Scope.fork(yield* Scope.Scope);
+				yield* Layer.buildWithScope(
+					env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),
+					scope,
+				);
+				return Effect.suspend(() => {
+					story.tell("stop the word-count worker");
+					return Scope.close(scope, Exit.void);
+				});
 			}),
 		};
 	},

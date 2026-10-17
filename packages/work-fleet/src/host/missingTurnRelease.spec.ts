@@ -52,7 +52,7 @@ postgresTests("live")(
 						expect(missing.requests).not.toContain("turn/start");
 						expect(missing.recoveries.every((input) => input.resume === undefined)).toBe(true);
 					}),
-				parts,
+				{ parts },
 			);
 		}),
 	30_000,

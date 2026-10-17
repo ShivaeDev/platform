@@ -27,7 +27,8 @@ export const initializeGit = Effect.fn("CreateApp.initializeGit")(function* (cwd
 });
 
 export const commitGit = Effect.fn("CreateApp.commitGit")(function* (cwd: string) {
-	const identity = yield* git(cwd, ["var", "GIT_AUTHOR_IDENT"]);
+	// Guessing an email from the host name stalls for seconds on macOS.
+	const identity = yield* git(cwd, ["-c", "user.useConfigOnly=true", "var", "GIT_AUTHOR_IDENT"]);
 	const fallback = identity === 0 ? [] : ["-c", "user.name=Create App", "-c", "user.email=create-app@localhost"];
 	yield* checkedGit(cwd, ["add", "--all"]);
 	yield* checkedGit(cwd, [...fallback, "commit", "-m", "Initialize a generated app"]);

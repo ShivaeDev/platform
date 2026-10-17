@@ -1,10 +1,10 @@
 import { globSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { sizeSnapshot } from "./shardCount.ts";
+import { testJobDurations, wallTimeShardCount } from "./shardCount.ts";
 import { decodeTimingSnapshot, decodeVitestTimingReport } from "./timings.ts";
 
-export function mergeTestTimings(reports: readonly string[], count: number, runId: string, sha: string) {
+export function mergeTestTimings(reports: readonly string[], jobs: unknown, count: number, runId: string, sha: string) {
 	if (reports.length !== count || count < 1) {
 		throw new Error("Test timing reports must cover every shard");
 	}
@@ -12,7 +12,12 @@ export function mergeTestTimings(reports: readonly string[], count: number, runI
 	if (timings.length === 0) {
 		throw new Error("Test timing reports are empty");
 	}
-	return sizeSnapshot(decodeTimingSnapshot({ runId, sha, timings: timings.sort((a, b) => a.name.localeCompare(b.name, "en")) }));
+	return decodeTimingSnapshot({
+		runId,
+		sha,
+		shardCount: wallTimeShardCount(testJobDurations(jobs, count)),
+		timings: timings.sort((a, b) => a.name.localeCompare(b.name, "en")),
+	});
 }
 
 if (import.meta.main) {
@@ -20,6 +25,7 @@ if (import.meta.main) {
 		options: {
 			count: { type: "string" },
 			directory: { type: "string" },
+			jobs: { type: "string" },
 			output: { type: "string" },
 			"run-id": { type: "string" },
 			sha: { type: "string" },
@@ -27,13 +33,16 @@ if (import.meta.main) {
 	});
 	if (
 		values.directory === undefined
+		|| values.jobs === undefined
 		|| values.output === undefined
 		|| values.count === undefined
 		|| values["run-id"] === undefined
 		|| values.sha === undefined
 	) {
-		throw new Error("Provide --directory, --output, --count, --run-id and --sha");
+		throw new Error("Provide --directory, --jobs, --output, --count, --run-id and --sha");
 	}
 	const reports = globSync("**/results.json", { cwd: values.directory }).map((path) => readFileSync(join(values.directory ?? "", path), "utf8"));
-	writeFileSync(values.output, `${JSON.stringify(mergeTestTimings(reports, Number(values.count), values["run-id"], values.sha), null, 2)}\n`);
+	const jobs: unknown = JSON.parse(readFileSync(values.jobs, "utf8"));
+	const snapshot = mergeTestTimings(reports, jobs, Number(values.count), values["run-id"], values.sha);
+	writeFileSync(values.output, `${JSON.stringify(snapshot, null, 2)}\n`);
 }

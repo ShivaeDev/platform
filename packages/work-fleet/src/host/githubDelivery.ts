@@ -1,10 +1,10 @@
-import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Schema } from "effect";
 import { BadRequest, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { conflictingPr, movedPrHead } from "#engine/deliveryFailure.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
-import { githubRead } from "#host/githubRead.ts";
+import type { GithubRead } from "#host/github.ts";
+import { githubFailure } from "#host/githubRateLimit.ts";
 import type { ChangeResult } from "#policy.ts";
 
 const PullRequest = Schema.Struct({
@@ -21,20 +21,57 @@ function failure(message: string, reason: "integration" | "invalid" = "invalid")
 	return reason === "integration" ? new ServiceUnavailable({ message }) : new BadRequest({ message });
 }
 
-function readPullRequest(cwd: string, pr: string) {
-	return githubRead(["pr", "view", pr, "--json", "url,state,headRefOid,mergedAt,mergeCommit,mergeable,baseRefOid"], cwd).pipe(
-		Effect.provide(NodeServices.layer),
-		Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))),
-		Effect.mapError(() => failure("PR delivery observation failed; check GitHub CLI access and response", "integration")),
-	);
+const Sha = Schema.String.check(Schema.isPattern(/^[a-f\d]{40}$/u));
+const RestPullRequest = Schema.Struct({
+	base: Schema.Struct({ sha: Sha }),
+	head: Schema.Struct({ sha: Sha }),
+	htmlUrl: Schema.NonEmptyString,
+	mergeable: Schema.NullOr(Schema.Boolean),
+	mergeCommitSha: Schema.NullOr(Schema.String),
+	merged: Schema.Boolean,
+	mergedAt: Schema.NullOr(Schema.NonEmptyString),
+	state: Schema.Literals(["open", "closed"]),
+}).pipe(Schema.encodeKeys({ htmlUrl: "html_url", mergeCommitSha: "merge_commit_sha", mergedAt: "merged_at" }));
+
+function mergeability(mergeable: boolean | null) {
+	if (mergeable === null) {
+		return "UNKNOWN";
+	}
+	return mergeable ? "MERGEABLE" : "CONFLICTING";
 }
 
-export function githubDelivery(cwd: string, read: (cwd: string, pr: string) => Effect.Effect<unknown, FleetError> = readPullRequest) {
+function deliveryState(observed: typeof RestPullRequest.Type) {
+	if (observed.merged) {
+		return "MERGED";
+	}
+	return observed.state === "open" ? "OPEN" : "CLOSED";
+}
+
+export function readPullRequest(read: GithubRead["get"]) {
+	return (pr: string) => {
+		const match = /^https:\/\/github\.com\/(?<repository>[^/]+\/[^/]+)\/pull\/(?<number>[1-9]\d*)$/u.exec(pr)?.groups;
+		return read(`repos/${match?.repository}/pulls/${match?.number}`).pipe(
+			Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(RestPullRequest))),
+			Effect.map((observed): typeof PullRequest.Encoded => ({
+				baseRefOid: observed.base.sha,
+				headRefOid: observed.head.sha,
+				mergeable: mergeability(observed.mergeable),
+				mergeCommit: observed.merged && observed.mergeCommitSha !== null ? { oid: observed.mergeCommitSha } : null,
+				mergedAt: observed.mergedAt,
+				state: deliveryState(observed),
+				url: observed.htmlUrl,
+			})),
+			Effect.mapError(githubFailure("PR delivery observation failed; check GitHub CLI access and response")),
+		);
+	};
+}
+
+export function githubDelivery(read: (pr: string) => Effect.Effect<unknown, FleetError>) {
 	return Effect.fn("FleetHost.githubDelivery")(function* (result: typeof ChangeResult.Type) {
 		if (result.pr.match(/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/[1-9]\d*$/u) === null) {
 			return yield* withFailureContext(new BadRequest({ message: "Delivery requires the adopted GitHub PR URL" }), { code: "delivery-pr-required" });
 		}
-		const pr = yield* Schema.decodeUnknownEffect(PullRequest)(yield* read(cwd, result.pr)).pipe(
+		const pr = yield* Schema.decodeUnknownEffect(PullRequest)(yield* read(result.pr)).pipe(
 			Effect.mapError(() => failure("PR delivery observation returned an unknown shape", "integration")),
 		);
 		yield* validateDelivery(pr, result);

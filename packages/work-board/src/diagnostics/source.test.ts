@@ -22,11 +22,12 @@ for (const source of ["codex", "github", "fleet"] as const) {
 	}
 }
 
-it.live("concurrent tabs share one GitHub read per minute and Fleet is read on each refresh", function* () {
+it.live("concurrent tabs share one Codex read per minute while Fleet and its GitHub observations are read on each refresh", function* () {
 	const entered = yield* Deferred.make<void>();
 	const release = yield* Deferred.make<void>();
-	let githubReads = 0;
+	let codexReads = 0;
 	let fleetReads = 0;
+	let githubReads = 0;
 	const sources = syntheticSources();
 	let now = 0;
 	const clock = yield* Clock.Clock;
@@ -41,30 +42,34 @@ it.live("concurrent tabs share one GitHub read per minute and Fleet is read on e
 	};
 	const read = yield* diagnostics({
 		...sources,
+		codex: Effect.sync(() => {
+			codexReads += 1;
+		}).pipe(Effect.andThen(Deferred.succeed(entered, undefined)), Effect.andThen(Deferred.await(release)), Effect.andThen(sources.codex)),
 		fleet: Effect.sync(() => {
 			fleetReads += 1;
 		}).pipe(Effect.andThen(sources.fleet)),
 		github: Effect.sync(() => {
 			githubReads += 1;
-		}).pipe(Effect.andThen(Deferred.succeed(entered, undefined)), Effect.andThen(Deferred.await(release)), Effect.andThen(sources.github)),
+		}).pipe(Effect.andThen(sources.github)),
 	}).pipe(Effect.provideService(Clock.Clock, cachedClock));
 	const first = yield* read.pipe(Effect.provideService(Clock.Clock, cachedClock), Effect.forkChild);
 	yield* Deferred.await(entered);
 	const second = yield* read.pipe(Effect.provideService(Clock.Clock, cachedClock), Effect.forkChild);
 	yield* Deferred.succeed(release, undefined);
-	expect(yield* Fiber.join(first)).toMatchObject({ github: { state: "ready" } });
+	expect(yield* Fiber.join(first)).toMatchObject({ codex: { state: "ready" } });
 	yield* Fiber.join(second);
-	expect(githubReads).toBe(1);
+	expect(codexReads).toBe(1);
 	now = 59_000;
 	yield* read.pipe(Effect.provideService(Clock.Clock, cachedClock));
-	expect(githubReads).toBe(1);
+	expect(codexReads).toBe(1);
 	now = 60_000;
 	yield* read.pipe(Effect.provideService(Clock.Clock, cachedClock));
-	expect(githubReads).toBe(2);
+	expect(codexReads).toBe(2);
 	expect(fleetReads).toBe(4);
+	expect(githubReads).toBe(4);
 });
 
-it.live("failed GitHub reads are cached and recover after a minute", function* () {
+it.live("failed Codex reads are cached and recover after a minute", function* () {
 	let failing = true;
 	let reads = 0;
 	const sources = syntheticSources();
@@ -81,30 +86,30 @@ it.live("failed GitHub reads are cached and recover after a minute", function* (
 	};
 	const read = yield* diagnostics({
 		...sources,
-		github: Effect.suspend(() => {
+		codex: Effect.suspend(() => {
 			reads += 1;
-			return failing ? Effect.fail(new SourceFailure({ kind: "error", message: "GitHub offline" })) : sources.github;
+			return failing ? Effect.fail(new SourceFailure({ kind: "error", message: "Codex offline" })) : sources.codex;
 		}),
 	}).pipe(Effect.provideService(Clock.Clock, cachedClock));
-	expect((yield* read.pipe(Effect.provideService(Clock.Clock, cachedClock))).github.state).toBe("error");
+	expect((yield* read.pipe(Effect.provideService(Clock.Clock, cachedClock))).codex.state).toBe("error");
 	failing = false;
 	yield* read.pipe(Effect.provideService(Clock.Clock, cachedClock));
 	expect(reads).toBe(1);
 	now = 60_000;
-	expect((yield* read.pipe(Effect.provideService(Clock.Clock, cachedClock))).github.state).toBe("ready");
+	expect((yield* read.pipe(Effect.provideService(Clock.Clock, cachedClock))).codex.state).toBe("ready");
 	expect(reads).toBe(2);
 });
 
-it.live("a cancelled tab cannot poison the shared source cache or spend another GitHub request", function* () {
+it.live("a cancelled tab cannot poison the shared source cache or spend another Codex request", function* () {
 	const entered = yield* Deferred.make<void>();
 	const release = yield* Deferred.make<void>();
 	let reads = 0;
 	const sources = syntheticSources();
 	const read = yield* diagnostics({
 		...sources,
-		github: Effect.sync(() => {
+		codex: Effect.sync(() => {
 			reads += 1;
-		}).pipe(Effect.andThen(Deferred.succeed(entered, undefined)), Effect.andThen(Deferred.await(release)), Effect.andThen(sources.github)),
+		}).pipe(Effect.andThen(Deferred.succeed(entered, undefined)), Effect.andThen(Deferred.await(release)), Effect.andThen(sources.codex)),
 	});
 	const first = yield* read.pipe(Effect.forkChild);
 	yield* Deferred.await(entered);
@@ -112,6 +117,6 @@ it.live("a cancelled tab cannot poison the shared source cache or spend another 
 	yield* Effect.yieldNow;
 	yield* Deferred.succeed(release, undefined);
 	yield* Fiber.join(cancellation);
-	expect((yield* read).github.state).toBe("ready");
+	expect((yield* read).codex.state).toBe("ready");
 	expect(reads).toBe(1);
 });

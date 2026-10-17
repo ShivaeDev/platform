@@ -8,9 +8,19 @@ export type UsageWindow = typeof UsageWindow.Type;
 export const CodexLimits = Schema.Struct({ primary: Schema.NullOr(UsageWindow), secondary: Schema.NullOr(UsageWindow) });
 export type CodexLimits = typeof CodexLimits.Type;
 const Count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
-export const GithubWindow = Schema.Struct({ limit: Count, remaining: Count, reset: Count.check(Schema.isLessThanOrEqualTo(8_640_000_000_000)) });
+const Timestamp = Schema.Number.check(Schema.isFinite(), Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(8_640_000_000_000_000));
+export const GithubWindow = Schema.Struct({
+	limit: Count,
+	limitedBy: Schema.NullOr(Schema.Literals(["rate-limit", "reserve"])),
+	limitedUntil: Schema.NullOr(Timestamp),
+	observedAt: Timestamp,
+	remaining: Count,
+	reset: Count.check(Schema.isLessThanOrEqualTo(8_640_000_000_000)),
+	resource: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(100)),
+	used: Count,
+});
 export type GithubWindow = typeof GithubWindow.Type;
-export const GithubLimits = Schema.Struct({ core: GithubWindow, graphql: GithubWindow });
+export const GithubLimits = Schema.Array(GithubWindow).check(Schema.isMaxLength(50));
 export type GithubLimits = typeof GithubLimits.Type;
 
 export type Observation<A> =
