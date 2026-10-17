@@ -1,6 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted, Result, type Scope } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
+import { SqlError } from "effect/sql/SqlError";
 import { expect, test } from "vitest";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
@@ -34,11 +35,13 @@ integration("schema checks reject missing and pending migrations without executi
 			});
 			const missing = yield* assertPostgresMigrations({ loader, table }).pipe(Effect.result);
 			expect(Result.isFailure(missing) && missing.failure).toBeInstanceOf(Migrator.MigrationError);
+			expect(Result.isFailure(missing) && missing.failure).toMatchObject({ kind: "BadState" });
 			expect(yield* sql`select to_regclass(${table}) as ledger`).toEqual([{ ledger: null }]);
 			expect(executed).toEqual([]);
 			yield* migratePostgres({ loader: first, lockTimeout: "5 seconds", table });
 			const pending = yield* assertPostgresMigrations({ loader, table }).pipe(Effect.result);
-			expect(Result.isFailure(pending) && pending.failure._tag).toBe("MigrationError");
+			expect(Result.isFailure(pending) && pending.failure).toBeInstanceOf(Migrator.MigrationError);
+			expect(Result.isFailure(pending) && pending.failure).toMatchObject({ kind: "BadState" });
 			expect(executed).toEqual(["first"]);
 			yield* migratePostgres({ loader, lockTimeout: "5 seconds", table });
 			yield* assertPostgresMigrations({ loader, table });
@@ -56,7 +59,23 @@ integration("schema checks reject a ledger whose required migration name does no
 			yield* migratePostgres({ loader, lockTimeout: "5 seconds", table });
 			yield* sql`update ${sql(table)} set name = 'different' where migration_id = 1`;
 			const result = yield* assertPostgresMigrations({ loader, table }).pipe(Effect.result);
-			expect(Result.isFailure(result) && result.failure._tag).toBe("MigrationError");
+			expect(Result.isFailure(result) && result.failure).toBeInstanceOf(Migrator.MigrationError);
+			expect(Result.isFailure(result) && result.failure).toMatchObject({ kind: "BadState" });
+		}),
+	);
+});
+
+integration("schema checks preserve a database failure as a typed SqlError", async () => {
+	await withLedger((table) =>
+		Effect.gen(function* () {
+			const sql = yield* SqlClient.SqlClient;
+			const loader = Migrator.fromRecord({ "1_first": Effect.void });
+			yield* sql`create table ${sql(table)} (migration_id integer primary key)`;
+			const result = yield* assertPostgresMigrations({ loader, table }).pipe(Effect.result);
+			expect(Result.isFailure(result) && result.failure).toBeInstanceOf(SqlError);
+			expect(Result.isFailure(result) && result.failure).toMatchObject({
+				reason: { _tag: "SqlSyntaxError", cause: { code: "42703", message: 'column "name" does not exist' } },
+			});
 		}),
 	);
 });
