@@ -1,4 +1,4 @@
-import { Effect, Ref, type Stream } from "effect";
+import { Effect, Ref, type Stream, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { liveClient } from "#test/live/client.ts";
 import { liveServer } from "#test/live/server.ts";
@@ -32,11 +32,12 @@ export function streamRunner(engine: LiveEngine) {
 		);
 }
 
-export function liveSnapshot({ server }: LiveEngine) {
+export function liveSnapshot({ client, server }: LiveEngine) {
 	return {
 		active: Effect.runSync(Ref.get(server.active)),
 		connections: Effect.runSync(Ref.get(server.connections)),
 		reads: Effect.runSync(Ref.get(server.reads)),
+		received: Effect.runSync(SubscriptionRef.get(client.received)),
 		stored: [...Effect.runSync(Ref.get(server.stored)).values()],
 	};
 }

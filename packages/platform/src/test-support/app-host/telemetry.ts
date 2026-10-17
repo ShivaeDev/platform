@@ -15,7 +15,8 @@ export function collector(
 ) {
 	return host.trait("configured", "a loopback OTLP collector receives host traces", (state) =>
 		io(async () => {
-			const receiver = await otlpReceiver(options.status, options.answer);
+			const path = options.endpoint === undefined ? "/v1/traces" : { base: "/base/v1/traces", traces: "/custom" }[options.endpoint];
+			const receiver = await otlpReceiver(options.status, options.answer, path);
 			state.receiver = receiver;
 			if (options.offline) {
 				await receiver.close();

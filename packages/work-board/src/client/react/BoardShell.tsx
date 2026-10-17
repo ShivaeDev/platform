@@ -1,7 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { BrowserClient } from "#client/client.ts";
 import { navigationQuery } from "#client/page/routeQuery.ts";
@@ -10,7 +10,8 @@ import { FleetMain } from "./FleetMain.tsx";
 import { FormContext } from "./FormContext.ts";
 import { Header } from "./Header.tsx";
 import { LiveControls } from "./LiveControls.tsx";
-import { displayedLocation, type MainLocation, sameMainLocation } from "./mainLocation.ts";
+import { MainLocationContext, useMainLocation } from "./MainLocationContext.ts";
+import { emptyMainLocation, type MainLocation } from "./mainLocation.ts";
 import { PhoneNavigation } from "./PhoneNavigation.tsx";
 import { ReadingLibrary } from "./ReadingLibrary.tsx";
 import { SearchDialog } from "./SearchDialog.tsx";
@@ -31,55 +32,45 @@ export interface ShellOptions {
 	readonly registry: AtomRegistry.AtomRegistry;
 }
 export function BoardShell(options: ShellOptions) {
-	const { api, ready, client } = options;
+	const [main, onPage] = useState(emptyMainLocation);
+	return (
+		<MainLocationContext.Provider value={main}>
+			<BoardWorkspace {...options} onPage={onPage} />
+		</MainLocationContext.Provider>
+	);
+}
+function BoardWorkspace(options: ShellOptions & { readonly onPage: (location: MainLocation) => void }) {
+	const { api, ready, client, onPage } = options;
+	const main = useMainLocation();
 	const appearance = useAppearance();
 	const sidebar = useSidebar(appearance);
 	const status = useBoardNavigation(options);
 	const search = useSearchDialog();
 	const [libraryOpen, setLibraryOpen] = useState(false);
 	const location = useRouterState({ select: (state) => state.location });
-	const [main, setMain] = useState<MainLocation>({ file: "", view: "" });
 	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const data = Option.getOrUndefined(query.data);
-	const onPage = useCallback((next: MainLocation) => setMain((previous) => (sameMainLocation(previous, next) ? previous : next)), []);
 	useEffect(() => {
 		function start() {
 			const doc = document.getElementById("doc");
 			const context = doc?.querySelector<HTMLElement>(".item-context");
-			if (data && doc?.dataset.route && (!context || context.dataset.readingReady === "true")) {
+			if (data && main.route && (!context || context.dataset.readingReady === "true")) {
 				ready?.();
 			}
 		}
 		start();
-		document.addEventListener("board-page", start);
 		document.addEventListener("board-reading-ready", start);
 		return () => {
-			document.removeEventListener("board-page", start);
 			document.removeEventListener("board-reading-ready", start);
 		};
-	}, [ready, data]);
-	useEffect(() => {
-		function sync() {
-			const doc = document.getElementById("doc");
-			if (doc) {
-				onPage(displayedLocation(doc));
-			}
-		}
-		document.addEventListener("board-page", sync);
-		return () => document.removeEventListener("board-page", sync);
-	}, [onPage]);
+	}, [ready, data, main]);
 	useEffect(() => {
 		if (data) {
 			document.dispatchEvent(new Event("board-index-change"));
 		}
 	}, [data]);
 	const live = client ? (
-		<LiveControls
-			client={client}
-			current={location.pathname + location.searchStr}
-			navigationFailed={Option.isSome(query.cause)}
-			navigationPending={query.pending}
-		/>
+		<LiveControls client={client} navigationFailed={Option.isSome(query.cause)} navigationPending={query.pending} />
 	) : (
 		<span className="font-mono text-muted-foreground text-xs" id={shellIds.live} role="status">
 			connecting

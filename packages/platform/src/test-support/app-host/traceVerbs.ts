@@ -1,16 +1,13 @@
 import { Context, Effect, Layer, Logger, ManagedRuntime, Option } from "effect";
-import { HttpClient } from "effect/http";
-import { OtlpExporter, type OtlpTracer } from "effect/observability";
+import { HttpBody, HttpClient } from "effect/http";
+import { OtlpExporter } from "effect/observability";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 import { type HostState, io, runtimeOf } from "./state.ts";
 
 export function traceVerbs(state: HostState) {
 	return {
 		collectorResponses: (statuses: readonly number[]) => io(() => collectorResponses(state, statuses)),
-		exportedSpans: () => {
-			const payloads: OtlpTracer.TraceData[] = (state.receiver?.requests ?? []).map(({ body }) => JSON.parse(body));
-			return payloads.flatMap(({ resourceSpans }) => resourceSpans.flatMap(({ scopeSpans }) => scopeSpans.flatMap(({ spans }) => spans)));
-		},
+		exportedSpans: () => state.receiver?.spans ?? [],
 		exports: () => state.receiver?.requests ?? [],
 		flush: () =>
 			io(async () => {
@@ -30,7 +27,11 @@ async function collectorResponses(state: HostState, statuses: readonly number[])
 	const runtime = ManagedRuntime.make(otlpHttpClient.pipe(Layer.provideMerge(Logger.layer([logger]))));
 	try {
 		for (const status of statuses) {
-			const response = await runtime.runPromise(Effect.flatMap(HttpClient.HttpClient, (client) => client.get(state.receiver?.url ?? "")));
+			const response = await runtime.runPromise(
+				Effect.flatMap(HttpClient.HttpClient, (client) =>
+					client.post(`${state.receiver?.url ?? ""}/v1/traces`, { body: HttpBody.jsonUnsafe({ resourceSpans: [] }) }),
+				),
+			);
 			if (response.status !== status) {
 				throw new Error(`Collector returned ${response.status}, expected ${status}`);
 			}
