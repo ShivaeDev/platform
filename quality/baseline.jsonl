@@ -180,7 +180,6 @@
 {"path":"packages/effect-react/src/test-support/session.ts","rule":"biome/lint/suspicious/useAwait","count":2}
 {"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"tests/story-setup","count":1}
-{"path":"packages/effect-service/src/define-service.test.ts","rule":"biome/plugin","count":2}
 {"path":"packages/effect-service/src/define-service.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-service/src/generic-method.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-service/src/initializer-proof.ts","rule":"files/named-after-export","count":1}
