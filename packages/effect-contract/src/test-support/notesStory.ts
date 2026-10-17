@@ -35,6 +35,7 @@ export const notesStory = storyKit({
 			return engine.run(engine.api.get.run({ id }));
 		},
 		invalidate: (keys: Parameters<typeof Reactivity.invalidate>[0]) => engine.run(Reactivity.invalidate(keys)),
+		invalidations: () => [...engine.invalidations],
 		list: () => {
 			story.tell("list the notes once");
 			return engine.run(engine.api.list.run(undefined));

@@ -4,17 +4,22 @@ import { RpcTest } from "effect/rpc";
 import type { ReactNode } from "react";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { render } from "@shivaedev/effect-react/testing.ts";
+import type { Reader } from "#client/client.ts";
+import { FormContext } from "#client/react/FormContext.ts";
 import { workContract, workRpcs } from "#rpc/contract.ts";
+import { handoffContract } from "#rpc/handoffContract.ts";
+import { responseContract } from "#rpc/responseContract.ts";
 import { BoardFixture } from "./BoardFixture.tsx";
 import { type BoardFixtureOptions, inMemoryBoard } from "./inMemoryBoard.ts";
 
 function boardClient(files: Readonly<Record<string, string>>, options?: BoardFixtureOptions) {
-	class Client extends AtomRpc.Service<Client>()("WorkBoard/RenderTest", {
+	class Client extends AtomRpc.Service<Reader>()("WorkBoard/RenderTest", {
 		group: workRpcs,
 		makeEffect: RpcTest.makeClient(workRpcs, { flatten: true }),
 		protocol: inMemoryBoard(files, options),
 	}) {}
 	return Object.assign(bind(workContract, Client), {
+		forms: { handoffs: bind(handoffContract, Client), responses: bind(responseContract, Client), runtime: Client.runtime },
 		page: {
 			query: () => {
 				throw new Error("HTML page queries are forbidden");
@@ -26,7 +31,12 @@ function boardClient(files: Readonly<Record<string, string>>, options?: BoardFix
 export type BoardTestApi = ReturnType<typeof boardClient>;
 type BoardRender = (api: BoardTestApi, registry: AtomRegistry.AtomRegistry) => ReactNode;
 
-export function renderBoard(files: Readonly<Record<string, string>>, component: BoardRender, options?: BoardFixtureOptions) {
+export async function renderBoard(files: Readonly<Record<string, string>>, component: BoardRender, options?: BoardFixtureOptions) {
 	const api = boardClient(files, options);
-	return render(<BoardFixture create={(registry) => component(api, registry)} />);
+	const view = await render(
+		<FormContext.Provider value={api.forms}>
+			<BoardFixture create={(registry) => component(api, registry)} />
+		</FormContext.Provider>,
+	);
+	return { ...view, forms: api.forms };
 }
