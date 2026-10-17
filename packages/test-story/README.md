@@ -438,6 +438,18 @@ socialApp.it("a social sign-in returns with a cookie session", [], function* ({ 
 
 `domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
 
+### API by module
+
+Import each module with the prefix `@shivaedev/test-story/`; there is no root entry.
+
+| Module | Exports |
+| --- | --- |
+| `storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
+| `domFetch.ts` | `domFetch(baseUrl)` |
+| `domNavigate.ts` | `domNavigate(url?)` |
+| `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
+| `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
+
 ### Install and limits
 
 ```sh

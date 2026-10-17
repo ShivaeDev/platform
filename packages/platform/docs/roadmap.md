@@ -25,6 +25,8 @@ This file owns Platform's module implementation, package tests and scope questio
 
 ## Open questions
 
+- What comprehensive application redaction policy should cover span names, free text and custom attributes, and how should request/action correlation work across boundaries?
+
 - Should the package keep the optional Better Auth storage adapter and Prisma/tRPC harness beside its native request-context modules, or should those compositions live with the integration packages? Both serve real boundary work, but they give this package a wider surface than its request-identity job alone.
 - If an application needs Better Auth storage on native Effect SQL, should Platform own that adapter or should the provider retain separate storage? The request middleware needs a session provider, not a particular database.
 - The exports make Better Auth translation helpers importable beside the adapter. Are these helpers intended as supported consumer APIs, or should a future public API change narrow the surface to the adapter?
