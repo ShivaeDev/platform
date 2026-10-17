@@ -41,6 +41,8 @@ jobs:
         run: pnpm run changelog:release --check
         env:
           CHANGELOG_BASE_REF: ${{ github.event.before }}
+      - name: Check generated app versions before a create-app release
+        run: node --conditions=source script/checkTemplateVersions.ts --release
       - name: Build packages
         run: pnpm build
       - name: Check packed consumers and bins

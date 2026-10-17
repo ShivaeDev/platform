@@ -19,6 +19,8 @@ Cut a release whenever a change needs to reach npm. In the release pull request:
 3. Review and commit the generated `CHANGELOG.md`, `release.json` and the deleted fragment files with the version bump.
 4. Run `pnpm ready`, then open the pull request.
 
+A create-app release also needs current framework pins in `examples/starter/published-versions.json`. Run `node --conditions=source script/checkTemplateVersions.ts` to compare every pin with npm's `latest` version. The publish workflow adds `--release` to check whenever the create-app version is not on npm yet, including retries, and stops the release on a mismatch or a registry failure.
+
 The collector uses the package's version and the current UTC date. It prepends that version's notes in Added, Changed, Fixed, Breaking order, with fragments sorted by filename inside each section, and preserves released history. It deletes the collected Markdown fragments. An empty fragment set leaves the changelog unchanged; a version that already has notes cannot collect more entries.
 
 `release.json` records the current release's version, date and collected fragment inputs. The validator reproduces the changelog from those inputs and requires every pending fragment from the base revision to be included unchanged. This also permits adding and releasing a change in one pull request: the manifest survives squash merges, so publishing can validate the same inputs without intermediate branch commits. It changes only with a release and is not included in the published packages.

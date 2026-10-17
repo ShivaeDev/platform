@@ -5,7 +5,8 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { postgresTestEnvironment } from "#lib/postgres-test-environment.ts";
 
 const program = Effect.gen(function* () {
-	const env = yield* postgresTestEnvironment;
+	const databases = yield* postgresTestEnvironment;
+	const env = { ...databases, "TEST_DATABASE_URL": databases.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL };
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const nodeOptions = yield* Config.String("NODE_OPTIONS").pipe(Config.withDefault(""));
 	const args = process.argv.slice(2);
