@@ -1,9 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
 import { questionnaireSource, scopedQuestionnaire } from "#test/questionnaire.ts";
-import { responseWorkspace } from "#test/responseEdges.ts";
 
 const prefix = questionnaireSource.slice(0, questionnaireSource.indexOf("::::question"));
 const PROMPT = '::::question{id="next"}\nChoose.\n\n:::option{id="first"}\nFirst.\n:::\n::::\n';
@@ -35,16 +34,17 @@ const cases = [
 	},
 ];
 
-it.live.each(cases)("returns BadRequest to the HTTP caller for $message", function* ({ source, message }) {
-	const { client } = yield* responseWorkspace(source);
-	const failure = yield* Effect.promise(() =>
-		client.run(client.responses.question.run({ item: "investigation.choices", request: "direction" })).catch((error: unknown) => error),
-	);
-	expect(failure).toBeInstanceOf(BadRequest);
-	expect(failure).toMatchObject({ message: expect.stringContaining(message) });
-});
+for (const { source, message } of cases) {
+	boardStory.it(`returns BadRequest to the HTTP caller for ${message}`, [aQuestionnaire(source)], function* ({ workspace: { client } }) {
+		const failure = yield* Effect.promise(() =>
+			client.run(client.responses.question.run({ item: "investigation.choices", request: "direction" })).catch((error: unknown) => error),
+		);
+		expect(failure).toBeInstanceOf(BadRequest);
+		expect(failure).toMatchObject({ message: expect.stringContaining(message) });
+	});
+}
 
-it.live.each([
+for (const { source, message } of [
 	{
 		message: "Question option labels must be unique",
 		source:
@@ -59,11 +59,12 @@ it.live.each([
 		message: "Use frontmatter options or Markdown question directives",
 		source: `---\nid: question.choices\nkind: question\noptions:\n  - label: First\n    description: First choice.\n---\n# Choose\n${PROMPT}`,
 	},
-])("returns authored option failures as BadRequest through HTTP RPC", function* ({ source, message }) {
-	const { client } = yield* responseWorkspace(source);
-	const failure = yield* Effect.promise(() =>
-		client.run(client.responses.question.run({ item: "question.choices", request: "answer" })).catch((error: unknown) => error),
-	);
-	expect(failure).toBeInstanceOf(BadRequest);
-	expect(failure).toMatchObject({ message: expect.stringContaining(message) });
-});
+]) {
+	boardStory.it("returns authored option failures as BadRequest through HTTP RPC", [aQuestionnaire(source)], function* ({ workspace: { client } }) {
+		const failure = yield* Effect.promise(() =>
+			client.run(client.responses.question.run({ item: "question.choices", request: "answer" })).catch((error: unknown) => error),
+		);
+		expect(failure).toBeInstanceOf(BadRequest);
+		expect(failure).toMatchObject({ message: expect.stringContaining(message) });
+	});
+}

@@ -70,7 +70,7 @@ it.each(["Back", "reload"])("reports a missing saved passage after %s while reta
 		await act(async () => view.registry.refresh(documentQuery(api, "/notes/plan.md")));
 		await eventually(() => expect(control("#doc", HTMLElement).textContent).toContain("The heading disappeared."));
 		control("article details:not(.item-context)", HTMLDetailsElement).open = true;
-		vi.stubGlobal("scrollY", 480);
+		vi.spyOn(window, "scrollY", "get").mockReturnValue(480);
 		if (navigation === "Back") {
 			await act(async () => view.router.navigate({ to: "/other.md" }));
 			await eventually(() => expect(control("#doc h1", HTMLElement).textContent).toBe("Other"));
@@ -81,7 +81,7 @@ it.each(["Back", "reload"])("reports a missing saved passage after %s while reta
 			await view.unmount();
 			window.history.replaceState({ workBoard: { id: state.key } }, "");
 		}
-		vi.stubGlobal("scrollY", 0);
+		vi.spyOn(window, "scrollY", "get").mockReturnValue(0);
 		const scroll = vi.spyOn(window, "scrollTo");
 		const focus = vi.spyOn(HTMLElement.prototype, "focus");
 		const passage = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
