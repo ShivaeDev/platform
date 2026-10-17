@@ -1,6 +1,7 @@
-import { Cause, Effect, Exit } from "effect";
+import { Cause, Clock, Effect, Exit } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
+import { deadlineOf } from "#internal/deadlineOf.ts";
 
 function failureOutput(cause: Cause.Cause<unknown>): object {
 	const error = Cause.squash(cause);
@@ -14,9 +15,18 @@ export function batchHandler(client: PgBossClient, name: string, run: (job: Job<
 		throw new TypeError("This pg-boss client does not support complete and fail");
 	}
 	return async (jobs: readonly Job<unknown>[]): Promise<void> => {
+		let expired = false;
 		for (const job of jobs) {
+			const deadline = deadlineOf(job);
+			if ((await Effect.runPromise(Clock.currentTimeMillis)) >= deadline) {
+				expired = true;
+				continue;
+			}
 			const exit = await Effect.runPromiseExit(
-				Effect.suspend(() => run(job)),
+				Effect.flatMap(Clock.currentTimeMillis, (now) => {
+					const remaining = deadline - now;
+					return remaining <= 0 ? Effect.interrupt : run(job).pipe(Effect.timeoutOrElse({ duration: remaining, orElse: () => Effect.interrupt }));
+				}),
 				{ signal: job.signal },
 			);
 			if (job.signal.aborted || (Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause))) {
@@ -28,6 +38,9 @@ export function batchHandler(client: PgBossClient, name: string, run: (job: Job<
 			} else {
 				await fail(name, job, failureOutput(exit.cause));
 			}
+		}
+		if (expired) {
+			return new Promise<never>(() => undefined);
 		}
 	};
 }

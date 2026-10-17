@@ -85,7 +85,7 @@ async function registerQueue(client: PgBossClient, registration: QueueWorker | Q
 	}
 	await client.work(
 		name,
-		queue.workerOptions,
+		{ ...queue.workerOptions, includeMetadata: true },
 		batchHandler(client, name, (job) => runQueueWorker(registration, job, context)),
 	);
 }
@@ -94,7 +94,7 @@ async function registerSchedule(client: PgBossClient, worker: ScheduledWorker, c
 	const { schedule } = worker;
 	await client.work(
 		schedule.name,
-		schedule.workerOptions,
+		{ ...schedule.workerOptions, includeMetadata: true },
 		batchHandler(client, schedule.name, (job) => Effect.provide(traceJob(worker.effect, job, schedule.name), context)),
 	);
 	await client.schedule(schedule.name, schedule.cron, null, schedule.scheduleOptions);

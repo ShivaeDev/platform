@@ -68,12 +68,11 @@
 {"path":"packages/effect-pg-boss/src/server/internal/health.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-pg-boss/src/server/internal/health.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-pg-boss/src/server/internal/lifecycle.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
-{"path":"packages/effect-pg-boss/src/server/internal/register.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
+{"path":"packages/effect-pg-boss/src/server/internal/register.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-pg-boss/src/server/internal/service.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-pg-boss/src/server/internal/service.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-pg-boss/src/server/service.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/effect-pg-boss/src/test-support/environment.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-pg-boss/src/test-support/fake-client.ts","rule":"biome/lint/suspicious/useAwait","count":8}
 {"path":"packages/effect-pg-boss/src/test-support/fake-client.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/database.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/database.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}

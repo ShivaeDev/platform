@@ -7,7 +7,14 @@ import { constructorOptions, FakeClient } from "#test/fake-client.ts";
 it("passes native burst defaults and explicit queue and schedule work options to pg-boss", async () => {
 	const client = new FakeClient();
 	const Default = defineQueue({ name: "default", schema: Schema.Struct({}) });
-	const worker = { batchSize: 4, burstWhenBatchFull: false, localConcurrency: 3, notifyPollingIntervalSeconds: 15, pollingIntervalSeconds: 1 };
+	const worker = {
+		batchSize: 4,
+		burstWhenBatchFull: false,
+		includeMetadata: false,
+		localConcurrency: 3,
+		notifyPollingIntervalSeconds: 15,
+		pollingIntervalSeconds: 1,
+	};
 	const Custom = defineQueue({ name: "custom", schema: Schema.Struct({}), worker });
 	const Schedule = defineSchedule({ cron: "0 * * * *", name: "scheduled", worker });
 	const Jobs = makePgBoss("@test/WorkerOptions");
@@ -24,6 +31,10 @@ it("passes native burst defaults and explicit queue and schedule work options to
 			),
 		),
 	);
-	expect(client.workers.map(({ options }) => options)).toEqual([{ batchSize: 10, burstWhenBatchFull: true }, worker, worker]);
+	expect(client.workers.map(({ options }) => options)).toEqual([
+		{ batchSize: 10, burstWhenBatchFull: true, includeMetadata: true },
+		{ ...worker, includeMetadata: true },
+		{ ...worker, includeMetadata: true },
+	]);
 	expect(defineSchedule({ cron: "0 * * * *", name: "default-schedule" }).workerOptions).toEqual({ batchSize: 10, burstWhenBatchFull: true });
 });
