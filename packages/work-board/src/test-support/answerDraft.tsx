@@ -3,7 +3,11 @@ import type { Document } from "#browser/document/schema.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
 import { AnswerForm } from "#client/react/AnswerForm.tsx";
+import { FormContext } from "#client/react/FormContext.ts";
 import { shellIds } from "#client/react/shellIds.ts";
+import { formClient } from "./formClient.ts";
+
+export const answerClient = formClient();
 
 export const answerDocument: Document = {
 	diagnostics: [],
@@ -29,9 +33,11 @@ export const answerPreview: QuestionPreview = {
 };
 export function answerDraft(preview = answerPreview, update = 0, prompts: readonly Prompt[] = []) {
 	return (
-		<main id={shellIds.doc} key={update}>
-			<AnswerForm document={answerDocument} preview={preview} request={{ id: preview.request, open: true, prompts }} />
-		</main>
+		<FormContext.Provider value={answerClient}>
+			<main id={shellIds.doc} key={update}>
+				<AnswerForm document={answerDocument} preview={preview} request={{ id: preview.request, open: true, prompts }} />
+			</main>
+		</FormContext.Provider>
 	);
 }
 export function answerInput(name: string, value?: string) {
