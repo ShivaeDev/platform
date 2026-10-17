@@ -148,7 +148,9 @@ Routing uses the global dispatcher that Node's built-in `fetch` already uses. It
 
 #### Asserting on application traces
 
-Start an in-process host in `create`. That hook runs without the ambient parent span, so an Effect HTTP handler that captures its context does not inherit a span placed around the story. A request without trace headers starts a root trace; a request with `traceparent` continues that trace. The tracer, services and per-story Scope remain available during creation. Traits, engine steps and the story body keep the span supplied by `around`.
+Start an in-process host in `create` or a stage's `after` hook, such as `after: { deployment }`. Creation and every `after` hook run without the ambient parent span, so an Effect HTTP handler that captures its context does not inherit a span placed around the story. Their scoped teardown and finalizers retain that detached context. The tracer, services and per-story Scope remain available. Traits, verbs, engine steps and assertions in the story body keep the span supplied by `around`.
+
+This lets an application's story assert that a request starts its own trace: a request without trace headers starts a root trace, and a request with `traceparent` continues that trace. Host startup and cleanup do not join the story's trace.
 
 A kit can collect spans with a native in-memory tracer, or start a fake OTLP receiver and point the application's exporter at it. Keep collection and any exporter flush or bounded wait in the kit's verbs. Assert only after the request span has ended. This small in-memory kit uses Effect's Web Request handler as its host:
 
@@ -201,7 +203,7 @@ app.it("a request continues its supplied trace", [], function* ({ request }) {
 });
 ```
 
-The package's [tracing kit](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/test-support/tracingApp.ts) and [stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/hostTracing.spec.ts) also assert that two requests have different trace IDs, request work stays under its request span, and traits and engine steps stay under the story span. Creation only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
+The package's [tracing kit](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/test-support/tracingApp.ts) and [stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/hostTracing.spec.ts) also assert that two requests have different trace IDs, request work stays under its request span, and traits and engine steps stay under the story span. The [after-hook stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/afterHostTracing.spec.ts) boot a loopback HTTP host after deployment and check its startup, requests and cleanup against the story trace, while its request verb remains a child of the story span. Detachment only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
 
 ### 2. Once per feature: traits and verbs
 
