@@ -170,6 +170,26 @@
 			"source": "./src/server/otlpTracing.ts",
 			"types": "./dist/server/otlpTracing.d.ts",
 			"default": "./dist/server/otlpTracing.js"
+		},
+		"#boundedRpcRequest.ts": {
+			"source": "./src/server/boundedRpcRequest.ts",
+			"types": "./dist/server/boundedRpcRequest.d.ts",
+			"default": "./dist/server/boundedRpcRequest.js"
+		},
+		"#databaseLayer.ts": {
+			"source": "./src/server/databaseLayer.ts",
+			"types": "./dist/server/databaseLayer.d.ts",
+			"default": "./dist/server/databaseLayer.js"
+		},
+		"#hostOptions.ts": {
+			"source": "./src/server/hostOptions.ts",
+			"types": "./dist/server/hostOptions.d.ts",
+			"default": "./dist/server/hostOptions.js"
+		},
+		"#safeOtlpSerialization.ts": {
+			"source": "./src/server/safeOtlpSerialization.ts",
+			"types": "./dist/server/safeOtlpSerialization.d.ts",
+			"default": "./dist/server/safeOtlpSerialization.js"
 		}
 	},
 	"exports": {

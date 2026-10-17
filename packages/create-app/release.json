@@ -2,6 +2,10 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
+			"name": "cookie-stories.md",
+			"text": "### Added\n\n- Generated apps include a DOM story that signs up, signs out, signs in and reads Better Auth cookie sessions against the real PostgreSQL host, using `@shivaedev/test-story`.\n"
+		},
+		{
 			"name": "otlp-export.md",
 			"text": "### Added\n\n- Generated apps use Platform 0.13.0 and export Effect spans from the host and word-count worker when standard OTLP endpoint variables are set.\n"
 		}

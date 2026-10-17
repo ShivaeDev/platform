@@ -286,7 +286,64 @@ Application-authored seed builders reuse application schemas, validate overrides
 
 React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events and use bounded observations of rendered output. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook, not HTTP or DOM polling. Creation forms can use the same pattern with the existing `useCreate` path.
 
-The example proves DOM and loopback HTTP behavior, not browser credentials, BetterAuth cookies, SSR, mobile or a deployed proxy. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. Failure inspection is synchronous: keep redacted observed values in the engine instead of trying to query PostgreSQL inside `inspect`.
+The order example proves DOM and loopback HTTP behavior with bearer tokens. For cookie sessions, use the DOM host setup below. These fixtures do not prove browser networking, SSR, mobile or a deployed proxy. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. Failure inspection is synchronous: keep redacted observed values in the engine instead of trying to query PostgreSQL inside `inspect`.
+
+### DOM stories with cookie sessions
+
+Install `happy-dom@20.14.6` as a dev dependency. Select the `@shivaedev/test-story/domEnvironment.config.ts` Vitest environment for DOM tests that start their host in the same process:
+
+```ts
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    environment: fileURLToPath(import.meta.resolve("@shivaedev/test-story/domEnvironment.config.ts")),
+  },
+});
+```
+
+The environment runs happy-dom, then restores Node's global `Request`, `Response`, `Headers`, `AbortController` and `AbortSignal` for the host and client request construction. Better Auth can emit `Set-Cookie`, and the host can read incoming cookie headers. Fetch still runs through happy-dom's internal window and cookie jar. The environment translates Node `Headers` and `Request` inputs for that fetch, including requests made by Better Auth's client. Client responses remain happy-dom responses: inspect their status, headers and body methods rather than comparing them with the global Node constructors. The starter's [Vitest config](https://github.com/ShivaeDev/platform/blob/main/examples/starter/vitest.config.ts) selects this environment only for its DOM project while retaining the shared test projects. Use Vitest's standard forks or threads pool.
+
+`domFetch(baseUrl)` from `@shivaedev/test-story/domFetch.ts` sets the current window's location to the real HTTP host and returns its bound fetch, resolving relative request strings against that URL. The window keeps and sends cookies, including HttpOnly session cookies. Keep the default `same-origin` credentials policy for this same-origin setup. Set the page origin before creating an auth client or rendering a screen; application code can use the global fetch of that same window.
+
+Call it in the kit's `create` hook after starting the host:
+
+```ts
+import { domFetch } from "@shivaedev/test-story/domFetch.ts";
+
+const cookieApp = storyKit({
+  around: withIsolatedDatabase,
+  clock: "live",
+  *create() {
+    const { baseUrl } = yield* startHost();
+    return { fetch: domFetch(baseUrl) };
+  },
+  layer: postgres,
+  name: "cookie auth",
+  stages: ["account"],
+  verbs: ({ fetch }, story) => authVerbs(fetch, story.tell),
+});
+```
+
+`startHost`, `postgres` and `authVerbs` are application plumbing. The starter's [cookie application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/cookieApp.ts) shows the full setup. Its Better Auth client signs up and signs in, and its verbs read `/api/auth/get-session` and post to `/api/auth/sign-out` through the DOM fetch. They do not copy cookies into request headers or use bearer tokens.
+
+```ts
+cookieApp.it("sign-up and sign-in keep their cookie sessions against the PostgreSQL host", [], function* ({ signUp, signIn, signOut, sessionIs }) {
+  yield* signUp();
+  yield* sessionIs("alice@starter.test");
+  yield* signOut();
+  yield* sessionIs(null);
+  yield* signIn();
+  yield* sessionIs("alice@starter.test");
+  yield* signOut();
+  yield* sessionIs(null);
+});
+```
+
+This story proves Better Auth cookie sessions across real loopback HTTP requests from happy-dom with an in-process PostgreSQL host. It also reads sessions through Better Auth's client and checks the fetch response's status, headers and JSON body.
+
+`domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
 
 ### Install and limits
 

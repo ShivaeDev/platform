@@ -1,7 +1,7 @@
 import { Config, Effect, Layer, Schema } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { OtlpTracer } from "effect/observability";
-import { safeOtlpSerialization } from "./safeOtlpSerialization.ts";
+import { safeOtlpSerialization } from "#safeOtlpSerialization.ts";
 
 export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.unwrap(
 	Effect.gen(function* () {

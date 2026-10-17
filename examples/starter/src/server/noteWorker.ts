@@ -4,10 +4,10 @@ import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts"
 import { appDatabase } from "@shivaedev/platform/appHost.ts";
 import { otlpTracing } from "@shivaedev/platform/otlpTracing.ts";
 import { notes } from "#notes.ts";
-import { makeAuth } from "./auth.ts";
-import { databaseOptions } from "./databaseOptions.ts";
-import { makeNotesRepository } from "./makeNotesRepository.ts";
-import { CountWords, NoteJobs } from "./noteJobs.ts";
+import { makeAuth } from "#server/auth.ts";
+import { databaseOptions } from "#server/databaseOptions.ts";
+import { makeNotesRepository } from "#server/makeNotesRepository.ts";
+import { CountWords, NoteJobs } from "#server/noteJobs.ts";
 
 const countWords = CountWords.handle(({ noteId }) =>
 	Effect.gen(function* () {

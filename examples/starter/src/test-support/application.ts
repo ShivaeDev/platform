@@ -5,11 +5,11 @@ import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { makeAuth } from "#client/auth.ts";
 import { noteWorker } from "#server/noteWorker.ts";
-import { authRateLimits } from "./authRateLimits.ts";
-import { type RunningHost, secret, startHost } from "./host.ts";
-import { liveNotes } from "./liveNotes.ts";
-import { postgres } from "./postgres.ts";
-import { requests } from "./requests.ts";
+import { authRateLimits } from "#test-support/authRateLimits.ts";
+import { type RunningHost, secret, startHost } from "#test-support/host.ts";
+import { liveNotes } from "#test-support/liveNotes.ts";
+import { postgres } from "#test-support/postgres.ts";
+import { requests } from "#test-support/requests.ts";
 
 interface Actor {
 	readonly cookie: string;

@@ -3,15 +3,16 @@ import { NodeHttpServer, NodeServices } from "@effect/platform-node";
 import { ByteSize, Config, Effect, Layer, Option, Schema } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/http";
 import { type Rpc, RpcSerialization, RpcServer } from "effect/rpc";
+import type { AppHostOptions, AppLocalHostOptions } from "#appHost.ts";
+import { boundedRpcRequest } from "#boundedRpcRequest.ts";
+import type { databaseLayer } from "#databaseLayer.ts";
+import type { HostOptions, HostPolicy } from "#hostOptions.ts";
+import { otlpTracing } from "#otlpTracing.ts";
+import type { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
 import { localRpcGuard } from "#rpc-server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "#rpc-server/session.ts";
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
 import { TrustedProxy } from "#rpc-server/trustedProxy.ts";
-import type { AppHostOptions, AppLocalHostOptions } from "./appHost.ts";
-import { boundedRpcRequest } from "./boundedRpcRequest.ts";
-import type { databaseLayer } from "./databaseLayer.ts";
-import type { HostOptions, HostPolicy } from "./hostOptions.ts";
-import { otlpTracing } from "./otlpTracing.ts";
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
 	THandlers,
@@ -37,7 +38,7 @@ export function appHostHttp<
 			if (trustedProxy !== undefined) {
 				yield* Schema.decodeUnknownEffect(TrustedProxy)(trustedProxy).pipe(Effect.mapError((cause) => new Config.ConfigError(cause)));
 			}
-			const middleware =
+			const middleware: Layer.Layer<RequestTracing> | Layer.Layer<Authenticated | MaybeAuthenticated | RequestTracing> =
 				options.policy === "loopback"
 					? requestTracingLayer()
 					: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), requestTracingLayer());
