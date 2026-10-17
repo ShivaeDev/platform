@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Context, Effect, Layer } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
-import { BadRequest, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { reportContent } from "#board/reportContent.ts";
 import { reportFiles } from "#board/reportFiles.ts";
@@ -12,6 +12,8 @@ import { withFailureContext } from "#engine/failureContext.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { isFleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
+import { GithubApi } from "#host/githubApi.ts";
+import { githubFailure } from "#host/githubRateLimit.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { reportPublication, reportRepository } from "#host/reportPublication.ts";
 import { BoardFailure, BoardGateway, type BoardWork } from "#policy.ts";
@@ -57,7 +59,7 @@ const ReportBoard = defineService({
 		const { root, check, files } = yield* ReportInputs;
 		function inspect(work: BoardWork) {
 			return check(work).pipe(
-				Effect.mapError(() => new ServiceUnavailable({ message: "Report publication could not be checked on GitHub" })),
+				Effect.mapError(githubFailure("Report publication could not be checked on GitHub")),
 				Effect.flatMap((published) =>
 					published ? Effect.fail(withFailureContext(new BadRequest({ message: PUBLISHED_REPORT }), { code: "report-published" })) : Effect.void,
 				),
@@ -121,12 +123,13 @@ export function hostReportBoard(host: FleetHost) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const main = yield* MainSource;
+			const github = yield* GithubApi;
 			function check(work: BoardWork) {
 				return Effect.gen(function* () {
 					if (host.worker === undefined) {
 						return yield* Effect.fail(new BoardFailure({ message: "Report publication checks need worker.branchPrefix" }));
 					}
-					return yield* reportPublication(
+					return yield* reportPublication(github)(
 						yield* reportRepository(main.repositoryRoot, host.repository.remote),
 						`${host.worker.branchPrefix}${work.workId}`,
 					);

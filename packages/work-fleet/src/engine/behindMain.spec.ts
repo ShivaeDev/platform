@@ -36,7 +36,7 @@ test("adopts and delivers an approved, conflict-free head behind main without re
 				checkedHeads.push(result.head);
 				return github.checks(result);
 			},
-			deliveryQuery: githubDelivery("/repository", () => Effect.succeed(observation)),
+			deliveryQuery: githubDelivery(() => Effect.succeed(observation)),
 			resultQuery: adopted.adopt,
 		},
 		(fixture) =>

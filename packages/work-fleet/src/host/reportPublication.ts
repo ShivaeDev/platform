@@ -1,6 +1,8 @@
 import { Effect, Schema } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";
+import type { GithubRead } from "#host/github.ts";
+import { githubFailure } from "#host/githubRateLimit.ts";
 import { readCommand } from "#host/readCommand.ts";
 
 const References = Schema.Array(Schema.Array(Schema.Struct({ ref: Schema.String })));
@@ -17,13 +19,13 @@ export function makeReportPublication<R>(read: (endpoint: string) => Effect.Effe
 			).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(PullRequests))));
 			return refs.flat().some((ref) => ref.ref === `refs/heads/${branch}`) || prs.flat().length > 0;
 		},
-		Effect.mapError(() => new ServiceUnavailable({ message: "Report publication could not be checked on GitHub" })),
+		Effect.mapError(githubFailure("Report publication could not be checked on GitHub")),
 	);
 }
 
-export const reportPublication = makeReportPublication((endpoint) =>
-	readCommand("gh", ["api", "--method", "GET", "--paginate", "--slurp", endpoint]),
-);
+export function reportPublication(read: GithubRead) {
+	return makeReportPublication(read.pages);
+}
 
 export const reportRepository = Effect.fn("Fleet.reportRepository")(function* (cwd: string, remote: string) {
 	const url = (yield* readCommand("git", ["remote", "get-url", remote], cwd)).trim();

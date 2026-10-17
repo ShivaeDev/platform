@@ -1,4 +1,4 @@
-import type { CodexLimits, GithubLimits, UsageWindow } from "#browser/diagnostics/schema.ts";
+import type { CodexLimits, GithubLimits, GithubWindow, UsageWindow } from "#browser/diagnostics/schema.ts";
 import { resetLabel } from "#diagnostics/resetLabel.ts";
 export function ObservedTime({ at }: { readonly at: number | null }) {
 	return at === null ? (
@@ -71,32 +71,40 @@ export function DiagnosticsWindows({ value, now }: { readonly value: CodexLimits
 		</ul>
 	);
 }
+const GITHUB_RESOURCES: Readonly<Record<string, string>> = { core: "REST", graphql: "GraphQL", search: "Search" };
+const GITHUB_PAUSES = { "rate-limit": "Rate-limited", reserve: "GitHub paused below the 20% reserve" } as const;
 export function DiagnosticsGithub({ value, now }: { readonly value: GithubLimits; readonly now: number }) {
-	const windows = (
-		[
-			["REST", value.core],
-			["GraphQL", value.graphql],
-		] as const
-	).map(([name, window]) => <GithubWindow key={name} name={name} now={now} window={window} />);
 	return (
 		<>
-			<dl className="grid gap-4 text-sm [&_dt]:text-muted-foreground">{windows}</dl>
-			<p className="text-muted-foreground text-xs">Cached for one minute across all tabs.</p>
+			<dl className="grid gap-4 text-sm [&_dt]:text-muted-foreground">
+				{value.map((window) => (
+					<GithubResource key={window.resource} now={now} window={window} />
+				))}
+			</dl>
+			<p className="text-muted-foreground text-xs">Recorded from the rate-limit headers of Fleet's own GitHub responses.</p>
 		</>
 	);
 }
-function GithubWindow({ name, window, now }: { readonly name: string; readonly window: GithubLimits["core"]; readonly now: number }) {
+function GithubResource({ window, now }: { readonly window: GithubWindow; readonly now: number }) {
 	return (
-		<div>
-			<dt>{name}</dt>
+		<div data-resource={window.resource}>
+			<dt>{GITHUB_RESOURCES[window.resource] ?? window.resource}</dt>
 			<dd>
 				<strong>
 					{window.remaining} / {window.limit}
 				</strong>{" "}
 				remaining
 			</dd>
+			{window.limitedUntil !== null && window.limitedUntil > now ? (
+				<dd>
+					<strong>{GITHUB_PAUSES[window.limitedBy ?? "rate-limit"]}</strong> until <Reset at={window.limitedUntil} now={now} />
+				</dd>
+			) : null}
 			<dd>
 				Resets <Reset at={window.reset * 1000} now={now} />
+			</dd>
+			<dd>
+				Observed <time dateTime={new Date(window.observedAt).toISOString()}>{resetLabel(window.observedAt, now)}</time>
 			</dd>
 		</div>
 	);

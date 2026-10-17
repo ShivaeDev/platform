@@ -9,12 +9,14 @@ import { ClientContract } from "#host/daemonContract.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { engineProvider } from "#test/engineProvider.ts";
 import { cliProcess } from "#test/fleetCli.ts";
+import { syntheticGithub } from "#test/githubApi.ts";
 
 export function readDaemonLayer(host: FleetHost, parts?: HostParts, port = 0, onSnapshot?: () => void) {
 	const main = { observedAt: 1, revision: "main-revision" };
 	const options = daemonHostOptions(
 		host,
 		parts ?? {
+			github: syntheticGithub().layer,
 			main: Layer.succeed(MainSource)({
 				current: Effect.succeed(main),
 				observe: (preparation) => Effect.succeed(unchanged(preparation.baseRevision, main)),
