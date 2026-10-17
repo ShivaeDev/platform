@@ -3,19 +3,32 @@ import { test as it } from "node:test";
 import { measuredMain } from "#ci/test-support/measuredMain.ts";
 import { mainShardPlan } from "./mainShardPlan.ts";
 
-it("pins independent main counts and snapshots, skipping invalid provenance", () => {
+it("pins independent main counts and snapshots, skipping invalid provenance and keeping at least four test shards", () => {
 	assert.deepEqual(mainShardPlan("owner/repo", false, measuredMain), {
 		consumers: { artifactId: "4300", count: 5, runId: "43" },
-		tests: { artifactId: "4200", count: 3, runId: "42" },
+		tests: { artifactId: "4200", count: 4, runId: "42" },
 	});
 });
 
-it("main measures in one job per family and PRs fall back independently without access", () => {
+it("main shards tests from the previous main snapshot and checks every consumer in one job", () => {
+	const calls: string[] = [];
+	const plan = mainShardPlan("owner/repo", true, (args) => {
+		calls.push(args.join(" "));
+		return measuredMain(args);
+	});
+	assert.deepEqual(plan, { consumers: { artifactId: "", count: 1, runId: "" }, tests: { artifactId: "4200", count: 4, runId: "42" } });
+	assert.equal(
+		calls.some((call) => call.includes("consumer-balancing")),
+		false,
+	);
+});
+
+it("main and PRs fall back independently without access", () => {
 	assert.deepEqual(
 		mainShardPlan("owner/repo", true, () => {
-			throw new Error("must not fetch");
+			throw new Error("denied");
 		}),
-		{ consumers: { artifactId: "", count: 1, runId: "" }, tests: { artifactId: "", count: 1, runId: "" } },
+		{ consumers: { artifactId: "", count: 1, runId: "" }, tests: { artifactId: "", count: 8, runId: "" } },
 	);
 	assert.deepEqual(
 		mainShardPlan("owner/repo", false, () => {
@@ -29,7 +42,7 @@ it("a missing consumer snapshot does not discard the independent test plan", () 
 	const plan = mainShardPlan("owner/repo", false, (args) =>
 		args[0] === "api" && args[1]?.includes("name=consumer-balancing") ? JSON.stringify({ artifacts: [] }) : measuredMain(args),
 	);
-	assert.deepEqual(plan, { consumers: { artifactId: "", count: 8, runId: "" }, tests: { artifactId: "4200", count: 3, runId: "42" } });
+	assert.deepEqual(plan, { consumers: { artifactId: "", count: 8, runId: "" }, tests: { artifactId: "4200", count: 4, runId: "42" } });
 });
 
 it("rejects an artifact replaced while selecting its count", () => {
