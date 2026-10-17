@@ -22,7 +22,7 @@ const kit = storyKit({
 	verbs: (engine, story) => orderVerbs(engine, story.tell),
 });
 
-export const app = { ...kit, fails: kit.it.fails, it: kit.it.runIf(hasPostgres) };
+export const app = { ...kit, fails: hasPostgres ? kit.it.fails : kit.it.skip, it: kit.it.runIf(hasPostgres) };
 export function realPostgres() {
 	return app.trait("database", "real PostgreSQL uses HTTP, truncation and real commits", function* (engine) {
 		kitDatabases.add(engine.database.name);

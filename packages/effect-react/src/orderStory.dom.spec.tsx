@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import { app, realPostgres } from "#test/order-example/application.ts";
 import { localApp, localOrder } from "#test/order-example/localApplication.ts";
-import { hasPostgres } from "#test/order-example/postgres.ts";
 import { aliceHasOrder, orderEditorIsOpen, orderListIsOpen } from "#test/order-example/traits.ts";
 import { expectNoReactWarnings } from "#testing.ts";
 
@@ -49,17 +48,15 @@ app.it(
 	},
 );
 
-if (hasPostgres) {
-	app.fails(
-		"a failing story still unmounts and resets",
-		[realPostgres(), aliceHasOrder("paper"), orderEditorIsOpen("paper")],
-		function* ({ formIsReady, saveOrder }) {
-			yield* formIsReady();
-			yield* saveOrder("paper", "Before failure", 9);
-			yield* Effect.fail("intentional cleanup failure");
-		},
-	);
-}
+app.fails(
+	"a failing story still unmounts and resets",
+	[realPostgres(), aliceHasOrder("paper"), orderEditorIsOpen("paper")],
+	function* ({ formIsReady, saveOrder }) {
+		yield* formIsReady();
+		yield* saveOrder("paper", "Before failure", 9);
+		yield* Effect.fail("intentional cleanup failure");
+	},
+);
 
 localApp.it(
 	"local rollback shares the worker database and prevents publication and independent reads",

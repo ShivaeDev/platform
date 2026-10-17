@@ -53,7 +53,7 @@ const kit = storyKit({
 		sharesWorkerDatabase: () => Effect.sync(() => expect(kitDatabases.has(engine.database.name)).toBe(true)),
 	}),
 });
-export const localApp = { ...kit, it: kit.it.runIf(hasPostgres) };
+export const localApp = { ...kit, fails: hasPostgres ? kit.it.fails : kit.it.skip, it: kit.it.runIf(hasPostgres) };
 export function localOrder() {
 	return localApp.trait("orders", "Alice seeds an order inside the story transaction", function* (engine) {
 		engine.id = (yield* seedOrder().pipe(Effect.provideService(SqlClient.SqlClient, engine.database.sql))).id;
