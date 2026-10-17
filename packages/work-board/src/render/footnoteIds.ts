@@ -17,13 +17,15 @@ function scoped(prefix: string, value: Value): Value {
 	return Array.isArray(value) ? value.map((each) => (typeof each === "string" ? String(scoped(prefix, each)) : each)) : value;
 }
 
-export const footnoteIds = (prefix: string) => () => (tree: Root) => {
-	visitElements(tree, "element", (element) => {
-		if (!["a", "h2", "li"].includes(element.tagName)) {
-			return;
-		}
-		element.properties = Object.fromEntries(
-			Object.entries(element.properties).map(([name, value]) => [name, SCOPED.has(name) ? scoped(prefix, value) : value]),
-		);
-	});
-};
+export function footnoteIds(prefix: string) {
+	return () => (tree: Root) => {
+		visitElements(tree, "element", (element) => {
+			if (!["a", "h2", "li"].includes(element.tagName)) {
+				return;
+			}
+			element.properties = Object.fromEntries(
+				Object.entries(element.properties).map(([name, value]) => [name, SCOPED.has(name) ? scoped(prefix, value) : value]),
+			);
+		});
+	};
+}
