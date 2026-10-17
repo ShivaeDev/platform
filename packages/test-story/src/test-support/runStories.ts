@@ -6,6 +6,7 @@ import type { GenreTag } from "#genreTags.ts";
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
 export interface StoriesRun {
+	readonly allowOnly?: boolean;
 	readonly environment?: string;
 	readonly include: string;
 	readonly tags?: readonly GenreTag[];
@@ -26,12 +27,20 @@ export interface StoriesOutcome {
 	readonly warnings: readonly string[];
 }
 
-export async function runStories({ environment, include, tags = [], tagsFilter = [], testNamePattern }: StoriesRun): Promise<StoriesOutcome> {
+export async function runStories({
+	allowOnly = false,
+	environment,
+	include,
+	tags = [],
+	tagsFilter = [],
+	testNamePattern,
+}: StoriesRun): Promise<StoriesOutcome> {
 	const stderr = new PassThrough();
 	const warnings: string[] = [];
 	stderr.on("data", (chunk: Buffer) => warnings.push(chunk.toString()));
 	const vitest = await VitestNode.createVitest(
 		{
+			allowOnly,
 			config: false,
 			...(environment === undefined ? {} : { environment }),
 			include: [include],

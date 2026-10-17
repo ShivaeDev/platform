@@ -5,7 +5,7 @@ import { Socket } from "effect/socket";
 import { expect, it } from "vitest";
 import { trustedOrigins } from "#rpc-server/origin.ts";
 import { Api, serverLayer } from "#test/rpc/api.ts";
-import { createProvider, origin, type Provider, signup } from "#test/rpc/harness.ts";
+import { createProvider, ORIGIN, type Provider, signup } from "#test/rpc/harness.ts";
 
 function upgradeable(request: Request, socket: Socket.Socket) {
 	return new Proxy(HttpServerRequest.fromWeb(request), {
@@ -20,7 +20,7 @@ function whoamiOverWebSocket(provider: Provider, transport: Readonly<Record<stri
 			const socket = yield* Socket.fromTransformStream(Effect.succeed({ readable: inbound.readable, writable: outbound.writable }));
 			const { protocol, httpEffect } = yield* RpcServer.makeProtocolWithHttpEffectWebsocket;
 			yield* Effect.forkScoped(Effect.provideService(RpcServer.make(Api), RpcServer.Protocol, protocol));
-			const request = upgradeable(new Request(`${origin}/rpc`, { headers: transport }), socket);
+			const request = upgradeable(new Request(`${ORIGIN}/rpc`, { headers: transport }), socket);
 			yield* Effect.forkScoped(Effect.provideService(httpEffect, HttpServerRequest.HttpServerRequest, request));
 			const writer = inbound.writable.getWriter();
 			const reader = outbound.readable.getReader();
@@ -28,7 +28,7 @@ function whoamiOverWebSocket(provider: Provider, transport: Readonly<Record<stri
 			const { value } = yield* Effect.promise(() => reader.read());
 			return new TextDecoder().decode(value);
 		}).pipe(
-			Effect.provide(serverLayer(provider, trustedOrigins({ allow: [origin], missing: "reject" }))),
+			Effect.provide(serverLayer(provider, trustedOrigins({ allow: [ORIGIN], missing: "reject" }))),
 			Effect.provide(RpcSerialization.layerJson),
 			Effect.scoped,
 		),
@@ -38,10 +38,10 @@ it("WebSocket RPC decides origin and session from the upgrade request, not messa
 	const provider = await createProvider();
 	try {
 		const alice = await signup(provider, "alice");
-		expect(await whoamiOverWebSocket(provider, { cookie: alice.cookie, origin }, [])).toContain(alice.userId);
-		const hijack = await whoamiOverWebSocket(provider, { cookie: alice.cookie, origin: "https://attacker.example" }, [["origin", origin]]);
+		expect(await whoamiOverWebSocket(provider, { cookie: alice.cookie, origin: ORIGIN }, [])).toContain(alice.userId);
+		const hijack = await whoamiOverWebSocket(provider, { cookie: alice.cookie, origin: "https://attacker.example" }, [["origin", ORIGIN]]);
 		expect(hijack).toMatch(/"_tag":"Forbidden".*"Origin not allowed"/u);
-		expect(await whoamiOverWebSocket(provider, { origin }, [["cookie", alice.cookie]])).toContain('"_tag":"Unauthorized"');
+		expect(await whoamiOverWebSocket(provider, { origin: ORIGIN }, [["cookie", alice.cookie]])).toContain('"_tag":"Unauthorized"');
 	} finally {
 		provider.database.close();
 	}

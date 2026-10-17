@@ -1,0 +1,102 @@
+import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { eventually } from "@shivaedev/effect-react/testing.ts";
+import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
+import { App } from "#client/App.tsx";
+import { appRouter } from "#client/appRouter.tsx";
+import type { Credentials } from "#client/auth.ts";
+import { LoginScreen } from "#client/LoginScreen.tsx";
+import { NotesScreen } from "#client/NotesScreen.tsx";
+import { SessionApp } from "#client/SessionApp.tsx";
+import { appAuth } from "./appAuth.ts";
+import { notesClient } from "./notesClient.ts";
+import { screenAuth } from "./screenAuth.ts";
+import { acquireScreen, type Screen } from "./screenState.ts";
+
+export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: Screen, route: string, signedIn = true) {
+	engine.client.session.signedIn = signedIn;
+	if (!signedIn) {
+		engine.expectedErrors = [
+			[
+				expect.any(String),
+				new Unauthorized({ message: "Authentication required" }),
+				"The above error occurred in the <MatchInnerImpl> component.",
+				"React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundary.",
+			],
+		];
+	}
+	const view = yield* acquireScreen(engine);
+	const router = appRouter(view.registry, engine.client, screenAuth(), createMemoryHistory({ initialEntries: [route] }));
+	engine.router = router;
+	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
+	if (signedIn) {
+		yield* Effect.promise(() => eventually(() => expect(engine.client.calls).toEqual([route === "/" ? "list" : "get"])));
+	}
+});
+
+export const openLogin = Effect.fn("ScreenStory.openLogin")(function* (engine: Screen, rejection: string) {
+	engine.login.outcome = rejection;
+	const auth = {
+		signOut: () => Promise.resolve(undefined),
+		submit: (mode: "sign-in" | "sign-up", credentials: Credentials) => {
+			engine.login.calls.push({ credentials, mode });
+			return engine.login.unavailable ? Promise.reject(new Error("offline")) : Promise.resolve(engine.login.outcome);
+		},
+	};
+	const view = yield* acquireScreen(engine);
+	yield* Effect.promise(() =>
+		view.render(
+			<LoginScreen
+				auth={auth}
+				onAuthenticated={() => {
+					engine.login.authenticated += 1;
+				}}
+			/>,
+		),
+	);
+});
+
+export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Screen, route: string, options: Parameters<typeof appAuth>[0]) {
+	const fixture = appAuth(options);
+	engine.auth = fixture;
+	const view = yield* acquireScreen(engine);
+	const history = createMemoryHistory({ initialEntries: [route] });
+	yield* Effect.promise(() => view.render(<App auth={fixture.auth} connect={() => engine.client} history={history} />));
+});
+
+export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: Screen, signOutFailure?: string) {
+	const view = yield* acquireScreen(engine);
+	const handleSignOut =
+		signOutFailure === undefined
+			? undefined
+			: () => {
+					engine.signOutCalls += 1;
+					return Promise.resolve(signOutFailure);
+				};
+	yield* Effect.promise(() =>
+		view.render(<NotesScreen client={engine.client} {...(handleSignOut === undefined ? {} : { onSignOut: handleSignOut })} />),
+	);
+	yield* Effect.promise(() => eventually(() => expect(engine.client.calls).toEqual(["list"])));
+});
+
+export const openSession = Effect.fn("ScreenStory.openSession")(function* (engine: Screen) {
+	const alice = engine.client;
+	const bob = notesClient();
+	function connection({ id }: { readonly id: string }) {
+		return id === "alice" ? alice : bob;
+	}
+	const auth = screenAuth();
+	const history = createMemoryHistory({ initialEntries: ["/"] });
+	function recheck() {
+		return undefined;
+	}
+	const view = yield* acquireScreen(engine);
+	async function switchSession(id: string) {
+		engine.client = connection({ id });
+		await view.render(<SessionApp auth={auth} connect={connection} history={history} recheck={recheck} sessionId={id} />);
+		await eventually(() => expect(engine.client.calls).toEqual(["list"]));
+	}
+	engine.switchSession = switchSession;
+	yield* Effect.promise(() => switchSession("alice"));
+});
