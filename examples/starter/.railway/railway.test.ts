@@ -1,9 +1,7 @@
-import { createRailwayContext, project } from "railway/iac";
-import { expect, it } from "vitest";
-import railway from "./railway.ts";
+import { expect } from "vitest";
+import { railwayProject } from "#test-support/railwayProject.ts";
 
-it("gives only web auth settings and pre-deploy migrations, with a database-only restarting worker", async () => {
-	const definition = await railway(createRailwayContext({ projectName: "notes" }), project);
+railwayProject.it("gives only web auth settings and pre-deploy migrations, with a database-only restarting worker", [], ({ definition }) => {
 	expect(definition.name).toBe("notes");
 	expect(definition.resources).toEqual([
 		expect.objectContaining({ address: "database.Postgres", engine: "postgres" }),
