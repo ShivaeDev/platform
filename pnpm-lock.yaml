@@ -1268,6 +1268,9 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.4
+      happy-dom:
+        specifier: 'catalog:'
+        version: 20.14.6
       typescript:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'

@@ -1,6 +1,15 @@
 import { describeValue } from "#internal/render.ts";
 import { explained } from "#internal/wrap.ts";
 
+export function unrouted(hostname: string): Error {
+	return new Error(
+		explained(
+			`test-story refused an outbound request to ${hostname}`,
+			"Add this hostname to the story kit's outbound map and point it at a fake server. Only loopback requests may run without a route.",
+		),
+	);
+}
+
 export function refusal(name: string, line: string, cause: unknown): Error {
 	return new Error(
 		explained(

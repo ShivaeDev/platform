@@ -1,4 +1,6 @@
+import { isIP } from "node:net";
 import { Effect } from "effect";
+import { unrouted } from "#internal/errors.ts";
 
 interface DispatchOptions {
 	readonly origin: string | URL;
@@ -12,8 +14,9 @@ function isDispatcher(value: unknown): value is Dispatcher {
 	return typeof value === "object" && value !== null && "dispatch" in value && typeof value.dispatch === "function";
 }
 
-async function install(routes: Readonly<Record<string, string>>) {
+export async function installOutbound(routes: Readonly<Record<string, string>>, strict = false) {
 	const origins = new Map(Object.entries(routes).map(([hostname, target]) => [hostname, new URL(target).origin]));
+	let refused: Error | undefined;
 	// A data URL initializes Node's bundled Undici without sending an HTTP request.
 	await fetch("data:,");
 	const slots = ["undici.globalDispatcher.1", "undici.globalDispatcher.2"].flatMap((name) => {
@@ -33,7 +36,17 @@ async function install(routes: Readonly<Record<string, string>>) {
 		for (const { key, previous } of slots) {
 			const router: Dispatcher = {
 				dispatch(options, handler) {
-					const target = origins.get(new URL(options.origin).hostname);
+					const hostname = new URL(options.origin).hostname;
+					const target = origins.get(hostname);
+					if (
+						strict
+						&& target === undefined
+						&& !["localhost", "[::1]"].includes(hostname)
+						&& !(isIP(hostname) === 4 && hostname.startsWith("127."))
+					) {
+						refused = unrouted(hostname);
+						throw refused;
+					}
 					return previous.dispatch(target === undefined ? options : { ...options, origin: target }, handler);
 				},
 			};
@@ -43,12 +56,17 @@ async function install(routes: Readonly<Record<string, string>>) {
 		restore();
 		throw error;
 	}
-	return restore;
+	return () => {
+		restore();
+		if (refused !== undefined) {
+			throw refused;
+		}
+	};
 }
 
 export function routeOutbound(routes: Readonly<Record<string, string>>) {
 	return Effect.acquireRelease(
-		Effect.promise(() => install(routes)),
+		Effect.promise(() => installOutbound(routes, Reflect.get(globalThis, Symbol.for("test-story.dom")) === true)),
 		(restore) => Effect.sync(restore),
 	).pipe(Effect.asVoid);
 }
