@@ -58,12 +58,12 @@ Keep a label, field error, save failure and pending button state. Follow [`Notes
 
 ## 9. Prove the PostgreSQL host path
 
-Extend [`notesHost.test.ts`](../../examples/starter/src/server/notesHost.test.ts) using its [`test-support/postgres.ts`](../../examples/starter/src/test-support/postgres.ts) harness and authenticated HTTP client pattern in [`test-support/authHttp.ts`](../../examples/starter/src/test-support/authHttp.ts). Add a client for the bookmark group. Sign up a user, create a bookmark over HTTP, list it, and inspect `starter_bookmarks` through `SqlClient` to prove persistence. Check the whitespace rejection leaves the table unchanged, anonymous calls fail, and a second user cannot list the first user's bookmarks.
+Extend [`noteLifecycle.spec.ts`](../../examples/starter/src/server/noteLifecycle.spec.ts) using its [`test-support/postgres.ts`](../../examples/starter/src/test-support/postgres.ts) harness and authenticated HTTP client pattern in [`test-support/authHttp.ts`](../../examples/starter/src/test-support/authHttp.ts). Add a client for the bookmark group. Sign up a user, create a bookmark over HTTP, list it, and inspect `starter_bookmarks` through `SqlClient` to prove persistence. Check the whitespace rejection leaves the table unchanged, anonymous calls fail, and a second user cannot list the first user's bookmarks.
 
 Follow [`notesMigration.spec.ts`](../../examples/starter/src/server/notesMigration.spec.ts) to check the new stored model's columns and PostgreSQL types after upgrading the previous migration prefix. Run against a dedicated PostgreSQL test database whose role can create disposable databases:
 
 ```sh
-pnpm test src/server/notesHost.test.ts src/server/bookmarksMigration.spec.ts
+pnpm test src/server/noteLifecycle.spec.ts src/server/bookmarksMigration.spec.ts
 ```
 
 Set `TEST_DATABASE_URL` first. In this repository, `./script/update` prepares the shared database and `pnpm ready` supplies the test URLs. Confirm the PostgreSQL tests ran: a skipped test supplies no persistence or host evidence.

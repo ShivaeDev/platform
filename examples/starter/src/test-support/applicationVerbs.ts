@@ -1,0 +1,78 @@
+import { ConfigProvider, Effect, Layer } from "effect";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
+import { makeAuth } from "#client/auth.ts";
+import { noteWorker } from "#server/noteWorker.ts";
+import type { Engine } from "./applicationState.ts";
+import { authRateLimits } from "./authRateLimits.ts";
+import { createInRolledBackTransaction } from "./createInRolledBackTransaction.ts";
+import { startHost } from "./host.ts";
+import { liveNotes } from "./liveNotes.ts";
+import { rejectsWith } from "./rejectsWith.ts";
+import { requests } from "./requests.ts";
+import { sessionVerbs } from "./sessionVerbs.ts";
+import { storedNotes } from "./storedNotes.ts";
+import { workerTracing } from "./workerTracing.ts";
+
+export function applicationVerbs(engine: Engine, story: { tell: (line: string) => void }) {
+	function host() {
+		if (engine.host === undefined) {
+			throw new Error("Host has not started");
+		}
+		return engine.host;
+	}
+	engine.tell = story.tell;
+	function http() {
+		return requests(host(), story.tell);
+	}
+	const startWorker = Effect.fn("AppStory.startWorker")(function* (env?: Record<string, string>) {
+		story.tell("start the word-count worker");
+		const database = yield* PostgresTestDatabase;
+		const worker = noteWorker({ databaseUrl: database.url });
+		yield* Layer.build(env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))));
+	});
+	return {
+		...storedNotes(story.tell),
+		existingNote: (title: string) => {
+			const note = engine.existingNotes.get(title);
+			if (note === undefined) {
+				throw new Error(`No existing note ${title}`);
+			}
+			return note;
+		},
+		...sessionVerbs(engine, story.tell),
+		...workerTracing(story.tell, startWorker),
+		actor: (name = "alice") => {
+			const actor = engine.actors.get(name);
+			if (actor === undefined) {
+				throw new Error(`No signed-in account ${name}`);
+			}
+			return actor;
+		},
+		anonymous: () => http().notes(),
+		authClient: (cookie = "") => {
+			story.tell("connect an auth client to this story's app host");
+			const { baseUrl, origin } = host();
+			return makeAuth({ baseUrl, fetchOptions: { headers: { cookie, origin } } });
+		},
+		authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
+		authRateLimits: () => authRateLimits(host(), story.tell),
+		createInRolledBackTransaction: () => createInRolledBackTransaction(host(), story.tell),
+		foreignRequest: (cookie: string) => http().foreignRequest(cookie),
+		liveNotes: (name = "alice") => {
+			story.tell(`${name} watches the live notes list`);
+			const actor = engine.actors.get(name);
+			if (actor === undefined) {
+				throw new Error(`No signed-in account ${name}`);
+			}
+			return liveNotes(host(), actor.cookie);
+		},
+		notes: (cookie: string) => http().notes(cookie),
+		rejectsWith,
+		rerunMigrations: Effect.fn("AppStory.rerunMigrations")(function* () {
+			story.tell("run the deployment migrations and open another app host");
+			engine.host = yield* startHost(engine.hostOptions);
+		}),
+		runningHost: host,
+		startWorker,
+	};
+}
