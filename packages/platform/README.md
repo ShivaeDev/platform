@@ -92,6 +92,21 @@ Omit `migrations` to host an app without a database. This form creates no SQL po
 
 Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` when a separate pre-deploy command owns migrations. Startup reads the ledger and fails with native `MigrationError` (`kind: "BadState"`) if any required migration ID or name is missing; it does not run migrations or create a ledger. Later ledger entries are allowed for rolling deployments. With `mode` omitted or `"migrate"`, the existing migration behavior remains: startup applies pending migrations with a five-second lock timeout unless `migrations.lockTimeout` overrides it.
 
+When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `AppChanges` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
+
+```ts
+const host = appHost({
+  config: { databaseUrl },
+  migrations: { loader: migrations, mode: "check" },
+  application: Effect.gen(function* () {
+    const { routes, sessions } = yield* makeAuth();
+    return { group: Api, handlers: Handlers, services: Services, routes, sessions };
+  }),
+});
+```
+
+Construct Better Auth inside `application`, since its constructor starts schema validation. Keep validation enabled so a current migration ledger with missing auth columns still reports drift. The starter uses this form after its pre-deploy migrations.
+
 Set `OTEL_EXPORTER_OTLP_ENDPOINT` (the collector base URL; `/v1/traces` is appended) or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (the complete traces URL, which takes precedence) to export `appHost`'s Effect spans over OTLP/HTTP. `OTEL_EXPORTER_OTLP_PROTOCOL` selects `http/protobuf` or `http/json`; `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` takes precedence for traces. When neither protocol variable is set, the default is `http/protobuf`, following the [OpenTelemetry recommendation](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#specify-protocol). Unsupported protocols, including `grpc`, fail startup with a `ConfigError` naming the value. `OTEL_EXPORTER_OTLP_HEADERS` supplies comma-separated `key=value` exporter headers with URL-encoded values. `OTEL_SERVICE_NAME` sets the service name and `OTEL_SERVICE_VERSION` sets `service.version`; `OTEL_RESOURCE_ATTRIBUTES` adds comma-separated, URL-encoded resource attributes and can supply `service.name` when no service name is set. The fallback name is `unknown_service`. Configuration is read through Effect Config. Without an endpoint, no exporter or export loop is built, even when service metadata is set.
 
 On Railway, enable the per-service tracing setting separately for the web service and worker, and leave both exporter endpoint variables unset in your app's configuration. Railway injects the `OTEL_*` variables, including `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`, only when the app sets no endpoint of its own. The framework exports through Effect's own `effect/observability` OTLP tracer; eBPF auto-instrumentation is outside this path. For a worker, provide `otlpTracing` from `@shivaedev/platform/otlpTracing.ts` to its application Layer. It batches ended Effect spans and flushes during scoped shutdown with a three-second bound. The first failed export logs a warning with the collector status and redacted response body, or the transport failure kind when no response arrives. Repeated failures stay quiet until a successful export. Collector connection failures and HTTP errors leave requests, jobs and shutdown successful. HTTP receiver tests cover the host and the starter's PostgreSQL word-count worker; they do not establish delivery in a deployed collector.
@@ -427,7 +442,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | Module | Names and purpose |
 | --- | --- |
 | `otlpTracing.ts` | `otlpTracing`: scoped, opt-in Effect OTLP trace export configured through standard exporter variables; provide it to worker Layers. |
-| `appHost.ts` | `appHost({ group, handlers, services, migrations?, sessions?, policy?, rpcPath?, assets?, routes?, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppHttpHostOptions`, `AppLocalHostOptions`, `AppDatabaseOptions`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
+| `appHost.ts` | `appHost({ group, handlers, services, migrations?, sessions?, policy?, rpcPath?, assets?, routes?, config? })` or `appHost({ application, migrations, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppHttpHostOptions`, `AppLocalHostOptions`, `AppDatabaseOptions`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
 | `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
 | `errors/rejected-field.ts` | `rejectedField(unknown): Option<RejectedField>`; `RejectedField` is `{ field: string, message: string }`. |
 | `rpc/identity.ts` | `RequestId`: string service. `Identity`: `IdentityValue`, `{ id: string }`. `OptionalIdentity`: `Option<IdentityValue>`. `SessionUser`: `SessionUserValue`, `{ id, name, email }`. |

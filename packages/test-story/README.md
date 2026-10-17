@@ -146,6 +146,63 @@ const app = storyKit({
 
 Routing uses the global dispatcher that Node's built-in `fetch` already uses. It is installed before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
 
+#### Asserting on application traces
+
+Start an in-process host in `create`. That hook runs without the ambient parent span, so an Effect HTTP handler that captures its context does not inherit a span placed around the story. A request without trace headers starts a root trace; a request with `traceparent` continues that trace. The tracer, services and per-story Scope remain available during creation. Traits, engine steps and the story body keep the span supplied by `around`.
+
+A kit can collect spans with a native in-memory tracer, or start a fake OTLP receiver and point the application's exporter at it. Keep collection and any exporter flush or bounded wait in the kit's verbs. Assert only after the request span has ended. This small in-memory kit uses Effect's Web Request handler as its host:
+
+```ts
+import { Effect, Tracer } from "effect";
+import { HttpEffect, HttpServerResponse } from "effect/http";
+import { expect } from "vitest";
+import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+
+const spans: Tracer.NativeSpan[] = [];
+const tracer = Tracer.make({
+  span: (options) => {
+    const span = new Tracer.NativeSpan(options);
+    spans.push(span);
+    return span;
+  },
+});
+
+const app = storyKit({
+  around: (effect) => effect.pipe(Effect.withSpan("story"), Effect.withTracer(tracer)),
+  *create() {
+    const context = yield* Effect.context<never>();
+    return HttpEffect.toWebHandlerWith(context)(Effect.succeed(HttpServerResponse.text("ok")));
+  },
+  name: "traced application",
+  stages: ["ready"],
+  verbs: (handler) => ({
+    request: (headers: HeadersInit = {}) => Effect.promise(async () => {
+      const response = await handler(new Request("http://app.test/", { headers }));
+      await response.text();
+      const span = spans.filter((span) => span.kind === "server").at(-1);
+      if (span === undefined) throw new Error("The request exported no server span");
+      return span;
+    }),
+  }),
+});
+
+app.it("a request is its own root trace", [], function* ({ request }) {
+  const storySpan = yield* Effect.currentSpan;
+  const span = yield* request();
+  expect(span.parent._tag).toBe("None");
+  expect(span.traceId).not.toBe(storySpan.traceId);
+  expect(span.status._tag).toBe("Ended");
+});
+
+app.it("a request continues its supplied trace", [], function* ({ request }) {
+  const span = yield* request({ traceparent: "00-1234567890abcdef1234567890abcdef-1234567890abcdef-01" });
+  expect(span.traceId).toBe("1234567890abcdef1234567890abcdef");
+  expect(span.parent).toMatchObject({ value: { spanId: "1234567890abcdef" } });
+});
+```
+
+The package's [tracing kit](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/test-support/tracingApp.ts) and [stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/hostTracing.spec.ts) also assert that two requests have different trace IDs, request work stays under its request span, and traits and engine steps stay under the story span. Creation only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
+
 ### 2. Once per feature: traits and verbs
 
 A trait is a line and a change, tagged with a stage:

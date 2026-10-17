@@ -17,6 +17,7 @@ export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: { reado
 	const trustedProxies = trustedProxyRanges(trustedProxy);
 	const auth = betterAuth({
 		advanced: {
+			database: { validateSchema: true },
 			ipAddress: {
 				ipAddressHeaders: trustedProxies.length === 0 ? [] : [clientIpHeader],
 				trustedProxies,

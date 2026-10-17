@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.0 - 2026-10-17
+
+### Changed
+
+- Generated apps control Better Auth rate limiting through Effect Config `AUTH_RATE_LIMIT_ENABLED`, enabled by default in every environment. Client-IP and rate-limit stories use the ordinary in-process host, including coverage with the switch disabled.
+
+### Fixed
+
+- A generated app’s worker and `pnpm migrate` command need only `DATABASE_URL`; shared migrations derive Better Auth’s schema without constructing an auth instance.
+- A generated app runs migrations in web’s Railway pre-deploy step. Web and worker check the schema at startup without migrating; an outdated schema prevents authentication, HTTP and jobs from starting. The migrate command is idempotent.
+- A generated app’s worker logs its applied-migrations check and readiness to take jobs through Effect’s logger.
+- A generated app’s Railway TypeScript configuration runs migrations only in web’s pre-deploy container and gives the worker only `DATABASE_URL`; web’s healthcheck uses the database-backed `/health` route.
+- Generate an app with aligned framework versions, including `effect-sql` 0.5.0 and its matching SQL test package, so framework dependencies do not install conflicting versions.
+- A generated app registers producer queues and their dead-letter queues through `effect-pg-boss` queue definitions. Note writes enqueue independently after their transaction and log queue failures without failing the saved write; the starter no longer supplies a transactional database adapter.
+- Generated apps can select the auth client IP header with `AUTH_CLIENT_IP_HEADER`, still gated by `TRUSTED_PROXY`. Railway uses `x-real-ip` so different visitor IPs have separate auth rate-limit buckets and the same visitor IP shares a bucket across changing `X-Forwarded-For` values. Other deployments keep the `x-forwarded-for` default.
+
 ## 0.5.0 - 2026-10-17
 
 ### Added
