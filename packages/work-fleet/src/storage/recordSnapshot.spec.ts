@@ -8,6 +8,7 @@ import { recordModel } from "#storage/model.ts";
 import { readRecords } from "#storage/readRecords.ts";
 import { recordShape } from "#storage/recordShape.ts";
 import { recordValue } from "#storage/recordValue.ts";
+import { migrateFleet } from "#test/migrateFleet.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { typedMigrationRecords } from "#test/typedMigrationRecords.ts";
 
@@ -17,7 +18,7 @@ snapshotTests("a reader keeps one record version while a concurrent writer repla
 	const sql = yield* SqlClient.SqlClient;
 	const namespace = "typed_snapshot";
 	const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
-	yield* store.initialize();
+	yield* migrateFleet(namespace);
 	const value = typedMigrationRecords()[0];
 	if (value === undefined) {
 		return yield* Effect.die("Missing populated fixture");
