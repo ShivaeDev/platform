@@ -3,7 +3,7 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { SourceFailure } from "#diagnostics/source.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
-import { codexResponse, health, syntheticSources } from "#test/diagnostics.ts";
+import { codexResponse, githubObservations, health, syntheticSources } from "#test/diagnostics.ts";
 import { renderDiagnostics as diagnosticsHtml, renderRemaining } from "#test/remainingRendering.tsx";
 
 let notes: Folder;
@@ -24,7 +24,7 @@ it.live("links Diagnostics from the sidebar and renders all three sources throug
 		"24% used",
 		"63% used",
 		"4321 / 5000",
-		"3210 / 5000",
+		"0 / 5000",
 		"3 / 8",
 		"Provider is at capacity",
 		"Last scheduler pass",
@@ -72,7 +72,7 @@ it("shows Fleet freshness, unobserved scheduler and rejection, unknown Codex win
 		github: {
 			observedAt: health.observedAt,
 			state: "ready",
-			value: { core: { limit: 5000, remaining: 0, reset: 0 }, graphql: { limit: 5000, remaining: 1, reset: 0 } },
+			value: [{ limit: 5000, limitedUntil: null, observedAt: health.observedAt, remaining: 0, reset: 0, resource: "core", used: 5000 }],
 		},
 	} as const;
 	expect(diagnosticsHtml(sources, health.observedAt)).toContain("Current snapshot");
@@ -81,6 +81,31 @@ it("shows Fleet freshness, unobserved scheduler and rejection, unknown Codex win
 		expect(stale).toContain(text);
 	}
 	expect(diagnosticsHtml(sources, health.observedAt - 1)).toContain("Publisher clock is ahead");
+});
+
+it("renders each GitHub resource Fleet recorded with its age and the rate limit it is waiting out", () => {
+	const now = health.observedAt;
+	const html = diagnosticsHtml(
+		{
+			codex: { cause: "Missing", observedAt: now, state: "not-configured" },
+			fleet: { cause: "Missing", observedAt: now, state: "not-configured" },
+			github: { observedAt: now, state: "ready", value: githubObservations },
+		},
+		now,
+	);
+	const github = html.slice(html.indexOf('data-source="github"'), html.indexOf("</article>", html.indexOf('data-source="github"')));
+	expect(github).toContain('data-state="attention"');
+	const rest = github.slice(github.indexOf('data-resource="core"'), github.indexOf('data-resource="graphql"'));
+	expect(rest).toContain("<dt>REST</dt>");
+	expect(rest).toContain("4321 / 5000");
+	expect(rest).toContain("1 min ago");
+	expect(rest).not.toContain("Rate-limited");
+	const graphql = github.slice(github.indexOf('data-resource="graphql"'));
+	expect(graphql).toContain("<dt>GraphQL</dt>");
+	expect(graphql).toContain("0 / 5000");
+	expect(graphql).toContain("<strong>Rate-limited</strong> until");
+	expect(graphql).toContain("5 min ago");
+	expect(github).toContain("Recorded from the rate-limit headers of Fleet&#x27;s own GitHub responses.");
 });
 
 it("marks stale Fleet counts and uses the snapshot observation instead of the Board read time", () => {
