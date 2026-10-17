@@ -13,6 +13,7 @@ export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: {
 	const publicUrl = yield* Config.URL("PUBLIC_URL").pipe(Config.option);
 	const origin = Option.map(publicUrl, (url) => url.origin);
 	const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
+	const rateLimitEnabled = yield* Config.Boolean("AUTH_RATE_LIMIT_ENABLED").pipe(Config.withDefault(true));
 	const isTrustedProxy = trustedProxyPeer(trustedProxy);
 	const trustedProxies = trustedProxyRanges(trustedProxy);
 	const pool = yield* authDatabase(config.databaseUrl);
@@ -27,6 +28,7 @@ export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: {
 		"baseURL": Option.getOrElse(origin, () => ({ allowedHosts: ["127.0.0.1:*"], protocol: "http" as const })),
 		database: pool,
 		emailAndPassword: { enabled: true },
+		rateLimit: { enabled: rateLimitEnabled },
 		secret: Redacted.value(secret),
 		session: { cookieCache: { enabled: false } },
 		trustedOrigins: [Option.getOrElse(origin, () => "http://127.0.0.1:*")],
