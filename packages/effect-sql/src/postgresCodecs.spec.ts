@@ -1,5 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { BigDecimal, Effect, Redacted, Schema } from "effect";
+import { BigDecimal, Effect, Redacted, Schema, type Scope } from "effect";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { SqlError } from "effect/sql/SqlError";
@@ -30,9 +30,9 @@ class Receipt extends Model.Class<Receipt>("PostgresReceipt")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 }) {}
 
-function run<A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) {
+function run<A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Scope.Scope>) {
 	return Effect.runPromise(
-		effect.pipe(
+		Effect.scoped(effect).pipe(
 			Effect.provide(
 				PgClient.layer({
 					url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled"),
@@ -120,11 +120,13 @@ integration("a plain object written to a JSON column fails with a typed SqlError
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const tableName = `platform_receipts_${crypto.randomUUID().replaceAll("-", "")}`;
-			yield* sql`create table ${sql(tableName)} (id integer generated always as identity primary key, details jsonb not null)`;
+			yield* Effect.acquireRelease(
+				sql`create table ${sql(tableName)} (id integer generated always as identity primary key, details jsonb not null)`,
+				() => sql`drop table ${sql(tableName)}`.pipe(Effect.orDie),
+			);
 			const receipts = yield* makeRepository(Receipt, { idColumn: "id", spanPrefix: "PostgresReceipt", tableName });
 			const failure = yield* receipts.insert({ details: { attempts: 1, channel: "card" } }).pipe(Effect.flip);
 			const rows = yield* sql`select id from ${sql(tableName)}`;
-			yield* sql`drop table ${sql(tableName)}`;
 			expect(failure).toBeInstanceOf(SqlError);
 			expect(rows).toEqual([]);
 		}),

@@ -36,13 +36,9 @@ export const dispatchStore = Effect.fn("FleetDispatch.dispatchStore")(function* 
 		tableName: `${namespace}_dispatches`,
 	});
 	function list(workId?: string) {
-		return repository.findMany({ orderBy: { direction: "asc", field: "work_id" }, where: { "work_id": workId } }).pipe(
-			Effect.map((rows) => rows.map(receipt)),
-			Effect.catchTag("SqlError", (error) => {
-				const cause = error.reason.cause;
-				return typeof cause === "object" && cause !== null && "code" in cause && cause.code === "42P01" ? Effect.succeed([]) : Effect.fail(error);
-			}),
-		);
+		return repository
+			.findMany({ orderBy: { direction: "asc", field: "work_id" }, where: { "work_id": workId } })
+			.pipe(Effect.map((rows) => rows.map(receipt)));
 	}
 	function get(workId: string) {
 		return list(workId).pipe(Effect.map((requests) => requests[0] ?? null));

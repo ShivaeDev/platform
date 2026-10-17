@@ -4,7 +4,7 @@ import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { makePostgresTestLayer, type PostgresTestOptions } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { withTestTransaction } from "@shivaedev/effect-test-sql/withTestTransaction.ts";
-import { migrateFleet } from "#storage/migrateFleet.ts";
+import { migrateFleet } from "#test/migrateFleet.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
 const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"))));

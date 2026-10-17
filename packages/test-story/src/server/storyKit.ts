@@ -54,6 +54,7 @@ export interface StoryKitDefinition<
 	readonly name: string;
 	readonly outbound?: Readonly<Record<string, string>>;
 	readonly run?: RunHooks<TEngine, TStep, TFailed, TDiagnose>;
+	readonly runIf?: boolean;
 	readonly stages: readonly [TStage, ...TStage[]];
 	readonly verbs: (engine: TEngine, story: Story<TEngine, TStep | TFailed | TDiagnose>) => TVerbs;
 }

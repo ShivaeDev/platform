@@ -1,13 +1,13 @@
-import { describe, expect } from "@effect/vitest";
-import { Effect, Ref, Schema, Stream } from "effect";
-import { RpcTest } from "effect/rpc";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { Effect, Schema } from "effect";
+import { describe, expect } from "vitest";
 import { contract } from "#contract.ts";
 import { type CommandShape, command, type QueryShape, type StreamShape, stream } from "#operation.ts";
-import { Create, Get, List, makeServer, NoteMissing, Notes, Rename } from "#test/notes.ts";
+import { Follow } from "#test/edgeEngine.ts";
+import { Create, Get, List, Note, NoteMissing, Rename } from "#test/notes.ts";
+import { denied, notesStory, signedIn, storedNotes } from "#test/notesStory.ts";
 
 describe("contract", () => {
-	it("rejects duplicate operation names at construction when the compiler cannot see them", () => {
+	notesStory.it("rejects duplicate operation names at construction when the compiler cannot see them", [], () => {
 		const queries: readonly QueryShape[] = [List, Get, List];
 		expect(() => contract("dupes", { queries })).toThrow("Operation names must be unique; duplicated: list");
 		const commands: readonly CommandShape[] = [command("get", { invalidates: () => [] })];
@@ -17,7 +17,7 @@ describe("contract", () => {
 		expect(() => contract("dupes", { streams: [...streams, ...streams] })).toThrow("Operation names must be unique; duplicated: get");
 	});
 
-	it.effect("reuses declared rejection classes and generates classes for field specs", function* () {
+	notesStory.it("reuses declared rejection classes and generates classes for field specs", [], function* () {
 		expect(Get.Rejection.NoteMissing).toBe(NoteMissing);
 		expect(Rename.Rejection.NoteMissing).toBe(NoteMissing);
 		const invalid = yield* Effect.flip(Rename.reject.Invalid({ field: "title", message: "Enter a title" }));
@@ -26,45 +26,36 @@ describe("contract", () => {
 		expect(Create.Rejection.Invalid).not.toBe(Rename.Rejection.Invalid);
 	});
 
-	it.effect("round-trips successes and declared rejections through the native client and handlers", () =>
-		Effect.gen(function* () {
-			const server = yield* makeServer;
-			const client = yield* RpcTest.makeClient(Notes, { flatten: true }).pipe(Effect.provide(server.layer));
-			expect(yield* client("notes.get", { id: 1 })).toMatchObject({ id: 1, title: "One" });
-			const missing = yield* Effect.flip(client("notes.get", { id: 9 }));
-			expect(missing).toBeInstanceOf(NoteMissing);
-			const invalid = yield* Effect.flip(client("notes.rename", { id: 1, title: " " }));
-			expect(invalid).toMatchObject({ _tag: "Invalid", field: "title" });
-			const created = yield* client("notes.create", { body: "b", title: "Three" });
-			expect(created).toMatchObject({ id: 3, title: "Three" });
-			expect((yield* client("notes.list", undefined)).map((note) => note.title)).toEqual(["One", "Two", "Three"]);
-			yield* Ref.set(server.denied, true);
-			expect(yield* Effect.flip(client("notes.list", undefined))).toMatchObject({ _tag: "Denied" });
-		}).pipe(Effect.scoped),
+	notesStory.it(
+		"round-trips successes and declared rejections through the bound native client and handlers",
+		[signedIn()],
+		function* ({ get, rename, create, list, deny }) {
+			expect(yield* get(1)).toMatchObject({ id: 1, title: "One" });
+			expect(yield* Effect.flip(get(9))).toBeInstanceOf(NoteMissing);
+			expect(yield* Effect.flip(rename(1, " "))).toMatchObject({ _tag: "Invalid", field: "title" });
+			expect(yield* create("Three", "b")).toMatchObject({ id: 3, title: "Three" });
+			expect((yield* list()).map((note) => note.title)).toEqual(["One", "Two", "Three"]);
+			yield* deny();
+			expect(yield* Effect.flip(list())).toMatchObject({ _tag: "Denied" });
+		},
 	);
 
-	it.effect("serves a contract without middleware through toLayer", () =>
-		Effect.gen(function* () {
-			const Plain = contract("plain", { queries: [List] });
-			const layer = Plain.toLayer(Effect.succeed(Plain.of({ "plain.list": () => Effect.succeed([]) })));
-			const client = yield* RpcTest.makeClient(Plain, { flatten: true }).pipe(Effect.provide(layer));
-			expect(yield* client("plain.list", undefined)).toEqual([]);
-		}).pipe(Effect.scoped),
-	);
+	notesStory.it("serves a contract without middleware through toLayer", [], function* ({ plainList }) {
+		expect(yield* plainList()).toEqual([]);
+	});
 });
 
-it.effect("streams decode payloads and elements with declared read keys through native RPC", () =>
-	Effect.gen(function* () {
-		const Follow = stream("follow", {
-			payload: Schema.Struct({ id: Schema.Number }),
-			reads: ({ id }) => Get.reads({ id }),
-			success: Schema.String,
-		});
-		const Feed = contract("feed", { streams: [Follow] });
-		const handlers = Feed.toLayer({ "feed.follow": ({ id }) => Stream.make(`note:${id}`, "done") });
-		const client = yield* RpcTest.makeClient(Feed, { flatten: true }).pipe(Effect.provide(handlers));
-		expect(yield* Stream.runCollect(client("feed.follow", { id: 2 }))).toEqual(["note:2", "done"]);
-		expect(Follow.reads({ id: 2 })).toEqual(Get.reads({ id: 2 }));
-		expect(Follow.error).toBe(Schema.Never);
-	}).pipe(Effect.scoped),
+notesStory.it("streams decode payloads and elements with declared read keys through bound native RPC", [], function* ({ follow }) {
+	expect(yield* follow(2)).toEqual(["note:2", "done"]);
+	expect(Follow.reads({ id: 2 })).toEqual(Get.reads({ id: 2 }));
+	expect(Follow.error).toBe(Schema.Never);
+});
+
+notesStory.it(
+	"denied sessions cannot read seeded notes",
+	[denied(), storedNotes(new Note({ body: "private", id: 1, title: "Secret" }))],
+	function* ({ get, reads }) {
+		expect(yield* Effect.flip(get(1))).toMatchObject({ _tag: "Denied" });
+		expect(reads()).toEqual([]);
+	},
 );
