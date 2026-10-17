@@ -1,10 +1,9 @@
 import { Cause, Context, Effect, Exit, Logger, References } from "effect";
-import { type ChannelOptions, makeChannel } from "#channel.ts";
 
 export interface FakeDatabase {
 	readonly committed: readonly string[];
 	readonly name: string;
-	readonly transaction: <X, E, R>(body: Effect.Effect<X, E, R>) => Effect.Effect<X, E, R>;
+	readonly transaction: <TValue, E, R>(body: Effect.Effect<TValue, E, R>) => Effect.Effect<TValue, E, R>;
 	readonly write: (row: string) => Effect.Effect<void>;
 }
 
@@ -50,18 +49,6 @@ export function change(subject: string, domain = "orders"): Change {
 	return { domain, subject };
 }
 
-export function makeTestChannel(options: Partial<ChannelOptions<Change, Current>> = {}) {
-	const published: Array<readonly string[]> = [];
-	const channel = makeChannel<Change, Current>({
-		key: (event) => `${event.subject}:${event.domain}`,
-		name: "Test",
-		owner: Effect.service(Current),
-		publish: (changes) => Effect.sync(() => published.push(changes.map((event) => `${event.subject}:${event.domain}`))),
-		...options,
-	});
-	return { channel, published };
-}
-
 export interface LogEntry {
 	readonly annotations: Readonly<Record<string, unknown>>;
 	readonly cause: string;
@@ -83,16 +70,6 @@ export function captureLogs() {
 }
 
 export function on(database: FakeDatabase) {
-	return <X, E, R>(effect: Effect.Effect<X, E, R>): Effect.Effect<X, E, Exclude<R, Current>> => Effect.provideService(effect, Current, database);
-}
-
-export function harness(options: Partial<ChannelOptions<Change, Current>> = {}) {
-	const { channel, published } = makeTestChannel(options);
-	function inTransaction(database: FakeDatabase) {
-		return <X, E, R>(body: Effect.Effect<X, E, R>) => on(database)(channel.within(database.transaction)(body));
-	}
-	function write(database: FakeDatabase, row: string, ...changes: readonly Change[]) {
-		return on(database)(Effect.andThen(database.write(row), channel.record(changes)));
-	}
-	return { channel, inTransaction, published, write };
+	return <TValue, E, R>(effect: Effect.Effect<TValue, E, R>): Effect.Effect<TValue, E, Exclude<R, Current>> =>
+		Effect.provideService(effect, Current, database);
 }

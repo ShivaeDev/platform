@@ -2,6 +2,7 @@ import { Effect, Exit } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { competingStorage } from "#test/competingStorage.ts";
+import { migrateFleet } from "#test/migrateFleet.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { makeTestStore, record, withStorage } from "#test/storage.ts";
 
@@ -19,7 +20,7 @@ integration("persists submission intent and exact accepted receipts across resta
 				{ maxExecuting: 1 },
 			);
 			const restarted = yield* makeTestStore(namespace);
-			yield* restarted.initialize();
+			yield* migrateFleet(namespace);
 			expect(yield* restarted.load("board-a")).toEqual(submitting);
 			const accepted = yield* restarted.compareAndSet(
 				"board-a",

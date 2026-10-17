@@ -1,60 +1,38 @@
-import { describe, expect, it } from "@effect/vitest";
-import { Effect, Schema } from "effect";
-import * as Reactivity from "effect/reactivity/Reactivity";
+import { Schema } from "effect";
+import { describe, expect } from "vitest";
 import { collection, invalidationKeys, readKeys } from "#keys.ts";
+import { notesStory } from "#test/notesStory.ts";
 
 const orders = collection("orders", Schema.Number);
 const notes = collection("notes", Schema.String);
 
 describe("reactivity keys", () => {
-	it("registers items precisely and invalidates an item together with its list", () => {
+	notesStory.it("registers items precisely and invalidates an item together with its list", [], () => {
 		expect(readKeys([orders.item(1), orders.list, orders.item(1)])).toEqual(["orders:1", "orders"]);
 		expect(invalidationKeys([orders.item(1), orders.item(2), notes.list])).toEqual(["orders:1", "orders", "orders:2", "notes"]);
 	});
 
-	it.effect("matches native record-key hashing: an item change refreshes that item and the list, not other items", () =>
-		Effect.gen(function* () {
-			const reactivity = yield* Reactivity.Reactivity;
+	notesStory.it(
+		"matches native record-key hashing: an item change refreshes that item and the list, not other items",
+		[],
+		function* ({ watchKeys, invalidate }) {
 			const refreshed: string[] = [];
-			function watch(label: string, keys: readonly string[]) {
-				return reactivity.registerUnsafe(keys, () => refreshed.push(label));
-			}
-			const release = [
-				watch("order 1", readKeys([orders.item(1)])),
-				watch("order 2", readKeys([orders.item(2)])),
-				watch("list", readKeys([orders.list])),
+			const releases = [
+				yield* watchKeys("order 1", readKeys([orders.item(1)]), refreshed),
+				yield* watchKeys("order 2", readKeys([orders.item(2)]), refreshed),
+				yield* watchKeys("list", readKeys([orders.list]), refreshed),
 			];
-			yield* reactivity.invalidate(invalidationKeys([orders.item(1)]));
-			expect(
-				refreshed.sort((left, right) => {
-					if (left < right) {
-						return -1;
-					}
-					if (left > right) {
-						return 1;
-					}
-					return 0;
-				}),
-			).toEqual(["list", "order 1"]);
+			yield* invalidate(invalidationKeys([orders.item(1)]));
+			expect(refreshed.sort((left, right) => left.localeCompare(right))).toEqual(["list", "order 1"]);
 			refreshed.length = 0;
-			yield* reactivity.invalidate({ orders: [1] });
-			expect(
-				refreshed.sort((left, right) => {
-					if (left < right) {
-						return -1;
-					}
-					if (left > right) {
-						return 1;
-					}
-					return 0;
-				}),
-			).toEqual(["list", "order 1"]);
+			yield* invalidate({ orders: [1] });
+			expect(refreshed.sort((left, right) => left.localeCompare(right))).toEqual(["list", "order 1"]);
 			refreshed.length = 0;
-			yield* reactivity.invalidate(invalidationKeys([orders.list]));
+			yield* invalidate(invalidationKeys([orders.list]));
 			expect(refreshed).toEqual(["list"]);
-			for (const stop of release) {
-				stop();
+			for (const release of releases) {
+				release();
 			}
-		}).pipe(Effect.provide(Reactivity.layer)),
+		},
 	);
 });

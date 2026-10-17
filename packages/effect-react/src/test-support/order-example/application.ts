@@ -7,7 +7,7 @@ import { hasPostgres, kitDatabases, workerDatabase } from "./postgres.ts";
 import { activeScreens } from "./screens.ts";
 import { orderVerbs } from "./verbs.ts";
 
-const kit = storyKit({
+export const app = storyKit({
 	around: isolate(wholeStack),
 	clock: "live",
 	*create() {
@@ -18,11 +18,11 @@ const kit = storyKit({
 	inspect: (engine) => ({ changes: engine.changes, observations: engine.observations, orders: [...engine.orders] }),
 	layer: workerDatabase,
 	name: "orders",
+	runIf: hasPostgres,
 	stages: ["database", "orders", "screen"],
 	verbs: (engine, story) => orderVerbs(engine, story.tell),
 });
 
-export const app = { ...kit, fails: kit.it.fails, it: kit.it.runIf(hasPostgres) };
 export function realPostgres() {
 	return app.trait("database", "real PostgreSQL uses HTTP, truncation and real commits", function* (engine) {
 		kitDatabases.add(engine.database.name);

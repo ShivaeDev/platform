@@ -9,7 +9,6 @@ import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
 import { listedRecords } from "#storage/listedRecords.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 import { makeForeignReservations } from "#storage/makeForeignReservations.ts";
-import { migrateFleet } from "#storage/migrateFleet.ts";
 import { type AdmissionLimits, recordModel, type Versioned } from "#storage/model.ts";
 import { nextAdmissionOrder } from "#storage/nextAdmissionOrder.ts";
 import { operationEntries } from "#storage/operationEntries.ts";
@@ -121,7 +120,6 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 			write(workId, expectedVersion, record, limits),
 		...foreign,
 		hasLaunchRetry: () => rows.findMany({ select: ["launchRetry"] }).pipe(Effect.map((entries) => entries.some((row) => row.launchRetry !== null))),
-		initialize: () => commit([fleetRecords.list], migrateFleet(namespace)),
 		insert: (record: TSchema["Type"], limits?: AdmissionLimits) => write(record.workId, null, record, limits),
 		list,
 		load,

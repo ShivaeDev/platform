@@ -1,62 +1,39 @@
-import { act } from "react";
-import { expect, onTestFinished } from "vitest";
-import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
-import { screens } from "#test-support/screens.ts";
-import type { AuthActions, Credentials } from "./auth.ts";
-import { LoginScreen } from "./LoginScreen.tsx";
-
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-expectNoReactWarnings();
+import { loginScreen, screens } from "#test-support/screens.ts";
 
 screens.it(
 	"submits signup and sign-in, retains rejected input, and shows provider and network failures",
-	[],
-	function* ({ interact, enter, submit }) {
-		yield* interact(async () => {
-			const calls: { mode: string; credentials: Credentials }[] = [];
-			let outcome: string | undefined = "Email is already registered";
-			let unavailable = false;
-			let authenticated = 0;
-			const auth: AuthActions = {
-				signOut: () => Promise.resolve(undefined),
-				submit: (mode, credentials) => {
-					calls.push({ credentials, mode });
-					if (unavailable) {
-						return Promise.reject(new Error("offline"));
-					}
-					return Promise.resolve(outcome);
-				},
-			};
-			const view = await render(
-				<LoginScreen
-					auth={auth}
-					onAuthenticated={() => {
-						authenticated += 1;
-					}}
-				/>,
-			);
-			onTestFinished(view.unmount);
-
-			await act(() => [...view.container.querySelectorAll("button")].find((button) => button.textContent === "Create an account")?.click());
-			await enter(view.container, "Alice", "Name");
-			await enter(view.container, "alice@app.test", "Email");
-			await enter(view.container, "correct-horse", "Password");
-			await submit(view.container);
-			expect(calls).toEqual([{ credentials: { email: "alice@app.test", name: "Alice", password: "correct-horse" }, mode: "sign-up" }]);
-			expect(view.container.querySelector("[role=alert]")?.textContent).toBe(outcome);
-			expect(view.container.querySelector<HTMLInputElement>("input[type=email]")?.value).toBe("alice@app.test");
-			expect(authenticated).toBe(0);
-			outcome = undefined;
-			await submit(view.container);
-			await eventually(() => expect(authenticated).toBe(1));
-			await act(() => [...view.container.querySelectorAll("button")].find((button) => button.textContent === "Use an existing account")?.click());
-			unavailable = true;
-			await submit(view.container);
-			expect(calls.at(-1)?.mode).toBe("sign-in");
-			expect(view.container.querySelector("[role=alert]")?.textContent).toBe("Could not reach authentication. Try again.");
-			unavailable = false;
-			await submit(view.container);
-			expect(authenticated).toBe(2);
-		});
+	[loginScreen("Email is already registered")],
+	function* ({
+		click,
+		enter,
+		submit,
+		authenticationCallsAre,
+		alertSays,
+		draftIs,
+		authenticatedTimes,
+		authenticationAccepts,
+		authenticationGoesOffline,
+		lastAuthenticationModeIs,
+	}) {
+		yield* click("Create an account");
+		yield* enter("Alice", "Name");
+		yield* enter("alice@app.test", "Email");
+		yield* enter("correct-horse", "Password");
+		yield* submit();
+		yield* authenticationCallsAre([{ credentials: { email: "alice@app.test", name: "Alice", password: "correct-horse" }, mode: "sign-up" }]);
+		yield* alertSays("Email is already registered");
+		yield* draftIs("alice@app.test", "Email");
+		yield* authenticatedTimes(0);
+		yield* authenticationAccepts();
+		yield* submit();
+		yield* authenticatedTimes(1);
+		yield* click("Use an existing account");
+		yield* authenticationGoesOffline();
+		yield* submit();
+		yield* lastAuthenticationModeIs("sign-in");
+		yield* alertSays("Could not reach authentication. Try again.");
+		yield* authenticationAccepts();
+		yield* submit();
+		yield* authenticatedTimes(2);
 	},
 );

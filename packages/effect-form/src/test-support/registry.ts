@@ -1,13 +1,7 @@
-import { Effect, Layer } from "effect";
+import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 
-export const { effectApp: it } = makeEffectIt({
-	layer: Layer.empty,
-	makeHarness: (context) =>
-		Effect.sync(() => {
-			const registry = AtomRegistry.make();
-			context.onTestFinished(() => registry.dispose());
-			return registry;
-		}),
-});
+export const registry = Effect.acquireRelease(
+	Effect.sync(() => AtomRegistry.make()),
+	(current) => Effect.sync(() => current.dispose()),
+);

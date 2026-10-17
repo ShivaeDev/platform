@@ -4,6 +4,7 @@ import type { FleetRecord } from "#model.ts";
 import type { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { legacyStore } from "#test/legacyStore.ts";
+import { migrateFleet } from "#test/migrateFleet.ts";
 
 type Store = Effect.Success<ReturnType<typeof makePostgresFleetStore<typeof FleetRecord>>>;
 
@@ -30,7 +31,11 @@ export const attentionStorage = Effect.fn("FleetFixture.attentionStorage")(funct
 		}
 		yield* store.compareAndSet(value.workId, stored.version, value);
 	});
-	const upgrade = legacyStore(namespace).pipe(Effect.andThen(store.initialize()), Effect.asVoid, Effect.provideService(SqlClient.SqlClient, sql));
+	const upgrade = legacyStore(namespace).pipe(
+		Effect.andThen(migrateFleet(namespace)),
+		Effect.asVoid,
+		Effect.provideService(SqlClient.SqlClient, sql),
+	);
 	return {
 		replaceRecord,
 		store,
