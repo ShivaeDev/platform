@@ -2,6 +2,7 @@ import { Clock, Effect } from "effect";
 import { cardStatus } from "#browser/views/now.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
+import { responseUrl } from "#responses/url.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import type { BoardClient } from "./client.ts";
 
@@ -11,12 +12,11 @@ export const needsYou = Effect.fn("BoardMcp.needsYou")(function* (client: BoardC
 	const you = yield* Effect.forEach(inbox.you, (row) =>
 		Effect.gen(function* () {
 			const document = yield* client("work-board.document", { url: fileUrl(row.file) });
-			const request = new URL(row.href, "http://localhost").searchParams.get("request");
-			const decision = document.requests.find((entry) => entry.id === request);
+			const decision = document.requests.find((entry) => responseUrl(document.metadata.id ?? "", entry.id) === row.href);
 			return {
 				...row,
 				ageMs: row.modified === undefined ? null : Math.max(0, now - row.modified),
-				options: (request ? decision?.options : document.metadata.options) ?? [],
+				options: (decision ? decision.options : document.metadata.options) ?? [],
 				prompts: decision?.prompts ?? [],
 				promptUnavailable: decision?.promptUnavailable,
 				recommended: decision?.recommended ?? document.metadata.recommended,

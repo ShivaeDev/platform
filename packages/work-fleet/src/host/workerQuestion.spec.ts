@@ -18,15 +18,18 @@ test("worker questions appear on Board, wait exits needs-human, and an answer co
 			expect(stopped.value.stage).toBe("needs-human");
 			expect(stopped.value.result).toBeUndefined();
 			const { client, url } = yield* boardHttp(fixture.host.boardDir);
-			const page = yield* Effect.tryPromise(() => fetch(`${url}/_board/respond?item=${published.itemId}&request=${published.request}`));
-			expect(page.status).toBe(200);
-			expect(yield* Effect.tryPromise(() => page.text())).toContain("/_board/react.js");
-			const data = yield* Effect.tryPromise(() =>
-				client.run(client.api.respond.run({ url: `/_board/respond?item=${published.itemId}&request=${published.request}` })),
+			const page = yield* Effect.tryPromise(() =>
+				fetch(`${url}/_board/respond?item=${published.itemId}&request=${published.request}`, { redirect: "manual" }),
 			);
-			expect(data.request.preview?.reason).toContain("Which storage should I use?");
-			expect(data.document.source).not.toContain("Which storage should I use?");
-			expect(data.request.prompts?.map((prompt) => prompt.id) ?? []).not.toContain("fleet-action");
+			expect(page.status).toBe(302);
+			expect(page.headers.get("location")).toBe(
+				`/_board/item/${encodeURIComponent(published.itemId)}/#answer-card-${encodeURIComponent(published.request)}`,
+			);
+			const preview = yield* Effect.tryPromise(() =>
+				client.run(client.responses.question.run({ item: published.itemId, request: published.request })),
+			);
+			expect(preview.reason).toContain("Which storage should I use?");
+			expect(preview.context).toContain("Which storage should I use?");
 			const asks = yield* Effect.tryPromise(() => client.run(client.api.inbox.run(undefined)));
 			expect(asks.agents).toEqual(expect.arrayContaining([expect.objectContaining({ file: published.sourcePath })]));
 			expect(yield* Effect.promise(() => waitProcess(fixture.configFile, "one"))).toEqual({

@@ -91,3 +91,9 @@ it("removes only a uniquely recorded answer to the current question and groups t
 	expect(hidden.files.some((entry) => entry.path === "responses/question.md")).toBe(true);
 	expect([...fleetRecords(fleet.model)]).toEqual(["responses/decision.md", "responses/fleet-question.md", "responses/fleet-answer.md"]);
 });
+
+it("links authored questions and managed requests directly to their source item's answer card", () => {
+	const items = inboxItems(inboxSnapshot());
+	expect(items.find((item) => item.id === "question.storage")?.href).toBe("/_board/item/question.storage/#answer-card-answer");
+	expect(items.find((item) => item.id === "task.fleet")?.href).toBe("/_board/item/decision.delivery/#answer-card-delivery");
+});

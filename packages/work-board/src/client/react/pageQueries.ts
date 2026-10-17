@@ -29,9 +29,6 @@ export function pageQueries(api: ShellApi, kind: string, url: string): readonly 
 	if (kind === "board") {
 		return [api.board.query({ url }, routeQueryOptions)];
 	}
-	if (kind === "respond") {
-		return [api.respond.query({ url }, routeQueryOptions)];
-	}
 	if (kind === "handoff") {
 		return [api.handoff.query({ url }, routeQueryOptions)];
 	}

@@ -166,9 +166,7 @@ it.live("shows ambiguous recorded history as unavailable instead of falsely sayi
 	const question = yield* register();
 	notes.write("duplicate.md", readFileSync(join(notes.root, "responses", `${question.id}.md`), "utf8"));
 	yield* Effect.promise(() =>
-		expect(client.run(client.api.respond.run({ url: "/_board/respond?item=investigation.model&request=review-model" }))).rejects.toThrow(
-			"response history is unknown",
-		),
+		expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("response history is unknown"),
 	);
 });
 
@@ -206,7 +204,5 @@ it.live("treats syntactically damaged record files as unknown history while ordi
 	yield* Effect.promise(() => expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed"));
 	notes.write("responses/response.broken.md", "---\nid: response.broken\nkind: response\nActual human feedback\n");
 	yield* Effect.promise(() => expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed"));
-	yield* Effect.promise(() =>
-		expect(client.run(client.api.respond.run({ url: "/_board/respond?item=investigation.model&request=review-model" }))).rejects.toThrow("malformed"),
-	);
+	yield* Effect.promise(() => expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("malformed"));
 });

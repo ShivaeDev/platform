@@ -12,14 +12,14 @@ import { Button } from "#client/react/components/ui/Button.tsx";
 import { Popover } from "#client/react/components/ui/Popover.tsx";
 import { authorLabel } from "#client/responses/authorLabel.ts";
 import { fileUrl } from "#files/url.ts";
+import { responseUrl } from "#responses/url.ts";
 import { createResponse } from "./createResponse.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 export function TodayOptions({ api, item }: { readonly api: ShellApi; readonly item: InboxProjection["you"][number] }) {
 	const query = useQuery(documentQuery(api, fileUrl(item.file)), { keepPreviousData: true });
 	const data = Option.getOrUndefined(query.data);
-	const requestId = new URL(item.href, "http://127.0.0.1").searchParams.get("request");
-	const request = data?.requests.find((entry) => entry.id === requestId && entry.open);
+	const request = data?.requests.find((entry) => entry.open && responseUrl(data.metadata.id ?? "", entry.id) === item.href);
 	return data
 		&& !item.problem
 		&& request?.preview

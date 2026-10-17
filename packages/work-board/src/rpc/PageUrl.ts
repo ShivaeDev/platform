@@ -17,7 +17,6 @@ export const PageUrl = Schema.String.check(
 					"/_board/overview",
 					"/_board/changes",
 					"/_board/start",
-					"/_board/respond",
 					"/_board/handoff",
 					"/_board/result",
 				].includes(path)

@@ -5,14 +5,12 @@ import type { HandoffsService } from "#server/handoffs/Service.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { startTemplates } from "#server/page/startTemplates.ts";
-import type { Responses } from "#server/responses/service.ts";
 import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
 import { resultProjection } from "./resultProjection.ts";
 export function remainingQueries(
 	{ changes, document, index, writable }: HandlerOptions,
 	services: {
 		readonly diagnostics: typeof Diagnostics.Service;
-		readonly responses: typeof Responses.Service;
 		readonly handoffs: typeof HandoffsService.Service;
 	},
 ) {
@@ -41,20 +39,6 @@ export function remainingQueries(
 					unavailable: result._tag === "Failure" ? String(result.failure) : undefined,
 					writable: writable === true,
 				};
-			}),
-		respond: (url: string) =>
-			Effect.gen(function* () {
-				const params = new URL(url, "http://127.0.0.1").searchParams;
-				const service = services.responses;
-				const preview = yield* service.locate(params.get("item") ?? "", params.get("request") ?? "");
-				yield* service.read(preview.id).pipe(Effect.catch((error) => (error._tag === "NotFound" ? Effect.void : Effect.fail(error))));
-				const responses = yield* service.history(preview);
-				const data = yield* read(identityUrl(preview.item));
-				const request = data.requests.find((entry) => entry.id === preview.request);
-				if (!request) {
-					return yield* Effect.fail(new Conflict({ message: "The response request is unavailable." }));
-				}
-				return { document: data, request: { ...request, preview, responses } };
 			}),
 		result: (url: string) =>
 			Effect.gen(function* () {
