@@ -1,41 +1,20 @@
 import { useAtomRef } from "@effect/atom-react";
-import { Effect, Equal, Layer, Option, Schema } from "effect";
-import * as Atom from "effect/reactivity/Atom";
-import { useEffect, useRef, useState } from "react";
+import { Equal, Option, Schema } from "effect";
+import { useEffect, useState } from "react";
 import { useCreate } from "@shivaedev/effect-react/create.ts";
 import { HandoffInput, type HandoffPreview } from "#browser/handoffs/schema.ts";
 import type { HandoffProjection } from "#browser/views/remaining.ts";
-import { session } from "#client/entry.ts";
 import { formDraft } from "#client/formDraft.ts";
-import { failureStatus } from "#client/handoffs/failureStatus.ts";
+import { type DraftInteraction, formStatus } from "#client/formStatus.ts";
 import { sourceChanged } from "#client/sourceChanged.ts";
-
-const runtime = Atom.runtime(Layer.empty);
+import { useFormClient } from "./FormContext.ts";
 export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) {
+	const client = useFormClient();
 	const [preview, setPreview] = useState<HandoffInput>();
-	const [status, setStatus] = useState("Draft ready. Review and preview before preparing the file.");
-	const modelRef = useRef<HandoffInput | undefined>(undefined);
+	const [interaction, setInteraction] = useState<DraftInteraction>("draft");
 	const draft = formDraft("handoff", source.item);
 	const created = useCreate({
-		create: (input) =>
-			Effect.tryPromise({
-				catch: (error) => error,
-				try: async () => {
-					const native = session(window);
-					setStatus("Pending: preparing the local handoff file…");
-					try {
-						const saved = await native.mutate(native.handoffs.prepareHandoff.run(input));
-						const newer = !Equal.equals(modelRef.current, input);
-						setStatus(
-							`Prepared: ${saved.file}. Receipt: ${saved.handoff.state}; execution and acceptance remain separate.${newer ? " Your newer draft remains unsaved." : ""}`,
-						);
-						return saved;
-					} catch (error) {
-						setStatus(failureStatus(error));
-						throw error;
-					}
-				},
-			}),
+		create: client.handoffs.prepareHandoff.run,
 		fields: HandoffInput,
 		initialValues: {
 			constraints: "",
@@ -48,7 +27,8 @@ export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) 
 			source: source.source,
 		},
 		persistedDraft: draft,
-		runtime,
+		rejectField: () => undefined,
+		runtime: client.runtime,
 	});
 	const form = created.form;
 	const values = useAtomRef(form.values);
@@ -59,7 +39,6 @@ export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) 
 			form.change("source", created.created.value.handoff.source);
 		}
 	}, [form, created.dirty, created.created]);
-	modelRef.current = values;
 	const stale = Boolean(values.id) && (values.revision !== source.reviewedRevision || values.source !== source.source);
 	function edit() {
 		if (!form.values.value.id) {
@@ -68,7 +47,7 @@ export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) 
 		}
 		setPreview(undefined);
 		if (!created.saving) {
-			setStatus("Draft ready. Review and preview before preparing the file.");
+			setInteraction("draft");
 		}
 	}
 	function showPreview() {
@@ -85,12 +64,25 @@ export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) 
 	function clear() {
 		created.revert();
 		setPreview(undefined);
-		setStatus("Draft cleared. Saved handoffs are unchanged.");
+		setInteraction("cleared");
 	}
 	const previewed = preview !== undefined && !stale && Equal.equals(preview, values);
+	const { text: status } = formStatus(
+		created,
+		interaction,
+		"handoff",
+		(saved) =>
+			`Prepared: ${saved.file}. Receipt: ${saved.handoff.state}; execution and acceptance remain separate.${created.dirty ? " Your newer draft remains unsaved." : ""}`,
+	);
 	return {
 		clear,
-		created,
+		created: {
+			...created,
+			save: () => {
+				setInteraction("submitted");
+				created.save();
+			},
+		},
 		draft,
 		edit,
 		form,
