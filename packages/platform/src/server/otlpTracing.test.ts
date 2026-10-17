@@ -31,6 +31,22 @@ it.each(["OTEL_EXPORTER_OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"])("
 	}
 });
 
+it.each([
+	{ env: { "OTEL_RESOURCE_ATTRIBUTES": "service.name=resource%20name" }, name: "resource name" },
+	{ env: {}, name: "unknown_service" },
+])("uses the service name fallback $name", async ({ env, name }) => {
+	const receiver = await otlpReceiver();
+	const runtime = otlpHost({ ...env, "OTEL_EXPORTER_OTLP_ENDPOINT": receiver.url });
+	try {
+		expect(await pingHost(runtime)).toBe("pong");
+		await runtime.dispose();
+		expect(receiver.requests[0]?.body).toContain(`"key":"service.name","value":{"stringValue":"${name}"}`);
+	} finally {
+		await runtime.dispose();
+		await receiver.close();
+	}
+});
+
 it.each<Record<string, string>>([{}, { "OTEL_EXPORTER_OTLP_HEADERS": "authorization=secret", "OTEL_SERVICE_NAME": "metadata-only" }])(
 	"builds no exporter without an endpoint (%o)",
 	async (env) => {
