@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.8 - 2026-10-17
+
+### Fixed
+
+- A generated app pins the current published framework versions, including `platform` 0.14.2, `effect-prisma` 0.9.2, `effect-test-sql` 0.5.2, `local-postgres` 0.3.0 and `quality` 0.23.0.
+
 ## 0.6.7 - 2026-10-17
 
 ### Fixed

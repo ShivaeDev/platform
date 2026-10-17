@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 - 2026-10-17
+
+### Added
+
+- `POSTGRES_IMAGE` exports the pinned PostgreSQL image, so CI can pull it before `db:setup` starts the container.
+
+### Fixed
+
+- PostgreSQL setup query errors no longer expose connection passwords from userinfo or query parameters through host or Docker client commands, while preserving diagnostics and the original error as `cause`.
+
 ## 0.2.1 - 2026-10-16
 
 ### Changed
