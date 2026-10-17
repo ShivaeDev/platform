@@ -49,7 +49,7 @@ A repository with existing comments adopts the rules through the baseline, for e
 
 ### Suppressions
 
-A check that is silenced at one site hides the problem instead of fixing it. Five rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline.
+A check that is silenced at one site hides the problem instead of fixing it. Five rules close the escape hatches, and none of them takes exceptions: an exception that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline.
 
 | Rule | Reports | Options |
 | --- | --- | --- |
@@ -79,7 +79,9 @@ A type test proves that an API rejects what its types forbid, and TypeScript ass
 
 #### Declared Biome overrides
 
-Consumer declarations cover one lint rule or assist action on explicit file paths, with a reason. Globs, whole checks and rule groups cannot be declared. A `files/includes` declaration must retain `**` and add only negative patterns naming a concrete directory, such as `!**/test-support/generated`. These patterns may start with `**/` and use `*` for an intermediate directory, as in `!**/test-support/*/generated`. Every other segment names a directory without dots except an optional leading dot; the final segment must be a name. File patterns, nested `**` and wildcard suffixes are rejected. Shipped preset declarations describe Quality's internal policy and are not subject to the consumer scope restriction.
+Consumer exceptions belong in `quality.config.ts`'s `exceptions` list, as `{ files, rules, reason, subject? }`. A single entry covers Quality rules and individual `biome/lint/<group>/<rule>` or `biome/assist/<group>/<action>` rules on explicit file paths. Quality applies the native Biome settings at lint and fix time; do not mirror them in `biome.json`. See [exceptions and upgrades](./debt-and-hooks.md#exceptions).
+
+Globs, whole checks and rule groups cannot be excepted. A `biome/files/includes` entry must retain `**` and add only negative patterns naming a concrete directory, such as `!**/test-support/generated`. These patterns may start with `**/` and use `*` for an intermediate directory, as in `!**/test-support/*/generated`. Every other segment names a directory without dots except an optional leading dot; the final segment must be a name. File patterns, nested `**` and wildcard suffixes are rejected. Shipped preset declarations describe Quality's internal policy and are not subject to the consumer scope restriction.
 
 Quality ships reasons for its own internal Biome exceptions. Extend the shared configuration and use the baseline for debt. `suppressions/biome-overrides` reads `biome.json` or `biome.jsonc` at the root, every nested `biome.json` and `biome.jsonc` among the checked files, and the configs each of them `extends`, resolved the way Biome resolves them (see [Shared presets](#shared-presets)). These settings count as overrides, at the top level and in every `overrides` entry:
 
@@ -99,30 +101,7 @@ Quality ships reasons for its own internal Biome exceptions. Extend the shared c
 
 Biome runs assist actions, key sorting among them, as part of `biome check` and reports what they would change, so turning one off is an override. Formatter options such as `indentStyle` or `lineWidth` choose a style, not an exception, and are not overrides. Settings that raise a rule or enable it are not overrides either. Rule options are not read, so an option that loosens a rule, such as a higher complexity limit, is left to review.
 
-```ts
-export default defineConfig({
-	rules: {
-		"suppressions/biome-overrides": {
-			options: {
-				declared: [
-					{
-						rule: "lint/style/noDefaultExport",
-						includes: ["scripts/tool.config.ts"],
-						reason: "Tools load their config files through the default export.",
-					},
-					{
-						rule: "lint/suspicious/noConsole",
-						includes: ["scripts/report.ts"],
-						reason: "Scripts report to the terminal they run in.",
-					},
-				],
-			},
-		},
-	},
-});
-```
-
-A declaration covers a setting when its `rule` and its `includes` match the setting's exactly, in any order. An `includes` list that keeps files out is declared as the whole list, so every pattern added to it needs the declaration to change too. A setting at the top level of the root config has the scope `["**"]`, and an `overrides` entry has its own `includes` (`["**"]` when it has none). Paths in a nested config are relative to its folder, so a rule scoped to `"src/a.ts"` in `packages/web/biome.json` is declared as `"packages/web/src/a.ts"`. Top-level and globbed rule scopes cannot be declared by consumers. A setting without a declaration is reported at its line in the Biome config; a declaration that no setting matches is reported against the root config, so the list cannot outlive the overrides it explains.
+A manual setting without a legacy declaration is reported at its line in the Biome config. The compatibility reader matches the old `{ rule, includes, reason }` declarations to settings with the same rule and exact scope, in any order, and reports stale or repeated declarations. Run `quality exceptions migrate` to replace both with the single config entry. A generated override never makes a checked-in manual override declared.
 
 #### Shared presets
 
@@ -134,7 +113,7 @@ A config `extends` its entries the way Biome does:
 - Lists are appended, not replaced: `overrides`, `plugins` and every `includes` list, `files.includes` among them. A repository's `files.includes` adds to the preset's, so each list is declared by whoever wrote it.
 - Patterns in an extended config resolve against the repository root, or against the folder of a nested config that extends it, as patterns in the config itself do.
 
-A package that ships a preset declares the weakenings the preset makes in a `declarations.json` beside the preset file, as an array of the same `{ rule, includes, reason }` entries the `declared` option takes. Its `includes` are written relative to the repository that extends the preset. Those weakenings count as declared, so the repository adds nothing for them:
+A package that ships a preset declares the weakenings the preset makes in a `declarations.json` beside the preset file, as an array of `{ rule, includes, reason }` entries. Its `includes` are written relative to the repository that extends the preset. Those weakenings count as declared, so the repository adds nothing for them:
 
 ```json
 [
@@ -146,7 +125,7 @@ A package that ships a preset declares the weakenings the preset makes in a `dec
 ]
 ```
 
-A weakening the preset makes without such a declaration is reported at the line of the repository's `extends` entry, and the repository's own declaration covers it. A weakening the repository adds beyond the preset needs its own declaration, and a repository declaration that repeats one the preset ships is reported until it is removed. A preset entry that cannot be resolved or read, or whose `declarations.json` is invalid, is reported at the `extends` entry as well.
+A weakening the preset makes without such a declaration is reported at the line of the repository's `extends` entry, and the repository must repair the preset or replace that setting with a config exception. A weakening the repository adds beyond the preset needs its own declaration, and a repository declaration that repeats one the preset ships is reported until it is removed. A preset entry that cannot be resolved or read, or whose `declarations.json` is invalid, is reported at the `extends` entry as well.
 
 #### Recommended Biome rules
 
@@ -181,7 +160,7 @@ export default defineConfig({
 });
 ```
 
-`imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
+`imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no exceptions. Each finding of `imports/resolvable` has the import as its subject.
 
 When the sources hold no module at all, the graph-building rules stop the run instead of passing on an empty graph. Point `sources` at the code; do not disable the checks to conceal an empty inventory. `imports/aliased` does not require a graph, and `imports/fences` does nothing when no fences are declared.
 
@@ -254,13 +233,13 @@ The DSL does not compile without `demonstratedBy`, and the rule checks the examp
 
 Fences guard shipped code, and [test code](./naming.md#test-code) ships nowhere, so a fence never holds it: a test file or a file under `test-support/` may import across every fence. There is no option to check them.
 
-A finding has its fence's name as its subject, so a registry entry with that subject excuses one file from one fence.
+A finding has its fence's name as its subject, so a config exception with that subject excuses one file from one fence.
 
-`imports/no-test-code` checks every file edge from a production module to a test file or a file under `test-support/`, including type imports, re-exports and test assets. It rejects missing relative paths under `test-support/` too. Test importers may still import production code and other test code. Move shared code into a production module and import it from both production and tests. The rule takes no registry exceptions.
+`imports/no-test-code` checks every file edge from a production module to a test file or a file under `test-support/`, including type imports, re-exports and test assets. It rejects missing relative paths under `test-support/` too. Test importers may still import production code and other test code. Move shared code into a production module and import it from both production and tests. The rule takes no exceptions.
 
 ### Manifests
 
-`manifests/sorted` keeps every `package.json` in the repository in the key order of [sort-package-json](https://github.com/keithamus/sort-package-json), a dependency of this package. It walks the whole repository, not only the sources, and skips untracked files ignored by git and `node_modules`. A manifest that is not valid JSON is reported too. `quality fix` sorts the manifests, and the rule takes no registry exceptions.
+`manifests/sorted` keeps every `package.json` in the repository in the key order of [sort-package-json](https://github.com/keithamus/sort-package-json), a dependency of this package. It walks the whole repository, not only the sources, and skips untracked files ignored by git and `node_modules`. A manifest that is not valid JSON is reported too. `quality fix` sorts the manifests, and the rule takes no exceptions.
 
 ## Local-rule API
 
@@ -307,4 +286,4 @@ export const limited = defineRule({
 });
 ```
 
-This is the option-bearing rule the package tests. It defaults to two files and validates a configured `max` before the asynchronous check runs. A rule without an options schema refuses options. Set `registrable: false` when a rule must never be excused by a registry entry.
+This is the option-bearing rule the package tests. It defaults to two files and validates a configured `max` before the asynchronous check runs. A rule without an options schema refuses options. Set `registrable: false` when a rule must never be excused by a config exception.

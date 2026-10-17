@@ -1,10 +1,20 @@
 # Changelog
 
-## 0.4.2 - 2026-10-17
+## 0.5.0 - 2026-10-17
+
+### Added
+
+- Generated apps include a DOM story that signs up, signs out, signs in and reads Better Auth cookie sessions against the real PostgreSQL host, using `@shivaedev/test-story`.
 
 ### Fixed
 
 - Generate an app with aligned framework versions, including `effect-sql` 0.4.0 and its matching SQL test package, so framework dependencies do not install conflicting versions.
+
+## 0.4.2 - 2026-10-16
+
+### Fixed
+
+- A generated app excludes `@shivaedev/*` from pnpm's release-age wait so framework releases can install immediately, while third-party packages keep pnpm's default wait.
 
 ## 0.4.1 - 2026-10-16
 
