@@ -57,7 +57,8 @@ function unlaunched(record: FleetRecord) {
 }
 
 function stalePreparation(record: FleetRecord, work: BoardWork, main: MainSnapshot) {
-	return unlaunched(record) && (briefChanged(record, work) || record.preparation.baseRevision !== main.revision);
+	const changed = briefChanged(record, work);
+	return record.stage === "prepared" && (unlaunched(record) || !changed) && (changed || record.preparation.baseRevision !== main.revision);
 }
 
 export type Approval = "board" | "explicit";

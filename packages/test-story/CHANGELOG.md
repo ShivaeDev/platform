@@ -1,11 +1,12 @@
 # Changelog
 
-## 0.3.0 - 2026-10-16
+## 0.3.0 - 2026-10-17
 
 ### Added
 
 - `@shivaedev/test-story/domEnvironment.config.ts` exports a Vitest environment with Node's global `Request`, `Response`, `Headers` and abort classes for an in-process HTTP host, while happy-dom fetch keeps the client's cookie jar. Fetch accepts native headers and request inputs. Better Auth sign-up, sign-in, session reads and sign-out are tested against the starter's real PostgreSQL host, including its auth client and client response inspection.
 - `domFetch(baseUrl)` from `@shivaedev/test-story/domFetch.ts` sets the happy-dom page origin to its host and resolves relative fetch requests.
+- `storyKit` accepts `outbound: Readonly<Record<string, string>>` to route selected hostnames from Node's built-in `fetch` to fake server origins for each story, then restore the previous dispatcher after success or failure. Other hosts pass through unchanged.
 
 ## 0.2.1 - 2026-10-16
 

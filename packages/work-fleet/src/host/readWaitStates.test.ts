@@ -1,8 +1,10 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect, Tracer } from "effect";
 import { readWaitStates } from "#host/readWaitStates.ts";
+import type { FleetCycleSnapshot } from "#model.ts";
 import { withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
+import { prepared } from "#test/preparation.ts";
 import { readOnlySql } from "#test/readOnlySql.ts";
 import { storeState } from "#test/storeState.ts";
 
@@ -10,11 +12,22 @@ describe("Fleet summary reads against PostgreSQL", () => {
 	const test = postgresTests("live");
 
 	test("100 items read in one query per poll without execution history", function* () {
+		const history = [
+			{
+				archivedAt: 1,
+				attempts: [],
+				boardRevision: "old",
+				cwd: "/synthetic",
+				preparation: prepared(),
+				prompt: "x".repeat(100_000),
+				stage: "completed",
+			},
+		] satisfies readonly FleetCycleSnapshot[];
 		yield* withHost({}, {}, (fixture) =>
 			Effect.gen(function* () {
 				const ids = Array.from({ length: 100 }, (_, index) => `item-${index}`);
 				for (const id of ids) {
-					yield* storeState(fixture.host, id, { history: ["x".repeat(100_000)], stage: "executing" });
+					yield* storeState(fixture.host, id, { history, stage: "executing" });
 				}
 				for (let poll = 0; poll < 2; poll += 1) {
 					const spans: Tracer.NativeSpan[] = [];

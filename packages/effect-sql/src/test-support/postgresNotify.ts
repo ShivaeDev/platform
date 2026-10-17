@@ -3,7 +3,7 @@ import { Effect, Layer, Queue, Redacted, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { type PostgresChangeClient, type PostgresNotification, postgresChanges } from "#postgresChanges.ts";
+import { type PostgresChangeClient, type PostgresChangesOptions, type PostgresNotification, postgresChanges } from "#postgresChanges.ts";
 import { environmentVariable } from "./environment.ts";
 
 const url = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL") ?? "postgresql://integration-tests-disabled";
@@ -49,6 +49,7 @@ const instrumentListener = Effect.fn("PostgresNotify.instrumentListener")(functi
 export function runNotify<A, E>(
 	body: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity | Scope.Scope>,
 	state: NotifyState = { connections: 0, muted: false, resyncs: 0 },
+	timing: Pick<PostgresChangesOptions, "heartbeatInterval" | "heartbeatTimeout" | "retryDelay"> = {},
 ) {
 	return Effect.runPromise(
 		Effect.scoped(
@@ -64,14 +65,12 @@ export function runNotify<A, E>(
 				});
 				const binding = yield* Layer.build(
 					postgresChanges({
+						...timing,
 						channel: state.channel,
 						client,
-						heartbeatInterval: "50 millis",
-						heartbeatTimeout: "150 millis",
 						resync: Effect.sync(() => {
 							state.resyncs += 1;
 						}),
-						retryDelay: "20 millis",
 					}),
 				);
 				return yield* body.pipe(Effect.provideContext(binding));
