@@ -139,8 +139,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-        with:
-          postgres: 'true'
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: needs.shard-plan.outputs.tests-run-id != ''
         with:
@@ -280,8 +278,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-        with:
-          postgres: 'true'
       - name: Download package archives
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -304,6 +300,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          postgres: 'true'
       - run: pnpm db:setup
       - name: Test the Docker client path against the started container
         run: pnpm --filter @shivaedev/local-postgres test --tags-filter=docker
