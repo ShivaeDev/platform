@@ -6,7 +6,9 @@ function unexpected(operation: string): never {
 
 export function scriptedClient(behavior: Partial<PgBossClient>): PgBossClient {
 	return {
+		complete: async () => unexpected("complete"),
 		createQueue: async () => unexpected("createQueue"),
+		fail: async () => unexpected("fail"),
 		getQueue: async () => unexpected("getQueue"),
 		off: () => unexpected("off"),
 		offWork: async () => unexpected("offWork"),

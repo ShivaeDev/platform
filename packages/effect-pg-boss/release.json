@@ -2,9 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "worker-draining.md",
-			"text": "### Changed\n\n- Queue and schedule workers default to native pg-boss `batchSize: 10` and `burstWhenBatchFull: true`, draining full batches immediately instead of waiting for the notification polling backstop. Native worker options still override the defaults, including batch size and local concurrency. Handlers run sequentially within each batch; pg-boss retries a rejected batch together.\n\n### Fixed\n\n- `PgBossDefinition.layer` supplies its own jobs service to queue handlers and scheduled effects through the scoped Effect context. Handlers can enqueue follow-ups to worker or producer-only queues using that same client. Only the owning identifier is removed from the Layer's input requirements; other services remain typed. Startup creates every declared queue before starting consumers.\n"
+			"name": "per-job-settlement.md",
+			"text": "### Fixed\n\n- Settle each queue and scheduled job separately through pg-boss, recording typed failures and defects on only the failed job. In 0.7.0, one failing handler failed and retried the whole fetched batch, spending unrelated jobs’ retries and rerunning successful handlers. Batches still drain with `burstWhenBatchFull`. Interruption leaves unprocessed jobs to pg-boss expiry.\n\n### Added\n\n- Custom `PgBossClient` factories can supply optional native `complete` and `fail` methods. Queue and schedule worker registration requires both capabilities and fails with a registration `PgBossError` when either is absent; producer-only clients do not need them.\n"
 		}
 	],
-	"version": "0.7.0"
+	"version": "0.7.1"
 }

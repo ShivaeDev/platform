@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.1 - 2026-10-17
+
+### Added
+
+- Custom `PgBossClient` factories can supply optional native `complete` and `fail` methods. Queue and schedule worker registration requires both capabilities and fails with a registration `PgBossError` when either is absent; producer-only clients do not need them.
+
+### Fixed
+
+- Settle each queue and scheduled job separately through pg-boss, recording typed failures and defects on only the failed job. In 0.7.0, one failing handler failed and retried the whole fetched batch, spending unrelated jobs’ retries and rerunning successful handlers. Batches still drain with `burstWhenBatchFull`. Interruption leaves unprocessed jobs to pg-boss expiry.
+
 ## 0.7.0 - 2026-10-17
 
 ### Changed

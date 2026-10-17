@@ -1,6 +1,7 @@
 import type {
 	ConstructorOptions,
 	Job,
+	JobAttempt,
 	Queue,
 	QueueResult,
 	ScheduleOptions,
@@ -10,6 +11,7 @@ import type {
 	WorkOptions,
 } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
+import { queueResult } from "#test/queueResult.ts";
 
 interface QueueCall {
 	readonly name: string;
@@ -23,6 +25,8 @@ interface WorkerCall {
 }
 
 export class FakeClient implements PgBossClient {
+	readonly completeCalls: Array<{ name: string; job: JobAttempt | string | JobAttempt[] | string[] }> = [];
+	readonly failCalls: Array<{ name: string; job: JobAttempt | string | JobAttempt[] | string[]; error: unknown }> = [];
 	readonly createQueueCalls: QueueCall[] = [];
 	readonly updateQueueCalls: Array<{ name: string; options: UpdateQueueOptions }> = [];
 	readonly offWorkCalls: string[] = [];
@@ -45,14 +49,24 @@ export class FakeClient implements PgBossClient {
 	stopCalls = 0;
 	failCreateQueue = false;
 
-	async createQueue(name: string, options?: Omit<Queue, "name">) {
+	complete(name: string, target: JobAttempt | string | JobAttempt[] | string[]) {
+		this.completeCalls.push({ job: target, name });
+		return Promise.resolve({ affected: 1, jobs: [], requested: 1 });
+	}
+	fail(name: string, target: JobAttempt | string | JobAttempt[] | string[], error: unknown) {
+		this.failCalls.push({ error, job: target, name });
+		return Promise.resolve({ affected: 1, jobs: [], requested: 1 });
+	}
+
+	createQueue(name: string, options?: Omit<Queue, "name">) {
 		if (this.failCreateQueue) {
-			throw new Error("queue unavailable");
+			return Promise.reject(new Error("queue unavailable"));
 		}
 		this.createQueueCalls.push({ name, options });
 		if (!this.queues.has(name)) {
 			this.queues.set(name, queueResult(name, { ...options }));
 		}
+		return Promise.resolve();
 	}
 	updateQueue(name: string, options: UpdateQueueOptions) {
 		this.updateQueueCalls.push({ name, options });
@@ -62,11 +76,12 @@ export class FakeClient implements PgBossClient {
 		}
 		return Promise.resolve();
 	}
-	async getQueue(name: string) {
-		return this.queues.get(name) ?? null;
+	getQueue(name: string) {
+		return Promise.resolve(this.queues.get(name) ?? null);
 	}
-	async offWork(name: string) {
+	offWork(name: string) {
 		this.offWorkCalls.push(name);
+		return Promise.resolve();
 	}
 	on(_event: "error", listener: (error: Error) => void) {
 		this.errors.push(listener);
@@ -79,26 +94,28 @@ export class FakeClient implements PgBossClient {
 		}
 		return this;
 	}
-	async schedule(name: string, cron: string, data?: object | null, options?: ScheduleOptions) {
+	schedule(name: string, cron: string, data?: object | null, options?: ScheduleOptions) {
 		this.scheduleCalls.push({ cron, data, name, options });
+		return Promise.resolve();
 	}
-	async send(name: string, data?: object | null, options?: SendOptions) {
+	send(name: string, data?: object | null, options?: SendOptions) {
 		this.sendCalls.push({ data, name, options });
-		return "job-id";
+		return Promise.resolve("job-id");
 	}
-	async start() {
+	start() {
 		this.startCalls += 1;
 		if (this.failStart) {
-			throw new Error("start unavailable");
+			return Promise.reject(new Error("start unavailable"));
 		}
-		return this;
+		return Promise.resolve(this);
 	}
-	async stop(_options?: StopOptions) {
+	stop(_options?: StopOptions) {
 		this.stopCalls += 1;
+		return Promise.resolve();
 	}
-	async work(name: string, options: WorkOptions, run: (jobs: readonly Job<unknown>[]) => Promise<unknown>) {
+	work(name: string, options: WorkOptions, run: (jobs: readonly Job<unknown>[]) => Promise<unknown>) {
 		this.workers.push({ name, options, run });
-		return `worker-${name}`;
+		return Promise.resolve(`worker-${name}`);
 	}
 }
 
@@ -111,32 +128,6 @@ export function job(name: string, data: unknown): Job<unknown> {
 		name,
 		retryCount: 0,
 		signal: new AbortController().signal,
-	};
-}
-
-export function queueResult(name: string, counts: Partial<QueueResult>): QueueResult {
-	return {
-		activeCount: 0,
-		blockedCount: 0,
-		completedDelta: 0,
-		createdDelta: 0,
-		createdOn: new Date(0),
-		deferredCount: 0,
-		deltaOn: null,
-		deltaSeconds: null,
-		failedCount: 0,
-		failedDelta: 0,
-		name,
-		queuedCount: 0,
-		readyCount: 0,
-		readyOldestSeconds: null,
-		runBins: null,
-		singletonsActive: null,
-		table: name,
-		totalCount: 0,
-		updatedOn: new Date(0),
-		waitBins: null,
-		...counts,
 	};
 }
 

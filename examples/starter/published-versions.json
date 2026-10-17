@@ -3,7 +3,7 @@
 	"@shivaedev/effect-changes-prisma": "0.5.1",
 	"@shivaedev/effect-contract": "0.5.1",
 	"@shivaedev/effect-form": "0.4.0",
-	"@shivaedev/effect-pg-boss": "0.7.0",
+	"@shivaedev/effect-pg-boss": "0.7.1",
 	"@shivaedev/effect-prisma": "0.9.1",
 	"@shivaedev/effect-react": "0.4.1",
 	"@shivaedev/effect-service": "0.3.0",

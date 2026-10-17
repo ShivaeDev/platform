@@ -10,6 +10,7 @@ import {
 	type ScheduledWorker,
 } from "#definition.ts";
 import { PgBossPayloadError, PgBossQueueOptionsError, toPgBossError } from "#error.ts";
+import { batchHandler } from "#internal/batchHandler.ts";
 import { ensureQueue } from "#internal/ensureQueue.ts";
 import { payloadOf, traceJob } from "#internal/tracing.ts";
 
@@ -60,22 +61,19 @@ function workerContext(context: unknown): unknown {
 	return context;
 }
 
-function runQueueWorker(worker: QueueWorker, job: Job<unknown>, context: Context.Context<unknown>): Promise<unknown> {
-	return Effect.runPromise(
-		Schema.decodeUnknownEffect(worker.queue.schema)(payloadOf(job.data)).pipe(
-			Effect.mapError(
-				(error) =>
-					new PgBossPayloadError({
-						direction: "decode",
-						original: Redacted.make(error),
-						queue: worker.queue.name,
-					}),
-			),
-			Effect.flatMap((payload) => worker.handler(payload, jobContext(job))),
-			(effect) => traceJob(effect, job, worker.queue.name),
-			Effect.provide(context),
+function runQueueWorker(worker: QueueWorker, job: Job<unknown>, context: Context.Context<unknown>) {
+	return Schema.decodeUnknownEffect(worker.queue.schema)(payloadOf(job.data)).pipe(
+		Effect.mapError(
+			(error) =>
+				new PgBossPayloadError({
+					direction: "decode",
+					original: Redacted.make(error),
+					queue: worker.queue.name,
+				}),
 		),
-		{ signal: job.signal },
+		Effect.flatMap((payload) => worker.handler(payload, jobContext(job))),
+		(effect) => traceJob(effect, job, worker.queue.name),
+		Effect.provide(context),
 	);
 }
 
@@ -85,22 +83,20 @@ async function registerQueue(client: PgBossClient, registration: QueueWorker | Q
 	if (registration._tag === "QueueDefinition") {
 		return;
 	}
-	await client.work(name, queue.workerOptions, async (jobs) => {
-		for (const job of jobs) {
-			await runQueueWorker(registration, job, context);
-		}
-	});
+	await client.work(
+		name,
+		queue.workerOptions,
+		batchHandler(client, name, (job) => runQueueWorker(registration, job, context)),
+	);
 }
 
 async function registerSchedule(client: PgBossClient, worker: ScheduledWorker, context: Context.Context<unknown>): Promise<void> {
 	const { schedule } = worker;
-	await client.work(schedule.name, schedule.workerOptions, async (jobs: readonly Job<unknown>[]) => {
-		for (const job of jobs) {
-			await Effect.runPromise(Effect.provide(traceJob(worker.effect, job, schedule.name), context), {
-				signal: job.signal,
-			});
-		}
-	});
+	await client.work(
+		schedule.name,
+		schedule.workerOptions,
+		batchHandler(client, schedule.name, (job) => Effect.provide(traceJob(worker.effect, job, schedule.name), context)),
+	);
 	await client.schedule(schedule.name, schedule.cron, null, schedule.scheduleOptions);
 }
 

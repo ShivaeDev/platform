@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.3 - 2026-10-17
+
+### Fixed
+
+- Generated apps use effect-pg-boss 0.7.1 so one failing job no longer fails or retries the other jobs in its batch.
+
 ## 0.6.2 - 2026-10-17
 
 ### Changed
