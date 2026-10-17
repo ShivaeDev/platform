@@ -33,7 +33,7 @@ runs:
       run: |
         image=$(node --input-type=module -e "import { POSTGRES_IMAGE } from './packages/local-postgres/src/server/local-container.ts'; console.log(POSTGRES_IMAGE)")
         nohup docker pull --quiet "$image" > "$RUNNER_TEMP/postgres-pull.log" 2>&1 &
-    - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3.0.0
+    - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
       with:
         cache: false
         node-version-file: false
