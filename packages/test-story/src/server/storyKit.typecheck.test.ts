@@ -45,6 +45,7 @@ const shelf = storyKit({
 			yield* new Lost();
 		},
 	},
+	runIf: true,
 	stages: ["built", "stocked"],
 	verbs: (state, story) => ({
 		clerk: {
@@ -80,7 +81,7 @@ it("hands the test body the verbs and the story", () => {
 	});
 });
 
-it("offers Vitest's test modifiers with the same story signature", () => {
+it("keeps every modifier's inferred story signature when the kit has a run condition", () => {
 	type Test = StoryTest<Shelf, "built" | "stocked", { clerk: { counts: () => number; waits: () => Waits } }, Run, Clerk | Ledger>;
 
 	expectTypeOf(shelf.it.fails).toEqualTypeOf<Test>();

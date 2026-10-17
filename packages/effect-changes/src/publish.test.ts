@@ -1,7 +1,8 @@
 import { Cause, Effect, Exit } from "effect";
-import { expect, it } from "vitest";
+import { expect } from "vitest";
 import type { Publish } from "#publish.ts";
-import { type Change, type Current, captureLogs, change, harness, makeDatabase } from "#test/fake-database.ts";
+import { type Change, type Current, change } from "#test/fake-database.ts";
+import { changes, configured, hasObserver } from "#test/kit.ts";
 
 const failing: ReadonlyArray<readonly [string, string, Publish<Change, Current>]> = [
 	["a failed Effect", "bus unavailable", () => Effect.fail(new Error("bus unavailable"))],
@@ -15,9 +16,9 @@ const failing: ReadonlyArray<readonly [string, string, Publish<Change, Current>]
 	],
 ];
 
-function logged(changes: number, reason: string) {
+function logged(count: number, reason: string) {
 	return {
-		annotations: { changes, channel: "Test" },
+		annotations: { changes: count, channel: "Test" },
 		cause: expect.stringContaining(reason),
 		level: "Error",
 		message: [expect.stringContaining("the committed result stands")],
@@ -28,38 +29,33 @@ function defect(exit: Exit.Exit<unknown, unknown>) {
 	return Exit.isFailure(exit) && Cause.hasDies(exit.cause) ? Cause.pretty(exit.cause) : "no defect";
 }
 
-it.each(failing)(
-	"a sink that fails after commit with %s is logged with its cause by default and the committed result stands",
-	(_, reason, publish) => {
-		const logs = captureLogs();
-		return Effect.runPromise(
-			Effect.gen(function* () {
-				const { inTransaction, write } = harness({ publish });
-				const database = makeDatabase("main");
-				const saved = yield* Effect.as(write(database, "row", change("ada"), change("bob")), "saved").pipe(inTransaction(database));
+for (const [failure, reason, publish] of failing) {
+	changes.it(
+		`a sink that fails after commit with ${failure} is logged with its cause by default and the committed result stands`,
+		[configured({ publish }), hasObserver()],
+		function* ({ database, inTransaction, write, logs, observing, seen }) {
+			yield* Effect.gen(function* () {
+				const saved = yield* Effect.as(write(database, "row", change("ada"), change("bob")), "saved").pipe(inTransaction(database), observing);
 				yield* write(database, "bare row", change("cyd"));
 				expect(saved).toBe("saved");
 				expect(database.committed).toEqual(["row", "bare row"]);
 				expect(logs.entries).toEqual([logged(2, reason), logged(1, reason)]);
-			}).pipe(Effect.provide(logs.layer)),
-		);
-	},
-);
+				expect(seen).toEqual(["Recorded ada:orders bob:orders", "Published ada:orders bob:orders"]);
+			}).pipe(Effect.provide(logs.layer));
+		},
+	);
 
-it.each(failing)(
-	"with onPublishFailure set to die, a sink that fails with %s raises a defect while the data stays committed",
-	(_, reason, publish) => {
-		const logs = captureLogs();
-		return Effect.runPromise(
-			Effect.gen(function* () {
-				const { inTransaction, write } = harness({ onPublishFailure: "die", publish });
-				const database = makeDatabase("main");
+	changes.it(
+		`with onPublishFailure set to die, a sink that fails with ${failure} raises a defect while the data stays committed`,
+		[configured({ onPublishFailure: "die", publish })],
+		function* ({ database, inTransaction, write, logs }) {
+			yield* Effect.gen(function* () {
 				const committed = yield* Effect.as(write(database, "row", change("ada")), "saved").pipe(inTransaction(database), Effect.exit);
 				const bare = yield* write(database, "bare row", change("bob")).pipe(Effect.exit);
 				expect([defect(committed), defect(bare)]).toEqual([expect.stringContaining(reason), expect.stringContaining(reason)]);
 				expect(database.committed).toEqual(["row", "bare row"]);
 				expect(logs.entries).toEqual([]);
-			}).pipe(Effect.provide(logs.layer)),
-		);
-	},
-);
+			}).pipe(Effect.provide(logs.layer));
+		},
+	);
+}

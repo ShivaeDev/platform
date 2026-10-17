@@ -10,10 +10,9 @@ import { SessionJournal } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 
 type Store = Effect.Success<ReturnType<typeof makePostgresFleetStore<typeof FleetRecord>>>;
-export class FleetRepository extends Context.Service<
-	FleetRepository,
-	Omit<Store, "initialize" | "operationEntries"> & Partial<Pick<Store, "operationEntries">>
->()("@shivaedev/work-fleet/FleetRepository") {}
+export class FleetRepository extends Context.Service<FleetRepository, Omit<Store, "operationEntries"> & Partial<Pick<Store, "operationEntries">>>()(
+	"@shivaedev/work-fleet/FleetRepository",
+) {}
 class RepositoryNamespace extends Context.Service<RepositoryNamespace, string | undefined>()("Fleet/RepositoryNamespace") {}
 const PostgresFleetRepository = defineService({
 	id: "Fleet/PostgresFleetRepository",
@@ -30,7 +29,7 @@ const PostgresFleetRepository = defineService({
 		});
 		return store;
 	}),
-	methods: ({ initialize: _initialize, ...methods }) => methods,
+	methods: (store) => store,
 	requires: [SqlClient.SqlClient, RepositoryNamespace],
 });
 

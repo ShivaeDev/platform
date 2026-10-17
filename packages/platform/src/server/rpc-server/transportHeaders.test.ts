@@ -1,9 +1,9 @@
 import { expect, it } from "vitest";
 import { trustedOrigins } from "#rpc-server/origin.ts";
 import { makeApp } from "#test/rpc/api.ts";
-import { createProvider, origin, signup } from "#test/rpc/harness.ts";
+import { createProvider, ORIGIN, signup } from "#test/rpc/harness.ts";
 
-const browser = trustedOrigins({ allow: [origin], missing: "reject" });
+const browser = trustedOrigins({ allow: [ORIGIN], missing: "reject" });
 async function post(
 	app: {
 		readonly handler: (request: Request) => Promise<Response>;
@@ -12,7 +12,7 @@ async function post(
 	message: ReadonlyArray<readonly [string, string]>,
 ) {
 	const response = await app.handler(
-		new Request(`${origin}/rpc`, {
+		new Request(`${ORIGIN}/rpc`, {
 			body: JSON.stringify([{ _tag: "Request", headers: message, id: "1", payload: null, tag: "Whoami" }]),
 			headers: { "content-type": "text/plain", ...transport },
 			method: "POST",
@@ -26,16 +26,16 @@ it("client-supplied message headers cannot satisfy the origin policy or carry cr
 	try {
 		const alice = await signup(provider, "alice");
 		const forbidden = /"_tag":"Forbidden".*"Origin not allowed"/u;
-		expect(await post(app, { cookie: alice.cookie, origin }, [])).toContain(alice.userId);
-		expect(await post(app, { cookie: alice.cookie, origin: "https://attacker.example" }, [["origin", origin]])).toMatch(forbidden);
-		expect(await post(app, { cookie: alice.cookie }, [["origin", origin]])).toMatch(forbidden);
-		expect(await post(app, { cookie: alice.cookie, origin: "https://attacker.example" }, [["Origin", origin]])).toMatch(forbidden);
+		expect(await post(app, { cookie: alice.cookie, origin: ORIGIN }, [])).toContain(alice.userId);
+		expect(await post(app, { cookie: alice.cookie, origin: "https://attacker.example" }, [["origin", ORIGIN]])).toMatch(forbidden);
+		expect(await post(app, { cookie: alice.cookie }, [["origin", ORIGIN]])).toMatch(forbidden);
+		expect(await post(app, { cookie: alice.cookie, origin: "https://attacker.example" }, [["Origin", ORIGIN]])).toMatch(forbidden);
 		const lookups = provider.lookups();
-		const forged = await post(app, { origin }, [["cookie", alice.cookie]]);
+		const forged = await post(app, { origin: ORIGIN }, [["cookie", alice.cookie]]);
 		expect(forged).toContain('"_tag":"Unauthorized"');
 		expect(forged).not.toContain(alice.userId);
 		expect(provider.lookups()).toBe(lookups + 1);
-		expect(await post(app, { origin }, [["authorization", `Bearer ${alice.cookie}`]])).toContain('"_tag":"Unauthorized"');
+		expect(await post(app, { origin: ORIGIN }, [["authorization", `Bearer ${alice.cookie}`]])).toContain('"_tag":"Unauthorized"');
 	} finally {
 		await app.dispose();
 		provider.database.close();
