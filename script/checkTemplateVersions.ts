@@ -25,10 +25,17 @@ const program = Effect.gen(function* () {
 		}
 	}
 	const pins = decodeVersions(yield* fs.readFileString(`${root}/examples/starter/published-versions.json`));
-	yield* checkVersions(pins, (name) =>
-		command(root, "pnpm", ["view", `${name}@latest`, "version", "--json", "--registry=https://registry.npmjs.org"]).pipe(Effect.map(decodeLatest)),
+	const workspace: Record<string, string> = {};
+	for (const name of Object.keys(pins)) {
+		workspace[name] = decodeVersion(yield* fs.readFileString(`${root}/packages/${name.replace("@shivaedev/", "")}/package.json`)).version;
+	}
+	yield* checkVersions(
+		pins,
+		(name) =>
+			command(root, "pnpm", ["view", `${name}@latest`, "version", "--json", "--registry=https://registry.npmjs.org"]).pipe(Effect.map(decodeLatest)),
+		workspace,
 	);
-	yield* Effect.log("Every generated app framework pin matches npm latest.");
+	yield* Effect.log("Every generated app framework pin matches npm latest or a newer workspace release.");
 });
 
 NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)));

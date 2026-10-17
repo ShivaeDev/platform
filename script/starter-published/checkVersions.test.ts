@@ -31,3 +31,11 @@ it("fails closed when the registry cannot report the latest version", async () =
 		/Registry unavailable/u,
 	);
 });
+
+it("pins a newer workspace release shipped with the command and compares version segments numerically", async () => {
+	const name = "@shivaedev/platform";
+	const workspace = { [name]: "0.10.0" };
+	await Effect.runPromise(checkVersions(workspace, () => Effect.succeed("0.9.0"), workspace));
+	await assert.rejects(Effect.runPromise(checkVersions({ [name]: "0.9.0" }, () => Effect.succeed("0.9.0"), workspace)), /Pin 0\.10\.0/u);
+	await assert.rejects(Effect.runPromise(checkVersions({ [name]: "0.8.0" }, () => Effect.succeed("0.9.0"), { [name]: "0.8.0" })), /Pin 0\.9\.0/u);
+});

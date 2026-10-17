@@ -85,4 +85,4 @@ jobs:
         run: pnpm build
 
       - name: Publish new package versions
-        run: pnpm --recursive publish --no-git-checks
+        run: node --conditions=source script/checkTemplateVersions.ts --release && pnpm --recursive publish --no-git-checks
