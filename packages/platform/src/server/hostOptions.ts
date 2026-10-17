@@ -17,10 +17,10 @@ export type HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandle
 	readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements>;
 	readonly routes?: Layer.Layer<never, never, HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>>;
 	readonly rpcPath?: HttpRouter.PathInput;
-	readonly services?: Layer.Layer<TServices, TServiceError, TServiceRequirements>;
-} & ([TServices | TServiceError | TServiceRequirements] extends [never]
-	? unknown
-	: { readonly services: Layer.Layer<TServices, TServiceError, TServiceRequirements> });
+} & (
+	| { readonly services: Layer.Layer<TServices, TServiceError, TServiceRequirements> }
+	| ([TServices | TServiceError | TServiceRequirements] extends [never] ? { readonly services?: never } : never)
+);
 
 export type HostPolicy<TSession extends SessionShape> =
 	| { readonly policy?: undefined; readonly sessions: SessionPolicy<TSession> }
