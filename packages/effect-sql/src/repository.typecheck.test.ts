@@ -47,6 +47,12 @@ const program = Effect.gen(function* () {
 	makeRepository(Document, { ...options, conflictColumns: ["name"], versionColumn: "lockVersion" });
 	// @ts-expect-error Versioned repositories do not expose unconditional upserts.
 	documents.upsert({ name: "draft" }, { updateColumns: ["name"] });
+	// @ts-expect-error Versioned repositories do not expose unconditional batch writes.
+	documents.insertMany([{ name: "draft" }]);
+	// @ts-expect-error Batch conflicts cannot bypass optimistic concurrency.
+	documents.insertManyOrIgnore([{ name: "draft" }]);
+	// @ts-expect-error Batch upserts cannot bypass optimistic concurrency.
+	documents.upsertMany([{ name: "draft" }], { updateColumns: ["name"] });
 	const plain = yield* makeRepository(Document, options);
 	plain.delete(1);
 	// @ts-expect-error Unversioned delete retains its one-argument signature.

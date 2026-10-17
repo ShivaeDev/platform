@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { workRevision } from "#board/workRevision.ts";
+import { abandonStalled } from "#engine/abandonStalled.ts";
 import { authorizeBrief, briefChanged } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
@@ -18,7 +19,7 @@ export function approveBrief(state: EngineState) {
 		responses?: readonly DecisionResponse[],
 	) {
 		yield* authorizeBrief(work);
-		const stored = yield* ensurePublication(state)(input);
+		const stored = yield* ensurePublication(state)(input).pipe(Effect.flatMap((current) => abandonStalled(state, current)));
 		const record = stored.value;
 		const published = record.decision?.published;
 		const approvedPrompt = prompt ?? revisedPrompt(record, work);

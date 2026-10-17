@@ -30,8 +30,12 @@ export const recoverStall = Effect.fn("Fleet.recoverStall")(function* (
 	}
 	const count = recovery?.count ?? 0;
 	if (count >= 2) {
+		const exhausted = yield* state.save(stored, {
+			...stored.value,
+			attempts: stored.value.attempts.map((entry) => (entry.operationId === attempt.operationId ? { ...entry, sessionUnusable: true } : entry)),
+		});
 		return yield* state.decision(
-			stored,
+			exhausted,
 			"session-stalled",
 			"Provider turn stalled after automatic steer and interrupt recovery",
 			"Retry in a fresh session or abandon the stalled turn and release ownership",
