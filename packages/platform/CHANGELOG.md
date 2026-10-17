@@ -2,6 +2,10 @@
 
 ## 0.14.1 - 2026-10-17
 
+### Added
+
+- `appHost({ application, migrations, config? })` evaluates a native Effect returning HTTP host options only after migrations or the schema-current check finishes. Construction keeps typed errors, requirements and scoped resources in the host Layer.
+
 ### Fixed
 
 - Security fix: `otlpTracing` redacts every URL query value, fragment and userinfo before exporting traces, including HTTP server and client spans, events and links. Paths and query parameter names remain readable. Platform 0.13.0 and 0.14.0 exported URL query values; apps with tracing enabled should upgrade.

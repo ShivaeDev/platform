@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- Construct Better Auth through the shared host's deferred application Effect after database readiness, with schema validation explicitly enabled to report real auth-column drift.
 - Generated apps use Platform 0.14.1 to redact URL query values, fragments and userinfo in exported traces. Platform 0.13.0 and 0.14.0 exported URL query values; apps with tracing enabled should upgrade.
 
 ## 0.6.0 - 2026-10-17
