@@ -4,7 +4,7 @@ import type { ImportGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
 import { storyProgram } from "./program.ts";
 
-type Origin = "factory" | "kit" | "story" | "plain" | undefined;
+type Origin = "factory" | "kit" | "story" | "plain" | "suite" | "vitest" | "stories" | undefined;
 
 function importFrom(node: ts.Node): string | undefined {
 	for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {
@@ -15,11 +15,22 @@ function importFrom(node: ts.Node): string | undefined {
 	return undefined;
 }
 
+function moduleOrigin(from: string | undefined): Origin {
+	if (from === "vitest" || from === "@effect/vitest") {
+		return "vitest";
+	}
+	return from === "@shivaedev/test-story" || from === "@shivaedev/test-story/storyKit.ts" ? "stories" : undefined;
+}
+
 function imported(name: string, from: string | undefined): Origin {
-	if (name === "storyKit" && (from === "@shivaedev/test-story" || from === "@shivaedev/test-story/storyKit.ts")) {
+	const namespace = moduleOrigin(from);
+	if (name === "storyKit" && namespace === "stories") {
 		return "factory";
 	}
-	return (name === "it" || name === "test") && (from === "vitest" || from === "@effect/vitest") ? "plain" : undefined;
+	if ((name === "describe" || name === "suite") && namespace === "vitest") {
+		return "suite";
+	}
+	return (name === "it" || name === "test") && namespace === "vitest" ? "plain" : undefined;
 }
 
 export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
@@ -33,12 +44,16 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 			return undefined;
 		}
 		const value = node.parent.parent.initializer;
-		return value !== undefined && (node.propertyName ?? node.name).getText() === "it" && visit(value) === "kit" ? "story" : undefined;
+		const name = node.propertyName ?? node.name;
+		return value !== undefined && (ts.isIdentifier(name) || ts.isStringLiteral(name)) ? member(value, name.text) : undefined;
 	}
 
 	function declaration(node: ts.Node): Origin {
 		if (ts.isImportSpecifier(node)) {
 			return imported((node.propertyName ?? node.name).text, importFrom(node));
+		}
+		if (ts.isNamespaceImport(node)) {
+			return moduleOrigin(importFrom(node));
 		}
 		if (ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node)) {
 			return node.initializer === undefined ? undefined : origin(node.initializer);
@@ -69,20 +84,22 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 		return undefined;
 	}
 
-	function propertyOrigin(node: ts.PropertyAccessExpression): Origin {
-		const receiver = visit(node.expression);
-		if (receiver === "kit" && node.name.text === "it") {
+	function member(value: ts.Expression, name: string): Origin {
+		const receiver = visit(value);
+		if (receiver === "kit" && name === "it") {
 			return "story";
 		}
-		if (receiver === "story" || receiver === "plain") {
+		if (receiver === "story" || receiver === "plain" || receiver === "suite") {
 			return receiver;
 		}
-		const namespace = checker.getSymbolAtLocation(node.expression)?.declarations?.find(ts.isNamespaceImport);
-		const direct = imported(node.name.text, namespace === undefined ? undefined : importFrom(namespace));
-		return direct ?? symbol(checker.getSymbolAtLocation(node.name));
+		const from = receiver === "vitest" ? "vitest" : undefined;
+		return imported(name, receiver === "stories" ? "@shivaedev/test-story/storyKit.ts" : from);
 	}
 
 	function identifier(node: ts.Identifier): Origin {
+		if (node.text === "describe" || node.text === "suite") {
+			return symbol(checker.getSymbolAtLocation(node)) ?? "suite";
+		}
 		return symbol(checker.getSymbolAtLocation(node)) ?? (node.text === "it" || node.text === "test" ? "plain" : undefined);
 	}
 
@@ -98,7 +115,7 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 			return callee === "factory" ? "kit" : callee;
 		}
 		if (ts.isPropertyAccessExpression(node)) {
-			return propertyOrigin(node);
+			return member(node.expression, node.name.text) ?? symbol(checker.getSymbolAtLocation(node.name));
 		}
 		return ts.isIdentifier(node) ? identifier(node) : declaration(node);
 	}

@@ -25,6 +25,25 @@ function testShaped(call: ts.CallExpression): boolean {
 	);
 }
 
+type OriginOf = ReturnType<typeof storyOrigins>["origin"];
+
+function declarationScope(node: ts.Node, origin: OriginOf): boolean {
+	for (let current = node.parent; current !== undefined; current = current.parent) {
+		if (ts.isFunctionLike(current) && (!ts.isCallExpression(current.parent) || origin(current.parent.expression) !== "suite")) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function uncoveredRegistration(call: ts.CallExpression, originOf: OriginOf): boolean {
+	const origin = originOf(call.expression);
+	if (origin === "story" || origin === "suite") {
+		return false;
+	}
+	return origin === "plain" || namesTest(call.expression) || (testShaped(call) && declarationScope(call, originOf));
+}
+
 export const storySpecs = defineRule({
 	check: async (inputs) => {
 		const graph = await importGraph(inputs);
@@ -38,32 +57,22 @@ export const storySpecs = defineRule({
 			}
 			const source = origins.source(file.path);
 			let plain: ts.CallExpression | undefined;
-			let registration: ts.CallExpression | undefined;
-			let story = false;
 			function visit(node: ts.Node): void {
-				if (ts.isCallExpression(node)) {
-					const origin = origins.origin(node.expression);
-					if (testShaped(node)) {
-						registration ??= node;
-					}
-					story ||= origin === "story";
-					if (origin !== "story" && (origin === "plain" || namesTest(node.expression))) {
-						plain ??= node;
-					}
+				if (ts.isCallExpression(node) && uncoveredRegistration(node, origins.origin)) {
+					plain ??= node;
 				}
 				ts.forEachChild(node, visit);
 			}
 			if (source !== undefined) {
 				visit(source);
 			}
-			const uncovered = plain ?? (story ? undefined : registration);
-			if (source === undefined || uncovered === undefined) {
+			if (source === undefined || plain === undefined) {
 				return [];
 			}
 			return [
 				{
 					file: file.path,
-					line: source.getLineAndCharacterOfPosition(uncovered.getStart(source)).line + 1,
+					line: source.getLineAndCharacterOfPosition(plain.getStart(source)).line + 1,
 					message:
 						"Declares tests without a test-story story kit. Build the package's kit with storyKit from @shivaedev/test-story/storyKit.ts in src/test-support, and declare every test through the kit's it. See https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.",
 				},

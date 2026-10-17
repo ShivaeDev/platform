@@ -33,6 +33,73 @@ it("reports plain declarations even alongside a story", async () => {
 	expect(await findingsIn(storySpecs, undefined, root)).toHaveLength(1);
 });
 
+it.each(["it", "test"])("reports destructured Vitest %s alongside a story", async (name) => {
+	const root = seedTree([
+		...kitFiles,
+		spec(
+			[
+				'import * as v from "vitest";',
+				'import { orders } from "#test/orders.ts";',
+				`const { ${name}: ordinary } = v;`,
+				'ordinary("plain", () => {});',
+				'orders.it("story", [], () => {});',
+			].join("\n"),
+		),
+	]);
+	expect(await findingsIn(storySpecs, undefined, root)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 4 })]);
+});
+
+it("tracks a destructured registrar through a namespace alias with a named body", async () => {
+	const root = seedTree([
+		...kitFiles,
+		spec(
+			[
+				'import * as v from "vitest";',
+				'import { orders } from "#test/orders.ts";',
+				"const runtime = v; const { test: ordinary } = runtime;",
+				"const body = () => {};",
+				'ordinary("plain", body);',
+				'orders.it("story", [], body);',
+			].join("\n"),
+		),
+	]);
+	expect(await findingsIn(storySpecs, undefined, root)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 5 })]);
+});
+
+it("preserves an unrecognized registration alongside a story inside a suite", async () => {
+	const root = seedTree([
+		...kitFiles,
+		spec(
+			[
+				'import { describe as group } from "vitest";',
+				'import { orders } from "#test/orders.ts";',
+				'group("orders", () => {',
+				'  orders.it("story", [], () => {});',
+				'  scenario("plain", () => {});',
+				"});",
+			].join("\n"),
+		),
+	]);
+	expect(await findingsIn(storySpecs, undefined, root)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 5 })]);
+});
+
+it("accepts stories in a destructured suite and ignores callbacks inside their bodies", async () => {
+	const root = seedTree([
+		...kitFiles,
+		spec(
+			[
+				'import * as v from "vitest";',
+				'import { orders } from "#test/orders.ts";',
+				"const { describe: group } = v;",
+				'group("orders", () => {',
+				'  orders.it("story", [], () => { engine.on("changed", () => {}); });',
+				"});",
+			].join("\n"),
+		),
+	]);
+	expect(await findingsIn(storySpecs, undefined, root)).toEqual([]);
+});
+
 it("does not accept an unrelated object's it as a story kit", async () => {
 	const root = seedTree([spec('import { storyKit } from "@shivaedev/test-story/storyKit.ts"; const orders = { it() {} }; orders.it("plain", []);')]);
 
