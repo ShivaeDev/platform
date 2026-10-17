@@ -2,9 +2,9 @@ import { type ReactNode, useContext } from "react";
 import type { Observation } from "#browser/diagnostics/schema.ts";
 import type { DiagnosticsProjection } from "#browser/views/remaining.ts";
 import { Card as Surface } from "#client/react/components/ui/Card.tsx";
-import { githubLimited } from "#diagnostics/githubLimited.ts";
 import { DiagnosticsGithub, DiagnosticsWindows, ObservedTime } from "./diagnosticsValues.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
+import { githubLimited } from "./githubLimited.ts";
 import { SystemFleetLane } from "./SystemFleetLane.tsx";
 import { SystemHealth } from "./SystemHealth.tsx";
 export function SystemPage({ data: { sources: data, now } }: { readonly data: DiagnosticsProjection }) {

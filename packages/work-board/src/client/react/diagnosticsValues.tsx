@@ -71,7 +71,8 @@ export function DiagnosticsWindows({ value, now }: { readonly value: CodexLimits
 		</ul>
 	);
 }
-const GITHUB_RESOURCES: Readonly<Record<string, string>> = { core: "REST", graphql: "GraphQL" };
+const GITHUB_RESOURCES: Readonly<Record<string, string>> = { core: "REST", graphql: "GraphQL", search: "Search" };
+const GITHUB_PAUSES = { "rate-limit": "Rate-limited", reserve: "GitHub paused below the 20% reserve" } as const;
 export function DiagnosticsGithub({ value, now }: { readonly value: GithubLimits; readonly now: number }) {
 	return (
 		<>
@@ -96,7 +97,7 @@ function GithubResource({ window, now }: { readonly window: GithubWindow; readon
 			</dd>
 			{window.limitedUntil !== null && window.limitedUntil > now ? (
 				<dd>
-					<strong>Rate-limited</strong> until <Reset at={window.limitedUntil} now={now} />
+					<strong>{GITHUB_PAUSES[window.limitedBy ?? "rate-limit"]}</strong> until <Reset at={window.limitedUntil} now={now} />
 				</dd>
 			) : null}
 			<dd>

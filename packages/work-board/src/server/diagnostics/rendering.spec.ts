@@ -72,7 +72,9 @@ it("shows Fleet freshness, unobserved scheduler and rejection, unknown Codex win
 		github: {
 			observedAt: health.observedAt,
 			state: "ready",
-			value: [{ limit: 5000, limitedUntil: null, observedAt: health.observedAt, remaining: 0, reset: 0, resource: "core", used: 5000 }],
+			value: [
+				{ limit: 5000, limitedBy: null, limitedUntil: null, observedAt: health.observedAt, remaining: 0, reset: 0, resource: "core", used: 5000 },
+			],
 		},
 	} as const;
 	expect(diagnosticsHtml(sources, health.observedAt)).toContain("Current snapshot");
@@ -83,7 +85,7 @@ it("shows Fleet freshness, unobserved scheduler and rejection, unknown Codex win
 	expect(diagnosticsHtml(sources, health.observedAt - 1)).toContain("Publisher clock is ahead");
 });
 
-it("renders each GitHub resource Fleet recorded with its age and the rate limit it is waiting out", () => {
+it("renders each GitHub resource Fleet recorded with its age and the rate limit or reserve pause it is waiting out", () => {
 	const now = health.observedAt;
 	const html = diagnosticsHtml(
 		{
@@ -100,11 +102,16 @@ it("renders each GitHub resource Fleet recorded with its age and the rate limit 
 	expect(rest).toContain("4321 / 5000");
 	expect(rest).toContain("1 min ago");
 	expect(rest).not.toContain("Rate-limited");
-	const graphql = github.slice(github.indexOf('data-resource="graphql"'));
+	const graphql = github.slice(github.indexOf('data-resource="graphql"'), github.indexOf('data-resource="search"'));
 	expect(graphql).toContain("<dt>GraphQL</dt>");
 	expect(graphql).toContain("0 / 5000");
 	expect(graphql).toContain("<strong>Rate-limited</strong> until");
 	expect(graphql).toContain("5 min ago");
+	const search = github.slice(github.indexOf('data-resource="search"'));
+	expect(search).toContain("<dt>Search</dt>");
+	expect(search).toContain("5 / 30");
+	expect(search).toContain("<strong>GitHub paused below the 20% reserve</strong> until");
+	expect(search).not.toContain("Rate-limited");
 	expect(github).toContain("Recorded from the rate-limit headers of Fleet&#x27;s own GitHub responses.");
 });
 

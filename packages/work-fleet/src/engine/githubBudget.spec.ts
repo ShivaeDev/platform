@@ -11,11 +11,11 @@ import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
 import { LiveConfig } from "#host/liveConfig.ts";
 import { renderStatus } from "#host/renderStatus.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { GITHUB_RESET, syntheticGithub } from "#test/githubApi.ts";
+import { GITHUB_RESET, syntheticGithub, unslurped } from "#test/githubApi.ts";
 import { ADOPTED_HEAD, checkRun, githubFixture, githubResult } from "#test/githubChecks.ts";
 import { postgresTests } from "#test/postgres.ts";
 
-const test = postgresTests("live");
+const test = postgresTests("live", "isolated");
 const PR_ENDPOINT = "repos/example/project/pulls/7";
 const result = githubResult();
 function pullRequest(merged: boolean) {
@@ -94,7 +94,43 @@ test("a rate-limited read waits for the reset without escalating or calling GitH
 				expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).toContain(
 					`one  validating  GitHub is rate-limited until ${until}`,
 				);
-				expect(yield* api.observations()).toMatchObject([{ limitedUntil: GITHUB_RESET * 1000, remaining: 0, resource: "core" }]);
+				expect(yield* api.observations()).toMatchObject([
+					{ limitedBy: "rate-limit", limitedUntil: GITHUB_RESET * 1000, remaining: 0, resource: "core" },
+				]);
+			}),
+		);
+	});
+});
+
+test("below the 20% reserve Fleet stops calling GitHub until the reset and status says so", () => {
+	const github = syntheticGithub({ remaining: 1000 });
+	const checks = githubFixture();
+	checks.reply(ADOPTED_HEAD, [[checkRun()]]);
+	for (const [endpoint, body] of unslurped(checks.responses)) {
+		github.reply(endpoint, body);
+	}
+	return Effect.gen(function* () {
+		const api = yield* GithubApi.pipe(Effect.provide(github.layer));
+		yield* withEngine({ checksQuery: githubChecks(api), resultQuery: () => Effect.succeed(result) }, (fixture) =>
+			Effect.gen(function* () {
+				yield* prepareWork("one");
+				const fleet = yield* Fleet;
+				yield* fleet.dispatch("one");
+				finishWorkers(fixture);
+				const waiting = yield* fleet.reconcile("one");
+				const message = `GitHub paused below the 20% reserve until ${new Date(GITHUB_RESET * 1000).toISOString()}`;
+				expect(waiting.value.stage).toBe("validating");
+				expect(waiting.value.blocker).toBe(message);
+				expect(waiting.value.integrationRetry).toMatchObject({ failures: 0, retryAt: GITHUB_RESET * 1000 });
+				expect(github.requests).toHaveLength(1);
+				expect(github.budget.remaining).toBe(999);
+				for (let pass = 0; pass < 6; pass += 1) {
+					yield* fleet.reconcile("one");
+				}
+				expect(github.requests).toHaveLength(1);
+				expect((yield* fleet.get("one")).value.decision).toBeUndefined();
+				expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).toContain(`one  validating  ${message}`);
+				expect(yield* api.observations()).toMatchObject([{ limitedBy: "reserve", limitedUntil: GITHUB_RESET * 1000, remaining: 999 }]);
 			}),
 		);
 	});
@@ -109,28 +145,29 @@ function liveInterval(seconds: number) {
 	);
 }
 
-test("a low REST budget stretches the scheduler's pause beyond the configured interval", () =>
+const pacedScheduler = Effect.fn("GithubBudget.pacedScheduler")(function* (remaining: number) {
+	const github = syntheticGithub({ remaining, reset: Math.ceil((yield* Clock.currentTimeMillis) / 1000) + 3600 });
+	github.reply(PR_ENDPOINT, pullRequest(false));
+	const api = yield* GithubApi.pipe(Effect.provide(github.layer));
+	yield* api.get(PR_ENDPOINT);
+	const passes = { count: 0 };
+	const admit = Effect.sync(() => {
+		passes.count += 1;
+	});
+	const pause = schedulerPause.pipe(Effect.provideService(GithubApi, api), Effect.provide(liveInterval(0.005)));
+	const scheduler = yield* Effect.scoped(run(pause, admit)).pipe(Effect.forkChild);
+	return { passes, scheduler };
+});
+
+test("a REST budget between half and the reserve stretches the scheduler's pause beyond the configured interval", () =>
 	withEngine({}, () =>
 		Effect.gen(function* () {
-			let passes = 0;
-			const admit = Effect.sync(() => {
-				passes += 1;
-			});
-			for (const remaining of [5000, 300] as const) {
-				const github = syntheticGithub({ remaining, reset: Math.ceil((yield* Clock.currentTimeMillis) / 1000) + 3600 });
-				github.reply(PR_ENDPOINT, pullRequest(false));
-				const api = yield* GithubApi.pipe(Effect.provide(github.layer));
-				yield* api.get(PR_ENDPOINT);
-				passes = 0;
-				const pause = schedulerPause.pipe(Effect.provideService(GithubApi, api), Effect.provide(liveInterval(0.005)));
-				const scheduler = yield* Effect.scoped(run(pause, admit)).pipe(Effect.forkChild);
-				yield* Effect.sleep("300 millis");
-				yield* Fiber.interrupt(scheduler);
-				if (remaining === 5000) {
-					expect(passes).toBeGreaterThan(5);
-				} else {
-					expect(passes).toBe(1);
-				}
-			}
+			const full = yield* pacedScheduler(5000);
+			yield* Effect.sleep("5 millis").pipe(Effect.repeat({ until: () => full.passes.count > 5 }), Effect.timeout("10 seconds"));
+			yield* Fiber.interrupt(full.scheduler);
+			const stretched = yield* pacedScheduler(1500);
+			yield* Effect.sleep("300 millis");
+			yield* Fiber.interrupt(stretched.scheduler);
+			expect(stretched.passes.count).toBe(1);
 		}),
 	));

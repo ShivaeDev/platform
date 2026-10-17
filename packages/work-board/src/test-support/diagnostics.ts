@@ -3,15 +3,35 @@ import type { FleetHealth } from "#diagnostics/health.ts";
 import type { GithubLimits, Sources } from "#diagnostics/source.ts";
 
 export const githubObservations: GithubLimits = [
-	{ limit: 5000, limitedUntil: null, observedAt: 1_799_999_940_000, remaining: 4321, reset: 1_800_000_000, resource: "core", used: 679 },
 	{
 		limit: 5000,
+		limitedBy: null,
+		limitedUntil: null,
+		observedAt: 1_799_999_940_000,
+		remaining: 4321,
+		reset: 1_800_000_000,
+		resource: "core",
+		used: 679,
+	},
+	{
+		limit: 5000,
+		limitedBy: "rate-limit",
 		limitedUntil: 1_800_000_600_000,
 		observedAt: 1_799_999_700_000,
 		remaining: 0,
 		reset: 1_800_000_000,
 		resource: "graphql",
 		used: 5000,
+	},
+	{
+		limit: 30,
+		limitedBy: "reserve",
+		limitedUntil: 1_800_000_060_000,
+		observedAt: 1_799_999_990_000,
+		remaining: 5,
+		reset: 1_800_000_060,
+		resource: "search",
+		used: 25,
 	},
 ];
 export const health: FleetHealth = {

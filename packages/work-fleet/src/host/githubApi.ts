@@ -2,13 +2,14 @@ import { Clock, Effect, Layer } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import {
-	exhaustedUntil,
 	type GithubObservation,
+	type GithubPause,
+	githubPaused,
 	pace,
 	type RecordedObservation,
-	rateLimitedUntil,
 	rateLimitWait,
 	readObservation,
+	reservedUntil,
 } from "#host/githubRateLimit.ts";
 import { nextLink, type ParsedResponse, parseResponse, requestResource } from "#host/githubResponse.ts";
 import { GithubTransport, ghTransport } from "#host/githubTransport.ts";
@@ -48,9 +49,17 @@ export const GithubApi = defineService({
 			}
 			return page;
 		}
-		function limitedUntil(resource: string, now: number) {
-			const until = state.blocks.get(resource)?.until;
-			return until !== undefined && until > now ? until : null;
+		function paused(resource: string, now: number): { readonly by: GithubPause; readonly until: number } | undefined {
+			const blocked = state.blocks.get(resource)?.until;
+			if (blocked !== undefined && blocked > now) {
+				return { by: "rate-limit", until: blocked };
+			}
+			const reserved = reservedUntil(state.observations.get(resource), now);
+			return reserved === undefined ? undefined : { by: "reserve", until: reserved };
+		}
+		function limited(observation: RecordedObservation, now: number): GithubObservation {
+			const pause = paused(observation.resource, now);
+			return { ...observation, limitedBy: pause?.by ?? null, limitedUntil: pause?.until ?? null };
 		}
 		const settle = Effect.fn("Fleet.settle")(function* (url: string, exitCode: number, response: ParsedResponse, now: number) {
 			const observation = readObservation(response.headers, now);
@@ -63,14 +72,9 @@ export const GithubApi = defineService({
 			if (wait !== undefined) {
 				const until = Math.max(wait, previous?.until ?? 0);
 				state.blocks.set(resource, { failures: (previous?.failures ?? 0) + 1, until });
-				return yield* rateLimitedUntil(until);
+				return yield* githubPaused("rate-limit", until);
 			}
-			const exhausted = exhaustedUntil(observation, now);
-			if (exhausted === undefined) {
-				state.blocks.delete(resource);
-			} else {
-				state.blocks.set(resource, { failures: 0, until: exhausted });
-			}
+			state.blocks.delete(resource);
 			const cached = state.cache.get(url);
 			if (response.status === 304 && cached !== undefined) {
 				return remember(url, cached);
@@ -81,9 +85,9 @@ export const GithubApi = defineService({
 			return remember(url, { body: response.body, etag: response.headers.get("etag"), next: nextLink(response.headers) });
 		});
 		const request = Effect.fn("Fleet.request")(function* (url: string) {
-			const blocked = limitedUntil(requestResource(url), yield* Clock.currentTimeMillis);
-			if (blocked !== null) {
-				return yield* rateLimitedUntil(blocked);
+			const pause = paused(requestResource(url), yield* Clock.currentTimeMillis);
+			if (pause !== undefined) {
+				return yield* githubPaused(pause.by, pause.until);
 			}
 			const etag = state.cache.get(url)?.etag;
 			const { exitCode, output } = yield* state.transport([
@@ -106,14 +110,14 @@ export const GithubApi = defineService({
 				Effect.gen(function* () {
 					const now = yield* Clock.currentTimeMillis;
 					return [...state.observations.values()]
-						.map((observation): GithubObservation => ({ ...observation, limitedUntil: limitedUntil(observation.resource, now) }))
+						.map((observation) => limited(observation, now))
 						.sort((left, right) => left.resource.localeCompare(right.resource));
 				}),
 			pace: (intervalMs: number) =>
 				Effect.gen(function* () {
 					const now = yield* Clock.currentTimeMillis;
 					const core = state.observations.get("core");
-					return pace(core === undefined ? undefined : { ...core, limitedUntil: limitedUntil("core", now) }, intervalMs, now);
+					return pace(core === undefined ? undefined : limited(core, now), intervalMs, now);
 				}),
 			pages: (endpoint: string) =>
 				Effect.gen(function* () {

@@ -11,6 +11,7 @@ const Count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 const Timestamp = Schema.Number.check(Schema.isFinite(), Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(8_640_000_000_000_000));
 export const GithubWindow = Schema.Struct({
 	limit: Count,
+	limitedBy: Schema.NullOr(Schema.Literals(["rate-limit", "reserve"])),
 	limitedUntil: Schema.NullOr(Timestamp),
 	observedAt: Timestamp,
 	remaining: Count,

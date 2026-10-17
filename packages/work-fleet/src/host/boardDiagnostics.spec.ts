@@ -59,7 +59,10 @@ postgresTests("live")("Board reads real daemon health, owner counts and Fleet's 
 			expect(data.sources).toMatchObject({
 				codex: { state: "ready", value: { primary: { usedPercent: 12 } } },
 				fleet: { state: "ready", value: { concurrency: 8, queued: 1, running: 0, waiting: { automation: 1, maintainer: 1, orchestrator: 1 } } },
-				github: { state: "ready", value: [{ limit: 5000, limitedUntil: null, remaining: 4567, reset: GITHUB_RESET, resource: "core", used: 433 }] },
+				github: {
+					state: "ready",
+					value: [{ limit: 5000, limitedBy: null, limitedUntil: null, remaining: 4567, reset: GITHUB_RESET, resource: "core", used: 433 }],
+				},
 			});
 			const second = yield* boardHttp(fixture.host.boardDir, undefined, undefined, address.port);
 			yield* Effect.promise(() => second.client.run(second.client.api.diagnostics.run(undefined)));
