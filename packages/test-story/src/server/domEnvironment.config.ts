@@ -1,11 +1,14 @@
+import { createRequire } from "node:module";
 import { GlobalWindow } from "happy-dom";
 import { type Environment, populateGlobal } from "vitest/runtime";
-import { documentTransport } from "#internal/documentTransport.ts";
-import { installOutbound } from "#internal/routeOutbound.ts";
 
 const domEnvironment: Environment = {
 	name: "test-story-dom",
 	async setup(global: typeof globalThis, { happyDOM = {} }) {
+		// Vitest loads environments outside the project's source resolution conditions.
+		const load = createRequire(import.meta.url);
+		const { documentTransport }: typeof import("#internal/documentTransport.ts") = load("#internal/documentTransport.ts");
+		const { installOutbound }: typeof import("#internal/routeOutbound.ts") = load("#internal/routeOutbound.ts");
 		const native = Object.fromEntries(
 			["fetch", "AbortController", "AbortSignal", "Headers", "Request", "Response"].map((name) => [name, Reflect.get(global, name)]),
 		);
