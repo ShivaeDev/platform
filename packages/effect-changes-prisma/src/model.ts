@@ -44,4 +44,6 @@ export const rowOperations: ReadonlySet<string> = new Set<RowOperation>([
 
 export const countOperations: ReadonlySet<string> = new Set<CountOperation>(["createMany", "updateMany", "deleteMany"]);
 
-export const delegateOf = (model: string): string => `${model.charAt(0).toLowerCase()}${model.slice(1)}`;
+export function delegateOf(model: string): string {
+	return `${model.charAt(0).toLowerCase()}${model.slice(1)}`;
+}
