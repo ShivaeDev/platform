@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 - 2026-10-17
+
+### Fixed
+
+- Publish against `@shivaedev/types` 0.2.1 so framework consumers share the current version.
+
 ## 0.5.0 - 2026-10-13
 
 ### Changed
