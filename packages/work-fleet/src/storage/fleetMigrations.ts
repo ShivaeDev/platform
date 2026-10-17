@@ -1,9 +1,12 @@
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
+import { addShapeColumns } from "#storage/addShapeColumns.ts";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import { modelTables } from "#storage/modelTables.ts";
 import { pruneEmptyCycles } from "#storage/pruneEmptyCycles.ts";
 import { recordTimeColumns } from "#storage/recordTimes.ts";
+import { shapeV12 } from "#storage/shapeV12.ts";
+import { shapeV14 } from "#storage/shapeV14.ts";
 import { typedTables } from "#storage/typedTables.ts";
 
 const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
@@ -49,5 +52,9 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			work_id text primary key, request_id text not null, accepted_at double precision not null,
 			completed_at double precision, status text not null, error text
 		)`,
+		"14_dispatch_now": Effect.gen(function* () {
+			yield* addShapeColumns(namespace, shapeV12, shapeV14);
+			yield* sql`alter table ${sql(`${namespace}_dispatches`)} add column now boolean, add column ignore_areas boolean`;
+		}),
 	});
 });

@@ -1,5 +1,5 @@
 import { Cause, Effect } from "effect";
-import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { DispatchRequest } from "#DispatchRequest.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { dispatchApproved } from "#host/admission.ts";
@@ -17,7 +17,7 @@ export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(functi
 			return;
 		}
 		running.add(request.id);
-		yield* dispatchApproved(host, request.workId).pipe(
+		yield* dispatchApproved(host, request.workId, request.now ? { ignoreAreas: request.ignoreAreas === true } : undefined).pipe(
 			Effect.andThen(store.finish(request)),
 			Effect.catchCause((cause) =>
 				Cause.hasInterrupts(cause) ? Effect.failCause(cause) : store.finish(request, failureMessage(Cause.squash(cause))),
@@ -33,12 +33,18 @@ export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(functi
 		}
 	}
 	return {
-		accept: Effect.fn("FleetDaemon.accept")(function* (workId: string) {
+		accept: Effect.fn("FleetDaemon.accept")(function* (
+			workId: string,
+			options: { readonly ignoreAreas?: boolean | undefined; readonly now?: boolean | undefined } = {},
+		) {
+			if (options.ignoreAreas === true && options.now !== true) {
+				return yield* new BadRequest({ message: "Ignoring area claims needs a dispatch now request" });
+			}
 			const work = yield* board.get(workId);
 			if (!work.approved) {
 				return yield* new Forbidden({ message: `${workId} needs "fleet: approved" in its Board frontmatter` });
 			}
-			const request = yield* store.accept(workId);
+			const request = yield* store.accept(workId, options.now === true ? { ignoreAreas: options.ignoreAreas === true } : undefined);
 			yield* start(request);
 			return request;
 		}),

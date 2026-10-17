@@ -6,13 +6,13 @@ import { briefRevision } from "#board/briefRevision.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
 import { decisionReading } from "#board/decisionReading.ts";
 import { boundDocuments, boundSnapshot, refreshSnapshotDocument, snapshotDocument } from "#board/documents.ts";
-import { fleetApproved, fleetDeliverable } from "#board/fleetField.ts";
+import { fleetApproved, fleetDeliverable, fleetPriority } from "#board/fleetField.ts";
 import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
 import { workMetadata } from "#board/readPass.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { writeCompletion } from "#board/writeCompletion.ts";
-import { BoardFailure, BoardGateway } from "#policy.ts";
+import { BoardFailure, BoardGateway, Priority } from "#policy.ts";
 import { RepositoryPath } from "#preparation/schema.ts";
 
 class BoardRoot extends Context.Service<BoardRoot, string>()("Fleet/BoardRoot") {}
@@ -38,6 +38,10 @@ const MarkdownBoard = defineService({
 			if (deliverable !== undefined && deliverable !== "report") {
 				return yield* Effect.fail(new BoardFailure({ message: "Invalid fleet-deliverable; use report or omit the field for pull requests." }));
 			}
+			const priority = fleetPriority(found.parsed);
+			if (priority !== undefined && !Schema.is(Priority)(priority)) {
+				return yield* Effect.fail(new BoardFailure({ message: "Invalid fleet-priority; use urgent, high or normal, or omit the field." }));
+			}
 			return {
 				approved: fleetApproved(found.parsed),
 				areas: found.parsed.fields.areas,
@@ -45,6 +49,7 @@ const MarkdownBoard = defineService({
 				...(deliverable === "report" ? { deliverable: "report" as const } : {}),
 				context: found.source,
 				dependsOn: (found.parsed.fields.relationships ?? []).filter((relation) => relation.kind === "depends_on").map((relation) => relation.target),
+				...(priority === undefined ? {} : { priority }),
 				revision: briefRevision(found.parsed),
 				sourcePath: path.join(realRoot, found.file),
 				workId,
