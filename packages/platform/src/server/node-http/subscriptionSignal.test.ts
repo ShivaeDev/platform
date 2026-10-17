@@ -1,68 +1,54 @@
-import { IncomingMessage } from "node:http";
-import { Socket } from "node:net";
-import { describe, expect, it } from "vitest";
-import { nodeSubscriptionSignal } from "#node-http/subscription-signal.ts";
+import { expect } from "vitest";
+import { host } from "#test/app-host/story.ts";
+import { subscriptionConnection } from "#test/app-host/subscriptionConnection.ts";
 
-function nodeRequest(complete = false) {
-	const socket = new Socket();
-	const request = new IncomingMessage(socket);
-	request.complete = complete;
-	return { request, socket };
-}
-function webRequestCarrying(incoming: IncomingMessage): Request {
-	const request = new Request("http://localhost/api/trpc/live");
-	Object.defineProperty(request, "runtime", {
-		value: { node: { req: incoming } },
-	});
-	return request;
-}
-describe("nodeSubscriptionSignal", () => {
-	it("aborts on socket close from an explicit node request", () => {
-		const { request, socket } = nodeRequest();
-		const subscription = nodeSubscriptionSignal({ nodeRequest: request });
-		expect(subscription.signal.aborted).toBe(false);
-		socket.emit("close");
-		expect(subscription.signal.aborted).toBe(true);
-	});
-	it("finds the node request carried by a srvx Web request", () => {
-		const { request } = nodeRequest();
-		const subscription = nodeSubscriptionSignal({
-			request: webRequestCarrying(request),
-		});
-		request.emit("close");
-		expect(subscription.signal.aborted).toBe(true);
-	});
-	it("ignores normal completed request close", () => {
-		const { request } = nodeRequest(true);
-		const subscription = nodeSubscriptionSignal({ nodeRequest: request });
-		request.emit("close");
-		expect(subscription.signal.aborted).toBe(false);
-	});
-	it("aborts immediately for an already destroyed connection", () => {
-		const { request, socket } = nodeRequest();
-		socket.destroy();
-		const subscription = nodeSubscriptionSignal({ nodeRequest: request });
-		expect(subscription.signal.aborted).toBe(true);
-	});
-	it("combines Web and additional abort signals", () => {
-		const procedure = new AbortController();
-		const subscription = nodeSubscriptionSignal({
-			request: new Request("http://localhost/api/trpc/live"),
-			signals: [undefined, procedure.signal],
-		});
-		procedure.abort();
-		expect(subscription.signal.aborted).toBe(true);
-	});
-	it("disposes node listeners idempotently", () => {
-		const { request, socket } = nodeRequest();
-		const subscription = nodeSubscriptionSignal({ nodeRequest: request });
-		expect(request.listenerCount("close")).toBe(1);
-		expect(socket.listenerCount("close")).toBe(1);
-		subscription.dispose();
-		subscription.dispose();
-		expect(request.listenerCount("close")).toBe(0);
-		expect(socket.listenerCount("close")).toBe(0);
-		socket.emit("close");
-		expect(subscription.signal.aborted).toBe(false);
-	});
+host.it(
+	"aborts on socket close from an explicit node request",
+	[subscriptionConnection("node")],
+	function* ({ openSubscription, aborted, disconnect }) {
+		yield* openSubscription();
+		expect(aborted()).toBe(false);
+		yield* disconnect();
+		expect(aborted()).toBe(true);
+	},
+);
+host.it(
+	"finds the node request carried by a srvx Web request",
+	[subscriptionConnection("web")],
+	function* ({ openSubscription, disconnect, aborted }) {
+		yield* openSubscription();
+		yield* disconnect();
+		expect(aborted()).toBe(true);
+	},
+);
+host.it("ignores normal completed request close", [subscriptionConnection("completed")], function* ({ openSubscription, completeRequest, aborted }) {
+	yield* openSubscription();
+	yield* completeRequest();
+	expect(aborted()).toBe(false);
 });
+host.it("aborts immediately for an already destroyed connection", [subscriptionConnection("destroyed")], function* ({ openSubscription, aborted }) {
+	yield* openSubscription();
+	expect(aborted()).toBe(true);
+});
+host.it(
+	"combines Web and additional abort signals",
+	[subscriptionConnection("additional")],
+	function* ({ openSubscription, abortProcedure, aborted }) {
+		yield* openSubscription();
+		abortProcedure();
+		expect(aborted()).toBe(true);
+	},
+);
+host.it(
+	"disposes node listeners idempotently",
+	[subscriptionConnection("node")],
+	function* ({ openSubscription, listenerCounts, disposeSubscription, aborted, disconnect }) {
+		yield* openSubscription();
+		expect(listenerCounts()).toEqual({ request: 1, socket: 1 });
+		disposeSubscription();
+		disposeSubscription();
+		expect(listenerCounts()).toEqual({ request: 0, socket: 0 });
+		yield* disconnect();
+		expect(aborted()).toBe(false);
+	},
+);
