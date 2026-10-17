@@ -99,7 +99,7 @@ export function signedIn(name = "alice") {
 	});
 }
 
-export function behindProxy(options: { readonly trustedProxy?: string | undefined } = { trustedProxy: "127.0.0.1" }) {
+export function behindProxy(options: Pick<HostOptions, "trustedProxy" | "authClientIpHeader"> = { trustedProxy: "127.0.0.1" }) {
 	return app.trait("hosting", "the app is behind an HTTPS forwarding proxy", (engine) => {
 		engine.hostOptions = { ...engine.hostOptions, deployed: true, ...options };
 	});

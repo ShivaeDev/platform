@@ -157,6 +157,7 @@ describe("pg-boss external lifecycle boundaries", () => {
 				calls.push(`queue:${name}`);
 				return Promise.resolve();
 			},
+			getQueue: async () => null,
 			off: () => undefined,
 			offWork: (name) => {
 				calls.push(`off:${name}`);

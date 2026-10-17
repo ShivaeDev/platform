@@ -1,3 +1,10 @@
+export interface QueueCounts {
+	readonly activeCount: number;
+	readonly failedCount: number;
+	readonly queuedCount: number;
+	readonly totalCount: number;
+}
+
 export interface QueueHealth {
 	readonly activeCount: number;
 	readonly deadLetteredCount: number;
