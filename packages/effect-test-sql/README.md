@@ -22,7 +22,7 @@ The next test still sees the original name. Tests that must observe a committed 
 
 ### Prepare one fixture
 
-`makePostgresTestLayer` creates a template database through an administrative connection, runs `migratePostgres` and optional fixtures there, then closes its preparation connections. It creates a shared test database from that template and provides `SqlClient`, `PgClient`, `Reactivity` and `PostgresTestDatabase`. The template remains closed and unchanged while tests run. Each isolated database is another copy of that template; its migrations and fixtures do not run again.
+`makePostgresTestLayer` creates a template database through an administrative connection, runs `migratePostgres` and optional fixtures there, then closes its preparation connections. It creates a shared test database from that template and provides `SqlClient`, `PgClient`, `Reactivity` and `PostgresTestDatabase`. The template remains closed and unchanged while tests run. Each isolated database is another copy of that template; its migrations and fixtures do not run again. Set `prepare: false` for migration tests: both migrations and fixtures are skipped, so the shared database and each clone start empty.
 
 The Layer's scope owns the template, shared database and their connections. `makeEffectIt` builds the Layer once for its worker fixture. Each test's wrapper owns the transaction or isolated database. Closing those scopes releases the connections and drops the disposable databases; the administrative database named by `url` remains in place.
 
@@ -110,6 +110,45 @@ The clone starts from the template, including the original fixtures, even if the
 
 Inside an isolated block, `PostgresTestDatabase.url` names that clone. Use it to acquire additional native PostgreSQL connections in the block's scope. Native SQL services are replaced in the block's Context; application services acquired earlier retain the client they captured. Build application service Layers inside the isolated block when they acquire SQL clients; use `Layer.fresh` when reusing a Layer definition already acquired by the worker. Keep servers and background fibers in that scope so they finish before the database is dropped. Separate databases isolate database contents; external services and server capacity need separate planning.
 
+### Test a backfill against existing rows
+
+A backfill needs rows in the old schema. Prepare an empty template with the application's own `PostgresMigrationOptions`, then use `migrationSteps` inside `withIsolatedDatabase`. `migrateTo` takes the full migration name, including its numeric prefix and without a file extension. It commits migrations through that name; seed rows with the native SQL client, then yield `migrateToLatest` to apply the remaining migrations on the same database.
+
+This example uses an application loader whose `1_create_contacts` migration creates `contacts(id, email)`, `2_backfill_emails` creates `emails(contact_id, address)` and copies the contact email addresses into it, and `3_drop_email` drops `contacts.email`:
+
+```ts
+import { migrationSteps } from "@shivaedev/effect-test-sql/migrationSteps.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
+import { appMigrations } from "./migrations.ts";
+
+const migrationLayer = makePostgresTestLayer({
+  url,
+  migrations: appMigrations,
+  prepare: false,
+});
+
+const { effectApp: migrationTest } = makeEffectIt({
+  layer: migrationLayer,
+  clock: "live",
+  around: withIsolatedDatabase,
+  makeHarness: () => migrationSteps(appMigrations),
+});
+
+migrationTest("preserves contact emails in the new table", function* (steps) {
+  yield* steps.migrateTo("1_create_contacts");
+  const sql = yield* SqlClient.SqlClient;
+  yield* sql`insert into contacts (id, email) values (1, 'alice@example.test')`;
+  yield* steps.migrateToLatest;
+  expect(yield* sql`select contact_id, address from emails`).toEqual([
+    { contact_id: 1, address: "alice@example.test" },
+  ]);
+});
+```
+
+The helper resolves the loader once and uses `migratePostgres` for each step, preserving its ledger table and lock timeout. Unknown names fail with a typed `MigrationError` that names the requested migration. Moving behind an already applied migration and running inside a wrapping transaction also fail with `MigrationError`. Loader dependencies, including `Scope`, remain requirements of `migrationSteps`; its resources live until the caller's scope closes. Use the returned steps inside that database's scope. SQL and loader failures retain their failure channels.
+
+For test-story, use the same Layer and `around: withIsolatedDatabase`, acquire `migrationSteps(appMigrations)` in the kit's `create`, and let schema and data traits call `migrateTo` and seed native SQL. A verb can yield `migrateToLatest` before the story asserts the backfilled rows.
+
 ### Check upgrades against the current model
 
 A fresh-database test cannot prove that older databases upgrade to the current model. Run `migrationUpgrade` in a disposable database with an empty migration ledger, outside a wrapping transaction. It resolves the application's loader once, commits migrations through the existing `upTo` id, then applies the remaining migrations through `migratePostgres`. It returns the target table's column names and PostgreSQL `format_type` strings, including type modifiers such as `numeric(10,2)`; dropped columns are excluded.
@@ -130,7 +169,7 @@ yield* assertModelColumns(columns, Item, {
 });
 ```
 
-Use an empty loader when preparing the test Layer, and `withIsolatedDatabase` for the upgrade test. The helper requires the native `SqlClient`; loader dependencies remain Effect requirements. Unknown starting ids, populated ledgers and wrapping transactions fail with `MigrationError`. Native loader and SQL failures retain their failure channel.
+Use `prepare: false` when preparing the test Layer, and `withIsolatedDatabase` for the upgrade test. The helper requires the native `SqlClient`; loader dependencies remain Effect requirements. Unknown starting ids, populated ledgers and wrapping transactions fail with `MigrationError`. Native loader and SQL failures retain their failure channel.
 
 The assertion uses the SQL `Model`'s selected database fields, including generated ids and excluding JSON-only fields. Supply an exact PostgreSQL type for every field: schemas such as `Schema.Number` do not determine whether storage is `integer`, `numeric` or `double precision`. It fails with a typed `ModelColumnMismatch` containing all detected missing, extra and wrongly typed column problems. The type map is checked against the model both by TypeScript and at runtime. This check covers names and types; it does not check defaults, nullability, constraints or application data transformations.
 
@@ -142,10 +181,11 @@ Import each name from the module that defines it. The package has no root entry.
 
 | Module | Exports |
 | --- | --- |
-| `@shivaedev/effect-test-sql/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures?, maxConnections? })`, `PostgresTestOptions` |
+| `@shivaedev/effect-test-sql/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures?, maxConnections?, prepare? })`, `PostgresTestOptions` |
 | `@shivaedev/effect-test-sql/withTestTransaction.ts` | `withTestTransaction(effect)` |
 | `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect)` |
 | `@shivaedev/effect-test-sql/database.ts` | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices` |
+| `@shivaedev/effect-test-sql/migrationSteps.ts` | `migrationSteps(appMigrations)` returning `{ migrateTo(name), migrateToLatest }` |
 | `@shivaedev/effect-test-sql/migrationUpgrade.ts` | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn` |
 | `@shivaedev/effect-test-sql/assertModelColumns.ts` | `assertModelColumns(columns, model, types)`, `ModelColumnMismatch` |
 
