@@ -300,8 +300,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-        with:
-          postgres: 'true'
       - run: pnpm db:setup
       - name: Test the Docker client path against the started container
         run: pnpm --filter @shivaedev/local-postgres test --tags-filter=docker
