@@ -4,6 +4,7 @@ import { type PgBossError, PgBossPayloadError, toPgBossError } from "#error.ts";
 import { countsFor } from "#internal/countsFor.ts";
 import { healthFor } from "#internal/health.ts";
 import { getJobFor, retryFor } from "#internal/jobControl.ts";
+import { capturePayload } from "#internal/tracing.ts";
 import type { PgBossService } from "#service.ts";
 
 export const makeService = (client: PgBossClient, names: readonly string[], schema = "pgboss"): PgBossService => ({
@@ -28,10 +29,15 @@ export const makeService = (client: PgBossClient, names: readonly string[], sche
 						}),
 					);
 				}
-				return Effect.tryPromise({
-					catch: (error) => toPgBossError("enqueue", error, queue.name),
-					try: () => client.send(queue.name, encoded, options),
-				}).pipe(Effect.map(Option.fromNullishOr));
+				return capturePayload(encoded).pipe(
+					Effect.flatMap((data) =>
+						Effect.tryPromise({
+							catch: (error) => toPgBossError("enqueue", error, queue.name),
+							try: () => client.send(queue.name, data, options),
+						}),
+					),
+					Effect.map(Option.fromNullishOr),
+				);
 			}),
 		),
 	getJob: getJobFor(client),
