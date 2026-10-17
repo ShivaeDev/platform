@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 - 2026-10-17
+
+### Fixed
+
+- Run engine creation without the story's parent span, so in-process HTTP handlers capture an independent context: requests without trace headers start root traces, and `traceparent` continues the supplied trace. Traits, steps and the story body retain their story span.
+
 ## 0.4.0 - 2026-10-17
 
 ### Added

@@ -2,9 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "queue-controls.md",
-			"text": "### Added\n\n- `PgBossService.counts(queue)` returns live `QueueCounts` without waiting for the pg-boss monitor; `health` keeps using cached counts.\n- `PgBossService.getJob(queue, id)` returns optional job metadata with Schema-decoded payloads and decoding service requirements. `PgBossService.retry(queue, id)` reprocesses failed or retry-waiting jobs under their original ID.\n- `PgBossQueueOptionsError` identifies immutable queue option conflicts during Layer acquisition. Custom `PgBossClient` factories can provide optional native `findJobs`, `retry`, `update`, `getDb` and `updateQueue` capabilities for the new operations.\n\n### Fixed\n\n- Queue and schedule definitions accept pg-boss's full `Queue` options except the owned name and dead-letter setup, including notification delivery, policy, partitioning, heartbeat and backlog warnings.\n- Startup reconciles declared mutable queue settings through `updateQueue`, including expiry and retry limits, so they reach existing queues after restart.\n"
+			"name": "job-traces.md",
+			"text": "### Fixed\n\n- Run each queue and scheduled job attempt inside a root consumer span named for its queue, with job identity, attempt and retry-count attributes and handler failures. Handler steps share that job trace.\n- Persist the enqueueing Effect span context in pg-boss job data and link the job span to it. Handlers and `getJob` still decode the original payload Schema; direct pg-boss data readers see an envelope for traced sends.\n"
 		}
 	],
-	"version": "0.6.0"
+	"version": "0.6.1"
 }

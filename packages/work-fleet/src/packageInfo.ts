@@ -1,3 +1,3 @@
 export const NAME = "work-fleet";
 export const TITLE = "Work Fleet";
-export const VERSION = "0.2.0";
+export const VERSION = "0.2.1";

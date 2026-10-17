@@ -2,13 +2,17 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "deploy-readiness.md",
-			"text": "### Added\n\n- `appHost` serves unauthenticated `GET /health` with an empty, uncached response: 200 when its database probe succeeds within two seconds, or 503 when SQL is absent, unavailable or times out.\n- `appDatabase` and database-backed `appHost` accept `migrations.mode: \"check\"` to verify required migration IDs and names without applying migrations or creating a ledger. Missing or pending migrations fail startup with native `MigrationError`; the default migration mode is unchanged.\n"
+			"name": "auth-after-database.md",
+			"text": "### Added\n\n- `appHost({ application, migrations, config? })` evaluates a native Effect returning HTTP host options only after migrations or the schema-current check finishes. Construction keeps typed errors, requirements and scoped resources in the host Layer.\n"
 		},
 		{
-			"name": "framework-version-agreement.md",
-			"text": "### Fixed\n\n- Align published contract, Prisma and tRPC dependencies with the current framework releases.\n"
+			"name": "otlp-protocol-routes.md",
+			"text": "### Fixed\n\n- Honour OTLP protocol configuration, including the traces-specific override, with native Effect JSON and protobuf encoders and sensitive diagnostic redaction in both. Default to `http/protobuf` as recommended by OpenTelemetry and fail configuration for unsupported protocols.\n- Name exported HTTP server spans with the method and matched route template, preserving `http.route` and incoming trace context; unmatched requests retain the method alone.\n- Warn on the first failed OTLP export with the collector status and redacted answer, and include `OTEL_SERVICE_VERSION` as `service.version`.\n"
+		},
+		{
+			"name": "trace-url-redaction.md",
+			"text": "### Fixed\n\n- Security fix: `otlpTracing` redacts every URL query value, fragment and userinfo before exporting traces, including HTTP server and client spans, events and links. Paths and query parameter names remain readable. Platform 0.13.0 and 0.14.0 exported URL query values; apps with tracing enabled should upgrade.\n"
 		}
 	],
-	"version": "0.14.0"
+	"version": "0.14.1"
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.2 - 2026-10-17
+
+### Fixed
+
+- Uses Platform 0.14.1 for the exported trace URL redaction security fix.
+
 ## 0.14.1 - 2026-10-17
 
 ### Fixed

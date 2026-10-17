@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 - 2026-10-17
+
+### Fixed
+
+- Uses Platform 0.14.1 and Work Board 0.14.2 to keep published dependencies aligned with the exported trace URL redaction security fix.
+
 ## 0.2.0 - 2026-10-17
 
 ### Added

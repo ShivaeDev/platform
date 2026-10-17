@@ -2,9 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "framework-version-agreement.md",
-			"text": "### Fixed\n\n- Align published Platform and contract dependencies with the current framework releases.\n"
+			"name": "trace-url-redaction.md",
+			"text": "### Fixed\n\n- Uses Platform 0.14.1 for the exported trace URL redaction security fix.\n"
 		}
 	],
-	"version": "0.14.1"
+	"version": "0.14.2"
 }

@@ -2,9 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "dom-outbound-redirects.md",
-			"text": "### Added\n\n- `domNavigate(url?: string | URL): Promise<Response>` follows document redirects, keeps cookies and loads the final HTML for DOM stories, including social sign-in through an outbound OAuth fake.\n\n### Fixed\n\n- Keep Node fetch for in-process hosts and route the DOM document's asynchronous HTTP requests through the same outbound fakes. Unrouted external hosts fail DOM stories with the hostname, even when application code catches the request error.\n- Pass the `domFetch` result explicitly to browser clients (for Better Auth, `fetchOptions.customFetchImpl`); global fetch now belongs to the host. Happy-dom remains an optional peer for the DOM environment.\n"
+			"name": "independent-host-traces.md",
+			"text": "### Fixed\n\n- Run engine creation without the story's parent span, so in-process HTTP handlers capture an independent context: requests without trace headers start root traces, and `traceparent` continues the supplied trace. Traits, steps and the story body retain their story span.\n"
 		}
 	],
-	"version": "0.4.0"
+	"version": "0.4.1"
 }
