@@ -4,6 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { liveClient } from "#test/live/client.ts";
+import { resyncBurst } from "#test/live/resyncBurst.ts";
 import { eventually } from "./eventually.ts";
 import { liveEngine, liveSnapshot, streamRunner } from "./liveEngine.ts";
 
@@ -60,6 +61,10 @@ export const liveNotesStory = storyKit({
 				registry.set(client.resume, registry.get(client.resume) + 1);
 			},
 			resync: (helper: "first" | "second" = "first") => (helper === "first" ? server.hints : server.secondHints).resync,
+			resyncBurst: (count: number) => {
+				story.tell(`receive a burst of ${count} resyncs`);
+				return resyncBurst(engine, count);
+			},
 			status: () => registry.get(client.status),
 			streamOutage: (unavailable: boolean) => Ref.set(server.streamUnavailable, unavailable),
 			subscribe: (count?: number, signal?: AbortSignal) => {
