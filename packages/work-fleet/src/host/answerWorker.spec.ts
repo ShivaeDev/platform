@@ -16,7 +16,7 @@ for (const source of ["argument", "stdin", "release"] as const) {
 		`answer from ${source} records a worker response and an applied receipt`,
 		() =>
 			withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-				withReadDaemon(fixture.host, (port) => workerQuestionStory(fixture, port, source), fixture.parts),
+				withReadDaemon(fixture.host, (port) => workerQuestionStory(fixture, port, source), { parts: fixture.parts }),
 			),
 		30_000,
 	);

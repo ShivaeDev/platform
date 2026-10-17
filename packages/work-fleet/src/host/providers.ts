@@ -23,8 +23,10 @@ export function hostProvider(host: FleetHost) {
 					Effect.fail(new HostFailure({ message: 'provider "cloud" needs cloud settings in the host configuration' })),
 				);
 			}
-			const { requestTimeoutMs = 60_000, ...cloud } = host.cloud;
-			return codexCloudLayer.pipe(Layer.provide([Layer.succeed(CodexCloudConfig)({ ...cloud, requestTimeoutMs }), NodeServices.layer]));
+			const { recoveryGraceMs = 5000, requestTimeoutMs = 60_000, ...cloud } = host.cloud;
+			return codexCloudLayer.pipe(
+				Layer.provide([Layer.succeed(CodexCloudConfig)({ ...cloud, recoveryGraceMs, requestTimeoutMs }), NodeServices.layer]),
+			);
 		}
 	}
 }

@@ -77,18 +77,14 @@ export function withSnapshotDaemon<A, E, R>(use: (fixture: HostFixture, daemon: 
 			const reads = snapshotReads(fixture.host);
 			const clock = yield* TestClock.make();
 			let delivered = 0;
+			function onSnapshot() {
+				delivered += 1;
+			}
+			function daemon(port: number) {
+				return use(fixture, { advancing: (effect) => advanceWhile(clock, effect), clock, delivered: () => delivered, port, reads });
+			}
 			return yield* reads
-				.observe(
-					withReadDaemon(
-						fixture.host,
-						(port) => use(fixture, { advancing: (effect) => advanceWhile(clock, effect), clock, delivered: () => delivered, port, reads }),
-						fixture.parts,
-						() => {
-							delivered += 1;
-						},
-						clock,
-					),
-				)
+				.observe(withReadDaemon(fixture.host, daemon, { handlerClock: clock, onSnapshot, parts: fixture.parts }))
 				.pipe(Effect.ensuring(reads.restoreIfBroken));
 		}).pipe(Effect.scoped),
 	);

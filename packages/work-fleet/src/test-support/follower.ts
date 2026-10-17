@@ -94,7 +94,7 @@ export function withFollower<A, E, R>(
 	}
 	return options.port === undefined
 		? loadHost(dirname(configFile), configFile).pipe(
-				Effect.flatMap((host) => withReadDaemon(host, run, undefined, () => ready.resolve())),
+				Effect.flatMap((host) => withReadDaemon(host, run, { onSnapshot: () => ready.resolve() })),
 				Effect.provide(NodeServices.layer),
 			)
 		: run(options.port);

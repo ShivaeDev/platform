@@ -47,7 +47,7 @@ export const watchScheduler = Effect.fn("WatchSchedulerTest.watchScheduler")(fun
 	};
 	const context = yield* Layer.build(Layer.fresh(daemonLayer(fixture.host, parts, 0)));
 	const client = yield* daemonClient(HttpServer.formatAddress(Context.get(context, HttpServer.HttpServer).address));
-	const reader = yield* Layer.build(Layer.fresh(readDaemonLayer(fixture.host, parts, 0)));
+	const reader = yield* Layer.build(Layer.fresh(readDaemonLayer(fixture.host, { parts })));
 	const readUrl = HttpServer.formatAddress(Context.get(reader, HttpServer.HttpServer).address);
 	const readClient = yield* daemonClient(readUrl);
 	const options = { follow: true, port: Number(new URL(readUrl).port) };

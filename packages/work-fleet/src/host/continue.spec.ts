@@ -75,8 +75,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				}
 				const options = { onError: captureError, stdin: message };
 				const run = yield* withReadDaemon(fixture.host, (port) => Effect.promise(() => cliProcess([...args, "--port", String(port)], options)), {
-					...fixture.parts,
-					provider: hostProvider(fixture.host),
+					parts: { ...fixture.parts, provider: hostProvider(fixture.host) },
 				});
 				expect(run).toEqual({ code: 0, stdout: "one executing" });
 				expect(errors).toBe("");
@@ -104,7 +103,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				}).pipe(Effect.provide(hostLayer(fixture.host, { ...fixture.parts, provider: hostProvider(fixture.host) })));
 				expect(completed.value.attempts[0]?.output).toBe("Repaired result");
 				expect(completed.value.history?.[0]?.attempts[0]?.output).not.toBe("Repaired result");
-				expect((yield* withReadDaemon(fixture.host, (port) => waitFor({ intervalMs: 50, port, workId: "one" }))).code).toBe(
+				expect((yield* withReadDaemon(fixture.host, (port) => waitFor({ intervalMs: 50, port, timeoutMs: 20_000, workId: "one" }))).code).toBe(
 					WAIT_EXIT.waitingDecision,
 				);
 			}),

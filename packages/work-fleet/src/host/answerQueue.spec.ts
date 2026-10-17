@@ -102,7 +102,7 @@ test("answer during the initial worker turn queues multiple messages in order an
 					expect(next.attempts.at(-1)?.prompt).toContain(`${TEXT}\n\nPreserve the empty state.`);
 					expect(next.pendingAnswers).toBeUndefined();
 				}),
-			fixture.parts,
+			{ parts: fixture.parts },
 		),
 	));
 
@@ -125,6 +125,6 @@ test("queued guidance uses the current approved brief when the active turn ends"
 					expect(next.attempts.at(-1)?.prompt).toContain(TEXT);
 					expect(next.pendingAnswers).toBeUndefined();
 				}),
-			fixture.parts,
+			{ parts: fixture.parts },
 		),
 	));

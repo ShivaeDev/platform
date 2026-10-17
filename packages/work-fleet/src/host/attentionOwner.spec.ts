@@ -41,7 +41,7 @@ test("CLI status groups all owners and wait names each owner without changing ex
 							concurrency: "unbounded",
 						},
 					),
-				fixture.parts,
+				{ parts: fixture.parts },
 			);
 			expect(waits).toEqual(
 				owners.map((owner) => ({ code: WAIT_EXIT.waitingDecision, stdout: `${owner} needs-human (waiting on ${owner}): Synthetic blocker` })),
@@ -80,7 +80,7 @@ test("terminal publication blockers remain grouped by owner with their original 
 				fixture.host,
 				(port) =>
 					Effect.all([Effect.forEach(stages, (stage) => waitSummary(port, stage)), cli(port, fixture, ["status"])], { concurrency: "unbounded" }),
-				fixture.parts,
+				{ parts: fixture.parts },
 			);
 			expect(waits).toEqual(stages.map((stage) => ({ code: WAIT_EXIT[stage], stdout: `${stage} ${stage} (waiting on orchestrator)` })));
 			expect(status.code).toBe(0);
@@ -107,7 +107,7 @@ test("CLI reassignment publishes a new maintainer question and refreshes the gen
 			const changed = yield* daemonCli(
 				fixture.host,
 				["reassign", "one", old.decision.id, "maintainer", "--board", fixture.host.boardDir, "--config", fixture.configFile],
-				fixture.parts,
+				{ parts: fixture.parts },
 			);
 			expect(changed).toEqual({ code: 0, stdout: "one needs-human (waiting on maintainer)" });
 			const current = yield* Effect.gen(function* () {
