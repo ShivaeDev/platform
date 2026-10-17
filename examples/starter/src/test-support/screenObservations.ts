@@ -50,6 +50,10 @@ export function screenObservations(engine: Screen, tell: (line: string) => void)
 			observe(`the app is at ${route}`, () => {
 				expect(engine.router?.state.location.pathname).toBe(route);
 			}),
+		screenOmits: (text: string) =>
+			observe(`the screen omits ${JSON.stringify(text)}`, () => {
+				expect(container().textContent).not.toContain(text);
+			}),
 		screenSays: (text: string) =>
 			observe(`the screen says ${JSON.stringify(text)}`, () => {
 				expect(container().textContent).toContain(text);
