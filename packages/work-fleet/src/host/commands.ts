@@ -1,11 +1,12 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Console, Effect, Layer } from "effect";
+import { Console, Effect, Layer, Stream } from "effect";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
 import type { FleetHost } from "#host/config.ts";
 import { healthLayer } from "#host/healthLayer.ts";
+import { LiveConfig, staticConfig } from "#host/liveConfig.ts";
 import { gitMainSource, type MainSource } from "#host/mainSource.ts";
 import { hostProvider } from "#host/providers.ts";
 import { fleetHostLayer } from "#host/runtime.ts";
@@ -25,11 +26,20 @@ export function productionParts(host: FleetHost): HostParts {
 	return { main: gitMainSource(host), provider: hostProvider(host) };
 }
 
-export function hostLayer(host: FleetHost, parts: HostParts) {
-	const runtime = Layer.mergeAll(fleetHostLayer(host, parts), NodeServices.layer).pipe(Layer.provideMerge(healthLayer(host.boardDir)));
-	return statusLayer(host.boardDir, { concurrency: host.concurrency, staleAfterMs: Math.max(60_000, host.interval * 3000) }).pipe(
-		Layer.provideMerge(runtime),
+export function hostLayer(host: FleetHost, parts: HostParts, config: Layer.Layer<LiveConfig, unknown> = staticConfig(host)) {
+	const runtime = Layer.mergeAll(fleetHostLayer(host, parts, config), NodeServices.layer).pipe(Layer.provideMerge(healthLayer(host.boardDir)));
+	const status = Layer.unwrap(
+		Effect.map(LiveConfig, (live) =>
+			statusLayer(
+				host.boardDir,
+				Effect.map(live.current, ({ host: applied }) => ({
+					concurrency: applied.concurrency,
+					staleAfterMs: Math.max(60_000, applied.interval * 3000),
+				})),
+			),
+		),
 	);
+	return status.pipe(Layer.provideMerge(runtime), Layer.provideMerge(config));
 }
 
 export function hostScheduler(host: FleetHost) {
@@ -45,7 +55,13 @@ export function hostScheduler(host: FleetHost) {
 			}),
 		),
 	);
-	return run(`${host.interval} seconds`, admission);
+	// An applied config edit starts the next pass at once instead of after the interval it replaced.
+	const pause = Effect.gen(function* () {
+		const live = yield* LiveConfig;
+		const { host: applied } = yield* live.current;
+		yield* Effect.raceFirst(Effect.sleep(`${applied.interval} seconds`), live.changes.pipe(Stream.drop(1), Stream.take(1), Stream.runDrain));
+	});
+	return run(pause, admission);
 }
 
 export function runFleet(host: FleetHost, parts: HostParts = productionParts(host)) {

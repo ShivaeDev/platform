@@ -21,7 +21,7 @@ postgresTests("test", "isolated")("a reconcile forked before sleep sees a Board 
 				const before = fixture.scans();
 				const clock = yield* Clock.Clock;
 				const sleeping = yield* Deferred.make<void>();
-				const runner = yield* Effect.scoped(run("5 seconds", board.get("item.0").pipe(Effect.asVoid, Effect.orDie))).pipe(
+				const runner = yield* Effect.scoped(run(Effect.sleep("5 seconds"), board.get("item.0").pipe(Effect.asVoid, Effect.orDie))).pipe(
 					Effect.provideService(Fleet, schedule.fleet),
 					Effect.provideService(Clock.Clock, {
 						...clock,

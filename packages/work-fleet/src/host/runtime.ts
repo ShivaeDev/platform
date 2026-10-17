@@ -12,13 +12,13 @@ import { type FleetHost, HostFailure } from "#host/config.ts";
 import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { githubResult } from "#host/githubResult.ts";
-import { hostGuidance } from "#host/guidance.ts";
+import { type AppliedConfig, LiveConfig, staticConfig } from "#host/liveConfig.ts";
 import { localOnlyBoardPath } from "#host/localOnlyBoardPath.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { hostReportBoard } from "#host/reportBoard.ts";
-import { type BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { type BoardGateway, type FleetConfiguration, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 import { fleetMigrations } from "#storage/fleetMigrations.ts";
 
@@ -53,30 +53,40 @@ export function hostPolicy(host: FleetHost) {
 		Effect.gen(function* () {
 			const clock = yield* Clock.Clock;
 			const main = yield* MainSource;
+			const live = yield* LiveConfig;
 			const localPath = host.provider === "cloud" ? yield* localOnlyBoardPath(host.boardDir, main.repositoryRoot) : undefined;
-			const reviewerGuidance = yield* hostGuidance(host, "reviewer");
-			const workerGuidance = yield* hostGuidance(host, "worker");
 			function now() {
 				return clock.currentTimeMillisUnsafe();
 			}
-			return FleetPolicy.of({
-				areaMergeWaitMs: host.areaMergeWaitMs,
-				deliveryBacklog: host.backlog,
-				executionConcurrency: host.concurrency,
-				launch: host.launch,
-				...(localPath === undefined ? {} : { localOnlyBoardPath: localPath }),
-				now,
-				...(host.openPullRequests === undefined ? {} : { openPullRequests: host.openPullRequests }),
-				operationId: () => crypto.randomUUID(),
-				quota: { expiresAt: 0, observedAt: 0 },
-				readGuidance: (role) =>
-					(role === "worker" ? workerGuidance : reviewerGuidance).pipe(
-						Effect.mapError((error: HostFailure) => new ServiceUnavailable({ message: error.message })),
-					),
-				refreshQuota: hostQuota(host, now),
-				stallMinutes: host.stallMinutes,
-				...(host.worker === undefined ? {} : { sharedEnvironment: host.worker.sharedEnvironment }),
-			});
+			// Each quota source caches its observation, so a reload reuses the source for an unchanged quota setting.
+			const quotas = new Map<FleetHost["quota"], ReturnType<typeof hostQuota>>();
+			function refreshQuota(applied: FleetHost) {
+				const known = quotas.get(applied.quota);
+				if (known !== undefined) {
+					return known;
+				}
+				const created = hostQuota(applied, now);
+				quotas.set(applied.quota, created);
+				return created;
+			}
+			function configuration({ guidance, host: applied }: AppliedConfig): FleetConfiguration {
+				return {
+					areaMergeWaitMs: applied.areaMergeWaitMs,
+					deliveryBacklog: applied.backlog,
+					executionConcurrency: applied.concurrency,
+					launch: applied.launch,
+					...(localPath === undefined ? {} : { localOnlyBoardPath: localPath }),
+					now,
+					...(applied.openPullRequests === undefined ? {} : { openPullRequests: applied.openPullRequests }),
+					operationId: () => crypto.randomUUID(),
+					quota: { expiresAt: 0, observedAt: 0 },
+					readGuidance: (role) => guidance[role].pipe(Effect.mapError((error) => new ServiceUnavailable({ message: error.message }))),
+					refreshQuota: refreshQuota(applied),
+					stallMinutes: applied.stallMinutes,
+					...(applied.worker === undefined ? {} : { sharedEnvironment: applied.worker.sharedEnvironment }),
+				};
+			}
+			return FleetPolicy.of({ ...configuration(yield* live.current), current: Effect.map(live.current, configuration) });
 		}),
 	);
 }
@@ -114,6 +124,7 @@ export function fleetHostLayer<TProvider, TMain>(
 		readonly policy?: Layer.Layer<FleetPolicy>;
 		readonly provider: Layer.Layer<SessionTransport, TProvider>;
 	},
+	config: Layer.Layer<LiveConfig, unknown> = staticConfig(host),
 ) {
 	const repository = postgresFleetRepository(host.namespace);
 	const sessions = SessionService.layer.pipe(
@@ -123,7 +134,14 @@ export function fleetHostLayer<TProvider, TMain>(
 	const integrations = (parts.integrations ?? hostIntegrations(host)).pipe(Layer.provide(parts.main));
 	return Fleet.layer.pipe(
 		Layer.provideMerge(
-			Layer.mergeAll(repository, sessions, board, parts.policy ?? hostPolicy(host).pipe(Layer.provide(parts.main)), integrations, parts.main),
+			Layer.mergeAll(
+				repository,
+				sessions,
+				board,
+				parts.policy ?? hostPolicy(host).pipe(Layer.provide([parts.main, config])),
+				integrations,
+				parts.main,
+			),
 		),
 		Layer.provideMerge(hostSql(host)),
 	);

@@ -36,13 +36,13 @@ export const makeState = Effect.gen(function* () {
 				),
 			);
 	}
+	const current = policy.current ?? Effect.succeed(policy);
 	function save(stored: Versioned<FleetRecord>, value: FleetRecord, admission?: LaunchAdmission) {
-		return store.compareAndSet(
-			value.workId,
-			stored.version,
-			{ ...value, attentionOwner: waitingOwner(value) },
-			admission === undefined ? undefined : launchLimits(policy, admission),
-		);
+		const record = { ...value, attentionOwner: waitingOwner(value) };
+		if (admission === undefined) {
+			return store.compareAndSet(value.workId, stored.version, record);
+		}
+		return Effect.flatMap(current, (applied) => store.compareAndSet(value.workId, stored.version, record, launchLimits(applied, admission)));
 	}
 	const decision = Effect.fn("Fleet.decision")(function* (
 		stored: Versioned<FleetRecord>,
@@ -75,7 +75,7 @@ export const makeState = Effect.gen(function* () {
 		const published = yield* board.decision(stored.value.workId, value, publicationWork ?? originalWork(stored.value));
 		return yield* save(updated, { ...updated.value, decision: { ...value, published }, decisionPublished: true });
 	});
-	return { board, decision, integrations, launching, launchScope, load, policy, reportInspection, save, sessions, store };
+	return { board, current, decision, integrations, launching, launchScope, load, policy, reportInspection, save, sessions, store };
 });
 export type EngineState = Effect.Success<typeof makeState>;
 

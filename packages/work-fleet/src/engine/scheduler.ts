@@ -58,8 +58,8 @@ export const cycle = inBoardReadPass(
 		return result;
 	}),
 );
-export const run = Effect.fn("Fleet.run")(function* <R = never>(
-	interval: Parameters<typeof Effect.sleep>[0],
+export const run = Effect.fn("Fleet.run")(function* <R = never, TPause = never>(
+	pause: Effect.Effect<void, never, TPause>,
 	admit: Effect.Effect<void, never, R> = Effect.void,
 ) {
 	const fleet = yield* Fleet;
@@ -80,6 +80,6 @@ export const run = Effect.fn("Fleet.run")(function* <R = never>(
 				yield* dispatchPrepared;
 				yield* schedulerPassed;
 			}),
-		).pipe(Effect.andThen(Effect.sleep(interval))),
+		).pipe(Effect.andThen(pause)),
 	);
 });
