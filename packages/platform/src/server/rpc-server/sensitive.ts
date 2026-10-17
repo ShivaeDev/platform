@@ -42,14 +42,30 @@ const AUTH_SCHEME = /\b(?<scheme>Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/giu;
 const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/gu;
 const PRIVATE_KEY = /-----BEGIN (?<kind>(?:[A-Z0-9]+ )*PRIVATE KEY)-----[\s\S]*?-----END \k<kind>-----/gu;
 const URL_PASSWORD = /(?<authority>\/\/[^:/\s@]+:)[^@/\s]+@/gu;
-const ASSIGNMENT = /(?<key>[A-Za-z][\w.-]*)(?<separator>["']?\s*[=:]\s*["']?)(?<value>[^\s"'&,;]+)/gu;
+function redactAssignments(text: string, sensitive: SensitiveKey): string {
+	const matcher = /(?<key>[A-Za-z][\w.-]*)(?<separator>["']?\s*[=:]\s*["']?)(?<value>[^\s"'&,;]+)/gu;
+	let result = "";
+	let cursor = 0;
+	for (let match = matcher.exec(text); match !== null; match = matcher.exec(text)) {
+		const key = match[1] ?? "";
+		const separator = match[2] ?? "";
+		if (sensitive(key)) {
+			result += `${text.slice(cursor, match.index)}${key}${separator}${REDACTED}`;
+			cursor = matcher.lastIndex;
+		} else {
+			// A harmless assignment's value can contain a sensitive assignment.
+			matcher.lastIndex = match.index + key.length + separator.length;
+		}
+	}
+	return result + text.slice(cursor);
+}
 function scrub(text: string, sensitive: SensitiveKey): string {
-	return text
+	const credentials = text
 		.replaceAll(PRIVATE_KEY, REDACTED)
 		.replaceAll(AUTH_SCHEME, `$<scheme> ${REDACTED}`)
 		.replaceAll(JWT, REDACTED)
-		.replaceAll(URL_PASSWORD, `$<authority>${REDACTED}@`)
-		.replaceAll(ASSIGNMENT, (match: string, key: string, separator: string) => (sensitive(key) ? `${key}${separator}${REDACTED}` : match));
+		.replaceAll(URL_PASSWORD, `$<authority>${REDACTED}@`);
+	return redactAssignments(credentials, sensitive);
 }
 export function redactText(text: string, sensitive: SensitiveKey): string {
 	const scrubbed = scrub(text, sensitive);

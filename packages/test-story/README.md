@@ -203,6 +203,23 @@ app.it("a request continues its supplied trace", [], function* ({ request }) {
 
 The package's [tracing kit](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/test-support/tracingApp.ts) and [stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/hostTracing.spec.ts) also assert that two requests have different trace IDs, request work stays under its request span, and traits and engine steps stay under the story span. Creation only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
 
+#### Reading OTLP exports
+
+Use `otlpReceiver` from `@shivaedev/test-story/otlpReceiver.ts` in a kit's scoped `create` hook. It listens on an allocated loopback port and closes with the story scope. Point the application's real exporter at `${receiver.url}/v1/traces`, then flush the exporter before reading:
+
+```ts
+import { otlpReceiver } from "@shivaedev/test-story/otlpReceiver.ts";
+
+const receiver = yield* otlpReceiver();
+yield* exportWork(`${receiver.url}/v1/traces`);
+expect(receiver.spans).toContainEqual(expect.objectContaining({ name: "CountWords" }));
+expect(receiver.requests.some(({ body }) => body.includes(Buffer.from("planted-secret")))).toBe(true);
+```
+
+`exportWork` is the kit's verb that runs application work and flushes its exporter. The receiver accepts OTLP/HTTP JSON and protobuf. `spans` flattens all exports into decoded trace and span IDs, parent span IDs, names, numeric OTLP kinds and status codes, attributes, events and links. Attributes retain OTLP key/value objects, including lossless decimal strings for integers; each span also has `resourceAttributes`. `requests` retains every request's unmodified `body` Buffer, parsed `headers`, original `rawHeaders` pairs and `path`. Search all body bytes when checking that a secret was not exported. Optional `path`, `status` (a number or attempt callback) and `answer` configure collector responses for failure stories.
+
+For timeout stories, return `undefined` from the `status` callback to accept an export without sending response headers. Set `answer: null` to send headers without completing the response body.
+
 ### 2. Once per feature: traits and verbs
 
 A trait is a line and a change, tagged with a stage:

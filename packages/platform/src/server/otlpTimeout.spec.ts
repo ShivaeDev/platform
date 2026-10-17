@@ -1,5 +1,5 @@
 import { Effect, Layer, Logger, ManagedRuntime, References } from "effect";
-import { HttpClient, HttpClientError } from "effect/http";
+import { HttpBody, HttpClient, HttpClientError } from "effect/http";
 import { expect, it } from "vitest";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 import { otlpTracing } from "#otlpTracing.ts";
@@ -10,7 +10,9 @@ it.each(["headers", "body"])("fails an HTTP request with stalled %s in the typed
 	const receiver = stalled === "headers" ? await otlpReceiver(() => undefined) : await otlpReceiver(200, null);
 	const runtime = ManagedRuntime.make(otlpHttpClient(80));
 	try {
-		const error = await runtime.runPromise(HttpClient.get(receiver.url).pipe(Effect.flip, Effect.timeout(1000)));
+		const error = await runtime.runPromise(
+			HttpClient.post(`${receiver.url}/v1/traces`, { body: HttpBody.jsonUnsafe({ resourceSpans: [] }) }).pipe(Effect.flip, Effect.timeout(1000)),
+		);
 		expect(HttpClientError.isHttpClientError(error)).toBe(true);
 		expect(error.reason).toMatchObject({ _tag: "TransportError", description: "OTLP export request timed out" });
 		expect(receiver.requests).toHaveLength(1);

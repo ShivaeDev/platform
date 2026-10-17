@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import type { Document } from "#browser/document/schema.ts";
 import { documentSourceId } from "#client/document/layout.ts";
 import { fileUrl } from "#files/url.ts";
-import { displayedLocation, type MainLocation } from "./mainLocation.ts";
+import type { MainLocation } from "./mainLocation.ts";
 export function useDocumentPage({
 	data,
 	pending,
@@ -25,9 +25,7 @@ export function useDocumentPage({
 		}
 		const main = element;
 		main.dataset.scheme = document.documentElement.dataset.scheme ?? "";
-		if (main.dataset.route !== url) {
-			delete main.dataset.route;
-		}
+		delete main.dataset.route;
 		let active = true;
 		let scheduled = false;
 		function announce() {
@@ -72,10 +70,18 @@ function publishPage(main: HTMLElement, data: Document | undefined, status: stri
 	} else {
 		delete main.dataset.identity;
 	}
-	flushSync(() => onPage(displayedLocation(main)));
 	main.dataset.route = url;
 	main.dataset.status = status;
-	document.dispatchEvent(new Event("board-page"));
+	flushSync(() =>
+		onPage({
+			file: data?.file ?? "",
+			projection: "document",
+			route: url,
+			status: Number(status),
+			title: main.querySelector("h1")?.textContent?.trim(),
+			view: "",
+		}),
+	);
 }
 function affectsDocument(record: MutationRecord) {
 	const element = record.target instanceof Element ? record.target : record.target.parentElement;
