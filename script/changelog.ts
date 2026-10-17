@@ -1,15 +1,15 @@
 import process from "node:process";
-import { Clock, Config, Console, Effect } from "effect";
+import { Clock, Console, Effect } from "effect";
 import { ChangelogFailure } from "#changelog/attempt.ts";
 import { checkRepository } from "#changelog/checkRepository.ts";
+import { ciBase } from "#changelog/ciBase.ts";
 import { releasePackage } from "#changelog/releasePackage.ts";
 import { runMain } from "#lint/adapters/run.ts";
 
 const [command, argument] = process.argv.slice(2);
 const program = Effect.gen(function* () {
 	if (command === "check" || command === "--check") {
-		const configured = yield* Config.String("CHANGELOG_BASE_REF").pipe(Config.withDefault(""));
-		yield* checkRepository(process.cwd(), argument ?? (configured === "" ? undefined : configured));
+		yield* checkRepository(process.cwd(), argument ?? (yield* ciBase));
 		yield* Console.log("Changelog fragments and release notes are valid.");
 		return;
 	}

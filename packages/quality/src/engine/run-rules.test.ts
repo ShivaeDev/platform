@@ -26,8 +26,20 @@ describe("running rules", () => {
 			),
 		);
 		expect(violations).toEqual([
-			{ file: "src/a.ts", level: "error", line: 2, message: "a", rule: "local/a" },
-			{ file: "src/b.ts", level: "warn", message: "b", rule: "local/b", subject: "x" },
+			{
+				file: "src/a.ts",
+				level: "error",
+				line: 2,
+				message: expect.stringContaining("a For a permanent exception, add to exceptions in quality.config.ts:"),
+				rule: "local/a",
+			},
+			{
+				file: "src/b.ts",
+				level: "warn",
+				message: expect.stringContaining("b For a permanent exception, add to exceptions in quality.config.ts:"),
+				rule: "local/b",
+				subject: "x",
+			},
 		]);
 	});
 

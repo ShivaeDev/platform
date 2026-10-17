@@ -7,7 +7,7 @@ This page owns Quality's shared policy, tooling, CLI and hook implementation sta
 - [x] Optional typed and runtime-validated config with config-free defaults; built-in and local rules enforced at `error`; local-rule and Standard Schema option APIs; one checked inventory and one report grouped by rule.
 - [x] The public config rejects `warn`, `off`, raised thresholds, inventory exclusions and custom test-file patterns. Vitest projects reject suite exclusions. Reasoned Biome declarations cover individual rules on explicit files and named directory exclusions.
 - [x] A JSON Lines baseline with counted debt, explicit named-rule recording, lowering and pruning, tracked-move handling and preservation of unrelated lines.
-- [x] A registry of reasoned exceptions with optional subjects, detection of stale entries and rules that refuse exceptions.
+- [x] One reasoned config exception list for Quality and Biome, generated native Biome settings at lint and fix time, legacy migration, optional Quality subjects, stale entries and rules that refuse exceptions.
 - [x] File-size and comment rules; inline-suppression, double-cast, deprecation-setting and declared-Biome-override checks.
 - [x] A shared Biome preset and bridge whose error findings use the gate's baseline; enforcement of the installed Biome's recommended rules; bounded fix rounds and selected fixes left to the author.
 - [x] Static import resolution, rejection of production imports of test code, runtime-cycle checks, same-folder relative imports and direct, transitive and vocabulary fences with validated examples.

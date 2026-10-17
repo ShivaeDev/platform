@@ -71,6 +71,7 @@ integration("a listener that silently stops delivering heartbeats resyncs and st
 			yield* waitFor(() => changes === 1);
 		}),
 		state,
+		{ heartbeatInterval: "50 millis", heartbeatTimeout: "150 millis", retryDelay: "20 millis" },
 	);
 });
 

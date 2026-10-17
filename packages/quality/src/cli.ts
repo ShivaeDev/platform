@@ -6,6 +6,7 @@ import { writeBaseline } from "#cli/baseline.ts";
 import { fix } from "#cli/fix.ts";
 import { lint } from "#cli/lint.ts";
 import { migrateBaseline } from "#cli/migrate.ts";
+import { migrateExceptions } from "#cli/migrateExceptions.ts";
 import { runMain } from "#cli/run-main.ts";
 import { pruneBaseline, tightenBaseline } from "#cli/shrink.ts";
 import { installHook } from "#hooks/install.ts";
@@ -33,6 +34,8 @@ const program = Effect.gen(function* () {
 			return yield* pruneBaseline(process.cwd(), command.config, command.against);
 		case "BaselineTighten":
 			return yield* tightenBaseline(process.cwd(), command.config, command.staged);
+		case "ExceptionsMigrate":
+			return yield* migrateExceptions(process.cwd(), command.config, command.from);
 		case "BaselineMigrate":
 			return yield* migrateBaseline(process.cwd(), command.config, command.from);
 		case "HooksInstall":

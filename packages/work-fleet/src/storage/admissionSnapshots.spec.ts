@@ -60,12 +60,12 @@ test("opting out of application snapshots retains live foreign capacity and shar
 		}),
 	));
 
-test("single and batch reads retain typed schema failures for malformed nested JSON", () =>
+test("single and batch reads retain typed schema failures for invalid persisted stages", () =>
 	withStorage((store, namespace) =>
 		Effect.gen(function* () {
 			yield* store.insert(record("one"));
 			const sql = yield* SqlClient.SqlClient;
-			yield* sql`update ${sql(`${namespace}_records`)} set attempts = '{' where work_id = 'one'`;
+			yield* sql`update ${sql(`${namespace}_records`)} set stage = 'invalid-stage' where work_id = 'one'`;
 			expect(yield* store.load("one").pipe(Effect.flip)).toMatchObject({ _tag: "SchemaError" });
 			expect(yield* store.list().pipe(Effect.flip)).toMatchObject({ _tag: "SchemaError" });
 		}),
