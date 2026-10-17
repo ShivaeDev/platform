@@ -7,7 +7,7 @@ import { app, signedIn } from "#test-support/application.ts";
 import { NotesService } from "./NotesService.ts";
 
 app.it(
-	"runs committed jobs once through the worker database and refetches the live client, while rollback discards a job",
+	"enqueues independently of an outer rollback and refetches committed notes through the worker",
 	[signedIn()],
 	function* ({ actor, runningHost, startWorker, liveNotes }) {
 		const sql = yield* SqlClient.SqlClient;
@@ -28,7 +28,7 @@ app.it(
 			return yield* Effect.fail("rollback");
 		}).pipe(transact({ onSqlError: (error) => error }), Effect.provide(context), Effect.result);
 		expect(Result.isFailure(rollback) && rollback.failure).toBe("rollback");
-		expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 1 }]);
+		expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 2 }]);
 		yield* Effect.sleep("1200 millis");
 		expect(yield* sql`select "wordCount" from starter_notes where id = ${note.id}`).toEqual([{ wordCount: null }]);
 		yield* startWorker();
@@ -37,15 +37,7 @@ app.it(
 				timeout: 5000,
 			}),
 		);
-		const second = yield* Effect.gen(function* () {
-			const service = yield* NotesService;
-			const pending = yield* service.create({ title: "After commit" }, ownerId);
-			expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 1 }]);
-			yield* Effect.sleep("1200 millis");
-			const transactionSql = yield* SqlClient.SqlClient;
-			expect(yield* transactionSql`select "wordCount" from starter_notes where id = ${pending.id}`).toEqual([{ wordCount: null }]);
-			return pending;
-		}).pipe(transact({ onSqlError: (error) => error }), Effect.provide(context));
+		const second = yield* http.create({ title: "After commit" });
 		yield* Effect.promise(() =>
 			vi.waitFor(
 				() =>
@@ -61,6 +53,7 @@ app.it(
 			vi.waitFor(
 				async () =>
 					expect(await Effect.runPromise(completed)).toEqual([
+						{ retryCount: 0, state: "completed" },
 						{ retryCount: 0, state: "completed" },
 						{ retryCount: 0, state: "completed" },
 					]),

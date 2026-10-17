@@ -43,6 +43,6 @@ An application that needs only queueing should not import a repository framework
 - Domain workers, authorization rules, external-provider interfaces and application logging or health policy.
 - Another general service declaration system; native Context and Layer stay available, and general declaration ergonomics belong to `effect-service`.
 - Application repositories or migration ownership; those belong to `effect-sql`.
-- An implicit link between enqueueing and an application's database transaction. Transaction and outbox policy remain application decisions; after-commit changes have their own path through `effect-changes`.
+- Transactional enqueueing: jobs use a separate connection from application SQL transactions. Applications own any required outbox policy; after-commit changes have their own path through `effect-changes`.
 - A promise of exactly-once domain side effects or provider idempotency. Those need application-specific decisions and evidence.
 - Browser, device or offline synchronization behavior. A PostgreSQL queue boundary cannot establish those product contracts.

@@ -115,3 +115,21 @@ export function legacyNote(title: string) {
 		yield* sql`insert into starter_notes (title) values (${title})`;
 	});
 }
+
+export function rejectedNoteJobs() {
+	return app.trait("notes", "PostgreSQL rejects word-count jobs", function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`alter table pgboss.job add constraint reject_note_jobs check (name <> 'count-note-words')`;
+	});
+}
+
+export function rejectedNoteCommits() {
+	return app.trait("notes", "PostgreSQL rejects note writes at commit", function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`create function reject_note_commit() returns trigger language plpgsql as $$
+			begin raise exception 'rejected at commit'; end;
+		$$`;
+		yield* sql`create constraint trigger reject_note_commit after insert on starter_notes
+			deferrable initially deferred for each row execute function reject_note_commit()`;
+	});
+}
