@@ -354,13 +354,13 @@ Import each name from its defining `@shivaedev/effect-trpc/<module>.ts`; there i
 ### Install, runtime ownership and limits
 
 ```sh
-pnpm add @shivaedev/effect-trpc @trpc/server@11.18.0 effect@4.0.4
+pnpm add @shivaedev/effect-trpc @trpc/server@11.19.0 effect@4.0.4
 ```
 
 Use the exact peer versions in this package's `package.json`. Node.js 24 or later is required. The rejection example also uses `superjson`; configure the same transformer on the tRPC client.
 
 ```sh
-pnpm add @trpc/client@11.18.0 superjson@2.2.6
+pnpm add @trpc/client@11.19.0 superjson@2.2.6
 pnpm add --save-dev @effect/vitest@4.0.4 vitest@5.0.3
 ```
 

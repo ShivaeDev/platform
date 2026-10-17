@@ -3,7 +3,6 @@ import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { documentQuery } from "#client/page/routeQuery.ts";
-import { session } from "#client/session.ts";
 import {
 	answerCardFixture,
 	DECISION_REASON,
@@ -16,6 +15,7 @@ import { answerInput, answerPrompt, responseClick } from "#test/answerDraft.tsx"
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderBoard } from "#test/react.tsx";
 import { renderRouter } from "#test/renderRouter.tsx";
+import { responseCommands } from "#test/responseCommands.ts";
 import { boardRouter } from "./boardRouter.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
@@ -89,9 +89,7 @@ it("retains an option and free text through a document query refresh and records
 		},
 		{ home: "home.md", writable: true },
 	);
-	const native = session(window);
-	const mutate = vi.spyOn(native, "mutate").mockResolvedValue({ id: "question.fixture" });
-	const record = vi.spyOn(native.responses.recordResponse, "run");
+	const { register, record } = responseCommands(view.forms);
 	try {
 		await eventually(() => expect(view.container.querySelector(".question-choice")).not.toBeNull());
 		answerInput("author", "Reviewer");
@@ -107,7 +105,8 @@ it("retains an option and free text through a document query refresh and records
 		expect([input.selectionStart, input.selectionEnd]).toEqual([4, 7]);
 		await act(async () => responseClick("submit"));
 		await eventually(() => expect(document.getElementById("response-status")?.textContent).toContain("Saved:"));
-		expect(mutate).toHaveBeenCalledTimes(2);
+		expect(register).toHaveBeenCalledTimes(1);
+		expect(record).toHaveBeenCalledTimes(1);
 		expect(record).toHaveBeenCalledWith(
 			expect.objectContaining({
 				answers: [{ prompt: "answer", selected: ["option-1"], text: "Use the reviewed version." }],

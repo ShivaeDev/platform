@@ -1,4 +1,4 @@
-import { Config, Effect, ManagedRuntime, Redacted } from "effect";
+import { ManagedRuntime, Redacted } from "effect";
 import { HttpServer } from "effect/http";
 import { Migrator } from "effect/sql";
 import { expect, it } from "vitest";
@@ -6,16 +6,17 @@ import { appDatabase, appHost } from "#appHost.ts";
 import { databaseProxy } from "#test/app-host/databaseProxy.ts";
 import { sessions, staticAssets } from "#test/app-host/fixture.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
+import { environmentVariable } from "#test/environmentVariable.ts";
 
-const database = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
+const database = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 
-it.runIf(database._tag === "Some").each(["migrations", "services"] as const)(
+it.runIf(database !== undefined).each(["migrations", "services"] as const)(
 	"health probes PostgreSQL from %s without authentication and returns no database details on failure",
 	async (source) => {
-		if (database._tag === "None") {
+		if (database === undefined) {
 			throw new Error("PostgreSQL URL is required");
 		}
-		const proxy = await databaseProxy(database.value);
+		const proxy = await databaseProxy(database);
 		const assets = await staticAssets();
 		const lookups: string[] = [];
 		const options = {

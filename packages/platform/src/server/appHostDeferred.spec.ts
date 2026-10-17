@@ -1,17 +1,18 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Layer, ManagedRuntime } from "effect";
+import { Effect, Layer, ManagedRuntime, Redacted } from "effect";
 import { HttpServer } from "effect/http";
 import { Migrator, SqlClient } from "effect/sql";
 import { expect, it } from "vitest";
 import { appDatabase, appHost } from "#appHost.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
+import { environmentVariable } from "#test/environmentVariable.ts";
 
-const database = Effect.runSync(Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
+const database = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 
-it.runIf(database._tag === "Some").each(["migrate", "check"] as const)(
+it.runIf(database !== undefined).each(["migrate", "check"] as const)(
 	"%s completes before application construction and owns its scope",
 	async (mode) => {
-		if (database._tag === "None") {
+		if (database === undefined) {
 			throw new Error("PostgreSQL URL is required");
 		}
 		const table = `deferred_${crypto.randomUUID().replaceAll("-", "")}`;
@@ -22,7 +23,7 @@ it.runIf(database._tag === "Some").each(["migrate", "check"] as const)(
 			}),
 			table,
 		};
-		const config = { databaseUrl: database.value };
+		const config = { databaseUrl: Redacted.make(database) };
 		if (mode === "check") {
 			await Effect.runPromise(Layer.build(appDatabase({ config, migrations })).pipe(Effect.scoped));
 		}
@@ -47,15 +48,17 @@ it.runIf(database._tag === "Some").each(["migrate", "check"] as const)(
 		} finally {
 			await runtime.dispose();
 			await Effect.runPromise(
-				SqlClient.SqlClient.use((sql) => sql`drop table if exists ${sql(table)}`).pipe(Effect.provide(PgClient.layer({ url: database.value }))),
+				SqlClient.SqlClient.use((sql) => sql`drop table if exists ${sql(table)}`).pipe(
+					Effect.provide(PgClient.layer({ url: Redacted.make(database) })),
+				),
 			);
 		}
 		expect(lifecycle).toEqual(["migrated", "constructed", "released"]);
 	},
 );
 
-it.runIf(database._tag === "Some").each(["migrate", "check"] as const)("failed %s prevents application construction", async (mode) => {
-	if (database._tag === "None") {
+it.runIf(database !== undefined).each(["migrate", "check"] as const)("failed %s prevents application construction", async (mode) => {
+	if (database === undefined) {
 		throw new Error("PostgreSQL URL is required");
 	}
 	let constructed = false;
@@ -65,7 +68,7 @@ it.runIf(database._tag === "Some").each(["migrate", "check"] as const)("failed %
 				constructed = true;
 				return { config: { port: 0 }, group: Ping, handlers: pingHandlers, policy: "loopback" as const };
 			}),
-			config: { databaseUrl: database.value },
+			config: { databaseUrl: Redacted.make(database) },
 			migrations: {
 				loader: Migrator.fromRecord({ "001_fail": Effect.fail(new Error("Migration failed")) }),
 				mode,

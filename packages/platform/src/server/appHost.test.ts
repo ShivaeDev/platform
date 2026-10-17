@@ -1,5 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, ConfigProvider, Effect, Layer, ManagedRuntime, Redacted, Result } from "effect";
+import { ConfigProvider, Effect, Layer, ManagedRuntime, Redacted, Result } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Migrator, SqlClient } from "effect/sql";
@@ -8,14 +8,15 @@ import { appHost } from "#appHost.ts";
 import { AuthUnavailable, Conflict, Unauthorized } from "#errors/taxonomy.ts";
 import { Api, call, feature, handlers, post, sessions, staticAssets } from "#test/app-host/fixture.ts";
 import { Ping, ping } from "#test/app-host/ping.ts";
+import { environmentVariable } from "#test/environmentVariable.ts";
 
-const database = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
-const test = it.runIf(database._tag === "Some");
+const database = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+const test = it.runIf(database !== undefined);
 function destination() {
-	if (database._tag === "None") {
+	if (database === undefined) {
 		throw new Error("PostgreSQL URL is required");
 	}
-	return database.value;
+	return database;
 }
 test("omitting services keeps migrated SQL available to RPC handlers", async () => {
 	const runtime = ManagedRuntime.make(

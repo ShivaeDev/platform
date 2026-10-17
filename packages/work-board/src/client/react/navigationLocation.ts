@@ -1,7 +1,7 @@
 import { readingEntry } from "#client/react/storedReadings.ts";
 
-export function navigationFailure(status: string | undefined) {
-	const code = Number(status ?? 200);
+export function navigationFailure(status: number) {
+	const code = status;
 	if (code < 400) {
 		return "";
 	}
