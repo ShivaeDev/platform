@@ -18,6 +18,11 @@ it.each([
 	["url.username", "user", "<redacted>"],
 	["url.userinfo", "user:password", "<redacted>"],
 	["custom", "https://example.test/path?q=secret", "https://example.test/path?q=<redacted>"],
+	[
+		"http.request.header.referer",
+		"https://example.test/callback?code='c1'&state=s1",
+		"https://example.test/callback?code=<redacted>&state=<redacted>",
+	],
 	["custom", "failed GET /path?q=secret#fragment next", "failed GET /path?q=<redacted>#<redacted> next"],
 	["custom", 'request {"url":"https://example.test/path?q=secret"}', 'request {"url":"https://example.test/path?q=<redacted>"}'],
 	["custom", "https://example.test/path#fragment", "https://example.test/path#<redacted>"],

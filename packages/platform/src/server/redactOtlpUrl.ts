@@ -43,5 +43,5 @@ export function redactOtlpUrl(value: string, key = ""): string {
 			return redacted;
 		}
 	}
-	return value.replaceAll(/(?:[a-z][a-z0-9+.-]*:\/\/|[/?#])[^\s"'<>]*/giu, url);
+	return value.replaceAll(/(?:[a-z][a-z0-9+.-]*:\/\/|[/?#])[^\s"<>]*/giu, url);
 }

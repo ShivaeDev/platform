@@ -1,10 +1,10 @@
 import { Effect } from "effect";
-import { HttpClient, HttpClientResponse, HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
+import { HttpClient, HttpClientResponse, HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { expect, it, vi } from "vitest";
 import { otlpHost } from "#test/otlpHost.ts";
 import { otlpReceiver } from "#test/otlpReceiver.ts";
 
-it("redacts query values from HTTP server and client spans before sending them to the collector", async () => {
+it("redacts query values in server URLs, client URLs and Referer headers before export", async () => {
 	// Random trace IDs can contain the short secret "c1" by coincidence.
 	const ids = vi.spyOn(Math, "random").mockReturnValue(0.5);
 	const receiver = await otlpReceiver();
@@ -13,6 +13,8 @@ it("redacts query values from HTTP server and client spans before sending them t
 		"GET",
 		"/api/auth/callback/github",
 		Effect.gen(function* () {
+			const request = yield* HttpServerRequest.HttpServerRequest;
+			yield* Effect.annotateCurrentSpan({ "http.request.header.referer": request.headers.referer });
 			yield* client.get("https://blob.example/x?sv=1&sig=s2&se=3").pipe(Effect.orDie);
 			return HttpServerResponse.text("ok");
 		}),
@@ -20,7 +22,13 @@ it("redacts query values from HTTP server and client spans before sending them t
 	const runtime = otlpHost({ "OTEL_EXPORTER_OTLP_ENDPOINT": receiver.url }, routes);
 	try {
 		const server = await runtime.runPromise(HttpServer.HttpServer);
-		expect((await fetch(`${HttpServer.formatAddress(server.address)}/api/auth/callback/github?code=c1&state=s1`)).status).toBe(200);
+		expect(
+			(
+				await fetch(`${HttpServer.formatAddress(server.address)}/api/auth/callback/github?code=c1&state=s1`, {
+					headers: { referer: "https://example.test/callback?code='c1'&state=s1" },
+				})
+			).status,
+		).toBe(200);
 		await runtime.dispose();
 		const body = receiver.requests.map((request) => request.body).join("\n");
 		for (const secret of ["c1", "s1", "s2"]) {
@@ -28,6 +36,9 @@ it("redacts query values from HTTP server and client spans before sending them t
 		}
 		expect(body).toContain("/api/auth/callback/github?code=<redacted>&state=<redacted>");
 		expect(body).toContain("https://blob.example/x?sv=<redacted>&sig=<redacted>&se=<redacted>");
+		expect(body).toContain(
+			'"key":"http.request.header.referer","value":{"stringValue":"https://example.test/callback?code=<redacted>&state=<redacted>"}',
+		);
 		expect(body).toContain('"key":"url.query","value":{"stringValue":"code=<redacted>&state=<redacted>"}');
 		expect(body).toContain('"key":"url.query","value":{"stringValue":"sv=<redacted>&sig=<redacted>&se=<redacted>"}');
 		expect(body).toContain('"kind":2');
