@@ -11,18 +11,18 @@ interface MainRun {
 	id: number;
 }
 
+const MINIMUM_TEST_SHARDS = 4;
+const COMPLETE_CONSUMER_STORE_SHARDS = 1;
+
 export function mainShardPlan(repository: string, main: boolean, github: (args: string[]) => string) {
-	const fallback = { artifactId: "", count: main ? 1 : 8, runId: "" };
-	const selected = { consumers: { ...fallback }, tests: { ...fallback } };
-	if (main) {
-		return selected;
-	}
+	const fallback = { artifactId: "", count: 8, runId: "" };
+	const selected = { consumers: { ...fallback, count: main ? COMPLETE_CONSUMER_STORE_SHARDS : 8 }, tests: { ...fallback } };
 	const temporary = mkdtempSync(join(tmpdir(), "platform-shard-plan-"));
 	try {
 		const { "workflow_runs": runs }: { "workflow_runs": MainRun[] } = JSON.parse(
 			github(["api", `repos/${repository}/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=10`]),
 		);
-		for (const kind of ["tests", "consumers"] as const) {
+		for (const kind of main ? (["tests"] as const) : (["tests", "consumers"] as const)) {
 			const artifact = kind === "tests" ? "test-balancing" : "consumer-balancing";
 			const file = kind === "tests" ? "test-durations.json" : "consumer-durations.json";
 			selected[kind] = findSnapshot(repository, runs, artifact, file, temporary, github) ?? fallback;
@@ -32,7 +32,7 @@ export function mainShardPlan(repository: string, main: boolean, github: (args: 
 	} finally {
 		rmSync(temporary, { force: true, recursive: true });
 	}
-	return selected;
+	return { ...selected, tests: { ...selected.tests, count: Math.max(MINIMUM_TEST_SHARDS, selected.tests.count) } };
 }
 
 function findSnapshot(
