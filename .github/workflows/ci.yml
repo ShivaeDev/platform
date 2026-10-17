@@ -148,10 +148,11 @@ jobs:
           run-id: ${{ needs.shard-plan.outputs.tests-run-id }}
           artifact-ids: ${{ needs.shard-plan.outputs.tests-artifact-id }}
           path: .ci/test-balancing
+      - uses: ./.github/actions/postgres
       - run: pnpm db:setup
       - name: Test workspace shard
         run: >-
-          pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
+          pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage --tags-filter='!docker'
       - name: Record test timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/tests.json
@@ -285,9 +286,25 @@ jobs:
           github-token: ${{ github.token }}
           artifact-ids: ${{ needs.build.outputs.packages-artifact-id }}
           path: .ci/packages
+      - uses: ./.github/actions/postgres
       - run: pnpm db:setup
       - name: Generate an app from the packed command and test packed workspace dependencies
         run: pnpm --filter @shivaedev/starter check:published --archives .ci/packages
+
+  docker-postgres:
+    name: Docker PostgreSQL fallback
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    env:
+      NODE_OPTIONS: --conditions=source
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm db:setup
+      - name: Test the Docker client path against the started container
+        run: pnpm --filter @shivaedev/local-postgres test --tags-filter=docker
 
   macos-proxy:
     name: macOS forwarding proxy
@@ -317,7 +334,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-proxy]
+    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter, docker-postgres, macos-proxy]
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:

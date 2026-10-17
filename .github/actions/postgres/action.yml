@@ -1,0 +1,33 @@
+name: Start PostgreSQL
+description: Start PostgreSQL 18.6 natively on 127.0.0.1:55432, the service that local setup otherwise starts in Docker.
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      id: binaries
+      with:
+        path: ${{ runner.temp }}/postgres
+        key: postgres-zonky-18.6.0-linux-amd64-008ee189eaa7ca2b58bd01dd950291e638b998392cf982297acd4779ec898ac1
+    - name: Download PostgreSQL binaries
+      if: steps.binaries.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        jar="$RUNNER_TEMP/postgres.jar"
+        curl --fail --silent --show-error --location --retry 3 --output "$jar" \
+          https://repo1.maven.org/maven2/io/zonky/test/postgres/embedded-postgres-binaries-linux-amd64/18.6.0/embedded-postgres-binaries-linux-amd64-18.6.0.jar
+        echo "008ee189eaa7ca2b58bd01dd950291e638b998392cf982297acd4779ec898ac1  $jar" | sha256sum --check --strict
+        mkdir -p "$RUNNER_TEMP/postgres"
+        unzip -p "$jar" postgres-linux-x86_64.txz | tar -xJ -C "$RUNNER_TEMP/postgres"
+        rm "$jar"
+    - name: Start PostgreSQL
+      shell: bash
+      # The builtin C.UTF-8 locale sorts by code point, as the musl-based Docker image does.
+      run: |
+        bin="$RUNNER_TEMP/postgres/bin"
+        data="$RUNNER_TEMP/postgres-data"
+        printf postgres > "$RUNNER_TEMP/postgres-password"
+        "$bin/initdb" --pgdata="$data" --username=postgres --pwfile="$RUNNER_TEMP/postgres-password" \
+          --auth-local=trust --auth-host=scram-sha-256 --encoding=UTF8 --locale=C.UTF-8 \
+          --locale-provider=builtin --builtin-locale=C.UTF-8 --no-sync --no-instructions
+        "$bin/pg_ctl" --pgdata="$data" --log="$RUNNER_TEMP/postgres.log" --wait \
+          --options="-c listen_addresses=127.0.0.1 -c port=55432 -c unix_socket_directories=$RUNNER_TEMP -c timezone=Etc/UTC -c log_timezone=Etc/UTC" start

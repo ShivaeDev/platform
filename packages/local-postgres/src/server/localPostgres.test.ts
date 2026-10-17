@@ -51,7 +51,7 @@ it("reports an invalid explicit connection timeout instead of silently replacing
 	);
 });
 
-it("uses the supplied database credentials when the container supplies the real PostgreSQL client", () => {
+it("uses the supplied database credentials when the container supplies the real PostgreSQL client", { tags: ["docker"] }, () => {
 	const postgres = localPostgres({});
 	const role = `client_${randomUUID().replaceAll("-", "")}`;
 	const password = "local-client-fixture-password";
