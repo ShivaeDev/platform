@@ -117,14 +117,9 @@ Without a frame or batch, a record publishes immediately. An optional `unowned` 
 
 `open` and `Frame` let a driver binding control settlement directly. Open the frame before entering the driver's transaction callback, provide the callback's Effect body with `frame.provide`, and settle only after the driver reports its commit outcome.
 
-Capture the application's Effect context before running callback work in another
-fiber. Its Effect exit describes the body, not whether the driver committed. A
-binding must make a failed body reject the driver's transaction, wait for its
-Promise, and translate that driver's result into an `Outcome`.
+Capture the application's Effect context before running callback work in another fiber. Its Effect exit describes the body, not whether the driver committed. A binding must make a failed body reject the driver's transaction, wait for its Promise, and translate that driver's result into an `Outcome`.
 
-Settle with `"committed"` only after the root commit or successful native nested
-outcome, and `"rolledBack"` when that operation fails. The first settlement
-outcome wins, so calling it again cannot publish twice.
+Settle with `"committed"` only after the root commit or successful native nested outcome, and `"rolledBack"` when that operation fails. The first settlement outcome wins, so calling it again cannot publish twice.
 
 For an interruptible Promise driver, the binding must keep waiting for the pending transaction result after caller interruption and settle from that result. The [complete Prisma driver adapter](https://github.com/ShivaeDev/platform/blob/main/packages/effect-changes-prisma/src/transaction.ts) shows context capture, failed-body rejection, aborting the body, awaiting the driver and retaining its typed errors. Do not treat an interrupted wait or a successful body as the driver's commit result.
 
@@ -163,6 +158,12 @@ const capturedGrant = grant("ada", "bob").pipe(
 ```
 
 `Sink` and `Observer` are channel-specific `Context.Reference`s. Within the provided scope, the sink receives the changes instead of the configured publish function; the configured sink resumes outside it. The observer receives `Recorded` for the distinct changes in a record call, `Published` for the buffer passed to publication and `Discarded` for a rolled-back frame's changes. `Published` is emitted before the sink runs; it does not prove successful delivery. Discarded parent changes include changes merged from children that committed earlier. A rollback therefore remains visible to a coverage check through its earlier `Recorded` observation.
+
+### Work inside the committing transaction
+
+`makeChannel<A, R, E>` accepts an optional `beforeCommit: (changes: readonly A[]) => Effect<void, E, R>`. Its scoped `BeforeCommit` reference lets a binding replace that hook. `within` runs the hook after a successful body, with deduplicated changes from successful nested work, before the native root transaction commits. Empty transactions and rolled-back bodies do not run it. A typed hook failure is passed to the native transaction and rolls back the write. The hook does not run for an unframed record or a batch of already committed writes.
+
+A direct driver binding using `open` must run `frame.beforeCommit` inside its transaction callback after the body succeeds, before returning to the driver. Then settle from the driver's actual commit result. `CommittedSink` optionally replaces the transaction's after-commit sink; the ordinary `Sink` still handles unframed records and batches. A PostgreSQL binding can use this to deliver through its listener once instead of also publishing locally after commit.
 
 ### API
 
@@ -218,7 +219,7 @@ type Observation<A> =
   | { readonly _tag: "Discarded"; readonly changes: readonly A[] };
 ```
 
-`makeChannel<A, R = never>(options)` returns `Channel<A, R>`. `key` is optional; for string changes, omitting it deduplicates repeated strings. A custom key is useful when a change is a structured description of an affected subject.
+`makeChannel<A, R = never, THookError = never>(options)` returns `Channel<A, R, THookError>`. `key` is optional; for string changes, omitting it deduplicates repeated strings. A custom key is useful when a change is a structured description of an affected subject.
 
 The modules also export the implementation helpers `Buffer`, `makeBuffer`, `settled`, `add`, `keyed`, `makeFrame` from `frame.ts`, `unobserved` from `observe.ts`, and `publisher` from `publish.ts`. The channel uses these to manage its buffers and delivery policy.
 
@@ -235,9 +236,3 @@ pnpm add @shivaedev/effect-changes effect@4.0.4
 - A native adapter must observe the real commit outcome. Wrapping only the body of a transaction does not establish that outcome.
 - Use a durable event design when every business event must be retained. A deduplicated notification is a request to refresh, not an event journal.
 - Core tests use a fake transaction. SQL and Prisma bindings have PostgreSQL tests for their actual commit behavior, which require a database URL to run.
-
-### Work inside the committing transaction
-
-`makeChannel<A, R, E>` accepts an optional `beforeCommit: (changes: readonly A[]) => Effect<void, E, R>`. Its scoped `BeforeCommit` reference lets a binding replace that hook. `within` runs the hook after a successful body, with deduplicated changes from successful nested work, before the native root transaction commits. Empty transactions and rolled-back bodies do not run it. A typed hook failure is passed to the native transaction and rolls back the write. The hook does not run for an unframed record or a batch of already committed writes.
-
-A direct driver binding using `open` must run `frame.beforeCommit` inside its transaction callback after the body succeeds, before returning to the driver. Then settle from the driver's actual commit result. `CommittedSink` optionally replaces the transaction's after-commit sink; the ordinary `Sink` still handles unframed records and batches. A PostgreSQL binding can use this to deliver through its listener once instead of also publishing locally after commit.

@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { act } from "react";
 import { expect } from "vitest";
-import { observeScreen } from "./screenObservations.ts";
-import { type Screen, screenView } from "./screenState.ts";
+import { observeScreen } from "#test-support/screenObservations.ts";
+import { type Screen, screenView } from "#test-support/screenState.ts";
 
 export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 	const observe = observeScreen(tell);
@@ -26,15 +26,6 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 			observe("the notes client received the delete command", () => {
 				expect(engine.client.calls).toContain("delete");
 			}),
-		openListedNote: () =>
-			Effect.promise(async () => {
-				tell("open the saved note from the list");
-				const link = screenView(engine).container.querySelector<HTMLAnchorElement>("li > a");
-				if (link === null) {
-					throw new Error("The saved note link is missing");
-				}
-				await act(() => link.click());
-			}),
 		queryCountIs: (query: "get" | "list", count: number) =>
 			observe(`the ${query} query has run ${count} times`, () => {
 				expect(engine.client.calls.filter((call) => call === query)).toHaveLength(count);
@@ -47,6 +38,10 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 			Effect.promise(async () => {
 				tell(`another session revises the note to ${JSON.stringify(title)} and sends a live hint`);
 				await act(() => engine.client.reviseNote(1, title));
+			}),
+		routeIs: (route: string) =>
+			observe(`the app is at ${route}`, () => {
+				expect(engine.router?.state.location.pathname).toBe(route);
 			}),
 		visitNotes: () =>
 			Effect.promise(async () => {

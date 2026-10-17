@@ -2,9 +2,17 @@
 
 Use the [README](../README.md) for the gate's mental model and workflow. Quality owns the shared policy; consuming repositories adopt its defaults. This reference gives each built-in rule's scope, findings and accepted options, including the exposed local-rule API. An option being accepted is not a recommendation to tune the shared standard. Supply repository facts, such as generated locations and import boundaries, when a check needs them. The [naming reference](./naming.md) covers names and test layout; [shared tooling](./tooling.md) covers the Biome, Vitest and TypeScript setup.
 
-## File size
+## File structure
+
+### File size
 
 `structure/max-lines` keeps each module to one job: a source file may have 150 lines and [test code](./naming.md#test-code) 300, counted the way an editor numbers them. Declaration files are exempt. Its options are `source` and `test`: positive integer limits no greater than 150 and 300 respectively. Test code is identified by its conventional name or `test-support` folder; custom test-file patterns are rejected. A file over its limit counts one violation for each line above it: 168 lines under a limit of 150 count 18.
+
+### Nesting and module structure
+
+`nesting/max-depth` reports each source line that starts with eight or more tabs. Extract a named function or component. Declaration files are exempt; indentation with spaces is outside this text check. It takes no options.
+
+`structure/no-barrel` rejects every source module named `index.ts` or `index.tsx`, including modules that define their own exports. Name the module after its purpose. It takes no options. The shared Biome preset separately rejects re-exports regardless of the file name.
 
 ### Comments
 

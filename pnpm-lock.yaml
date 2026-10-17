@@ -398,9 +398,6 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.4
-      ignore:
-        specifier: 'catalog:'
-        version: 7.0.12
       typescript:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'

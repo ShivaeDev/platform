@@ -1,4 +1,7 @@
-import type { WorkspacePackage } from "#lint/workspace.ts";
+export interface WorkspacePackage {
+	readonly name: string;
+	readonly root: string;
+}
 
 const HEADING = "component_management:";
 const TOP_LEVEL = /^\S/u;

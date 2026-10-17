@@ -2,29 +2,11 @@ import { execFile } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { Context, Effect, Layer } from "effect";
-import { HttpServer } from "effect/http";
-import { makePlatformRuntime } from "#runtime/make.ts";
-import { ping } from "./ping.ts";
+import { Context, Effect } from "effect";
 import { requests } from "./requests.ts";
+import { RuntimeValue } from "./runtimeLayer.ts";
 import { type HostState, io, runtimeOf } from "./state.ts";
 
-class RuntimeValue extends Context.Service<RuntimeValue, string>()("@test/PlatformRuntimeValue") {}
-export function runtimeLayer(lifecycle: string[]) {
-	return Layer.effect(
-		RuntimeValue,
-		Effect.acquireRelease(
-			Effect.sync(() => {
-				lifecycle.push("acquired");
-				return "base";
-			}),
-			() =>
-				Effect.sync(() => {
-					lifecycle.push("disposed");
-				}),
-		),
-	);
-}
 export function readRuntimeValue(state: HostState, override?: string, fromContext = false) {
 	const runtime = runtimeOf(state);
 	function value() {
@@ -39,26 +21,6 @@ export function readRuntimeValue(state: HostState, override?: string, fromContex
 				return value();
 			});
 }
-export async function sharedDevelopmentRuntime(state: HostState) {
-	const key = Symbol("runtime-test");
-	const layer = state.build(state);
-	const first = makePlatformRuntime(layer, { developmentCacheKey: key });
-	const second = makePlatformRuntime(layer, { developmentCacheKey: key });
-	try {
-		for (const runtime of [first, second]) {
-			const server = await runtime.runPromise(HttpServer.HttpServer);
-			if ((await ping(`${HttpServer.formatAddress(server.address)}/rpc`)) !== "pong") {
-				throw new Error("A cached host did not answer RPC");
-			}
-		}
-		return first === second;
-	} finally {
-		await first.dispose();
-		if (first !== second) {
-			await second.dispose();
-		}
-	}
-}
 export function runtimeVerbs(state: HostState, tell: (line: string) => void) {
 	function response(path: string) {
 		return requests(state, tell)
@@ -70,7 +32,10 @@ export function runtimeVerbs(state: HostState, tell: (line: string) => void) {
 			);
 	}
 	return {
+		cancelRuntime: (run: "runPromise" | "runPromiseExit") =>
+			response(`/runtime/cancellation?run=${run}`).pipe(Effect.map((body) => JSON.parse(body))),
 		developmentRuntimes: () => response("/runtime/development").pipe(Effect.map((body) => body === "true")),
+		nestedRuntimeServices: () => response("/runtime/nested").pipe(Effect.map((body) => JSON.parse(body))),
 		productionRuntimes: () => {
 			tell("two production hosts answer native RPC");
 			return io(async () => {
@@ -82,7 +47,10 @@ export function runtimeVerbs(state: HostState, tell: (line: string) => void) {
 				return stdout.trim();
 			});
 		},
-		runtimeFailure: () => response("/runtime/failure").pipe(Effect.map((body) => body === "true")),
+		recreatedDevelopmentRuntime: () => response("/runtime/recreation").pipe(Effect.map((body) => JSON.parse(body))),
+		runtimeExit: () => response("/runtime/exit").pipe(Effect.map((body) => JSON.parse(body))),
+		runtimeFailure: () => response("/runtime/failure").pipe(Effect.map((body) => JSON.parse(body))),
+		runtimeLayerFailure: () => response("/runtime/layer-failure").pipe(Effect.map((body) => JSON.parse(body))),
 		runtimeValue: (override?: string, fromContext = false) => {
 			const params = new URLSearchParams({ context: String(fromContext), ...(override === undefined ? {} : { override }) });
 			return response(`/runtime/value?${params}`);
