@@ -48,7 +48,10 @@ function postNdjson(url: string, body: string, chunked: boolean) {
 		const outgoing = request(
 			`${url}/rpc`,
 			{
-				headers: { "content-type": "application/ndjson", ...(chunked ? {} : { "content-length": Buffer.byteLength(body) }) },
+				headers: {
+					"content-type": "application/ndjson",
+					...(chunked ? { "transfer-encoding": "chunked" } : { "content-length": Buffer.byteLength(body) }),
+				},
 				method: "POST",
 			},
 			(response) => {
@@ -61,6 +64,7 @@ function postNdjson(url: string, body: string, chunked: boolean) {
 			},
 		);
 		outgoing.on("error", reject);
-		outgoing.end(body);
+		outgoing.write(body);
+		outgoing.end();
 	});
 }
