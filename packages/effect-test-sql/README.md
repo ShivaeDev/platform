@@ -112,9 +112,9 @@ Inside an isolated block, `PostgresTestDatabase.url` names that clone. Use it to
 
 ### Test a backfill against existing rows
 
-A backfill needs rows in the old schema. Prepare an empty template with the application's own `PostgresMigrationOptions`, then use `migrationSteps` inside `withIsolatedDatabase`. `migrateTo` takes the full migration name, including its numeric prefix and without a file extension. It commits migrations through that name; seed rows with the native SQL client, then yield `migrateToLatest` to apply the remaining migrations on the same database.
+A backfill needs rows in the old schema. Prepare an empty template with the application's own `PostgresMigrationOptions`, then use `migrationSteps` inside `withIsolatedDatabase`. `migrateTo` accepts the migration name as written without a file extension (`"001_create_contacts"`), its unpadded form (`"1_create_contacts"`), or its bare numeric id (`1`, `"1"` or `"001"`). It commits migrations through that target; seed rows with the native SQL client, then yield `migrateToLatest` to apply the remaining migrations on the same database.
 
-This example uses an application loader whose `1_create_contacts` migration creates `contacts(id, email)`, `2_backfill_emails` creates `emails(contact_id, address)` and copies the contact email addresses into it, and `3_drop_email` drops `contacts.email`:
+This example uses an application loader whose `001_create_contacts` migration creates `contacts(id, email)`, `002_backfill_emails` creates `emails(contact_id, address)` and copies the contact email addresses into it, and `003_drop_email` drops `contacts.email`:
 
 ```ts
 import { migrationSteps } from "@shivaedev/effect-test-sql/migrationSteps.ts";
@@ -135,7 +135,7 @@ const { effectApp: migrationTest } = makeEffectIt({
 });
 
 migrationTest("preserves contact emails in the new table", function* (steps) {
-  yield* steps.migrateTo("1_create_contacts");
+  yield* steps.migrateTo("001_create_contacts");
   const sql = yield* SqlClient.SqlClient;
   yield* sql`insert into contacts (id, email) values (1, 'alice@example.test')`;
   yield* steps.migrateToLatest;
@@ -145,7 +145,7 @@ migrationTest("preserves contact emails in the new table", function* (steps) {
 });
 ```
 
-The helper resolves the loader once and uses `migratePostgres` for each step, preserving its ledger table and lock timeout. Unknown names fail with a typed `MigrationError` that names the requested migration. Moving behind an already applied migration and running inside a wrapping transaction also fail with `MigrationError`. Loader dependencies, including `Scope`, remain requirements of `migrationSteps`; its resources live until the caller's scope closes. Use the returned steps inside that database's scope. SQL and loader failures retain their failure channels.
+The helper resolves the loader once and uses `migratePostgres` for each step, preserving its ledger table and lock timeout. Unknown or ambiguous targets fail with a typed `MigrationError` that names the requested target. Moving behind an already applied migration and running inside a wrapping transaction also fail with `MigrationError`. Loader dependencies, including `Scope`, remain requirements of `migrationSteps`; its resources live until the caller's scope closes. Use the returned steps inside that database's scope. SQL and loader failures retain their failure channels.
 
 For test-story, use the same Layer and `around: withIsolatedDatabase`, acquire `migrationSteps(appMigrations)` in the kit's `create`, and let schema and data traits call `migrateTo` and seed native SQL. A verb can yield `migrateToLatest` before the story asserts the backfilled rows.
 

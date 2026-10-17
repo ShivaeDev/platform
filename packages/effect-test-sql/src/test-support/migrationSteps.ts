@@ -6,16 +6,16 @@ import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 
 export const migrations = {
 	loader: Migrator.fromRecord({
-		"1_create_contacts": Effect.gen(function* () {
+		"001_create_contacts": Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			yield* sql`create table contacts (id integer primary key, email text not null)`;
 		}),
-		"2_backfill_emails": Effect.gen(function* () {
+		"002_backfill_emails": Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			yield* sql`create table emails (contact_id integer primary key references contacts(id), address text not null)`;
 			yield* sql`insert into emails (contact_id, address) select id, email from contacts`;
 		}),
-		"3_drop_email": Effect.gen(function* () {
+		"003_drop_email": Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			yield* sql`alter table contacts drop column email`;
 		}),

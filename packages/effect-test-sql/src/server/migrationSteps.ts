@@ -35,11 +35,18 @@ export const migrationSteps = Effect.fn("PostgresTest.migrationSteps")(function*
 		});
 	}
 	return {
-		migrateTo: (name: string) => {
-			const target = resolved.find(([id, label]) => `${id}_${label}` === name);
-			return target === undefined
-				? invalid(`Migration "${name}" is not in the loader.`)
-				: run(Effect.succeed(resolved.filter(([id]) => id <= target[0])), target[0]);
+		migrateTo: (name: string | number) => {
+			const match = /^(?<id>\d+)(?:_(?<label>.+))?$/u.exec(String(name))?.groups;
+			const matches =
+				match === undefined ? [] : resolved.filter(([id, label]) => id === Number(match.id) && (match.label === undefined || label === match.label));
+			const [target] = matches;
+			if (target === undefined) {
+				return invalid(`Migration "${name}" is not in the loader.`);
+			}
+			if (matches.length > 1) {
+				return invalid(`Migration "${name}" is ambiguous in the loader.`);
+			}
+			return run(Effect.succeed(resolved.filter(([id]) => id <= target[0])), target[0]);
 		},
 		migrateToLatest: run(Effect.succeed(resolved)),
 	};
