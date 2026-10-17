@@ -50,7 +50,7 @@ for (const state of ["OPEN", "CLOSED"] as const) {
 	test(`transient delivery failure preserves the ${state} PR's Board decision across restart`, () => {
 		let unavailable = false;
 		let observation: unknown = { ...open, state };
-		const deliveryQuery = githubDelivery("/repository", () =>
+		const deliveryQuery = githubDelivery(() =>
 			unavailable ? Effect.fail(new ServiceUnavailable({ message: "GitHub request failed" })) : Effect.succeed(observation),
 		);
 		return withEngine({ deliveryQuery, resultQuery: () => Effect.succeed(result) }, (fixture) =>
@@ -84,7 +84,7 @@ for (const state of ["OPEN", "CLOSED"] as const) {
 test("an outage while refreshing a moved PR head preserves the existing decision", () => {
 	let unavailable = false;
 	let observation: unknown = open;
-	const deliveryQuery = githubDelivery("/repository", () => Effect.succeed(observation));
+	const deliveryQuery = githubDelivery(() => Effect.succeed(observation));
 	return withEngine(
 		{
 			deliveryQuery,
