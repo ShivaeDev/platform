@@ -9,6 +9,7 @@ it.each([
 	["error: token=abc&sig=def", "error: token=<redacted>&sig=<redacted>"],
 	["password=sig=abc&x=1", "password=<redacted>&x=1"],
 	["error: status=ready&x=1", "error: status=ready&x=1"],
+	["Error: connect (file:///srv/token.ts:1:2)", "Error: connect (file:///srv/token.ts:1:2)"],
 ])("checks nested assignments in %s", (input, expected) => {
 	expect(redactText(input, isSensitiveKey)).toBe(expected);
 });

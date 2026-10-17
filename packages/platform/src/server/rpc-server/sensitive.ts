@@ -52,8 +52,8 @@ function redactAssignments(text: string, sensitive: SensitiveKey): string {
 		if (sensitive(key)) {
 			result += `${text.slice(cursor, match.index)}${key}${separator}${REDACTED}`;
 			cursor = matcher.lastIndex;
-		} else {
-			// A harmless assignment's value can contain a sensitive assignment.
+		} else if (match[3]?.includes("=")) {
+			// Revisit embedded parameters without parsing URL and source-location colons as assignments.
 			matcher.lastIndex = match.index + key.length + separator.length;
 		}
 	}
