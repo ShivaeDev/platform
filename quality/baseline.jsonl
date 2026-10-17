@@ -33,10 +33,8 @@
 {"path":"packages/effect-pg-boss/src/server/service.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/effect-pg-boss/src/test-support/environment.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-pg-boss/src/test-support/fake-client.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-prisma/src/database.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/database.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/database.typecheck.test.ts","rule":"biome/plugin","count":1}
-{"path":"packages/effect-prisma/src/databaseTesting.spec.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/effect-prisma/src/databaseTypes.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/error.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-prisma/src/internal/adapters/transaction-settlement.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
@@ -67,9 +65,6 @@
 {"path":"packages/effect-prisma/src/internal/relation-runtime.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/internal/relation-stream.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/internal/relation-stream.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-prisma/src/internal/relation.spec.ts","rule":"biome/lint/style/useConsistentMemberAccessibility","count":2}
-{"path":"packages/effect-prisma/src/internal/relation.spec.ts","rule":"biome/lint/suspicious/noShadow","count":1}
-{"path":"packages/effect-prisma/src/internal/relation.spec.ts","rule":"biome/lint/suspicious/useAwait","count":1}
 {"path":"packages/effect-prisma/src/internal/sqlite-datetime.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-prisma/src/internal/sqlite-datetime.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":2}
 {"path":"packages/effect-prisma/src/internal/sqlite-datetime.ts","rule":"biome/plugin","count":1}
@@ -77,11 +72,7 @@
 {"path":"packages/effect-prisma/src/internal/sqlite-pragmas.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-prisma/src/internal/sqlite-pragmas.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/internal/testing.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-prisma/src/internal/transaction.test.ts","rule":"biome/lint/suspicious/useAwait","count":4}
-{"path":"packages/effect-prisma/src/internal/transaction.test.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-prisma/src/internal/transaction.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
-{"path":"packages/effect-prisma/src/internal/transactionConcurrency.spec.ts","rule":"biome/lint/suspicious/useAwait","count":2}
-{"path":"packages/effect-prisma/src/internal/transactionConcurrency.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-prisma/src/relation/include-metadata.ts","rule":"biome/lint/style/useNamingConvention","count":31}
 {"path":"packages/effect-prisma/src/relation/include-metadata.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/relation/include.ts","rule":"files/named-after-export","count":1}
@@ -89,8 +80,6 @@
 {"path":"packages/effect-prisma/src/relation/prisma-methods.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/sqlite.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/sqlite.ts","rule":"biome/lint/style/useNamingConvention","count":5}
-{"path":"packages/effect-prisma/src/sqliteTesting.spec.ts","rule":"biome/lint/style/useNamingConvention","count":1}
-{"path":"packages/effect-prisma/src/sqliteTransaction.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/test-support/contract.ts","rule":"biome/lint/style/noExportedImports","count":2}
 {"path":"packages/effect-prisma/src/test-support/controlled-collection.ts","rule":"biome/lint/style/useConsistentMemberAccessibility","count":7}
 {"path":"packages/effect-prisma/src/test-support/controlled-collection.ts","rule":"biome/lint/style/useNamingConvention","count":5}
