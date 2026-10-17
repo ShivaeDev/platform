@@ -1,5 +1,6 @@
 import { Effect, Result } from "effect";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { waitingOwner } from "#attention.ts";
 import { approveDispatchedBrief } from "#engine/approveBrief.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { failureCode } from "#engine/failureCode.ts";
@@ -10,6 +11,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { clearIntegrationRetry, readRetry, retryPending } from "#engine/readRetry.ts";
 import { refreshBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
+import type { FleetRecord } from "#model.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	const { board, load, save, decision, integrations, policy } = state;
@@ -56,12 +58,15 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 					if (current.value.stage !== "prepared") {
 						return current;
 					}
-					yield* save(current, {
+					const waiting = {
 						...current.value,
 						admissionReady: !(error instanceof Forbidden),
 						attentionOwner: failureOwner(error),
 						blocker: failureMessage(error),
-					});
+					};
+					if (!sameWait(current.value, waiting)) {
+						yield* save(current, waiting);
+					}
 					return yield* Effect.fail(error);
 				}),
 			),
@@ -85,4 +90,9 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 			),
 		);
 	});
+}
+
+// Every scheduler pass retries waiting work, so rewriting an unchanged wait would make each pass write and notify once per waiter.
+function sameWait(current: FleetRecord, waiting: FleetRecord) {
+	return current.blocker === waiting.blocker && current.admissionReady === waiting.admissionReady && current.attentionOwner === waitingOwner(waiting);
 }
