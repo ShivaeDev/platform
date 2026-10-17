@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/testing.ts";
 import { screenInput } from "./screenActions.ts";
-import { type Screen, screenView } from "./screenState.ts";
+import { type ScreenSurface, screenView } from "./screenState.ts";
 
 export function observeScreen(tell: (line: string) => void) {
 	return (line: string, check: () => void) =>
@@ -12,7 +12,7 @@ export function observeScreen(tell: (line: string) => void) {
 		});
 }
 
-export function screenObservations(engine: Screen, tell: (line: string) => void) {
+export function screenObservations(engine: ScreenSurface, tell: (line: string) => void) {
 	const observe = observeScreen(tell);
 	function container() {
 		return screenView(engine).container;
@@ -45,10 +45,6 @@ export function screenObservations(engine: Screen, tell: (line: string) => void)
 		noteLinkIs: (title: string) =>
 			observe(`the saved note links to ${JSON.stringify(title)}`, () => {
 				expect(container().querySelector("li > a")?.textContent).toBe(title);
-			}),
-		routeIs: (route: string) =>
-			observe(`the app is at ${route}`, () => {
-				expect(engine.router?.state.location.pathname).toBe(route);
 			}),
 		screenSays: (text: string) =>
 			observe(`the screen says ${JSON.stringify(text)}`, () => {
