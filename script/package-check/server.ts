@@ -1,14 +1,16 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { Effect } from "effect";
 
-const listening = (server: ChildProcessWithoutNullStreams) =>
-	Effect.tryPromise({
+function listening(server: ChildProcessWithoutNullStreams) {
+	return Effect.tryPromise({
 		catch: (cause) => new Error("Packed server did not listen", { cause }),
 		try: () =>
 			new Promise<string>((resolve, reject) => {
 				let output = "";
 				const timeout = setTimeout(() => reject(new Error(`Server did not listen: ${output}`)), 15_000);
-				const done = () => clearTimeout(timeout);
+				function done() {
+					return clearTimeout(timeout);
+				}
 				server.once("error", (error) => {
 					done();
 					reject(error);
@@ -30,6 +32,7 @@ const listening = (server: ChildProcessWithoutNullStreams) =>
 				});
 			}),
 	});
+}
 
 async function serves(url: string, expected: string, signal: AbortSignal): Promise<void> {
 	const response = await fetch(url, { signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]) });
@@ -38,8 +41,8 @@ async function serves(url: string, expected: string, signal: AbortSignal): Promi
 	}
 }
 
-export const checkServer = (cwd: string, bin: string, args: readonly string[], pages: Readonly<Record<string, string>>) =>
-	Effect.acquireUseRelease(
+export function checkServer(cwd: string, bin: string, args: readonly string[], pages: Readonly<Record<string, string>>) {
+	return Effect.acquireUseRelease(
 		Effect.sync(() => {
 			const server = spawn(bin, args, { cwd, stdio: "pipe" });
 			const exited = new Promise<void>((resolve) => server.once("close", () => resolve()));
@@ -63,3 +66,4 @@ export const checkServer = (cwd: string, bin: string, args: readonly string[], p
 				clearTimeout(timeout);
 			}),
 	);
+}

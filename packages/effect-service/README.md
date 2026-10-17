@@ -31,7 +31,7 @@ A **declared dependency** is a service tag in `requires`. The Layer supplies tho
 
 **Private initialization state** is the value returned by `initialize`. The method factory receives it, but a caller receives only the methods. Within one provided Layer's lifetime, initialization and the method factory each run once, and two reads of the service share the same state.
 
-**Caller scope** is different from initialization scope. The Layer owns initialization resources and runs their finalizers when its scope closes. A method that acquires a scoped resource keeps `Scope.Scope` in its public requirement type; its caller supplies the scope and releases the resource when that scope closes, even while the service stays live.
+**Caller scope** is different from initialization scope. The Layer owns initialization resources: their finalizers run once when its scope closes or its owner is interrupted, including when initialization is still running. A method that acquires a scoped resource keeps `Scope.Scope` in its public requirement type; its caller supplies the scope and releases the resource when that scope closes, even while the service stays live. Interrupting a method call in `Effect.scoped` interrupts the call and releases its resources without ending the service's lifetime.
 
 The work has three parts:
 
@@ -68,7 +68,7 @@ const greeting = Effect.gen(function* () {
 }).pipe(Effect.provide(live));
 ```
 
-The Layer needs `Prefix`. After a caller resolves `Greetings`, `greet` needs no `Prefix` from that caller. Its argument and success type are inferred from the method. Initialization's failure type belongs to the Layer; each method keeps its own failure type.
+The Layer needs `Prefix`. After a caller resolves `Greetings`, `greet` needs no `Prefix` from that caller. Its argument and success type are inferred from the method. An initialization failure fails the Layer build with that typed error and runs finalizers registered before the failure. A method failure reaches the caller as that method's typed error, and the same service instance can handle the next call. A method defect remains a defect.
 
 `initialize` and ordinary methods may require the listed services and `Scope.Scope`. A definition that reads another service is rejected by the compiler fixtures. Scope is supplied by the Layer or method caller, so `Scope.Scope` itself cannot appear in `requires`.
 

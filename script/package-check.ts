@@ -6,9 +6,9 @@ import { Effect, FileSystem } from "effect";
 import { parseShard } from "#ci/shard.ts";
 import { prepareArchives, verifyArchives, workspaceArchives } from "#package-check/archives.ts";
 import { checkConsumers } from "#package-check/consumers.ts";
+import { checkMissingTargetRegression } from "#package-check/missingTargetRegression.ts";
 import { checkPackedTestRegression } from "#package-check/packedTestRegression.ts";
-import { checkSharedPeerRegression } from "#package-check/peer-regression.ts";
-import { checkMissingTargetRegression } from "#package-check/target-regression.ts";
+import { checkSharedPeerRegression } from "#package-check/sharedPeerRegression.ts";
 
 const { values } = parseArgs({
 	options: {
