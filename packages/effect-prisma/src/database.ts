@@ -5,6 +5,7 @@ import { acquireConnectedClient } from "#internal/client-lifecycle.ts";
 import { namespaceModels } from "#internal/database-facade.ts";
 import { makeSqlDatabase } from "#internal/database-factory.ts";
 import type { AnySqlContract } from "#internal/executor.ts";
+import { makePostgresPool } from "#internal/makePostgresPool.ts";
 import { fromPrismaPromise } from "#internal/promise.ts";
 import type { PrismaError } from "./error.ts";
 
@@ -63,10 +64,20 @@ export const makeDatabase =
 							...forwarded,
 							contract: options.contract,
 						});
+			const pool = makePostgresPool(forwarded.url, layerOptions.poolOptions);
+			let closing: Promise<void> | undefined;
+			const ownedClient = {
+				...client,
+				close: () => {
+					closing ??= client.close().finally(() => pool.end());
+					return closing;
+				},
+				connect: () => client.connect({ pg: pool }),
+			};
 
 			return fromPrismaPromise(() =>
-				acquireConnectedClient(client, () => ({
-					client,
+				acquireConnectedClient(ownedClient, () => ({
+					client: ownedClient,
 					identity: {},
 					liveness: {
 						closedCode: "RUNTIME.DATABASE_CLOSED",

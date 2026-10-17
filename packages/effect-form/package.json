@@ -123,6 +123,7 @@
 		"@effect/vitest": "catalog:",
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@typescript/native": "catalog:",

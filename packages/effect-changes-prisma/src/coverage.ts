@@ -22,7 +22,7 @@ function identify(write: UnnamedWrite): string {
 	return write.reason === "narrowed" ? `${write.model}.${write.operation}.${write.field}` : `${write.model}.${write.operation}`;
 }
 
-export const checkCoverage = <A>(coverage: Coverage<A>): readonly CoverageViolation[] => {
+export function checkCoverage<A>(coverage: Coverage<A>): readonly CoverageViolation[] {
 	const recorded = recordedIn(coverage.observations);
 	const unrecorded = [...new Set(coverage.written)].flatMap((table): readonly CoverageViolation[] => {
 		const model = coverage.tables.get(table);
@@ -36,4 +36,4 @@ export const checkCoverage = <A>(coverage: Coverage<A>): readonly CoverageViolat
 	});
 	const unnamed = new Map([...coverage.unnamed].map((write) => [identify(write), write] as const));
 	return [...unrecorded, ...[...unnamed.values()].map((write): CoverageViolation => ({ _tag: "Unnamed", write }))];
-};
+}

@@ -148,7 +148,9 @@ Routing uses the global dispatcher that Node's built-in `fetch` already uses. It
 
 #### Asserting on application traces
 
-Start an in-process host in `create`. That hook runs without the ambient parent span, so an Effect HTTP handler that captures its context does not inherit a span placed around the story. A request without trace headers starts a root trace; a request with `traceparent` continues that trace. The tracer, services and per-story Scope remain available during creation. Traits, engine steps and the story body keep the span supplied by `around`.
+Start an in-process host in `create` or a stage's `after` hook, such as `after: { deployment }`. Creation and every `after` hook run without the ambient parent span, so an Effect HTTP handler that captures its context does not inherit a span placed around the story. Their scoped teardown and finalizers retain that detached context. The tracer, services and per-story Scope remain available. Traits, verbs, engine steps and assertions in the story body keep the span supplied by `around`.
+
+This lets an application's story assert that a request starts its own trace: a request without trace headers starts a root trace, and a request with `traceparent` continues that trace. Host startup and cleanup do not join the story's trace.
 
 A kit can collect spans with a native in-memory tracer, or start a fake OTLP receiver and point the application's exporter at it. Keep collection and any exporter flush or bounded wait in the kit's verbs. Assert only after the request span has ended. This small in-memory kit uses Effect's Web Request handler as its host:
 
@@ -201,7 +203,22 @@ app.it("a request continues its supplied trace", [], function* ({ request }) {
 });
 ```
 
-The package's [tracing kit](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/test-support/tracingApp.ts) and [stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/hostTracing.spec.ts) also assert that two requests have different trace IDs, request work stays under its request span, and traits and engine steps stay under the story span. Creation only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
+The package's [tracing kit](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/test-support/tracingApp.ts) and [stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/hostTracing.spec.ts) also assert that two requests have different trace IDs, request work stays under its request span, and traits and engine steps stay under the story span. The [after-hook stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/afterHostTracing.spec.ts) boot a loopback HTTP host after deployment and check its startup, requests and cleanup against the story trace, while its request verb remains a child of the story span. Detachment only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
+
+#### Reading OTLP exports
+
+Use `otlpReceiver` from `@shivaedev/test-story/otlpReceiver.ts` in a kit's scoped `create` hook. It listens on an allocated loopback port and closes with the story scope. Point the application's real exporter at `${receiver.url}/v1/traces`, then flush the exporter before reading:
+
+```ts
+import { otlpReceiver } from "@shivaedev/test-story/otlpReceiver.ts";
+
+const receiver = yield* otlpReceiver();
+yield* exportWork(`${receiver.url}/v1/traces`);
+expect(receiver.spans).toContainEqual(expect.objectContaining({ name: "CountWords" }));
+expect(receiver.requests.some(({ body }) => body.includes(Buffer.from("planted-secret")))).toBe(true);
+```
+
+`exportWork` is the kit's verb that runs application work and flushes its exporter. The receiver accepts OTLP/HTTP JSON and protobuf. `spans` flattens all exports into decoded trace and span IDs, parent span IDs, names, numeric OTLP kinds and status codes, attributes, events and links. Attributes retain OTLP key/value objects, including lossless decimal strings for integers; each span also has `resourceAttributes`. `requests` retains every request's unmodified `body` Buffer, parsed `headers`, original `rawHeaders` pairs and `path`. Search all body bytes when checking that a secret was not exported. Optional `path`, `status` (a number or attempt callback) and `answer` configure collector responses for failure stories.
 
 ### 2. Once per feature: traits and verbs
 
@@ -439,6 +456,18 @@ socialApp.it("a social sign-in returns with a cookie session", [], function* ({ 
 `socialDefinition` starts the host and renders the screen with a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The [story](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/server/socialSessions.dom.spec.ts) also checks the authorize, token and user requests at the fake, persisted PostgreSQL rows, and an HttpOnly session cookie read through a later document request. It does not copy cookies into request headers.
 
 `domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
+
+### API by module
+
+Import each module with the prefix `@shivaedev/test-story/`; there is no root entry.
+
+| Module | Exports |
+| --- | --- |
+| `storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
+| `domFetch.ts` | `domFetch(baseUrl)` |
+| `domNavigate.ts` | `domNavigate(url?)` |
+| `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
+| `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
 
 ### Install and limits
 

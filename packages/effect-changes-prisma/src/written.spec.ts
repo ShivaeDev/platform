@@ -11,32 +11,30 @@ async function backend(tx: Transaction) {
 	return row?.pid;
 }
 
-function reusedConnection<TX>(later: (tx: Transaction) => Promise<TX>) {
-	return Effect.gen(function* () {
-		const { schema } = yield* makeDatabase;
-		const client = yield* connect(schema, { max: 1 });
-		const earlier = yield* Effect.promise(() =>
-			client.$transaction(async (tx) => {
-				await tx.order.create({ data: { id: "o1", ownerId: "ada", total: 1 } });
-				await tx.membership.create({ data: { id: "m1", memberId: "bob", ownerId: "ada" } });
-				return backend(tx);
-			}),
-		);
-		return yield* Effect.promise(() =>
-			client.$transaction(async (tx) => {
-				const since = await Effect.runPromise(tableWrites(tx));
-				const result = await later(tx);
-				return {
-					cumulative: await Effect.runPromise(writtenTables(tx)),
-					earlier,
-					later: await backend(tx),
-					result,
-					written: await Effect.runPromise(writtenTables(tx, since)),
-				};
-			}),
-		);
-	});
-}
+const reusedConnection = Effect.fn("ChangesPrisma.reusedConnection")(function* <TX>(later: (tx: Transaction) => Promise<TX>) {
+	const { schema } = yield* makeDatabase;
+	const client = yield* connect(schema, { max: 1 });
+	const earlier = yield* Effect.promise(() =>
+		client.$transaction(async (tx) => {
+			await tx.order.create({ data: { id: "o1", ownerId: "ada", total: 1 } });
+			await tx.membership.create({ data: { id: "m1", memberId: "bob", ownerId: "ada" } });
+			return backend(tx);
+		}),
+	);
+	return yield* Effect.promise(() =>
+		client.$transaction(async (tx) => {
+			const since = await Effect.runPromise(tableWrites(tx));
+			const result = await later(tx);
+			return {
+				cumulative: await Effect.runPromise(writtenTables(tx)),
+				earlier,
+				later: await backend(tx),
+				result,
+				written: await Effect.runPromise(writtenTables(tx, since)),
+			};
+		}),
+	);
+});
 
 integration("writtenTables leaves out what earlier transactions wrote on a reused connection", () =>
 	Effect.runPromise(

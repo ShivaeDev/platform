@@ -28,9 +28,13 @@ import { testsFollow } from "#rules/test-names/follow.ts";
 import { biome } from "./biome.ts";
 import { manifestsSorted } from "./manifests-sorted.ts";
 import { maxLines } from "./max-lines.ts";
+import { maxDepth } from "./maxDepth.ts";
+import { noBarrel } from "./noBarrel.ts";
 
 export const builtInRules = [
 	maxLines,
+	maxDepth,
+	noBarrel,
 	noJsdoc,
 	noLineReference,
 	noPrReference,

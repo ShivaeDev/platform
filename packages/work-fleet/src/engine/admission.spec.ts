@@ -61,6 +61,25 @@ describe("Fleet admission path", () => {
 				expect(fixture.launched).toHaveLength(0);
 			}),
 		));
+	test("the production repository rejects a submission behind an area waiter", () =>
+		withEngine({}, (fixture) =>
+			Effect.gen(function* () {
+				fixture.areas("one", ["fleet/host"]);
+				fixture.areas("two", ["fleet/host"]);
+				yield* prepareWork("one");
+				yield* prepareWork("two");
+				const fleet = yield* Fleet;
+				const rejected = yield* Effect.flip(fleet.dispatch("two"));
+				expect(rejected).toMatchObject({ message: "waiting for area fleet/host queued ahead by one" });
+				expect((yield* fleet.get("two")).value).toMatchObject({
+					attempts: [],
+					blocker: "waiting for area fleet/host queued ahead by one",
+					stage: "prepared",
+				});
+				expect(fixture.launched).toHaveLength(0);
+				expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+			}),
+		));
 	test("only dependents wait for accepted outcomes", () =>
 		withEngine({}, (fixture) =>
 			Effect.gen(function* () {
