@@ -2,9 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "pgboss-0.8.md",
-			"text": "### Changed\n\n- New apps start on `@shivaedev/effect-pg-boss` 0.8.0, which bounds each batched job by its own expiry deadline.\n"
+			"name": "test-sql-0.5.1.md",
+			"text": "### Changed\n\n- New apps start on `@shivaedev/effect-test-sql` 0.5.1, whose migration steps accept zero-padded migration names as written.\n"
 		}
 	],
-	"version": "0.6.5"
+	"version": "0.6.6"
 }
