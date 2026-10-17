@@ -81,9 +81,9 @@
 {"path":"packages/effect-prisma/src/sqlite.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/sqlite.ts","rule":"biome/lint/style/useNamingConvention","count":5}
 {"path":"packages/effect-prisma/src/test-support/contract.ts","rule":"biome/lint/style/noExportedImports","count":2}
-{"path":"packages/effect-prisma/src/test-support/controlled-collection.ts","rule":"biome/lint/style/useConsistentMemberAccessibility","count":7}
-{"path":"packages/effect-prisma/src/test-support/controlled-collection.ts","rule":"biome/lint/style/useNamingConvention","count":5}
-{"path":"packages/effect-prisma/src/test-support/controlled-collection.ts","rule":"biome/lint/suspicious/useAwait","count":2}
+{"path":"packages/effect-prisma/src/test-support/controlled-collection.ts","rule":"biome/lint/style/useConsistentMemberAccessibility","count":1}
+{"path":"packages/effect-prisma/src/test-support/controlled-collection.ts","rule":"biome/lint/style/useNamingConvention","count":1}
+{"path":"packages/effect-prisma/src/test-support/controlled-collection.ts","rule":"biome/lint/suspicious/useAwait","count":1}
 {"path":"packages/effect-prisma/src/test-support/controlled-collection.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/test-support/environment.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/test-support/postgres-database.ts","rule":"files/named-after-export","count":1}
@@ -91,8 +91,6 @@
 {"path":"packages/effect-prisma/src/test-support/sqlite/contract.ts","rule":"biome/lint/style/noExportedImports","count":2}
 {"path":"packages/effect-prisma/src/test-support/sqlite/prisma-next.config.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/test-support/typed-database.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-prisma/src/test-support/unused-client.ts","rule":"biome/lint/style/useNamingConvention","count":1}
-{"path":"packages/effect-prisma/src/test-support/unused-client.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/testing/transaction.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/testing/transaction.ts","rule":"biome/lint/style/useNamingConvention","count":4}
 {"path":"packages/effect-prisma/src/testing/transaction.ts","rule":"files/named-after-export","count":1}
