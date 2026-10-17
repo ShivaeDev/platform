@@ -1,5 +1,6 @@
 import { Deferred, Effect, Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expect } from "vitest";
 import { eventually } from "#test/eventually.ts";
 import { liveNotesStory, liveSession, watchingNotes } from "#test/liveNotesStory.ts";
@@ -27,7 +28,8 @@ liveNotesStory.it("bounds paused hints and resyncs current source once resumed",
 	yield* eventually(() => expect(test.status().pending).toBe(256));
 	expect(test.body(one)).toBe("First");
 	test.pause(false);
-	yield* eventually(() => expect(test.body(one)).toBe("While paused"));
+	const resumed = yield* AtomRegistry.getResult(test.registry, one, { suspendOnWaiting: true });
+	expect(resumed.body).toBe("While paused");
 	expect(test.status().pending).toBe(0);
 });
 liveNotesStory.it("retains successful data on typed read failure and reconciles on resume", [liveSession(), watchingNotes()], function* (test) {
