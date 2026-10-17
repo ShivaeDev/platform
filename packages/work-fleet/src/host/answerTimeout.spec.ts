@@ -29,15 +29,12 @@ const steerRequest = Effect.fn("AnswerTimeoutTest.steerRequest")(function* (
 	expect(stopped.decision?.code).toBe("fleet-stale");
 	fixture.write("one.md", current);
 	delay.enable();
-	const accepted = yield* daemonRequest(
-		port,
-		(peer) => (command === "answer" ? peer("daemon.answer", { workId: "one" }) : peer("daemon.dispatch", { workId: "one" })),
-		`${command} one`,
-		1500,
-	);
+	const accepted = yield* command === "answer"
+		? daemonRequest(port, (peer) => peer("daemon.answer", { workId: "one" }), "answer one", 1500)
+		: daemonRequest(port, (peer) => peer("daemon.dispatch", { workId: "one" }), "dispatch one", 1500);
 	expect(accepted.workId).toBe("one");
 	if (command === "answer") {
-		expect(accepted.blocker).toBe("Answer recorded; applying in the background");
+		expect("blocker" in accepted ? accepted.blocker : undefined).toBe("Answer recorded; applying in the background");
 		expect(boardHttpFiles(fixture.host.boardDir).read(`responses/response.fleet-retry.${stopped.decision?.published?.questionId}.md`)).toContain(
 			"author: orchestrator",
 		);

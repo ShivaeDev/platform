@@ -30,7 +30,7 @@ const dispatchCommand = Command.make(
 	Effect.fn("WorkFleetCli.dispatch")(function* (input) {
 		const { daemonRequest } = yield* Effect.promise(() => import("#host/daemonClient.ts"));
 		const value = yield* daemonRequest(input.port, (client) => client("daemon.dispatch", { workId: input.workId }), `dispatch ${input.workId}`);
-		yield* Console.log(`${value.workId} ${value.stage}: dispatch recorded; launching in the background`);
+		yield* Console.log(`${value.workId}: dispatch recorded; preparing and launching in the background`);
 	}),
 ).pipe(Command.withDescription("Prepare the current approved revision of one Board item and launch it"));
 

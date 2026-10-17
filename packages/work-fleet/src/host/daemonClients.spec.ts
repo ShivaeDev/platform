@@ -21,7 +21,7 @@ const dispatchStory = Effect.fn("DaemonClientsTest.dispatchStory")(function* (fi
 	function dispatch(id: string) {
 		return Effect.promise(() => cliProcess(["dispatch", id, "--port", String(port), "--config", `${fixture.host.boardDir}/unused.json`]));
 	}
-	expect(yield* dispatch("one")).toEqual({ code: 0, stdout: "one prepared: dispatch recorded; launching in the background" });
+	expect(yield* dispatch("one")).toEqual({ code: 0, stdout: "one: dispatch recorded; preparing and launching in the background" });
 	yield* waitForRecord(yield* daemonClient(port), "one", (record) => record.attempts.at(-1)?.receipt !== undefined);
 	expect(fixture.provider.launched).toHaveLength(1);
 	expect([...fixture.provider.observations.values()][0]?.output).toContain("Edited approved revision.");

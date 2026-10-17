@@ -22,7 +22,7 @@ export function renderStatus(current: typeof FleetViews.Type, port: number = DAE
 		["Waiting on automation", current.waiting.automation],
 		["Completed", current.completed],
 	];
-	return sections
+	const rendered = sections
 		.map(([title, items]) =>
 			[
 				`${title} (${items.length})`,
@@ -30,4 +30,8 @@ export function renderStatus(current: typeof FleetViews.Type, port: number = DAE
 			].join("\n"),
 		)
 		.join("\n");
+	const dispatches = current.dispatches ?? [];
+	return dispatches.length === 0
+		? rendered
+		: `${rendered}\nDispatches (${dispatches.length})\n${dispatches.map((request) => `  ${request.workId}  dispatch ${request.status}${request.error === undefined ? "" : `: ${request.error}`}`).join("\n")}`;
 }

@@ -9,7 +9,7 @@ import { daemonLayer } from "#host/daemon.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { until } from "#test/cloudRestart.ts";
-import { dispatchAndWait } from "#test/daemonActions.ts";
+import { waitForDispatch } from "#test/daemonActions.ts";
 import { MAIN, task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
@@ -55,7 +55,7 @@ describe("Fleet errors over daemon HTTP", () => {
 				}),
 			),
 		));
-	test("daemon commands preserve integration errors without a transport wrapper", () =>
+	test("daemon dispatch records refresh failure after acknowledging acceptance", () =>
 		withHost({}, { intervalSeconds: 60 }, (fixture) =>
 			Effect.scoped(
 				Effect.gen(function* () {
@@ -71,9 +71,10 @@ describe("Fleet errors over daemon HTTP", () => {
 						return yield* Effect.die("Expected a TCP listener");
 					}
 					fixture.write("one.md", task("one", "approved"));
-					const failure = yield* daemonRequest(address.port, (client) => dispatchAndWait(client, "one")).pipe(Effect.flip);
-					expect(failure).toBeInstanceOf(ServiceUnavailable);
-					expect(failure.message).toBe("Git observation unavailable");
+					const accepted = yield* daemonRequest(address.port, (client) => client("daemon.dispatch", { workId: "one" }));
+					expect(accepted.status).toBe("pending");
+					const failure = yield* daemonRequest(address.port, (client) => waitForDispatch(client, "one"));
+					expect(failure).toMatchObject({ error: "Git observation unavailable", id: accepted.id, status: "failed" });
 				}),
 			),
 		));

@@ -8,6 +8,17 @@ import { untilOutput, withFollower } from "#test/follower.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
 import { storeState } from "#test/storeState.ts";
 
+const observed = Effect.fn("WatchReconnectTest.observed")(function* (snapshot: Promise<void>, done: Promise<unknown>, phase: string) {
+	yield* Effect.promise(() =>
+		Promise.race([
+			snapshot,
+			done.then((result) => {
+				throw new Error(`Follower exited before ${phase} snapshot: ${JSON.stringify(result)}`);
+			}),
+		]),
+	);
+});
+
 export const watchReconnect = Effect.fn("WatchReconnectTest.watchReconnect")(function* (fixture: HostFixture, ids: readonly string[]) {
 	for (const [id, stage] of [
 		["done", "completed"],
@@ -40,7 +51,7 @@ export const watchReconnect = Effect.fn("WatchReconnectTest.watchReconnect")(fun
 	const first = yield* start(0);
 	yield* withFollower(fixture.configFile, "watch", ids, { follow: true, interval: 0.1, port: first.port }, (follower) =>
 		Effect.gen(function* () {
-			yield* Effect.promise(() => first.snapshot);
+			yield* observed(first.snapshot, follower.done, "initial");
 			yield* untilOutput(follower, initial);
 			yield* Effect.sleep("100 millis");
 			expect(follower.output()).toBe(initial);
@@ -50,13 +61,13 @@ export const watchReconnect = Effect.fn("WatchReconnectTest.watchReconnect")(fun
 			yield* untilOutput(follower, "active released\n");
 			yield* first.stop;
 			const unchanged = yield* start(first.port);
-			yield* Effect.promise(() => unchanged.snapshot);
+			yield* observed(unchanged.snapshot, follower.done, "unchanged restart");
 			yield* Effect.sleep("100 millis");
 			expect(follower.output()).toBe(`${initial}active released\n`);
 			yield* unchanged.stop;
 			yield* storeState(fixture.host, "active", { stage: "completed" });
 			const changed = yield* start(first.port);
-			yield* Effect.promise(() => changed.snapshot);
+			yield* observed(changed.snapshot, follower.done, "changed restart");
 			yield* untilOutput(follower, "active completed\n");
 			yield* Effect.sleep("100 millis");
 			expect(follower.output()).toBe(`${initial}active released\nactive completed\n`);

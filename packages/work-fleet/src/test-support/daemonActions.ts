@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import type { daemonClient } from "#host/daemonClient.ts";
 import type { FleetRecord } from "#model.ts";
@@ -8,8 +9,8 @@ type Client = Effect.Success<ReturnType<typeof daemonClient>>;
 export const waitForRecord = Effect.fn("DaemonTest.waitForRecord")(
 	function* (client: Client, workId: string, ready: (record: FleetRecord) => boolean) {
 		while (true) {
-			const record = yield* client("fleet.get", { workId });
-			if (ready(record)) {
+			const record = yield* client("fleet.get", { workId }).pipe(Effect.catchTag("NotFound", () => Effect.succeed(undefined)));
+			if (record !== undefined && ready(record)) {
 				return record;
 			}
 			yield* Effect.sleep("10 millis");
@@ -20,8 +21,25 @@ export const waitForRecord = Effect.fn("DaemonTest.waitForRecord")(
 
 export const dispatchAndWait = Effect.fn("DaemonTest.dispatchAndWait")(function* (client: Client, workId: string) {
 	yield* client("daemon.dispatch", { workId });
+	const outcome = yield* waitForDispatch(client, workId);
+	if (outcome.status === "failed") {
+		return yield* new ServiceUnavailable({ message: outcome.error ?? "Dispatch failed" });
+	}
 	return yield* waitForRecord(client, workId, (record) => record.stage !== "prepared" && record.attempts.at(-1)?.status !== "submitting");
 });
+
+export const waitForDispatch = Effect.fn("DaemonTest.waitForDispatch")(
+	function* (client: Client, workId: string) {
+		while (true) {
+			const request = yield* client("daemon.dispatch-status", { workId });
+			if (request !== null && request.status !== "pending") {
+				return request;
+			}
+			yield* Effect.sleep("10 millis");
+		}
+	},
+	(effect) => effect.pipe(Effect.timeout("10 seconds")),
+);
 
 export function appliedAnswer(client: Client, workId: string) {
 	return waitForRecord(

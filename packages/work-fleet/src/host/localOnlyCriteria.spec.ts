@@ -66,7 +66,10 @@ test("CLI dispatch launches an edited criterion after a local-only criterion blo
 					expect(blocked.decision?.reason).toContain("private/board");
 					expect(fixture.provider.launched).toHaveLength(0);
 					local.write(source("Measure repository fixtures."));
-					expect(yield* dispatch).toMatchObject({ code: 0, stdout: expect.stringContaining("dispatch recorded; launching in the background") });
+					expect(yield* dispatch).toMatchObject({
+						code: 0,
+						stdout: expect.stringContaining("dispatch recorded; preparing and launching in the background"),
+					});
 					const launched = yield* waitForRecord(client, "one", (record) => record.stage === "executing" && record.attempts[0]?.receipt !== undefined);
 					expect(launched.decision).toBeUndefined();
 					expect(launched.boardContext).toContain("Measure repository fixtures.");
