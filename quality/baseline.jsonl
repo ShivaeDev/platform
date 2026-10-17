@@ -25,11 +25,9 @@
 {"path":"packages/effect-changes/src/settle.spec.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/effect-changes/src/test-support/fake-database.ts","rule":"biome/lint/style/useNamingConvention","count":3}
 {"path":"packages/effect-changes/src/test-support/fake-database.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-contract/src/bind.test.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-contract/src/keys.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
-{"path":"packages/effect-contract/src/liveConsumer.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/command-query.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/duplicate-command.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/duplicate-name.ts","rule":"files/named-after-export","count":1}
