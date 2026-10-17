@@ -3,6 +3,7 @@ import { Deferred, Effect } from "effect";
 export function checkGate() {
 	const started = new Map<string, Deferred.Deferred<void>>();
 	const released = new Map<string, Deferred.Deferred<string | undefined>>();
+	const delivered = new Map<string, Deferred.Deferred<void>>();
 	function entry<TValue>(map: Map<string, Deferred.Deferred<TValue>>, value: string): Deferred.Deferred<TValue> {
 		const known = map.get(value);
 		if (known !== undefined) {
@@ -13,8 +14,15 @@ export function checkGate() {
 		return made;
 	}
 	return {
-		answer: (value: string, message: string | undefined) => Deferred.succeed(entry(released, value), message),
-		check: (value: string) => Deferred.succeed(entry(started, value), undefined).pipe(Effect.andThen(Deferred.await(entry(released, value)))),
+		answer: (value: string, message: string | undefined) =>
+			Deferred.succeed(entry(released, value), message).pipe(Effect.andThen(Deferred.await(entry(delivered, value)))),
+		check: (value: string) =>
+			Deferred.succeed(entry(started, value), undefined).pipe(
+				Effect.andThen(Deferred.await(entry(released, value))),
+				Effect.tap(() => Deferred.succeed(entry(delivered, value), undefined)),
+				// A remote answer can arrive after the form stops waiting for it.
+				Effect.uninterruptible,
+			),
 		started: (value: string) => Deferred.await(entry(started, value)),
 	};
 }
