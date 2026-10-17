@@ -7,6 +7,7 @@ import type { BrowserClient } from "#client/client.ts";
 import { navigationQuery } from "#client/page/routeQuery.ts";
 import { AgeTicker } from "./Age.tsx";
 import { FleetMain } from "./FleetMain.tsx";
+import { FormContext } from "./FormContext.ts";
 import { Header } from "./Header.tsx";
 import { LiveControls } from "./LiveControls.tsx";
 import { displayedLocation, type MainLocation, sameMainLocation } from "./mainLocation.ts";
@@ -84,7 +85,7 @@ export function BoardShell(options: ShellOptions) {
 			connecting
 		</span>
 	);
-	return (
+	const content = (
 		<AgeTicker>
 			<ReadingLibrary api={api} close={() => setLibraryOpen(false)} open={libraryOpen}>
 				<a className="sr-only rounded-md bg-background p-3 focus:not-sr-only focus:absolute focus:z-50" href="#doc">
@@ -133,4 +134,5 @@ export function BoardShell(options: ShellOptions) {
 			</ReadingLibrary>
 		</AgeTicker>
 	);
+	return client ? <FormContext.Provider value={client}>{content}</FormContext.Provider> : content;
 }
