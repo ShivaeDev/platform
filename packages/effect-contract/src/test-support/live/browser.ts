@@ -13,14 +13,17 @@ function output(id: string, body: string) {
 		target.textContent = body;
 	}
 }
-for (const id of ["one", "two"]) {
+for (const [id, label] of [
+	[1, "one"],
+	[2, "two"],
+] as const) {
 	const atom = client.api.get.query({ id });
 	releases.push(
 		registry.subscribe(
 			atom,
 			(value) =>
 				output(
-					id,
+					label,
 					`${AsyncResult.getOrElse(value, () => undefined)?.body ?? "Loading"}${AsyncResult.isFailure(value) ? " (read failed)" : ""}${value.waiting ? " (refreshing)" : ""}`,
 				),
 			{ immediate: true },

@@ -5,10 +5,12 @@ import { CODE, missingImportTargets } from "#package-check/imports.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, decodeManifest, dependencyKeys, type Manifest, type Package, targets } from "#package-check/model.ts";
 
-const exact = /^(npm:.+@)?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/u;
+const exact = /^(?:npm:.+@)?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
 const SourceMap = Schema.fromJsonString(Schema.Struct({ sourceRoot: Schema.optional(Schema.String), sources: Schema.Array(Schema.String) }));
 const decodeMap = Schema.decodeUnknownSync(SourceMap);
-const packedPath = (path: string): string => posix.join("package", path);
+function packedPath(path: string): string {
+	return posix.join("package", path);
+}
 const TEST_FILE = /(?:^|\/)(?:tests?|test-support)\/|\.(?:test|spec)\.[^/]*$/u;
 
 function filesEntryHolds(pattern: string, contents: ReadonlySet<string>): boolean {
@@ -28,39 +30,37 @@ function checkFiles(name: string, patterns: readonly string[], contents: Readonl
 	);
 }
 
-export const checkArchive = (pkg: Package) =>
-	Effect.gen(function* () {
-		yield* command(pkg.directory, "pnpm", ["pack", "--out", pkg.tarball]);
-		return yield* checkPackedArchive(pkg);
-	});
+export const checkArchive = Effect.fn("Packed.checkArchive")(function* (pkg: Package) {
+	yield* command(pkg.directory, "pnpm", ["pack", "--out", pkg.tarball]);
+	return yield* checkPackedArchive(pkg);
+});
 
-export const checkPackedArchive = (pkg: Package) =>
-	Effect.gen(function* () {
-		const { directory, tarball } = pkg;
-		const contents = new Set((yield* command(directory, "tar", ["-tzf", tarball])).trim().split("\n"));
-		const manifest = decodeManifest(yield* command(directory, "tar", ["-xOzf", tarball, "package/package.json"]));
-		for (const key of dependencyKeys) {
-			for (const [name, version] of Object.entries(manifest[key] ?? {})) {
-				yield* requireThat(exact.test(version), `${manifest.name}: ${key}.${name} is not exact: ${version}`);
-			}
+export const checkPackedArchive = Effect.fn("Packed.checkPackedArchive")(function* (pkg: Package) {
+	const { directory, tarball } = pkg;
+	const contents = new Set((yield* command(directory, "tar", ["-tzf", tarball])).trim().split("\n"));
+	const manifest = decodeManifest(yield* command(directory, "tar", ["-xOzf", tarball, "package/package.json"]));
+	for (const key of dependencyKeys) {
+		for (const [name, version] of Object.entries(manifest[key] ?? {})) {
+			yield* requireThat(exact.test(version), `${manifest.name}: ${key}.${name} is not exact: ${version}`);
 		}
-		const nodeVersion = manifest.peerDependencies?.["@effect/platform-node"] ?? manifest.dependencies?.["@effect/platform-node"];
-		if (Object.keys(bins(manifest)).length > 0 && nodeVersion !== undefined) {
-			yield* requireThat(
-				manifest.peerDependencies?.["@effect/platform-node-shared"] === nodeVersion,
-				`${manifest.name}: executable needs @effect/platform-node-shared as an exact peer at ${nodeVersion}`,
-			);
-		}
-		yield* checkImports(tarball, manifest, contents);
-		const packed = new Set([...contents].map((path) => posix.relative("package", path)));
-		const required = [...exportTargets(manifest, packed), ...targets(manifest.types), ...Object.values(bins(manifest))];
-		for (const target of required) {
-			yield* requireThat(contents.has(packedPath(target)), `${manifest.name}: missing manifest target ${target}`);
-		}
-		yield* checkFiles(manifest.name, manifest.files ?? [], contents);
-		yield* checkMaps(directory, tarball, contents);
-		return manifest;
-	});
+	}
+	const nodeVersion = manifest.peerDependencies?.["@effect/platform-node"] ?? manifest.dependencies?.["@effect/platform-node"];
+	if (Object.keys(bins(manifest)).length > 0 && nodeVersion !== undefined) {
+		yield* requireThat(
+			manifest.peerDependencies?.["@effect/platform-node-shared"] === nodeVersion,
+			`${manifest.name}: executable needs @effect/platform-node-shared as an exact peer at ${nodeVersion}`,
+		);
+	}
+	yield* checkImports(tarball, manifest, contents);
+	const packed = new Set([...contents].map((path) => posix.relative("package", path)));
+	const required = [...exportTargets(manifest, packed), ...targets(manifest.types), ...Object.values(bins(manifest))];
+	for (const target of required) {
+		yield* requireThat(contents.has(packedPath(target)), `${manifest.name}: missing manifest target ${target}`);
+	}
+	yield* checkFiles(manifest.name, manifest.files ?? [], contents);
+	yield* checkMaps(directory, tarball, contents);
+	return manifest;
+});
 
 function checkImports(tarball: string, manifest: Manifest, contents: ReadonlySet<string>) {
 	return Effect.scoped(
@@ -79,17 +79,16 @@ function checkImports(tarball: string, manifest: Manifest, contents: ReadonlySet
 	);
 }
 
-const checkMaps = (directory: string, tarball: string, contents: ReadonlySet<string>) =>
-	Effect.gen(function* () {
-		for (const path of contents) {
-			yield* requireThat(!TEST_FILE.test(path), `packed test file ${path}`);
-			if (!path.endsWith(".map")) {
-				continue;
-			}
-			const map = decodeMap(yield* command(directory, "tar", ["-xOzf", tarball, path]));
-			for (const source of map.sources) {
-				const target = posix.join(posix.dirname(path), map.sourceRoot ?? "", source);
-				yield* requireThat(contents.has(target), `${path} references missing ${target}`);
-			}
+const checkMaps = Effect.fn("Packed.checkMaps")(function* (directory: string, tarball: string, contents: ReadonlySet<string>) {
+	for (const path of contents) {
+		yield* requireThat(!TEST_FILE.test(path), `packed test file ${path}`);
+		if (!path.endsWith(".map")) {
+			continue;
 		}
-	});
+		const map = decodeMap(yield* command(directory, "tar", ["-xOzf", tarball, path]));
+		for (const source of map.sources) {
+			const target = posix.join(posix.dirname(path), map.sourceRoot ?? "", source);
+			yield* requireThat(contents.has(target), `${path} references missing ${target}`);
+		}
+	}
+});

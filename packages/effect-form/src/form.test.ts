@@ -1,192 +1,97 @@
-import { expect, it } from "@effect/vitest";
-import { Context, Data, Deferred, Effect, Layer, Schema, SchemaGetter } from "effect";
-import * as Atom from "effect/reactivity/Atom";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { vi } from "vitest";
-import { make } from "#form.ts";
+import { expect } from "@effect/vitest";
 import { Invalid } from "#shape.ts";
+import { asyncName, choices, nestedProp, plainName, profiles, prototype, requiredName, slugs, takenName, visibility } from "#test/forms.ts";
 
-const runtime = Atom.runtime(Layer.empty);
+requiredName.it("invalid submission reveals field errors and never calls the handler", [], function* ({ submit, reject, errors, submissions }) {
+	expect(errors("name")).toBeUndefined();
+	submit();
+	expect(yield* reject()).toBeInstanceOf(Invalid);
+	expect(submissions.length).toBe(0);
+	expect(errors("name")).toBe("Required");
+});
 
-it.live("invalid submission reveals field errors and never calls the handler", () =>
-	Effect.gen(function* () {
-		const registry = yield* AtomRegistry.AtomRegistry;
-		let calls = 0;
-		const form = make(Schema.Struct({ name: Schema.NonEmptyString }), {
-			initialValues: { name: "" },
-			onSubmit: () =>
-				Effect.sync(() => {
-					calls += 1;
-				}),
-			runtime,
-		});
-		yield* AtomRegistry.mount(registry, form.error("name"));
-		expect(registry.get(form.error("name"))).toBeUndefined();
-		registry.set(form.submit, undefined);
-		const failure = yield* Effect.flip(AtomRegistry.getResult(registry, form.submit));
-		expect(failure).toBeInstanceOf(Invalid);
-		expect(calls).toBe(0);
-		expect(registry.get(form.error("name"))).toBe("Required");
-	}).pipe(Effect.provide(AtomRegistry.layer)),
-);
-
-it.live("changing a field clears its server rejection and a retry submits the new value", () =>
-	Effect.gen(function* () {
-		const registry = yield* AtomRegistry.AtomRegistry;
-		const form = make(Schema.Struct({ name: Schema.String }), {
-			initialValues: { name: "taken" },
-			onSubmit: (value, submitter) => (value.name === "taken" ? submitter.fail("name", "Already used") : Effect.succeed(value.name)),
-			runtime,
-		});
-		yield* AtomRegistry.mount(registry, form.error("name"));
-		registry.set(form.submit, undefined);
-		yield* Effect.flip(AtomRegistry.getResult(registry, form.submit));
-		expect(registry.get(form.error("name"))).toBe("Already used");
+takenName.it(
+	"changing a field clears its server rejection and a retry submits the new value",
+	[],
+	function* ({ form, submit, result, reject, errors }) {
+		errors("name");
+		submit();
+		yield* reject();
+		expect(errors("name")).toBe("Already used");
 		form.change("name", "available");
-		expect(registry.get(form.error("name"))).toBeUndefined();
-		registry.set(form.submit, undefined);
-		expect(yield* AtomRegistry.getResult(registry, form.submit)).toBe("available");
-	}).pipe(Effect.provide(AtomRegistry.layer)),
+		expect(errors("name")).toBeUndefined();
+		submit();
+		expect(yield* result()).toBe("available");
+	},
 );
 
-it("derives literal choices from the field schema", () => {
-	const form = make(Schema.Struct({ visibility: Schema.Literals(["private", "public"]) }), {
-		initialValues: { visibility: "private" },
-		onSubmit: Effect.succeed,
-		runtime,
-	});
+visibility.it("derives literal choices from the field schema", [], ({ form }) => {
 	expect(form.choices("visibility")).toEqual(["private", "public"]);
 });
 
-it("offers encoded literals when the field transforms them", () => {
-	const Choice = Schema.Literals(["yes", "no"]).pipe(
-		Schema.decodeTo(Schema.Boolean, {
-			decode: SchemaGetter.transform((value) => value === "yes"),
-			encode: SchemaGetter.transform((value) => (value ? "yes" : "no")),
-		}),
-	);
-	const form = make(Schema.Struct({ choice: Choice }), {
-		initialValues: { choice: "yes" },
-		onSubmit: Effect.succeed,
-		runtime,
-	});
+choices.it("offers encoded literals when the field transforms them", [], ({ form }) => {
 	expect(form.choices("choice")).toEqual(["yes", "no"]);
 });
 
-it.live("prototype-named fields have ordinary choices and validation messages", () =>
-	Effect.gen(function* () {
-		const registry = yield* AtomRegistry.AtomRegistry;
-		const form = make(Schema.Struct({ toString: Schema.NonEmptyString }), {
-			initialValues: { toString: "" },
-			onSubmit: Effect.succeed,
-			runtime,
-		});
-		yield* AtomRegistry.mount(registry, form.error("toString"));
-		expect(form.choices("toString")).toBeUndefined();
-		expect(registry.get(form.error("toString"))).toBeUndefined();
-		registry.set(form.submit, undefined);
-		yield* Effect.flip(AtomRegistry.getResult(registry, form.submit));
-		expect(registry.get(form.error("toString"))).toBe("Required");
-	}).pipe(Effect.provide(AtomRegistry.layer)),
-);
+prototype.it("prototype-named fields have ordinary choices and validation messages", [], function* ({ form, submit, reject, errors }) {
+	expect(form.choices("toString")).toBeUndefined();
+	expect(errors("toString")).toBeUndefined();
+	submit();
+	yield* reject();
+	expect(errors("toString")).toBe("Required");
+});
 
-class SlugTaken extends Data.TaggedError("SlugTaken")<{ readonly slug: string }> {}
-
-class Slugs extends Context.Service<Slugs, { readonly claim: (slug: string) => Effect.Effect<string, SlugTaken> }>()("test/Slugs") {}
-
-it.live("a submit handler reads runtime services and reports a domain failure on its field", () =>
-	Effect.gen(function* () {
-		const registry = yield* AtomRegistry.AtomRegistry;
-		const form = make(Schema.Struct({ slug: Schema.String, title: Schema.String }), {
-			initialValues: { slug: "root", title: "Ops" },
-			onSubmit: (values, { fail }) =>
-				Effect.flatMap(Slugs, (slugs) => slugs.claim(values.slug)).pipe(
-					Effect.catchTag("SlugTaken", (taken) => fail("slug", `"${taken.slug}" is already in use`)),
-				),
-			runtime: Atom.runtime(
-				Layer.succeed(Slugs)({ claim: (slug) => (slug === "root" ? Effect.fail(new SlugTaken({ slug })) : Effect.succeed(slug)) }),
-			),
-		});
-		yield* AtomRegistry.mount(registry, form.error("slug"));
-		yield* AtomRegistry.mount(registry, form.error("title"));
-		registry.set(form.submit, undefined);
-		yield* Effect.flip(AtomRegistry.getResult(registry, form.submit));
-		expect(registry.get(form.error("slug"))).toBe(`"root" is already in use`);
-		expect(registry.get(form.error("title"))).toBeUndefined();
+slugs.it(
+	"a submit handler reads runtime services and reports a domain failure on its field",
+	[],
+	function* ({ form, submit, reject, result, errors }) {
+		errors("slug");
+		errors("title");
+		submit();
+		yield* reject();
+		expect(errors("slug")).toBe(`"root" is already in use`);
+		expect(errors("title")).toBeUndefined();
 		form.change("slug", "staging");
-		registry.set(form.submit, undefined);
-		expect(yield* AtomRegistry.getResult(registry, form.submit)).toBe("staging");
-	}).pipe(Effect.provide(AtomRegistry.layer)),
+		submit();
+		expect(yield* result()).toBe("staging");
+	},
 );
 
-it.live("dirty clears when an edit is undone", () =>
-	Effect.gen(function* () {
-		const registry = yield* AtomRegistry.AtomRegistry;
-		const form = make(Schema.Struct({ name: Schema.String }), {
-			initialValues: { name: "" },
-			onSubmit: Effect.succeed,
-			runtime,
-		});
-		yield* AtomRegistry.mount(registry, form.dirty);
-		form.change("name", "Ops");
-		expect(registry.get(form.dirty)).toBe(true);
-		form.change("name", "");
-		expect(registry.get(form.dirty)).toBe(false);
-	}).pipe(Effect.provide(AtomRegistry.layer)),
-);
+plainName.it("dirty clears when an edit is undone", [], ({ form, dirty }) => {
+	form.change("name", "Ops");
+	expect(dirty()).toBe(true);
+	form.change("name", "");
+	expect(dirty()).toBe(false);
+});
 
-it.live("a touched field has no schema message while its first async decode is pending", () =>
-	Effect.gen(function* () {
-		const registry = yield* AtomRegistry.AtomRegistry;
-		const started = yield* Deferred.make<void>();
-		const release = yield* Deferred.make<void>();
-		const name = Schema.String.pipe(
-			Schema.decodeTo(Schema.NonEmptyString, {
-				decode: SchemaGetter.transformEffect((value) =>
-					Deferred.succeed(started, undefined).pipe(Effect.andThen(Deferred.await(release)), Effect.as(value)),
-				),
-				encode: SchemaGetter.passthrough(),
-			}),
-		);
-		const form = make(Schema.Struct({ name }), { initialValues: { name: "" }, onSubmit: Effect.succeed, runtime });
+asyncName.it(
+	"a touched field has no schema message while its first async decode is pending",
+	[],
+	function* ({ form, errors, waitForSave, finishSave, eventually }) {
 		form.blur("name");
-		yield* AtomRegistry.mount(registry, form.error("name"));
-		yield* Deferred.await(started);
-		expect(registry.get(form.error("name"))).toBeUndefined();
-		yield* Deferred.succeed(release, undefined);
-		yield* Effect.promise(() => vi.waitFor(() => expect(registry.get(form.error("name"))).toBe("Required")));
-	}).pipe(Effect.provide(AtomRegistry.layer)),
+		errors("name");
+		yield* waitForSave();
+		expect(errors("name")).toBeUndefined();
+		yield* finishSave();
+		yield* eventually(() => expect(errors("name")).toBe("Required"));
+	},
 );
 
-it.live("field maps and updates follow the latest received values", () =>
-	Effect.gen(function* () {
-		const registry = yield* AtomRegistry.AtomRegistry;
-		const form = make(Schema.Struct({ profile: Schema.Struct({ count: Schema.Number, label: Schema.String }) }), {
-			initialValues: { profile: { count: 1, label: "First" } },
-			onSubmit: Effect.succeed,
-			runtime,
-		});
-		yield* AtomRegistry.mount(registry, form.dirty);
-		const profile = form.field("profile");
-		const label = profile.map((value) => value.label);
-		form.receive({ profile: { count: 5, label: "Received" } });
-		expect(label.value).toBe("Received");
-		profile.update((value) => ({ ...value, count: value.count + 1 }));
-		expect(form.values.value).toEqual({ profile: { count: 6, label: "Received" } });
-		expect(label.value).toBe("Received");
-		expect(registry.get(form.dirty)).toBe(true);
-		form.revert();
-		expect(label.value).toBe("Received");
-		expect(registry.get(form.dirty)).toBe(false);
-	}).pipe(Effect.provide(AtomRegistry.layer)),
-);
+profiles.it("field maps and updates follow the latest received values", [], ({ form, dirty }) => {
+	const profile = form.field("profile");
+	const label = profile.map((value) => value.label);
+	form.receive({ profile: { count: 5, label: "Received" } });
+	expect(label.value).toBe("Received");
+	profile.update((value) => ({ ...value, count: value.count + 1 }));
+	expect(form.values.value).toEqual({ profile: { count: 6, label: "Received" } });
+	expect(label.value).toBe("Received");
+	expect(dirty()).toBe(true);
+	form.revert();
+	expect(label.value).toBe("Received");
+	expect(dirty()).toBe(false);
+});
 
-it.fails("BUG: a nested field prop should update the draft without recursive ref creation", () => {
-	const form = make(Schema.Struct({ profile: Schema.Struct({ count: Schema.Number }) }), {
-		initialValues: { profile: { count: 1 } },
-		onSubmit: Effect.succeed,
-		runtime,
-	});
+nestedProp.it.fails("BUG: a nested field prop should update the draft without recursive ref creation", [], ({ form }) => {
 	const count = form.field("profile").prop("count");
 	expect(count.value).toBe(1);
 	count.set(2);

@@ -1,11 +1,11 @@
 import { useAtomRef } from "@effect/atom-react";
-import { Equal, Layer, Option, Schema } from "effect";
-import * as Atom from "effect/reactivity/Atom";
-import { useEffect, useRef, useState } from "react";
+import { Equal, Option, Schema } from "effect";
+import { useEffect, useState } from "react";
 import { useCreate } from "@shivaedev/effect-react/create.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { PromptAnswer, QuestionPreview } from "#browser/responses/schema.ts";
 import { formDraft } from "#client/formDraft.ts";
+import { type DraftInteraction, formStatus, responseSaved } from "#client/formStatus.ts";
 import { answerRecovery, recoveryText } from "#client/responses/answerRecovery.ts";
 import { authorLabel } from "#client/responses/authorLabel.ts";
 import { type ResponseInput, responseFormSchema } from "#client/responses/formSchema.ts";
@@ -14,14 +14,13 @@ import { retainContext } from "#client/responses/retainContext.ts";
 import { responseFeedback, responseSummary } from "#client/responses/summary.ts";
 import { sourceChanged } from "#client/sourceChanged.ts";
 import { createResponse } from "./createResponse.ts";
-
-const runtime = Atom.runtime(Layer.empty);
+import { useFormClient } from "./FormContext.ts";
 
 export function useResponseForm(source: QuestionPreview, prompts: readonly Prompt[]) {
+	const client = useFormClient();
 	const schema = responseFormSchema(prompts.length > 0);
 	const [preview, setPreview] = useState<ResponseInput>();
-	const [outcome, setOutcome] = useState<string>();
-	const [status, setStatus] = useState("");
+	const [interaction, setInteraction] = useState<DraftInteraction>("draft");
 	const [attempted, setAttempted] = useState(false);
 	const [label] = useState(() =>
 		authorLabel(() => window.localStorage, typeof document === "undefined" ? undefined : document.documentElement.dataset.workspace),
@@ -39,13 +38,13 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		type: "answer",
 	}));
 	const draft = formDraft("response", source.item, source.request);
-	const modelRef = useRef<ResponseInput | undefined>(undefined);
 	const created = useCreate({
-		create: (submission) => createResponse(source, submission, () => modelRef.current, setOutcome, setStatus),
+		create: (submission) => createResponse(client, source, submission),
 		fields: schema,
 		initialValues: initial,
 		persistedDraft: draft,
-		runtime,
+		rejectField: () => undefined,
+		runtime: client.runtime,
 	});
 	const form = created.form;
 	const values = useAtomRef(form.values);
@@ -57,7 +56,6 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 			}
 		}
 	}, [form, created.created, created.dirty, initial, label]);
-	modelRef.current = values;
 	const same = values.question === source.id && values.revision === source.reviewedRevision;
 	const stale = Boolean(values.id) && !same;
 	const recovery = answerRecovery(values, !stale || values.answerContext === JSON.stringify([source.id, source.reviewedRevision]));
@@ -86,7 +84,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		edit();
 	}
 	function showPreview() {
-		setOutcome(undefined);
+		setInteraction("draft");
 		if (!form.values.value.id || form.values.value.question !== source.id || form.values.value.revision !== source.reviewedRevision) {
 			form.change("id", `response.${crypto.randomUUID()}`);
 		}
@@ -98,7 +96,6 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 			form.blur(name);
 		}
 		setPreview(form.values.value);
-		setStatus("");
 	}
 	function edit() {
 		if (!form.values.value.id) {
@@ -109,18 +106,17 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		label.save(form.values.value.author);
 		setPreview(undefined);
 		if (!created.saving) {
-			setOutcome(undefined);
-			setStatus("");
+			setInteraction("draft");
 		}
 	}
 	function clear() {
 		setAttempted(false);
-		setOutcome(undefined);
 		created.revert();
 		setPreview(undefined);
-		setStatus("Draft cleared. Saved responses are unchanged.");
+		setInteraction("cleared");
 	}
 	const previewed = preview !== undefined && same && Equal.equals(preview, values);
+	const { outcome, text: status } = formStatus(created, interaction, "response", (saved) => responseSaved(saved.id, created.dirty));
 	const summary = responseSummary(values, prompts, answers(values), attempted);
 	return {
 		answers: answers(values),
@@ -131,7 +127,13 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		},
 		attempted,
 		clear,
-		created,
+		created: {
+			...created,
+			save: () => {
+				setInteraction("submitted");
+				created.save();
+			},
+		},
 		draft,
 		edit,
 		editAnswers,

@@ -1,6 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
-import { Effect, Option } from "effect";
-import * as Atom from "effect/reactivity/Atom";
+import { Cause, Effect, Option } from "effect";
 import { useContext, useMemo, useState } from "react";
 import { useAction, useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
@@ -11,9 +10,11 @@ import { documentQuery, navigationQuery, routeQueryOptions } from "#client/page/
 import { Button } from "#client/react/components/ui/Button.tsx";
 import { Popover } from "#client/react/components/ui/Popover.tsx";
 import { authorLabel } from "#client/responses/authorLabel.ts";
+import { saveFailure } from "#client/saveFailure.ts";
 import { fileUrl } from "#files/url.ts";
 import { responseUrl } from "#responses/url.ts";
 import { createResponse } from "./createResponse.ts";
+import { useFormClient } from "./FormContext.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 export function TodayOptions({ api, item }: { readonly api: ShellApi; readonly item: InboxProjection["you"][number] }) {
@@ -42,42 +43,48 @@ export function TodayOptions({ api, item }: { readonly api: ShellApi; readonly i
 
 function InlineOptions({ api, document: data, request }: { readonly api: ShellApi; readonly document: Document; readonly request: DocumentRequest }) {
 	const registry = useContext(RegistryContext);
-	const [status, setStatus] = useState("");
-	const [outcome, setOutcome] = useState("");
+	const client = useFormClient();
 	const [label] = useState(() => authorLabel(() => localStorage, document.documentElement.dataset.workspace));
 	const [author, setAuthor] = useState(() => label.read("") || "maintainer");
 	const actionAtom = useMemo(
 		() =>
-			Atom.fn<string>()((choice) => {
-				const preview = request.preview;
-				const prompt = request.prompts?.[0];
-				if (!(preview && prompt && author.trim())) {
-					return Effect.fail("Add your local author label.");
-				}
-				const answers = [{ prompt: prompt.id, selected: [choice], text: "" }];
-				const submission = {
-					answers,
-					author: author.trim(),
-					body: answerBody([prompt], answers, ""),
-					id: `response.${crypto.randomUUID()}`,
-					question: preview.id,
-					revision: preview.reviewedRevision,
-					type: "answer" as const,
-				};
-				return createResponse(preview, submission, () => submission, setOutcome, setStatus).pipe(
-					Effect.tap(() =>
-						Effect.sync(() => {
-							label.save(author);
-							registry.refresh(api.inbox.query(undefined, routeQueryOptions));
-							registry.refresh(navigationQuery(api));
-							registry.refresh(documentQuery(api, fileUrl(data.file)));
-						}),
-					),
-				);
-			}),
-		[api, registry, request, author, data.file, label.save],
+			client.runtime.fn(
+				Effect.fn("Board.answerOption")(function* (choice: string) {
+					const preview = request.preview;
+					const prompt = request.prompts?.[0];
+					if (!(preview && prompt && author.trim())) {
+						return yield* Effect.fail("Add your local author label.");
+					}
+					const answers = [{ prompt: prompt.id, selected: [choice], text: "" }];
+					const submission = {
+						answers,
+						author: author.trim(),
+						body: answerBody([prompt], answers, ""),
+						id: `response.${crypto.randomUUID()}`,
+						question: preview.id,
+						revision: preview.reviewedRevision,
+						type: "answer" as const,
+					};
+					const saved = yield* createResponse(client, preview, submission);
+					label.save(author);
+					registry.refresh(api.inbox.query(undefined, routeQueryOptions));
+					registry.refresh(navigationQuery(api));
+					registry.refresh(documentQuery(api, fileUrl(data.file)));
+					return saved;
+				}),
+			),
+		[client, api, registry, request, author, data.file, label.save],
 	);
 	const action = useAction(actionAtom);
+	const failure = Option.getOrUndefined(Option.flatMap(action.cause, Cause.findErrorOption));
+	const saved = Option.getOrUndefined(action.data);
+	let status = saved ? `Saved: responses/${saved.id}.md. This records feedback, not acceptance.` : "";
+	if (failure) {
+		status = typeof failure === "string" ? failure : saveFailure(failure, "response").text;
+	}
+	if (action.pending) {
+		status = "Pending: registering reviewed context, then recording response…";
+	}
 	const prompt = request.prompts?.[0];
 	return (
 		<fieldset aria-label={`Options for ${data.identity}`} className="m-0 min-w-0 space-y-2 border-0 px-2 pb-2">
@@ -86,7 +93,7 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 					const text = data.metadata.options?.[index]?.label ?? optionLabel(option.id, option.source, request.preview?.reason ?? "");
 					return (
 						<Button
-							disabled={!(data.writable && author.trim()) || action.pending || outcome === "pending" || outcome === "saved"}
+							disabled={!(data.writable && author.trim()) || action.pending || Boolean(saved)}
 							key={option.id}
 							onClick={() => action.dispatch(option.id)}
 							size="sm"

@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { browserClient } from "#client/client.ts";
+import { FormContext } from "#client/react/FormContext.ts";
 import { HandoffPage } from "#client/react/HandoffPage.tsx";
 import { ResultPage } from "#client/react/ResultPage.tsx";
 import { StartPage } from "#client/react/StartPage.tsx";
@@ -17,7 +18,11 @@ export async function renderRemaining(origin: string, url: string) {
 			case "/_board/start":
 				return renderToStaticMarkup(<StartPage data={await client.run(client.api.start.run(undefined))} />);
 			case "/_board/handoff":
-				return renderToStaticMarkup(<HandoffPage data={await client.run(client.api.handoff.run({ url }))} />);
+				return renderToStaticMarkup(
+					<FormContext.Provider value={client}>
+						<HandoffPage data={await client.run(client.api.handoff.run({ url }))} />
+					</FormContext.Provider>,
+				);
 			case "/_board/result":
 				return renderToStaticMarkup(<ResultPage data={await client.run(client.api.result.run({ url }))} />);
 			default:
