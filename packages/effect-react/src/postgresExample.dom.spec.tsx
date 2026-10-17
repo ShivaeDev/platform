@@ -1,127 +1,63 @@
-import { Deferred, Effect, Result } from "effect";
-import { expect } from "vitest";
-import { Rejected } from "#test/postgres-example/contract.ts";
 import { app, realPostgres } from "#test/postgres-example/integration.ts";
-import { makeClient } from "#test/postgres-example/makeClient.ts";
-import { call } from "#test/postgres-example/view.tsx";
-import { eventually, expectNoReactWarnings } from "#testing.ts";
+import { commitIsHeld, editorsAreOpen } from "#test/postgres-example/liveTraits.ts";
+import { expectNoReactWarnings } from "#testing.ts";
 
 expectNoReactWarnings();
 
 app.it(
 	"an authenticated PostgreSQL commit reaches another client's query and open editor over live HTTP",
-	[realPostgres()],
-	function* ({ start }) {
-		const entered = yield* Deferred.make<void>();
-		const released = yield* Deferred.make<void>();
-		const server = yield* start({ beforeCommit: Effect.andThen(Deferred.succeed(entered, undefined), Deferred.await(released)) });
-		const writer = yield* Effect.promise(server.mount);
-		const reader = yield* Effect.promise(server.mount);
-		yield* Effect.promise(() =>
-			eventually(() => {
-				expect(writer.input("name").value).toBe("Printer paper");
-				expect(reader.input("quantity").value).toBe("300");
-				expect(reader.registry.get(reader.status).connection).toBe("live");
-				expect(writer.registry.get(writer.status).connection).toBe("live");
-				expect(server.reads).toHaveLength(4);
-				expect(writer.registry.get(writer.query).waiting).toBe(false);
-				expect(reader.registry.get(reader.query).waiting).toBe(false);
-			}),
-		);
-		const deliveries = server.delivered.length;
-		yield* Effect.promise(() => writer.edit("name", "  Office chairs  "));
-		yield* Effect.promise(() => writer.edit("quantity", "450"));
-		yield* Effect.promise(() => writer.click("Save"));
-		yield* Deferred.await(entered);
-		expect(yield* Effect.promise(server.read)).toEqual([{ name: "Printer paper", quantity: 300 }]);
-		expect(server.publications).toEqual([]);
-		expect(server.delivered).toHaveLength(deliveries);
-		expect(reader.container.querySelector("output")?.textContent).toBe("Printer paper / 300");
-		yield* Deferred.succeed(released, undefined);
-		yield* Effect.promise(() =>
-			eventually(() => {
-				expect(reader.container.querySelector("output")?.textContent).toBe("Office chairs / 450");
-				expect(writer.container.querySelector("output")?.textContent).toBe("Office chairs / 450");
-				expect(reader.input("name").value).toBe("Office chairs");
-				expect(reader.input("quantity").value).toBe("450");
-				expect(writer.container.querySelector('[role="status"]')?.textContent).toBe("Saved");
-				expect(writer.registry.get(writer.query).waiting).toBe(false);
-				expect(reader.registry.get(reader.query).waiting).toBe(false);
-			}),
-		);
-		expect(yield* Effect.promise(server.read)).toEqual([{ name: "Office chairs", quantity: 450 }]);
-		expect(server.publications).toEqual(["orders:1"]);
-		expect(server.delivered.slice(deliveries)).toEqual([[{ name: "Office chairs", quantity: 450 }], [{ name: "Office chairs", quantity: 450 }]]);
-		yield* Effect.promise(() => reader.edit("name", "Unsaved local name"));
-		yield* Effect.promise(() => writer.edit("name", "Remote update"));
-		yield* Effect.promise(() => writer.edit("quantity", "900"));
-		yield* Effect.promise(() => writer.click("Save"));
-		yield* Effect.promise(() =>
-			eventually(() => {
-				expect(reader.container.querySelector("output")?.textContent).toBe("Remote update / 900");
-				expect(writer.container.querySelector("output")?.textContent).toBe("Remote update / 900");
-				expect(reader.input("name").value).toBe("Unsaved local name");
-				expect(reader.input("quantity").value).toBe("900");
-				expect(reader.container.querySelector('[role="status"]')?.textContent).toBe("Unsaved changes");
-				expect(writer.container.querySelector('[role="status"]')?.textContent).toBe("Saved");
-				expect(writer.registry.get(writer.query).waiting).toBe(false);
-				expect(reader.registry.get(reader.query).waiting).toBe(false);
-			}),
-		);
-		yield* Effect.promise(() => reader.click("Revert"));
-		expect(reader.input("name").value).toBe("Remote update");
-		for (const [token, tag] of [
-			[undefined, "Unauthorized"],
-			["bob-session", "Missing"],
-		]) {
-			const client = makeClient(server.url, token);
-			const result = yield* Effect.promise(() => call(client, client.api.save.run({ id: 1, name: "Forbidden", quantity: 1 }).pipe(Effect.result)));
-			expect(Result.isFailure(result) && result.failure._tag).toBe(tag);
-		}
-		expect(server.publications).toEqual(["orders:1", "orders:1"]);
-		expect(yield* Effect.promise(server.read)).toEqual([{ name: "Remote update", quantity: 900 }]);
+	[realPostgres(), commitIsHeld(), editorsAreOpen("writer", "reader")],
+	function* ({
+		editName,
+		editQuantity,
+		submitOrder,
+		commitHasEntered,
+		storedOrderIs,
+		nothingWasPublished,
+		editorShows,
+		releaseCommit,
+		orderWasDelivered,
+		revertOrder,
+		forbiddenSavesAreRejected,
+	}) {
+		yield* editName("writer", "  Office chairs  ");
+		yield* editQuantity("writer", "450");
+		yield* submitOrder("writer");
+		yield* commitHasEntered();
+		yield* storedOrderIs("Printer paper", 300);
+		yield* nothingWasPublished();
+		yield* editorShows("reader", "Printer paper", 300, "Printer paper", "Saved");
+		yield* releaseCommit();
+		yield* editorShows("reader", "Office chairs", 450);
+		yield* editorShows("writer", "Office chairs", 450);
+		yield* storedOrderIs("Office chairs", 450);
+		yield* orderWasDelivered("Office chairs", 450);
+		yield* editName("reader", "Unsaved local name");
+		yield* editName("writer", "Remote update");
+		yield* editQuantity("writer", "900");
+		yield* submitOrder("writer");
+		yield* editorShows("reader", "Remote update", 900, "Unsaved local name", "Unsaved changes");
+		yield* editorShows("writer", "Remote update", 900);
+		yield* revertOrder("reader", "Remote update");
+		yield* forbiddenSavesAreRejected();
+		yield* storedOrderIs("Remote update", 900);
 	},
 	20_000,
 );
 
 app.it(
 	"a write recorded inside a rolled-back PostgreSQL transaction publishes no live hint",
-	[realPostgres()],
-	function* ({ start }) {
-		const entered = yield* Deferred.make<void>();
-		const released = yield* Deferred.make<void>();
-		const server = yield* start({
-			beforeCommit: Effect.gen(function* () {
-				yield* Deferred.succeed(entered, undefined);
-				yield* Deferred.await(released);
-				return yield* new Rejected();
-			}),
-		});
-		const reader = yield* Effect.promise(server.mount);
-		yield* Effect.promise(() =>
-			eventually(() => {
-				expect(reader.input("name").value).toBe("Printer paper");
-				expect(reader.registry.get(reader.status).connection).toBe("live");
-				expect(server.reads).toHaveLength(2);
-				expect(reader.registry.get(reader.query).waiting).toBe(false);
-			}),
-		);
-		const deliveries = server.delivered.length;
-		const reads = server.reads.length;
-		const client = makeClient(server.url, "alice-session");
-		const response = call(client, client.api.save.run({ id: 1, name: "Rolled back", quantity: 999 }).pipe(Effect.result));
-		yield* Deferred.await(entered);
-		expect(yield* Effect.promise(server.read)).toEqual([{ name: "Printer paper", quantity: 300 }]);
-		expect(server.publications).toEqual([]);
-		yield* Deferred.succeed(released, undefined);
-		const result = yield* Effect.promise(() => response);
-		expect(Result.isFailure(result) && result.failure._tag).toBe("Rejected");
-		expect(yield* Effect.promise(server.read)).toEqual([{ name: "Printer paper", quantity: 300 }]);
-		expect(server.publications).toEqual([]);
-		expect(server.delivered).toHaveLength(deliveries);
-		expect(server.reads).toHaveLength(reads);
-		expect(reader.container.querySelector("output")?.textContent).toBe("Printer paper / 300");
-		expect(reader.input("name").value).toBe("Printer paper");
+	[realPostgres(), commitIsHeld(true), editorsAreOpen("reader")],
+	function* ({ beginRejectedSave, commitHasEntered, storedOrderIs, nothingWasPublished, releaseCommit, saveWasRejected, editorShows }) {
+		yield* beginRejectedSave();
+		yield* commitHasEntered();
+		yield* storedOrderIs("Printer paper", 300);
+		yield* nothingWasPublished();
+		yield* releaseCommit();
+		yield* saveWasRejected();
+		yield* storedOrderIs("Printer paper", 300);
+		yield* nothingWasPublished();
+		yield* editorShows("reader", "Printer paper", 300);
 	},
 	20_000,
 );

@@ -2,9 +2,9 @@ import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
 import { formDraft } from "#client/formDraft.ts";
-import { session } from "#client/session.ts";
-import { answerDraft, answerInput, answerPreview, answerPrompt, responseClick } from "#test/answerDraft.tsx";
+import { answerClient, answerDraft, answerInput, answerPreview, answerPrompt, responseClick } from "#test/answerDraft.tsx";
 import { browserStorage } from "#test/browserStorage.ts";
+import { responseCommands } from "#test/responseCommands.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -79,9 +79,7 @@ it("retains an answer and refreshes its optional preview when its source revisio
 });
 it("clears a successfully submitted answer from storage and the next mounted form", async () => {
 	const view = await render(answerDraft());
-	const native = session(window);
-	native.registry.dispose();
-	const mutate = vi.spyOn(native, "mutate").mockResolvedValue({ id: "question.fixture" });
+	const { register, record } = responseCommands(answerClient);
 	try {
 		editAnswer();
 		const key = draftKey();
@@ -89,7 +87,8 @@ it("clears a successfully submitted answer from storage and the next mounted for
 		responseClick("preview");
 		await act(async () => responseClick("submit"));
 		await eventually(() => expect(answerInput("body").value).toBe(""));
-		expect(mutate).toHaveBeenCalledTimes(2);
+		expect(register).toHaveBeenCalledTimes(1);
+		expect(record).toHaveBeenCalledTimes(1);
 		expect(window.localStorage.getItem(key)).toBeNull();
 		await view.render(answerDraft(answerPreview, 1));
 		expect(answerInput("body").value).toBe("");
