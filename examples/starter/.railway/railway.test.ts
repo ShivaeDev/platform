@@ -17,6 +17,7 @@ it("configures web and worker with shared auth settings, PostgreSQL and migratio
 				startCommand: "pnpm start",
 			},
 			variables: {
+				"AUTH_CLIENT_IP_HEADER": { type: "literal", value: "x-real-ip" },
 				"BETTER_AUTH_SECRET": { name: "BETTER_AUTH_SECRET", type: "sharedReference" },
 				"DATABASE_URL": { output: "DATABASE_URL", resource: "database.Postgres", type: "reference" },
 				"HOST": { type: "literal", value: "0.0.0.0" },

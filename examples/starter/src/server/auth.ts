@@ -13,6 +13,7 @@ export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: {
 	const publicUrl = yield* Config.URL("PUBLIC_URL").pipe(Config.option);
 	const origin = Option.map(publicUrl, (url) => url.origin);
 	const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
+	const clientIpHeader = yield* Config.String("AUTH_CLIENT_IP_HEADER").pipe(Config.withDefault("x-forwarded-for"));
 	const rateLimitEnabled = yield* Config.Boolean("AUTH_RATE_LIMIT_ENABLED").pipe(Config.withDefault(true));
 	const isTrustedProxy = trustedProxyPeer(trustedProxy);
 	const trustedProxies = trustedProxyRanges(trustedProxy);
@@ -20,7 +21,7 @@ export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: {
 	const auth = betterAuth({
 		advanced: {
 			ipAddress: {
-				ipAddressHeaders: trustedProxies.length === 0 ? [] : ["x-forwarded-for"],
+				ipAddressHeaders: trustedProxies.length === 0 ? [] : [clientIpHeader],
 				trustedProxies,
 			},
 			useSecureCookies: Option.isSome(publicUrl) && publicUrl.value.protocol === "https:",
@@ -38,7 +39,7 @@ export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: {
 			Effect.gen(function* () {
 				const web = yield* HttpServerRequest.toWeb(request);
 				if (!Option.exists(request.remoteAddress, isTrustedProxy)) {
-					web.headers.delete("x-forwarded-for");
+					web.headers.delete(clientIpHeader);
 				}
 				return HttpServerResponse.fromWeb(yield* Effect.tryPromise(() => auth.handler(web)));
 			}).pipe(Effect.catch(() => Effect.succeed(HttpServerResponse.text("Authentication is temporarily unavailable", { status: 503 })))),
