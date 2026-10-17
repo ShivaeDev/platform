@@ -2,7 +2,7 @@ import { createRailwayContext, project } from "railway/iac";
 import { expect, it } from "vitest";
 import railway from "./railway.ts";
 
-it("configures web and worker with shared auth settings, PostgreSQL and migrations before start", async () => {
+it("gives only web auth settings and pre-deploy migrations, with a database-only restarting worker", async () => {
 	const definition = await railway(createRailwayContext({ projectName: "notes" }), project);
 	expect(definition.name).toBe("notes");
 	expect(definition.resources).toEqual([
@@ -28,11 +28,9 @@ it("configures web and worker with shared auth settings, PostgreSQL and migratio
 		expect.objectContaining({
 			address: "service.worker",
 			build: { buildCommand: "pnpm build", builder: "RAILPACK" },
-			deploy: { preDeployCommand: ["pnpm migrate"], startCommand: "pnpm worker" },
+			deploy: { restartPolicyType: "ON_FAILURE", startCommand: "pnpm worker" },
 			variables: {
-				"BETTER_AUTH_SECRET": { name: "BETTER_AUTH_SECRET", type: "sharedReference" },
 				"DATABASE_URL": { output: "DATABASE_URL", resource: "database.Postgres", type: "reference" },
-				"PUBLIC_URL": { name: "PUBLIC_URL", type: "sharedReference" },
 			},
 		}),
 	]);

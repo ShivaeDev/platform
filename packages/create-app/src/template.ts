@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { CreateAppError } from "./CreateAppError.ts";
+import { CreateAppError } from "#CreateAppError.ts";
 
 export const Versions = Schema.Record(Schema.String, Schema.String);
 export const Template = Schema.Array(Schema.Struct({ content: Schema.String, path: Schema.String }));
@@ -60,7 +60,7 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 }
 
 export function prepareFile(path: string, content: string, versions: Readonly<Record<string, string>>) {
-	if (path === "src/server/dev.ts") {
+	if (["src/server/dev.ts", "src/test-support/deployChild.ts"].includes(path)) {
 		return content.replaceAll('"--conditions=source", ', "");
 	}
 	if (path === "package.json") {
