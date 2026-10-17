@@ -1,6 +1,6 @@
 import { Config, Effect, Layer, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
-import { AppChanges, appDatabase, appHost } from "@shivaedev/platform/appHost.ts";
+import { AppChanges, appHost } from "@shivaedev/platform/appHost.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { authenticatedUserLayer } from "@shivaedev/platform/rpc-server/session.ts";
 import { Notes, Subscribe } from "#notes.ts";
@@ -36,20 +36,20 @@ export function starterHost(config?: {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const pool = yield* authDatabase(databaseUrl);
 			const database = databaseOptions(pool, databaseUrl);
-			const host = Layer.unwrap(
-				Effect.gen(function* () {
+			return appHost({
+				...database,
+				application: Effect.gen(function* () {
 					const { routes, sessions } = yield* makeAuth({ database: pool, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
 					const producer = noteProducer(Redacted.value(databaseUrl));
-					return appHost({
+					return {
 						config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 						group: Notes,
 						handlers: Layer.mergeAll(handlers, authenticatedUserLayer(sessions), routes, HttpStaticServer.layer({ root: "dist", spa: true })),
 						services: NotesService.layer.pipe(Layer.provideMerge(producer)),
 						sessions,
-					});
+					};
 				}),
-			);
-			return host.pipe(Layer.provideMerge(appDatabase(database)));
+			});
 		}),
 	);
 }

@@ -68,3 +68,17 @@ it("annotated options require a Layer for declared service types", () => {
 	const suppliedHost = appHost(suppliedOptions);
 	expectTypeOf<Layer.Services<typeof suppliedHost>>().toEqualTypeOf<never>();
 });
+
+const deferred = appHost({
+	application: Effect.gen(function* () {
+		yield* Required;
+		yield* SqlClient.SqlClient;
+		yield* Effect.fail(new BuildFailure());
+		return { group: Api, handlers: sqlHandlers, sessions: options.sessions };
+	}),
+	migrations: options.migrations,
+});
+it("deferred construction preserves its requirements and typed failures while supplying SQL and scope", () => {
+	expectTypeOf<Layer.Services<typeof deferred>>().toEqualTypeOf<Required>();
+	expectTypeOf<Extract<Layer.Error<typeof deferred>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
+});
