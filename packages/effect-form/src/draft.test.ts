@@ -1,47 +1,43 @@
-import { expect, it } from "@effect/vitest";
-import { draft } from "#draft.ts";
+import { expect } from "@effect/vitest";
+import { draftNames, optionalNotes, stock } from "#test/drafts.ts";
 
-it("reverts to the values the server answered last, not to the ones the edit began from", () => {
-	const editing = draft({ name: "First" });
-	editing.values.set({ name: "Edited" });
-	editing.receive({ name: "Second" });
-	expect(editing.values.value).toEqual({ name: "Edited" });
-	editing.revert();
-	expect(editing.values.value).toEqual({ name: "Second" });
+draftNames.it("reverts to the values the server answered last, not to the ones the edit began from", [], ({ form }) => {
+	form.values.set({ name: "Edited" });
+	form.receive({ name: "Second" });
+	expect(form.values.value).toEqual({ name: "Edited" });
+	form.revert();
+	expect(form.values.value).toEqual({ name: "Second" });
 });
 
-it("takes an answer straight to the field while the draft is clean", () => {
-	const editing = draft({ name: "First" });
-	editing.receive({ name: "Second" });
-	expect(editing.values.value).toEqual({ name: "Second" });
+draftNames.it("takes an answer straight to the field while the draft is clean", [], ({ form }) => {
+	form.receive({ name: "Second" });
+	expect(form.values.value).toEqual({ name: "Second" });
 });
 
-it("adopts a refreshed value in an untouched field while keeping an edited one", () => {
-	const editing = draft({ name: "Printer paper", quantity: "300" });
-	editing.values.set({ name: "Copy paper", quantity: "300" });
-	editing.receive({ name: "Printer paper", quantity: "350" });
-	expect(editing.values.value).toEqual({ name: "Copy paper", quantity: "350" });
-	editing.values.set({ name: "Printer paper", quantity: "350" });
-	editing.revert();
-	expect(editing.values.value).toEqual({ name: "Printer paper", quantity: "350" });
+stock.it("adopts a refreshed value in an untouched field while keeping an edited one", [], ({ form }) => {
+	form.values.set({ name: "Copy paper", quantity: "300" });
+	form.receive({ name: "Printer paper", quantity: "350" });
+	expect(form.values.value).toEqual({ name: "Copy paper", quantity: "350" });
+	form.values.set({ name: "Printer paper", quantity: "350" });
+	form.revert();
+	expect(form.values.value).toEqual({ name: "Printer paper", quantity: "350" });
 });
 
-it("preserves an added optional field when a refresh arrives", () => {
-	const editing = draft<{ name: string; note?: string }>({ name: "First" });
-	editing.values.set({ name: "First", note: "Local" });
-	editing.receive({ name: "Second" });
-	expect(editing.values.value).toEqual({ name: "Second", note: "Local" });
-	editing.revert();
-	expect(editing.values.value).toEqual({ name: "Second" });
+optionalNotes.it("preserves an added optional field when a refresh arrives", [], ({ form }) => {
+	form.values.set({ name: "First", note: "Local" });
+	form.receive({ name: "Second" });
+	expect(form.values.value).toEqual({ name: "Second", note: "Local" });
+	form.revert();
+	expect(form.values.value).toEqual({ name: "Second" });
 });
 
-it("drops an untouched optional field the refreshed values omit", () => {
-	const editing = draft<{ name: string; note?: string }>({
-		name: "First",
-		note: "Server",
-	});
-	editing.values.set({ name: "Edited", note: "Server" });
-	editing.receive({ name: "Second" });
-	expect(editing.values.value).toEqual({ name: "Edited" });
-	expect(Object.hasOwn(editing.values.value, "note")).toBe(false);
-});
+optionalNotes.it(
+	"drops an untouched optional field the refreshed values omit",
+	[optionalNotes.withValues({ name: "First", note: "Server" })],
+	({ form }) => {
+		form.values.set({ name: "Edited", note: "Server" });
+		form.receive({ name: "Second" });
+		expect(form.values.value).toEqual({ name: "Edited" });
+		expect(Object.hasOwn(form.values.value, "note")).toBe(false);
+	},
+);

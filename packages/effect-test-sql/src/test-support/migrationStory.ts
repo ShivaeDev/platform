@@ -3,6 +3,7 @@ import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { migrationSteps } from "#migrationSteps.ts";
 import { emails, expectedEmails, layer, migrations, seedContacts } from "#test/migrationSteps.ts";
+import { configured } from "#test/postgres.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 
 export const app = storyKit({
@@ -11,6 +12,7 @@ export const app = storyKit({
 	create: () => migrationSteps(migrations),
 	layer,
 	name: "backfill",
+	runIf: configured,
 	stages: ["schema", "data"],
 	verbs: (steps) => ({
 		backfill: () => steps.migrateToLatest,

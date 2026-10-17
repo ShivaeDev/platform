@@ -30,8 +30,7 @@ function withTags(options: number | EffectTestOptions | undefined, tags: readonl
 
 function storyOf(definition: LooseDefinition, given: readonly LooseTrait[], body: LooseBody | undefined) {
 	return function* story(_harness: unknown, context: TestContext) {
-		const told = yield* start(definition, given, context);
-		return yield* hooked(() => body?.(told, context));
+		return yield* start(definition, given, context, (told) => hooked(() => body?.(told, context)));
 	};
 }
 
@@ -67,11 +66,14 @@ export function storyIt(definition: LooseDefinition): LooseIt {
 		layer: definition.layer ?? Layer.empty,
 		makeHarness: () => Effect.void,
 	});
-	return Object.assign(declaring(definition, genre, effectApp), {
-		fails: declaring(definition, genre, effectApp.fails),
-		only: declaring(definition, genre, effectApp.only),
-		runIf: (condition: unknown) => declaring(definition, genre, effectApp.runIf(condition)),
-		skip: declaring(definition, genre, effectApp.skip),
-		skipIf: (condition: unknown) => declaring(definition, genre, effectApp.skipIf(condition)),
+	function register(declare: EffectTest<unknown, unknown>) {
+		return declaring(definition, genre, definition.runIf === false ? effectApp.skip : declare);
+	}
+	return Object.assign(register(effectApp), {
+		fails: register(effectApp.fails),
+		only: register(effectApp.only),
+		runIf: (condition: unknown) => register(effectApp.runIf(condition)),
+		skip: register(effectApp.skip),
+		skipIf: (condition: unknown) => register(effectApp.skipIf(condition)),
 	});
 }
