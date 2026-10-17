@@ -19,6 +19,10 @@ Cut a release whenever a change needs to reach npm. In the release pull request:
 3. Review and commit the generated `CHANGELOG.md`, `release.json` and the deleted fragment files with the version bump.
 4. Run `pnpm ready`, then open the pull request.
 
+Release every published workspace package that depends on a bumped package in the same pull request, including optional dependencies and peers. Repeat for the dependents of those releases. Development-only dependencies and private packages do not need a release. `pnpm changelog:check` names unreleased dependents and the release commands to run.
+
+The starter's `examples/starter/published-versions.json` pins the current workspace release versions. Every framework dependency of a pinned package must also have a matching pin. Update those pins with the releases and release `create-app` so generated apps receive the aligned versions. The changelog check rejects stale or conflicting pins before packed-workspace overrides can hide them.
+
 The collector uses the package's version and the current UTC date. It prepends that version's notes in Added, Changed, Fixed, Breaking order, with fragments sorted by filename inside each section, and preserves released history. It deletes the collected Markdown fragments. An empty fragment set leaves the changelog unchanged; a version that already has notes cannot collect more entries.
 
 `release.json` records the current release's version, date and collected fragment inputs. The validator reproduces the changelog from those inputs and requires every pending fragment from the base revision to be included unchanged. This also permits adding and releasing a change in one pull request: the manifest survives squash merges, so publishing can validate the same inputs without intermediate branch commits. It changes only with a release and is not included in the published packages.
