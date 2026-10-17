@@ -2,7 +2,7 @@ import { dirname } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
-import { productionParts, runFleet } from "#host/commands.ts";
+import { productionParts } from "#host/commands.ts";
 import { loadHost } from "#host/config.ts";
 import { serveFleet } from "#host/daemon.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
@@ -24,9 +24,6 @@ await Effect.runPromise(
 				repositoryRoot: "/synthetic-repository",
 			}),
 		};
-		if (process.argv[3] === "daemon") {
-			return yield* serveFleet(host, parts, 0);
-		}
-		return yield* runFleet(host, parts);
+		return yield* serveFleet(host, parts, 0);
 	}).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
 );

@@ -1,6 +1,6 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { dispatchWork } from "#host/commands.ts";
+import { dispatchWork } from "#test/dispatchWork.ts";
 import { task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { daemonCli } from "#test/readDaemon.ts";

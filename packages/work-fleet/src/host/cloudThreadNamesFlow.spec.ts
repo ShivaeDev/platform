@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { dispatchWork } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
 import { SessionService } from "#session/service.ts";
+import { dispatchWork } from "#test/dispatchWork.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { type NamedHost, namedAttempt, namedRecord, withNamedCloudHost } from "#test/namedCloudHost.ts";
 import { postgresTests } from "#test/postgres.ts";

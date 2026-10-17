@@ -4,10 +4,13 @@ import { describe, expect } from "@effect/vitest";
 import { Clock, Effect, Fiber } from "effect";
 import { Fleet } from "#fleet.ts";
 import { admitApproved } from "#host/admission.ts";
-import { dispatchWork, hostLayer, runFleet } from "#host/commands.ts";
+import { hostLayer } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
-import { fleetStatus, renderStatus } from "#host/status.ts";
+import { serveFleet } from "#host/daemon.ts";
+import { fleetStatus } from "#host/fleetStatus.ts";
+import { renderStatus } from "#host/renderStatus.ts";
 import { WAIT_EXIT, waitFor } from "#host/wait.ts";
+import { dispatchWork } from "#test/dispatchWork.ts";
 import { finishWorkers } from "#test/engine.ts";
 import type { EngineProvider } from "#test/engineProvider.ts";
 import { task, withHost } from "#test/fleetHost.ts";
@@ -38,11 +41,11 @@ function record(host: FleetHost, workId: string, parts: Parameters<typeof hostLa
 describe("work-fleet host against PostgreSQL", () => {
 	const test = postgresTests("live");
 
-	test("run launches each approved Board revision once and wait reports the automation blocker", function* () {
+	test("serve launches each approved Board revision once and wait reports the automation blocker", function* () {
 		const files = { "a.md": task("a", "approved"), "b.md": task("b"), "c.md": task("c", "draft") };
 		yield* withHost(files, {}, (fixture) =>
 			Effect.gen(function* () {
-				const runner = yield* runFleet(fixture.host, fixture.parts).pipe(Effect.forkChild);
+				const runner = yield* serveFleet(fixture.host, fixture.parts, 0).pipe(Effect.forkChild);
 				yield* until(() => fixture.provider.launched.length === 1);
 				yield* Effect.sleep("2500 millis");
 				expect(fixture.provider.launched).toHaveLength(1);
