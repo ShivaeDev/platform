@@ -69,7 +69,7 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 			name: "malformed adopted PR URL",
 			options: {
 				checksQuery: (result) => Effect.succeed({ evidence: ["Configured validation"], head: result.head, passed: true }),
-				deliveryQuery: githubDelivery("/synthetic", () => Effect.succeed({})),
+				deliveryQuery: githubDelivery(() => Effect.succeed({})),
 				resultQuery: () => Effect.succeed({ head: HEAD, kind: "change", paths: ["src/one.ts"], pr: "https://example.invalid/pr/7" }),
 			},
 			sites: ["engine/observeDeliveryFailure.ts: failureCode(error)"],
@@ -78,7 +78,7 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 			code: "fleet-integration" as const,
 			enter: finishRecoveryReview,
 			name: "delivery reader unavailable",
-			options: { deliveryQuery: githubDelivery("/synthetic", readDelivery) },
+			options: { deliveryQuery: githubDelivery(readDelivery) },
 			progress: (_ctx, _before, after) => {
 				expect(after.stage).toBe("completed");
 			},

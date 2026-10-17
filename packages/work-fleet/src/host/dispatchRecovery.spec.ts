@@ -12,9 +12,15 @@ import { refreshDelay } from "#test/refreshDelay.ts";
 
 type Delay = Effect.Success<ReturnType<typeof refreshDelay>>;
 
-const acceptBeforeRestart = Effect.fn("DispatchRecoveryTest.acceptBeforeRestart")(function* (port: number, delay: Delay, fail: boolean) {
+const acceptBeforeRestart = Effect.fn("DispatchRecoveryTest.acceptBeforeRestart")(function* (
+	port: number,
+	delay: Delay,
+	fail: boolean,
+	now: boolean,
+) {
 	const client = yield* daemonClient(port);
-	const request = yield* client("daemon.dispatch", { workId: "one" });
+	const request = yield* client("daemon.dispatch", { now, workId: "one" });
+	expect(request.now).toBe(now ? true : undefined);
 	yield* delay.entered;
 	if (fail) {
 		yield* delay.release;
@@ -37,15 +43,17 @@ const finishAfterRestart = Effect.fn("DispatchRecoveryTest.finishAfterRestart")(
 		expect(request.id).not.toBe(accepted.id);
 	}
 	expect(yield* waitForDispatch(client, "one")).toMatchObject({ id: request.id, status: "completed" });
-	expect((yield* client("fleet.get", { workId: "one" })).stage).toBe("executing");
+	const record = yield* client("fleet.get", { workId: "one" });
+	expect(record.stage).toBe("executing");
+	expect(record.dispatchNow).toEqual(accepted.now === true ? { ignoreAreas: false } : undefined);
 	expect(fixture.provider.launched).toHaveLength(1);
 });
 
-const restartStory = Effect.fn("DispatchRecoveryTest.restartStory")(function* (fixture: HostFixture, fail: boolean) {
+const restartStory = Effect.fn("DispatchRecoveryTest.restartStory")(function* (fixture: HostFixture, fail: boolean, now = false) {
 	const delay = yield* refreshDelay(fixture, fail);
-	const accepted = yield* withReadDaemon(fixture.host, (port) => acceptBeforeRestart(port, delay, fail), delay.parts);
+	const accepted = yield* withReadDaemon(fixture.host, (port) => acceptBeforeRestart(port, delay, fail, now), { parts: delay.parts });
 	expect(fixture.provider.launched).toHaveLength(0);
-	yield* withReadDaemon(fixture.host, (port) => finishAfterRestart(fixture, port, accepted, fail), fixture.parts);
+	yield* withReadDaemon(fixture.host, (port) => finishAfterRestart(fixture, port, accepted, fail), { parts: fixture.parts });
 });
 
 for (const fail of [false, true]) {
@@ -53,6 +61,10 @@ for (const fail of [false, true]) {
 		withHost({ "one.md": task("one", "approved") }, {}, (fixture) => restartStory(fixture, fail)),
 	);
 }
+
+postgresTests("live")("dispatch now resumes its pending receipt with the override after daemon restart", () =>
+	withHost({ "one.md": task("one", "approved") }, {}, (fixture) => restartStory(fixture, false, true)),
+);
 
 const schedulerRecovery = Effect.fn("DispatchRecoveryTest.schedulerRecovery")(function* (
 	fixture: HostFixture,
@@ -84,8 +96,8 @@ const schedulerRecovery = Effect.fn("DispatchRecoveryTest.schedulerRecovery")(fu
 
 const schedulerStory = Effect.fn("DispatchRecoveryTest.schedulerStory")(function* (fixture: HostFixture) {
 	const delay = yield* refreshDelay(fixture, true);
-	const failed = yield* withReadDaemon(fixture.host, (port) => acceptBeforeRestart(port, delay, true), delay.parts);
-	yield* withReadDaemon(fixture.host, (port) => schedulerRecovery(fixture, port, failed), fixture.parts);
+	const failed = yield* withReadDaemon(fixture.host, (port) => acceptBeforeRestart(port, delay, true, false), { parts: delay.parts });
+	yield* withReadDaemon(fixture.host, (port) => schedulerRecovery(fixture, port, failed), { parts: fixture.parts });
 });
 
 postgresTests("live")("watch preserves scheduler recovery and completion after a failed dispatch without another dispatch", () =>

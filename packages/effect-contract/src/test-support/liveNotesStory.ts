@@ -62,16 +62,15 @@ export const liveNotesStory = storyKit({
 			resync: (helper: "first" | "second" = "first") => (helper === "first" ? server.hints : server.secondHints).resync,
 			resyncRepeatedly: (count: number) =>
 				Effect.gen(function* () {
-					story.tell(`send ${count} resync hints and wait until the consumer receives them all`);
-					const noteStreams = (yield* Ref.get(server.stored)).size;
-					const target = (yield* SubscriptionRef.get(client.received)).Resync + count * noteStreams;
+					story.tell(`send ${count} resync hints, each after the consumer received the previous one`);
 					for (let index = 0; index < count; index += 1) {
+						const before = (yield* SubscriptionRef.get(client.received)).Resync;
 						yield* Effect.promise(() => server.emit({ _tag: "Resync" }));
+						yield* SubscriptionRef.changes(client.received).pipe(
+							Stream.filter(({ Resync }) => Resync > before),
+							Stream.runHead,
+						);
 					}
-					yield* SubscriptionRef.changes(client.received).pipe(
-						Stream.filter(({ Resync }) => Resync >= target),
-						Stream.runHead,
-					);
 				}),
 			status: () => registry.get(client.status),
 			streamOutage: (unavailable: boolean) => Ref.set(server.streamUnavailable, unavailable),
@@ -117,6 +116,10 @@ export function startsWith(hint: import("#live.ts").LiveHint) {
 export function watchingNotes() {
 	return liveNotesStory.trait("consumer", "the consumer watches both notes and their list", function* (engine) {
 		engine.registry.mount(engine.client.connection);
+		yield* eventually(() => {
+			expect(engine.registry.get(engine.client.status).connection).toBe("live");
+			expect(Effect.runSync(Ref.get(engine.server.active))).toBe(1);
+		});
 		const one = engine.client.api.get.query({ id: 1 });
 		const two = engine.client.api.get.query({ id: 2 });
 		engine.registry.mount(one);
@@ -124,7 +127,6 @@ export function watchingNotes() {
 		const list = engine.client.api.list.query(undefined);
 		engine.registry.mount(list);
 		yield* eventually(() => {
-			expect(engine.registry.get(engine.client.status).connection).toBe("live");
 			expect(AsyncResult.getOrElse(engine.registry.get(one), () => undefined)?.body).toBe("First");
 			expect(AsyncResult.getOrElse(engine.registry.get(two), () => undefined)?.body).toBe("Second");
 			expect([engine.registry.get(one).waiting, engine.registry.get(two).waiting, engine.registry.get(list).waiting]).toEqual([false, false, false]);

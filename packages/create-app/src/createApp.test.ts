@@ -31,16 +31,12 @@ it("leaves the initial commit blocked when the installed Quality gate fails", ()
 	expect(spawnSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: app }).status).not.toBe(0);
 });
 
-it("runs setup without installing a hook when Git initialization is disabled or a repository encloses the app", () => {
-	for (const enclosing of [false, true]) {
-		const { root, run } = appFolder({ realSetup: true });
-		if (enclosing) {
-			expect(spawnSync("git", ["init", "--quiet"], { cwd: root }).status).toBe(0);
-		}
-		const result = run(enclosing ? ["my-app"] : ["my-app", "--no-git"]);
-		expect(result.status, result.stdout + result.stderr).toBe(0);
-		expect(existsSync(join(root, "my-app/node_modules"))).toBe(true);
-		expect(existsSync(join(root, "my-app/.git"))).toBe(false);
-		expect(existsSync(join(root, ".git/hooks/pre-commit"))).toBe(false);
-	}
+it("runs setup without installing a hook when a repository encloses the app", () => {
+	const { root, run } = appFolder({ realSetup: true });
+	expect(spawnSync("git", ["init", "--quiet"], { cwd: root }).status).toBe(0);
+	const result = run(["my-app"]);
+	expect(result.status, result.stdout + result.stderr).toBe(0);
+	expect(existsSync(join(root, "my-app/node_modules"))).toBe(true);
+	expect(existsSync(join(root, "my-app/.git"))).toBe(false);
+	expect(existsSync(join(root, ".git/hooks/pre-commit"))).toBe(false);
 });

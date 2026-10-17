@@ -1,4 +1,4 @@
-import { Effect, Array as EffectArray, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { makeRepository, OptimisticConcurrencyError } from "@shivaedev/effect-sql/repository.ts";
 import { fleetRecords } from "#fleetRecords.ts";
@@ -6,6 +6,7 @@ import { checkRecordAdmission } from "#storage/admission.ts";
 import { admissionReads } from "#storage/admissionReads.ts";
 import { StorageConflict } from "#storage/errors.ts";
 import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
+import { listedRecords } from "#storage/listedRecords.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 import { makeForeignReservations } from "#storage/makeForeignReservations.ts";
 import { type AdmissionLimits, recordModel, type Versioned } from "#storage/model.ts";
@@ -15,7 +16,7 @@ import { readRecords } from "#storage/readRecords.ts";
 import { inputColumns, makeRecordChildren } from "#storage/recordChildren.ts";
 import { recordShape } from "#storage/recordShape.ts";
 import { withRecordTimes } from "#storage/recordTimes.ts";
-import { recordValue, recordValues } from "#storage/recordValue.ts";
+import { recordValue } from "#storage/recordValue.ts";
 
 export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetStore")(function* <
 	TSchema extends Schema.Top & {
@@ -37,7 +38,6 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 	const decodeObject = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const decodeInsert = Schema.decodeUnknownEffect(model.insert);
 	const decodeRecord = Schema.decodeUnknownEffect(schema);
-	const decodeRecords = Schema.decodeUnknownEffect(Schema.Array(schema));
 	function decode(row: { readonly "work_id": string; readonly version: number }) {
 		return recordValue(row, shape, namespace).pipe(
 			Effect.flatMap(decodeRecord),
@@ -55,11 +55,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 	function load(workId: string) {
 		return loadEntry(workId).pipe(Effect.map((entry) => entry?.stored));
 	}
-	const readList = Effect.fn("FleetStore.readList")(function* () {
-		const found = yield* rows.findMany({ orderBy: { direction: "asc", field: "admission_order" } });
-		const values = yield* decodeRecords(yield* recordValues(found, shape, namespace).pipe(Effect.provideService(SqlClient.SqlClient, sql)));
-		return EffectArray.zipWith(values, found, (value, row) => ({ value, version: row.version + 1 }));
-	});
+	const readList = listedRecords(sql, schema, model, shape, namespace);
 	function list() {
 		return readRecords(namespace, readList()).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 	}

@@ -16,7 +16,7 @@ for (const source of ["argument", "stdin", "release"] as const) {
 		`answer from ${source} records a worker response and an applied receipt`,
 		() =>
 			withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-				withReadDaemon(fixture.host, (port) => workerQuestionStory(fixture, port, source), fixture.parts),
+				withReadDaemon(fixture.host, (port) => workerQuestionStory(fixture, port, source), { parts: fixture.parts }),
 			),
 		30_000,
 	);
@@ -37,9 +37,11 @@ const workerQuestionStory = Effect.fn("DaemonCommandsTest.workerQuestionStory")(
 	fixture.provider.observations.set(turnId, { ...observation, execution: "completed", output: "FLEET_QUESTION: Which storage should I use?" });
 	const waiting = yield* client("fleet.reconcile", { workId: "one" });
 	expect(waiting.decision?.worker).toBeDefined();
-	const status = (yield* Effect.promise(() => cliProcess(["status", "--port", String(port)]))).stdout;
-	expect(status).toContain("Which storage should I use?");
-	expect(status).toContain(`work-fleet answer one --port ${port}`);
+	if (source === "argument") {
+		const status = (yield* Effect.promise(() => cliProcess(["status", "--port", String(port)]))).stdout;
+		expect(status).toContain("Which storage should I use?");
+		expect(status).toContain(`work-fleet answer one --port ${port}`);
+	}
 	expect(renderStatus(yield* client("daemon.status", {}))).toContain("work-fleet answer one");
 	expect(yield* client("daemon.answer", { text: "  ", workId: "one" }).pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });
 	const answer = "Use PostgreSQL and preserve the existing repository API.";

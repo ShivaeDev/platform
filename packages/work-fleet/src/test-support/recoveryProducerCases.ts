@@ -1,10 +1,10 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { ConnectionError, SqlError } from "effect/sql/SqlError";
 import { Fleet } from "#fleet.ts";
-import { githubRead } from "#host/githubRead.ts";
+import { GithubApi, githubApiLayer } from "#host/githubApi.ts";
 import { prepareWork } from "#test/engine.ts";
 import { githubCli } from "#test/githubCli.ts";
 import { REPORT } from "#test/githubResult.ts";
@@ -15,6 +15,11 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 	let restored = false;
 	let context: RecoveryContext | undefined;
 	const failedCli = githubCli(new Map(), 1);
+	const failedProductionRead = GithubApi.pipe(
+		Effect.flatMap((github) => github.get("synthetic")),
+		Effect.provide(githubApiLayer.pipe(Layer.provide(failedCli.layer))),
+		Effect.andThen(Effect.die("Unexpected GitHub success")),
+	);
 	const progress: NonNullable<RecoveryCase["progress"]> = (_ctx, _before, after) => {
 		expect(after.attempts.at(-1)?.role).toBe("reviewer");
 		expect(after.stage).toBe("reviewing");
@@ -72,9 +77,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 			name: "production GitHub process reader unavailable",
 			options: {
 				resultQuery: (work, observation) =>
-					restored && context !== undefined
-						? context.github.resultQuery(work, observation)
-						: githubRead(["api", "synthetic"]).pipe(Effect.provide(failedCli.layer), Effect.andThen(Effect.die("Unexpected GitHub success"))),
+					restored && context !== undefined ? context.github.resultQuery(work, observation) : failedProductionRead,
 			},
 			progress,
 

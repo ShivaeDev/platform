@@ -95,7 +95,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 26.11.1
           package-manager-cache: false
@@ -129,9 +129,7 @@ jobs:
       actions: read
     name: tests (${{ matrix.shard }})
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    # Main runs every test in one shard to record complete timings, which takes
-    # about nine minutes; pull requests and the merge queue split them across shards.
-    timeout-minutes: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 20 || 10 }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -141,6 +139,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          postgres: 'true'
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: needs.shard-plan.outputs.tests-run-id != ''
         with:
@@ -260,7 +260,7 @@ jobs:
           include-hidden-files: true
           retention-days: 14
       - name: Save complete consumer store on main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.setup.outputs.consumer-cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ steps.setup.outputs.store-path }}
@@ -279,6 +279,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          postgres: 'true'
       - name: Download package archives
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -318,6 +320,9 @@ jobs:
   verify:
     if: always()
     needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-proxy]
+    permissions:
+      contents: read
+      actions: read
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:
@@ -336,7 +341,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           node-version: 26.11.1
@@ -361,10 +366,15 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Read test job wall times
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest&per_page=100" > .ci/test-jobs.json
       - name: Merge successful main test timings
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: >-
-          node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings
+          node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings --jobs .ci/test-jobs.json
           --output .ci/test-durations.json --count ${{ needs.shard-plan.outputs.tests-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

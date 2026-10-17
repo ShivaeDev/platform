@@ -13,7 +13,7 @@ interface FollowRun {
 	readonly stdout: string;
 }
 
-interface Follower {
+export interface Follower {
 	readonly done: Promise<FollowRun>;
 	readonly isRunning: () => boolean;
 	readonly output: () => string;
@@ -94,7 +94,7 @@ export function withFollower<A, E, R>(
 	}
 	return options.port === undefined
 		? loadHost(dirname(configFile), configFile).pipe(
-				Effect.flatMap((host) => withReadDaemon(host, run, undefined, () => ready.resolve())),
+				Effect.flatMap((host) => withReadDaemon(host, run, { onSnapshot: () => ready.resolve() })),
 				Effect.provide(NodeServices.layer),
 			)
 		: run(options.port);
@@ -109,3 +109,7 @@ export const untilOutput = Effect.fn("FollowerTest.untilOutput")(function* (foll
 	}
 	return yield* Effect.die(new Error(`Follower did not print ${text}`));
 });
+
+export function untilEveryOutput(followers: readonly Follower[], text: string) {
+	return Effect.forEach(followers, (follower) => untilOutput(follower, text), { discard: true });
+}

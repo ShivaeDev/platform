@@ -328,6 +328,14 @@ After the engine has been created, a failing story test adds the story to its fi
 
 The package wraps between words or JSON fields toward 120 columns and prints the story's own lines whole. An indivisible word, field or rerun command component can exceed that width. A passing test adds nothing. A typed failure with no message, such as an `after` hook's `NoBowls`, prints by its tag.
 
+### Library package kits
+
+A library package has an engine too: its own services or Layer under test. Keep its kit in `src/test-support/`, acquire the real services in `create` with their dependencies supplied by the kit's `layer`, and use real PostgreSQL wherever the package touches it. Traits seed that engine in domain words; verbs call the package's public API. The same division applies as for an application: the kit owns setup and wiring, and a spec names traits, calls verbs and checks results. Following the [root test guidance](https://github.com/ShivaeDev/platform/blob/main/AGENTS.md), reserve plain Vitest tests for pure functions with no engine behind them.
+
+The [`backfill` kit](https://github.com/ShivaeDev/platform/blob/main/packages/effect-test-sql/src/test-support/migrationStory.ts) in `effect-test-sql` is a library example. Its `create` returns the package's `migrationSteps(migrations)` API, its worker Layer provides PostgreSQL, and `around: withIsolatedDatabase` isolates each story. The `oldSchema` and `existingContacts` traits put contacts with email addresses into the old schema; the `backfill` verb calls `steps.migrateToLatest`. Its [story](https://github.com/ShivaeDev/platform/blob/main/packages/effect-test-sql/src/server/migrationStory.spec.ts) proves that those existing addresses survive the migration into a new table. It runs only when `PLATFORM_EFFECT_TEST_SQL_TEST_DATABASE_URL` is configured; a skipped story proves nothing.
+
+A fake belongs only at a true external boundary, wired in `create`; keep the package's own engine real. The [resume kit](https://github.com/ShivaeDev/platform/blob/main/packages/effect-contract/src/test-support/resumeStory.ts), for example, creates synthetic browser and native event sources while running the package's real `resumeSignal` API. Its [stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-contract/src/resume.dom.test.ts) exercise refresh on those events and listener cleanup. Those synthetic sources prove the package's response to events, not a physical browser or native application's event delivery.
+
 ### Whole-stack application kits
 
 Keep one kit in the application’s `test-support/`. `effect-test` owns Vitest registration, worker Layer acquisition, the per-test Scope, cancellation and clock selection. `test-story` owns engine creation, staged traits, verbs and narration. The application owns database lifecycle, migrations, isolation, seeds, actual server/client wiring and screen interactions.
@@ -456,6 +464,18 @@ socialApp.it("a social sign-in returns with a cookie session", [], function* ({ 
 `socialDefinition` starts the host and renders the screen with a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The [story](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/server/socialSessions.dom.spec.ts) also checks the authorize, token and user requests at the fake, persisted PostgreSQL rows, and an HttpOnly session cookie read through a later document request. It does not copy cookies into request headers.
 
 `domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
+
+### API by module
+
+Import each module with the prefix `@shivaedev/test-story/`; there is no root entry.
+
+| Module | Exports |
+| --- | --- |
+| `storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
+| `domFetch.ts` | `domFetch(baseUrl)` |
+| `domNavigate.ts` | `domNavigate(url?)` |
+| `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
+| `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
 
 ### Install and limits
 

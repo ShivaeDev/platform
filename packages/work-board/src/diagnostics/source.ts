@@ -33,10 +33,9 @@ export const observe = Effect.fn("WorkBoard.observe")(function* <A>(source: Sour
 
 export const diagnostics = Effect.fn("WorkBoard.diagnostics")(function* (sources: Sources) {
 	const codex = yield* Effect.cachedWithTTL(observe(sources.codex), "1 minute");
-	const github = yield* Effect.cachedWithTTL(observe(sources.github), "1 minute");
 	// A bounded shared read must finish caching even if its first tab leaves.
 	return Effect.all(
-		{ codex: Effect.uninterruptible(codex), fleet: observe(sources.fleet), github: Effect.uninterruptible(github) },
+		{ codex: Effect.uninterruptible(codex), fleet: observe(sources.fleet), github: observe(sources.github) },
 		{ concurrency: "unbounded" },
 	);
 });

@@ -49,6 +49,7 @@ export function cloudConfiguration(endpoint: string, authFile: string, overrides
 				cwd: SYNTHETIC_WORKSPACE,
 				endpoint,
 				environmentId: SYNTHETIC_ENVIRONMENT,
+				recoveryGraceMs: 5000,
 				requestTimeoutMs: 5000,
 				...overrides,
 			}),
