@@ -13,7 +13,7 @@ function url(value: string): string {
 	const separator = target.indexOf("?");
 	return (
 		(separator === -1 ? target : `${target.slice(0, separator + 1)}${query(target.slice(separator + 1))}`).replaceAll(
-			/(?<authority>(?:\b[a-z][a-z0-9+.-]*:)?\/\/)[^/?#\s]*@/giu,
+			/(?<authority>(?:\b[a-z][a-z0-9+.-]*:)?\/\/)[^/?#]*@/giu,
 			`$<authority>${REDACTED}@`,
 		) + (fragment === -1 ? "" : `#${REDACTED}`)
 	);
@@ -43,5 +43,6 @@ export function redactOtlpUrl(value: string, key = ""): string {
 			return redacted;
 		}
 	}
-	return value.replaceAll(/(?:[a-z][a-z0-9+.-]*:\/\/|[/?#])[^\s"<>]*/giu, url);
+	// Quotes and whitespace can belong to secret values, so free text has no safe closing delimiter.
+	return value.replaceAll(/(?:[a-z][a-z0-9+.-]*:\/\/|[/?#]).*/gisu, url);
 }
