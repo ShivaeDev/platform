@@ -114,3 +114,10 @@ export function legacyNote(title: string) {
 		yield* sql`insert into starter_notes (title) values (${title})`;
 	});
 }
+
+export function rejectedNoteJobs() {
+	return app.trait("notes", "PostgreSQL rejects word-count jobs", function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`alter table pgboss.job add constraint reject_note_jobs check (name <> 'count-note-words')`;
+	});
+}

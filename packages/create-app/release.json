@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-16",
+	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "auth-client-ip.md",
-			"text": "### Fixed\n\n- Generated apps use `TRUSTED_PROXY` for Better Auth client IP rate limiting and the host's forwarded authority. Auth ignores forwarded IP headers from untrusted peers, and trusted visitors have separate sign-in buckets, including with mapped IPv6 CIDRs such as `::ffff:127.0.0.0/104` and appended forwarding chains.\n"
+			"name": "producer-queues.md",
+			"text": "### Fixed\n\n- A generated app registers producer queues and their dead-letter queues through `effect-pg-boss` queue definitions. Note writes enqueue independently after their transaction and log queue failures without failing the saved write; the starter no longer supplies a transactional database adapter.\n"
 		}
 	],
-	"version": "0.4.1"
+	"version": "0.4.2"
 }
