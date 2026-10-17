@@ -34,7 +34,7 @@ export function redactOtlpUrl(value: string, key = ""): string {
 	if (/(?:^|[._-])query$/iu.test(key)) {
 		return url(`?${value}`).slice(1);
 	}
-	if (/(?:^|[._-])(?:url|uri|target)(?:$|[._-])/iu.test(key)) {
+	if (/(?:^|[._-])(?:url|uri|target)(?:$|[._-])/iu.test(key) || /(?:^|[._-])(?:referer|referrer|location|origin)$/iu.test(key)) {
 		return url(value);
 	}
 	if (/^\s*[[{]/u.test(value)) {

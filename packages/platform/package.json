@@ -186,6 +186,11 @@
 			"types": "./dist/server/hostOptions.d.ts",
 			"default": "./dist/server/hostOptions.js"
 		},
+		"#otlpHttpClient.ts": {
+			"source": "./src/server/otlpHttpClient.ts",
+			"types": "./dist/server/otlpHttpClient.d.ts",
+			"default": "./dist/server/otlpHttpClient.js"
+		},
 		"#safeOtlpSerialization.ts": {
 			"source": "./src/server/safeOtlpSerialization.ts",
 			"types": "./dist/server/safeOtlpSerialization.d.ts",

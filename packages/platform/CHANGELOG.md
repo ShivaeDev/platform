@@ -8,6 +8,9 @@
 
 ### Fixed
 
+- Honour OTLP protocol configuration, including the traces-specific override, with native Effect JSON and protobuf encoders and sensitive diagnostic redaction in both. Default to `http/protobuf` as recommended by OpenTelemetry and fail configuration for unsupported protocols.
+- Name exported HTTP server spans with the method and matched route template, preserving `http.route` and incoming trace context; unmatched requests retain the method alone.
+- Warn on the first failed OTLP export with the collector status and redacted answer, and include `OTEL_SERVICE_VERSION` as `service.version`.
 - Security fix: `otlpTracing` redacts every URL query value, fragment and userinfo before exporting traces, including HTTP server and client spans, events and links. Paths and query parameter names remain readable. Platform 0.13.0 and 0.14.0 exported URL query values; apps with tracing enabled should upgrade.
 
 ## 0.14.0 - 2026-10-17
