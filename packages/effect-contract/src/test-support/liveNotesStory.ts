@@ -111,6 +111,7 @@ export function watchingNotes() {
 		engine.registry.mount(engine.client.api.list.query(undefined));
 		yield* eventually(() => {
 			expect(engine.registry.get(engine.client.status).connection).toBe("live");
+			expect(Effect.runSync(Ref.get(engine.server.active))).toBe(1);
 			expect(AsyncResult.getOrElse(engine.registry.get(one), () => undefined)?.body).toBe("First");
 			expect(AsyncResult.getOrElse(engine.registry.get(two), () => undefined)?.body).toBe("Second");
 		});

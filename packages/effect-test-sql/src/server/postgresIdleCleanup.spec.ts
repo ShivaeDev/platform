@@ -35,7 +35,7 @@ integration("idle fixtures need no admin session and scope close drops every dat
 					where application_name = ${marker} and datname = ${database}`.pipe(Effect.map(([row]) => row?.total));
 			}
 			yield* Effect.gen(function* () {
-				while ((yield* connections(shared)) !== 0) {
+				while ((yield* connections(shared)) !== 0 || (yield* connections(url.pathname.slice(1))) !== 0) {
 					yield* Effect.sleep("10 millis");
 				}
 			}).pipe(Effect.timeout("5 seconds"));
