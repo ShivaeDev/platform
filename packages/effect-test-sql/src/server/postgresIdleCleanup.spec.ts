@@ -7,7 +7,7 @@ import { PostgresTestDatabase } from "./database.ts";
 import { makePostgresTestLayer } from "./postgres.ts";
 import { withIsolatedDatabase } from "./withIsolatedDatabase.ts";
 
-integration("the admin session survives idle fixture periods and scope close drops every database", () =>
+integration("idle fixtures need no admin session and scope close drops every database", () =>
 	runAdmin(
 		Effect.gen(function* () {
 			const admin = yield* SqlClient.SqlClient;
@@ -48,7 +48,7 @@ integration("the admin session survives idle fixture periods and scope close dro
 				}),
 			).pipe(Effect.provideContext(services));
 			yield* Scope.close(scope, Exit.void);
-			expect(idleAdminConnections).toBe(1);
+			expect(idleAdminConnections).toBe(0);
 			expect(yield* connections(url.pathname.slice(1))).toBe(0);
 			expect([template, shared, isolated].every((name) => name !== "")).toBe(true);
 			for (const name of [template, shared, isolated]) {

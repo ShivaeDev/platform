@@ -2,13 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "cookie-stories.md",
-			"text": "### Added\n\n- Generated apps include a DOM story that signs up, signs out, signs in and reads Better Auth cookie sessions against the real PostgreSQL host, using `@shivaedev/test-story`.\n"
-		},
-		{
 			"name": "framework-version-agreement.md",
 			"text": "### Fixed\n\n- Generate an app with aligned framework versions, including `effect-sql` 0.4.0 and its matching SQL test package, so framework dependencies do not install conflicting versions.\n"
 		}
 	],
-	"version": "0.5.0"
+	"version": "0.5.1"
 }
