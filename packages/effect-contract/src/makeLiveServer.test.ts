@@ -1,68 +1,42 @@
-import { Effect, Fiber, Schema, Stream } from "effect";
-import * as Reactivity from "effect/reactivity/Reactivity";
-import { expect, it } from "vitest";
-import { collection } from "#keys.ts";
-import { makeLiveServer } from "#makeLiveServer.ts";
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { eventually } from "#test/eventually.ts";
+import { liveNotesStory, liveSession } from "#test/liveNotesStory.ts";
+import { notes } from "#test/notes.ts";
 
-it("committed keys wake matching streams, and resync wakes every stream", () =>
-	Effect.runPromise(
-		Effect.scoped(
-			Effect.gen(function* () {
-				const live = yield* makeLiveServer;
-				const orders = collection("orders", Schema.Number);
-				const first: unknown[] = [];
-				const second: unknown[] = [];
-				const a = yield* live.stream([orders.item(1)]).pipe(
-					Stream.tap((hint) => Effect.sync(() => first.push(hint))),
-					Stream.take(3),
-					Stream.runDrain,
-					Effect.forkScoped,
-				);
-				const b = yield* live.stream([orders.item(2)]).pipe(
-					Stream.tap((hint) => Effect.sync(() => second.push(hint))),
-					Stream.take(2),
-					Stream.runDrain,
-					Effect.forkScoped,
-				);
-				yield* Effect.yieldNow;
-				yield* Reactivity.invalidate(["orders:1"]);
-				yield* Effect.yieldNow;
-				expect(first).toEqual([{ _tag: "Resync" }, { _tag: "Changed", keys: [orders.item(1)] }]);
-				expect(second).toEqual([{ _tag: "Resync" }]);
-				yield* live.resync;
-				yield* Fiber.join(a);
-				yield* Fiber.join(b);
-				expect(first.at(-1)).toEqual({ _tag: "Resync" });
-				expect(second.at(-1)).toEqual({ _tag: "Resync" });
-			}),
-		).pipe(Effect.provide(Reactivity.layer)),
-	));
+liveNotesStory.it("committed keys wake matching streams, and resync wakes every stream", [liveSession()], function* (test) {
+	const first: unknown[] = [];
+	const second: unknown[] = [];
+	yield* test.watch(1, "first", first).pipe(Effect.forkScoped);
+	yield* test.watch(2, "first", second).pipe(Effect.forkScoped);
+	yield* eventually(() => {
+		expect(first).toEqual([{ _tag: "Resync" }]);
+		expect(second).toEqual([{ _tag: "Resync" }]);
+	});
+	yield* test.invalidate(["notes:1"]);
+	yield* eventually(() => expect(first).toEqual([{ _tag: "Resync" }, { _tag: "Changed", keys: [notes.item(1)] }]));
+	expect(second).toEqual([{ _tag: "Resync" }]);
+	yield* test.resync();
+	yield* eventually(() => {
+		expect(first).toHaveLength(3);
+		expect(second).toHaveLength(2);
+	});
+	expect(first.at(-1)).toEqual({ _tag: "Resync" });
+	expect(second.at(-1)).toEqual({ _tag: "Resync" });
+});
 
-it("resync belongs to its helper when independent helpers share Reactivity", () =>
-	Effect.runPromise(
-		Effect.scoped(
-			Effect.gen(function* () {
-				const first = yield* makeLiveServer;
-				const second = yield* makeLiveServer;
-				const orders = collection("orders", Schema.Number);
-				const a: unknown[] = [];
-				const b: unknown[] = [];
-				yield* first.stream([orders.item(1)]).pipe(
-					Stream.runForEach((hint) => Effect.sync(() => a.push(hint))),
-					Effect.forkScoped,
-				);
-				yield* second.stream([orders.item(2)]).pipe(
-					Stream.runForEach((hint) => Effect.sync(() => b.push(hint))),
-					Effect.forkScoped,
-				);
-				yield* Effect.yieldNow;
-				yield* first.resync;
-				yield* Effect.yieldNow;
-				expect(a).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]);
-				expect(b).toEqual([{ _tag: "Resync" }]);
-				yield* second.resync;
-				yield* Effect.yieldNow;
-				expect(b).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]);
-			}),
-		).pipe(Effect.provide(Reactivity.layer)),
-	));
+liveNotesStory.it("resync belongs to its helper when independent helpers share Reactivity", [liveSession()], function* (test) {
+	const first: unknown[] = [];
+	const second: unknown[] = [];
+	yield* test.watch(1, "first", first).pipe(Effect.forkScoped);
+	yield* test.watch(2, "second", second).pipe(Effect.forkScoped);
+	yield* eventually(() => {
+		expect(first).toHaveLength(1);
+		expect(second).toHaveLength(1);
+	});
+	yield* test.resync("first");
+	yield* eventually(() => expect(first).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]));
+	expect(second).toEqual([{ _tag: "Resync" }]);
+	yield* test.resync("second");
+	yield* eventually(() => expect(second).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]));
+});
