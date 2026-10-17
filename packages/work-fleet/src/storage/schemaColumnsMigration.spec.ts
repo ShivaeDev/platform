@@ -2,10 +2,12 @@ import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { FleetRecord } from "#model.ts";
-import { fleetMigrationColumns } from "#storage/fleetMigrations.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { recordColumns } from "#storage/model.ts";
+import { childTable } from "#storage/recordChildren.ts";
+import { collections, recordShape, shapeColumns, sqlTypes } from "#storage/recordShape.ts";
+import { shapeV12 } from "#storage/shapeV12.ts";
 import { modelTableMigrations } from "#test/modelTableMigrations.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
@@ -25,7 +27,7 @@ for (const path of ["fresh", "upgrade"] as const) {
 		const columns = yield* sql<{ readonly name: string; readonly type: string }>`
 			select attname as name, format_type(atttypid, atttypmod) as type from pg_attribute
 			where attrelid = ${table}::regclass and attnum > 0 and not attisdropped`;
-		const types = { boolean: "boolean", json: "text", number: "double precision", string: "text" };
+		const types = sqlTypes;
 		const expected = [
 			{ name: "admission_order", type: "bigint" },
 			{ name: "version", type: "integer" },
@@ -36,7 +38,20 @@ for (const path of ["fresh", "upgrade"] as const) {
 			return left.name.localeCompare(right.name, "en");
 		}
 		expect([...columns].sort(byName)).toEqual(expected.sort(byName));
-		expect(recordColumns()).toEqual(fleetMigrationColumns);
+		expect(recordShape()).toEqual(shapeV12);
+		for (const collection of collections(recordShape())) {
+			const child = childTable(namespace, collection.path);
+			const actual = yield* sql<{
+				readonly name: string;
+				readonly type: string;
+			}>`select attname as name, format_type(atttypid, atttypmod) as type from pg_attribute where attrelid = ${child}::regclass and attnum > 0 and not attisdropped`;
+			const expectedChild = [
+				{ name: "work_id", type: "text" },
+				...Array.from({ length: collection.parents.length + 1 }, (_unused, index) => ({ name: `position${index}`, type: "integer" })),
+				...Object.entries(shapeColumns(collection.shape)).map(([name, kind]) => ({ name, type: types[kind] })),
+			];
+			expect([...actual].sort(byName)).toEqual(expectedChild.sort(byName));
+		}
 	});
 }
 

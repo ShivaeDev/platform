@@ -1,11 +1,5 @@
 # Changelog
 
-## 0.5.0 - 2026-10-17
-
-### Added
-
-- `assertPostgresMigrations({ loader, table? })` in `assertPostgresMigrations.ts` verifies required migration IDs and names in the native ledger without executing migrations or creating a ledger. Missing or pending migrations fail with native `MigrationError` (`kind: "BadState"`); later ledger entries are allowed for rolling deployments.
-
 ## 0.4.0 - 2026-10-16
 
 ### Added

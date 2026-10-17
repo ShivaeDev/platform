@@ -1,13 +1,10 @@
 # Changelog
 
-## 0.4.2 - 2026-10-17
+## 0.4.2 - 2026-10-16
 
 ### Fixed
 
-- A generated app’s worker and `pnpm migrate` command need only `DATABASE_URL`; shared migrations derive Better Auth’s schema without constructing an auth instance.
-- A generated app runs migrations in web’s Railway pre-deploy step. Web and worker check the schema at startup without migrating; an outdated schema prevents authentication, HTTP and jobs from starting. The migrate command is idempotent.
-- A generated app’s worker logs its applied-migrations check and readiness to take jobs through Effect’s logger.
-- A generated app’s Railway TypeScript configuration runs migrations only in web’s pre-deploy container and gives the worker only `DATABASE_URL`; web’s healthcheck uses the database-backed `/health` route.
+- A generated app excludes `@shivaedev/*` from pnpm's release-age wait so framework releases can install immediately, while third-party packages keep pnpm's default wait.
 
 ## 0.4.1 - 2026-10-16
 
