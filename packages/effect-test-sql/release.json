@@ -1,10 +1,14 @@
 {
-	"date": "2026-10-13",
+	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "effect-4-stable.md",
-			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/sql-pg` 4.0.4 alongside it, whose native PostgreSQL client replaces `pg`.\n"
+			"name": "admin-connection-lifetime.md",
+			"text": "### Fixed\n\n- `makePostgresTestLayer` keeps its administration connection alive until fixture cleanup, so an idle period cannot leave database finalizers waiting for a new pooled connection during scope closure.\n"
+		},
+		{
+			"name": "framework-version-agreement.md",
+			"text": "### Fixed\n\n- Publish against `@shivaedev/effect-sql` 0.4.0 so a generated app shares the same SQL service tags as Platform.\n"
 		}
 	],
-	"version": "0.3.0"
+	"version": "0.3.1"
 }

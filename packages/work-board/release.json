@@ -1,94 +1,10 @@
 {
-	"date": "2026-10-16",
+	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "answer-card.md",
-			"text": "### Changed\n\n- Open requests show an answer card directly below the item header, using the existing response form and retained drafts. The separate respond link opens and focuses that card.\n- Managed decisions use the unblocked item's title, render their reason as Markdown, and show the complete question once, including unfenced multi-paragraph reasons. Page and card headings name the unblocked item. Generated identities stay in Source instead of the item header.\n- Decisions can use frontmatter options and a recommended choice. Answer cards lead with the recommendation and relevant PR actions, and directive choices use human labels. Decision and question headers show request state and omit missing fields. Response validation waits for an attempt, with the last saved local author label prefilled.\n- Typed document requests include optional `title` and `sourceOpen` fields; `DocumentViewProps` accepts an optional `answer` node below the header.\n- `documentHtml` accepts optional answer-card HTML, and `composerHtml` accepts an optional card title.\n"
-		},
-		{
-			"name": "answer-placement.md",
-			"text": "### Changed\n\n- Open requests also show their answer cards under the headers of the items they unblock, preserving the request's reviewed source and choices.\n- Answer cards record with one action and keep author labels, draft tools and response details under More. Read-only cards show one line explaining how to enable answers.\n"
-		},
-		{
-			"name": "attention-queues.md",
-			"text": "### Added\n\n- The typed Inbox query and headless `attention.projection(snapshot)` expose `you`, `agents`, `resolved` and `parked` lanes, with audience labels and separate source diagnostics.\n\n### Fixed\n\n- Inbox, Overview and navigation badges share the maintainer lane count. Open requests for other labels remain visible under Waiting on agents, including requests without a registered question. Invalid managed requests remain source diagnostics rather than counted asks.\n"
-		},
-		{
-			"name": "board-mcp.md",
-			"text": "### Added\n\n- `work-board mcp <dir>` serves the read-only `board_overview`, `needs_you` and `item` tools over stdio using Effect's MCP server. Tools query the running board's Unix socket for the same computed state as the browser and explain how to start a board when none answers.\n"
-		},
-		{
-			"name": "board-socket.md",
-			"text": "### Added\n\n- Serve the same NDJSON RPC over `<dir>/board.sock` alongside the browser's TCP listener. Each directory has its own socket with owner-only access from creation; serialized startup replaces stale sockets and refuses a live or starting board, and shutdown removes the socket, including SIGINT and SIGTERM. Private bind paths use no more pathname bytes than the public socket path.\n- Add the `work-board.server` query returning `{ url, directory }` with the board's browser URL and absolute board directory on both transports. Export its `Server` schema from `@shivaedev/work-board/rpc/Server.ts`.\n"
-		},
-		{
-			"name": "document-navigation.md",
-			"text": "### Fixed\n\n- Share the navigation query between route loaders and the React shell instead of requesting the workspace tree again for each selected file. Document navigation shows the new document or a loading message as the URL changes, and returning before a read completes cannot display that late result over the returned page or overwrite its saved reading details.\n- Opening unchanged indexed documents reuses their parsed metadata and workspace model. Backlinks are resolved once per model instead of scanning every document's links on each open; the selected source is still read to detect edits before watcher notification.\n- Inbox and navigation counts reuse revision-scoped question, response and receipt indexes, instead of validating every response again for every question and document request. Source changes refresh those indexes and counts while preserving ambiguous and malformed history outcomes.\n"
-		},
-		{
-			"name": "five-views.md",
-			"text": "### Changed\n\n- The workspace has five views: Today, Goals, Now, Library and System. Retired destinations redirect to their current view; System lists running and waiting Fleet items by title, stage and PR beside provider limits.\n- Browser pages use Tailwind and shared React primitives and require JavaScript.\n\n### Breaking\n\n- Removed the browser-local comparison API: `workContract.queries.history`, `workContract.queries.overview`, `HistoryInput`, `HistoryOutput`, `OverviewProjection` and the `history/` entry points. The `page/board.ts` and `page/document.ts` server HTML entry points are removed.\n- `page/shell.ts` now exports `shell(title, workspace)` for the React bootstrap only. Removed the superseded server rendering and style exports listed below:\n\n  - `history/schema.ts`: `Baseline`, `HistoryInput`, `HistoryComparison`, `HistoryOutput`.\n  - `server/attention/inboxHtml.ts`: `inboxHtml`, `inboxStyle`.\n  - `server/attention/overviewHtml.ts`: `overviewHtml`.\n  - `server/attention/style.ts`: `attentionStyle`.\n  - `server/diagnostics/style.ts`: `diagnosticsStyle`.\n  - `server/document/answerCardsHtml.ts`: `answerCardsHtml`.\n  - `server/history/baseline.ts`: `readBaseline`, `observeBaseline`.\n  - `server/history/compare.ts`: `SourceChange`, `compareHistory`.\n  - `server/history/documents.ts`: `HistoryDocument`, `historyDocuments`, `historyIdentities`.\n  - `server/history/fields.ts`: `historyFields`.\n  - `server/history/html.ts`: `historyHtml`.\n  - `server/history/limits.ts`: `MAX_BYTES`, `MAX_AGE`.\n  - `server/history/response.ts`: `historyResponse`.\n  - `server/http/inbox.ts`: `inbox`.\n  - `server/http/overview.ts`: `overview`.\n  - `server/http/work.ts`: `work`.\n  - `server/page/attentionDetails.ts`: `attentionDetails`.\n  - `server/page/backlinksHtml.ts`: `backlinksHtml`.\n  - `server/page/boardHtml.ts`: `boardHtml`.\n  - `server/page/criteriaEvidence.ts`: `criteriaEvidence`.\n  - `server/page/documentHtml.ts`: `documentHtml`.\n  - `server/page/itemIntroduction.ts`: `itemIntroduction`.\n  - `server/page/itemStyles.ts`: `itemStyles`.\n  - `server/page/metadata.ts`: `metadataHtml`, `metadataStyles`.\n  - `server/page/metadataDetails.ts`: `metadataDetails`.\n  - `server/page/metadataLinks.ts`: `referenceHtml`, `sourceHtml`, `documentReference`, `valueHtml`.\n  - `server/page/nav.ts`: `navHtml`, `inboxCount`.\n  - `server/page/readingStyles.ts`: `readingStyles`.\n  - `server/page/readingTools.ts`: `readingTools`.\n  - `server/page/recordedEvidence.ts`: `recordedEvidence`.\n  - `server/page/searchDialog.ts`: `searchDialog`, `searchStyles`.\n  - `server/page/style.ts`: `style`.\n  - `server/page/updated.ts`: `updated`.\n  - `server/page/visualDialog.ts`: `visualDialog`, `visualStyles`.\n  - `server/page/workspaceStyles.ts`: `layout`, `theme`.\n  - `server/responses/authoredQuestionHtml.ts`: `authoredQuestionHtml`.\n  - `server/responses/composerHtml.ts`: `composerHtml`.\n  - `server/responses/optionControls.ts`: `optionControls`.\n  - `server/responses/templateHtml.ts`: `templateHtml`.\n  - `server/views/tools.ts`: `viewTools`.\n  - `server/views/workCards.ts`: `workCards`.\n  - `server/views/workControls.ts`: `workControls`.\n  - `server/views/workDetail.ts`: `workDetail`.\n  - `server/views/workHtml.ts`: `workHtml`.\n  - `server/views/workListStyle.ts`: `workListStyle`.\n  - `server/views/workStyle.ts`: `workStyle`.\n  - `server/views/workTable.ts`: `workTable`.\n  - `browser/navigation/html.ts`: `navigationHtml`.\n  - `server/responses/historyHtml.ts`: `historyHtml`.\n"
-		},
-		{
-			"name": "fleet-items-query.md",
-			"text": "### Added\n\n- The typed `fleetItems` Board query reads current Fleet stages, waiting owners, PR URLs and persisted times through the Diagnostics daemon client, joins unique Board documents by ID, and returns `unavailable` with a reason for failed reads or a disabled (`fleetPort: null`) daemon. The shared `DiagnosticsContract` adds `daemon.fleetItems`, backed by `FleetItem`, `CompletedFleetItem` and `FleetItems` schemas. `FleetStage` and `FleetTimestamp` are also available through the diagnostics integration. Legacy stage entry and completion times remain unknown until an observed transition.\n\n- `FleetItemsProjection` describes the Board result. The shared `readDaemon(port, read)` transport and `daemonUnavailableReason(error, port)` explanation are available from `diagnostics/daemon.ts`.\n"
-		},
-		{
-			"name": "goal-counts.md",
-			"text": "### Added\n\n- The typed `goals` query returns open projects with counts of linked work by authored status, criterion-level work and recorded evidence counts, and open ask counts. Missing statuses stay not recorded and unlinked goals are explicit; progress has no computed completion percentage or overall success flag.\n"
-		},
-		{
-			"name": "goal-reading.md",
-			"text": "### Added\n\n- Project pages open with the goals query's done, in progress and planned counts and Inbox-aligned open-ask count before answer cards, followed by criteria with progress, linked work and recorded evidence before authored Markdown. Empty work groups, untargeted criteria labels and absent evidence stay quiet. Each work row has one held Fleet stage or authored status chip; missing status and PR stay blank.\n\n### Changed\n\n- Goal and criterion `counts` now always contain `done`, `\"in progress\"` and `planned`, including zeros. Held Fleet stages override authored status; released stages fall back to authored status. Deferred and unrecorded work count as planned. `goals(snapshot, fleet?)` accepts an optional Fleet projection. Internal Inbox rows retain their `unblocks` targets for goal-specific counts; browser Inbox projections keep their existing shape.\n\n### Fixed\n\n- Goal criteria and linked-work tables include every identified implementing item, including results, decisions, questions and responses. The goals query returns these items alongside its counts, including links to closed projects.\n\n- Completed and closed project pages show query-derived progress bars and criterion counts. The goals query adds `closedGoals` with the same fields as active `goals`; active-goal navigation remains filtered to open projects.\n"
-		},
-		{
-			"name": "goals-overview.md",
-			"text": "### Changed\n\n- Goals shows compact progress cards with next actions, positive open-ask counts and single-line done/total rows for linked criteria. Zero-count metadata stays quiet, and closed goals sit in one collapsed section.\n"
-		},
-		{
-			"name": "inbox-open-work.md",
-			"text": "### Fixed\n\n- Keep managed asks for closed or deferred target work in collapsed Inbox groups, group repeated active managed or registered asks by target item, and count only main-list rows in the Inbox badges without editing sources.\n- Add `resolved` and `parked` arrays and per-row `earlierAsks` to the Inbox query projection.\n"
-		},
-		{
-			"name": "item-overview.md",
-			"text": "### Changed\n\n- Identified documents open with a sticky title, kind icon, status, owner, next action and header actions. Known Fleet items show their execution stage and PR link. Criteria, target titles and statuses, and backlinks grouped by kind appear in an open responsive rail; source location and raw frontmatter have a Source tab. Markdown uses a 68ch reading column with 16px prose.\n\n### Added\n\n- The document query's optional `referenceDetails` record supplies each resolved reference's title and recorded status alongside the existing reference URLs.\n- Recognize `goal` and `report` item kinds in frontmatter and the portable metadata schema.\n\n### Fixed\n\n- Criterion and recorded-evidence passage links leave their targets visible below the sticky item header.\n"
-		},
-		{
-			"name": "item-rail.md",
-			"text": "### Fixed\n\n- Item backlinks show source titles and status, with file locations in tooltips. Criteria use one recorded-evidence count instead of repeating missing-evidence notices.\n- Source diagnostics recognize Fleet-owned frontmatter fields while continuing to report unowned fields.\n\n### Added\n\n- Document reading-context backlinks include optional `title` and `status` fields for consumers that render source references.\n"
-		},
-		{
-			"name": "item-url-slash.md",
-			"text": "### Fixed\n\n- Item links open the same document with or without a trailing slash on direct loads and in-app navigation, including IDs ending in `.md` and IDs that collide with a Markdown file path. Item URLs select identities rather than colliding files; unknown IDs show an explicit missing-item message.\n"
-		},
-		{
-			"name": "neutral-shell.md",
-			"text": "### Changed\n\n- Use a neutral light and dark Board shell, shared status chips with icons and semantic colours, and a single header settings popover for theme, density and live-update preferences.\n\n### Fixed\n\n- Keep Files and Inbox controls named for assistive technology when their visible labels are hidden on narrow screens.\n- Print documents at full width when the Files sidebar is open.\n- Recognize planned, active and received statuses with neutral, working and recorded-response icons.\n- Restore the theme before the first paint and apply its background to the page root as well as the body.\n"
-		},
-		{
-			"name": "now-board.md",
-			"text": "### Changed\n\n- Open Work on a Now board with fixed Fleet stage lanes, tasks only, one Fleet-derived state chip, and holder, PR and time in stage only when known. Disclose authored-status fallback when Fleet is unavailable; keep All work and Table as explicit choices. Queue Fleet-prepared or authored approved waiting tasks, use authored status only without a matching Fleet item, and collapse saved views and filters behind Filter on Now.\n- Exclude decision, question, response, result and request receipt records from Work lists. Keep status column order independent of row sorting and virtualize lists over 200 rows in bounded scrolling containers.\n\n### Fixed\n\n- Let every available Fleet stage decide the task lane despite inactive authored statuses, including prepared and human-waiting work. Keep Done limited to known completions in the last seven days.\n- Keep approved waiting tasks queued when Fleet addon fields are recognized without diagnostics.\n"
-		},
-		{
-			"name": "phone-navigation.md",
-			"text": "### Changed\n\n- Keep Today, Goals, Now and Search in a bottom phone navigation bar, with Library and System in a More sheet. Use a compact sticky phone header and omit keyboard hints on touch devices.\n"
-		},
-		{
-			"name": "quiet-reading.md",
-			"text": "### Fixed\n\n- Missing authored values stay blank across reading and work views, including PR links in System’s Fleet work. Provenance explanations use tooltips or Source records in the React views. Attention-request passage links reveal the Source tab before scrolling and focusing the record, including direct, search, same-document and Back navigation. Repeated source titles expand from one counted line, and each backlink source appears under its most specific kind.\n- Managed answer cards use the Inbox’s active request eligibility. Answer cards and needs-you summary chips stay hidden on closed work, even when a question retains an explicit open attention request.\n- Sidebar goal bars name their done count for assistive technology and hover; only Today and Now show navigation counts. Now lanes keep equal widths and single-line headers. Today’s in-progress work follows its human asks without a gap from the goals column, and one open ask uses the singular.\n"
-		},
-		{
-			"name": "sidebar-library.md",
-			"text": "### Changed\n\n- Replace the sidebar file tree with counted destinations, pinned documents, active goal status bars and five recent documents. Browse document titles, kind/status filters, lazy folders and modification order in Library; generated Fleet records stay hidden until requested.\n\n### Breaking\n\n- The navigation query returns destination counts instead of `tree` and `records`; `NavigationFile` and `NavigationFolder` schemas are removed. The `Navigation` import at `browser/navigation/schema.ts` remains available. The Library query provides filtered documents and immediate folder children on demand.\n"
-		},
-		{
-			"name": "today.md",
-			"text": "### Changed\n\n- Open on Today with human asks, compact ask rows with option answers in popovers, compact goal progress with next actions clamped to two lines and collapsed criteria, and up to eight Fleet-held items with their stages and PR links. Keep configured home Markdown reachable as Workspace notes.\n\n### Fixed\n\n- Track Today health through its Inbox, Goals and Fleet queries, and retry failed reads when reopening Today.\n"
-		},
-		{
-			"name": "work-search.md",
-			"text": "### Added\n\n- The command palette offers navigation to Today, Goals, Now, Library, System and active goals alongside appearance commands. Search results show item IDs, kinds and status chips.\n\n### Fixed\n\n- Search ranks items before headings and passages, open work before closed and deferred work, then title and ID matches before body matches and recently changed sources before older ones. Fleet records, including `fleet/status.md` and `responses/fleet-report.*`, require `records:`. Snippets omit structured metadata, each anchor appears once, and rows without a recorded status omit the status chip.\n- With `records:`, Fleet and ordinary item results share the same status, relevance and recency ordering before every heading and passage hit, including when only the item's body matches. Matching go-to commands replace item results with the same destination.\n"
+			"name": "framework-version-agreement.md",
+			"text": "### Fixed\n\n- Align published Platform and contract dependencies with the current framework releases.\n"
 		}
 	],
-	"version": "0.14.0"
+	"version": "0.14.1"
 }

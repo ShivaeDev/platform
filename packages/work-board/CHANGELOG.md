@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.1 - 2026-10-17
+
+### Fixed
+
+- Align published Platform and contract dependencies with the current framework releases.
+
 ## 0.14.0 - 2026-10-16
 
 ### Added

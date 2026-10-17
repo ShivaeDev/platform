@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2 - 2026-10-17
+
+### Fixed
+
+- Generate an app with aligned framework versions, including `effect-sql` 0.4.0 and its matching SQL test package, so framework dependencies do not install conflicting versions.
+
 ## 0.4.1 - 2026-10-16
 
 ### Fixed

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.1 - 2026-10-17
+
+### Fixed
+
+- Align published contract, Prisma and tRPC dependencies with the current framework releases.
+
 ## 0.12.0 - 2026-10-16
 
 ### Added
