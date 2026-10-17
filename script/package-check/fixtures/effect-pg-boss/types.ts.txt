@@ -6,6 +6,7 @@ class Mail extends Context.Service<Mail, { send(id: number): Effect.Effect<void>
 
 const Queue = defineQueue({
   name: "mail",
+  queue: { notify: true, policy: "standard", partition: true, heartbeatSeconds: 10, warningQueueSize: 100 },
   schema: Schema.Struct({ id: Schema.NumberFromString }),
 })
 // @ts-expect-error Durable payloads must be object schemas.
@@ -33,6 +34,16 @@ Effect.runPromise(Effect.asVoid(Jobs).pipe(Effect.provide(otherLayer)))
 const program = Effect.gen(function* () {
   const jobs = yield* Jobs
   yield* jobs.enqueue(Queue, { id: 1 })
+  yield* jobs.counts(Queue)
+  yield* jobs.retry(Queue, "job-id")
+  const job = yield* jobs.getJob(Queue, "job-id")
+  if (job._tag === "Some") {
+    const id: number = job.value.data.id
+    // @ts-expect-error Lookup returns decoded payloads through the packed package.
+    const encoded: string = job.value.data.id
+    void id
+    void encoded
+  }
   // @ts-expect-error Decoded payload fields remain strongly typed.
   yield* jobs.enqueue(Queue, { id: "1" })
 })

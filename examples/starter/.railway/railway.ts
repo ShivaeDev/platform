@@ -5,6 +5,7 @@ export default defineRailway((ctx) => {
 	const web = service("web", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
 		env: {
+			"AUTH_CLIENT_IP_HEADER": "x-real-ip",
 			"BETTER_AUTH_SECRET": ctx.shared.BETTER_AUTH_SECRET,
 			"DATABASE_URL": database.env.DATABASE_URL,
 			"HOST": "0.0.0.0",

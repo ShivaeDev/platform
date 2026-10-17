@@ -9,6 +9,7 @@ export const secret = Redacted.make("app-test-secret-with-at-least-32-characters
 export const PUBLIC_URL = "https://app.example";
 
 export interface HostOptions {
+	readonly authClientIpHeader?: string;
 	readonly deployed?: boolean;
 	readonly rateLimitEnabled?: boolean;
 	readonly trustedProxy?: string | undefined;
@@ -26,6 +27,9 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	}
 	if (options.rateLimitEnabled !== undefined) {
 		env.AUTH_RATE_LIMIT_ENABLED = String(options.rateLimitEnabled);
+	}
+	if (options.authClientIpHeader !== undefined) {
+		env.AUTH_CLIENT_IP_HEADER = options.authClientIpHeader;
 	}
 	const host = notesHost({ databaseUrl: database.url, secret, ...(deployed ? {} : { port: 0 }) }).pipe(
 		Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))),

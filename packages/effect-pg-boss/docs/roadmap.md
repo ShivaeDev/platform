@@ -12,6 +12,9 @@ This file owns the package's implementation inventory and open API choices. The 
 - [x] Worker and scheduled Effect service capture. Runtime and packed-consumer type tests preserve handler requirements.
 - [x] Scoped startup and shutdown, including cleanup when startup or registration fails.
 - [x] Explicit keyed client reuse and unkeyed per-build acquisition. Lifecycle tests cover two builds sharing one client and replacing the registered worker.
+- [x] Full pg-boss queue creation options, excluding the adapter's name and dead-letter setup. [PostgreSQL evidence](../src/server/notifyPostgres.spec.ts) verifies notification delivery to a waiting worker and immediate live counts after completion; [type tests](../src/server/service.typecheck.test.ts) enforce option ownership.
+- [x] Schema-decoded lookup by job ID and retry under the same ID for failed or retry-waiting jobs. [PostgreSQL evidence](../src/server/jobControlPostgres.spec.ts) verifies both states complete after a manual retry.
+- [x] Startup reconciles declared mutable queue settings and rejects immutable policy or partition changes with a typed error. [PostgreSQL restart evidence](../src/server/queueOptionsPostgres.spec.ts) checks expiry and retry-limit changes on an existing queue.
 - [x] Queue health totals for active, failed, queued, ready and dead-lettered counts, verified with a populated fake queue.
 - [x] Public defining-module imports and an installed-package type fixture.
 

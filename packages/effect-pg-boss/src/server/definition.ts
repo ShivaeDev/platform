@@ -1,5 +1,5 @@
 import type { Effect, Schema } from "effect";
-import type { Job, QueueOptions, ScheduleOptions, WorkOptions } from "pg-boss";
+import type { Job, Queue, ScheduleOptions, WorkOptions } from "pg-boss";
 
 export interface JobPayloadSchema extends Schema.Top {
 	readonly Encoded: object;
@@ -20,7 +20,7 @@ export interface QueueDefinition<Name extends string = string, Payload extends J
 		handler: (payload: Schema.Schema.Type<Payload>, job: JobContext) => Effect.Effect<unknown, E, R>,
 	) => QueueWorker<Payload, R>;
 	readonly name: Name;
-	readonly queueOptions: Omit<QueueOptions, "deadLetter">;
+	readonly queueOptions: Omit<Queue, "name" | "deadLetter">;
 	readonly schema: Payload;
 	readonly workerOptions: WorkOptions;
 }
@@ -39,7 +39,7 @@ export interface ScheduleDefinition<Name extends string = string> {
 	readonly _tag: "ScheduleDefinition";
 	readonly cron: string;
 	readonly name: Name;
-	readonly queueOptions: Omit<QueueOptions, "deadLetter">;
+	readonly queueOptions: Omit<Queue, "name" | "deadLetter">;
 	readonly run: <E, R>(effect: Effect.Effect<unknown, E, R>) => ScheduledWorker<R>;
 	readonly scheduleOptions: ScheduleOptions;
 	readonly workerOptions: WorkOptions;
@@ -61,7 +61,7 @@ export type RegistrationRequirements<Registrations extends readonly JobRegistrat
 
 export interface DefineQueueOptions<Name extends string, Payload extends JobPayloadSchema> {
 	readonly name: Name;
-	readonly queue?: Omit<QueueOptions, "deadLetter">;
+	readonly queue?: Omit<Queue, "name" | "deadLetter">;
 	readonly schema: Payload;
 	readonly worker?: WorkOptions;
 }
@@ -88,7 +88,7 @@ export const defineQueue = <const Name extends string, const Payload extends Job
 export interface DefineScheduleOptions<Name extends string> {
 	readonly cron: string;
 	readonly name: Name;
-	readonly queue?: Omit<QueueOptions, "deadLetter">;
+	readonly queue?: Omit<Queue, "name" | "deadLetter">;
 	readonly schedule?: ScheduleOptions;
 	readonly worker?: WorkOptions;
 }
