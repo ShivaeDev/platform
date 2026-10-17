@@ -37,7 +37,7 @@ export const recoveryCaseGroups = {
 	boundary: () => [...recoveryFallbackCases(), ...recoveryBoundaryCases(), ...recoveryHostCases()],
 	checks: () => [...recoveryChecksCases(), recoveryCheckRepairCase(), recoveryConflictCase(), ...recoveryIntegrationCases()],
 	delivery: () => [...recoveryGithubDeliveryCases(), ...recoveryAdoptionCases(), ...recoveryDeliveryCases()],
-	report: () => [...recoveryWorkerCases(), ...recoveryReviewCases, ...recoveryReportCases(), ...recoveryBoardReportCases()],
+	report: () => [...recoveryReviewCases, ...recoveryReportCases(), ...recoveryBoardReportCases()],
 	session: () => [
 		recoveryReadCase(),
 		recoveryActiveTurnCase("session-active-turn"),
@@ -47,6 +47,7 @@ export const recoveryCaseGroups = {
 		recoveryStallCase(),
 		recoveryUnobservableCase(),
 		...recoveryUncertainCases(),
+		...recoveryWorkerCases(),
 	],
 } satisfies Record<string, () => readonly RecoveryCase[]>;
 export type RecoveryCaseGroup = keyof typeof recoveryCaseGroups;
