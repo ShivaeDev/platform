@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { argumentsFor } from "#arguments.ts";
-import { effectApp } from "#test/services.ts";
 
-effectApp("arguments select explicit PRs, defaults and fleet settings", function* () {
+it.effect("arguments select explicit PRs, defaults and fleet settings", function* () {
 	const explicit = yield* argumentsFor(["--repo", "acme/project", "1", "2", "1"], "token");
 	expect(explicit).toMatchObject({
 		help: false,
@@ -27,7 +27,7 @@ effectApp("arguments select explicit PRs, defaults and fleet settings", function
 		options: { apiUrl: "https://github.example/api/v3", fleet: true, interval: 5000, numbers: [], stateFile: "custom.json" },
 	});
 });
-effectApp.each([
+it.effect.each([
 	[],
 	["--repo", "bad"],
 	["--repo", "acme/project"],
