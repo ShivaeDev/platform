@@ -1,84 +1,35 @@
-import { Effect, Semaphore, Stream } from "effect";
-import type { DatabaseExecutor } from "#internal/executor.ts";
-import { makeModelRelation } from "#internal/relation-runtime.ts";
-import { ControlledCollection, EventStreamCollection } from "#test/controlled-collection.ts";
-import { unusedClient } from "#test/unused-client.ts";
+import { Effect, Stream } from "effect";
+import { controlledUsers, type QueryControl } from "#test/queryControls.ts";
+import { Database } from "#test/sqlite/database.ts";
 
-interface User {
-	readonly id: number;
-}
-const rows: readonly User[] = [{ id: 1 }, { id: 2 }, { id: 3 }];
-
-export function queryStreamProbes() {
+export function queryStreamProbes(db: Effect.Success<typeof Database>, state: () => QueryControl) {
+	function source(database: Effect.Success<typeof Database>) {
+		return database.User.where((user) => user.email.in(controlledUsers.map((seed) => seed.email)))
+			.orderBy((user) => user.name.asc())
+			.select("id", "name");
+	}
 	return {
 		buffered: () =>
-			Effect.gen(function* () {
-				const events: string[] = [];
-				interface StreamModels {
-					readonly Lookup: ControlledCollection<User>;
-					readonly Source: EventStreamCollection<User>;
-				}
-				const executor: DatabaseExecutor<StreamModels> = {
-					client: unusedClient(),
-					identity: {},
-					liveness: {
-						closedCode: "RUNTIME.TRANSACTION_CLOSED",
-						open: true,
-					},
-					mode: "transaction",
-					models: {
-						Lookup: new ControlledCollection(() => {
-							events.push("lookup");
-							return Promise.resolve([...rows]);
-						}),
-						Source: new EventStreamCollection(rows, events),
-					},
-					querySemaphore: Semaphore.makeUnsafe(1),
-					transactionIdentity: {},
-					transactionSemaphore: undefined,
-				};
-				const source = makeModelRelation<EventStreamCollection<User>, StreamModels>(executor, "Source");
-				const lookup = makeModelRelation<ControlledCollection<User>, StreamModels>(executor, "Lookup");
-
-				const result = yield* Stream.runCollect(source.stream.pipe(Stream.mapEffect(() => lookup.exists())));
-
-				const observedRows = result;
-				const observedEvents = events;
-				return { events: observedEvents, rows: observedRows };
-			}),
+			db.transaction(
+				Effect.gen(function* () {
+					const database = yield* Database;
+					const rows = yield* Stream.runCollect(
+						source(database).stream.pipe(Stream.mapEffect((row) => database.User.where({ id: row.id }).exists())),
+					);
+					return { events: state().events, rows };
+				}),
+			),
 		incremental: () =>
 			Effect.gen(function* () {
-				const events: string[] = [];
-				interface StreamModels {
-					readonly Source: EventStreamCollection<User>;
-				}
-				const executor: DatabaseExecutor<StreamModels> = {
-					client: unusedClient(),
-					identity: {},
-					liveness: {
-						closedCode: "RUNTIME.DATABASE_CLOSED",
-						open: true,
-					},
-					mode: "root",
-					models: { Source: new EventStreamCollection(rows, events) },
-					querySemaphore: Semaphore.makeUnsafe(1),
-					transactionIdentity: undefined,
-					transactionSemaphore: undefined,
-				};
-				const source = makeModelRelation<EventStreamCollection<User>, StreamModels>(executor, "Source");
-
-				const result = yield* Stream.runCollect(
-					source.stream.pipe(
+				const rows = yield* Stream.runCollect(
+					source(db).stream.pipe(
 						Stream.map((row) => {
-							events.push(`downstream:${row.id}`);
-							return row;
+							state().events.push(`downstream:${row.name}`);
+							return { id: row.id };
 						}),
 					),
 				);
-
-				const observedRows = result;
-				const observedEvents = events;
-				return { events: observedEvents, rows: observedRows };
+				return { events: state().events, rows };
 			}),
 	};
 }

@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schedule } from "effect";
 import { Client } from "pg";
 import { makeDatabase } from "#database.ts";
 import { type Contract, contractJson } from "#test/contract.ts";
@@ -35,7 +35,9 @@ export function postgresPoolLifetime(fail: boolean) {
 					}).pipe(Effect.provide(Database.layer({ url: url.toString() }))),
 				);
 
-				return { after: yield* connections, during, exit };
+				// PostgreSQL removes the backend asynchronously after the pool closes its socket.
+				const after = yield* connections.pipe(Effect.repeat({ schedule: Schedule.spaced("10 millis"), times: 100, until: (count) => count === 0 }));
+				return { after, during, exit };
 			}),
 		(observer) => Effect.promise(() => observer.end()),
 	);

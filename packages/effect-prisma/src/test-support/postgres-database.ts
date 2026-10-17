@@ -1,6 +1,7 @@
 import { makeDatabase } from "#database.ts";
 import type { DatabaseServiceOf } from "#databaseTypes.ts";
 import { type Contract, contractJson } from "#test/contract.ts";
+import { controlledRuntime } from "#test/runtimeControls.ts";
 import { environmentVariable } from "./environment.ts";
 
 export const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
@@ -18,6 +19,7 @@ export function scopedValues(db: DatabaseService, email: string) {
 	};
 }
 export const DatabaseLive = Database.layer({
+	middleware: [controlledRuntime],
 	url: databaseUrl ?? "postgresql://integration-tests-disabled",
 });
 

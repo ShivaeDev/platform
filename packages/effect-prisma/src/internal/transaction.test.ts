@@ -1,5 +1,6 @@
 import { expect } from "vitest";
-import { sqliteStory } from "#test/sqlite/story.ts";
+import { controlledUsers } from "#test/queryControls.ts";
+import { controlsQueries, failsSettlement, hasUsers, holdsSettlement, sqliteStory } from "#test/sqlite/story.ts";
 
 sqliteStory.it("commits and releases a successful transaction", [], function* ({ transactionProbes }) {
 	const result = yield* transactionProbes.commit();
@@ -19,7 +20,7 @@ sqliteStory.it("forces rollback for a successful test transaction", [], function
 	expect(result.open).toBe(false);
 });
 
-sqliteStory.it("reports commit failure after attempting rollback and release", [], function* ({ transactionProbes }) {
+sqliteStory.it("reports commit failure after attempting rollback and release", [failsSettlement("commit")], function* ({ transactionProbes }) {
 	const result = yield* transactionProbes.commitFailure();
 	expect(result.calls).toEqual(["commit", "rollback", "release"]);
 	expect(result.reason).toMatchObject({
@@ -29,7 +30,7 @@ sqliteStory.it("reports commit failure after attempting rollback and release", [
 	expect(result.open).toBe(false);
 });
 
-sqliteStory.it("destroys the connection when rollback fails", [], function* ({ transactionProbes }) {
+sqliteStory.it("destroys the connection when rollback fails", [failsSettlement("rollback")], function* ({ transactionProbes }) {
 	const result = yield* transactionProbes.rollbackFailure();
 	expect(result.calls).toEqual(["rollback", "destroy"]);
 	expect(result.reason).toMatchObject({
@@ -39,7 +40,7 @@ sqliteStory.it("destroys the connection when rollback fails", [], function* ({ t
 	expect(result.open).toBe(false);
 });
 
-sqliteStory.it("destroys the connection when release fails", [], function* ({ transactionProbes }) {
+sqliteStory.it("destroys the connection when release fails", [failsSettlement("release")], function* ({ transactionProbes }) {
 	const result = yield* transactionProbes.releaseFailure();
 	expect(result.calls).toEqual(["commit", "release", "destroy"]);
 	expect(result.reason).toMatchObject({
@@ -49,17 +50,21 @@ sqliteStory.it("destroys the connection when release fails", [], function* ({ tr
 	expect(result.open).toBe(false);
 });
 
-sqliteStory.it("drains the active query and refuses queued work before settlement", [], function* ({ transactionProbes }) {
-	const result = yield* transactionProbes.drain();
-	expect(result.whileQueryRuns).toEqual(["query1"]);
-	expect(result.queuedError).toMatchObject({
-		_tag: "PrismaRuntimeFailure",
-		code: "RUNTIME.TRANSACTION_CLOSED",
-	});
-	expect(result.calls).toEqual(["query1", "queued:RUNTIME.TRANSACTION_CLOSED", "commit", "release"]);
-});
+sqliteStory.it(
+	"drains the active query and refuses queued work before settlement",
+	[hasUsers(controlledUsers), controlsQueries("drain")],
+	function* ({ transactionProbes }) {
+		const result = yield* transactionProbes.drain();
+		expect(result.whileQueryRuns).toEqual(["query1"]);
+		expect(result.queuedError).toMatchObject({
+			_tag: "PrismaRuntimeFailure",
+			code: "RUNTIME.TRANSACTION_CLOSED",
+		});
+		expect(result.calls).toEqual(["query1", "queued:RUNTIME.TRANSACTION_CLOSED", "commit", "release"]);
+	},
+);
 
-sqliteStory.it("holds the transaction permit through interrupted settlement", [], function* ({ transactionProbes }) {
+sqliteStory.it("holds the transaction permit through interrupted settlement", [holdsSettlement()], function* ({ transactionProbes }) {
 	const result = yield* transactionProbes.interruptPermit();
 	expect(result.beforeInterruption).toBe(false);
 	expect(result.duringSettlement).toBe(false);
