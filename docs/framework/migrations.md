@@ -1,8 +1,6 @@
 # Native SQL migrations
 
-Use Effect's existing migration runner directly. Platform does not add a migration
-engine, schema-diff generator, or CLI in this slice. A migration is an ordinary
-Effect that uses the same `SqlClient` as application repositories.
+Author numbered migrations with Effect's migration loaders. Use `migratePostgres` for PostgreSQL runner serialization and `assertPostgresMigrations` for a startup ledger check, as described in the [PostgreSQL guide](./postgres-migrations.md). A migration is an ordinary Effect that uses the same `SqlClient` as application repositories.
 
 ## Start with numbered effects
 
@@ -68,10 +66,7 @@ contents. Treat applied migrations as immutable and append higher IDs. Whether
 Platform should enforce checksums or reject out-of-order history remains a
 separate decision; this example adds neither behavior.
 
-Nontransactional DDL, deployment serialization, existing-database baselining,
-schema-diff generation, and a migration authoring CLI need concrete application
-requirements before Platform chooses a policy. Database-specific operations that
-cannot execute inside a transaction do not fit this runner's ordinary batch.
+`migratePostgres` serializes runners for the same ledger with a PostgreSQL advisory lock; the [bootstrap tests](../../packages/effect-sql/src/postgresMigrationBootstrap.spec.ts) cover concurrent runners on a new ledger. Nontransactional DDL, existing-database baselining, schema-diff generation and a migration authoring CLI remain [SQL roadmap questions](../../packages/effect-sql/docs/roadmap.md). Database-specific operations that cannot execute inside a transaction do not fit this runner's ordinary batch.
 
 These migrations evolve application tables and data. They do not rebuild event
 projections or introduce event sourcing. Repository models still describe the
