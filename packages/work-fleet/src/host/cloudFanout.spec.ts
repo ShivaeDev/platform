@@ -1,5 +1,5 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
@@ -36,7 +36,9 @@ const killFanout = Effect.fn("CloudFanout.killFanout")(function* (fixture: HostF
 		),
 	).toBe(true);
 	yield* first.kill;
+	const readsDue = Math.max(...(yield* records(fixture)).map(({ value }) => value.attempts[0]?.readRetry?.retryAt ?? 0));
 	const restarted = yield* hostProcess(fixture.configFile);
+	yield* Effect.sleep(Math.max(0, readsDue - (yield* Clock.currentTimeMillis)));
 	yield* restarted.until(() =>
 		records(fixture).pipe(
 			Effect.map((stored) => {
@@ -72,7 +74,7 @@ function fanoutStory() {
 			return yield* withHost(
 				files,
 				{
-					// Each lost acknowledgement must time out before sequential dispatch can reach the next attempt.
+					// Each lost acknowledgement times out before sequential dispatch reaches the next attempt, and defers that attempt's next provider read by 30 seconds.
 					cloud: { authFile, cwd: SYNTHETIC_WORKSPACE, endpoint: server.endpoint, environmentId: SYNTHETIC_ENVIRONMENT, requestTimeoutMs: 1000 },
 					provider: "cloud",
 					worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" },
