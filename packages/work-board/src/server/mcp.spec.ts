@@ -1,7 +1,7 @@
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, startBoard } from "#test/board.ts";
-import { codexResponse, githubResponse, health } from "#test/diagnostics.ts";
+import { codexResponse, githubObservations, health } from "#test/diagnostics.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { goalsFixture } from "#test/goalsFixture.ts";
 import { mcpClient, toolValue } from "#test/mcpClient.ts";
@@ -30,7 +30,7 @@ it.live("lists read-only tools and reads browser-computed board state through st
 		() => ({
 			codex: { observedAt: 100, state: "ready", value: codexResponse.rateLimits },
 			fleet: { observedAt: 100, state: "ready", value: health },
-			github: { observedAt: 100, state: "ready", value: githubResponse.resources },
+			github: { observedAt: 100, state: "ready", value: githubObservations },
 		}),
 		0,
 		() => ({

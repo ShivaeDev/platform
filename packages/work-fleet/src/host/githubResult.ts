@@ -1,21 +1,14 @@
-import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import { BadRequest, Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
-import { FilePages, type GithubRead, githubJson, PullRequest, Repository } from "#host/github.ts";
-import { githubRead } from "#host/githubRead.ts";
-import type { MainSource } from "#host/mainSource.ts";
+import { FilePages, type GithubRead, githubJson, PullRequest } from "#host/github.ts";
 import { resultReport } from "#host/resultReport.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
 
-export function githubResult(
-	host: FleetHost,
-	main: MainSource["Service"],
-	read: GithubRead = (args) => githubRead(args, main.repositoryRoot).pipe(Effect.provide(NodeServices.layer)),
-) {
+export function githubResult(host: FleetHost, read: GithubRead, repository: Effect.Effect<string, FleetError>) {
 	return Effect.fn("FleetHost.githubResult")(function* (_work: BoardWork, observation: SessionObservation): Effect.fn.Return<WorkResult, FleetError> {
 		if (observation.execution !== "completed") {
 			return yield* new BadRequest({ message: "Result adoption requires completed worker execution" });
@@ -24,25 +17,30 @@ export function githubResult(
 		if (report.pr.kind === "none") {
 			return { evidence: [observation.output], head: report.head, kind: "no-change" };
 		}
-		return yield* adoptPullRequest(host, read, report.head, report.pr.url);
+		return yield* adoptPullRequest(host, read, yield* repository, report.head, report.pr.url);
 	});
 }
 
-const adoptPullRequest = Effect.fn("FleetHost.adoptPullRequest")(function* (host: FleetHost, read: GithubRead, head: string, prUrl: string) {
-	const repository = yield* githubJson(Repository, read, ["repo", "view", "--json", "nameWithOwner"]);
+const adoptPullRequest = Effect.fn("FleetHost.adoptPullRequest")(function* (
+	host: FleetHost,
+	read: GithubRead,
+	repository: string,
+	head: string,
+	prUrl: string,
+) {
 	const url = new URL(prUrl);
 	const parts = url.pathname.split("/");
 	const owner = parts[1];
 	const name = parts[2];
 	const number = Number(parts[4]);
-	if (!Number.isSafeInteger(number) || `${owner}/${name}`.toLowerCase() !== repository.nameWithOwner.toLowerCase()) {
+	if (!Number.isSafeInteger(number) || `${owner}/${name}`.toLowerCase() !== repository.toLowerCase()) {
 		return yield* withFailureContext(new BadRequest({ message: "Reported PR must belong to the host repository" }), { code: "foreign-pr" });
 	}
-	const endpoint = `repos/${repository.nameWithOwner}/pulls/${number}`;
-	const before = yield* githubJson(PullRequest, read, ["api", endpoint]);
+	const endpoint = `repos/${repository}/pulls/${number}`;
+	const before = yield* githubJson(PullRequest, read.get(endpoint));
 	yield* validatePullRequest(before, head, number, prUrl, host.repository.branch);
-	const files = (yield* githubJson(FilePages, read, ["api", `${endpoint}/files?per_page=100`, "--paginate", "--slurp"])).flat();
-	const after = yield* githubJson(PullRequest, read, ["api", endpoint]);
+	const files = (yield* githubJson(FilePages, read.pages(`${endpoint}/files?per_page=100`))).flat();
+	const after = yield* githubJson(PullRequest, read.get(endpoint));
 	yield* validatePullRequest(after, head, number, prUrl, host.repository.branch);
 	if (before.changedFiles !== after.changedFiles) {
 		return yield* new Conflict({ message: "PR changed paths moved during observation" });

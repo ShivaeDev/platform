@@ -3,7 +3,7 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import type { DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
-import { codexResponse, githubResponse, health } from "#test/diagnostics.ts";
+import { codexResponse, githubObservations, health } from "#test/diagnostics.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { renderRemaining } from "#test/remainingRendering.tsx";
 
@@ -19,7 +19,7 @@ function snapshot(observedAt: number): DiagnosticsSnapshot {
 	return {
 		codex: { observedAt, state: "ready", value: codexResponse.rateLimits },
 		fleet: { observedAt, state: "ready", value: { ...health, observedAt } },
-		github: { observedAt, state: "ready", value: githubResponse.resources },
+		github: { observedAt, state: "ready", value: githubObservations },
 	};
 }
 
