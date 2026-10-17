@@ -1,4 +1,4 @@
-import { Effect, Ref, Stream } from "effect";
+import { Effect, Ref, Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { expect } from "vitest";
@@ -60,6 +60,19 @@ export const liveNotesStory = storyKit({
 				registry.set(client.resume, registry.get(client.resume) + 1);
 			},
 			resync: (helper: "first" | "second" = "first") => (helper === "first" ? server.hints : server.secondHints).resync,
+			*serverResyncs(count: number) {
+				story.tell(`the server resyncs ${count} times`);
+				for (let index = 0; index < count; index += 1) {
+					const received = yield* SubscriptionRef.get(client.receivedHints);
+					yield* Effect.promise(() => server.emit({ _tag: "Resync" }));
+					// A resync reaches both per-note streams; drain both before sending another.
+					yield* SubscriptionRef.changes(client.receivedHints).pipe(
+						Stream.filter((total) => total >= received + 2),
+						Stream.take(1),
+						Stream.runDrain,
+					);
+				}
+			},
 			status: () => registry.get(client.status),
 			streamOutage: (unavailable: boolean) => Ref.set(server.streamUnavailable, unavailable),
 			subscribe: (count?: number, signal?: AbortSignal) => {
@@ -111,8 +124,12 @@ export function watchingNotes() {
 		engine.registry.mount(engine.client.api.list.query(undefined));
 		yield* eventually(() => {
 			expect(engine.registry.get(engine.client.status).connection).toBe("live");
+			expect(Effect.runSync(Ref.get(engine.server.active))).toBe(1);
 			expect(AsyncResult.getOrElse(engine.registry.get(one), () => undefined)?.body).toBe("First");
 			expect(AsyncResult.getOrElse(engine.registry.get(two), () => undefined)?.body).toBe("Second");
+			expect(engine.registry.get(one).waiting).toBe(false);
+			expect(engine.registry.get(two).waiting).toBe(false);
+			expect(engine.registry.get(engine.client.api.list.query(undefined)).waiting).toBe(false);
 		});
 	});
 }

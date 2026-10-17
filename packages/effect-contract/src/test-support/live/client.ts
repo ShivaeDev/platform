@@ -1,4 +1,4 @@
-import { Layer } from "effect";
+import { Effect, Layer, Stream, SubscriptionRef } from "effect";
 import { FetchHttpClient } from "effect/http";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
@@ -15,12 +15,13 @@ export function liveClient(url: string, options: ResumeOptions = {}, includeResu
 	}) {}
 	const api = bind(LiveNotes, Client);
 	const resume = Atom.make(0);
+	const receivedHints = Effect.runSync(SubscriptionRef.make(0));
 	const signal = resumeSignal(options);
 	const subscription = live(Client.runtime, {
 		...(includeResume ? { resume: Atom.make((get) => get(resume) + get(signal)) } : {}),
 		resyncKeys: Subscribe.reads(undefined),
 		retryDelay: "100 millis",
-		stream: api.subscribe.run(undefined),
+		stream: api.subscribe.run(undefined).pipe(Stream.tap(() => SubscriptionRef.update(receivedHints, (count) => count + 1))),
 	});
-	return { api, Client, resume, signal, ...subscription };
+	return { api, Client, receivedHints, resume, signal, ...subscription };
 }
