@@ -3,6 +3,7 @@ import { browserStorage } from "#test/browserStorage.ts";
 import { control } from "#test/chrome.ts";
 import { renderBoard } from "#test/react.tsx";
 import { Header } from "./Header.tsx";
+import { emptyMainLocation } from "./mainLocation.ts";
 import { shellIds } from "./shellIds.ts";
 import { useAppearance } from "./useAppearance.ts";
 import { useSidebar } from "./useSidebar.ts";
@@ -23,7 +24,7 @@ function Shell({ count }: { readonly count: number | null }) {
 			appearance={appearance}
 			count={count}
 			live={null}
-			main={{ file: "", view: "" }}
+			main={emptyMainLocation}
 			openSearch={() => undefined}
 			sidebar={sidebar}
 			status=""
