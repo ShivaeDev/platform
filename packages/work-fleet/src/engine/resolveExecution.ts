@@ -15,7 +15,7 @@ export const resolveExecution = Effect.fn("Fleet.resolveExecution")(function* (
 	if (action === "retry") {
 		yield* authorizeResolution(state, stored.value, action);
 	}
-	const resolved = stored.value.decision?.code === "session-stalled" ? yield* abandonStalled(state, stored) : stored;
+	const resolved = yield* abandonStalled(state, stored);
 	const fenced = yield* retireUnacknowledged(state, resolved);
 	const current = action === "release" && executing(fenced.value) ? yield* releaseExecution(state, fenced) : fenced;
 	if (action === "release") {

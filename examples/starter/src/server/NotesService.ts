@@ -6,7 +6,6 @@ import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Create, type Delete, notes, Update } from "#notes.ts";
-import { jobDatabase } from "./jobDatabase.ts";
 import { makeNotesRepository } from "./makeNotesRepository.ts";
 import { CountWords, NoteJobs } from "./noteJobs.ts";
 
@@ -32,9 +31,7 @@ export const NotesService = defineService({
 		function enqueue(noteId: number) {
 			return Effect.gen(function* () {
 				const jobs = yield* NoteJobs;
-				const db = yield* jobDatabase;
-				yield* jobs.enqueue(CountWords, { noteId }, { db }).pipe(Effect.mapError(unavailable));
-				yield* invalidateOnCommit(invalidationKeys([notes.item(noteId)]));
+				yield* jobs.enqueue(CountWords, { noteId }).pipe(Effect.catch((error) => Effect.logError({ error, event: "note_enqueue_failed", noteId })));
 			});
 		}
 		return {
@@ -45,9 +42,12 @@ export const NotesService = defineService({
 						return yield* Create.reject.Invalid({ field: "title", message: "Enter a title" });
 					}
 					const row = yield* repository.insert({ ownerId, title: trimmed, wordCount: null }).pipe(Effect.mapError(unavailable));
-					yield* enqueue(row.id);
+					yield* invalidateOnCommit(invalidationKeys([notes.item(row.id)]));
 					return row;
-				}).pipe(transact({ onSqlError: unavailable })),
+				}).pipe(
+					transact({ onSqlError: unavailable }),
+					Effect.tap((row) => enqueue(row.id)),
+				),
 			delete: (input: typeof Delete.payload.Type, ownerId: string) =>
 				Effect.gen(function* () {
 					yield* get(input.id, ownerId);
@@ -67,9 +67,12 @@ export const NotesService = defineService({
 						return yield* Update.reject.Invalid({ field: "title", message: "Enter a title" });
 					}
 					const saved = yield* repository.update({ ...row, ...input, title, wordCount: null }).pipe(Effect.mapError(writeFailure));
-					yield* enqueue(saved.id);
+					yield* invalidateOnCommit(invalidationKeys([notes.item(saved.id)]));
 					return saved;
-				}).pipe(transact({ onSqlError: unavailable })),
+				}).pipe(
+					transact({ onSqlError: unavailable }),
+					Effect.tap((row) => enqueue(row.id)),
+				),
 		};
 	},
 	requires: [SqlClient.SqlClient, Reactivity.Reactivity, NoteJobs],

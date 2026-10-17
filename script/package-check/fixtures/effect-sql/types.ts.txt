@@ -32,6 +32,10 @@ const program = Effect.gen(function* () {
   lines.findMany({ select: [] })
   const ingest = yield* makeRepository(InvoiceLine, { tableName: "invoice_line", idColumn: ["id", "name"], conflictColumns: ["id", "name"], spanPrefix: "InvoiceLine" })
   const ignored = yield* ingest.insertOrIgnore({ id: 1, name: "Consulting", amount: 42 })
+  const insertedMany: InvoiceLine[] = yield* lines.insertMany([{ id: 2, name: "Consulting", amount: 42 }])
+  const ignoredMany: InvoiceLine[] = yield* ingest.insertManyOrIgnore([{ id: 1, name: "Consulting", amount: 42 }])
+  const upsertedMany: InvoiceLine[] = yield* ingest.upsertMany([{ id: 1, name: "Consulting", amount: 52 }], { updateColumns: ["amount"] })
+  void [insertedMany, ignoredMany, upsertedMany]
   const upserted: InvoiceLine = yield* ingest.upsert({ id: 1, name: "Consulting", amount: 52 }, { updateColumns: ["amount"] })
   const found: InvoiceLine = yield* ingest.findById({ id: 1, name: "Consulting" })
   yield* ingest.delete({ id: 1, name: "Consulting" })
