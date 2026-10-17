@@ -63,6 +63,24 @@ export const { effectApp } = makeEffectIt({
 
 Use the application's migration loader in place of the example. `migrations` takes the existing `PostgresMigrationOptions`: `loader`, `lockTimeout`, and an optional ledger `table`. Fixtures are an Effect with access to the native PostgreSQL services. Additional migration or fixture dependencies remain requirements of the Layer and must be supplied before passing it to the runner. Setup failures remain failures; acquired databases are dropped when the acquisition scope closes.
 
+### Budget PostgreSQL connections
+
+Each database pool opens connections on demand, with a default maximum of **two**: the shared database can use two, and each active per-test or per-story clone can use another two. Preparation uses the same limit and closes before tests start. An administrative connection exists only during a create or drop operation and closes as soon as that operation finishes; idle workers keep no administrative connection. Set `maxConnections` on `makePostgresTestLayer` to override the limit for the suite's preparation, shared and isolated pools:
+
+```ts
+const layer = makePostgresTestLayer({
+  url,
+  migrations,
+  maxConnections: 3,
+});
+```
+
+Allow at least three shared connections when two tests hold transactions while a third connection inspects locks. A listener, stream or reserved transaction holds a pool slot until its scope closes; a suite that waits for more simultaneous reservations than its pool allows can stall. Additional clients that the application creates have their own connection budgets.
+
+For `W` active workers with one fixture and at most `C` simultaneous clones each, allow up to `W × maxConnections × (1 + C)` pooled connections, plus one transient administrative connection per concurrent create/drop operation. Add other application clients and leave room for PostgreSQL's reserved slots and other users of the server. With stock `max_connections = 100`, four workers with one clone each use at most 16 pooled connections at the default limit, plus transient administration connections. Vitest's default worker count depends on the machine; use this budget when a larger machine or concurrent stories can exceed the server's capacity.
+
+Setup and the test wrappers report PostgreSQL's connection-limit failure (`53300`) with `max_connections` and a suggestion to try `vitest run --maxWorkers=4`. Reduce `maxConnections` or concurrent clones, or increase the server budget, if four workers still need too many connections. Other SQL failures retain their original errors.
+
 ### Ordinary tests: rollback
 
 `around: withTestTransaction` wraps harness acquisition, the body and their scope finalizers. Success returns the body's value after rollback. Typed failures, defects and interruption also roll back and retain their failure kind. A nested `transact` uses the native savepoint path: a rejected nested write can roll back without losing earlier writes in the test. Commit-bound invalidations stay buffered and are discarded when the wrapping transaction rolls back.
@@ -124,7 +142,7 @@ Import each name from the module that defines it. The package has no root entry.
 
 | Module | Exports |
 | --- | --- |
-| `@shivaedev/effect-test-sql/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures? })`, `PostgresTestOptions` |
+| `@shivaedev/effect-test-sql/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures?, maxConnections? })`, `PostgresTestOptions` |
 | `@shivaedev/effect-test-sql/withTestTransaction.ts` | `withTestTransaction(effect)` |
 | `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect)` |
 | `@shivaedev/effect-test-sql/database.ts` | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices` |
@@ -141,4 +159,4 @@ pnpm add --save-dev @shivaedev/effect-test-sql @shivaedev/effect-test @effect/sq
 
 Use versions compatible with the package's peer dependencies. The package requires Node.js 24 or later. The PostgreSQL role must be able to create and drop databases; use a dedicated test server. PostgreSQL 13 or later supports the forced database drops used for cleanup. The migrations and fixtures must complete their work during preparation; their scoped resources are closed before cloning.
 
-The package tests use `PLATFORM_EFFECT_TEST_SQL_TEST_DATABASE_URL`. Repository setup and CI prepare that database on real PostgreSQL. Local tests skip when that variable is absent; CI rejects its absence. The PostgreSQL tests prove overlapping same-row visibility, shared-key lock contention and release, rollback, nested savepoints, runner/harness scope composition, one-time template preparation, commits visible through another connection, and database cleanup. Compiler and packed-consumer tests prove the exercised public type and export contracts. These are library checks, not evidence for an application's servers or notification delivery.
+The package tests use `PLATFORM_EFFECT_TEST_SQL_TEST_DATABASE_URL`. Repository setup and CI prepare that database on real PostgreSQL. Local tests skip when that variable is absent; CI rejects its absence. The PostgreSQL tests prove overlapping same-row visibility, shared-key lock contention and release, rollback, nested savepoints, runner/harness scope composition, one-time template preparation, commits visible through another connection, and database cleanup. They also measure twelve concurrent clones through `pg_stat_activity` at both the default and overridden pool limits, verify administrative connection release, and exercise connection-limit diagnostics using restricted PostgreSQL roles. Compiler and packed-consumer tests prove the exercised public type and export contracts. These are library checks, not evidence for an application's servers or notification delivery.
