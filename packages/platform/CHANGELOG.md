@@ -1,11 +1,18 @@
 # Changelog
 
-## 0.12.0 - 2026-10-16
+## 0.13.0 - 2026-10-17
 
 ### Added
 
 - `appHost` serves unauthenticated `GET /health` with an empty, uncached response: 200 when its database probe succeeds within two seconds, or 503 when SQL is absent, unavailable or times out.
 - `appDatabase` and database-backed `appHost` accept `migrations.mode: "check"` to verify required migration IDs and names without applying migrations or creating a ledger. Missing or pending migrations fail startup with native `MigrationError`; the default migration mode is unchanged.
+
+## 0.12.0 - 2026-10-16
+
+### Added
+
+- `trustedProxyPeer(trustedProxy?)` from `@shivaedev/platform/rpc-server/local.ts` compiles the host's IP address and CIDR proxy matching into a reusable address predicate. Missing or malformed configuration matches no peer.
+- `trustedProxyRanges(trustedProxy?)` from the same module returns equivalent ranges for forwarded-header integrations. The host matcher uses the same normalization: mapped IPv6 addresses and CIDRs become IPv4 entries, including hexadecimal forms, while broader IPv6 ranges retain both address families. Missing or malformed configuration returns an empty list.
 
 ## 0.11.0 - 2026-10-16
 

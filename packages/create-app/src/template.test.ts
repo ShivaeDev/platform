@@ -6,6 +6,23 @@ import { registryDependencies } from "./template.ts";
 
 afterEach(removeTemplates);
 
+it("packages pinned GitHub Actions running the generated app's own CI script against PostgreSQL", async () => {
+	const files = await templateSource({ realStarter: true }).pack();
+	const manifest = JSON.parse(files["package.json"] ?? "{}");
+	expect(manifest.scripts.ci).toBe("pnpm lint && pnpm typecheck && pnpm build && pnpm test");
+	expect(manifest.scripts.ready).toBe("pnpm run ci");
+	const workflow = files[".github/workflows/ci.yml"] ?? "";
+	expect(workflow).toContain("run: pnpm run ci");
+	expect(workflow).toContain("run: pnpm install --frozen-lockfile");
+	expect(workflow).toContain("image: postgres:18");
+	expect(workflow).toContain("TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test");
+	const actions = Array.from(workflow.matchAll(/uses: (?<action>[^\s]+)/gu), ([, action]) => action);
+	expect(actions).toHaveLength(3);
+	for (const action of actions) {
+		expect(action).toMatch(/@[a-f0-9]{40}$/u);
+	}
+});
+
 it("uses exact registry versions and refuses missing or floating workspace replacements", () => {
 	expect(registryDependencies({ "@shivaedev/platform": "workspace:*", effect: "catalog:" }, { "@shivaedev/platform": "0.6.1" })).toEqual({
 		"@shivaedev/platform": "0.6.1",
@@ -33,6 +50,17 @@ it("packages the real starter with registry dependencies, standalone configurati
 	}
 	expect(manifest.scripts["check:published"]).toBeUndefined();
 	expect(manifest.scripts.lint).toBe("quality lint");
+	expect(manifest.scripts.setup).toBe("pnpm install && node src/setup.ts");
+	expect(manifest.devDependencies.railway).toBe("catalog:");
+	expect(files["pnpm-workspace.yaml"]).toContain("railway: 3.13.1");
+	for (const path of ["railway.json", "railway.worker.json", "railway.toml", "railway.worker.toml"]) {
+		expect(files[path]).toBeUndefined();
+	}
+	for (const path of [".railway/railway.ts", ".railway/railway.test.ts"]) {
+		expect(files[path]).toBeDefined();
+		expect(files[path]).toBe(readFileSync(join(starter, path), "utf8"));
+	}
+	expect(JSON.parse(files["tsconfig.json"] ?? "{}").include).toContain(".railway");
 	expect(manifest.scripts.format).toBe("quality fix");
 	expect(manifest.scripts["db:setup"]).toBe("node --env-file-if-exists=.env.local src/server/setup-database.ts");
 	expect(files["script/setup-database.ts"]).toBeUndefined();
@@ -57,6 +85,9 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(files["pnpm-workspace.copy.yaml"]).toBeUndefined();
 	for (const path of [
 		".env.example",
+		"src/setup.ts",
+		"src/server/migrate.ts",
+		"src/server/migrateDatabase.ts",
 		"src/server/setup-database.ts",
 		"src/server/starterHost.test.ts",
 		"src/server/starterDeploy.spec.ts",
@@ -68,10 +99,6 @@ it("packages the real starter with registry dependencies, standalone configurati
 		"src/server/committedJobs.spec.ts",
 		"src/server/notesMigration.spec.ts",
 		"src/server/deployReadiness.spec.ts",
-		"src/server/migrate.ts",
-		"src/server/migrateDatabase.ts",
-		"railway.toml",
-		"railway.worker.toml",
 		"src/notes.ts",
 	]) {
 		expect(files[path]).toBe(readFileSync(join(starter, path), "utf8"));

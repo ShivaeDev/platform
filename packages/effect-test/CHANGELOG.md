@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-10-16
+
+### Added
+
+- `withLive(effect)` from `@shivaedev/effect-test/withLive.ts` runs sleeps and readiness polls in live time under either TestClock or the live clock, without advancing the surrounding TestClock.
+
 ## 0.4.0 - 2026-10-13
 
 ### Breaking

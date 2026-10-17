@@ -1,12 +1,18 @@
 import { once } from "node:events";
 import { createServer, request } from "node:http";
 
-export async function forwardingProxy(upstream: string) {
+export async function forwardingProxy(upstream: string, clientIp?: string) {
 	const server = createServer((incoming, response) => {
 		const outgoing = request(
 			`${upstream}${incoming.url}`,
 			{
-				headers: { ...incoming.headers, host: "internal.test", "x-forwarded-host": "app.example", "x-forwarded-proto": "https" },
+				headers: {
+					...incoming.headers,
+					host: "internal.test",
+					...(clientIp === undefined ? {} : { "x-forwarded-for": clientIp }),
+					"x-forwarded-host": "app.example",
+					"x-forwarded-proto": "https",
+				},
 				method: incoming.method,
 			},
 			(result) => {

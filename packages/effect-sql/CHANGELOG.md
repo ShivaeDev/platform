@@ -1,12 +1,17 @@
 # Changelog
 
+## 0.5.0 - 2026-10-17
+
+### Added
+
+- `assertPostgresMigrations({ loader, table? })` in `assertPostgresMigrations.ts` verifies required migration IDs and names in the native ledger without executing migrations or creating a ledger. Missing or pending migrations fail with native `MigrationError` (`kind: "BadState"`); later ledger entries are allowed for rolling deployments.
+
 ## 0.4.0 - 2026-10-16
 
 ### Added
 
 - `makeRepository` accepts a composite `idColumn` tuple; `findById` and `delete` accept the full key object, and updates match every key column through the model's codecs.
 - Unversioned repositories with declared `conflictColumns` expose `insertOrIgnore(input)` returning an optional decoded model and `upsert(input, { updateColumns })` returning the inserted or updated model. Inputs use the model's insert schema, selected update columns exclude primary and conflict keys, and writes participate in native transactions. PostgreSQL tests cover these paths.
-- `assertPostgresMigrations({ loader, table? })` in `assertPostgresMigrations.ts` verifies required migration IDs and names in the native ledger without executing migrations or creating a ledger. Missing or pending migrations fail with native `MigrationError` (`kind: "BadState"`); later ledger entries are allowed for rolling deployments.
 
 ## 0.3.0 - 2026-10-13
 

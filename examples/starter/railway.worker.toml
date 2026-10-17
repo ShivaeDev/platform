@@ -1,3 +1,0 @@
-[deploy]
-startCommand = "pnpm worker"
-restartPolicyType = "ON_FAILURE"
