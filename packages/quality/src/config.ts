@@ -1,3 +1,4 @@
+import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import type { builtInRules } from "#rules/built-in.ts";
 import type { Rule } from "./rule.ts";
 
@@ -15,6 +16,7 @@ export type BuiltInRules = typeof builtInRules;
 
 export interface QualityConfig<TLocal extends readonly Rule[] = readonly Rule[]> {
 	readonly baseline?: string;
+	readonly exceptions?: readonly ExceptionDeclaration[];
 	readonly extensions?: readonly string[];
 	readonly local?: TLocal;
 	readonly registry?: string;

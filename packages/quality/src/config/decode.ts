@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import { type Decoded, decodeWith } from "#decoded.ts";
+import { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import type { Rule } from "#rule.ts";
 
 const isRule = (value: unknown): value is Rule =>
@@ -30,6 +31,7 @@ const PreCommitRemoved = Schema.Never.annotate({
 const ConfigInput = Schema.Struct({
 	adopt: Schema.optionalKey(AdoptRemoved),
 	baseline: Schema.optionalKey(Schema.String),
+	exceptions: Schema.optionalKey(Schema.Array(ExceptionDeclaration)),
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),
 	local: Schema.optionalKey(Schema.Array(LocalRule)),
 	preCommit: Schema.optionalKey(PreCommitRemoved),

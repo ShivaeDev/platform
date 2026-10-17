@@ -1,0 +1,31 @@
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import process from "node:process";
+import { defineConfig } from "@shivaedev/quality/config.ts";
+
+const policy = defineConfig({
+  exceptions: [{
+    files: ["src/parse.ts"],
+    reason: "This parser documents and returns the external format unchanged.",
+    rules: ["comments/no-jsdoc", "biome/lint/suspicious/noExplicitAny"],
+  }],
+  sources: ["src"],
+});
+const root = mkdtempSync(join(tmpdir(), "quality-packed-exceptions-"));
+const bin = join(process.cwd(), "node_modules/.bin/quality");
+try {
+  mkdirSync(join(root, "src"));
+  symlinkSync(join(process.cwd(), "node_modules"), join(root, "node_modules"), "dir");
+  writeFileSync(join(root, ".gitignore"), "node_modules/\n");
+  writeFileSync(join(root, "biome.json"), '{ "extends": ["@shivaedev/quality/biome"] }\n');
+  writeFileSync(join(root, "quality.config.ts"), `export default ${JSON.stringify(policy)};\n`);
+  writeFileSync(join(root, "src/parse.ts"), "/** External format. */\nexport function parse(text: string): any {\n\treturn JSON.parse(text);\n}\n");
+  for (const command of ["fix", "lint"]) {
+    const result = spawnSync(bin, [command], { cwd: root, encoding: "utf8" });
+    if (result.status !== 0) throw new Error(`Packed Quality ${command} failed: ${result.stdout}${result.stderr}`);
+  }
+} finally {
+  rmSync(root, { force: true, recursive: true });
+}

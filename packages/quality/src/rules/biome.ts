@@ -43,8 +43,8 @@ async function presetFinding(readText: RuleInputs["readText"]): Promise<readonly
 }
 
 const bridge = defineRule({
-	check: async ({ readText, root }) => {
-		const [preset, report] = await Promise.all([presetFinding(readText), biomeReport(root, ["check"])]);
+	check: async ({ exceptions, readText, root }) => {
+		const [preset, report] = await Promise.all([presetFinding(readText), biomeReport(root, ["check"], exceptions)]);
 		return [...preset, ...report.diagnostics.filter((diagnostic) => FAILING.has(diagnostic.severity)).map(findingOf)];
 	},
 	description:

@@ -114,3 +114,18 @@ export const testPatternsRemoved = defineConfig({
 	// @ts-expect-error Source files cannot be reclassified to use the test limit.
 	rules: { "structure/max-lines": { options: { testFiles: ["src/**"] } } },
 });
+
+export const sharedException = defineConfig({
+	exceptions: [
+		{
+			files: ["src/parse.ts"],
+			reason: "The parser returns the external format.",
+			rules: ["comments/no-jsdoc", "biome/lint/suspicious/noExplicitAny"],
+		},
+	],
+});
+
+export const unexplainedException = defineConfig({
+	// @ts-expect-error Every exception requires a reason.
+	exceptions: [{ files: ["src/parse.ts"], rules: ["comments/no-jsdoc"] }],
+});

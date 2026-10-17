@@ -12,7 +12,7 @@ A consuming repository gets the whole policy. It does not select a preset of sta
 
 The repository supplies facts Quality cannot infer: where the source and generated files live, which architectural boundaries its imports must respect, and which additional commands a commit must run. Shared Biome and TypeScript configuration and Vitest helpers carry the package's conventions into those tools. The usual setup should stay small, with defaults that make sense together.
 
-Adopting the whole policy does not require fixing all old debt in one change. The baseline records existing findings by rule and file while the checks stay strict. An uncovered finding asks for a repair. Fixing debt passes immediately, and lowering tools reduce its recorded counts. A permitted permanent exception lives in a registry with a reason. When that exception no longer applies, the gate asks for its removal.
+Adopting the whole policy does not require fixing all old debt in one change. The baseline records existing findings by rule and file while the checks stay strict. An uncovered finding asks for a repair. Fixing debt passes immediately, and lowering tools reduce its recorded counts. A permitted permanent exception lives in the config with a reason, once for both Quality and Biome. When that exception no longer applies, the gate asks for its removal.
 
 Every finding should tell an agent that has never used the package what to change. It names the rule and identifies the file and line when available. Invalid input, an unreadable policy or an import boundary with contradictory examples must stop the run rather than make a check silently narrower.
 
@@ -21,7 +21,7 @@ Every finding should tell an agent that has never used the package what to chang
 - Adoption is a small setup task. A repository uses the shared defaults instead of maintaining its own catalogue of rules and levels.
 - Quality's rules, tool configuration and internal exceptions express one policy. A new shared convention belongs here, with a reason and accepted and rejected examples.
 - Repository-specific inputs describe code and architecture. A generated path or import fence does not become permission to choose a weaker standard.
-- The config, inventory, rule evaluation, registry, baseline and report form one path. Checks use that path instead of inventing their own debt handling.
+- The config, inventory, rule evaluation, exceptions, baseline and report form one path. Checks use that path instead of inventing their own debt handling.
 - A rule defines exactly what it checks. CLI and git promises have real-command tests; package promises have installed-consumer tests. Messages never imply stronger guarantees than those tests prove.
 - Debt diffs are reviewable. Lowering one entry preserves unrelated lines, and a tracked move can carry the debt it already had.
 - The author retains choices the checker cannot make, including symbol names, semantic code order and whether a newly recorded finding is acceptable debt.
@@ -36,7 +36,7 @@ The public configuration surface and its gaps are recorded in the [roadmap](./ro
 
 ### Strictness and adoption
 
-Adopt the policy as a whole; record old debt instead of weakening it. The baseline exposes uncovered findings without demanding an immediate clean-up of every file. It is a record to review, not proof that retained debt is harmless. Explicit recording can raise counts, and a reviewer owns whether that growth is justified. A registry entry is for an enduring, explained exception a rule permits, not a substitute for following that rule.
+Adopt the policy as a whole; record old debt instead of weakening it. The baseline exposes uncovered findings without demanding an immediate clean-up of every file. It is a record to review, not proof that retained debt is harmless. Explicit recording can raise counts, and a reviewer owns whether that growth is justified. A config exception is for an enduring, explained exception a rule permits, not a substitute for following that rule.
 
 ### Automation and judgement
 
@@ -56,6 +56,6 @@ A rule can require a test's name or report a fixture-writing call. It cannot est
 - A requirement for every repository to build its own rules or copy a complicated config before it can use Quality.
 - Application services, persistence, transactions, request identity, client state and other runtime framework jobs. Their owning packages implement them.
 - A replacement for TypeScript, Biome, Vitest or git.
-- Automatic approval of baseline growth or a registry reason. Review owns whether retained debt is justified.
+- Automatic approval of baseline growth or a exception reason. Review owns whether retained debt is justified.
 - A promise that static imports reproduce every runtime loader or that syntax rules prove business behavior.
 - Renaming public symbols or changing APIs to satisfy a rule whose maintainer decision remains open.
