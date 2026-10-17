@@ -1,97 +1,66 @@
-import { createServer } from "node:http";
-import { NodeHttpServer } from "@effect/platform-node";
-import { Deferred, Effect, Layer, ManagedRuntime, PubSub, Ref, Stream } from "effect";
-import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
-import * as NetAddress from "effect/net/NetAddress";
-import { RpcSerialization, RpcServer } from "effect/rpc";
+import { Deferred, Effect, Ref, Stream } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { invalidationKeys } from "#keys.ts";
 import type { LiveHint } from "#live.ts";
-import { Document, Documents, documents, Get, Unavailable } from "./contract.ts";
+import { makeLiveServer } from "#makeLiveServer.ts";
+import { makeServer, Note, notes } from "#test/notes.ts";
+import { Unavailable } from "./contract.ts";
+import { hintStream } from "./hintStream.ts";
+import { httpHost } from "./httpHost.ts";
+import { Get, LiveNotes } from "./notesContract.ts";
 
 export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync" }) {
-	const stored = await Effect.runPromise(
-		Ref.make(
+	const server = await Effect.runPromise(makeServer);
+	await Effect.runPromise(
+		Ref.set(
+			server.stored,
 			new Map([
-				["one", "First"],
-				["two", "Second"],
+				[1, new Note({ body: "First", id: 1, title: "One" })],
+				[2, new Note({ body: "Second", id: 2, title: "Two" })],
 			]),
 		),
 	);
-	const reads = await Effect.runPromise(Ref.make<readonly string[]>([]));
-	const unavailable = await Effect.runPromise(Ref.make(false));
-	const streamUnavailable = await Effect.runPromise(Ref.make(false));
-	const disconnect = await Effect.runPromise(Ref.make(Effect.runSync(Deferred.make<void>())));
-	const gate = await Effect.runPromise(Ref.make<Effect.Effect<void>>(Effect.void));
-	const events = await Effect.runPromise(PubSub.bounded<LiveHint>(256));
-	const connections = await Effect.runPromise(Ref.make(0));
-	const active = await Effect.runPromise(Ref.make(0));
-	function record(id: string) {
-		return Ref.update(reads, (all) => [...all, id]);
-	}
-	const handlers = Documents.toLayer({
-		"documents.get": ({ id }) =>
+	const initialHint = Effect.runSync(Ref.make(initial));
+	const reactivity = Effect.runSync(Reactivity.make);
+	const hints = await Effect.runPromise(makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity)));
+	const secondHints = await Effect.runPromise(makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity)));
+	const unavailable = Effect.runSync(Ref.make(false));
+	const streamUnavailable = Effect.runSync(Ref.make(false));
+	const disconnect = Effect.runSync(Ref.make(Effect.runSync(Deferred.make<void>())));
+	const gate = Effect.runSync(Ref.make<Effect.Effect<void>>(Effect.void));
+	const connections = Effect.runSync(Ref.make(0));
+	const active = Effect.runSync(Ref.make(0));
+	const handlers = LiveNotes.toLayer({
+		...server.implementation,
+		"notes.get": ({ id }) =>
 			Effect.gen(function* () {
-				yield* record(id);
-				const body = (yield* Ref.get(stored)).get(id);
+				const note = yield* server.implementation["notes.get"]({ id });
 				yield* yield* Ref.get(gate);
 				if (yield* Ref.get(unavailable)) {
 					return yield* Get.reject.Unavailable({});
 				}
-				return body === undefined ? yield* Get.reject.Missing({ id }) : new Document({ body, id });
+				return note;
 			}),
-		"documents.list": () =>
-			Effect.andThen(
-				record("list"),
-				Effect.map(Ref.get(stored), (all) => [...all].map(([id, body]) => new Document({ body, id }))),
-			),
-		"documents.subscribe": () =>
+		"notes.subscribe": () =>
 			Stream.unwrap(
 				Effect.gen(function* () {
 					yield* Ref.update(connections, (count) => count + 1);
 					if (yield* Ref.get(streamUnavailable)) {
 						return Stream.fail(new Unavailable());
 					}
-					yield* Effect.acquireRelease(
-						Ref.update(active, (count) => count + 1),
-						() => Ref.update(active, (count) => count - 1),
-					);
-					const subscription = yield* PubSub.subscribe(events);
 					const ended = yield* Ref.get(disconnect);
-					return Stream.concat(Stream.succeed(initial), Stream.fromEffectRepeat(PubSub.take(subscription))).pipe(
-						Stream.interruptWhen(Deferred.await(ended)),
-					);
+					const firstHint = yield* Ref.get(initialHint);
+					const keys = [...(yield* Ref.get(server.stored)).keys()].map((id) => notes.item(id));
+					return hintStream(hints, keys, active, firstHint).pipe(Stream.interruptWhen(Deferred.await(ended)));
 				}),
 			),
+		"notes.watch": ({ id, helper }) => (helper === "first" ? hints : secondHints).stream([notes.item(id)]),
 	});
-	const routes = Layer.merge(
-		RpcServer.layerHttp({ group: Documents, path: "/rpc", protocol: "http" }).pipe(Layer.provide([handlers, RpcSerialization.layerNdjson])),
-		HttpRouter.use((router) =>
-			Effect.all([
-				router.add(
-					"GET",
-					"/",
-					HttpServerResponse.html(
-						'<meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light dark}body{font:16px system-ui;margin:24px;overflow-wrap:anywhere;}output{display:block;margin:16px 0}button{padding:12px;margin-right:8px}</style><main><h1>Live documents</h1><output id="one"></output><output id="two"></output><output id="list"></output><output id="status"></output><output id="resume-events"></output><button id="pause">Pause</button><button id="resume">Resume</button></main><script type="module" src="/client.js"></script>',
-					),
-				),
-				router.add("GET", "/client.js", HttpServerResponse.text(asset, { contentType: "text/javascript" })),
-			]),
-		),
-	);
-	const runtime = ManagedRuntime.make(
-		HttpRouter.serve(routes, { disableLogger: true }).pipe(Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 }))),
-	);
-	const server = await runtime.runPromise(Effect.service(HttpServer.HttpServer));
-	if (!NetAddress.isInetAddress(server.address)) {
-		throw new Error("Expected TCP server");
-	}
-	const hostname = NetAddress.formatIp(server.address.address);
-	const { port } = server.address;
+	const host = await httpHost(handlers, server.guard, asset);
 	return {
+		...host,
+		...server,
 		active,
-		close: async () => {
-			await Effect.runPromise(PubSub.shutdown(events));
-			await runtime.dispose();
-		},
 		connections,
 		disconnect: () =>
 			Effect.runPromise(
@@ -101,15 +70,22 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 					yield* Deferred.succeed(previous, undefined);
 				}),
 			),
-		edit: async (id: string, body: string) => {
-			await Effect.runPromise(Ref.update(stored, (all) => new Map([...all, [id, body]])));
-			await Effect.runPromise(PubSub.publish(events, { _tag: "Changed", keys: [documents.item(id)] }));
+		edit: async (id: number, body: string) => {
+			await Effect.runPromise(
+				Ref.update(server.stored, (all) => {
+					const note = all.get(id);
+					return note === undefined ? all : new Map([...all, [id, new Note({ ...note, body })]]);
+				}),
+			);
+			await Effect.runPromise(reactivity.invalidate(invalidationKeys([notes.item(id)])));
 		},
-		emit: (hint: LiveHint) => Effect.runPromise(PubSub.publish(events, hint)),
+		emit: (hint: LiveHint) => Effect.runPromise(hint._tag === "Resync" ? hints.resync : reactivity.invalidate(invalidationKeys(hint.keys))),
 		gate,
-		reads,
+		hints,
+		initialHint,
+		reactivity,
+		secondHints,
 		streamUnavailable,
 		unavailable,
-		url: `http://${hostname}:${port}`,
 	};
 }

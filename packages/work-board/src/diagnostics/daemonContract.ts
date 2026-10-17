@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { query } from "@shivaedev/effect-contract/operation.ts";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { CodexLimits, GithubLimits } from "#browser/diagnostics/schema.ts";
 import { FleetItems } from "./fleetItems.ts";
 import { FleetHealth } from "./health.ts";
@@ -24,7 +25,7 @@ export type DiagnosticsSnapshot = typeof DiagnosticsSnapshot.Type;
 export const DiagnosticsContract = contract("daemon", {
 	queries: [
 		query("diagnostics", { payload: {}, reads: () => [], success: DiagnosticsSnapshot }),
-		query("fleetItems", { payload: {}, reads: () => [], success: FleetItems }),
+		query("fleetItems", { payload: {}, reads: () => [], rejections: { ServiceUnavailable }, success: FleetItems }),
 	],
 });
 export const DAEMON_RPC_PATH = "/_fleet/rpc";

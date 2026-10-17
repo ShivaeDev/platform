@@ -6,7 +6,7 @@ import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effe
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { expect } from "vitest";
 
-export const origin = "http://localhost:3000";
+export const ORIGIN = "http://localhost:3000";
 
 export interface LogRecord {
 	readonly annotations: Readonly<Record<string, unknown>>;
@@ -38,7 +38,7 @@ export function recorder() {
 export async function createProvider() {
 	const database = new DatabaseSync(":memory:");
 	const options = {
-		"baseURL": origin,
+		"baseURL": ORIGIN,
 		database,
 		emailAndPassword: { enabled: true },
 		secret: "integration-only-secret-with-at-least-32-characters",
@@ -58,9 +58,9 @@ export type Provider = Awaited<ReturnType<typeof createProvider>>;
 
 export async function signup(provider: Provider, name: string) {
 	const response = await provider.auth.handler(
-		new Request(`${origin}/api/auth/sign-up/email`, {
+		new Request(`${ORIGIN}/api/auth/sign-up/email`, {
 			body: JSON.stringify({ email: `${name}@example.test`, name, password: "example-password-123" }),
-			headers: { "content-type": "application/json", origin },
+			headers: { "content-type": "application/json", origin: ORIGIN },
 			method: "POST",
 		}),
 	);
@@ -71,7 +71,7 @@ export async function signup(provider: Provider, name: string) {
 		.join("; ");
 	const session = await provider.auth.api.getSession({ headers: new Headers({ cookie }) });
 	expect(session).not.toBeNull();
-	return { cookie, userId: session?.user.id ?? "" };
+	return { cookie, token: session?.session.token ?? "", userId: session?.user.id ?? "" };
 }
 
 export function rpcHttp<TRpcs extends Rpc.Any>(group: RpcGroup.RpcGroup<TRpcs>) {
@@ -85,7 +85,7 @@ export function serve(layer: Layer.Layer<never, never, HttpRouter.HttpRouter | R
 export function httpClient(app: { readonly handler: (request: Request) => Promise<Response> }, headers: Readonly<Record<string, string>>) {
 	return RpcClient.layerProtocolHttp({
 		transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders(headers)),
-		url: `${origin}/rpc`,
+		url: `${ORIGIN}/rpc`,
 	}).pipe(
 		Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
 		Layer.provide(Layer.succeed(FetchHttpClient.Fetch, (input, init) => app.handler(new Request(input, init)))),

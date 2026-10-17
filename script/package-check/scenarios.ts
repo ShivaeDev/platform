@@ -11,9 +11,8 @@ const Scenario = Schema.Struct({
 });
 export type Scenario = typeof Scenario.Type;
 const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Array(Scenario))));
-export const scenarios = (root: string, pkg: Package) =>
-	Effect.gen(function* () {
-		const fs = yield* FileSystem.FileSystem;
-		const config = decode(yield* fs.readFileString(join(root, "script/package-check/consumer-cases.json")));
-		return config[pkg.directory.split("/").at(-1) ?? ""] ?? [];
-	});
+export const scenarios = Effect.fn("Packed.scenarios")(function* (root: string, pkg: Package) {
+	const fs = yield* FileSystem.FileSystem;
+	const config = decode(yield* fs.readFileString(join(root, "script/package-check/consumer-cases.json")));
+	return config[pkg.directory.split("/").at(-1) ?? ""] ?? [];
+});

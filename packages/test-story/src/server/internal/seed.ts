@@ -27,6 +27,7 @@ export interface LooseDefinition {
 	readonly name: string;
 	readonly outbound?: Readonly<Record<string, string>>;
 	readonly run?: LooseRunHooks<unknown>;
+	readonly runIf?: boolean;
 	readonly stages: readonly string[];
 	readonly verbs: (engine: unknown, story: LooseStory) => object;
 }
