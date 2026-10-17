@@ -8,7 +8,7 @@ import { typedTables } from "#storage/typedTables.ts";
 
 const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
 
-export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function* (namespace: string, legacyOnly = false) {
+export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function* (namespace: string) {
 	const sql = yield* SqlClient.SqlClient;
 	return yield* Migrator.fromRecord({
 		"1_fleet_records": Effect.gen(function* () {
@@ -33,25 +33,21 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 				where payload->>'attentionOwner' is null and
 					(payload->>'stage' = 'needs-human' or payload->>'blocker' is not null or payload->'launchRetry' is not null or
 					(payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true'))`,
-		...(legacyOnly
-			? {}
-			: {
-					"5_model_tables": modelTables(namespace),
-					"6_decision_codes": backfillDecisionCodes(namespace),
-					"7_release_reason": sql`alter table ${sql(`${namespace}_records`)} add column if not exists ${sql(releaseReasonColumn.name)} text`,
-					"8_record_times": Effect.gen(function* () {
-						for (const name of Object.keys(recordTimeColumns)) {
-							yield* sql`alter table ${sql(`${namespace}_records`)} add column ${sql(name)} double precision`;
-						}
-					}),
-					"9_integration_retry": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("integrationRetry")} text`,
-					"10_prune_empty_cycles": pruneEmptyCycles(namespace),
-					"11_pending_answers": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("pendingAnswers")} text`,
-					"12_typed_tables": typedTables(namespace),
-					"13_dispatch_requests": sql`create table ${sql(`${namespace}_dispatches`)} (
-						work_id text primary key, request_id text not null, accepted_at double precision not null,
-						completed_at double precision, status text not null, error text
-					)`,
-				}),
+		"5_model_tables": modelTables(namespace),
+		"6_decision_codes": backfillDecisionCodes(namespace),
+		"7_release_reason": sql`alter table ${sql(`${namespace}_records`)} add column if not exists ${sql(releaseReasonColumn.name)} text`,
+		"8_record_times": Effect.gen(function* () {
+			for (const name of Object.keys(recordTimeColumns)) {
+				yield* sql`alter table ${sql(`${namespace}_records`)} add column ${sql(name)} double precision`;
+			}
+		}),
+		"9_integration_retry": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("integrationRetry")} text`,
+		"10_prune_empty_cycles": pruneEmptyCycles(namespace),
+		"11_pending_answers": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("pendingAnswers")} text`,
+		"12_typed_tables": typedTables(namespace),
+		"13_dispatch_requests": sql`create table ${sql(`${namespace}_dispatches`)} (
+			work_id text primary key, request_id text not null, accepted_at double precision not null,
+			completed_at double precision, status text not null, error text
+		)`,
 	});
 });

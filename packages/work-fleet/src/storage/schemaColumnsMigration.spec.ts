@@ -1,14 +1,12 @@
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { FleetRecord } from "#model.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
-import { migrateFleet } from "#storage/migrateFleet.ts";
 import { recordColumns } from "#storage/model.ts";
 import { childTable } from "#storage/recordChildren.ts";
 import { collections, recordShape, shapeColumns, sqlTypes } from "#storage/recordShape.ts";
 import { shapeV12 } from "#storage/shapeV12.ts";
-import { modelTableMigrations } from "#test/modelTableMigrations.ts";
+import { migrateFleet } from "#test/migrateFleet.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
 
@@ -20,7 +18,7 @@ for (const path of ["fresh", "upgrade"] as const) {
 		const namespace = "fleet_schema";
 		const table = `${namespace}_records`;
 		if (path === "upgrade") {
-			yield* migrateFleet(namespace, true);
+			yield* migrateFleet(namespace, "attention_owner");
 			expect(yield* sql`select max(migration_id) as latest from ${sql(`${namespace}_migrations`)}`).toEqual([{ latest: 4 }]);
 		}
 		yield* migrateFleet(namespace);
@@ -59,7 +57,7 @@ test("existing model tables gain every Fleet schema column and persist release r
 	const sql = yield* SqlClient.SqlClient;
 	const namespace = "fleet_upgrade";
 	const table = `${namespace}_records`;
-	yield* migratePostgres({ loader: modelTableMigrations(namespace), lockTimeout: "5 seconds", table: `${namespace}_migrations` });
+	yield* migrateFleet(namespace, "decision_codes");
 	const before = yield* sql<{ readonly name: string }>`
 			select attname as name from pg_attribute where attrelid = ${table}::regclass and attnum > 0 and not attisdropped`;
 	expect(before.map((column) => column.name)).not.toContain("releaseReason");
@@ -75,7 +73,7 @@ test("existing model tables gain every Fleet schema column and persist release r
 	yield* sql`insert into ${sql(table)} (work_id, version, attempts, "boardRevision", cwd, preparation, prompt, stage)
 			values (${value.workId}, 3, '[]', ${value.boardRevision}, ${value.cwd}, ${JSON.stringify(value.preparation)}, ${value.prompt}, ${value.stage})`;
 	const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
-	yield* store.initialize();
+	yield* migrateFleet(namespace);
 	expect(yield* store.load(value.workId)).toEqual({ value, version: 4 });
 	const updated = yield* store.compareAndSet(value.workId, 4, { ...value, prompt: "Edited legacy work" });
 	expect(updated.value.stageEnteredAt).toBeUndefined();
@@ -87,6 +85,6 @@ test("existing model tables gain every Fleet schema column and persist release r
 	expect(yield* store.load(value.workId)).toEqual(saved);
 	const inserted = yield* store.insert({ ...released, workId: "new" });
 	expect(yield* store.list()).toEqual([saved, inserted]);
-	expect(yield* store.initialize()).toEqual([]);
+	expect(yield* migrateFleet(namespace)).toEqual([]);
 	expect(yield* store.list()).toEqual([saved, inserted]);
 });
