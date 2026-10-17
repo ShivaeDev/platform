@@ -32,11 +32,14 @@ export function streamRunner(engine: LiveEngine) {
 		);
 }
 
-export function liveSnapshot({ server }: LiveEngine) {
+export function liveSnapshot({ client, registry, server }: LiveEngine) {
 	return {
 		active: Effect.runSync(Ref.get(server.active)),
 		connections: Effect.runSync(Ref.get(server.connections)),
+		one: registry.get(client.api.get.query({ id: 1 })),
+		paused: registry.get(client.paused),
 		reads: Effect.runSync(Ref.get(server.reads)),
+		status: registry.get(client.status),
 		stored: [...Effect.runSync(Ref.get(server.stored)).values()],
 	};
 }

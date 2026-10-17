@@ -106,13 +106,19 @@ export function watchingNotes() {
 		engine.registry.mount(engine.client.connection);
 		const one = engine.client.api.get.query({ id: 1 });
 		const two = engine.client.api.get.query({ id: 2 });
+		const list = engine.client.api.list.query(undefined);
 		engine.registry.mount(one);
 		engine.registry.mount(two);
-		engine.registry.mount(engine.client.api.list.query(undefined));
+		engine.registry.mount(list);
 		yield* eventually(() => {
 			expect(engine.registry.get(engine.client.status).connection).toBe("live");
+			expect(Effect.runSync(Ref.get(engine.server.active))).toBe(1);
 			expect(AsyncResult.getOrElse(engine.registry.get(one), () => undefined)?.body).toBe("First");
 			expect(AsyncResult.getOrElse(engine.registry.get(two), () => undefined)?.body).toBe("Second");
+			expect(AsyncResult.isSuccess(engine.registry.get(list))).toBe(true);
+			expect(engine.registry.get(one).waiting).toBe(false);
+			expect(engine.registry.get(two).waiting).toBe(false);
+			expect(engine.registry.get(list).waiting).toBe(false);
 		});
 	});
 }
