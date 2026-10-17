@@ -13,8 +13,8 @@ export interface Pruned {
 	readonly removed: number;
 }
 
-const record = (violations: readonly Violation[]): readonly BaselineEntry[] =>
-	[...groupBy(violations, (violation) => keyOf(violation.rule, violation.file)).values()].flatMap((group) => {
+function record(violations: readonly Violation[]): readonly BaselineEntry[] {
+	return [...groupBy(violations, (violation) => keyOf(violation.rule, violation.file)).values()].flatMap((group) => {
 		const first = group[0];
 		if (first === undefined) {
 			return [];
@@ -22,21 +22,22 @@ const record = (violations: readonly Violation[]): readonly BaselineEntry[] =>
 		const count = countOf(group);
 		return count > 0 ? [{ count, file: first.file, rule: first.rule }] : [];
 	});
+}
 
-const refusal = (id: string, index: RuleIndex): readonly string[] => {
+function refusal(id: string, index: RuleIndex): readonly string[] {
 	const level = levelOf(index, id);
 	if (level === undefined) {
 		return [`${id}: no built-in or local rule has this id.`];
 	}
 	return level === "error" ? [] : [`${id}: the rule is ${level}. Set it to error before baselining it.`];
-};
+}
 
-export const adopt = (
+export function adopt(
 	existing: readonly BaselineEntry[] | undefined,
 	rules: readonly string[],
 	violations: readonly Violation[],
 	index: RuleIndex,
-): Adoption => {
+): Adoption {
 	if (existing !== undefined && rules.length === 0) {
 		return { _tag: "Refused", reasons: ["a baseline exists. Record a rule with --rule <id>, or drop fixed debt with prune."] };
 	}
@@ -44,38 +45,41 @@ export const adopt = (
 	if (reasons.length > 0) {
 		return { _tag: "Refused", reasons };
 	}
-	const named = (rule: string): boolean => rules.some((name) => covers(name, rule));
+	function named(rule: string): boolean {
+		return rules.some((name) => covers(name, rule));
+	}
 	const kept = (existing ?? []).filter((entry) => !named(entry.rule));
 	const adopted = violations.filter((violation) => violation.level === "error" && (rules.length === 0 || named(violation.rule)));
 	const added = record(adopted);
 	return { _tag: "Adopted", added: added.length, entries: [...kept, ...added], replaced: (existing ?? []).length - kept.length };
-};
+}
 
 export interface Scope {
 	readonly files?: ReadonlySet<string> | undefined;
 	readonly moves: ReadonlyMap<string, string>;
 }
 
-const inScope = (entry: BaselineEntry, scope: Scope): boolean =>
-	scope.files === undefined || scope.files.has(entry.file) || scope.moves.has(entry.file);
+function inScope(entry: BaselineEntry, scope: Scope): boolean {
+	return scope.files === undefined || scope.files.has(entry.file) || scope.moves.has(entry.file);
+}
 
-const destination = (
+function destination(
 	before: BaselineEntry,
 	current: ReadonlyMap<string, BaselineEntry>,
 	moves: ReadonlyMap<string, string>,
 	taken: ReadonlySet<string>,
-) => {
+) {
 	const to = moves.get(before.file);
 	const key = to === undefined ? undefined : keyOf(before.rule, to);
 	return key === undefined || taken.has(key) ? undefined : current.get(key);
-};
+}
 
-export const prune = (
+export function prune(
 	existing: readonly BaselineEntry[],
 	violations: readonly Violation[],
 	index: RuleIndex,
 	scope: Scope = { moves: new Map() },
-): Pruned => {
+): Pruned {
 	const current = new Map(record(violations).map((entry) => [keyOf(entry.rule, entry.file), entry]));
 	const taken = new Set(existing.map((entry) => keyOf(entry.rule, entry.file)));
 	let moved = 0;
@@ -97,4 +101,4 @@ export const prune = (
 		moved,
 		removed: existing.length - kept.length,
 	};
-};
+}

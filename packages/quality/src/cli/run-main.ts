@@ -11,27 +11,28 @@ import type { Git } from "#git/command.ts";
 const INTERRUPTED = 130;
 const COULD_NOT_RUN = 2;
 
-const explain = (cause: Cause.Cause<unknown>): Effect.Effect<void> => {
+function explain(cause: Cause.Cause<unknown>): Effect.Effect<void> {
 	const error = Cause.squash(cause);
 	if (error instanceof SetupFailure) {
 		return Console.error(`quality: ${error.message}`);
 	}
 	return Runtime.getErrorReported(error) ? Console.error(`quality: internal error\n${Cause.pretty(cause)}`) : Effect.void;
-};
+}
 
-const exitCodeOf = (error: unknown): number =>
-	typeof error === "object" && error !== null && Runtime.errorExitCode in error ? Runtime.getErrorExitCode(error) : COULD_NOT_RUN;
+function exitCodeOf(error: unknown): number {
+	return typeof error === "object" && error !== null && Runtime.errorExitCode in error ? Runtime.getErrorExitCode(error) : COULD_NOT_RUN;
+}
 
-const exitCode = (exit: Exit.Exit<unknown, unknown>): number => {
+function exitCode(exit: Exit.Exit<unknown, unknown>): number {
 	if (Exit.isSuccess(exit)) {
 		return 0;
 	}
 	return Cause.hasInterruptsOnly(exit.cause) ? INTERRUPTED : exitCodeOf(Cause.squash(exit.cause));
-};
+}
 
-const teardown: Runtime.Teardown = (exit, onExit) => {
+function teardown(exit: Parameters<Runtime.Teardown>[0], onExit: Parameters<Runtime.Teardown>[1]): void {
 	process.stdout.write("", () => process.stderr.write("", () => onExit(exitCode(exit))));
-};
+}
 
 function isClosedPipe(error: unknown): boolean {
 	return error instanceof Error && "code" in error && error.code === "EPIPE";
@@ -47,9 +48,9 @@ export function quietOnClosedPipe(stream: EventEmitter): void {
 
 const services = NodeChildProcessSpawner.layer.pipe(Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)));
 
-export const runMain = <TValue, TError>(program: Effect.Effect<TValue, TError, FileSystem.FileSystem | Git>): void => {
+export function runMain<TValue, TError>(program: Effect.Effect<TValue, TError, FileSystem.FileSystem | Git>): void {
 	quietOnClosedPipe(process.stdout);
 	quietOnClosedPipe(process.stderr);
 	const explained = Effect.tapCause(program, (cause) => (Cause.hasInterruptsOnly(cause) ? Effect.void : explain(cause)));
 	NodeRuntime.runMain(Effect.provide(explained, services), { disableErrorReporting: true, teardown });
-};
+}

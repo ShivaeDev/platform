@@ -15,8 +15,9 @@ const standard = Schema.toStandardSchemaV1(Schema.fromJsonString(Schema.Array(Re
 	parseOptions: { errors: "all", onExcessProperty: "error" },
 });
 
-export const decodeRegistry = (raw: string | undefined): Promise<Decoded<readonly RegistryEntry[]>> =>
-	raw === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(standard, raw);
+export function decodeRegistry(raw: string | undefined): Promise<Decoded<readonly RegistryEntry[]>> {
+	return raw === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(standard, raw);
+}
 
 export interface StaleRegistryEntry {
 	readonly entry: RegistryEntry;
@@ -29,17 +30,18 @@ export interface RegistryCheck {
 	readonly stale: readonly StaleRegistryEntry[];
 }
 
-const covers = (entry: RegistryEntry, violation: Violation): boolean =>
-	entry.rule === violation.rule && entry.file === violation.file && (entry.subject === undefined || entry.subject === violation.subject);
+function covers(entry: RegistryEntry, violation: Violation): boolean {
+	return entry.rule === violation.rule && entry.file === violation.file && (entry.subject === undefined || entry.subject === violation.subject);
+}
 
 const UNREGISTRABLE = "names a rule that takes no exceptions. Fix the code, or baseline the violations while the repository adopts the rule";
 
-const coveringEntry = (entries: readonly RegistryEntry[], violation: Violation): RegistryEntry | undefined => {
+function coveringEntry(entries: readonly RegistryEntry[], violation: Violation): RegistryEntry | undefined {
 	const matching = entries.filter((entry) => covers(entry, violation));
 	return matching.find((entry) => entry.subject !== undefined) ?? matching[0];
-};
+}
 
-export const applyRegistry = (violations: readonly Violation[], entries: readonly RegistryEntry[], rules: RuleIndex): RegistryCheck => {
+export function applyRegistry(violations: readonly Violation[], entries: readonly RegistryEntry[], rules: RuleIndex): RegistryCheck {
 	const usable = entries.filter((entry) => registrable(rules, entry.rule));
 	const used = new Set<RegistryEntry>();
 	const kept = violations.filter((violation) => {
@@ -56,4 +58,4 @@ export const applyRegistry = (violations: readonly Violation[], entries: readonl
 			problem: registrable(rules, entry.rule) ? unusedEntryProblem(rules, entry.rule, "matches no violation") : UNREGISTRABLE,
 		}));
 	return { kept, registered: violations.length - kept.length, stale };
-};
+}

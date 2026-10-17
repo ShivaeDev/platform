@@ -8,12 +8,15 @@ export interface Violation extends Finding {
 	readonly rule: string;
 }
 
-export const keyOf = (rule: string, file: string): string => `${rule}\u0000${file}`;
+export function keyOf(rule: string, file: string): string {
+	return `${rule}\u0000${file}`;
+}
 
-export const byLocation = (left: Violation, right: Violation): number =>
-	left.rule.localeCompare(right.rule) || left.file.localeCompare(right.file) || (left.line ?? 0) - (right.line ?? 0);
+export function byLocation(left: Violation, right: Violation): number {
+	return left.rule.localeCompare(right.rule) || left.file.localeCompare(right.file) || (left.line ?? 0) - (right.line ?? 0);
+}
 
-export const groupBy = <TItem>(items: readonly TItem[], key: (item: TItem) => string): ReadonlyMap<string, readonly TItem[]> => {
+export function groupBy<TItem>(items: readonly TItem[], key: (item: TItem) => string): ReadonlyMap<string, readonly TItem[]> {
 	const groups = new Map<string, TItem[]>();
 	for (const item of items) {
 		const group = groups.get(key(item));
@@ -24,7 +27,7 @@ export const groupBy = <TItem>(items: readonly TItem[], key: (item: TItem) => st
 		}
 	}
 	return groups;
-};
+}
 
 export interface RuleIndex {
 	readonly families: ReadonlySet<string>;
@@ -32,18 +35,26 @@ export interface RuleIndex {
 	readonly unregistrable: ReadonlySet<string>;
 }
 
-export const covers = (name: string, rule: string): boolean => rule === name || rule.startsWith(`${name}/`);
+export function covers(name: string, rule: string): boolean {
+	return rule === name || rule.startsWith(`${name}/`);
+}
 
-const ownerOf = (index: RuleIndex, rule: string): string => [...index.families].find((family) => covers(family, rule)) ?? rule;
+function ownerOf(index: RuleIndex, rule: string): string {
+	return [...index.families].find((family) => covers(family, rule)) ?? rule;
+}
 
-export const levelOf = (index: RuleIndex, rule: string): Level | undefined => index.levels.get(ownerOf(index, rule));
+export function levelOf(index: RuleIndex, rule: string): Level | undefined {
+	return index.levels.get(ownerOf(index, rule));
+}
 
-export const registrable = (index: RuleIndex, rule: string): boolean => !index.unregistrable.has(ownerOf(index, rule));
+export function registrable(index: RuleIndex, rule: string): boolean {
+	return !index.unregistrable.has(ownerOf(index, rule));
+}
 
-export const unusedEntryProblem = (index: RuleIndex, rule: string, unused: string): string => {
+export function unusedEntryProblem(index: RuleIndex, rule: string, unused: string): string {
 	const level = levelOf(index, rule);
 	if (level === undefined) {
 		return "names no known rule";
 	}
 	return level === "off" ? "names a rule that is off" : unused;
-};
+}
