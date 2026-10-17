@@ -41,6 +41,8 @@ jobs:
         run: pnpm run changelog:release --check
         env:
           CHANGELOG_BASE_REF: ${{ github.event.before }}
+      - name: Check generated app dependency pins before release
+        run: pnpm check:generated-app-versions
       - name: Build packages
         run: pnpm build
       - name: Check packed consumers and bins
@@ -79,6 +81,8 @@ jobs:
         run: pnpm run changelog:release --check
         env:
           CHANGELOG_BASE_REF: ${{ github.event.before }}
+      - name: Check generated app dependency pins before release
+        run: pnpm check:generated-app-versions
       - name: Build packages
         run: pnpm build
 

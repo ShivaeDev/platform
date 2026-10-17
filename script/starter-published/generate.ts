@@ -11,14 +11,14 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 	registryVersion?: string,
 ) {
 	if (registryVersion !== undefined) {
-		yield* Effect.log(`Generating and installing the starter with pnpm create @shivaedev/app@${registryVersion}.`);
+		yield* Effect.log(`Generating and installing a generated app with pnpm create @shivaedev/app@${registryVersion}.`);
 		yield* Effect.log(
 			yield* command(temporary, "env", [
 				"npm_config_registry=https://registry.npmjs.org",
 				"pnpm",
 				"create",
 				`@shivaedev/app@${registryVersion}`,
-				"starter",
+				"demo",
 			]),
 		);
 		return;
@@ -34,12 +34,12 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 	yield* writeJson(join(generator, "package.json"), { dependencies: { "@shivaedev/create-app": `file:${packed}` }, private: true });
 	yield* fs.writeFileString(join(generator, "pnpm-workspace.yaml"), "packages: []\n");
 	yield* command(generator, "pnpm", ["install", "--registry=https://registry.npmjs.org"]);
-	yield* Effect.log("Generating and installing the starter with the packed create-app command.");
+	yield* Effect.log("Generating and installing a generated app with the packed create-app command.");
 	const bin = join(generator, "node_modules/.bin/create-app");
 	if (Object.keys(tarballs).length === 0) {
-		yield* command(temporary, bin, ["starter"]);
+		yield* command(temporary, bin, ["demo"]);
 	} else {
 		const path = yield* packedInstaller(root, temporary, tarballs);
-		yield* command(temporary, "env", [`PATH=${path}`, bin, "starter"]);
+		yield* command(temporary, "env", [`PATH=${path}`, bin, "demo"]);
 	}
 });
