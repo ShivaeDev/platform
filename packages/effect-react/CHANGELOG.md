@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 - 2026-10-17
+
+### Fixed
+
+- Align the published contract dependency with the current framework release.
+
 ## 0.4.0 - 2026-10-13
 
 ### Breaking

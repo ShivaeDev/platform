@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.1 - 2026-10-17
+
+### Fixed
+
+- Uses Platform 0.14.1 and Work Board 0.14.2 to keep published dependencies aligned with the exported trace URL redaction security fix.
+
+## 0.2.0 - 2026-10-17
+
+### Added
+
+- Export `briefEditPrompt(previous, current)` for correction prompts, `briefSteerIntent(previous, record, requestedAt)` for durable intent preparation, and `steerBrief(state, stored, previous)` for delivery through the existing session service.
+
+### Fixed
+
+- Steer approved brief edits into an active worker or repair turn with a change summary and the full new brief. Persist each revision's steer attempt before delivery so reconciliation and restarts do not repeat it; failed steering retains the new criteria for review.
+- Show brief steer requests, acknowledged delivery times and failures in Fleet status. Attempt records and session views expose optional `briefSteers` entries with `revision`, `requestedAt`, optional `steeredAt` and optional `error` fields.
+- Cloud worker and reviewer startup instructions use login-shell environment activation, with a single fallback when Node does not match `.node-version`. Code workers run `./script/update` immediately after fetching and creating their branch; report workers run it before executing repository commands.
+- Align published SQL, Platform, contract and Work Board dependencies with the current framework releases.
+- Fresh worker retries refresh their preparation from current main before host dispatch, preserving prior attempts and response receipts without asking a human to resolve stale preparation.
+- Stalled turns retain their recovery state when a brief edit replaces the current decision. Retry or dispatch of the revised brief abandons the stalled turn and starts a fresh session; late output and acknowledgements remain fenced out. Release can also abandon the stalled turn after a decision replacement.
+- Retry and release can abandon a stalled provider turn even when it still reports running or no longer responds. Retry starts a fresh session, and abandoned turns cannot supply accepted output or late acknowledgements. Attempts retain the provider's last observation and interruption or observation failures in an optional `abandoned` field.
+
 ## 0.1.1 - 2026-10-16
 
 ### Fixed

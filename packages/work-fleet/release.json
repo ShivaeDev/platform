@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-16",
+	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "newest-check-runs.md",
-			"text": "### Fixed\n\n- Validate only the newest run of each GitHub check name on the adopted head, using completion time or start time. Superseded cancelled or failed runs no longer trigger repairs.\n- Revalidate check repairs that leave the PR head unchanged without repeating the approved review. Three completed repairs of the same failing checks exhaust the repair limit even when a repair submission failed between them.\n"
+			"name": "trace-url-redaction.md",
+			"text": "### Fixed\n\n- Uses Platform 0.14.1 and Work Board 0.14.2 to keep published dependencies aligned with the exported trace URL redaction security fix.\n"
 		}
 	],
-	"version": "0.1.1"
+	"version": "0.2.1"
 }

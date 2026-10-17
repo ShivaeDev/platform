@@ -2,13 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "deploy-readiness.md",
-			"text": "### Added\n\n- `appHost` serves unauthenticated `GET /health` with an empty, uncached response: 200 when its database probe succeeds within two seconds, or 503 when SQL is absent, unavailable or times out.\n- `appDatabase` and database-backed `appHost` accept `migrations.mode: \"check\"` to verify required migration IDs and names without applying migrations or creating a ledger. Missing or pending migrations fail startup with native `MigrationError`; the default migration mode is unchanged.\n"
-		},
-		{
 			"name": "trace-url-redaction.md",
-			"text": "### Fixed\n\n- Security fix: `otlpTracing` redacts every URL query value, fragment and userinfo before exporting traces, including HTTP server and client spans, events and links. Paths and query parameter names remain readable. Platform 0.13.0 exported URL query values; apps with tracing enabled should upgrade.\n"
+			"text": "### Fixed\n\n- Security fix: `otlpTracing` redacts every URL query value, fragment and userinfo before exporting traces, including HTTP server and client spans, events and links. Paths and query parameter names remain readable. Platform 0.13.0 and 0.14.0 exported URL query values; apps with tracing enabled should upgrade.\n"
 		}
 	],
-	"version": "0.13.1"
+	"version": "0.14.1"
 }

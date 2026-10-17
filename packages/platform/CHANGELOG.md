@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.13.1 - 2026-10-17
+## 0.14.1 - 2026-10-17
+
+### Fixed
+
+- Security fix: `otlpTracing` redacts every URL query value, fragment and userinfo before exporting traces, including HTTP server and client spans, events and links. Paths and query parameter names remain readable. Platform 0.13.0 and 0.14.0 exported URL query values; apps with tracing enabled should upgrade.
+
+## 0.14.0 - 2026-10-17
 
 ### Added
 
@@ -9,7 +15,7 @@
 
 ### Fixed
 
-- Security fix: `otlpTracing` redacts every URL query value, fragment and userinfo before exporting traces, including HTTP server and client spans, events and links. Paths and query parameter names remain readable. Platform 0.13.0 exported URL query values; apps with tracing enabled should upgrade.
+- Align published contract, Prisma and tRPC dependencies with the current framework releases.
 
 ## 0.13.0 - 2026-10-17
 
