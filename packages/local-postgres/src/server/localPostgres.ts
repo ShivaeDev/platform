@@ -1,4 +1,5 @@
 import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:child_process";
+import { env } from "node:process";
 import { sqlInContainer, startContainer } from "./local-container.ts";
 import { type DockerEnvironment, docker } from "./local-docker.ts";
 
@@ -33,14 +34,20 @@ export function localPostgres(environment: DockerEnvironment) {
 		if (!url.searchParams.has("connect_timeout")) {
 			url.searchParams.set("connect_timeout", "3");
 		}
-		const options = { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] } satisfies ExecFileSyncOptionsWithStringEncoding;
+		const connection = new URL(url);
+		connection.password = "";
+		const options = {
+			encoding: "utf8",
+			env: { ...env, ...(url.password && { "PGPASSWORD": decodeURIComponent(url.password) }) },
+			stdio: ["ignore", "pipe", "pipe"],
+		} satisfies ExecFileSyncOptionsWithStringEncoding;
 		try {
-			return execFileSync("psql", [...args, "--dbname", String(url)], options).trim();
+			return execFileSync("psql", [...args, "--dbname", connection.toString()], options).trim();
 		} catch (error) {
-			if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) {
-				throw new Error(error instanceof Error && "stderr" in error ? String(error.stderr) : "PostgreSQL query failed.");
+			if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+				return sqlInContainer(localDocker, url, args, options);
 			}
-			return sqlInContainer(localDocker, url, args, options);
+			throw new Error(error instanceof Error && "stderr" in error ? String(error.stderr) : "PostgreSQL query failed.", { cause: error });
 		}
 	}
 

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { inspect } from "node:util";
 import { expect, it } from "vitest";
 import { sqlInContainer } from "#local-container.ts";
 import { docker } from "#local-docker.ts";
@@ -12,7 +13,7 @@ it("rejects remote, mismatched and redirected local targets", () => {
 		url.replace("127.0.0.1", "example.com"),
 		url.replace("55432", "5432"),
 		`${localServer}/platform_dev`,
-		`${url}?host=example.com`,
+		...["host", "hostaddr", "port", "dbname", "service"].map((key) => `${url}?${key}=redirected`),
 	]) {
 		expect(() => assertLocalDatabase(value, [name])).toThrow("Use a local database");
 	}
@@ -59,7 +60,7 @@ it("uses the supplied database credentials when the container supplies the real 
 	try {
 		const connection = new URL(`${localServer}/postgres`);
 		connection.username = role;
-		connection.password = password;
+		connection.password = encodeURIComponent(password);
 		expect(
 			sqlInContainer(
 				(args, options) => docker({}, args, options),
@@ -73,15 +74,35 @@ it("uses the supplied database credentials when the container supplies the real 
 	}
 });
 
-it.fails("reports only PostgreSQL diagnostics without the connection password when using the Docker client", () => {
-	expect(() =>
-		sqlInContainer(
-			(args, options) => docker({}, args, options),
-			new URL(`${localServer}/postgres`),
-			["-X", "--set", "ON_ERROR_STOP=1", "-At", "-c", "SELECT 1 / 0"],
-			{ encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
-		),
-	).toThrow(new Error("ERROR:  division by zero\n"));
+it.each(["Docker", "host-psql"])("reports only PostgreSQL diagnostics without the connection password when using the %s client", (client) => {
+	const postgres = localPostgres({});
+	const role = `failure_${randomUUID().replaceAll("-", "")}`;
+	const password = "query-failure-%:@/password";
+	postgres.sql(`${localServer}/postgres`, `CREATE ROLE "${role}" LOGIN PASSWORD '${password}'`);
+	try {
+		const connection = new URL(`${localServer}/postgres`);
+		connection.username = role;
+		connection.password = encodeURIComponent(password);
+		function query() {
+			return client === "host-psql"
+				? postgres.sql(connection, "SELECT 1 / 0")
+				: sqlInContainer((args, options) => docker({}, args, options), connection, ["-X", "--set", "ON_ERROR_STOP=1", "-At", "-c", "SELECT 1 / 0"], {
+						encoding: "utf8",
+						stdio: ["ignore", "pipe", "pipe"],
+					});
+		}
+		let failure: unknown;
+		try {
+			query();
+		} catch (error) {
+			failure = error;
+		}
+		expect(failure).toMatchObject({ cause: expect.any(Error), message: "ERROR:  division by zero\n" });
+		expect(inspect(failure)).not.toContain(password);
+		expect(inspect(failure)).not.toContain(connection.password);
+	} finally {
+		postgres.sql(`${localServer}/postgres`, `DROP ROLE "${role}"`);
+	}
 });
 
 it("prepares real PostgreSQL repeatedly without removing existing data", () => {
