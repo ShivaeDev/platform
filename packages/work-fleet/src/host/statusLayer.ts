@@ -14,7 +14,7 @@ const { SourceFailure } = diagnosticsApi;
 
 class StatusHealth extends Context.Service<StatusHealth, Option.Option<Health["Service"]>>()("Fleet/StatusHealth") {}
 
-export function statusLayer(root: string, healthConfig?: { readonly concurrency: number; readonly staleAfterMs: number }) {
+export function statusLayer(root: string, healthConfig?: Effect.Effect<{ readonly concurrency: number; readonly staleAfterMs: number }>) {
 	const StatusPublication = defineService({
 		id: "Fleet/StatusPublication",
 		initialize: Effect.gen(function* () {
@@ -40,7 +40,7 @@ export function statusLayer(root: string, healthConfig?: { readonly concurrency:
 						const nextHealth: FleetHealth = {
 							observedAt: yield* Clock.currentTimeMillis,
 							version: 2,
-							...healthConfig,
+							...(yield* healthConfig),
 							...state,
 							queued: records.filter(({ value }) => value.stage === "prepared").length,
 							running: records.filter(({ value }) => executing(value)).length,

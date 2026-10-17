@@ -5,6 +5,7 @@ import { type HostParts, hostLayer, hostScheduler, productionParts } from "#host
 import type { FleetHost } from "#host/config.ts";
 import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";
 import { daemonHandlers } from "#host/daemonHandlers.ts";
+import { watchedConfig } from "#host/liveConfig.ts";
 import { fleetHandlers } from "#operations.ts";
 
 const { DAEMON_PORT: DEFAULT_DAEMON_PORT } = diagnosticsApi;
@@ -21,7 +22,7 @@ export function daemonHostOptions(host: FleetHost, parts: HostParts = production
 		handlers: Layer.merge(fleetHandlers, Layer.unwrap(daemonHandlers(host))),
 		policy: "loopback" as const,
 		rpcPath: RPC_PATH,
-		services: hostLayer(host, parts),
+		services: hostLayer(host, parts, watchedConfig(host)),
 	};
 }
 

@@ -105,6 +105,8 @@ export const Delivery = Schema.Struct({ head: Schema.String, revision: Schema.St
 export type Delivery = typeof Delivery.Type;
 export interface FleetConfiguration {
 	readonly areaMergeWaitMs?: number;
+	// A host that reloads its settings serves the configuration each scheduler pass and launch should apply.
+	readonly current?: Effect.Effect<FleetConfiguration>;
 	readonly deliveryBacklog?: number;
 	readonly executionConcurrency?: number;
 	readonly launch?: LaunchSettings;

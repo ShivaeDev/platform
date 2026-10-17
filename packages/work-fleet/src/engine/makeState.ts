@@ -29,6 +29,7 @@ export const makeState = Effect.gen(function* () {
 				),
 			);
 	}
+	const current = policy.current ?? Effect.succeed(policy);
 	function save(
 		stored: Versioned<FleetRecord>,
 		value: FleetRecord,
@@ -37,20 +38,19 @@ export const makeState = Effect.gen(function* () {
 			readonly quota: typeof policy.quota;
 		},
 	) {
-		return store.compareAndSet(
-			value.workId,
-			stored.version,
-			{ ...value, attentionOwner: waitingOwner(value) },
-			admission === undefined
-				? undefined
-				: {
-						scheduling: { areaMergeWaitMs: policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS, now: policy.now() },
-						...(admission.quota.available === undefined
-							? {}
-							: { quota: { available: admission.quota.available, observedAt: admission.quota.observedAt } }),
-						...(policy.executionConcurrency === undefined ? {} : { maxExecuting: policy.executionConcurrency }),
-						...(admission.role !== "worker" || policy.deliveryBacklog === undefined ? {} : { maxBacklog: policy.deliveryBacklog }),
-					},
+		const record = { ...value, attentionOwner: waitingOwner(value) };
+		if (admission === undefined) {
+			return store.compareAndSet(value.workId, stored.version, record);
+		}
+		return Effect.flatMap(current, (applied) =>
+			store.compareAndSet(value.workId, stored.version, record, {
+				scheduling: { areaMergeWaitMs: applied.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS, now: applied.now() },
+				...(admission.quota.available === undefined
+					? {}
+					: { quota: { available: admission.quota.available, observedAt: admission.quota.observedAt } }),
+				...(applied.executionConcurrency === undefined ? {} : { maxExecuting: applied.executionConcurrency }),
+				...(admission.role !== "worker" || applied.deliveryBacklog === undefined ? {} : { maxBacklog: applied.deliveryBacklog }),
+			}),
 		);
 	}
 	const decision = Effect.fn("Fleet.decision")(function* (
@@ -84,6 +84,6 @@ export const makeState = Effect.gen(function* () {
 		const published = yield* board.decision(stored.value.workId, value, publicationWork ?? originalWork(stored.value));
 		return yield* save(updated, { ...updated.value, decision: { ...value, published }, decisionPublished: true });
 	});
-	return { board, decision, integrations, launching, launchScope, load, policy, reportInspection, save, sessions, store };
+	return { board, current, decision, integrations, launching, launchScope, load, policy, reportInspection, save, sessions, store };
 });
 export type EngineState = Effect.Success<typeof makeState>;

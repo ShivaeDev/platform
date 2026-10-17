@@ -82,6 +82,14 @@ Native Effect HTTP RPC uses NDJSON at `/_fleet/rpc`. Import `DaemonContract` fro
 
 Compose `daemonLayer(host, parts, port)` in a scoped host, or launch it with `serveFleet(host, parts, port)`, both from `@shivaedev/work-fleet/host/daemon.ts`. The daemon uses Platform’s `appHost` with the loopback policy and its existing RPC path. Its shared `appDatabase` layer completes Fleet migrations in the namespace ledger before acquiring application services. The listener starts before scheduling. Closing the scope stops scheduling and HTTP, then closes the provider services and pool. Restart recovery reuses saved launch intents and acknowledged threads; retry or release fences late acknowledgements and retires an intent without a persisted thread acknowledgement before a turn can start. The PostgreSQL and real HTTP tests in `src/host/daemon.test.ts` cover a completed item, concurrent clients, pool/provider lifetime and request ids. `src/host/migrationStartup.spec.ts` proves that a migration failure prevents provider acquisition and scheduling. `src/host/cloudRestart.spec.ts` kills and restarts the daemon at launch boundaries against a synthetic Cloud backend without creating a second thread or accepted turn. These tests do not launch live Cloud workers.
 
+### Edit the configuration while the daemon runs
+
+The daemon watches its `fleet.config.json` (or the `--config` file) and applies a valid edit without a restart. `concurrency`, `backlog`, `intervalSeconds`, `quota`, `launch`, `stallMinutes`, `areaMergeWaitMs`, `worker.workerGuidance` and `worker.reviewerGuidance` take effect on the next scheduler pass or launch; an applied edit starts that pass at once. Running turns keep the launch settings they started with, and work that already holds capacity keeps running after `concurrency` is lowered. Every other setting, such as `provider`, `database`, `namespace`, `cloud`, `local`, `repository`, `result`, `worker.branchPrefix` and `worker.sharedEnvironment`, keeps its running value: the daemon logs a warning and lists the changed paths as needing a restart. An edit saved by replacing the file keeps applying.
+
+An edit that fails validation, is partly written, cannot be read, or names an unreadable guidance file keeps the last good config. The daemon logs a `HostConfigRejected` warning that names the failing field, and the next valid edit applies. A rejected edit never stops the daemon or drops tracked work.
+
+`work-fleet status` ends with the config the daemon applies now: when and from which file it was loaded, the provider and the reloadable settings with their defaults filled in, the paths waiting for a restart and the last rejected edit. `--json` carries the same view as `config`, with the database URL left out. `src/host/configReload.spec.ts` covers these rules on the real daemon host against PostgreSQL: lowering concurrency stops new launches while running work continues, raising it resumes launches with edited launch settings and interval, invalid and partly written edits keep the old values and log a warning, a provider change is reported as restart-only, guidance paths apply to the next launch, and replaced files keep applying.
+
 ### Approve work and override launch settings
 
 Set the exact `fleet: approved` value in the item's frontmatter. Missing approval or `fleet: draft` does not approve it. The optional `fleet-launch` object overrides host `launch` settings per field:
@@ -135,7 +143,7 @@ Before launching prepared work, Fleet rereads its Markdown source for the curren
 |---|---|
 | `work-fleet serve <board-dir> [--port <port>]` | Starts the local HTTP RPC daemon, admits approved work, dispatches prepared items and reconciles running work. |
 | `work-fleet dispatch <work-id> [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. |
-| `work-fleet status [--port <port>]` | Prints Active, owner-grouped waiting and Completed views from stored records. |
+| `work-fleet status [--port <port>]` | Prints Active, owner-grouped waiting and Completed views from stored records, then the config the daemon applies. |
 | `work-fleet status <work-id> --json [--port <port>]` | Filters to one item and prints the views as JSON. |
 | `work-fleet release <work-id>... [--port <port>]` | Releases terminal needs-human items and records closing responses on their Board decisions. |
 | `work-fleet reassign <work-id> <decision-id> <owner> [--port <port>]` | Reassigns the exact current question to maintainer, orchestrator or automation. |

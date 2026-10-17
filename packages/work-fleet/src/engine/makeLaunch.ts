@@ -14,7 +14,7 @@ import { policyGuidance } from "#policyGuidance.ts";
 import { reportPrompt, withWorkerGuidance } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeLaunch(state: EngineState) {
-	const { store, board, policy, sessions, load, save } = state;
+	const { store, board, sessions, load, save } = state;
 	return Effect.fn("Fleet.launch")(function* (
 		input: Versioned<FleetRecord>,
 		role: "worker" | "repair",
@@ -27,6 +27,7 @@ export function makeLaunch(state: EngineState) {
 		},
 	) {
 		const stored = input;
+		const policy = yield* state.current;
 		const work = yield* board.get(stored.value.workId, { fresh: true });
 		const released = yield* releaseClosedPreparation(state, stored, work);
 		if (released !== undefined) {

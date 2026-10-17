@@ -35,7 +35,10 @@ test("publishes an idle scheduler pass from one snapshot without an extra list r
 			expect((yield* fleetHealth(root)).lastSchedulerPass).toBeGreaterThan(0);
 		}).pipe(
 			Effect.provide(
-				statusLayer(root, { concurrency: 8, staleAfterMs: 60_000 }).pipe(Layer.provideMerge(healthLayer(root)), Layer.provide(NodeServices.layer)),
+				statusLayer(root, Effect.succeed({ concurrency: 8, staleAfterMs: 60_000 })).pipe(
+					Layer.provideMerge(healthLayer(root)),
+					Layer.provide(NodeServices.layer),
+				),
 			),
 		),
 	));
@@ -71,7 +74,10 @@ test("publishes counts, configured cap, scheduler pass and provider rejection th
 			}
 		}).pipe(
 			Effect.provide(
-				statusLayer(root, { concurrency: 8, staleAfterMs: 60_000 }).pipe(Layer.provideMerge(healthLayer(root)), Layer.provide(NodeServices.layer)),
+				statusLayer(root, Effect.succeed({ concurrency: 8, staleAfterMs: 60_000 })).pipe(
+					Layer.provideMerge(healthLayer(root)),
+					Layer.provide(NodeServices.layer),
+				),
 			),
 		),
 	));
@@ -91,7 +97,10 @@ test("failed health publication leaves execution usable and retries on the next 
 			expect(yield* fleetHealth(root)).toMatchObject({ concurrency: 8, queued: 0, running: 1 });
 		}).pipe(
 			Effect.provide(
-				statusLayer(root, { concurrency: 8, staleAfterMs: 60_000 }).pipe(Layer.provideMerge(healthLayer(root)), Layer.provide(NodeServices.layer)),
+				statusLayer(root, Effect.succeed({ concurrency: 8, staleAfterMs: 60_000 })).pipe(
+					Layer.provideMerge(healthLayer(root)),
+					Layer.provide(NodeServices.layer),
+				),
 			),
 		),
 	));
@@ -114,7 +123,10 @@ test("publishes the final PostgreSQL state once after a batch of Fleet calls", (
 			expect(yield* fleetHealth(root)).toMatchObject({ queued: 0, running: 1 });
 		}).pipe(
 			Effect.provide(
-				statusLayer(root, { concurrency: 8, staleAfterMs: 60_000 }).pipe(Layer.provideMerge(healthLayer(root)), Layer.provide(NodeServices.layer)),
+				statusLayer(root, Effect.succeed({ concurrency: 8, staleAfterMs: 60_000 })).pipe(
+					Layer.provideMerge(healthLayer(root)),
+					Layer.provide(NodeServices.layer),
+				),
 			),
 		),
 	));
