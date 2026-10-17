@@ -53,4 +53,4 @@ PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5
 
 `pnpm db:setup` prepares the repository's local PostgreSQL databases. The fixture skips only when `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` is absent; a configured but unavailable database fails. A skipped run proves no database behavior. `pnpm ready` runs this fixture with the repository's PostgreSQL test configuration alongside the full workspace checks and packed-package consumers.
 
-The [SQLite order fixture](./order-example.md) adds session expiry, revocation and overlapping-save scenarios. Its evidence remains separate from this PostgreSQL composition.
+The [order-editing fixture](./order-example.md) adds session expiry, revocation and overlapping-save scenarios. Its evidence remains separate from this PostgreSQL composition.
