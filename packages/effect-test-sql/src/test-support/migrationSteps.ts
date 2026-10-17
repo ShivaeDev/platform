@@ -2,7 +2,6 @@ import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { makePostgresTestLayer } from "#postgres.ts";
 import { adminUrl } from "#test/postgres.ts";
-import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 
 export const migrations = {
 	loader: Migrator.fromRecord({
@@ -25,10 +24,6 @@ export const migrations = {
 };
 
 export const layer = makePostgresTestLayer({ migrations, prepare: false, url: adminUrl });
-
-export function runSteps<A, E, R>(effect: Effect.Effect<A, E, R>) {
-	return withIsolatedDatabase(effect).pipe(Effect.provide(layer));
-}
 
 export const seedContacts = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
