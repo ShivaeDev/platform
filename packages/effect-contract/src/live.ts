@@ -42,6 +42,7 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 					reactivity.invalidateUnsafe(readKeys(options.resyncKeys));
 					update({ needsResync: false, pending: 0 });
 				}
+				get.once(paused);
 				get.subscribe(paused, (value) => {
 					if (!value) {
 						resync();
