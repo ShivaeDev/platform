@@ -12,7 +12,7 @@ export const screens = storyKit({
 	clock: "live",
 	create: (): Screen => ({ editor: undefined, tell: () => undefined }),
 	inspect: (engine) => ({ text: engine.editor?.view.container.textContent }),
-	name: "starter screen",
+	name: "app screen",
 	stages: ["screen"],
 	verbs: (engine, story) => {
 		engine.tell = story.tell;

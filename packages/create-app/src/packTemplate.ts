@@ -4,7 +4,22 @@ import { Effect, FileSystem, type PlatformError, Schema } from "effect";
 import { CreateAppError } from "#CreateAppError.ts";
 import { prepareFile, type Template, Versions } from "#template.ts";
 
-const excluded = new Set(["node_modules", "dist", "coverage", "pnpm-lock.yaml", ".git"]);
+const appPaths = new Map([
+	["app-agents.md", "AGENTS.md"],
+	["app-readme.md", "README.md"],
+	["pnpm-workspace.copy.yaml", "pnpm-workspace.yaml"],
+]);
+const excluded = new Set([
+	"node_modules",
+	"dist",
+	"coverage",
+	"pnpm-lock.yaml",
+	".git",
+	"published-versions.json",
+	"AGENTS.md",
+	"CLAUDE.md",
+	"README.md",
+]);
 function included(path: string) {
 	return !excluded.has(basename(path)) && (!basename(path).startsWith(".env") || basename(path) === ".env.example");
 }
@@ -24,7 +39,7 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 			if ((yield* fs.stat(join(starter, path))).type === "Directory") {
 				yield* visit(path);
 			} else {
-				const target = path === "pnpm-workspace.copy.yaml" ? "pnpm-workspace.yaml" : path;
+				const target = appPaths.get(path) ?? path;
 				const source = Buffer.from(yield* fs.readFile(join(starter, path)));
 				const content = yield* Effect.try({
 					catch: (cause) => new CreateAppError({ message: String(cause) }),

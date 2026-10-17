@@ -4,7 +4,7 @@ import { migrations } from "#server/migrations.ts";
 
 export function databaseOptions(database: Pool, databaseUrl: Redacted.Redacted<string>) {
 	return {
-		config: { changes: { channel: "starter_notes_changes" }, databaseUrl },
+		config: { changes: { channel: "notes_changes" }, databaseUrl },
 		migrations: { ...migrations(database), mode: "check" as const },
 	};
 }

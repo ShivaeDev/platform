@@ -18,15 +18,15 @@ app.it(
 		);
 		const aliceProfile = profiles[0];
 		const bobProfile = profiles[1];
-		expect(aliceProfile).toEqual({ email: "alice@starter.test", id: expect.any(String), name: "alice" });
-		expect(bobProfile).toEqual({ email: "bob@starter.test", id: expect.any(String), name: "bob" });
+		expect(aliceProfile).toEqual({ email: "alice@app.test", id: expect.any(String), name: "alice" });
+		expect(bobProfile).toEqual({ email: "bob@app.test", id: expect.any(String), name: "bob" });
 		expect(aliceProfile?.id).not.toBe(bobProfile?.id);
 		profiles.forEach((profile, index) => {
 			expect(profile).toEqual(index % 2 === 0 ? aliceProfile : bobProfile);
 		});
 		const note = yield* alice.create({ title: "Owned by the current user" });
 		const sql = yield* SqlClient.SqlClient;
-		expect(yield* sql`select "ownerId" from starter_notes where id = ${note.id}`).toEqual([{ ownerId: aliceProfile?.id }]);
+		expect(yield* sql`select "ownerId" from notes where id = ${note.id}`).toEqual([{ ownerId: aliceProfile?.id }]);
 		const signedOut = yield* anonymous();
 		const denied = yield* signedOut.whoami().pipe(Effect.result);
 		expect(Result.isFailure(denied) && denied.failure).toBeInstanceOf(Unauthorized);

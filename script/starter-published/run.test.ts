@@ -34,7 +34,6 @@ it("runs the generated app's own CI script with PostgreSQL", async () => {
 		assert.equal(command.command, "pnpm");
 		assert.equal(command.options.cwd, CWD);
 		assert.equal(command.options.env?.TEST_DATABASE_URL, DATABASE);
-		assert.equal(command.options.env?.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL, DATABASE);
 	}
 });
 

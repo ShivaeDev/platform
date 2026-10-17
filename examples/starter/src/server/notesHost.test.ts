@@ -10,14 +10,14 @@ app.it("creates and queries a persisted note over authenticated HTTP/NDJSON", [s
 	expect(created.title).toBe("First note");
 	expect(yield* client.list()).toEqual([created]);
 	const sql = yield* SqlClient.SqlClient;
-	expect(yield* sql`select id, title, "wordCount", version from starter_notes`).toEqual([created]);
+	expect(yield* sql`select id, title, "wordCount", version from notes`).toEqual([created]);
 	const invalid = yield* client.create({ title: "   " }).pipe(Effect.result);
 	expect(Result.isFailure(invalid) && invalid.failure._tag).toBe("Invalid");
 	expect(yield* client.list()).toEqual([created]);
 });
 
 app.it(
-	"reruns the starter migration path without losing auth accounts or notes",
+	"reruns the app migration path without losing auth accounts or notes",
 	[signedIn()],
 	function* ({ actor, rerunMigrations, authenticate, notes }) {
 		const { notes: client } = actor();
@@ -33,9 +33,9 @@ app.it("adds word counts to notes saved before the job migration", [signedIn()],
 	const { notes: client } = actor();
 	const note = yield* client.create({ title: "Keep this old note" });
 	const sql = yield* SqlClient.SqlClient;
-	yield* sql`alter table starter_notes drop column "wordCount"`;
-	yield* sql`alter table starter_notes drop column version`;
-	yield* sql`delete from starter_migrations where migration_id >= 4`;
+	yield* sql`alter table notes drop column "wordCount"`;
+	yield* sql`alter table notes drop column version`;
+	yield* sql`delete from app_migrations where migration_id >= 4`;
 	yield* rerunMigrations();
 	expect(yield* client.list()).toEqual([{ ...note, wordCount: 4 }]);
 });
@@ -44,8 +44,8 @@ app.it("upgrades existing notes with version zero and accepts their first versio
 	const { notes: client } = actor();
 	const note = yield* client.create({ title: "Existing note" });
 	const sql = yield* SqlClient.SqlClient;
-	yield* sql`alter table starter_notes drop column version`;
-	yield* sql`delete from starter_migrations where migration_id = 5`;
+	yield* sql`alter table notes drop column version`;
+	yield* sql`delete from app_migrations where migration_id = 5`;
 	yield* rerunMigrations();
 	expect(yield* client.get({ id: note.id })).toEqual({ ...note, version: 0 });
 	expect(yield* client.update({ ...note, title: "Edited old note" })).toEqual({ ...note, title: "Edited old note", version: 1 });
@@ -67,8 +67,8 @@ app.it(
 		expect(yield* bob.list()).toEqual([]);
 		expect(yield* alice.list()).toEqual([note]);
 		const user = yield* alice.whoami();
-		expect(yield* sql`select "ownerId" from starter_notes where title = ${note.title}`).toEqual([{ ownerId: user.id }]);
-		expect(yield* sql`select "ownerId" from starter_notes where title = 'Legacy note'`).toEqual([{ ownerId: null }]);
+		expect(yield* sql`select "ownerId" from notes where title = ${note.title}`).toEqual([{ ownerId: user.id }]);
+		expect(yield* sql`select "ownerId" from notes where title = 'Legacy note'`).toEqual([{ ownerId: null }]);
 		yield* authenticate("alice", "sign-out", aliceCookie);
 		const revoked = yield* alice.create({ title: "Revoked note" }).pipe(Effect.result);
 		expect(Result.isFailure(revoked) && revoked.failure._tag).toBe("Unauthorized");

@@ -6,7 +6,7 @@ The shared declaration belongs in `src/bookmarks.ts`, persistence and services i
 
 ## 1. Add the migration
 
-In `src/server/migrations.ts`, append the next numbered entry to `Migrator.fromRecord`. Create `starter_bookmarks` with `id serial primary key`, `title text not null` and `"ownerId" text not null`. Preserve the existing entries and the `starter_migrations` ledger: an existing app upgrades by running a new entry, rather than by editing a migration it has already run.
+In `src/server/migrations.ts`, append the next numbered entry to `Migrator.fromRecord`. Create `starter_bookmarks` with `id serial primary key`, `title text not null` and `"ownerId" text not null`. Preserve the existing entries and the `app_migrations` ledger: an existing app upgrades by running a new entry, rather than by editing a migration it has already run.
 
 Follow [`migrations.ts`](../../examples/starter/src/server/migrations.ts): `001_create_notes` creates the table, and later entries add owner and word-count columns. Your new table can include its owner column from the start. [`databaseOptions.ts`](../../examples/starter/src/server/databaseOptions.ts) passes this loader to the host, which runs it before serving requests. The [migration guide](./postgres-migrations.md) explains runner ownership and locks.
 
@@ -38,7 +38,7 @@ Apply `Authenticated` from `@shivaedev/platform/rpc/middleware.ts` to the group,
 
 ## 6. Wire the host handlers
 
-Follow [`starterHost.ts`](../../examples/starter/src/server/starterHost.ts). Build `Bookmarks.toLayer` handlers that obtain `BookmarksService` and pass the current `Identity.id` to each method. Import `Identity` from `@shivaedev/platform/rpc/identity.ts`; never accept an owner id from the form or capture a user in a shared Layer.
+Follow [`notesHost.ts`](../../examples/starter/src/server/notesHost.ts). Build `Bookmarks.toLayer` handlers that obtain `BookmarksService` and pass the current `Identity.id` to each method. Import `Identity` from `@shivaedev/platform/rpc/identity.ts`; never accept an owner id from the form or capture a user in a shared Layer.
 
 Combine `Notes.merge(Bookmarks)` for the host's `group`, merge the bookmark handler Layer with the existing handlers and routes, and merge `BookmarksService.layer` into `services`. Preserve the notes producer wiring. Keep the existing session provider and migration loader so the new handlers use the same authenticated HTTP/NDJSON host and database.
 
@@ -58,12 +58,12 @@ Keep a label, field error, save failure and pending button state. Follow [`Notes
 
 ## 9. Prove the PostgreSQL host path
 
-Extend [`starterHost.test.ts`](../../examples/starter/src/server/starterHost.test.ts) using its [`test-support/postgres.ts`](../../examples/starter/src/test-support/postgres.ts) harness and authenticated HTTP client pattern in [`test-support/authHttp.ts`](../../examples/starter/src/test-support/authHttp.ts). Add a client for the bookmark group. Sign up a user, create a bookmark over HTTP, list it, and inspect `starter_bookmarks` through `SqlClient` to prove persistence. Check the whitespace rejection leaves the table unchanged, anonymous calls fail, and a second user cannot list the first user's bookmarks.
+Extend [`notesHost.test.ts`](../../examples/starter/src/server/notesHost.test.ts) using its [`test-support/postgres.ts`](../../examples/starter/src/test-support/postgres.ts) harness and authenticated HTTP client pattern in [`test-support/authHttp.ts`](../../examples/starter/src/test-support/authHttp.ts). Add a client for the bookmark group. Sign up a user, create a bookmark over HTTP, list it, and inspect `starter_bookmarks` through `SqlClient` to prove persistence. Check the whitespace rejection leaves the table unchanged, anonymous calls fail, and a second user cannot list the first user's bookmarks.
 
 Follow [`notesMigration.spec.ts`](../../examples/starter/src/server/notesMigration.spec.ts) to check the new stored model's columns and PostgreSQL types after upgrading the previous migration prefix. Run against a dedicated PostgreSQL test database whose role can create disposable databases:
 
 ```sh
-PLATFORM_EFFECT_SQL_TEST_DATABASE_URL="$TEST_DATABASE_URL" pnpm test src/server/starterHost.test.ts src/server/bookmarksMigration.spec.ts
+pnpm test src/server/notesHost.test.ts src/server/bookmarksMigration.spec.ts
 ```
 
 Set `TEST_DATABASE_URL` first. In this repository, `./script/update` prepares the shared database and `pnpm ready` supplies the test URLs. Confirm the PostgreSQL tests ran: a skipped test supplies no persistence or host evidence.

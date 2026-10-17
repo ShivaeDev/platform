@@ -8,7 +8,7 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (cwd: stri
 	const code = yield* spawner.exitCode(
 		ChildProcess.make("pnpm", ["run", "ci"], {
 			cwd,
-			env: { "PLATFORM_EFFECT_SQL_TEST_DATABASE_URL": database, "TEST_DATABASE_URL": database },
+			env: { "TEST_DATABASE_URL": database },
 			extendEnv: true,
 			stderr: "inherit",
 			stdout: "inherit",

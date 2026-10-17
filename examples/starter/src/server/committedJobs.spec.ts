@@ -17,7 +17,7 @@ app.it(
 		const note = yield* http.create({ title: "Count these three words" });
 		expect(note.wordCount).toBeNull();
 		yield* Effect.promise(() => vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual([note])));
-		const users = yield* sql<{ id: string }>`select id from "user" where email = 'alice@starter.test'`;
+		const users = yield* sql<{ id: string }>`select id from "user" where email = 'alice@app.test'`;
 		const ownerId = users[0]?.id;
 		if (ownerId === undefined) {
 			return yield* Effect.die("Missing account");
@@ -30,7 +30,7 @@ app.it(
 		expect(Result.isFailure(rollback) && rollback.failure).toBe("rollback");
 		expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 2 }]);
 		yield* Effect.sleep("1200 millis");
-		expect(yield* sql`select "wordCount" from starter_notes where id = ${note.id}`).toEqual([{ wordCount: null }]);
+		expect(yield* sql`select "wordCount" from notes where id = ${note.id}`).toEqual([{ wordCount: null }]);
 		yield* startWorker();
 		yield* Effect.promise(() =>
 			vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual([{ ...note, version: 1, wordCount: 4 }]), {
@@ -60,7 +60,7 @@ app.it(
 				{ timeout: 5000 },
 			),
 		);
-		expect(yield* sql`select count(*)::int as count from starter_notes`).toEqual([{ count: 2 }]);
+		expect(yield* sql`select count(*)::int as count from notes`).toEqual([{ count: 2 }]);
 	},
 	15_000,
 );

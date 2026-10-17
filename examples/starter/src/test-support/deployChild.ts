@@ -24,7 +24,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (kind: "worke
 		ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL(entry, import.meta.url)), kind], {
 			env: {
 				"DATABASE_URL": target.toString(),
-				...(kind === "web" ? { "BETTER_AUTH_SECRET": "starter-test-secret-with-at-least-32-characters", "PORT": String(port) } : {}),
+				...(kind === "web" ? { "BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters", "PORT": String(port) } : {}),
 			},
 			extendEnv: false,
 		}),

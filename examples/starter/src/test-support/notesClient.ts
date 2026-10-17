@@ -17,7 +17,7 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 		session.signedIn
 			? effect.pipe(
 					Effect.provideService(Identity, { id: "alice" }),
-					Effect.provideService(SessionUser, { email: "alice@starter.test", id: "alice", name: "Alice" }),
+					Effect.provideService(SessionUser, { email: "alice@app.test", id: "alice", name: "Alice" }),
 				)
 			: Effect.fail(new Unauthorized({ message: "Authentication required" })),
 	);
@@ -80,7 +80,7 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 			}),
 		"notes.whoami": () => Effect.map(SessionUser, (user) => user),
 	});
-	class Client extends AtomRpc.Service<Client>()("starter/NotesClient", {
+	class Client extends AtomRpc.Service<Client>()("app/NotesClient", {
 		group: Notes,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
 		protocol: handlers.pipe(Layer.provideMerge(authentication)),

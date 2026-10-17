@@ -87,6 +87,9 @@ it("writes app-specific local database URLs and a fresh secret on every run, ign
 		expect(run([name]).status).toBe(0);
 		const app = join(root, name);
 		const env = readFileSync(join(app, ".env.local"), "utf8");
+		const example = readFileSync(join(app, ".env.example"), "utf8");
+		expect(example).toContain(`/${database}_dev\n`);
+		expect(example).toContain(`/${database}_test\n`);
 		expect(env).toContain(`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\n`);
 		expect(env).toContain(`TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\n`);
 		const secret = env.match(/^BETTER_AUTH_SECRET=(?<secret>.+)$/mu)?.groups?.secret ?? "";

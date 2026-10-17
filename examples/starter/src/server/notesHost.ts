@@ -26,7 +26,7 @@ const handlers = Notes.toLayer(
 	}),
 );
 
-export function starterHost(config?: {
+export function notesHost(config?: {
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly port?: number;
 	readonly secret?: Redacted.Redacted<string>;

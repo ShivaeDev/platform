@@ -39,12 +39,12 @@ screens.it(
 
 			await act(() => [...view.container.querySelectorAll("button")].find((button) => button.textContent === "Create an account")?.click());
 			await enter(view.container, "Alice", "Name");
-			await enter(view.container, "alice@starter.test", "Email");
+			await enter(view.container, "alice@app.test", "Email");
 			await enter(view.container, "correct-horse", "Password");
 			await submit(view.container);
-			expect(calls).toEqual([{ credentials: { email: "alice@starter.test", name: "Alice", password: "correct-horse" }, mode: "sign-up" }]);
+			expect(calls).toEqual([{ credentials: { email: "alice@app.test", name: "Alice", password: "correct-horse" }, mode: "sign-up" }]);
 			expect(view.container.querySelector("[role=alert]")?.textContent).toBe(outcome);
-			expect(view.container.querySelector<HTMLInputElement>("input[type=email]")?.value).toBe("alice@starter.test");
+			expect(view.container.querySelector<HTMLInputElement>("input[type=email]")?.value).toBe("alice@app.test");
 			expect(authenticated).toBe(0);
 			outcome = undefined;
 			await submit(view.container);

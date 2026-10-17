@@ -34,7 +34,7 @@ export const app = storyKit({
 	create: (): Engine => ({ actors: new Map(), host: undefined, hostOptions: {}, tell: () => undefined }),
 	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),
 	layer: postgres,
-	name: "starter",
+	name: "app",
 	stages: ["hosting", "accounts", "notes"],
 	verbs: (engine, story) => {
 		function host() {
@@ -73,12 +73,12 @@ export const app = storyKit({
 				return liveNotes(host(), actor.cookie);
 			},
 			notes: (cookie: string) => http().notes(cookie),
-			rerunMigrations: Effect.fn("StarterStory.rerunMigrations")(function* () {
+			rerunMigrations: Effect.fn("AppStory.rerunMigrations")(function* () {
 				story.tell("run the deployment migrations and open another app host");
 				engine.host = yield* startHost(engine.hostOptions);
 			}),
 			runningHost: host,
-			startWorker: Effect.fn("StarterStory.startWorker")(function* (env?: Record<string, string>) {
+			startWorker: Effect.fn("AppStory.startWorker")(function* (env?: Record<string, string>) {
 				story.tell("start the word-count worker");
 				const database = yield* PostgresTestDatabase;
 				const worker = noteWorker({ databaseUrl: database.url });
@@ -114,7 +114,7 @@ export function authRateLimiting(enabled: boolean) {
 export function legacyNote(title: string) {
 	return app.trait("notes", `PostgreSQL contains the unowned note ${JSON.stringify(title)}`, function* () {
 		const sql = yield* SqlClient.SqlClient;
-		yield* sql`insert into starter_notes (title) values (${title})`;
+		yield* sql`insert into notes (title) values (${title})`;
 	});
 }
 
@@ -131,7 +131,7 @@ export function rejectedNoteCommits() {
 		yield* sql`create function reject_note_commit() returns trigger language plpgsql as $$
 			begin raise exception 'rejected at commit'; end;
 		$$`;
-		yield* sql`create constraint trigger reject_note_commit after insert on starter_notes
+		yield* sql`create constraint trigger reject_note_commit after insert on notes
 			deferrable initially deferred for each row execute function reject_note_commit()`;
 	});
 }

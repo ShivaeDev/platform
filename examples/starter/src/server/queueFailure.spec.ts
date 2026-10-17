@@ -9,7 +9,7 @@ app.it("saves and edits notes when PostgreSQL rejects enqueueing", [signedIn(), 
 	const edited = yield* notes.update({ ...created, title: "Still edited" });
 	expect(yield* notes.get({ id: created.id })).toEqual(edited);
 	const sql = yield* SqlClient.SqlClient;
-	expect(yield* sql`select title, version, "wordCount" from starter_notes where id = ${created.id}`).toEqual([
+	expect(yield* sql`select title, version, "wordCount" from notes where id = ${created.id}`).toEqual([
 		{ title: "Still edited", version: 1, wordCount: null },
 	]);
 	expect(yield* sql`select count(*)::int as count from pgboss.job`).toEqual([{ count: 0 }]);
@@ -19,6 +19,6 @@ app.it("does not enqueue a note when its write transaction fails at commit", [si
 	const result = yield* actor().notes.create({ title: "Not committed" }).pipe(Effect.result);
 	expect(Result.isFailure(result) && result.failure._tag).toBe("ServiceUnavailable");
 	const sql = yield* SqlClient.SqlClient;
-	expect(yield* sql`select count(*)::int as count from starter_notes`).toEqual([{ count: 0 }]);
+	expect(yield* sql`select count(*)::int as count from notes`).toEqual([{ count: 0 }]);
 	expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 0 }]);
 });

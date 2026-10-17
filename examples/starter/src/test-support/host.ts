@@ -6,7 +6,7 @@ import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { migrateDatabase } from "#server/migrateDatabase.ts";
 import { forwardingProxy } from "#test-support/forwardingProxy.ts";
 
-export const secret = Redacted.make("starter-test-secret-with-at-least-32-characters");
+export const secret = Redacted.make("app-test-secret-with-at-least-32-characters");
 export const PUBLIC_URL = "https://app.example";
 
 export interface HostOptions {
@@ -16,10 +16,10 @@ export interface HostOptions {
 	readonly trustedProxy?: string | undefined;
 }
 
-export const startHost = Effect.fn("StarterStory.startHost")(function* (options: HostOptions = {}) {
+export const startHost = Effect.fn("AppStory.startHost")(function* (options: HostOptions = {}) {
 	// Better Auth keeps its in-memory rate-limit buckets at module scope.
 	vi.resetModules();
-	const { starterHost } = yield* Effect.promise(() => import("#server/starterHost.ts"));
+	const { notesHost } = yield* Effect.promise(() => import("#server/notesHost.ts"));
 	const deployed = options.deployed ?? false;
 	const database = yield* PostgresTestDatabase;
 	yield* Effect.scoped(migrateDatabase(database.url));
@@ -33,7 +33,7 @@ export const startHost = Effect.fn("StarterStory.startHost")(function* (options:
 	if (options.authClientIpHeader !== undefined) {
 		env.AUTH_CLIENT_IP_HEADER = options.authClientIpHeader;
 	}
-	const host = starterHost({ databaseUrl: database.url, secret, ...(deployed ? {} : { port: 0 }) }).pipe(
+	const host = notesHost({ databaseUrl: database.url, secret, ...(deployed ? {} : { port: 0 }) }).pipe(
 		Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))),
 	);
 	const context = yield* Layer.build(host);

@@ -3,11 +3,10 @@ import { randomBytes } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
 import { Console, Effect, FileSystem, Schema } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { appFile, databaseName } from "./appFiles.ts";
 import { CreateAppError } from "./CreateAppError.ts";
 import { commitGit, initializeGit } from "./initializeGit.ts";
 import { Template } from "./template.ts";
-
-const decodeName = Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)));
 
 export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: string, templatePath: string, options: { readonly git: boolean }) {
 	const fs = yield* FileSystem.FileSystem;
@@ -23,18 +22,20 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 	yield* fs.makeDirectory(target, { recursive: true });
 	for (const entry of template) {
 		const path = join(target, entry.path);
-		let content = Buffer.from(entry.content, "base64");
-		if (entry.path === "package.json") {
-			const manifest = yield* decodeName(content.toString());
-			content = Buffer.from(`${JSON.stringify({ ...manifest, name }, null, "\t")}\n`);
-		}
+		const source = Buffer.from(entry.content, "base64");
+		const content = yield* Effect.try({
+			catch: (cause) => new CreateAppError({ message: String(cause) }),
+			try: () =>
+				["package.json", ".env.example", "AGENTS.md", "README.md"].includes(entry.path)
+					? Buffer.from(appFile(entry.path, source.toString(), name))
+					: source,
+		});
 		yield* fs.makeDirectory(dirname(path), { recursive: true });
-		yield* fs.writeFile(path, content);
+		yield* fs.writeFile(path, content, { mode: 0o644 });
+		yield* fs.chmod(path, 0o644);
 	}
-	const database = name
-		.replaceAll(/[.-]/gu, "_")
-		.replace(/^[^a-z]/u, "app_$&")
-		.slice(0, 58);
+	yield* fs.symlink("AGENTS.md", join(target, "CLAUDE.md"));
+	const database = databaseName(name);
 	yield* fs.writeFileString(
 		join(target, ".env.local"),
 		`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\nTEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\nBETTER_AUTH_SECRET=${randomBytes(32).toString("base64url")}\n`,
@@ -43,6 +44,12 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 	const initialized = options.git && (yield* initializeGit(target));
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const code = yield* spawner.exitCode(ChildProcess.make("pnpm", ["run", "setup"], { cwd: target, stderr: "inherit", stdout: "inherit" }));
+	for (const file of [...template.map((entry) => entry.path), "pnpm-lock.yaml"]) {
+		const path = join(target, file);
+		if (yield* fs.exists(path)) {
+			yield* fs.chmod(path, 0o644);
+		}
+	}
 	if (code !== 0) {
 		return yield* new CreateAppError({ message: `pnpm run setup failed (exit ${code}). Run pnpm run setup in ${folder} to retry.` });
 	}

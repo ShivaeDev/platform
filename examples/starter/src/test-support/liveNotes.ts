@@ -5,7 +5,7 @@ import { expect, vi } from "vitest";
 import { makeNotesClient } from "#client/makeNotes.ts";
 import type { RunningHost } from "./host.ts";
 
-export const liveNotes = Effect.fn("StarterStory.liveNotes")(function* (host: RunningHost, cookie: string) {
+export const liveNotes = Effect.fn("AppStory.liveNotes")(function* (host: RunningHost, cookie: string) {
 	const client = makeNotesClient(`${host.baseUrl}/rpc`, (transport) =>
 		HttpClient.mapRequest(transport, HttpClientRequest.setHeaders({ cookie, origin: host.origin })),
 	);

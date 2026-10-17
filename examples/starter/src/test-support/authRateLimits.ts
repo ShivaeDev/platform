@@ -8,7 +8,7 @@ export function authRateLimits(host: RunningHost, tell: (line: string) => void) 
 		visitor: (clientIp: string) => {
 			tell(`a visitor connects from ${clientIp}`);
 			return {
-				signIn: Effect.fn("StarterStory.signIn")(function* (forwardedFor?: string, realIp?: string) {
+				signIn: Effect.fn("AppStory.signIn")(function* (forwardedFor?: string, realIp?: string) {
 					tell(`the visitor at ${clientIp} attempts sign-in with ${JSON.stringify({ forwardedFor, realIp })}`);
 					return yield* Effect.promise(() => signInStatus(host, clientIp, forwardedFor, realIp));
 				}),

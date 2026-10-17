@@ -7,13 +7,13 @@ import { deployment } from "#test-support/deployment.ts";
 deployment.it("the secret-free migrate command applies the schema once and preserves its ledger and rows on rerun", [], function* ({ migrate }) {
 	const sql = yield* SqlClient.SqlClient;
 	expect(yield* migrate()).toBe(0);
-	const ledger = sql`select migration_id, name, created_at from starter_migrations order by migration_id`;
+	const ledger = sql`select migration_id, name, created_at from app_migrations order by migration_id`;
 	const applied = yield* ledger;
 	expect(applied).toHaveLength(5);
-	yield* sql`insert into starter_notes (title) values ('Keep this note')`;
+	yield* sql`insert into notes (title) values ('Keep this note')`;
 	expect(yield* migrate()).toBe(0);
 	expect(yield* ledger).toEqual(applied);
-	expect(yield* sql`select title from starter_notes`).toEqual([{ title: "Keep this note" }]);
+	expect(yield* sql`select title from notes`).toEqual([{ title: "Keep this note" }]);
 	expect(yield* sql`select count(*)::int as count from "user"`).toEqual([{ count: 0 }]);
 });
 
@@ -34,7 +34,7 @@ deployment.it(
 			expect([...pending.logs, ...pending.errors].join("\n")).not.toContain("Database schema mismatch");
 			expect(pending.logs.filter((line) => line.startsWith("EFFECT_LOG Worker"))).toEqual([]);
 		}
-		expect(yield* sql`select to_regclass('starter_migrations') as ledger`).toEqual([{ ledger: null }]);
+		expect(yield* sql`select to_regclass('app_migrations') as ledger`).toEqual([{ ledger: null }]);
 		yield* Effect.promise(() => expect(fetch(`http://127.0.0.1:${port}/health`)).rejects.toThrow());
 		expect(yield* migrate()).toBe(0);
 		const worker = yield* startProcess("worker");
@@ -55,7 +55,7 @@ deployment.it(
 
 deployment.it("a failed migrate command exits nonzero without recording an applied migration", [], function* ({ migrate }) {
 	const sql = yield* SqlClient.SqlClient;
-	yield* sql`create table starter_notes (title text)`;
+	yield* sql`create table notes (title text)`;
 	expect(yield* migrate()).not.toBe(0);
-	expect(yield* sql`select to_regclass('starter_migrations') as ledger`).toEqual([{ ledger: null }]);
+	expect(yield* sql`select to_regclass('app_migrations') as ledger`).toEqual([{ ledger: null }]);
 });

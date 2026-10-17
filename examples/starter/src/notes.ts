@@ -18,7 +18,7 @@ export const NoteFields = Schema.Struct({ title: Note.fields.title });
 export const NoteEditFields = Schema.Struct({ title: Note.fields.title, version: Note.fields.version });
 const NoteId = Schema.Struct({ id: Schema.Number });
 const NoteVersion = Schema.Struct({ ...NoteId.fields, version: Note.fields.version });
-export const notes = collection("starterNotes", Schema.Number);
+export const notes = collection("notes", Schema.Number);
 export const Get = query("get", {
 	payload: NoteId,
 	reads: ({ id }) => [notes.item(id), notes.list],

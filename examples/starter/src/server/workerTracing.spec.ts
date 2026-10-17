@@ -24,7 +24,7 @@ app.it(
 		yield* Effect.promise(() =>
 			vi.waitFor(
 				async () => {
-					expect(await Effect.runPromise(sql`select "wordCount" from starter_notes where id = ${note.id}`)).toEqual([{ wordCount: 3 }]);
+					expect(await Effect.runPromise(sql`select "wordCount" from notes where id = ${note.id}`)).toEqual([{ wordCount: 3 }]);
 					expect(receiver.requests.some((request) => request.body.includes('"name":"CountWords"'))).toBe(true);
 				},
 				{ timeout: 8000 },
@@ -35,7 +35,7 @@ app.it(
 		expect(body).toContain('"key":"service.name","value":{"stringValue":"worker-test"}');
 		expect(body).toContain('"key":"deployment.environment","value":{"stringValue":"worker-test"}');
 		expect(body).not.toContain("worker collector secret");
-		expect(body).not.toContain("starter-test-secret");
+		expect(body).not.toContain("app-test-secret");
 	},
 	15_000,
 );
@@ -58,7 +58,7 @@ for (const status of [undefined, 500]) {
 			yield* Effect.promise(() =>
 				vi.waitFor(
 					async () => {
-						expect(await Effect.runPromise(sql`select "wordCount" from starter_notes where id = ${note.id}`)).toEqual([{ wordCount: 3 }]);
+						expect(await Effect.runPromise(sql`select "wordCount" from notes where id = ${note.id}`)).toEqual([{ wordCount: 3 }]);
 						expect(await Effect.runPromise(sql`select state from pgboss.job where name = 'count-note-words'`)).toEqual([{ state: "completed" }]);
 						if (status !== undefined) {
 							expect(receiver.requests.length).toBeGreaterThan(0);

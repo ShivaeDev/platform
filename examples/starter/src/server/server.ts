@@ -1,5 +1,5 @@
 import { NodeRuntime } from "@effect/platform-node";
 import { Layer } from "effect";
-import { starterHost } from "./starterHost.ts";
+import { notesHost } from "./notesHost.ts";
 
-NodeRuntime.runMain(Layer.launch(starterHost()));
+NodeRuntime.runMain(Layer.launch(notesHost()));
