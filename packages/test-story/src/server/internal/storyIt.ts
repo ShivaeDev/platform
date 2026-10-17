@@ -30,8 +30,7 @@ function withTags(options: number | EffectTestOptions | undefined, tags: readonl
 
 function storyOf(definition: LooseDefinition, given: readonly LooseTrait[], body: LooseBody | undefined) {
 	return function* story(_harness: unknown, context: TestContext) {
-		const told = yield* start(definition, given, context);
-		return yield* hooked(() => body?.(told, context));
+		return yield* start(definition, given, context, (told) => hooked(() => body?.(told, context)));
 	};
 }
 
