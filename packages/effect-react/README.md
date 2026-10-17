@@ -76,7 +76,7 @@ export function App({ session, recheck }: {
 
 `makeOrderClient` and `OrderScreens` belong to the application. A changed generation creates a new client and registry, remounts the screens and disposes the outgoing registry. `undefined` renders `signedOut`. Updating the session object with the same generation keeps the existing client: `connect` does not receive a rotated token until the identity changes. Include the credential generation when the client captures its token, as above.
 
-A query that fails with a tagged `Unauthorized` asks `recheck` to run and keeps its retained data. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
+A query that fails with a tagged `Unauthorized` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
 
 ### 2. Once per feature: native queries and actions
 
@@ -120,6 +120,8 @@ export function App() {
   return <RegistryProvider><Report /></RegistryProvider>;
 }
 ```
+
+For both queries and actions, a successful `undefined` is `Option.some(undefined)` in `data`, with `pending` and `refreshing` false. A defect or interruption is available as `Option.some(cause)` in `cause`; `isUnauthorized` returns false for those causes and they do not request a session recheck, even when the defect has an `Unauthorized` tag.
 
 The example's action returns a value; it does not persist the report or invalidate its query. In an application, use the native RPC query and mutation atoms instead:
 
@@ -484,4 +486,4 @@ Query, action, session and resume modules do not require effect-form. The packag
 
 The full design is in [the north star](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/north-star.md). Implementation status and unresolved choices are in [the roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/roadmap.md).
 
-The [reference PostgreSQL feature](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses the same leased database infrastructure and a scoped story verb for its real server and rendered clients. It is a test fixture, not a copyable app; an app template is still needed. Its stories verify commit visibility, live refresh of a second editor, retained local edits and rollback without publication.
+The [reference PostgreSQL feature](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses the same leased database infrastructure and a scoped story verb for its real server and rendered clients. Its stories verify commit visibility, live refresh of a second editor, retained local edits and rollback without publication. To start an application, use the [copyable starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) with `pnpm create @shivaedev/app my-app`.
