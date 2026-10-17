@@ -27,7 +27,7 @@ export const cookieApp = storyKit({
 				}
 			}).pipe(Effect.timeout("5 seconds"), Effect.orDie),
 		);
-		return { baseUrl, client: makeAuth({ baseUrl }).client, fetch };
+		return { baseUrl, client: makeAuth({ baseUrl, fetchOptions: { customFetchImpl: fetch } }).client, fetch };
 	},
 	inspect: () => ({ authentication: "cookie session" }),
 	layer: postgres,

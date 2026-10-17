@@ -6,6 +6,7 @@ import type { GenreTag } from "#genreTags.ts";
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
 export interface StoriesRun {
+	readonly environment?: string;
 	readonly include: string;
 	readonly tags?: readonly GenreTag[];
 	readonly tagsFilter?: string[];
@@ -25,13 +26,14 @@ export interface StoriesOutcome {
 	readonly warnings: readonly string[];
 }
 
-export async function runStories({ include, tags = [], tagsFilter = [], testNamePattern }: StoriesRun): Promise<StoriesOutcome> {
+export async function runStories({ environment, include, tags = [], tagsFilter = [], testNamePattern }: StoriesRun): Promise<StoriesOutcome> {
 	const stderr = new PassThrough();
 	const warnings: string[] = [];
 	stderr.on("data", (chunk: Buffer) => warnings.push(chunk.toString()));
 	const vitest = await VitestNode.createVitest(
 		{
 			config: false,
+			...(environment === undefined ? {} : { environment }),
 			include: [include],
 			reporters: [],
 			root,
@@ -46,7 +48,10 @@ export async function runStories({ include, tags = [], tagsFilter = [], testName
 	try {
 		const { testModules } = await vitest.start();
 		return {
-			moduleErrors: testModules.flatMap((module) => module.errors().map((error) => error.message)),
+			moduleErrors: [
+				...testModules.flatMap((module) => module.errors().map((error) => error.message)),
+				...vitest.state.getUnhandledErrors().map((error) => (error instanceof Error ? error.message : String(error))),
+			],
 			stories: testModules.flatMap((module) =>
 				[...module.children.allTests()].map((test) => ({
 					errors: (test.result().errors ?? []).map((error) => error.message),
