@@ -24,6 +24,7 @@ export const HostConfig = Schema.Struct({
 			endpoint: Schema.optional(Text),
 			environmentId: Text,
 			projectId: Schema.optional(Text),
+			recoveryGraceMs: Schema.optional(Positive),
 			refreshCommand: Schema.optional(Schema.Struct({ args: Schema.Array(Schema.String), command: Text })),
 			requestTimeoutMs: Schema.optional(Positive),
 			threadNamePrefix: Schema.optional(Text),
