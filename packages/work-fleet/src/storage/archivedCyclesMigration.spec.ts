@@ -3,8 +3,8 @@ import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { FleetRecord } from "#model.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
-import { migrateFleet } from "#storage/migrateFleet.ts";
 import { legacyStore } from "#test/legacyStore.ts";
+import { migrateFleet } from "#test/migrateFleet.ts";
 import { migrationRecords } from "#test/migrationRecords.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { withStorage } from "#test/storage.ts";
@@ -14,7 +14,7 @@ postgresTests("live", "isolated")("migration removes only archived cycles withou
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			yield* legacyStore(namespace);
-			yield* migrateFleet(namespace, true);
+			yield* migrateFleet(namespace, "attention_owner");
 			const record = migrationRecords()[1];
 			const attempted = record?.history?.[0];
 			if (record === undefined || attempted === undefined) {
@@ -49,12 +49,12 @@ postgresTests("live", "isolated")("migration removes only archived cycles withou
 				yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${value.workId}, 7, ${JSON.stringify(value)}::jsonb)`;
 			}
 			const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
-			yield* store.initialize();
+			yield* migrateFleet(namespace);
 			expect((yield* store.load(record.workId))?.value).toEqual({ ...record, history: [attempted, decided, answered] });
 			expect((yield* store.load("empty"))?.value).toEqual({ ...record, history: [], workId: "empty" });
 			expect((yield* store.load("absent"))?.value).toEqual({ ...record, history: undefined, workId: "absent" });
 			const migrated = yield* store.list();
-			expect(yield* store.initialize()).toEqual([]);
+			expect(yield* migrateFleet(namespace)).toEqual([]);
 			expect(yield* store.list()).toEqual(migrated);
 		}),
 	),

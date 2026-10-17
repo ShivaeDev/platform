@@ -1,8 +1,9 @@
-import { Effect, Exit } from "effect";
+import { Effect, Result } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import { expect } from "vitest";
-import { integration, onClient, onSqlError, secondPool } from "#test/postgres-transact.ts";
+import { integration, onClient, onSqlError, secondPool, Unavailable } from "#test/postgres-transact.ts";
 import { runNotify, waitFor } from "#test/postgresNotify.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
@@ -29,19 +30,31 @@ integration("NOTIFY splits UTF-8 key batches and a payload error rolls back the 
 			expect(state.payloads.every((payload) => new TextEncoder().encode(payload).length < 8000)).toBe(true);
 			const oversized = yield* Effect.andThen(sql`insert into ${sql(table)} values (2)`, invalidateOnCommit(["é".repeat(4000)])).pipe(
 				transact({ onSqlError }),
-				Effect.exit,
+				Effect.result,
 			);
-			expect(Exit.isFailure(oversized)).toBe(true);
+			expect(Result.isFailure(oversized) && oversized.failure).toBeInstanceOf(Unavailable);
+			expect(Result.isFailure(oversized) && oversized.failure.reason).toContain("exceeds the NOTIFY payload limit");
 			const invalid = yield* Effect.andThen(sql`insert into ${sql(table)} values (3)`, invalidateOnCommit([{ id: 1 }])).pipe(
 				transact({ onSqlError }),
-				Effect.exit,
+				Effect.result,
 			);
-			expect(Exit.isFailure(invalid)).toBe(true);
+			expect(Result.isFailure(invalid) && invalid.failure).toBeInstanceOf(Unavailable);
+			expect(Result.isFailure(invalid) && invalid.failure.reason).toContain("must be strings or finite numbers");
+			let commitError: SqlError | undefined;
 			const commitFailure = yield* Effect.andThen(sql`insert into ${sql(table)} values (4, 99)`, invalidateOnCommit(keys)).pipe(
-				transact({ onSqlError }),
-				Effect.exit,
+				transact({
+					onSqlError: (error) => {
+						commitError = error;
+						return onSqlError(error);
+					},
+				}),
+				Effect.result,
 			);
-			expect(Exit.isFailure(commitFailure)).toBe(true);
+			expect(Result.isFailure(commitFailure) && commitFailure.failure).toBeInstanceOf(Unavailable);
+			expect(commitError).toMatchObject({
+				_tag: "SqlError",
+				reason: { _tag: "ConstraintError", cause: { code: "23503", table } },
+			});
 			expect(yield* sql`select id from ${sql(table)}`).toEqual([{ id: 1 }]);
 			yield* Effect.sleep("200 millis");
 			expect(delivered).toHaveLength(6);

@@ -25,10 +25,13 @@ export interface Package {
 export const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Manifest));
 export const decodeVersions = Schema.decodeUnknownSync(Schema.fromJsonString(Versions));
 export const dependencyKeys = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"] as const;
-export const effectPackage = (name: string): boolean => name === "effect" || name.startsWith("@effect/");
-export const bins = (manifest: Manifest): Readonly<Record<string, string>> =>
-	typeof manifest.bin === "string" ? { [manifest.name.split("/").at(-1) ?? manifest.name]: manifest.bin } : (manifest.bin ?? {});
-export const targets = (value: unknown): string[] => {
+export function effectPackage(name: string): boolean {
+	return name === "effect" || name.startsWith("@effect/");
+}
+export function bins(manifest: Manifest): Readonly<Record<string, string>> {
+	return typeof manifest.bin === "string" ? { [manifest.name.split("/").at(-1) ?? manifest.name]: manifest.bin } : (manifest.bin ?? {});
+}
+export function targets(value: unknown): string[] {
 	if (typeof value === "string") {
 		return [value];
 	}
@@ -36,4 +39,4 @@ export const targets = (value: unknown): string[] => {
 		return [];
 	}
 	return Object.values(value).flatMap(targets);
-};
+}

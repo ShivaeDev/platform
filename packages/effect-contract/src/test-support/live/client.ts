@@ -6,14 +6,14 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { bind } from "#bind.ts";
 import { live } from "#live.ts";
 import { type ResumeOptions, resumeSignal } from "#resume.ts";
-import { Documents, Subscribe } from "#test/live/contract.ts";
+import { LiveNotes, Subscribe } from "./notesContract.ts";
 
 export function liveClient(url: string, options: ResumeOptions = {}, includeResume = true) {
 	class Client extends AtomRpc.Service<Client>()("example/LiveDocuments", {
-		group: Documents,
+		group: LiveNotes,
 		protocol: RpcClient.layerProtocolHttp({ url: `${url}/rpc` }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
 	}) {}
-	const api = bind(Documents, Client);
+	const api = bind(LiveNotes, Client);
 	const resume = Atom.make(0);
 	const signal = resumeSignal(options);
 	const subscription = live(Client.runtime, {

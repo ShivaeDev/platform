@@ -1,80 +1,49 @@
-import { Effect, Ref, Result } from "effect";
+import { Effect, Result } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import type * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcTest } from "effect/rpc";
-import { expect, it, vi } from "vitest";
-import { bind } from "#bind.ts";
-import { makeServer, Notes } from "#test/notes.ts";
+import { expect } from "vitest";
+import { eventually } from "#test/eventually.ts";
+import { notesStory, signedIn } from "#test/notesStory.ts";
 
-async function setup() {
-	const server = await Effect.runPromise(makeServer);
-	class NotesClient extends AtomRpc.Service<NotesClient>()("test/NotesClient", {
-		group: Notes,
-		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: server.layer,
-	}) {}
-	const api = bind(Notes, NotesClient);
-	const registry = AtomRegistry.make();
-	function run<A, E>(effect: Effect.Effect<A, E, NotesClient | Reactivity.Reactivity>) {
-		return Effect.runPromise(Effect.result(AtomRegistry.getResult(registry, NotesClient.runtime.atom(effect))));
-	}
-	function reads() {
-		return Effect.runSync(Ref.get(server.reads));
-	}
-	return { api, reads, registry, run, server };
-}
-
-it("queries register their declared read keys and commands invalidate item and list after success only", async () => {
-	const { api, registry, run, reads } = await setup();
-	const one = api.get.query({ id: 1 });
-	const two = api.get.query({ id: 2 });
-	const list = api.list.query(undefined);
-	const unmount = [registry.mount(one), registry.mount(two), registry.mount(list)];
-	try {
-		await vi.waitFor(() => expect([...reads()].sort()).toEqual(["get:1", "get:2", "list"]));
-		const renamed = await run(api.rename.run({ id: 1, title: "Uno" }));
+notesStory.it(
+	"queries register their declared read keys and commands invalidate item and list after success only",
+	[signedIn()],
+	function* ({ query, queryList, mount, rename, registry, reads }) {
+		const one = query(1);
+		const two = query(2);
+		const list = queryList();
+		mount(one);
+		mount(two);
+		mount(list);
+		yield* eventually(() => expect([...reads()].sort()).toEqual(["get:1", "get:2", "list"]));
+		const renamed = yield* Effect.result(rename(1, "Uno"));
 		expect(Result.isSuccess(renamed)).toBe(true);
-		await vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.title).toBe("Uno"));
-		await vi.waitFor(() => expect(reads().filter((read) => read === "list")).toHaveLength(2));
+		yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.title).toBe("Uno"));
+		yield* eventually(() => expect(reads().filter((read) => read === "list")).toHaveLength(2));
 		expect(reads().filter((read) => read === "get:2")).toHaveLength(1);
-		const rejected = await run(api.rename.run({ id: 2, title: "" }));
+		const rejected = yield* Effect.result(rename(2, ""));
 		expect(Result.isFailure(rejected) && rejected.failure._tag).toBe("Invalid");
-		await new Promise((resolve) => setTimeout(resolve, 20));
+		yield* Effect.sleep("20 millis");
 		expect(reads().filter((read) => read === "list")).toHaveLength(2);
 		expect(reads().filter((read) => read === "get:2")).toHaveLength(1);
-	} finally {
-		for (const release of unmount) {
-			release();
-		}
-		registry.dispose();
-	}
-});
+	},
+);
 
-it("result-dependent invalidation refreshes the item a command created", async () => {
-	const { api, registry, run, reads } = await setup();
-	const three = api.get.query({ id: 3 });
-	const release = registry.mount(three);
-	try {
-		await vi.waitFor(() => expect(AsyncResult.isFailure(registry.get(three))).toBe(true));
-		expect(Result.isSuccess(await run(api.create.run({ body: "", title: "Three" })))).toBe(true);
-		await vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(three), () => undefined)?.title).toBe("Three"));
+notesStory.it(
+	"result-dependent invalidation refreshes the item a command created",
+	[signedIn()],
+	function* ({ query, mount, create, registry, reads }) {
+		const three = query(3);
+		mount(three);
+		yield* eventually(() => expect(AsyncResult.isFailure(registry.get(three))).toBe(true));
+		expect(Result.isSuccess(yield* Effect.result(create("Three")))).toBe(true);
+		yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(three), () => undefined)?.title).toBe("Three"));
 		expect(reads().filter((read) => read === "get:3")).toHaveLength(2);
-	} finally {
-		release();
-		registry.dispose();
-	}
-});
+	},
+);
 
-it("query run performs a one-off typed call without registering keys", async () => {
-	const { api, registry, run } = await setup();
-	try {
-		const found = await run(api.get.run({ id: 2 }));
-		expect(Result.isSuccess(found) && found.success.title).toBe("Two");
-		const missing = await run(api.get.run({ id: 7 }));
-		expect(Result.isFailure(missing) && missing.failure._tag).toBe("NoteMissing");
-	} finally {
-		registry.dispose();
-	}
+notesStory.it("query run performs a one-off typed call without registering keys", [signedIn()], function* ({ get }) {
+	const found = yield* Effect.result(get(2));
+	expect(Result.isSuccess(found) && found.success.title).toBe("Two");
+	const missing = yield* Effect.result(get(7));
+	expect(Result.isFailure(missing) && missing.failure._tag).toBe("NoteMissing");
 });
