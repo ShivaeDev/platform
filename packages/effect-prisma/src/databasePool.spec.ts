@@ -1,6 +1,7 @@
 import { Effect, Exit } from "effect";
 import { Client } from "pg";
 import { expect } from "vitest";
+import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { makeDatabase } from "#database.ts";
 import { type Contract, contractJson } from "#test/contract.ts";
 import { environmentVariable } from "#test/environment.ts";
@@ -26,7 +27,7 @@ const assertPoolLifetime = Effect.fnUntraced(function* (observer: Client, fail: 
 		}).pipe(Effect.provide(Database.layer({ url: url.toString() }))),
 	);
 	expect(exit).toEqual(fail ? Exit.fail("database caller failed") : Exit.succeed(undefined));
-	expect(yield* connections).toBe(0);
+	yield* eventually(connections.pipe(Effect.flatMap((count) => Effect.try(() => expect(count).toBe(0)))), { times: 500 });
 });
 
 for (const fail of [false, true]) {

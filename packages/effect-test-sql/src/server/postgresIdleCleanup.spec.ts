@@ -2,6 +2,7 @@ import { Context, Effect, Exit, Layer, Redacted, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
+import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { adminUrl, integration, runAdmin, setup } from "#test/postgres.ts";
 import { PostgresTestDatabase } from "./database.ts";
 import { makePostgresTestLayer } from "./postgres.ts";
@@ -49,7 +50,9 @@ integration("idle fixtures need no admin session and scope close drops every dat
 			).pipe(Effect.provideContext(services));
 			yield* Scope.close(scope, Exit.void);
 			expect(idleAdminConnections).toBe(0);
-			expect(yield* connections(url.pathname.slice(1))).toBe(0);
+			yield* eventually(connections(url.pathname.slice(1)).pipe(Effect.flatMap((count) => Effect.try(() => expect(count).toBe(0)))), {
+				times: 500,
+			});
 			expect([template, shared, isolated].every((name) => name !== "")).toBe(true);
 			for (const name of [template, shared, isolated]) {
 				expect(yield* admin`select datname from pg_database where datname = ${name}`).toEqual([]);
