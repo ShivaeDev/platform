@@ -209,7 +209,6 @@
 {"path":"packages/platform/src/test-support/auth/contract.ts","rule":"biome/lint/style/noExportedImports","count":1}
 {"path":"packages/platform/src/test-support/auth/contract.ts","rule":"biome/plugin","count":1}
 {"path":"packages/platform/src/test-support/auth/prisma-next.config.ts","rule":"biome/plugin","count":1}
-{"path":"packages/platform/src/test-support/environment.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/baseline/compare.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/baseline/format.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/quality/src/baseline/growth.spec.ts","rule":"biome/plugin","count":1}
