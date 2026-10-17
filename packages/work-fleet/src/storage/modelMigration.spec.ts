@@ -3,8 +3,8 @@ import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { FleetRecord } from "#model.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
-import { migrateFleet } from "#storage/migrateFleet.ts";
 import { legacyStore } from "#test/legacyStore.ts";
+import { migrateFleet } from "#test/migrateFleet.ts";
 import { migrationRecords } from "#test/migrationRecords.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { withStorage } from "#test/storage.ts";
@@ -16,7 +16,7 @@ test("populated JSONB records migrate without changing records, versions, order 
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			yield* legacyStore(namespace);
-			yield* migrateFleet(namespace, true);
+			yield* migrateFleet(namespace, "attention_owner");
 			yield* sql`select setval(pg_get_serial_sequence(${`${namespace}_records`}, 'admission_order'), 9007199254740993, false)`;
 			const values = migrationRecords();
 			for (const [index, value] of values.entries()) {
@@ -26,7 +26,7 @@ test("populated JSONB records migrate without changing records, versions, order 
 			const before = yield* sql`select work_id, admission_order from ${sql(`${namespace}_records`)} order by admission_order`;
 			let requeue = false;
 			const store = yield* makePostgresFleetStore(FleetRecord, { namespace, requeue: () => requeue });
-			yield* store.initialize();
+			yield* migrateFleet(namespace);
 			const expected = values.map((value, index) => ({ value, version: index + 7 }));
 			expect(yield* store.list()).toEqual(expected);
 			for (const entry of expected) {
@@ -34,7 +34,7 @@ test("populated JSONB records migrate without changing records, versions, order 
 			}
 			expect(yield* store.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "external" }]);
 			expect(yield* sql`select work_id, admission_order from ${sql(`${namespace}_records`)} order by admission_order`).toEqual(before);
-			expect(yield* store.initialize()).toEqual([]);
+			expect(yield* migrateFleet(namespace)).toEqual([]);
 			const first = expected[0];
 			if (first === undefined) {
 				return yield* Effect.die("Missing migrated record");
@@ -63,7 +63,7 @@ test("a failed model migration retains the source records and ledger for a repai
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			yield* legacyStore(namespace);
-			yield* migrateFleet(namespace, true);
+			yield* migrateFleet(namespace, "attention_owner");
 			const value = migrationRecords()[0];
 			if (value === undefined) {
 				return yield* Effect.die("Missing migration fixture");
@@ -76,7 +76,7 @@ test("a failed model migration retains the source records and ledger for a repai
 			expect(yield* sql`select migration_id from ${sql(`${namespace}_migrations`)} where migration_id = 5`).toEqual([]);
 			yield* sql`update ${sql(`${namespace}_records`)} set payload = ${JSON.stringify(value)}::jsonb where work_id = ${value.workId}`;
 			const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
-			yield* store.initialize();
+			yield* migrateFleet(namespace);
 			expect(yield* store.load(value.workId)).toEqual({ value, version: 9 });
 		}),
 	));
