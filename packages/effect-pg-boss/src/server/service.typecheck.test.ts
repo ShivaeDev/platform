@@ -1,6 +1,6 @@
 import { Context, Effect, type Layer, Option, Schema, SchemaGetter } from "effect";
 import { expectTypeOf } from "vitest";
-import { defineQueue } from "#definition.ts";
+import { defineQueue, defineSchedule } from "#definition.ts";
 import { makePgBoss, type PgBossDefinition } from "#service.ts";
 
 class HandlerDependency extends Context.Service<HandlerDependency, number>()("@test/HandlerDependency") {}
@@ -82,3 +82,33 @@ const RequiresDecode = defineQueue({
 });
 const lookup = Effect.flatMap(Jobs, (jobs) => jobs.getJob(RequiresDecode, "id"));
 expectTypeOf<Effect.Services<typeof lookup>>().toEqualTypeOf<"@test/TypedJobs" | HandlerDependency>();
+
+const followUpLayer = Jobs.layer({
+	connectionString: "postgresql://compile-only",
+	jobs: [
+		Queue.handle((payload) =>
+			Effect.gen(function* () {
+				yield* HandlerDependency;
+				const jobs = yield* Jobs;
+				yield* jobs.enqueue(Queue, payload);
+			}),
+		),
+		defineSchedule({ cron: "0 * * * *", name: "follow-up" }).run(
+			Effect.flatMap(Jobs, (jobs) => jobs.enqueue(Queue, { count: 1, label: "scheduled" })),
+		),
+	],
+});
+expectTypeOf<Layer.Services<typeof followUpLayer>>().toEqualTypeOf<HandlerDependency>();
+const followUpBoot = Effect.asVoid(Jobs).pipe(Effect.provide(followUpLayer));
+// @ts-expect-error Self-provision leaves other handler dependencies required.
+Effect.runPromise(followUpBoot);
+Effect.runPromise(followUpBoot.pipe(Effect.provideService(HandlerDependency, 1)));
+
+const crossJobsLayer = Jobs.layer({
+	jobs: [Queue.handle(() => Effect.asVoid(EmailJobs))],
+});
+expectTypeOf<Layer.Services<typeof crossJobsLayer>>().toEqualTypeOf<"@test/EmailJobs">();
+
+defineQueue({ name: "batch", schema: Schema.Struct({}), worker: { batchSize: 5, localConcurrency: 3, pollingIntervalSeconds: 1 } });
+// @ts-expect-error pg-boss concurrency remains numeric.
+defineQueue({ name: "invalid-concurrency", schema: Schema.Struct({}), worker: { localConcurrency: "3" } });
