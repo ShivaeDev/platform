@@ -220,6 +220,8 @@ expect(receiver.requests.some(({ body }) => body.includes(Buffer.from("planted-s
 
 `exportWork` is the kit's verb that runs application work and flushes its exporter. The receiver accepts OTLP/HTTP JSON and protobuf. `spans` flattens all exports into decoded trace and span IDs, parent span IDs, names, numeric OTLP kinds and status codes, attributes, events and links. Attributes retain OTLP key/value objects, including lossless decimal strings for integers; each span also has `resourceAttributes`. `requests` retains every request's unmodified `body` Buffer, parsed `headers`, original `rawHeaders` pairs and `path`. Search all body bytes when checking that a secret was not exported. Optional `path`, `status` (a number or attempt callback) and `answer` configure collector responses for failure stories.
 
+For timeout stories, return `undefined` from the `status` callback to accept an export without sending response headers. Set `answer: null` to send headers without completing the response body.
+
 ### 2. Once per feature: traits and verbs
 
 A trait is a line and a change, tagged with a stage:
