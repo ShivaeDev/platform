@@ -45,7 +45,10 @@ export function testEnvironment(app: string, { databases = false, name = "my-app
 	if (databases) {
 		writeFileSync(join(app, ".env.local"), "PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://invalid:invalid@127.0.0.1:1/invalid\n", { flag: "a" });
 	}
-	writeFileSync(join(app, "environment.config.ts"), 'export default { test: { include: ["src/environment.test.ts"] } };\n');
+	writeFileSync(
+		join(app, "environment.config.ts"),
+		'export default { resolve: { conditions: ["source"] }, ssr: { resolve: { conditions: ["source"] } }, test: { include: ["src/environment.test.ts"] } };\n',
+	);
 	writeFileSync(
 		join(app, "src/environment.test.ts"),
 		`import process from "node:process";\nimport { expect, it } from "vitest";\nit("loads test database", () => expect(process.env.TEST_DATABASE_URL).toBe("postgresql://postgres:postgres@127.0.0.1:55432/${database}_test"));\n`

@@ -284,6 +284,7 @@ jobs:
     timeout-minutes: 10
     env:
       PLATFORM_EFFECT_SQL_TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:55432/platform_test_effect_sql
+      TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:55432/platform_test_effect_sql
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -301,7 +302,7 @@ jobs:
           NODE_OPTIONS: --conditions=source
         run: |
           pnpm --filter @shivaedev/platform test src/server/appHostProxy.spec.ts src/server/rpc-server/proxy.spec.ts
-          pnpm --filter @shivaedev/starter test src/server/starterDeploy.spec.ts
+          pnpm --filter @shivaedev/starter test src/server/appDeploy.spec.ts
 
   verify:
     if: always()
