@@ -4,7 +4,7 @@ import { genericMethod } from "#generic-method.ts";
 
 class Secret extends Context.Service<Secret, object>()("invalid/Secret") {}
 
-const preserve = Effect.fn("InvalidRequirementFree.preserve")(<Value>(value: Value) => Effect.succeed(value));
+const preserve = Effect.fn("InvalidRequirementFree.preserve")(<TValue>(value: TValue) => Effect.succeed(value));
 
 defineService({
 	id: "invalid/RequirementFreeOrdinaryRequirement",
