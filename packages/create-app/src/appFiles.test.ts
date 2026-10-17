@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { databaseName } from "./appFiles.ts";
+import { databaseName } from "#appFiles.ts";
 
 it("derives a PostgreSQL-safe database name from the app name", () => {
 	expect(databaseName("my-app")).toBe("my_app");

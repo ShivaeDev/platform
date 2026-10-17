@@ -76,7 +76,7 @@ Import the setup API from `@shivaedev/local-postgres/localPostgres.ts`:
 | --- | --- |
 | `localServer` | The base URL `postgresql://postgres:postgres@127.0.0.1:55432`. Append the application database name. |
 | `assertLocalDatabase(value: string, names: readonly string[]): URL` | Validate a local database URL against application-owned allowed names. |
-| `localPostgres(environment: DockerEnvironment)` | Create the setup functions using the Docker settings to validate. |
+| `localPostgres(environment: DockerEnvironment, readiness?: ReadinessOptions)` | Create the setup functions using the Docker settings to validate. After starting the container, `startPostgres` checks readiness `attempts` times (default 30), waiting `delayMillis` between checks (default 1000). |
 | `prepareDatabases(values: readonly string[]): void` | Prepare the service and create absent databases. |
 | `startPostgres(connection?: string): void` | Prepare the service; the default connection is `localServer`. |
 | `sql(value: string \| URL, query: string): string` | Execute SQL through PostgreSQL's command-line client. |
