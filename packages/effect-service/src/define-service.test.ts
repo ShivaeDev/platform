@@ -12,8 +12,8 @@ type NoRequirements<TSuccess, TFailure = never, TCallerRequirements extends Scop
 	TCallerRequirements
 >;
 
-function declaredRequirementProof() {
-	return Effect.gen(function* () {
+describe("defineService", () => {
+	it.effect("provides the one declared requirement to initialization and methods", function* () {
 		class Declared extends Context.Service<Declared, { readonly identity: object }>()("test/Declared") {}
 		const requirements = [Declared] as const;
 		type Requirements<TSuccess> = ServiceRequirements<typeof requirements, TSuccess>;
@@ -39,10 +39,8 @@ function declaredRequirementProof() {
 			),
 		).toBe(true);
 	});
-}
 
-function processLifetimeProof() {
-	return Effect.gen(function* () {
+	it.effect("initializes private state and constructs methods once per layer", function* () {
 		const initializations = yield* Ref.make(0);
 		const finalizations = yield* Ref.make(0);
 		const factoryCalls = { value: 0 };
@@ -73,12 +71,6 @@ function processLifetimeProof() {
 		expect(factoryCalls.value).toBe(1);
 		expect(yield* Ref.get(finalizations)).toBe(1);
 	});
-}
-
-describe("defineService", () => {
-	it.effect("provides the one declared requirement to initialization and methods", declaredRequirementProof);
-
-	it.effect("initializes private state and constructs methods once per layer", processLifetimeProof);
 });
 
 it.effect("keeps declared dependencies bound when the caller provides another value", function* () {

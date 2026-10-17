@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import { testProjects } from "@shivaedev/quality/testProjects.ts";
+import { genreTags } from "#genreTags.ts";
 
 const test = testProjects();
 for (const project of test.projects ?? []) {
@@ -12,5 +13,5 @@ for (const project of test.projects ?? []) {
 export default defineConfig({
 	resolve: { conditions: ["source", "module", "browser", "development|production"] },
 	ssr: { resolve: { conditions: ["source", "node", "development|production"] } },
-	test: { ...test, tags: [{ name: "bakery-story" }, { name: "mill-story" }] },
+	test: { ...test, tags: genreTags("bakery", "mill") },
 });

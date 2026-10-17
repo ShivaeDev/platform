@@ -13,12 +13,13 @@ export interface UpgradeEngine {
 	statement: string;
 }
 
-const kit = storyKit({
+export const upgrade = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	create: (): UpgradeEngine => ({ loads: 0, problem: "", runs: 0, statement: "" }),
 	layer,
 	name: "migration upgrade",
+	runIf: configured,
 	stages: ["schema"],
 	verbs: (engine, story) => {
 		const verbs = { ...upgradeCommitVerbs(engine), ...upgradeFailureVerbs(engine) };
@@ -36,7 +37,6 @@ const kit = storyKit({
 	},
 });
 
-export const upgrade = { ...kit, it: kit.it.skipIf(!configured) };
 export function columnDrift(statement: string, problem: string) {
 	return upgrade.trait("schema", problem, (engine) => {
 		engine.statement = statement;

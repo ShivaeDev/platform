@@ -121,9 +121,19 @@ it("SQL failures map through the caller's mapper and native outer transactions a
 			expect(duplicate).toBeInstanceOf(Unavailable);
 
 			const nested = yield* sql.withTransaction(insert(2).pipe(transact({ onSqlError }))).pipe(Effect.exit);
-			expect(Exit.isFailure(nested) && Cause.hasDies(nested.cause)).toBe(true);
+			expect(Exit.isFailure(nested) && nested.cause.reasons).toMatchObject([
+				{
+					_tag: "Die",
+					defect: { message: "transact cannot announce changes after a transaction it does not own; begin the outer transaction with transact" },
+				},
+			]);
 			const marked = yield* sql.withTransaction(invalidateOnCommit(["orders"])).pipe(Effect.exit);
-			expect(Exit.isFailure(marked) && Cause.hasDies(marked.cause)).toBe(true);
+			expect(Exit.isFailure(marked) && marked.cause.reasons).toMatchObject([
+				{
+					_tag: "Die",
+					defect: { message: "transact cannot announce changes after a transaction it does not own; begin the outer transaction with transact" },
+				},
+			]);
 
 			yield* invalidateOnCommit(["orders"]);
 			expect(events).toEqual(["orders"]);
@@ -172,7 +182,15 @@ it("marking keys from a fiber that outlives its transaction dies instead of drop
 			}).pipe(transact({ onSqlError }));
 			yield* Deferred.succeed(release, undefined);
 			const exit = yield* Fiber.await(straggler);
-			expect(Exit.isFailure(exit) && Cause.hasDies(exit.cause)).toBe(true);
+			expect(Exit.isFailure(exit) && exit.cause.reasons).toMatchObject([
+				{
+					_tag: "Die",
+					defect: {
+						message:
+							"@shivaedev/effect-sql/transact: changes arrived after their transaction settled; record them before the transaction body returns",
+					},
+				},
+			]);
 			expect(events).toEqual([]);
 		}),
 	));

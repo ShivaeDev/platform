@@ -4,15 +4,19 @@ import { Context, Effect, Exit, Layer, Scope } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
+import type { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { DAEMON_RPC_PATH, DiagnosticsContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 
 export const diagnosticsDaemon = Effect.fn("Test.diagnosticsDaemon")(function* (
 	read: () => DiagnosticsSnapshot,
 	port = 0,
-	items: () => FleetItems = () => ({ completed: [], items: [] }),
+	items: (() => FleetItems) | Effect.Effect<FleetItems, ServiceUnavailable> = () => ({ completed: [], items: [] }),
 ) {
-	const handlers = DiagnosticsContract.toLayer({ "daemon.diagnostics": () => Effect.sync(read), "daemon.fleetItems": () => Effect.sync(items) });
+	const handlers = DiagnosticsContract.toLayer({
+		"daemon.diagnostics": () => Effect.sync(read),
+		"daemon.fleetItems": () => (typeof items === "function" ? Effect.sync(items) : items),
+	});
 	const rpc = RpcServer.layerHttp({ group: DiagnosticsContract, path: DAEMON_RPC_PATH, protocol: "http" }).pipe(
 		Layer.provide([handlers, RpcSerialization.layerNdjson]),
 	);

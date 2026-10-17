@@ -9,12 +9,13 @@ import { narrated } from "./narrated.ts";
 import { configured } from "./postgres.ts";
 import { createSteps, stepsVerbs } from "./stepsVerbs.ts";
 
-const kit = storyKit({
+export const app = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	create: () => createSteps,
 	layer,
 	name: "backfill",
+	runIf: configured,
 	stages: ["loader", "schema", "data"],
 	verbs: (engine, story) => {
 		const verbs = { ...stepsVerbs(engine), loaderResourcesAreScoped };
@@ -31,7 +32,6 @@ const kit = storyKit({
 	},
 });
 
-export const app = { ...kit, it: kit.it.skipIf(!configured) };
 export const oldSchema = app.trait("schema", "contacts still have an email column", (engine) => engine.steps.migrateTo("1_create_contacts"));
 export const existingContacts = app.trait("data", "contacts have email addresses", () => seedContacts);
 export function migrationTarget(target: string | number) {

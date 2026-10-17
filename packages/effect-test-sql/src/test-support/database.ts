@@ -14,13 +14,14 @@ import { adminUrl, configured } from "./postgres.ts";
 import { rowLockVerbs } from "./rowLockVerbs.ts";
 import { transactionVerbs } from "./transactionVerbs.ts";
 
-const kit = storyKit({
+export const database = storyKit({
 	after: { configuration: (engine) => engine.lease() },
 	clock: "live",
 	create: () => createDatabaseEngine,
 	inspect: (engine) => ({ clones: engine.cloneNames, counts: engine.fixture.counts, template: engine.template }),
 	layer: PgClient.layer({ url: adminUrl }).pipe(Layer.provideMerge(Reactivity.layer)),
 	name: "database",
+	runIf: configured,
 	stages: ["configuration", "activity"],
 	verbs: (engine, story) => {
 		const verbs = {
@@ -61,5 +62,3 @@ const kit = storyKit({
 		};
 	},
 });
-
-export const database = { ...kit, it: kit.it.skipIf(!configured) };
