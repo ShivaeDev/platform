@@ -31,6 +31,7 @@ deployment.it(
 			);
 			expect(yield* Effect.raceFirst(pending.child.exitCode, premature)).not.toBe(0);
 			expect([...pending.logs, ...pending.errors].join("\n")).toContain("Database migrations are not current");
+			expect([...pending.logs, ...pending.errors].join("\n")).not.toContain("Database schema mismatch");
 			expect(pending.logs.filter((line) => line.startsWith("EFFECT_LOG Worker"))).toEqual([]);
 		}
 		expect(yield* sql`select to_regclass('starter_migrations') as ledger`).toEqual([{ ledger: null }]);
@@ -40,9 +41,9 @@ deployment.it(
 		const web = yield* startProcess("web", port);
 		expect(yield* worker.ready).toBe("worker");
 		const address = yield* web.ready;
-		expect([...web.logs, ...web.errors].join("\n")).not.toContain("Database schema mismatch");
 		expect((yield* Effect.promise(() => fetch(`${address}/health`))).status).toBe(200);
 		expect(yield* authPost(address, "sign-up/email", credentials("deploy"))).toContain("session_token=");
+		expect([...web.logs, ...web.errors].join("\n")).not.toContain("Database schema mismatch");
 		expect(worker.logs.filter((line) => line.startsWith("EFFECT_LOG Worker"))).toEqual([
 			"EFFECT_LOG Worker migrations applied",
 			"EFFECT_LOG Worker ready to take jobs",
