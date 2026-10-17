@@ -1,20 +1,7 @@
-import { Context, Effect, Layer, Tracer } from "effect";
+import { Effect, Layer } from "effect";
 import { HttpEffect, HttpServerResponse } from "effect/http";
 import { storyKit } from "#storyKit.ts";
-
-function recording() {
-	const spans: Tracer.NativeSpan[] = [];
-	const tracer = Tracer.make({
-		span: (options) => {
-			const span = new Tracer.NativeSpan(options);
-			spans.push(span);
-			return span;
-		},
-	});
-	return { spans, tracer };
-}
-
-class Recording extends Context.Service<Recording, ReturnType<typeof recording>>()("tracingApp/Recording") {}
+import { Recording, recording } from "#test/spanRecording.ts";
 
 export const tracingApp = storyKit({
 	around: (effect) =>

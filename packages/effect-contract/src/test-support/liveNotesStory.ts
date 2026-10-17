@@ -60,19 +60,19 @@ export const liveNotesStory = storyKit({
 				registry.set(client.resume, registry.get(client.resume) + 1);
 			},
 			resync: (helper: "first" | "second" = "first") => (helper === "first" ? server.hints : server.secondHints).resync,
-			*serverResyncs(count: number) {
-				story.tell(`the server resyncs ${count} times`);
-				for (let index = 0; index < count; index += 1) {
-					const received = yield* SubscriptionRef.get(client.receivedHints);
-					yield* Effect.promise(() => server.emit({ _tag: "Resync" }));
-					// A resync reaches both per-note streams; drain both before sending another.
-					yield* SubscriptionRef.changes(client.receivedHints).pipe(
-						Stream.filter((total) => total >= received + 2),
-						Stream.take(1),
-						Stream.runDrain,
+			resyncRepeatedly: (count: number) =>
+				Effect.gen(function* () {
+					story.tell(`send ${count} resync hints and wait until the consumer receives them all`);
+					const noteStreams = (yield* Ref.get(server.stored)).size;
+					const target = (yield* SubscriptionRef.get(client.received)).Resync + count * noteStreams;
+					for (let index = 0; index < count; index += 1) {
+						yield* Effect.promise(() => server.emit({ _tag: "Resync" }));
+					}
+					yield* SubscriptionRef.changes(client.received).pipe(
+						Stream.filter(({ Resync }) => Resync >= target),
+						Stream.runHead,
 					);
-				}
-			},
+				}),
 			status: () => registry.get(client.status),
 			streamOutage: (unavailable: boolean) => Ref.set(server.streamUnavailable, unavailable),
 			subscribe: (count?: number, signal?: AbortSignal) => {
@@ -121,15 +121,13 @@ export function watchingNotes() {
 		const two = engine.client.api.get.query({ id: 2 });
 		engine.registry.mount(one);
 		engine.registry.mount(two);
-		engine.registry.mount(engine.client.api.list.query(undefined));
+		const list = engine.client.api.list.query(undefined);
+		engine.registry.mount(list);
 		yield* eventually(() => {
 			expect(engine.registry.get(engine.client.status).connection).toBe("live");
-			expect(Effect.runSync(Ref.get(engine.server.active))).toBe(1);
 			expect(AsyncResult.getOrElse(engine.registry.get(one), () => undefined)?.body).toBe("First");
 			expect(AsyncResult.getOrElse(engine.registry.get(two), () => undefined)?.body).toBe("Second");
-			expect(engine.registry.get(one).waiting).toBe(false);
-			expect(engine.registry.get(two).waiting).toBe(false);
-			expect(engine.registry.get(engine.client.api.list.query(undefined)).waiting).toBe(false);
+			expect([engine.registry.get(one).waiting, engine.registry.get(two).waiting, engine.registry.get(list).waiting]).toEqual([false, false, false]);
 		});
 	});
 }

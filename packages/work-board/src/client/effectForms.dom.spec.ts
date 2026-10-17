@@ -75,6 +75,7 @@ it.live("saves the captured response while retaining and resubmitting input type
 	try {
 		yield* Effect.promise(() => waitFor(() => expect(reached).toBe(true)));
 		yield* formEvent(page, () => enterField(page, "body", "New direction typed while saving"));
+		expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
 	} finally {
 		gate.release();
 	}
@@ -85,7 +86,6 @@ it.live("saves the captured response while retaining and resubmitting input type
 		waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("First reviewed response")),
 	);
 	expect(body.value).toBe("New direction typed while saving");
-	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")).toHaveProperty("disabled", false)));
 	yield* formEvent(page, () => click("response-preview"));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-submit")).toHaveProperty("disabled", false)));

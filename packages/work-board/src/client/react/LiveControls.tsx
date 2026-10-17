@@ -1,26 +1,21 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { BrowserClient } from "#client/client.ts";
 import { activeRead } from "./activeRead.ts";
 import { liveStatus } from "./liveStatus.ts";
+import { useMainLocation } from "./MainLocationContext.ts";
 import { shellIds } from "./shellIds.ts";
 
 const opening = Atom.make({ failed: false, pending: true });
-interface Page {
-	readonly kind: string;
-	readonly url: string;
-}
 export function LiveControls({
 	client,
-	current,
 	navigationPending,
 	navigationFailed,
 }: {
-	readonly client: BrowserClient;
-	readonly current: string;
+	readonly client: Pick<BrowserClient, "api" | "registry"> & { readonly updates: Pick<BrowserClient["updates"], "paused" | "status"> };
 	readonly navigationPending: boolean;
 	readonly navigationFailed: boolean;
 }) {
@@ -28,23 +23,8 @@ export function LiveControls({
 	const paused = useAtomValue(client.updates.paused);
 	const watcher = useQuery(client.api.watcher.query());
 	const watching = Option.getOrUndefined(watcher.data)?.watching === true;
-	const [page, setPage] = useState<Page>();
-	useEffect(() => {
-		function sync() {
-			const doc = document.getElementById("doc");
-			if (doc?.dataset.route !== current) {
-				return;
-			}
-			setPage({
-				kind: doc?.dataset.projection ?? "document",
-				url: current,
-			});
-		}
-		sync();
-		document.addEventListener("board-page", sync);
-		return () => document.removeEventListener("board-page", sync);
-	}, [current]);
-	const atom = useMemo(() => (page ? activeRead(client.api, page.kind, page.url) : opening), [client, page]);
+	const page = useMainLocation();
+	const atom = useMemo(() => (page.route ? activeRead(client.api, page.projection, page.route) : opening), [client, page.projection, page.route]);
 	const reading = useAtomValue(atom);
 	const displayed = liveStatus({
 		connection: status.connection,

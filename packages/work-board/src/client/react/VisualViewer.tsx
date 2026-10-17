@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { KeyboardHints } from "./KeyboardHints.tsx";
+import { useMainLocation } from "./MainLocationContext.ts";
 import { shellIds } from "./shellIds.ts";
 import { VisualControls } from "./VisualControls.tsx";
 import { graphicWidth, visualFilename } from "./visualDimensions.ts";
 import type { VisualSelection } from "./visualSources.ts";
 
 export function VisualViewer({ selection, close }: { readonly selection: VisualSelection; readonly close: () => void }) {
+	const page = useMainLocation();
+	const openedPageRef = useRef(page);
 	const [selected, setSelected] = useState(selection.selected);
 	const [scale, setScale] = useState(100);
 	const [baseWidth, setBaseWidth] = useState(0);
@@ -27,13 +30,11 @@ export function VisualViewer({ selection, close }: { readonly selection: VisualS
 		return () => URL.revokeObjectURL(url);
 	}, [selection.drawing]);
 	useEffect(() => {
-		function changed() {
+		if (page !== openedPageRef.current) {
 			setStale(true);
 			setStatus("Source updated. This preview is the drawing/image opened earlier; close and reopen to inspect or save the latest source.");
 		}
-		document.addEventListener("board-page", changed);
-		return () => document.removeEventListener("board-page", changed);
-	}, []);
+	}, [page]);
 	function handleFitVisual() {
 		setBaseWidth(0);
 		setScale(100);
@@ -114,8 +115,7 @@ export function VisualViewer({ selection, close }: { readonly selection: VisualS
 				</button>
 			</div>
 			<p id={shellIds.visualContext}>
-				{image ? `${image.alt || "Local image"} · ${selected + 1} of ${selection.images.length} · ${image.local}` : "Mermaid diagram"} ·{" "}
-				{document.getElementById("doc")?.dataset.file}
+				{image ? `${image.alt || "Local image"} · ${selected + 1} of ${selection.images.length} · ${image.local}` : "Mermaid diagram"} · {page.file}
 				{image ? "" : " · Current drawing"}
 			</p>
 			<VisualControls
