@@ -38,7 +38,7 @@ function start(name: string, options: ServerOptions) {
 	);
 }
 
-const kit = storyKit({
+export const app = storyKit({
 	around: isolate(wholeStack),
 	clock: "live",
 	*create() {
@@ -47,6 +47,7 @@ const kit = storyKit({
 	inspect: (database) => ({ database: database.name }),
 	layer: workerDatabase,
 	name: "composed orders",
+	runIf: hasPostgres,
 	stages: ["database"],
 	verbs: (database, story) => ({
 		start: (options: ServerOptions = {}) =>
@@ -54,7 +55,6 @@ const kit = storyKit({
 	}),
 });
 
-export const app = { ...kit, it: kit.it.runIf(hasPostgres) };
 export function realPostgres() {
 	return app.trait("database", "the reference feature uses a leased disposable PostgreSQL database", function* (database) {
 		expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);
