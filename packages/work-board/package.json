@@ -373,6 +373,7 @@
 			"default": "./dist/client/document/*.js"
 		},
 		"./rpc/HandlerOptions.ts": null,
+		"./rpc/PageUrl.ts": null,
 		"./http/boardRoutes.ts": null,
 		"./http/rpcPolicy.ts": null,
 		"./page/escape.ts": {
@@ -390,7 +391,8 @@
 			"default": "./dist/browser/document/ReadingContext.js"
 		},
 		"./document/answerBody.ts": null,
-		"./document/requestTitle.ts": null
+		"./document/requestTitle.ts": null,
+		"./browser/document/sourceGroups.ts": null
 	},
 	"bin": {
 		"work-board": "./dist/server/cli.js"
