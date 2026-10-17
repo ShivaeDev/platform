@@ -26,6 +26,30 @@ const program = Effect.gen(function* () {
 	readings.findById({ sequence: 1, source: "meter" });
 	readings.delete({ sequence: 1, source: "meter" });
 	readings.upsert(input, { updateColumns: ["amount"] });
+	readings.insertMany([input]);
+	readings.insertManyOrIgnore([input]);
+	readings.upsertMany([input], { updateColumns: ["amount"] });
+	expectTypeOf<Effect.Success<ReturnType<typeof readings.insertMany>>>().toEqualTypeOf<Reading[]>();
+	expectTypeOf<Effect.Success<ReturnType<typeof readings.insertManyOrIgnore>>>().toEqualTypeOf<Reading[]>();
+	expectTypeOf<Effect.Success<ReturnType<typeof readings.upsertMany>>>().toEqualTypeOf<Reading[]>();
+	expectTypeOf<Effect.Error<ReturnType<typeof readings.upsertMany>>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
+	expectTypeOf<Effect.Services<ReturnType<typeof readings.insertMany>>>().toEqualTypeOf<Prefix>();
+	expectTypeOf<Effect.Services<ReturnType<typeof readings.insertManyOrIgnore>>>().toEqualTypeOf<Prefix>();
+	expectTypeOf<Effect.Services<ReturnType<typeof readings.upsertMany>>>().toEqualTypeOf<Prefix>();
+	// @ts-expect-error Batch inputs use decoded insert values.
+	readings.insertMany([{ ...input, amount: "52" }]);
+	// @ts-expect-error Batch ignores use decoded insert values.
+	readings.insertManyOrIgnore([{ ...input, amount: "52" }]);
+	// @ts-expect-error Batch upserts use decoded insert values.
+	readings.upsertMany([{ ...input, amount: "52" }], { updateColumns: ["amount"] });
+	// @ts-expect-error Batch conflict keys cannot be updated.
+	readings.upsertMany([input], { updateColumns: ["source"] });
+	// @ts-expect-error Batch generated columns cannot be updated.
+	readings.upsertMany([input], { updateColumns: ["createdAt"] });
+	// @ts-expect-error Batch insert-only columns cannot be updated.
+	readings.upsertMany([input], { updateColumns: ["origin"] });
+	// @ts-expect-error Batch update columns cannot be empty.
+	readings.upsertMany([input], { updateColumns: [] });
 	expectTypeOf<Effect.Success<ReturnType<typeof readings.insertOrIgnore>>>().toEqualTypeOf<Option.Option<Reading>>();
 	expectTypeOf<Effect.Success<ReturnType<typeof readings.upsert>>>().toEqualTypeOf<Reading>();
 	expectTypeOf<Effect.Error<ReturnType<typeof readings.upsert>>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
@@ -68,6 +92,10 @@ const program = Effect.gen(function* () {
 	const plain = yield* makeRepository(Reading, options);
 	// @ts-expect-error Idempotent writes require declared conflict columns.
 	plain.insertOrIgnore(input);
+	// @ts-expect-error Batch idempotent writes require declared conflict columns.
+	plain.insertManyOrIgnore([input]);
+	// @ts-expect-error Batch upserts require declared conflict columns.
+	plain.upsertMany([input], { updateColumns: ["amount"] });
 });
 
 it("idempotent composite repository type contracts compile", () => {

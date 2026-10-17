@@ -69,6 +69,30 @@ const createdAt = Model.Field({
 
 This field is absent from insert and update. A PostgreSQL `timestamptz` default supplies a `Date` on the database boundary, while the JSON codec encodes a string. Choose each field's schema for the values its driver or transport actually returns.
 
+For a PostgreSQL `int4[]` column, give the native driver an explicit element OID so an empty array has a type too:
+
+```ts
+import * as PgTypes from "@effect/sql-pg/PgTypes";
+import { Result, SchemaGetter, SchemaParser } from "effect";
+
+const Integers = Schema.Array(Schema.Int);
+const StoredIntegers = Schema.Unknown.pipe(
+  Schema.decodeTo(Integers, {
+    decode: SchemaGetter.transformEffect((value) =>
+      SchemaParser.decodeUnknownEffect(Integers)(PgTypes.isParameter(value) ? value.value : value),
+    ),
+    encode: SchemaGetter.transform((values) => Result.getOrThrow(PgTypes.array(values, PgTypes.OID.int4))),
+  }),
+);
+
+class Sample extends Model.Class<Sample>("Sample")({
+  id: Schema.Int,
+  values: Model.Field({ insert: StoredIntegers, select: StoredIntegers, update: StoredIntegers, json: Integers }),
+}) {}
+```
+
+The decoded value is an integer array in every variant. The database variants encode a native typed `int4[]` parameter; JSON retains the ordinary array. The same storage codec on `select` lets equality filters encode empty arrays too. `PgTypes.array` resolves the built-in `int4` array OID; `getOrThrow` unwraps that known constructor result. [PostgreSQL array tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresArrays.spec.ts) cover empty and non-empty inserts, reads, filters, updates and batch writes, including the `int4` bounds. PostgreSQL still enforces its integer range on writes.
+
 ### 2. Per feature: write and query through the model
 
 ```ts
@@ -145,18 +169,38 @@ const ingest = Effect.gen(function* () {
 
 The application creates `readings` with `PRIMARY KEY (source, sequence)`; `sequence` and `amount` are text columns for these codecs. Composite keys contain at least two model fields. `findById` and `delete` take an object containing every key field and encode each through its field schema. `update` and `updateVoid` use the full key from the model's update input and leave the key columns unchanged. Missing key fields fail with `SchemaError` before SQL runs. A scalar `idColumn` keeps native CRUD signatures.
 
-`conflictColumns` is a nonempty tuple of inserted model fields backed by a database unique constraint or primary key. It can differ from the primary key, including a unique external key beside a generated ID. Declaring it adds two methods:
+`conflictColumns` is a nonempty tuple of inserted model fields backed by a database unique constraint or primary key. It can differ from the primary key, including a unique external key beside a generated ID. Declaring it adds these methods:
 
 | Method | Input | Result |
 | --- | --- | --- |
 | `insertOrIgnore` | Model insert input | `Option.some` of the decoded inserted model, or `Option.none` when the declared key conflicts. |
 | `upsert` | Model insert input and `{ updateColumns: [...] }` | The decoded inserted or updated model. |
+| `insertManyOrIgnore` | Readonly array of model insert inputs | Decoded inserted models; conflicting rows are omitted. |
+| `upsertMany` | Readonly array of model insert inputs and `{ updateColumns: [...] }` | Decoded inserted or updated models. |
 
-Both methods encode with the model's insert schema and retain its codec services. `upsert` requires a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. Only those columns take their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in the encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
+All four methods encode with the model's insert schema and retain its codec services. `upsert` and `upsertMany` require a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. Only those columns take their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in every encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
 
 These methods use `ON CONFLICT (...) DO NOTHING` or `DO UPDATE SET ...` and `RETURNING`; [PostgreSQL tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresUpsert.spec.ts) establish composite-key CRUD, duplicate ignores, selected-column updates and rollback. [Unique-key tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresConflictWrites.spec.ts) establish generated fields, codec services and unrelated constraint failures. Other SQL dialects are not established by those tests. Use native `SqlClient` and `SqlSchema` for partial-index conflict predicates, SQL expressions or other conflict policies.
 
 Conflict writes belong to unversioned repositories. They cannot be combined with `versionColumn`, whose writes must compare the version read by the caller. `versionColumn` takes a scalar `idColumn`.
+
+### Batch writes
+
+Every unversioned repository also offers `insertMany(inputs)`, without requiring `conflictColumns`. Each batch method accepts a readonly array of decoded model insert inputs and returns an array of decoded models. Empty inputs return `[]` without writing.
+
+```ts
+const saved = yield* readings.upsertMany(
+  [
+    { source: "meter", sequence: 1, amount: 60, label: "Imported" },
+    { source: "meter", sequence: 2, amount: 75, label: "Imported" },
+  ],
+  { updateColumns: ["amount"] },
+);
+```
+
+Batch writes use one `INSERT ... RETURNING` statement per chunk, with at most 1,000 rows and 10,000 bind parameters per statement, below PostgreSQL's 65,535 parameter limit. Missing optional fields use SQL `DEFAULT`; an explicit null stays null. Return values contain the rows returned by the database, with ignored conflicts omitted. PostgreSQL's native conflict rules apply within each chunk, including an error when an upsert tries to update the same stored row twice.
+
+The methods use the surrounding native transaction. To roll back earlier chunks when a later chunk fails, put the whole call inside `sql.withTransaction` or `transact`; a batch call does not start its own transaction. [PostgreSQL batch tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresBatchWrites.spec.ts) establish statement counts, conflict reruns, selected-column updates, wide rows, empty inputs and rollback after a later chunk fails.
 
 ### Optimistic concurrency
 
