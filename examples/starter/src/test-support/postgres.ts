@@ -3,7 +3,7 @@ import { Migrator } from "effect/sql";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 
 export const postgres = Layer.unwrap(
-	Effect.map(Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.orElse(() => Config.Redacted("TEST_DATABASE_URL"))), (url) =>
+	Effect.map(Config.Redacted("TEST_DATABASE_URL"), (url) =>
 		makePostgresTestLayer({ migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" }, url }),
 	),
 );

@@ -24,7 +24,7 @@ migration.it("applies deployment migrations without starting HTTP and safely run
 	const migrate = migrateDatabase.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: environment }))));
 	expect(yield* migrate).toEqual([]);
 	const sql = yield* SqlClient.SqlClient;
-	expect(yield* sql`select count(*)::integer as count from starter_migrations`).toEqual([{ count: 5 }]);
-	expect(yield* sql`select title, "ownerId", "wordCount", version from starter_notes`).toEqual([]);
+	expect(yield* sql`select count(*)::integer as count from app_migrations`).toEqual([{ count: 5 }]);
+	expect(yield* sql`select title, "ownerId", "wordCount", version from notes`).toEqual([]);
 	expect(yield* sql`select count(*)::integer as count from "user"`).toEqual([{ count: 0 }]);
 });

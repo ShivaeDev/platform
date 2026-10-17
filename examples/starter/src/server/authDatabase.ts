@@ -1,7 +1,7 @@
 import { Effect, Redacted } from "effect";
 import { Pool, type PoolClient } from "pg";
 
-export const authDatabase = Effect.fn("Starter.authDatabase")(function* (url: Redacted.Redacted<string>) {
+export const authDatabase = Effect.fn("App.authDatabase")(function* (url: Redacted.Redacted<string>) {
 	const clients = new Set<PoolClient>();
 	return yield* Effect.acquireRelease(
 		Effect.sync(() => {

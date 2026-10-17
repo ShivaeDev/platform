@@ -82,19 +82,23 @@ it("packages the real starter with registry dependencies, standalone configurati
 	}
 	expect(files["pnpm-workspace.yaml"]).toBe(readFileSync(join(starter, "pnpm-workspace.copy.yaml"), "utf8"));
 	expect(files["pnpm-workspace.copy.yaml"]).toBeUndefined();
+	expect(files["published-versions.json"]).toBeUndefined();
+	expect(files["CLAUDE.md"]).toBeUndefined();
+	for (const path of ["AGENTS", "README"]) {
+		expect(files[`${path}.md`]).toBe(readFileSync(join(starter, `app-${path.toLowerCase()}.md`), "utf8"));
+		expect(files[`app-${path.toLowerCase()}.md`]).toBeUndefined();
+	}
 	for (const path of [
 		".env.example",
 		"src/setup.ts",
 		"src/server/migrate.ts",
 		"src/server/migrateDatabase.ts",
 		"src/server/setup-database.ts",
-		"src/server/starterHost.test.ts",
-		"src/server/starterDeploy.spec.ts",
+		"src/server/notesHost.test.ts",
+		"src/server/appDeploy.spec.ts",
 		"src/test-support/application.ts",
 		"src/test-support/requests.ts",
 		"src/test-support/screens.ts",
-		"AGENTS.md",
-		"README.md",
 		"src/server/committedJobs.spec.ts",
 		"src/server/notesMigration.spec.ts",
 		"src/notes.ts",
@@ -108,6 +112,6 @@ it("omits local output and secrets and picks up template changes on each pack", 
 	for (const value of ["first", "changed"]) {
 		source.changeApp(value);
 		const files = await source.pack();
-		expect(files).toEqual({ ".env.example": "example", "app.ts": value, "published-versions.json": "{}" });
+		expect(files).toEqual({ ".env.example": "example", "app.ts": value });
 	}
 });

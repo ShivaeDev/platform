@@ -14,6 +14,6 @@ export class StoredNote extends Model.Class<StoredNote>("StoredNote")({
 export const makeNotesRepository = makeRepository(StoredNote, {
 	idColumn: "id",
 	spanPrefix: "Notes",
-	tableName: "starter_notes",
+	tableName: "notes",
 	versionColumn: "version",
 });

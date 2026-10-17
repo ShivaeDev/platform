@@ -9,4 +9,4 @@ export const CountWords = defineQueue({
 	worker: { pollingIntervalSeconds: 1 },
 });
 
-export const NoteJobs = makePgBoss("starter/NoteJobs");
+export const NoteJobs = makePgBoss("app/NoteJobs");

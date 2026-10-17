@@ -18,7 +18,7 @@ export function appAuth(options: {
 					updatedAt: date,
 					userId: "alice",
 				},
-				user: { createdAt: date, email: "alice@starter.test", emailVerified: true, id: "alice", name: "Alice", updatedAt: date },
+				user: { createdAt: date, email: "alice@app.test", emailVerified: true, id: "alice", name: "Alice", updatedAt: date },
 			}
 		: null;
 	const auth = makeAuth({

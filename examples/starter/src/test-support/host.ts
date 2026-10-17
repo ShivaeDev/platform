@@ -2,16 +2,16 @@ import { ConfigProvider, Effect, Layer, Redacted } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { starterHost } from "#server/starterHost.ts";
+import { notesHost } from "#server/notesHost.ts";
 import { forwardingProxy } from "./forwardingProxy.ts";
 
-export const secret = Redacted.make("starter-test-secret-with-at-least-32-characters");
+export const secret = Redacted.make("app-test-secret-with-at-least-32-characters");
 export const PUBLIC_URL = "https://app.example";
 
-export const startHost = Effect.fn("StarterStory.startHost")(function* (deployed = false) {
+export const startHost = Effect.fn("AppStory.startHost")(function* (deployed = false) {
 	const database = yield* PostgresTestDatabase;
 	const host = deployed
-		? starterHost({ databaseUrl: database.url, secret }).pipe(
+		? notesHost({ databaseUrl: database.url, secret }).pipe(
 				Layer.provide(
 					ConfigProvider.layer(
 						ConfigProvider.fromEnv({
@@ -20,7 +20,7 @@ export const startHost = Effect.fn("StarterStory.startHost")(function* (deployed
 					),
 				),
 			)
-		: starterHost({ databaseUrl: database.url, port: 0, secret });
+		: notesHost({ databaseUrl: database.url, port: 0, secret });
 	const context = yield* Layer.build(host);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 	if (!NetAddress.isInetAddress(server.address)) {

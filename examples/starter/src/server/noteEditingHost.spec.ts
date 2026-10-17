@@ -11,14 +11,14 @@ app.it("opens, updates and deletes notes over HTTP, rejecting stale writes witho
 	const saved = yield* client.update({ ...original, title: "  Saved note  " });
 	expect(saved).toEqual({ ...original, title: "Saved note", version: 1 });
 	const sql = yield* SqlClient.SqlClient;
-	const before = yield* sql`select * from starter_notes where id = ${original.id}`;
+	const before = yield* sql`select * from notes where id = ${original.id}`;
 	for (const call of [
 		client.update({ ...original, title: "Stale draft" }).pipe(Effect.asVoid),
 		client.delete({ id: original.id, version: original.version }),
 	]) {
 		const rejected = yield* call.pipe(Effect.result);
 		expect(Result.isFailure(rejected) && rejected.failure._tag).toBe("Conflict");
-		expect(yield* sql`select * from starter_notes where id = ${original.id}`).toEqual(before);
+		expect(yield* sql`select * from notes where id = ${original.id}`).toEqual(before);
 	}
 	expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 2 }]);
 	const invalid = yield* client.update({ ...saved, title: "   " }).pipe(Effect.result);

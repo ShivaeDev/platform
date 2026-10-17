@@ -8,7 +8,7 @@ import { resumeSignal } from "@shivaedev/effect-contract/resume.ts";
 import { Notes, Subscribe } from "#notes.ts";
 
 export function makeNotesClient(url: string, transformClient?: NonNullable<Parameters<typeof RpcClient.layerProtocolHttp>[0]["transformClient"]>) {
-	class NotesClient extends AtomRpc.Service<NotesClient>()("starter/NotesClient", {
+	class NotesClient extends AtomRpc.Service<NotesClient>()("app/NotesClient", {
 		group: Notes,
 		protocol: RpcClient.layerProtocolHttp({ ...(transformClient === undefined ? {} : { transformClient }), url }).pipe(
 			Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),

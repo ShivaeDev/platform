@@ -34,7 +34,7 @@ export const app = storyKit({
 	create: (): Engine => ({ actors: new Map(), deployed: false, host: undefined, tell: () => undefined }),
 	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.deployed }),
 	layer: postgres,
-	name: "starter",
+	name: "app",
 	stages: ["hosting", "accounts", "notes"],
 	verbs: (engine, story) => {
 		function host() {
@@ -62,7 +62,7 @@ export const app = storyKit({
 				return makeAuth({ baseUrl, fetchOptions: { headers: { cookie, origin } } });
 			},
 			authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
-			authRateLimits: Effect.fn("StarterStory.authRateLimits")(function* (trustedProxy?: string) {
+			authRateLimits: Effect.fn("AppStory.authRateLimits")(function* (trustedProxy?: string) {
 				story.tell(`start production auth with proxy trust ${trustedProxy ?? "unset"}`);
 				const database = yield* PostgresTestDatabase;
 				return yield* authRateLimits(database.url, trustedProxy, story.tell);
@@ -77,12 +77,12 @@ export const app = storyKit({
 				return liveNotes(host(), actor.cookie);
 			},
 			notes: (cookie: string) => http().notes(cookie),
-			rerunMigrations: Effect.fn("StarterStory.rerunMigrations")(function* () {
+			rerunMigrations: Effect.fn("AppStory.rerunMigrations")(function* () {
 				story.tell("open another app host and rerun its migrations");
 				engine.host = yield* startHost(engine.deployed);
 			}),
 			runningHost: host,
-			startWorker: Effect.fn("StarterStory.startWorker")(function* () {
+			startWorker: Effect.fn("AppStory.startWorker")(function* () {
 				story.tell("start the word-count worker");
 				const database = yield* PostgresTestDatabase;
 				yield* Layer.build(noteWorker({ databaseUrl: database.url, secret }));
@@ -111,6 +111,6 @@ export function behindProxy() {
 export function legacyNote(title: string) {
 	return app.trait("notes", `PostgreSQL contains the unowned note ${JSON.stringify(title)}`, function* () {
 		const sql = yield* SqlClient.SqlClient;
-		yield* sql`insert into starter_notes (title) values (${title})`;
+		yield* sql`insert into notes (title) values (${title})`;
 	});
 }

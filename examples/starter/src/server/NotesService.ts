@@ -20,7 +20,7 @@ function writeFailure(error: { readonly _tag: string }) {
 }
 
 export const NotesService = defineService({
-	id: "starter/NotesService",
+	id: "app/NotesService",
 	initialize: makeNotesRepository,
 	methods: (repository) => {
 		function get(id: number, ownerId: string) {

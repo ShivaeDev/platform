@@ -7,13 +7,13 @@
 	"@shivaedev/effect-prisma": "0.9.0",
 	"@shivaedev/effect-react": "0.4.0",
 	"@shivaedev/effect-service": "0.3.0",
-	"@shivaedev/effect-sql": "0.3.0",
-	"@shivaedev/effect-test": "0.4.0",
+	"@shivaedev/effect-sql": "0.4.0",
+	"@shivaedev/effect-test": "0.5.0",
 	"@shivaedev/effect-test-sql": "0.3.0",
 	"@shivaedev/effect-trpc": "0.7.0",
-	"@shivaedev/local-postgres": "0.2.0",
+	"@shivaedev/local-postgres": "0.2.1",
 	"@shivaedev/platform": "0.12.0",
 	"@shivaedev/quality": "0.21.1",
-	"@shivaedev/test-story": "0.2.0",
-	"@shivaedev/types": "0.2.0"
+	"@shivaedev/test-story": "0.2.1",
+	"@shivaedev/types": "0.2.1"
 }

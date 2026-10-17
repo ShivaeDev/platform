@@ -16,11 +16,11 @@ export const migration = storyKit({
 	name: "notes migration",
 	stages: ["schema"],
 	verbs: (engine, story) => ({
-		upgrade: Effect.fn("StarterStory.upgrade")(function* () {
+		upgrade: Effect.fn("AppStory.upgrade")(function* () {
 			story.tell(`upgrade the notes schema from migration ${engine.upTo}`);
 			const database = yield* PostgresTestDatabase;
 			const { auth } = yield* makeAuth({ databaseUrl: database.url, secret });
-			return yield* migrationUpgrade({ migrations: migrations(auth), table: "starter_notes", upTo: engine.upTo });
+			return yield* migrationUpgrade({ migrations: migrations(auth), table: "notes", upTo: engine.upTo });
 		}),
 	}),
 });

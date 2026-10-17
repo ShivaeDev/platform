@@ -4,11 +4,11 @@ import { authPost, credentials, notesHttp } from "./authHttp.ts";
 import type { RunningHost } from "./host.ts";
 
 export function requests(host: RunningHost, tell: (line: string) => void) {
-	const authenticate = Effect.fn("StarterStory.authenticate")(function* (name: string, path = "sign-up/email", cookie = "") {
+	const authenticate = Effect.fn("AppStory.authenticate")(function* (name: string, path = "sign-up/email", cookie = "") {
 		tell(`${name} calls ${path}`);
 		return yield* authPost(host.baseUrl, path, path === "sign-out" ? {} : credentials(name), cookie, host.origin);
 	});
-	const notes = Effect.fn("StarterStory.notes")(function* (cookie = "") {
+	const notes = Effect.fn("AppStory.notes")(function* (cookie = "") {
 		const client = yield* notesHttp(host.baseUrl, cookie, host.origin);
 		function call<A, E, R>(line: string, effect: Effect.Effect<A, E, R>) {
 			return Effect.suspend(() => {
@@ -28,7 +28,7 @@ export function requests(host: RunningHost, tell: (line: string) => void) {
 			whoami: () => call("read the signed-in profile", client["notes.whoami"]()),
 		};
 	});
-	const foreignRequest = Effect.fn("StarterStory.foreignRequest")(function* (cookie: string) {
+	const foreignRequest = Effect.fn("AppStory.foreignRequest")(function* (cookie: string) {
 		tell("a foreign origin calls protected RPC");
 		const response = yield* Effect.promise(() =>
 			fetch(`${host.baseUrl}/rpc`, {

@@ -5,7 +5,7 @@ import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/bett
 import { trustedProxyPeer, trustedProxyRanges } from "@shivaedev/platform/rpc-server/local.ts";
 import { authDatabase } from "./authDatabase.ts";
 
-export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: {
+export const makeAuth = Effect.fn("App.makeAuth")(function* (config: {
 	readonly databaseUrl: Redacted.Redacted<string>;
 	readonly secret?: Redacted.Redacted<string>;
 }) {
@@ -53,4 +53,4 @@ export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: {
 	};
 });
 
-export type StarterAuth = Effect.Success<ReturnType<typeof makeAuth>>["auth"];
+export type AppAuth = Effect.Success<ReturnType<typeof makeAuth>>["auth"];

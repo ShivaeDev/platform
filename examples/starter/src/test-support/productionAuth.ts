@@ -15,7 +15,7 @@ export const productionAuth = Effect.fn("Test.productionAuth")(function* (databa
 		],
 		{
 			env: {
-				"BETTER_AUTH_SECRET": "starter-test-secret-with-at-least-32-characters",
+				"BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters",
 				"DATABASE_URL": Redacted.value(databaseUrl),
 				"NODE_ENV": "production",
 				"PUBLIC_URL": "https://app.example",

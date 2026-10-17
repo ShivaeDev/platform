@@ -4,7 +4,7 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { expect } from "vitest";
 import { Notes } from "#notes.ts";
 
-export const authPost = Effect.fn("StarterTest.authPost")(function* (baseUrl: string, path: string, body: object, cookie = "", origin = baseUrl) {
+export const authPost = Effect.fn("AppTest.authPost")(function* (baseUrl: string, path: string, body: object, cookie = "", origin = baseUrl) {
 	const response = yield* Effect.promise(() =>
 		fetch(`${baseUrl}/api/auth/${path}`, {
 			body: JSON.stringify(body),
@@ -30,5 +30,5 @@ export function notesHttp(baseUrl: string, cookie = "", origin = baseUrl) {
 }
 
 export function credentials(name: string) {
-	return { email: `${name}@starter.test`, name, password: "correct-horse-battery-staple" };
+	return { email: `${name}@app.test`, name, password: "correct-horse-battery-staple" };
 }
