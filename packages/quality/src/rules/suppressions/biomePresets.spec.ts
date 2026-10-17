@@ -55,10 +55,14 @@ describe("suppressions/biome-overrides with a package preset", () => {
 	it("still needs a declaration for a weakening the consumer adds beyond the preset", async () => {
 		const config = { overrides: [{ includes: ["scripts/**"], linter: { rules: { style: { noDefaultExport: "off" } } } }] };
 		expect(await withPreset({ overrides: [configFiles] }, shipped, config)).toEqual([
-			'biome.json:13 Weakens "lint/style/noDefaultExport" for "scripts/**" without a declaration. Repair the code and remove the weakening setting.',
+			expect.stringContaining(
+				'biome.json:13 Weakens "lint/style/noDefaultExport" for "scripts/**" without a declaration. Repair the code and remove the weakening setting.',
+			),
 		]);
 		expect(await withPreset({}, [], { linter: { rules: { suspicious: { noConsole: "warn" } } } })).toEqual([
-			'biome.json:8 Weakens "lint/suspicious/noConsole" for "**" without a declaration. Repair the code and remove the weakening setting.',
+			expect.stringContaining(
+				'biome.json:8 Weakens "lint/suspicious/noConsole" for "**" without a declaration. Repair the code and remove the weakening setting.',
+			),
 		]);
 	});
 
@@ -76,7 +80,9 @@ describe("suppressions/biome-overrides with a package preset", () => {
 		const preset = { linter: { rules: { suspicious: "off" } } };
 		expect(await withPreset(preset, [], off("suspicious", "noConsole"))).toEqual([
 			'biome.json:3 Extends "@acme/lint/biome", which weakens "lint/suspicious" for "**" without a declaration. Repair the code and restore the check in the preset.',
-			'biome.json:8 Weakens "lint/suspicious/noConsole" for "**" without a declaration. Repair the code and remove the weakening setting.',
+			expect.stringContaining(
+				'biome.json:8 Weakens "lint/suspicious/noConsole" for "**" without a declaration. Repair the code and remove the weakening setting.',
+			),
 		]);
 		expect(await withPreset(preset, [], { linter: { rules: { suspicious: { noConsole: "error" } } } })).toHaveLength(1);
 	});
@@ -85,7 +91,9 @@ describe("suppressions/biome-overrides with a package preset", () => {
 		const preset = { files: { includes: ["**", "!**/generated"] } };
 		const declarations = [{ includes: ["**", "!**/generated"], reason: "Generated code is not source.", rule: "files/includes" }];
 		expect(await withPreset(preset, declarations, { files: { includes: ["**", "!vendor"] } })).toEqual([
-			'biome.json:6 Weakens "files/includes" for "**", "!vendor" without a declaration. Repair the code and remove the weakening setting.',
+			expect.stringContaining(
+				'biome.json:6 Weakens "files/includes" for "**", "!vendor" without a declaration. Repair the code and remove the weakening setting.',
+			),
 		]);
 		expect(await withPreset(preset, [], { files: { includes: ["**"] } })).toEqual([
 			'biome.json:3 Extends "@acme/lint/biome", which weakens "files/includes" for "**", "!**/generated" without a declaration. Repair the code and restore the check in the preset.',

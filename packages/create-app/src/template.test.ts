@@ -6,6 +6,13 @@ import { registryDependencies } from "./template.ts";
 
 afterEach(removeTemplates);
 
+it("exempts only framework packages from pnpm's default release-age wait in a generated app", async () => {
+	const files = await templateSource({ realStarter: true }).pack();
+	const workspace = files["pnpm-workspace.yaml"] ?? "";
+	expect(workspace).toMatch(/^minimumReleaseAgeExclude: \["@shivaedev\/\*"\]$/mu);
+	expect(workspace).not.toMatch(/^minimumReleaseAge:/mu);
+});
+
 it("packages pinned GitHub Actions running the generated app's own CI script against PostgreSQL", async () => {
 	const files = await templateSource({ realStarter: true }).pack();
 	const manifest = JSON.parse(files["package.json"] ?? "{}");

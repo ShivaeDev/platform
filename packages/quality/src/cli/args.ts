@@ -1,9 +1,11 @@
 import { parseArgs } from "node:util";
 import { Result } from "effect";
 import type { WarningDetail } from "#report/render.ts";
+import { ADOPT_REMOVED, USAGE as COMMAND_USAGE } from "./messages.ts";
 
 export type Command =
 	| { readonly _tag: "Lint"; readonly config: string | undefined; readonly warnings: WarningDetail }
+	| { readonly _tag: "ExceptionsMigrate"; readonly config: string | undefined; readonly from: string | undefined }
 	| { readonly _tag: "Fix"; readonly config: string | undefined }
 	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: readonly string[] }
 	| { readonly _tag: "BaselinePrune"; readonly config: string | undefined; readonly against: string | undefined }
@@ -16,32 +18,7 @@ export type Command =
 
 export type Parsed = { readonly _tag: "Parsed"; readonly command: Command } | { readonly _tag: "Usage"; readonly problem: string };
 
-export const USAGE = `Usage:
-  quality lint [--config <file>] [--warnings summary|all]
-  quality fix [--config <file>]
-  quality baseline write [--config <file>] [--rule <id>]...
-  quality baseline prune [--config <file>] [--against <ref>]
-  quality baseline tighten [--config <file>] [--staged]
-  quality baseline migrate [--config <file>] [--from <file>]
-  quality hooks install [--config <file>] [--force]
-  quality hooks uninstall
-  quality hooks pre-commit [--config <file>]
-
-lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
-                  or a baseline entry for a rule that is off or unknown.
-fix               Sort every package.json, apply Biome's lint fixes, unsafe ones included, its assist actions and formatting, then format again.
-baseline write    Record current error-level violations. Creates the baseline, or records the named rules again, replacing their entries.
-baseline prune    Drop fixed debt, lower entries to what is left and carry entries to files git saw move. Never adds or raises an entry.
-baseline tighten  Prune only the entries of files changed since HEAD, or with --staged, in the index.
-baseline migrate  Move a baseline from the earlier JSON format (--from, quality/baseline.json by default) to the configured file.
-hooks install     Install the git pre-commit hook, shared by every worktree, that runs hooks pre-commit. Keeps a hook that is not quality's
-                  unless --force replaces it.
-hooks uninstall   Remove quality's pre-commit hook. Keeps a hook that is not quality's.
-hooks pre-commit  What the hook runs: lint, then package.json scripts typecheck and quality:commit when present.
-
---config <file>  Config file; its directory is the repository root. Without this option, uses ./quality.config.ts when present, otherwise defaults.
---against <ref>  The branch the work merges into, whose merge base prune follows moves from. Defaults to origin/HEAD, then origin/main, then origin/master.
-Exit codes: 0 passed, 1 failed the gate, 2 could not run.`;
+export const USAGE = COMMAND_USAGE;
 
 const OPTIONS = {
 	against: { type: "string" },
@@ -56,11 +33,9 @@ const OPTIONS = {
 
 const usage = (problem: string): Parsed => ({ _tag: "Usage", problem });
 
-const ADOPT_REMOVED =
-	"`quality adopt` was removed in 0.7.0. To record a rule's existing findings in the baseline, run `quality baseline write --rule <id>`; to apply the fixes Biome can make first, run `quality fix`.";
-
 const SUBCOMMANDS: Readonly<Record<string, string>> = {
 	baseline: "baseline takes write, prune, tighten or migrate.",
+	exceptions: "exceptions takes migrate.",
 	hooks: "hooks takes install, uninstall or pre-commit.",
 };
 
@@ -77,6 +52,7 @@ const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline prune": ["against"],
 	"baseline tighten": ["staged"],
 	"baseline write": ["rule"],
+	"exceptions migrate": ["from"],
 	fix: [],
 	"hooks install": ["force"],
 	"hooks pre-commit": [],
@@ -102,6 +78,8 @@ const commandFor = (name: string, values: Values): Parsed => {
 				? parsed({ _tag: "Lint", config, warnings })
 				: usage(`--warnings takes summary or all, not "${warnings}".`);
 		}
+		case "exceptions migrate":
+			return parsed({ _tag: "ExceptionsMigrate", config, from: values.from });
 		case "fix":
 			return parsed({ _tag: "Fix", config });
 		case "baseline write":

@@ -85,6 +85,8 @@ catalog:
 
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
+  # Framework releases must be usable together as soon as they publish.
+  - "@shivaedev/*"
   # Effect 4.0.4 fixes pooled PostgreSQL connections released with a listener
   # or statement still open, and the migration from 4.0.0-rc.112 adopts it
   # directly. Remove these once 4.0.4 is seven days old on 2026-10-20.
@@ -95,9 +97,6 @@ minimumReleaseAgeExclude:
   - "@effect/sql-pg@4.0.4"
   - "@effect/sql-sqlite-node@4.0.4"
   - "@effect/vitest@4.0.4"
-  # happy-dom 20.14.6 fixes a cookie scope forgery vulnerability. Remove this
-  # once it is seven days old on 2026-10-16.
-  - happy-dom@20.14.6
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade
