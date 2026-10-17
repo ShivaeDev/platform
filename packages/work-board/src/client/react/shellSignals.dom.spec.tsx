@@ -18,6 +18,27 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
+it.each(["Files", "More"])("dismisses %s when its current destination is selected without a router transition", async (panel) => {
+	const view = await chrome({ "home.md": "# Home" }, "/_board/library");
+	try {
+		const location = view.router.state.location;
+		if (panel === "Files") {
+			click("#sidebar-toggle");
+			expect(control("#sidebar", HTMLElement).hidden).toBe(false);
+			click("#sidebar #documents-open");
+			await eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true));
+		} else {
+			click('[aria-controls="phone-more"]');
+			expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
+			click('#phone-more a[href="/_board/library"]');
+			await eventually(() => expect(control("#phone-more", HTMLDialogElement).open).toBe(false));
+		}
+		expect(view.router.state.location).toBe(location);
+	} finally {
+		await view.unmount();
+	}
+});
+
 it("closes Files and More on direct router navigation and retains the new recent title", async () => {
 	const files = { "home.md": "# Home", "notes/plan.md": "# Plan", "other.md": "# Other" };
 	const view = await chrome(files);

@@ -64,7 +64,12 @@ function BoardWorkspace(
 	const { api, ready, client, onPage, appearance } = options;
 	const main = useMainLocation();
 	const sidebar = useSidebar(appearance);
-	const status = useBoardNavigation(options);
+	const [phoneOpen, setPhoneOpen] = useState(false);
+	const closeCurrentDestination = useCallback(() => {
+		sidebar.close();
+		setPhoneOpen(false);
+	}, [sidebar.close]);
+	const status = useBoardNavigation(options, closeCurrentDestination);
 	const search = useSearchDialog();
 	const [libraryOpen, setLibraryOpen] = useState(false);
 	const location = useRouterState({ select: (state) => state.location });
@@ -117,7 +122,7 @@ function BoardWorkspace(
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
 						<FleetMain api={api} home={data?.home} onPage={onPage} url={location.pathname + location.searchStr} />
-						<PhoneNavigation main={main} openSearch={search.show} />
+						<PhoneNavigation main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
 					</div>
 				</div>
 				{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}

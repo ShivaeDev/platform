@@ -1,3 +1,4 @@
+import type { AnyRouter } from "@tanstack/react-router";
 import { readingEntry } from "#client/react/storedReadings.ts";
 
 export function navigationFailure(status: number) {
@@ -24,4 +25,15 @@ export function sameReadingLocation(
 	next: { readonly route: string; readonly id: string; readonly hash: string },
 ) {
 	return previous.route === next.route && previous.id === next.id && previous.hash === next.hash;
+}
+
+export function recordEntry(router: AnyRouter, route: string, id: string, native: boolean) {
+	if (!native) {
+		return;
+	}
+	router.history.flush?.();
+	if (window.location.pathname + window.location.search !== route || window.history.state?.workBoard?.id === id) {
+		return;
+	}
+	window.history.replaceState({ ...window.history.state, workBoard: { id } }, "");
 }

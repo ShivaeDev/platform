@@ -2,7 +2,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useContext, useEffect, useRef, useState } from "react";
 import type { RouterShell } from "#client/react/loadBoardPage.ts";
 import { useMainLocation } from "#client/react/MainLocationContext.ts";
-import { currentEntry, navigationFailure, readingKey, sameReadingLocation } from "#client/react/navigationLocation.ts";
+import { currentEntry, navigationFailure, readingKey, recordEntry, sameReadingLocation } from "#client/react/navigationLocation.ts";
 import { ReadingReadyContext, readingReady } from "#client/react/ReadingReadyContext.ts";
 import { readerLink } from "#client/react/readerLink.ts";
 import { captureReading } from "#client/react/readingState.ts";
@@ -10,7 +10,7 @@ import { retryPage } from "#client/react/retryPage.ts";
 import { scheduleReading } from "#client/react/scheduleReading.ts";
 import { readingEntry, storedReadings } from "#client/react/storedReadings.ts";
 
-export function useBoardNavigation(shell: RouterShell) {
+export function useBoardNavigation(shell: RouterShell, onCurrentDestination?: () => void) {
 	const router = useRouter();
 	const main = useMainLocation();
 	const { element } = useContext(ReadingReadyContext);
@@ -74,6 +74,9 @@ export function useBoardNavigation(shell: RouterShell) {
 		async function open(target: URL) {
 			save();
 			const url = target.pathname + target.search + target.hash;
+			if (url === router.state.location.href) {
+				onCurrentDestination?.();
+			}
 			if (
 				url === router.state.location.href
 				&& mainRef.current.route === target.pathname + target.search
@@ -133,17 +136,6 @@ export function useBoardNavigation(shell: RouterShell) {
 			pageRef.current = undefined;
 			window.removeEventListener("pagehide", save);
 		};
-	}, [router, shell.api, shell.registry, shell.reading, shell.client]);
+	}, [router, shell.api, shell.registry, shell.reading, shell.client, onCurrentDestination]);
 	return status;
-}
-
-function recordEntry(router: ReturnType<typeof useRouter>, route: string, id: string, native: boolean) {
-	if (!native) {
-		return;
-	}
-	router.history.flush?.();
-	if (window.location.pathname + window.location.search !== route || window.history.state?.workBoard?.id === id) {
-		return;
-	}
-	window.history.replaceState({ ...window.history.state, workBoard: { id } }, "");
 }
