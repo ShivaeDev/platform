@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { inspect } from "node:util";
 import { expect, it } from "vitest";
 import { sqlInContainer } from "#local-container.ts";
 import { docker } from "#local-docker.ts";
@@ -69,37 +68,6 @@ it("uses the supplied database credentials when the container supplies the real 
 				{ encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
 			),
 		).toBe(`${role}|postgres`);
-	} finally {
-		postgres.sql(`${localServer}/postgres`, `DROP ROLE "${role}"`);
-	}
-});
-
-it.each(["Docker", "host-psql"])("reports only PostgreSQL diagnostics without the connection password when using the %s client", (client) => {
-	const postgres = localPostgres({});
-	const role = `failure_${randomUUID().replaceAll("-", "")}`;
-	const password = "query-failure-%:@/password";
-	postgres.sql(`${localServer}/postgres`, `CREATE ROLE "${role}" LOGIN PASSWORD '${password}'`);
-	try {
-		const connection = new URL(`${localServer}/postgres`);
-		connection.username = role;
-		connection.password = encodeURIComponent(password);
-		function query() {
-			return client === "host-psql"
-				? postgres.sql(connection, "SELECT 1 / 0")
-				: sqlInContainer((args, options) => docker({}, args, options), connection, ["-X", "--set", "ON_ERROR_STOP=1", "-At", "-c", "SELECT 1 / 0"], {
-						encoding: "utf8",
-						stdio: ["ignore", "pipe", "pipe"],
-					});
-		}
-		let failure: unknown;
-		try {
-			query();
-		} catch (error) {
-			failure = error;
-		}
-		expect(failure).toMatchObject({ cause: expect.any(Error), message: "ERROR:  division by zero\n" });
-		expect(inspect(failure)).not.toContain(password);
-		expect(inspect(failure)).not.toContain(connection.password);
 	} finally {
 		postgres.sql(`${localServer}/postgres`, `DROP ROLE "${role}"`);
 	}

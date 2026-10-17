@@ -19,6 +19,12 @@ export function assertLocalDatabase(value: string, names: readonly string[]) {
 	return url;
 }
 
+function clientEnvironment(url: URL) {
+	// libpq treats + literally in URI passwords.
+	const password = new URLSearchParams(url.search.replaceAll("+", "%2B")).getAll("password").at(-1) ?? decodeURIComponent(url.password);
+	return { ...env, ...(password && { "PGPASSWORD": password }) };
+}
+
 export function localPostgres(environment: DockerEnvironment) {
 	function localDocker(args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding = { encoding: "utf8" }) {
 		return docker(environment, args, options);
@@ -26,6 +32,9 @@ export function localPostgres(environment: DockerEnvironment) {
 	function sql(value: string | URL, query: string) {
 		const url = new URL(value);
 		assertLocalDatabase(url.toString(), [url.pathname.slice(1)]);
+		const childEnvironment = clientEnvironment(url);
+		url.password = "";
+		url.searchParams.delete("password");
 		for (const key of ["schema", "connection_limit", "pool_timeout", "pgbouncer"]) {
 			url.searchParams.delete(key);
 		}
@@ -34,15 +43,13 @@ export function localPostgres(environment: DockerEnvironment) {
 		if (!url.searchParams.has("connect_timeout")) {
 			url.searchParams.set("connect_timeout", "3");
 		}
-		const connection = new URL(url);
-		connection.password = "";
 		const options = {
 			encoding: "utf8",
-			env: { ...env, ...(url.password && { "PGPASSWORD": decodeURIComponent(url.password) }) },
+			env: childEnvironment,
 			stdio: ["ignore", "pipe", "pipe"],
 		} satisfies ExecFileSyncOptionsWithStringEncoding;
 		try {
-			return execFileSync("psql", [...args, "--dbname", connection.toString()], options).trim();
+			return execFileSync("psql", [...args, "--dbname", url.toString()], options).trim();
 		} catch (error) {
 			if (error instanceof Error && "code" in error && error.code === "ENOENT") {
 				return sqlInContainer(localDocker, url, args, options);

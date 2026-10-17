@@ -13,14 +13,17 @@ export function sqlInContainer(docker: Docker, url: URL, args: readonly string[]
 	if (docker(["inspect", "--format", "{{.Config.Image}}", id], options).trim() !== IMAGE) {
 		throw new Error("The shared PostgreSQL image differs from the pinned baseline. Upgrade explicitly, preserving data.");
 	}
+	// libpq treats + literally in URI passwords.
+	const password = new URLSearchParams(url.search.replaceAll("+", "%2B")).getAll("password").at(-1) ?? decodeURIComponent(url.password);
 	const inside = new URL(url);
 	inside.hostname = "127.0.0.1";
 	inside.port = "5432";
 	inside.password = "";
+	inside.searchParams.delete("password");
 	try {
 		return docker(["exec", "--env", "PGPASSWORD", id, "psql", ...args, "--dbname", inside.toString()], {
 			...options,
-			env: { ...env, ...options.env, ...(url.password && { "PGPASSWORD": decodeURIComponent(url.password) }) },
+			env: { ...env, ...options.env, ...(password && { "PGPASSWORD": password }) },
 		}).trim();
 	} catch (error) {
 		throw new Error(error instanceof Error && "stderr" in error ? String(error.stderr) : "PostgreSQL query failed.", { cause: error });
