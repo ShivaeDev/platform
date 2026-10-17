@@ -1,8 +1,7 @@
-import type { BlockList } from "node:net";
 import { Effect, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import { RpcSerialization } from "effect/rpc";
-import { proxyAddresses, proxyMatches } from "./trustedProxy.ts";
+import { proxyAddresses, proxyMatches, proxyRanges } from "./trustedProxy.ts";
 
 function loopbackAddress(address: string): boolean {
 	const unmapped = unmapAddress(address);
@@ -42,8 +41,15 @@ export function loopbackOnly<E, R>(
 			? handler(request)
 			: Effect.succeed(HttpServerResponse.text("Only loopback hosts are served", { status: 403 }));
 }
-function proxyOrigin(request: HttpServerRequest.HttpServerRequest, trustedProxy: BlockList | undefined): boolean {
-	if (trustedProxy === undefined || !Option.exists(request.remoteAddress, (address) => proxyMatches(trustedProxy, address))) {
+export function trustedProxyPeer(trustedProxy?: string): (address: string) => boolean {
+	const addresses = trustedProxy === undefined ? undefined : proxyAddresses(trustedProxy);
+	return (address) => addresses !== undefined && proxyMatches(addresses, address);
+}
+export function trustedProxyRanges(trustedProxy?: string): string[] {
+	return trustedProxy === undefined ? [] : (proxyRanges(trustedProxy) ?? []);
+}
+function proxyOrigin(request: HttpServerRequest.HttpServerRequest, isTrustedProxy: (address: string) => boolean): boolean {
+	if (!Option.exists(request.remoteAddress, isTrustedProxy)) {
 		return false;
 	}
 	const host = request.headers["x-forwarded-host"];
@@ -59,13 +65,13 @@ function proxyOrigin(request: HttpServerRequest.HttpServerRequest, trustedProxy:
 	}
 }
 export function localRpcGuard<E, R>(effect: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>, trustedProxy?: string) {
-	const addresses = trustedProxy === undefined ? undefined : proxyAddresses(trustedProxy);
+	const isTrustedProxy = trustedProxyPeer(trustedProxy);
 	return Effect.gen(function* () {
 		const request = yield* HttpServerRequest.HttpServerRequest;
 		const serialization = yield* RpcSerialization.RpcSerialization;
 		const local = loopbackHost(request.headers.host) && Option.exists(request.remoteAddress, loopbackAddress);
 		const contentType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
-		return ((local && sameOrigin(request)) || proxyOrigin(request, addresses)) && contentType === serialization.contentType
+		return ((local && sameOrigin(request)) || proxyOrigin(request, isTrustedProxy)) && contentType === serialization.contentType
 			? yield* effect
 			: HttpServerResponse.text("Local same-origin requests only", { status: 403 });
 	});

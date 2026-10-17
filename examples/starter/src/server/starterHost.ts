@@ -1,5 +1,5 @@
 import { Config, Effect, Layer, Redacted } from "effect";
-import { HttpStaticServer } from "effect/http";
+import { HttpRouter, HttpServerResponse, HttpStaticServer } from "effect/http";
 import { AppChanges, appHost } from "@shivaedev/platform/appHost.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { authenticatedUserLayer } from "@shivaedev/platform/rpc-server/session.ts";
@@ -39,7 +39,13 @@ export function starterHost(config?: {
 			return appHost({
 				config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 				group: Notes,
-				handlers: Layer.mergeAll(handlers, authenticatedUserLayer(sessions), routes, HttpStaticServer.layer({ root: "dist", spa: true })),
+				handlers: Layer.mergeAll(
+					handlers,
+					authenticatedUserLayer(sessions),
+					routes,
+					HttpRouter.add("GET", "/health", HttpServerResponse.text("Ready")),
+					HttpStaticServer.layer({ root: "dist", spa: true }),
+				),
 				migrations: database.migrations,
 				services: NotesService.layer.pipe(Layer.provideMerge(producer)),
 				sessions,

@@ -23,12 +23,12 @@ function runner(failedCommand?: string) {
 	};
 }
 
-it("runs the generated app's quality lint without flags and its full test suite", async () => {
+it("runs the generated app's own CI script with PostgreSQL", async () => {
 	const check = runner();
 	await check.run();
 	assert.deepEqual(
 		check.commands.map((command) => command.args),
-		[["exec", "quality", "lint"], ["run", "typecheck"], ["run", "build"], ["test"]],
+		[["run", "ci"]],
 	);
 	for (const command of check.commands) {
 		assert.equal(command.command, "pnpm");
@@ -38,10 +38,8 @@ it("runs the generated app's quality lint without flags and its full test suite"
 	}
 });
 
-for (const [index, name] of ["lint", "typecheck", "build", "test"].entries()) {
-	it(`fails the published-starter runner immediately when ${name} fails`, async () => {
-		const check = runner(name);
-		await assert.rejects(check.run(), /Generated starter: pnpm .* failed \(exit 1\)/u);
-		assert.equal(check.commands.length, index + 1);
-	});
-}
+it("fails the published-starter runner when the generated app's CI script fails", async () => {
+	const check = runner("ci");
+	await assert.rejects(check.run(), /Generated app: pnpm run ci failed \(exit 1\)/u);
+	assert.equal(check.commands.length, 1);
+});

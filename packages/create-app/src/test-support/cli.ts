@@ -5,6 +5,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Config, Effect, Schema } from "effect";
+import { setupInstaller } from "./setupInstaller.ts";
 
 const folders: string[] = [];
 const cli = fileURLToPath(new URL("../cli.ts", import.meta.url));
@@ -56,9 +57,15 @@ export function testEnvironment(app: string, { databases = false, name = "my-app
 
 export function appFolder({
 	installationExit = 0,
+	gitAvailable = true,
+	realSetup = false,
+	typecheckExit,
 	destination = "absent",
 }: {
 	readonly installationExit?: number;
+	readonly gitAvailable?: boolean;
+	readonly realSetup?: boolean;
+	readonly typecheckExit?: number;
 	readonly destination?: "absent" | "empty" | "file" | "nonempty" | "environment";
 } = {}) {
 	const root = mkdtempSync(join(tmpdir(), "create-app-cli-"));
@@ -67,9 +74,15 @@ export function appFolder({
 	mkdirSync(bin);
 	writeFileSync(
 		join(bin, "pnpm"),
-		`#!/usr/bin/env node\nrequire('node:fs').writeFileSync('installation.json', JSON.stringify(process.argv.slice(2)));\nprocess.exit(${installationExit});\n`,
+		`#!/usr/bin/env node\nrequire('node:fs').writeFileSync('installation.json', JSON.stringify(process.argv.slice(2)));\nrequire('node:fs').writeFileSync('pnpm-lock.yaml', 'lockfileVersion: 9.0\\n');\nprocess.exit(${installationExit});\n`,
 		{ mode: 0o755 },
 	);
+	if (realSetup) {
+		const pnpm = spawnSync("which", ["pnpm"], { encoding: "utf8" }).stdout.trim();
+		const modules = fileURLToPath(new URL("../../../../examples/starter/node_modules", import.meta.url));
+		const quality = fileURLToPath(new URL("../../../quality/src/cli.ts", import.meta.url));
+		writeFileSync(join(bin, "pnpm"), setupInstaller(pnpm, modules, quality, typecheckExit), { mode: 0o755 });
+	}
 	const target = join(root, "my-app");
 	if (["empty", "nonempty", "environment"].includes(destination)) {
 		mkdirSync(target);
@@ -84,13 +97,38 @@ export function appFolder({
 		writeFileSync(target, "user data");
 	}
 	const path = Effect.runSync(Config.String("PATH"));
+	if (!gitAvailable) {
+		symlinkSync(process.execPath, join(bin, "node"));
+	}
 	return {
 		root,
-		run: (args: readonly string[]) =>
-			spawnSync("env", [`PATH=${bin}:${path}`, "NODE_OPTIONS=", process.execPath, "--conditions=source", cli, ...args], {
-				cwd: root,
-				encoding: "utf8",
-			}),
+		run: (args: readonly string[], environment: readonly string[] = []) =>
+			spawnSync(
+				"env",
+				[
+					"-u",
+					"GIT_AUTHOR_NAME",
+					"-u",
+					"GIT_AUTHOR_EMAIL",
+					"-u",
+					"GIT_COMMITTER_NAME",
+					"-u",
+					"GIT_COMMITTER_EMAIL",
+					`PATH=${gitAvailable ? `${bin}:${path}` : bin}`,
+					"NODE_OPTIONS=",
+					"GIT_CONFIG_NOSYSTEM=1",
+					"GIT_CONFIG_GLOBAL=/dev/null",
+					...environment,
+					process.execPath,
+					"--conditions=source",
+					cli,
+					...args,
+				],
+				{
+					cwd: root,
+					encoding: "utf8",
+				},
+			),
 	};
 }
 

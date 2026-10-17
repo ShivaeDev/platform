@@ -4,8 +4,16 @@ import { AttentionOwner } from "#attention.ts";
 import { BoardReport } from "#board/schema.ts";
 import { Checks, Decision, DecisionResponse, Delivery, Review, SupersededDecision, WorkResult } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
-import { LaunchSettings, SessionReceipt } from "#session/schema.ts";
+import { LaunchSettings, SessionObservation, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
+	abandoned: Schema.optional(
+		Schema.Struct({
+			at: Schema.Number,
+			interruptError: Schema.optional(Schema.String),
+			observation: Schema.optional(SessionObservation),
+			observationError: Schema.optional(Schema.String),
+		}),
+	),
 	briefSteers: Schema.optional(
 		Schema.Array(
 			Schema.Struct({
