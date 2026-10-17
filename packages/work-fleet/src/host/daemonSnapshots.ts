@@ -11,18 +11,17 @@ import { snapshotStream } from "#host/snapshotStream.ts";
 import type { State } from "#host/waitOutcome.ts";
 import { answerStore } from "#storage/answerStore.ts";
 import { dispatchStore } from "#storage/dispatchStore.ts";
-import { readRecordSnapshot } from "#storage/readRecords.ts";
 
 export const daemonSnapshots = Effect.fn("FleetDaemon.daemonSnapshots")(function* (host: FleetHost) {
 	const sql = yield* SqlClient.SqlClient;
 	const changes = yield* AppChanges;
 	const dispatches = yield* dispatchStore(host.namespace);
 	const answers = yield* answerStore(host.namespace);
-	const read = readRecordSnapshot(
-		Effect.gen(function* () {
-			return dispatchStates(withAnswerRequests(yield* readWaitStates(host), yield* answers.list()), yield* dispatches.list());
-		}),
-	).pipe(
+	const read = Effect.gen(function* () {
+		// Reading requests first keeps a completed handoff from exposing an older human wait.
+		const requests = yield* answers.list();
+		return dispatchStates(withAnswerRequests(yield* readWaitStates(host), requests), yield* dispatches.list());
+	}).pipe(
 		Effect.provideService(SqlClient.SqlClient, sql),
 		Effect.retry({ schedule: Schedule.spaced("500 millis"), times: 19 }),
 		Effect.mapError(() => new ServiceUnavailable({ message: "Fleet daemon could not read work states after 20 consecutive attempts" })),
