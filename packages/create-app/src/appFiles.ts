@@ -17,8 +17,8 @@ export function appFileContent(path: string, content: Buffer, versions: Readonly
 	return Buffer.from(
 		prepareFile(path, content.toString(), versions)
 			.replaceAll("starterHost", "applicationHost")
-			.replaceAll("StarterAuth", "ApplicationAuth")
+			.replaceAll("Starter", "Application")
 			.replaceAll("starter_", "__APP_NAMESPACE___")
-			.replaceAll(/starter/giu, "__APP_NAME__"),
+			.replaceAll("starter", "__APP_NAME__"),
 	);
 }
