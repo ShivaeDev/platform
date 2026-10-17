@@ -1,10 +1,9 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Effect, type Scope } from "effect";
-import { test } from "vitest";
+import { Config, Effect, Option, type Scope } from "effect";
 import { PrismaClient } from "#test/generated/client.ts";
-import { databaseUrl } from "./environment.ts";
 
-export const integration = databaseUrl === undefined ? test.skip : test;
+const databaseUrl = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_EFFECT_CHANGES_PRISMA_TEST_DATABASE_URL"))));
+export const postgresEnabled = databaseUrl !== undefined;
 
 const url = databaseUrl ?? "postgresql://integration-tests-disabled";
 
@@ -49,7 +48,6 @@ function statements(client: PrismaClient, sql: readonly string[]) {
 export const makeDatabase: Effect.Effect<
 	{
 		readonly schema: string;
-		readonly client: PrismaClient;
 		readonly observer: PrismaClient;
 		readonly execute: (...sql: readonly string[]) => Effect.Effect<void>;
 	},
@@ -59,9 +57,8 @@ export const makeDatabase: Effect.Effect<
 	const schema = `changes_prisma_${crypto.randomUUID().replaceAll("-", "")}`;
 	const admin = yield* connect("public");
 	yield* Effect.acquireRelease(statements(admin, tables(schema)), () => statements(admin, [`drop schema "${schema}" cascade`]));
-	const client = yield* connect(schema);
 	const observer = yield* connect(schema);
-	return { client, execute: (...sql: readonly string[]) => statements(admin, sql), observer, schema };
+	return { execute: (...sql: readonly string[]) => statements(admin, sql), observer, schema };
 });
 
 export function orderIds(client: PrismaClient) {
