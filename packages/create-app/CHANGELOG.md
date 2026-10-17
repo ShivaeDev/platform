@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.5 - 2026-10-17
+
+### Changed
+
+- New apps start on `@shivaedev/effect-pg-boss` 0.8.0, which bounds each batched job by its own expiry deadline.
+
 ## 0.6.4 - 2026-10-17
 
 ### Changed

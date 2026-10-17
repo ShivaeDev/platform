@@ -2,9 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "per-job-settlement.md",
-			"text": "### Fixed\n\n- Settle each queue and scheduled job separately through pg-boss, recording typed failures and defects on only the failed job. In 0.7.0, one failing handler failed and retried the whole fetched batch, spending unrelated jobs’ retries and rerunning successful handlers. Batches still drain with `burstWhenBatchFull`. Interruption leaves unprocessed jobs to pg-boss expiry.\n\n### Added\n\n- Custom `PgBossClient` factories can supply optional native `complete` and `fail` methods. Queue and schedule worker registration requires both capabilities and fails with a registration `PgBossError` when either is absent; producer-only clients do not need them.\n"
+			"name": "batch-deadlines.md",
+			"text": "### Added\n\n- `JobContext.remainingBudget` is an `Effect.Effect<Duration.Duration>` that reads the time left until the fetched job's expiry deadline, clamped to zero.\n\n### Fixed\n\n- Bound queue and scheduled handlers by each job's pg-boss `startedOn` plus `expireInSeconds`, including time spent waiting in a batch. Skip jobs whose window has passed and interrupt running Effects at their deadline, leaving interrupted and unstarted jobs for pg-boss expiry and retry. Worker registration requests start-time metadata even when `includeMetadata: false` is supplied.\n"
 		}
 	],
-	"version": "0.7.1"
+	"version": "0.8.0"
 }
