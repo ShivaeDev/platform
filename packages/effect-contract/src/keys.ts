@@ -26,21 +26,25 @@ export interface Collection<TName extends string, TId extends Identity> {
 	readonly name: TName;
 }
 
-export const collection = <const TName extends string, TId extends Schema.Top & { readonly Type: Identity }>(
+export function collection<const TName extends string, TId extends Schema.Top & { readonly Type: Identity }>(
 	name: TName,
 	_id: TId,
-): Collection<TName, TId["Type"]> => ({
-	item: (id) => ({ _tag: "Item", collection: name, id }),
-	list: { _tag: "List", collection: name },
-	name,
-});
+): Collection<TName, TId["Type"]> {
+	return {
+		item: (id) => ({ _tag: "Item", collection: name, id }),
+		list: { _tag: "List", collection: name },
+		name,
+	};
+}
 
 function own(key: Key): string {
 	return key._tag === "List" ? key.collection : `${key.collection}:${key.id}`;
 }
 
-export const readKeys = (keys: readonly Key[]): readonly string[] => [...new Set(keys.map(own))];
+export function readKeys(keys: readonly Key[]): readonly string[] {
+	return [...new Set(keys.map(own))];
+}
 
-export const invalidationKeys = (keys: readonly Key[]): readonly string[] => [
-	...new Set(keys.flatMap((key) => (key._tag === "List" ? [key.collection] : [own(key), key.collection]))),
-];
+export function invalidationKeys(keys: readonly Key[]): readonly string[] {
+	return [...new Set(keys.flatMap((key) => (key._tag === "List" ? [key.collection] : [own(key), key.collection])))];
+}
