@@ -15,6 +15,7 @@ export const CodexCloudConfiguration = Schema.Struct({
 	endpoint: Schema.optional(Schema.String),
 	environmentId: Schema.String.check(Schema.isNonEmpty()),
 	projectId: Schema.optional(Schema.String.check(Schema.isNonEmpty())),
+	recoveryGraceMs: Schema.Finite.check(Schema.isGreaterThan(0)),
 	refreshCommand: Schema.optional(Schema.Struct({ args: Schema.Array(Schema.String), command: Schema.String })),
 	requestTimeoutMs: Schema.Finite.check(Schema.isGreaterThan(0)),
 	threadNamePrefix: Schema.optional(Schema.String.check(Schema.isNonEmpty())),
@@ -86,7 +87,7 @@ const CodexCloud = defineService({
 		const adapter = codexAdapter(rpc, {
 			beforeTurn: verifyEnvironment,
 			provisioning: "unknown",
-			recoveryGraceMs: 5000,
+			recoveryGraceMs: config.recoveryGraceMs,
 			threadStart: (input) => threadStart(config, input),
 		});
 		return {

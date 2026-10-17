@@ -42,7 +42,7 @@ postgresTests("live")("Board reads real daemon health, owner counts and Fleet's 
 				),
 			};
 			const context = yield* Layer.build(
-				readDaemonLayer(fixture.host, { ...fixture.parts, github: github.layer }).pipe(
+				readDaemonLayer(fixture.host, { parts: { ...fixture.parts, github: github.layer } }).pipe(
 					Layer.provide(Layer.succeed(DiagnosticsSources)(observedLimits)),
 				),
 			);
