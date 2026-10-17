@@ -14,7 +14,7 @@ export interface PostgresTestOptions<E = never, R = never, TFixtures = never> {
 export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(options: PostgresTestOptions<E, R, TFixtures>) {
 	return Layer.effectContext(
 		Effect.gen(function* () {
-			const admin = yield* PgClient.make({ url: options.url });
+			const admin = yield* PgClient.makeClient({ url: options.url });
 			const template = yield* database(admin, options.url);
 			yield* Effect.scoped(
 				Effect.gen(function* () {
