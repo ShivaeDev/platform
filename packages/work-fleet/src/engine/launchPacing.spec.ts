@@ -1,9 +1,10 @@
 import { describe, expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber } from "effect";
 import * as TestClock from "effect/testing/TestClock";
+import { withLive } from "@shivaedev/effect-test/withLive.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
-import { executing } from "#model.ts";
+import { executing, type FleetRecord } from "#model.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -21,6 +22,17 @@ const passPastAcknowledgementWait = Effect.fn("Fleet.passPastAcknowledgementWait
 	return yield* Fiber.join(pass);
 });
 
+function persisted(workId: string, description: string, ready: (record: FleetRecord) => boolean) {
+	return withLive(
+		Effect.gen(function* () {
+			const fleet = yield* Fleet;
+			while (!ready((yield* fleet.get(workId)).value)) {
+				yield* Effect.sleep("10 millis");
+			}
+		}).pipe(Effect.timeoutOrElse({ duration: "5 seconds", orElse: () => Effect.die(`${workId} ${description} was not persisted within 5 seconds`) })),
+	);
+}
+
 const queueFull = new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" });
 
 describe("Fleet launch acknowledgement pacing", () => {
@@ -36,9 +48,7 @@ describe("Fleet launch acknowledgement pacing", () => {
 				yield* cycle;
 				expect(fixture.decisions).toEqual([]);
 				yield* Deferred.succeed(acknowledgement, undefined);
-				while ((yield* fleet.get("one")).value.attempts[0]?.receipt === undefined) {
-					yield* Effect.yieldNow;
-				}
+				yield* persisted("one", "launch receipt", (record) => record.attempts[0]?.receipt !== undefined);
 				expect((yield* fleet.get("one")).value.attempts[0]?.receipt).toEqual(fixture.operations.get("operation-1"));
 				expect(fixture.launched).toEqual(["operation-1", "operation-2"]);
 			}),
@@ -128,9 +138,7 @@ describe("Fleet launch acknowledgement pacing", () => {
 					yield* TestClock.adjust("1 second");
 					yield* Deferred.await(turnReached);
 					yield* TestClock.adjust("500 millis");
-					while ((yield* fleet.get("one")).value.launchRetry === undefined) {
-						yield* Effect.yieldNow;
-					}
+					yield* persisted("one", "launch retry", (record) => record.launchRetry !== undefined);
 					yield* TestClock.adjust("500 millis");
 					expect((yield* Fiber.join(pass)).dispatched).toHaveLength(2);
 					expect((yield* fleet.get("dependent")).value.attempts).toEqual([]);

@@ -37,10 +37,12 @@ for (const observationDelay of [0, 299_000]) {
 }
 
 it.effect("idle busy rejections back off before the same turn starts", function* () {
+	const methods: string[] = [];
 	const times: number[] = [];
 	const submissions: unknown[] = [];
 	const rpc: CodexRequest = (method, requestParams) =>
 		Effect.gen(function* () {
+			methods.push(method);
 			if (method !== "turn/start") {
 				return { data: [], nextCursor: null };
 			}
@@ -56,6 +58,7 @@ it.effect("idle busy rejections back off before the same turn starts", function*
 	expect(yield* Fiber.join(submitting)).toEqual({ turn: { id: "followup" } });
 	expect(times).toEqual([0, 5000, 15_000]);
 	expect(submissions).toEqual([params, params, params]);
+	expect(new Set(methods)).toEqual(new Set(["thread/turns/list", "turn/start"]));
 });
 
 it.effect("an invalid request does not check contention or resubmit", function* () {
