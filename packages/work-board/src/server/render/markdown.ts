@@ -7,8 +7,8 @@ import type { PluggableList } from "unified";
 import type { documentHeadings } from "#render/documentHeadings.ts";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
-import { RenderFailed } from "#render/failed.ts";
-import { footnoteIds } from "#render/footnotes.ts";
+import { RenderFailed } from "#render/Failed.ts";
+import { footnoteIds } from "#render/footnoteIds.ts";
 import { Highlighter } from "./Highlighter.ts";
 
 export interface RenderOptions {
