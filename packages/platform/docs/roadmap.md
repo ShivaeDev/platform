@@ -14,13 +14,14 @@ This file owns Platform's module implementation, package tests and scope questio
 - [x] An application runtime that acquires its Layer once, shares an explicit development cache key and carries service overrides across Promise calls.
 - [x] Node subscription cancellation from Web/procedure signals and simulated request/socket close events, with listener cleanup.
 - [x] A Better Auth Effect Prisma database adapter and Prisma/tRPC rollback harness. Real PostgreSQL tests cover shared transactions, failed transaction rollback, selected row operations and harness types; they require `PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL`.
+- [x] Better Auth adapter filters preserve PostgreSQL null, membership, comparison and literal-pattern semantics, including nonunique updates, OR-filter updates and deletes, and rejection of nonstring patterns. Reads retain their filters through selection, ascending/descending ordering and limit/offset pagination; experimental native joins are rejected for both single and collection reads. [Adapter boundary tests](../src/server/better-auth/filterBoundaries.spec.ts) assert these paths against PostgreSQL.
 - [x] Packed-consumer checks for defining-module imports, types and core entries installed without optional peers.
 - [x] A local app host Layer and reusable database Layer, extracted from the PostgreSQL composition: migrations before services, guarded NDJSON RPC, session policy, static assets, scoped shutdown and commit-bound live delivery. The composed fixture covers two HTTP server processes and a worker. Fleet’s daemon adopts `appHost` and `appDatabase` with a custom RPC route, session-free loopback policy and its existing migration ledger. Platform’s real HTTP option tests cover hosting without a database, while Fleet’s PostgreSQL daemon tests cover pool limits, migration upgrades and existing clients.
 
 ## Next
 
 - [ ] Add focused runtime tests for production cache bypass, disposal and recreation, build failures, exit results and cancellation before documenting stronger lifecycle guarantees.
-- [ ] Extend adapter tests to the remaining public options and filter, selection, ordering and pagination paths. Add a regression test for the rejection of experimental native joins.
+- [ ] Add focused adapter tests for the remaining public options, `debugLogs` and `usePlural`.
 - [ ] Exercise the no-HTTP-request `transportHeaders` fallback directly and the tracing boundary's successful and interrupted paths.
 
 ## Open questions
