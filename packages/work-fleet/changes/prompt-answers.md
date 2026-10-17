@@ -9,6 +9,7 @@
 - Daemon answer and dispatch commands acknowledge durable recording before provider work completes. Reconciliation applies saved answers after a restart, and watch reports the outcome.
 - Background dispatch preserves explicit approval and the current launch prompt, including when an edited criterion unblocks work before its first attempt.
 - Dispatch records acceptance before refreshing remote main or preparing execution. Status and watch report pending dispatches and background refresh failures even before an execution record exists.
+- Watch preserves the current execution and terminal outcome after scheduler recovery from a failed dispatch without another dispatch. The failed receipt remains available through `daemon.dispatch-status`.
 - CLI request errors distinguish refused connections from timeouts and server failures, name answer and dispatch requests, and say when answer recording is unconfirmed.
 
 ### Breaking

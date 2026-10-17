@@ -32,7 +32,8 @@ export const daemonSnapshots = Effect.fn("FleetDaemon.daemonSnapshots")(function
 function dispatchStates(states: readonly (typeof State.Type)[], requests: readonly DispatchRequest[]) {
 	const result = new Map<string, typeof State.Type>(states.map((state) => [state.workId, state]));
 	for (const request of requests) {
-		if (request.status === "completed") {
+		const state = result.get(request.workId);
+		if (request.status === "completed" || (request.status === "failed" && state !== undefined && state.stage !== "prepared")) {
 			continue;
 		}
 		result.set(request.workId, {
