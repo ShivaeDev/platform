@@ -1,6 +1,5 @@
 {"path":"packages/effect-changes-prisma/src/changes.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-changes-prisma/src/coverage.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-changes-prisma/src/expiry.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-changes-prisma/src/expiry.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
 {"path":"packages/effect-changes-prisma/src/expiry.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-changes-prisma/src/model.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
@@ -8,13 +7,10 @@
 {"path":"packages/effect-changes-prisma/src/tables.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-changes-prisma/src/tables.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":3}
 {"path":"packages/effect-changes-prisma/src/test-support/environment.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-changes-prisma/src/test-support/expiry.ts","rule":"biome/plugin","count":2}
 {"path":"packages/effect-changes-prisma/src/transaction.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-changes-prisma/src/transaction.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/effect-changes-prisma/src/transaction.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-changes-prisma/src/write.test.ts","rule":"biome/lint/nursery/noComponentHookFactories","count":1}
 {"path":"packages/effect-changes-prisma/src/write.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-changes-prisma/src/written.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-changes/src/batch.spec.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/style/useNamingConvention","count":2}
