@@ -3,7 +3,7 @@ import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { format } from "node:util";
-import { Console, Effect, Schema } from "effect";
+import { Config, Console, Effect, Option, Schema } from "effect";
 import { vi } from "vitest";
 import { program } from "#cli/program.ts";
 import { exitCode, explained, services } from "#cli/run-main.ts";
@@ -28,33 +28,75 @@ export function qualityArgs(args: readonly string[]): string[] {
 	return ["--conditions=source", CLI, ...args];
 }
 
-function isolateGit(): void {
-	for (const name of ["GIT_COMMON_DIR", "GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE"]) {
-		vi.stubEnv(name, undefined);
-	}
-	for (const [name, value] of Object.entries(ISOLATED_ENV)) {
+const ISOLATED: readonly (readonly [string, string | undefined])[] = [
+	...["GIT_COMMON_DIR", "GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE"].map((name) => [name, undefined] as const),
+	...Object.entries(ISOLATED_ENV),
+];
+
+function isolateGit(): () => void {
+	const previous = ISOLATED.map(([name]) => [name, Option.getOrUndefined(Effect.runSync(Config.option(Config.String(name))))] as const);
+	for (const [name, value] of ISOLATED) {
 		vi.stubEnv(name, value);
 	}
+	return () => {
+		for (const [name, value] of previous) {
+			vi.stubEnv(name, value);
+		}
+	};
+}
+
+interface Output {
+	stderr: string;
+	stdout: string;
+}
+
+function writer(output: Output, stream: keyof Output): (...parts: readonly unknown[]) => void {
+	return (...parts) => {
+		output[stream] += `${format(...parts)}\n`;
+	};
+}
+
+function unsupported(): never {
+	throw new Error("The captured Console copies only the output methods; capture this one too before quality calls it.");
+}
+
+function capturing(output: Output): Console.Console {
+	const stdout = writer(output, "stdout");
+	const stderr = writer(output, "stderr");
+	return {
+		assert: unsupported,
+		clear: unsupported,
+		count: unsupported,
+		countReset: unsupported,
+		debug: stdout,
+		dir: unsupported,
+		dirxml: unsupported,
+		error: stderr,
+		group: unsupported,
+		groupCollapsed: unsupported,
+		groupEnd: unsupported,
+		info: stdout,
+		log: stdout,
+		table: unsupported,
+		time: unsupported,
+		timeEnd: unsupported,
+		timeLog: unsupported,
+		trace: stderr,
+		warn: stderr,
+	};
 }
 
 // Runs the executable's program in this process, which imports each config path once: after a command rewrites the config, spawn `quality`.
 export async function runQuality(root: string, ...args: readonly string[]): Promise<Run> {
-	const output = { stderr: "", stdout: "" };
-	const captured: Console.Console = Object.assign(Object.create(console), {
-		error: (...parts: readonly unknown[]) => {
-			output.stderr += `${format(...parts)}\n`;
-		},
-		log: (...parts: readonly unknown[]) => {
-			output.stdout += `${format(...parts)}\n`;
-		},
-	});
+	const output: Output = { stderr: "", stdout: "" };
+	const captured = capturing(output);
 	const command = program(args, { cwd: realpathSync(root), launch: { options: ["--conditions=source"], script: CLI } });
-	isolateGit();
+	const restore = isolateGit();
 	try {
 		const exit = await Effect.runPromiseExit(explained(command).pipe(Effect.provideService(Console.Console, captured), Effect.provide(services)));
 		return { status: exitCode(exit), ...output };
 	} finally {
-		vi.unstubAllEnvs();
+		restore();
 	}
 }
 
