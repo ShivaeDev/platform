@@ -1,5 +1,5 @@
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import { NodeRuntime } from "@effect/platform-node";
 import { Effect } from "effect";
-import { migrateDatabase } from "./migrateDatabase.ts";
+import { migrateDatabase } from "#server/migrateDatabase.ts";
 
-NodeRuntime.runMain(migrateDatabase.pipe(Effect.scoped, Effect.provide(NodeServices.layer)));
+NodeRuntime.runMain(Effect.scoped(migrateDatabase()));

@@ -11,7 +11,7 @@
 		"check:published": "node --conditions=source --env-file-if-exists=../../.env.local ../../script/starter-published.ts",
 		"ci": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
 		"db:setup": "node --conditions=source --env-file-if-exists=.env.local src/server/setup-database.ts",
-		"dev": "pnpm db:setup && node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
+		"dev": "pnpm db:setup && pnpm migrate && node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
 		"format": "quality fix",
 		"lint": "quality lint",
 		"migrate": "node --conditions=source --env-file-if-exists=.env.local src/server/migrate.ts",

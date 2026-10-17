@@ -2,13 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "dom-cookie-sessions.md",
-			"text": "### Added\n\n- `@shivaedev/test-story/domEnvironment.config.ts` exports a Vitest environment with Node's global `Request`, `Response`, `Headers` and abort classes for an in-process HTTP host, while happy-dom fetch keeps the client's cookie jar. Fetch accepts native headers and request inputs. Better Auth sign-up, sign-in, session reads and sign-out are tested against the starter's real PostgreSQL host, including its auth client and client response inspection.\n- `domFetch(baseUrl)` from `@shivaedev/test-story/domFetch.ts` sets the happy-dom page origin to its host and resolves relative fetch requests.\n"
-		},
-		{
-			"name": "outbound-hosts.md",
-			"text": "### Added\n\n- `storyKit` accepts `outbound: Readonly<Record<string, string>>` to route selected hostnames from Node's built-in `fetch` to fake server origins for each story, then restore the previous dispatcher after success or failure. Other hosts pass through unchanged.\n"
+			"name": "dom-outbound-redirects.md",
+			"text": "### Added\n\n- `domNavigate(url?: string | URL): Promise<Response>` follows document redirects, keeps cookies and loads the final HTML for DOM stories, including social sign-in through an outbound OAuth fake.\n\n### Fixed\n\n- Keep Node fetch for in-process hosts and route the DOM document's asynchronous HTTP requests through the same outbound fakes. Unrouted external hosts fail DOM stories with the hostname, even when application code catches the request error.\n- Pass the `domFetch` result explicitly to browser clients (for Better Auth, `fetchOptions.customFetchImpl`); global fetch now belongs to the host. Happy-dom remains an optional peer for the DOM environment.\n"
 		}
 	],
-	"version": "0.3.0"
+	"version": "0.4.0"
 }

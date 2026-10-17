@@ -37,6 +37,9 @@ it("omitting migrations serves RPC without database configuration or SQL service
 		const server = await runtime.runPromise(HttpServer.HttpServer);
 		url = HttpServer.formatAddress(server.address);
 		expect(await ping(`${url}/rpc`)).toBe("pong");
+		const health = await fetch(`${url}/health`);
+		expect(health.status).toBe(503);
+		expect(await health.text()).toBe("");
 		const context = await runtime.runPromise(Effect.context());
 		expect(Option.isNone(Context.getOption(context, SqlClient.SqlClient))).toBe(true);
 		expect(Option.isNone(Context.getOption(context, AppChanges))).toBe(true);

@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { makeAuth } from "#client/auth.ts";
 import { noteWorker } from "#server/noteWorker.ts";
 import { authRateLimits } from "#test-support/authRateLimits.ts";
-import { type HostOptions, type RunningHost, secret, startHost } from "#test-support/host.ts";
+import { type HostOptions, type RunningHost, startHost } from "#test-support/host.ts";
 import { liveNotes } from "#test-support/liveNotes.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { requests } from "#test-support/requests.ts";
@@ -74,14 +74,14 @@ export const app = storyKit({
 			},
 			notes: (cookie: string) => http().notes(cookie),
 			rerunMigrations: Effect.fn("StarterStory.rerunMigrations")(function* () {
-				story.tell("open another app host and rerun its migrations");
+				story.tell("run the deployment migrations and open another app host");
 				engine.host = yield* startHost(engine.hostOptions);
 			}),
 			runningHost: host,
 			startWorker: Effect.fn("StarterStory.startWorker")(function* (env?: Record<string, string>) {
 				story.tell("start the word-count worker");
 				const database = yield* PostgresTestDatabase;
-				const worker = noteWorker({ databaseUrl: database.url, secret });
+				const worker = noteWorker({ databaseUrl: database.url });
 				yield* Layer.build(env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))));
 			}),
 		};
