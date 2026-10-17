@@ -31,7 +31,7 @@ A **queue definition** names a pg-boss queue and the Schema of its payload. Appl
 
 A **schedule definition** describes a queue with a cron trigger. `schedule.run(effect)` pairs it with an Effect that needs no payload. Queue workers and scheduled workers are **registrations**: the values you put in the jobs Layer's `jobs` list.
 
-The application creates one jobs service with `makePgBoss(identifier)`. Its Layer starts a client, registers the job list and captures the services those workers need. The Layer's scope owns its client reference and releases it when the scope ends; the final reference closes the client. Callers use the jobs service to enqueue a decoded payload or read queue health.
+The application creates one jobs service with `makePgBoss(identifier)`. Its Layer starts a client, registers the job list and captures the services those workers need. The Layer's scope owns its client reference and releases it when the scope ends; the final reference closes the client. Callers use the jobs service to enqueue a decoded payload, look up or retry a job, or read queue health and live counts.
 
 Use a distinct literal identifier for each jobs service. The service and its Layer keep that identifier in their types, so providing a Layer for a different identifier leaves the required jobs service unprovided at compile time.
 
@@ -116,7 +116,7 @@ export const jobsLayer = (databaseUrl: string) =>
   }).pipe(Layer.provide(MailLive));
 ```
 
-The constructor options belong to pg-boss. `jobs` is the complete list of registrations for this Layer. The Layer captures `MailLive` for both the queue handler and the scheduled Effect. A startup or registration failure fails Layer acquisition with `PgBossError` and releases its acquired client reference. A shared client stays running while another scope still owns a reference.
+The constructor options belong to pg-boss. `jobs` is the complete list of registrations for this Layer. The Layer captures `MailLive` for both the queue handler and the scheduled Effect. A startup or registration failure fails Layer acquisition with `PgBossError` or `PgBossQueueOptionsError` and releases its acquired client reference. A shared client stays running while another scope still owns a reference.
 
 Keep the Layer in the application's worker runtime scope. A short scope is useful for an acquisition or health check; a worker process needs its scope to remain open while it handles jobs.
 
@@ -173,7 +173,35 @@ export const readJobCounts = Effect.gen(function* () {
 });
 ```
 
-`health` exposes pg-boss queue counts as data. Its total fields include the registered queue's active, failed, queued and ready counts, plus the dead-letter queue's queued count. Decide in the application which values affect an HTTP health response or an alert.
+`health` exposes pg-boss cached queue counts as data. It stays cheap and follows the pg-boss monitor interval; it does not establish that a queue has just drained. Its total fields include the registered queue's active, failed, queued and ready counts, plus the dead-letter queue's queued count. Decide in the application which values affect an HTTP health response or an alert.
+
+### Read live counts and retry a job
+
+```ts
+import { Effect, Option } from "effect";
+import { SendEmail } from "./jobs.ts";
+import { Jobs } from "./services.ts";
+
+export const inspectEmail = (id: string) => Effect.gen(function* () {
+  const jobs = yield* Jobs;
+  const job = yield* jobs.getJob(SendEmail, id);
+  if (Option.isSome(job) && job.value.state === "failed") {
+    yield* jobs.retry(SendEmail, id);
+  }
+  const counts = yield* jobs.counts(SendEmail);
+  return counts.queuedCount === 0 && counts.activeCount === 0;
+});
+```
+
+`counts(queue)` reads the job table directly on each call. `queuedCount` includes created and retry-waiting jobs, including future jobs; `activeCount` counts running jobs, `failedCount` counts retained failures, and `totalCount` includes retained terminal jobs. A queue has drained when queued and active counts are both zero. These counts are a snapshot, so a producer can enqueue more work after the query returns.
+
+`getJob(queue, id)` returns `None` when the ID is absent, or `Some` pg-boss job metadata with `data` decoded by the queue's Schema. Invalid stored data fails with `PgBossPayloadError`, and the Effect requires the Schema's decoding services. `retry(queue, id)` reuses the original ID: it makes a failed job eligible for another attempt and pulls a retry-waiting job forward to run now. Missing IDs and jobs in other states are left unchanged. It does not remove an earlier copy from the dead-letter queue.
+
+### Queue settings on startup
+
+`queue` accepts pg-boss `Queue` options except `name` and `deadLetter`, which the definition and adapter own. For prompt delivery, set `queue: { notify: true }` and enable `useListenNotify: true` in the worker Layer's constructor options. The PostgreSQL notification test waits for an idle worker with a ten-second polling interval and verifies delivery within 1.5 seconds.
+
+Startup creates missing queues and reconciles declared settings on existing queues through `updateQueue`. Unspecified settings keep their stored values; the adapter always supplies its default retry settings and dead-letter destination. Changing an explicitly declared `policy` or `partition` on an existing queue fails startup with `PgBossQueueOptionsError`; its `queue`, `options` and message identify the conflict. Queue setting changes apply to subsequently enqueued jobs. Schedule queues follow the same registration path.
 
 ### Share a client between Layer builds
 
@@ -215,18 +243,21 @@ Import the module that defines the name; the package has no root entry.
 | --- | --- |
 | `@shivaedev/effect-pg-boss/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
 | `@shivaedev/effect-pg-boss/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
-| `@shivaedev/effect-pg-boss/health.ts` | `deadLetterQueueName`; `JobsHealth`, `QueueHealth` |
-| `@shivaedev/effect-pg-boss/error.ts` | `PgBossError`, `PgBossPayloadError`, `toPgBossError`; `PgBossOperation` |
+| `@shivaedev/effect-pg-boss/health.ts` | `deadLetterQueueName`; `JobsHealth`, `QueueCounts`, `QueueHealth` |
+| `@shivaedev/effect-pg-boss/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `toPgBossError`; `PgBossOperation` |
 | `@shivaedev/effect-pg-boss/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
 
-The definition options keep the pg-boss names: `queue` uses `QueueOptions` except `deadLetter`, `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
+The definition options keep the pg-boss names: `queue` uses `Queue` except `name` and `deadLetter`, `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 
-The application's service has two operations:
+The application's service has these operations:
 
 - `enqueue(queue, payload, options?)`: an Effect returning `Option.Option<string>`, with `PgBossError | PgBossPayloadError` in its error type. Its options use pg-boss `SendOptions`.
-- `health`: an Effect returning `JobsHealth`, with `PgBossError` in its error type.
+- `health`: an Effect returning cached `JobsHealth`, with `PgBossError` in its error type.
+- `counts(queue)`: an Effect returning live `QueueCounts`, with `PgBossError` in its error type.
+- `getJob(queue, id)`: an Effect returning `Option.Option<JobWithMetadata<Payload>>` with decoded payload data, `PgBossError | PgBossPayloadError` in its error type and the Schema's decoding services in its requirements.
+- `retry(queue, id)`: an Effect returning `void`, with `PgBossError` in its error type.
 
-`Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus `jobs`, optional `clientCacheKey`, optional `clientFactory`, optional `onError` and optional `stop`. The factory type accepts constructor options and returns `PgBossClient`; `onError` has the type `(error: Error) => Effect.Effect<unknown, never, R>`; `stop` uses pg-boss `StopOptions`.
+`Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus `jobs`, optional `clientCacheKey`, optional `clientFactory`, optional `onError` and optional `stop`. The factory type accepts constructor options and returns `PgBossClient`. Custom clients can supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent. `onError` has the type `(error: Error) => Effect.Effect<unknown, never, R>`; `stop` uses pg-boss `StopOptions`.
 
 `onError` handles pg-boss client `error` events using the services captured by the Layer. The Layer's requirement type includes the workers' services, the workers' payload Schemas' `DecodingServices` and the callback's services. `enqueue` includes the payload Schema's `EncodingServices` in its requirement type.
 
@@ -237,7 +268,7 @@ The application's service has two operations:
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-pg-boss effect@4.0.4 pg-boss@12.23.1
+pnpm add @shivaedev/effect-pg-boss effect@4.0.4 pg-boss@12.37.0
 ```
 
 The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` are peers; use versions that satisfy the package's published peer ranges.

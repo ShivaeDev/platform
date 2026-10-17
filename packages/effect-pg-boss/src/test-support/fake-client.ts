@@ -1,4 +1,14 @@
-import type { ConstructorOptions, Job, Queue, QueueResult, ScheduleOptions, SendOptions, StopOptions, WorkOptions } from "pg-boss";
+import type {
+	ConstructorOptions,
+	Job,
+	Queue,
+	QueueResult,
+	ScheduleOptions,
+	SendOptions,
+	StopOptions,
+	UpdateQueueOptions,
+	WorkOptions,
+} from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 
 interface QueueCall {
@@ -14,6 +24,7 @@ interface WorkerCall {
 
 export class FakeClient implements PgBossClient {
 	readonly createQueueCalls: QueueCall[] = [];
+	readonly updateQueueCalls: Array<{ name: string; options: UpdateQueueOptions }> = [];
 	readonly offWorkCalls: string[] = [];
 	readonly scheduleCalls: Array<{
 		readonly cron: string;
@@ -39,6 +50,17 @@ export class FakeClient implements PgBossClient {
 			throw new Error("queue unavailable");
 		}
 		this.createQueueCalls.push({ name, options });
+		if (!this.queues.has(name)) {
+			this.queues.set(name, queueResult(name, { ...options }));
+		}
+	}
+	updateQueue(name: string, options: UpdateQueueOptions) {
+		this.updateQueueCalls.push({ name, options });
+		const existing = this.queues.get(name);
+		if (existing !== undefined) {
+			Object.assign(existing, options);
+		}
+		return Promise.resolve();
 	}
 	async getQueue(name: string) {
 		return this.queues.get(name) ?? null;
