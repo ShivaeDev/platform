@@ -52,9 +52,7 @@ its browser acceptance belong to
    reference process fixture does not establish a deployment proxy's behavior.
 4. Prove optimistic edits only for a concrete feature that benefits from them,
    including rejection and out-of-order responses.
-5. Establish request/action correlation, trace export, redaction and error
-   presentation through the chosen RPC and SQL paths. Verify that telemetry
-   failure leaves the feature's result intact.
+5. Effect trace export is proven through `appHost` requests and the starter's real PostgreSQL word-count worker to a local OTLP HTTP receiver, with configured service identity, exporter headers and resource metadata. Tests cover no exporter without an endpoint, sensitive diagnostic redaction, and successful requests, jobs and shutdown with an unavailable collector. This does not establish deployed collector delivery. Request/action correlation, comprehensive application redaction policy and error presentation through RPC and SQL remain open.
 6. Validate background and external-provider behavior during adoption, including
    payload rejection, cancellation/retry ownership and worker shutdown.
 7. Keep one supported Effect version across package peers and installed

@@ -1,15 +1,15 @@
-import { Effect, Layer } from "effect";
+import { ConfigProvider, Effect, Layer } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { makeAuth } from "#client/auth.ts";
 import { noteWorker } from "#server/noteWorker.ts";
-import { authRateLimits } from "./authRateLimits.ts";
-import { type RunningHost, secret, startHost } from "./host.ts";
-import { liveNotes } from "./liveNotes.ts";
-import { postgres } from "./postgres.ts";
-import { requests } from "./requests.ts";
+import { authRateLimits } from "#test-support/authRateLimits.ts";
+import { type RunningHost, secret, startHost } from "#test-support/host.ts";
+import { liveNotes } from "#test-support/liveNotes.ts";
+import { postgres } from "#test-support/postgres.ts";
+import { requests } from "#test-support/requests.ts";
 
 interface Actor {
 	readonly cookie: string;
@@ -82,10 +82,11 @@ export const app = storyKit({
 				engine.host = yield* startHost(engine.deployed);
 			}),
 			runningHost: host,
-			startWorker: Effect.fn("AppStory.startWorker")(function* () {
+			startWorker: Effect.fn("AppStory.startWorker")(function* (env?: Record<string, string>) {
 				story.tell("start the word-count worker");
 				const database = yield* PostgresTestDatabase;
-				yield* Layer.build(noteWorker({ databaseUrl: database.url, secret }));
+				const worker = noteWorker({ databaseUrl: database.url, secret });
+				yield* Layer.build(env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))));
 			}),
 		};
 	},

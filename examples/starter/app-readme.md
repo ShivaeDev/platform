@@ -38,6 +38,8 @@ pnpm start
 
 The built server serves the UI, authentication and RPC on port 3000 by default. Run `pnpm worker` as a separate process for background jobs. Set `DATABASE_URL`, a random `BETTER_AUTH_SECRET` of at least 32 characters, and `PUBLIC_URL` on both processes. Use `HOST=0.0.0.0` for a container and the host's `PORT`; configure `TRUSTED_PROXY` for your proxy's peer addresses or CIDR ranges.
 
+To export Effect spans from both services, set `OTEL_EXPORTER_OTLP_ENDPOINT` or the complete `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, plus `OTEL_SERVICE_NAME`. Configure collector authentication with `OTEL_EXPORTER_OTLP_HEADERS`, using comma-separated `key=value` pairs with URL-encoded values. Railway's tracing setting supplies the endpoint and metadata. With no endpoint, no exporter runs.
+
 For Railway, install its CLI, link an empty project and follow the [deployment guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy). Set the shared authentication secret and public URL before running `railway config plan` and `railway config apply`. The configuration in `.railway/railway.ts` defines PostgreSQL, web and worker services. Both services build and run migrations before deployment; the web service checks `/health` and starts HTTP, while the worker runs jobs.
 
 Read the [framework docs](https://github.com/ShivaeDev/platform/blob/main/docs/framework/README.md) for design boundaries and the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for local database and hosting details.

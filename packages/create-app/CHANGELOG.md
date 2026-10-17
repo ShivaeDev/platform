@@ -1,16 +1,19 @@
 # Changelog
 
-## 0.4.3 - 2026-10-17
-
-### Added
-
-- Generated apps include a DOM story that signs up, signs out, signs in and reads Better Auth cookie sessions against the real PostgreSQL host, using `@shivaedev/test-story`.
+## 0.5.1 - 2026-10-17
 
 ### Fixed
 
 - A generated app gets its own named README and framework guidance, with `CLAUDE.md` linked to `AGENTS.md`, without template maintenance files or names.
 - A generated app uses matching development and test database names in both environment files, reads only `TEST_DATABASE_URL` for tests, and includes only existing TypeScript paths.
 - A generated app keeps non-secret files and its installed lockfile at mode `0644`, with `.env.local` at `0600`, and pins the current published framework versions.
+
+## 0.5.0 - 2026-10-17
+
+### Added
+
+- Generated apps include a DOM story that signs up, signs out, signs in and reads Better Auth cookie sessions against the real PostgreSQL host, using `@shivaedev/test-story`.
+- Generated apps use Platform 0.13.0 and export Effect spans from the host and word-count worker when standard OTLP endpoint variables are set.
 
 ## 0.4.2 - 2026-10-16
 

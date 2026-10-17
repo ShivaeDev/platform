@@ -31,6 +31,8 @@ After the worker writes, call `invalidateOnCommit` with the contract's invalidat
 
 ## Deploy
 
+Enable Railway's per-service tracing setting separately for the web and worker services to supply the standard OpenTelemetry exporter variables. Both export their Effect spans through Effect's OTLP/HTTP JSON tracer. For another collector, set `OTEL_EXPORTER_OTLP_ENDPOINT` to its base URL (the exporter appends `/v1/traces`) or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to its complete traces URL, which takes precedence. Set `OTEL_EXPORTER_OTLP_HEADERS` to comma-separated `key=value` headers with URL-encoded values, `OTEL_SERVICE_NAME` to the service identity, and optional `OTEL_RESOURCE_ATTRIBUTES` to comma-separated resource attributes. Without an endpoint, no exporter runs. eBPF auto-instrumentation is not part of the framework path.
+
 ### Railway with PostgreSQL
 
 1. Push the generated repository to GitHub. Install the [Railway CLI](https://docs.railway.com/guides/cli) (5.42.1 or newer), run `railway login`, and create an empty project with `railway init` or link an empty project with `railway link`. Run these commands from the generated app's root, after `pnpm run setup` has installed its pinned `railway` TypeScript SDK.

@@ -30,6 +30,8 @@ The browser entry point creates `makeAuth({ baseUrl })` and supplies it to `App`
 
 The TypeScript configuration keeps strict application checking and sets `skipLibCheck: true` for dependencies that declare unused runtime types. Existing notes from the unauthenticated starter have no account owner and are not shown to signed-in users.
 
+To export Effect spans, enable Railway's tracing setting on each web and worker service. It supplies `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, plus exporter headers and service metadata. For another collector, set the base endpoint (the exporter appends `/v1/traces`) or the complete traces endpoint, `OTEL_EXPORTER_OTLP_HEADERS` as comma-separated `key=value` pairs with URL-encoded values, `OTEL_SERVICE_NAME`, and optional `OTEL_RESOURCE_ATTRIBUTES`. The complete traces endpoint takes precedence. The host and `noteWorker` provide the same `otlpTracing` Layer. With no endpoint, no exporter runs. This exports Effect spans; eBPF auto-instrumentation is not part of the framework path. The worker receiver story proves a real PostgreSQL job exports a `CountWords` span and still completes with a collector down; it does not prove a provider's deployment setup.
+
 Write new tests as stories. The kit in [`src/test-support/application.ts`](src/test-support/application.ts) owns a disposable PostgreSQL database and the real HTTP app host. Traits such as `signedIn()`, `legacyNote(title)` and `behindProxy()` describe setup; verbs drive authenticated notes requests, rerun migrations through another host and start the word-count worker. Extend the kit with a trait or verb when a feature needs another setup or action.
 
 ```ts

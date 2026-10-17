@@ -11,7 +11,9 @@ import { recordValue } from "#storage/recordValue.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { typedMigrationRecords } from "#test/typedMigrationRecords.ts";
 
-postgresTests("live", "isolated")("a reader keeps one record version while a concurrent writer replaces root fields and children", function* () {
+const snapshotTests = postgresTests("live", "isolated", { maxConnections: 3 });
+
+snapshotTests("a reader keeps one record version while a concurrent writer replaces root fields and children", function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const namespace = "typed_snapshot";
 	const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
