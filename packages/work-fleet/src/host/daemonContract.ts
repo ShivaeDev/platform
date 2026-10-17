@@ -5,7 +5,8 @@ import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";
 import { fleetRejections } from "#errors.ts";
-import { FleetRecord, FleetViews } from "#model.ts";
+import { DaemonStatus } from "#host/configSettings.ts";
+import { FleetRecord } from "#model.ts";
 import { FleetContract, fleetRecords } from "#operations.ts";
 
 const { DAEMON_RPC_PATH, DiagnosticsContract } = diagnosticsApi;
@@ -32,7 +33,7 @@ export const ClientContract = contract("daemon", {
 		}),
 		command("dispatch", {
 			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
-			payload: { workId: Schema.String },
+			payload: { ignoreAreas: Schema.optional(Schema.Boolean), now: Schema.optional(Schema.Boolean), workId: Schema.String },
 			rejections: fleetRejections,
 			success: DispatchRequest,
 		}),
@@ -48,7 +49,7 @@ export const ClientContract = contract("daemon", {
 			payload: { workId: Schema.optional(Schema.String) },
 			reads: ({ workId }) => [workId === undefined ? fleetRecords.list : fleetRecords.item(workId)],
 			rejections: fleetRejections,
-			success: FleetViews,
+			success: DaemonStatus,
 		}),
 	],
 	streams: [

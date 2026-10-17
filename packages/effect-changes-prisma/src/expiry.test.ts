@@ -8,20 +8,18 @@ import { connect, integration, makeDatabase, orderIds } from "#test/database.ts"
 import { createOrder, probe, timed, warm } from "#test/expiry.ts";
 import type { PrismaClient } from "#test/generated/client.ts";
 
-function expires(client: PrismaClient, options?: TransactionOptions, current: PrismaClient = client) {
-	return Effect.gen(function* () {
-		yield* warm(client);
-		const { changes, published } = makeChanges(client);
-		const { state, body } = probe("2 seconds");
-		const { result: failure, elapsed } = yield* timed(
-			Effect.flip(changes.transaction(body(createOrder(changes, "o1")), options).pipe(Effect.provideService(changes.Client, current))),
-		);
-		expect(failure).toBeInstanceOf(TransactionExpired);
-		expect(state).toEqual({ interrupted: true, sideEffects: 0 });
-		expect(elapsed).toBeLessThan(1000);
-		expect(published).toEqual([]);
-	});
-}
+const expires = Effect.fn("ChangesPrisma.expires")(function* (client: PrismaClient, options?: TransactionOptions, current: PrismaClient = client) {
+	yield* warm(client);
+	const { changes, published } = makeChanges(client);
+	const { state, body } = probe("2 seconds");
+	const { result: failure, elapsed } = yield* timed(
+		Effect.flip(changes.transaction(body(createOrder(changes, "o1")), options).pipe(Effect.provideService(changes.Client, current))),
+	);
+	expect(failure).toBeInstanceOf(TransactionExpired);
+	expect(state).toEqual({ interrupted: true, sideEffects: 0 });
+	expect(elapsed).toBeLessThan(1000);
+	expect(published).toEqual([]);
+});
 
 integration("a transaction that reaches its timeout interrupts its body and fails with TransactionExpired", () =>
 	Effect.runPromise(

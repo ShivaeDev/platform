@@ -11,12 +11,14 @@ This file owns the story kit's implementation, next work and open questions. The
 - [x] A failed test prints a short guide, its story, where it stopped with the spec line there, and the engine's state, inline or in a file under `node_modules/.cache/test-story/`, broken at 120 columns.
 - [x] `domEnvironment` keeps Node fetch classes for an in-process host and happy-dom fetch for the client; `domFetch(baseUrl)` connects the window to that host, with a starter story proving Better Auth sign-up, sign-in, session reads and sign-out on PostgreSQL through cookies.
 - [x] `domNavigate` loads a routed document into happy-dom, updates its location and returns a response whose body remains readable. [Document transport stories](../src/server/documentTransport.dom.spec.ts) assert the rendered heading, location and response body.
-- [x] `outbound` routes exact hostnames to fake HTTP servers while preserving request paths, queries, methods, headers and bodies, and restores Node routing after successful and failed stories. [Outbound stories](../src/server/outbound.spec.ts) assert routing and restoration; [DOM refusal tests](../src/server/domOutbound.spec.ts) assert that unrouted external fetches, document requests and redirects fail the story even when application code catches the error.
+- [x] `outbound` routes exact hostnames to fake HTTP servers while preserving request paths, queries, methods, headers and bodies, and restores Node routing after successful and failed stories. [Outbound stories](../src/server/outbound.spec.ts) assert routing and restoration; [document transport stories](../src/server/documentTransport.dom.spec.ts) cover redirects, cookies and XMLHttpRequest; [DOM refusal tests](../src/server/domOutbound.spec.ts) assert that unrouted external fetches, document requests and redirects fail the story even when application code catches the error.
 - [x] In-process host creation separates request traces from the story span: requests without trace headers get distinct root traces, supplied trace headers continue their trace, request work stays under the request span, and traits and steps stay under the story span. [Host tracing stories](../src/server/hostTracing.spec.ts) assert span parents, trace IDs and completed request spans.
+- [x] Creation, traits and stage `after` hooks can return Effects directly, with services from the kit's Layer and resources released in the story's Scope, covered by [Effect hook stories](../src/server/effectHooks.spec.ts).
+- [x] Kit hooks and steps support a live clock and a per-story TestClock override. [Live-time stories](../src/server/liveTime.spec.ts) cover polling real workers with `withLive` without advancing virtual token expiry.
 
 ## Next
 
-- [ ] Move a first application's hand-written story DSL onto the kit and let what it needs decide the next hook.
+- [ ] Move the Work Fleet engine's hand-written story DSL onto the kit and let what it needs decide the next hook.
 
 ## Open questions
 

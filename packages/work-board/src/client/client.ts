@@ -32,6 +32,7 @@ export interface BrowserClient {
 	readonly registry: AtomRegistry.AtomRegistry;
 	readonly responses: BoundContract<typeof responseContract>;
 	readonly run: <A, E>(effect: Effect.Effect<A, E, Reader>, signal?: AbortSignal) => Promise<A>;
+	readonly runtime: Atom.AtomRuntime<Reader>;
 	readonly updates: ReturnType<typeof live<Reader, InternalServerError | RpcClientError, never>>;
 }
 
@@ -85,5 +86,5 @@ export function browserClient(url: string, options: ResumeOptions = {}): Browser
 		return result.success;
 	}
 	const responses = bind(responseContract, Client);
-	return { api, handoffs: bind(handoffContract, Client), mutate, read, registry, responses, run, updates };
+	return { api, handoffs: bind(handoffContract, Client), mutate, read, registry, responses, run, runtime: Client.runtime, updates };
 }

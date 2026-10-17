@@ -1,4 +1,4 @@
-import { Effect, Ref, Stream } from "effect";
+import { Effect, Ref, Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { expect } from "vitest";
@@ -60,6 +60,18 @@ export const liveNotesStory = storyKit({
 				registry.set(client.resume, registry.get(client.resume) + 1);
 			},
 			resync: (helper: "first" | "second" = "first") => (helper === "first" ? server.hints : server.secondHints).resync,
+			resyncRepeatedly: (count: number) =>
+				Effect.gen(function* () {
+					story.tell(`send ${count} resync hints, each after the consumer received the previous one`);
+					for (let index = 0; index < count; index += 1) {
+						const before = (yield* SubscriptionRef.get(client.received)).Resync;
+						yield* Effect.promise(() => server.emit({ _tag: "Resync" }));
+						yield* SubscriptionRef.changes(client.received).pipe(
+							Stream.filter(({ Resync }) => Resync > before),
+							Stream.runHead,
+						);
+					}
+				}),
 			status: () => registry.get(client.status),
 			streamOutage: (unavailable: boolean) => Ref.set(server.streamUnavailable, unavailable),
 			subscribe: (count?: number, signal?: AbortSignal) => {
@@ -108,11 +120,13 @@ export function watchingNotes() {
 		const two = engine.client.api.get.query({ id: 2 });
 		engine.registry.mount(one);
 		engine.registry.mount(two);
-		engine.registry.mount(engine.client.api.list.query(undefined));
+		const list = engine.client.api.list.query(undefined);
+		engine.registry.mount(list);
 		yield* eventually(() => {
 			expect(engine.registry.get(engine.client.status).connection).toBe("live");
 			expect(AsyncResult.getOrElse(engine.registry.get(one), () => undefined)?.body).toBe("First");
 			expect(AsyncResult.getOrElse(engine.registry.get(two), () => undefined)?.body).toBe("Second");
+			expect([engine.registry.get(one).waiting, engine.registry.get(two).waiting, engine.registry.get(list).waiting]).toEqual([false, false, false]);
 		});
 	});
 }

@@ -16,12 +16,12 @@ This page owns Quality's shared policy, tooling, CLI and hook implementation sta
 - [x] Opt-in pre-commit hooks with per-worktree config and dependencies, conventional `typecheck` and `quality:commit` scripts, and explicit installation.
 - [x] Seeded-repository and real-command tests for the gate, import policies, Biome, baseline and git hooks, plus packed consumer checks for the CLI and presets.
 - [x] Separate shipped Biome declarations from consumer exceptions; reject whole-check, group and blanket-scope consumer declarations.
+- [x] Shared nesting-depth and index-module checks; Platform's catalog, manifest and Codecov checks use the local-rule API and the same inventory, report and baseline.
 
 ## Next
 
 - [ ] Remove obsolete CLI warning-report controls; config levels are already enforced at `error`. Keep old-debt adoption in the baseline.
 - [ ] Reduce policy-tuning inputs to the ones checks need about a repository. Thresholds can only be lowered; local-rule APIs remain exposed. Review the remaining extension boundary.
-- [ ] Port reusable checks still in `script/lint/rules/` into the shared policy, so consumers do not copy Platform's scripts.
 - [ ] Split Grit implementation modules by the checks they own, without making consumers select competing presets; route Platform's remaining static checks through Quality.
 - [ ] Define the Effect-boundary rule's source and test scope before porting the repository's `try`/`async` restrictions.
 - [ ] Define the service-parameter policy before enforcing it against public helpers that accept services or `Context`.

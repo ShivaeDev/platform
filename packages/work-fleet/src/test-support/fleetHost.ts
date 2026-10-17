@@ -80,7 +80,7 @@ export function withHost<A, E, R>(
 					for (const [file, source] of Object.entries(files)) {
 						writeFileSync(join(boardDir, file), source);
 					}
-					return { boardDir, configFile, host: resolveHost(boardDir, settings) };
+					return { boardDir, configFile, host: resolveHost(boardDir, settings, configFile) };
 				}),
 				({ boardDir, configFile, host }) => {
 					const provider = engineProvider({}, []);

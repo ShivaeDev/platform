@@ -73,3 +73,20 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 		);
 	});
 }
+
+test("scheduler passes leave an unchanged area wait unwritten", function* () {
+	const one = task("one", "approved").replace("kind: task", "kind: task\nareas: [shared]");
+	yield* withHost({ "one.md": one, "two.md": one.replaceAll("one", "two") }, {}, (fixture) =>
+		Effect.gen(function* () {
+			const fleet = yield* Fleet;
+			yield* dispatchApproved(fixture.host, "one");
+			yield* admitApproved(fixture.host);
+			yield* cycle;
+			const waiting = yield* fleet.get("two");
+			expect(waiting.value).toMatchObject({ blocker: "waiting for area shared held by one", stage: "prepared" });
+			yield* cycle;
+			yield* cycle;
+			expect(yield* fleet.get("two")).toEqual(waiting);
+		}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts))),
+	);
+});
