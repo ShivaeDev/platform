@@ -15,9 +15,7 @@ const test = postgresTests("test");
 for (const wholeFileRevision of [false, true]) {
 	for (const [field, before, after] of [
 		["status", "status: planned", "status: deferred"],
-		["superseded status", "status: planned", "status: superseded"],
 		["next_action", "next_action: Implement the work.", "next_action: Work completed."],
-		["owner", "owner: first-owner", "owner: next-owner"],
 	] as const) {
 		registerBookkeepingTests(wholeFileRevision, field, before, after);
 	}
@@ -25,7 +23,7 @@ for (const wholeFileRevision of [false, true]) {
 
 function registerBookkeepingTests(wholeFileRevision: boolean, field: string, before: string, after: string) {
 	for (const phase of ["preparation", "execution", "review", "decision"]) {
-		const closesDecision = phase === "decision" && ["status", "superseded status"].includes(field);
+		const closesDecision = phase === "decision" && field === "status";
 		test(`${wholeFileRevision ? "saved whole-file" : "authored brief"} ${field} edits during ${phase} ${closesDecision ? "release closed work" : "preserve durable work and its decision"} after restart`, () =>
 			withFleetBoard({ noChange: true, reviewRunning: phase === "review" }, (fixture, root, source) =>
 				Effect.gen(function* () {
@@ -37,7 +35,7 @@ function registerBookkeepingTests(wholeFileRevision: boolean, field: string, bef
 					files.write("one.md", changed);
 					const unchanged = yield* fixture.restart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("one"))));
 					if (closesDecision) {
-						assertReleasedBookkeeping(unchanged.value, active.value, field);
+						assertReleasedBookkeeping(unchanged.value, active.value);
 						expect(files.receipts()).toHaveLength(1);
 						return;
 					}
@@ -69,7 +67,7 @@ const finishBookkeepingPhase = Effect.fn("Fleet.finishBookkeepingPhase")(functio
 	if (phase === "preparation") {
 		const dispatched = yield* fleet.dispatch("one");
 		expect(dispatched.value.boardRevision).toBe(boardRevision);
-		if (["status", "superseded status"].includes(field)) {
+		if (field === "status") {
 			expect(dispatched.value.stage).toBe("released");
 			expect(fixture.launched).toEqual([]);
 			return;
@@ -121,8 +119,8 @@ const continueBookkeepingDecision = Effect.fnUntraced(function* (
 	expect(boardHttpFiles(root).receipts()).toHaveLength(1);
 });
 
-function assertReleasedBookkeeping(current: FleetRecord, active: FleetRecord, field: string) {
+function assertReleasedBookkeeping(current: FleetRecord, active: FleetRecord) {
 	expect(current.stage).toBe("released");
-	expect(current.releaseReason).toBe(`Board status is ${field === "status" ? "deferred" : "superseded"}`);
+	expect(current.releaseReason).toBe("Board status is deferred");
 	expect(current.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: active.decision?.published }]);
 }

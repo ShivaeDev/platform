@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { quality, trees } from "#test/cli.ts";
+import { quality, runQuality, trees } from "#test/cli.ts";
 import { formatTree, qualityTree } from "#test/qualityTree.ts";
 import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
 
@@ -10,18 +10,18 @@ const cliTimeout = 60_000;
 afterEach(removeSeededTrees);
 
 describe("quality lint", { timeout: cliTimeout }, () => {
-	it("exits 0 on a clean tree, skipping declarations and ignored files", () => {
-		const result = quality(qualityTree(trees.clean), "lint");
+	it("exits 0 on a clean tree, skipping declarations and ignored files", async () => {
+		const result = await runQuality(qualityTree(trees.clean), "lint");
 		expect(result).toEqual({ status: 0, stderr: "", stdout: "quality: passed. 3 source files checked.\n" });
 	});
 
-	it.each(["warn", "off"])("exits 2 when a config tries to use %s", (level) => {
-		const result = quality(seedTree([config(`{ rules: { "structure/max-lines": "${level}" } }`)]));
+	it.each(["warn", "off"])("exits 2 when a config tries to use %s", async (level) => {
+		const result = await runQuality(seedTree([config(`{ rules: { "structure/max-lines": "${level}" } }`)]));
 		expect(result.status).toBe(2);
 		expect(result.stderr).toContain("structure/max-lines");
 	});
 
-	it("exits 1 and groups the violations of a rule", () => {
+	it("exits 1 from the executable and groups the violations of a rule", () => {
 		const result = quality(qualityTree(trees.dirty), "lint");
 		expect(result.status).toBe(1);
 		expect(result.stdout).toContain("error structure/max-lines (2)\n");
@@ -31,7 +31,7 @@ describe("quality lint", { timeout: cliTimeout }, () => {
 		expect(result.stderr).toBe("");
 	});
 
-	it("runs local rules from a typed config that imports the package", () => {
+	it("runs local rules from a typed config that imports the package", async () => {
 		const root = qualityTree(trees.clean, [
 			{
 				content: [
@@ -45,21 +45,21 @@ describe("quality lint", { timeout: cliTimeout }, () => {
 			},
 			{ content: 'console.log("ready");\n', path: "src/log.ts" },
 		]);
-		const result = quality(root, "lint");
+		const result = await runQuality(root, "lint");
 		expect(result.status).toBe(1);
 		expect(result.stdout).toContain("error local/no-console-log (1)\n  Log through the logger.\n  src/log.ts  logs to the console.");
 	});
 
-	it("runs the comment rules by default, at the line of each comment", () => {
+	it("runs the comment rules by default, at the line of each comment", async () => {
 		const root = seedTree([config('{ sources: ["src"] }'), { content: "/** Adds. */\nexport const a = 1; // TODO\n// three\n", path: "src/a.ts" }]);
-		const result = quality(root, "lint");
+		const result = await runQuality(root, "lint");
 		expect(result.status).toBe(1);
 		expect(result.stdout).toContain("  src/a.ts:1  JSDoc block.");
 		expect(result.stdout).toContain('  src/a.ts:2  Marks unfinished work: "TODO".');
 		expect(result.stdout).toContain("  src/a.ts:3  3 comments against a limit of 2.");
 	});
 
-	it("honours registered exceptions and fails on stale ones", () => {
+	it("honours registered exceptions and fails on stale ones", async () => {
 		const root = qualityTree(trees.dirty, [
 			{
 				content: JSON.stringify([
@@ -69,40 +69,45 @@ describe("quality lint", { timeout: cliTimeout }, () => {
 				path: "quality/registry.json",
 			},
 		]);
-		expect(quality(formatTree(root), "lint").stdout).toContain("quality: passed. 3 source files checked; 2 registered violations not shown.");
+		expect((await runQuality(formatTree(root), "lint")).stdout).toContain(
+			"quality: passed. 3 source files checked; 2 registered violations not shown.",
+		);
 		writeFileSync(join(root, "src/long.ts"), "String(0);\n");
-		const stale = quality(root, "lint");
+		const stale = await runQuality(root, "lint");
 		expect(stale.status).toBe(1);
 		expect(stale.stdout).toContain("structure/max-lines src/long.ts matches no violation.");
 	});
 });
 
 describe("quality baseline", { timeout: cliTimeout }, () => {
-	it("adopts existing violations, holds them and shrinks with the code", () => {
+	it("adopts existing violations, holds them and shrinks with the code", async () => {
 		const root = qualityTree(trees.dirty);
-		expect(quality(root, "baseline", "write")).toMatchObject({ status: 0, stdout: "quality: recorded 2 entries in quality/baseline.jsonl.\n" });
-		expect(quality(root, "lint")).toMatchObject({ status: 0, stdout: expect.stringContaining("2 baselined violations not shown") });
+		expect(await runQuality(root, "baseline", "write")).toMatchObject({
+			status: 0,
+			stdout: "quality: recorded 2 entries in quality/baseline.jsonl.\n",
+		});
+		expect(await runQuality(root, "lint")).toMatchObject({ status: 0, stdout: expect.stringContaining("2 baselined violations not shown") });
 
 		writeFileSync(join(root, "src/longer.ts"), "String(0);\nString(1);\nString(2);\nString(3);\nString(4);\nString(5);\nString(6);\n");
-		const grown = quality(root, "lint");
+		const grown = await runQuality(root, "lint");
 		expect(grown.status).toBe(1);
 		expect(grown.stdout).toContain("src/longer.ts is over its baseline: 4 against 3 baselined.");
 
 		writeFileSync(join(root, "src/longer.ts"), "String(0);\nString(1);\nString(2);\nString(3);\nString(4);\n");
 		writeFileSync(join(root, "src/long.ts"), "String(0);\n");
-		const improved = quality(root, "lint");
+		const improved = await runQuality(root, "lint");
 		expect(improved.status).toBe(0);
 		expect(improved.stdout).toContain("note quality/baseline.jsonl: 2 stale entries");
 		expect(improved.stdout).toContain("structure/max-lines src/long.ts has no violations left.");
 		expect(improved.stdout).toContain("structure/max-lines src/longer.ts allows more than is left");
 
-		expect(quality(root, "baseline", "prune").stdout).toBe("quality: removed 1 entry and lowered 1 entry in quality/baseline.jsonl.\n");
-		expect(quality(root, "lint")).toMatchObject({ status: 0, stdout: expect.not.stringContaining("note") });
+		expect((await runQuality(root, "baseline", "prune")).stdout).toBe("quality: removed 1 entry and lowered 1 entry in quality/baseline.jsonl.\n");
+		expect(await runQuality(root, "lint")).toMatchObject({ status: 0, stdout: expect.not.stringContaining("note") });
 	});
 
-	it("refuses to regenerate an existing baseline without naming a rule", () => {
+	it("refuses to regenerate an existing baseline without naming a rule", async () => {
 		const root = qualityTree(trees.dirty, [{ content: "", path: "quality/baseline.jsonl" }]);
-		const result = quality(root, "baseline", "write");
+		const result = await runQuality(root, "baseline", "write");
 		expect(result.status).toBe(2);
 		expect(result.stderr).toContain("a baseline exists. Record a rule with --rule <id>");
 	});
@@ -132,15 +137,15 @@ describe("quality exits 2 when it cannot run", { timeout: cliTimeout }, () => {
 			],
 			"rule local/boom failed: boom",
 		],
-	])("%s", (_, files, message) => {
-		const result = quality(seedTree(files), "lint");
+	])("%s", async (_, files, message) => {
+		const result = await runQuality(seedTree(files), "lint");
 		expect(result.status).toBe(2);
 		expect(result.stdout).toBe("");
 		expect(result.stderr).toContain(message);
 	});
 
-	it("on a usage error, printing the usage", () => {
-		const result = quality(qualityTree(trees.clean), "lint", "--warnings", "loud");
+	it("on a usage error, printing the usage", async () => {
+		const result = await runQuality(qualityTree(trees.clean), "lint", "--warnings", "loud");
 		expect(result.status).toBe(2);
 		expect(result.stderr).toContain("Usage:");
 	});

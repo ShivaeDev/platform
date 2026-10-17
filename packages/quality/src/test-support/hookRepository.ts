@@ -20,6 +20,17 @@ export interface HookSetup {
 	readonly scripts?: Readonly<Record<string, string>>;
 }
 
+const CHECKS_LOG = "checks.log";
+
+// Pre-commit scripts write to the hook's own output streams, so a run in this process reads what they did from a log.
+export function logs(line: string): string {
+	return `echo ${line} >> ${CHECKS_LOG}`;
+}
+
+export function checksLog(root: string): string {
+	return existsSync(join(root, CHECKS_LOG)) ? readFileSync(join(root, CHECKS_LOG), "utf8") : "";
+}
+
 const CLEAN: SeedFile = { content: "export function full(): number {\n\treturn 1;\n}\n", path: "src/full.ts" };
 
 const BIN = `#!/bin/sh\nexec node --conditions=source ${join(packageRoot, "src", "cli.ts")} "$@"\n`;
@@ -60,6 +71,7 @@ export function hookRepository({
 						{ content: "node_modules/\n", path: ".gitignore" },
 						{ content: '{ "extends": ["@shivaedev/quality/biome"] }\n', path: "biome.json" },
 					]),
+			{ content: "loglevel=silent\n", path: ".npmrc" },
 			{ content: `${JSON.stringify(sortPackageJson({ scripts, type: "module" }), null, "\t")}\n`, path: "package.json" },
 			...files,
 		].map((file) => ({

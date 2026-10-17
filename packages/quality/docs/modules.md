@@ -49,7 +49,8 @@ A module link opens its source. Type and value declarations with the same name a
 | [cli/messages.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/messages.ts) | `USAGE`, `ADOPT_REMOVED` |
 | [cli/migrate.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/migrate.ts) | `migrateBaseline` |
 | [cli/migrateExceptions.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/migrateExceptions.ts) | `migrateExceptions` |
-| [cli/run-main.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/run-main.ts) | `quietOnClosedPipe`, `runMain` |
+| [cli/program.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/program.ts) | `Invocation`, `program` |
+| [cli/run-main.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/run-main.ts) | `exitCode`, `quietOnClosedPipe`, `services`, `explained`, `runMain` |
 | [cli/shrink.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/shrink.ts) | `pruneBaseline`, `tightenBaseline` |
 
 ## config

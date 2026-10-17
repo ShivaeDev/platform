@@ -5,6 +5,7 @@ import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { authScreenVerbs } from "./authScreenVerbs.ts";
 import { noteScreenVerbs } from "./noteScreenVerbs.ts";
 import { notesClient } from "./notesClient.ts";
+import { notesRefreshVerbs } from "./notesRefreshVerbs.ts";
 import { screenActions } from "./screenActions.ts";
 import { screenObservations } from "./screenObservations.ts";
 import { openApp, openLogin, openNotes, openRoute, openSession } from "./screenSetup.tsx";
@@ -15,14 +16,19 @@ export const screens = storyKit({
 	create: createScreen,
 	inspect: (engine) => ({ calls: engine.client.calls, route: engine.router?.state.location.pathname, text: engine.view?.container.textContent }),
 	name: "app screen",
-	stages: ["screen", "elsewhere"],
+	stages: ["list", "screen", "elsewhere"],
 	verbs: (engine, story) => ({
 		...screenActions(engine, story.tell),
 		...screenObservations(engine, story.tell),
 		...noteScreenVerbs(engine, story.tell),
+		...notesRefreshVerbs(engine, story.tell),
 		...authScreenVerbs(engine, story.tell),
 	}),
 });
+
+export function heldNotesList() {
+	return screens.trait("list", "the first notes list request is held", (engine) => Effect.sync(() => engine.client.holdList()));
+}
 
 export function editingNote() {
 	return screens.trait("screen", "the first note is open in the editor", function* (engine) {
