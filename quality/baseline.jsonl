@@ -158,9 +158,6 @@
 {"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"biome/lint/suspicious/useAwait","count":1}
 {"path":"packages/effect-react/src/nativeFeature.dom.spec.tsx","rule":"biome/lint/nursery/noComponentHookFactories","count":3}
 {"path":"packages/effect-react/src/nativeFeature.dom.spec.tsx","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-react/src/orderExample.dom.spec.tsx","rule":"biome/lint/correctness/useUniqueElementIds","count":2}
-{"path":"packages/effect-react/src/orderExample.dom.spec.tsx","rule":"biome/lint/suspicious/noShadow","count":2}
-{"path":"packages/effect-react/src/orderExample.dom.spec.tsx","rule":"biome/lint/suspicious/useAwait","count":5}
 {"path":"packages/effect-react/src/resume-signal.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-react/src/submission.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-react/src/submission.ts","rule":"biome/lint/style/useNamingConvention","count":6}
