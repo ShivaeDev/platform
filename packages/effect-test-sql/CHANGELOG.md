@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 - 2026-10-17
+
+### Fixed
+
+- The `migrateTo(name: string | number)` helper returned by `migrationSteps` accepts zero-padded migration names as written, unpadded names and bare numeric ids. Unknown or ambiguous targets fail with a typed `MigrationError` naming the requested target.
+
 ## 0.5.0 - 2026-10-17
 
 ### Added

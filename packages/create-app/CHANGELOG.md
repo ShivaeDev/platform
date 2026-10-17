@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.6 - 2026-10-17
+
+### Changed
+
+- New apps start on `@shivaedev/effect-test-sql` 0.5.1, whose migration steps accept zero-padded migration names as written.
+
 ## 0.6.5 - 2026-10-17
 
 ### Changed
