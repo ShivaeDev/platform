@@ -1,8 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Context, Effect, Layer, Option, Redacted, type Scope } from "effect";
+import { Config, Context, Effect, Layer, Option, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { test } from "vitest";
-import type { PostgresTestDatabase, PostgresTestServices } from "#database.ts";
 import { makePostgresTestLayer } from "#postgres.ts";
 
 const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_EFFECT_TEST_SQL_TEST_DATABASE_URL"))));
@@ -37,14 +36,6 @@ export function setup() {
 		url: adminUrl,
 	};
 	return { counts, layer: makePostgresTestLayer(options), options };
-}
-
-export function runDatabase<A, E>(effect: Effect.Effect<A, E, PostgresTestServices | PostgresTestDatabase | Scope.Scope>) {
-	return Effect.runPromise(Effect.scoped(effect).pipe(Effect.provide(setup().layer)));
-}
-
-export function runAdmin<A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Scope.Scope>) {
-	return Effect.runPromise(Effect.scoped(effect).pipe(Effect.provide(PgClient.layer({ url: adminUrl }))));
 }
 
 export function secondClient(connectionUrl: Redacted.Redacted<string>) {

@@ -2,7 +2,6 @@ import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { Migrator, SqlClient } from "effect/sql";
 import { makePostgresTestLayer } from "#postgres.ts";
-import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { adminUrl } from "./postgres.ts";
 
 export class Item extends Model.Class<Item>("Item")({
@@ -32,11 +31,7 @@ export const migrations = {
 	table: "upgrade_migrations",
 };
 
-const layer = makePostgresTestLayer({
+export const layer = makePostgresTestLayer({
 	migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" },
 	url: adminUrl,
 });
-
-export function runUpgrade<A, E, R>(effect: Effect.Effect<A, E, R>) {
-	return withIsolatedDatabase(effect).pipe(Effect.provide(layer));
-}
