@@ -7,6 +7,7 @@ import { launchRecord } from "#engine/launchRecord.ts";
 import { localOnlyCriteria } from "#engine/localOnlyCriteria.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
+import { saveLaunch } from "#engine/saveLaunch.ts";
 import { submitLaunch } from "#engine/submitLaunch.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
@@ -14,7 +15,7 @@ import { policyGuidance } from "#policyGuidance.ts";
 import { reportPrompt, withWorkerGuidance } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeLaunch(state: EngineState) {
-	const { store, board, sessions, load, save } = state;
+	const { store, board, sessions, load } = state;
 	return Effect.fn("Fleet.launch")(function* (
 		input: Versioned<FleetRecord>,
 		role: "worker" | "repair",
@@ -76,22 +77,7 @@ export function makeLaunch(state: EngineState) {
 			submittedAt: policy.now(),
 		};
 		const record = launchRecord(stored.value, launchRole, policy.now(), continuation?.responses);
-		yield* save(
-			stored,
-			{
-				...record,
-				admissionReady: true,
-				attempts: [...record.attempts, attempt],
-				blocker: undefined,
-				launchRetry: undefined,
-				mergeAreasReleased: undefined,
-				mergeReadyAt: undefined,
-				mergeReadyHead: undefined,
-				pendingAnswers: undefined,
-				stage: "executing",
-			},
-			{ quota, role: launchRole },
-		);
+		yield* saveLaunch(state, stored, record, attempt, { priority: work.priority, quota, role: launchRole });
 		const submitted =
 			sessionId === undefined
 				? sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt: workerPrompt, settings })

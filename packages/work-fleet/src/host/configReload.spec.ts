@@ -159,16 +159,23 @@ test("every reloadable setting reaches the policy the engine reads on its next p
 				Effect.gen(function* () {
 					const before = yield* daemon.policy;
 					expect(yield* before.readGuidance?.("reviewer") ?? Effect.succeed(undefined)).toBe("First review guidance.");
+					expect(before.openPullRequests).toBeUndefined();
 					yield* daemon.edit({
 						areaMergeWaitMs: 1234,
 						backlog: 7,
+						openPullRequests: { ease: 2, max: 5 },
 						quota: "codex",
 						stallMinutes: 9,
 						worker: { branchPrefix: "test/", reviewerGuidance: { file: "second.txt" }, sharedEnvironment: "/synthetic/env.sh" },
 					});
 					yield* daemon.config((config) => config.settings.backlog === 7);
 					const after = yield* daemon.policy;
-					expect(after).toMatchObject({ areaMergeWaitMs: 1234, deliveryBacklog: 7, stallMinutes: 9 });
+					expect(after).toMatchObject({
+						areaMergeWaitMs: 1234,
+						deliveryBacklog: 7,
+						openPullRequests: { ease: 2, floor: 0, max: 5 },
+						stallMinutes: 9,
+					});
 					expect(after.refreshQuota).not.toBe(before.refreshQuota);
 					expect(yield* after.readGuidance?.("reviewer") ?? Effect.succeed(undefined)).toBe("Second review guidance.");
 				}),

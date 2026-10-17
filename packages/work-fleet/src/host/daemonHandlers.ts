@@ -36,7 +36,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 				ClientContract.of({
 					"daemon.answer": ({ workId, text, release }) =>
 						exposeFailure(settle(answerWork(host, workId, text, release, true)).pipe(Effect.map(({ value }) => value))),
-					"daemon.dispatch": ({ workId }) => exposeFailure(dispatch.accept(workId)),
+					"daemon.dispatch": ({ workId, now, ignoreAreas }) => exposeFailure(dispatch.accept(workId, { ignoreAreas, now })),
 					"daemon.dispatch-status": ({ workId }) => exposeFailure(dispatch.get(workId)),
 					"daemon.follow": ({ workIds, follow: continuous }) => follow(workIds, continuous),
 					"daemon.name-threads": () => exposeFailure(nameStoredThreads(host)),

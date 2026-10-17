@@ -6,8 +6,10 @@ import * as SchemaIssue from "effect/SchemaIssue";
 import { CONFIG_FILE, DEFAULT_NAMESPACE, NAMESPACE, SHARED_LOCAL_POSTGRES } from "#host/defaults.ts";
 import { DEFAULT_AREA_MERGE_WAIT_MS } from "#scheduling/areas.ts";
 import { LaunchSettings } from "#session/schema.ts";
+import type { OpenPullRequestCurve } from "#storage/model.ts";
 
 const Positive = Schema.Int.check(Schema.isGreaterThan(0));
+const Count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 const Text = Schema.String.check(Schema.isMinLength(1));
 const Guidance = Schema.Union([Text, Schema.Struct({ file: Text })]);
 
@@ -34,6 +36,11 @@ export const HostConfig = Schema.Struct({
 	launch: Schema.optional(LaunchSettings),
 	local: Schema.optional(Schema.Struct({ endpoint: Text, requestTimeoutMs: Schema.optional(Positive) })),
 	namespace: Schema.optional(Schema.String.check(Schema.isPattern(NAMESPACE))),
+	openPullRequests: Schema.optional(
+		Schema.Struct({ ease: Count, floor: Schema.optional(Count), max: Positive }).check(
+			Schema.makeFilter((curve) => curve.ease <= curve.max || "openPullRequests.ease must not exceed openPullRequests.max"),
+		),
+	),
 	provider: Schema.Literals(["local", "cloud"]),
 	quota: Schema.optional(Schema.Literals(["codex", "unlimited"])),
 	repository: Schema.optional(Schema.Struct({ branch: Text, remote: Text })),
@@ -72,6 +79,7 @@ export interface FleetHost {
 	readonly local: HostConfig["local"];
 	readonly maxConnections: number;
 	readonly namespace: string;
+	readonly openPullRequests?: OpenPullRequestCurve;
 	readonly provider: HostConfig["provider"];
 	readonly quota: NonNullable<HostConfig["quota"]>;
 	readonly repository: NonNullable<HostConfig["repository"]>;
@@ -95,6 +103,7 @@ export function resolveHost(boardDir: string, config: HostConfig, configFile?: s
 		local: config.local,
 		maxConnections: config.database?.maxConnections ?? 20,
 		namespace: config.namespace ?? DEFAULT_NAMESPACE,
+		...(config.openPullRequests === undefined ? {} : { openPullRequests: { ...config.openPullRequests, floor: config.openPullRequests.floor ?? 0 } }),
 		provider: config.provider,
 		quota: config.quota ?? "codex",
 		repository: config.repository ?? { branch: "main", remote: "origin" },

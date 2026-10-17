@@ -77,6 +77,7 @@ export function hostPolicy(host: FleetHost) {
 					launch: applied.launch,
 					...(localPath === undefined ? {} : { localOnlyBoardPath: localPath }),
 					now,
+					...(applied.openPullRequests === undefined ? {} : { openPullRequests: applied.openPullRequests }),
 					operationId: () => crypto.randomUUID(),
 					quota: { expiresAt: 0, observedAt: 0 },
 					readGuidance: (role) => guidance[role].pipe(Effect.mapError((error) => new ServiceUnavailable({ message: error.message }))),

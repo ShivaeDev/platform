@@ -10,9 +10,7 @@ import type { Versioned } from "#storage/model.ts";
 
 const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: readonly Versioned<FleetRecord>[]) {
 	const fleet = yield* Fleet;
-	const prepared = records
-		.filter(({ value }) => value.stage === "prepared")
-		.sort((left, right) => (right.value.launchRetry?.retryAt ?? 0) - (left.value.launchRetry?.retryAt ?? 0));
+	const prepared = yield* fleet.admissionOrder(records);
 	const dispatched: Result.Result<Effect.Success<ReturnType<typeof fleet.dispatch>>, Effect.Error<ReturnType<typeof fleet.dispatch>>>[] = [];
 	for (const { value } of prepared) {
 		const result = yield* fleet.dispatch(value.workId).pipe(Effect.result);

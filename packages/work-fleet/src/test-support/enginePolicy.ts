@@ -9,6 +9,7 @@ export function enginePolicy(options: EngineOptions): FleetConfiguration {
 		executionConcurrency: options.concurrency ?? 2,
 		...(options.launch === undefined ? {} : { launch: options.launch }),
 		now: options.now ?? (() => 100),
+		...(options.openPullRequests === undefined ? {} : { openPullRequests: options.openPullRequests }),
 		operationId: () => {
 			operationCount += 1;
 			return options.operationCollision ? "operation-fixed" : `operation-${operationCount}`;

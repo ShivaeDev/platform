@@ -58,7 +58,7 @@ For this repository, configure the `worker` section in `.work/fleet.config.json`
 }
 ```
 
-The host defaults to `concurrency: 100`, `backlog: 100`, `namespace: "work_fleet"`, `quota: "codex"` and an empty `launch`. `concurrency` limits execution; `backlog` limits undelivered adopted changes. The Codex quota policy uses ordinary-usage eligibility and caches observations for a minute; `quota: "unlimited"` admits without that provider limit. An unknown quota response fails rather than granting capacity.
+The host defaults to `concurrency: 100`, `backlog: 100`, `namespace: "work_fleet"`, `quota: "codex"`, an empty `launch` and no `openPullRequests` curve. `concurrency` limits execution; `backlog` limits undelivered adopted changes; `openPullRequests` slows new implementer launches as Fleet's open PRs pile up, as described under [Pace new work by open PRs](#pace-new-work-by-open-prs). The Codex quota policy uses ordinary-usage eligibility and caches observations for a minute; `quota: "unlimited"` admits without that provider limit. An unknown quota response fails rather than granting capacity.
 
 `stallMinutes` is a positive integer, defaulting to 30. Fleet records each running turn's item count and statuses; added items or changed statuses reset its progress timer. One idle interval sends a Codex steer asking the worker to continue or stop with a question. A second idle interval interrupts the turn; after observing it interrupted, Fleet continues the same thread with the retry prompt. A third idle interval publishes an orchestrator decision. Progress times and recovery stages persist across host restart. CLI status and the generated status page show each turn's last progress time and Fleet's steer and interrupt timestamps. PostgreSQL specs with a synthetic Codex server and test clock in `src/engine/stallRecovery.spec.ts`, `src/engine/stallProgress.spec.ts` and `src/engine/stalledReviewer.spec.ts` prove the recovery sequence, timer resets, restart handling and read-only reviewer continuation.
 
@@ -84,7 +84,7 @@ Compose `daemonLayer(host, parts, port)` in a scoped host, or launch it with `se
 
 ### Edit the configuration while the daemon runs
 
-The daemon watches its `fleet.config.json` (or the `--config` file) and applies a valid edit without a restart. `concurrency`, `backlog`, `intervalSeconds`, `quota`, `launch`, `stallMinutes`, `areaMergeWaitMs`, `worker.workerGuidance` and `worker.reviewerGuidance` take effect on the next scheduler pass or launch; an applied edit starts that pass at once. Running turns keep the launch settings they started with, and work that already holds capacity keeps running after `concurrency` is lowered. Every other setting, such as `provider`, `database`, `namespace`, `cloud`, `local`, `repository`, `result`, `worker.branchPrefix` and `worker.sharedEnvironment`, keeps its running value: the daemon logs a warning and lists the changed paths as needing a restart. An edit saved by replacing the file keeps applying.
+The daemon watches its `fleet.config.json` (or the `--config` file) and applies a valid edit without a restart. `concurrency`, `backlog`, `intervalSeconds`, `quota`, `launch`, `openPullRequests`, `stallMinutes`, `areaMergeWaitMs`, `worker.workerGuidance` and `worker.reviewerGuidance` take effect on the next scheduler pass or launch; an applied edit starts that pass at once. Running turns keep the launch settings they started with, and work that already holds capacity keeps running after `concurrency` is lowered. Every other setting, such as `provider`, `database`, `namespace`, `cloud`, `local`, `repository`, `result`, `worker.branchPrefix` and `worker.sharedEnvironment`, keeps its running value: the daemon logs a warning and lists the changed paths as needing a restart. An edit saved by replacing the file keeps applying.
 
 An edit that fails validation, is partly written, cannot be read, or names an unreadable guidance file keeps the last good config. The daemon logs a `HostConfigRejected` warning that names the failing field, and the next valid edit applies. A rejected edit never stops the daemon or drops tracked work.
 
@@ -137,12 +137,42 @@ A `depends_on` relationship waits on automation for an accepted Fleet outcome on
 
 Before launching prepared work, Fleet rereads its Markdown source for the current Board status, including changes made during preparation assessment in the same scheduler pass. A `done`, `superseded` or `deferred` item moves to `released` with a durable `releaseReason`, clears its admission blocker and leaves the waiting list. PostgreSQL regressions in `src/engine/closedDispatch.spec.ts` cover closing a prepared item while it waits for an area lock or a dependency, freeing the wait without starting a worker, and preserving release across restart.
 
+### Pace new work by open PRs
+
+Merge throughput, not launch throughput, limits a fleet. Every implementer that launches while earlier PRs wait to merge adds a PR that will conflict with, duplicate or go stale behind the others, and one flaky check can then pull many of them out of the merge queue at once. Fleet therefore applies back pressure: it launches new implementers freely while few of its PRs are open, launches fewer as they pile up, and always runs the work that moves existing PRs toward merge.
+
+```json
+{
+  "concurrency": 20,
+  "openPullRequests": { "ease": 6, "max": 15 }
+}
+```
+
+This configuration allows full concurrency for new implementers up to 6 open Fleet PRs, then linearly fewer, and none at 15 or more. A new implementer launches only while running work plus work waiting to launch stays below the limit for the current count of open Fleet PRs. The limit is `concurrency` up to `ease` open PRs, falls linearly to `floor` at `max`, and stays at `floor` beyond it, rounding down. `floor` defaults to 0, `ease` may be 0, and `ease` must not exceed `max`. An open Fleet PR is the adopted change of a current Fleet cycle that has not completed or been released; PRs Fleet did not adopt, such as Renovate or human PRs, do not count, and the count comes from Fleet's own records rather than GitHub polling. A held item stays prepared, waiting on automation, with a reason such as `waiting for open PRs to merge: 14 of 15`.
+
+Only new implementer launches, from prepared work, are throttled. Reviews, repairs and workers continuing after an answered question never wait on the curve. When slots are short, they also go first: an item in review or repair, or with queued answers, that waits for a slot holds it ahead of new implementers, which wait with a reason such as `waiting for 1 review or repair launches to go first (limit 1)`. A merged PR completes its item, lowers the count and frees new launches on the next pass. Without `openPullRequests`, that reservation still applies within `concurrency`. PostgreSQL stories in `src/engine/dispatchBackPressure.spec.ts` drive the real scheduler and store to prove the launches allowed for each open-PR count, a repair, a second review and an answered worker question proceeding while a new implementer is held, a waiting review going before a new implementer, and a merged PR freeing launches.
+
+### Launch urgent work now
+
+Lower limits help merge throughput, but some small, independent work, such as a fix to Fleet itself, should start at once. `work-fleet dispatch --now <id>` launches the item over `concurrency`, the open-PR curve and `backlog`. A `fleet-priority: urgent` field in the item's frontmatter does the same whenever the scheduler reaches it. Area claims and `depends_on` dependencies still apply because they protect correctness rather than capacity; `--now --ignore-areas` also skips area claims. The request stays on the prepared item until it launches, across later scheduler passes, and the daemon resumes a pending `--now` receipt after a restart. Fleet first asks for admission within the limits; only a launch the limits refused is recorded as over the limit, and `work-fleet status` shows that item as `launched over the limit` while it runs, so the operator sees why running work exceeds `concurrency`. The override covers the new implementer launch; its later reviews and repairs use the normal limits and go first as above.
+
+```markdown
+---
+id: fleet.small-fix
+kind: task
+fleet: approved
+fleet-priority: high
+---
+```
+
+`fleet-priority` takes `urgent`, `high` or `normal`, the default; Board treats the field as Fleet-owned, and any other value fails Fleet's Board read for that item. When slots are short, the scheduler admits prepared work in priority order, and within a priority the existing admission order holds. `src/engine/dispatchPriority.spec.ts` proves, against PostgreSQL and the real scheduler, that `dispatch --now` launches at full concurrency while a normal dispatch waits and is marked in status, that urgent work still waits for an area held by another item unless `--ignore-areas` is given while urgent work with a free area launches over the limit, that a waiting `--now` request launches over the limit once its area frees, that `--now` still waits for an unfinished dependency, and that high-priority work, from the fixture or from Markdown frontmatter, is admitted before earlier normal work while an unknown `fleet-priority` is rejected; `src/engine/dispatchBackPressure.spec.ts` proves that urgent work launches over the open-PR curve, and `src/host/dispatchRecovery.spec.ts` that the daemon resumes a pending `--now` receipt with its override after a restart.
+
 ### Run, dispatch and inspect
 
 | Command | Behavior |
 |---|---|
 | `work-fleet serve <board-dir> [--port <port>]` | Starts the local HTTP RPC daemon, admits approved work, dispatches prepared items and reconciles running work. |
-| `work-fleet dispatch <work-id> [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. |
+| `work-fleet dispatch <work-id> [--now [--ignore-areas]] [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. `--now` launches over capacity limits; `--ignore-areas` also skips area claims. |
 | `work-fleet status [--port <port>]` | Prints Active, owner-grouped waiting and Completed views from stored records, then the config the daemon applies. |
 | `work-fleet status <work-id> --json [--port <port>]` | Filters to one item and prints the views as JSON. |
 | `work-fleet release <work-id>... [--port <port>]` | Releases terminal needs-human items and records closing responses on their Board decisions. |

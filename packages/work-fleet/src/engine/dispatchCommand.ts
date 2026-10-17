@@ -11,11 +11,16 @@ import type { EngineState } from "#engine/makeState.ts";
 import { clearIntegrationRetry, readRetry, retryPending } from "#engine/readRetry.ts";
 import { refreshBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
-import type { FleetRecord } from "#model.ts";
+import type { DispatchNow, FleetRecord } from "#model.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
+import type { Versioned } from "#storage/model.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	const { board, load, save, decision, integrations, policy } = state;
-	const dispatchPrepared = Effect.fn("Fleet.dispatchPrepared")(function* (workId: string, prompt?: string) {
+	function rememberNow(stored: Versioned<FleetRecord>, now: DispatchNow | undefined) {
+		const requested = requestedNow(stored.value, now);
+		return requested === undefined ? Effect.succeed(stored) : save(stored, requested);
+	}
+	const dispatchPrepared = Effect.fn("Fleet.dispatchPrepared")(function* (workId: string, prompt?: string, now?: DispatchNow) {
 		let stored = yield* load(workId);
 		const work = yield* board.get(workId);
 		stored = yield* refreshBrief(state, stored, work);
@@ -27,6 +32,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		if (released !== undefined) {
 			return released;
 		}
+		stored = yield* rememberNow(stored, now);
 		const authorized = yield* authorizeBriefContext(stored.value, work).pipe(Effect.result);
 		if (Result.isFailure(authorized)) {
 			return yield* decision(
@@ -72,7 +78,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 			),
 		);
 	});
-	return Effect.fn("Fleet.dispatch")(function* (workId: string, prompt?: string) {
+	return Effect.fn("Fleet.dispatch")(function* (workId: string, prompt?: string, now?: DispatchNow) {
 		const current = yield* load(workId);
 		if (retryPending(state, current.value)) {
 			return current;
@@ -80,7 +86,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		if (current.value.integrationRetry !== undefined) {
 			yield* save(current, { ...current.value, attentionOwner: undefined, blocker: undefined });
 		}
-		return yield* dispatchPrepared(workId, prompt).pipe(
+		return yield* dispatchPrepared(workId, prompt, now).pipe(
 			Effect.flatMap((updated) => clearIntegrationRetry(state, updated)),
 			Effect.catch((error) =>
 				Effect.gen(function* () {
@@ -90,6 +96,14 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 			),
 		);
 	});
+}
+
+function requestedNow(record: FleetRecord, now: DispatchNow | undefined): FleetRecord | undefined {
+	const current = record.dispatchNow;
+	if (now === undefined || (current !== undefined && (current.ignoreAreas || !now.ignoreAreas))) {
+		return undefined;
+	}
+	return { ...record, dispatchNow: now };
 }
 
 // Every scheduler pass retries waiting work, so rewriting an unchanged wait would make each pass write and notify once per waiter.
