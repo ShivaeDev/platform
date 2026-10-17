@@ -1,5 +1,6 @@
 import { describe, expect } from "@effect/vitest";
-import { Deferred, Effect } from "effect";
+import { Deferred, Effect, Fiber } from "effect";
+import * as TestClock from "effect/testing/TestClock";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { executing } from "#model.ts";
@@ -7,41 +8,54 @@ import { SessionFailure } from "#session/schema.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 
-const test = postgresTests("live", "isolated");
+const test = postgresTests("test", "isolated");
+
+function signalled<E>(reached: Deferred.Deferred<void>, gate: Effect.Effect<void, E>) {
+	return Deferred.succeed(reached, undefined).pipe(Effect.andThen(gate));
+}
+
+const passPastAcknowledgementWait = Effect.fn("Fleet.passPastAcknowledgementWait")(function* (reached: Deferred.Deferred<void>) {
+	const pass = yield* cycle.pipe(Effect.forkChild);
+	yield* Deferred.await(reached);
+	yield* TestClock.adjust("1 second");
+	return yield* Fiber.join(pass);
+});
+
+const queueFull = new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" });
 
 describe("Fleet launch acknowledgement pacing", () => {
 	test("a slow thread acknowledgement is persisted after the pass, without concurrent recovery", function* () {
+		const reached = yield* Deferred.make<void>();
 		const acknowledgement = yield* Deferred.make<void>();
-		yield* withEngine({ sessionAcknowledgementGate: Deferred.await(acknowledgement) }, (fixture) =>
+		yield* withEngine({ sessionAcknowledgementGate: signalled(reached, Deferred.await(acknowledgement)) }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
 				yield* prepareWork("two");
 				const fleet = yield* Fleet;
-				expect((yield* cycle.pipe(Effect.timeout("3 seconds"))).dispatched).toHaveLength(2);
-				yield* cycle.pipe(Effect.timeout("3 seconds"));
+				expect((yield* passPastAcknowledgementWait(reached)).dispatched).toHaveLength(2);
+				yield* cycle;
 				expect(fixture.decisions).toEqual([]);
 				yield* Deferred.succeed(acknowledgement, undefined);
-				yield* Effect.gen(function* () {
-					while ((yield* fleet.get("one")).value.attempts[0]?.receipt === undefined) {
-						yield* Effect.yieldNow;
-					}
-				}).pipe(Effect.timeout("3 seconds"));
+				while ((yield* fleet.get("one")).value.attempts[0]?.receipt === undefined) {
+					yield* Effect.yieldNow;
+				}
 				expect((yield* fleet.get("one")).value.attempts[0]?.receipt).toEqual(fixture.operations.get("operation-1"));
 				expect(fixture.launched).toEqual(["operation-1", "operation-2"]);
 			}),
 		);
 	});
 	for (const acknowledgement of ["session", "turn"] as const) {
-		test(`a lost ${acknowledgement} acknowledgement allows the next launch in the same pass`, () =>
-			withEngine(
-				acknowledgement === "turn" ? { acknowledgementGate: Effect.never, lostAcknowledgement: true } : { sessionAcknowledgementGate: Effect.never },
+		test(`a lost ${acknowledgement} acknowledgement allows the next launch in the same pass`, function* () {
+			const reached = yield* Deferred.make<void>();
+			const gate = signalled(reached, Effect.never);
+			yield* withEngine(
+				acknowledgement === "turn" ? { acknowledgementGate: gate, lostAcknowledgement: true } : { sessionAcknowledgementGate: gate },
 				(fixture) =>
 					Effect.gen(function* () {
 						yield* prepareWork("one");
 						yield* prepareWork("two");
 						const fleet = yield* Fleet;
-						const pass = yield* cycle.pipe(Effect.timeout("3 seconds"));
-						expect(pass.dispatched).toHaveLength(2);
+						expect((yield* passPastAcknowledgementWait(reached)).dispatched).toHaveLength(2);
 						const pending = (yield* fleet.get("one")).value;
 						expect(pending.attempts[0]).toMatchObject({ operationId: "operation-1", status: "submitting" });
 						expect(pending.attempts[0]?.receipt).toBeUndefined();
@@ -58,13 +72,15 @@ describe("Fleet launch acknowledgement pacing", () => {
 						expect(executing(recovered)).toBe(true);
 						expect(fixture.launched).toEqual(["operation-1", "operation-2"]);
 					}),
-			));
+			);
+		});
 	}
-	test("an explicit capacity rejection after a lost acknowledgement stops the rest of the pass", () => {
+	test("an explicit capacity rejection after a lost acknowledgement stops the rest of the pass", function* () {
+		const reached = yield* Deferred.make<void>();
 		let turns = 0;
-		return withEngine(
+		yield* withEngine(
 			{
-				acknowledgementGate: Effect.never,
+				acknowledgementGate: signalled(reached, Effect.never),
 				backlog: 3,
 				concurrency: 3,
 				lostAcknowledgement: true,
@@ -72,9 +88,7 @@ describe("Fleet launch acknowledgement pacing", () => {
 					if (call === "turn") {
 						turns += 1;
 					}
-					return call === "turn" && turns === 2
-						? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" })
-						: undefined;
+					return call === "turn" && turns === 2 ? queueFull : undefined;
 				},
 			},
 			(fixture) =>
@@ -84,23 +98,23 @@ describe("Fleet launch acknowledgement pacing", () => {
 						yield* prepareWork(id);
 					}
 					const fleet = yield* Fleet;
-					expect((yield* cycle.pipe(Effect.timeout("3 seconds"))).dispatched).toHaveLength(2);
+					expect((yield* passPastAcknowledgementWait(reached)).dispatched).toHaveLength(2);
 					expect((yield* fleet.get("two")).value.launchRetry).toBeDefined();
 					expect((yield* fleet.get("dependent")).value.attempts).toEqual([]);
 					expect(fixture.launched).toEqual(["operation-1", "operation-2"]);
 				}),
 		);
 	});
-	test("a capacity rejection from a background launch stops later dispatch", () =>
-		withEngine(
+	test("a capacity rejection from a background launch stops later dispatch", function* () {
+		const sessionReached = yield* Deferred.make<void>();
+		const turnReached = yield* Deferred.make<void>();
+		yield* withEngine(
 			{
-				acknowledgementGate: Effect.never,
+				acknowledgementGate: signalled(turnReached, Effect.never),
 				backlog: 3,
 				concurrency: 3,
 				lostAcknowledgement: true,
-				sessionAcknowledgementGate: Effect.sleep("1500 millis").pipe(
-					Effect.andThen(Effect.fail(new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" }))),
-				),
+				sessionAcknowledgementGate: signalled(sessionReached, Effect.sleep("1500 millis").pipe(Effect.andThen(Effect.fail(queueFull)))),
 			},
 			(fixture) =>
 				Effect.gen(function* () {
@@ -109,12 +123,21 @@ describe("Fleet launch acknowledgement pacing", () => {
 						yield* prepareWork(id);
 					}
 					const fleet = yield* Fleet;
-					expect((yield* cycle.pipe(Effect.timeout("5 seconds"))).dispatched).toHaveLength(2);
-					expect((yield* fleet.get("one")).value.launchRetry).toBeDefined();
+					const pass = yield* cycle.pipe(Effect.forkChild);
+					yield* Deferred.await(sessionReached);
+					yield* TestClock.adjust("1 second");
+					yield* Deferred.await(turnReached);
+					yield* TestClock.adjust("500 millis");
+					while ((yield* fleet.get("one")).value.launchRetry === undefined) {
+						yield* Effect.yieldNow;
+					}
+					yield* TestClock.adjust("500 millis");
+					expect((yield* Fiber.join(pass)).dispatched).toHaveLength(2);
 					expect((yield* fleet.get("dependent")).value.attempts).toEqual([]);
 					expect(fixture.launched).toEqual(["operation-1", "operation-2"]);
 				}),
-		));
+		);
+	});
 	test("a human retry reuses the thread whose first turn was rejected", () =>
 		withEngine({}, (fixture) =>
 			Effect.gen(function* () {
