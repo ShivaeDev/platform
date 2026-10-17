@@ -35,7 +35,11 @@ export type PgBossLayerOptions<TRegistrations extends readonly JobRegistration[]
 export interface PgBossDefinition<TIdentifier extends string = string> extends Context.Service<TIdentifier, PgBossService> {
 	readonly layer: <const TRegistrations extends readonly JobRegistration[], TErrorRequirements = never>(
 		options: PgBossLayerOptions<TRegistrations, TErrorRequirements>,
-	) => Layer.Layer<TIdentifier, PgBossError | PgBossQueueOptionsError, RegistrationRequirements<TRegistrations> | TErrorRequirements>;
+	) => Layer.Layer<
+		TIdentifier,
+		PgBossError | PgBossQueueOptionsError,
+		Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements
+	>;
 }
 
 function logClientError(error: Error): Effect.Effect<void> {
@@ -47,27 +51,33 @@ export const makePgBoss = <const TIdentifier extends string>(identifier: TIdenti
 
 	const layer = <const TRegistrations extends readonly JobRegistration[], TErrorRequirements = never>(
 		options: PgBossLayerOptions<TRegistrations, TErrorRequirements>,
-	): Layer.Layer<TIdentifier, PgBossError | PgBossQueueOptionsError, RegistrationRequirements<TRegistrations> | TErrorRequirements> => {
-		type Requirements = RegistrationRequirements<TRegistrations> | TErrorRequirements;
+	): Layer.Layer<
+		TIdentifier,
+		PgBossError | PgBossQueueOptionsError,
+		Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements
+	> => {
+		type Requirements = Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements;
 		const names = options.jobs.map(registrationName);
 		const { clientFactory, clientCacheKey, jobs, onError, stop, ...constructorOptions } = options;
 
 		const acquire = Effect.acquireRelease(
 			Effect.gen(function* () {
-				const context = yield* Effect.context<Requirements>();
+				const dependencies = yield* Effect.context<Requirements>();
 				const acquired = yield* acquireClient({
 					clientCacheKey,
 					clientFactory,
 					constructor: constructorOptions,
 				});
-				const reportError: (error: Error) => Effect.Effect<unknown, never, Requirements> = onError ?? logClientError;
+				const service = makeService(acquired.client, names, constructorOptions.schema);
+				const context = Context.add(dependencies, Service, service);
+				const reportError: (error: Error) => Effect.Effect<unknown, never, Requirements | TIdentifier> = onError ?? logClientError;
 				const errorListener = (error: Error) => {
 					void Effect.runPromise(Effect.exit(Effect.provide(reportError(error), context)));
 				};
 				acquired.client.on("error", errorListener);
 				const registration = registerJobs(acquired.client, jobs, context, acquired.reused);
 				return yield* registration.pipe(
-					Effect.as({ acquired, context, errorListener }),
+					Effect.as({ acquired, errorListener, service }),
 					Effect.onError(() => {
 						acquired.client.off("error", errorListener);
 						return releaseClient(acquired, stop);
@@ -82,7 +92,7 @@ export const makePgBoss = <const TIdentifier extends string>(identifier: TIdenti
 
 		return Layer.effect(
 			Service,
-			Effect.map(acquire, ({ acquired }) => makeService(acquired.client, names, constructorOptions.schema)),
+			Effect.map(acquire, ({ service }) => service),
 		);
 	};
 

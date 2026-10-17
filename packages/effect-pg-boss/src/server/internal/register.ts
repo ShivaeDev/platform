@@ -1,7 +1,14 @@
 import { type Context, Effect, Redacted, Schema } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
-import { type JobRegistration, jobContext, type QueueDefinition, type QueueWorker, type ScheduledWorker } from "#definition.ts";
+import {
+	type JobRegistration,
+	jobContext,
+	type QueueDefinition,
+	type QueueWorker,
+	type ScheduleDefinition,
+	type ScheduledWorker,
+} from "#definition.ts";
 import { PgBossPayloadError, PgBossQueueOptionsError, toPgBossError } from "#error.ts";
 import { ensureQueue } from "#internal/ensureQueue.ts";
 import { payloadOf, traceJob } from "#internal/tracing.ts";
@@ -18,18 +25,34 @@ function isQueueDefinition(registration: JobRegistration): registration is Queue
 	return registration._tag === "QueueDefinition";
 }
 
-export const registrationName = (registration: JobRegistration): string => {
+function registrationDefinition(registration: JobRegistration): QueueDefinition | ScheduleDefinition {
 	if (isQueueDefinition(registration)) {
-		return registration.name;
+		return registration;
 	}
 	if (isQueueWorker(registration)) {
-		return registration.queue.name;
+		return registration.queue;
 	}
 	if (isScheduledWorker(registration)) {
-		return registration.schedule.name;
+		return registration.schedule;
 	}
 	throw new TypeError(`Unknown pg-boss registration: ${registration._tag}`);
-};
+}
+
+export function registrationName(registration: JobRegistration): string {
+	return registrationDefinition(registration).name;
+}
+
+async function prepareQueues(client: PgBossClient, registrations: readonly JobRegistration[], replaceWorkers: boolean): Promise<void> {
+	for (const registration of registrations) {
+		if (replaceWorkers && !isQueueDefinition(registration)) {
+			await client.offWork(registrationName(registration));
+		}
+	}
+	for (const registration of registrations) {
+		const definition = registrationDefinition(registration);
+		await ensureQueue(client, definition.name, definition.queueOptions);
+	}
+}
 
 // The layer requires RegistrationRequirements of its jobs, so its context provides every registered worker.
 function workerContext<R>(context: Context.Context<R>): Context.Context<unknown>;
@@ -56,18 +79,9 @@ function runQueueWorker(worker: QueueWorker, job: Job<unknown>, context: Context
 	);
 }
 
-async function registerQueue(
-	client: PgBossClient,
-	registration: QueueWorker | QueueDefinition,
-	context: Context.Context<unknown>,
-	replaceWorker: boolean,
-): Promise<void> {
+async function registerQueue(client: PgBossClient, registration: QueueWorker | QueueDefinition, context: Context.Context<unknown>): Promise<void> {
 	const queue = registration._tag === "QueueWorker" ? registration.queue : registration;
 	const name = queue.name;
-	if (replaceWorker && registration._tag === "QueueWorker") {
-		await client.offWork(name);
-	}
-	await ensureQueue(client, name, queue.queueOptions);
 	if (registration._tag === "QueueDefinition") {
 		return;
 	}
@@ -78,17 +92,8 @@ async function registerQueue(
 	});
 }
 
-async function registerSchedule(
-	client: PgBossClient,
-	worker: ScheduledWorker,
-	context: Context.Context<unknown>,
-	replaceWorker: boolean,
-): Promise<void> {
+async function registerSchedule(client: PgBossClient, worker: ScheduledWorker, context: Context.Context<unknown>): Promise<void> {
 	const { schedule } = worker;
-	if (replaceWorker) {
-		await client.offWork(schedule.name);
-	}
-	await ensureQueue(client, schedule.name, schedule.queueOptions);
 	await client.work(schedule.name, schedule.workerOptions, async (jobs: readonly Job<unknown>[]) => {
 		for (const job of jobs) {
 			await Effect.runPromise(Effect.provide(traceJob(worker.effect, job, schedule.name), context), {
@@ -117,12 +122,13 @@ export const registerJobs = <R>(
 		catch: (error) => (error instanceof PgBossQueueOptionsError ? error : toPgBossError("register", error)),
 		try: async () => {
 			registrationNames(registrations);
+			await prepareQueues(client, registrations, replaceWorkers);
 			const provided = workerContext(context);
 			for (const registration of registrations) {
 				if (isQueueWorker(registration) || isQueueDefinition(registration)) {
-					await registerQueue(client, registration, provided, replaceWorkers);
+					await registerQueue(client, registration, provided);
 				} else if (isScheduledWorker(registration)) {
-					await registerSchedule(client, registration, provided, replaceWorkers);
+					await registerSchedule(client, registration, provided);
 				}
 			}
 		},

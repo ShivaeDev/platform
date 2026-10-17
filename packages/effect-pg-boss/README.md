@@ -99,6 +99,23 @@ The schedule runs a payload-free Effect. This schedule registers its cron expres
 
 The Layer requires the workers' Effect services. Leaving `Mail` unprovided leaves that requirement in the resulting Effect's type. A primitive Schema such as `Schema.String` is rejected as a queue definition because the durable contract must be an object.
 
+### Backlog throughput and concurrency
+
+Queue and schedule workers default to `batchSize: 10` and `burstWhenBatchFull: true`. pg-boss fetches again immediately after a full batch completes, until a fetch returns fewer than ten jobs. The adapter runs handlers sequentially within each batch, and pg-boss defaults `localConcurrency` to one. Set native `localConcurrency` to run multiple batches at once:
+
+```ts
+const Compare = defineQueue({
+  name: "compare",
+  schema: Schema.Struct({ id: Schema.Number }),
+  queue: { notify: true },
+  worker: { batchSize: 2, localConcurrency: 5 },
+});
+```
+
+This worker runs up to five handlers at once. `worker` accepts pg-boss 12's `WorkOptions`, including `batchSize`, `localConcurrency`, `pollingIntervalSeconds`, `notifyPollingIntervalSeconds` and the burst options. Explicit options override the adapter defaults. pg-boss ignores `burstWhenBatchFull` at `batchSize: 1`; keep a batch size of at least two for immediate backlog draining. A failed handler rejects its batch, so pg-boss can retry earlier jobs in that batch; handlers must tolerate repeated side effects.
+
+Apps do not need to shorten the polling backstop to drain a backlog. With `notify: true` and an active LISTEN/NOTIFY listener, pg-boss wakes workers on notifications and defaults to a 30-second backstop (`notifyPollingIntervalSeconds`). Without active notifications its base poll defaults to two seconds (`pollingIntervalSeconds`). Bursting takes precedence over both intervals. Override the backstop only when the application needs a different bound for work that becomes runnable without a notification, such as delayed jobs or retries. The PostgreSQL backlog tests insert 30 jobs at once and verify completion within 2.5 seconds with both defaults and configured batches and concurrency.
+
 ### Once per runtime: provide the workers
 
 Build the jobs Layer in `runtime.ts`:
@@ -243,6 +260,33 @@ export const producerLayer = (databaseUrl: string) =>
 
 Provide this Layer to the request runtime and call `jobs.enqueue(SendEmail, { userId })` as above. A separate worker process registers `SendEmail.handle(...)` against the same database. Producer queues use the same retry options and appear in `health`; only worker registrations capture handler services. The PostgreSQL producer test creates both queues through this Layer, enqueues a transformed payload, and observes a failing worker exhaust two retries before the job reaches its dead-letter queue.
 
+### Enqueue follow-ups from a handler
+
+A handler can yield the same `Jobs` service that owns it. The Layer supplies that service from its scoped client; other handler and Schema service requirements remain required inputs to the Layer.
+
+```ts
+const Receipt = defineQueue({
+  name: "receipt",
+  schema: Schema.Struct({ userId: Schema.Number }),
+});
+
+const sendAndQueueReceipt = SendEmail.handle(({ userId }) =>
+  Effect.gen(function* () {
+    const mail = yield* Mail;
+    yield* mail.send(userId);
+    const jobs = yield* Jobs;
+    yield* jobs.enqueue(Receipt, { userId });
+  }),
+);
+
+const live = Jobs.layer({
+  connectionString: databaseUrl,
+  jobs: [sendAndQueueReceipt, Receipt],
+}).pipe(Layer.provide(MailLive));
+```
+
+Include every target queue in `jobs`, as either a worker or a producer-only definition. Startup creates all queues before starting consumers. The example registers `Receipt` for another process to consume. A follow-up target can also have a worker in the same Layer. Scheduled effects can yield `Jobs` too. Keep one jobs Layer in the process's native Layer graph; that Layer owns one client for enqueueing and handling. The PostgreSQL follow-up test completes a chain across two workers, enqueues to a producer-only queue and asserts one client acquisition and shutdown.
+
 ### API
 
 Import the module that defines the name; the package has no root entry.
@@ -267,7 +311,7 @@ The application's service has these operations:
 
 `Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus `jobs`, optional `clientCacheKey`, optional `clientFactory`, optional `onError` and optional `stop`. The factory type accepts constructor options and returns `PgBossClient`. Custom clients can supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent. `onError` has the type `(error: Error) => Effect.Effect<unknown, never, R>`; `stop` uses pg-boss `StopOptions`.
 
-`onError` handles pg-boss client `error` events using the services captured by the Layer. The Layer's requirement type includes the workers' services, the workers' payload Schemas' `DecodingServices` and the callback's services. `enqueue` includes the payload Schema's `EncodingServices` in its requirement type.
+`onError` handles pg-boss client `error` events using the services captured by the Layer. The Layer's requirement type includes the workers' services and their payload Schemas' `DecodingServices`, excluding its own jobs identifier, plus the callback's services. Only the owning jobs service is supplied automatically; a handler using another jobs definition still requires that definition's Layer. `enqueue` includes the payload Schema's `EncodingServices` in its requirement type.
 
 `JobContext` has `id`, `name`, `signal`, `expireInSeconds` and `heartbeatSeconds`. `QueueHealth` has `name`, `activeCount`, `deadLetteredCount`, `failedCount`, `queuedCount` and `readyCount`. `JobsHealth` has `jobs` and the corresponding `activeTotal`, `deadLetteredTotal`, `failedTotal`, `queuedTotal` and `readyTotal` fields.
 

@@ -8,6 +8,7 @@ const Queue = defineQueue({
   name: "mail",
   queue: { notify: true, policy: "standard", partition: true, heartbeatSeconds: 10, warningQueueSize: 100 },
   schema: Schema.Struct({ id: Schema.NumberFromString }),
+  worker: { batchSize: 2, localConcurrency: 5, pollingIntervalSeconds: 1 },
 })
 // @ts-expect-error Durable payloads must be object schemas.
 defineQueue({ name: "primitive", schema: Schema.String })
@@ -48,3 +49,16 @@ const program = Effect.gen(function* () {
   yield* jobs.enqueue(Queue, { id: "1" })
 })
 void program
+
+const followUp = Jobs.layer({
+  jobs: [Queue.handle(({ id }) => Effect.gen(function* () {
+    const jobs = yield* Jobs
+    const mail = yield* Mail
+    yield* mail.send(id)
+    yield* jobs.enqueue(Queue, { id })
+  }))],
+})
+const followUpBoot = Effect.asVoid(Jobs).pipe(Effect.provide(followUp))
+// @ts-expect-error Follow-up handlers still require their domain services.
+Effect.runPromise(followUpBoot)
+Effect.runPromise(followUpBoot.pipe(Effect.provideService(Mail, { send: () => Effect.void })))

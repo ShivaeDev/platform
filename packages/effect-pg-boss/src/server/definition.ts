@@ -80,7 +80,7 @@ export const defineQueue = <const Name extends string, const Payload extends Job
 		name: options.name,
 		queueOptions: Object.freeze({ ...options.queue }),
 		schema: options.schema,
-		workerOptions: Object.freeze({ batchSize: 1, ...options.worker }),
+		workerOptions: Object.freeze({ batchSize: 10, burstWhenBatchFull: true, ...options.worker }),
 	};
 	return Object.freeze(definition);
 };
@@ -106,7 +106,7 @@ export const defineSchedule = <const Name extends string>(options: DefineSchedul
 				schedule: definition,
 			}),
 		scheduleOptions: Object.freeze({ tz: "UTC", ...options.schedule }),
-		workerOptions: Object.freeze({ batchSize: 1, ...options.worker }),
+		workerOptions: Object.freeze({ batchSize: 10, burstWhenBatchFull: true, ...options.worker }),
 	};
 	return Object.freeze(definition);
 };
