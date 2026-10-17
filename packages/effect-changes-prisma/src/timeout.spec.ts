@@ -1,23 +1,22 @@
-import { PrismaPg } from "@prisma/adapter-pg";
-import { expect, it } from "vitest";
-import { configuredTimeout } from "#expiry.ts";
-import { PrismaClient } from "#test/generated/client.ts";
+import { expect } from "vitest";
+import { prisma } from "#test/prisma.ts";
+import { clientIsConfigured } from "#test/prismaTraits.ts";
 
-function client(timeout?: number) {
-	return new PrismaClient({
-		adapter: new PrismaPg({ connectionString: "postgresql://never-connected" }),
-		...(timeout === undefined ? {} : { transactionOptions: { timeout } }),
-	});
-}
+prisma.it(
+	"reads the transaction timeout a Prisma client was constructed with, also through $extends",
+	[clientIsConfigured({ timeout: 1234 })],
+	function* ({ client, timeoutOf }) {
+		expect(yield* timeoutOf(client)).toBe(1234);
+		expect(yield* timeoutOf(client.$extends({}))).toBe(1234);
+	},
+);
 
-it("reads the transaction timeout a Prisma client was constructed with, also through $extends", () => {
-	expect(configuredTimeout(client(1234))).toBe(1234);
-	expect(configuredTimeout(client(1234).$extends({}))).toBe(1234);
-	expect(configuredTimeout(client())).toBe(5000);
+prisma.it("reads Prisma's default transaction timeout", [], function* ({ client, timeoutOf }) {
+	expect(yield* timeoutOf(client)).toBe(5000);
 });
 
-it("sets no deadline of its own when the client's configuration cannot be read", () => {
-	expect(configuredTimeout({})).toBeUndefined();
-	expect(configuredTimeout({ _engineConfig: {} })).toBeUndefined();
-	expect(configuredTimeout({ _engineConfig: { transactionOptions: { timeout: "5000" } } })).toBeUndefined();
+prisma.it("sets no deadline of its own when the client's configuration cannot be read", [], function* ({ timeoutOf }) {
+	expect(yield* timeoutOf({})).toBeUndefined();
+	expect(yield* timeoutOf({ _engineConfig: {} })).toBeUndefined();
+	expect(yield* timeoutOf({ _engineConfig: { transactionOptions: { timeout: "5000" } } })).toBeUndefined();
 });

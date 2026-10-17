@@ -1,10 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Effect, type Scope } from "effect";
-import { test } from "vitest";
 import { PrismaClient } from "#test/generated/client.ts";
 import { databaseUrl } from "./environment.ts";
-
-export const integration = databaseUrl === undefined ? test.skip : test;
 
 const url = databaseUrl ?? "postgresql://integration-tests-disabled";
 

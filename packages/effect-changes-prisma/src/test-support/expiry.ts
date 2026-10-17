@@ -34,24 +34,20 @@ export function probe(duration: Duration.Input) {
 	};
 }
 
-export function timed<A, E, R>(effect: Effect.Effect<A, E, R>) {
-	return Effect.gen(function* () {
-		const started = yield* Clock.currentTimeMillis;
-		const result = yield* effect;
-		return { elapsed: (yield* Clock.currentTimeMillis) - started, result };
-	});
-}
+export const timed = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
+	const started = yield* Clock.currentTimeMillis;
+	const result = yield* effect;
+	return { elapsed: (yield* Clock.currentTimeMillis) - started, result };
+});
 
-export function harnessed<TX, E>(changes: Changes, body: Effect.Effect<TX, E>) {
-	return Effect.gen(function* () {
-		const context = yield* Effect.context<never>();
-		const exits: Exit.Exit<TX, E | TransactionExpired | PrismaError>[] = [];
-		async function run(tx: HarnessTx) {
-			exits.push(await Effect.runPromiseExitWith(context)(changes.transaction(body).pipe(Effect.provideService(changes.Client, tx))));
-		}
-		return { exits, run };
-	});
-}
+export const harnessed = Effect.fnUntraced(function* <TX, E>(changes: Changes, body: Effect.Effect<TX, E>) {
+	const context = yield* Effect.context<never>();
+	const exits: Exit.Exit<TX, E | TransactionExpired | PrismaError>[] = [];
+	async function run(tx: HarnessTx) {
+		exits.push(await Effect.runPromiseExitWith(context)(changes.transaction(body).pipe(Effect.provideService(changes.Client, tx))));
+	}
+	return { exits, run };
+});
 
 export function expiredIn(exits: readonly Exit.Exit<unknown, unknown>[]) {
 	const [exit] = exits;

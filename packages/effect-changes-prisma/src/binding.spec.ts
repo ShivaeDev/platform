@@ -1,24 +1,10 @@
 import { Effect } from "effect";
-import { expect, it, vi } from "vitest";
+import { expect } from "vitest";
+import { prisma } from "#test/prisma.ts";
 
-interface Client {
-	$transaction: <TX>(run: (tx: Client) => Promise<TX>) => Promise<TX>;
-}
-
-const client: Client = { $transaction: (run) => run(client) };
-const other: Client = { $transaction: (run) => run(other) };
-
-async function bind() {
-	vi.resetModules();
-	const { makePrismaChanges } = await import("#changes.ts");
-	return makePrismaChanges({ client, models: {}, name: "Same", publish: () => Effect.void });
-}
-
-it("bindings with the same name from two copies of the package keep their clients apart", async () => {
-	const first = await bind();
-	const second = await bind();
-
-	const seen = Effect.runSync(Effect.service(second.Client).pipe(Effect.provideService(first.Client, other)));
-
+prisma.it("bindings with the same name from two copies of the package keep their clients apart", [], function* ({ client, anotherBinding, copies }) {
+	const { first, second } = yield* copies();
+	const other = yield* anotherBinding();
+	const seen = yield* Effect.service(second.Client).pipe(Effect.provideService(first.Client, other.client));
 	expect(seen).toBe(client);
 });
