@@ -12,5 +12,5 @@ for (const project of test.projects ?? []) {
 export default defineConfig({
 	resolve: { conditions: ["source", "module", "browser", "development|production"] },
 	ssr: { resolve: { conditions: ["source", "node", "development|production"] } },
-	test,
+	test: { ...test, server: { deps: { inline: ["better-auth"] } } },
 });
