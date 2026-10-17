@@ -4,7 +4,7 @@ import type { ImportGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
 import { storyProgram } from "./program.ts";
 
-type Origin = "factory" | "kit" | "story" | "plain" | "suite" | "vitest" | "stories" | undefined;
+type Origin = "factory" | "kit" | "story" | "plain" | "suite" | "vitest" | "stories" | "function" | undefined;
 
 function importFrom(node: ts.Node): string | undefined {
 	for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {
@@ -58,6 +58,10 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 		if (ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node)) {
 			return node.initializer === undefined ? undefined : origin(node.initializer);
 		}
+		return localBinding(node);
+	}
+
+	function localBinding(node: ts.Node): Origin {
 		if (ts.isShorthandPropertyAssignment(node)) {
 			return symbol(checker.getShorthandAssignmentValueSymbol(node));
 		}
@@ -104,9 +108,16 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 	}
 
 	function origin(node: ts.Node): Origin {
+		if (ts.isFunctionLike(node)) {
+			return "function";
+		}
 		if (ts.isObjectLiteralExpression(node)) {
 			return object(node);
 		}
+		return expression(node);
+	}
+
+	function expression(node: ts.Node): Origin {
 		if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
 			return visit(node.expression);
 		}

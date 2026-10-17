@@ -16,16 +16,24 @@ function namesTest(node: ts.Expression): boolean {
 	return ts.isCallExpression(node) && namesTest(node.expression);
 }
 
-function testShaped(call: ts.CallExpression): boolean {
+type OriginOf = ReturnType<typeof storyOrigins>["origin"];
+
+function callback(node: ts.Node, origin: OriginOf): boolean {
+	return (
+		ts.isArrowFunction(node)
+		|| ts.isFunctionExpression(node)
+		|| ((ts.isIdentifier(node) || ts.isPropertyAccessExpression(node)) && origin(node) === "function")
+	);
+}
+
+function testShaped(call: ts.CallExpression, origin: OriginOf): boolean {
 	const title = call.arguments[0];
 	return (
 		title !== undefined
 		&& (ts.isStringLiteralLike(title) || ts.isTemplateExpression(title))
-		&& call.arguments.slice(1).some((argument) => ts.isArrowFunction(argument) || ts.isFunctionExpression(argument))
+		&& call.arguments.slice(1).some((argument) => callback(argument, origin))
 	);
 }
-
-type OriginOf = ReturnType<typeof storyOrigins>["origin"];
 
 function declarationScope(node: ts.Node, origin: OriginOf): boolean {
 	for (let current = node.parent; current !== undefined; current = current.parent) {
@@ -41,7 +49,7 @@ function uncoveredRegistration(call: ts.CallExpression, originOf: OriginOf): boo
 	if (origin === "story" || origin === "suite") {
 		return false;
 	}
-	return origin === "plain" || namesTest(call.expression) || (testShaped(call) && declarationScope(call, originOf));
+	return origin === "plain" || namesTest(call.expression) || (testShaped(call, originOf) && declarationScope(call, originOf));
 }
 
 export const storySpecs = defineRule({

@@ -49,7 +49,7 @@ it.each(["it", "test"])("reports destructured Vitest %s alongside a story", asyn
 	expect(await findingsIn(storySpecs, undefined, root)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 4 })]);
 });
 
-it("tracks a destructured registrar through a namespace alias with a named body", async () => {
+it("tracks a destructured registrar through a namespace alias with an opaque body", async () => {
 	const root = seedTree([
 		...kitFiles,
 		spec(
@@ -57,7 +57,7 @@ it("tracks a destructured registrar through a namespace alias with a named body"
 				'import * as v from "vitest";',
 				'import { orders } from "#test/orders.ts";',
 				"const runtime = v; const { test: ordinary } = runtime;",
-				"const body = () => {};",
+				"declare const body: () => void;",
 				'ordinary("plain", body);',
 				'orders.it("story", [], body);',
 			].join("\n"),
@@ -81,6 +81,13 @@ it("preserves an unrecognized registration alongside a story inside a suite", as
 		),
 	]);
 	expect(await findingsIn(storySpecs, undefined, root)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 5 })]);
+});
+
+it("reports a custom registration with a named callback inside a suite", async () => {
+	const root = seedTree([
+		spec(['import { describe } from "vitest";', "function body() {}", 'describe("orders", () => { scenario("plain", body); });'].join("\n")),
+	]);
+	expect(await findingsIn(storySpecs, undefined, root)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 3 })]);
 });
 
 it("accepts stories in a destructured suite and ignores callbacks inside their bodies", async () => {
