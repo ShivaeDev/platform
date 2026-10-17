@@ -1,10 +1,16 @@
 # Changelog
 
-## 0.12.1 - 2026-10-17
+## 0.12.2 - 2026-10-17
 
 ### Fixed
 
 - Align published contract, Prisma and tRPC dependencies with the current framework releases.
+
+## 0.12.1 - 2026-10-16
+
+### Fixed
+
+- `appHost` infers service requirements from inline generic service factories inside `Layer.unwrap`, including hosts returned after generator yields. Hosts with no remaining requirements can launch through `NodeRuntime.runMain` without binding the service Layer or generator first; omitted services and annotated options keep their existing behavior.
 
 ## 0.12.0 - 2026-10-16
 

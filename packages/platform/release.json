@@ -6,5 +6,5 @@
 			"text": "### Fixed\n\n- Align published contract, Prisma and tRPC dependencies with the current framework releases.\n"
 		}
 	],
-	"version": "0.12.1"
+	"version": "0.12.2"
 }
