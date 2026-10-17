@@ -62,16 +62,15 @@ export const liveNotesStory = storyKit({
 			resync: (helper: "first" | "second" = "first") => (helper === "first" ? server.hints : server.secondHints).resync,
 			resyncRepeatedly: (count: number) =>
 				Effect.gen(function* () {
-					story.tell(`send ${count} resync hints and wait until the consumer receives them all`);
-					const noteStreams = (yield* Ref.get(server.stored)).size;
-					const target = (yield* SubscriptionRef.get(client.received)).Resync + count * noteStreams;
+					story.tell(`send ${count} resync hints, each after the consumer received the previous one`);
 					for (let index = 0; index < count; index += 1) {
+						const before = (yield* SubscriptionRef.get(client.received)).Resync;
 						yield* Effect.promise(() => server.emit({ _tag: "Resync" }));
+						yield* SubscriptionRef.changes(client.received).pipe(
+							Stream.filter(({ Resync }) => Resync > before),
+							Stream.runHead,
+						);
 					}
-					yield* SubscriptionRef.changes(client.received).pipe(
-						Stream.filter(({ Resync }) => Resync >= target),
-						Stream.runHead,
-					);
 				}),
 			status: () => registry.get(client.status),
 			streamOutage: (unavailable: boolean) => Ref.set(server.streamUnavailable, unavailable),

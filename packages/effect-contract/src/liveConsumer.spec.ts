@@ -24,7 +24,7 @@ liveNotesStory.it("bounds paused hints and resyncs current source once resumed",
 	yield* test.edit(1, "While paused");
 	yield* eventually(() => expect(test.status().pending).toBe(1));
 	yield* test.resyncRepeatedly(300);
-	expect(test.status().pending).toBe(256);
+	yield* eventually(() => expect(test.status().pending).toBe(256));
 	expect(test.body(one)).toBe("First");
 	test.pause(false);
 	yield* AtomRegistry.toStream(test.registry, one).pipe(
