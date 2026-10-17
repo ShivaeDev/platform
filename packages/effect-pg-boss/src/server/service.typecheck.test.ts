@@ -1,4 +1,4 @@
-import { Context, Effect, type Layer, Schema } from "effect";
+import { Context, Effect, type Layer, Option, Schema, SchemaGetter } from "effect";
 import { expectTypeOf } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { makePgBoss, type PgBossDefinition } from "#service.ts";
@@ -28,6 +28,10 @@ Effect.runPromise(boot.pipe(Effect.provideService(HandlerDependency, 1)));
 const program = Effect.gen(function* () {
 	const jobs = yield* Jobs;
 	yield* jobs.enqueue(Queue, { count: 1, label: "one" });
+	const job = Option.getOrThrow(yield* jobs.getJob(Queue, "job-id"));
+	expectTypeOf(job.data).toEqualTypeOf<{ readonly count: number; readonly label: string }>();
+	yield* jobs.retry(Queue, "job-id");
+	yield* jobs.counts(Queue);
 
 	// @ts-expect-error Decoded payload count is a number.
 	yield* jobs.enqueue(Queue, { count: "1", label: "one" });
@@ -54,3 +58,27 @@ Effect.runPromise(health.pipe(Effect.provide(reportLayer)));
 
 const definition: PgBossDefinition<"@test/EmailJobs"> = EmailJobs;
 void definition;
+
+defineQueue({
+	name: "options",
+	queue: { heartbeatSeconds: 10, notify: true, partition: true, policy: "singleton", retryDelayMax: 30, warningQueueSize: 100 },
+	schema: Schema.Struct({}),
+});
+// @ts-expect-error The definition owns its name.
+defineQueue({ name: "owned-name", queue: { name: "other" }, schema: Schema.Struct({}) });
+// @ts-expect-error The adapter owns dead-letter setup.
+defineQueue({ name: "owned-dlq", queue: { deadLetter: "other" }, schema: Schema.Struct({}) });
+
+const RequiresDecode = defineQueue({
+	name: "requires-decode",
+	schema: Schema.Struct({
+		value: Schema.String.pipe(
+			Schema.decodeTo(Schema.String, {
+				decode: SchemaGetter.checkEffect(() => Effect.as(HandlerDependency, true)),
+				encode: SchemaGetter.passthrough(),
+			}),
+		),
+	}),
+});
+const lookup = Effect.flatMap(Jobs, (jobs) => jobs.getJob(RequiresDecode, "id"));
+expectTypeOf<Effect.Services<typeof lookup>>().toEqualTypeOf<"@test/TypedJobs" | HandlerDependency>();
