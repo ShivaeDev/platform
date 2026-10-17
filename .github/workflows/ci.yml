@@ -35,6 +35,8 @@ jobs:
         run: pnpm test:orchestration
 
   build:
+    outputs:
+      packages-artifact-id: ${{ steps.packages.outputs.artifact-id }}
     permissions:
       contents: read
       actions: read
@@ -51,6 +53,7 @@ jobs:
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        id: packages
         with:
           name: packages-${{ github.sha }}-${{ github.run_attempt }}
           path: .ci/packages
@@ -375,9 +378,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - uses: ./.github/actions/await-packages
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          token: ${{ github.token }}
+          artifact-ids: ${{ needs.build.outputs.packages-artifact-id }}
+          path: .ci/packages
       - name: Measure every packed package
         continue-on-error: true
         run: pnpm report:bundles
