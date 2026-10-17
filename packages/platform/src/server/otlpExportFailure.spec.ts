@@ -68,7 +68,7 @@ it("warns again after the collector recovers", async () => {
 			warnings += 1;
 		}
 	});
-	const runtime = ManagedRuntime.make(otlpHttpClient.pipe(Layer.provideMerge(Logger.layer([logger]))));
+	const runtime = ManagedRuntime.make(otlpHttpClient().pipe(Layer.provideMerge(Logger.layer([logger]))));
 	try {
 		const counts: number[] = [];
 		for (const status of statuses) {

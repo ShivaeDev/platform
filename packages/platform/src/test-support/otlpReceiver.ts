@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 
-export async function otlpReceiver(status: number | ((attempt: number) => number) = 200, answer = "{}") {
+export async function otlpReceiver(status: number | ((attempt: number) => number | undefined) = 200, answer: string | null = "{}") {
 	const requests: { body: string; bytes: Buffer; contentType: string | undefined; path: string | undefined; token: string | undefined }[] = [];
 	const server = createServer(async (request, response) => {
 		const chunks: Buffer[] = [];
@@ -15,7 +15,15 @@ export async function otlpReceiver(status: number | ((attempt: number) => number
 			path: request.url,
 			token: request.headers["x-collector-token"]?.toString(),
 		});
-		response.writeHead(typeof status === "number" ? status : status(requests.length)).end(answer);
+		const code = typeof status === "number" ? status : status(requests.length);
+		if (code !== undefined) {
+			response.writeHead(code);
+			if (answer === null) {
+				response.flushHeaders();
+			} else {
+				response.end(answer);
+			}
+		}
 	});
 	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 	const address = server.address();
@@ -23,7 +31,11 @@ export async function otlpReceiver(status: number | ((attempt: number) => number
 		throw new Error("Missing receiver address");
 	}
 	return {
-		close: () => new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve()))),
+		close: () =>
+			new Promise<void>((resolve, reject) => {
+				server.close((error) => (error ? reject(error) : resolve()));
+				server.closeAllConnections();
+			}),
 		requests,
 		url: `http://127.0.0.1:${address.port}`,
 	};

@@ -21,7 +21,7 @@ const SENSITIVE_PARTS = [
 	"xsrf",
 ];
 const SENSITIVE_WORDS = ["otp", "pin", "cvv", "cvc", "ssn", "iban"];
-const SENSITIVE_NAMES = ["session", "pan"];
+const SENSITIVE_NAMES = ["session", "pan", "sig"];
 export type SensitiveKey = (key: string) => boolean;
 function wordsOf(key: string): string[] {
 	return key
@@ -40,10 +40,12 @@ export function isSensitiveKey(key: string): boolean {
 }
 const AUTH_SCHEME = /\b(?<scheme>Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/giu;
 const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/gu;
+const PRIVATE_KEY = /-----BEGIN (?<kind>(?:[A-Z0-9]+ )*PRIVATE KEY)-----[\s\S]*?-----END \k<kind>-----/gu;
 const URL_PASSWORD = /(?<authority>\/\/[^:/\s@]+:)[^@/\s]+@/gu;
 const ASSIGNMENT = /(?<key>[A-Za-z][\w.-]*)(?<separator>["']?\s*[=:]\s*["']?)(?<value>[^\s"'&,;]+)/gu;
 function scrub(text: string, sensitive: SensitiveKey): string {
 	return text
+		.replaceAll(PRIVATE_KEY, REDACTED)
 		.replaceAll(AUTH_SCHEME, `$<scheme> ${REDACTED}`)
 		.replaceAll(JWT, REDACTED)
 		.replaceAll(URL_PASSWORD, `$<authority>${REDACTED}@`)
