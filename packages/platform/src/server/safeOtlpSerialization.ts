@@ -2,26 +2,27 @@ import { Layer } from "effect";
 import { HttpBody } from "effect/http";
 import type { OtlpResource } from "effect/observability";
 import { OtlpSerialization } from "effect/observability";
+import { redactOtlpUrl } from "#redactOtlpUrl.ts";
 import { isSensitiveKey, REDACTED, redactText } from "#rpc-server/sensitive.ts";
 
 function sensitive(key: string) {
 	return isSensitiveKey(key) || ["db.user", "db.user.name", "db.connection_string"].includes(key.toLowerCase());
 }
-function text(value: string) {
-	return redactText(value, sensitive).replaceAll(/(?<scheme>\b[a-z][a-z0-9+.-]*:\/\/)[^/@\s]+@/giu, `$<scheme>${REDACTED}@`);
+function text(value: string, key = "") {
+	return redactText(redactOtlpUrl(value, key), sensitive);
 }
-function attributeValue(value: OtlpResource.AnyValue): OtlpResource.AnyValue {
+function attributeValue(value: OtlpResource.AnyValue, key: string): OtlpResource.AnyValue {
 	return {
 		...value,
-		...(typeof value.stringValue === "string" ? { stringValue: text(value.stringValue) } : {}),
-		...(value.arrayValue ? { arrayValue: { values: value.arrayValue.values.map(attributeValue) } } : {}),
+		...(typeof value.stringValue === "string" ? { stringValue: text(value.stringValue, key) } : {}),
+		...(value.arrayValue ? { arrayValue: { values: value.arrayValue.values.map((item) => attributeValue(item, key)) } } : {}),
 		...(value.kvlistValue ? { kvlistValue: { values: attributes(value.kvlistValue.values) } } : {}),
 	};
 }
 function attributes(values: OtlpResource.KeyValue[]): OtlpResource.KeyValue[] {
 	return values.map(({ key, value }) => ({
 		key,
-		value: sensitive(key) ? { stringValue: REDACTED } : attributeValue(value),
+		value: sensitive(key) ? { stringValue: REDACTED } : attributeValue(value, key),
 	}));
 }
 

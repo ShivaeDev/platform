@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.13.0",
+	"version": "0.13.1",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {
@@ -190,6 +190,11 @@
 			"source": "./src/server/safeOtlpSerialization.ts",
 			"types": "./dist/server/safeOtlpSerialization.d.ts",
 			"default": "./dist/server/safeOtlpSerialization.js"
+		},
+		"#redactOtlpUrl.ts": {
+			"source": "./src/server/redactOtlpUrl.ts",
+			"types": "./dist/server/redactOtlpUrl.d.ts",
+			"default": "./dist/server/redactOtlpUrl.js"
 		}
 	},
 	"exports": {

@@ -2,9 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "otlp-export.md",
-			"text": "### Added\n\n- `otlpTracing` in `otlpTracing.ts`: a scoped Effect Config Layer for OTLP/HTTP JSON trace export. `appHost` enables it when an exporter endpoint is set; workers can provide the same Layer. Collector failures preserve requests and scoped shutdown; serialization redacts sensitive diagnostics.\n"
+			"name": "trace-url-redaction.md",
+			"text": "### Fixed\n\n- Security fix: `otlpTracing` redacts every URL query value, fragment and userinfo before exporting traces, including HTTP server and client spans, events and links. Paths and query parameter names remain readable. Platform 0.13.0 exported URL query values; apps with tracing enabled should upgrade.\n"
 		}
 	],
-	"version": "0.13.0"
+	"version": "0.13.1"
 }

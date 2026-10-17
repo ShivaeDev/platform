@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0 - 2026-10-17
+
+### Changed
+
+- Generated apps control Better Auth rate limiting through Effect Config `AUTH_RATE_LIMIT_ENABLED`, enabled by default in every environment. Client-IP and rate-limit stories use the ordinary in-process host, including coverage with the switch disabled.
+
+### Fixed
+
+- A generated app registers producer queues and their dead-letter queues through `effect-pg-boss` queue definitions. Note writes enqueue independently after their transaction and log queue failures without failing the saved write; the starter no longer supplies a transactional database adapter.
+- Generated apps can select the auth client IP header with `AUTH_CLIENT_IP_HEADER`, still gated by `TRUSTED_PROXY`. Railway uses `x-real-ip` so different visitor IPs have separate auth rate-limit buckets and the same visitor IP shares a bucket across changing `X-Forwarded-For` values. Other deployments keep the `x-forwarded-for` default.
+- Generated apps use Platform 0.13.1 to redact URL query values, fragments and userinfo in exported traces. Platform 0.13.0 exported URL query values; apps with tracing enabled should upgrade.
+
 ## 0.5.0 - 2026-10-17
 
 ### Added
