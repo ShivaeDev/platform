@@ -25,7 +25,8 @@ describe("quality lint", { timeout: cliTimeout }, () => {
 		const result = quality(qualityTree(trees.dirty), "lint");
 		expect(result.status).toBe(1);
 		expect(result.stdout).toContain("error structure/max-lines (2)\n");
-		expect(result.stdout).toContain("  src/long.ts  4 lines exceeds the 3-line limit.\n  src/longer.ts  6 lines exceeds the 3-line limit.");
+		expect(result.stdout).toContain("  src/long.ts  4 lines exceeds the 3-line limit.");
+		expect(result.stdout).toContain("  src/longer.ts  6 lines exceeds the 3-line limit.");
 		expect(result.stdout).toContain("quality: failed with 2 errors.");
 		expect(result.stderr).toBe("");
 	});

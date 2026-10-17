@@ -1,3 +1,4 @@
+import { relative } from "node:path";
 import { Console, Effect, type FileSystem } from "effect";
 import { evaluate, passes } from "#engine/evaluate.ts";
 import { openSession } from "#engine/session.ts";
@@ -17,7 +18,8 @@ export const lint = (
 				baseline: session.config.baseline,
 				checked: session.inventory.sources.length,
 				descriptions: new Map(session.config.active.map((rule) => [rule.id, rule.description])),
-				registry: session.config.registry,
+				registry:
+					session.config.exceptions.length === 0 ? session.config.registry : `${relative(session.config.root, session.config.file)} exceptions`,
 				warnings,
 			}),
 		);
