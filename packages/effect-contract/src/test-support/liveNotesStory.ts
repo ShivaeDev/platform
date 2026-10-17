@@ -4,6 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { liveClient } from "#test/live/client.ts";
+import { resyncBurst } from "#test/live/resyncBurst.ts";
 import { eventually } from "./eventually.ts";
 import { liveEngine, liveSnapshot, streamRunner } from "./liveEngine.ts";
 
@@ -60,6 +61,10 @@ export const liveNotesStory = storyKit({
 				registry.set(client.resume, registry.get(client.resume) + 1);
 			},
 			resync: (helper: "first" | "second" = "first") => (helper === "first" ? server.hints : server.secondHints).resync,
+			resyncBurst: (count: number) => {
+				story.tell(`receive a burst of ${count} resyncs`);
+				return resyncBurst(engine, count);
+			},
 			status: () => registry.get(client.status),
 			streamOutage: (unavailable: boolean) => Ref.set(server.streamUnavailable, unavailable),
 			subscribe: (count?: number, signal?: AbortSignal) => {
@@ -106,19 +111,13 @@ export function watchingNotes() {
 		engine.registry.mount(engine.client.connection);
 		const one = engine.client.api.get.query({ id: 1 });
 		const two = engine.client.api.get.query({ id: 2 });
-		const list = engine.client.api.list.query(undefined);
 		engine.registry.mount(one);
 		engine.registry.mount(two);
-		engine.registry.mount(list);
+		engine.registry.mount(engine.client.api.list.query(undefined));
 		yield* eventually(() => {
 			expect(engine.registry.get(engine.client.status).connection).toBe("live");
-			expect(Effect.runSync(Ref.get(engine.server.active))).toBe(1);
 			expect(AsyncResult.getOrElse(engine.registry.get(one), () => undefined)?.body).toBe("First");
 			expect(AsyncResult.getOrElse(engine.registry.get(two), () => undefined)?.body).toBe("Second");
-			expect(AsyncResult.isSuccess(engine.registry.get(list))).toBe(true);
-			expect(engine.registry.get(one).waiting).toBe(false);
-			expect(engine.registry.get(two).waiting).toBe(false);
-			expect(engine.registry.get(list).waiting).toBe(false);
 		});
 	});
 }

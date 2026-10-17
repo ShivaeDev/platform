@@ -1,4 +1,4 @@
-import { Deferred, Effect, Option } from "effect";
+import { Deferred, Effect, Option, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expect } from "vitest";
@@ -22,14 +22,17 @@ liveNotesStory.it("bounds paused hints and resyncs current source once resumed",
 	const { one } = test;
 	test.pause(true);
 	yield* test.edit(1, "While paused");
-	for (let index = 0; index < 300; index += 1) {
-		yield* test.emit({ _tag: "Resync" });
-	}
-	yield* eventually(() => expect(test.status().pending).toBe(256));
+	yield* eventually(() => expect(test.status().pending).toBe(1));
+	yield* test.resyncBurst(300);
+	expect(test.status().pending).toBe(256);
 	expect(test.body(one)).toBe("First");
 	test.pause(false);
-	const resumed = yield* AtomRegistry.getResult(test.registry, one, { suspendOnWaiting: true });
-	expect(resumed.body).toBe("While paused");
+	yield* AtomRegistry.toStream(test.registry, one).pipe(
+		Stream.filter((result) => AsyncResult.getOrElse(result, () => undefined)?.body === "While paused"),
+		Stream.take(1),
+		Stream.runDrain,
+	);
+	expect(test.body(one)).toBe("While paused");
 	expect(test.status().pending).toBe(0);
 });
 liveNotesStory.it("retains successful data on typed read failure and reconciles on resume", [liveSession(), watchingNotes()], function* (test) {

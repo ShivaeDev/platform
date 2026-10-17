@@ -1,21 +1,14 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
-import { consumerRepo, removeConsumerRepos, runCli } from "#test/cli.ts";
+import { expect } from "@effect/vitest";
+import { RUN_SYNC, skills } from "#test/skills.ts";
+import { shippedSkills } from "#test/traits.ts";
 
-afterEach(removeConsumerRepos);
-
-const VERSION: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
-
-it("check exits non-zero and asks for sync until sync copies the package's own skills", () => {
-	const repo = consumerRepo(["pr-description"]);
-
-	const before = runCli(repo, ["check"]);
+skills.it("check asks for sync until sync copies the shipped skills", [shippedSkills], function* ({ cli, repository }) {
+	const before = yield* cli.check();
 
 	expect(before.status).toBe(1);
 	expect(before.stderr).toContain("shivaedev-skills: The shared skills are out of sync:\n- .agents/skills/.shivaedev-skills.json is missing.\n");
-	expect(before.stderr).toContain("Run `shivaedev-skills sync` and commit the result.");
-	expect(runCli(repo, ["sync"])).toMatchObject({ status: 0, stdout: `Synced pr-description from @shivaedev/skills ${VERSION}.\n` });
-	expect(readFileSync(join(repo, ".claude/skills/pr-description/SKILL.md"), "utf8")).toContain("name: pr-description");
-	expect(runCli(repo, ["check"])).toMatchObject({ status: 0, stdout: `The shared skills match @shivaedev/skills ${VERSION}.\n` });
+	expect(before.stderr).toContain(RUN_SYNC);
+	expect(yield* cli.sync()).toMatchObject({ status: 0, stdout: `Synced pr-description from @shivaedev/skills ${repository.version()}.\n` });
+	expect(yield* repository.read(".claude/skills/pr-description/SKILL.md")).toContain("name: pr-description");
+	expect(yield* cli.check()).toMatchObject({ status: 0, stdout: `The shared skills match @shivaedev/skills ${repository.version()}.\n` });
 });
