@@ -37,7 +37,7 @@ for (const table of ["records", "dispatches"]) {
 							expect(summary._tag).toBe("SqlError");
 						}
 					}),
-				fixture.parts,
+				{ parts: fixture.parts },
 			),
 		));
 }
