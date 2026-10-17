@@ -1,12 +1,12 @@
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { session } from "#client/session.ts";
 import { revisionOf } from "#server/responses/records.ts";
 import { answerCardFixture, decisionFile, decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
 import { answerPrompt, responseClick } from "#test/answerDraft.tsx";
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderRouter } from "#test/renderRouter.tsx";
+import { responseCommands } from "#test/responseCommands.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -19,10 +19,7 @@ afterEach(() => {
 
 it.each(["/guide.md", "/_board/item/task.guide/"])("shows the decision's quiet answer card under the unblocked item's header at %s", async (url) => {
 	const view = await renderRouter(readyDecisionFixture, url, { home: "home.md", writable: true });
-	const native = session(window);
-	const mutate = vi.spyOn(native, "mutate").mockResolvedValue({ id: "question.fixture" });
-	const register = vi.spyOn(native.responses.registerQuestion, "run");
-	const record = vi.spyOn(native.responses.recordResponse, "run");
+	const { register, record } = responseCommands(view.forms);
 	try {
 		await eventually(() => expect(view.container.querySelector("#response-form")).not.toBeNull());
 		const header = view.container.querySelector(".item-introduction");
@@ -45,7 +42,8 @@ it.each(["/guide.md", "/_board/item/task.guide/"])("shows the decision's quiet a
 		answerPrompt("fleet-action", "Please tighten the release instructions.");
 		await act(async () => responseClick("submit"));
 		await eventually(() => expect(card?.querySelector('[role="status"]')?.textContent).toContain("Saved:"));
-		expect(mutate).toHaveBeenCalledTimes(2);
+		expect(register).toHaveBeenCalledTimes(1);
+		expect(record).toHaveBeenCalledTimes(1);
 		expect(register).toHaveBeenCalledWith({ item: decisionId, request: "direction", revision: revisionOf(readyDecisionFixture[decisionFile] ?? "") });
 		expect(record).toHaveBeenCalledWith(
 			expect.objectContaining({

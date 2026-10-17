@@ -21,10 +21,9 @@ liveNotesStory.it("bounds paused hints and resyncs current source once resumed",
 	const { one } = test;
 	test.pause(true);
 	yield* test.edit(1, "While paused");
-	for (let index = 0; index < 300; index += 1) {
-		yield* test.emit({ _tag: "Resync" });
-	}
-	yield* eventually(() => expect(test.status().pending).toBe(256));
+	yield* eventually(() => expect(test.status().pending).toBe(1));
+	yield* test.resyncBurst(300);
+	expect(test.status().pending).toBe(256);
 	expect(test.body(one)).toBe("First");
 	test.pause(false);
 	yield* eventually(() => expect(test.body(one)).toBe("While paused"));
