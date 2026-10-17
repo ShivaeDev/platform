@@ -1,18 +1,23 @@
-import { execFileSync } from "node:child_process";
-import { afterEach, expect, it, vi } from "vitest";
-import { localPostgres } from "#localPostgres.ts";
-import { dockerReadiness } from "#test/dockerReadiness.ts";
+import { expect } from "vitest";
+import { postgres } from "#test/postgres.ts";
+import { discoveryFails, readyAfter } from "#test/postgresTraits.ts";
 
-vi.mock("node:child_process", async (original) => {
-	const module = await original<typeof import("node:child_process")>();
-	return { ...module, execFileSync: vi.fn(module.execFileSync) };
-});
-afterEach(() => vi.mocked(execFileSync).mockReset());
+postgres.it(
+	"steps readiness probes until PostgreSQL reports the pinned version",
+	[readyAfter(2)],
+	function* ({ checkReadiness, readinessAttempts, stop }) {
+		yield* checkReadiness();
+		expect(readinessAttempts()).toBe(3);
+		yield* stop();
+	},
+);
 
-it("retries Docker discovery while a started container becomes ready, then checks real PostgreSQL", async () => {
-	const real = await vi.importActual<typeof import("node:child_process")>("node:child_process");
-	const docker = dockerReadiness(2, real.execFileSync);
-	vi.mocked(execFileSync).mockImplementation(docker.run);
-	expect(() => localPostgres({}).startPostgres()).not.toThrow();
-	docker.done(3);
-});
+postgres.it(
+	"retries Docker discovery while a started container becomes ready, then checks real PostgreSQL",
+	[discoveryFails(2)],
+	function* ({ start, checkReadiness, stop }) {
+		expect(start).not.toThrow();
+		yield* checkReadiness();
+		yield* stop(4);
+	},
+);
