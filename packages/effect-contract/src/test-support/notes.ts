@@ -45,6 +45,7 @@ export const makeServer = Effect.gen(function* () {
 	);
 	const reads = yield* Ref.make<readonly string[]>([]);
 	const denied = yield* Ref.make(false);
+	const session = yield* Ref.make({ user: "ada" });
 	function read(label: string) {
 		return Ref.update(reads, (all) => [...all, label]);
 	}
@@ -60,28 +61,27 @@ export const makeServer = Effect.gen(function* () {
 			note,
 		);
 	}
-	const handlers = Notes.toLayer(
-		Effect.succeed(
-			Notes.of({
-				"notes.create": (draft) =>
-					draft.title === ""
-						? Create.reject.Invalid({ field: "title", message: "Enter a title" })
-						: Effect.flatMap(Ref.get(stored), (all) => save(new Note({ id: all.size + 1, ...draft }))),
-				"notes.get": ({ id }) => Effect.andThen(read(`get:${id}`), find(id)),
-				"notes.list": () =>
-					Effect.andThen(
-						read("list"),
-						Effect.map(Ref.get(stored), (all) => [...all.values()]),
-					),
-				"notes.rename": ({ id, title }) =>
-					title.trim() === ""
-						? Rename.reject.Invalid({ field: "title", message: "Enter a title" })
-						: Effect.flatMap(find(id), (note) => save(new Note({ ...note, title }))),
-			}),
+	const implementation = Notes.of({
+		"notes.create": (draft) =>
+			draft.title === ""
+				? Create.reject.Invalid({ field: "title", message: "Enter a title" })
+				: Effect.flatMap(Ref.get(stored), (all) => save(new Note({ id: all.size + 1, ...draft }))),
+		"notes.get": ({ id }) => Effect.andThen(read(`get:${id}`), find(id)),
+		"notes.list": () =>
+			Effect.andThen(
+				read("list"),
+				Effect.map(Ref.get(stored), (all) => [...all.values()]),
+			),
+		"notes.rename": ({ id, title }) =>
+			title.trim() === ""
+				? Rename.reject.Invalid({ field: "title", message: "Enter a title" })
+				: Effect.flatMap(find(id), (note) => save(new Note({ ...note, title }))),
+	});
+	const handlers = Notes.toLayer(Effect.succeed(implementation));
+	const guard = Layer.succeed(Guard, (effect) =>
+		Effect.flatMap(Ref.get(denied), (isDenied) =>
+			isDenied ? Effect.fail(new Denied()) : Effect.flatMap(Ref.get(session), (identity) => Effect.provideService(effect, Session, identity)),
 		),
 	);
-	const guard = Layer.succeed(Guard, (effect) =>
-		Effect.flatMap(Ref.get(denied), (isDenied) => (isDenied ? Effect.fail(new Denied()) : Effect.provideService(effect, Session, { user: "ada" }))),
-	);
-	return { denied, layer: Layer.merge(handlers, guard), reads };
+	return { denied, guard, implementation, layer: Layer.merge(handlers, guard), reads, session, stored };
 });
