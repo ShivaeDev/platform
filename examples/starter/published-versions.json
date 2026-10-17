@@ -9,7 +9,7 @@
 	"@shivaedev/effect-service": "0.3.0",
 	"@shivaedev/effect-sql": "0.5.0",
 	"@shivaedev/effect-test": "0.5.0",
-	"@shivaedev/effect-test-sql": "0.4.0",
+	"@shivaedev/effect-test-sql": "0.5.0",
 	"@shivaedev/effect-trpc": "0.7.1",
 	"@shivaedev/local-postgres": "0.2.1",
 	"@shivaedev/platform": "0.14.1",

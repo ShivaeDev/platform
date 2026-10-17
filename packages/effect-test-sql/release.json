@@ -2,17 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "admin-connection-lifetime.md",
-			"text": "### Fixed\n\n- `makePostgresTestLayer` keeps its administration connection alive until fixture cleanup, so an idle period cannot leave database finalizers waiting for a new pooled connection during scope closure.\n"
-		},
-		{
-			"name": "connection-pools.md",
-			"text": "### Added\n\n- `PostgresTestOptions.maxConnections` configures the preparation, shared and isolated database pool limit per suite.\n\n### Fixed\n\n- Test database pools default to two connections, and administrative connections close after each create or drop, so concurrent database copies use a smaller PostgreSQL connection budget. Fresh scoped administration connections preserve database cleanup after idle periods without retaining a worker-lifetime connection.\n- Setup, rollback and isolated test wrappers explain PostgreSQL connection-limit failures with `max_connections` and a `vitest run --maxWorkers=4` suggestion while retaining SQLSTATE `53300`.\n"
-		},
-		{
-			"name": "framework-version-agreement.md",
-			"text": "### Fixed\n\n- Publish against `@shivaedev/effect-sql` 0.5.0 so a generated app shares the same SQL service tags as Platform.\n"
+			"name": "migration-steps.md",
+			"text": "### Added\n\n- `migrationSteps(appMigrations)` from `migrationSteps.ts` provides `migrateTo(\"1_name\")` and `migrateToLatest` on the current PostgreSQL client, so tests can seed old-schema rows before running a backfill. Unknown names fail with a typed `MigrationError`; loader dependencies and scope stay explicit.\n- `makePostgresTestLayer({ prepare: false, ... })` skips migration and fixture preparation, giving isolated tests and test-story stories empty databases without a second migration list.\n"
 		}
 	],
-	"version": "0.4.0"
+	"version": "0.5.0"
 }

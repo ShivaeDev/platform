@@ -2,9 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "per-job-settlement.md",
-			"text": "### Fixed\n\n- Generated apps use effect-pg-boss 0.7.1 so one failing job no longer fails or retries the other jobs in its batch.\n"
+			"name": "test-sql-steps.md",
+			"text": "### Changed\n\n- Generated apps use effect-test-sql 0.5.0, whose `migrationSteps` lets tests seed rows between migrations to check backfills.\n"
 		}
 	],
-	"version": "0.6.3"
+	"version": "0.6.4"
 }
