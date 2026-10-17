@@ -53,7 +53,7 @@ function declaring(definition: LooseDefinition, genre: Genre, declare: EffectTes
 
 export function storyIt(definition: LooseDefinition): LooseIt {
 	const genre = genreOf(definition.name);
-	const outbound = definition.outbound;
+	const outbound = definition.outbound ?? (Reflect.get(globalThis, Symbol.for("test-story.dom")) ? {} : undefined);
 	const { effectApp } = makeEffectIt({
 		around:
 			outbound === undefined

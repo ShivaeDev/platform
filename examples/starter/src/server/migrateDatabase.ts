@@ -1,11 +1,13 @@
-import { PgClient } from "@effect/sql-pg";
-import { Config, Effect } from "effect";
-import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
-import { makeAuth } from "./auth.ts";
-import { migrations } from "./migrations.ts";
+import { Config, Effect, Layer, Redacted } from "effect";
+import { appDatabase } from "@shivaedev/platform/appHost.ts";
+import { authDatabase } from "#server/authDatabase.ts";
+import { migrations } from "#server/migrations.ts";
+import { noteProducer } from "#server/noteProducer.ts";
 
-export const migrateDatabase = Effect.gen(function* () {
-	const url = yield* Config.Redacted("DATABASE_URL");
-	const { auth } = yield* makeAuth({ databaseUrl: url });
-	return yield* migratePostgres(migrations(auth)).pipe(Effect.provide(PgClient.layer({ url })));
+export const migrateDatabase = Effect.fn("App.migrateDatabase")(function* (databaseUrl?: Redacted.Redacted<string>) {
+	const url = databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
+	const pool = yield* authDatabase(url);
+	yield* Layer.build(appDatabase({ config: { databaseUrl: url }, migrations: migrations(pool) }));
+	yield* Layer.build(noteProducer(Redacted.value(url), true));
+	yield* Effect.logInfo("Migrations applied");
 });

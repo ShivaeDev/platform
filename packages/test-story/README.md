@@ -107,7 +107,7 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 | Hook | Says |
 | --- | --- |
 | `name` | What the engine is called in failures, "the bakery", and the kit's genre, "Bakery Story". |
-| `outbound` | Optional. A map of exact hostnames to fake server origins for the host's Node built-in `fetch`. |
+| `outbound` | Optional. A map of exact hostnames to fake server origins for Node fetch and the DOM environment's document requests. |
 | `around(effect)` | Optional. Wraps creation, staged seeding and the body; worker Layer acquisition remains outside it. It may require the worker services and per-test Scope. |
 | `clock` | Optional. `"test"` by default, or `"live"` for HTTP and DOM stories. A story’s `options.clock` takes precedence. |
 | `create()` | A fresh engine. Every story starts from a new one. |
@@ -142,9 +142,66 @@ const app = storyKit({
 });
 ```
 
-`appDefinition` holds the application's kit hooks, and `fakeUrl` is the listening fake server's HTTP or HTTPS origin, such as `http://127.0.0.1:4321`. The map matches exact URL hostnames, across ports. It replaces the destination origin while keeping the request's path, query, method, headers and body. For example, a POST to `https://github.com/login/oauth/access_token` reaches the fake's `/login/oauth/access_token`. Other hostnames pass through the previous dispatcher unchanged.
+`appDefinition` holds the application's kit hooks, and `fakeUrl` is the listening fake server's HTTP or HTTPS origin, such as `http://127.0.0.1:4321`. The map matches exact URL hostnames, across ports. It replaces the destination origin while keeping the request's path, query, method, headers and body. For example, a POST to `https://github.com/login/oauth/access_token` reaches the fake's `/login/oauth/access_token`. In Node stories, other hostnames pass through the previous dispatcher unchanged. In the DOM environment, only loopback hosts (`localhost`, IPv4 loopback addresses and `[::1]`) may pass through without a route; every other hostname must have an `outbound` fake. A refused request fails the story and names its hostname, even when application code catches the fetch error.
 
-Routing uses the global dispatcher that Node's built-in `fetch` already uses. It is installed before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. Routing affects host-side Node fetches.
+Routing uses the global dispatcher that Node's built-in `fetch` already uses. It is installed before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
+
+#### Asserting on application traces
+
+Start an in-process host in `create`. That hook runs without the ambient parent span, so an Effect HTTP handler that captures its context does not inherit a span placed around the story. A request without trace headers starts a root trace; a request with `traceparent` continues that trace. The tracer, services and per-story Scope remain available during creation. Traits, engine steps and the story body keep the span supplied by `around`.
+
+A kit can collect spans with a native in-memory tracer, or start a fake OTLP receiver and point the application's exporter at it. Keep collection and any exporter flush or bounded wait in the kit's verbs. Assert only after the request span has ended. This small in-memory kit uses Effect's Web Request handler as its host:
+
+```ts
+import { Effect, Tracer } from "effect";
+import { HttpEffect, HttpServerResponse } from "effect/http";
+import { expect } from "vitest";
+import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+
+const spans: Tracer.NativeSpan[] = [];
+const tracer = Tracer.make({
+  span: (options) => {
+    const span = new Tracer.NativeSpan(options);
+    spans.push(span);
+    return span;
+  },
+});
+
+const app = storyKit({
+  around: (effect) => effect.pipe(Effect.withSpan("story"), Effect.withTracer(tracer)),
+  *create() {
+    const context = yield* Effect.context<never>();
+    return HttpEffect.toWebHandlerWith(context)(Effect.succeed(HttpServerResponse.text("ok")));
+  },
+  name: "traced application",
+  stages: ["ready"],
+  verbs: (handler) => ({
+    request: (headers: HeadersInit = {}) => Effect.promise(async () => {
+      const response = await handler(new Request("http://app.test/", { headers }));
+      await response.text();
+      const span = spans.filter((span) => span.kind === "server").at(-1);
+      if (span === undefined) throw new Error("The request exported no server span");
+      return span;
+    }),
+  }),
+});
+
+app.it("a request is its own root trace", [], function* ({ request }) {
+  const storySpan = yield* Effect.currentSpan;
+  const span = yield* request();
+  expect(span.parent._tag).toBe("None");
+  expect(span.traceId).not.toBe(storySpan.traceId);
+  expect(span.status._tag).toBe("Ended");
+});
+
+app.it("a request continues its supplied trace", [], function* ({ request }) {
+  const span = yield* request({ traceparent: "00-1234567890abcdef1234567890abcdef-1234567890abcdef-01" });
+  expect(span.traceId).toBe("1234567890abcdef1234567890abcdef");
+  expect(span.parent).toMatchObject({ value: { spanId: "1234567890abcdef" } });
+});
+```
+
+The package's [tracing kit](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/test-support/tracingApp.ts) and [stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/hostTracing.spec.ts) also assert that two requests have different trace IDs, request work stays under its request span, and traits and engine steps stay under the story span. Creation only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
 
 ### 2. Once per feature: traits and verbs
 
@@ -303,13 +360,14 @@ export default defineConfig({
 });
 ```
 
-The environment runs happy-dom, then restores Node's global `Request`, `Response`, `Headers`, `AbortController` and `AbortSignal` for the host and client request construction. Better Auth can emit `Set-Cookie`, and the host can read incoming cookie headers. Fetch still runs through happy-dom's internal window and cookie jar. The environment translates Node `Headers` and `Request` inputs for that fetch, including requests made by Better Auth's client. Client responses remain happy-dom responses: inspect their status, headers and body methods rather than comparing them with the global Node constructors. The starter's [Vitest config](https://github.com/ShivaeDev/platform/blob/main/examples/starter/vitest.config.ts) selects this environment only for its DOM project while retaining the shared test projects. Use Vitest's standard forks or threads pool.
+The environment keeps Node's global `fetch`, `Request`, `Response`, `Headers`, `AbortController` and `AbortSignal` for the in-process host. The separate `window` keeps happy-dom's constructors and cookie jar. Its asynchronous HTTP requests use Node fetch through the same `outbound` dispatcher, including XMLHttpRequest. Synchronous document HTTP requests are refused. The starter's [Vitest config](https://github.com/ShivaeDev/platform/blob/main/examples/starter/vitest.config.ts) selects this environment only for its DOM project while retaining the shared test projects. Use Vitest's standard forks or threads pool.
 
-`domFetch(baseUrl)` from `@shivaedev/test-story/domFetch.ts` sets the current window's location to the real HTTP host and returns its bound fetch, resolving relative request strings against that URL. The window keeps and sends cookies, including HttpOnly session cookies. Keep the default `same-origin` credentials policy for this same-origin setup. Set the page origin before creating an auth client or rendering a screen; application code can use the global fetch of that same window.
+`domFetch(baseUrl)` from `@shivaedev/test-story/domFetch.ts` sets the document's location to the real HTTP host and returns a document fetch that resolves relative request strings against that URL. It translates Node `Request` and `Headers` inputs for happy-dom. Responses have happy-dom's status, headers and body methods; they are not instances of Node's global `Response`. The document keeps and sends cookies, including HttpOnly session cookies. Keep the default `same-origin` credentials policy for same-origin requests, and pass this fetch explicitly to browser clients, such as Better Auth's `fetchOptions.customFetchImpl`. The host continues to use global Node fetch without browser cookies.
 
 Call it in the kit's `create` hook after starting the host:
 
 ```ts
+import { createAuthClient } from "better-auth/react";
 import { domFetch } from "@shivaedev/test-story/domFetch.ts";
 
 const cookieApp = storyKit({
@@ -317,12 +375,14 @@ const cookieApp = storyKit({
   clock: "live",
   *create() {
     const { baseUrl } = yield* startHost();
-    return { fetch: domFetch(baseUrl) };
+    const fetch = domFetch(baseUrl);
+    const client = createAuthClient({ baseURL: baseUrl, fetchOptions: { customFetchImpl: fetch } });
+    return { client, fetch };
   },
   layer: postgres,
   name: "cookie auth",
   stages: ["account"],
-  verbs: ({ fetch }, story) => authVerbs(fetch, story.tell),
+  verbs: ({ client, fetch }, story) => authVerbs(client, fetch, story.tell),
 });
 ```
 
@@ -342,6 +402,39 @@ cookieApp.it("sign-up and sign-in keep their cookie sessions against the Postgre
 ```
 
 This story proves Better Auth cookie sessions across real loopback HTTP requests from happy-dom with an in-process PostgreSQL host. It also reads sessions through Better Auth's client and checks the fetch response's status, headers and JSON body.
+
+#### Social sign-in through an outbound provider
+
+Happy-dom's detached window records a location change without loading the next document. `domNavigate(url = window.location.href)` from `@shivaedev/test-story/domNavigate.ts` performs that load: it follows HTTP redirects through the document transport, keeps cookies for each destination, sets the final location, writes the returned HTML and returns the happy-dom response. Call it after the sign-in client has set the provider location, and before checking the returned page. An unrouted external redirect fails with its hostname.
+
+The starter's [social application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/socialApp.ts) runs a fixture Better Auth host on real PostgreSQL, with a rendered sign-in button and a fake GitHub provider. Its `outbound` map routes both `github.com` and `api.github.com` to the fake's loopback origin. The fake's authorize endpoint returns the application's callback URL with the received state and a test code. The real callback exchanges that code and fetches the user against the fake, creates the account and session in PostgreSQL, and redirects to the signed-in page.
+
+```ts
+import { domNavigate } from "@shivaedev/test-story/domNavigate.ts";
+
+const socialApp = storyKit({
+  ...socialDefinition,
+  outbound: { "github.com": fakeUrl, "api.github.com": fakeUrl },
+  verbs: (engine, story) => ({
+    signInWithGitHub: () => Effect.promise(async () => {
+      story.tell("Alice clicks Sign in with GitHub");
+      await engine.screen.click();
+      await domNavigate();
+    }),
+    signedInPageIs: (email: string) => Effect.promise(async () => {
+      expect(document.querySelector("h1")?.textContent).toBe(`Signed in as ${email}`);
+      expect(await (await engine.fetch("/api/auth/get-session")).json()).toMatchObject({ user: { email } });
+    }),
+  }),
+});
+
+socialApp.it("a social sign-in returns with a cookie session", [], function* ({ signInWithGitHub, signedInPageIs }) {
+  yield* signInWithGitHub();
+  yield* signedInPageIs("alice@social.test");
+});
+```
+
+`socialDefinition` starts the host and renders the screen with a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The [story](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/server/socialSessions.dom.spec.ts) also checks the authorize, token and user requests at the fake, persisted PostgreSQL rows, and an HttpOnly session cookie read through a later document request. It does not copy cookies into request headers.
 
 `domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
 

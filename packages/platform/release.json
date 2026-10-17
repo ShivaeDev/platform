@@ -2,9 +2,13 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "otlp-export.md",
-			"text": "### Added\n\n- `otlpTracing` in `otlpTracing.ts`: a scoped Effect Config Layer for OTLP/HTTP JSON trace export. `appHost` enables it when an exporter endpoint is set; workers can provide the same Layer. Collector failures preserve requests and scoped shutdown; serialization redacts sensitive diagnostics.\n"
+			"name": "deploy-readiness.md",
+			"text": "### Added\n\n- `appHost` serves unauthenticated `GET /health` with an empty, uncached response: 200 when its database probe succeeds within two seconds, or 503 when SQL is absent, unavailable or times out.\n- `appDatabase` and database-backed `appHost` accept `migrations.mode: \"check\"` to verify required migration IDs and names without applying migrations or creating a ledger. Missing or pending migrations fail startup with native `MigrationError`; the default migration mode is unchanged.\n"
+		},
+		{
+			"name": "framework-version-agreement.md",
+			"text": "### Fixed\n\n- Align published contract, Prisma and tRPC dependencies with the current framework releases.\n"
 		}
 	],
-	"version": "0.13.0"
+	"version": "0.14.0"
 }

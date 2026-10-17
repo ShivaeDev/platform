@@ -1,10 +1,12 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { Effect, FileSystem } from "effect";
+import { decodeManifest, decodeVersions } from "#package-check/model.ts";
 import { assertPackageChange } from "./assertPackageChange.ts";
 import { attempt } from "./attempt.ts";
 import { decodeVersion, type PackageNotes, readPackage } from "./package.ts";
 import { decodeReleaseManifest } from "./releaseManifest.ts";
+import { assertDependentReleases, assertStarterPins } from "./versionAgreement.ts";
 
 function git(root: string, args: readonly string[]): string {
 	return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
@@ -54,7 +56,7 @@ export const checkRepository = Effect.fn("Changelog.checkRepository")(function* 
 	const base = yield* attempt(() => mergeBase(root, resolveReference(root, reference), merging));
 	const paths = yield* attempt(() => git(root, ["ls-tree", "-r", "--name-only", base, "packages"]).trim().split("\n"));
 	const names = yield* fs.readDirectory(join(root, "packages"));
-	yield* Effect.forEach(names, (name) =>
+	const packages = yield* Effect.forEach(names, (name) =>
 		Effect.gen(function* () {
 			const directory = join(root, "packages", name);
 			if (!(yield* fs.exists(join(directory, "package.json")))) {
@@ -63,6 +65,27 @@ export const checkRepository = Effect.fn("Changelog.checkRepository")(function* 
 			const before = yield* attempt(() => basePackage(root, base, name, paths));
 			const after = yield* readPackage(directory);
 			yield* attempt(() => assertPackageChange(name, before, after));
+			const text = yield* fs.readFileString(join(directory, "package.json"));
+			const manifest = yield* attempt(() => decodeManifest(text));
+			return {
+				before: paths.includes(`packages/${name}/package.json`)
+					? yield* attempt(() => decodeManifest(git(root, ["show", `${base}:packages/${name}/package.json`])))
+					: undefined,
+				manifest,
+			};
 		}),
 	);
+	const releases = packages.filter((pkg) => pkg !== undefined);
+	yield* attempt(() => assertDependentReleases(releases));
+	const pinsPath = join(root, "examples/starter/published-versions.json");
+	if (yield* fs.exists(pinsPath)) {
+		const text = yield* fs.readFileString(pinsPath);
+		const pins = yield* attempt(() => decodeVersions(text));
+		yield* attempt(() =>
+			assertStarterPins(
+				releases.map((pkg) => pkg.manifest),
+				pins,
+			),
+		);
+	}
 });

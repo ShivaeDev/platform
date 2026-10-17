@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 - 2026-10-17
+
+### Added
+
+- Unversioned repositories expose `insertMany(inputs)`. Repositories declaring `conflictColumns` also expose `insertManyOrIgnore(inputs)` and `upsertMany(inputs, { updateColumns })`, with model-derived insert inputs, decoded model arrays, bounded SQL chunks and caller-owned native transactions. Empty batches return an empty array without writing.
+- `assertPostgresMigrations({ loader, table? })` in `assertPostgresMigrations.ts` verifies required migration IDs and names in the native ledger without executing migrations or creating a ledger. Missing or pending migrations fail with native `MigrationError` (`kind: "BadState"`); later ledger entries are allowed for rolling deployments.
+
 ## 0.4.0 - 2026-10-16
 
 ### Added

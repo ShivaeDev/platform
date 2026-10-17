@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Context, Effect, Tracer } from "effect";
 import type { TestContext } from "vitest";
 import { callSite } from "#internal/callSite.ts";
 import { hooked } from "#internal/hooked.ts";
@@ -7,7 +7,7 @@ import { runUntil } from "#internal/runUntil.ts";
 import { type LooseDefinition, type LooseStory, type LooseTrait, seed } from "#internal/seed.ts";
 
 export const start = Effect.fnUntraced(function* (definition: LooseDefinition, given: readonly LooseTrait[], context: TestContext) {
-	const engine = yield* hooked(definition.create);
+	const engine = yield* hooked(definition.create).pipe(Effect.updateContext(Context.omit(Tracer.ParentSpan)));
 	const narration = narrate({ engine, inspect: definition.inspect, name: definition.name }, context);
 	yield* seed(definition, engine, narration, given);
 	const story: LooseStory = {

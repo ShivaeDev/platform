@@ -1,8 +1,8 @@
 import { Buffer } from "node:buffer";
 import { basename, join } from "node:path";
 import { Effect, FileSystem, type PlatformError, Schema } from "effect";
-import { CreateAppError } from "./CreateAppError.ts";
-import { prepareFile, type Template, Versions } from "./template.ts";
+import { CreateAppError } from "#CreateAppError.ts";
+import { prepareFile, type Template, Versions } from "#template.ts";
 
 const appPaths = new Map([
 	["app-agents.md", "AGENTS.md"],
@@ -44,7 +44,15 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 				const content = yield* Effect.try({
 					catch: (cause) => new CreateAppError({ message: String(cause) }),
 					try: () =>
-						["biome.json", "package.json", "tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"].includes(path)
+						[
+							"biome.json",
+							"package.json",
+							"tsconfig.json",
+							"vite.config.ts",
+							"vitest.config.ts",
+							"src/server/dev.ts",
+							"src/test-support/deployChild.ts",
+						].includes(path)
 							? Buffer.from(prepareFile(path, source.toString(), versions))
 							: source,
 				});

@@ -50,7 +50,7 @@ test("the host migrates before services, serves assets and guarded typed RPC, an
 			group: Api,
 			handlers,
 			migrations: { loader, table: ledger },
-			routes: HttpRouter.add("GET", "/health", HttpServerResponse.text("Ready")),
+			routes: HttpRouter.add("GET", "/ready", HttpServerResponse.text("Ready")),
 			services,
 			sessions: sessions(lookups),
 		}).pipe(Layer.provide(environment)),
@@ -66,7 +66,7 @@ test("the host migrates before services, serves assets and guarded typed RPC, an
 		expect(NetAddress.formatIp(server.address.address)).toBe("127.0.0.1");
 		expect(lifecycle).toEqual(["started"]);
 		expect(await (await fetch(url)).text()).toBe("<main>Hosted app</main>");
-		expect(await (await fetch(`${url}/health`)).text()).toBe("Ready");
+		expect(await (await fetch(`${url}/ready`)).text()).toBe("Ready");
 		expect(await (await fetch(`${url}/sign-in`, { headers: { accept: "text/html" } })).text()).toBe("<main>Hosted app</main>");
 		const success = await Promise.all([call(url, "alice"), call(url, "bob")]);
 		expect(success.map((result) => Result.isSuccess(result) && result.success)).toEqual(["Hello, alice", "Hello, bob"]);

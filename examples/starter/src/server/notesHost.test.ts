@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { app, legacyNote, signedIn } from "#test-support/application.ts";
 
-app.it("migrates PostgreSQL and creates and queries a persisted note over authenticated HTTP/NDJSON", [signedIn()], function* ({ actor }) {
+app.it("creates and queries a persisted note over authenticated HTTP/NDJSON", [signedIn()], function* ({ actor }) {
 	const { notes: client } = actor();
 	expect(yield* client.list()).toEqual([]);
 	const created = yield* client.create({ title: "  First note  " });

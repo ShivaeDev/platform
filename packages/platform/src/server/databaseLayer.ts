@@ -2,9 +2,10 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
+import { assertPostgresMigrations } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
-import type { AppChanges, AppDatabaseOptions } from "./appHost.ts";
+import type { AppChanges, AppDatabaseOptions } from "#server/appHost.ts";
 
 export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService: typeof AppChanges) {
 	const pool = Layer.unwrap(
@@ -17,11 +18,13 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 			});
 		}),
 	);
-	const migrated = Layer.effectDiscard(migratePostgres({ ...options.migrations, lockTimeout: options.migrations.lockTimeout ?? "5 seconds" })).pipe(
-		Layer.provideMerge(pool),
-	);
+	const prepared = Layer.effectDiscard(
+		options.migrations.mode === "check"
+			? assertPostgresMigrations(options.migrations)
+			: migratePostgres({ ...options.migrations, lockTimeout: options.migrations.lockTimeout ?? "5 seconds" }),
+	).pipe(Layer.provideMerge(pool));
 	const live = Layer.effect(changesService, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer));
-	const base = Layer.merge(migrated, live);
+	const base = Layer.merge(prepared, live);
 	const changes = options.config?.changes;
 	if (changes === undefined) {
 		return base;
