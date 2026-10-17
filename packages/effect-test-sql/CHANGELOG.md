@@ -11,7 +11,7 @@
 - `makePostgresTestLayer` keeps its administration connection alive until fixture cleanup, so an idle period cannot leave database finalizers waiting for a new pooled connection during scope closure.
 - Test database pools default to two connections, and administrative connections close after each create or drop, so concurrent database copies use a smaller PostgreSQL connection budget. Fresh scoped administration connections preserve database cleanup after idle periods without retaining a worker-lifetime connection.
 - Setup, rollback and isolated test wrappers explain PostgreSQL connection-limit failures with `max_connections` and a `vitest run --maxWorkers=4` suggestion while retaining SQLSTATE `53300`.
-- Publish against `@shivaedev/effect-sql` 0.4.0 so a generated app shares the same SQL service tags as Platform.
+- Publish against `@shivaedev/effect-sql` 0.5.0 so a generated app shares the same SQL service tags as Platform.
 
 ## 0.3.0 - 2026-10-13
 

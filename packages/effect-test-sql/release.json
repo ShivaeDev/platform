@@ -11,7 +11,7 @@
 		},
 		{
 			"name": "framework-version-agreement.md",
-			"text": "### Fixed\n\n- Publish against `@shivaedev/effect-sql` 0.4.0 so a generated app shares the same SQL service tags as Platform.\n"
+			"text": "### Fixed\n\n- Publish against `@shivaedev/effect-sql` 0.5.0 so a generated app shares the same SQL service tags as Platform.\n"
 		}
 	],
 	"version": "0.4.0"

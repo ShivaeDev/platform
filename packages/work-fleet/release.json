@@ -18,6 +18,10 @@
 			"text": "### Fixed\n\n- Fresh worker retries refresh their preparation from current main before host dispatch, preserving prior attempts and response receipts without asking a human to resolve stale preparation.\n"
 		},
 		{
+			"name": "stalled-brief-retry.md",
+			"text": "### Fixed\n\n- Stalled turns retain their recovery state when a brief edit replaces the current decision. Retry or dispatch of the revised brief abandons the stalled turn and starts a fresh session; late output and acknowledgements remain fenced out. Release can also abandon the stalled turn after a decision replacement.\n"
+		},
+		{
 			"name": "stalled-turn-resolution.md",
 			"text": "### Fixed\n\n- Retry and release can abandon a stalled provider turn even when it still reports running or no longer responds. Retry starts a fresh session, and abandoned turns cannot supply accepted output or late acknowledgements. Attempts retain the provider's last observation and interruption or observation failures in an optional `abandoned` field.\n"
 		}

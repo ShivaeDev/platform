@@ -4,6 +4,7 @@ This file owns the implementation status of repositories, SQL transaction change
 
 ## Built
 
+- [x] Unversioned repositories provide `insertMany`, plus `insertManyOrIgnore` and `upsertMany` with declared conflict keys. Model codecs, bounded statement chunks, selected update columns, empty inputs and native transaction rollback have [PostgreSQL batch evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresBatchWrites.spec.ts). [Integer-array evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresArrays.spec.ts) covers empty and non-empty `int4[]` values using a native typed-parameter model codec.
 - [x] Opt-in `versionColumn` optimistic concurrency initializes and increments versions, rejects stale or missing updates and deletes with `OptimisticConcurrencyError`, and participates in caller-owned transactions. [PostgreSQL evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresConcurrency.spec.ts) covers ordinary and void writes, rollback and concurrent writers with exactly one winner; [compiler evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/repository.typecheck.test.ts) checks versioned inputs.
 - [x] Native model-derived CRUD with a narrow `findMany`: equality filters, selected field types and decoders, one sort field and a limit. Codec services stay in the environment; undefined filters are unconstrained and unknown runtime field names fail with `SchemaError`. [SQLite and type evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/repository.test.ts), [installed type consumer](https://github.com/ShivaeDev/platform/blob/main/script/package-check/fixtures/effect-sql/types.ts.txt).
 - [x] Repository writes participate in caller-owned native transactions. [SQLite evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/repository.test.ts) and [PostgreSQL evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgres.spec.ts) cover rollback, generated identities, nullable filters, encoded text, selection, ordering and limits.
@@ -18,7 +19,7 @@ The PostgreSQL suites skip without `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`. Thei
 
 ## Next
 
-- [ ] Establish a supported field/storage matrix from concrete consumers, extending the tested cases where needed. Broader PostgreSQL coverage needs direct evidence for arrays, enums, ranges, binary data, exact sub-millisecond time and custom type policies.
+- [ ] Establish a supported field/storage matrix from concrete consumers, extending the tested cases where needed. Broader PostgreSQL coverage needs direct evidence for arrays beyond one-dimensional `int4[]`, enums, ranges, binary data, exact sub-millisecond time and custom type policies.
 - [ ] Use a consuming application's exceptional queries to decide whether more repository helpers remove repeated work without introducing a second database model.
 
 ## Open questions

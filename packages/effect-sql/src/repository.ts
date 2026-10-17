@@ -1,6 +1,7 @@
 import { Data, Effect, type Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient, SqlModel } from "effect/sql";
+import { type BatchWrites, makeInsertMany } from "#batchWrites.ts";
 import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeRepository.ts";
 import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#conflictWrites.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
@@ -43,14 +44,17 @@ export function makeRepository<TModel extends Model.Any, const TId extends Prima
 	model: TModel,
 	options: RepositoryOptions<TId> & { readonly versionColumn?: never; readonly conflictColumns: TConflict },
 ): Effect.Effect<
-	Repository<TModel, TId> & Queries<TModel> & ConflictWrites<TModel, TConflict[number] | (TId extends readonly PropertyKey[] ? TId[number] : TId)>,
+	Repository<TModel, TId> &
+		BatchWrites<TModel> &
+		Queries<TModel> &
+		ConflictWrites<TModel, TConflict[number] | (TId extends readonly PropertyKey[] ? TId[number] : TId)>,
 	never,
 	SqlClient.SqlClient
 >;
 export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel>>(
 	model: TModel,
 	options: RepositoryOptions<TId> & { readonly versionColumn?: never; readonly conflictColumns?: never },
-): Effect.Effect<Repository<TModel, TId> & Queries<TModel>, never, SqlClient.SqlClient>;
+): Effect.Effect<Repository<TModel, TId> & BatchWrites<TModel> & Queries<TModel>, never, SqlClient.SqlClient>;
 export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
 	model: TModel,
 	options: RepositoryOptions<TId | readonly [TId, TId, ...TId[]]> & {
@@ -70,6 +74,7 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 			? {
 					...crud,
 					...keyed,
+					insertMany: makeInsertMany(model, sql, options, "insertMany"),
 					...(options.conflictColumns === undefined
 						? {}
 						: makeConflictWrites(model, sql, { ...options, conflictColumns: options.conflictColumns, idColumns })),

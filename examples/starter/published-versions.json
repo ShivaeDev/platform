@@ -7,7 +7,7 @@
 	"@shivaedev/effect-prisma": "0.9.1",
 	"@shivaedev/effect-react": "0.4.1",
 	"@shivaedev/effect-service": "0.3.0",
-	"@shivaedev/effect-sql": "0.4.0",
+	"@shivaedev/effect-sql": "0.5.0",
 	"@shivaedev/effect-test": "0.5.0",
 	"@shivaedev/effect-test-sql": "0.4.0",
 	"@shivaedev/effect-trpc": "0.7.1",

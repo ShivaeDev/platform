@@ -4,7 +4,8 @@
 
 ### Fixed
 
-- Generate an app with aligned framework versions, including `effect-sql` 0.4.0 and its matching SQL test package, so framework dependencies do not install conflicting versions.
+- Generate an app with aligned framework versions, including `effect-sql` 0.5.0 and its matching SQL test package, so framework dependencies do not install conflicting versions.
+- A generated app registers producer queues and their dead-letter queues through `effect-pg-boss` queue definitions. Note writes enqueue independently after their transaction and log queue failures without failing the saved write; the starter no longer supplies a transactional database adapter.
 
 ## 0.5.0 - 2026-10-17
 
