@@ -3,7 +3,8 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { vi } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { forwardingProxy } from "./forwardingProxy.ts";
+import { migrateDatabase } from "#server/migrateDatabase.ts";
+import { forwardingProxy } from "#test-support/forwardingProxy.ts";
 
 export const secret = Redacted.make("starter-test-secret-with-at-least-32-characters");
 export const PUBLIC_URL = "https://app.example";
@@ -21,6 +22,7 @@ export const startHost = Effect.fn("StarterStory.startHost")(function* (options:
 	const { starterHost } = yield* Effect.promise(() => import("#server/starterHost.ts"));
 	const deployed = options.deployed ?? false;
 	const database = yield* PostgresTestDatabase;
+	yield* Effect.scoped(migrateDatabase(database.url));
 	const env: Record<string, string> = deployed ? { "HOST": "0.0.0.0", "PORT": "0", "PUBLIC_URL": PUBLIC_URL } : {};
 	if (options.trustedProxy !== undefined) {
 		env.TRUSTED_PROXY = options.trustedProxy;

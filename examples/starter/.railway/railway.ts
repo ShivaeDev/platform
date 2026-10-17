@@ -19,12 +19,10 @@ export default defineRailway((ctx) => {
 	});
 	const worker = service("worker", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
+		deploy: { restartPolicyType: "ON_FAILURE" },
 		env: {
-			"BETTER_AUTH_SECRET": ctx.shared.BETTER_AUTH_SECRET,
 			"DATABASE_URL": database.env.DATABASE_URL,
-			"PUBLIC_URL": ctx.shared.PUBLIC_URL,
 		},
-		preDeploy: "pnpm migrate",
 		start: "pnpm worker",
 	});
 	return project(ctx.projectName ?? "app", { resources: [database, web, worker] });

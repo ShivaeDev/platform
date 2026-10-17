@@ -304,6 +304,8 @@ The first run returns `[[1, "create_orders"], [2, "seed_orders"]]`. Repeating th
 
 A failed batch rolls back its DDL, data and ledger entries, retaining previously committed migrations. A failed first batch also rolls back the bootstrapped ledger. A lock timeout fails with typed `SqlError` and reason `LockTimeoutError`; a migration-body SQL failure is a native `MigrationError` defect. Inspect startup completion with `Effect.exit` when both typed failures and defects matter.
 
+For processes whose deployment owns migration execution, call `assertPostgresMigrations({ loader, table? })` from `@shivaedev/effect-sql/assertPostgresMigrations.ts` before starting services. It checks the native loader’s required IDs and names against the ledger without running migration bodies or creating a ledger. A missing ledger, pending migration or mismatched name fails with native `MigrationError` (`kind: "BadState"`); database failures stay typed `SqlError`. Later ledger entries are allowed so an older application version can start during a rolling deployment. This checks recorded migrations, not physical schema drift.
+
 ### API
 
 Import the module that defines the name; there is no root entry.
@@ -318,6 +320,7 @@ Import the module that defines the name; there is no root entry.
 | `@shivaedev/effect-sql/transact.ts` | `invalidateOnCommit(keys)` | Records keys for its client, or invalidates immediately outside a transaction. |
 | `@shivaedev/effect-sql/transact.ts` | `InvalidationKeys` | A readonly array, or a record of readonly ID arrays. |
 | `@shivaedev/effect-sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional ledger `table`, default `effect_sql_migrations`. |
+| `@shivaedev/effect-sql/assertPostgresMigrations.ts` | `assertPostgresMigrations({ loader, table? })` | Read-only readiness check of required migration IDs and names in the native ledger. |
 | `@shivaedev/effect-sql/migrations.ts` | `PostgresMigrationOptions` | Loader environment and migration coordination options. |
 
 The repository's native methods keep the model's variants. For the `InvoiceLine` example:
