@@ -14,6 +14,6 @@
 	"@shivaedev/local-postgres": "0.2.0",
 	"@shivaedev/platform": "0.12.0",
 	"@shivaedev/quality": "0.21.1",
-	"@shivaedev/test-story": "0.2.0",
+	"@shivaedev/test-story": "0.3.0",
 	"@shivaedev/types": "0.2.0"
 }
