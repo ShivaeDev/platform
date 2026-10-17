@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import { diagnostics } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { AttentionOwner } from "#attention.ts";
 import { BoardReport } from "#board/schema.ts";
+import { DispatchRequest } from "#DispatchRequest.ts";
 import { Checks, Decision, DecisionResponse, Delivery, Review, SupersededDecision, WorkResult } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
 import { LaunchSettings, SessionObservation, SessionReceipt } from "#session/schema.ts";
@@ -130,6 +131,7 @@ export const FleetView = Schema.Struct({
 export const FleetViews = Schema.Struct({
 	active: Schema.Array(FleetView),
 	completed: Schema.Array(FleetView),
+	dispatches: Schema.optional(Schema.Array(DispatchRequest)),
 	waiting: Schema.Struct({
 		automation: Schema.Array(FleetView),
 		maintainer: Schema.Array(FleetView),

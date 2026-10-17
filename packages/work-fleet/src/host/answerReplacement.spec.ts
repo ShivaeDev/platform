@@ -4,6 +4,7 @@ import type { BoardDecision, BoardDecisionReading } from "#board/schema.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import type { FleetRecord } from "#model.ts";
 import { BoardGateway, type Decision } from "#policy.ts";
+import { answerAndWait, dispatchAndWait } from "#test/daemonActions.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -58,7 +59,7 @@ const replacementStory = Effect.fn("AnswerReplacementTest.replacementStory")(fun
 		(port) =>
 			Effect.gen(function* () {
 				const client = yield* daemonClient(port);
-				yield* client("daemon.dispatch", { workId: "one" });
+				yield* dispatchAndWait(client, "one");
 				finishWorkers(fixture.provider);
 				const waiting = yield* client("fleet.reconcile", { workId: "one" });
 				const decision = waiting.decision;
@@ -70,11 +71,13 @@ const replacementStory = Effect.fn("AnswerReplacementTest.replacementStory")(fun
 				replace = storeState(fixture.host, "one", replacedRecord(waiting, decision, replacement)).pipe(
 					Effect.andThen(staleSource(fixture, sourcePath, window)),
 				);
-				const result = yield* client("daemon.answer", { text: TEXT, workId: "one" }).pipe(Effect.result);
+				const result = yield* answerAndWait(client, { text: TEXT, workId: "one" }).pipe(Effect.result);
 				const expected = replacementResult(replacement, decision.id);
 				expect(result).toMatchObject(expected);
 				if (expected._tag === "Failure") {
 					expect((yield* client("fleet.get", { workId: "one" })).responses ?? []).toHaveLength(0);
+				} else if (replacement === "same-kind") {
+					expect((yield* client("fleet.get", { workId: "one" })).decision).toBeUndefined();
 				}
 			}),
 		{ ...fixture.parts, board },
@@ -107,7 +110,6 @@ function replacementResult(replacement: Replacement, decisionId: string) {
 	return {
 		_tag: "Success",
 		success: {
-			decision: undefined,
 			responses: [{ action: "retry", boardAcknowledged: true, decisionId: `${decisionId}.replacement` }],
 		},
 	};

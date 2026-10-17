@@ -3,6 +3,7 @@ import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { command, query, stream } from "@shivaedev/effect-contract/operation.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { DispatchRequest } from "#DispatchRequest.ts";
 import { fleetRejections } from "#errors.ts";
 import { FleetRecord, FleetViews } from "#model.ts";
 import { FleetContract, fleetRecords } from "#operations.ts";
@@ -33,10 +34,16 @@ export const ClientContract = contract("daemon", {
 			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
 			payload: { workId: Schema.String },
 			rejections: fleetRejections,
-			success: FleetRecord,
+			success: DispatchRequest,
 		}),
 	],
 	queries: [
+		query("dispatch-status", {
+			payload: { workId: Schema.String },
+			reads: ({ workId }) => [fleetRecords.item(workId)],
+			rejections: fleetRejections,
+			success: Schema.NullOr(DispatchRequest),
+		}),
 		query("status", {
 			payload: { workId: Schema.optional(Schema.String) },
 			reads: ({ workId }) => [workId === undefined ? fleetRecords.list : fleetRecords.item(workId)],

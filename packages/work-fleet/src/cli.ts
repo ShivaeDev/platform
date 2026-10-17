@@ -28,11 +28,9 @@ const dispatchCommand = Command.make(
 	"dispatch",
 	{ board, config, port, workId: Argument.String("id") },
 	Effect.fn("WorkFleetCli.dispatch")(function* (input) {
-		const { daemonClient, daemonError } = yield* Effect.promise(() => import("#host/daemonClient.ts"));
-		const value = yield* Effect.scoped(
-			daemonClient(input.port).pipe(Effect.flatMap((client) => client("daemon.dispatch", { workId: input.workId }))),
-		).pipe(Effect.mapError((error) => daemonError(error, input.port)));
-		yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
+		const { daemonRequest } = yield* Effect.promise(() => import("#host/daemonClient.ts"));
+		const value = yield* daemonRequest(input.port, (client) => client("daemon.dispatch", { workId: input.workId }), `dispatch ${input.workId}`);
+		yield* Console.log(`${value.workId}: dispatch recorded; preparing and launching in the background`);
 	}),
 ).pipe(Command.withDescription("Prepare the current approved revision of one Board item and launch it"));
 
@@ -46,13 +44,15 @@ const statusCommand = Command.make(
 		workId: Argument.String("id").pipe(Argument.optional),
 	},
 	Effect.fn("WorkFleetCli.status")(function* (input) {
-		const [{ daemonClient, daemonError }, { renderStatus }] = yield* Effect.promise(() =>
+		const [{ daemonRequest }, { renderStatus }] = yield* Effect.promise(() =>
 			Promise.all([import("#host/daemonClient.ts"), import("#host/renderStatus.ts")]),
 		);
 		const workId = Option.getOrUndefined(input.workId);
-		const current = yield* Effect.scoped(
-			daemonClient(input.port).pipe(Effect.flatMap((client) => client("daemon.status", workId === undefined ? {} : { workId }))),
-		).pipe(Effect.mapError((error) => daemonError(error, input.port)));
+		const current = yield* daemonRequest(
+			input.port,
+			(client) => client("daemon.status", workId === undefined ? {} : { workId }),
+			workId === undefined ? "status" : `status ${workId}`,
+		);
 		yield* Console.log(input.json ? JSON.stringify(current) : renderStatus(current, input.port));
 	}),
 ).pipe(Command.withDescription("Show active and completed Fleet work, and waiting work grouped by owner"));

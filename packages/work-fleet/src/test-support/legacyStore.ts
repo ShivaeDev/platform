@@ -12,6 +12,7 @@ export const legacyStore = Effect.fn("FleetFixture.legacyStore")(function* (name
 	for (const collection of collections(recordShape()).reverse()) {
 		yield* sql`drop table ${sql(childTable(namespace, collection.path))}`;
 	}
+	yield* sql`drop table ${sql(`${namespace}_dispatches`)}`;
 	yield* sql`drop table ${sql(table)}`;
 	yield* sql`create table ${sql(table)} (work_id text primary key, version integer not null check (version > 0), payload jsonb not null, admission_order bigint generated always as identity)`;
 	for (const [index, row] of rows.entries()) {

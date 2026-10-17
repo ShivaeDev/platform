@@ -20,9 +20,7 @@ export function decodeFollowState(value: unknown): FollowState {
 
 export function unrecognizedState(state: FollowState): boolean {
 	return (
-		state.undecoded !== undefined
-		|| !Schema.is(FleetRecord.fields.stage)(state.stage)
-		|| (state.decision?.code !== undefined && !Schema.is(DecisionCode)(state.decision.code))
+		state.undecoded !== undefined || !knownStage(state.stage) || (state.decision?.code !== undefined && !Schema.is(DecisionCode)(state.decision.code))
 	);
 }
 
@@ -35,7 +33,9 @@ export function followOutcome(state: FollowState): WaitOutcome | undefined {
 	if (code !== undefined && !Schema.is(DecisionCode)(code)) {
 		return { code: outcome?.code ?? WAIT_EXIT.error, summary: `${outcome?.summary ?? `${state.workId} ${state.stage}`}: ${code}` };
 	}
-	return (
-		outcome ?? (Schema.is(FleetRecord.fields.stage)(state.stage) ? undefined : { code: WAIT_EXIT.error, summary: `${state.workId} ${state.stage}` })
-	);
+	return outcome ?? (knownStage(state.stage) ? undefined : { code: WAIT_EXIT.error, summary: `${state.workId} ${state.stage}` });
+}
+
+function knownStage(stage: string) {
+	return stage === "dispatching" || Schema.is(FleetRecord.fields.stage)(stage);
 }

@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { repairAttempts, reviewHeads, withApprovedPrDaemon } from "#test/approvedPrDaemon.ts";
+import { answerAndWait } from "#test/daemonActions.ts";
 import { BASE, HEAD, MOVED } from "#test/githubResult.ts";
 import { postgresTests } from "#test/postgres.ts";
 
@@ -105,7 +106,7 @@ test("answer text queues requested changes on the same branch and PR through dae
 		fixture.serve((client) =>
 			Effect.gen(function* () {
 				const ready = yield* fixture.ready(client);
-				const queued = yield* client("daemon.answer", { text: "Keep the loading indicator visible.", workId: "one" });
+				const queued = yield* answerAndWait(client, { text: "Keep the loading indicator visible.", workId: "one" });
 				expect(queued.stage).toBe("repairing");
 				expect(queued.responses?.at(-1)).toMatchObject({ action: "retry", boardAcknowledged: true });
 				yield* client("fleet.reconcile", { workId: "one" });
@@ -123,7 +124,7 @@ test("answer without text retries a ready PR without requesting rework", () =>
 		fixture.serve((client) =>
 			Effect.gen(function* () {
 				const ready = yield* fixture.ready(client);
-				const retried = yield* client("daemon.answer", { workId: "one" });
+				const retried = yield* answerAndWait(client, { workId: "one" });
 				expect(retried.stage).toBe("delivering");
 				const waiting = yield* client("fleet.reconcile", { workId: "one" });
 				expect(waiting.decision?.code).toBe("reviewed-pr-ready");

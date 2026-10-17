@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { responses as responsesApi } from "@shivaedev/work-board/integration/responses.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
+import { answerAndWait, dispatchAndWait } from "#test/daemonActions.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -24,7 +25,7 @@ const republishedStory = Effect.fn("DaemonCommandsTest.republishedStory")(functi
 	action: "retry" | "release",
 ) {
 	const client = yield* daemonClient(port);
-	yield* client("daemon.dispatch", { workId: "one" });
+	yield* dispatchAndWait(client, "one");
 	finishWorkers(fixture.provider);
 	const waiting = yield* client("fleet.reconcile", { workId: "one" });
 	const decision = waiting.decision;
@@ -59,7 +60,7 @@ const republishedStory = Effect.fn("DaemonCommandsTest.republishedStory")(functi
 		published.sourcePath,
 		files.read(published.sourcePath).replace("## Previous recommendation template", "## Current recommendation template"),
 	);
-	const answered = yield* client("daemon.answer", { release: action === "release", text: "", workId: "one" });
+	const answered = yield* answerAndWait(client, { release: action === "release", text: "", workId: "one" });
 	expect(answered.stage).toBe(action === "release" ? "released" : "adopting");
 	expect(answered.responses?.at(-1)).toMatchObject({
 		action,

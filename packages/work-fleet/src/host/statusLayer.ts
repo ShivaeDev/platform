@@ -71,6 +71,7 @@ export function statusLayer(root: string, healthConfig?: { readonly concurrency:
 				readHealth: () => readSnapshot(snapshot),
 				reassign: (...args: Parameters<typeof fleet.reassign>) => after(fleet.reassign(...args)),
 				reconcile: (workId: string) => after(fleet.reconcile(workId)),
+				recordResponse: (...args: Parameters<typeof fleet.recordResponse>) => after(fleet.recordResponse(...args)),
 				resolve: (...args: Parameters<typeof fleet.resolve>) => after(fleet.resolve(...args)),
 			};
 		},

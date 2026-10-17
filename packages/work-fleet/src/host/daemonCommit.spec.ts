@@ -3,6 +3,7 @@ import { Deferred, Effect, Stream } from "effect";
 import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import { daemonClient } from "#host/daemonClient.ts";
+import { dispatchAndWait } from "#test/daemonActions.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
@@ -25,7 +26,7 @@ const commitStory = Effect.fn("DaemonCommitTest.commitStory")(function* (
 			yield* Effect.promise(() => snapshot);
 			yield* Effect.sleep("1200 millis");
 			expect(reads.count()).toBe(1);
-			yield* client("daemon.dispatch", { workId: "one" });
+			yield* dispatchAndWait(client, "one");
 			finishWorkers(fixture.provider);
 			yield* client("fleet.reconcile", { workId: "one" });
 			yield* untilOutput(follower, "one needs-human");

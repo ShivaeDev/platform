@@ -48,6 +48,10 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 					"10_prune_empty_cycles": pruneEmptyCycles(namespace),
 					"11_pending_answers": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("pendingAnswers")} text`,
 					"12_typed_tables": typedTables(namespace),
+					"13_dispatch_requests": sql`create table ${sql(`${namespace}_dispatches`)} (
+						work_id text primary key, request_id text not null, accepted_at double precision not null,
+						completed_at double precision, status text not null, error text
+					)`,
 				}),
 	});
 });
