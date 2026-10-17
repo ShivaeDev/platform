@@ -1,6 +1,7 @@
 import { Effect, Option, Redacted, Schema } from "effect";
 import type { PgBossClient } from "#client.ts";
 import { PgBossPayloadError, toPgBossError } from "#error.ts";
+import { payloadOf } from "#internal/tracing.ts";
 import type { PgBossService } from "#service.ts";
 
 export function getJobFor(client: PgBossClient): PgBossService["getJob"] {
@@ -17,7 +18,7 @@ export function getJobFor(client: PgBossClient): PgBossService["getJob"] {
 			Effect.flatMap((job) =>
 				job === undefined
 					? Effect.succeed(Option.none())
-					: Schema.decodeUnknownEffect(queue.schema)(job.data).pipe(
+					: Schema.decodeUnknownEffect(queue.schema)(payloadOf(job.data)).pipe(
 							Effect.mapError((error) => new PgBossPayloadError({ direction: "decode", original: Redacted.make(error), queue: queue.name })),
 							Effect.map((data) => Option.some({ ...job, data })),
 						),

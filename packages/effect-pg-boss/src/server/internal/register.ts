@@ -4,6 +4,7 @@ import type { PgBossClient } from "#client.ts";
 import { type JobRegistration, jobContext, type QueueDefinition, type QueueWorker, type ScheduledWorker } from "#definition.ts";
 import { PgBossPayloadError, PgBossQueueOptionsError, toPgBossError } from "#error.ts";
 import { ensureQueue } from "#internal/ensureQueue.ts";
+import { payloadOf, traceJob } from "#internal/tracing.ts";
 
 function isQueueWorker(registration: JobRegistration): registration is QueueWorker {
 	return registration._tag === "QueueWorker";
@@ -38,7 +39,7 @@ function workerContext(context: unknown): unknown {
 
 function runQueueWorker(worker: QueueWorker, job: Job<unknown>, context: Context.Context<unknown>): Promise<unknown> {
 	return Effect.runPromise(
-		Schema.decodeUnknownEffect(worker.queue.schema)(job.data).pipe(
+		Schema.decodeUnknownEffect(worker.queue.schema)(payloadOf(job.data)).pipe(
 			Effect.mapError(
 				(error) =>
 					new PgBossPayloadError({
@@ -48,6 +49,7 @@ function runQueueWorker(worker: QueueWorker, job: Job<unknown>, context: Context
 					}),
 			),
 			Effect.flatMap((payload) => worker.handler(payload, jobContext(job))),
+			(effect) => traceJob(effect, job, worker.queue.name),
 			Effect.provide(context),
 		),
 		{ signal: job.signal },
@@ -89,7 +91,7 @@ async function registerSchedule(
 	await ensureQueue(client, schedule.name, schedule.queueOptions);
 	await client.work(schedule.name, schedule.workerOptions, async (jobs: readonly Job<unknown>[]) => {
 		for (const job of jobs) {
-			await Effect.runPromise(Effect.provide(worker.effect, context), {
+			await Effect.runPromise(Effect.provide(traceJob(worker.effect, job, schedule.name), context), {
 				signal: job.signal,
 			});
 		}
