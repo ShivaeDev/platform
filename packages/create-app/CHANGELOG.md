@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.4 - 2026-10-17
+
+### Changed
+
+- Generated apps use effect-test-sql 0.5.0, whose `migrationSteps` lets tests seed rows between migrations to check backfills.
+
 ## 0.6.3 - 2026-10-17
 
 ### Fixed
