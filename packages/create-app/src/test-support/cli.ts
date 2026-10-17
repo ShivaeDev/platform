@@ -79,7 +79,7 @@ export function appFolder({
 	mkdirSync(bin);
 	writeFileSync(
 		join(bin, "pnpm"),
-		`#!/usr/bin/env node\nrequire('node:fs').writeFileSync('installation.json', JSON.stringify(process.argv.slice(2)));\nrequire('node:fs').writeFileSync('pnpm-lock.yaml', 'lockfileVersion: 9.0\\n');\nprocess.exit(${installationExit});\n`,
+		`#!/usr/bin/env node\nrequire('node:fs').writeFileSync('installation.json', JSON.stringify(process.argv.slice(2)));\nrequire('node:fs').writeFileSync('pnpm-lock.yaml', 'lockfileVersion: 9.0\\n');\nrequire('node:fs').chmodSync('pnpm-workspace.yaml', 0o600);\nprocess.exit(${installationExit});\n`,
 		{ mode: 0o755 },
 	);
 	if (realSetup) {

@@ -44,8 +44,11 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 	const initialized = options.git && (yield* initializeGit(target));
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const code = yield* spawner.exitCode(ChildProcess.make("pnpm", ["run", "setup"], { cwd: target, stderr: "inherit", stdout: "inherit" }));
-	if (yield* fs.exists(join(target, "pnpm-lock.yaml"))) {
-		yield* fs.chmod(join(target, "pnpm-lock.yaml"), 0o644);
+	for (const file of [...template.map((entry) => entry.path), "pnpm-lock.yaml"]) {
+		const path = join(target, file);
+		if (yield* fs.exists(path)) {
+			yield* fs.chmod(path, 0o644);
+		}
 	}
 	if (code !== 0) {
 		return yield* new CreateAppError({ message: `pnpm run setup failed (exit ${code}). Run pnpm run setup in ${folder} to retry.` });
