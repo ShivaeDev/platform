@@ -2,9 +2,9 @@
 	"date": "2026-10-16",
 	"fragments": [
 		{
-			"name": "auth-client-ip.md",
-			"text": "### Fixed\n\n- Generated apps use `TRUSTED_PROXY` for Better Auth client IP rate limiting and the host's forwarded authority. Auth ignores forwarded IP headers from untrusted peers, and trusted visitors have separate sign-in buckets, including with mapped IPv6 CIDRs such as `::ffff:127.0.0.0/104` and appended forwarding chains.\n"
+			"name": "fresh-framework-releases.md",
+			"text": "### Fixed\n\n- A generated app excludes `@shivaedev/*` from pnpm's release-age wait so framework releases can install immediately, while third-party packages keep pnpm's default wait.\n"
 		}
 	],
-	"version": "0.4.1"
+	"version": "0.4.2"
 }
