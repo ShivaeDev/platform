@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 - 2026-10-17
+
+### Changed
+
+- Queue and schedule workers default to native pg-boss `batchSize: 10` and `burstWhenBatchFull: true`, draining full batches immediately instead of waiting for the notification polling backstop. Native worker options still override the defaults, including batch size and local concurrency. Handlers run sequentially within each batch; pg-boss retries a rejected batch together.
+
+### Fixed
+
+- `PgBossDefinition.layer` supplies its own jobs service to queue handlers and scheduled effects through the scoped Effect context. Handlers can enqueue follow-ups to worker or producer-only queues using that same client. Only the owning identifier is removed from the Layer's input requirements; other services remain typed. Startup creates every declared queue before starting consumers.
+
 ## 0.6.1 - 2026-10-17
 
 ### Fixed

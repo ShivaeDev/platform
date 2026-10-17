@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 - 2026-10-17
+
+### Changed
+
+- Generated apps use effect-pg-boss 0.7.0: workers drain backlogs in batches without waiting for the polling backstop, and job handlers queue follow-up jobs through their worker's own client.
+
 ## 0.6.1 - 2026-10-17
 
 ### Fixed
