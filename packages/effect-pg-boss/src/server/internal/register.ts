@@ -2,16 +2,8 @@ import { type Context, Effect, Redacted, Schema } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { type JobRegistration, jobContext, type QueueDefinition, type QueueWorker, type ScheduledWorker } from "#definition.ts";
-import { PgBossPayloadError, toPgBossError } from "#error.ts";
-import { deadLetterQueueName } from "#health.ts";
-
-function queueOptions(options: Readonly<Record<string, unknown>>) {
-	return {
-		retryBackoff: true,
-		retryLimit: 3,
-		...options,
-	};
-}
+import { PgBossPayloadError, PgBossQueueOptionsError, toPgBossError } from "#error.ts";
+import { ensureQueue } from "#internal/ensureQueue.ts";
 
 function isQueueWorker(registration: JobRegistration): registration is QueueWorker {
 	return registration._tag === "QueueWorker";
@@ -70,15 +62,10 @@ async function registerQueue(
 ): Promise<void> {
 	const queue = registration._tag === "QueueWorker" ? registration.queue : registration;
 	const name = queue.name;
-	const deadLetter = deadLetterQueueName(name);
 	if (replaceWorker && registration._tag === "QueueWorker") {
 		await client.offWork(name);
 	}
-	await client.createQueue(deadLetter);
-	await client.createQueue(name, {
-		...queueOptions(queue.queueOptions),
-		deadLetter,
-	});
+	await ensureQueue(client, name, queue.queueOptions);
 	if (registration._tag === "QueueDefinition") {
 		return;
 	}
@@ -96,15 +83,10 @@ async function registerSchedule(
 	replaceWorker: boolean,
 ): Promise<void> {
 	const { schedule } = worker;
-	const deadLetter = deadLetterQueueName(schedule.name);
 	if (replaceWorker) {
 		await client.offWork(schedule.name);
 	}
-	await client.createQueue(deadLetter);
-	await client.createQueue(schedule.name, {
-		...queueOptions(schedule.queueOptions),
-		deadLetter,
-	});
+	await ensureQueue(client, schedule.name, schedule.queueOptions);
 	await client.work(schedule.name, schedule.workerOptions, async (jobs: readonly Job<unknown>[]) => {
 		for (const job of jobs) {
 			await Effect.runPromise(Effect.provide(worker.effect, context), {
@@ -128,9 +110,9 @@ export const registerJobs = <R>(
 	registrations: readonly JobRegistration[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
-): Effect.Effect<void, import("#error.ts").PgBossError> =>
+): Effect.Effect<void, import("#error.ts").PgBossError | PgBossQueueOptionsError> =>
 	Effect.tryPromise({
-		catch: (error) => toPgBossError("register", error),
+		catch: (error) => (error instanceof PgBossQueueOptionsError ? error : toPgBossError("register", error)),
 		try: async () => {
 			registrationNames(registrations);
 			const provided = workerContext(context);
