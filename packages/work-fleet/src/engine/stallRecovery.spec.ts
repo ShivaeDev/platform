@@ -4,7 +4,7 @@ import { TestClock } from "effect/testing";
 import { statusMarkdown } from "#board/statusMarkdown.ts";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
-import { renderStatus } from "#host/status.ts";
+import { renderStatus } from "#host/renderStatus.ts";
 import { SessionTransport } from "#session/service.ts";
 import { codexConfiguration } from "#test/codex.ts";
 import { type EngineFixture, prepareWork, withEngine } from "#test/engine.ts";

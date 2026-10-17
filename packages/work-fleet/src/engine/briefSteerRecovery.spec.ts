@@ -2,7 +2,7 @@ import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber } from "effect";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
-import { renderStatus } from "#host/status.ts";
+import { renderStatus } from "#host/renderStatus.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";

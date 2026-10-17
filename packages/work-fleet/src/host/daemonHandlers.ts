@@ -6,9 +6,9 @@ import { ClientContract } from "#host/daemonContract.ts";
 import { daemonDiagnostics } from "#host/daemonDiagnostics.ts";
 import { daemonSnapshots } from "#host/daemonSnapshots.ts";
 import { dispatchRequests } from "#host/dispatchRequests.ts";
+import { fleetStatus } from "#host/fleetStatus.ts";
 import { nameStoredThreads } from "#host/nameThreads.ts";
 import { releaseItems } from "#host/releaseWork.ts";
-import { fleetStatus } from "#host/status.ts";
 
 export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* (host: FleetHost) {
 	const follow = yield* daemonSnapshots(host);
