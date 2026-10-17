@@ -1,6 +1,5 @@
-import { Effect, Fiber } from "effect";
+import { Effect, Fiber, Schedule } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 
 export function budgetVerbs(engine: DatabaseEngine) {
@@ -22,10 +21,11 @@ export function budgetVerbs(engine: DatabaseEngine) {
 				yield* pressure.release;
 				expect((yield* Fiber.join(pressure.clones)).flat()).toHaveLength(count * 6);
 				yield* engine.close();
-				yield* eventually(
-					Effect.flatMap(sessions(), (rows) => Effect.try(() => expect(rows).toEqual([{ count: 0 }]))),
-					{ times: 100 },
+				const closed = yield* sessions().pipe(
+					Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: ([row]) => row?.count !== 0 }),
+					Effect.timeout("5 seconds"),
 				);
+				expect(closed).toEqual([{ count: 0 }]);
 			}).pipe(Effect.timeout("20 seconds")),
 	};
 }
