@@ -1,10 +1,12 @@
 import { Effect } from "effect";
+import { RpcTest } from "effect/rpc";
 import { expect, it } from "vitest";
+import { workRpcs } from "#rpc/contract.ts";
 import { attention } from "#server/integration/attention.ts";
 import { inboxCount } from "#server/navigation/model.ts";
-import { projectionQueries } from "#server/views/projectionQueries.ts";
 import { attentionLanesFixture } from "#test/attentionLanesFixture.ts";
 import { inboxSnapshot } from "#test/inboxFixture.ts";
+import { inMemoryBoard } from "#test/inMemoryBoard.ts";
 import { responseRecords } from "#test/responseRecords.ts";
 import { attentionProjection } from "./projection.ts";
 
@@ -17,8 +19,14 @@ it("partitions asks and reports source diagnostics separately with one count for
 	expect(projection.resolved.map((item) => item.id)).toEqual(["task.done", "task.done", "task.done", "task.superseded"]);
 	expect(projection.parked.map((item) => item.id)).toEqual(["task.deferred"]);
 	expect(projection.issues.map((issue) => issue.file)).toEqual(["unknown.md", "unresolved.md"]);
-	const queries = projectionQueries({ document: undefined, index: Effect.succeed(snapshot) });
-	const inbox = await Effect.runPromise(queries.inbox());
+	const inbox = await Effect.runPromise(
+		Effect.scoped(
+			Effect.gen(function* () {
+				const client = yield* RpcTest.makeClient(workRpcs, { flatten: true });
+				return yield* client("work-board.inbox", undefined);
+			}),
+		).pipe(Effect.provide(inMemoryBoard(attentionLanesFixture("Casey"), { home: undefined, index: Effect.succeed(snapshot) }))),
+	);
 	expect([inbox.you.length, inboxCount(snapshot)]).toEqual([3, 3]);
 	expect(inbox).toEqual(projection);
 });

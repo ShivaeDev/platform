@@ -2,23 +2,16 @@ import { Effect, FileSystem } from "effect";
 import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { currentDocument } from "#server/currentDocument.ts";
-import type { Changes } from "#server/files/changes.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
+import { locate } from "#server/responses/locate.ts";
 import { readingActions } from "#server/responses/readingActions.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import type { WorkspaceSettings } from "#server/workspace.ts";
 import { answerBody } from "./answerBody.ts";
 import { readingContext } from "./readingContext.ts";
 import { documentRequests } from "./requests.ts";
 import { documentTargets } from "./targets.ts";
-
-export interface DocumentOptions {
-	readonly changes: Changes;
-	readonly home: string | undefined;
-	readonly index: Effect.Effect<Snapshot, unknown>;
-	readonly root: string;
-	readonly writable: boolean;
-}
 
 const selected = Effect.fn("WorkBoard.selected")(function* (
 	url: string,
@@ -45,12 +38,11 @@ const selected = Effect.fn("WorkBoard.selected")(function* (
 	return { file, item };
 });
 
-export function readDocument({ changes, home, index, root, writable }: DocumentOptions) {
-	return Effect.fn("WorkBoard.document")(function* (url: string) {
-		const snapshot = yield* index;
+export function readDocument({ changes, home, root, realRoot, writable }: WorkspaceSettings) {
+	return Effect.fn("WorkBoard.document")(function* (url: string, snapshot: Snapshot) {
 		const files = yield* changes.files;
 		const { file, item } = yield* selected(url, snapshot, files, home);
-		const real = yield* markdownPath(root, changes.realRoot, file.path);
+		const real = yield* markdownPath(root, realRoot, file.path);
 		if (!real) {
 			return yield* Effect.fail(new NotFound({ message: "The document is missing." }));
 		}
@@ -65,7 +57,7 @@ export function readDocument({ changes, home, index, root, writable }: DocumentO
 		if (item && identity !== item) {
 			return yield* Effect.fail(new NotFound({ message: "The document is missing." }));
 		}
-		const questionActions = yield* readingActions(document, source, writable, identity);
+		const questionActions = yield* readingActions(document, source, writable, identity, locate(root, realRoot, Effect.succeed(snapshot), fs));
 		const titles = new Map(current.snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
 		const reading = readingContext(document, model, file.path === home, titles);
 		const targets = documentTargets(

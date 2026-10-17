@@ -1,21 +1,20 @@
 import { Effect } from "effect";
-import { NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { BoardProjection, WorkProjection } from "#browser/views/schema.ts";
 import { stateOf } from "#browser/views/state.ts";
 import { inboxItems } from "#server/attention/inbox.ts";
 import { attentionProjection } from "#server/attention/projection.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import { boardOf, countsOf } from "#server/render/board.ts";
-import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { Workspace } from "#server/workspace.ts";
 import { fleetApproval } from "./fleetApproval.ts";
 import type { Item } from "./items.ts";
 import { projectItems } from "./projection.ts";
 
-export function projectionQueries({ index, document }: { readonly index: HandlerOptions["index"]; readonly document: HandlerOptions["document"] }) {
-	function read(url: string) {
-		return document ? document(url) : Effect.fail(new NotFound({ message: "The document is missing." }));
-	}
+export const projectionQueries = Effect.gen(function* () {
+	const workspace = yield* Workspace;
+	const index = workspace.index();
+	const read = workspace.document;
 	return {
 		board: (url: string) => Effect.map(read(url), (data): BoardProjection => ({ counts: countsOf(boardOf(data.source)), document: data })),
 		inbox: () => Effect.map(index, attentionProjection),
@@ -54,7 +53,7 @@ export function projectionQueries({ index, document }: { readonly index: Handler
 				} satisfies WorkProjection;
 			}),
 	};
-}
+});
 function selectionProblem(snapshot: Snapshot, item: string) {
 	return (snapshot.model.ids.get(item)?.length ?? 0) > 1 ? "has a duplicate ID" : "is missing or its identity changed";
 }

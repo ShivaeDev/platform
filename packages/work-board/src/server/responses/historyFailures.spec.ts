@@ -5,11 +5,12 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { documentRequests } from "#server/document/requests.ts";
 import type { Change } from "#server/files/changes.ts";
+import { Responses } from "#server/Responses.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
 import { inboxSnapshot } from "#test/inboxFixture.ts";
 import { capturedQuestionnaire, questionnaireSource } from "#test/questionnaire.ts";
 import { questionId, revisionOf } from "./records.ts";
-import { ResponseConfig, Responses } from "./service.ts";
 
 const preview = {
 	context: questionnaireSource,
@@ -31,7 +32,8 @@ const history = Effect.fn("Test.history")(function* (snapshot: Snapshot) {
 	};
 	return yield* Effect.flatMap(Responses, (service) => service.history(preview)).pipe(
 		Effect.provide(Responses.layer),
-		Effect.provide(Layer.succeed(ResponseConfig, { changes, enabled: false, index: Effect.succeed(snapshot), root: "/board" })),
+		Effect.provide(Workspace.layer),
+		Effect.provide(Layer.succeed(WorkspaceConfig, { changes, index: Effect.succeed(snapshot), root: "/board", writable: false })),
 		Effect.provide(NodeServices.layer),
 	);
 });

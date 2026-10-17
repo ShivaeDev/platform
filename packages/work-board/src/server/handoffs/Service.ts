@@ -9,26 +9,27 @@ import { handoffFrom, handoffMarkdown, handoffPrompt, matchesHandoff } from "#se
 import { handoffSource } from "#server/handoffs/source.ts";
 import { publish } from "#server/responses/publish.ts";
 import { revisionOf } from "#server/responses/records.ts";
-import { ResponseConfig } from "#server/responses/service.ts";
+import { Workspace } from "#server/workspace.ts";
 
 export const HandoffsService = defineService({
 	id: "WorkBoard/HandoffsService",
 	initialize: Effect.gen(function* () {
-		return { fs: yield* FileSystem.FileSystem, lock: yield* Semaphore.make(1), options: yield* ResponseConfig };
+		const workspace = yield* Workspace;
+		return { fs: yield* FileSystem.FileSystem, lock: yield* Semaphore.make(1), options: yield* workspace.settings(), workspace };
 	}),
-	methods: ({ options, fs, lock }) => {
-		const snapshot = options.index.pipe(
+	methods: ({ options, fs, lock, workspace }) => {
+		const snapshot = workspace.index().pipe(
 			rpcBoundary(ServiceUnavailable, {
 				message: "The workspace could not be indexed.",
 				unexpected: (message) => new ServiceUnavailable({ message }),
 			}),
 		);
-		const locate = handoffSource(options.root, options.changes.realRoot, snapshot, fs);
+		const locate = handoffSource(options.root, options.realRoot, snapshot, fs);
 		const read = Effect.fn("WorkBoard.read")(function* (item: string) {
 			const data = yield* snapshot;
 			const unknown = [...data.unavailable];
 			const records = data.documents.flatMap((document) => {
-				const record = handoffFrom(document, options.changes.realRoot);
+				const record = handoffFrom(document, options.realRoot);
 				if (
 					(record && data.model.ids.get(record.id)?.length !== 1)
 					|| (document.parsed.fields.kind === "handoff" && !record)
@@ -45,7 +46,7 @@ export const HandoffsService = defineService({
 			if (!record || record.file !== `handoffs/${input.id}.md` || !matchesHandoff(record, input) || revisionOf(record.context) !== input.revision) {
 				return yield* Effect.fail(new Conflict({ message: "This handoff identity moved, is duplicated or records different direction." }));
 			}
-			const path = yield* markdownPath(options.root, options.changes.realRoot, record.file);
+			const path = yield* markdownPath(options.root, options.realRoot, record.file);
 			if (!path) {
 				return yield* Effect.fail(new NotFound({ message: "The prepared handoff moved or disappeared." }));
 			}
@@ -55,20 +56,20 @@ export const HandoffsService = defineService({
 					unexpected: (message) => new ServiceUnavailable({ message }),
 				}),
 			);
-			yield* publish(options.root, options.changes.realRoot, record.id, raw, "handoffs");
+			yield* publish(options.root, options.realRoot, record.id, raw, "handoffs");
 			return record;
 		});
 
 		function prepare(input: HandoffInput) {
 			return lock.withPermit(
 				Effect.gen(function* () {
-					if (!options.enabled) {
+					if (!options.writable) {
 						return yield* Effect.fail(new Forbidden({ message: "Restart with --responses to enable local response/handoff writes." }));
 					}
 					const data = yield* snapshot;
 					const existing = data.model.ids.get(input.id);
 					if (existing?.length) {
-						const record = existing.length === 1 ? handoffFrom(existing[0], options.changes.realRoot) : undefined;
+						const record = existing.length === 1 ? handoffFrom(existing[0], options.realRoot) : undefined;
 						return yield* reconcile(record, input);
 					}
 					const current = yield* locate(input.item);
@@ -91,21 +92,17 @@ export const HandoffsService = defineService({
 							state: "requested",
 						},
 						id: input.id,
-						prompt: handoffPrompt(join(options.changes.realRoot, file)),
+						prompt: handoffPrompt(join(options.realRoot, file)),
 					};
-					yield* publish(
-						options.root,
-						options.changes.realRoot,
-						record.id,
-						handoffMarkdown(record.id, record.handoff, record.context),
-						"handoffs",
-					).pipe(Effect.ensuring(options.changes.refresh ?? Effect.void));
+					yield* publish(options.root, options.realRoot, record.id, handoffMarkdown(record.id, record.handoff, record.context), "handoffs").pipe(
+						Effect.ensuring(options.changes.refresh ?? Effect.void),
+					);
 					return record;
 				}),
 			);
 		}
 		return { locate, prepare, read };
 	},
-	requires: [ResponseConfig, FileSystem.FileSystem, Path.Path],
+	requires: [Workspace, FileSystem.FileSystem, Path.Path],
 });
 export type HandoffsService = typeof HandoffsService.Identifier;
