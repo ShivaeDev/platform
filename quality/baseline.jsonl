@@ -229,7 +229,6 @@
 {"path":"packages/quality/src/cli/migrate.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/cli/migrate.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/cli/migrate.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/quality/src/cli/run-main.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/quality/src/cli/run-main.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/cli/shrink.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/quality/src/config.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
