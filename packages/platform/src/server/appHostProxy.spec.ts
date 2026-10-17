@@ -1,5 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, ConfigProvider, Effect, Layer, ManagedRuntime, Redacted, Result } from "effect";
+import { ConfigProvider, Layer, ManagedRuntime, Redacted, Result } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { SqlClient } from "effect/sql";
@@ -8,9 +8,10 @@ import { appHost } from "#appHost.ts";
 import { AuthUnavailable, Conflict, Unauthorized } from "#errors/taxonomy.ts";
 import { Api, call, feature, handlers, post, sessions } from "#test/app-host/fixture.ts";
 import { forwardingProxy } from "#test/app-host/forwardingProxy.ts";
+import { environmentVariable } from "#test/environmentVariable.ts";
 
-const database = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
-it.runIf(database._tag === "Some").each([
+const database = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+it.runIf(database !== undefined).each([
 	{ accepted: true, config: undefined, env: { "HOST": "0.0.0.0", "TRUSTED_PROXY": "127.0.0.1" }, host: "0.0.0.0", name: "environment" },
 	{
 		accepted: true,
@@ -25,7 +26,7 @@ it.runIf(database._tag === "Some").each([
 	{ accepted: true, config: { trustedProxy: "192.0.2.1, 127.0.0.0/31, 2001:db8::/32" }, env: {}, host: "127.0.0.1", name: "configured list" },
 	{ accepted: false, config: { trustedProxy: "127.0.0.2/31" }, env: {}, host: "127.0.0.1", name: "peer just outside range" },
 ])("forwards real HTTP RPC with $name", async ({ config, env, accepted, host }) => {
-	if (database._tag === "None") {
+	if (database === undefined) {
 		throw new Error("PostgreSQL URL is required");
 	}
 	const table = `proxy_${crypto.randomUUID().replaceAll("-", "")}`;
@@ -41,7 +42,7 @@ it.runIf(database._tag === "Some").each([
 			migrations: { loader, table: ledger },
 			services,
 			sessions: sessions(lookups),
-		}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { ...env, "DATABASE_URL": database.value, "PORT": "0" } })))),
+		}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { ...env, "DATABASE_URL": database, "PORT": "0" } })))),
 	);
 	let proxy: Awaited<ReturnType<typeof forwardingProxy>> | undefined;
 	try {
@@ -76,7 +77,7 @@ it.runIf(database._tag === "Some").each([
 	} finally {
 		await proxy?.close();
 		await runtime.dispose();
-		const cleanup = ManagedRuntime.make(PgClient.layer({ url: Redacted.make(database.value) }));
+		const cleanup = ManagedRuntime.make(PgClient.layer({ url: Redacted.make(database) }));
 		try {
 			await cleanup.runPromise(SqlClient.SqlClient.use((sql) => sql`drop table if exists ${sql(table)}, ${sql(ledger)}`));
 		} finally {

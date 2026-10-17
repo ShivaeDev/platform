@@ -320,6 +320,10 @@ registry.dispose();
 
 Call the release functions and dispose the registry when the application's root no longer owns them.
 
+### Server hint streams
+
+Import `makeLiveServer` from `@shivaedev/effect-contract/makeLiveServer.ts` and create it once with the server's `Reactivity` service. After application authorization, return `hints.stream([orders.item(id)])` from the native streaming RPC handler. Each subscription starts with `Resync`; invalidating its read keys produces `Changed` with those declared keys. `hints.resync` sends `Resync` to every live stream owned by that helper, including streams for otherwise unrelated keys. Independent helpers keep their resync scopes separate even when they share Reactivity. The native stream owns registration and interruption. Keep this server helper separate from the browser's `live` coordinator.
+
 ### API by module
 
 Import the module that defines the name; the package has no root entry.
@@ -332,6 +336,7 @@ Import the module that defines the name; the package has no root entry.
 | `keys.ts` | `collection(name, idSchema)`; `Key` schema; `readKeys(keys)` and `invalidationKeys(keys)`. |
 | `bind.ts` | `bind(contract, atomRpcService)`, exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
 | `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, resume?, retryDelay? })`, exposing `connection`, `paused` and `status`. |
+| `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
 | `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
 
 `QueryOptions` is the query atom's optional second argument: `headers?: Headers.Input`, `timeToLive?: Duration.Input` and `serializationKey?: string`. For example, `api.get.query({ id: 1 }, { timeToLive: "1 minute" })` uses the native query options interface.
@@ -363,7 +368,3 @@ pnpm add @shivaedev/effect-contract effect@4.0.4
 - Live hints carry refresh requests, not authoritative data or durable history. Applications own dependency discovery, authenticated subscriptions, delivery across processes, SSR and deployment behavior. Those boundaries need their own tests.
 
 The package's design priorities are in [docs/north-star.md](docs/north-star.md), and package work and maintainer questions are in [docs/roadmap.md](docs/roadmap.md).
-
-### Server hint streams
-
-Import `makeLiveServer` from `@shivaedev/effect-contract/makeLiveServer.ts` and create it once with the server's `Reactivity` service. After application authorization, return `hints.stream([orders.item(id)])` from the native streaming RPC handler. Each subscription starts with `Resync`; invalidating its read keys produces `Changed` with those declared keys. `hints.resync` sends `Resync` to every live stream owned by that helper, including streams for otherwise unrelated keys. Independent helpers keep their resync scopes separate even when they share Reactivity. The native stream owns registration and interruption. Keep this server helper separate from the browser's `live` coordinator.

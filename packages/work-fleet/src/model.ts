@@ -30,6 +30,7 @@ export const Attempt = Schema.Struct({
 	observationRetries: Schema.optional(Schema.Number),
 	operationId: Schema.String,
 	output: Schema.optional(Schema.String),
+	overLimit: Schema.optional(Schema.Boolean),
 	progress: Schema.optional(Schema.Struct({ at: Schema.Number, signature: Schema.String })),
 	prompt: Schema.optional(Schema.String),
 	providerFailures: Schema.optional(Schema.Number),
@@ -75,6 +76,7 @@ const cycleFields = {
 	decisionAcknowledged: Schema.optional(Schema.Boolean),
 	decisionPublished: Schema.optional(Schema.Boolean),
 	deliverable: Schema.optional(Schema.Literal("report")),
+	dispatchNow: Schema.optional(Schema.Struct({ ignoreAreas: Schema.Boolean })),
 	integrationRetry: Schema.optional(Schema.Struct({ error: Schema.String, failures: Schema.Number, retryAt: Schema.Number })),
 	launch: Schema.optional(LaunchSettings),
 	launchRetry: Schema.optional(
@@ -102,6 +104,7 @@ export const FleetCycleSnapshot = Schema.Struct({ ...cycleFields, archivedAt: Sc
 export type FleetCycleSnapshot = typeof FleetCycleSnapshot.Type;
 export const FleetRecord = Schema.Struct({ ...cycleFields, history: Schema.optional(Schema.Array(FleetCycleSnapshot)), workId: Schema.String });
 export type FleetRecord = typeof FleetRecord.Type;
+export type DispatchNow = NonNullable<FleetRecord["dispatchNow"]>;
 export function executing(record: FleetRecord): boolean {
 	return record.attempts.some((attempt) => ["submitting", "accepted", "running"].includes(attempt.status));
 }
@@ -115,6 +118,7 @@ export const FleetView = Schema.Struct({
 	decisionAcknowledged: Schema.optional(Schema.Boolean),
 	links: Schema.Array(Schema.String),
 	outcome: FleetRecord.fields.outcome,
+	overLimit: Schema.optional(Schema.Boolean),
 	sessions: Schema.Array(
 		Schema.Struct({
 			...SessionReceipt.fields,

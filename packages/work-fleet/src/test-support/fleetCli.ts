@@ -12,7 +12,7 @@ export interface CliRun {
 
 export function cliProcess(
 	args: readonly string[],
-	options: { readonly stdin?: string; readonly onError?: (text: string) => void } = {},
+	options: { readonly stdin?: string; readonly holdStdin?: boolean; readonly onError?: (text: string) => void } = {},
 ): Promise<CliRun> {
 	return new Promise((resolve, reject) => {
 		const child = spawn(process.execPath, ["--conditions=source", "--import", DATABASE_GUARD, CLI, ...args], { stdio: "pipe" });
@@ -22,7 +22,11 @@ export function cliProcess(
 		});
 		child.stderr.on("data", (chunk: Buffer) => options.onError?.(chunk.toString()));
 		child.stdin.on("error", reject);
-		child.stdin.end(options.stdin ?? "");
+		if (options.holdStdin === true) {
+			child.on("close", () => child.stdin.end());
+		} else {
+			child.stdin.end(options.stdin ?? "");
+		}
 		child.on("error", reject);
 		child.on("close", (code) =>
 			code === 97 ? reject(new Error("Fleet client attempted a direct PostgreSQL connection")) : resolve({ code, stdout: stdout.trim() }),

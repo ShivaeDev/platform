@@ -1,14 +1,17 @@
 import { countOperations, delegateOf, rowOperations } from "./model.ts";
 import type { LooseMap, Write } from "./write.ts";
 
-export const isWriteOperation = (operation: string): boolean => rowOperations.has(operation) || countOperations.has(operation);
+export function isWriteOperation(operation: string): boolean {
+	return rowOperations.has(operation) || countOperations.has(operation);
+}
 
-export const delegatesOf = <A>(models: LooseMap<A>): ReadonlyMap<string, string> =>
-	new Map(
+export function delegatesOf<A>(models: LooseMap<A>): ReadonlyMap<string, string> {
+	return new Map(
 		Object.entries(models).flatMap(([model, changesOf]) =>
 			changesOf === undefined || changesOf === null ? [] : [[delegateOf(model), model] as const],
 		),
 	);
+}
 
 function bound(value: unknown, target: object): unknown {
 	return typeof value === "function" ? value.bind(target) : value;
@@ -30,12 +33,12 @@ function recordingDelegate(delegate: object, model: string, collect: (write: Wri
 	});
 }
 
-export const recordingClient = <TClient extends object>(
+export function recordingClient<TClient extends object>(
 	client: TClient,
 	delegates: ReadonlyMap<string, string>,
 	collect: (write: Write) => void,
-): TClient =>
-	new Proxy(client, {
+): TClient {
+	return new Proxy(client, {
 		get: (target, key) => {
 			const value: unknown = Reflect.get(target, key);
 			const model = typeof key === "string" ? delegates.get(key) : undefined;
@@ -45,3 +48,4 @@ export const recordingClient = <TClient extends object>(
 			return bound(value, target);
 		},
 	});
+}
