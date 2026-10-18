@@ -5,6 +5,7 @@ import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import type { PgBossClient } from "#client.ts";
 import { defineQueue } from "#definition.ts";
 import { makePgBoss, type PgBossService } from "#service.ts";
 import { environmentVariable } from "#test/environment.ts";
@@ -23,6 +24,7 @@ function* create() {
 	const readout: JobWithMetadata<{ readonly id: number }>[] = [];
 	return {
 		attempts,
+		client: Option.none<PgBossClient>(),
 		clientCacheKey: Symbol("testing-story"),
 		entered: yield* Deferred.make<void>(),
 		jobs: Option.none<PgBossService>(),
@@ -48,7 +50,11 @@ export const queues = storyKit({
 			const context = yield* Layer.build(
 				Jobs.layer({
 					clientCacheKey: state.clientCacheKey,
-					clientFactory: state.testing.clientFactory,
+					clientFactory: (options) => {
+						const client = state.testing.clientFactory(options);
+						state.client = Option.some(client);
+						return client;
+					},
 					connectionString: Redacted.value(database.url),
 					jobs: [state.queue],
 					schema: "story_jobs",
@@ -100,6 +106,7 @@ export const queues = storyKit({
 	stages: ["configuration", "producer", "jobs", "runtime"],
 	verbs: (state, story) => ({
 		attempts: state.attempts,
+		client: Option.getOrThrow(state.client),
 		queue: state.queue,
 		releaseWorker: Deferred.succeed(state.release, undefined),
 		send: (id: number, options?: SendOptions) => Option.getOrThrow(state.jobs).enqueue(state.queue, { id }, options),

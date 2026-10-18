@@ -104,8 +104,8 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 	};
 	return new Proxy(client, {
 		get(target, property) {
-			const override: unknown = Reflect.get(overrides, property);
-			if (override !== undefined) {
+			if (Object.hasOwn(overrides, property)) {
+				const override: unknown = Reflect.get(overrides, property);
 				return override;
 			}
 			const value: unknown = Reflect.get(target, property);
