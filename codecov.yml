@@ -18,13 +18,9 @@ comment:
   layout: "header, diff, flags, components, files, reach, footer"
   behavior: default
   require_changes: false
-  require_bundle_changes: false
   hide_project_coverage: false
   hide_comment_details: false
   show_carryforward_flags: true
-
-bundle_analysis:
-  status: informational
 
 test_analytics:
   flake_detection: true

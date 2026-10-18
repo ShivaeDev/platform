@@ -136,6 +136,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+          # Tally reads the measured commit's first parent as its base.
+          fetch-depth: 2
       - uses: ./.github/actions/setup
         with:
           postgres: 'true'
@@ -164,6 +166,22 @@ jobs:
             .ci/tests*.junit.xml
             .ci/vite/vitest/**/results.json
           include-hidden-files: true
+          retention-days: 14
+      - name: Record the measured commits for Tally
+        if: ${{ !cancelled() }}
+        run: mkdir -p .ci/coverage && git rev-parse HEAD HEAD^1 > .ci/coverage/measured-commits.txt
+      - name: Upload coverage for Tally
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ !cancelled() }}
+        with:
+          overwrite: true
+          name: coverage-tests-${{ matrix.shard }}
+          path: |
+            .ci/coverage/lcov.info
+            .ci/coverage/measured-commits.txt
+            .ci/tests.junit.xml
+          include-hidden-files: true
+          if-no-files-found: error
           retention-days: 14
       - name: Upload coverage to Codecov
         if: ${{ !cancelled() }}
@@ -350,37 +368,3 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
-
-  bundles:
-    name: Codecov bundle analysis
-    if: ${{ !cancelled() && needs.build.result == 'success' }}
-    needs: [verify, build]
-    permissions:
-      contents: read
-      actions: read
-    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - name: Download package archives
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          github-token: ${{ github.token }}
-          artifact-ids: ${{ needs.build.outputs.packages-artifact-id }}
-          path: .ci/packages
-      - name: Measure every packed package
-        continue-on-error: true
-        run: pnpm report:bundles
-        env:
-          CODECOV_UPLOAD: 'true'
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
-        with:
-          name: bundle-analysis
-          path: .ci/bundles/*.json
-          include-hidden-files: true
-          overwrite: true
-          retention-days: 14

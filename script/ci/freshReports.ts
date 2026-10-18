@@ -119,7 +119,10 @@ export async function completeReports(vitest: Vitest, first: Attempt, summary: (
 		}
 		vitest.state.collectFiles(vitest.getProjectByName(file.projectName ?? ""), [next ?? file]);
 	}
-	for (const reporter of [new TimedJsonReporter({ outputFile: ".ci/tests.json" }), new JUnitReporter({ outputFile: ".ci/tests.junit.xml" })]) {
+	for (const reporter of [
+		new TimedJsonReporter({ outputFile: ".ci/tests.json" }),
+		new JUnitReporter({ addFileAttribute: true, outputFile: ".ci/tests.junit.xml" }),
+	]) {
 		await reporter.onInit(vitest);
 		await reporter.onTestRunEnd(vitest.state.getTestModules());
 	}
