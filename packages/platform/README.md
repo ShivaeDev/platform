@@ -281,9 +281,14 @@ Here `sessions` is the application's policy from the previous example, with a Be
 
 #### Reading provider account IDs
 
-Opt in to provider account IDs by passing Better Auth's account lookup as the second argument to `betterAuthSessions`. It runs after a session is found, using the same transport headers:
+Pass Better Auth's account lookup as the second argument to `betterAuthSessions`. Declare `AuthenticatedUserWithProviderAccounts` on account-reading RPCs and merge `authenticatedUserWithProviderAccountsLayer(sessions)` alongside their handlers. This boundary requires a provider whose user has a `providerAccounts` Effect; a provider without the second lookup does not satisfy that type.
 
 ```ts
+import { SessionUserWithProviderAccounts } from "@shivaedev/platform/rpc/identity.ts";
+import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/platform/rpc/middleware.ts";
+import { AuthUnavailable, Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
+import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
+
 const sessions = {
   origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
   provider: betterAuthSessions(
@@ -292,14 +297,18 @@ const sessions = {
   ),
 };
 
-const githubAccount = Effect.map(SessionUser, (user) =>
-  user.providerAccounts?.find((account) => account.providerId === "github"),
-);
+const githubAccount = Effect.gen(function* () {
+  const user = yield* SessionUserWithProviderAccounts;
+  const accounts = yield* user.providerAccounts;
+  return accounts.find((account) => account.providerId === "github");
+});
 ```
 
-Use `authenticatedUserLayer(sessions)` as above. `SessionUserValue.providerAccounts` is an optional readonly array of `ProviderAccountValue`, each containing only `{ providerId: string, accountId: string }`. GitHub's numeric user ID is represented as a string, for example `{ providerId: "github", accountId: "123" }`; it is not Better Auth's account-row id. A user without a GitHub account has no matching entry. Without the second lookup, the profile omits `providerAccounts`. No application SQL against Better Auth's `account` table is needed.
+Declare `Schema.Union([AuthUnavailable, Unauthorized])` in the account-reading RPC's `error` schema: lookup failures now come from the handler's Effect. An outage fails with `AuthUnavailable`; a session that expires before the lookup fails with `Unauthorized`. Neither failure exposes provider exception details.
 
-An account lookup failure follows the same `AuthUnavailable` path as a session lookup failure.
+The lookup uses the same transport headers and runs only when the handler evaluates `user.providerAccounts`. The boundary memoizes its result in that invocation's Effect context, including concurrent reads, without sharing it across requests or users. Identity-only handlers never run the accounts lookup. `SessionUserWithProviderAccountsValue.providerAccounts` is a required `Effect<readonly ProviderAccountValue[], AuthUnavailable | Unauthorized>`. Each result contains only `{ providerId: string, accountId: string }`; for example, GitHub's numeric user ID is the string `"123"`, not Better Auth's account-row id. `SessionUser` and `SessionUserValue` contain the base profile without accounts.
+
+A custom session provider supplies `user.providerAccounts` as a lazy Effect with that same result and failure type, described by `ProviderAccountsSessionShape`. The boundary owns request-local memoization and the reduction to public IDs; custom providers need not cache or project the returned account objects.
 
 ### Requiring an admin
 
@@ -620,13 +629,13 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | --- | --- |
 | `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
 | `errors/rejectedField.ts` | `rejectedField(unknown)`: the field and message of a field rejection. |
-| `rpc/identity.ts` | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`: request-local services. |
-| `rpc/middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `MaybeAuthenticated`: native RPC middleware declarations. |
+| `rpc/identity.ts` | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`: request-local services. |
+| `rpc/middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`: native RPC middleware declarations. |
 | `rpc/requireAdmin.ts` | `requireAdmin`: the signed-in user with an admin role. |
 | `server/appHost.ts` | `appHost`, `appDatabase`, `AppChanges`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
 | `server/boundedBody.ts` | `readBoundedBody`, `RequestBodyTooLarge`: bounded body bytes and a typed HTTP 413 failure. |
 | `server/otlpTracing.ts` | `otlpTracing`: opt-in Effect OTLP trace export for worker Layers. |
-| `server/rpc-server/session.ts` | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary. |
+| `server/rpc-server/session.ts` | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary. |
 | `server/rpc-server/adapters/betterAuthSessions.ts` | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups. |
 | `server/rpc-server/origin.ts` | `trustedOrigins({ allow, missing })`: an exact Origin allowlist. |
 | `server/rpc-server/local.ts` | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`, `trustedProxyRanges`: loopback and proxy guards. |
