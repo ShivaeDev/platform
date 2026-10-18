@@ -4,7 +4,7 @@ import { RequestId } from "#rpc/identity.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
 import { redact } from "./redact.ts";
 import { redactCause } from "./redactCause.ts";
-import type { SensitiveKey } from "./sensitive.ts";
+import { isSensitiveKey, REDACTED, redactText, type SensitiveKey } from "./sensitive.ts";
 export interface RequestTracingOptions {
 	readonly header?: string;
 	readonly sensitive?: SensitiveKey;
@@ -23,10 +23,15 @@ function requestIdOf(headers: Headers.Headers, header: string): Effect.Effect<st
 		},
 	);
 }
-function failureTag(cause: Cause.Cause<unknown>): string {
+function failureTag(cause: Cause.Cause<unknown>, sensitive: SensitiveKey = isSensitiveKey): string {
 	return Option.match(Cause.findErrorOption(cause), {
 		onNone: () => "unknown",
-		onSome: (error) => (Predicate.hasProperty(error, "_tag") && Predicate.isString(error._tag) ? error._tag : "unknown"),
+		onSome: (error) => {
+			if (!(Predicate.hasProperty(error, "_tag") && Predicate.isString(error._tag))) {
+				return "unknown";
+			}
+			return sensitive("_tag") ? REDACTED : redactText(error._tag, sensitive);
+		},
 	});
 }
 function logFailure(cause: Cause.Cause<unknown>, payload: unknown, sensitive: SensitiveKey | undefined): Effect.Effect<void> {
@@ -35,7 +40,7 @@ function logFailure(cause: Cause.Cause<unknown>, payload: unknown, sensitive: Se
 	}
 	const annotations = { "rpc.payload": redact(payload, sensitive) };
 	if (!Cause.hasDies(cause)) {
-		return Effect.annotateLogs(Effect.logInfo("RPC failure"), { ...annotations, "rpc.failure": failureTag(cause) });
+		return Effect.annotateLogs(Effect.logInfo("RPC failure"), { ...annotations, "rpc.failure": failureTag(cause, sensitive) });
 	}
 	const defects = cause.reasons.filter(Cause.isDieReason).map((reason) => redact(reason.defect, sensitive));
 	return Effect.annotateLogs(Effect.logError("RPC defect"), { ...annotations, "rpc.defect": defects });
