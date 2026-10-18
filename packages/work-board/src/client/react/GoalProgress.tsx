@@ -1,4 +1,4 @@
-import { SegmentedBar } from "#client/react/components/ui/SegmentedBar.tsx";
+import { SegmentedBar } from "#client/react/SegmentedBar.tsx";
 export function GoalProgress({
 	counts,
 	title,

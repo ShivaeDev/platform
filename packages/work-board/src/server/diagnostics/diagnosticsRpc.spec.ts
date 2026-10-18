@@ -36,9 +36,8 @@ it.live("reads health, rate limits and each waiting owner through HTTP RPC, igno
 	for (const text of ["24% used", "4321 / 5000", "3 / 8", "Current snapshot"]) {
 		expect(body).toContain(text);
 	}
-	for (const [owner, count] of Object.entries(health.waiting)) {
-		expect(body).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>${count}</strong>`);
-	}
+	expect(body).toContain(`<dt>Waiting on the orchestrator</dt><dd><strong>${health.waiting.orchestrator}</strong>`);
+	expect(body).toContain(`<dt>Waiting on Fleet agents</dt><dd><strong>${health.waiting.automation}</strong>`);
 	expect(body).not.toContain("99 / 8");
 });
 

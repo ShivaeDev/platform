@@ -15,11 +15,6 @@ export interface Bakery {
 	starter: boolean;
 }
 
-export interface BakeReport {
-	readonly loaves: number;
-	readonly minutes: number;
-}
-
 export class SupplierShort extends Data.TaggedError("SupplierShort")<{ readonly message: string }> {}
 
 export class NoBowls extends Data.TaggedError("NoBowls") {}
@@ -103,8 +98,9 @@ export const bakery = storyKit({
 			},
 		},
 		oven: {
-			bakesEverything: (maxSteps?: number): Effect.Effect<BakeReport, BurntLoaf> =>
-				story.runUntil((current) => current.dough === 0, { maxSteps }).pipe(Effect.map(() => ({ loaves: state.loaves, minutes: state.minute }))),
+			bakesEverything: (maxSteps?: number): Effect.Effect<void, BurntLoaf> => story.runUntil((current) => current.dough === 0, { maxSteps }),
+			loaves: () => state.loaves,
+			minutes: () => state.minute,
 		},
 	}),
 });

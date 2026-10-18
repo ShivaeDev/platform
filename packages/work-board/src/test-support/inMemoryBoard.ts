@@ -1,6 +1,7 @@
 import { ByteSize, Effect, FileSystem, Layer, Option, Path, type PlatformError, PubSub, Ref } from "effect";
 import { stringify } from "yaml";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import type { FleetHealth } from "#diagnostics/health.ts";
 import { DiagnosticsConfig, SourceFailure } from "#diagnostics/source.ts";
 import { boardServices } from "#server/boardServices.ts";
 import type { Change, Changes } from "#server/files/changes.ts";
@@ -16,6 +17,7 @@ export interface BoardFixtureOptions {
 	readonly beforeIndex?: () => Effect.Effect<void, PlatformError.PlatformError>;
 	readonly beforeRead?: (kind: "document", url: string) => Effect.Effect<void>;
 	readonly fleet?: FleetItemsProjection;
+	readonly fleetHealth?: FleetHealth;
 	readonly fleetPort?: number;
 	readonly home: string | undefined;
 	readonly index?: Effect.Effect<Snapshot, PlatformError.PlatformError>;
@@ -45,6 +47,14 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 				fleetPort = daemon.port;
 			}
 			const home = configuration ? configuration.home : Object.keys(files)[0];
+			let indexed: { readonly files: Readonly<Record<string, string>>; readonly snapshot: Effect.Effect<Snapshot> } | undefined;
+			const index = Effect.gen(function* () {
+				const current = memory.files();
+				if (!(indexed && sameFiles(indexed.files, current))) {
+					indexed = { files: current, snapshot: yield* Effect.cached(fixtureSnapshot(current, home, configuration?.modified)) };
+				}
+				return yield* indexed.snapshot;
+			});
 			const changes: Changes = {
 				events: yield* Effect.acquireRelease(PubSub.unbounded<Change>(), PubSub.shutdown),
 				files: Effect.sync(() => Object.keys(files).map((file) => ({ modified: configuration?.modified?.get(file) ?? 0, path: file }))),
@@ -65,18 +75,24 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 					Layer.succeed(WorkspaceConfig, {
 						changes,
 						home,
-						index: Effect.suspend(() => configuration?.beforeIndex?.() ?? Effect.void).pipe(
-							Effect.andThen(configuration?.index ?? Effect.suspend(() => fixtureSnapshot(memory.files(), home, configuration?.modified))),
-						),
+						index: Effect.suspend(() => configuration?.beforeIndex?.() ?? Effect.void).pipe(Effect.andThen(configuration?.index ?? index)),
 						root: memory.root,
 						writable: configuration?.writable === true,
 					}),
-					Layer.succeed(DiagnosticsConfig, { _tag: "Sources", sources: { codex: missing, fleet: missing, github: missing } }),
+					Layer.succeed(DiagnosticsConfig, {
+						_tag: "Sources",
+						sources: { codex: missing, fleet: configuration?.fleetHealth ? Effect.succeed(configuration.fleetHealth) : missing, github: missing },
+					}),
 				]),
 				Layer.provide([fixtureFileSystem(memory), Path.layer, Highlighter.layer]),
 			);
 		}),
 	);
+}
+
+function sameFiles(left: Readonly<Record<string, string>>, right: Readonly<Record<string, string>>) {
+	const paths = Object.keys(left);
+	return paths.length === Object.keys(right).length && paths.every((path) => right[path] === left[path]);
 }
 
 function fleetFiles(files: Readonly<Record<string, string>>, fleet?: FleetItemsProjection) {

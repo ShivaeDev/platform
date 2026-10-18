@@ -3,7 +3,8 @@ import { Effect } from "effect";
 import type { ApprovedPrFixture, PrDaemonClient } from "#test/approvedPrDaemon.ts";
 import { until } from "#test/cloudRestart.ts";
 import { answerAndWait } from "#test/daemonActions.ts";
-import { type Follower, untilEveryOutput, withFollower } from "#test/follower.ts";
+import { untilEveryOutput, withFollower } from "#test/follower.ts";
+import type { Follower } from "#test/followerProcess.ts";
 import { MOVED } from "#test/githubResult.ts";
 
 export const watchReview = Effect.fn("WatchReviewTest.watchReview")(function* (
@@ -31,7 +32,7 @@ const followReview = Effect.fn("WatchReviewTest.followReview")(function* (
 	if (!initialReady) {
 		yield* fixture.ready(client);
 	}
-	const line = "one needs-human (waiting on maintainer): Reviewed PR is ready to merge\n";
+	const line = "one needs-human (waiting on orchestrator): Reviewed PR is ready to merge\n";
 	yield* untilEveryOutput(followers, line);
 	expect((yield* answerAndWait(client, { text: "Keep the loading indicator visible.", workId: "one" })).stage).toBe("repairing");
 	yield* client("fleet.reconcile", { workId: "one" });

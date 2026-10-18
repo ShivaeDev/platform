@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.16.0 - 2026-10-18
+
+### Added
+
+- Export `requireAdmin` from `rpc/requireAdmin.ts` to guard request-local users with typed `Unauthorized` and `Forbidden` failures. Session users carry the provider's optional role, and `withSessionUser` from `server/rpc-server/session.ts` shares the identity boundary between HTTP routes and RPC middleware.
+- `appHost` and `appDatabase` accept `migrations.mode: "wait"` to poll the migration ledger before starting application services, with configurable `pollInterval` (one second by default) and `waitTimeout` (five minutes by default). Timeout preserves the schema check's native `MigrationError`, and interruption closes the waiting host's database pool.
+- `server/MigrationOptions.ts` exports `MigrationOptions<R = never>`, the migration settings used by `AppDatabaseOptions.migrations`.
+
+### Fixed
+
+- App hosts apply request tracing to every served RPC, wrapping authentication and handlers even when the shared group omits `RequestTracing`. Existing declarations run once at the outermost middleware boundary; failures log redacted payloads with request ids.
+
+### Breaking
+
+- Every module's import path is now its path under `src/`. Server modules gain a `server/` prefix and keep their file names, for example `server/appHost.ts`, `server/rpc-server/boundary.ts`, `server/better-auth/rowAdapter.ts`, `server/runtime/makePlatform.ts` and `server/testing/makePlatformIt.ts`. `errors/rejected-field.ts` becomes `errors/rejectedField.ts`.
+
 ## 0.15.0 - 2026-10-18
 
 ### Added

@@ -31,8 +31,6 @@ export const awaitHumanMerge = Effect.fn("Fleet.awaitHumanMerge")(function* (
 		"reviewed-pr-ready",
 		"Reviewed PR is ready to merge",
 		"Merge the reviewed, green PR, or choose retry with an overall response to request changes on the same branch and PR",
-		undefined,
-		"maintainer",
 	);
 });
 

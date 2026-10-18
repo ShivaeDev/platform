@@ -4,4 +4,4 @@ This package gives orchestrators one process that observes pull request transiti
 
 Correct observations win over speed, then durable comparison across restarts, then quota efficiency. Compose services through effect-service and preserve typed failures and interruption. State is a snapshot, not an event history; stdout can repeat across a crash. Applications own delivery and action on events.
 
-Usage is in [README.md](./README.md), the vision in [docs/north-star.md](./docs/north-star.md), and status in [docs/roadmap.md](./docs/roadmap.md).
+Usage is in [README.md](./README.md).

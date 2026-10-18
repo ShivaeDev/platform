@@ -37,7 +37,9 @@ test("new authored Board context renews SQL work and acknowledges its superseded
 			expect(renewed.value.history?.[0]?.decisionAcknowledged).toBe(true);
 			expect(yield* boardAskFiles(root)).not.toContain(published.sourcePath);
 			expect(files.receipts()).toHaveLength(1);
-			expect(files.read(published.sourcePath)).toBe(question);
+			const closed = metadataParse(files.read(published.sourcePath));
+			expect(closed.fields.attention).toMatchObject([{ state: "closed" }]);
+			expect(closed.body).toBe(metadataParse(question).body);
 			expect(files.read("one.md")).toBe(nextSource);
 			yield* fixture.restart(
 				Effect.gen(function* () {

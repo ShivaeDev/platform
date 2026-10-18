@@ -5,9 +5,7 @@ Reactivity instance that owns a consumer's AtomRpc queries. It owns neither a
 cache nor authoritative data. Ordinary typed queries establish current values;
 the application discovers dependencies and decides which keys changed.
 
-The [HTTP consumer](../../packages/effect-contract/src/liveConsumer.spec.ts)
-mounts two documents and a derived list. Its contract declares a streaming
-operation alongside its queries. `bind` preserves the contract's query, command and stream types; a client missing its operations is rejected by the compiler fixture.
+The worked example is the [HTTP consumer test](../../packages/effect-contract/src/liveConsumer.spec.ts): it mounts two documents and a derived list, and its contract declares a streaming operation alongside its queries.
 
 ## Server and client composition
 
@@ -69,7 +67,7 @@ The live helper initializes derived resume atoms before observing them, so
 source listeners attach even without a separate UI subscriber. Their finalizers
 release on registry teardown.
 
-`effect-react/resumeSignal.ts` delegates to the shared implementation. Use the [synthetic-signal tests](../../packages/effect-react/src/resumeSignal.dom.test.ts) for its visibility, native-source and cleanup evidence.
+`effect-react/resumeSignal.ts` delegates to the shared implementation.
 
 An ended or failed stream enters `reconnecting` and retries after one second by
 default. `retryDelay` lets the consumer choose a positive native Duration for its
@@ -80,12 +78,6 @@ AsyncResult, which retains its previous success. Connection state and query
 freshness are separate: `needsResync: false` means invalidation was issued, not
 that every query completed or the source is accepted.
 
-## Evidence and limits
+## Limits
 
-The real HTTP regressions cover precise item/list invalidation, paused overflow,
-read failure and retry, a typed stream outage with missed changes, stale HTTP
-responses, initial/reconnected scope reconciliation, and server-side subscription
-release. Compiler checks preserve valid contract bindings and reject incomplete
-clients, changed payloads and widened errors. The synthetic-signal tests linked above cover visible and hidden visibility events, injected native sources and listener cleanup.
-
-This fixture establishes local HTTP composition. The [PostgreSQL composition](./composed-example.md#what-the-test-proves) separately checks authenticated writes and live editor refresh, and its [process test](./composed-example.md#delivery-between-processes) checks delivery between two servers and a worker. Work Board adoption is tracked in [its roadmap](../../packages/work-board/docs/roadmap.md); physical tab visibility, Capacitor, SSR hydration and deployment proxies need application-specific verification. There is no replay cursor, event journal, offline mutation or deployment delivery guarantee.
+There is no replay cursor, event journal, offline mutation or deployment delivery guarantee. The [PostgreSQL composition](./composed-example.md) shows delivery between processes after commit.

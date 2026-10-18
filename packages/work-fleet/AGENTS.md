@@ -1,13 +1,9 @@
 # Work Fleet
 
-Work Fleet is an optional execution addon to Work Board. Board owns identity,
-context, relationships and human decisions. Fleet attaches durable execution and
-accepted outcomes to those Board IDs. A headless runtime still reads Board core.
+Work Fleet is an optional execution addon to Work Board. A maintainer approves Board work; Fleet carries independent items through workers, independent review, scoped repair, required validation and observed human delivery, and the person sees work that is active, completed or needs one concrete decision. Board owns identity, context, relationships and human decisions, and stays useful without Fleet; its index and PubSub are rebuildable observations, not an attempts database. Fleet attaches durable execution and accepted outcomes to those Board IDs in an ordinary transactional SQL attachment, with no separate task queue, daemon-wide decision lock or event journal. A headless runtime still reads Board core, and the browser is optional.
 
-Move approved work through execution, independent review, repair, validation and observed human delivery. Fleet never submits a merge; reviewed, green work waits for a human merge, which reconciliation adopts against the reviewed head. Preserve uncertain submission ownership and reconcile the existing operation. A provider receipt, terminal turn, passing review and accepted delivery are distinct facts.
+Fleet never submits a merge; reviewed, green work waits for a human merge, which reconciliation adopts against the reviewed head. A provider receipt, terminal turn, passing review and accepted delivery are distinct facts. Submission intent precedes remote mutation, and acknowledged session and turn identities are saved before further mutation. Ambiguous acceptance retains reservations: preserve uncertain submission ownership and reconcile the existing operation. Closing observation does not interrupt execution; explicit interruption needs acknowledgement. Terminal execution releases computation capacity, but ownership ends only at accepted delivery, independently reviewed and validated no-change, or explicit safe release. Review and checks apply to an exact revision, and repair needs fresh evidence.
 
-Native Effect semantics, durable safety and truthful evidence take priority over
-throughput. Runtime policy owns authority and build/provider integrations; worker
-text cannot grant it. Keep the session service independent of scheduling. Use the
-repository conventions and synthetic fixtures. See [north star](docs/north-star.md)
-and [roadmap](docs/roadmap.md).
+Native Effect semantics, durable safety and truthful evidence take priority over throughput. Runtime policy owns authority and the provider, source observation, review, validation and delivery integrations; worker text cannot grant it, and Fleet never bypasses protections. Keep the session service, which handles one provider conversation and its turns, independent of scheduling, dependencies and merge authority. A local Codex transport proves nothing about hosted Cloud.
+
+Implementations use `defineService`; interchangeable ports, configuration values and the scoped scheduler handle stay native Context services. Ordinary PostgreSQL tests roll back inside the test transaction; concurrent operations, migrations, exact sequence state and the daemon or its subprocesses use an isolated clone. Use the repository conventions and synthetic fixtures. Usage lives in the [README](README.md).

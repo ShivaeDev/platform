@@ -227,7 +227,7 @@ Import the defining module; the package has no root entry point.
 | --- | --- |
 | `database.ts` | `makeDatabase<Contract>()(identifier, { contractJson })`, `DatabaseDefinition`, `DatabaseLayerOptions`. Factory options also accept an already typed `contract`. |
 | `sqlite.ts` | `makeSqliteDatabase<Contract>()(identifier, options)`, `defaultSqlitePragmas`, `SqliteDatabaseDefinition`, `SqliteDatabaseLayerOptions`. Layer options include `path` and `pragmas`. |
-| `databaseTypes.ts` | `DatabaseService<Contract, Identifier>`, `DatabaseServiceOf<typeof Database>`, `AnyDatabase`, `DatabaseIdentifier`, `DatabaseIdentifierLiteral`, `DatabaseServiceHolder`, `DefaultModels`, `SqlDatabase`, `internalContextIdentifierPrefix`. |
+| `databaseTypes.ts` | `DatabaseService<Contract, Identifier>`, `DatabaseServiceOf<typeof Database>` and their supporting types. |
 | `relation.ts` | `Relation`, `RelationQuery`, `CollectionResult`. |
 | `error.ts` | `PrismaError`, `PrismaErrorReason`, `PrismaRuntimeFailure`, `PrismaQueryFailure`, `PrismaConnectionFailure`, `isPrismaFailure`, `toPrismaError`. |
 | `testing/vitest.ts` | `makeDatabaseIt({ database, layer, clock? })`. |
@@ -238,9 +238,9 @@ Import the defining module; the package has no root entry point.
 
 The Relation surface follows Prisma Next's collections. Its typed operations include filters and ordering; `select`, `take`, `cursor`, `distinct`, `distinctOn`; `include`, `count`, `exists`, `first`; `aggregate`, `groupBy`; and create, update and delete terminals. Cursor and distinct-on types require an order first. Import boolean filter combinators such as `and`, `or`, `not` and `all` from `@prisma-next/sql-orm-client`.
 
-A `PrismaError` carries a tagged `reason`. Unique-constraint tests verify `PrismaQueryFailure` with `sqlState` and `constraint`; scope and transaction guards use `PrismaRuntimeFailure` with `code`. Unknown Promise rejections remain defects rather than becoming typed database failures.
+A `PrismaError` carries a tagged `reason`. A unique-constraint violation is a `PrismaQueryFailure` with `sqlState` and `constraint`; scope and transaction guards use `PrismaRuntimeFailure` with `code`. Unknown Promise rejections remain defects rather than becoming typed database failures.
 
-`effectDB` also exposes the declared `skip`, `skipIf`, `runIf` and `only` methods. Its options and factory accept `clock`; see the [Effect test runner](https://github.com/ShivaeDev/platform/tree/main/packages/effect-test#readme) for the shared option types and clock model.
+`makeDatabaseIt` and each `effectDB` test accept `clock`; see the [Effect test runner](https://github.com/ShivaeDev/platform/tree/main/packages/effect-test#readme) for the shared option types and clock model.
 
 ### Install and contract setup
 
@@ -258,7 +258,7 @@ prisma-next contract emit
 effect-prisma-normalize path/to/generated/contract.d.ts
 ```
 
-Normalization replaces supported PostgreSQL timestamp declarations with `Date`, preserves other fields and can run twice. An unsupported timestamp declaration fails without overwriting the generated file. PostgreSQL timestamp and timestamp-with-time-zone fields accept and return JavaScript `Date` values; the tests exercise writes, reads and equality filters. SQLite `DateTime` declarations already use `Date` and do not need this PostgreSQL step.
+Normalization replaces supported PostgreSQL timestamp declarations with `Date`, preserves other fields and can run twice. An unsupported timestamp declaration fails without overwriting the generated file. PostgreSQL timestamp and timestamp-with-time-zone fields accept and return JavaScript `Date` values. SQLite `DateTime` declarations already use `Date` and do not need this PostgreSQL step.
 
 SQLite datetime text without a zone is decoded as UTC, including the `datetime('now')` column default. Text that already contains `Z` or a numeric offset is left unchanged. That generated default has whole-second precision.
 
@@ -267,9 +267,7 @@ SQLite datetime text without a zone is decoded as UTC, including the `datetime('
 - Use one exported definition and one live Layer per identifier. Duplicate identifiers or multiple simultaneous Layers for one definition are outside the supported composition.
 - Keep Database values inside their Layer and transaction lifetimes. Return rows from a transaction rather than its facade or queries.
 - PostgreSQL contracts must have one domain namespace. A model named `transaction` conflicts with the facade's transaction method.
-- SQLite needs a file-backed database; `:memory:` and an empty path are rejected. Its driver uses synchronous database calls. Treat it as a local database path and avoid coordinating separate Layers against the same file.
+- SQLite support is experimental and needs a file-backed database; `:memory:` and an empty path are rejected. Its driver uses synchronous database calls. Treat it as a local database path and avoid coordinating separate Layers against the same file.
 - One SQLite Layer serializes finite root query Effects with the entire explicit transaction lifetime. Transaction queries have a separate permit. Root Streams remain incremental; do not treat them as holding that lifetime permit.
 - Transaction Streams buffer the full result. Refine large queries before collecting them in a transaction.
 - The API excludes model variants and direct scalar aggregate shortcuts; use the typed `aggregate` callback. Prisma Next features are not automatically package guarantees.
-
-The [roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-prisma/docs/roadmap.md) records package status and maintainer questions. The tests distinguish real PostgreSQL behavior, file-backed SQLite behavior and controlled execution tests; PostgreSQL tests skip when their database URL is absent.
