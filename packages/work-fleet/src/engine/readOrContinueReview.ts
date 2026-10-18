@@ -1,6 +1,7 @@
 import { Effect, Result } from "effect";
 import { admit } from "#admit.ts";
 import { workRevision } from "#board/workRevision.ts";
+import { areaWaiters } from "#engine/areaWaiters.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
@@ -66,7 +67,11 @@ function continueReview(state: EngineState) {
 			{ ...policy, quota },
 			board.get,
 		);
-		yield* save(stored, { ...stored.value, attempts: [...stored.value.attempts, attempt] }, { areaWaiters: [], quota, role: "reviewer" });
+		yield* save(
+			stored,
+			{ ...stored.value, attempts: [...stored.value.attempts, attempt] },
+			{ areaWaiters: yield* areaWaiters(state, stored.value), quota, role: "reviewer" },
+		);
 		yield* sessions
 			.continue({ access: "read-only", operationId: attempt.operationId, prompt, sessionId: receipt.sessionId, settings })
 			.pipe(

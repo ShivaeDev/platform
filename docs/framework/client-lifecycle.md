@@ -7,8 +7,6 @@ local state, so replacing only the registry is insufficient as a general reset
 policy.
 
 `SessionBoundary` owns the registry and React subtree for each session generation.
-The [executable example](../../packages/effect-react/src/client/sessionBoundary.dom.test.tsx)
-uses `makeOrderEditor` against the order feature's real loopback HTTP endpoint.
 
 ## Session transition
 
@@ -19,8 +17,7 @@ opaque generation counter; logging back into the same account is a new session.
 When authentication is unresolved or absent, render the public/loading shell
 without the previous authenticated subtree.
 
-The test switches the same React root between authenticated sessions and then
-signs out. Cached data and dirty forms disappear with the outgoing generation.
+Cached data and dirty forms disappear with the outgoing generation.
 Re-entering starts from persisted data. A failed refresh retains the draft;
 retry can recover before the auth owner decides to end the session.
 `SessionBoundary` disposes each outgoing registry. A plain
@@ -28,7 +25,7 @@ retry can recover before the auth owner decides to end the session.
 
 Do not persist or hydrate authenticated atom values across this boundary. Any
 future persisted draft or offline queue requires an explicit account partition,
-session ownership and logout policy; it is not covered by this example.
+session ownership and logout policy.
 
 ## `SessionBoundary` owns the generation
 
@@ -72,11 +69,7 @@ runtimes and RPC connections close) as soon as the render settles. StrictMode's 
 `useQuery` and `useAction` inside the boundary call `recheck` when a result
 fails with a tagged `Unauthorized` error. They do not clear retained data: the
 auth owner decides whether the session ended and, if so, changes `session`,
-which tears the generation down. The
-[boundary tests](../../packages/effect-react/src/client/sessionBoundary.dom.test.tsx) cover
-switching accounts, signing out, re-entering the same account under a new key,
-Unauthorized re-checks, StrictMode, `<Activity>` hide and reveal and credential
-rotation under a fixed or generation-bearing key.
+which tears the generation down.
 
 ## Resume refreshes through native signals
 
@@ -96,29 +89,25 @@ const profile = Atom.swr(api.query("Profile", undefined), {
 
 `makeRefreshOnSignal` refetches on every signal; a visibility change and a
 reconnect arriving together refetch twice. `swr` skips fresh or in-flight
-results. [Synthetic-signal tests](../../packages/effect-react/src/resumeSignal.dom.test.ts)
-cover hidden/visible events, native resume, staleness and listener removal. They do
-not validate a real Capacitor lifecycle or suspended network requests.
+results.
 
 ## Refresh and authentication failures are different decisions
 
 Within an unchanged session, the query hook exposes native `AsyncResult` state:
 previous successful data remains available alongside a refresh error. The draft
 stays mounted, so unsaved edits survive. A user-triggered refresh retries the read;
-a successful retry clears the error without discarding edits. The test proves
-this by temporarily revoking and then restoring the example credential.
+a successful retry clears the error without discarding edits.
 
-That test also exposes an important boundary: `Unauthorized` does not erase the
+`Unauthorized` does not erase the
 last successful query value automatically. Inside a `SessionBoundary` it asks the
 auth owner to re-check; once that owner decides the session has expired or ended,
 it changes the boundary's session. A retained value is useful during transient
 refresh failure; it is not permission to keep an expired authenticated screen
-visible. The starter's [App](../../examples/starter/src/client/App.tsx) supplies Better Auth's `session.refetch` as `recheck`. Its [session screen test](../../examples/starter/src/client/SessionApp.dom.test.tsx) checks that a changed session replaces cached notes and the draft; the boundary tests above check Unauthorized re-checks.
+visible. The starter's [App](../../examples/starter/src/client/App.tsx) supplies Better Auth's `session.refetch` as `recheck`.
 
 ## Native cache policy
 
-These details were checked against the installed Effect `4.0.4` source:
-`effect/reactivity/AtomRpc` and `AtomRegistry`.
+These follow from `effect/reactivity/AtomRpc` and `AtomRegistry`:
 
 - Each registry stores its own atom values. Atom identity alone does not imply
   shared cached values across registries.
@@ -132,33 +121,19 @@ These details were checked against the installed Effect `4.0.4` source:
 - Finite `timeToLive` delegates to `Atom.setIdleTTL`; infinite TTL uses
   `Atom.keepAlive`. This is retention after inactivity, not a promise that data
   stays fresh for that duration or a polling interval.
-- The current order query supplies no TTL override. Set retention intentionally
-  when a real navigation use case needs it. Session disposal takes precedence
-  over any retention policy.
+- Session disposal takes precedence over any retention policy.
 - Reactivity keys connect local successful mutations to query refresh. They do
   not deliver cross-device changes, implement offline replay or authenticate a
   request. Explicit refresh remains useful for external changes.
 - Native Reactivity expands a record key such as `{ orders: [id] }` into both
   `"orders"` and `"orders:<id>"`, when registering a query and when invalidating.
-  The order example declares these keys once in its contract; the
-  `effect-contract` binding registers item queries with `` `orders:${id}` ``, the
-  list with `"orders"`, and invalidates both after a save, so one save refreshes
-  that order and the list but no other mounted order.
+  The `effect-contract` binding registers item queries with `` `orders:${id}` ``,
+  the list with `"orders"`, and invalidates both after a save, so one save
+  refreshes that order and the list but no other mounted order.
 - `serializationKey` enables native serialization; it does not make hydration
   safe across users. SSR must use request-specific ownership and an explicit
   hydration policy before enabling it for authenticated data.
 
-## Evidence and remaining work
+## Limits
 
-Run:
-
-```sh
-pnpm heavy pnpm --filter @shivaedev/effect-react test src/client/sessionBoundary.dom.test.tsx
-```
-
-These tests use happy-dom and actual HTTP serialization, authentication and
-SQL-backed feature handlers. They establish rendered session replacement,
-refresh/retry behavior and explicit registry teardown. They do not establish
-browser cookie behavior, SSR isolation, real Capacitor lifecycle, secure token storage, offline writes or server-side cancellation of an
-already accepted write. Registry disposal is not a database rollback mechanism.
-Those policies need the real application's host and authentication integration.
+Registry disposal is not a database rollback mechanism, and it does not cancel a write the server already accepted. Browser cookies, SSR isolation, a real Capacitor lifecycle, secure token storage and offline writes need the application's own host and authentication integration.

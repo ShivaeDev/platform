@@ -47,33 +47,19 @@ can change its name without a Platform wrapper.
   application needs file discovery.
 - The runner ensures the ledger exists and runs the pending batch through
   `SqlClient.withTransaction`, including its ledger entries.
-- A migration-body failure aborts the batch. In Effect `4.0.4`, the runner
-  wraps a typed body failure in a `MigrationError` defect with `kind: "Failed"`.
+- A migration-body failure aborts the batch. The runner wraps a typed body failure in a `MigrationError` defect with `kind: "Failed"`.
   Startup should fail visibly; catching only the typed error channel does not
   capture this failure. A caller inspecting completion can use `Effect.exit`.
 
-The [PostgreSQL tests](../../packages/effect-sql/src/postgresMigrations.spec.ts)
-exercise `migratePostgres` for creation, upgrades, reruns and failed batches.
-The [PostgreSQL guide](./postgres-migrations.md) describes concurrent runners and
-lock timeouts. Native SQLite migration behavior belongs to Effect; the example
-above does not establish transactional DDL behavior for every database.
+## Ledger policy
 
-## Policies deliberately left open
-
-The current runner uses the highest applied ID as its cutoff. It does not replay
+The runner uses the highest applied ID as its cutoff. It does not replay
 an added migration below that cutoff, and its ledger does not checksum migration
-contents. Treat applied migrations as immutable and append higher IDs. Whether
-Platform should enforce checksums or reject out-of-order history remains a
-separate decision; this example adds neither behavior.
+contents. Treat applied migrations as immutable and append higher IDs. Platform
+enforces neither checksums nor ordered history.
 
-`migratePostgres` serializes runners for the same ledger with a PostgreSQL advisory lock; the [bootstrap tests](../../packages/effect-sql/src/postgresMigrationBootstrap.spec.ts) cover concurrent runners on a new ledger. Nontransactional DDL, existing-database baselining, schema-diff generation and a migration authoring CLI remain [SQL roadmap questions](../../packages/effect-sql/docs/roadmap.md). Database-specific operations that cannot execute inside a transaction do not fit this runner's ordinary batch.
+`migratePostgres` serializes runners for the same ledger with a PostgreSQL advisory lock. Database-specific operations that cannot execute inside a transaction, such as nontransactional DDL, do not fit this runner's ordinary batch. Platform has no existing-database baselining, schema-diff generation or migration authoring CLI.
 
 These migrations evolve application tables and data. They do not rebuild event
 projections or introduce event sourcing. Repository models still describe the
 application's expected row codecs; changing a model alone does not alter a table.
-
-## Native API reference
-
-The implementation targets the workspace-pinned Effect `4.0.4` APIs:
-[`Migrator`](https://github.com/Effect-TS/effect/blob/effect%404.0.4/packages/effect/src/sql/Migrator.ts).
-The executable test is the local compatibility check when the dependency changes.

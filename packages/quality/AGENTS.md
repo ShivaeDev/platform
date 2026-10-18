@@ -2,7 +2,7 @@
 
 You are changing the package that lets a repository adopt a sensible quality policy without designing one. Choosing rules, debating warning levels and maintaining copied tool configs is work repositories should not have to repeat. Quality owns those choices and supplies one opinionated gate, shared tooling and guidance an agent can act on. A consuming repository adopts the whole policy; it describes its files and architecture, not which standards it wants to follow.
 
-Read the [north star](./docs/north-star.md) for the full intent, the [README](./README.md) for use, and the [roadmap](./docs/roadmap.md) for implementation gaps and the decisions still owned by the maintainer.
+Read the [north star](./docs/north-star.md) for the full intent and the trade-offs behind a rule change, and the [README](./README.md) for use.
 
 ## Which way to lean
 

@@ -38,6 +38,10 @@ export function foreignPrVerbs(
 			story.tell("the PR is merged on GitHub");
 			Option.getOrThrow(github).state.status = "MERGED";
 		},
+		movePrHeadOnGithub: (head: string) => {
+			story.tell(`the PR head moves to ${head} on GitHub`);
+			Option.getOrThrow(github).state.head = head;
+		},
 		reservations: fixture.foreignReservations,
 		reservePr: () => {
 			story.tell("the PR reserves open-PR backlog");
