@@ -8,8 +8,8 @@ import { SqlClient } from "effect/sql";
 import { act, createElement } from "react";
 import { expect, it } from "vitest";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
-import { useAction, useQuery } from "#result-state.ts";
-import { eventually, expectNoReactWarnings, render } from "#testing.ts";
+import { useAction, useQuery } from "#client/resultState.ts";
+import { eventually, expectNoReactWarnings, render } from "#client/testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

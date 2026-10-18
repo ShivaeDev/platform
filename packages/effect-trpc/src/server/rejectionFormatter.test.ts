@@ -1,6 +1,6 @@
 import { StandardSchemaV1Error, TRPCError } from "@trpc/server";
 import { expect, it } from "vitest";
-import { withRejection } from "#rejection-formatter.ts";
+import { withRejection } from "#server/rejectionFormatter.ts";
 
 it("formats Standard Schema paths containing primitive and keyed segments", () => {
 	const error = new TRPCError({

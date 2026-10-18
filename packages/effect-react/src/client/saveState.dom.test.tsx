@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { act } from "react";
 import { expect, it } from "vitest";
+import { expectNoReactWarnings } from "#client/testing.ts";
 import { saveSession } from "#test/saveSession.ts";
-import { expectNoReactWarnings } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

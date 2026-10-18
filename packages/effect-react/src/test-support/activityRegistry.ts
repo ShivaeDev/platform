@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { Activity, act, createElement, useContext, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { SessionBoundary } from "#session-boundary.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
 
 interface Held {
 	registry?: AtomRegistry.AtomRegistry;

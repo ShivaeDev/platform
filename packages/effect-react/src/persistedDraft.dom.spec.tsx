@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { expect, it, vi } from "vitest";
+import { eventually, expectNoReactWarnings } from "#client/testing.ts";
 import { draftStorage } from "#test/draftStorage.ts";
 import { persistedDraftView } from "#test/persistedDraftView.tsx";
-import { eventually, expectNoReactWarnings } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

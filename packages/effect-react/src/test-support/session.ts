@@ -2,7 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement, useContext } from "react";
 import { createRoot } from "react-dom/client";
-import { SessionBoundary } from "#session-boundary.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { makeOrderEditor } from "#test/order-example/frontend.tsx";
 
 interface Session {

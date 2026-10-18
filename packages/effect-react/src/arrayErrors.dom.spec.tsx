@@ -1,8 +1,8 @@
 import { act, createElement } from "react";
 import { expect, it } from "vitest";
+import { eventually, expectNoReactWarnings, render } from "#client/testing.ts";
 import { AnswerList } from "#test/AnswerList.tsx";
 import { answerValues, makeAnswerForm } from "#test/answerForm.ts";
-import { eventually, expectNoReactWarnings, render } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

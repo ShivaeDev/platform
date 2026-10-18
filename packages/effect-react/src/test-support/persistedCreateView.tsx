@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { SessionBoundary } from "#session-boundary.ts";
-import { render } from "#testing.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
+import { render } from "#client/testing.ts";
 import { CreateDraftProbe, DirectDraftProbe } from "./CreateDraftProbe.tsx";
 import type { CreateEffect, CreateHeld } from "./createDraftFields.ts";
 

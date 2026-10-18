@@ -1,8 +1,8 @@
 import { Clock, Effect } from "effect";
 import { expect, it, vi } from "vitest";
+import { expectNoReactWarnings } from "#client/testing.ts";
 import { draftStorage } from "#test/draftStorage.ts";
 import { persistedDraftView } from "#test/persistedDraftView.tsx";
-import { expectNoReactWarnings } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

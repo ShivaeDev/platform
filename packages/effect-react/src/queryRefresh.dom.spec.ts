@@ -3,8 +3,8 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act } from "react";
 import { expect, it } from "vitest";
+import { expectNoReactWarnings } from "#client/testing.ts";
 import { finishQuery, queryRequests, queryView, type Unavailable } from "#test/queryView.ts";
-import { expectNoReactWarnings } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

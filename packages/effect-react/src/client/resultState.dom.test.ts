@@ -3,9 +3,9 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
 import { afterEach, expect, it } from "vitest";
-import { isUnauthorized, useAction, useQuery } from "#result-state.ts";
+import { isUnauthorized, useAction, useQuery } from "#client/resultState.ts";
+import { expectNoReactWarnings, render } from "#client/testing.ts";
 import { resultSession } from "#test/resultSession.ts";
-import { expectNoReactWarnings, render } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

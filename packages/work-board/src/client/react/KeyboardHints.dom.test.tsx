@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings, render } from "@shivaedev/effect-react/client/testing.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });

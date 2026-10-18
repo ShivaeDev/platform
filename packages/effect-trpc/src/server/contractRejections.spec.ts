@@ -3,8 +3,8 @@ import { Effect, Option, Schema } from "effect";
 import { afterAll, expect, it } from "vitest";
 import { command } from "@shivaedev/effect-contract/operation.ts";
 import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
-import { rejectWith } from "#rejection.ts";
 import { decodeRejection, rejectionOf } from "#rejectionDecoding.ts";
+import { rejectWith } from "#server/rejection.ts";
 import { failureOf, inProcess, procedure, runtime, t } from "#test/http.ts";
 
 class OrderNotFound extends Schema.TaggedError<OrderNotFound>()("OrderNotFound", {}) {}

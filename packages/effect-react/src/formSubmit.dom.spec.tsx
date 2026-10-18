@@ -2,10 +2,10 @@ import { Effect, Layer, Option, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
 import { afterEach, expect, it } from "vitest";
-import { type Submit, useSubmit } from "@shivaedev/effect-form/react.ts";
-import { type Create, useCreate } from "#create.ts";
-import { type Editor, useEditor } from "#editor.ts";
-import { eventually, expectNoReactWarnings, render } from "#testing.ts";
+import { type Submit, useSubmit } from "@shivaedev/effect-form/client/react.ts";
+import { type Create, useCreate } from "#client/create.ts";
+import { type Editor, useEditor } from "#client/editor.ts";
+import { eventually, expectNoReactWarnings, render } from "#client/testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

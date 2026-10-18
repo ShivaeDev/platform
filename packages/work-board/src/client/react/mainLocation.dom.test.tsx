@@ -2,7 +2,7 @@ import { Effect, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { click, control } from "#test/chrome.ts";
 import { renderBoard } from "#test/react.tsx";
 import { LiveControls } from "./LiveControls.tsx";

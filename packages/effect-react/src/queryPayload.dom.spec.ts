@@ -1,8 +1,8 @@
 import { Exit } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expect, it, onTestFinished } from "vitest";
+import { eventually, expectNoReactWarnings } from "#client/testing.ts";
 import { finishQuery, queryRequests, queryView } from "#test/queryView.ts";
-import { eventually, expectNoReactWarnings } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

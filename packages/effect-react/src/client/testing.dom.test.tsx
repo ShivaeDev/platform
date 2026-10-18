@@ -9,8 +9,8 @@ import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
-import { useAction, useQuery } from "#result-state.ts";
-import { eventually, expectNoReactWarnings, render } from "#testing.ts";
+import { useAction, useQuery } from "#client/resultState.ts";
+import { eventually, expectNoReactWarnings, render } from "#client/testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 const originalError = console.error;

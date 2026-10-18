@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { Activity, act, StrictMode } from "react";
-import type { BrowserDraftConfig } from "@shivaedev/effect-form/react.ts";
-import { SessionBoundary } from "#session-boundary.ts";
-import { render } from "#testing.ts";
+import type { BrowserDraftConfig } from "@shivaedev/effect-form/client/react.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
+import { render } from "#client/testing.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
 import { draftInitial, type Held, type Row, type Save } from "./draftFields.ts";
 

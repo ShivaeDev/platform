@@ -1,8 +1,8 @@
 import { initTRPC } from "@trpc/server";
 import { Effect, Layer, ManagedRuntime, Stream } from "effect";
 import { expect, it } from "vitest";
-import { makeEffectTRPC } from "#adapter.ts";
-import { makeRequestServices } from "#request-services.ts";
+import { makeEffectTRPC } from "#server/adapter.ts";
+import { makeRequestServices } from "#server/requestServices.ts";
 
 it("redacts synchronous request Layer defects while mapping the subscription cause", async () => {
 	const runtime = ManagedRuntime.make(Layer.empty);

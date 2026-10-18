@@ -3,10 +3,10 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode, useContext } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { SessionBoundary } from "#session-boundary.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
+import { expectNoReactWarnings, eventually as settle } from "#client/testing.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import { makeInvoiceLineViews } from "#test/invoice-line-editor/frontend.ts";
-import { expectNoReactWarnings, eventually as settle } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

@@ -3,9 +3,9 @@ import { initTRPC } from "@trpc/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Layer, ManagedRuntime } from "effect";
 import superjson from "superjson";
-import { makeEffectTRPC } from "#adapter.ts";
-import { rejectionFormatter } from "#rejection-formatter.ts";
-import { makeRequestServices } from "#request-services.ts";
+import { makeEffectTRPC } from "#server/adapter.ts";
+import { rejectionFormatter } from "#server/rejectionFormatter.ts";
+import { makeRequestServices } from "#server/requestServices.ts";
 
 export const runtime = ManagedRuntime.make(Layer.empty);
 

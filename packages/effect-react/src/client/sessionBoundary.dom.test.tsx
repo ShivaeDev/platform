@@ -4,13 +4,13 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { Activity, act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
-import { SessionBoundary } from "#session-boundary.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
+import { eventually, expectNoReactWarnings } from "#client/testing.ts";
 import { activityRegistry } from "#test/activityRegistry.ts";
 import { startOrderServer } from "#test/order-example/http-test.ts";
 import { resultSession } from "#test/resultSession.ts";
 import { sessions, shell } from "#test/session.ts";
 import { DraftProbe, type RegistryHolder, ReplayProbe, TrackedProbe } from "#test/sessionProbes.ts";
-import { eventually, expectNoReactWarnings } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

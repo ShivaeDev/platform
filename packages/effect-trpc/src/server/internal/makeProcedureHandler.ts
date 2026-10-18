@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import type { EffectProcedureRequestServices } from "#request-services.ts";
-import type { ProcedureInfo } from "#types.ts";
+import type { EffectProcedureRequestServices } from "#server/requestServices.ts";
+import type { ProcedureInfo } from "#server/types.ts";
 import { acceptParsedInput } from "./loose.ts";
 import type { EffectProcedureResolver, ProcedureInvocation } from "./procedureTypes.ts";
 import type { RuntimeBridge } from "./runtime.ts";

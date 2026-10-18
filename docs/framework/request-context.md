@@ -54,7 +54,7 @@ Unexpected failures stay defects rather than declared errors carrying a server-w
 The message is for diagnostics and a fallback display. Applications can still
 choose their own wording per tag.
 
-On tRPC, `rejectWith` from `@shivaedev/effect-trpc/rejection.ts` sends these classes as
+On tRPC, `rejectWith` from `@shivaedev/effect-trpc/server/rejection.ts` sends these classes as
 declared rejections. `NotFound`, `Unauthorized`, `Forbidden`, `Conflict`,
 `PreconditionFailed` and `TooManyRequests` get the tRPC codes `NOT_FOUND`,
 `UNAUTHORIZED`, `FORBIDDEN`, `CONFLICT`, `PRECONDITION_FAILED` and
@@ -169,7 +169,7 @@ server, the RPC headers are used, because there are no transport headers to
 prefer and no browser attaches ambient credentials.
 
 An application-owned middleware that reads any header for a security decision
-should call `transportHeaders(headers)` from `@shivaedev/platform/rpc-server/transport.ts`
+should call `transportHeaders(headers)` from `@shivaedev/platform/server/rpc-server/transportHeaders.ts`
 instead of using `headers` directly. The request id is still read from the RPC
 headers, so a client can set it per call; it is for correlation only.
 

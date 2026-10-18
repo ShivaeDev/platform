@@ -3,7 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { Activity, act, StrictMode, Suspense, startTransition } from "react";
 import { createRoot } from "react-dom/client";
-import { SessionBoundary } from "#session-boundary.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
 import { DraftSuspender } from "./DraftSuspender.tsx";
 import { draftInitial, type Held, type Row } from "./draftFields.ts";

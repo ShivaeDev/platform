@@ -2,9 +2,9 @@ import { RouterProvider } from "@tanstack/react-router";
 import { Deferred, Effect } from "effect";
 import { act } from "react";
 import { beforeEach, expect, it, onTestFinished, vi } from "vitest";
+import { eventually, render } from "#client/testing.ts";
 import { routerApp } from "#test/routerApp.ts";
 import { NoteMissing, routerClient } from "#test/routerClient.ts";
-import { eventually, render } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 let expectedErrors: readonly (readonly unknown[])[] = [];

@@ -5,8 +5,8 @@ import * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { act, createElement } from "react";
 import { onTestFinished } from "vitest";
-import { type QueryOptions, useQuery } from "#result-state.ts";
-import { render as renderView } from "#testing.ts";
+import { type QueryOptions, useQuery } from "#client/resultState.ts";
+import { render as renderView } from "#client/testing.ts";
 
 export interface Unavailable {
 	readonly _tag: "Unavailable";

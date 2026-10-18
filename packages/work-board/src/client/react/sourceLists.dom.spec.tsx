@@ -1,6 +1,6 @@
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { answerCardFixture, decisionFile } from "#test/answerCardFixture.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderRouter } from "#test/renderRouter.tsx";

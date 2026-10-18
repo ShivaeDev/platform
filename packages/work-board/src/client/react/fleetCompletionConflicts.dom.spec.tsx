@@ -1,7 +1,7 @@
 import { Clock, Effect } from "effect";
 import { act } from "react";
 import { expect, it } from "vitest";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { render } from "@shivaedev/effect-react/client/testing.ts";
 import { nowWork } from "#test/nowWork.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkNow } from "./WorkNow.tsx";
