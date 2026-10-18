@@ -92,12 +92,15 @@ Omit `migrations` to host an app without a database. This form creates no SQL po
 
 Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` when a separate pre-deploy command owns migrations. Startup reads the ledger and fails with native `MigrationError` (`kind: "BadState"`) if any required migration ID or name is missing; it does not run migrations or create a ledger. Later ledger entries are allowed for rolling deployments. Use `migrations.mode: "wait"` for services that can start before that pre-deploy command finishes. It re-reads the ledger every second until current, then starts the application. Set `migrations.pollInterval` and `migrations.waitTimeout` with Effect duration inputs to change the interval and five-minute timeout. Timeout fails with the same `MigrationError` as `"check"`; interruption stops polling and closes the pool. SQL failures fail immediately. With `mode` omitted or `"migrate"`, startup applies pending migrations with a five-second lock timeout unless `migrations.lockTimeout` overrides it.
 
+Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before checking or applying migrations, or constructing the application. Use it to validate configuration such as app IDs, keys and invite lists. Its errors stay in the returned Layer's typed error channel, its requirements remain external requirements, and its services are available to migrations, application construction, services and RPC handlers as well as callers of the host Layer. Preflight resources close with the host scope. The option also works without migrations.
+
 When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `AppChanges` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
 
 ```ts
 const host = appHost({
   config: { databaseUrl },
   migrations: { loader: migrations, mode: "check" },
+  preflight: AppConfigLive,
   application: Effect.gen(function* () {
     const { routes, sessions } = yield* makeAuth();
     return { group: Api, handlers: Handlers, services: Services, routes, sessions };

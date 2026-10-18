@@ -18,7 +18,8 @@ export function implementerLimit(concurrency: number, curve: OpenPullRequestCurv
 function awaitsMergeWork(record: FleetRecord): boolean {
 	return (
 		!executing(record)
-		&& (["reviewing", "repairing"].includes(record.stage)
+		&& (record.pendingContinuation !== undefined
+			|| ["reviewing", "repairing"].includes(record.stage)
 			|| (!["prepared", "completed", "released"].includes(record.stage) && (record.pendingAnswers?.length ?? 0) > 0))
 	);
 }
