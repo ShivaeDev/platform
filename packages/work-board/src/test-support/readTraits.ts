@@ -3,12 +3,6 @@ import { Deferred, Effect, PlatformError } from "effect";
 import { boardStory } from "./boardStory.ts";
 import { type WorkspaceReads, wrapFilesystem } from "./storyEngine.ts";
 
-export function noReader() {
-	return boardStory.trait("project", "nobody opens the board or connects a client", (engine) => {
-		engine.reader = false;
-	});
-}
-
 export function recordedReads(held = false) {
 	return boardStory.trait("project", held ? "workspace file reads wait until released" : "the board records the files it reads", (engine) => {
 		const files: string[] = [];

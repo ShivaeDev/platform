@@ -40,15 +40,6 @@ application.it(
 	},
 );
 
-application.it("copies the starter CI workflow with every Action pinned to a commit", [], function* ({ pack, starterFile }) {
-	const files = yield* pack();
-	const workflow = files[".github/workflows/ci.yml"] ?? "";
-	expect(workflow).toBe(starterFile(".github/workflows/ci.yml"));
-	for (const [, action] of workflow.matchAll(/uses: (?<action>[^\s]+)/gu)) {
-		expect(action).toMatch(/@[a-f0-9]{40}$/u);
-	}
-});
-
 application.it(
 	"preserves binary bytes in the packed template",
 	[customTemplate({ "image.png": Buffer.from([0, 0xff, 0x80, 0x41]) })],

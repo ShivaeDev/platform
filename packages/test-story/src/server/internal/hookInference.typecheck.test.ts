@@ -100,3 +100,16 @@ it("keeps explicit engine and stage type arguments for existing kits", () => {
 	});
 	expectTypeOf(explicit).toEqualTypeOf<StoryKit<Engine, "built", Record<never, never>, never, never>>();
 });
+
+const collection = storyKit({
+	create: () => new Set<string>(),
+	name: "collection",
+	stages: [],
+	verbs: (items) => ({ add: (item: string) => items.add(item) }),
+});
+
+it("infers the engine and verbs with no available trait stage when the stage list is empty", () => {
+	expectTypeOf(collection).toEqualTypeOf<StoryKit<Set<string>, never, { add: (item: string) => Set<string> }, never, never>>();
+	// @ts-expect-error A kit with no stages cannot accept a staged trait.
+	collection.trait("configured", "the collection starts empty", (items) => items.clear());
+});

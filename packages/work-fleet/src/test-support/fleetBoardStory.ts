@@ -6,7 +6,8 @@ import { boardDocuments } from "#board/documents.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { Fleet } from "#fleet.ts";
 import { BoardGateway } from "#policy.ts";
-import { createEngine, finishWorkers } from "#test/engine.ts";
+import { createEngine } from "#test/createEngine.ts";
+import { finishWorkers } from "#test/engine.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
 

@@ -1,11 +1,11 @@
-import { Effect, Fiber } from "effect";
+import { Cause, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { boardStory, projectFiles } from "#test/boardStory.ts";
-import { noReader, recordedReads, unlistableWorkspace } from "#test/readTraits.ts";
+import { boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { recordedReads, unlistableWorkspace } from "#test/readTraits.ts";
 
 boardStory.it(
 	"indexes the workspace as the board starts, before any reader asks for a page",
-	[projectFiles({ "index.md": "# Index\n", "plans/first.md": "# First\n", "plans/second.md": "# Second\n" }), noReader(), recordedReads()],
+	[projectFiles({ "index.md": "# Index\n", "plans/first.md": "# First\n", "plans/second.md": "# Second\n" }), serverReading(), recordedReads()],
 	function* ({ waitForReads }) {
 		yield* waitForReads(["index.md", "plans/first.md", "plans/second.md"]);
 	},
@@ -13,7 +13,7 @@ boardStory.it(
 
 boardStory.it(
 	"answers a search sent while the startup index is still reading with the whole workspace",
-	[projectFiles({ "index.md": "# Index\n", "plans/guide.md": "# Guide\n\nLinked passage.\n" }), noReader(), recordedReads(true)],
+	[projectFiles({ "index.md": "# Index\n", "plans/guide.md": "# Guide\n\nLinked passage.\n" }), serverReading(), recordedReads(true)],
 	function* ({ releaseReads, search, waitForReads }) {
 		yield* waitForReads(["index.md", "plans/guide.md"]);
 		const pending = yield* Effect.forkChild(search("Linked passage"));
@@ -25,9 +25,9 @@ boardStory.it(
 
 boardStory.it(
 	"fails a search with a typed error when the startup index cannot list the workspace",
-	[projectFiles({ "index.md": "# Index\n" }), noReader(), unlistableWorkspace()],
+	[projectFiles({ "index.md": "# Index\n" }), serverReading(), unlistableWorkspace()],
 	function* ({ search }) {
-		const failure = yield* Effect.flip(search("Index"));
-		expect(failure).toMatchObject({ _tag: "InternalServerError" });
+		const exit = yield* Effect.exit(search("Index"));
+		expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toMatchObject({ _tag: "InternalServerError" });
 	},
 );

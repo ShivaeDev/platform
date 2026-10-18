@@ -26,8 +26,14 @@ export const start = Effect.fnUntraced(function* (
 			},
 			tell: narration.tell,
 		};
-		// Copying descriptors keeps verb getters lazy, so a story evaluates only the verbs it reads.
-		const told = Object.defineProperties({}, Object.getOwnPropertyDescriptors(definition.verbs(engine, story)));
-		return yield* body(Object.defineProperty(told, "story", { enumerable: true, value: story }));
+		return yield* body(
+			Object.defineProperties(
+				{},
+				{
+					...Object.getOwnPropertyDescriptors(definition.verbs(engine, story)),
+					story: { enumerable: true, value: story },
+				},
+			),
+		);
 	}).pipe(Effect.tapCause((cause) => Effect.sync(() => captureFailure(Cause.prettyErrors(cause)[0]?.stack))));
 });

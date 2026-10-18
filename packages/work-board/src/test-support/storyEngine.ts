@@ -2,12 +2,14 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Deferred, Effect } from "effect";
 import { browserClient } from "#client/client.ts";
+import type { Sources } from "#diagnostics/source.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { responseFrom } from "#server/responses/records.ts";
 import { type FileSystemWrapper, type Folder, folder, type RunningBoard, startBoard } from "./board.ts";
 import { type OpenPage, openPage } from "./browser.ts";
 
 export interface BoardEngine {
+	activeDiagnosticsPolls?: () => number;
 	beforeScripts?: Parameters<typeof openPage>[2];
 	fleetPort?: number | undefined;
 	home?: string | undefined;
@@ -15,10 +17,13 @@ export interface BoardEngine {
 	live?: { board: RunningBoard; client: ReturnType<typeof browserClient>; page: OpenPage };
 	readonly notes: Folder;
 	path: string;
-	reader?: boolean;
+	pollDiagnostics?: () => void;
+	readAt?: number;
+	readingOnly?: boolean;
 	reads?: WorkspaceReads;
 	responses: boolean;
-	started?: RunningBoard;
+	server?: { board: RunningBoard; client: ReturnType<typeof browserClient> };
+	sources?: Sources;
 	wrap?: FileSystemWrapper | undefined;
 }
 
@@ -42,6 +47,10 @@ export function connected(engine: BoardEngine) {
 	return engine.live;
 }
 
+export function served(engine: BoardEngine) {
+	return engine.live ?? engine.server ?? connected(engine);
+}
+
 export function* createBoard() {
 	const notes = yield* Effect.acquireRelease(
 		Effect.sync(() => folder({})),
@@ -52,17 +61,22 @@ export function* createBoard() {
 }
 
 export function* serveProject(engine: BoardEngine) {
-	const board = yield* startBoard(engine.notes.root, engine.home, engine.wrap, engine.responses, undefined, undefined, engine.fleetPort);
-	engine.started = board;
-	if (engine.reader === false) {
+	const board = yield* startBoard(engine.notes.root, engine.home, engine.wrap, engine.responses, engine.sources, undefined, engine.fleetPort);
+	let client: ReturnType<typeof browserClient> | undefined;
+	yield* Effect.addFinalizer(() => Effect.sync(() => client?.registry.dispose()));
+	// A client starts reading the workspace, so server-only stories create it when a verb first uses it.
+	engine.server = {
+		board,
+		get client() {
+			client ??= browserClient(board.url);
+			return client;
+		},
+	};
+	if (engine.readingOnly) {
 		return;
 	}
-	const client = yield* Effect.acquireRelease(
-		Effect.sync(() => browserClient(board.url)),
-		(acquired) => Effect.sync(() => acquired.registry.dispose()),
-	);
 	const page = yield* openPage(board, engine.path, engine.beforeScripts);
-	engine.live = { board, client, page };
+	engine.live = { board, client: engine.server.client, page };
 	yield* rememberReader(engine);
 }
 
