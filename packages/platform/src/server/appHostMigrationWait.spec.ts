@@ -19,12 +19,12 @@ for (const ledger of ["missing", "pending"] as const) {
 	});
 }
 
-migrationHost.it("times out with the same MigrationError as check, even before a full poll interval", [], function* ({ start, lifecycle }) {
+migrationHost.it("times out with the same MigrationError as check when the polling budget expires", [], function* ({ start, lifecycle }) {
 	const checked = yield* start({ mode: "check" });
 	const checkExit = yield* checked.exit;
 	expect(Exit.isFailure(checkExit)).toBe(true);
 	const host = yield* start({ waitTimeout: "25 millis" });
-	for (const millis of [10, 10, 5]) {
+	for (const millis of [10, 10, 10]) {
 		expect(yield* host.next).toEqual({ _tag: "Sleeping", millis });
 		yield* host.advance(millis);
 	}
@@ -42,9 +42,11 @@ migrationHost.it("times out with the same MigrationError as check, even before a
 migrationHost.it("starts at once when the ledger is current", [], function* ({ start, migrate, lifecycle }) {
 	expect(yield* migrate()).toBe(0);
 	const host = yield* start();
-	expect(yield* host.next).toMatchObject({ _tag: "Exited", exit: { _tag: "Success" } });
+	expect(yield* host.next).toEqual({ _tag: "Ready" });
 	expect(yield* host.ping).toBe("pong");
 	expect(lifecycle()).toEqual(["started"]);
+	yield* host.interrupt;
+	expect(lifecycle()).toEqual(["started", "closed"]);
 });
 
 migrationHost.it("preserves SQL failures immediately instead of waiting for schema readiness", [invalidLedger], function* ({ start, lifecycle }) {
@@ -64,11 +66,11 @@ migrationHost.it(
 	function* ({ start, connections, lifecycle }) {
 		const host = yield* start();
 		expect(yield* host.next).toEqual({ _tag: "Sleeping", millis: 10 });
-		expect(yield* connections()).toEqual([{ count: 1 }]);
+		expect(yield* connections()).toBe(1);
 		yield* host.interrupt;
 		const exit = yield* host.exit;
 		expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
-		expect(yield* connections()).toEqual([{ count: 0 }]);
+		expect(yield* connections()).toBe(0);
 		expect(lifecycle()).toEqual([]);
 	},
 );

@@ -7,7 +7,7 @@ import { noteProducer } from "#server/noteProducer.ts";
 export const migrateDatabase = Effect.fn("App.migrateDatabase")(function* (databaseUrl?: Redacted.Redacted<string>) {
 	const url = databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 	const pool = yield* authDatabase(url);
-	yield* Layer.build(appDatabase({ config: { databaseUrl: url }, migrations: migrations(pool) }));
 	yield* Layer.build(noteProducer(Redacted.value(url), true));
+	yield* Layer.build(appDatabase({ config: { databaseUrl: url }, migrations: migrations(pool) }));
 	yield* Effect.logInfo("Migrations applied");
 });

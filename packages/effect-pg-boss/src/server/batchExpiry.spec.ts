@@ -4,7 +4,7 @@ import * as TestClock from "effect/testing/TestClock";
 import { expect, it, vi } from "vitest";
 import { defineQueue, defineSchedule, jobContext } from "#definition.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions, FakeClient, job } from "#test/fake-client.ts";
+import { constructorOptions, FakeClient, job } from "#test/fakeClient.ts";
 
 it("skips an already expired job while settling a later job with a live budget", async () => {
 	const client = new FakeClient();

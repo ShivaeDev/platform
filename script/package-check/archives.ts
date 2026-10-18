@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { Config, Effect, FileSystem, Schema } from "effect";
+import { claudePluginManifest } from "#lib/claudePluginManifest.ts";
 import { checkPackedArchive, packArchive } from "#package-check/archive.ts";
 import { requireThat, writeJson } from "#package-check/io.ts";
 import { decodeManifest, type Package } from "#package-check/model.ts";
@@ -20,7 +21,7 @@ export const workspaceArchives = Effect.fn("Packed.workspaceArchives")(function*
 	for (const name of (yield* fs.readDirectory(join(root, "packages"))).sort()) {
 		const directory = join(root, "packages", name);
 		const path = join(directory, "package.json");
-		if (!(yield* fs.exists(path))) {
+		if (!(yield* fs.exists(path)) || (yield* fs.exists(claudePluginManifest(directory)))) {
 			continue;
 		}
 		const manifest = decodeManifest(yield* fs.readFileString(path));

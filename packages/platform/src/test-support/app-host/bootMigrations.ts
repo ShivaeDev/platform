@@ -1,4 +1,4 @@
-import { Clock, Duration, Effect, Exit, Fiber, Layer, Queue, Scope } from "effect";
+import { Clock, type Context, Deferred, Duration, Effect, Fiber, Layer, Queue } from "effect";
 import { HttpServer } from "effect/http";
 import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
@@ -10,7 +10,6 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 	state: MigrationState,
 	options: { mode?: "check" | "wait"; waitTimeout?: Duration.Input; pollInterval?: Duration.Input } = {},
 ) {
-	const scope = yield* Effect.acquireRelease(Scope.make(), (acquired) => Scope.close(acquired, Exit.void));
 	const clock = yield* Clock.Clock;
 	const sleeps = yield* Queue.unbounded<number>();
 	const pollMillis = Duration.toMillis(Duration.fromInputUnsafe(options.pollInterval ?? "10 millis"));
@@ -27,7 +26,12 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 		config: { applicationName: state.table, databaseUrl: state.url },
 		migrations: { ...state.migrations, mode: "wait", pollInterval: "10 millis", ...options },
 	});
-	const fiber = yield* Layer.buildWithScope(host, scope).pipe(
+	const ready = yield* Deferred.make<Context.Context<Layer.Success<typeof host>>>();
+	const fiber = yield* Effect.gen(function* () {
+		yield* Deferred.succeed(ready, yield* Layer.build(host));
+		return yield* Effect.never;
+	}).pipe(
+		Effect.scoped,
 		Effect.provideService(Clock.Clock, {
 			...clock,
 			sleep: (duration) =>
@@ -44,13 +48,16 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 	return {
 		advance: (duration: Duration.Input) => TestClock.adjust(duration),
 		exit: Fiber.await(fiber),
-		interrupt: Fiber.interrupt(fiber).pipe(Effect.andThen(Scope.close(scope, Exit.void))),
+		interrupt: Fiber.interrupt(fiber),
 		next: Effect.raceFirst(
 			Queue.take(sleeps).pipe(Effect.map((millis) => ({ _tag: "Sleeping" as const, millis }))),
-			Fiber.await(fiber).pipe(Effect.map((exit) => ({ _tag: "Exited" as const, exit }))),
+			Effect.raceFirst(
+				Deferred.await(ready).pipe(Effect.as({ _tag: "Ready" as const })),
+				Fiber.await(fiber).pipe(Effect.map((exit) => ({ _tag: "Exited" as const, exit }))),
+			),
 		),
 		ping: Effect.gen(function* () {
-			const context = yield* Fiber.join(fiber);
+			const context = yield* Effect.raceFirst(Deferred.await(ready), Fiber.join(fiber));
 			const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 			return yield* Effect.tryPromise(() => ping(`${HttpServer.formatAddress(server.address)}/rpc`));
 		}),

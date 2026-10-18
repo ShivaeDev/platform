@@ -1,7 +1,7 @@
 import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, ManagedRuntime } from "effect";
 import { expectTypeOf } from "vitest";
-import type { AnyTestLayer as EffectTestLayer } from "@shivaedev/effect-test/any-test-layer.ts";
+import type { AnyTestLayer as EffectTestLayer } from "@shivaedev/effect-test/anyTestLayer.ts";
 import { makeEffectTRPC } from "#server/adapter.ts";
 import { makeRequestServices } from "#server/requestServices.ts";
 import type { AnyTestLayer } from "#server/testing/AnyTestLayer.ts";

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Rule } from "#rule.ts";
-import { noBanner } from "#rules/comments/no-banner.ts";
-import { noEnvironmentPragma } from "#rules/comments/no-environment-pragma.ts";
-import { noLineReference } from "#rules/comments/no-line-reference.ts";
-import { noPrReference } from "#rules/comments/no-pr-reference.ts";
-import { noTodo } from "#rules/comments/no-todo.ts";
+import { noBanner } from "#rules/comments/noBanner.ts";
+import { noEnvironmentPragma } from "#rules/comments/noEnvironmentPragma.ts";
+import { noLineReference } from "#rules/comments/noLineReference.ts";
+import { noPrReference } from "#rules/comments/noPrReference.ts";
+import { noTodo } from "#rules/comments/noTodo.ts";
 import { checkRule, issuesOf } from "#test/inputs.ts";
 import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "#test/pragmas.ts";
 

@@ -24,7 +24,7 @@ Use `insert({ ownerId, title })` for creation. For the list, use `findMany` with
 
 ## 4. Declare the service
 
-Create `src/server/BookmarksService.ts` with `defineService` from `@shivaedev/effect-service/define-service.ts`. Follow [`NotesService.ts`](../../examples/starter/src/server/NotesService.ts): initialize the repository, declare `SqlClient.SqlClient` and `Reactivity.Reactivity` dependencies, and expose `list(ownerId)` and `create(input, ownerId)`.
+Create `src/server/BookmarksService.ts` with `defineService` from `@shivaedev/effect-service/defineService.ts`. Follow [`NotesService.ts`](../../examples/starter/src/server/NotesService.ts): initialize the repository, declare `SqlClient.SqlClient` and `Reactivity.Reactivity` dependencies, and expose `list(ownerId)` and `create(input, ownerId)`.
 
 Trim the title, reject a whitespace-only title with the command's field rejection, and map database failures to a declared `ServiceUnavailable`. Wrap the write in `transact` from `@shivaedev/effect-sql/transact.ts`. Keep ownership explicit in both methods. The notes service also enqueues a job after its write transaction and logs queue failures; omit that part for bookmarks. This service refers to the command declaration you add next, so complete both steps before typechecking.
 

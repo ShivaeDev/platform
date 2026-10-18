@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { command, requireThat, writeJson } from "#package-check/io.ts";
 import { decodeManifest, decodeVersions } from "#package-check/model.ts";
-import { withTarballOverrides } from "#packed-workspace.ts";
+import { withTarballOverrides } from "#withTarballOverrides.ts";
 
 export const installDocumentation = Effect.fn("Published.installDocumentation")(function* (
 	root: string,

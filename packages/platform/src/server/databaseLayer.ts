@@ -1,5 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Clock, Config, Duration, Effect, Layer, type Redacted, Result } from "effect";
+import { Config, Effect, Layer, type Redacted, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { assertPostgresMigrations } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
@@ -54,19 +54,11 @@ function prepareMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
 	}
 }
 
-const waitForMigrations = Effect.fn("Platform.waitForMigrations")(function* <R>(migrations: AppDatabaseOptions<R>["migrations"]) {
-	const deadline = (yield* Clock.currentTimeMillis) + Duration.toMillis(Duration.fromInputUnsafe(migrations.waitTimeout ?? "5 minutes"));
-	const interval = Duration.toMillis(Duration.fromInputUnsafe(migrations.pollInterval ?? "1 second"));
-	while (true) {
-		const result = yield* Effect.result(assertPostgresMigrations(migrations));
-		if (Result.isSuccess(result)) {
-			return;
-		}
-		const error = result.failure;
-		const remaining = deadline - (yield* Clock.currentTimeMillis);
-		if (error._tag !== "MigrationError" || error.kind !== "BadState" || remaining <= 0) {
-			return yield* Effect.fail(error);
-		}
-		yield* Effect.sleep(Math.min(interval, remaining));
-	}
-});
+function waitForMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
+	return assertPostgresMigrations(migrations).pipe(
+		Effect.retry({
+			schedule: Schedule.max([Schedule.spaced(migrations.pollInterval ?? "1 second"), Schedule.during(migrations.waitTimeout ?? "5 minutes")]),
+			while: (error) => error._tag === "MigrationError" && error.kind === "BadState",
+		}),
+	);
+}

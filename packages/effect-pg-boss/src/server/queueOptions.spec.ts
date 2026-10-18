@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
 import { registerJobs } from "#internal/register.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions, FakeClient } from "#test/fake-client.ts";
+import { constructorOptions, FakeClient } from "#test/fakeClient.ts";
 import { queueResult } from "#test/queueResult.ts";
 
 it("reconciles schedules, preserves unspecified settings and avoids unchanged updates", async () => {

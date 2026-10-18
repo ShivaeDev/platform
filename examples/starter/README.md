@@ -30,7 +30,7 @@ A generated app runs `pnpm run setup` before its first commit: dependencies and 
 
 The starter's numbered migration path creates Better Auth's tables with `getMigrations(authOptions(database))` followed by `runMigrations()`. The auth instance shares these schema options; migrations construct no auth instance and need no secret. No separate auth migration command is needed. Protected operations declare `AuthenticatedUser`; `authenticatedUserLayer(sessions)` supplies `SessionUser` from the `betterAuthSessions` provider. Note handlers use its id for ownership, and `notes.whoami` returns id, name and email without querying auth tables; signed-out calls return typed `Unauthorized` failures. The UI shows a sign-in prompt, and `SessionBoundary` replaces cached queries and drafts when the session changes.
 
-The worker logs `Worker schema current` after waiting for its schema and `Worker ready to take jobs` after registering handlers, through Effect’s logger.
+The worker logs `Worker waiting for schema` before checking its schema, `Worker schema current` when it can proceed and `Worker ready to take jobs` after registering handlers, through Effect’s logger.
 
 The browser entry point creates `makeAuth({ baseUrl })` and supplies it to `App`. Session checking and auth actions use that instance. Stories can create an auth client for their own HTTP host with the application kit’s `authClient()` verb.
 

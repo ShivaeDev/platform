@@ -2,7 +2,7 @@ import process from "node:process";
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Config, Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { postgresTestEnvironment } from "#lib/postgres-test-environment.ts";
+import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 
 const program = Effect.gen(function* () {
 	const databases = yield* postgresTestEnvironment;

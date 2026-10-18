@@ -31,9 +31,14 @@ export const migrationHost = storyKit({
 	stages: ["schema"],
 	verbs: (state, story) => ({
 		connections: () =>
-			SqlClient.SqlClient.use(
-				(sql) => sql<{ count: number }>`select count(*)::int as count from pg_stat_activity where application_name = ${state.table}`,
-			),
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				const [row] = yield* sql<{ count: number }>`select count(*)::int as count from pg_stat_activity where application_name = ${state.table}`;
+				if (row === undefined) {
+					throw new Error("The database did not return a connection count");
+				}
+				return row.count;
+			}),
 		lifecycle: () => state.lifecycle,
 		migrate: (initialOnly = false) =>
 			Effect.gen(function* () {

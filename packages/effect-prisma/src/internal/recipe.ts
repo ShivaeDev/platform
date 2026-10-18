@@ -1,5 +1,5 @@
 import { hasMethod, invokeMethod } from "./dynamic.ts";
-import { getRelationPlan, type RelationPlan } from "./relation-plan.ts";
+import { getRelationPlan, type RelationPlan } from "./relationPlan.ts";
 
 export interface RelationOperation {
 	readonly arguments: readonly unknown[];

@@ -19,15 +19,15 @@ deployment.it(
 deployment.it(
 	"web rejects a missing schema while an already-started worker waits for deployment migration",
 	[],
-	function* ({ migrate, startProcess, waitForWorkerSchemaCheck, health, signUp, port: availablePort, migrationLedgerIsAbsent }) {
+	function* ({ migrate, startProcess, health, signUp, port: availablePort, migrationLedgerIsAbsent }) {
 		const port = yield* availablePort;
 		const prematureWeb = yield* startProcess("web", port);
 		expect(yield* prematureWeb.child.exitCode).not.toBe(0);
 		expect([...prematureWeb.logs, ...prematureWeb.errors].join("\n")).toContain("Database migrations are not current");
 		const worker = yield* startProcess("worker");
-		yield* waitForWorkerSchemaCheck;
+		yield* worker.waitingForSchema;
 		expect(yield* worker.child.isRunning).toBe(true);
-		expect(worker.logs).toEqual([]);
+		expect(worker.logs).toEqual(["EFFECT_LOG Worker waiting for schema"]);
 		yield* migrationLedgerIsAbsent;
 		expect(yield* migrate()).toBe(0);
 		expect(yield* worker.ready).toBe("worker");
@@ -36,6 +36,7 @@ deployment.it(
 		expect((yield* health(address)).status).toBe(200);
 		expect(yield* signUp(address)).toContain("session_token=");
 		expect(worker.logs.filter((line) => line.startsWith("EFFECT_LOG Worker"))).toEqual([
+			"EFFECT_LOG Worker waiting for schema",
 			"EFFECT_LOG Worker schema current",
 			"EFFECT_LOG Worker ready to take jobs",
 		]);

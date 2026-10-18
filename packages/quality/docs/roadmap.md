@@ -4,6 +4,7 @@ This page owns Quality's shared policy, tooling, CLI and hook implementation sta
 
 ## Built
 
+- [x] Error-only engine and report, with no CLI warning-report controls; old-debt adoption stays in the baseline.
 - [x] Optional typed and runtime-validated config with config-free defaults; built-in and local rules enforced at `error`; local-rule and Standard Schema option APIs; one checked inventory and one report grouped by rule.
 - [x] The public config rejects `warn`, `off`, raised thresholds, inventory exclusions and custom test-file patterns. Vitest projects reject suite exclusions. Reasoned Biome declarations cover individual rules on explicit files and named directory exclusions.
 - [x] A JSON Lines baseline with counted debt, explicit named-rule recording, lowering and pruning, tracked-move handling and preservation of unrelated lines.
@@ -20,7 +21,6 @@ This page owns Quality's shared policy, tooling, CLI and hook implementation sta
 
 ## Next
 
-- [ ] Remove obsolete CLI warning-report controls; config levels are already enforced at `error`. Keep old-debt adoption in the baseline.
 - [ ] Reduce policy-tuning inputs to the ones checks need about a repository. Thresholds can only be lowered; local-rule APIs remain exposed. Review the remaining extension boundary.
 - [ ] Split Grit implementation modules by the checks they own, without making consumers select competing presets; route Platform's remaining static checks through Quality.
 - [ ] Define the Effect-boundary rule's source and test scope before porting the repository's `try`/`async` restrictions.

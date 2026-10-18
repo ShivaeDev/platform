@@ -30,7 +30,7 @@ it("covers named, aliased, type-only and namespace imports plus prose and module
 
 it("covers every module in table cells with comma-separated paths", () => {
 	for (const [owner, modules] of [
-		["effect-prisma", ["relation/include.ts", "relation/include-metadata.ts", "relation/prisma-methods.ts"]],
+		["effect-prisma", ["relation/include.ts", "relation/includeMetadata.ts", "relation/PrismaMethods.ts"]],
 		["effect-trpc", ["rejectionDecoding.ts", "client/rejection.ts"]],
 	] as const) {
 		const markdown = `| ${modules.map((path) => `\`${path}\``).join(", ")} | Supporting types |`;
@@ -65,8 +65,8 @@ it("includes the supporting modules documented by the framework READMEs", async 
 	);
 	for (const specifier of [
 		"@shivaedev/effect-prisma/relation/include.ts",
-		"@shivaedev/effect-prisma/relation/include-metadata.ts",
-		"@shivaedev/effect-prisma/relation/prisma-methods.ts",
+		"@shivaedev/effect-prisma/relation/includeMetadata.ts",
+		"@shivaedev/effect-prisma/relation/PrismaMethods.ts",
 		"@shivaedev/effect-trpc/rejectionDecoding.ts",
 		"@shivaedev/effect-form/draft.ts",
 		"@shivaedev/effect-form/refs.ts",
