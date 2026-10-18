@@ -4,7 +4,7 @@ import * as Atom from "effect/reactivity/Atom";
 import { act, useState } from "react";
 import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { render } from "#testing.ts";
+import { render } from "#client/testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 

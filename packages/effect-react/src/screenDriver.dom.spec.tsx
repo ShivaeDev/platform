@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { expectNoReactWarnings } from "#client/testing.ts";
 import { driverScreen } from "#test/driverScreen.tsx";
-import { expectNoReactWarnings } from "#testing.ts";
 
 expectNoReactWarnings();
 
