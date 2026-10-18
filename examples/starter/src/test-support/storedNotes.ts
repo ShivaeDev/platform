@@ -27,5 +27,13 @@ export function storedNotes(tell: (line: string) => void) {
 			tell("wait past the worker's polling interval without a worker");
 			yield* Effect.sleep("1200 millis");
 		}),
+		wordCountJobs: Effect.fn("AppStory.wordCountJobs")(function* () {
+			tell("read the independently stored word-count jobs");
+			const sql = yield* SqlClient.SqlClient;
+			return yield* sql<{
+				state: string;
+				retryCount: number;
+			}>`select state, retry_count as "retryCount" from pgboss.job where name = 'count-note-words' order by created_on`;
+		}),
 	};
 }

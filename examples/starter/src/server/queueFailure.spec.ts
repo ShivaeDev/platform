@@ -10,10 +10,11 @@ app.it("saves and edits notes when PostgreSQL rejects enqueueing", [signedIn(), 
 });
 
 app.it(
-	"does not save a note when its write transaction fails at commit",
+	"does not enqueue a note when its write transaction fails at commit",
 	[signedIn(), rejectedNoteCommits()],
-	function* ({ actor, rejectsWith, storedNotes }) {
+	function* ({ actor, rejectsWith, storedNotes, wordCountJobs }) {
 		yield* actor().notes.create({ title: "Not committed" }).pipe(rejectsWith("ServiceUnavailable"));
 		expect(yield* storedNotes()).toEqual([]);
+		expect(yield* wordCountJobs()).toEqual([]);
 	},
 );
