@@ -58,7 +58,7 @@ it("discovers a package boundary outside the source inventory and reports its tr
 			},
 		]),
 	);
-	const report = render(outcome, { baseline: "baseline.jsonl", checked: 2, descriptions: new Map(), registry: "registry.json", warnings: "all" });
+	const report = render(outcome, { baseline: "baseline.jsonl", checked: 2, descriptions: new Map(), registry: "registry.json" });
 	expect(report).toContain("error imports/fences (2)");
 	expect(report).toContain("packages/ui/src/main.ts:1");
 	expect(report).toContain("quality: failed with 2 errors");

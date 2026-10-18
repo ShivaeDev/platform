@@ -1,6 +1,6 @@
 # Existing debt, exceptions and commit checks
 
-The [README](../README.md) introduces the gate. Adopt the whole policy with its default error levels; use the baseline to retain old debt rather than warning or off settings. This page explains how to record debt, keep it current as files change and run the gate at commit time. The wider accepted severity API is described under [configuration limits](../README.md#configuration-limits).
+The [README](../README.md) introduces the gate. Adopt the whole policy at error level; use the baseline to retain old debt. This page explains how to record debt, keep it current as files change and run the gate at commit time.
 
 ## Baseline
 
@@ -11,7 +11,7 @@ The [README](../README.md) introduces the gate. Adopt the whole policy with its 
 
 The baseline is a JSON Lines file with one entry per line: the violations of one rule in one file. `count` is how many violations the file may have. For a rule that counts occurrences, such as `comments/no-jsdoc`, that is the number of occurrences. For a rule with a limit, it is the amount over the limit: the entry above lets `src/server/db.ts` have 412 lines under a limit of 150. A new baseline is sorted by path and then rule. Later edits preserve unrelated lines, including their formatting and order, so the diff shows the entries that changed.
 
-For an error-level rule, `quality lint` fails when a baselined file has more violations than its `count`; the report then lists all of that file's violations for the rule. The accepted warning-level API does not fail on uncovered findings; it is outside the recommended adoption path. A file at or below its entry passes. An entry that allows more than is left, including a file with no violations left, is listed as a note and does not fail, so fixing debt never breaks the build; `tighten` and `prune` lower it. An entry for a rule that is off or unknown fails until it is pruned. The baseline covers violations at any level.
+`quality lint` fails when a baselined file has more violations than its `count`; the report then lists all of that file's violations for the rule. A file at or below its entry passes. An entry that allows more than is left, including a file with no violations left, is listed as a note and does not fail, so fixing debt never breaks the build; `tighten` and `prune` lower it. An entry for an unknown rule fails until it is pruned.
 
 - `quality baseline write` records every error-level violation when there is no baseline yet. Once a baseline exists it refuses, unless `--rule <id>` names the rules to record: it then replaces the entries of those rules with what the files have now, and leaves every other entry as it is.
 - `quality baseline tighten` lowers and removes the entries of files changed since `HEAD`, and with `--staged`, of the files staged for the next commit. It carries the entry of a file that git sees as moved to the new path. Every other line stays byte for byte.

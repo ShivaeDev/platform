@@ -27,7 +27,7 @@ Choose explicit requests.
 
 boardStory.it(
 	"requires explicit write opt-in and rejects source forms at the HTTP boundary",
-	[projectFiles({ "investigation.md": source }, "a project source awaits direction"), responsesEnabled(false)],
+	[projectFiles({ "investigation.md": source }, "a project source awaits direction")],
 	function* ({ notes, board, register, restart }) {
 		expect(
 			yield* register("investigation.model", "review-model").pipe(Effect.matchCause({ onFailure: Cause.squash, onSuccess: () => undefined })),
