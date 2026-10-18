@@ -12,9 +12,8 @@ interface MainRun {
 }
 
 const MINIMUM_TEST_SHARDS = 4;
-const COMPLETE_CONSUMER_STORE_SHARDS = 1;
 
-export function mainShardPlan(repository: string, consumerStore: string | undefined, github: (args: string[]) => string) {
+export function mainShardPlan(repository: string, github: (args: string[]) => string) {
 	const fallback = { artifactId: "", count: 8, runId: "" };
 	const selected = { consumers: { ...fallback }, tests: { ...fallback } };
 	const temporary = mkdtempSync(join(tmpdir(), "platform-shard-plan-"));
@@ -33,23 +32,9 @@ export function mainShardPlan(repository: string, consumerStore: string | undefi
 		rmSync(temporary, { force: true, recursive: true });
 	}
 	return {
-		consumers:
-			consumerStore === undefined || mainCacheExists(repository, consumerStore, github)
-				? selected.consumers
-				: { ...selected.consumers, count: COMPLETE_CONSUMER_STORE_SHARDS },
+		consumers: selected.consumers,
 		tests: { ...selected.tests, count: Math.max(MINIMUM_TEST_SHARDS, selected.tests.count) },
 	};
-}
-
-function mainCacheExists(repository: string, key: string, github: (args: string[]) => string) {
-	try {
-		const { "actions_caches": caches }: { "actions_caches": { key: string }[] } = JSON.parse(
-			github(["api", `repos/${repository}/actions/caches?key=${encodeURIComponent(key)}&ref=refs/heads/main`]),
-		);
-		return caches.some((cache) => cache.key === key);
-	} catch {
-		return false;
-	}
 }
 
 function findSnapshot(
