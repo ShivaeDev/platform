@@ -1,6 +1,6 @@
 import type { Bivariant } from "@shivaedev/types/bivariant.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
-import { describeIssue, type StandardSchemaV1 } from "./standard-schema.ts";
+import { describeIssue, type StandardSchemaV1 } from "./standardSchema.ts";
 
 export interface Finding {
 	readonly count?: number | undefined;

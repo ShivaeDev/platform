@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Logger, ManagedRuntime, Option } from "effect";
 import { HttpBody, HttpClient } from "effect/http";
 import { OtlpExporter } from "effect/observability";
-import { otlpHttpClient } from "#otlpHttpClient.ts";
+import { otlpHttpClient } from "#server/otlpHttpClient.ts";
 import { type HostState, io, runtimeOf } from "./state.ts";
 
 export function traceVerbs(state: HostState) {

@@ -1,7 +1,7 @@
 import * as Atom from "effect/reactivity/Atom";
 import { act, useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { renderBoard } from "#test/react.tsx";
 import { useDiagnosticsPolling } from "./useDiagnosticsPolling.ts";
 

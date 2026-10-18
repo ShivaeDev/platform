@@ -1,6 +1,6 @@
 import { Cause, Option } from "effect";
 import { useEffect, useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { DocumentPage } from "./DocumentPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";

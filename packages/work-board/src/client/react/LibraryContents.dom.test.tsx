@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { renderBoard } from "#test/react.tsx";
 import { LibraryContents } from "./LibraryContents.tsx";
 

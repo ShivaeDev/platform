@@ -4,8 +4,8 @@ import { SqlClient } from "effect/sql";
 import { SqlError } from "effect/sql/SqlError";
 import { expect } from "vitest";
 import { makeRepository } from "#repository.ts";
-import { integration, runPostgres } from "#test/postgres-transact.ts";
 import { inputs, Reading, setupBatch } from "#test/postgresBatch.ts";
+import { integration, runPostgres } from "#test/postgresTransact.ts";
 
 function runBatch<A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) {
 	return runPostgres(Effect.flatMap(SqlClient.SqlClient, (sql) => sql.withTransaction(effect)));

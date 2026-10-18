@@ -1,6 +1,8 @@
 import type { TRPCMutationProcedure, TRPCQueryProcedure, TRPCSubscriptionProcedure } from "@trpc/server";
 import { Schema } from "effect";
-import { makeProcedureHandler } from "#internal/procedure-handler.ts";
+import { captureStackTrace } from "#server/internal/captureStackTrace.ts";
+import { makeProcedureHandler } from "#server/internal/makeProcedureHandler.ts";
+import { makeSubscriptionHandler } from "#server/internal/makeSubscriptionHandler.ts";
 import type {
 	DefaultValue,
 	EffectProcedureResolver,
@@ -8,10 +10,8 @@ import type {
 	IntersectIfDefined,
 	ProcedureBuilderSurface,
 	ResolverContext,
-} from "#internal/procedure-types.ts";
-import type { RuntimeBridge } from "#internal/runtime.ts";
-import { captureStackTrace } from "#internal/stack-trace.ts";
-import { makeSubscriptionHandler } from "#internal/subscription-handler.ts";
+} from "#server/internal/procedureTypes.ts";
+import type { RuntimeBridge } from "#server/internal/runtime.ts";
 import type { EffectProcedureRequestServices } from "./requestServices.ts";
 
 interface ProcedureParts<TContext, TMeta, TContextOverrides, TProvidedServices, TLayerError, TRuntimeRequirements> {

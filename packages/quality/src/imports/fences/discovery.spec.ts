@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { afterEach, expect, it } from "vitest";
 import { resolveRules } from "#config/resolve.ts";
 import { evaluate, passes } from "#engine/evaluate.ts";
-import { runRules } from "#engine/run-rules.ts";
+import { runRules } from "#engine/runRules.ts";
 import { collectInventory } from "#inventory/collect.ts";
 import { render } from "#report/render.ts";
 import { importFences } from "#rules/imports/fences.ts";

@@ -1,8 +1,8 @@
 import { Config, Effect, Layer, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
-import { AppChanges, appHost } from "@shivaedev/platform/appHost.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
-import { authenticatedUserLayer } from "@shivaedev/platform/rpc-server/session.ts";
+import { AppChanges, appHost } from "@shivaedev/platform/server/appHost.ts";
+import { authenticatedUserLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
 import { Notes, Subscribe } from "#notes.ts";
 import { authDatabase } from "#server/authDatabase.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";

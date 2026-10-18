@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { render } from "@shivaedev/effect-react/client/testing.ts";
 import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 import { TodayProgress } from "./TodayProgress.tsx";
 

@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { rejectWith } from "#rejection.ts";
+import { rejectWith } from "#server/rejection.ts";
 import { adapterHost } from "./adapterHost.ts";
 import { Forget, OrderNotFound, Place } from "./orderSchemas.ts";
 import type { RouterEngine } from "./routerEngine.ts";

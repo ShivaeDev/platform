@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import process from "node:process";
 import type { Holder } from "#holder.ts";
-import { tryAcquire } from "#lock-file.ts";
+import { tryAcquire } from "#lockFile.ts";
 import { type Lock, writeLock } from "./lock.ts";
 import { startTime } from "./startTime.ts";
 

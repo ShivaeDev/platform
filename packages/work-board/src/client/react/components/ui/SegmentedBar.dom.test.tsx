@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { render } from "@shivaedev/effect-react/client/testing.ts";
 import { SegmentedBar } from "./SegmentedBar.tsx";
 
 it("renders three colored segments and written counts in the large goal bar, including zero", async () => {

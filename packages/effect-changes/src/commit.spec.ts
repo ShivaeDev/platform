@@ -1,6 +1,6 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { change } from "#test/fake-database.ts";
+import { change } from "#test/fakeDatabase.ts";
 import { changes, commitPauses, hasOwner } from "#test/kit.ts";
 
 changes.it(

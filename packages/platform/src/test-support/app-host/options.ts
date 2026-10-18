@@ -1,8 +1,8 @@
 import { Effect, Layer, Redacted } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Migrator } from "effect/sql";
-import { appHost } from "#appHost.ts";
 import { InternalServerError } from "#errors/taxonomy.ts";
+import { appHost } from "#server/appHost.ts";
 import { sessions, staticAssets } from "./fixture.ts";
 import { useForwardingProxy } from "./lifecycle.ts";
 import { Ping, pingHandlers } from "./ping.ts";

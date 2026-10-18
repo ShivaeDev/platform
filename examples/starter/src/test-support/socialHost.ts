@@ -3,9 +3,9 @@ import { getMigrations } from "better-auth/db/migration";
 import { Effect, Layer, type Redacted } from "effect";
 import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { appHost } from "@shivaedev/platform/appHost.ts";
-import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts";
-import { authenticatedUserLayer } from "@shivaedev/platform/rpc-server/session.ts";
+import { appHost } from "@shivaedev/platform/server/appHost.ts";
+import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
+import { authenticatedUserLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
 import { authDatabase } from "#server/authDatabase.ts";
 import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
 
