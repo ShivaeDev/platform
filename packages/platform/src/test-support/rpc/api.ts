@@ -3,7 +3,7 @@ import { Rpc, RpcClient, type RpcClientError, RpcGroup } from "effect/rpc";
 import { Forbidden } from "#errors/taxonomy.ts";
 import { Identity, OptionalIdentity, RequestId } from "#rpc/identity.ts";
 import { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
-import { betterAuthSessions, type GetProviderAccounts } from "#server/rpc-server/adapters/betterAuthSessions.ts";
+import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import type { OriginPolicy } from "#server/rpc-server/origin.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer } from "#server/rpc-server/session.ts";
 import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
@@ -47,16 +47,15 @@ const Handlers = Api.toLayer({
 		}),
 });
 
-export function serverLayer(provider: Provider, origin: OriginPolicy, getProviderAccounts?: GetProviderAccounts) {
-	const sessions =
-		getProviderAccounts === undefined ? betterAuthSessions(provider.getSession) : betterAuthSessions(provider.getSession, getProviderAccounts);
+export function serverLayer(provider: Provider, origin: OriginPolicy) {
+	const sessions = betterAuthSessions(provider.getSession);
 	const policy = { origin, provider: sessions };
 	return Layer.mergeAll(Handlers, authenticatedLayer(policy), maybeAuthenticatedLayer(policy), requestTracingLayer());
 }
 
-export function makeApp(provider: Provider, origin: OriginPolicy, getProviderAccounts?: GetProviderAccounts) {
+export function makeApp(provider: Provider, origin: OriginPolicy) {
 	const recorded = recorder();
-	const app = serve(rpcHttp(Api).pipe(Layer.provide(serverLayer(provider, origin, getProviderAccounts)), Layer.provide(recorded.layer)));
+	const app = serve(rpcHttp(Api).pipe(Layer.provide(serverLayer(provider, origin)), Layer.provide(recorded.layer)));
 	function call<A, E>(
 		headers: Readonly<Record<string, string>>,
 		run: (client: RpcClient.FromGroup<typeof Api, RpcClientError.RpcClientError>) => Effect.Effect<A, E>,
