@@ -1,8 +1,8 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
 import { Conflict, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
-import { board } from "@shivaedev/work-board/integration/board.ts";
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { Fleet } from "#fleet.ts";
 import { type HostParts, hostLayer, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";

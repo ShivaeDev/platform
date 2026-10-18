@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import type { ReportFile, UnavailableAttachment } from "#reportAttachments.ts";
 
 const { revisionOf } = responses;

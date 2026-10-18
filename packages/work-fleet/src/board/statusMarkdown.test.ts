@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { boardOf } from "@shivaedev/work-board/render/board.ts";
+import { boardOf } from "@shivaedev/work-board/server/render/board.ts";
 import { statusMarkdown } from "#board/statusMarkdown.ts";
 import { statusRecord } from "#test/status.ts";
 

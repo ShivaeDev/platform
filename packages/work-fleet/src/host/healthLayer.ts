@@ -1,5 +1,5 @@
 import { Effect, Layer, Ref, Schema } from "effect";
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { Health } from "#engine/health.ts";
 import { ProviderCapacity } from "#session/schema.ts";
 
