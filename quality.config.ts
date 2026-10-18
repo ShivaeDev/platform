@@ -1,7 +1,6 @@
 import { defineConfig } from "@shivaedev/quality/config.ts";
 import { catalogOnly } from "#quality/catalogOnly.ts";
 import { catalogOverrides } from "#quality/catalogOverrides.ts";
-import { codecovComponents } from "#quality/codecovComponents.ts";
 import { exactCatalogVersion } from "#quality/exactCatalogVersion.ts";
 import { unreadable } from "#quality/unreadable.ts";
 import { workspaceSection } from "#quality/workspaceSection.ts";
@@ -32,7 +31,7 @@ export default defineConfig({
 			"rules": ["biome/lint/correctness/noEmptyPattern"],
 		},
 	],
-	local: [catalogOnly, catalogOverrides, codecovComponents, exactCatalogVersion, unreadable, workspaceSection],
+	local: [catalogOnly, catalogOverrides, exactCatalogVersion, unreadable, workspaceSection],
 	rules: {
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },
 	},

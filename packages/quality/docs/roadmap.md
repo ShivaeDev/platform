@@ -16,7 +16,7 @@ This page owns Quality's shared policy, tooling, CLI and hook implementation sta
 - [x] Opt-in pre-commit hooks with per-worktree config and dependencies, conventional `typecheck` and `quality:commit` scripts, and explicit installation.
 - [x] Seeded-repository and real-command tests for the gate, import policies, Biome, baseline and git hooks, plus packed consumer checks for the CLI and presets.
 - [x] Separate shipped Biome declarations from consumer exceptions; reject whole-check, group and blanket-scope consumer declarations.
-- [x] Shared nesting-depth and index-module checks; Platform's catalog, manifest and Codecov checks use the local-rule API and the same inventory, report and baseline.
+- [x] Shared nesting-depth and index-module checks; Platform's catalog and manifest checks use the local-rule API and the same inventory, report and baseline.
 
 ## Next
 

@@ -10,7 +10,6 @@
 		"build": "node --conditions=source packages/heavy-lock/src/cli.ts -- pnpm --recursive --sort=${CI_WORKSPACE_SORT:-true} --workspace-concurrency=${CI_WORKSPACE_CONCURRENCY:-1} --if-present build",
 		"changelog:check": "node --conditions=source script/changelog.ts check",
 		"changelog:release": "node --conditions=source script/changelog.ts",
-		"codecov:components": "node --conditions=source script/codecov-components.ts",
 		"db:setup": "node --conditions=source --env-file-if-exists=.env.local script/setup-database.ts",
 		"format": "node --conditions=source packages/quality/src/cli.ts fix",
 		"heavy": "node --conditions=source packages/heavy-lock/src/cli.ts --",
@@ -19,7 +18,6 @@
 		"lint:quality": "node --conditions=source packages/quality/src/cli.ts lint",
 		"quality:commit": "pnpm changelog:check",
 		"ready": "pnpm lint && pnpm test:orchestration && pnpm build && pnpm typecheck && pnpm test && pnpm test:package --prepare .ci/packages && pnpm test:package --archives .ci/packages && pnpm --filter @shivaedev/starter check:published --archives .ci/packages",
-		"report:bundles": "node --conditions=source script/ci/bundles.ts",
 		"setup": "pnpm install --frozen-lockfile && pnpm hooks && pnpm db:setup",
 		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",
 		"test:changelog": "node --conditions=source node_modules/vitest/vitest.mjs run script/changelog/*.spec.ts --configLoader native",
@@ -31,7 +29,6 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
-		"@codecov/bundle-analyzer": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@shivaedev/changesets": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",

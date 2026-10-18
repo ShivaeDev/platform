@@ -149,7 +149,7 @@ jobs:
       - run: pnpm db:setup
       - name: Test workspace shard
         run: >-
-          pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
+          pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       - name: Record test timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/tests.json
@@ -165,43 +165,6 @@ jobs:
             .ci/vite/vitest/**/results.json
           include-hidden-files: true
           retention-days: 14
-      - name: Upload coverage to Codecov
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          files: .ci/coverage/lcov.info
-          disable_search: true
-          flags: workspace
-          name: tests-${{ matrix.shard }}
-          fail_ci_if_error: false
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          report_type: test_results
-          files: .ci/tests.junit.xml
-          disable_search: true
-          name: tests-${{ matrix.shard }}
-          fail_ci_if_error: false
-
-  codecov-notify:
-    name: Codecov notifications
-    if: ${{ !cancelled() }}
-    needs: verify
-    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - name: Send Codecov notifications after CI verification completes
-        continue-on-error: true
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          run_command: send-notifications
-          fail_ci_if_error: false
 
   consumers:
     needs: [build, shard-plan]
@@ -350,37 +313,3 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
-
-  bundles:
-    name: Codecov bundle analysis
-    if: ${{ !cancelled() && needs.build.result == 'success' }}
-    needs: [verify, build]
-    permissions:
-      contents: read
-      actions: read
-    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - name: Download package archives
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          github-token: ${{ github.token }}
-          artifact-ids: ${{ needs.build.outputs.packages-artifact-id }}
-          path: .ci/packages
-      - name: Measure every packed package
-        continue-on-error: true
-        run: pnpm report:bundles
-        env:
-          CODECOV_UPLOAD: 'true'
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
-        with:
-          name: bundle-analysis
-          path: .ci/bundles/*.json
-          include-hidden-files: true
-          overwrite: true
-          retention-days: 14
