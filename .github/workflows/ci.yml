@@ -64,6 +64,41 @@ jobs:
           retention-days: 30 # GitHub allows re-runs for 30 days, and a re-run of failed jobs reuses these archives
           compression-level: 0
 
+  watchers:
+    name: Board watchers (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: Linux
+            runner: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+            node: '26.12.0'
+          - os: macOS
+            runner: macos-latest
+            node: '26.12.0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Test real filesystem delivery to live clients
+        env:
+          NODE_OPTIONS: --conditions=source
+        run: >-
+          pnpm --filter @shivaedev/work-board test
+          src/server/liveDelivery.spec.ts
+          src/server/files
+          src/test-support/filesystemBoundaries.spec.ts
+          src/server/liveUpdates.spec.ts
+          src/server/http/home.spec.ts
+          src/server/http/server.spec.ts
+          src/server/http/symlinks.spec.ts
+          src/server/rpc/rootRemoval.spec.ts
+
   typecheck:
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
@@ -300,7 +335,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter]
+    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter, watchers]
     permissions:
       contents: read
       actions: read
