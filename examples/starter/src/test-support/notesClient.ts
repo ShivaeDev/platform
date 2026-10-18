@@ -1,12 +1,13 @@
 import { Deferred, Effect, Layer, PubSub, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
+import { RpcGroup, RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
-import { type LiveHint, live } from "@shivaedev/effect-contract/live.ts";
+import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
+import { changesRpc } from "@shivaedev/effect-contract/serverMetadata.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/platform/rpc/middleware.ts";
-import { Create, type Note, Notes, notes, Subscribe, Update } from "#notes.ts";
+import { Create, type Note, Notes, notes, Update } from "#notes.ts";
 
 export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 	const rows = [...initial];
@@ -77,7 +78,6 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 				}
 				return [...rows];
 			}),
-		"notes.subscribe": () => Stream.fromPubSub(hints),
 		"notes.update": (input) =>
 			Effect.gen(function* () {
 				calls.push("update");
@@ -97,10 +97,14 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 	class Client extends AtomRpc.Service<Client>()("app/NotesClient", {
 		group: Notes,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: handlers.pipe(Layer.provideMerge(authentication)),
+		protocol: Layer.merge(
+			handlers,
+			RpcGroup.make(changesRpc("notes")).toLayer({
+				"notes.$changes": () => Stream.concat(Stream.make({ _tag: "Resync" } as const), Stream.fromPubSub(hints)),
+			}),
+		).pipe(Layer.provideMerge(authentication)),
 	}) {}
 	const api = bind(Notes, Client);
-	const subscription = live(Client.runtime, { resyncKeys: Subscribe.reads(undefined), stream: api.subscribe.run(undefined) });
 	function finishNote(id: number, wordCount: number) {
 		const index = rows.findIndex((note) => note.id === id);
 		const row = rows[index];
@@ -119,5 +123,5 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 		rows[index] = { ...row, title, version: row.version + 1 };
 		return notify ? Effect.runPromise(PubSub.publish(hints, { _tag: "Changed", keys: [notes.item(id)] })).then(() => undefined) : Promise.resolve();
 	}
-	return { api, calls, finishNote, holdList, releaseList, reviseNote, runtime: Client.runtime, session, ...subscription };
+	return { api, calls, finishNote, holdList, releaseList, reviseNote, runtime: Client.runtime, session };
 }

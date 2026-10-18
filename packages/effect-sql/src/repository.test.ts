@@ -3,6 +3,7 @@ import { expect, expectTypeOf } from "vitest";
 import { InvoiceLine, Prefix } from "#test/sqliteRepository.ts";
 import { sqlite } from "#test/sqlStory.ts";
 import { hasLabelsWithPrefix, hasSqliteInvoiceLines } from "#test/sqlTraits.ts";
+import { transaction } from "#test/transaction.ts";
 
 sqlite.it("model variants derive CRUD while field codecs drive filters and selections", [hasSqliteInvoiceLines()], function* ({ sqliteLines, sql }) {
 	const { lines } = sqliteLines();
@@ -42,17 +43,15 @@ sqlite.it("model variants derive CRUD while field codecs drive filters and selec
 	expect(yield* lines.findMany({ where: { id: consulting.id } })).toEqual([]);
 });
 
-sqlite.it("repository writes participate in the caller's native transaction", [hasSqliteInvoiceLines()], function* ({ sqliteLines, sql }) {
+sqlite.it("repository writes participate in the caller's native transaction", [hasSqliteInvoiceLines()], function* ({ sqliteLines }) {
 	const { lines } = sqliteLines();
-	const result = yield* sql
-		.withTransaction(
-			Effect.gen(function* () {
-				yield* lines.insert({ amount: 1, name: "Rollback", note: null });
-				expect(yield* lines.findMany({ select: ["name"] })).toEqual([{ name: "Rollback" }]);
-				return yield* Effect.fail("cancelled");
-			}),
-		)
-		.pipe(Effect.result);
+	const result = yield* transaction(
+		Effect.gen(function* () {
+			yield* lines.insert({ amount: 1, name: "Rollback", note: null });
+			expect(yield* lines.findMany({ select: ["name"] })).toEqual([{ name: "Rollback" }]);
+			return yield* Effect.fail("cancelled");
+		}),
+	).pipe(Effect.result);
 	expect(result._tag).toBe("Failure");
 	expect(yield* lines.findMany()).toEqual([]);
 });

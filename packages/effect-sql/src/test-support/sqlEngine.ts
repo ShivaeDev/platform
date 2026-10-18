@@ -4,6 +4,7 @@ import { SqlClient } from "effect/sql";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
 import { makeRepository } from "#repository.ts";
+import { withChangeCoverage } from "#testing.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 import type { arraySamples } from "./arraySamples.ts";
 import { watchChanges } from "./changeObservation.ts";
@@ -93,6 +94,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		versions: engine.versions.get,
 		watchChanges,
 		wideRows: engine.wideRows.get,
+		withChangeCoverage,
 	};
 }
 export function sqlSnapshot(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {

@@ -3,6 +3,7 @@ import { expect, expectTypeOf } from "vitest";
 import { InvoiceLine } from "#test/invoiceLines.ts";
 import { hasPostgresInvoiceLines } from "#test/repositoryTraits.ts";
 import { postgres } from "#test/sqlStory.ts";
+import { transaction } from "#test/transaction.ts";
 
 postgres.it("PostgreSQL repository preserves model codecs and ambient transactions", [hasPostgresInvoiceLines()], function* ({ sql, invoiceLines }) {
 	const { lines, tableName } = invoiceLines();
@@ -42,7 +43,7 @@ postgres.it("PostgreSQL repository preserves model codecs and ambient transactio
 		expect(inserted).toEqual([{ name: "Rollback" }]);
 		return yield* Effect.fail("cancelled");
 	});
-	const rolledBack = yield* sql.withTransaction(rollbackProgram).pipe(Effect.result);
+	const rolledBack = yield* transaction(rollbackProgram).pipe(Effect.result);
 	expect(rolledBack._tag).toBe("Failure");
 	expect(
 		yield* lines.findMany({

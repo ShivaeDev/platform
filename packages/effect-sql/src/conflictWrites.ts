@@ -3,6 +3,7 @@ import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { type InsertMany, makeInsertMany } from "#batchWrites.ts";
+import type { RepositoryChanges } from "./repositoryChanges.ts";
 
 export type InsertColumn<TModel extends Model.Any> = Extract<keyof TModel["insert"]["Type"] & keyof TModel["fields"], string>;
 export type ConflictColumns<TModel extends Model.Any> = readonly [InsertColumn<TModel>, ...InsertColumn<TModel>[]];
@@ -28,6 +29,7 @@ export function makeConflictWrites(
 	model: Model.Any,
 	sql: SqlClient.SqlClient,
 	options: {
+		readonly changes: RepositoryChanges;
 		readonly tableName: string;
 		readonly spanPrefix: string;
 		readonly conflictColumns: readonly string[];
@@ -81,13 +83,15 @@ export function makeConflictWrites(
 		insertOrIgnore: (input: unknown) =>
 			Effect.gen(function* () {
 				const rows = yield* yield* statement(input);
+				yield* options.changes.record(rows);
 				return rows.length === 0 ? Option.none() : Option.some(yield* decode(rows[0]));
-			}).pipe(Effect.withSpan(`${spanPrefix}.insertOrIgnore`)),
+			}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.insertOrIgnore`)),
 		upsert: (input: unknown, settings: { readonly updateColumns: readonly string[] }) =>
 			Effect.gen(function* () {
 				const rows = yield* yield* statement(input, settings.updateColumns);
+				yield* options.changes.record(rows);
 				return yield* decode(rows[0]);
-			}).pipe(Effect.withSpan(`${spanPrefix}.upsert`)),
+			}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.upsert`)),
 		upsertMany: (inputs: readonly unknown[], settings: { readonly updateColumns: readonly string[] }) =>
 			makeInsertMany(model, sql, options, "upsertMany", (row) => clause(row, settings.updateColumns))(inputs),
 	};

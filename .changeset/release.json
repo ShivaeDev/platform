@@ -3,70 +3,81 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "release-starter-pins.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+				"name": "effect-pg-boss-retry-at.md",
+				"text": "---\n\"@shivaedev/effect-pg-boss\": minor\n---\n\n### Added\n\n- Fail a queue or scheduled handler with `RetryAt({ at, reason })` from `definition.ts` to defer the same job until a UTC time without spending a retry, changing its payload or singleton key, or calling `onError`. A deferred attempt ends its span OK with a `job.deferred` event. The exported `QueueOptions` type adds `maxDeferrals`, and queue and schedule definitions expose its resolved value. `queue.maxDeferrals` defaults to 10 per job; subsequent deferrals fail normally. Deferred jobs use the polling backstop, including with `notify: true`.\n- Inspect waiting deferrals with the testing controller's `deferred(queue)`, returning `{ at, reason }[]`, and pull them forward with `runDeferredNow(queue)`. Both integrate with the controller's revision and change notification controls.\n- Deferral counts survive native expiry and heartbeat failures. Automatic migrations and `installPgBossSchema` install the adapter's durable counter table alongside the pg-boss schema.\n- Stately jobs sharing a singleton key can defer together without colliding or spending retries, and resume one at a time. Waiting deferrals use the `effect-stately-deferred` policy in native job metadata; an adapter-installed database trigger restores `stately` when claimed.\n"
 			},
 			{
-				"name": "test-story-pinned-utc-clock.md",
-				"text": "---\n\"@shivaedev/test-story\": minor\n\"@shivaedev/effect-test\": minor\n---\n\n### Added\n\n- Pass a UTC `DateTime` to the existing `clock` option to pin a story or Effect fixture before its per-test setup runs. The exported `EffectClock` type now accepts `DateTime.Utc` alongside `\"test\"` and `\"live\"`. Hosts, workers and screens acquired with the story's Effect Context share native `Clock` / `TestClock`, including explicit `TestClock.adjust` advances; application code using `Clock` or `DateTime.now` needs no changes.\n"
+				"name": "effect-test-timeout-teardown.md",
+				"text": "---\n\"@shivaedev/effect-test\": patch\n---\n\n### Fixed\n\n- Wait for an interrupted test's Scope to close after its Vitest timeout, so application workers and database pools finish teardown before the next test starts. Keep the timeout as the test failure without leaking the interrupted program's rejection as an uncaught error.\n"
+			},
+			{
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.10.0",
+				"from": "0.10.1",
 				"name": "@shivaedev/create-app",
-				"to": "0.10.1"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-prisma",
-				"from": "0.10.0",
-				"name": "@shivaedev/effect-prisma",
-				"to": "0.10.1"
+				"to": "0.10.2"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/effect-test",
-				"from": "0.6.0",
-				"name": "@shivaedev/effect-test",
-				"to": "0.7.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-trpc",
-				"from": "0.8.0",
-				"name": "@shivaedev/effect-trpc",
-				"to": "0.8.1"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/platform",
-				"from": "0.18.0",
-				"name": "@shivaedev/platform",
-				"to": "0.18.1"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/test-story",
-				"from": "0.10.0",
-				"name": "@shivaedev/test-story",
+				"directory": "packages/effect-pg-boss",
+				"from": "0.10.1",
+				"name": "@shivaedev/effect-pg-boss",
 				"to": "0.11.0"
 			},
 			{
 				"bump": "patch",
+				"directory": "packages/effect-prisma",
+				"from": "0.10.1",
+				"name": "@shivaedev/effect-prisma",
+				"to": "0.10.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-test",
+				"from": "0.7.0",
+				"name": "@shivaedev/effect-test",
+				"to": "0.7.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-trpc",
+				"from": "0.8.1",
+				"name": "@shivaedev/effect-trpc",
+				"to": "0.8.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/platform",
+				"from": "0.18.1",
+				"name": "@shivaedev/platform",
+				"to": "0.18.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/test-story",
+				"from": "0.11.0",
+				"name": "@shivaedev/test-story",
+				"to": "0.11.1"
+			},
+			{
+				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.20.1",
+				"from": "0.20.2",
 				"name": "@shivaedev/work-board",
-				"to": "0.20.2"
+				"to": "0.20.3"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.10.0",
+				"from": "0.10.1",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.10.1"
+				"to": "0.10.2"
 			}
 		]
 	}

@@ -226,9 +226,13 @@ The dependency rule is deliberately asymmetric:
 
 `readKeys` and `invalidationKeys` produce these native keys and remove duplicates. An item change refreshes that item and its list, preserving other item queries. A list-only invalidation refreshes list queries and leaves item queries alone. These keys match native Reactivity's record-key hashing of `{ notes: [1] }`.
 
-Client invalidation follows RPC success. For server invalidation at the SQL commit boundary, use `transact` from [`effect-sql`](https://github.com/ShivaeDev/platform/tree/main/packages/effect-sql); commit-bound changes belong to [`effect-changes`](https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes).
+Client invalidation follows RPC success. Platform database hosts also publish declared command invalidations automatically after the handler succeeds, excluding keys already announced by repository commits, using `transact` from [`effect-sql`](https://github.com/ShivaeDev/platform/tree/main/packages/effect-sql); commit-bound changes belong to [`effect-changes`](https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes).
 
-### 4. When needed: live invalidation and resume
+### 4. Live invalidation and resume
+
+Platform database hosts serve the contract's reserved `<contract>.$changes` stream automatically. With NDJSON transport, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
+
+For a custom transport or explicit pause/status controls, the native live APIs remain available:
 
 Declare subscriptions with `stream` in the same contract. Its `success` schema describes each element, and its `rejections` become the native stream error schema. `bind` exposes `run(payload)` as a native `Stream`, preserving declared rejections, middleware errors and RPC client errors. Completion and client interruption release the server subscription. The compiler rejects a unary client for a streaming operation.
 

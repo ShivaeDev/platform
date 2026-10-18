@@ -1,4 +1,3 @@
-import { useAtomMount } from "@effect/atom-react";
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { useEffect } from "react";
@@ -23,7 +22,6 @@ export function NotesScreen({
 	readonly signOut?: AuthActions["signOut"];
 	readonly onSignedOut?: (() => void) | undefined;
 }) {
-	useAtomMount(client.connection);
 	const query = useLoaderQuery(client.api.list.query(), loaded);
 	const rows = query.data;
 	return (
