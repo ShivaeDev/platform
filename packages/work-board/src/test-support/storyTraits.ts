@@ -1,12 +1,12 @@
 import { chmodSync } from "node:fs";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import type { RecordedResponse } from "#browser/responses/schema.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { responseMarkdown } from "#server/responses/records.ts";
 import { boardStory, projectFiles, responsesEnabled } from "./boardStory.ts";
-import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
+import { diagnosticsDaemon, rawDiagnosticsDaemon } from "./diagnosticsDaemon.ts";
 import { enterField } from "./enterField.ts";
 import { inboxFixture, inboxQuestion } from "./inboxFixture.ts";
 import { waitFor } from "./live.ts";
@@ -73,6 +73,14 @@ export function fleetReports(items: FleetItems) {
 			0,
 			() => items,
 		);
+		engine.fleetPort = daemon.port;
+	});
+}
+
+export function fleetDiagnostics(read: (observedAt: number) => unknown) {
+	return boardStory.trait("project", "a daemon serves the supplied diagnostics response", function* (engine) {
+		const observedAt = yield* Clock.currentTimeMillis;
+		const daemon = yield* rawDiagnosticsDaemon(() => read(observedAt));
 		engine.fleetPort = daemon.port;
 	});
 }

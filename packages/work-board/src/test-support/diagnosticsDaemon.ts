@@ -5,19 +5,23 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 import type { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { DAEMON_RPC_PATH, DiagnosticsContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
+import { DAEMON_RPC_PATH, DaemonReadContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 
-export const diagnosticsDaemon = Effect.fn("Test.diagnosticsDaemon")(function* (
-	read: () => DiagnosticsSnapshot,
+export function diagnosticsDaemon(read: () => DiagnosticsSnapshot, port?: number, items?: Parameters<typeof rawDiagnosticsDaemon>[2]) {
+	return rawDiagnosticsDaemon(read, port, items);
+}
+
+export const rawDiagnosticsDaemon = Effect.fn("Test.rawDiagnosticsDaemon")(function* (
+	read: () => unknown,
 	port = 0,
 	items: (() => FleetItems) | Effect.Effect<FleetItems, ServiceUnavailable> = () => ({ completed: [], items: [] }),
 ) {
-	const handlers = DiagnosticsContract.toLayer({
+	const handlers = DaemonReadContract.toLayer({
 		"daemon.diagnostics": () => Effect.sync(read),
 		"daemon.fleetItems": () => (typeof items === "function" ? Effect.sync(items) : items),
 	});
-	const rpc = RpcServer.layerHttp({ group: DiagnosticsContract, path: DAEMON_RPC_PATH, protocol: "http" }).pipe(
+	const rpc = RpcServer.layerHttp({ group: DaemonReadContract, path: DAEMON_RPC_PATH, protocol: "http" }).pipe(
 		Layer.provide([handlers, RpcSerialization.layerNdjson]),
 	);
 	const scope = yield* Scope.fork(yield* Scope.Scope);
