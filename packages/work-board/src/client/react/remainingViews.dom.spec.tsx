@@ -49,7 +49,6 @@ it.live.each(routes)("renders $kind from typed queries", function* ({ kind, url,
 		}
 	} finally {
 		yield* Effect.promise(() => view.unmount());
-		vi.restoreAllMocks();
 	}
 });
 it.live("updates answer card context while retaining answer text, node and caret", function* () {
@@ -101,6 +100,5 @@ it.live("shows Today for an empty workspace", function* () {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("h1")?.textContent).toBe("Today")));
 	} finally {
 		yield* Effect.promise(() => view.unmount());
-		vi.restoreAllMocks();
 	}
 });
