@@ -1,7 +1,7 @@
 import { Cause, Effect, Exit, Option, Stream } from "effect";
 import { expect } from "vitest";
 import { branchingUsers, branchingRows as rows } from "#test/sqlite/branchingUsers.ts";
-import { hasUsers, sqliteStory } from "#test/sqlite/story.ts";
+import { failsInitialization, hasUsers, sqliteStory } from "#test/sqlite/story.ts";
 
 sqliteStory.it("adapts a Prisma-shaped thenable", [], function* ({ relationProbes }) {
 	const result = yield* relationProbes.adaptThenable();
@@ -17,11 +17,16 @@ sqliteStory.it("keeps unknown Promise rejections in the defect channel", [], fun
 	}
 });
 
-sqliteStory.it("closes a connected client when initialization fails", [], function* ({ relationProbes }) {
-	const { closed, exit } = yield* relationProbes.initializationFailure();
+sqliteStory.it("closes a connected client when initialization fails", [failsInitialization()], function* ({ initializationFailure }) {
+	const { closeCalls, closed, connected, discoveryAttempts, exit, usersBeforeFailure } = yield* initializationFailure();
 
 	expect(Exit.isFailure(exit)).toBe(true);
+	expect(exit).toEqual(Exit.die(new Error("model discovery failed")));
 	expect(closed).toBe(true);
+	expect(connected).toBe(true);
+	expect(discoveryAttempts).toBe(1);
+	expect(closeCalls).toBe(1);
+	expect(usersBeforeFailure).toBe(0);
 });
 
 sqliteStory.it("only reserves names that cannot be represented by the facade", [], ({ relationProbes }) => {

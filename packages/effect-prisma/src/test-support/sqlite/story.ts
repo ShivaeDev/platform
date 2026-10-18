@@ -1,3 +1,5 @@
+// Register the call-through factory before the typed database module loads.
+import "#test/sqlite/initializationFault.ts";
 import { Effect, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { clearQueryControls, queryControl, queryState } from "#test/queryControls.ts";
@@ -6,17 +8,18 @@ import { relationProbes } from "#test/relationProbes.ts";
 import { runDatabaseTesting } from "#test/runDatabaseTesting.ts";
 import { installRuntimeControls } from "#test/runtimeControls.ts";
 import { settlementFailures } from "#test/settlementFailures.ts";
+import { Database, DatabaseLive } from "#test/sqlite/database.ts";
+import { failInitialization, initializationFault } from "#test/sqlite/initializationFault.ts";
 import { sqliteOptions } from "#test/sqlite/options.ts";
 import { transactionProbes } from "#test/transactionProbes.ts";
 import { withTestTransaction } from "#testing/transaction.ts";
-import { Database, DatabaseLive } from "./database.ts";
 
 const testing = runDatabaseTesting("src/test-support/sqlite/testing.ts");
 
 export const sqliteStory = storyKit({
 	*create() {
 		const db = yield* Database;
-		return { controls: yield* installRuntimeControls(), db, query: queryState(), rollback: false };
+		return { controls: yield* installRuntimeControls(), db, initialization: initializationFault(), query: queryState(), rollback: false };
 	},
 	inspect: (engine) => ({ rollback: engine.rollback }),
 	layer: DatabaseLive,
@@ -30,6 +33,16 @@ export const sqliteStory = storyKit({
 				const db = yield* Database;
 				return { db, stream: db.User.stream };
 			}).pipe(Effect.provide(Layer.fresh(DatabaseLive))),
+		initializationFailure: () =>
+			Effect.gen(function* () {
+				if (!engine.initialization.enabled) {
+					throw new Error("An initialization failure trait is required");
+				}
+				const usersBeforeFailure = yield* engine.db.User.count();
+				story.tell("the typed SQLite Layer initializes a new real client");
+				const exit = yield* Effect.exit(Database.pipe(Effect.provide(Layer.fresh(DatabaseLive))));
+				return { ...engine.initialization.observe(), exit, usersBeforeFailure };
+			}),
 		nestedUser: (email: string) =>
 			Effect.gen(function* () {
 				const db = yield* Database;
@@ -106,4 +119,10 @@ export function holdsSettlement() {
 		};
 		yield* Effect.addFinalizer(() => Effect.sync(engine.controls.releaseSettlement.resolve));
 	});
+}
+
+export function failsInitialization() {
+	return sqliteStory.trait("controls", "model discovery fails after the real SQLite client connects", (engine) =>
+		failInitialization(engine.initialization),
+	);
 }
