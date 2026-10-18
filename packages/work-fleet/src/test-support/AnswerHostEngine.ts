@@ -1,6 +1,6 @@
 import { Context, Effect, Exit, Layer, Scope } from "effect";
 import { HttpServer } from "effect/http";
-import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
+import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { Fleet } from "#fleet.ts";
 import type { HostConfig } from "#host/config.ts";
 import { daemonLayer } from "#host/daemon.ts";
