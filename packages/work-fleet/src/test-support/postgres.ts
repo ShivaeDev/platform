@@ -8,6 +8,7 @@ import { migrateFleet } from "#test/migrateFleet.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
 const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"))));
+export const postgresAvailable = url !== undefined;
 const ci = Effect.runSync(Config.String("CI").pipe(Config.withDefault("")));
 if (url === undefined && ci !== "") {
 	throw new Error("CI requires PLATFORM_EFFECT_SQL_TEST_DATABASE_URL; skipped PostgreSQL tests prove nothing.");
@@ -28,7 +29,7 @@ const postgresOptions = {
 	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
 } satisfies PostgresTestOptions;
 
-const postgresLayer = makePostgresTestLayer(postgresOptions);
+export const postgresLayer = makePostgresTestLayer(postgresOptions);
 
 function makeTests(clock: "live" | "test", isolation: "rollback" | "isolated", options?: Pick<PostgresTestOptions, "maxConnections">) {
 	const { effectApp } = makeEffectIt({

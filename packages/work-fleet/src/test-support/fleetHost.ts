@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer, Redacted } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
@@ -9,13 +9,10 @@ import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostParts } from "#host/commands.ts";
 import { type FleetHost, type HostConfig, resolveHost } from "#host/config.ts";
-import { loadHost } from "#host/configFile.ts";
 import { CONFIG_FILE } from "#host/defaults.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
-import type { CliRun } from "#test/fleetCli.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
-import { daemonCli } from "#test/readDaemon.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
 export const MAIN = { observedAt: 1, revision: "main-revision" };
@@ -59,57 +56,45 @@ function hostParts(boardDir: string, provider: EngineProvider["transport"]): Hos
 	};
 }
 
+export const hostFixture = Effect.fn("FleetFixture.hostFixture")(function* (
+	files: Readonly<Record<string, string>> = {},
+	config: Partial<HostConfig> = {},
+) {
+	const database = yield* PostgresTestDatabase;
+	const fixture = yield* Effect.acquireRelease(
+		Effect.sync(() => {
+			const boardDir = mkdtempSync(join(tmpdir(), "fleet-host-"));
+			const settings: HostConfig = {
+				intervalSeconds: 1,
+				namespace: STORAGE_NAMESPACE,
+				provider: "local",
+				quota: "unlimited",
+				...config,
+				database: { ...config.database, url: Redacted.value(database.url) },
+			};
+			const configFile = join(boardDir, CONFIG_FILE);
+			writeFileSync(configFile, JSON.stringify(settings));
+			for (const [file, source] of Object.entries(files)) {
+				writeFileSync(join(boardDir, file), source);
+			}
+			return { boardDir, configFile, host: resolveHost(boardDir, settings, configFile) };
+		}),
+		({ boardDir: folder }) => Effect.sync(() => rmSync(folder, { force: true, recursive: true })),
+	);
+	const provider = engineProvider({}, []);
+	return {
+		configFile: fixture.configFile,
+		host: fixture.host,
+		parts: hostParts(fixture.boardDir, provider.transport),
+		provider,
+		write: (file: string, source: string) => writeFileSync(join(fixture.boardDir, file), source),
+	} satisfies HostFixture;
+});
+
 export function withHost<A, E, R>(
 	files: Readonly<Record<string, string>>,
 	config: Partial<HostConfig>,
 	use: (fixture: HostFixture) => Effect.Effect<A, E, R>,
 ) {
-	return withIsolatedDatabase(
-		Effect.gen(function* () {
-			const database = yield* PostgresTestDatabase;
-			return yield* Effect.acquireUseRelease(
-				Effect.sync(() => {
-					const boardDir = mkdtempSync(join(tmpdir(), "fleet-host-"));
-					const settings: HostConfig = {
-						intervalSeconds: 1,
-						namespace: STORAGE_NAMESPACE,
-						provider: "local",
-						quota: "unlimited",
-						...config,
-						database: { ...config.database, url: Redacted.value(database.url) },
-					};
-					const configFile = join(boardDir, CONFIG_FILE);
-					writeFileSync(configFile, JSON.stringify(settings));
-					for (const [file, source] of Object.entries(files)) {
-						writeFileSync(join(boardDir, file), source);
-					}
-					return { boardDir, configFile, host: resolveHost(boardDir, settings, configFile) };
-				}),
-				({ boardDir, configFile, host }) => {
-					const provider = engineProvider({}, []);
-					return use({
-						configFile,
-						host,
-						parts: hostParts(boardDir, provider.transport),
-						provider,
-						write: (file, source) => writeFileSync(join(boardDir, file), source),
-					});
-				},
-				({ boardDir }) => Effect.sync(() => rmSync(boardDir, { force: true, recursive: true })),
-			);
-		}),
-	);
-}
-
-export function waitProcess(
-	configFile: string,
-	workId: string,
-	{ intervalSeconds = 0.1, timeoutSeconds = 20 }: { readonly intervalSeconds?: number; readonly timeoutSeconds?: number } = {},
-): Promise<CliRun> {
-	return Effect.runPromise(
-		loadHost(dirname(configFile), configFile).pipe(
-			Effect.flatMap((host) => daemonCli(host, ["wait", workId, "--interval", String(intervalSeconds), "--timeout", String(timeoutSeconds)])),
-			Effect.provide(NodeServices.layer),
-		),
-	);
+	return withIsolatedDatabase(hostFixture(files, config).pipe(Effect.flatMap(use)));
 }

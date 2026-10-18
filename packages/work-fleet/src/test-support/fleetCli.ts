@@ -33,3 +33,11 @@ export function cliProcess(
 		);
 	});
 }
+
+export function waitProcess(
+	boardDir: string,
+	workId: string,
+	{ intervalSeconds = 0.1, timeoutSeconds = 20 }: { readonly intervalSeconds?: number; readonly timeoutSeconds?: number } = {},
+): Promise<CliRun> {
+	return cliProcess(["wait", workId, "--board", boardDir, "--interval", String(intervalSeconds), "--timeout", String(timeoutSeconds)]);
+}
