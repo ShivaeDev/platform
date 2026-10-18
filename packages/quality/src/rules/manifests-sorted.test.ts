@@ -7,9 +7,9 @@ import { config, linkPackage, removeSeededTrees, type SeedFile, seedTree } from 
 
 afterEach(removeSeededTrees);
 
-const unsorted = '{\n\t"version": "1.0.0",\n\t"name": "sample"\n}\n';
+const UNSORTED = '{\n\t"version": "1.0.0",\n\t"name": "sample"\n}\n';
 
-const sorted = '{\n\t"name": "sample",\n\t"version": "1.0.0"\n}\n';
+const SORTED = '{\n\t"name": "sample",\n\t"version": "1.0.0"\n}\n';
 
 function repository(...files: readonly SeedFile[]): string {
 	const root = seedTree([
@@ -27,10 +27,10 @@ function repository(...files: readonly SeedFile[]): string {
 describe("manifests/sorted", { timeout: 60_000 }, () => {
 	it("reports every package.json in the repository whose keys are out of order, outside the sources too", () => {
 		const root = repository(
-			{ content: unsorted, path: "package.json" },
-			{ content: sorted, path: "packages/b/package.json" },
-			{ content: unsorted, path: "packages/c/package.json" },
-			{ content: unsorted, path: "ignored/package.json" },
+			{ content: UNSORTED, path: "package.json" },
+			{ content: SORTED, path: "packages/b/package.json" },
+			{ content: UNSORTED, path: "packages/c/package.json" },
+			{ content: UNSORTED, path: "ignored/package.json" },
 		);
 		const result = quality(root, "lint");
 		expect(result.status).toBe(1);
@@ -45,11 +45,11 @@ describe("manifests/sorted", { timeout: 60_000 }, () => {
 	});
 
 	it("is sorted by quality fix, after which the lint passes", () => {
-		const root = repository({ content: unsorted, path: "package.json" }, { content: unsorted, path: "packages/c/package.json" });
+		const root = repository({ content: UNSORTED, path: "package.json" }, { content: UNSORTED, path: "packages/c/package.json" });
 		expect(quality(root, "fix").stdout).toBe(
 			"quality: sort-package-json rewrote 2 manifests.\nquality: Biome round 1 rewrote 0 files with fixes and 0 files with the format pass.\n",
 		);
-		expect(readFileSync(join(root, "package.json"), "utf8")).toBe(sorted);
+		expect(readFileSync(join(root, "package.json"), "utf8")).toBe(SORTED);
 		expect(quality(root, "lint")).toMatchObject({ status: 0 });
 	});
 });

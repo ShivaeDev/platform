@@ -1,9 +1,10 @@
+import { MessageCircleQuestion } from "lucide-react";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
 import { AnswerContext } from "./AnswerContext.tsx";
 import { AnswerForm } from "./AnswerForm.tsx";
+import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { ResponseHistory } from "./ResponseHistory.tsx";
-import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 
 export function AnswerPanel({ document: data }: { readonly document: Document }) {
 	const requests = data.requests.filter(
@@ -30,23 +31,28 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 	return (
 		<section
 			aria-labelledby={`answer-title-${request.id}`}
-			className="response-panel rounded-lg border border-border bg-card p-4"
+			className="response-panel max-w-[72ch] space-y-5 rounded-xl border bg-card p-5 text-card-foreground shadow-sm"
 			id={`answer-card-${request.id}`}
 			tabIndex={-1}
 		>
-			<h2 id={`answer-title-${request.id}`}>{cardTitle(request, closed)}</h2>
+			<h2 className="flex items-center gap-2 font-medium text-muted-foreground text-sm" id={`answer-title-${request.id}`}>
+				{request.open ? <MessageCircleQuestion aria-hidden="true" className="size-4 text-needs-you" /> : null}
+				{cardTitle(request, closed)}
+			</h2>
 			{!(request.open || unavailable) && (
-				<p role="status">
+				<p className="text-muted-foreground text-sm" role="status">
 					{closed ? "This question is closed. Recorded answers remain below." : "Answer unavailable. Check the source diagnostics."}
 				</p>
 			)}
-			{Boolean(unavailable) && <p role="status">{unavailable}</p>}
+			{Boolean(unavailable) && (
+				<p className="rounded-md border border-destructive/40 px-3 py-2 text-sm" role="status">
+					{unavailable}
+				</p>
+			)}
 			{request.open && preview !== undefined && (
 				<>
+					<AnswerMarkdown className="answer-reason font-medium text-base" file={source.file} source={reasonMarkdown(preview.reason)} />
 					<AnswerContext preview={preview} />
-					<div className="answer-reason">
-						<ResponseMarkdown file={source.file} source={reasonMarkdown(preview.reason)} />
-					</div>
 				</>
 			)}
 			{request.open && preview && !unavailable && <AnswerForm document={source} preview={preview} request={request} />}

@@ -9,18 +9,22 @@ const MaxPerFileOptions = Schema.Struct({
 	max: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(2)).pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))),
 });
 
-const continues = (previous: SourceComment | undefined, comment: SourceComment): boolean =>
-	previous !== undefined
-	&& previous.kind === "line"
-	&& comment.kind === "line"
-	&& previous.ownLine
-	&& comment.ownLine
-	&& comment.line === previous.endLine + 1;
+function continues(previous: SourceComment | undefined, comment: SourceComment): boolean {
+	return (
+		previous !== undefined
+		&& previous.kind === "line"
+		&& comment.kind === "line"
+		&& previous.ownLine
+		&& comment.ownLine
+		&& comment.line === previous.endLine + 1
+	);
+}
 
-const commentBlocks = (comments: readonly SourceComment[]): readonly SourceComment[] =>
-	comments.filter((comment, index) => !continues(comments[index - 1], comment));
+function commentBlocks(comments: readonly SourceComment[]): readonly SourceComment[] {
+	return comments.filter((comment, index) => !continues(comments[index - 1], comment));
+}
 
-const overCap = (file: SourceFile, max: number, allow: readonly string[]): readonly Finding[] => {
+function overCap(file: SourceFile, max: number, allow: readonly string[]): readonly Finding[] {
 	const counted = commentsOf(file).filter((comment) => !(isDirective(comment) || isPragma(comment, allow)));
 	const blocks = commentBlocks(counted);
 	const first = blocks[max];
@@ -35,7 +39,7 @@ const overCap = (file: SourceFile, max: number, allow: readonly string[]): reado
 					threshold: max,
 				},
 			];
-};
+}
 
 export const maxPerFile = defineRule({
 	check: ({ options, sources }) => sources.flatMap((file) => overCap(file, options.max, options.allow)),

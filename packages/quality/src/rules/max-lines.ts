@@ -11,8 +11,8 @@ const MaxLinesOptions = Schema.Struct({
 	test: Limit.check(Schema.isLessThanOrEqualTo(300)).pipe(Schema.withDecodingDefaultKey(Effect.succeed(300))),
 });
 
-const oversized = (file: SourceFile, limit: number): readonly Finding[] =>
-	file.lines.length <= limit
+function oversized(file: SourceFile, limit: number): readonly Finding[] {
+	return file.lines.length <= limit
 		? []
 		: [
 				{
@@ -22,6 +22,7 @@ const oversized = (file: SourceFile, limit: number): readonly Finding[] =>
 					threshold: limit,
 				},
 			];
+}
 
 export const maxLines = defineRule({
 	check: ({ options, sources }) =>

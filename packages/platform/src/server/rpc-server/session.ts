@@ -67,11 +67,18 @@ export function authenticatedUserLayer<TSession extends UserSessionShape>(policy
 			if (Option.isNone(session)) {
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
-			const { name, email } = session.value.user;
+			const { name, email, providerAccounts } = session.value.user;
 			const id = yield* identified(session.value.user.id);
 			return yield* effect.pipe(
 				Effect.provideService(Identity, { id }),
-				Effect.provideService(SessionUser, { email, id, name }),
+				Effect.provideService(SessionUser, {
+					email,
+					id,
+					name,
+					...(providerAccounts === undefined
+						? {}
+						: { providerAccounts: providerAccounts.map(({ accountId, providerId }) => ({ accountId, providerId })) }),
+				}),
 				Effect.annotateLogs({ userId: id }),
 			);
 		}),

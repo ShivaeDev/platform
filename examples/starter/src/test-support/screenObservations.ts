@@ -40,11 +40,11 @@ export function screenObservations(engine: ScreenSurface, tell: (line: string) =
 			}),
 		noSavedNotes: () =>
 			observe("there are no saved notes", () => {
-				expect(container().querySelector("li")).toBeNull();
+				expect(container().querySelector("tbody tr[data-state]")).toBeNull();
 			}),
 		noteLinkIs: (title: string) =>
 			observe(`the saved note links to ${JSON.stringify(title)}`, () => {
-				expect(container().querySelector("li > a")?.textContent).toBe(title);
+				expect(container().querySelector("tbody td a")?.textContent).toBe(title);
 			}),
 		screenOmits: (text: string) =>
 			observe(`the screen omits ${JSON.stringify(text)}`, () => {

@@ -1,81 +1,116 @@
 import { Context, Effect, Layer, Option } from "effect";
+import { CommittedSink } from "@shivaedev/effect-sql/transact.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
-import { type EngineFixture, makeEngine, prepareWork } from "#test/engine.ts";
-import { PR, REPORT } from "#test/githubResult.ts";
+import { createEngine, type EngineFixture, finishWorkers } from "#test/engine.ts";
+import { foreignPrVerbs } from "#test/foreignPrVerbs.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
-import { postgresStory } from "#test/postgres.ts";
-
-interface Runtime {
-	readonly fixture: EngineFixture;
-	readonly fleet: typeof Fleet.Service;
-}
+import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
+import { prepared } from "#test/preparation.ts";
 
 export const fleetStory = storyKit({
-	...postgresStory,
 	after: {
 		*configuration(engine) {
-			const { fixture, layer } = yield* makeEngine(engine.options);
-			const context = yield* Layer.build(layer);
-			engine.runtime = Option.some({ fixture, fleet: Context.get(context, Fleet) });
+			const { fixture, fleetLayer } = yield* createEngine(engine.options);
+			const fleet = Context.get(yield* Layer.build(fleetLayer), Fleet);
+			engine.runtime = Option.some({ fixture, fleet });
 		},
 	},
-	*create() {
-		const github = yield* mergedReviewGithub();
-		const options: EngineOptions = { ...github };
-		return { github, options, runtime: Option.none<Runtime>() };
+	around: withIsolatedDatabase,
+	create() {
+		const options: EngineOptions = {};
+		const commits: (readonly unknown[])[] = [];
+		return {
+			commits,
+			github: Option.none<Effect.Success<ReturnType<typeof mergedReviewGithub>>>(),
+			options,
+			runtime: Option.none<{ readonly fixture: EngineFixture; readonly fleet: typeof Fleet.Service }>(),
+		};
 	},
-	inspect: (engine) => ({ github: engine.github.state, launched: Option.getOrUndefined(engine.runtime)?.fixture.launched }),
+	inspect: (engine) => ({ commits: engine.commits, launched: Option.getOrUndefined(engine.runtime)?.fixture.starts.map((start) => start.prompt) }),
+	layer: postgresLayer,
 	name: "fleet",
-	stages: ["configuration", "work"],
+	runIf: postgresEnabled,
+	stages: ["configuration", "board"],
 	verbs: (engine, story) => {
 		const { fixture, fleet } = Option.getOrThrow(engine.runtime);
 		return {
-			dispatch: (workId: string) => {
-				story.tell(`Fleet tries to launch ${workId}`);
-				return fleet.dispatch(workId);
+			...foreignPrVerbs(fixture, fleet, engine.github, story),
+			attemptContinue: (id: string, message: string) => {
+				story.tell(`Fleet attempts to continue ${id}`);
+				return fleet.continue(id, message).pipe(Effect.flip);
 			},
-			finishWorker: Effect.fnUntraced(function* (workId: string) {
-				story.tell(`the worker for ${workId} finishes with its PR report`);
-				const record = yield* fleet.get(workId);
-				const receipt = record.value.attempts.at(-1)?.receipt;
-				const observation = receipt === undefined ? undefined : fixture.observations.get(receipt.turnId);
-				if (observation === undefined) {
-					return yield* Effect.die(`No worker turn to finish for ${workId}`);
-				}
-				fixture.observations.set(observation.receipt.turnId, { ...observation, execution: "completed", output: REPORT });
-			}),
+			attemptDispatch: (id: string) => {
+				story.tell(`Fleet attempts to dispatch ${id}`);
+				return fleet.dispatch(id).pipe(Effect.flip);
+			},
+			commits: engine.commits,
+			continue: (id: string, message: string) => {
+				story.tell(`Fleet continues ${id}`);
+				return fleet.continue(id, message);
+			},
+			dependencies: (id: string, targets: readonly string[]) => {
+				story.tell(`${id} now depends on ${targets.join(", ") || "no other work"}`);
+				fixture.dependencies(id, targets);
+			},
+			dispatch: (id: string) => {
+				story.tell(`Fleet dispatches ${id}`);
+				return fleet.dispatch(id);
+			},
+			finishWorkers: () => {
+				story.tell("the provider reports that the active turns completed");
+				finishWorkers(fixture);
+			},
 			get: fleet.get,
-			launched: fixture.launched,
-			observePr: (status: "CLOSED" | "MERGED") => {
-				story.tell(`the PR is ${status.toLowerCase()} on GitHub`);
-				engine.github.state.status = status;
+			prepare: (id: string) => {
+				story.tell(`Fleet prepares ${id}`);
+				return fleet.prepare({ cwd: "/synthetic", preparation: prepared({ ownedPaths: [`src/${id}.ts`] }), prompt: `Implement ${id}`, workId: id });
 			},
-			prepare: (workId: string) => {
-				story.tell(`Fleet prepares ${workId}`);
-				return prepareWork(workId).pipe(Effect.provideService(Fleet, fleet));
+			reconcile: (id: string) => {
+				story.tell(`Fleet reconciles ${id}`);
+				return fleet.reconcile(id).pipe(Effect.provideService(CommittedSink, (changes) => Effect.sync(() => engine.commits.push(changes))));
 			},
-			reconcile: (workId: string) => {
-				story.tell(`Fleet reconciles ${workId} through its existing observations`);
-				return fleet.reconcile(workId);
-			},
-			reservations: fixture.foreignReservations,
-			reservePr: () => {
-				story.tell("the PR reserves execution capacity and open-PR backlog");
-				return fixture.foreign(PR, { backlog: true, executing: true });
-			},
-			step: () => {
-				story.tell("the scheduler reconciles active work and retries waiting work");
+			schedule: () => {
+				story.tell("Fleet runs a scheduler pass");
 				return cycle.pipe(Effect.provideService(Fleet, fleet));
 			},
+			unavailableWork: (id: string, unavailable: boolean) => {
+				story.tell(`Board reads for ${id} are ${unavailable ? "unavailable" : "available"}`);
+				fixture.unavailableWork(id, unavailable);
+			},
+			workerQuestion: (id: string, question: string) =>
+				Effect.gen(function* () {
+					story.tell(`the worker for ${id} finishes its turn with a question`);
+					const receipt = (yield* fleet.get(id)).value.attempts.at(-1)?.receipt;
+					const observation = receipt === undefined ? undefined : fixture.observations.get(receipt.turnId);
+					if (observation === undefined) {
+						return yield* Effect.die(new Error(`Missing worker observation for ${id}`));
+					}
+					fixture.observations.set(observation.receipt.turnId, { ...observation, execution: "completed", output: `FLEET_QUESTION: ${question}` });
+				}),
 		};
 	},
 });
 
-export function limitedBy(kind: "execution" | "backlog") {
-	return fleetStory.trait("configuration", `${kind} capacity is full while the foreign PR is reserved`, (engine) => {
-		engine.options = { ...engine.options, backlog: kind === "backlog" ? 2 : 4, concurrency: kind === "execution" ? 1 : 4 };
-	});
-}
+export const sharedArea = fleetStory.trait("board", "approved work shares an area in preparation order", (engine) => {
+	const { fixture } = Option.getOrThrow(engine.runtime);
+	for (const id of ["one", "two", "three"]) {
+		fixture.approveWork(id, `board-${id}`);
+		fixture.areas(id, ["shared"]);
+	}
+	fixture.approveWork("dependency", "board-dependency");
+});
+
+export const highPrioritySecond = fleetStory.trait("board", "the second item has high dispatch priority", (engine) => {
+	const { fixture } = Option.getOrThrow(engine.runtime);
+	fixture.priority("two", "high");
+});
+
+export const githubBacklog = fleetStory.trait("configuration", "GitHub PRs share a two-slot open-PR backlog", function* (engine) {
+	const github = yield* mergedReviewGithub();
+	engine.github = Option.some(github);
+	engine.options = { ...github, backlog: 2 };
+});

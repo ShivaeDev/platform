@@ -28,9 +28,8 @@ const postgresOptions = {
 	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
 } satisfies PostgresTestOptions;
 
-const postgresLayer = makePostgresTestLayer(postgresOptions);
-
-export const postgresStory = { around: withTestTransaction, layer: postgresLayer, runIf: url !== undefined };
+export const postgresLayer = makePostgresTestLayer(postgresOptions);
+export const postgresEnabled = url !== undefined;
 
 function makeTests(clock: "live" | "test", isolation: "rollback" | "isolated", options?: Pick<PostgresTestOptions, "maxConnections">) {
 	const { effectApp } = makeEffectIt({

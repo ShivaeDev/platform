@@ -1,10 +1,13 @@
-import { once } from "node:events";
-import { createServer } from "node:http";
 import { betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
-import { Effect, type Redacted } from "effect";
+import { Effect, Layer, type Redacted } from "effect";
+import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { appHost } from "@shivaedev/platform/appHost.ts";
+import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts";
+import { authenticatedUserLayer } from "@shivaedev/platform/rpc-server/session.ts";
 import { authDatabase } from "#server/authDatabase.ts";
+import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
 
 export const socialHost = Effect.fn("SocialStory.socialHost")(function* (databaseUrl: Redacted.Redacted<string>) {
 	const pool = yield* authDatabase(databaseUrl);
@@ -12,34 +15,61 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* (databas
 		advanced: { useSecureCookies: false },
 		"baseURL": { allowedHosts: ["127.0.0.1:*"], protocol: "http" },
 		database: pool,
+		emailAndPassword: { enabled: true },
 		secret: "social-story-secret-with-at-least-32-characters",
+		session: { cookieCache: { enabled: false } },
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 		trustedOrigins: ["http://127.0.0.1:*"],
 	});
 	yield* Effect.promise(async () => {
 		await (await getMigrations(auth.options)).runMigrations();
 	});
-	const server = yield* Effect.acquireRelease(
-		Effect.sync(() =>
-			createServer(async (request, response) => {
-				if (request.url?.startsWith("/api/auth/")) {
-					await toNodeHandler(auth)(request, response);
-					return;
+	let accountLookupFails = false;
+	const sessions = {
+		origin: ({ headers }: { readonly headers: Readonly<Record<string, string>> }) =>
+			headers.origin === undefined || headers.origin === `http://${headers.host}`,
+		provider: betterAuthSessions(
+			(headers) => auth.api.getSession({ headers }),
+			(headers) => {
+				if (accountLookupFails) {
+					throw new Error("Account storage unavailable");
 				}
-				const session = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
-				response.setHeader("content-type", "text/html");
-				response.end(`<main><h1>${session === null ? "Sign in" : `Signed in as ${session.user.email}`}</h1></main>`);
+				return auth.api.listUserAccounts({ headers });
+			},
+		),
+	};
+	const routes = Layer.merge(
+		HttpRouter.add("*", "/api/auth/*", (request) =>
+			Effect.gen(function* () {
+				const web = yield* HttpServerRequest.toWeb(request);
+				return HttpServerResponse.fromWeb(yield* Effect.promise(() => auth.handler(web)));
 			}),
 		),
-		(listening) => Effect.promise(() => new Promise<void>((resolve, reject) => listening.close((error) => (error ? reject(error) : resolve())))),
+		HttpRouter.add("GET", "/signed-in", (request) =>
+			Effect.gen(function* () {
+				const session = yield* Effect.promise(() => auth.api.getSession({ headers: new Headers(request.headers) }));
+				return HttpServerResponse.html(`<main><h1>${session === null ? "Sign in" : `Signed in as ${session.user.email}`}</h1></main>`);
+			}),
+		),
 	);
-	yield* Effect.promise(async () => {
-		server.listen(0, "127.0.0.1");
-		await once(server, "listening");
-	});
-	const address = server.address();
-	if (address === null || typeof address === "string") {
+	const context = yield* Layer.build(
+		appHost({
+			config: { host: "127.0.0.1", port: 0 },
+			group: ProviderAccounts,
+			handlers: Layer.merge(providerAccountHandlers, authenticatedUserLayer(sessions)),
+			routes,
+			sessions,
+		}),
+	);
+	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
+	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Social story host needs a TCP address");
 	}
-	return { baseUrl: `http://127.0.0.1:${address.port}`, pool };
+	return {
+		baseUrl: `http://127.0.0.1:${server.address.port}`,
+		failAccountLookup: () => {
+			accountLookupFails = true;
+		},
+		pool,
+	};
 });
