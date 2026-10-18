@@ -3,7 +3,7 @@ import { describe, expect } from "@effect/vitest";
 import { Cause, Context, Effect, Layer } from "effect";
 import { HttpClient, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
+import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { daemonLayer } from "#host/daemon.ts";
 import { RPC_PATH } from "#host/daemonContract.ts";
 import { captureLogs } from "#test/captureLogs.ts";

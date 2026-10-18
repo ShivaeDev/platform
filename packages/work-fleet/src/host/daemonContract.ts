@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { command, query, stream } from "@shivaedev/effect-contract/operation.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";
 import { fleetRejections } from "#errors.ts";
 import { DaemonStatus } from "#host/configSettings.ts";

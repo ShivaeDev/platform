@@ -2,9 +2,9 @@ import { Agent } from "node:http";
 import { ByteSize, Effect, Layer, Schema } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { appHost } from "#appHost.ts";
-import { boundedRpcRequest } from "#boundedRpcRequest.ts";
+import { appHost } from "#server/appHost.ts";
 import { readBoundedBody } from "#server/boundedBody.ts";
+import { boundedRpcRequest } from "#server/boundedRpcRequest.ts";
 import { sessions } from "./fixture.ts";
 import { host } from "./story.ts";
 

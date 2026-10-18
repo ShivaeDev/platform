@@ -4,12 +4,12 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Effect, Layer, ManagedRuntime, Option, Schema } from "effect";
 import superjson from "superjson";
 import { afterAll, expect, it } from "vitest";
-import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts";
-import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/client/rejection.ts";
-import { rejectWith } from "@shivaedev/effect-trpc/rejection.ts";
-import { rejectionFormatter } from "@shivaedev/effect-trpc/rejection-formatter.ts";
-import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts";
-import { rejectedField } from "#errors/rejected-field.ts";
+import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/rejectionDecoding.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
+import { rejectWith } from "@shivaedev/effect-trpc/server/rejection.ts";
+import { rejectionFormatter } from "@shivaedev/effect-trpc/server/rejectionFormatter.ts";
+import { makeRequestServices } from "@shivaedev/effect-trpc/server/requestServices.ts";
+import { rejectedField } from "#errors/rejectedField.ts";
 import {
 	AuthUnavailable,
 	BadRequest,

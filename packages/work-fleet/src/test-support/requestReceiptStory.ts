@@ -1,6 +1,6 @@
-import { metadataModel } from "@shivaedev/work-board/metadata/model.ts";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
-import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { metadataModel } from "@shivaedev/work-board/server/metadata/model.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
+import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 
 type Trait =
 	| "managed"

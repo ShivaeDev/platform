@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { fleetStatus } from "#host/fleetStatus.ts";

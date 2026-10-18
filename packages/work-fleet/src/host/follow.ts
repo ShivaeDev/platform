@@ -1,5 +1,5 @@
 import { Effect, Stream } from "effect";
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { type FleetError, isFleetError } from "#errors.ts";
 import { daemonClient, daemonError } from "#host/daemonClient.ts";
 import { decodeFollowState, type FollowState } from "#host/followState.ts";

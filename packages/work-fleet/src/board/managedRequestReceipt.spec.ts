@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { managedRequestReceipt } from "@shivaedev/work-board/attention/managedRequestReceipt.ts";
+import { managedRequestReceipt } from "@shivaedev/work-board/server/attention/managedRequestReceipt.ts";
 import { requestReceiptStory } from "#test/requestReceiptStory.ts";
 
 it.effect("qualifies exact managed decisions and rejects authored, ambiguous and invalid receipt evidence", () =>

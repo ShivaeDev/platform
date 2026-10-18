@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { responseMarkdown } from "@shivaedev/work-board/responses/records.ts";
+import { responseMarkdown } from "@shivaedev/work-board/server/responses/records.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
 import { daemonClient } from "#host/daemonClient.ts";

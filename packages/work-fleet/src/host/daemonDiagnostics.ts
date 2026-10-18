@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { HealthSnapshot } from "#engine/health.ts";
 import { fleetItems } from "#host/fleetItems.ts";

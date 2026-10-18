@@ -3,8 +3,8 @@ import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Forbidden, Unauthorized } from "#errors/taxonomy.ts";
 import { AuthenticatedUser } from "#rpc/middleware.ts";
-import { requireAdmin } from "#rpc/require-admin.ts";
-import { type SessionPolicy, type UserSessionShape, withSessionUser } from "#rpc-server/session.ts";
+import { requireAdmin } from "#rpc/requireAdmin.ts";
+import { type SessionPolicy, type UserSessionShape, withSessionUser } from "#server/rpc-server/session.ts";
 
 export const AdminApi = RpcGroup.make(Rpc.make("adminTools", { error: Schema.Union([Unauthorized, Forbidden]), success: Schema.String })).middleware(
 	AuthenticatedUser,

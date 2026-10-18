@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import type { Where } from "better-auth";
 import { afterAll, expect as expectPromise, it as vitestIt } from "vitest";
-import { effectPrismaAdapter } from "#better-auth/adapter.ts";
+import { effectPrismaAdapter } from "#server/better-auth/adapter.ts";
 import { filterCases, filterRows } from "#test/auth/filterCases.ts";
 import { authDatabase, Database, integrationOptions, it, runtime } from "#test/auth/native.ts";
 

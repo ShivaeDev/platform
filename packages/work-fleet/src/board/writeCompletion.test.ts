@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { expect, vi } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { publication } from "@shivaedev/work-board/integration/publication.ts";
+import { publication } from "@shivaedev/work-board/server/integration/publication.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { writeCompletion } from "#board/writeCompletion.ts";

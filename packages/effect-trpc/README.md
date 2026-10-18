@@ -34,8 +34,8 @@ Create the runtime, tRPC instance and procedure builder together. This complete 
 ```ts
 import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, ManagedRuntime, Schema } from "effect";
-import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts";
-import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
+import { makeRequestServices } from "@shivaedev/effect-trpc/server/requestServices.ts";
 
 const Order = Schema.Struct({ id: Schema.String, name: Schema.String });
 
@@ -91,7 +91,7 @@ The example middleware derives a value to show the context boundary. Authenticat
 Use `extendRequestServices(base, additional)` when another procedure needs services derived from the base request Layer:
 
 ```ts
-import { extendRequestServices } from "@shivaedev/effect-trpc/request-services.ts";
+import { extendRequestServices } from "@shivaedev/effect-trpc/server/requestServices.ts";
 
 class RequestLabel extends Context.Service<RequestLabel, string>()("example/RequestLabel") {}
 
@@ -148,8 +148,8 @@ tRPC observes an `AsyncIterable`. The subscription resolver can yield request se
 Use a tagged Schema for a failure the client may understand. Configure the formatter on the tRPC instance, then apply `rejectWith` to the Effect that may fail:
 
 ```ts
-import { rejectionFormatter } from "@shivaedev/effect-trpc/rejection-formatter.ts";
-import { rejectWith } from "@shivaedev/effect-trpc/rejection.ts";
+import { rejectionFormatter } from "@shivaedev/effect-trpc/server/rejectionFormatter.ts";
+import { rejectWith } from "@shivaedev/effect-trpc/server/rejection.ts";
 import superjson from "superjson";
 
 class Conflict extends Schema.TaggedError<Conflict>()("Conflict", {
@@ -227,7 +227,7 @@ Keep the rejection Schema in a shared module the client can import. The `Conflic
 ```ts
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { Option } from "effect";
-import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/client/rejection.ts";
+import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/rejectionDecoding.ts";
 import superjson from "superjson";
 import { Conflict } from "./rejections.ts";
 import type { PublicRouter } from "./router.ts";
@@ -249,7 +249,7 @@ try {
 
 ### Once per application: explicit errors and instrumentation
 
-An explicit `TRPCError` failure retains its code and message. For example, `yield* notFound("Order not found")` from `errors.ts` produces a `NOT_FOUND` failure without declared rejection data.
+An explicit `TRPCError` failure retains its code and message. For example, `yield* notFound("Order not found")` from `server/errors.ts` produces a `NOT_FOUND` failure without declared rejection data.
 
 Use `mapError` when an application failure should become a public transport error:
 
@@ -280,7 +280,7 @@ Create the test helper in the application's test support. These definitions cont
 
 ```ts
 import { expect } from "@effect/vitest";
-import { makeTrpcIt } from "@shivaedev/effect-trpc/testing/vitest.ts";
+import { makeTrpcIt } from "@shivaedev/effect-trpc/server/testing/vitest.ts";
 
 const TestLive = Layer.succeed(Orders, {
   find: (id) => Effect.succeed({ id, name: "Test lamps" }),
@@ -302,7 +302,7 @@ The test yields the real router's caller as an Effect. Test services override ma
 Use `makeTrpcHarnessIt` to return application fixtures together with the caller:
 
 ```ts
-import { makeTrpcHarnessIt } from "@shivaedev/effect-trpc/testing/vitest.ts";
+import { makeTrpcHarnessIt } from "@shivaedev/effect-trpc/server/testing/vitest.ts";
 
 const harnessIt = makeTrpcHarnessIt({
   adapter,
@@ -337,19 +337,19 @@ Import each name from its defining `@shivaedev/effect-trpc/<module>.ts`; there i
 
 | Module | Public names |
 | --- | --- |
-| `adapter.ts` | `makeEffectTRPC`, `EffectTRPCAdapter` (`procedure`, `runWithServices`), `EffectTRPCRuntime`, `MakeEffectTRPCOptions` |
-| `procedure.ts` | `EffectProcedureBuilder`: `input`, `output`, `query`, `mutation`, `subscription` |
-| `request-services.ts` | `makeRequestServices`, `extendRequestServices`, `EffectProcedureRequestServices` |
-| `request-signal.ts` | `RequestSignal`, an Effect reference typed as `AbortSignal \| undefined` |
-| `types.ts` | `ProcedureKind`, `ProcedureInfo`, `EffectTRPCErrorContext`, `EffectTRPCErrorMapper`, `EffectTRPCInstrument`, `EffectTRPCStreamInstrument` |
-| `errors.ts` | `fail`, `badRequest`, `unauthorized`, `forbidden`, `notFound`, `conflict`, `preconditionFailed`, `internalServerError` |
-| `rejection.ts` | `rejectWith`, `rejectionCode`, `RejectionError`, `DeclaredRejection`, `RejectWithOptions` |
-| `rejection-formatter.ts` | `rejectionFormatter`, `withRejection`, `RejectionData`, `RejectionErrorShape` |
-| `rejectionDecoding.ts`, `client/rejection.ts` | `rejectionOf`, `decodeRejection`, `EncodedRejection` |
-| `testing/caller.ts` | `makeEffectCaller`, `makeEffectCallerFactory`, `EffectCaller`, `EffectCallerFactory` |
-| `testing/vitest.ts` | `makeTrpcIt`, `makeTrpcHarnessIt` |
-| `testing/types.ts` | `CallerOptions`, `CallerResult`, `MakeTrpcItOptions`, `MakeTrpcHarnessItOptions`, `TrpcIt`, `TrpcTest`, `TrpcTester`, `TrpcHarnessIt`, `TrpcHarnessTest`, `TrpcHarnessTester` |
-| `testing/any-test-layer.ts` | `AnyTestLayer` |
+| `server/adapter.ts` | `makeEffectTRPC`, `EffectTRPCAdapter` (`procedure`, `runWithServices`), `EffectTRPCRuntime`, `MakeEffectTRPCOptions` |
+| `server/EffectProcedureBuilder.ts` | `EffectProcedureBuilder`: `input`, `output`, `query`, `mutation`, `subscription` |
+| `server/requestServices.ts` | `makeRequestServices`, `extendRequestServices`, `EffectProcedureRequestServices` |
+| `server/RequestSignal.ts` | `RequestSignal`, an Effect reference typed as `AbortSignal \| undefined` |
+| `server/types.ts` | `ProcedureKind`, `ProcedureInfo`, `EffectTRPCErrorContext`, `EffectTRPCErrorMapper`, `EffectTRPCInstrument`, `EffectTRPCStreamInstrument` |
+| `server/errors.ts` | `fail`, `badRequest`, `unauthorized`, `forbidden`, `notFound`, `conflict`, `preconditionFailed`, `internalServerError` |
+| `server/rejection.ts` | `rejectWith`, `rejectionCode`, `RejectionError`, `DeclaredRejection`, `RejectWithOptions` |
+| `server/rejectionFormatter.ts` | `rejectionFormatter`, `withRejection`, `RejectionData`, `RejectionErrorShape` |
+| `rejectionDecoding.ts`, `rejectionDecoding.ts` | `rejectionOf`, `decodeRejection`, `EncodedRejection` |
+| `server/testing/caller.ts` | `makeEffectCaller`, `makeEffectCallerFactory`, `EffectCaller`, `EffectCallerFactory` |
+| `server/testing/vitest.ts` | `makeTrpcIt`, `makeTrpcHarnessIt` |
+| `server/testing/types.ts` | `CallerOptions`, `CallerResult`, `MakeTrpcItOptions`, `MakeTrpcHarnessItOptions`, `TrpcIt`, `TrpcTest`, `TrpcTester`, `TrpcHarnessIt`, `TrpcHarnessTest`, `TrpcHarnessTester` |
+| `server/testing/AnyTestLayer.ts` | `AnyTestLayer` |
 
 `rejectWith` removes the declared schema types from the Effect's error channel and adds `RejectionError`.
 

@@ -49,6 +49,7 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",
 		"esbuild": "catalog:",

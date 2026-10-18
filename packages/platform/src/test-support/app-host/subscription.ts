@@ -1,5 +1,5 @@
 import { type ClientRequest, type IncomingMessage, request } from "node:http";
-import { type NodeSubscriptionSignal, nodeSubscriptionSignal } from "#node-http/subscription-signal.ts";
+import { type NodeSubscriptionSignal, nodeSubscriptionSignal } from "#server/node-http/subscriptionSignal.ts";
 import { type HostState, io } from "./state.ts";
 
 export interface SubscriptionState {

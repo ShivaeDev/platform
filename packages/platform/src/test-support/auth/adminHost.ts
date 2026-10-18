@@ -8,9 +8,9 @@ import { Migrator } from "effect/sql";
 import { Pool } from "pg";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { appHost } from "#appHost.ts";
-import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";
-import { authenticatedUserLayer } from "#rpc-server/session.ts";
+import { appHost } from "#server/appHost.ts";
+import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
+import { authenticatedUserLayer } from "#server/rpc-server/session.ts";
 import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
 
 export const startAdminHost = Effect.gen(function* () {

@@ -1,7 +1,7 @@
 import { Data, Effect, Layer, type Option, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { useCreate } from "#create.ts";
-import { useEditor } from "#editor.ts";
+import { useCreate } from "#client/create.ts";
+import { useEditor } from "#client/editor.ts";
 
 const query = Atom.make(Effect.succeed({ id: 1, title: "Quarterly report" }));
 const fields = Schema.Struct({ title: Schema.String });

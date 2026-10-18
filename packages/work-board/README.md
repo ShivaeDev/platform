@@ -292,24 +292,24 @@ Reported `evidence.checked_revision` is a Git revision, distinct from the report
 
 ### API and integration
 
-Import the module that defines a name. The package has no root entry; its manifest maps `./*.ts` to defining source/declaration/runtime modules, including nested paths. The main integration surfaces are:
+Import the module that defines a name. The package has no root entry; a module's import path is its path under `src/`, which the `./*.ts` export maps to its source, declaration and runtime files. The browser bundle sources under `client/` stay unexported, except `client/client.ts` and `client/document/View.ts`. The main integration surfaces are:
 
 | Module | Names and purpose |
 | --- | --- |
-| `board.ts` | `BoardOptions`, `boardLayer(options)`: Effect HTTP router Layer for the workspace |
-| `serve.ts` | `ServeOptions`, `HOST`, `serveBoard(options)`: loopback Board serving through Platform’s `appHost` |
-| `responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
-| `browser/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
+| `server/board.ts` | `BoardOptions`, `boardLayer(options)`: Effect HTTP router Layer for the workspace |
+| `server/serve.ts` | `ServeOptions`, `HOST`, `serveBoard(options)`: loopback Board serving through Platform’s `appHost` |
+| `server/responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
+| `client/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
 | `rpc/contract.ts` | `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
-| `browser/document/schema.ts`, `browser/document/View.ts` | `Document`, `DocumentRequest`, `DocumentView`, `DocumentViewProps`: source query data and React document rendering |
+| `browser/document/schema.ts`, `client/document/View.ts` | `Document`, `DocumentRequest`, `DocumentView`, `DocumentViewProps`: source query data and React document rendering |
 | `rpc/responseContract.ts` | `responseContract`: question/read/wait queries and register/record commands |
 | `rpc/handoffContract.ts` | `handoffContract`: source/history queries and reviewed preparation command |
-| `browser/navigation/schema.ts` | `Navigation`: compact navigation result schema/type |
+| `browser/Navigation.ts` | `Navigation`: compact navigation result schema/type |
 | `browser/navigation/library.ts` | `Library`, `LibraryFile`, `LibraryInput`: titled document and folder query schemas |
 | `browser/responses/schema.ts` | Question, response, answer and draft schemas/types |
 | `rpc/rejections.ts` | `documentRejections`, `DocumentRejection`, `responseRejections`, `ResponseRejection`: declared taxonomy and application errors; `PublicationUncertain` and `Unanswered` |
 | `browser/handoffs/schema.ts` | Handoff record, input, reading and source-preview schemas/types |
-| `metadata/schema.ts`, `metadata/parse.ts`, `metadata/model.ts` | Source schemas, parsed fields/diagnostics and explicit identity/reference model |
+| `metadata/schema.ts`, `server/metadata/parse.ts`, `server/metadata/model.ts` | Source schemas, parsed fields/diagnostics and explicit identity/reference model |
 
 Other defining modules are also exposed by the wildcard. Their [source directory](https://github.com/ShivaeDev/platform/tree/main/packages/work-board/src) contains file/watch, HTTP, rendering, search, views and result-review helpers. Compose `boardLayer` to retain the package's source policy and request guards.
 
@@ -317,7 +317,7 @@ Other defining modules are also exposed by the wildcard. Their [source directory
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
-import { boardLayer } from "@shivaedev/work-board/board.ts";
+import { boardLayer } from "@shivaedev/work-board/server/board.ts";
 import { Layer } from "effect";
 import { HttpRouter } from "effect/http";
 
@@ -341,7 +341,7 @@ try {
 
 ```ts
 import { Effect } from "effect";
-import { agentRequest } from "@shivaedev/work-board/responses/agent.ts";
+import { agentRequest } from "@shivaedev/work-board/server/responses/agent.ts";
 
 const question = await Effect.runPromise(
   agentRequest("question", {
@@ -357,7 +357,7 @@ Read the returned context before registration. This second program takes the rev
 
 ```ts
 import { Effect } from "effect";
-import { agentRequest } from "@shivaedev/work-board/responses/agent.ts";
+import { agentRequest } from "@shivaedev/work-board/server/responses/agent.ts";
 
 const [revision] = process.argv.slice(2);
 if (!revision) throw new Error("Pass the reviewed revision as the first argument.");
@@ -378,7 +378,7 @@ console.log(JSON.stringify(answer, null, 2));
 #### Use the native browser client
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/browser/client.ts";
+import { browserClient } from "@shivaedev/work-board/client/client.ts";
 
 export async function registerReviewedQuestion(url: string, revision: string) {
   const client = browserClient(url);
@@ -416,7 +416,7 @@ Each criterion shows its progress split in one small line, targeting items and r
 For a handoff, first read the preview with `client.run(client.handoffs.handoffSource.run({ item: "work.search" }))` and inspect its `context`. This complete program takes that reviewed path and revision as inputs:
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/browser/client.ts";
+import { browserClient } from "@shivaedev/work-board/client/client.ts";
 
 export async function prepareReviewedHandoff(
   url: string,
@@ -452,7 +452,7 @@ Pass `preview.source` and `preview.reviewedRevision` only after reviewing the pr
 Result reading returns the report, linked criteria and revision-pinned feedback from its typed query:
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/browser/client.ts";
+import { browserClient } from "@shivaedev/work-board/client/client.ts";
 
 export async function readReturnedResult(url: string, item: string) {
   const client = browserClient(url);
@@ -476,7 +476,7 @@ RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `
 
 Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities reject with `NotFound` and `Conflict`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
 
-Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router. Its route loaders read document and projection contract queries through `effect-react` in the shell's native registry; preloading and navigation share those reads. Document and item pages mount `DocumentView` from the typed document query; Today, Goals, Now, Library and System render typed projection queries in React, as do Workspace notes, Start, Handoff and Result. Their direct URLs load the shell and require JavaScript. The HTML page RPC is removed. The optional `reading` data supplies source context, backlinks, criterion claims and managed receipts; request `prompts` supply answer controls. Hosts can mount `DocumentView` directly from source-query data, or pass `context` and `introduction` React nodes for its document layout.
+Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/client/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router. Its route loaders read document and projection contract queries through `effect-react` in the shell's native registry; preloading and navigation share those reads. Document and item pages mount `DocumentView` from the typed document query; Today, Goals, Now, Library and System render typed projection queries in React, as do Workspace notes, Start, Handoff and Result. Their direct URLs load the shell and require JavaScript. The HTML page RPC is removed. The optional `reading` data supplies source context, backlinks, criterion claims and managed receipts; request `prompts` supply answer controls. Hosts can mount `DocumentView` directly from source-query data, or pass `context` and `introduction` React nodes for its document layout.
 
 #### Headless addon API
 
@@ -484,17 +484,17 @@ Work Fleet uses five server entry points and one portable metadata type entry po
 
 | Entry point | API object and members |
 | --- | --- |
-| `integration/board.ts` | `board`: `metadataParse`, `metadataModel`, `listMarkdown`, `markdownPath`, `watchChanges`, `searchSnapshot`; exported types `Diagnostic`, `ParsedMetadata`, `MetadataDocument`, `MetadataModel`, `MarkdownFile`, `Changes`, `Snapshot` |
+| `server/integration/board.ts` | `board`: `metadataParse`, `metadataModel`, `listMarkdown`, `markdownPath`, `watchChanges`, `searchSnapshot`; exported types `Diagnostic`, `ParsedMetadata`, `MetadataDocument`, `MetadataModel`, `MarkdownFile`, `Changes`, `Snapshot` |
 | `integration/metadata.ts` | Portable types `Diagnostic`, `ParsedMetadata`, `MetadataDocument`, `MetadataModel`, also available through `integration/board.ts` |
-| `integration/responses.ts` | `responses`: `Responses`, `Workspace`, `WorkspaceConfig`, `readResponses`, `currentResponses`, `makeResponse`, `publish`, `revisionOf`, `questionId`, `questionFrom`, `questionMarkdown`, `responseMarkdown`, `DraftInput`, `Question`, `Reading`, `RecordedResponse`; exported types `DraftInput`, `Question`, `Reading`, `RecordedResponse`, `WorkspaceOptions` |
-| `integration/attention.ts` | `attention`: `RequestReceipt`, `managedRequestReceipt`, `projection(snapshot)`; exported types `RequestReceipt`, `AttentionProjection` |
-| `integration/diagnostics.ts` | `diagnostics`: `FleetHealth`, `CapacityRejection`, `FLEET_HEALTH_NAME`, `fleetHealth`, `DiagnosticsContract`, `DAEMON_PORT`, `DAEMON_RPC_PATH`, `DiagnosticsSources`, `SourceFailure`, `diagnostics`, `codexRateLimits`, `codexLimits`, `githubLimits`; exported types `FleetHealth`, `CapacityRejection`, `SourceFailure` |
-| `integration/publication.ts` | `publication`: `directoryPath`, `validateDirectory` for addons that publish their own records through open directory handles |
+| `server/integration/responses.ts` | `responses`: `Responses`, `Workspace`, `WorkspaceConfig`, `readResponses`, `currentResponses`, `makeResponse`, `publish`, `revisionOf`, `questionId`, `questionFrom`, `questionMarkdown`, `responseMarkdown`, `DraftInput`, `Question`, `Reading`, `RecordedResponse`; exported types `DraftInput`, `Question`, `Reading`, `RecordedResponse`, `WorkspaceOptions` |
+| `server/integration/attention.ts` | `attention`: `RequestReceipt`, `managedRequestReceipt`, `projection(snapshot)`; exported types `RequestReceipt`, `AttentionProjection` |
+| `server/integration/diagnostics.ts` | `diagnostics`: `FleetHealth`, `CapacityRejection`, `FLEET_HEALTH_NAME`, `fleetHealth`, `DiagnosticsContract`, `DAEMON_PORT`, `DAEMON_RPC_PATH`, `DiagnosticsSources`, `SourceFailure`, `diagnostics`, `codexRateLimits`, `codexLimits`, `githubLimits`; exported types `FleetHealth`, `CapacityRejection`, `SourceFailure` |
+| `server/integration/publication.ts` | `publication`: `directoryPath`, `validateDirectory` for addons that publish their own records through open directory handles |
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { board } from "@shivaedev/work-board/integration/board.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
 
 const read = Effect.scoped(Effect.gen(function* () {
   const changes = yield* board.watchChanges("./notes");
