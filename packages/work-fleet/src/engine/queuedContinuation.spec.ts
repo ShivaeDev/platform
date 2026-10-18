@@ -31,7 +31,11 @@ for (const stage of ["needs-human", "completed"] as const) {
 			expect(queued.history).toBeUndefined();
 			yield* fleet.rebuild();
 			yield* fleet.schedule();
-			expect((yield* fleet.get("one")).value.pendingContinuation).toBe("Fix the remaining case");
+			expect((yield* fleet.get("one")).value).toMatchObject({
+				attentionOwner: "automation",
+				blocker: "execution capacity is occupied (limit 2)",
+				pendingContinuation: "Fix the remaining case",
+			});
 			yield* fleet.finishWorker("two");
 			yield* fleet.reconcile("two");
 			expect(yield* fleet.attemptDispatch("four")).toMatchObject({ _tag: "StorageCapacity", kind: "merge-work" });
@@ -47,6 +51,9 @@ for (const stage of ["needs-human", "completed"] as const) {
 			});
 			expect(resumed.history).toHaveLength(1);
 			expect(resumed.history?.[0]?.review).toEqual(terminal.review);
+			expect(resumed.history?.[0]).not.toHaveProperty("pendingContinuation");
+			expect(resumed.history?.[0]?.attentionOwner).toBe(terminal.attentionOwner);
+			expect(resumed.history?.[0]?.blocker).toBe(terminal.blocker);
 			expect((yield* fleet.get("three")).value.stage).toBe("executing");
 			expect((yield* fleet.get("four")).value.stage).toBe("prepared");
 			yield* fleet.schedule();

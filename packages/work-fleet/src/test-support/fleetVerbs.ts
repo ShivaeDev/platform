@@ -59,6 +59,10 @@ export function fleetVerbs(engine: FleetStoryState, story: { readonly tell: (mes
 				workId: id,
 			});
 		},
+		providerQuota: (available: number) => {
+			story.tell(`the provider now reports quota for ${available} submissions`);
+			engine.options = { ...engine.options, quota: available };
+		},
 		rebuild: () =>
 			Effect.gen(function* () {
 				story.tell("Fleet rebuilds its runtime against saved records");
@@ -69,6 +73,11 @@ export function fleetVerbs(engine: FleetStoryState, story: { readonly tell: (mes
 			return runtime.fleet.reconcile(id).pipe(Effect.provideService(CommittedSink, (changes) => Effect.sync(() => engine.commits.push(changes))));
 		},
 		recordedSchedulerLogs: () => engine.logs.entries,
+		reviseBrief: (id: string, revision: string) => {
+			story.tell(`the approved Board brief for ${id} changes to ${revision}`);
+			fixture.editWork(id, revision);
+			fixture.approveWork(id, revision);
+		},
 		schedule: () => {
 			story.tell("Fleet runs a scheduler pass");
 			return cycle.pipe(Effect.provideService(Fleet, runtime.fleet), Effect.provide(engine.logs.layer));

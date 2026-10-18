@@ -1,8 +1,8 @@
-import { Option } from "effect";
+import { Effect, Option } from "effect";
 import { fleetStory } from "#test/fleetStory.ts";
 
 export const continuationCapacity = fleetStory.trait("configuration", "two execution slots", (engine) => {
-	engine.options = { ...engine.options, concurrency: 2 };
+	engine.options = { ...engine.options, backlog: 4, concurrency: 2 };
 });
 
 export const completedContinuation = fleetStory.trait("configuration", "completed results", (engine) => {
@@ -22,4 +22,11 @@ export const fourApproved = fleetStory.trait("board", "four approved items", (en
 
 export const singleSlot = fleetStory.trait("configuration", "one execution slot and no-change results", (engine) => {
 	engine.options = { ...engine.options, concurrency: 1, noChange: true };
+});
+
+export const observedQuota = fleetStory.trait("configuration", "the provider reports fresh quota", (engine) => {
+	engine.options = {
+		...engine.options,
+		refreshQuota: () => Effect.succeed({ available: engine.options.quota ?? 100, expiresAt: Number.MAX_SAFE_INTEGER, observedAt: 0 }),
+	};
 });
