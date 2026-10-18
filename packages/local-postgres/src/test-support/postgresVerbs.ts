@@ -45,6 +45,7 @@ export function postgresVerbs(engine: PostgresEngine, tell: (line: string) => vo
 					engine.startup?.done(expectedProbes);
 				}
 			}),
+		subprocessCalls: () => engine.calls,
 		verifyDocker: () => {
 			tell("check the Docker daemon");
 			return localDocker(["info"]);
