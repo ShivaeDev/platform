@@ -6,7 +6,7 @@ import { app, signedIn } from "#test-support/application.ts";
 app.it(
 	"keeps concurrent signed-in profiles and note ownership separate and revokes access at sign-out",
 	[signedIn(), signedIn("bob")],
-	function* ({ actor, anonymous, authenticate, storedNoteOwners }) {
+	function* ({ actor, anonymous, signOut, storedNoteOwners }) {
 		const { cookie: aliceCookie, notes: alice } = actor();
 		const bob = actor("bob").notes;
 		const profiles = yield* Effect.all(
@@ -32,7 +32,7 @@ app.it(
 		const anonymousProfile = yield* signedOut.whoami().pipe(Effect.flip);
 		expect(anonymousProfile).toMatchObject({ _tag: "Unauthorized" });
 		expect(anonymousProfile).toBeInstanceOf(Unauthorized);
-		yield* authenticate("alice", "sign-out", aliceCookie);
+		yield* signOut(aliceCookie);
 		const revokedProfile = yield* alice.whoami().pipe(Effect.flip);
 		expect(revokedProfile).toMatchObject({ _tag: "Unauthorized" });
 		expect(revokedProfile).toBeInstanceOf(Unauthorized);

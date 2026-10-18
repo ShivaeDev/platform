@@ -8,6 +8,7 @@ import { storyDatabase } from "#test-support/storyDatabase.ts";
 import type { Engine } from "./applicationState.ts";
 import { applicationVerbs } from "./applicationVerbs.ts";
 import { DatabaseLifetime } from "./DatabaseLifetime.ts";
+import { mintUser } from "./sessionPrecondition.ts";
 import { workerQueue } from "./workerQueue.ts";
 
 export const app = storyKit({
@@ -44,8 +45,9 @@ export function signedIn(name = "alice") {
 			return yield* Effect.die("Host has not started");
 		}
 		const http = requests(engine.host, (line) => engine.tell(line));
-		const cookie = yield* http.authenticate(name);
-		engine.actors.set(name, { cookie, notes: yield* http.notes(cookie) });
+		const { headers, user } = yield* mintUser(engine.host, name);
+		const cookie = headers.get("cookie") ?? "";
+		engine.actors.set(name, { cookie, notes: yield* http.notes(cookie), userId: user.id });
 	});
 }
 

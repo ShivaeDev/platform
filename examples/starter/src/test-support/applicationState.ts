@@ -8,6 +8,7 @@ import type { workerQueue } from "./workerQueue.ts";
 export interface Actor {
 	readonly cookie: string;
 	readonly notes: Effect.Success<ReturnType<ReturnType<typeof requests>["notes"]>>;
+	readonly userId: string;
 }
 
 export interface Engine {

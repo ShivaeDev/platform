@@ -3,6 +3,7 @@ import { Migrator } from "effect/sql";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { signedInUser } from "#server/better-auth/testing.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
 import { startAdminHost } from "./adminHost.ts";
 import { adminVerbs } from "./adminVerbs.ts";
@@ -27,12 +28,8 @@ export const auth = storyKit({
 
 export function signedInWithRole(role?: string) {
 	return auth.trait("session", `a session is minted for a user with role ${role ?? "unset"}`, function* (host) {
-		// Better Auth's test helper mints the signed-in precondition without hashing a password.
-		const { test } = yield* Effect.promise(() => host.auth.$context);
-		const user = yield* Effect.promise(() =>
-			test.saveUser(test.createUser({ email: "member@example.test", ...(role === undefined ? {} : { role }) })),
-		);
-		host.userId = user.id;
-		host.headers = yield* Effect.promise(() => test.getAuthHeaders({ userId: user.id }));
+		const session = yield* Effect.promise(() => signedInUser(host.auth, { email: "member@example.test", ...(role === undefined ? {} : { role }) }));
+		host.userId = session.user.id;
+		host.headers = session.headers;
 	});
 }

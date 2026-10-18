@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { domFetch } from "#domFetch.ts";
 import { domNavigate } from "#domNavigate.ts";
 import { routeOutbound } from "#routeOutbound.ts";
+import { seedCookies } from "#seedCookies.ts";
 import { storyKit } from "#storyKit.ts";
 import { domHost } from "#test/domHost.ts";
 
@@ -49,9 +50,10 @@ export const documentApp = storyKit({
 	},
 	name: "document",
 	stages: ["page"],
-	verbs: ({ baseUrl, fetch }) => ({
+	verbs: ({ baseUrl, fetch }, story) => ({
 		cookies: () => document.cookie,
 		heading: () => document.querySelector("h1")?.textContent,
+		hostRequest: () => Effect.promise(async () => (await fetch("/echo")).json()),
 		hostUrl: () => baseUrl,
 		loadPage: () => Effect.promise(() => domNavigate("https://provider.test/page")),
 		location: () => window.location.href,
@@ -66,6 +68,14 @@ export const documentApp = storyKit({
 					}),
 				),
 			),
+		seedSession: () => {
+			story.tell("seed a secure HttpOnly session precondition");
+			return seedCookies([
+				{ httpOnly: true, name: "session", path: "/", secure: true, value: "minted-session" },
+				{ name: "theme", path: "/", secure: true, value: "dark" },
+			]);
+		},
+		storeCookie: () => Effect.promise(() => window.cookieStore.set("preference", "compact")),
 		syncRequest: () => {
 			const request = new window.XMLHttpRequest();
 			let message: string | undefined;
