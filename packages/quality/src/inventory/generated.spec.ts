@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { quality } from "#test/cli.ts";
+import { CLI_EXIT, quality } from "#test/cli.ts";
 import { generatedAuthored } from "#test/generatedAuthored.ts";
 import { removeSeededTrees } from "#test/tree.ts";
 
@@ -11,7 +11,7 @@ describe("authored code in generated folders", () => {
 	it("checks tracked ignored files with source, naming, suppression and Biome rules", () => {
 		const root = generatedAuthored();
 		const result = quality(root, "lint");
-		expect(result.status).toBe(1);
+		expect(result.status).toBe(CLI_EXIT.rejected);
 		for (const rule of [
 			"structure/max-lines",
 			"suppressions/no-inline",
@@ -28,7 +28,7 @@ describe("authored code in generated folders", () => {
 
 	it("fixes authored tracked files in generated folders while leaving generated output alone", () => {
 		const root = generatedAuthored();
-		expect(quality(root, "fix").status).toBe(0);
+		expect(quality(root, "fix").status).toBe(CLI_EXIT.passed);
 		expect(readFileSync(join(root, "src/generated/WrongFolder/badName.ts"), "utf8")).not.toContain("debugger;");
 		expect(readFileSync(join(root, "src/generated/output.ts"), "utf8")).toContain("debugger;");
 	});

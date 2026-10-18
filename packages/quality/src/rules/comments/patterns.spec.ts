@@ -5,14 +5,9 @@ import { noEnvironmentPragma } from "#rules/comments/noEnvironmentPragma.ts";
 import { noLineReference } from "#rules/comments/noLineReference.ts";
 import { noPrReference } from "#rules/comments/noPrReference.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
-import { checkRule, issuesOf } from "#test/inputs.ts";
+import { commentFindings } from "#test/commentFindings.ts";
+import { issuesOf } from "#test/inputs.ts";
 import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "#test/pragmas.ts";
-
-async function messagesFor(rule: Rule<string, undefined>, comment: string) {
-	return (await checkRule(rule, undefined, { sources: [{ content: `export const a = 1;\n${comment}\n`, path: "src/a.ts" }] })).map(
-		(finding) => `${finding.line} ${finding.message}`,
-	);
-}
 
 interface Case {
 	readonly fires: ReadonlyArray<readonly [string, string]>;
@@ -90,14 +85,14 @@ const cases: readonly Case[] = [
 
 describe.each(cases)("$rule.id", ({ fires, quiet, rule }) => {
 	it.each(fires)("fires on %j", async (comment, match) => {
-		const [finding, ...rest] = await messagesFor(rule, comment);
+		const [finding, ...rest] = await commentFindings(rule, comment);
 		expect(rest).toEqual([]);
 		expect(finding).toMatch(/^2 /u);
 		expect(finding).toContain(`"${match}"`);
 	});
 
 	it.each(quiet)("stays quiet on %j", async (comment) => {
-		expect(await messagesFor(rule, comment)).toEqual([]);
+		expect(await commentFindings(rule, comment)).toEqual([]);
 	});
 
 	it("takes no options", async () => {
