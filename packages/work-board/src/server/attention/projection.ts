@@ -21,6 +21,7 @@ export function attentionProjection(snapshot: Snapshot): InboxProjection {
 	const issues = attentionRequests(snapshot).issues;
 	const projection = {
 		agents: requests.items.filter((item) => !item.responseFrom.includes(snapshot.maintainer ?? "maintainer")).map(project),
+		answered: requests.answered.map(project),
 		complete: snapshot.unavailable.length === 0,
 		issues,
 		items: you,

@@ -1,4 +1,7 @@
+import type { Metadata } from "#metadata/schema.ts";
+import type { Prompt } from "./Prompt.ts";
 import { reasonMarkdown } from "./reasonMarkdown.ts";
+import type { PromptAnswer } from "./schema.ts";
 
 export function cardContext(source: string) {
 	const recommendation = reasonMarkdown(section(source, "Recommendation"));
@@ -53,4 +56,15 @@ function nextFence(current: string | undefined, marker: string) {
 export function promptHeading(source: string) {
 	const heading = /^#{1,6}\s+(?<title>.+)$/mu.exec(source);
 	return { rest: heading ? source.replace(heading[0], "").trim() : source.trim(), title: heading?.groups?.title?.trim() };
+}
+
+export function chosenLabels(prompts: readonly Prompt[], answers: readonly PromptAnswer[] | undefined, options?: Metadata["options"]) {
+	return prompts
+		.flatMap((prompt) => {
+			const selected = answers?.find((answer) => answer.prompt === prompt.id)?.selected ?? [];
+			return prompt.options.flatMap((option, index) =>
+				selected.includes(option.id) ? [options?.[index]?.label ?? optionText(option.id, option.source).label] : [],
+			);
+		})
+		.join(", ");
 }

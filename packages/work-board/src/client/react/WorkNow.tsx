@@ -14,7 +14,7 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 			? fleet.completed.filter((item) => item.completedAt >= Effect.runSync(Clock.currentTimeMillis) - 604_800_000).map((item) => item.workId)
 			: [],
 	);
-	const groups = Map.groupBy(data.rows, (item) => laneOf(item.metadata, items.get(item.id), item.fleetApproved));
+	const groups = Map.groupBy(data.rows, (item) => laneOf(item.metadata, items.get(item.id), item.fleetApproved, item.answered !== undefined));
 	return (
 		<>
 			{!ready && (
