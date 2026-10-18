@@ -1,7 +1,7 @@
-import { Option } from "effect";
+import process from "node:process";
 import { expect } from "vitest";
 import { HOLDER_ID_ENV } from "#holder.ts";
-import { environment, heldBy, lockStory } from "#test/kit.ts";
+import { environment, heldBy, lockStory, workingDirectory } from "#test/kit.ts";
 
 const live = { clock: "live", timeout: 20_000 } as const;
 
@@ -22,7 +22,10 @@ lockStory.it(
 	"a nested heavy command runs under the same lock",
 	[],
 	function* ({ cli, lock }) {
-		expect(yield* cli.nested()).toEqual({ status: 3, stderr: "" });
+		expect(yield* cli.command([process.execPath, "--conditions=source", cli.path, "--", "/bin/sh", "-c", "exit 3"])).toEqual({
+			status: 3,
+			stderr: "",
+		});
 		expect(lock.contents()).toBeUndefined();
 	},
 	live,
@@ -32,13 +35,15 @@ lockStory.it(
 	"a second command waits for the first and names it",
 	[],
 	function* ({ cli, lock }) {
-		const first = yield* cli.startHolding();
-		const second = yield* cli.startWaiting();
+		const first = yield* cli.start(cli.holdingCommand);
+		yield* cli.waitForLock();
+		const second = yield* cli.start(["true"]);
+		yield* cli.waitForWaiting(second);
 		yield* cli.release();
 		const waited = yield* cli.exit(second);
-		expect((yield* cli.exit(first.child)).status).toBe(0);
+		expect((yield* cli.exit(first)).status).toBe(0);
 		expect(waited.status).toBe(0);
-		expect(waited.stderr).toContain(`waiting for pid ${first.child.pid} running \`${first.command}\``);
+		expect(waited.stderr).toContain(`waiting for pid ${first.pid} running \`${cli.holdingCommand.join(" ")}\``);
 		expect(waited.stderr).toMatch(/acquired after \d+s/u);
 		expect(lock.contents()).toBeUndefined();
 	},
@@ -47,13 +52,15 @@ lockStory.it(
 
 lockStory.it(
 	"the recorded holder follows the shared protocol and uses the C locale",
-	[],
+	[environment({ "LANG": "de_DE.UTF-8", "LC_ALL": "de_DE.UTF-8" }), workingDirectory("/")],
 	function* ({ cli, lock }) {
-		const { child, command, processStartedAt } = yield* cli.startHolding();
+		const child = yield* cli.start(cli.holdingCommand);
+		yield* cli.waitForLock();
+		const processStartedAt = cli.processStart(child);
 		const recorded = lock.contents() ?? "";
 		const { id, startedAtMs } = JSON.parse(recorded);
 		expect(recorded).toBe(
-			`{"id":"${id}","pid":${child.pid},"processStartedAt":"${Option.getOrThrow(processStartedAt)}","command":${JSON.stringify(command)},"cwd":"/","startedAtMs":${startedAtMs}}`,
+			`{"id":"${id}","pid":${child.pid},"processStartedAt":"${processStartedAt}","command":${JSON.stringify(cli.holdingCommand.join(" "))},"cwd":"/","startedAtMs":${startedAtMs}}`,
 		);
 		yield* cli.release();
 		expect((yield* cli.exit(child)).status).toBe(0);

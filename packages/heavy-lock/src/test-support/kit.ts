@@ -1,3 +1,5 @@
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
@@ -49,4 +51,22 @@ export function invalidHolder(kind: "unversioned" | "malformed") {
 
 export function referenceLock() {
 	return lockStory.trait("holder", "the reference protocol names a live holder", (engine) => referenceContent(engine));
+}
+
+export function workingDirectory(cwd: string) {
+	return lockStory.trait("configuration", `the CLI runs in ${cwd}`, (engine) => {
+		engine.cliOptions.cwd = cwd;
+	});
+}
+
+export function processLookupFails(mode: "missing" | "empty") {
+	return lockStory.trait("configuration", `ps is ${mode === "missing" ? "missing" : "empty"}`, (engine) => {
+		const bin = join(engine.directory, "bin");
+		mkdirSync(bin);
+		if (mode === "empty") {
+			writeFileSync(join(bin, "ps"), "#!/bin/sh\nexit 0\n");
+			chmodSync(join(bin, "ps"), 0o755);
+		}
+		engine.env.PATH = bin;
+	});
 }

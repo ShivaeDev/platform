@@ -1,10 +1,9 @@
 import { readFileSync } from "node:fs";
 import process from "node:process";
-import { Effect, Option } from "effect";
 import type { Holder } from "#holder.ts";
 import { tryAcquire } from "#lock-file.ts";
-import { processStartTime } from "#process-start.ts";
 import { type Lock, writeLock } from "./lock.ts";
+import { startTime } from "./startTime.ts";
 
 const reference = readFileSync(new URL("./fixtures/reference-holder.lock", import.meta.url), "utf8");
 const referenceHolder: Holder = {
@@ -16,19 +15,14 @@ const referenceHolder: Holder = {
 	startedAtMs: 1_790_409_600_123,
 };
 
-export const referenceContent = Effect.fn("LockStory.referenceContent")(function* (engine: Lock) {
-	const started = Option.getOrThrow(yield* processStartTime(process.pid));
+export function referenceContent(engine: Lock) {
+	const started = startTime(process.pid);
 	writeLock(engine.lock, reference.replace('"pid":4242', `"pid":${process.pid}`).replace(referenceHolder.processStartedAt, started));
-});
+}
 
 export function protocolVerbs(engine: Lock) {
 	return {
-		processIdentity: () =>
-			Effect.map(processStartTime(process.pid), (started) => ({
-				cwd: process.cwd(),
-				pid: process.pid,
-				processStartedAt: Option.getOrThrow(started),
-			})),
+		processIdentity: () => ({ cwd: process.cwd(), pid: process.pid, processStartedAt: startTime(process.pid) }),
 		publishReference: () => tryAcquire(engine.lock, referenceHolder),
 		reference,
 		referenceHolder,

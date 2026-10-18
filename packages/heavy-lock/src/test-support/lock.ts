@@ -6,15 +6,17 @@ import { ConfigProvider, Effect, FileSystem, Option } from "effect";
 import type { HeavyLockOptions } from "#acquire.ts";
 import type { Holder } from "#holder.ts";
 import { readHolder, reclaim, release, tryAcquire } from "#lock-file.ts";
-import { processStartTime } from "#process-start.ts";
+import { startTime } from "./startTime.ts";
 
 export const createLock = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem;
 	const directory = yield* fs.makeTempDirectoryScoped({ prefix: "heavy-lock-" });
 	const lock = join(directory, "nested", "heavy-process.lock");
 	const env: Record<string, string> = {};
+	const cliOptions: { cwd?: string } = {};
 	const holders: Record<string, Holder> = {};
 	return {
+		cliOptions,
 		directory,
 		env,
 		holders,
@@ -46,13 +48,14 @@ export const configured = Effect.fn("LockStory.configured")(function* <A, E, R>(
 
 export const makeHolder = Effect.fn("LockStory.makeHolder")(function* (id: string, kind: "live" | "stale" | "reused" = "live", startedAtMs = 0) {
 	const pid = kind === "stale" ? (spawnSync("/bin/sh", ["-c", ":"]).pid ?? 0) : process.pid;
-	const started = yield* processStartTime(pid);
+	const observed = kind === "stale" ? "never" : yield* Effect.sync(() => startTime(pid));
+
 	return {
 		command: `pnpm ${id}`,
 		cwd: "/repo",
 		id,
 		pid,
-		processStartedAt: kind === "reused" ? "Thu Jan  1 00:00:00 1970" : Option.getOrElse(started, () => "never"),
+		processStartedAt: kind === "reused" ? "Thu Jan  1 00:00:00 1970" : observed,
 		startedAtMs,
 	} satisfies Holder;
 });

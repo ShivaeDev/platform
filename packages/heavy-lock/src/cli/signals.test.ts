@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { heldBy, lockStory } from "#test/kit.ts";
+import { heldBy, lockStory, processLookupFails } from "#test/kit.ts";
 
 const live = { clock: "live", timeout: 20_000 } as const;
 
@@ -12,7 +12,8 @@ for (const [signal, code] of [
 		`forwarding ${signal} preserves the child's exit code and releases`,
 		[],
 		function* ({ cli, lock }) {
-			const child = yield* cli.startTrapping();
+			const child = yield* cli.start(cli.trappingCommand(signal, code));
+			yield* cli.waitForReady();
 			yield* cli.signal(child, signal);
 			expect((yield* cli.exit(child)).status).toBe(code);
 			expect(lock.contents()).toBeUndefined();
@@ -34,7 +35,8 @@ lockStory.it(
 	"a command killed by a signal exits with the conventional code",
 	[],
 	function* ({ cli, lock }) {
-		const child = yield* cli.startTrapping(false);
+		const child = yield* cli.start(cli.sleepingCommand);
+		yield* cli.waitForReady();
 		yield* cli.signal(child, "SIGINT");
 		expect((yield* cli.exit(child)).status).toBe(130);
 		expect((yield* cli.command(["/bin/sh", "-c", "kill -KILL $$"])).status).toBe(137);
@@ -48,7 +50,8 @@ lockStory.it(
 	[heldBy("build")],
 	function* ({ cli, lock }) {
 		const before = lock.contents();
-		const waiter = yield* cli.startWaiting();
+		const waiter = yield* cli.start(["true"]);
+		yield* cli.waitForWaiting(waiter);
 		yield* cli.signal(waiter, "SIGTERM");
 		expect((yield* cli.exit(waiter)).status).toBe(143);
 		expect(lock.contents()).toBe(before);
@@ -57,15 +60,16 @@ lockStory.it(
 	live,
 );
 
-for (const [description, fakePs, message] of [
-	["ps cannot run", "", "Could not run ps to read this process's start time."],
-	["ps returns no start time", "#!/bin/sh\nexit 0\n", "Could not read this process's start time from ps."],
+for (const [description, mode, message] of [
+	["ps cannot run", "missing", "Could not run ps to read this process's start time."],
+	["ps returns no start time", "empty", "Could not read this process's start time from ps."],
 ] as const) {
 	lockStory.it(
 		`${description} fails before the command runs`,
-		[],
+		[processLookupFails(mode)],
 		function* ({ cli, lock }) {
-			expect(yield* cli.failsProcessLookup(fakePs)).toEqual({ ran: false, status: 1, stderr: `heavy-lock: ${message}\n` });
+			expect(yield* cli.command(["/usr/bin/touch", cli.marker])).toEqual({ status: 1, stderr: `heavy-lock: ${message}\n` });
+			expect(cli.markerExists()).toBe(false);
 			expect(lock.contents()).toBeUndefined();
 		},
 		live,

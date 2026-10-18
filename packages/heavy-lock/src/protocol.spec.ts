@@ -15,10 +15,14 @@ lockStory.it("a reference-format lock naming a live process blocks acquisition",
 });
 
 lockStory.it("an acquired lock follows the protocol's key order and format", [], function* ({ run, protocol, lock }) {
-	const { recorded } = yield* run.hold();
+	const command = yield* run.start();
+	yield* run.environment(command);
+	const recorded = lock.contents();
 	const parsed: unknown = JSON.parse(recorded ?? "");
 	expect(Object.keys(parsed ?? {})).toEqual(["id", "pid", "processStartedAt", "command", "cwd", "startedAtMs"]);
 	expect(recorded).toMatch(/^\{"id":"[\w-]+","pid":\d+,"processStartedAt":"[^"]+","command":"pnpm ready","cwd":"[^"]+","startedAtMs":\d+\}$/u);
-	expect(parsed).toMatchObject(yield* protocol.processIdentity());
+	expect(parsed).toMatchObject(protocol.processIdentity());
+	yield* run.complete(command);
+	yield* run.join(command);
 	expect(lock.contents()).toBeUndefined();
 });

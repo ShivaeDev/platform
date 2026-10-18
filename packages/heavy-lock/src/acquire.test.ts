@@ -25,14 +25,20 @@ lockStory.it("a waiter names its holder, reminds every minute, then acquires and
 });
 
 lockStory.it("CI skips a lock held by another run", [heldBy("typecheck"), environment({ "CI": "true" })], function* ({ run, lock }) {
-	const skipped = yield* run.hold();
-	expect(skipped.env).toEqual({});
-	expect(skipped.holder).toEqual(Option.some(lock.holder("typecheck")));
+	const command = yield* run.start();
+	expect(yield* run.environment(command)).toEqual({});
+	expect(yield* lock.read()).toEqual(Option.some(lock.holder("typecheck")));
+	yield* run.complete(command);
+	yield* run.join(command);
+	expect(yield* lock.read()).toEqual(Option.some(lock.holder("typecheck")));
 });
 
 lockStory.it("an empty CI still acquires the lock", [environment({ "CI": "" })], function* ({ run, lock }) {
-	const taken = yield* run.hold();
-	expect(taken.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(taken.holder).id });
+	const command = yield* run.start();
+	const env = yield* run.environment(command);
+	expect(env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(yield* lock.read()).id });
+	yield* run.complete(command);
+	yield* run.join(command);
 	expect(lock.contents()).toBeUndefined();
 });
 
@@ -57,41 +63,70 @@ lockStory.it(
 	"descendants join a holder's lock and a finished holder's id acquires a fresh one",
 	[heldBy("ready"), environment({ [HOLDER_ID_ENV]: "ready" })],
 	function* ({ run, lock }) {
-		const nested = yield* run.hold();
-		expect(nested.env).toEqual({ [HOLDER_ID_ENV]: "ready" });
-		expect(nested.holder).toEqual(Option.some(lock.holder("ready")));
+		const descendant = yield* run.start();
+		expect(yield* run.environment(descendant)).toEqual({ [HOLDER_ID_ENV]: "ready" });
+		expect(yield* lock.read()).toEqual(Option.some(lock.holder("ready")));
+		yield* run.complete(descendant);
+		yield* run.join(descendant);
+		expect(yield* lock.read()).toEqual(Option.some(lock.holder("ready")));
 		yield* lock.release("ready");
-		const fresh = yield* run.hold();
-		expect(Option.map(fresh.holder, ({ id }) => id)).not.toEqual(Option.some("ready"));
-		expect(fresh.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(fresh.holder).id });
+		const fresh = yield* run.start();
+		const env = yield* run.environment(fresh);
+		const holder = Option.getOrThrow(yield* lock.read());
+		expect(holder.id).not.toBe("ready");
+		expect(env).toEqual({ [HOLDER_ID_ENV]: holder.id });
+		yield* run.complete(fresh);
+		yield* run.join(fresh);
+		expect(lock.contents()).toBeUndefined();
 	},
 );
 
 lockStory.it("acquisition inside a held lock joins the hold", [], function* ({ run, lock }) {
-	const [outer, inner] = yield* run.nested();
-	expect(inner).toEqual(outer);
+	const outer = yield* run.start();
+	const env = yield* run.environment(outer);
+	const before = lock.contents();
+	const inner = yield* run.startNested(outer);
+	expect(yield* run.environment(inner)).toEqual(env);
+	expect(lock.contents()).toBe(before);
+	yield* run.complete(inner);
+	yield* run.join(inner);
+	expect(lock.contents()).toBe(before);
+	yield* run.complete(outer);
+	yield* run.join(outer);
 	expect(lock.contents()).toBeUndefined();
 });
 
 lockStory.it("a failing command releases the lock and keeps its error", [], function* ({ run, lock }) {
-	expect(yield* run.fail()).toBe("build failed");
+	const command = yield* run.start();
+	yield* run.environment(command);
+	expect(lock.contents()).toBeDefined();
+	yield* run.fail(command, "build failed");
+	expect(yield* run.failure(command)).toBe("build failed");
 	expect(lock.contents()).toBeUndefined();
 });
 
 lockStory.it("a layer holds the lock for its scope", [], function* ({ run, lock }) {
-	expect(yield* run.layer()).toMatch(/"command":"/u);
+	const layer = yield* run.buildLayer();
+	expect(lock.contents()).toMatch(/"command":"/u);
+	yield* run.closeLayer(layer);
 	expect(lock.contents()).toBeUndefined();
 });
 
 lockStory.it("an interrupted waiter leaves its holder's lock alone and no temporary files", [heldBy("build")], function* ({ run, lock }) {
 	const before = lock.contents();
-	yield* run.interruptWaiter();
+	const waiter = yield* run.start();
+	const lines = yield* run.waitingLines();
+	expect(lines[0]).toContain("running `pnpm build`");
+	yield* run.interrupt(waiter);
 	expect(yield* lock.read()).toEqual(Option.some(lock.holder("build")));
 	expect(lock.contents()).toBe(before);
 	expect(lock.files()).toEqual(["heavy-process.lock"]);
 });
 
 lockStory.it("interrupting the running command releases its lock", [], function* ({ run, lock }) {
-	yield* run.interruptHolder();
+	const command = yield* run.start();
+	yield* run.environment(command);
+	expect(lock.contents()).toBeDefined();
+	yield* run.interrupt(command);
 	expect(lock.contents()).toBeUndefined();
 });
