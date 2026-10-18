@@ -1,13 +1,16 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
+import type { AtomRegistry } from "effect/reactivity/AtomRegistry";
+import type { ReactNode } from "react";
 import { boardRouter } from "#client/react/boardRouter.ts";
 import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
-import { renderBoard } from "./react.tsx";
+import { type BoardTestApi, renderBoard } from "./react.tsx";
 
 export async function renderRouter(
 	files: Readonly<Record<string, string>>,
 	url: string,
 	options?: BoardFixtureOptions,
-	prepare?: (api: import("./react.tsx").BoardTestApi, registry: import("effect/reactivity/AtomRegistry").AtomRegistry) => void,
+	prepare?: (api: BoardTestApi, registry: AtomRegistry) => void,
+	decorate: (node: ReactNode) => ReactNode = (node) => node,
 ) {
 	const reading = window.history.state?.workBoard;
 	let router: ReturnType<typeof boardRouter> | undefined;
@@ -17,7 +20,7 @@ export async function renderRouter(
 			prepare?.(api, registry);
 			router = boardRouter({ api, reading, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
-			return <RouterProvider router={router} />;
+			return decorate(<RouterProvider router={router} />);
 		},
 		options,
 	);

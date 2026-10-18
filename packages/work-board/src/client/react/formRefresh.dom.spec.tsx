@@ -1,18 +1,11 @@
 import { Effect } from "effect";
-import { act } from "react";
-import { afterEach, beforeEach, expect, vi } from "vitest";
+import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { routeQueryOptions } from "./routeQuery.ts";
+import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
-beforeEach(() => {
-	document.documentElement.dataset.workspace = "forms-fixture";
-});
-afterEach(() => {
-	delete document.documentElement.dataset.workspace;
-	vi.unstubAllGlobals();
-});
 const SOURCE =
 	"---\nid: task.fixture\nkind: task\nnext_action: Inspect the proof\nattention:\n - id: direction\n   kind: decision\n   state: open\n   reason: Choose a direction\n   response_from: [maintainer]\n   unblocks: [task.fixture]\n---\n# A task\n\nTask context.\n";
 const cases = [
@@ -36,69 +29,36 @@ const cases = [
 	{ field: '[name="goal"]', kind: "handoff", query: "handoff" as const, source: SOURCE, url: "/_board/handoff?item=task.fixture" },
 ];
 for (const { kind, query, field, url, source: content } of cases) {
-	screenStory.it(`retains ${query} ${field} draft, source notice and caret through query refresh and reload`, [], function* ({ renderRouter }) {
-		const files = { "home.md": "# Home", "task.md": content };
-		let refresh: (() => void) | undefined;
-		function open() {
-			return renderRouter(files, url, undefined, (api, registry) => {
-				refresh = () =>
-					query === "document"
-						? registry.refresh(api.document.query({ url }, routeQueryOptions))
-						: registry.refresh(api.handoff.query({ url }, routeQueryOptions));
-			});
-		}
-		function control() {
-			const input = document.querySelector<HTMLTextAreaElement>(`#${kind}-form ${field}`);
-			if (!input) {
-				throw new Error("Missing draft control");
-			}
-			return input;
-		}
-		function notice() {
-			return document.getElementById(`${kind}-status`)?.textContent;
-		}
-		const first = yield* Effect.promise(() => open());
-		try {
-			yield* Effect.promise(() => eventually(() => expect(document.getElementById(`${kind}-form`)).not.toBeNull()));
-			const input = control();
-			act(() => {
-				input.value = "Direction in progress";
-				input.dispatchEvent(new Event("input", { bubbles: true }));
-			});
-			act(() => {
-				const details = input.closest("details");
-				if (details) {
-					details.open = true;
-				}
-				input.focus();
-				input.setSelectionRange(4, 9, "backward");
-			});
-			files["task.md"] += "\nChanged source context.\n";
-			yield* Effect.promise(() => act(async () => refresh?.()));
-			yield* Effect.promise(() => eventually(() => expect(notice()).toContain("Source changed")));
-			expect(control()).toBe(input);
-			expect(input.value).toBe("Direction in progress");
-			const details = input.closest("details");
+	const files = { "home.md": "# Home", "task.md": content };
+	const selector = `#${kind}-form ${field}`;
+	screenStory.it(
+		`retains ${query} ${field} draft, source notice and caret through query refresh and reload`,
+		[screenWorkspace("forms-fixture"), routedScreen(files, url)],
+		function* ({ findElement, readText, readFocus, typeText, selectText, editFile, refreshQuery, browserEvent, closeScreen, renderRouter }) {
+			yield* Effect.promise(() => eventually(() => expect(findElement(`#${kind}-form`)).not.toBeNull()));
+			const original = findElement<HTMLTextAreaElement>(selector);
+			typeText(original, "Direction in progress");
+			selectText(selector, 4, 9, "backward");
+			editFile("task.md", `${content}\nChanged source context.\n`);
+			yield* Effect.promise(() => refreshQuery(query, { url }));
+			yield* Effect.promise(() => eventually(() => expect(readText(`#${kind}-status`)).toContain("Source changed")));
+			expect(findElement(selector)).toBe(original);
+			expect(original?.value).toBe("Direction in progress");
+			expect(readFocus()).toBe(original);
+			expect([original?.selectionStart, original?.selectionEnd, original?.selectionDirection]).toEqual([4, 9, "backward"]);
+			browserEvent("pagehide");
+			yield* Effect.promise(closeScreen);
+			yield* Effect.promise(() => renderRouter(undefined, url));
+			yield* Effect.promise(() => eventually(() => expect(readText(`#${kind}-status`)).toContain("Source changed")));
+			const restored = findElement<HTMLTextAreaElement>(selector);
+			expect(restored?.value).toBe("Direction in progress");
+			const details = restored?.closest("details");
 			if (details) {
 				expect(details.open).toBe(true);
 			}
-			expect(document.activeElement).toBe(input);
-			expect([input.selectionStart, input.selectionEnd, input.selectionDirection]).toEqual([4, 9, "backward"]);
-			act(() => window.dispatchEvent(new Event("pagehide")));
-		} finally {
-			yield* Effect.promise(() => first.unmount());
-		}
-		yield* Effect.promise(() => open());
-
-		yield* Effect.promise(() => eventually(() => expect(notice()).toContain("Source changed")));
-		const input = control();
-		expect(input.value).toBe("Direction in progress");
-		const details = input.closest("details");
-		if (details) {
-			expect(details.open).toBe(true);
-		}
-		expect(document.activeElement).toBe(input);
-		expect([input.selectionStart, input.selectionEnd, input.selectionDirection]).toEqual([4, 9, "backward"]);
-		expect(document.getElementById(`${kind}-submit`)).toHaveProperty("disabled", true);
-	});
+			expect(readFocus()).toBe(restored);
+			expect([restored?.selectionStart, restored?.selectionEnd, restored?.selectionDirection]).toEqual([4, 9, "backward"]);
+			expect(findElement(`#${kind}-submit`)).toHaveProperty("disabled", true);
+		},
+	);
 }

@@ -19,7 +19,7 @@ boardStory.it(
 		if (opener instanceof page.window.HTMLElement) {
 			opener.focus();
 		}
-		reader.keyboard("k", true);
+		reader.keyboard("k", true, "body");
 		yield* Effect.promise(() => frame(page));
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#search-dialog")?.hasAttribute("open")).toBe(true)));
 		expect(page.document.activeElement?.id).toBe("search-query");

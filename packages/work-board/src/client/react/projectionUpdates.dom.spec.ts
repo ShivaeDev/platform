@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardFilesystem, boardHome, boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { waitFor } from "#test/live.ts";
 import { rpcCall } from "#test/rpc.ts";
 
@@ -38,7 +38,7 @@ const routes = [
 for (const { file, next, selector, tag, text, url } of routes) {
 	boardStory.it(
 		`updates ${url} through native projection invalidation`,
-		[projectFiles({ "home.md": HOME, "task.md": task("A task") }), boardHome("home.md"), responsesEnabled(false), boardFilesystem(undefined)],
+		[projectFiles({ "home.md": HOME, "task.md": task("A task") }), boardHome("home.md")],
 		function* ({ notes, reader }) {
 			const reads: string[] = [];
 			const page = yield* reader.open(url, (window) => {

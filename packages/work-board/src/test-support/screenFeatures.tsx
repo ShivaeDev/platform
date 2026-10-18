@@ -1,7 +1,4 @@
-import * as AsyncResult from "effect/reactivity/AsyncResult";
-import * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
-import { vi } from "vitest";
 import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";
 import { GoalsPage } from "#client/react/GoalsPage.tsx";
 import { SystemPage } from "#client/react/SystemPage.tsx";
@@ -9,16 +6,24 @@ import { shellIds } from "#client/react/shellIds.ts";
 import { goals } from "#server/views/goals.ts";
 import { fixtureSnapshot } from "./fixtureSnapshot.ts";
 import { goalsFixture } from "./goalsFixture.ts";
+import { PageHealth } from "./PageHealth.tsx";
 import type { BoardTestApi } from "./react.tsx";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 export function screenContent(engine: ScreenEngine, content: ReactNode) {
-	return engine.fleet ? <FleetItemsContext.Provider value={engine.fleet}>{content}</FleetItemsContext.Provider> : content;
+	let visible = content;
+	if (engine.health && engine.api) {
+		visible = (
+			<>
+				{visible}
+				<PageHealth api={engine.api} />
+			</>
+		);
+	}
+	return engine.fleet ? <FleetItemsContext.Provider value={engine.fleet}>{visible}</FleetItemsContext.Provider> : visible;
 }
 export function screenClient(engine: ScreenEngine, api: BoardTestApi) {
-	if (engine.fleet) {
-		vi.spyOn(api.fleetItems, "query").mockReturnValue(Atom.make(AsyncResult.success(engine.fleet)));
-	}
+	engine.api = api;
 }
 export function* goalsContent(files = goalsFixture()) {
 	return <GoalsPage data={goals(yield* fixtureSnapshot(files, undefined))} />;

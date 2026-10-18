@@ -25,17 +25,15 @@ for (const query of ["", "?view=table", "?view=board"]) {
 				return <RouterProvider router={router} />;
 			}),
 		],
-		function* ({ boardView }) {
-			const view = boardView();
-
-			yield* Effect.promise(() => eventually(() => expect(view.container.querySelector('[data-item="task"]')).not.toBeNull()));
-			expect(view.container.querySelectorAll("[data-item]")).toHaveLength(1);
+		function* ({ findElement, findElements, readText }) {
+			yield* Effect.promise(() => eventually(() => expect(findElement('[data-item="task"]')).not.toBeNull()));
+			expect(findElements("[data-item]")).toHaveLength(1);
 			if (query) {
-				expect(view.container.querySelector(".work-total")?.textContent).toContain("1 shown · 1 items");
+				expect(readText(".work-total")).toContain("1 shown · 1 items");
 			} else {
-				expect(view.container.querySelector(".work-total")).toBeNull();
+				expect(findElement(".work-total")).toBeNull();
 			}
-			expect(view.container.querySelector('[aria-label="Work layout"]')?.textContent).toContain("NowAll workTable");
+			expect(readText('[aria-label="Work layout"]')).toContain("NowAll workTable");
 		},
 	);
 }

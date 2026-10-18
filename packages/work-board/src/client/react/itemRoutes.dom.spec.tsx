@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import { act } from "react";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -30,30 +29,22 @@ for (const { id, mode, url, selector, text } of routes) {
 	screenStory.it(
 		`opens ${url} through ${mode}`,
 		[routedScreen(files, mode === "direct" ? url : "/task.md", { home: "home.md" })],
-		function* ({ routed }) {
-			const view = routed();
-
+		function* ({ readText, findElement, navigate, location }) {
 			if (mode === "navigation") {
-				yield* Effect.promise(() =>
-					eventually(() => expect(view.container.querySelector(".item-introduction h1")?.textContent).toBe("Task details")),
-				);
-				yield* Effect.promise(() =>
-					act(async () => {
-						await view.router.navigate({ to: url });
-					}),
-				);
+				yield* Effect.promise(() => eventually(() => expect(readText(".item-introduction h1")).toBe("Task details")));
+				yield* Effect.promise(() => navigate(url));
 			}
-			yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(selector)?.textContent).toContain(text)));
-			expect(view.router.state.location.pathname).toBe(url);
-			expect(view.container.querySelector("main")?.textContent).not.toContain("Project and report templates");
-			expect(view.container.querySelector("main")?.textContent).not.toContain("Colliding Markdown file");
-			expect(view.container.querySelector("main")?.textContent).not.toContain("Unidentified Markdown file");
+			yield* Effect.promise(() => eventually(() => expect(readText(selector)).toContain(text)));
+			expect(location()?.pathname).toBe(url);
+			expect(readText("main")).not.toContain("Project and report templates");
+			expect(readText("main")).not.toContain("Colliding Markdown file");
+			expect(readText("main")).not.toContain("Unidentified Markdown file");
 			if (id.endsWith(".md") && id !== "missing.md") {
-				expect(view.container.querySelector<HTMLElement>("main")?.dataset.identity).toBe(id);
+				expect(findElement<HTMLElement>("main")?.dataset.identity).toBe(id);
 			}
 			if (id === "task.fixture") {
-				expect(view.container.querySelector<HTMLElement>("main")?.dataset.identity).toBe(id);
-				expect(view.container.querySelector("article.doc")?.textContent).toContain("Read the evidence.");
+				expect(findElement<HTMLElement>("main")?.dataset.identity).toBe(id);
+				expect(readText("article.doc")).toContain("Read the evidence.");
 			}
 		},
 	);

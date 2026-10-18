@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardFilesystem, boardHome, boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
 import { held, type openPage } from "#test/browser.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
 import { enterField } from "#test/enterField.ts";
@@ -115,7 +115,7 @@ for (const kind of ["handoff", "response"] as const) {
 
 boardStory.it(
 	"puts each questionnaire Schema message on its own unanswered control",
-	[projectFiles({ "item.md": questionnaireSource }), boardHome(undefined), responsesEnabled(true), boardFilesystem(undefined)],
+	[projectFiles({ "item.md": questionnaireSource }), responsesEnabled(true)],
 	function* ({ reader }) {
 		const page = yield* reader.open("/_board/respond?item=investigation.choices&request=direction");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false)));

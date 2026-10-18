@@ -16,6 +16,11 @@ export function screenActions(tell: (line: string) => void) {
 		return field;
 	}
 	return {
+		activate: async (selector: string) => {
+			tell(`the reader activates ${selector}`);
+			const element = control(selector, HTMLElement);
+			await act(() => element.click());
+		},
 		answerInput: (name: string, value?: string) => {
 			if (value !== undefined) {
 				tell(`the reader answers ${name} with ${JSON.stringify(value)}`);
@@ -28,10 +33,13 @@ export function screenActions(tell: (line: string) => void) {
 			}
 			return answerPrompt(name, value);
 		},
-		choose: (selector: string, value: string) => {
+		choose: (selector: string | HTMLSelectElement | null | undefined, value: string) => {
 			tell(`the reader chooses ${JSON.stringify(value)} in ${selector}`);
 			act(() => {
-				const field = control(selector, HTMLSelectElement);
+				const field = typeof selector === "string" ? control(selector, HTMLSelectElement) : selector;
+				if (!(field instanceof HTMLSelectElement)) {
+					throw new Error(`Missing select ${selector}`);
+				}
 				field.value = value;
 				field.dispatchEvent(new Event("change", { bubbles: true }));
 			});
@@ -46,9 +54,11 @@ export function screenActions(tell: (line: string) => void) {
 		},
 		control,
 		input,
-		keyboard: (key: string, options: KeyboardEventInit = {}, target: EventTarget = document) => {
+		keyboard: (key: string, options: KeyboardEventInit = {}, target: EventTarget | string = document) => {
 			tell(`the reader presses ${key}`);
-			act(() => target.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, ...options, key })));
+			const event = new KeyboardEvent("keydown", { bubbles: true, ...options, key });
+			act(() => (typeof target === "string" ? control(target, HTMLElement) : target).dispatchEvent(event));
+			return event;
 		},
 		responseClick: (id: string) => {
 			tell(`the reader clicks response ${id}`);
@@ -59,5 +69,6 @@ export function screenActions(tell: (line: string) => void) {
 			const form = control(selector, HTMLFormElement);
 			act(() => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
 		},
+		typeText: input,
 	};
 }

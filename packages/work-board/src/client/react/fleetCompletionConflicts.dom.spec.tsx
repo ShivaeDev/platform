@@ -2,17 +2,19 @@ import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { nowWork } from "#test/nowWork.ts";
 import { screenStory } from "#test/screenStory.ts";
+import { componentScreen } from "#test/screenTraits.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
 for (const status of ["superseded", "deferred", "done", "completed", "cancelled", "canceled", "active", "planned"]) {
-	screenStory.it(`uses Fleet completion times and released state despite authored ${status}`, [], function* ({ render, click }) {
-		const data = nowWork(4);
-		const rows = data.rows.map((item) => ({ ...item, metadata: { ...item.metadata, status } }));
-		const at = Effect.runSync(Clock.currentTimeMillis);
-		const fleetItem = { document: null, stageEnteredAt: null, updatedAt: null };
-		const view = yield* Effect.promise(() =>
-			render(
+	const data = nowWork(4);
+	const rows = data.rows.map((item) => ({ ...item, metadata: { ...item.metadata, status } }));
+	const at = Effect.runSync(Clock.currentTimeMillis);
+	const fleetItem = { document: null, stageEnteredAt: null, updatedAt: null };
+	screenStory.it(
+		`uses Fleet completion times and released state despite authored ${status}`,
+		[
+			componentScreen(
 				<FleetItemsContext.Provider
 					value={{
 						completed: [
@@ -29,15 +31,16 @@ for (const status of ["superseded", "deferred", "done", "completed", "cancelled"
 					<WorkNow data={{ ...data, rows }} />
 				</FleetItemsContext.Provider>,
 			),
-		);
-
-		expect(view.container.querySelector("[data-item]")).toBeNull();
-		expect(view.container.querySelector(".work-total")).toBeNull();
-		click(view.container.querySelector<HTMLButtonElement>('[aria-expanded="false"]'));
-		const cards = view.container.querySelectorAll('[aria-label="Done in the last 7 days"] [data-item]');
-		expect([...cards].map((card) => card.getAttribute("data-item"))).toEqual(["task-0"]);
-		expect(cards[0]?.querySelectorAll("[data-status-token]")).toHaveLength(1);
-		expect(cards[0]?.querySelector("[data-status-token]")?.textContent).toBe("done");
-		expect(view.container.querySelectorAll("[data-item]")).toHaveLength(1);
-	});
+		],
+		({ click, findElement, findElements, readText }) => {
+			expect(findElement("[data-item]")).toBeNull();
+			expect(findElement(".work-total")).toBeNull();
+			click(findElement<HTMLButtonElement>('[aria-expanded="false"]'));
+			const cards = findElements('[aria-label="Done in the last 7 days"] [data-item]');
+			expect([...cards].map((card) => card.getAttribute("data-item"))).toEqual(["task-0"]);
+			expect(findElements("[data-status-token]", cards[0])).toHaveLength(1);
+			expect(readText("[data-status-token]", cards[0])).toBe("done");
+			expect(findElements("[data-item]")).toHaveLength(1);
+		},
+	);
 }

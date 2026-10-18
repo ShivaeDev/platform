@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
-import { boardFilesystem, boardHome, boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { FILES, settle, waitFor } from "#test/live.ts";
 import { type RpcRequest, rpcCall, rpcFailure } from "#test/rpc.ts";
 
@@ -13,7 +13,7 @@ const routes = [
 for (const { failed, kind, url } of routes.flatMap((route) => [false, true].map((isFailed) => ({ ...route, failed: isFailed })))) {
 	boardStory.it(
 		`keeps same-URL ${kind} navigation on its projection query (failed: ${failed})`,
-		[projectFiles(FILES), boardHome("board.md"), responsesEnabled(false), boardFilesystem(undefined)],
+		[projectFiles(FILES), boardHome("board.md")],
 		function* ({ reader }) {
 			const reads: RpcRequest[] = [];
 			let fail = failed;

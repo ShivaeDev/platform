@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardFilesystem, boardHome, boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
 import { held } from "#test/browser.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
 import { enterField } from "#test/enterField.ts";
@@ -10,7 +10,7 @@ import { rpcCall } from "#test/rpc.ts";
 
 boardStory.it(
 	"retains and persists newer handoff direction when a preparation finishes",
-	[projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), boardHome(undefined), responsesEnabled(true), boardFilesystem(undefined)],
+	[projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled(true)],
 	function* ({ reader }) {
 		const gate = held();
 		let reached = false;

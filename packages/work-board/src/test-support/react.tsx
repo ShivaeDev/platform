@@ -33,5 +33,9 @@ export async function renderBoard(files: Readonly<Record<string, string>>, compo
 			<BoardFixture create={(registry) => component(api, registry)} />
 		</FormContext.Provider>,
 	);
-	return { ...view, forms: api.forms };
+	return {
+		...view,
+		forms: api.forms,
+		render: (node: ReactNode) => view.render(<FormContext.Provider value={api.forms}>{node}</FormContext.Provider>),
+	};
 }

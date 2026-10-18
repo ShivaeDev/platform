@@ -8,11 +8,6 @@ import { folder, startBoard } from "./board.ts";
 import { EDGE_ATTENTION_SOURCE } from "./coverageEdges.ts";
 import { type ScreenEngine, screenView } from "./screenEngine.ts";
 
-let activeTransport: Window;
-function transportFetch(...args: Parameters<Window["fetch"]>) {
-	return activeTransport.fetch(...args);
-}
-
 export const mountSession = Effect.fn("Story.mountSession")(function* (engine: ScreenEngine, kind: "response" | "handoff") {
 	const notes = yield* Effect.acquireRelease(
 		Effect.sync(() => folder({ "item.md": EDGE_ATTENTION_SOURCE })),
@@ -20,8 +15,19 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 	);
 	const board = yield* startBoard(notes.root, undefined, undefined, true);
 	const transport = new Window({ url: board.url });
-	activeTransport = transport;
-	vi.stubGlobal("fetch", transportFetch);
+	vi.stubGlobal("fetch", (...args: Parameters<Window["fetch"]>) => {
+		const input = args[0];
+		let url: string;
+		if (typeof input === "string") {
+			url = input;
+		} else if ("url" in input) {
+			url = input.url;
+		} else {
+			url = input.href;
+		}
+		transport.happyDOM.setURL(new URL(url, board.url).origin);
+		return transport.fetch(...args);
+	});
 	yield* Effect.addFinalizer(() => Effect.promise(() => transport.happyDOM.abort()));
 	const environment: Parameters<typeof session>[0] = {
 		addEventListener: (type, listener) => window.addEventListener(type, listener),
@@ -49,5 +55,5 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 	act(() => {
 		unmount = mountBoard(container, () => session(environment));
 	});
-	return { container, environment, first };
+	return { container, environment, first, notes };
 });

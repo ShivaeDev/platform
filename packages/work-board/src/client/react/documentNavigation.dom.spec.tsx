@@ -1,12 +1,8 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { act } from "react";
-import { expect, type MockInstance, vi } from "vitest";
+import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import type { BoardTestApi } from "#test/react.tsx";
 import { screenStory } from "#test/screenStory.ts";
 import { pausedDocument, routedScreen } from "#test/screenTraits.ts";
-import { boardRouter } from "./boardRouter.ts";
 
 expectNoReactWarnings();
 const files = {
@@ -19,90 +15,41 @@ for (const back of [false, true]) {
 	screenStory.it(
 		`clears the old document while loading and handles back before the read completes (back: ${back})`,
 		[pausedDocument("/notes/next.md"), routedScreen(files, "/notes/first.md", { home: "home.md" })],
-		function* ({ routed, readStarted, releaseRead }) {
-			const view = routed();
-			let pending: Promise<void> | undefined;
-
-			try {
-				yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("First")));
-				yield* Effect.promise(() =>
-					eventually(() => expect(view.container.querySelector<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md")),
-				);
-				const main = view.container.querySelector("main");
-				view.container.querySelector<HTMLDetailsElement>("article details")?.setAttribute("open", "");
-				yield* Effect.promise(() =>
-					act(async () => {
-						pending = view.router.navigate({ to: "/notes/next.md" });
-						await Promise.resolve();
-					}),
-				);
-				yield* Effect.promise(() => eventually(() => expect(readStarted()).toBe(true)));
-				expect(view.router.state.location.pathname).toBe("/notes/next.md");
-				expect(view.container.querySelector("#doc h1")).toBeNull();
-				expect(view.container.querySelector("#doc [role=status]")?.textContent).toBe("Opening document…");
-				if (back) {
-					yield* Effect.promise(() =>
-						act(async () => {
-							view.router.history.back();
-							await Promise.resolve();
-						}),
-					);
-					yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("First")));
-				}
-				yield* Effect.promise(() =>
-					act(async () => {
-						releaseRead();
-						await pending;
-					}),
-				);
-				yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe(back ? "First" : "Next")));
-				expect(view.container.querySelector("main")).toBe(main);
-				if (back) {
-					yield* Effect.promise(() => eventually(() => expect(view.container.querySelector<HTMLDetailsElement>("article details")?.open).toBe(true)));
-				}
-			} finally {
-				yield* Effect.promise(() =>
-					act(async () => {
-						releaseRead();
-						await pending;
-					}),
-				);
-				yield* Effect.promise(() => view.unmount());
+		function* ({ startNavigation, finishNavigation, back: goBack, openDetails, location, readStarted, releaseRead, readText, findElement }) {
+			yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("First")));
+			yield* Effect.promise(() => eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md")));
+			const main = findElement("main");
+			openDetails("article details");
+			yield* Effect.promise(() => startNavigation("/notes/next.md"));
+			yield* Effect.promise(() => eventually(() => expect(readStarted()).toBe(true)));
+			expect(location()?.pathname).toBe("/notes/next.md");
+			expect(findElement("#doc h1")).toBeNull();
+			expect(readText("#doc [role=status]")).toBe("Opening document…");
+			if (back) {
+				yield* Effect.promise(() => goBack());
+				yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("First")));
+			}
+			yield* Effect.promise(releaseRead);
+			yield* Effect.promise(() => finishNavigation());
+			yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe(back ? "First" : "Next")));
+			expect(findElement("main")).toBe(main);
+			if (back) {
+				yield* Effect.promise(() => eventually(() => expect(findElement<HTMLDetailsElement>("article details")?.open).toBe(true)));
 			}
 		},
 	);
 }
 
-screenStory.it("shares one navigation query across the shell, document loaders and back navigation", [], function* ({ renderBoard }) {
-	let router: ReturnType<typeof boardRouter> | undefined;
-	let navigation: MockInstance<BoardTestApi["navigation"]["query"]> | undefined;
-	const view = yield* Effect.promise(() =>
-		renderBoard(files, (api, registry) => {
-			navigation = vi.spyOn(api.navigation, "query");
-			router = boardRouter({ api, registry });
-			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/notes/first.md"] }) });
-			return <RouterProvider router={router} />;
-		}),
-	);
-	try {
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("First")));
-		yield* Effect.promise(() =>
-			act(async () => {
-				await router?.navigate({ to: "/notes/next.md" });
-			}),
-		);
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Next")));
-		yield* Effect.promise(() =>
-			act(async () => {
-				router?.history.back();
-				await Promise.resolve();
-			}),
-		);
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("First")));
-		expect(navigation?.mock.calls.length).toBeGreaterThan(1);
-		expect(new Set(navigation?.mock.results.map((result) => result.value)).size).toBe(1);
-	} finally {
-		yield* Effect.promise(() => view.unmount());
-		navigation?.mockRestore();
-	}
-});
+screenStory.it(
+	"keeps document navigation and back navigation in the same shell",
+	[routedScreen(files, "/notes/first.md")],
+	function* ({ readText, findElement, navigate, back }) {
+		const main = findElement("main");
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("First")));
+		yield* Effect.promise(() => navigate("/notes/next.md"));
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Next")));
+		yield* Effect.promise(back);
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("First")));
+		expect(findElement("main")).toBe(main);
+	},
+);

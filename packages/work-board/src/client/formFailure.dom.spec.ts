@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardFilesystem, boardHome, boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { boardFilesystem, boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
 import { enterField } from "#test/enterField.ts";
 import { silentWatch } from "#test/faults.ts";
@@ -9,7 +9,7 @@ import { waitFor } from "#test/live.ts";
 
 boardStory.it(
 	"retains the response draft and exposes the precise real HTTP rejection when source changes after preview",
-	[projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), boardHome(undefined), responsesEnabled(true), boardFilesystem(silentWatch)],
+	[projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled(true), boardFilesystem(silentWatch)],
 	function* ({ notes, reader }) {
 		const page = yield* reader.open("/_board/respond?item=item.edge&request=direction");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false)));
@@ -31,7 +31,7 @@ boardStory.it(
 
 boardStory.it(
 	"retains handoff direction and requires a fresh preview when source changes after preview",
-	[projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), boardHome(undefined), responsesEnabled(true), boardFilesystem(undefined)],
+	[projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled(true)],
 	function* ({ notes, reader }) {
 		const page = yield* reader.open("/_board/handoff?item=item.edge");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("handoff-preview")?.hasAttribute("disabled")).toBe(false)));

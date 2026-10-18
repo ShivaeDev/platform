@@ -1,107 +1,44 @@
 import { Effect } from "effect";
-import { afterEach, expect, vi } from "vitest";
+import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "#server/responses/records.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 import { todayFixture } from "#test/todayFixture.ts";
 
 expectNoReactWarnings();
-afterEach(() => {
-	window.dispatchEvent(new Event("pagehide"));
-	vi.restoreAllMocks();
-	vi.unstubAllGlobals();
-});
-
+const ASK = "[data-attention-id='question.storage']";
+const trigger = `${ASK} button[aria-haspopup='dialog']`;
+const dialog = `${ASK} [role='dialog']`;
 screenStory.it(
 	"opens compact answer controls, records an option and removes its ask on query refresh",
-	[],
-	function* ({ renderRouter, click, keyboard }) {
-		const files = todayFixture();
-		const source = files["unaddressed.md"] ?? "";
-		const revision = revisionOf(source);
-		const id = questionId("question.storage", "answer", revision, "unaddressed.md");
-		const view = yield* Effect.promise(() => renderRouter(files, "/", { home: "home.md", writable: true }));
-		const native = view.forms;
-		vi.spyOn(native.responses.registerQuestion, "run").mockImplementation((input) =>
-			Effect.sync(() => {
-				const question = {
-					context: source,
-					id,
-					question: {
-						deadline: 10_000,
-						item: input.item,
-						reason: "Choose storage",
-						registeredAt: 1,
-						request: input.request,
-						reviewedRevision: input.revision,
-						source: "unaddressed.md",
-					},
-				};
-				files["responses/question.md"] = questionMarkdown(question);
-				return question;
-			}),
-		);
-		const command = vi.spyOn(native.responses.recordResponse, "run").mockImplementation((input) =>
-			Effect.sync(() => {
-				const response = {
-					body: input.body,
-					id: input.id,
-					response: {
-						answers: input.answers,
-						author: input.author,
-						question: input.question,
-						recordedAt: 2,
-						reviewedRevision: revision,
-						type: input.type,
-					},
-				};
-				files["responses/answer.md"] = responseMarkdown(response);
-				return response;
-			}),
-		);
-
+	[routedScreen(todayFixture(), "/", { home: "home.md", writable: true })],
+	function* ({ readText, readAttribute, readFocus, findElement, click, keyboard, readResponses, activate }) {
 		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(view.container.querySelector("[aria-label='Options for question.storage'] button")?.textContent).toContain(
-					"Keep local files · Recommended",
-				),
-			),
+			eventually(() => expect(readText("[aria-label='Options for question.storage'] button")).toContain("Keep local files · Recommended")),
 		);
-		const entry = view.container.querySelector("[data-attention-id='question.storage']");
-		const trigger = entry?.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]');
-		const dialog = entry?.querySelector<HTMLElement>('[role="dialog"]');
-		expect(dialog?.hidden).toBe(true);
-		expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+		expect(findElement(dialog)).toHaveProperty("hidden", true);
+		expect(readAttribute(trigger, "aria-expanded")).toBe("false");
 		click(trigger);
-		yield* Effect.promise(() => eventually(() => expect(dialog?.hidden).toBe(false)));
-		expect(document.activeElement?.textContent).toContain("Keep local files · Recommended");
-		keyboard("Escape", { bubbles: true }, document);
-		expect(dialog?.hidden).toBe(true);
-		expect(document.activeElement).toBe(trigger);
+		yield* Effect.promise(() => eventually(() => expect(findElement(dialog)).toHaveProperty("hidden", false)));
+		expect(readFocus()?.textContent).toContain("Keep local files · Recommended");
+		keyboard("Escape");
+		expect(findElement(dialog)).toHaveProperty("hidden", true);
+		expect(readFocus()).toBe(findElement(trigger));
 		click(trigger);
-		expect(dialog?.hidden).toBe(false);
-		expect(view.container.querySelectorAll("[data-attention-id='question.storage']")).toHaveLength(1);
-		click(view.container.querySelector<HTMLButtonElement>("[aria-label='Options for question.storage'] button"));
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(command).toHaveBeenCalledWith(
-					expect.objectContaining({ answers: [{ prompt: "answer", selected: ["option-1"], text: "" }], question: id, type: "answer" }),
-				),
-			),
-		);
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("[data-attention-id='question.storage']")).toBeNull()));
+		yield* Effect.promise(() => activate("[aria-label='Options for question.storage'] button"));
+		yield* Effect.promise(() => eventually(() => expect(findElement(ASK)).toBeNull()));
+		const saved = yield* Effect.promise(() => readResponses("question.storage", "answer"));
+		expect(saved.responses).toHaveLength(1);
+		expect(saved.responses[0]?.response).toMatchObject({ answers: [{ prompt: "answer", selected: ["option-1"], text: "" }], type: "answer" });
 	},
 );
 
 screenStory.it(
 	"opens Today without a configured home and preserves empty-workspace guidance",
 	[routedScreen({}, "/", { home: undefined })],
-	function* ({ routed }) {
-		const view = routed();
-
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Today")));
-		expect(view.container.querySelector(".today-strip")?.textContent).toBe("0 need you·? in progress·0 active goals");
-		expect(view.container.querySelector(".today-page a[href='/_board/start']")?.textContent).toBe("Getting started");
+	function* ({ readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Today")));
+		expect(readText(".today-strip")).toBe("0 need you·? in progress·0 active goals");
+		expect(readText(".today-page a[href='/_board/start']")).toBe("Getting started");
 	},
 );

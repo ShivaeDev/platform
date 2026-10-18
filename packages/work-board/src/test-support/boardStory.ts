@@ -106,19 +106,18 @@ export function aQuestionnaire(source = questionnaireSource, wrap?: FileSystemWr
 	return boardStory.traits(
 		projectFiles({ "proposal.md": source, "task.md": "# Affected work" }, "a questionnaire asks for reading and verification choices"),
 		responsesEnabled(),
-		boardStory.trait("project", wrap ? "the filesystem has the stated publication fault" : "the project uses the host filesystem", (engine) => {
-			engine.wrap = wrap;
-		}),
+		...(wrap ? [boardFilesystem(wrap)] : []),
 	);
 }
 
-export function boardHome(home?: string) {
+export function boardHome(home: string) {
 	return boardStory.trait("project", home ? `the home board is ${home}` : "the workspace has no configured home board", (engine) => {
 		engine.home = home;
 	});
 }
-export function boardFilesystem(wrap?: FileSystemWrapper) {
+export function boardFilesystem(wrap: FileSystemWrapper) {
 	return boardStory.trait("project", "the workspace uses the specified filesystem boundary", (engine) => {
-		engine.wrap = wrap;
+		const previous = engine.wrap;
+		engine.wrap = previous ? (fs) => wrap(previous(fs)) : wrap;
 	});
 }

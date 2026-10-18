@@ -22,23 +22,19 @@ for (const [status, token, icon] of [
 	screenStory.it(
 		`renders ${status} with its semantic token, icon and source word`,
 		[componentScreen(<StatusChip status={status} />)],
-		({ screen }) => {
-			const view = screen();
-
-			const chip = view.container.querySelector("[data-status-token]");
+		({ findElement, readAttribute }) => {
+			const chip = findElement("[data-status-token]");
 			expect(chip?.getAttribute("data-status-token")).toBe(token);
 			expect(chip?.classList.contains(`text-${token}`)).toBe(true);
 			expect(chip?.textContent).toBe(status);
-			expect(chip?.querySelector(`svg.lucide-${icon}`)?.getAttribute("aria-hidden")).toBe("true");
+			expect(readAttribute(`svg.lucide-${icon}`, "aria-hidden", chip)).toBe("true");
 		},
 	);
 }
 
 for (const status of [undefined, ""]) {
-	screenStory.it(`omits absent status chips (${status})`, [componentScreen(<StatusChip status={status} />)], ({ screen }) => {
-		const view = screen();
-
-		expect(view.container.textContent).toBe("");
-		expect(view.container.querySelector("[data-status-token]")).toBeNull();
+	screenStory.it(`omits absent status chips (${status})`, [componentScreen(<StatusChip status={status} />)], ({ readText, findElement }) => {
+		expect(readText()).toBe("");
+		expect(findElement("[data-status-token]")).toBeNull();
 	});
 }
