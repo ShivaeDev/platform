@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 - 2026-10-18
+
+### Fixed
+
+- Validate an in-progress merge against all incoming parents, including octopus merges, so releases already on main pass the commit hook while edits to released history still fail.
+
 ## 0.1.0 - 2026-10-18
 
 ### Added

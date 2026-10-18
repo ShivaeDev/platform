@@ -300,6 +300,8 @@ const migrateOrders = Effect.gen(function* () {
 
 The first run returns `[[1, "create_orders"], [2, "seed_orders"]]`. Repeating the loader returns `[]`; adding a higher numbered migration applies the new work. Treat applied migrations as immutable and append increasing IDs.
 
+`migratePostgres` rejects loaded migration IDs at or below the latest applied ID that are missing from the ledger with a typed native `MigrationError` (`kind: "BadState"`) naming those IDs.
+
 `migratePostgres` takes a transaction-scoped advisory lock before creating the ledger and running native Migrator. Concurrent runners on a fresh or existing ledger wait, then see the committed ledger and avoid repeating the migrations. Every runner of that ledger must use this helper and the same ledger name. The required `lockTimeout` bounds PostgreSQL lock waits; `Duration.infinity` sets the transaction's lock timeout to zero. Choose deployment and execution timeouts in the application.
 
 A failed batch rolls back its DDL, data and ledger entries, retaining previously committed migrations. A failed first batch also rolls back the bootstrapped ledger. A lock timeout fails with typed `SqlError` and reason `LockTimeoutError`; a migration-body SQL failure is a native `MigrationError` defect. Inspect startup completion with `Effect.exit` when both typed failures and defects matter. Nontransactional DDL, external side effects, crash recovery and deployment compatibility need their own migration policy.

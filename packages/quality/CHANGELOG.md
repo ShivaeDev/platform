@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.26.0 - 2026-10-18
+
+### Added
+
+- `cli/messages.ts` exports `SUBCOMMANDS: Readonly<Record<string, string>>`, the usage hints for commands with subcommands.
+
+### Changed
+
+- `testProjects()` sets `silent: "passed-only"` outside CI and `silent: false` in CI, while leaving reporter selection to Vitest.
+- Stale `adopt` and `preCommit` configuration keys and the `quality adopt` command now fail with the general unknown-key and unknown-command errors.
+
 ## 0.25.0 - 2026-10-18
 
 ### Added

@@ -111,13 +111,13 @@ const choices = [{ id: "direction", mode: "one" as const, options: [{ id: "local
 screenStory.it(
 	"retains new choices made against changed source through preview and reload",
 	[screenWorkspace("questionnaire-fixture"), answerScreen(answerPreview, 0, choices)],
-	function* ({ answerInput, answerPrompt, responseClick, findElement, readText, readFocus, selectText, check, refreshScreen }) {
+	function* ({ answerInput, answerPrompt, responseClick, findElement, readAttribute, readText, readFocus, selectText, check, refreshScreen }) {
 		answerInput("author", "reviewer");
-		check('[value="local"]');
+		check("local");
 		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 0, choices)));
-		expect(findElement('[value="local"]')).toHaveProperty("checked", false);
-		check('[value="local"]');
-		expect(findElement('[value="local"]')).toHaveProperty("checked", true);
+		expect(readAttribute('[data-choice="local"]', "aria-checked")).toBe("false");
+		check("local");
+		expect(readAttribute('[data-choice="local"]', "aria-checked")).toBe("true");
 		expect(readText("#response-status")).toContain("Source changed");
 		answerPrompt("direction", "A revised rationale");
 		responseClick("preview");
@@ -127,6 +127,6 @@ screenStory.it(
 		expect(answerPrompt("direction").value).toBe("A revised rationale");
 		expect(readFocus()).toBe(answerPrompt("direction"));
 		expect([answerPrompt("direction").selectionStart, answerPrompt("direction").selectionEnd]).toEqual([3, 7]);
-		expect(findElement('[value="local"]')).toHaveProperty("checked", true);
+		expect(readAttribute('[data-choice="local"]', "aria-checked")).toBe("true");
 	},
 );

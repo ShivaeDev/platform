@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Deferred, Effect } from "effect";
 import { vi } from "vitest";
 import type { FleetHealth } from "#diagnostics/health.ts";
 import { fixtureSnapshot } from "./fixtureSnapshot.ts";
@@ -71,5 +71,11 @@ export function unreadableHome() {
 export function fleetHealth(value: FleetHealth) {
 	return screenStory.trait("workspace", "Fleet publishes its health", (engine) => {
 		engine.options = { home: Object.keys(engine.files)[0], ...engine.options, fleetHealth: value };
+	});
+}
+
+export function heldWorkspace() {
+	return screenStory.trait("workspace", "workspace indexing waits", (engine) => {
+		engine.indexGate = Deferred.makeUnsafe<void>();
 	});
 }

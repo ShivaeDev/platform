@@ -8,9 +8,9 @@ import { AgeTicker } from "./Age.tsx";
 import { FleetMain } from "./FleetMain.tsx";
 import { FormContext } from "./FormContext.ts";
 import { Header } from "./Header.tsx";
-import { LiveControls } from "./LiveControls.tsx";
 import { MainLocationContext, useMainLocation } from "./MainLocationContext.ts";
 import { emptyMainLocation, type MainLocation } from "./mainLocation.ts";
+import { OpeningView } from "./OpeningView.tsx";
 import { PhoneNavigation } from "./PhoneNavigation.tsx";
 import { ReadingLibrary } from "./ReadingLibrary.tsx";
 import { ReadingReadyContext, readingReady } from "./ReadingReadyContext.ts";
@@ -18,18 +18,21 @@ import { navigationQuery } from "./routeQuery.ts";
 import { SearchDialog } from "./SearchDialog.tsx";
 import { SessionContext } from "./SessionContext.ts";
 import type { ShellApi } from "./ShellApi.ts";
+import { ShellLiveStatus } from "./ShellLiveStatus.tsx";
 import { Sidebar } from "./Sidebar.tsx";
 import { shellIds } from "./shellIds.ts";
 import { ThemeContext } from "./ThemeContext.ts";
 import { UpdatesToggle } from "./UpdatesToggle.tsx";
 import { useAppearance } from "./useAppearance.ts";
 import { useBoardNavigation } from "./useBoardNavigation.ts";
+import { useOpened } from "./useOpened.ts";
 import { useSearchDialog } from "./useSearchDialog.ts";
 import { useSidebar } from "./useSidebar.ts";
 import { VisualInspection } from "./VisualInspection.tsx";
 export interface ShellOptions {
 	readonly api: ShellApi;
 	readonly client?: BrowserClient;
+	readonly opening?: Promise<void> | undefined;
 	readonly reading?: unknown;
 	readonly ready?: () => void;
 	readonly registry: AtomRegistry.AtomRegistry;
@@ -74,6 +77,7 @@ function BoardWorkspace(
 	const [libraryOpen, setLibraryOpen] = useState(false);
 	const location = useRouterState({ select: (state) => state.location });
 	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
+	const opened = useOpened(options.opening);
 	const data = Option.getOrUndefined(query.data);
 	const { element } = useContext(ReadingReadyContext);
 	useEffect(() => {
@@ -82,13 +86,7 @@ function BoardWorkspace(
 			ready?.();
 		}
 	}, [ready, data, main, element]);
-	const live = client ? (
-		<LiveControls client={client} navigationFailed={Option.isSome(query.cause)} navigationPending={query.pending} />
-	) : (
-		<span className="font-mono text-muted-foreground text-xs" id={shellIds.live} role="status">
-			connecting
-		</span>
-	);
+	const live = <ShellLiveStatus client={client} failed={Option.isSome(query.cause)} pending={query.pending} />;
 	const content = (
 		<AgeTicker>
 			<ReadingLibrary api={api} close={() => setLibraryOpen(false)} open={libraryOpen}>
@@ -100,7 +98,15 @@ function BoardWorkspace(
 					data-board-workspace
 					data-sidebar={sidebar.open ? "open" : "closed"}
 				>
-					<Sidebar api={api} controls={sidebar} data={data} home={location.pathname === "/"} main={main} openLibrary={() => setLibraryOpen(true)} />
+					<Sidebar
+						api={api}
+						controls={sidebar}
+						data={data}
+						home={location.pathname === "/"}
+						main={main}
+						navigated={data !== undefined || Option.isSome(query.cause)}
+						openLibrary={() => setLibraryOpen(true)}
+					/>
 					<button
 						aria-label="Close files"
 						className="fixed inset-0 z-30 hidden border-0 bg-black/45 p-0 data-[open=true]:block md:hidden"
@@ -121,7 +127,7 @@ function BoardWorkspace(
 							status={status}
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
-						<FleetMain api={api} home={data?.home} onPage={onPage} url={location.pathname + location.searchStr} />
+						{opened ? <FleetMain api={api} home={data?.home} onPage={onPage} url={location.pathname + location.searchStr} /> : <OpeningView />}
 						<PhoneNavigation main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
 					</div>
 				</div>

@@ -35,15 +35,6 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	return {
 		...pageActions(page, tell),
 		answer: (prompt: string, value: string) => text(`[data-prompt="${prompt}"] textarea`, value),
-		choice: (value: string) => {
-			tell(`the reader chooses ${value}`);
-			const field = page().document.querySelector(`input[value="${value}"]`);
-			if (!(field instanceof page().window.HTMLInputElement)) {
-				throw new Error(`Missing option ${value}`);
-			}
-			field.checked = true;
-			field.dispatchEvent(new (page().window.Event)("input", { bubbles: true }));
-		},
 		chooseOption: (value: string) =>
 			formEvent(page(), () => {
 				tell(`the reader chooses ${value}`);

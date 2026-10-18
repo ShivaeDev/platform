@@ -22,7 +22,8 @@ export function LiveControls({
 	const status = useAtomValue(client.updates.status);
 	const paused = useAtomValue(client.updates.paused);
 	const watcher = useQuery(client.api.watcher.query());
-	const watching = Option.getOrUndefined(watcher.data)?.watching === true;
+	const observed = Option.getOrUndefined(watcher.data);
+	const watching = observed === undefined && Option.isNone(watcher.cause) ? undefined : observed?.watching === true;
 	const page = useMainLocation();
 	const atom = useMemo(() => (page.route ? activeRead(client.api, page.projection, page.route) : opening), [client, page.projection, page.route]);
 	const reading = useAtomValue(atom);
