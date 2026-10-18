@@ -136,6 +136,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+          # Tally reads the measured commit's first parent as its base.
+          fetch-depth: 2
       - uses: ./.github/actions/setup
         with:
           postgres: 'true'
@@ -165,6 +167,9 @@ jobs:
             .ci/vite/vitest/**/results.json
           include-hidden-files: true
           retention-days: 14
+      - name: Record the measured commits for Tally
+        if: ${{ !cancelled() }}
+        run: mkdir -p .ci/coverage && git rev-parse HEAD HEAD^1 > .ci/coverage/measured-commits.txt
       - name: Upload coverage for Tally
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ !cancelled() }}
@@ -173,10 +178,48 @@ jobs:
           name: coverage-tests-${{ matrix.shard }}
           path: |
             .ci/coverage/lcov.info
+            .ci/coverage/measured-commits.txt
             .ci/tests.junit.xml
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: .ci/coverage/lcov.info
+          disable_search: true
+          flags: workspace
+          name: tests-${{ matrix.shard }}
+          fail_ci_if_error: false
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          report_type: test_results
+          files: .ci/tests.junit.xml
+          disable_search: true
+          name: tests-${{ matrix.shard }}
+          fail_ci_if_error: false
+
+  codecov-notify:
+    name: Codecov notifications
+    if: ${{ !cancelled() }}
+    needs: verify
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Send Codecov notifications after CI verification completes
+        continue-on-error: true
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          run_command: send-notifications
+          fail_ci_if_error: false
 
   consumers:
     needs: [build, shard-plan]
