@@ -50,7 +50,6 @@
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
-		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"

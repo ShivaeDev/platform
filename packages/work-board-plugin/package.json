@@ -18,7 +18,6 @@
 	},
 	"devDependencies": {
 		"@shivaedev/quality": "workspace:*",
-		"@typescript/native": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},

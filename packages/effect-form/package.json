@@ -54,7 +54,6 @@
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
-		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"react": "catalog:",
 		"typescript": "catalog:",
