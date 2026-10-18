@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, expect, vi } from "vitest";
-import { loadQuery } from "@shivaedev/effect-react/router.ts";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen, screenFleet, todayScreen } from "#test/screenTraits.ts";
 import { todayFleetFixture } from "#test/todayFleetFixture.ts";

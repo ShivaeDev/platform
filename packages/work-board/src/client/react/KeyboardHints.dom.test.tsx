@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { afterEach, expect, vi } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 

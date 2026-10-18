@@ -1,5 +1,5 @@
 import { type ReactNode, useId, useLayoutEffect, useRef } from "react";
-import { useField } from "@shivaedev/effect-form/react.ts";
+import { useField } from "@shivaedev/effect-form/client/react.ts";
 import type { Fields, Form, Name } from "@shivaedev/effect-form/shape.ts";
 
 type Control = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;

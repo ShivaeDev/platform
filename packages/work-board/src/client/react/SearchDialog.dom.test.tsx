@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { expect, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { SearchDialog } from "#client/react/SearchDialog.tsx";
 import { screenStory } from "#test/screenStory.ts";
 

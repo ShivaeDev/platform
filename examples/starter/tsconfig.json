@@ -3,6 +3,9 @@
 		"customConditions": ["source"],
 		"jsx": "react-jsx",
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"paths": {
+			"#*": ["./src/*"]
+		},
 		"skipLibCheck": true,
 		"types": ["node", "react", "react-dom"]
 	},

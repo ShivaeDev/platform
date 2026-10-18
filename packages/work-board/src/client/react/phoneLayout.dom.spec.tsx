@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { afterEach, beforeEach, expect, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
 import { todayFixture } from "#test/todayFixture.ts";

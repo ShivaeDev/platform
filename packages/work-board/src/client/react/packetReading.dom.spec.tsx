@@ -1,8 +1,8 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect, Option } from "effect";
 import { expect } from "vitest";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { DocumentView } from "#client/document/View.ts";
 import type { BoardTestApi } from "#test/react.tsx";
 import { DECISION_PATH, packetFiles, questionPath } from "#test/responsePacket.ts";

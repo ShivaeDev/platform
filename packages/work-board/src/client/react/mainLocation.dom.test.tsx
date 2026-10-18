@@ -2,7 +2,7 @@ import { Effect, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useState } from "react";
 import { expect, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { LiveControls } from "./LiveControls.tsx";
 import { MainLocationContext, useMainLocation } from "./MainLocationContext.ts";

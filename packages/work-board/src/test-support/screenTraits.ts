@@ -1,5 +1,5 @@
 import { Deferred, Effect } from "effect";
-import { eventually, render } from "@shivaedev/effect-react/testing.ts";
+import { eventually, render } from "@shivaedev/effect-react/client/testing.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { answerDraft } from "./answerDraft.tsx";
 import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
@@ -70,7 +70,7 @@ export function chromeScreen(files: Parameters<typeof renderRouter>[0], path = "
 		}),
 	);
 }
-export function componentScreen(...args: Parameters<typeof import("@shivaedev/effect-react/testing.ts").render>) {
+export function componentScreen(...args: Parameters<typeof import("@shivaedev/effect-react/client/testing.ts").render>) {
 	return screenStory.trait("screen", "the reader opens the feature's component", function* (engine) {
 		trackScreen(engine, yield* Effect.promise(() => render(screenContent(engine, args[0]))), (line) => engine.tell?.(line));
 	});

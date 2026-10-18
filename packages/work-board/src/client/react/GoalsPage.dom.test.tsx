@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { goalsFixture } from "#test/goalsFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 

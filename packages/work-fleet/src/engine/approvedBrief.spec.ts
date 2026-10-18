@@ -1,7 +1,7 @@
 import { readdirSync } from "node:fs";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";

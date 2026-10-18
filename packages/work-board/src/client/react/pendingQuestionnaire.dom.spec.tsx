@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, expect, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { answerClient, answerDraft, answerPreview } from "#test/answerDraft.tsx";
 import { recordedResponse, responseCommands } from "#test/responseCommands.ts";
 import { screenStory } from "#test/screenStory.ts";

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, beforeEach, expect, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { goalsFixture } from "#test/goalsFixture.ts";
 import { inboxFixture } from "#test/inboxFixture.ts";
 import { screenStory } from "#test/screenStory.ts";

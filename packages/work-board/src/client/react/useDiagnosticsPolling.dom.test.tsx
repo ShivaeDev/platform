@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { act, useState } from "react";
 import { afterEach, expect, vi } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { useDiagnosticsPolling } from "./useDiagnosticsPolling.ts";
 

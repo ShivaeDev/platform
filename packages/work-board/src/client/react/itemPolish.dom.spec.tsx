@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { expect } from "vitest";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
-import { eventually } from "@shivaedev/effect-react/testing.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { itemPolishFixture } from "#test/itemPolishFixture.ts";
 import type { BoardTestApi } from "#test/react.tsx";
 import { screenStory } from "#test/screenStory.ts";

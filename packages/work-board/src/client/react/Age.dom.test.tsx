@@ -1,7 +1,7 @@
 import { Clock, Effect } from "effect";
 import { act } from "react";
 import { expect, vi } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { Age, AgeTicker } from "./Age.tsx";
 

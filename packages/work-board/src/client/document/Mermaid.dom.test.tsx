@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { afterEach, expect, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { ThemeContext } from "#client/react/ThemeContext.ts";
 import { useAppearance } from "#client/react/useAppearance.ts";
 import { mermaidEngine as mermaid } from "#test/mermaidEngine.ts";

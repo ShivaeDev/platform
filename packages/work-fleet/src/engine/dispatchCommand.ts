@@ -1,5 +1,4 @@
 import { Effect, Result } from "effect";
-import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { waitingOwner } from "#attention.ts";
 import { approveDispatchedBrief } from "#engine/approveBrief.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
@@ -66,7 +65,6 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 					}
 					const waiting = {
 						...current.value,
-						admissionReady: !(error instanceof Forbidden),
 						attentionOwner: failureOwner(error),
 						blocker: failureMessage(error),
 					};
@@ -108,5 +106,5 @@ function requestedNow(record: FleetRecord, now: DispatchNow | undefined): FleetR
 
 // Every scheduler pass retries waiting work, so rewriting an unchanged wait would make each pass write and notify once per waiter.
 function sameWait(current: FleetRecord, waiting: FleetRecord) {
-	return current.blocker === waiting.blocker && current.admissionReady === waiting.admissionReady && current.attentionOwner === waitingOwner(waiting);
+	return current.blocker === waiting.blocker && current.attentionOwner === waitingOwner(waiting);
 }

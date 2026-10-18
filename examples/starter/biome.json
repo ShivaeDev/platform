@@ -1,4 +1,4 @@
 {
 	"extends": ["@shivaedev/quality/biome"],
-	"root": false
+	"root": true
 }

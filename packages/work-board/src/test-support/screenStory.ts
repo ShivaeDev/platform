@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { render } from "@shivaedev/effect-react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { captureReading, restoreReading } from "#client/react/readingState.ts";
 import { chrome } from "./chrome.ts";

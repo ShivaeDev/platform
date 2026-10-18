@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-trpc",
-	"version": "0.7.1",
+	"version": "0.7.2",
 	"description": "Effect-native procedures and testing for tRPC",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc#readme",
 	"bugs": {
@@ -20,189 +20,16 @@
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
-		},
-		"#adapter.ts": {
-			"source": "./src/server/adapter.ts",
-			"types": "./dist/server/adapter.d.ts",
-			"default": "./dist/server/adapter.js"
-		},
-		"#errors.ts": {
-			"source": "./src/server/errors.ts",
-			"types": "./dist/server/errors.d.ts",
-			"default": "./dist/server/errors.js"
-		},
-		"#internal/context-bridge.ts": {
-			"source": "./src/server/internal/contextBridge.ts",
-			"types": "./dist/server/internal/contextBridge.d.ts",
-			"default": "./dist/server/internal/contextBridge.js"
-		},
-		"#internal/loose.ts": {
-			"source": "./src/server/internal/loose.ts",
-			"types": "./dist/server/internal/loose.d.ts",
-			"default": "./dist/server/internal/loose.js"
-		},
-		"#internal/procedure-handler.ts": {
-			"source": "./src/server/internal/makeProcedureHandler.ts",
-			"types": "./dist/server/internal/makeProcedureHandler.d.ts",
-			"default": "./dist/server/internal/makeProcedureHandler.js"
-		},
-		"#internal/procedure-types.ts": {
-			"source": "./src/server/internal/procedureTypes.ts",
-			"types": "./dist/server/internal/procedureTypes.d.ts",
-			"default": "./dist/server/internal/procedureTypes.js"
-		},
-		"#internal/runtime.ts": {
-			"source": "./src/server/internal/runtime.ts",
-			"types": "./dist/server/internal/runtime.d.ts",
-			"default": "./dist/server/internal/runtime.js"
-		},
-		"#internal/stack-trace.ts": {
-			"source": "./src/server/internal/captureStackTrace.ts",
-			"types": "./dist/server/internal/captureStackTrace.d.ts",
-			"default": "./dist/server/internal/captureStackTrace.js"
-		},
-		"#internal/subscription-handler.ts": {
-			"source": "./src/server/internal/makeSubscriptionHandler.ts",
-			"types": "./dist/server/internal/makeSubscriptionHandler.d.ts",
-			"default": "./dist/server/internal/makeSubscriptionHandler.js"
-		},
-		"#procedure.ts": {
-			"source": "./src/server/EffectProcedureBuilder.ts",
-			"types": "./dist/server/EffectProcedureBuilder.d.ts",
-			"default": "./dist/server/EffectProcedureBuilder.js"
-		},
-		"#rejection-formatter.ts": {
-			"source": "./src/server/rejectionFormatter.ts",
-			"types": "./dist/server/rejectionFormatter.d.ts",
-			"default": "./dist/server/rejectionFormatter.js"
-		},
-		"#rejection.ts": {
-			"source": "./src/server/rejection.ts",
-			"types": "./dist/server/rejection.d.ts",
-			"default": "./dist/server/rejection.js"
-		},
-		"#request-services.ts": {
-			"source": "./src/server/requestServices.ts",
-			"types": "./dist/server/requestServices.d.ts",
-			"default": "./dist/server/requestServices.js"
-		},
-		"#request-signal.ts": {
-			"source": "./src/server/RequestSignal.ts",
-			"types": "./dist/server/RequestSignal.d.ts",
-			"default": "./dist/server/RequestSignal.js"
-		},
-		"#testing/any-test-layer.ts": {
-			"source": "./src/server/testing/AnyTestLayer.ts",
-			"types": "./dist/server/testing/AnyTestLayer.d.ts",
-			"default": "./dist/server/testing/AnyTestLayer.js"
-		},
-		"#testing/caller.ts": {
-			"source": "./src/server/testing/caller.ts",
-			"types": "./dist/server/testing/caller.d.ts",
-			"default": "./dist/server/testing/caller.js"
-		},
-		"#testing/types.ts": {
-			"source": "./src/server/testing/types.ts",
-			"types": "./dist/server/testing/types.d.ts",
-			"default": "./dist/server/testing/types.js"
-		},
-		"#testing/vitest.ts": {
-			"source": "./src/server/testing/vitest.ts",
-			"types": "./dist/server/testing/vitest.d.ts",
-			"default": "./dist/server/testing/vitest.js"
-		},
-		"#types.ts": {
-			"source": "./src/server/types.ts",
-			"types": "./dist/server/types.d.ts",
-			"default": "./dist/server/types.js"
 		}
 	},
 	"exports": {
-		"./package.json": "./package.json",
-		"./client/rejection.ts": {
-			"types": "./dist/rejectionDecoding.d.ts",
-			"source": "./src/rejectionDecoding.ts",
-			"import": "./dist/rejectionDecoding.js",
-			"default": "./dist/rejectionDecoding.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"default": "./dist/*.js"
 		},
-		"./adapter.ts": {
-			"types": "./dist/server/adapter.d.ts",
-			"source": "./src/server/adapter.ts",
-			"import": "./dist/server/adapter.js",
-			"default": "./dist/server/adapter.js"
-		},
-		"./errors.ts": {
-			"types": "./dist/server/errors.d.ts",
-			"source": "./src/server/errors.ts",
-			"import": "./dist/server/errors.js",
-			"default": "./dist/server/errors.js"
-		},
-		"./procedure.ts": {
-			"types": "./dist/server/EffectProcedureBuilder.d.ts",
-			"source": "./src/server/EffectProcedureBuilder.ts",
-			"import": "./dist/server/EffectProcedureBuilder.js",
-			"default": "./dist/server/EffectProcedureBuilder.js"
-		},
-		"./rejection-formatter.ts": {
-			"types": "./dist/server/rejectionFormatter.d.ts",
-			"source": "./src/server/rejectionFormatter.ts",
-			"import": "./dist/server/rejectionFormatter.js",
-			"default": "./dist/server/rejectionFormatter.js"
-		},
-		"./rejection.ts": {
-			"types": "./dist/server/rejection.d.ts",
-			"source": "./src/server/rejection.ts",
-			"import": "./dist/server/rejection.js",
-			"default": "./dist/server/rejection.js"
-		},
-		"./rejectionDecoding.ts": {
-			"types": "./dist/rejectionDecoding.d.ts",
-			"source": "./src/rejectionDecoding.ts",
-			"import": "./dist/rejectionDecoding.js",
-			"default": "./dist/rejectionDecoding.js"
-		},
-		"./request-services.ts": {
-			"types": "./dist/server/requestServices.d.ts",
-			"source": "./src/server/requestServices.ts",
-			"import": "./dist/server/requestServices.js",
-			"default": "./dist/server/requestServices.js"
-		},
-		"./request-signal.ts": {
-			"types": "./dist/server/RequestSignal.d.ts",
-			"source": "./src/server/RequestSignal.ts",
-			"import": "./dist/server/RequestSignal.js",
-			"default": "./dist/server/RequestSignal.js"
-		},
-		"./testing/any-test-layer.ts": {
-			"types": "./dist/server/testing/AnyTestLayer.d.ts",
-			"source": "./src/server/testing/AnyTestLayer.ts",
-			"import": "./dist/server/testing/AnyTestLayer.js",
-			"default": "./dist/server/testing/AnyTestLayer.js"
-		},
-		"./testing/caller.ts": {
-			"types": "./dist/server/testing/caller.d.ts",
-			"source": "./src/server/testing/caller.ts",
-			"import": "./dist/server/testing/caller.js",
-			"default": "./dist/server/testing/caller.js"
-		},
-		"./testing/types.ts": {
-			"types": "./dist/server/testing/types.d.ts",
-			"source": "./src/server/testing/types.ts",
-			"import": "./dist/server/testing/types.js",
-			"default": "./dist/server/testing/types.js"
-		},
-		"./testing/vitest.ts": {
-			"types": "./dist/server/testing/vitest.d.ts",
-			"source": "./src/server/testing/vitest.ts",
-			"import": "./dist/server/testing/vitest.js",
-			"default": "./dist/server/testing/vitest.js"
-		},
-		"./types.ts": {
-			"types": "./dist/server/types.d.ts",
-			"source": "./src/server/types.ts",
-			"import": "./dist/server/types.js",
-			"default": "./dist/server/types.js"
-		}
+		"./server/internal/*": null,
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",

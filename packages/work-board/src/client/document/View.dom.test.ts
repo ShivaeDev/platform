@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";

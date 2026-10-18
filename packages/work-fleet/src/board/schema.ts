@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { attention } from "@shivaedev/work-board/integration/attention.ts";
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import { attention } from "@shivaedev/work-board/server/integration/attention.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { SessionReceipt } from "#session/schema.ts";
 
 const { RequestReceipt } = attention;

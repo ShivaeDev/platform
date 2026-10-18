@@ -2,7 +2,7 @@ import { createMemoryHistory, RouterContextProvider } from "@tanstack/react-rout
 import { Effect } from "effect";
 import { act, useCallback, useRef, useState } from "react";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { DocumentView } from "#client/document/View.ts";
 import { documentData } from "#test/documentRendering.ts";
 import { screenStory } from "#test/screenStory.ts";
