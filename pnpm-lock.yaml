@@ -409,6 +409,9 @@ importers:
       '@shivaedev/changesets':
         specifier: workspace:*
         version: link:packages/changesets
+      '@shivaedev/effect-sql':
+        specifier: workspace:*
+        version: link:packages/effect-sql
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:packages/local-postgres
