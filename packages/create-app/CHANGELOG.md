@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.10 - 2026-10-18
+
+### Fixed
+
+- Align published framework dependencies with the current releases.
+
 ## 0.6.9 - 2026-10-18
 
 ### Fixed

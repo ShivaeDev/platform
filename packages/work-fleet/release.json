@@ -2,13 +2,9 @@
 	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "read-retry-ms.md",
-			"text": "### Added\n\n- `readRetryMs` in Fleet policy and `fleet.config.json` sets the first provider and integration read-retry delay, defaulting to 30 seconds; later retries still double it. The daemon applies an edited value without a restart.\n\n### Breaking\n\n- `readHostConfig` and `loadHost` moved from `@shivaedev/work-fleet/host/config.ts` to `@shivaedev/work-fleet/host/configFile.ts`.\n"
-		},
-		{
-			"name": "repair-area-claims.md",
-			"text": "### Fixed\n\n- Conflict repairs on existing PRs keep or regain their area ahead of prepared items with terminal provider attempts.\n"
+			"name": "daemon-host.md",
+			"text": "### Breaking\n\n- Remove `runFleet`, `continueWork` and `dispatchWork` from `host/commands.ts`, and remove `host/reassignWork.ts` and its `reassignWork` export. Run the host with `serveFleet` from `host/daemon.ts`.\n- Remove the `renderStatus` pass-through from `host/status.ts`; import it directly from `host/renderStatus.ts`. Import `fleetStatus` from `host/fleetStatus.ts` after the module rename.\n"
 		}
 	],
-	"version": "0.4.0"
+	"version": "0.5.0"
 }
