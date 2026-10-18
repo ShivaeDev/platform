@@ -1,4 +1,4 @@
-import { Effect, Result } from "effect";
+import { Cause, Effect, Result } from "effect";
 import { inBoardReadPass, withBoardReadPass } from "#board/readPass.ts";
 import { boardCompletionAction } from "#engine/completeBoardWork.ts";
 import { schedulerPassed } from "#engine/health.ts";
@@ -15,6 +15,9 @@ const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: r
 	for (const { value } of prepared) {
 		const result = yield* fleet.dispatch(value.workId).pipe(Effect.result);
 		dispatched.push(result);
+		if (Result.isFailure(result)) {
+			yield* Effect.logWarning("Fleet dispatch failed", Cause.fail(result.failure)).pipe(Effect.annotateLogs({ workId: value.workId }));
+		}
 		if ((Result.isSuccess(result) && result.success.value.launchRetry !== undefined) || (yield* fleet.hasLaunchRetry())) {
 			break;
 		}

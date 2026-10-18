@@ -29,6 +29,7 @@ interface SchedulerWatch {
 }
 
 export const watchScheduler = Effect.fn("WatchSchedulerTest.watchScheduler")(function* (fixture: HostFixture, paused: boolean) {
+	fixture.write("connected.md", task("connected", "approved"));
 	yield* storeState(fixture.host, "connected", {
 		...statusRecord("connected", "needs-human"),
 		decision: { attentionOwner: "orchestrator", id: "connected", links: [], reason: "Watch connected", recommendation: "retry" },

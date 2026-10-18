@@ -1,11 +1,12 @@
 import { expect } from "@effect/vitest";
-import { Effect, Layer } from "effect";
+import { Effect } from "effect";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
 import { hostLayer } from "#host/commands.ts";
-import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
+import type { MainSnapshot } from "#host/mainSource.ts";
 import { task, withHost } from "#test/fleetHost.ts";
+import { movingMainSource } from "#test/mainSource.ts";
 import { postgresTests } from "#test/postgres.ts";
 
 const test = postgresTests("live");
@@ -14,20 +15,7 @@ for (const mode of ["admission", "dispatch", "edited dispatch"] as const) {
 	test(`${mode} refreshes unlaunched preparation after main moves without archived cycles or decisions`, () =>
 		withHost({ "one.md": task("one", "approved") }, {}, (fixture) => {
 			let main: MainSnapshot = { observedAt: 1, revision: "main-0" };
-			const source = Layer.succeed(MainSource)({
-				current: Effect.sync(() => main),
-				observe: (preparation) =>
-					Effect.sync(() => ({
-						...main,
-						ancestor: true,
-						changedPaths: preparation.baseRevision === main.revision ? [] : ["src/changed.ts"],
-						complete: true,
-						configurationChanges: [],
-						fromRevision: preparation.baseRevision,
-					})),
-				refresh: Effect.sync(() => main),
-				repositoryRoot: "/synthetic-repository",
-			});
+			const source = movingMainSource(() => main);
 			return Effect.gen(function* () {
 				const fleet = yield* Fleet;
 				yield* admitApproved(fixture.host);

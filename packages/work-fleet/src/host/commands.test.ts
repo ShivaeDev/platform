@@ -14,9 +14,9 @@ import { dispatchWork } from "#test/dispatchWork.ts";
 import { finishWorkers } from "#test/engine.ts";
 import type { EngineProvider } from "#test/engineProvider.ts";
 import { task, withHost } from "#test/fleetHost.ts";
+import { hostDatabase } from "#test/hostDatabase.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
-import { readOnlySql } from "#test/readOnlySql.ts";
 
 const until = Effect.fn("FleetHostTest.until")(function* (condition: () => boolean, timeoutMs = 20_000) {
 	const deadline = (yield* Clock.currentTimeMillis) + timeoutMs;
@@ -62,7 +62,7 @@ describe("work-fleet host against PostgreSQL", () => {
 				yield* Fiber.interrupt(runner);
 				expect(outcome.code).toBe(WAIT_EXIT.waitingDecision);
 				expect(outcome.summary).toMatch(/^a needs-human \(waiting on automation\): /u);
-				const status = renderStatus(yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host))));
+				const status = renderStatus(yield* fleetStatus(fixture.host).pipe(Effect.provide(hostDatabase(fixture.host, "work-fleet-reader", 1))));
 				expect(status).toContain("Active (0)");
 				expect(status).toContain("Waiting on automation (1)\n  a  needs-human");
 				const board = readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8");
