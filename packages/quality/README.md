@@ -154,7 +154,7 @@ Import names from their defining module; there is no root entry. The package's `
 | --- | --- |
 | `config.ts` | `defineConfig`, `QualityConfig`, `Level`, `RuleSetting`, `RuleSettings`, `BuiltInRules` |
 | `rule.ts` | `defineRule`, `Rule`, `Configured`, `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext` |
-| `standard-schema.ts` | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue` |
+| `standardSchema.ts` | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue` |
 | `imports/fences/dsl.ts` | `fence` |
 | `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external` |
 | `imports/fences/model.ts` | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External` |

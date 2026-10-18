@@ -1,5 +1,5 @@
 import type { Effect } from "effect";
-import type { PrismaRelationMethods } from "#relation/prisma-methods.ts";
+import type { RelationPrismaMethods } from "#relation/PrismaMethods.ts";
 import type { PrismaError } from "./error.ts";
 
 type AnyFunction = (...arguments_: readonly never[]) => unknown;
@@ -79,4 +79,4 @@ export type Relation<TCollection, TContract = undefined, TModel extends string =
 	TDatabaseId
 > &
 	RelationMethods<TCollection, TContract, TModel, TDatabaseId> &
-	PrismaRelationMethods<TCollection, TContract, TModel, TDatabaseId>;
+	RelationPrismaMethods<TCollection, TContract, TModel, TDatabaseId>;

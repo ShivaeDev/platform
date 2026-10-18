@@ -1,7 +1,7 @@
 import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:child_process";
 import { env } from "node:process";
-import { sqlInContainer, startContainer } from "./local-container.ts";
-import { type DockerEnvironment, docker } from "./local-docker.ts";
+import { sqlInContainer, startContainer } from "./localContainer.ts";
+import { type DockerEnvironment, docker } from "./localDocker.ts";
 
 export const localServer = "postgresql://postgres:postgres@127.0.0.1:55432";
 

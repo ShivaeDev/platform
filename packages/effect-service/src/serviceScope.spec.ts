@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Cause, Context, Deferred, Effect, Exit, Fiber, Layer, Ref, Scope } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { defineService } from "#define-service.ts";
+import { defineService } from "#defineService.ts";
 
 it.effect("runs initialization finalizers once when the Layer scope is explicitly closed", function* () {
 	const finalized = yield* Ref.make(0);

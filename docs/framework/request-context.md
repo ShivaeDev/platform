@@ -47,7 +47,7 @@ encoded JSON. Other fields are ignored. An untagged `{ field, message }`, a
 non-string `field` and non-objects are not field rejections, so a defect or an
 arbitrary thrown object with those keys is never shown as a field message. Code
 that maps rejections to form fields should start from this check and then keep
-only fields the form has. effect-react's default mapping also requires a string `_tag` and a field belonging to the form, as its [field-rejection test](../../packages/effect-react/src/field-rejection.test.ts) checks.
+only fields the form has. effect-react's default mapping also requires a string `_tag` and a field belonging to the form, as its [field-rejection test](../../packages/effect-react/src/fieldRejection.test.ts) checks.
 
 Unexpected failures stay defects rather than declared errors carrying a server-written message. Native RPC sends them as defects, and request tracing redacts and logs them. `AuthUnavailable` distinguishes a provider outage from a signed-out user. The [redaction tests](../../packages/platform/src/server/rpc-server/redaction.spec.ts) check the defect seen by the client, reporter and span; the session tests below check provider failure.
 

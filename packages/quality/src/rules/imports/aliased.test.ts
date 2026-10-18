@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { Finding } from "#rule.ts";
 import { importsAliased } from "#rules/imports/aliased.ts";
-import { aliasRepository } from "#test/alias-tree.ts";
+import { aliasRepository } from "#test/aliasRepository.ts";
 import { findingsIn } from "#test/imports.ts";
 import { removeSeededTrees } from "#test/tree.ts";
 

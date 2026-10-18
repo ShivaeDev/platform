@@ -106,7 +106,7 @@ export function aQuestionnaire(source = questionnaireSource, wrap?: FileSystemWr
 	return boardStory.traits(
 		projectFiles({ "proposal.md": source, "task.md": "# Affected work" }, "a questionnaire asks for reading and verification choices"),
 		responsesEnabled(),
-		...(wrap ? [boardFilesystem(wrap)] : []),
+		boardFilesystem(wrap),
 	);
 }
 
@@ -115,9 +115,13 @@ export function boardHome(home: string) {
 		engine.home = home;
 	});
 }
-export function boardFilesystem(wrap: FileSystemWrapper) {
+
+export function boardFilesystem(wrap?: FileSystemWrapper) {
 	return boardStory.trait("project", "the workspace uses the specified filesystem boundary", (engine) => {
 		const previous = engine.wrap;
-		engine.wrap = previous ? (fs) => wrap(previous(fs)) : wrap;
+		engine.wrap = (fs) => {
+			const boundary = previous ? previous(fs) : fs;
+			return wrap ? wrap(boundary) : boundary;
+		};
 	});
 }

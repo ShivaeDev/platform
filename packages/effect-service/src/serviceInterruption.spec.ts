@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Cause, Context, Deferred, Effect, Exit, Fiber, Layer, Ref } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { defineService } from "#define-service.ts";
+import { defineService } from "#defineService.ts";
 
 it.effect("interrupts a method and releases its caller resources while keeping the service live", function* () {
 	class Resource extends Context.Service<Resource, string>()("test/InterruptedResource") {}

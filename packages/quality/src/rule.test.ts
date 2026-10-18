@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { describe, expect, it } from "vitest";
 import { defineRule } from "#rule.ts";
-import type { StandardSchemaV1 } from "#standard-schema.ts";
+import type { StandardSchemaV1 } from "#standardSchema.ts";
 import { checkRule, issuesOf } from "#test/inputs.ts";
 
 const todo = defineRule({

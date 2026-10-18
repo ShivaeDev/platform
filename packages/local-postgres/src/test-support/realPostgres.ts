@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { sqlInContainer } from "#local-container.ts";
-import { docker } from "#local-docker.ts";
+import { sqlInContainer } from "#localContainer.ts";
+import { docker } from "#localDocker.ts";
 import { localServer } from "#localPostgres.ts";
 import type { PostgresEngine } from "#test/postgresEngine.ts";
 

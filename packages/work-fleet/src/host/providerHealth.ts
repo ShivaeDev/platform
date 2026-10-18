@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, type Option } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { capacityRejected, Health } from "#engine/health.ts";
 import type { SessionFailure, SessionObservation } from "#session/schema.ts";
 import { SessionTransport } from "#session/service.ts";

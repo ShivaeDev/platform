@@ -7,8 +7,8 @@ import { registryEntries } from "#exceptions/registryEntries.ts";
 import { SetupFailure } from "#failure.ts";
 import { collectInventory, type Inventory } from "#inventory/collect.ts";
 import { type FilesystemFailure, readOptionalText } from "#inventory/filesystem.ts";
-import { type BaselineFile, readBaseline, readInput } from "./baseline-file.ts";
-import { runRules } from "./run-rules.ts";
+import { type BaselineFile, readBaseline, readInput } from "./baselineFile.ts";
+import { runRules } from "./runRules.ts";
 import type { Violation } from "./violation.ts";
 
 export interface Session {
