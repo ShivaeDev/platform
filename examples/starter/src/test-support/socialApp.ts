@@ -7,6 +7,7 @@ import { domNavigate } from "@shivaedev/test-story/domNavigate.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { oauthProvider } from "./oauthProvider.ts";
 import { postgres } from "./postgres.ts";
+import { readProviderAccounts } from "./providerAccounts.ts";
 import { socialHost } from "./socialHost.ts";
 import { socialScreen } from "./socialScreen.tsx";
 
@@ -42,7 +43,12 @@ export const socialApp = storyKit({
 	name: "social auth",
 	outbound,
 	stages: ["account"],
-	verbs: ({ baseUrl, fetch, pool, screen }, story) => ({
+	verbs: ({ baseUrl, fetch, pool, screen, failAccountLookup }, story) => ({
+		failAccountLookup: () => Effect.sync(failAccountLookup),
+		providerAccounts: () => {
+			story.tell("the signed-in user reads provider account IDs through native RPC");
+			return readProviderAccounts(baseUrl, fetch);
+		},
 		signedInPageIs: (email: string) =>
 			Effect.promise(async () => {
 				story.tell("Alice sees her signed-in page and reads her cookie session");
@@ -70,6 +76,30 @@ export const socialApp = storyKit({
 				expect(response.redirected).toBe(true);
 				expect(await response.text()).toContain("Signed in as alice@social.test");
 				expect(window.location.href).toBe(`${baseUrl}/signed-in`);
+			}),
+		signOut: () =>
+			Effect.promise(async () => {
+				story.tell("the signed-in user signs out");
+				const response = await fetch("/api/auth/sign-out", {
+					body: "{}",
+					headers: { "content-type": "application/json", origin: baseUrl },
+					method: "POST",
+				});
+				if (!response.ok) {
+					throw new Error(`Sign-out failed: ${response.status}`);
+				}
+			}),
+		signUpWithEmail: () =>
+			Effect.promise(async () => {
+				story.tell("Bob signs up with email and password");
+				const response = await fetch("/api/auth/sign-up/email", {
+					body: JSON.stringify({ email: "bob@social.test", name: "Bob", password: "story-password-123" }),
+					headers: { "content-type": "application/json", origin: baseUrl },
+					method: "POST",
+				});
+				if (!response.ok) {
+					throw new Error(`Sign-up failed: ${response.status}`);
+				}
 			}),
 	}),
 });
