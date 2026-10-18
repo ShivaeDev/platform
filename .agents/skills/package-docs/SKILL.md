@@ -55,7 +55,7 @@ Name the two H2 sections in words that fit the package; the split is what matter
 
 `north-star.md` is the long form of the `AGENTS.md` north star: the problem in full, the ideals, the trade-offs, and what the package deliberately leaves out. `roadmap.md` lists what is built, what is next and the open questions. Docs state the current truth; history lives in git and the changelog.
 
-## Change fragments and releases
+## Changesets and releases
 
 For a consumer-visible change, add one `.changeset/<short-name>.md` per PR, naming each affected package and its bump in YAML frontmatter (`"@shivaedev/example": minor`). Use minor for Added or Breaking behavior before 1.0 and patch for Changed or Fixed only, with `### Added`, `### Changed`, `### Fixed` or `### Breaking` headings and Markdown bullets. Choose a unique short filename; do not edit versions, `CHANGELOG.md` or release manifests outside an approved release. Internal docs, tests, tooling and refactors need no changeset. For an approved release, follow [the release steps](../../../docs/releases.md): review `pnpm changesets plan`, run `pnpm changesets apply`, and commit the generated versions, changelogs, `.changeset/release.json`, hook changes and deleted changesets.
 
