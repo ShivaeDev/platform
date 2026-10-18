@@ -20,7 +20,7 @@ boss.it("reconciles schedules, preserves unspecified settings and avoids unchang
 
 boss.it("releases the acquired client and application error callback when immutable queue options conflict", [], function* ({ boot, client }) {
 	client.queues.set("immutable", queueResult("immutable", { partition: false, policy: "standard" }));
-	const Queue = defineQueue({ name: "immutable", queue: { partition: true, policy: "singleton" }, schema: Schema.Struct({}) });
+	const Queue = defineQueue({ key: () => "entity", name: "immutable", queue: { partition: true, policy: "singleton" }, schema: Schema.Struct({}) });
 	const reported: Error[] = [];
 	const error = yield* Effect.flip(boot([Queue.handle(() => Effect.void)], { onError: (failure) => Effect.sync(() => reported.push(failure)) }));
 	expect(error).toMatchObject({ _tag: "PgBossQueueOptionsError", options: ["partition", "policy"], queue: "immutable" });

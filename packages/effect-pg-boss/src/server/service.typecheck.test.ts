@@ -62,6 +62,7 @@ const definition: PgBossDefinition<"@test/EmailJobs"> = EmailJobs;
 void definition;
 
 defineQueue({
+	key: () => "entity",
 	name: "options",
 	queue: { heartbeatSeconds: 10, notify: true, partition: true, policy: "singleton", retryDelayMax: 30, warningQueueSize: 100 },
 	schema: Schema.Struct({}),

@@ -19,8 +19,6 @@
 {"path":"packages/effect-form/src/refs.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/effect-form/src/status.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-form/src/status.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-pg-boss/src/server/definition.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
-{"path":"packages/effect-pg-boss/src/server/definition.ts","rule":"biome/lint/style/useNamingConvention","count":17}
 {"path":"packages/effect-pg-boss/src/server/error.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-pg-boss/src/server/health.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-pg-boss/src/server/internal/health.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}

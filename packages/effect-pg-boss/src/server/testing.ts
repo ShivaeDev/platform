@@ -40,7 +40,7 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 	};
 	return {
 		...testingDeferrals(client, () => schema, signal.changed),
-		checkBatchWindow: (queue: QueueDefinition, millisecondsPerJob: number) =>
+		checkBatchWindow: (queue: Pick<QueueDefinition, "name" | "workerOptions">, millisecondsPerJob: number) =>
 			testingOperation(
 				"checkBatchWindow",
 				async () => {
@@ -68,7 +68,7 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 				}
 			}),
 		clientFactory,
-		expireAfter: (queue: QueueDefinition, attempts: number) =>
+		expireAfter: (queue: Pick<QueueDefinition, "name">, attempts: number) =>
 			Effect.try({
 				catch: (original) => new PgBossTestingError({ operation: "expireAfter", original: Redacted.make(original), queue: queue.name }),
 				try: () => {
@@ -78,7 +78,7 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 					controls.expirations.set(queue.name, attempts);
 				},
 			}),
-		failNextSend: (queue: QueueDefinition) => Effect.sync(() => controls.failures.add(queue.name)).pipe(Effect.asVoid),
+		failNextSend: (queue: Pick<QueueDefinition, "name">) => Effect.sync(() => controls.failures.add(queue.name)).pipe(Effect.asVoid),
 		jobs: testingReadout(client),
 		revision: signal.revision,
 		schemaVersion: testingOperation("schemaVersion", () => client().schemaVersion()),

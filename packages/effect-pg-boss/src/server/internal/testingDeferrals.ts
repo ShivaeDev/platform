@@ -6,7 +6,7 @@ import { testingOperation } from "#internal/testingReadout.ts";
 
 export function testingDeferrals(client: () => PgBoss, schema: () => string, changed: () => void) {
 	return {
-		deferred: (queue: QueueDefinition) =>
+		deferred: (queue: Pick<QueueDefinition, "name">) =>
 			testingOperation(
 				"deferred",
 				async () => {
@@ -18,7 +18,7 @@ export function testingDeferrals(client: () => PgBoss, schema: () => string, cha
 				},
 				queue.name,
 			),
-		runDeferredNow: (queue: QueueDefinition) =>
+		runDeferredNow: (queue: Pick<QueueDefinition, "name">) =>
 			testingOperation(
 				"runDeferredNow",
 				async () => {
