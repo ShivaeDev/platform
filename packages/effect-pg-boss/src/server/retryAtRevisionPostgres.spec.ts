@@ -7,7 +7,7 @@ import { makePgBossTesting } from "#testing.ts";
 postgresIt("signals a local deferral while the rest of its batch remains blocked", [realPostgres], function* ({ boot, seed, until }) {
 	const Queue = defineQueue({
 		name: "retry-at-revision",
-		schema: Schema.Struct({ first: Schema.Boolean }),
+		schema: Schema.Struct({}),
 		worker: { batchSize: 2, pollingIntervalSeconds: 0.5 },
 	});
 	const testing = makePgBossTesting();
@@ -16,12 +16,14 @@ postgresIt("signals a local deferral while the rest of its batch remains blocked
 	const secondStarted = Promise.withResolvers<void>();
 	const releaseSecond = Promise.withResolvers<void>();
 	const at = DateTime.makeUnsafe((yield* Clock.currentTimeMillis) + 86_400_000);
-	yield* seed(Queue, [{ data: { first: true }, priority: 1 }, { data: { first: false } }]);
+	let attempts = 0;
+	yield* seed(Queue, [{ data: {} }, { data: {} }]);
 	yield* boot(
 		[
-			Queue.handle(({ first }) =>
+			Queue.handle(() =>
 				Effect.gen(function* () {
-					if (first) {
+					attempts += 1;
+					if (attempts === 1) {
 						firstStarted.resolve();
 						yield* Effect.promise(() => releaseFirst.promise);
 						yield* new RetryAt({ at, reason: "quota" });
