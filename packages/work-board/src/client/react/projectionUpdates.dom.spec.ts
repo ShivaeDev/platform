@@ -1,8 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { folder, startBoard } from "#test/board.ts";
-import { openPage } from "#test/browser.ts";
+import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { waitFor } from "#test/live.ts";
 import { rpcCall } from "#test/rpc.ts";
 
@@ -37,25 +35,28 @@ const routes = [
 		url: "/_board/work?view=table",
 	},
 ];
-it.live.each(routes)("updates $url through native projection invalidation", function* ({ file, next, selector, tag, text, url }) {
-	const notes = folder({ "home.md": HOME, "task.md": task("A task") });
-	yield* Effect.addFinalizer(() => Effect.sync(() => notes.remove()));
-	const board = yield* startBoard(notes.root, "home.md");
-	const reads: string[] = [];
-	const page = yield* openPage(board, url, (window) => {
-		const fetch = window.fetch.bind(window);
-		window.fetch = async (input, init) => {
-			const call = await rpcCall(window, input, init);
-			if (call) {
-				reads.push(call.tag);
-			}
-			return fetch(input, init);
-		};
-	});
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.getAttribute("data-state")).toBe("live")));
-	const before = reads.filter((read) => read === tag).length;
-	expect(before).toBeGreaterThan(0);
-	notes.write(file, next);
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(selector)?.textContent).toBe(text)));
-	expect(reads.filter((read) => read === tag).length).toBeGreaterThan(before);
-});
+for (const { file, next, selector, tag, text, url } of routes) {
+	boardStory.it(
+		`updates ${url} through native projection invalidation`,
+		[projectFiles({ "home.md": HOME, "task.md": task("A task") }), boardHome("home.md")],
+		function* ({ notes, reader }) {
+			const reads: string[] = [];
+			const page = yield* reader.open(url, (window) => {
+				const fetch = window.fetch.bind(window);
+				window.fetch = async (input, init) => {
+					const call = await rpcCall(window, input, init);
+					if (call) {
+						reads.push(call.tag);
+					}
+					return fetch(input, init);
+				};
+			});
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.getAttribute("data-state")).toBe("live")));
+			const before = reads.filter((read) => read === tag).length;
+			expect(before).toBeGreaterThan(0);
+			notes.write(file, next);
+			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(selector)?.textContent).toBe(text)));
+			expect(reads.filter((read) => read === tag).length).toBeGreaterThan(before);
+		},
+	);
+}

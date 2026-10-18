@@ -25,7 +25,6 @@ boardStory.it(
 	"shows an answer card with recording disabled in read-only mode",
 	[
 		projectFiles({ "decision.md": questionnaireSource, "task.md": "# Affected work" }, "a project source awaits direction"),
-		responsesEnabled(false),
 		readerAt("/_board/item/investigation.choices/"),
 	],
 	({ page }) => {

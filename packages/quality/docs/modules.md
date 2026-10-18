@@ -181,6 +181,7 @@ A module link opens its source. Type and value declarations with the same name a
 | [rules/biome.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/biome.ts) | `PRESET`, `rootConfig`, `biome` |
 | [rules/builtIn.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/builtIn.ts) | `builtInRules` |
 | [rules/manifestsSorted.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/manifestsSorted.ts) | `manifestsSorted` |
+| [rules/manifestsSourceFirst.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/manifestsSourceFirst.ts) | `manifestsSourceFirst` |
 | [rules/maxLines.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/maxLines.ts) | `maxLines` |
 | [rules/maxDepth.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/maxDepth.ts) | `maxDepth` |
 | [rules/noBarrel.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/noBarrel.ts) | `noBarrel` |
