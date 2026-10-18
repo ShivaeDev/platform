@@ -1,7 +1,9 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { expect, it } from "vitest";
+import { Effect } from "effect";
+import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
-import { renderBoard } from "#test/react.tsx";
+import { screenStory } from "#test/screenStory.ts";
+import { boardScreen } from "#test/screenTraits.ts";
 import { boardRouter } from "./boardRouter.ts";
 
 const files = {
@@ -13,22 +15,25 @@ const files = {
 	"task.md": "---\nid: task\nkind: task\nstatus: active\n---\n# Work task",
 };
 
-it.each(["", "?view=table", "?view=board"])("excludes records from Work%s through the projection query", async (query) => {
-	const view = await renderBoard(files, (api, registry) => {
-		const router = boardRouter({ api, registry });
-		router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [`/_board/work${query}`] }) });
-		return <RouterProvider router={router} />;
-	});
-	try {
-		await eventually(() => expect(view.container.querySelector('[data-item="task"]')).not.toBeNull());
-		expect(view.container.querySelectorAll("[data-item]")).toHaveLength(1);
-		if (query) {
-			expect(view.container.querySelector(".work-total")?.textContent).toContain("1 shown · 1 items");
-		} else {
-			expect(view.container.querySelector(".work-total")).toBeNull();
-		}
-		expect(view.container.querySelector('[aria-label="Work layout"]')?.textContent).toContain("NowAll workTable");
-	} finally {
-		await view.unmount();
-	}
-});
+for (const query of ["", "?view=table", "?view=board"]) {
+	screenStory.it(
+		`excludes records from Work${query} through the projection query`,
+		[
+			boardScreen(files, (api, registry) => {
+				const router = boardRouter({ api, registry });
+				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [`/_board/work${query}`] }) });
+				return <RouterProvider router={router} />;
+			}),
+		],
+		function* ({ findElement, findElements, readText }) {
+			yield* Effect.promise(() => eventually(() => expect(findElement('[data-item="task"]')).not.toBeNull()));
+			expect(findElements("[data-item]")).toHaveLength(1);
+			if (query) {
+				expect(readText(".work-total")).toContain("1 shown · 1 items");
+			} else {
+				expect(findElement(".work-total")).toBeNull();
+			}
+			expect(readText('[aria-label="Work layout"]')).toContain("NowAll workTable");
+		},
+	);
+}
