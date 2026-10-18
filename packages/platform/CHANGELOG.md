@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.18.0 - 2026-10-18
+
+### Added
+
+- effect-sql exports `clientOptions(options, { snakeCase? })` and `SqlNameTransforms` from `clientOptions.ts`. New clients configured with this helper use Effect SQL's native camelCase-to-snake_case query names and snake_case-to-camelCase results by default. Pass `{ snakeCase: false }` to preserve native names, or supply native transform functions in the options.
+- Platform's app database and app host configuration accept native `transformQueryNames` and `transformResultNames`, so applications can use effect-sql's client options without replacing the host's database layer.
+- Declare public client configuration once with `publicConfig(schema)` from `rpc/publicConfig.ts`. Load it at host startup with `publicConfigLayer` from `server/rpc-server/publicConfigLayer.ts` and read the generated contract through native atoms and effect-react's `useQuery`. Only declared fields reach the client; missing or invalid required values fail startup with a typed `ConfigError`.
+- `@shivaedev/platform/better-auth.ts` exposes `betterAuthMount(options)`, returning a typed Better Auth instance and native `/api/auth/*` route Layer with a 503 fallback, trusted-peer forwarded-IP handling and Config-controlled rate limiting. Applications supply their Better Auth options and RPC session policy.
+- `authDatabase(url)` scopes the Better Auth PostgreSQL pool, logs idle-client errors at Debug and waits for clients to disconnect on release. The entry uses the existing Better Auth integration and the optional `pg` peer.
+- Platform exports `authTestUtils(options?)` and `signedInUser(auth, fields)` from `server/better-auth/testing.ts` for typed Better Auth test utilities and signed-in story preconditions with user fields and roles, without OAuth or password hashing.
+- Test-story exports `seedCookies(cookies)` and `DomCookie` from `seedCookies.ts` to seed happy-dom's cookie container, including HttpOnly session cookies accepted by a real HTTP host.
+
+### Changed
+
+- Newly generated applications configure snake_case SQL columns through effect-sql. The starter migrates existing note ownership and word-count columns while retaining camelCase model fields.
+- Import `betterAuthMount` and `authDatabase` from `@shivaedev/platform/server/better-auth/mount.ts`, the module's own path under the package's wildcard export. The separate `@shivaedev/platform/better-auth.ts` entry is removed.
+
+### Breaking
+
+- Provider accounts load when a handler asks for them. Replace `SessionUser.providerAccounts` array reads with `yield* (yield* SessionUserWithProviderAccounts).providerAccounts`, declare `AuthenticatedUserWithProviderAccounts` on the RPC, and install `authenticatedUserWithProviderAccountsLayer(sessions)`. Add `AuthUnavailable` and `Unauthorized` to the RPC's error schema because account lookup failures now fail the reading handler. Base `SessionUserValue` no longer has `providerAccounts`.
+- A custom session provider supplies `user.providerAccounts` as `Effect<readonly ProviderAccountValue[], AuthUnavailable | Unauthorized>`, described by the new `ProviderAccountsSessionShape`, instead of an array. The request boundary memoizes this Effect and projects its results to provider and account IDs. `betterAuthSessions(getSession, getProviderAccounts)` supplies this shape; without a lookup its session user has no accounts field. `SessionUserWithProviderAccountsValue` describes the accounts-capable handler profile. Identity-only requests do not call the lookup, and repeated reads share one lookup per request.
+
 ## 0.17.0 - 2026-10-18
 
 ### Added
