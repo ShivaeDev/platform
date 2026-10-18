@@ -8,6 +8,7 @@ import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { engineBoardVerbs } from "#test/engineBoardVerbs.ts";
 import { engineEvidence } from "#test/engineEvidence.ts";
 import { engineGithubVerbs } from "#test/engineGithubVerbs.ts";
+import { engineLaunchVerbs } from "#test/engineLaunchVerbs.ts";
 import { engineLostTurnVerbs } from "#test/engineLostTurnVerbs.ts";
 import { engineProviderVerbs } from "#test/engineProviderVerbs.ts";
 import { engineRpcVerbs } from "#test/engineRpcVerbs.ts";
@@ -91,6 +92,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 			Effect.gen(function* () {
 				story.tell("restart Fleet from PostgreSQL");
 				const services = yield* Layer.build(running(state).restartLayer());
+				state.previousFleet = running(state).fleet;
 				running(state).fleet = Context.get(services, Fleet);
 			}),
 
@@ -109,6 +111,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		...engineRpcVerbs(state, story.tell),
 		...engineLostTurnVerbs(state, story.tell),
 		...engineStatusVerbs(state, story.tell),
+		...engineLaunchVerbs(state, story.tell),
 		fleet: {
 			continue: verbs.continueWork,
 			dispatch: verbs.dispatch,

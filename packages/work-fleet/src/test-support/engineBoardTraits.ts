@@ -1,8 +1,21 @@
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { Deferred, Effect } from "effect";
 import { completionEdit } from "#test/completionEdit.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
+import { engine } from "#test/engineStory.ts";
 import { MOVED } from "#test/githubResult.ts";
 import { mainObservation } from "#test/preparation.ts";
+
+export function authoredBoardWork(source: string) {
+	return engine.trait("work", "the Board contains the authored work", (state) => {
+		if (state.root === "") {
+			throw new Error("Authored work needs a Markdown Board");
+		}
+		writeFileSync(join(state.root, "one.md"), source);
+		state.source = source;
+	});
+}
 
 export function boardEditRacesCompletion() {
 	return engineConfiguration("a human Board edit races completion bookkeeping", (state) => {

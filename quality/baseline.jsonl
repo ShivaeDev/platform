@@ -247,7 +247,6 @@
 {"path":"packages/work-fleet/src/engine/activeTurn.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/activeTurnDeadline.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/activeViews.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/admission.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/answeredFallback.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/answeredReceipt.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/answeredRepair.spec.ts","rule":"tests/story-specs","count":1}
@@ -262,7 +261,6 @@
 {"path":"packages/work-fleet/src/engine/briefSteerConcurrent.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/briefSteerRecovery.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/briefSteering.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/completedRenewal.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/contextAuthority.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/contextReview.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/contextScope.spec.ts","rule":"tests/story-specs","count":1}
@@ -277,13 +275,8 @@
 {"path":"packages/work-fleet/src/engine/failedFollowup.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/genericRejection.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/integrationReadRetry.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/launchBackpressure.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/launchFailure.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/launchPacing.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/launchReportBackpressure.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/launchRetryOwner.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/launchRetryQuery.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/launchSettings.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/legacyAttention.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/lostExecution.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/missingTurnSafety.spec.ts","rule":"tests/story-specs","count":1}
@@ -297,14 +290,7 @@
 {"path":"packages/work-fleet/src/engine/reasonCodes.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/reassignRecovery.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/recovery.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/recoveryLaunchSettings.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/recoveryMatrix.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/renewal.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/renewalBoard.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/renewalOpenPr.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/renewalOwnership.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/renewalPublication.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/renewalRelease.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/reportCorrection.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/reportCorrectionGuidance.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/reportFileFailures.spec.ts","rule":"tests/story-specs","count":1}

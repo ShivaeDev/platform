@@ -17,6 +17,9 @@ export function engineWorldVerbs(state: EngineStory, tell: (line: string) => voi
 		providerRequests: () => [...(state.missingTurns?.requests ?? [])],
 		recoverProvider: () =>
 			change("the provider accepts submissions again", () => {
+				if (!state.providerRejects) {
+					throw new Error("The provider is not rejecting submissions");
+				}
 				state.providerRejects = false;
 			}),
 		rejectProvider: () =>
