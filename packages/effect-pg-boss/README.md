@@ -324,6 +324,53 @@ const live = Jobs.layer({
 
 Include every target queue in `jobs`, as either a worker or a producer-only definition. Startup creates all queues before starting consumers. The example registers `Receipt` for another process to consume. A follow-up target can also have a worker in the same Layer. Scheduled effects can yield `Jobs` too. Keep one jobs Layer in the process's native Layer graph; that Layer owns one client for enqueueing and handling. The PostgreSQL follow-up test completes a chain across two workers, enqueues to a producer-only queue and asserts one client acquisition and shutdown.
 
+### Test through the queue contract
+
+`testing.ts` gives story kits a controller for one real pg-boss client. Create a fresh controller per runtime, pass its `clientFactory` to the jobs Layer, and keep that Layer scoped as usual. `jobs(queue, options?)` returns native job metadata with `data` decoded through the queue's Schema, including traced payloads. Invalid durable data fails with `PgBossPayloadError`; decoding services remain in the Effect's requirements.
+
+This producer story uses the `SendEmail` definition and `Jobs` service from above. `databaseUrl` points to the story's PostgreSQL database:
+
+```ts
+import { Context, Layer, Option } from "effect";
+import { expect } from "vitest";
+import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { makePgBossTesting, testRetryPolicy } from "@shivaedev/effect-pg-boss/testing.ts";
+
+const emailStories = storyKit({
+  clock: "live",
+  *create() {
+    const testing = makePgBossTesting({ retryPolicy: testRetryPolicy });
+    const context = yield* Layer.build(Jobs.layer({
+      connectionString: databaseUrl,
+      clientFactory: testing.clientFactory,
+      jobs: [SendEmail],
+    }));
+    return { jobs: Context.get(context, Jobs), testing };
+  },
+  name: "queued email",
+  stages: ["ready"],
+  verbs: ({ jobs, testing }) => ({
+    enqueue: (userId: number) => jobs.enqueue(SendEmail, { userId }),
+    testing,
+  }),
+});
+
+emailStories.it("decodes the queued email", [], function* ({ enqueue, testing }) {
+  const id = Option.getOrThrow(yield* enqueue(42));
+  expect(yield* testing.jobs(SendEmail)).toMatchObject([
+    { id, data: { userId: 42 }, state: "created" },
+  ]);
+});
+```
+
+Set `retryPolicy: testRetryPolicy` through the controller to override queue and send settings with `retryDelay: 0` and `retryBackoff: false`. A failing worker can then exhaust its native retries without production backoff. The policy applies to subsequently sent jobs; it does not rewrite jobs already stored.
+
+`failNextSend(queue)` arms one send failure for that queue. The next valid `enqueue` fails with the usual typed `PgBossError` (`operation: "enqueue"`); the following send proceeds normally. `expireAfter(queue, n)` takes a positive attempt count: configure it before enqueueing to limit subsequent jobs to `n` attempts. Earlier attempts run the handler normally; on attempt `n`, the controller expires the claimed job instead of invoking its handler. PostgreSQL supervision performs the terminal failure and dead lettering. A job that succeeds earlier completes normally. This expiry hook supports pg-boss schema version 45 and keeps its SQL inside the testing module.
+
+`checkBatchWindow(queue, millisecondsPerJob)` checks that the declared sequential batch fits strictly inside the stored queue expiry window. `schemaVersion` reads the installed version, and `checkSchemaVersion(expected)` fails when it differs. Test control, read and check failures use `PgBossTestingError` with `operation`, optional `queue` and a redacted `original`.
+
+A kit can capture `revision` before reading jobs and yield `waitForChange(revision)` when its condition is unmet. The wait resumes after a local send, settlement, worker fetch or return to idle. It also resumes immediately if a change occurred between the read and the wait, and interruption removes its listener. This signal observes the controller's client; external clients, future scheduled work and external database writes need their own wake source. Stories should retain a bounded test timeout. The package's PostgreSQL story kit uses this signal to settle failed-job stories without timer polling or application SQL.
+
 ### API
 
 Import the module that defines the name; the package has no root entry.
@@ -333,8 +380,9 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/effect-pg-boss/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
 | `@shivaedev/effect-pg-boss/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
 | `@shivaedev/effect-pg-boss/health.ts` | `deadLetterQueueName`; `JobsHealth`, `QueueCounts`, `QueueHealth` |
-| `@shivaedev/effect-pg-boss/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `toPgBossError`; `PgBossOperation` |
+| `@shivaedev/effect-pg-boss/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
 | `@shivaedev/effect-pg-boss/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
+| `@shivaedev/effect-pg-boss/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions` |
 
 The definition options keep the pg-boss names: `queue` uses `Queue` except `name` and `deadLetter`, `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 
