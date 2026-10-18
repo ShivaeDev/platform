@@ -222,6 +222,42 @@ expect(receiver.requests.some(({ body }) => body.includes(Buffer.from("planted-s
 
 For timeout stories, return `undefined` from the `status` callback to accept an export without sending response headers. Set `answer: null` to send headers without completing the response body.
 
+#### Faking an outbound HTTP API
+
+Use `fakeHttpService` from `@shivaedev/test-story/fakeHttpService.ts` in a kit's scoped `create` hook. Like the OTLP receiver, it listens on an allocated loopback port and closes with the scope. Routes have names for controls, a method (default `GET`), and a path whose `:segments` become decoded `request.params`. A reply receives the request and returns a JSON `body`, optional `status` (default 200), and optional response `headers`.
+
+```ts
+import { fakeHttpService } from "@shivaedev/test-story/fakeHttpService.ts";
+
+const api = yield* fakeHttpService({
+  guard: ({ headers }) => headers.authorization === "Bearer story-key",
+  routes: {
+    user: { path: "/users/:id", reply: ({ params }) => ({ body: { id: params.id } }) },
+    items: { path: "/items", pages: [["paper", "ink"], ["pens"]] },
+  },
+});
+```
+
+Point the application's real HTTP client at `api.url`, or use the kit's `outbound` map to route its external hostname there. A service-wide `guard` returns a boolean; a missing or wrong credential gets 401 before holds or scripted replies are consumed. Omit the guard for a public fake. Unmatched paths and methods get 404.
+
+In `verbs`, bind `api.narrate(story.tell)` to tell received requests, replies, rejections and hold controls through the story. An optional `tell` callback can also be supplied at acquisition. The service keeps request headers and bytes in its log; narration of normal requests includes only method, path and status.
+
+```ts
+api.narrate(story.tell);
+yield* api.failOnce("user", { status: 502, body: { error: "try again" } });
+const paused = yield* api.hold("user");
+const pending = yield* Effect.forkChild(application.loadUser("alice"));
+yield* paused.waiting;
+yield* paused.release;
+const user = yield* Fiber.join(pending);
+```
+
+`application.loadUser` is the application's real client call. `failOnce` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses that route until `release`; `waiting` completes when a request reaches the hold, so a story needs no polling to know when to release it. Other routes still answer. Effects that wait for HTTP should use a live-clock kit.
+
+A `pages` route accepts a one-based `?page=` query and returns `{ items, next }`, with `next: null` on the last page. No query means page 1; a page past the end returns an empty list; a non-positive or non-integer page gets 400. `api.requests` reads a snapshot of the request log, including rejected and held requests, with `method`, `path` (including query), raw `body` Buffer, `headers`, `params` and `query`.
+
+The [fake HTTP stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/outboundApi.spec.ts) use Node fetch to check params, credentials, pages, one-shot failure, hold/release ordering, request logs, narration and listener cleanup.
+
 ### 2. Once per feature: traits and verbs
 
 A trait is a line and a change, tagged with a stage:
@@ -478,6 +514,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `domNavigate.ts` | `domNavigate(url?)` |
 | `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
 | `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
+| `fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpHold`, `FakeHttpServiceOptions` |
 | `otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
 
 ### Install and limits
