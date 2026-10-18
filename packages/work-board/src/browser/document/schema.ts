@@ -1,9 +1,10 @@
 import { Schema } from "effect";
-import { QuestionPreview, RecordedResponse } from "#browser/responses/schema.ts";
+import { AnswerSummary, QuestionPreview, RecordedResponse } from "#browser/responses/schema.ts";
 import { Metadata } from "#metadata/schema.ts";
 import { ReadingContext } from "./ReadingContext.ts";
 
 export const DocumentRequest = Schema.Struct({
+	answered: Schema.optional(AnswerSummary),
 	id: Schema.String,
 	open: Schema.Boolean,
 	options: Metadata.to.fields.options,

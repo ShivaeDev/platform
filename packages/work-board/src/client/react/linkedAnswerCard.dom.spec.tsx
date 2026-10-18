@@ -32,7 +32,13 @@ for (const url of ["/guide.md", "/_board/item/task.guide/"]) {
 			expect(readText("article.doc")).toContain("Keep the release instructions clear.");
 			answerPrompt("fleet-action", "Please tighten the release instructions.");
 			yield* Effect.promise(async () => responseClick("submit"));
-			yield* Effect.promise(() => eventually(() => expect(readText('[role="status"]', card)).toContain("Saved:")));
+			yield* Effect.promise(() =>
+				eventually(() =>
+					expect(readText(".answer-cards .response-panel [data-answered]")).toBe(
+						"You answered. Fleet isn't running. It picks this up when it starts again.",
+					),
+				),
+			);
 			const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
 			expect(saved.responses).toHaveLength(1);
 			expect(saved.responses[0]?.response).toMatchObject({

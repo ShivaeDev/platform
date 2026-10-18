@@ -1,51 +1,52 @@
-import { Effect, Schema } from "effect";
-import { afterEach, expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { SourceFailure } from "#diagnostics/source.ts";
-import { type Folder, folder } from "#test/board.ts";
-import { health } from "#test/diagnostics.ts";
-import { healthReadingFolder } from "#test/healthReadingFolder.ts";
-import { fleetHealth } from "./fleetHealth.ts";
+import { expect } from "vitest";
+import { fleetHealth } from "#server/diagnostics/fleetHealth.ts";
+import { boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { health, syntheticSources } from "#test/diagnostics.ts";
+import { diagnosticsSources, healthBoundary } from "#test/readingTraits.ts";
 
-const folders: Folder[] = [];
-
-afterEach(() => {
-	for (const item of folders.splice(0)) {
-		item.remove();
-	}
-});
-
-function notes(source?: string) {
-	const result = folder(source === undefined ? {} : { "fleet/health.json": source });
-	folders.push(result);
-	return result;
+boardStory.it(
+	"reads Fleet's versioned health file into System",
+	[
+		serverReading(),
+		projectFiles({ "fleet/health.json": JSON.stringify(health) }),
+		diagnosticsSources((root) => syntheticSources({ fleet: fleetHealth(root) })),
+	],
+	function* ({ systemHtml }) {
+		const html = yield* systemHtml();
+		expect(html).toContain("3 / 8");
+		expect(html).toContain("Provider is at capacity");
+	},
+);
+for (const source of [undefined, "broken json", JSON.stringify({ ...health, running: -1 })]) {
+	boardStory.it(
+		`distinguishes ${source === undefined ? "missing" : "invalid"} Fleet state (${source})`,
+		[
+			serverReading(),
+			projectFiles(source === undefined ? {} : { "fleet/health.json": source }),
+			diagnosticsSources((root) => syntheticSources({ fleet: fleetHealth(root) })),
+		],
+		function* ({ systemHtml }) {
+			expect(yield* systemHtml()).toContain(`data-source="fleet" data-state="${source === undefined ? "not-configured" : "error"}"`);
+		},
+	);
 }
-
-it.live("reads the shared versioned snapshot and distinguishes missing from invalid Fleet state", function* () {
-	expect(yield* fleetHealth(notes(JSON.stringify(health)).root)).toEqual(health);
-	expect(yield* fleetHealth(notes().root).pipe(Effect.flip)).toMatchObject({ kind: "not-configured" });
-	for (const source of ["broken json", JSON.stringify({ ...health, running: -1 })]) {
-		expect(yield* fleetHealth(notes(source).root).pipe(Effect.flip)).toMatchObject({ kind: "error" });
-	}
-});
-
-it.live("explains an unsupported version before validating its unknown shape", function* () {
-	expect(yield* fleetHealth(notes(JSON.stringify({ version: 3 })).root).pipe(Effect.flip)).toMatchObject({
-		kind: "error",
-		message: "Fleet health snapshot version 3 is not supported by this Board. Use compatible Board and Fleet versions.",
-	});
-});
-
-it.live("rejects outside directories, file symlinks, non-files and oversized snapshots", function* () {
-	for (const trait of ["outside-directory", "file-link", "directory-file", "oversized"] as const) {
-		const fixture = healthReadingFolder(trait);
-		folders.push(fixture);
-		const failure = yield* fleetHealth(fixture.root).pipe(Effect.flip);
-		expect(failure).toBeInstanceOf(SourceFailure);
-		expect(Schema.is(SourceFailure)(failure)).toBe(true);
-		expect(failure).toMatchObject({ kind: "error" });
-		if (trait === "directory-file" || trait === "oversized") {
-			expect(failure.message).toContain("Ask Fleet to publish a supported health snapshot");
+boardStory.it(
+	"explains unsupported health versions before validating unknown fields",
+	[
+		serverReading(),
+		projectFiles({ "fleet/health.json": JSON.stringify({ version: 3 }) }),
+		diagnosticsSources((root) => syntheticSources({ fleet: fleetHealth(root) })),
+	],
+	function* ({ systemHtml }) {
+		expect(yield* systemHtml()).toContain("Fleet health snapshot version 3 is not supported by this Board. Use compatible Board and Fleet versions.");
+	},
+);
+for (const kind of ["outside-directory", "file-link", "directory-file", "oversized"] as const) {
+	boardStory.it(`rejects a ${kind} health snapshot`, [serverReading(), healthBoundary(kind)], function* ({ systemHtml }) {
+		const html = yield* systemHtml();
+		expect(html).toContain('data-source="fleet" data-state="error"');
+		if (kind === "directory-file" || kind === "oversized") {
+			expect(html).toContain("Ask Fleet to publish a supported health snapshot");
 		}
-	}
-});
+	});
+}

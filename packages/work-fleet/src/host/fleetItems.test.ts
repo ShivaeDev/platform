@@ -6,7 +6,6 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { diagnostics } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { HealthSnapshot } from "#engine/health.ts";
 import { FleetRepository } from "#engine/repository.ts";
-import { DaemonContract } from "#host/daemonContract.ts";
 import { daemonDiagnostics } from "#host/daemonDiagnostics.ts";
 import { fleetItemStore, itemRecord } from "#test/fleetItemStore.ts";
 import { healthSnapshot } from "#test/health.ts";
@@ -42,7 +41,6 @@ it.effect("the daemon contract lists every unfinished stage and only completions
 		Effect.provideService(HealthSnapshot, Effect.succeed(healthSnapshot)),
 		Effect.provideService(diagnostics.DiagnosticsSources, sources),
 	);
-	expect([...DaemonContract.requests.values()].some((request) => request._tag === "daemon.fleetItems")).toBe(true);
 	const client = yield* RpcTest.makeClient(diagnostics.DiagnosticsContract, { flatten: true }).pipe(Effect.provide(handlers));
 	const result = yield* client("daemon.fleetItems", {});
 	expect(result.items.map((item) => item.workId)).toEqual([

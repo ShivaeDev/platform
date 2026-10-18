@@ -1,13 +1,7 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Context, Data, Effect, Layer, Redacted, type Scope } from "effect";
+import { Context, Data, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { test } from "vitest";
-import { environmentVariable } from "./environment.ts";
-
-const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
-
-export const integration = databaseUrl === undefined ? test.skip : test;
+import { postgresLayer } from "./postgres.ts";
 
 export class Unavailable extends Data.TaggedError("Unavailable")<{ readonly reason: string }> {}
 export class Rejected extends Data.TaggedError("Rejected") {}
@@ -16,15 +10,7 @@ export function onSqlError(error: { readonly message: string }) {
 	return new Unavailable({ reason: error.message });
 }
 
-function pool() {
-	return PgClient.layer({ url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled") });
-}
-
-export function runPostgres<A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity | Scope.Scope>) {
-	return Effect.runPromise(Effect.scoped(effect).pipe(Effect.provide(Layer.merge(pool(), Reactivity.layer))));
-}
-
-export const secondPool = Effect.suspend(() => Effect.map(Layer.build(pool()), (context) => Context.get(context, SqlClient.SqlClient)));
+export const secondPool = Effect.map(Layer.build(Layer.fresh(postgresLayer)), (context) => Context.get(context, SqlClient.SqlClient));
 
 function ids(rows: ReadonlyArray<{ readonly id: number }>) {
 	return rows.map((row) => row.id);
@@ -49,7 +35,8 @@ export const setup = Effect.gen(function* () {
 	);
 	const events: string[] = [];
 	for (const key of ["orders", "orders:1", "orders:2"]) {
-		reactivity.registerUnsafe([key], () => events.push(key));
+		const cancel = reactivity.registerUnsafe([key], () => events.push(key));
+		yield* Effect.addFinalizer(() => Effect.sync(cancel));
 	}
 	function insert(id: number) {
 		return sql`insert into ${sql(tables.orders)} (id, name) values (${id}, ${`order ${id}`})`;
