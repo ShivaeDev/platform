@@ -20,9 +20,17 @@ export const fleetStory = storyKit({
 	runIf: postgresEnabled,
 	stages: ["board"],
 	verbs: ({ fixture, fleet }, story) => ({
+		attemptContinue: (id: string, message: string) => {
+			story.tell(`Fleet attempts to continue ${id}`);
+			return fleet.continue(id, message).pipe(Effect.flip);
+		},
 		attemptDispatch: (id: string) => {
 			story.tell(`Fleet attempts to dispatch ${id}`);
 			return fleet.dispatch(id).pipe(Effect.flip);
+		},
+		continue: (id: string, message: string) => {
+			story.tell(`Fleet continues ${id}`);
+			return fleet.continue(id, message);
 		},
 		dependencies: (id: string, targets: readonly string[]) => {
 			story.tell(`${id} now depends on ${targets.join(", ") || "no other work"}`);
@@ -53,6 +61,16 @@ export const fleetStory = storyKit({
 			story.tell(`Board reads for ${id} are ${unavailable ? "unavailable" : "available"}`);
 			fixture.unavailableWork(id, unavailable);
 		},
+		workerQuestion: (id: string, question: string) =>
+			Effect.gen(function* () {
+				story.tell(`the worker for ${id} finishes its turn with a question`);
+				const receipt = (yield* fleet.get(id)).value.attempts.at(-1)?.receipt;
+				const observation = receipt === undefined ? undefined : fixture.observations.get(receipt.turnId);
+				if (observation === undefined) {
+					return yield* Effect.die(new Error(`Missing worker observation for ${id}`));
+				}
+				fixture.observations.set(observation.receipt.turnId, { ...observation, execution: "completed", output: `FLEET_QUESTION: ${question}` });
+			}),
 	}),
 });
 

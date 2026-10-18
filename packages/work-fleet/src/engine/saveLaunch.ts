@@ -3,6 +3,7 @@ import type { EngineState, LaunchAdmission } from "#engine/makeState.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
 import { qualifyDependencies } from "#qualifyDependencies.ts";
+import { DEFAULT_AREA_MERGE_WAIT_MS, holdsAreas } from "#scheduling/areas.ts";
 import type { Versioned } from "#storage/model.ts";
 
 function launched(record: FleetRecord, attempt: Attempt): FleetRecord {
@@ -47,6 +48,10 @@ export const saveLaunch = Effect.fn("Fleet.saveLaunch")(function* (
 });
 
 const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: EngineState, record: FleetRecord) {
+	const policy = yield* state.current;
+	if (holdsAreas(record, policy.now(), policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS)) {
+		return [];
+	}
 	const records = (yield* state.store.list()).map(({ value }) => value);
 	const index = records.findIndex((entry) => entry.workId === record.workId);
 	const waiting = records.slice(0, index).filter((entry) => entry.stage === "prepared" && entry.areas?.some((area) => record.areas?.includes(area)));

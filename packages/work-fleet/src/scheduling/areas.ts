@@ -23,7 +23,7 @@ export function mergeWaitExpired(record: FleetRecord, now: number, mergeWaitMs: 
 	);
 }
 
-function holdsAreas(record: FleetRecord, now: number, mergeWaitMs: number): boolean {
+export function holdsAreas(record: FleetRecord, now: number, mergeWaitMs: number): boolean {
 	return (
 		!["completed", "released"].includes(record.stage)
 		&& record.attempts.length > 0

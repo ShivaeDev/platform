@@ -85,3 +85,36 @@ fleetStory.it("an unreadable later area waiter does not block the first item", [
 	expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
 	expect((yield* fleet.get("two")).value).toMatchObject({ attempts: [], stage: "prepared" });
 });
+
+fleetStory.it("an unreadable earlier waiter cannot block the current area holder's continuation", [sharedArea], function* (fleet) {
+	fleet.dependencies("one", ["dependency"]);
+	yield* fleet.prepare("one");
+	yield* fleet.prepare("two");
+	const first = yield* fleet.dispatch("two");
+	yield* fleet.workerQuestion("two", "Which implementation should I use?");
+	expect((yield* fleet.reconcile("two")).value.stage).toBe("needs-human");
+	fleet.unavailableWork("one", true);
+	const continued = yield* fleet.continue("two", "Use the existing implementation");
+	expect(continued.value.stage).toBe("executing");
+	expect(continued.value.attempts[0]).toMatchObject({
+		prompt: "Use the existing implementation",
+		receipt: { sessionId: first.value.attempts[0]?.receipt?.sessionId },
+		role: "repair",
+	});
+	expect((yield* fleet.get("one")).value).toMatchObject({ attempts: [], stage: "prepared" });
+});
+
+fleetStory.it("continuing completed work must resolve earlier waiters before reacquiring its area", [sharedArea], function* (fleet) {
+	fleet.dependencies("one", ["dependency"]);
+	yield* fleet.prepare("one");
+	yield* fleet.prepare("two");
+	yield* fleet.dispatch("two");
+	fleet.finishWorkers();
+	expect((yield* fleet.reconcile("two")).value.stage).toBe("completed");
+	fleet.unavailableWork("one", true);
+	expect(yield* fleet.attemptContinue("two", "Follow up on the implementation")).toMatchObject({
+		_tag: "BoardFailure",
+		message: "Board work unavailable",
+	});
+	expect((yield* fleet.get("two")).value.stage).toBe("completed");
+});
