@@ -17,8 +17,8 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"types": "./dist/*.d.ts",
 			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
