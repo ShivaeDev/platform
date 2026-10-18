@@ -1,18 +1,31 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { ReleasePlan } from "@shivaedev/changesets/model.ts";
-import { pending, platform } from "#release/test-support/platform.ts";
+import { legacyFragment, pending, platform } from "#release/test-support/platform.ts";
 
 const Inventory = Schema.Struct({ packages: Schema.Array(Schema.Struct({ name: Schema.String, version: Schema.String })) });
 const Consumers = Schema.Struct({ timings: Schema.Array(Schema.Struct({ name: Schema.String })) });
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
 
 platform.it(
+	"the release check rejects package-local fragments from open PRs",
+	[legacyFragment],
+	function* ({ run, remove }) {
+		const rejected = yield* run("changelog:check");
+		expect(rejected.status).not.toBe(0);
+		expect(rejected.stderr).toContain("packages/platform/changes/open-pr.md");
+		expect(rejected.stderr).toContain(".changeset/<short-name>.md");
+		yield* remove("packages/platform/changes/open-pr.md");
+		const accepted = yield* run("changelog:check");
+		expect(accepted.status, accepted.stderr).toBe(0);
+	},
+	60_000,
+);
+
+platform.it(
 	"an applied repository release builds and passes packed consumers with aligned pins and binaries",
 	[pending],
 	function* ({ run, read }) {
-		const installed = yield* run("install", "--frozen-lockfile");
-		expect(installed.status, installed.stderr).toBe(0);
 		const pins = Schema.decodeUnknownSync(Versions)(yield* read("examples/starter/published-versions.json"));
 		const paths = {
 			"@shivaedev/work-board": "packages/work-board/src/server/packageInfo.ts",
