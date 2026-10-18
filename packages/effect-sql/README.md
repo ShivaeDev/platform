@@ -21,13 +21,29 @@ const rows = yield* lines.findMany({
 
 ### How to think about it
 
-The application owns the database schema and its native Effect `SqlClient` layer. A **model** describes decoded row fields and the variants used for insertion, updating and JSON. A **repository** combines native `SqlModel` CRUD with a small `findMany` query whose filters and selected results use those fields.
+The application owns the database schema and its native Effect `SqlClient` layer. Configure new clients with `clientOptions` to map camelCase model fields to snake_case PostgreSQL columns. A **model** describes decoded row fields and the variants used for insertion, updating and JSON. A **repository** combines native `SqlModel` CRUD with a small `findMany` query whose filters and selected results use those fields.
 
 A transaction is a separate boundary. Repository calls participate in a caller's native `sql.withTransaction`. When writes also announce changed Reactivity keys, start that boundary with `transact`: it uses the native transaction and records keys until its owning database commits. The change ownership comes from `effect-changes`; this package supplies the SQL boundary and the Reactivity publisher.
 
 Migrations are ordinary Effects loaded by native Migrator. `migratePostgres` adds coordination for PostgreSQL runners sharing a ledger. It does not derive a table from a model: migration SQL and row codecs must agree.
 
 The work has three parts: describe the model and provide its database once, choose repository operations per feature, and put each changed write inside the transaction that owns its commit.
+
+### SQL names: configure the client once
+
+```ts
+import * as PgClient from "@effect/sql-pg/PgClient";
+import { Redacted } from "effect";
+import { clientOptions } from "@shivaedev/effect-sql/clientOptions.ts";
+
+const database = PgClient.layer(clientOptions({
+  url: Redacted.make("postgresql://localhost/example"),
+}));
+```
+
+`clientOptions` enables Effect SQL's `transformQueryNames` with Effect's `String.camelToSnake` and `transformResultNames` with `String.snakeToCamel` by default. A model field `createdAt` writes the migration-created `created_at` column, and returned rows contain `createdAt`. Inserts, selects, filters, ordering, updates and raw SQL share the client's transforms; column aliases are unnecessary. Write literal migration SQL with snake_case columns. In tagged SQL, interpolated identifiers such as `sql("createdAt")` are transformed; literal SQL text stays as written.
+
+To opt out for an existing database with quoted camelCase columns or models with snake_case fields, use `PgClient.layer(clientOptions(options, { snakeCase: false }))`. Existing native clients are unchanged until configured with this helper. Native `transformQueryNames` and `transformResultNames` supplied in `options` take precedence. For `platform`'s `appHost` or `appDatabase`, use `clientOptions` on their `config` object; the host forwards those native transforms to its client.
 
 ### 1. Once per model: fields and writable variants
 
@@ -342,6 +358,7 @@ Import the module that defines the name; there is no root entry.
 
 | Module | Export | Input or role |
 | --- | --- | --- |
+| `@shivaedev/effect-sql/clientOptions.ts` | `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` | Add default native name transforms to driver or app host options; opt out with `snakeCase: false`. |
 | `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn` or `conflictColumns`; requires native `SqlClient`. |
 | `@shivaedev/effect-sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`. |
 | `@shivaedev/effect-sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |
@@ -364,9 +381,10 @@ pnpm add @shivaedev/effect-sql effect@4.0.4 @effect/sql-pg@4.0.4
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Layer, Redacted } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { clientOptions } from "@shivaedev/effect-sql/clientOptions.ts";
 
 const database = Layer.merge(
-  PgClient.layer({ url: Redacted.make("postgresql://localhost/example") }),
+  PgClient.layer(clientOptions({ url: Redacted.make("postgresql://localhost/example") })),
   Reactivity.layer,
 );
 
