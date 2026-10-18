@@ -53,6 +53,9 @@ it.effect("closes only an applied exact answer, retains source bytes, and keeps 
 		const acknowledgement = { decision: receipt, disposition: "applied" as const, recordedAt: 1001, responseId: answer.id };
 		yield* board.acknowledgeDecision(acknowledgement);
 		yield* board.acknowledgeDecision(acknowledgement);
+		expect((yield* Effect.result(board.acknowledgeDecision({ decision: receipt, disposition: "superseded", recordedAt: 1002 })))._tag).toBe(
+			"Failure",
+		);
 		expect(files.receipts()).toHaveLength(1);
 		expect(files.read(receipt.sourcePath)).toBe(source);
 		expect(yield* boardAskFiles(root)).not.toContain(receipt.sourcePath);

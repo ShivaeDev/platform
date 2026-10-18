@@ -67,9 +67,6 @@ export function prepareFile(path: string, content: Buffer, versions: Readonly<Re
 	if (path === "package.json") {
 		return Buffer.from(prepareManifest(content.toString(), versions));
 	}
-	if (path === "biome.json") {
-		return Buffer.from(content.toString().replace('"root": false', '"root": true'));
-	}
 	if (["tsconfig.json", "vite.config.ts", "vitest.config.ts"].includes(path)) {
 		return Buffer.from(content.toString().replaceAll('"source", ', "").replaceAll('["source"]', "[]"));
 	}

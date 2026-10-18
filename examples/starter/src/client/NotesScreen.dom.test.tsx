@@ -1,3 +1,4 @@
+import { expect } from "vitest";
 import { heldNotesList, notesRoute, notesScreen, screens } from "#test-support/screens.ts";
 
 screens.it(
@@ -41,20 +42,27 @@ screens.it(
 		holdNotesList,
 		click,
 		queryCountIs,
+		screenContent,
 	}) {
 		yield* notesListIsPending();
 		yield* notesLoadingIs(true);
 		yield* screenOmits("No notes yet");
+		const content = yield* screenContent();
+		expect(content.querySelector("table")).toBeNull();
+		expect(content.querySelector('section[aria-label="Add a note"] form')).not.toBeNull();
 		yield* releaseNotesList();
 		yield* notesListIsReady();
 		yield* screenSays("No notes yet");
 		yield* notesLoadingIs(false);
+		expect(content.querySelector("table")).toBeNull();
+		yield* screenOmits("No results.");
 		yield* holdNotesList();
 		yield* click("Refresh");
 		yield* queryCountIs("list", 2);
 		yield* notesListIsPending();
 		yield* screenSays("No notes yet");
 		yield* notesLoadingIs(false);
+		expect(content.querySelector("table")).toBeNull();
 		yield* releaseNotesList();
 		yield* notesListIsReady();
 		yield* screenSays("No notes yet");
