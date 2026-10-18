@@ -1,115 +1,40 @@
 import { TRPCError } from "@trpc/server";
-import { Context, Effect, Layer, ManagedRuntime, Stream } from "effect";
-import { afterAll, expect, it } from "vitest";
-import { makeContextBridge } from "#internal/context-bridge.ts";
-import { makeRuntimeBridge } from "#internal/runtime.ts";
+import { Context } from "effect";
+import { expect } from "vitest";
+import { adapterServices, consumerInstrumentationThrows, consumerMapperThrows, runtimeAcquisitionFails } from "#test/adapterRouter.ts";
+import { RuntimeValue } from "#test/adapterServices.ts";
+import { trpc } from "#test/routerStory.ts";
 
-const runtime = ManagedRuntime.make(Layer.empty);
-const bridge = makeRuntimeBridge(runtime, makeContextBridge(), {});
-const procedure = {
-	captureStackTrace: () => undefined,
-	path: "cancelled",
-	type: "query" as const,
-};
-afterAll(() => runtime.dispose());
-it("maps pure interruption to CLIENT_CLOSED_REQUEST", async () => {
+trpc.it("maps pure interruption to CLIENT_CLOSED_REQUEST", [adapterServices()], function* ({ rejectCaller }) {
 	const controller = new AbortController();
 	controller.abort();
-	let caught: unknown;
-	try {
-		await bridge.runEffect(Effect.never, {
-			procedure,
-			signal: controller.signal,
-		});
-	} catch (error) {
-		caught = error;
-	}
-	expect(caught).toBeInstanceOf(TRPCError);
-	expect(caught).toMatchObject({
-		code: "CLIENT_CLOSED_REQUEST",
-		message: "Request cancelled",
-	});
+	const error = yield* rejectCaller("cancelled", controller.signal);
+	expect(error).toBeInstanceOf(TRPCError);
+	expect(error).toMatchObject({ code: "CLIENT_CLOSED_REQUEST", message: "Request cancelled" });
 });
-it("redacts defects thrown by consumer instrumentation", async () => {
-	const unsafeBridge = makeRuntimeBridge(runtime, makeContextBridge(), {
-		instrument: () => {
-			throw new Error("private instrumentation detail");
-		},
-	});
-	await expect(unsafeBridge.runEffect(unsafeBridge.instrument(Effect.succeed("unreachable"), procedure), { procedure })).rejects.toMatchObject({
-		code: "INTERNAL_SERVER_ERROR",
-		message: "Internal server error",
-	});
+trpc.it("redacts defects thrown by consumer instrumentation", [adapterServices(), consumerInstrumentationThrows()], function* ({ rejectQuery }) {
+	expect(yield* rejectQuery("services")).toMatchObject({ data: { code: "INTERNAL_SERVER_ERROR" }, message: "Internal server error" });
 });
-it("redacts defects thrown by the consumer error mapper", async () => {
-	const unsafeBridge = makeRuntimeBridge(runtime, makeContextBridge(), {
-		mapError: () => {
-			throw new Error("private mapper detail");
-		},
-	});
-	await expect(unsafeBridge.runEffect(Effect.fail("domain failure"), { procedure })).rejects.toMatchObject({
-		code: "INTERNAL_SERVER_ERROR",
-		message: "Internal server error",
-	});
+trpc.it("redacts defects thrown by the consumer error mapper", [adapterServices(), consumerMapperThrows()], function* ({ rejectQuery }) {
+	expect(yield* rejectQuery("domainFailure")).toMatchObject({ data: { code: "INTERNAL_SERVER_ERROR" }, message: "Internal server error" });
 });
-class SubscriptionValue extends Context.Service<SubscriptionValue, string>()("@test/SubscriptionValue") {}
-it("ends a subscription whose transport aborted before iteration begins", async () => {
+trpc.it("ends a subscription aborted before iteration", [adapterServices()], function* ({ subscribe, next }) {
 	const controller = new AbortController();
 	controller.abort();
-	const stream = await bridge.runStream(Stream.never, { procedure, signal: controller.signal });
-	await expect(stream[Symbol.asyncIterator]().next()).resolves.toEqual({ done: true, value: undefined });
+	const iterator = yield* subscribe("neverStream", controller.signal);
+	expect(yield* next(iterator)).toEqual({ done: true, value: undefined });
 });
-it("maps a subscription failure to the specific consumer error", async () => {
-	const streamBridge = makeRuntimeBridge(runtime, makeContextBridge(), {
-		mapError: (error, info) => {
-			expect(error).toBe("subscription unavailable");
-			expect(info).toMatchObject({ origin: "failure", path: "cancelled" });
-			return new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Updates temporarily unavailable" });
-		},
-	});
-	const stream = await streamBridge.runStream(Stream.fail("subscription unavailable"), { procedure });
-	await expect(stream[Symbol.asyncIterator]().next()).rejects.toMatchObject({
-		code: "SERVICE_UNAVAILABLE",
-		message: "Updates temporarily unavailable",
-	});
+trpc.it("maps subscription failures to the consumer error", [adapterServices()], function* ({ subscribe, rejectNext, mapped }) {
+	const iterator = yield* subscribe("failedStream");
+	expect(yield* rejectNext(iterator)).toMatchObject({ code: "SERVICE_UNAVAILABLE", message: "Updates temporarily unavailable" });
+	expect(mapped).toEqual([{ error: "subscription unavailable", origin: "failure", path: "failedStream" }]);
 });
-it("uses ambient subscription services after the caller context has returned", async () => {
-	const streamRuntime = ManagedRuntime.make(Layer.succeed(SubscriptionValue, "application"));
-	const contextBridge = makeContextBridge();
-	const streamBridge = makeRuntimeBridge(streamRuntime, contextBridge, {});
-	try {
-		const stream = await contextBridge.run(Context.make(SubscriptionValue, "test override"), () =>
-			streamBridge.runStream(Stream.fromEffect(SubscriptionValue), { procedure }),
-		);
-		const values: string[] = [];
-		for await (const value of stream) {
-			values.push(value);
-		}
-		expect(values).toEqual(["test override"]);
-	} finally {
-		await streamRuntime.dispose();
-	}
+trpc.it("keeps ambient subscription services after caller context returns", [adapterServices()], function* ({ subscribeWith, next }) {
+	const iterator = yield* subscribeWith("ambientStream", Context.make(RuntimeValue, "test override"));
+	expect(yield* next(iterator)).toEqual({ done: false, value: "test override" });
+	expect(yield* next(iterator)).toEqual({ done: true, value: undefined });
 });
-it("redacts subscription runtime acquisition failures through the consumer error mapper", async () => {
-	class Dependency extends Context.Service<Dependency, string>()("test/SubscriptionDependency") {}
-	const failedRuntime = ManagedRuntime.make(Layer.effect(Dependency, Effect.fail(new Error("private runtime acquisition detail"))));
-	const mapped: Array<{
-		origin: string;
-		path: string;
-	}> = [];
-	try {
-		const failedBridge = makeRuntimeBridge(failedRuntime, makeContextBridge(), {
-			mapError: (_error, context) => {
-				mapped.push({ origin: context.origin, path: context.path });
-				return undefined;
-			},
-		});
-		await expect(failedBridge.runStream(Stream.empty, { procedure: { ...procedure, path: "events", type: "subscription" } })).rejects.toMatchObject({
-			code: "INTERNAL_SERVER_ERROR",
-			message: "Internal server error",
-		});
-		expect(mapped).toEqual([{ origin: "failure", path: "events" }]);
-	} finally {
-		await failedRuntime.dispose();
-	}
+trpc.it("maps subscription runtime acquisition failures", [adapterServices(), runtimeAcquisitionFails()], function* ({ rejectSubscription, mapped }) {
+	expect(yield* rejectSubscription("stream")).toMatchObject({ code: "INTERNAL_SERVER_ERROR", message: "Internal server error" });
+	expect(mapped).toEqual([{ error: expect.any(Error), origin: "failure", path: "stream" }]);
 });
