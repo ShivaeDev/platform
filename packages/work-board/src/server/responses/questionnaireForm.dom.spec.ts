@@ -22,6 +22,7 @@ boardStory.it(
 	function* ({ page, reader }) {
 		expect(page.document.querySelectorAll("fieldset[data-prompt]")).toHaveLength(2);
 		expect(page.document.querySelectorAll("input:checked")).toHaveLength(0);
+		expect(page.document.querySelector('[data-prompt="display"] .question-choice')?.textContent).toMatch(/^Latest reply/u);
 		expect(page.document.querySelector(".answer-cards #forged")).toBeNull();
 		expect(page.document.querySelector("article.doc strong")?.textContent).toBe("reasoning");
 		yield* Effect.promise(() => waitFor(() => expect(page.mermaid.calls.length).toBeGreaterThan(0)));
@@ -37,6 +38,7 @@ boardStory.it(
 		yield* Effect.promise(() =>
 			waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("test keyboard use instead")),
 		);
+		expect(page.document.getElementById("response-history")?.textContent).toContain("Chose Full history");
 		yield* reader.waitForResponseStatus("not acceptance");
 	},
 );
