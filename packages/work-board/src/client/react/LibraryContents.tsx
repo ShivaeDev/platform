@@ -4,6 +4,7 @@ import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Library, LibraryFile } from "#browser/navigation/library.ts";
 import { Age } from "./Age.tsx";
 import type { ShellApi } from "./ShellApi.ts";
+import { statusPresentation } from "./statusPresentation.ts";
 export function LibraryContents({
 	api,
 	data,
@@ -34,7 +35,7 @@ function DocumentList({ files }: { readonly files: readonly LibraryFile[] }) {
 						</a>
 						<p className="m-0 text-muted-foreground text-xs">
 							{file.kind}
-							{file.status ? ` · ${file.status}` : ""}
+							{file.status ? ` · ${statusPresentation(file.status).label}` : ""}
 						</p>
 					</div>
 					<Age modified={file.modified} />

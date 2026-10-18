@@ -1,13 +1,22 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { fieldFilter, viewUrl } from "#browser/views/state.ts";
 import { shellIds } from "./shellIds.ts";
+import { statusPresentation } from "./statusPresentation.ts";
 export function WorkControls({ data }: { readonly data: WorkProjection }) {
 	const { state } = data;
 	function fields(field: "owner" | "status") {
-		const values = new Map(data.items.flatMap((item) => (item.metadata[field] ? [[fieldFilter(item.metadata[field]), item.metadata[field]]] : [])));
+		function name(value: string) {
+			return field === "status" ? statusPresentation(value).label : value;
+		}
+		const values = new Map(
+			data.items.flatMap((item) => {
+				const value = item.metadata[field];
+				return value ? [[fieldFilter(value), name(value)]] : [];
+			}),
+		);
 		const current = state[field];
 		if (current && !values.has(current)) {
-			values.set(current, `${current.startsWith("value:") ? current.slice(6) : current} (no current matches)`);
+			values.set(current, `${name(current.startsWith("value:") ? current.slice(6) : current)} (no current matches)`);
 		}
 		return (
 			<>

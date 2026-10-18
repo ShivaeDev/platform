@@ -1,32 +1,39 @@
 import { Ban, Check, Circle, CircleHelp, CirclePause, Clock, Inbox, LoaderCircle, MessageCircle, Users } from "lucide-react";
 
 const statuses = {
-	active: { icon: LoaderCircle, token: "agent-working" },
-	adopting: { icon: LoaderCircle, token: "agent-working" },
-	"agent-working": { icon: LoaderCircle, token: "agent-working" },
-	blocked: { icon: Ban, token: "blocked" },
-	completed: { icon: Check, token: "done" },
-	deferred: { icon: CirclePause, token: "deferred" },
-	delivering: { icon: LoaderCircle, token: "agent-working" },
-	done: { icon: Check, token: "done" },
-	executing: { icon: LoaderCircle, token: "agent-working" },
-	"in progress": { icon: LoaderCircle, token: "agent-working" },
-	"in-progress": { icon: LoaderCircle, token: "agent-working" },
-	"needs-human": { icon: MessageCircle, token: "needs-you" },
-	"needs-you": { icon: MessageCircle, token: "needs-you" },
-	planned: { icon: Circle, token: "deferred" },
-	prepared: { icon: Circle, token: "deferred" },
-	received: { icon: Inbox, token: "deferred" },
-	repairing: { icon: LoaderCircle, token: "agent-working" },
-	reviewing: { icon: LoaderCircle, token: "agent-working" },
-	running: { icon: LoaderCircle, token: "agent-working" },
-	superseded: { icon: Clock, token: "deferred" },
-	validating: { icon: LoaderCircle, token: "agent-working" },
-	"waiting-on-agents": { icon: Users, token: "waiting-on-agents" },
+	active: { icon: LoaderCircle, label: "Active", token: "agent-working" },
+	adopting: { icon: LoaderCircle, label: "Adopting", token: "agent-working" },
+	"agent-working": { icon: LoaderCircle, label: "Agent working", token: "agent-working" },
+	blocked: { icon: Ban, label: "Blocked", token: "blocked" },
+	completed: { icon: Check, label: "Completed", token: "done" },
+	deferred: { icon: CirclePause, label: "Deferred", token: "deferred" },
+	delivering: { icon: LoaderCircle, label: "Delivering", token: "agent-working" },
+	done: { icon: Check, label: "Done", token: "done" },
+	executing: { icon: LoaderCircle, label: "Executing", token: "agent-working" },
+	"in progress": { icon: LoaderCircle, label: "In progress", token: "agent-working" },
+	"in-progress": { icon: LoaderCircle, label: "In progress", token: "agent-working" },
+	"needs-human": { icon: MessageCircle, label: "Needs you", token: "needs-you" },
+	"needs-you": { icon: MessageCircle, label: "Needs you", token: "needs-you" },
+	planned: { icon: Circle, label: "Planned", token: "deferred" },
+	prepared: { icon: Circle, label: "Prepared", token: "deferred" },
+	received: { icon: Inbox, label: "Received", token: "deferred" },
+	repairing: { icon: LoaderCircle, label: "Repairing", token: "agent-working" },
+	reviewing: { icon: LoaderCircle, label: "Reviewing", token: "agent-working" },
+	running: { icon: LoaderCircle, label: "Running", token: "agent-working" },
+	superseded: { icon: Clock, label: "Superseded", token: "deferred" },
+	validating: { icon: LoaderCircle, label: "Validating", token: "agent-working" },
+	"waiting-on-agents": { icon: Users, label: "Waiting on agents", token: "waiting-on-agents" },
 } as const;
 function known(status: string): status is keyof typeof statuses {
 	return Object.hasOwn(statuses, status);
 }
 export function statusPresentation(status: string | undefined) {
-	return status && known(status) ? statuses[status] : ({ icon: CircleHelp, token: "deferred" } as const);
+	if (status && known(status)) {
+		return statuses[status];
+	}
+	return { icon: CircleHelp, label: plainStatus(status ?? ""), token: "deferred" } as const;
+}
+function plainStatus(status: string) {
+	const words = status.replaceAll(/[-_\s]+/gu, " ").trim();
+	return words.charAt(0).toUpperCase() + words.slice(1);
 }

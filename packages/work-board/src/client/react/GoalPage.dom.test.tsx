@@ -7,9 +7,15 @@ import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 import { screenFleet } from "#test/screenWorkspaceTraits.ts";
 
+const LEGEND_LABELS: Readonly<Record<string, string>> = { done: "Done", "in progress": "In progress", planned: "Planned" };
+
 declare const window: Window;
 
-for (const stage of ["executing", "reviewing", "needs-human"] as const) {
+for (const [stage, label] of [
+	["executing", "Executing"],
+	["reviewing", "Reviewing"],
+	["needs-human", "Needs you"],
+] as const) {
 	const files = { ...goalPageFixture() };
 	files["goal.md"] = (files["goal.md"] ?? "").replace(
 		"owner: agent",
@@ -51,7 +57,7 @@ for (const stage of ["executing", "reviewing", "needs-human"] as const) {
 			expect(progress?.textContent).not.toContain("%");
 			expect(readText(".goal-page")).not.toContain("No recorded evidence naming");
 			for (const [status, count] of Object.entries(counts)) {
-				const legend = [...findElements("[data-goal-counts] li")].find((entry) => readText("[data-status-token]", entry) === status);
+				const legend = [...findElements("[data-goal-counts] li")].find((entry) => readText("[data-status-token]", entry) === LEGEND_LABELS[status]);
 				expect(readText("strong", legend)).toBe(String(count));
 			}
 			for (const [id, group] of [
@@ -68,7 +74,7 @@ for (const stage of ["executing", "reviewing", "needs-human"] as const) {
 				expect(findElements("[data-status-token]", rows[0])).toHaveLength(id === "fifth" ? 0 : 1);
 			}
 			const row = findElement('[data-goal-item="task.first"]');
-			expect([...(findElements("[data-status-token]", row) ?? [])].map((chip) => chip.textContent)).toEqual([stage]);
+			expect([...(findElements("[data-status-token]", row) ?? [])].map((chip) => chip.textContent)).toEqual([label]);
 			expect(readText('[data-goal-item="task.fifth"] td')).toBe("");
 			expect(readText('[data-goal-item="task.fifth"] td [data-status-token]')).toBeUndefined();
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', row)).not.toBeNull();
@@ -81,7 +87,7 @@ for (const stage of ["executing", "reviewing", "needs-human"] as const) {
 					.map(([status, count]) => `${count} ${status}`)
 					.join(" · "),
 			);
-			expect([...findElements("#criterion-first li:first-child [data-status-token]")].slice(0, 2).map((chip) => chip.textContent)).toEqual([stage]);
+			expect([...findElements("#criterion-first li:first-child [data-status-token]")].slice(0, 2).map((chip) => chip.textContent)).toEqual([label]);
 			expect(findElements('#criterion-first a[href*="#recorded-evidence-"]')).toHaveLength(2);
 			expect(readText("#criterion-second")).toBe("Second criterion");
 			expect(findElement("#criterion-second")?.closest("details, [hidden]")).toBeNull();

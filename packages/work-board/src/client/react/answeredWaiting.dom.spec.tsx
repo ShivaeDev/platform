@@ -26,11 +26,11 @@ const OPEN_ASK = {
 screenStory.it(
 	"moves an answered Fleet decision out of Needs you until Fleet's receipt settles it",
 	[screenFleet(guideFleet), routedScreen(answeredDecisionFixture(), "/", { home: "home.md" })],
-	function* ({ editFile, findElement, findElements, readAttribute, readText, refreshInbox }) {
+	function* ({ editFile, findElement, findElements, readText, refreshInbox }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(`ul${ANSWERED}`)).not.toBeNull()));
 		expect([...findElements(`ul${ANSWERED} > li p`)].map((row) => row.getAttribute("title"))).toEqual([NEXT_PASS]);
 		expect(readText(`ul${ANSWERED} > li a`)).toBe("Publish the install guide");
-		expect(readAttribute(`ul${ANSWERED} [data-status-token]`, "data-status-token")).toBe("waiting-on-agents");
+		expect(findElement(`ul${ANSWERED} [data-status-token]`)).toBeNull();
 		expect(findElement("ul[aria-label='Needs you']")).toBeNull();
 		expect(readText("#needs-you")).toContain("All quiet — nothing needs you.");
 		expect(readText(".today-strip")).toMatch(/^0 need you/u);
@@ -76,7 +76,7 @@ for (const [fleet, copy] of [
 			yield* Effect.promise(() => eventually(() => expect(findElement(card)).not.toBeNull()));
 			expect(findElement("[aria-label='Waiting on a person'] [data-item='task.guide']")).toBeNull();
 			expect(readAttribute(`${card} [data-status-token]`, "data-status-token")).toBe("waiting-on-agents");
-			expect(readText(`${card} [data-status-token]`)).toBe("waiting-on-agents");
+			expect(readText(`${card} [data-status-token]`)).toBe("Waiting on agents");
 			expect(readText(`${card} .work-answer`)).toBe(copy);
 			expect(readText(`${card} .work-owner`)).toBe("Waiting for Fleet");
 		},
