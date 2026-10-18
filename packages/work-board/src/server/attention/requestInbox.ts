@@ -1,15 +1,36 @@
 import { responseUrl } from "#responses/url.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { answerSummary } from "./answerSummary.ts";
 import { answeredQuestion } from "./questionState.ts";
-import { type AttentionEntry, attentionRequests } from "./requests.ts";
+import { type AttentionEntry, attentionRequests, isMaintainerRequest } from "./requests.ts";
 import { closedItem, deferredItem } from "./status.ts";
 
 function activeKey(entry: AttentionEntry, ids: readonly string[], maintainer = "maintainer"): string {
-	const audience = entry.request.responseFrom.includes(maintainer) ? "you" : "agents";
+	const audience = isMaintainerRequest(entry.request, maintainer) ? "you" : "agents";
 	return JSON.stringify([audience, audience === "agents" ? [...entry.request.responseFrom].sort() : [], ids]);
 }
 
-export function requestInbox(snapshot: Snapshot) {
+type InboxRow = Readonly<ReturnType<typeof collectInbox>["items"][number]>;
+interface RequestInbox {
+	readonly answered: readonly InboxRow[];
+	readonly files: ReadonlySet<string>;
+	readonly items: readonly InboxRow[];
+	readonly parked: readonly InboxRow[];
+	readonly resolved: readonly InboxRow[];
+}
+const cached = new WeakMap<Snapshot, RequestInbox>();
+
+export function requestInbox(snapshot: Snapshot): RequestInbox {
+	let inbox = cached.get(snapshot);
+	if (!inbox) {
+		inbox = collectInbox(snapshot);
+		cached.set(snapshot, inbox);
+	}
+	return inbox;
+}
+
+function collectInbox(snapshot: Snapshot) {
+	const maintainer = snapshot.maintainer ?? "maintainer";
 	const entries = attentionRequests(snapshot).entries.filter(
 		(entry) => entry.request.managed || !answeredQuestion(entry.document, snapshot.model, entry.request.id),
 	);
@@ -21,6 +42,7 @@ export function requestInbox(snapshot: Snapshot) {
 		const ids = targets(entry);
 		const target = ids.length === 1 ? snapshot.model.ids.get(ids[0] ?? "")?.[0] : undefined;
 		return {
+			answered: entry.request.managed && isMaintainerRequest(entry.request, maintainer) ? answerSummary(entry, maintainer) : undefined,
 			document: entry.document,
 			earlierAsks: 0,
 			href: entry.problem === undefined ? responseUrl(entry.itemId, entry.request.id) : entry.href,
@@ -36,6 +58,7 @@ export function requestInbox(snapshot: Snapshot) {
 	}
 	const resolved: ReturnType<typeof row>[] = [];
 	const parked: ReturnType<typeof row>[] = [];
+	const answered: ReturnType<typeof row>[] = [];
 	const active = new Map<string, ReturnType<typeof row>>();
 	entries.sort(
 		(left, right) =>
@@ -52,11 +75,13 @@ export function requestInbox(snapshot: Snapshot) {
 			resolved.push(item);
 		} else if (entry.request.managed && documents.length === ids.length && documents.every(deferredItem)) {
 			parked.push(item);
+		} else if (item.answered) {
+			answered.push(item);
 		} else {
-			const key = activeKey(entry, ids, snapshot.maintainer);
+			const key = activeKey(entry, ids, maintainer);
 			item.earlierAsks = (active.get(key)?.earlierAsks ?? -1) + 1;
 			active.set(key, item);
 		}
 	}
-	return { files: new Set(entries.map((entry) => entry.document.file)), items: [...active.values()], parked, resolved };
+	return { answered, files: new Set(entries.map((entry) => entry.document.file)), items: [...active.values()], parked, resolved };
 }

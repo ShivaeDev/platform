@@ -75,16 +75,28 @@ const replacementStory = Effect.fn("AnswerReplacementTest.replacementStory")(fun
 					Effect.provideService(SqlClient.SqlClient, sql),
 				);
 				const result = yield* answerAndWait(client, { text: TEXT, workId: "one" }).pipe(Effect.result);
-				const expected = replacementResult(replacement, decision.id);
-				expect(result).toMatchObject(expected);
-				if (expected._tag === "Failure") {
-					expect((yield* client("fleet.get", { workId: "one" })).responses ?? []).toHaveLength(0);
-				} else if (replacement === "same-kind") {
-					expect((yield* client("fleet.get", { workId: "one" })).decision).toBeUndefined();
-				}
+				yield* assertReplacementOutcome(client, replacement, decision.id, result);
 			}),
 		{ parts: { ...fixture.parts, board } },
 	);
+});
+
+const assertReplacementOutcome = Effect.fn("AnswerReplacementTest.assertReplacementOutcome")(function* (
+	client: Effect.Success<ReturnType<typeof daemonClient>>,
+	replacement: Replacement,
+	decisionId: string,
+	result: unknown,
+) {
+	const expected = replacementResult(replacement, decisionId);
+	expect(result).toMatchObject(expected);
+	if (expected._tag === "Failure") {
+		expect((yield* client("fleet.get", { workId: "one" })).responses ?? []).toHaveLength(0);
+	} else if (replacement === "same-kind") {
+		expect((yield* client("fleet.get", { workId: "one" })).decision).toBeUndefined();
+	}
+	if (replacement === "different-kind") {
+		expect((yield* answerAndWait(client, { release: true, workId: "one" })).stage).toBe("released");
+	}
 });
 
 function replacedRecord(waiting: FleetRecord, decision: Decision, replacement: Replacement): FleetRecord {

@@ -13,11 +13,15 @@ export const watchFor = Effect.fn("FleetWatch.watchFor")(function* (options: Wat
 	const ready = yield* Deferred.make<void>();
 	let initialSnapshot = true;
 	let pending = options.workIds.length === 0 ? undefined : new Set(options.workIds);
+	const progressOutcome = transitionOutcome();
 	const outcomeFor = options.follow
 		? transitionOutcome()
 		: (state: typeof State.Type) => {
 				const outcome = settled(state.workId, state);
-				return outcome !== undefined && pending?.delete(state.workId) ? outcome : undefined;
+				if (outcome !== undefined) {
+					return pending?.delete(state.workId) ? outcome : undefined;
+				}
+				return state.recovery === undefined ? undefined : progressOutcome(state);
 			};
 	const order = ["maintainer", "orchestrator", "automation", undefined];
 	const consume = follow(options, options.workIds).pipe(
@@ -27,7 +31,10 @@ export const watchFor = Effect.fn("FleetWatch.watchFor")(function* (options: Wat
 				pending ??= new Set(states.map((state) => state.workId));
 				for (const state of [...states].sort((left, right) => order.indexOf(waitingOwner(left)) - order.indexOf(waitingOwner(right)))) {
 					const outcome = outcomeFor(state);
-					if (outcome !== undefined && !(options.follow && initialSnapshot && state.stage !== "needs-human" && !unrecognizedState(state))) {
+					if (
+						outcome !== undefined
+						&& !(options.follow && initialSnapshot && state.stage !== "needs-human" && !unrecognizedState(state) && state.recovery === undefined)
+					) {
 						yield* Console.log(outcome.summary.replace(/[\r\n]+/gu, " "));
 					}
 				}

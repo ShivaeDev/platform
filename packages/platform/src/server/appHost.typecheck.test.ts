@@ -22,7 +22,14 @@ const withoutDatabase = appHost({ group: Api, handlers: sqlHandlers, policy: "lo
 const withDatabase = appHost({ ...options, handlers: sqlHandlers });
 const withoutServices = appHost({ group: Api, handlers: Api.toLayer({ read: () => Effect.succeed("ready") }), sessions: options.sessions });
 const localWithDatabase = appHost({ group: Api, handlers: sqlHandlers, migrations: options.migrations, policy: "loopback" });
-type TypedOptions<TServices = never, TServiceError = never, TServiceRequirements = never> = AppHostOptions<
+type TypedOptions<
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+	TPreflight = never,
+	TPreflightError = never,
+	TPreflightRequirements = never,
+> = AppHostOptions<
 	RpcGroup.Rpcs<typeof Api>,
 	Layer.Success<typeof handlers>,
 	never,
@@ -31,7 +38,10 @@ type TypedOptions<TServices = never, TServiceError = never, TServiceRequirements
 	TServiceError,
 	TServiceRequirements,
 	never,
-	{ readonly user: { readonly id: string } }
+	{ readonly user: { readonly id: string } },
+	TPreflight,
+	TPreflightError,
+	TPreflightRequirements
 >;
 const typedOptions: TypedOptions = options;
 const failingRouteHost = appHost({
@@ -81,4 +91,38 @@ const deferred = appHost({
 it("deferred construction preserves its requirements and typed failures while supplying SQL and scope", () => {
 	expectTypeOf<Layer.Services<typeof deferred>>().toEqualTypeOf<Required>();
 	expectTypeOf<Extract<Layer.Error<typeof deferred>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
+});
+
+class PreflightInput extends Context.Service<PreflightInput, string>()("host-test/PreflightInput") {}
+const preflight = Layer.effect(Required, PreflightInput.pipe(Effect.flatMap(() => Effect.fail(new BuildFailure()))));
+const preflightHttp = appHost({ group: Api, handlers, policy: "loopback", preflight });
+const preflightDatabase = appHost({ ...options, migrations: { loader: Required.pipe(Effect.as([])) }, preflight });
+const preflightDeferred = appHost({
+	application: Required.pipe(Effect.as({ group: Api, handlers, policy: "loopback" as const })),
+	migrations: { loader: Required.pipe(Effect.as([])) },
+	preflight,
+});
+it("preflight supplies host requirements and exposes its services, typed errors and external requirements", () => {
+	expectTypeOf<Layer.Services<typeof preflightHttp>>().toEqualTypeOf<PreflightInput>();
+	expectTypeOf<Layer.Services<typeof preflightDatabase>>().toEqualTypeOf<PreflightInput>();
+	expectTypeOf<Layer.Services<typeof preflightDeferred>>().toEqualTypeOf<PreflightInput>();
+	expectTypeOf<Extract<Layer.Success<typeof preflightHttp>, Required>>().toEqualTypeOf<Required>();
+	expectTypeOf<Extract<Layer.Success<typeof preflightDatabase>, Required>>().toEqualTypeOf<Required>();
+	expectTypeOf<Extract<Layer.Success<typeof preflightDeferred>, Required>>().toEqualTypeOf<Required>();
+	expectTypeOf<Extract<Layer.Error<typeof preflightHttp>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
+	expectTypeOf<Extract<Layer.Error<typeof preflightDatabase>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
+	expectTypeOf<Extract<Layer.Error<typeof preflightDeferred>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
+});
+
+it("annotated options require a preflight Layer for declared services, errors or requirements", () => {
+	// @ts-expect-error Declared preflight outputs must be supplied by a Layer.
+	const missingPreflight: TypedOptions<never, never, never, Required> = options;
+	void missingPreflight;
+	expectTypeOf(options).not.toExtend<TypedOptions<never, never, never, never, BuildFailure>>();
+	expectTypeOf(options).not.toExtend<TypedOptions<never, never, never, never, never, PreflightInput>>();
+	const suppliedOptions: TypedOptions<never, never, never, Required, BuildFailure, PreflightInput> = { ...options, preflight };
+	const suppliedHost = appHost(suppliedOptions);
+	expectTypeOf<Layer.Services<typeof suppliedHost>>().toEqualTypeOf<PreflightInput>();
+	expectTypeOf<Extract<Layer.Success<typeof suppliedHost>, Required>>().toEqualTypeOf<Required>();
+	expectTypeOf<Extract<Layer.Error<typeof suppliedHost>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
 });

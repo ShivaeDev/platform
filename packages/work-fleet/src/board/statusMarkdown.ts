@@ -18,7 +18,7 @@ function card(item: typeof FleetView.Type): string {
 		return ["http:", "https:"].includes(url.protocol) ? [`[PR](<${url.href.replaceAll("<", "%3C").replaceAll(">", "%3E")}>)`] : [];
 	});
 	const progress = item.sessions.filter((session) => session.lastProgressAt !== undefined).map((session) => text(sessionStatus(session)));
-	return `### ${text(item.workId)}\n\n[Task](<${task}>)${links.map((link) => ` · ${link}`).join("")}\n\nStage: ${text(item.stage)}${item.blocker ? `\n\n${text(item.blocker)}` : ""}${progress.length === 0 ? "" : `\n\n${progress.join("\n\n")}`}`;
+	return `### ${text(item.workId)}\n\n[Task](<${task}>)${links.map((link) => ` · ${link}`).join("")}\n\nStage: ${text(item.stage)}${item.recovery ? `\n\n${text(item.recovery)}` : ""}${item.blocker ? `\n\n${text(item.blocker)}` : ""}${progress.length === 0 ? "" : `\n\n${progress.join("\n\n")}`}`;
 }
 
 export function statusMarkdown(records: readonly FleetRecord[]): string {

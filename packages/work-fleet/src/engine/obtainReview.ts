@@ -2,6 +2,7 @@ import { Effect, Result } from "effect";
 import { admit } from "#admit.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { validateReview } from "#completion.ts";
+import { areaWaiters } from "#engine/areaWaiters.ts";
 import { launchObservationRetries } from "#engine/launchObservationRetries.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
@@ -78,7 +79,7 @@ export function obtainReview(state: EngineState) {
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,
 			},
-			{ areaWaiters: [], quota, role: "reviewer" },
+			{ areaWaiters: yield* areaWaiters(state, stored.value), quota, role: "reviewer" },
 		);
 		const input = {
 			access: "read-only",

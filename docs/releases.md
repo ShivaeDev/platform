@@ -1,30 +1,32 @@
 # Package changes and releases
 
-A consumer-visible change adds one new `packages/<package>/changes/<short-name>.md` file per pull request. Choose a descriptive short name unique to the PR. Internal refactors, tests, tooling and docs need no fragment. Pending entries live in fragments; `CHANGELOG.md` holds released versions only.
+A consumer-visible change adds one `.changeset/<short-name>.md` per PR, naming each affected package and its explicit bump. Choose a descriptive short name unique to the PR. Internal refactors, tests, tooling and docs need no changeset. `CHANGELOG.md` holds released versions only.
 
 ```markdown
+---
+"@shivaedev/effect-react": minor
+---
+
 ### Added
 
 - Keep an editor's draft when its query refreshes.
 ```
 
-Use `### Added`, `### Changed`, `### Fixed` or `### Breaking` with Markdown bullet entries. One fragment can include multiple entries and sections for the same PR. Describe behavior a consumer would look for, and keep claims within the tests that prove them. Two PRs add separate files, so their pending release notes do not share an edit.
+Use minor for Added or Breaking behavior while a package is pre-1.0, and patch for Changed or Fixed only. Write Markdown bullets under `### Added`, `### Changed`, `### Fixed` or `### Breaking`. One file can name several packages and contain several entries and sections. Describe behavior a consumer would look for, within the tests that prove it. Do not change package versions, changelogs or release manifests outside a release PR.
 
-## Release a package
+## Release packages
 
-Cut a release whenever a change needs to reach npm. In the release pull request:
+The repository uses the workspace `@shivaedev/changesets` package. In a release PR:
 
-1. Bump `packages/<package>/package.json`: a minor version for new or breaking behavior while the package is pre-1.0, a patch otherwise.
-2. Run `pnpm run changelog:release <package>` from the repository root, for example `pnpm run changelog:release effect-sql`.
-3. Review and commit the generated `CHANGELOG.md`, `release.json` and the deleted fragment files with the version bump.
-4. Run `pnpm ready`, then open the pull request.
+1. Run `pnpm changesets plan` (or `pnpm changesets plan --json`) and review the requested bumps and automatic dependent releases.
+2. When starter pins change, include a patch changeset for `@shivaedev/create-app` so generated apps receive the new versions.
+3. Run `pnpm changesets apply` from the repository root. It bumps versions, collects changelogs, writes `.changeset/release.json` and deletes consumed changesets. The repository config hook aligns existing starter pins in `examples/starter/published-versions.json` and the released binaries' `packageInfo.ts` version constants.
+4. Review and commit all generated files. Run `pnpm ready`, then open the pull request.
 
-Release every published workspace package that depends on a bumped package in the same pull request, including optional dependencies and peers. Repeat for the dependents of those releases. Development-only dependencies and private packages do not need a release. `pnpm changelog:check` names unreleased dependents and the release commands to run.
+Published workspace dependents receive at least a patch transitively, including optional dependencies and peers. Private packages and development-only dependents do not receive automatic releases. Workspace wildcard declarations stay intact; exact, caret and tilde workspace references advance with the release. The plan and collected inputs remain reviewable in `.changeset/release.json` after a squash merge. Existing changelog history stays unchanged.
 
-The starter's `examples/starter/published-versions.json` pins the current workspace release versions. Every framework dependency of a pinned package must also have a matching pin. Update those pins with the releases and release `create-app` so generated apps receive the aligned versions. The changelog check rejects stale or conflicting pins before packed-workspace overrides can hide them.
+`pnpm changelog:check [base-ref]` validates pending changesets and the release diff. It uses `CHANGELOG_BASE_REF` when set; otherwise the package defaults to `origin/main`, falling back to local `main`. Fetch full history or pass a known base if neither exists. It rejects package-local `packages/*/changes/*.md` fragments with a message pointing to `.changeset/`, direct changelog edits without a version bump, altered release inputs, retained consumed changesets, missing dependent releases and edits to released history. Lint and the commit hook run this check. PR CI uses the checked PR base, the merge queue uses its base revision, and publishing checks against the revision before the push before shipping versions not yet on npm.
 
-The collector uses the package's version and the current UTC date. It prepends that version's notes in Added, Changed, Fixed, Breaking order, with fragments sorted by filename inside each section, and preserves released history. It deletes the collected Markdown fragments. An empty fragment set leaves the changelog unchanged; a version that already has notes cannot collect more entries.
+The check also requires starter pins to match the current workspace versions and include each pinned package's published framework dependencies. Align the dependency releases and starter pins, and include a patch changeset for `@shivaedev/create-app` when those pins change.
 
-`release.json` records the current release's version, date and collected fragment inputs. A release collects exactly the fragments named in `release.json` unchanged, while later fragments stay pending for the next release. The validator reproduces the changelog from those inputs. This also permits adding and releasing a change in one pull request: the manifest survives squash merges, so publishing can validate the same inputs without intermediate branch commits. It changes only with a release and is not included in the published packages.
-
-`pnpm run changelog:check [base-ref]` validates pending fragments and the diff against the base (by default `origin/main`, falling back to a local `main`; when neither exists it fails and names `git fetch origin main`). It rejects direct changelog edits without a version bump, uncollected release entries, retained collected fragments and edits to released history. Lint and the commit hook run this check. Pull request CI uses the PR base revision and the merge queue its base revision; publishing validates the collected notes against the revision before the push with `pnpm run changelog:release --check` and `CHANGELOG_BASE_REF` before publishing versions not yet on npm.
+Hooks run after collection. If a hook fails, review or restore the generated release diff before retrying. See the [Changesets package](../packages/changesets/README.md) for its input format, plan and validation rules.

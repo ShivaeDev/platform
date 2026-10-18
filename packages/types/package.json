@@ -35,7 +35,6 @@
 		"!src/**/*.test.ts",
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
-		"docs",
 		"CHANGELOG.md",
 		"README.md"
 	],
@@ -46,7 +45,6 @@
 	},
 	"devDependencies": {
 		"@types/node": "catalog:",
-		"@typescript/native": "catalog:",
 		"typescript": "catalog:"
 	},
 	"engines": {

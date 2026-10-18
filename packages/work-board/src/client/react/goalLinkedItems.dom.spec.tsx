@@ -61,7 +61,7 @@ relationships:
 			}
 			const links = findElements(`#criterion-first a[href="/_board/item/${id}/"]`);
 			expect(links).toHaveLength(1);
-			expect(readText("[data-status-token]", links[0]?.parentElement)).toBe("done");
+			expect(readText("[data-status-token]", links[0]?.parentElement)).toBe("Done");
 			expect(goal?.criteria[0]?.counts).toEqual({ done: 1, "in progress": 0, planned: 2 });
 			expect(readText("#criterion-first [data-criterion-progress]")).toBe("1 done · 0 in progress · 2 planned");
 			expect(readText("#criterion-second")).toBe("Second criterion");

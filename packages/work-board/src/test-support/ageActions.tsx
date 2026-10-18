@@ -8,6 +8,15 @@ export function ageActions(engine: ScreenEngine, tell: (line: string) => void) {
 			tell(`time advances ${milliseconds} milliseconds`);
 			await act(() => vi.advanceTimersByTimeAsync(milliseconds));
 		},
+		freezeTimers: (step: () => void) => {
+			tell("timers started during the next step never fire");
+			vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+			try {
+				step();
+			} finally {
+				vi.useRealTimers();
+			}
+		},
 		refreshAge: async (millisecondsAgo: number) => {
 			tell(`the timestamp refreshes to ${millisecondsAgo} milliseconds earlier`);
 			if (!engine.view || engine.ageModified === undefined) {

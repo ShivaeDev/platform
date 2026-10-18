@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Clock } from "effect";
 import { CORE, HISTORY } from "#test/fixture.ts";
-import { pending, workspace } from "#test/workspace.ts";
+import { guardedCommits, pending, workspace } from "#test/workspace.ts";
 
 workspace.it(
 	"apply writes versions, UTC notes and the exact consumed inputs while preserving history",
@@ -39,12 +39,19 @@ workspace.it(
 	},
 );
 
-workspace.it("typed hooks receive the plan and update repository pins through Effect", [pending()], function* ({ write, cli, read }) {
-	yield* write(
-		".changeset/changesets.config.ts",
-		`import { Effect, FileSystem } from ${JSON.stringify(import.meta.resolve("effect"))};\nexport default { hooks: [({ root, plan }) => Effect.gen(function* () { const fs = yield* FileSystem.FileSystem; yield* fs.writeFileString(root + '/published-versions.json', JSON.stringify(Object.fromEntries(plan.releases.map(release => [release.name, release.to])))); })] };\n`,
-	);
-	expect((yield* cli("apply")).status).toBe(0);
-	expect(JSON.parse(yield* read("published-versions.json"))[CORE]).toBe("0.3.0");
-	expect((yield* cli("check")).status).toBe(0);
-});
+workspace.it(
+	"committed typed hooks stay portable under a global commit guard and update repository pins",
+	[pending(), guardedCommits],
+	function* ({ write, cli, read, checkpoint, exists }) {
+		yield* write(".changeset/changesets.config.ts", 'import hook from "./repositoryHook.ts";\nexport default { hooks: [hook] };\n');
+		yield* write(
+			".changeset/repositoryHook.ts",
+			'import { Effect, FileSystem } from "effect";\nexport default ({ root, plan }) => Effect.gen(function* () { const fs = yield* FileSystem.FileSystem; yield* fs.writeFileString(root + "/published-versions.json", JSON.stringify(Object.fromEntries(plan.releases.map(release => [release.name, release.to])))); });\n',
+		);
+		yield* checkpoint();
+		expect(yield* exists(".git/global-hook-ran")).toBe(false);
+		expect((yield* cli("apply")).status).toBe(0);
+		expect(JSON.parse(yield* read("published-versions.json"))[CORE]).toBe("0.3.0");
+		expect((yield* cli("check")).status).toBe(0);
+	},
+);

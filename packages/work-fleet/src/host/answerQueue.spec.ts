@@ -1,9 +1,10 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { ANSWER_RECORDED } from "#attention.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import type { FleetRecord } from "#model.ts";
 import { type ApprovedPrFixture, type PrDaemonClient, repairAttempts, withApprovedPrDaemon } from "#test/approvedPrDaemon.ts";
-import { dispatchAndWait } from "#test/daemonActions.ts";
+import { answerAndWait, dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { task, withHost } from "#test/fleetHost.ts";
@@ -42,9 +43,9 @@ const queueRepair = Effect.fn("AnswerQueueTest.queueRepair")(function* (
 	expect(current.stage).toBe(stage);
 	expect(yield* Effect.promise(() => cliProcess(["answer", "one", TEXT, "--port", String(port)]))).toEqual({
 		code: 0,
-		stdout: `one ${stage}: queued for the next turn`,
+		stdout: `one ${stage}: ${ANSWER_RECORDED}`,
 	});
-	const queued = yield* client("fleet.get", { workId: "one" });
+	const queued = yield* waitForRecord(client, "one", (record) => record.pendingAnswers?.length === 1);
 	expect(queued.pendingAnswers).toEqual([TEXT]);
 	expect(queued.attempts).toEqual(current.attempts);
 	return current;
@@ -93,8 +94,8 @@ test("answer during the initial worker turn queues multiple messages in order an
 					const client = yield* daemonClient(port);
 					const started = yield* dispatchAndWait(client, "one");
 					expect(yield* client("daemon.answer", { text: "x".repeat(32_769), workId: "one" }).pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });
-					yield* client("daemon.answer", { text: TEXT, workId: "one" });
-					yield* client("daemon.answer", { text: "Preserve the empty state.", workId: "one" });
+					yield* answerAndWait(client, { text: TEXT, workId: "one" });
+					yield* answerAndWait(client, { text: "Preserve the empty state.", workId: "one" });
 					const running = yield* client("fleet.reconcile", { workId: "one" });
 					expect(running.attempts.map((entry) => entry.receipt)).toEqual(started.attempts.map((entry) => entry.receipt));
 					finishWorkers(fixture.provider);
@@ -114,7 +115,7 @@ test("queued guidance uses the current approved brief when the active turn ends"
 				Effect.gen(function* () {
 					const client = yield* daemonClient(port);
 					const started = yield* dispatchAndWait(client, "one");
-					yield* client("daemon.answer", { text: TEXT, workId: "one" });
+					yield* answerAndWait(client, { text: TEXT, workId: "one" });
 					const current = task("one", "approved", "Use the revised acceptance criteria.");
 					fixture.write("one.md", current);
 					finishWorkers(fixture.provider);

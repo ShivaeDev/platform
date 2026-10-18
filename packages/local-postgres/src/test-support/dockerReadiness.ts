@@ -14,19 +14,8 @@ export function dockerReadiness(unavailableProbes: number, realExec: typeof exec
 		if (args[0] === "inspect") {
 			expect(args).toEqual(["inspect", "--format", "{{.Config.Image}}", id]);
 		} else {
-			expect(args.slice(0, 11)).toEqual([
-				"exec",
-				"--env",
-				"PGPASSWORD",
-				id,
-				"psql",
-				"-X",
-				"--set",
-				"ON_ERROR_STOP=1",
-				"-At",
-				"-c",
-				"SHOW server_version",
-			]);
+			expect(args.slice(0, 10)).toEqual(["exec", "--env", "PGPASSWORD", id, "psql", "-X", "--set", "ON_ERROR_STOP=1", "-At", "-c"]);
+			expect(["SHOW server_version", "SHOW max_connections"]).toContain(args[10]);
 		}
 		return realExec("docker", args, options);
 	}
@@ -40,7 +29,8 @@ export function dockerReadiness(unavailableProbes: number, realExec: typeof exec
 			expect(options.encoding).toBe("utf8");
 			const stringOptions = { ...options, encoding: "utf8" } as const;
 			if (file === "psql") {
-				expect(args.slice(0, 6)).toEqual(["-X", "--set", "ON_ERROR_STOP=1", "-At", "-c", "SHOW server_version"]);
+				expect(args.slice(0, 5)).toEqual(["-X", "--set", "ON_ERROR_STOP=1", "-At", "-c"]);
+				expect(["SHOW server_version", "SHOW max_connections"]).toContain(args[5]);
 				throw Object.assign(new Error("spawnSync psql ENOENT"), { code: "ENOENT" });
 			}
 			expect(file).toBe("docker");

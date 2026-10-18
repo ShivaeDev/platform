@@ -28,7 +28,8 @@ const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: r
 function activeRecords(records: readonly Versioned<FleetRecord>[]) {
 	return records.filter(
 		({ value }) =>
-			!["completed", "released", "prepared"].includes(value.stage)
+			value.pendingContinuation !== undefined
+			|| !["completed", "released", "prepared"].includes(value.stage)
 			|| boardCompletionAction(value) !== undefined
 			|| pendingAcknowledgements(value).length > 0
 			|| pendingSessionCleanup(value).length > 0,

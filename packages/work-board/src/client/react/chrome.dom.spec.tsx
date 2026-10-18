@@ -19,23 +19,29 @@ function fixtures() {
 	screenStory.it(
 		"searches native query results, chooses a passage, refreshes and searches again after reload",
 		[screenWorkspace("reading-fixture"), chromeScreen(files)],
-		function* ({ chrome, click, input, control, keyboard, refreshQuery, editFile, closeScreen, location }) {
+		function* ({ chrome, click, input, control, keyboard, refreshQuery, editFile, closeScreen, location, findElement }) {
 			click("#search-open");
-			input("#search-query", "Second phrase");
+			input('#search-dialog [role="combobox"]', "Second phrase");
 			yield* Effect.promise(() =>
-				eventually(() => expect(control("#search-results a", HTMLAnchorElement).getAttribute("href")).toBe("/notes/deep/proof.md#heading-proof")),
+				eventually(() =>
+					expect(control('#search-dialog [role="option"] a', HTMLAnchorElement).getAttribute("href")).toBe("/notes/deep/proof.md#heading-proof"),
+				),
 			);
 			editFile("notes/deep/proof.md", "# Proof\n\nSecond phrase changed.\n");
 			yield* Effect.promise(() => refreshQuery("search", { query: "Second phrase" }));
-			yield* Effect.promise(() => eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Second phrase changed.")));
-			keyboard("Enter", { bubbles: true }, control("#search-query", HTMLInputElement));
+			yield* Effect.promise(() =>
+				eventually(() => expect(control('#search-dialog [role="option"] p', HTMLElement).textContent).toBe("Second phrase changed.")),
+			);
+			keyboard("Enter", {}, control('#search-dialog [role="combobox"]', HTMLInputElement));
 			yield* Effect.promise(() => eventually(() => expect(location()?.pathname).toBe("/notes/deep/proof.md")));
-			expect(control("#search-dialog", HTMLDialogElement).open).toBe(false);
+			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 			yield* Effect.promise(() => closeScreen());
 			yield* Effect.promise(() => chrome());
 			click("#search-open");
-			input("#search-query", "Second phrase");
-			yield* Effect.promise(() => eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Second phrase changed.")));
+			input('#search-dialog [role="combobox"]', "Second phrase");
+			yield* Effect.promise(() =>
+				eventually(() => expect(control('#search-dialog [role="option"] p', HTMLElement).textContent).toBe("Second phrase changed.")),
+			);
 		},
 	);
 }
@@ -45,6 +51,7 @@ function fixtures() {
 		"saves appearance and sidebar choices through a document refresh and reload",
 		[screenWorkspace("reading-fixture"), chromeScreen(files)],
 		function* ({ chrome, click, choose, control, refreshDocument, editFile, readRootAttribute, closeScreen }) {
+			click("#settings-open");
 			choose("#theme", "dark");
 			choose("#density", "compact");
 			click("#sidebar-toggle");
@@ -55,6 +62,7 @@ function fixtures() {
 			expect(control("#sidebar", HTMLElement).hidden).toBe(true);
 			yield* Effect.promise(() => closeScreen());
 			yield* Effect.promise(() => chrome());
+			click("#settings-open");
 			expect(control("#theme", HTMLSelectElement).value).toBe("dark");
 			expect(control("#density", HTMLSelectElement).value).toBe("compact");
 			expect(control("#sidebar-toggle", HTMLButtonElement).getAttribute("aria-expanded")).toBe("false");

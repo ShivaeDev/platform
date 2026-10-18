@@ -5,8 +5,12 @@ import type { OpenPage } from "#test/browser.ts";
 import { waitFor } from "#test/live.ts";
 import { searchablePage } from "#test/pageTraits.ts";
 
+const QUERY = '#search-dialog [role="combobox"]';
 function input(page: OpenPage) {
-	return page.document.querySelector("#search-query");
+	return page.document.querySelector(QUERY);
+}
+function options(page: OpenPage) {
+	return [...page.document.querySelectorAll('#search-dialog [role="option"]')];
 }
 
 boardStory.it(
@@ -21,17 +25,18 @@ boardStory.it(
 		}
 		reader.keyboard("k", true, "body");
 		yield* Effect.promise(() => frame(page));
-		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#search-dialog")?.hasAttribute("open")).toBe(true)));
-		expect(page.document.activeElement?.id).toBe("search-query");
-		reader.text("#search-query", "second phrase");
+		yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement).toBe(input(page))));
+		reader.text(QUERY, "second phrase");
 		yield* Effect.promise(() =>
-			waitFor(() => expect(page.document.querySelector("#search-results a")?.getAttribute("href")).toBe("/note.md#heading-evidence-2")),
+			waitFor(() =>
+				expect(page.document.querySelector('#search-dialog [role="option"] a')?.getAttribute("href")).toBe("/note.md#heading-evidence-2"),
+			),
 		);
-		expect(page.document.querySelector("#search-results small")?.textContent).toContain("passage");
+		expect(page.document.querySelector('#search-dialog [role="option"] small')?.textContent).toContain("passage");
 		reader.keyboard("Enter");
 		yield* Effect.promise(() => frame(page));
 		yield* Effect.promise(() => waitFor(() => expect(page.window.location.hash).toBe("#heading-evidence-2")));
-		expect(page.document.querySelector("#search-dialog")?.hasAttribute("open")).toBe(false);
+		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#search-dialog")).toBeNull()));
 	},
 );
 
@@ -45,16 +50,15 @@ boardStory.it(
 			opener.focus();
 		}
 		reader.clickSelector("#search-open");
-		yield* Effect.promise(() => frame(page));
-		expect(input(page)?.getAttribute("aria-activedescendant")).toBe("search-result-0");
+		yield* Effect.promise(() => waitFor(() => expect(options(page)[0]?.getAttribute("aria-selected")).toBe("true")));
 		reader.keyboard("ArrowDown");
 		yield* Effect.promise(() => frame(page));
-		expect(input(page)?.getAttribute("aria-activedescendant")).toBe("search-result-1");
-		expect(page.document.querySelector('#search-results [aria-selected="true"]')?.getAttribute("href")).toBe("/_board/goals");
-		reader.text("#search-query", "files");
+		expect(input(page)?.getAttribute("aria-activedescendant")).toBe(options(page)[1]?.id);
+		expect(page.document.querySelector('#search-dialog [aria-selected="true"] a')?.getAttribute("href")).toBe("/_board/goals");
+		reader.text(QUERY, "files");
 		yield* Effect.promise(() =>
 			waitFor(() =>
-				expect(page.document.querySelector('#search-results [aria-selected="true"]')?.getAttribute("data-command")).toBe("sidebar-toggle"),
+				expect(page.document.querySelector('#search-dialog [aria-selected="true"]')?.getAttribute("data-command")).toBe("sidebar-toggle"),
 			),
 		);
 		reader.keyboard("Enter");
@@ -63,13 +67,14 @@ boardStory.it(
 		yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("search-open")));
 		reader.clickSelector("#search-open");
 		yield* Effect.promise(() => frame(page));
-		reader.text("#search-query", "new phrase");
+		reader.text(QUERY, "new phrase");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("search-status")?.textContent).toBe("No document matches.")));
 		notes.write("note.md", "# Plan\n\nNew phrase.");
-		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#search-results p")?.textContent).toBe("New phrase.")));
+		yield* Effect.promise(() =>
+			waitFor(() => expect(page.document.querySelector('#search-dialog [role="option"] p')?.textContent).toBe("New phrase.")),
+		);
 		reader.keyboard("Escape");
-		yield* Effect.promise(() => frame(page));
-		expect(page.document.querySelector("#search-dialog")?.hasAttribute("open")).toBe(false);
+		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#search-dialog")).toBeNull()));
 		yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("search-open")));
 	},
 );

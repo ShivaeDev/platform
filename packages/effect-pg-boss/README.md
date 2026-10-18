@@ -37,6 +37,20 @@ Use a distinct literal identifier for each jobs service. The service and its Lay
 
 The work separates naturally: declare the application services once, define a queue and its worker for each feature, provide the complete registration list at the runtime boundary, and enqueue from ordinary application Effects.
 
+### Once per database: install the schema
+
+`installPgBossSchema` installs or upgrades pg-boss through the provided Effect SQL client without starting workers or schedules. Run it outside an application transaction, in a release step or the `fixtures` Effect of `makePostgresTestLayer`, so stories inherit the schema from the migrated template:
+
+```ts
+import { installPgBossSchema } from "@shivaedev/effect-pg-boss/schema.ts";
+
+const jobsFixture = installPgBossSchema({ schema: "app_jobs" });
+```
+
+The Effect requires `SqlClient` and fails with `PgBossError` whose `operation` is `"install"`. The schema defaults to `"pgboss"`. Repeating installation preserves existing jobs. Upgrades apply pg-boss's migration SQL and concurrent index builds, including partition indexes, before returning. Pending index commands are recorded in pg-boss's BAM table in the same transaction as the schema version. A retry resumes unfinished commands and repairs invalid indexes left by failed builds, even when the schema version has already committed.
+
+After installation, pass the same schema and `migrate: false` to `Jobs.layer` to start producers and workers without schema installation or migration. Startup fails if the schema is missing. Ordinary Layer startup retains pg-boss's default migration behavior when `migrate` is omitted.
+
 ### Once per application: the jobs service
 
 Define the application's jobs service and worker dependencies in `services.ts`:
@@ -114,7 +128,7 @@ const Compare = defineQueue({
 
 This worker runs up to five handlers at once. `worker` accepts pg-boss 12's `WorkOptions`, including `batchSize`, `localConcurrency`, `pollingIntervalSeconds`, `notifyPollingIntervalSeconds` and the burst options. Explicit options override the adapter defaults. pg-boss ignores `burstWhenBatchFull` at `batchSize: 1`; keep a batch size of at least two for immediate backlog draining. Each job is settled separately through pg-boss: success completes that job, and a typed failure, payload decoding failure or defect fails only that job with its own error. A failed job does not spend the retries of other jobs in its batch or rerun their successful handlers. Interruption stops the batch and leaves the interrupted and remaining jobs to pg-boss expiry; handlers must still tolerate repeated side effects across retries and interrupted attempts.
 
-Apps do not need to shorten the polling backstop to drain a backlog. With `notify: true` and an active LISTEN/NOTIFY listener, pg-boss wakes workers on notifications and defaults to a 30-second backstop (`notifyPollingIntervalSeconds`). Without active notifications its base poll defaults to two seconds (`pollingIntervalSeconds`). Bursting takes precedence over both intervals. Override the backstop only when the application needs a different bound for work that becomes runnable without a notification, such as delayed jobs or retries. The PostgreSQL backlog tests insert 30 jobs at once and verify completion within 2.5 seconds with both defaults and configured batches and concurrency.
+Apps do not need to shorten the polling backstop to drain a backlog. With `notify: true` and an active LISTEN/NOTIFY listener, pg-boss wakes workers on notifications and defaults to a 30-second backstop (`notifyPollingIntervalSeconds`). Without active notifications its base poll defaults to two seconds (`pollingIntervalSeconds`). Bursting takes precedence over both intervals. Override the backstop only when the application needs a different bound for work that becomes runnable without a notification, such as delayed jobs or retries.
 
 ### Size batches against expiry
 
@@ -206,7 +220,7 @@ export const enqueueEmail = (userId: number) =>
 
 Provide `Jobs` through the application's existing runtime. `enqueue` takes the decoded payload, so passing a string `userId` is a type error. It encodes the number to a string before calling pg-boss. The result type is `Option.Option<string>`: a job identifier becomes `Some`, and a `null` send result becomes `None`.
 
-`PgBossPayloadError` names a payload boundary failure; malformed durable input is rejected before the worker's domain code runs. The PostgreSQL test also checks that invalid data sent directly to pg-boss reaches the dead-letter queue without reaching the handler.
+`PgBossPayloadError` names a payload boundary failure; malformed durable input is rejected before the worker's domain code runs.
 
 ### Trace jobs
 
@@ -214,7 +228,7 @@ Each queue or scheduled job attempt runs in one root consumer span named for its
 
 `enqueue` captures the current Effect span, including an external parent span, when present. It stores that context in a typed envelope in pg-boss's existing job `data`; the adapter unwraps the envelope before Schema decoding in the handler and `getJob`, so the application's payload Schema stays unchanged. Jobs sent without a span keep their ordinary encoded payload, and workers also accept those unwrapped jobs. Direct pg-boss data readers see the envelope for traced sends.
 
-The consumer span links to the sender rather than sharing its parent trace, following OpenTelemetry messaging conventions for asynchronous processing. Each retry gets its own job trace. Provide the application's Effect tracer when building the worker Layer; the worker uses that captured tracer. The PostgreSQL tracing tests use Effect's in-memory tracer and a producer that shuts down before its worker starts; the scheduled-worker test checks the same span boundary with a fake client.
+The consumer span links to the sender rather than sharing its parent trace, following OpenTelemetry messaging conventions for asynchronous processing. Each retry gets its own job trace. Provide the application's Effect tracer when building the worker Layer; the worker uses that captured tracer.
 
 ### Read health
 
@@ -261,7 +275,7 @@ export const inspectEmail = (id: string) => Effect.gen(function* () {
 
 ### Queue settings on startup
 
-`queue` accepts pg-boss `Queue` options except `name` and `deadLetter`, which the definition and adapter own. For prompt delivery, set `queue: { notify: true }` and enable `useListenNotify: true` in the worker Layer's constructor options. The PostgreSQL notification test waits for an idle worker with a ten-second polling interval and verifies delivery within 1.5 seconds.
+`queue` accepts pg-boss `Queue` options except `name` and `deadLetter`, which the definition and adapter own. For prompt delivery, set `queue: { notify: true }` and enable `useListenNotify: true` in the worker Layer's constructor options.
 
 Startup creates missing queues and reconciles declared settings on existing queues through `updateQueue`. Unspecified settings keep their stored values; the adapter always supplies its default retry settings and dead-letter destination. Changing an explicitly declared `policy` or `partition` on an existing queue fails startup with `PgBossQueueOptionsError`; its `queue`, `options` and message identify the conflict. Queue setting changes apply to subsequently enqueued jobs. Schedule queues follow the same registration path.
 
@@ -281,7 +295,7 @@ const sharedJobsLayer = (databaseUrl: string) =>
   }).pipe(Layer.provide(MailLive));
 ```
 
-Overlapping Layer builds with the same `clientCacheKey` share one started client. The later build replaces the registered worker, and the final scope release stops the shared client. A later build after that release starts a new client. Without a key, each build creates its own client. The application chooses whether to pass a key.
+Overlapping Layer builds with the same `clientCacheKey` share one started client. The later build replaces the registered worker, and the final scope release stops the shared client. A later build after that release starts a new client. Without a key, each build creates its own client. The application chooses whether to pass a key; give each distinct constructor configuration its own key.
 
 ### Separate producers and workers
 
@@ -295,7 +309,7 @@ export const producerLayer = (databaseUrl: string) =>
   Jobs.layer({ connectionString: databaseUrl, jobs: [SendEmail] });
 ```
 
-Provide this Layer to the request runtime and call `jobs.enqueue(SendEmail, { userId })` as above. A separate worker process registers `SendEmail.handle(...)` against the same database. Producer queues use the same retry options and appear in `health`; only worker registrations capture handler services. The PostgreSQL producer test creates both queues through this Layer, enqueues a transformed payload, and observes a failing worker exhaust two retries before the job reaches its dead-letter queue.
+Provide this Layer to the request runtime and call `jobs.enqueue(SendEmail, { userId })` as above. A separate worker process registers `SendEmail.handle(...)` against the same database. Producer queues use the same retry options and appear in `health`; only worker registrations capture handler services.
 
 ### Enqueue follow-ups from a handler
 
@@ -322,7 +336,7 @@ const live = Jobs.layer({
 }).pipe(Layer.provide(MailLive));
 ```
 
-Include every target queue in `jobs`, as either a worker or a producer-only definition. Startup creates all queues before starting consumers. The example registers `Receipt` for another process to consume. A follow-up target can also have a worker in the same Layer. Scheduled effects can yield `Jobs` too. Keep one jobs Layer in the process's native Layer graph; that Layer owns one client for enqueueing and handling. The PostgreSQL follow-up test completes a chain across two workers, enqueues to a producer-only queue and asserts one client acquisition and shutdown.
+Include every target queue in `jobs`, as either a worker or a producer-only definition. Startup creates all queues before starting consumers. The example registers `Receipt` for another process to consume. A follow-up target can also have a worker in the same Layer. Scheduled effects can yield `Jobs` too. Keep one jobs Layer in the process's native Layer graph; that Layer owns one client for enqueueing and handling.
 
 ### Test through the queue contract
 
@@ -365,11 +379,11 @@ emailStories.it("decodes the queued email", [], function* ({ enqueue, testing })
 
 Set `retryPolicy: testRetryPolicy` through the controller to override queue and send settings with `retryDelay: 0` and `retryBackoff: false`. A failing worker can then exhaust its native retries without production backoff. The policy applies to subsequently sent jobs; it does not rewrite jobs already stored.
 
-`failNextSend(queue)` arms one send failure for that queue. The next valid `enqueue` fails with the usual typed `PgBossError` (`operation: "enqueue"`); the following send proceeds normally. `expireAfter(queue, n)` takes a positive attempt count: configure it before enqueueing to limit subsequent jobs to `n` attempts. Each successful send keeps its own expiry rule; later changes and duplicate-ID sends do not alter pending jobs. Earlier attempts run the handler normally; on attempt `n`, the controller expires the claimed job instead of invoking its handler. PostgreSQL supervision performs the terminal failure and dead lettering. A job that succeeds earlier completes normally. This expiry hook supports pg-boss schema version 45 and keeps its SQL inside the testing module.
+`failNextSend(queue)` arms one send failure for that queue. The next valid `enqueue` fails with the usual typed `PgBossError` (`operation: "enqueue"`); the following send proceeds normally. `expireAfter(queue, n)` takes a positive attempt count: configure it before enqueueing to limit subsequent jobs to `n` attempts. Each successful send keeps its own expiry rule; later changes and duplicate-ID sends do not alter pending jobs. Earlier attempts run the handler normally; on attempt `n`, the controller expires the claimed job instead of invoking its handler. PostgreSQL supervision performs the terminal failure and dead lettering. A job that succeeds earlier completes normally. This expiry hook supports pg-boss schema version 45.
 
 `checkBatchWindow(queue, millisecondsPerJob)` checks that the declared sequential batch fits strictly inside the stored queue expiry window. `schemaVersion` reads the installed version, and `checkSchemaVersion(expected)` fails when it differs. Test control, read and check failures use `PgBossTestingError` with `operation`, optional `queue` and a redacted `original`.
 
-A kit can capture `revision` before reading jobs and yield `waitForChange(revision)` when its condition is unmet. The wait resumes after a local send, settlement, worker fetch or return to idle, including terminal native worker timeouts whose handler promises remain pending. It also resumes immediately if a change occurred between the read and the wait. This signal observes the controller's client; external clients, future scheduled work and external database writes need their own wake source. Stories should retain a bounded test timeout. The package's PostgreSQL story kit uses this signal to settle failed-job stories without timer polling or application SQL.
+A kit can capture `revision` before reading jobs and yield `waitForChange(revision)` when its condition is unmet. The wait resumes after a local send, settlement, worker fetch or return to idle, including terminal native worker timeouts whose handler promises remain pending. It also resumes immediately if a change occurred between the read and the wait. This signal observes the controller's client; external clients, future scheduled work and external database writes need their own wake source. Stories should retain a bounded test timeout.
 
 ### API
 
@@ -379,6 +393,7 @@ Import the module that defines the name; the package has no root entry.
 | --- | --- |
 | `@shivaedev/effect-pg-boss/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
 | `@shivaedev/effect-pg-boss/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
+| `@shivaedev/effect-pg-boss/schema.ts` | `installPgBossSchema`; `PgBossSchemaOptions` |
 | `@shivaedev/effect-pg-boss/health.ts` | `deadLetterQueueName`; `JobsHealth`, `QueueCounts`, `QueueHealth` |
 | `@shivaedev/effect-pg-boss/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
 | `@shivaedev/effect-pg-boss/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
@@ -386,19 +401,11 @@ Import the module that defines the name; the package has no root entry.
 
 The definition options keep the pg-boss names: `queue` uses `Queue` except `name` and `deadLetter`, `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 
-The application's service has these operations:
+`Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus the adapter's own options. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Producer-only clients do not need them. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent.
 
-- `enqueue(queue, payload, options?)`: an Effect returning `Option.Option<string>`, with `PgBossError | PgBossPayloadError` in its error type. Its options use pg-boss `SendOptions`.
-- `health`: an Effect returning cached `JobsHealth`, with `PgBossError` in its error type.
-- `counts(queue)`: an Effect returning live `QueueCounts`, with `PgBossError` in its error type.
-- `getJob(queue, id)`: an Effect returning `Option.Option<JobWithMetadata<Payload>>` with decoded payload data, `PgBossError | PgBossPayloadError` in its error type and the Schema's decoding services in its requirements.
-- `retry(queue, id)`: an Effect returning `void`, with `PgBossError` in its error type.
+`onError` handles pg-boss client `error` events using the services captured by the Layer. Only the owning jobs service is supplied automatically; a handler using another jobs definition still requires that definition's Layer.
 
-`Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus `jobs`, optional `clientCacheKey`, optional `clientFactory`, optional `onError` and optional `stop`. The factory type accepts constructor options and returns `PgBossClient`. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Producer-only clients do not need them. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent. `onError` has the type `(error: Error) => Effect.Effect<unknown, never, R>`; `stop` uses pg-boss `StopOptions`.
-
-`onError` handles pg-boss client `error` events using the services captured by the Layer. The Layer's requirement type includes the workers' services and their payload Schemas' `DecodingServices`, excluding its own jobs identifier, plus the callback's services. Only the owning jobs service is supplied automatically; a handler using another jobs definition still requires that definition's Layer. `enqueue` includes the payload Schema's `EncodingServices` in its requirement type.
-
-`JobContext` has `id`, `name`, `signal`, `expireInSeconds`, `heartbeatSeconds` and `remainingBudget`. Worker registration always requests `includeMetadata: true`, including when `worker` supplies `includeMetadata: false`; custom clients must return pg-boss's `startedOn` metadata. When calling `jobContext` directly, reading `remainingBudget` requires that same metadata. `QueueHealth` has `name`, `activeCount`, `deadLetteredCount`, `failedCount`, `queuedCount` and `readyCount`. `JobsHealth` has `jobs` and the corresponding `activeTotal`, `deadLetteredTotal`, `failedTotal`, `queuedTotal` and `readyTotal` fields.
+Worker registration always requests `includeMetadata: true`, including when `worker` supplies `includeMetadata: false`; custom clients must return pg-boss's `startedOn` metadata. When calling `jobContext` directly, reading `remainingBudget` requires that same metadata.
 
 `PgBossError` has `operation`, optional `queue` and a `Redacted` `original`. Its message names the operation, the queue and the original error's class and `code`, such as a PostgreSQL SQLSTATE, but never the original message, which can quote payloads or connection strings. A registration failure names the queue it was preparing. `PgBossPayloadError` has `direction`, `queue` and a `Redacted` `original`. Those fields distinguish the pg-boss operation from the payload boundary.
 
@@ -410,8 +417,4 @@ pnpm add @shivaedev/effect-pg-boss effect@4.0.4 pg-boss@12.37.0
 
 The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` are peers; use versions that satisfy the package's published peer ranges.
 
-Provide the database connection and job registrations at the application runtime boundary. Application services own the domain work and provider calls; pg-boss owns queue execution. Treat enqueueing and an application database transaction as separate operations. Enqueue after the application write commits, and handle queue failures in the application so they cannot roll back the write. The starter logs enqueue failures and returns the saved note; a failed enqueue leaves its word count pending. The package supplies no application transaction adapter.
-
-For package development, the real PostgreSQL test uses `PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL` and skips when the variable is absent. A skipped test does not establish durable queue behavior. Fake-client tests cover registration and lifecycle calls; they do not establish real cron execution, retry timing or deployment behavior. The package is built for ShivaeDev applications and may change without a deprecation period.
-
-The [north star](./docs/north-star.md) explains the design trade-offs; the [roadmap](./docs/roadmap.md) owns package work and open choices.
+Provide the database connection and job registrations at the application runtime boundary. Application services own the domain work and provider calls; pg-boss owns queue execution. Treat enqueueing and an application database transaction as separate operations. Enqueue after the application write commits, and handle queue failures in the application so they cannot roll back the write. The package supplies no application transaction adapter.

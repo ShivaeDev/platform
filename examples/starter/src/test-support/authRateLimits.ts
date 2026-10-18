@@ -1,6 +1,5 @@
 import { request } from "node:http";
 import { Effect } from "effect";
-import { expect } from "vitest";
 import { credentials } from "./authHttp.ts";
 import type { RunningHost } from "./host.ts";
 
@@ -9,12 +8,6 @@ export function authRateLimits(host: RunningHost, tell: (line: string) => void) 
 		visitor: (clientIp: string) => {
 			tell(`a visitor connects from ${clientIp}`);
 			return {
-				failedSignIns: Effect.fn("AppStory.failedSignIns")(function* (attempts: number, forwardedFor?: string) {
-					tell(`the visitor at ${clientIp} makes ${attempts} failed sign-in attempts`);
-					for (let attempt = 0; attempt < attempts; attempt += 1) {
-						expect(yield* Effect.promise(() => signInStatus(host, clientIp, forwardedFor))).toBe(401);
-					}
-				}),
 				signIn: Effect.fn("AppStory.signIn")(function* (forwardedFor?: string, realIp?: string) {
 					tell(`the visitor at ${clientIp} attempts sign-in with ${JSON.stringify({ forwardedFor, realIp })}`);
 					return yield* Effect.promise(() => signInStatus(host, clientIp, forwardedFor, realIp));

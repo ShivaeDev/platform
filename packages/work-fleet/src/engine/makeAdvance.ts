@@ -10,6 +10,7 @@ import { makeObserve } from "#engine/makeObserve.ts";
 import { makeReview } from "#engine/makeReview.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { makeValidate } from "#engine/makeValidate.ts";
+import { missingAcceptedTurn, recoverMissingTurn } from "#engine/recoverMissingTurn.ts";
 import { reconcileBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import type { FleetRecord } from "#model.ts";
@@ -18,6 +19,9 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 	return Effect.fn("Fleet.advance")(function* (workId: string) {
 		let stored = yield* state.load(workId);
 		stored = yield* closeDecisions(state)(stored);
+		if (stored.value.pendingContinuation !== undefined) {
+			return yield* launch(stored, "repair", stored.value.pendingContinuation);
+		}
 		if (["completed", "released"].includes(stored.value.stage)) {
 			return stored;
 		}
@@ -32,7 +36,20 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 				return stored;
 			}
 		}
-		stored = yield* makeObserve(state)(stored);
+		stored = yield* makeObserve(state)(stored).pipe(
+			Effect.catch((error) =>
+				Effect.gen(function* () {
+					const current = yield* state.load(workId);
+					if (missingAcceptedTurn(error) && current.value.stage !== "needs-human") {
+						const recovered = yield* recoverMissingTurn(state, current, undefined, error.threadIdle);
+						if (recovered !== undefined) {
+							return recovered;
+						}
+					}
+					return yield* Effect.fail(error);
+				}),
+			),
+		);
 		const answered = yield* deliverPendingAnswers(state, launch, stored);
 		if (answered !== undefined) {
 			return answered;

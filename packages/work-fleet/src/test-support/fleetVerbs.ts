@@ -16,11 +16,21 @@ export function fleetVerbs(engine: FleetStoryState, story: { readonly tell: (mes
 		...foreignPrVerbs(fixture, runtime.fleet, engine.github, story),
 		attemptContinue: (id: string, message: string) => {
 			story.tell(`Fleet attempts to continue ${id}`);
-			return runtime.fleet.continue(id, message).pipe(Effect.flip);
+			return runtime.fleet.continue(id, message).pipe(
+				Effect.matchEffect({
+					onFailure: Effect.succeed,
+					onSuccess: () => Effect.die(new Error(`Expected continuing ${id} to fail, but it succeeded`)),
+				}),
+			);
 		},
 		attemptDispatch: (id: string) => {
 			story.tell(`Fleet attempts to dispatch ${id}`);
-			return runtime.fleet.dispatch(id).pipe(Effect.flip);
+			return runtime.fleet.dispatch(id).pipe(
+				Effect.matchEffect({
+					onFailure: Effect.succeed,
+					onSuccess: () => Effect.die(new Error(`Expected dispatching ${id} to fail, but it succeeded`)),
+				}),
+			);
 		},
 		commits: engine.commits,
 		continue: (id: string, message: string) => {
@@ -49,6 +59,10 @@ export function fleetVerbs(engine: FleetStoryState, story: { readonly tell: (mes
 				workId: id,
 			});
 		},
+		providerQuota: (available: number) => {
+			story.tell(`the provider now reports quota for ${available} submissions`);
+			engine.options = { ...engine.options, quota: available };
+		},
 		rebuild: () =>
 			Effect.gen(function* () {
 				story.tell("Fleet rebuilds its runtime against saved records");
@@ -59,6 +73,11 @@ export function fleetVerbs(engine: FleetStoryState, story: { readonly tell: (mes
 			return runtime.fleet.reconcile(id).pipe(Effect.provideService(CommittedSink, (changes) => Effect.sync(() => engine.commits.push(changes))));
 		},
 		recordedSchedulerLogs: () => engine.logs.entries,
+		reviseBrief: (id: string, revision: string) => {
+			story.tell(`the approved Board brief for ${id} changes to ${revision}`);
+			fixture.editWork(id, revision);
+			fixture.approveWork(id, revision);
+		},
 		schedule: () => {
 			story.tell("Fleet runs a scheduler pass");
 			return cycle.pipe(Effect.provideService(Fleet, runtime.fleet), Effect.provide(engine.logs.layer));

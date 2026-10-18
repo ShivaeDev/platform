@@ -1,17 +1,20 @@
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { FetchHttpClient, HttpClient } from "effect/http";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { SqlClient } from "effect/sql";
-import { expect } from "vitest";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { App } from "#client/App.tsx";
+import { makeAuth } from "#client/auth.ts";
+import { LoginScreen } from "#client/LoginScreen.tsx";
 import { makeNotesClient } from "#client/makeNotes.ts";
 import { credentials } from "#test-support/authHttp.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
+import { heldSignIn } from "#test-support/heldSignIn.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { screenActions } from "#test-support/screenActions.ts";
-import { observeScreen, screenObservations } from "#test-support/screenObservations.ts";
+import { screenObservations } from "#test-support/screenObservations.ts";
 import { acquireScreen, type ScreenSurface } from "#test-support/screenState.ts";
 
 const alice = credentials("alice");
@@ -22,36 +25,52 @@ export const notesApp = storyKit({
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const host = yield* createCookieHost();
+		const signIn = heldSignIn(host.fetch);
+		const auth = makeAuth({ baseUrl: host.baseUrl, fetchOptions: { customFetchImpl: signIn.fetch } });
 		const screen: ScreenSurface = { view: undefined };
-		return { ...host, ...screen, history: createMemoryHistory({ initialEntries: ["/sign-in"] }) };
+		return { ...host, ...screen, auth, history: createMemoryHistory({ initialEntries: ["/sign-in"] }), signIn };
 	},
 	inspect: ({ history, view }) => ({ route: history.location.pathname, text: view?.container.textContent }),
 	layer: postgres,
 	name: "notes app",
-	stages: ["account", "screen"],
+	stages: ["account", "transport", "screen"],
 	verbs: (engine, story) => ({
 		...screenActions(engine, story.tell),
-		...screenObservations(engine, story.tell),
-		notesAreStored: Effect.fn("NotesStory.notesAreStored")(function* (...notes: readonly { title: string; version: number }[]) {
-			story.tell(`PostgreSQL holds ${JSON.stringify(notes)} owned by Alice`);
+		...screenObservations(engine),
+		button: (label: string) => {
+			if (engine.view === undefined) {
+				throw new Error("No screen is open");
+			}
+			const button = [...engine.view.container.querySelectorAll("button")].find((element) => element.textContent === label);
+			return button === undefined ? undefined : { disabled: button.disabled, text: button.textContent };
+		},
+		releaseSignIn: () =>
+			Effect.sync(() => {
+				story.tell("release the real sign-in response");
+				engine.signIn.release();
+			}),
+		route: () => engine.history.location.pathname,
+		signInFailure: () => {
+			if (engine.view === undefined) {
+				throw new Error("No sign-in screen is open");
+			}
+			return AsyncResult.error(engine.view.registry.get(engine.auth.actions.submit));
+		},
+		storedNoteIds: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
-			expect(yield* sql`select n.title, n.version, u.email from notes n left join "user" u on u.id = n."ownerId" order by n.id`).toEqual(
-				notes.map((note) => ({ ...note, email: alice.email })),
-			);
+			return yield* sql<{ id: number }>`select id from notes`;
 		}),
-		openedNoteIsStored: Effect.fn("NotesStory.openedNoteIsStored")(function* () {
-			story.tell("the editor route opens the note stored in PostgreSQL");
+		storedNotes: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
-			const rows = yield* sql<{ id: number }>`select id from notes`;
-			expect(rows).toHaveLength(1);
-			expect(engine.history.location.pathname).toBe(`/notes/${rows[0]?.id}`);
+			return yield* sql`select n.title, n.version, u.email from notes n left join "user" u on u.id = n."ownerId" order by n.id`;
 		}),
-		routeIs: (path: string) => observeScreen(story.tell)(`the app is at ${path}`, () => expect(engine.history.location.pathname).toBe(path)),
-		sessionIsStored: Effect.fn("NotesStory.sessionIsStored")(function* (signedIn: boolean) {
-			story.tell(`PostgreSQL ${signedIn ? "holds Alice's session" : "has no signed-in session"}`);
+		storedSessions: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
-			expect(yield* sql`select email from "user"`).toEqual([{ email: alice.email }]);
-			expect(yield* sql`select u.email from "session" s join "user" u on u.id = s."userId"`).toEqual(signedIn ? [{ email: alice.email }] : []);
+			return yield* sql`select u.email from "session" s join "user" u on u.id = s."userId"`;
+		}),
+		storedUsers: Effect.gen(function* () {
+			const sql = yield* SqlClient.SqlClient;
+			return yield* sql`select email from "user"`;
 		}),
 	}),
 });
@@ -59,8 +78,14 @@ export const notesApp = storyKit({
 export function aliceAccount() {
 	return notesApp.trait("account", "Alice has an account and is signed out", (engine) =>
 		Effect.promise(async () => {
-			expect((await engine.auth.client.signUp.email(alice)).error).toBeNull();
-			expect((await engine.auth.client.signOut()).error).toBeNull();
+			const signup = await engine.auth.client.signUp.email(alice);
+			if (signup.error !== null) {
+				throw new Error(`Account setup failed: ${JSON.stringify(signup.error)}`);
+			}
+			const signout = await engine.auth.client.signOut();
+			if (signout.error !== null) {
+				throw new Error(`Account setup sign-out failed: ${JSON.stringify(signout.error)}`);
+			}
 		}),
 	);
 }
@@ -74,5 +99,16 @@ export function signInScreen() {
 			);
 		}
 		yield* Effect.promise(() => view.render(<App auth={engine.auth} connect={connect} history={engine.history} />));
+	});
+}
+
+export function signInResponseHeld() {
+	return notesApp.trait("transport", "the real sign-in response is held", (engine) => Effect.sync(() => engine.signIn.hold()));
+}
+
+export function authScreen() {
+	return notesApp.trait("screen", "the sign-in screen uses the real auth host", function* (engine) {
+		const view = yield* acquireScreen(engine);
+		yield* Effect.promise(() => view.render(<LoginScreen auth={engine.auth.actions} onAuthenticated={() => undefined} />));
 	});
 }

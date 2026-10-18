@@ -10,10 +10,12 @@ screens.it(
 			{ kind: "added", number: 3, text: '  title: "Saved"' },
 		]),
 	],
-	function* ({ codePreview }) {
+	function* ({ closeScreen, consoleErrors, codePreview }) {
 		const preview = yield* codePreview();
 		const lines = [...preview.querySelectorAll("code > span")];
 		expect(lines.map((line) => line.getAttribute("data-line-kind"))).toEqual(["context", "removed", "added"]);
 		expect(lines.map((line) => line.textContent)).toEqual(["  const note = {\n", '-   title: "Draft"\n', '+   title: "Saved"\n']);
+		yield* closeScreen();
+		expect(consoleErrors()).toEqual([]);
 	},
 );

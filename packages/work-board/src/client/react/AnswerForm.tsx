@@ -1,8 +1,8 @@
+import { cn } from "cn";
 import { CheckCircle2 } from "lucide-react";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
-import { Button } from "#client/react/components/ui/Button.tsx";
-import { cn } from "#client/react/lib/cn.ts";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { AnswerMore } from "./AnswerMore.tsx";
 import { AnswerPrompts } from "./AnswerPrompts.tsx";
 import { FormField } from "./FormField.tsx";
@@ -18,14 +18,19 @@ interface AnswerProps {
 	readonly request: DocumentRequest;
 }
 export function AnswerForm(props: AnswerProps) {
-	return <AnswerSession key={JSON.stringify([props.preview.item, props.preview.request, Boolean(props.request.prompts?.length)])} {...props} />;
+	return (
+		<AnswerSession
+			key={JSON.stringify([props.preview.item, props.preview.request, Boolean(props.request.prompts?.length), props.request.answered?.response])}
+			{...props}
+		/>
+	);
 }
 function AnswerSession({ document: data, request, preview }: AnswerProps) {
 	function id(value: string) {
 		return data.requests.filter((entry) => entry.open).length > 1 ? `${value}-${request.id}` : value;
 	}
 	const prompts = request.prompts ?? [];
-	const state = useResponseForm(preview, prompts);
+	const state = useResponseForm(preview, prompts, request.options, request.answered?.response);
 	const focus = useFormFocus(state.draft.key);
 	const form = state.form;
 	const body = (

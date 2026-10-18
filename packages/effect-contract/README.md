@@ -131,7 +131,7 @@ export const NotesHandlers = Notes.toLayer(Effect.gen(function* () {
 }));
 ```
 
-Save this module as `handlers.ts`. This in-memory layer is the same shape as the package's native RPC fixture. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions.
+Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions.
 
 Native `.middleware(M)` returns a contract that retains its declarations. For example, a native middleware service can supply request identity:
 
@@ -180,7 +180,7 @@ export class NotesClient extends AtomRpc.Service<NotesClient>()("app/NotesClient
 export const api = bind(Notes, NotesClient);
 ```
 
-Save the client module as `client.ts`. The [native RPC guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/native-rpc.md) covers hosting; the [order example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/order-example.md) composes handlers, request identity, SQL and a rendered client.
+Save the client module as `client.ts`. The [native RPC guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/native-rpc.md) covers hosting; the [reference composition](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) composes handlers, request identity, SQL and a rendered client.
 
 ### 3. Every day: read and change
 
@@ -230,7 +230,7 @@ Client invalidation follows RPC success. For server invalidation at the SQL comm
 
 ### 4. When needed: live invalidation and resume
 
-Declare subscriptions with `stream` in the same contract. Its `success` schema describes each element, and its `rejections` become the native stream error schema. `bind` exposes `run(payload)` as a native `Stream`, preserving declared rejections, middleware errors and RPC client errors. Completion and client interruption release the server subscription in the real HTTP tests. Compiler checks reject a unary client for a streaming operation.
+Declare subscriptions with `stream` in the same contract. Its `success` schema describes each element, and its `rejections` become the native stream error schema. `bind` exposes `run(payload)` as a native `Stream`, preserving declared rejections, middleware errors and RPC client errors. Completion and client interruption release the server subscription. The compiler rejects a unary client for a streaming operation.
 
 Every query that should reconcile together must read the same explicit scope. This variant of the feature adds `workspace.list` alongside each query's item or list key:
 
@@ -259,7 +259,7 @@ export const LiveNotes = contract("notes", { queries: [LiveGet, LiveList], comma
 
 Save the shared module as `live-notes.ts`. A collection list key alone does not cover its item queries. The common `workspace.list` key expresses that the caller intends to reconcile all queries that read it.
 
-Use `LiveNotes` as the server group and implement `notes.subscribe` with a native Stream. For streaming HTTP, the tested fixture uses `RpcSerialization.layerNdjson` on both sides. This client mounts live coordination alongside its queries:
+Use `LiveNotes` as the server group and implement `notes.subscribe` with a native Stream. For streaming HTTP, use `RpcSerialization.layerNdjson` on both sides. This client mounts live coordination alongside its queries:
 
 ```ts
 import { Layer } from "effect";
@@ -298,7 +298,7 @@ const releaseConnection = registry.mount(updates.connection);
 | `Resync` | The exact `resyncKeys` read scope. |
 | First hint on a new or reconnected stream | The full explicit scope, even if the hint is targeted. |
 
-`LiveHint` and `Key` are schemas. The package's schema test rejects unknown hint tags and item keys with an invalid ID type.
+`LiveHint` and `Key` are schemas. Decoding rejects unknown hint tags and item keys with an invalid ID type.
 
 ```ts
 registry.set(updates.paused, true);
@@ -306,11 +306,11 @@ registry.set(updates.paused, false);
 const status = registry.get(updates.status);
 ```
 
-While paused, the HTTP consumer keeps observing hints and suppresses automatic refresh. `status.pending` saturates at 256 observations. Unpausing reconciles the explicit scope and resets the count. A resume signal also requests reconciliation; the injected native source and visible browser `online` and `visibilitychange` events are tested, while hidden events do not request refresh.
+While paused, live coordination keeps observing hints and suppresses automatic refresh. `status.pending` saturates at 256 observations. Unpausing reconciles the explicit scope and resets the count. A resume signal also requests reconciliation: an injected native source and visible browser `online` and `visibilitychange` events request it, while hidden events do not.
 
-`status` exposes `connection`, `failure`, `needsResync` and `pending`. The real HTTP tests cover typed stream failure, reconnection, missed changes and clearing the stream failure after successful delivery. They also show native query atoms retaining previous successful data during a read failure and rejecting stale HTTP responses after invalidation. Query failures remain in their own `AsyncResult`; stream failures appear in `status.failure`.
+`status` exposes `connection`, `failure`, `needsResync` and `pending`. A reconnection reconciles changes missed while disconnected, and successful delivery clears a typed stream failure. Native query atoms keep previous successful data during a read failure and reject stale responses after invalidation. Query failures remain in their own `AsyncResult`; stream failures appear in `status.failure`.
 
-The resume signal is a scoped native atom. Its browser listeners and injected source cleanup are tested on registry disposal, including a resume source used only through `live`. The HTTP fixture also verifies release of the stream subscription when the registry is disposed:
+The resume signal is a scoped native atom. Disposing the registry removes its browser listeners, cleans up an injected source, including one used only through `live`, and releases the stream subscription:
 
 ```ts
 releaseQuery();
@@ -339,19 +339,7 @@ Import the module that defines the name; the package has no root entry.
 | `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
 | `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
 
-`QueryOptions` is the query atom's optional second argument: `headers?: Headers.Input`, `timeToLive?: Duration.Input` and `serializationKey?: string`. For example, `api.get.query({ id: 1 }, { timeToLive: "1 minute" })` uses the native query options interface.
-
-| Module | Exported types |
-| --- | --- |
-| `operation.ts` | `Query`, `Command`, `Streaming`, `QueryShape`, `CommandShape`, `StreamShape`, `OperationShape`, `PayloadSchema`. |
-| `contract.ts` | `Contract`, `Declared`, `OperationRpc`, `Tag`. |
-| `rejection.ts` | `FieldRejection`, `MatchingTags`, `Reject`, `RejectedBy`, `RejectionClass`, `RejectionSpecs`, `Rejections`, `RejectionSet`, `RejectionUnion`, `RejectionValue`, `TaggedRejection`. |
-| `keys.ts` | `Collection`, `Identity`, `ItemKey`, `ListKey`, `Key`. |
-| `bind.ts` | `Bound`, `BoundQuery`, `BoundCommand`, `BoundStream`, `Failure`, `RunFailure`, `QueryOptions`. |
-| `live.ts` | `LiveHint`, `LiveOptions`, `LiveStatus`. |
-| `resume.ts` | `ResumeOptions`, `ResumeSource`, `ResumeWindow`. |
-
-The shape types describe operation declarations, the bound types describe client members, and the rejection types derive classes and failures from declared specs. A native resume source receives a callback and returns a cleanup function. `ResumeWindow` describes the browser event and visibility methods the signal uses.
+A query atom takes native query options as its optional second argument, for example `api.get.query({ id: 1 }, { timeToLive: "1 minute" })`. A native resume source receives a callback and returns a cleanup function.
 
 ### Install, setup and limits
 
@@ -359,12 +347,10 @@ The shape types describe operation declarations, the bound types describe client
 pnpm add @shivaedev/effect-contract effect@4.0.4
 ```
 
-`effect` is a peer. The repository's dependency catalog uses Effect `4.0.4`, and the package declares Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.
+`effect` is a peer, and the package needs Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.
 
 - Put schema declarations where server and browser can share them. Put service, authorization and transaction implementations on the server. React rendering and editable forms belong to `effect-react` and `effect-form`.
 - Run command Effects with the Reactivity instance that owns the queries to refresh, as in the registry example.
 - Choose a common read key for every query in a full reconciliation scope. A list key does not implicitly cover item queries.
-- Supply browser or native resume sources explicitly. Synthetic visibility and native-source tests establish signal behavior; they do not establish physical tab transitions or Capacitor lifecycle behavior.
-- Live hints carry refresh requests, not authoritative data or durable history. Applications own dependency discovery, authenticated subscriptions, delivery across processes, SSR and deployment behavior. Those boundaries need their own tests.
-
-The package's design priorities are in [docs/north-star.md](docs/north-star.md), and package work and maintainer questions are in [docs/roadmap.md](docs/roadmap.md).
+- Supply browser or native resume sources explicitly.
+- Live hints carry refresh requests, not authoritative data or durable history. Applications own dependency discovery, authenticated subscriptions, delivery across processes, SSR and deployment behavior.

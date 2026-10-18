@@ -3,7 +3,7 @@ import { Context, Effect, FileSystem, Layer, Option } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { Fleet } from "#fleet.ts";
-import { createEngine } from "#test/engine.ts";
+import { createEngine } from "#test/createEngine.ts";
 import { type FleetStoryState, fleetStoryState } from "#test/fleetStoryState.ts";
 import { fleetVerbs } from "#test/fleetVerbs.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
@@ -51,4 +51,8 @@ export const githubBacklog = fleetStory.trait("configuration", "GitHub PRs share
 
 export const singlePrBacklog = fleetStory.trait("configuration", "the delivery backlog only admits one PR at a time", (engine) => {
 	engine.options = { ...engine.options, backlog: 1 };
+});
+
+export const immediateAreaRelease = fleetStory.trait("configuration", "reviewed PRs release their areas without a merge wait", (engine) => {
+	engine.options = { ...engine.options, areaMergeWaitMs: 0 };
 });

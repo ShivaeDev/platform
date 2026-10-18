@@ -80,6 +80,11 @@ export function screenData(engine: ScreenEngine, tell: (line: string) => void) {
 				}),
 			);
 		},
+		refreshInbox: async () => {
+			tell("the reader refreshes the inbox");
+			const { api, registry } = client();
+			await act(() => Promise.resolve().then(() => registry.refresh(api.inbox.query(undefined, routeQueryOptions))));
+		},
 		refreshQuery: async (kind: "document" | "handoff" | "work" | "search", input: { readonly url: string } | { readonly query: string }) => {
 			tell(`the reader refreshes the ${kind} query`);
 			const { api, registry } = client();

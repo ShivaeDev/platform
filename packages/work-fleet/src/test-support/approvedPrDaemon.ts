@@ -17,7 +17,7 @@ import { mainObservation, prepared } from "#test/preparation.ts";
 
 export type PrDaemonClient = Effect.Success<ReturnType<typeof daemonClient>>;
 
-function schedulerReady(root: string, previous: number | null) {
+export function schedulerReady(root: string, previous: number | null) {
 	return until(() =>
 		fleetHealth(root).pipe(
 			Effect.map((health) => health.lastSchedulerPass !== null && health.lastSchedulerPass !== previous),
@@ -26,7 +26,7 @@ function schedulerReady(root: string, previous: number | null) {
 	);
 }
 
-function approvedPrFixture(fixture: HostFixture, github: Effect.Success<ReturnType<typeof mergedReviewGithub>>) {
+export function approvedPrFixture(fixture: HostFixture, github: Effect.Success<ReturnType<typeof mergedReviewGithub>>) {
 	const parts = {
 		...fixture.parts,
 		integrations: Layer.succeed(FleetIntegrations)({
@@ -103,7 +103,19 @@ function approvedPrFixture(fixture: HostFixture, github: Effect.Success<ReturnTy
 		);
 		return { decisionId: decision.id, responseId, workId: "one" };
 	}
-	return { answer, configFile: fixture.configFile, finishWorker, github, PR, provider: fixture.provider, ready, serve, started };
+	return {
+		answer,
+		configFile: fixture.configFile,
+		finishWorker,
+		github,
+		host: fixture.host,
+		PR,
+		parts,
+		provider: fixture.provider,
+		ready,
+		serve,
+		started,
+	};
 }
 
 export type ApprovedPrFixture = ReturnType<typeof approvedPrFixture>;

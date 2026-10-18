@@ -2,36 +2,49 @@ import { Effect, Fiber, Option, Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { deadLetterQueueName } from "#health.ts";
-import { failingWorker, pausedWorker, productionRetries, queues } from "#test/testingStory.ts";
+import { acceleratedTesting, failingWorker, pausedWorker, productionRetries } from "#test/acceleratedTesting.ts";
+import { postgresIt, realPostgres } from "#test/boss.ts";
 
-queues.it("reads decoded jobs sent through the queue, including traced sends", [], function* ({ queue, send, testing }) {
-	const id = Option.getOrThrow(yield* send(42).pipe(Effect.withSpan("sender")));
-	expect(yield* testing.jobs(queue)).toMatchObject([{ data: { id: 42 }, id, state: "created" }]);
-	expect(yield* testing.jobs(queue, { queued: true })).toHaveLength(1);
-	expect(yield* testing.jobs(queue, { id: crypto.randomUUID() })).toEqual([]);
-});
+postgresIt(
+	"reads decoded jobs sent through the queue, including traced sends",
+	[realPostgres, acceleratedTesting],
+	function* ({ queue, send, testing }) {
+		const id = Option.getOrThrow(yield* send(42).pipe(Effect.withSpan("sender")));
+		expect(yield* testing.jobs(queue)).toMatchObject([{ data: { id: 42 }, id, state: "created" }]);
+		expect(yield* testing.jobs(queue, { queued: true })).toHaveLength(1);
+		expect(yield* testing.jobs(queue, { id: crypto.randomUUID() })).toEqual([]);
+	},
+);
 
-queues.it("preserves the native client's prototype members", [], function* ({ client, queue, send, testing }) {
-	const id = Option.getOrThrow(yield* send(15));
-	expect(yield* testing.jobs(queue)).toMatchObject([{ data: { id: 15 }, id, state: "created" }]);
-	expect(client.constructor).not.toBe(Object);
-	expect(client.valueOf()).not.toBe(client);
-});
+postgresIt(
+	"preserves the native client's prototype members",
+	[realPostgres, acceleratedTesting],
+	function* ({ testingClient, queue, send, testing }) {
+		const id = Option.getOrThrow(yield* send(15));
+		expect(yield* testing.jobs(queue)).toMatchObject([{ data: { id: 15 }, id, state: "created" }]);
+		expect(testingClient().constructor).not.toBe(Object);
+		expect(testingClient().valueOf()).not.toBe(testingClient());
+	},
+);
 
-queues.it("fails exactly the next send for the selected queue with the typed enqueue error", [], function* ({ queue, send, testing }) {
-	const other = defineQueue({ ...queue, name: "not-the-selected-queue" });
-	yield* testing.failNextSend(other);
-	expect(Option.isSome(yield* send(1))).toBe(true);
-	yield* testing.failNextSend(queue);
-	const error = yield* send(2).pipe(Effect.flip);
-	expect(error).toMatchObject({ _tag: "PgBossError", operation: "enqueue", queue: queue.name });
-	expect(Option.isSome(yield* send(3))).toBe(true);
-	expect((yield* testing.jobs(queue)).map((job) => job.data.id).sort()).toEqual([1, 3]);
-});
+postgresIt(
+	"fails exactly the next send for the selected queue with the typed enqueue error",
+	[realPostgres, acceleratedTesting],
+	function* ({ queue, send, testing }) {
+		const other = defineQueue({ ...queue, name: "not-the-selected-queue" });
+		yield* testing.failNextSend(other);
+		expect(Option.isSome(yield* send(1))).toBe(true);
+		yield* testing.failNextSend(queue);
+		const error = yield* send(2).pipe(Effect.flip);
+		expect(error).toMatchObject({ _tag: "PgBossError", operation: "enqueue", queue: queue.name });
+		expect(Option.isSome(yield* send(3))).toBe(true);
+		expect((yield* testing.jobs(queue)).map((job) => job.data.id).sort()).toEqual([1, 3]);
+	},
+);
 
-queues.it(
+postgresIt(
 	"expires the final claim after the requested attempts through PostgreSQL supervision",
-	[failingWorker],
+	[realPostgres, acceleratedTesting, failingWorker],
 	function* ({ attempts, queue, send, settle, testing }) {
 		yield* testing.expireAfter(queue, 3);
 		const id = Option.getOrThrow(yield* send(7));
@@ -43,9 +56,9 @@ queues.it(
 	},
 );
 
-queues.it(
+postgresIt(
 	"overrides production and send retry delays through the test policy",
-	[failingWorker],
+	[realPostgres, acceleratedTesting, failingWorker],
 	function* ({ attempts, queue, send, settle, testing }) {
 		yield* send(8, { retryBackoff: true, retryDelay: 120, retryDelayMax: 240, retryLimit: 1 });
 		const jobs = yield* settle();
@@ -55,17 +68,21 @@ queues.it(
 	},
 );
 
-queues.it("wakes a waiting kit and remembers changes that happened before it waited", [], function* ({ send, testing }) {
-	const before = yield* testing.revision;
-	const waiter = yield* testing.waitForChange(before).pipe(Effect.forkChild);
-	yield* send(1);
-	expect(yield* Fiber.join(waiter)).toBeGreaterThan(before);
-	expect(yield* testing.waitForChange(before)).toBeGreaterThan(before);
-});
+postgresIt(
+	"wakes a waiting kit and remembers changes that happened before it waited",
+	[realPostgres, acceleratedTesting],
+	function* ({ send, testing }) {
+		const before = yield* testing.revision;
+		const waiter = yield* testing.waitForChange(before).pipe(Effect.forkChild);
+		yield* send(1);
+		expect(yield* Fiber.join(waiter)).toBeGreaterThan(before);
+		expect(yield* testing.waitForChange(before)).toBeGreaterThan(before);
+	},
+);
 
-queues.it(
+postgresIt(
 	"wakes on worker settlement and allows success before the expiry attempt",
-	[pausedWorker],
+	[realPostgres, acceleratedTesting, pausedWorker],
 	function* ({ attempts, queue, releaseWorker, send, settle, testing, workerStarted }) {
 		yield* testing.expireAfter(queue, 3);
 		yield* send(9);
@@ -79,24 +96,32 @@ queues.it(
 	},
 );
 
-queues.it("keeps production retries unless the kit selects the test policy", [productionRetries], function* ({ queue, send, testing }) {
-	yield* send(10);
-	expect(yield* testing.jobs(queue)).toMatchObject([{ retryBackoff: true, retryDelay: 100, retryDelayMax: 200, retryLimit: 5 }]);
-});
+postgresIt(
+	"keeps production retries unless the kit selects the test policy",
+	[realPostgres, acceleratedTesting, productionRetries],
+	function* ({ queue, send, testing }) {
+		yield* send(10);
+		expect(yield* testing.jobs(queue)).toMatchObject([{ retryBackoff: true, retryDelay: 100, retryDelayMax: 200, retryLimit: 5 }]);
+	},
+);
 
-queues.it("checks installed schema versions and sequential batch budgets without application SQL", [], function* ({ queue, testing }) {
-	const version = yield* testing.schemaVersion;
-	yield* testing.checkSchemaVersion(version ?? 0);
-	expect(yield* testing.checkSchemaVersion(-1).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossTestingError", operation: "checkSchemaVersion" });
-	yield* testing.checkBatchWindow(queue, 1000);
-	expect(yield* testing.checkBatchWindow(queue, 30_000).pipe(Effect.flip)).toMatchObject({
-		_tag: "PgBossTestingError",
-		operation: "checkBatchWindow",
-	});
-	expect(yield* testing.expireAfter(queue, 0).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossTestingError", operation: "expireAfter" });
-});
+postgresIt(
+	"checks installed schema versions and sequential batch budgets without application SQL",
+	[realPostgres, acceleratedTesting],
+	function* ({ queue, testing }) {
+		const version = yield* testing.schemaVersion;
+		yield* testing.checkSchemaVersion(version ?? 0);
+		expect(yield* testing.checkSchemaVersion(-1).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossTestingError", operation: "checkSchemaVersion" });
+		yield* testing.checkBatchWindow(queue, 1000);
+		expect(yield* testing.checkBatchWindow(queue, 30_000).pipe(Effect.flip)).toMatchObject({
+			_tag: "PgBossTestingError",
+			operation: "checkBatchWindow",
+		});
+		expect(yield* testing.expireAfter(queue, 0).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossTestingError", operation: "expireAfter" });
+	},
+);
 
-queues.it("rejects durable data that the readout schema cannot decode", [], function* ({ queue, send, testing }) {
+postgresIt("rejects durable data that the readout schema cannot decode", [realPostgres, acceleratedTesting], function* ({ queue, send, testing }) {
 	yield* send(42);
 	const incompatible = defineQueue({ name: queue.name, schema: Schema.Struct({ id: Schema.Number }) });
 	expect(yield* testing.jobs(incompatible).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossPayloadError", direction: "decode", queue: queue.name });

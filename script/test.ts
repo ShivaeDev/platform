@@ -8,7 +8,6 @@ const program = Effect.gen(function* () {
 	const databases = yield* postgresTestEnvironment;
 	const env = { ...databases, "TEST_DATABASE_URL": databases.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL };
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	const nodeOptions = yield* Config.String("NODE_OPTIONS").pipe(Config.withDefault(""));
 	const event = yield* Config.String("GITHUB_EVENT_NAME").pipe(Config.withDefault(""));
 	const args = process.argv.slice(2);
 	const workspace = args.includes("--workspace");
@@ -44,7 +43,7 @@ const program = Effect.gen(function* () {
 				...args.filter((arg) => !["--workspace", "--ci-shard"].includes(arg)),
 			],
 			{
-				env: workspace ? { ...env, "NODE_OPTIONS": `${nodeOptions} --conditions=source` } : env,
+				env,
 				extendEnv: true,
 				stderr: "inherit",
 				stdin: "inherit",

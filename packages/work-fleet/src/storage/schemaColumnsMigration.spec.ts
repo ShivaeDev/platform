@@ -21,7 +21,7 @@ for (const path of ["fresh", "upgrade", "typed upgrade"] as const) {
 			expect(yield* sql`select max(migration_id) as latest from ${sql(`${namespace}_migrations`)}`).toEqual([{ latest: 4 }]);
 		}
 		if (path === "typed upgrade") {
-			yield* migrateFleet(namespace, "dispatch_now");
+			yield* migrateFleet(namespace, "orchestrator_decisions");
 		}
 		yield* migrateFleet(namespace);
 		const columns = yield* sql<{ readonly name: string; readonly type: string }>`

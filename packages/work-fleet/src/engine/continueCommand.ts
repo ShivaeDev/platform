@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { BadRequest, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
+import { failureMessage } from "#engine/failureMessage.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { allAttempts, executing } from "#model.ts";
@@ -25,6 +26,18 @@ export function continueCommand(state: EngineState, launch: ReturnType<typeof ma
 			return yield* Effect.fail(new Forbidden({ message: "The existing worker turn is still running" }));
 		}
 		stored = yield* ensurePublication(state)(stored);
-		return yield* launch(stored, "repair", message);
+		const prompt = [stored.value.pendingContinuation, message].filter(Boolean).join("\n\n");
+		return yield* launch(stored, "repair", prompt).pipe(
+			Effect.catchTag("StorageCapacity", (error) =>
+				error.kind === "execution"
+					? state.save(stored, {
+							...stored.value,
+							attentionOwner: "automation",
+							blocker: `Continuation queued; ${failureMessage(error)}`,
+							pendingContinuation: prompt,
+						})
+					: Effect.fail(error),
+			),
+		);
 	});
 }

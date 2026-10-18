@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import type { CodePreviewLine } from "#client/CodePreview.tsx";
+import { requireSetup } from "#test-support/requireSetup.ts";
 import { authScreenVerbs } from "./authScreenVerbs.ts";
 import { noteScreenVerbs } from "./noteScreenVerbs.ts";
 import { notesClient } from "./notesClient.ts";
@@ -11,6 +11,7 @@ import { screenActions } from "./screenActions.ts";
 import { screenObservations } from "./screenObservations.ts";
 import { openApp, openCodePreview, openLogin, openNotes, openRoute, openSession } from "./screenSetup.tsx";
 import { createScreen, screenView } from "./screenState.ts";
+import { themeScreenVerbs } from "./themeScreenVerbs.tsx";
 import { uiScreenVerbs } from "./uiScreenVerbs.ts";
 
 export const screens = storyKit({
@@ -22,10 +23,13 @@ export const screens = storyKit({
 	verbs: (engine, story) => ({
 		...screenActions(engine, story.tell),
 		...uiScreenVerbs(engine, story.tell),
-		...screenObservations(engine, story.tell),
+		...themeScreenVerbs(engine, story.tell),
+		...screenObservations(engine),
 		...noteScreenVerbs(engine, story.tell),
 		...notesRefreshVerbs(engine, story.tell),
 		...authScreenVerbs(engine, story.tell),
+		closeScreen: () => Effect.promise(() => screenView(engine).unmount()),
+		consoleErrors: engine.consoleErrors,
 	}),
 });
 
@@ -37,7 +41,11 @@ export function editingNote() {
 	return screens.trait("screen", "the first note is open in the editor", function* (engine) {
 		engine.client = notesClient([{ id: 1, title: "First note", version: 0, wordCount: null }]);
 		yield* openRoute(engine, "/notes/1");
-		yield* Effect.promise(() => eventually(() => expect(screenView(engine).container.querySelector("input")?.value).toBe("First note")));
+		yield* Effect.promise(() =>
+			eventually(() =>
+				requireSetup(screenView(engine).container.querySelector("input")?.value === "First note", "The editor did not load First note"),
+			),
+		);
 	});
 }
 

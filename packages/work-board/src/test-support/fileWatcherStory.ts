@@ -1,17 +1,22 @@
 import { rmSync } from "node:fs";
 import { join, relative } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem, PubSub, Stream } from "effect";
+import { Deferred, Effect, FileSystem, PubSub, Stream } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { type Change, type Changes, watchChanges } from "#server/files/changes.ts";
+import { searchSnapshot } from "#server/search/snapshot.ts";
 import { type Folder, folder } from "./board.ts";
+import { watcherIndexVerbs } from "./watcherIndexVerbs.ts";
 
-interface WatcherEngine {
+export interface WatcherEngine {
 	changes?: Changes;
 	readonly checked: string[];
+	hold?: { path: string; entered: Deferred.Deferred<void>; release: Deferred.Deferred<void> };
+	index?: Effect.Success<ReturnType<typeof searchSnapshot>>;
 	readonly input: PubSub.PubSub<FileSystem.WatchEvent>;
 	readonly notes: Folder;
 	output?: PubSub.Subscription<Change>;
+	reads: string[];
 	scans: number;
 	starts: number;
 }
@@ -29,10 +34,19 @@ export const fileWatcherStory = storyKit({
 						}
 						return fs.readDirectory(path);
 					}),
-				stat: (path: string) =>
+				readFileString: (path: string, encoding?: string) =>
 					Effect.suspend(() => {
+						engine.reads.push(relative(engine.notes.root, path));
+						return fs.readFileString(path, encoding);
+					}),
+				stat: (path: string) =>
+					Effect.gen(function* () {
 						engine.checked.push(relative(engine.notes.root, path));
-						return fs.stat(path);
+						if (engine.hold?.path === path) {
+							yield* Deferred.succeed(engine.hold.entered, undefined);
+							yield* Deferred.await(engine.hold.release);
+						}
+						return yield* fs.stat(path);
 					}),
 				watch: (_path: string, options?: FileSystem.WatchOptions) => {
 					if (!options?.recursive) {
@@ -44,6 +58,8 @@ export const fileWatcherStory = storyKit({
 			};
 			engine.changes = yield* watchChanges(engine.notes.root).pipe(Effect.provideService(FileSystem.FileSystem, boundary));
 			engine.output = yield* PubSub.subscribe(engine.changes.events);
+			const read = yield* searchSnapshot(engine.notes.root, undefined, engine.changes).pipe(Effect.provideService(FileSystem.FileSystem, boundary));
+			engine.index = read.pipe(Effect.provideService(FileSystem.FileSystem, boundary));
 		},
 	},
 	clock: "live",
@@ -53,7 +69,7 @@ export const fileWatcherStory = storyKit({
 			(acquired) => Effect.sync(acquired.remove),
 		);
 		const input = yield* PubSub.unbounded<FileSystem.WatchEvent>();
-		const engine: WatcherEngine = { checked: [], input, notes, scans: 0, starts: 0 };
+		const engine: WatcherEngine = { checked: [], input, notes, reads: [], scans: 0, starts: 0 };
 		return engine;
 	},
 	inspect: (engine) => ({ checked: engine.checked, scans: engine.scans, starts: engine.starts }),
@@ -61,6 +77,7 @@ export const fileWatcherStory = storyKit({
 	name: "file watcher",
 	stages: ["project"],
 	verbs: (engine, story) => ({
+		...watcherIndexVerbs(engine, story.tell),
 		get checked() {
 			return engine.checked;
 		},

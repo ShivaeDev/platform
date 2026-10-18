@@ -22,7 +22,7 @@ screenStory.it(
 	function* ({ findElements, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(5)));
 		expect(findElements('[data-goal-group="Deferred"], [data-goal-group="Not recorded"]')).toHaveLength(0);
-		expect(readText('[data-goal-item="task.fifth"] [data-status-token]')).toBe("planned");
+		expect(readText('[data-goal-item="task.fifth"] [data-status-token]')).toBe("Planned");
 	},
 );
 
@@ -32,7 +32,7 @@ screenStory.it(
 	function* ({ findElements, findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(5)));
 		expect(findElement('[data-goal-group="In progress"]')).toBeNull();
-		expect(readText('[data-goal-item="task.first"] [data-status-token]')).toBe("planned");
+		expect(readText('[data-goal-item="task.first"] [data-status-token]')).toBe("Planned");
 		expect(readText("#criterion-first [data-criterion-progress]")).toContain("2 planned");
 		expect(readText('[data-goal-item="task.fifth"] td')).toBe("");
 		expect(findElement('[data-goal-item="task.fifth"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Planned");

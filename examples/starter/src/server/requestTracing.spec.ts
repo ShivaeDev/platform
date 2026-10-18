@@ -1,12 +1,15 @@
+import { Effect } from "effect";
 import { RpcClient } from "effect/rpc";
 import { expect } from "vitest";
+import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { app, signedIn } from "#test-support/application.ts";
 
-app.it("logs a redacted authentication failure with the RPC request id", [], function* ({ anonymous, rejectsWith, logs }) {
+app.it("logs a redacted authentication failure with the RPC request id", [], function* ({ anonymous, logs }) {
 	const client = yield* anonymous();
-	yield* client
+	const failure = yield* client
 		.create({ title: "password=hidden-request-password" })
-		.pipe(RpcClient.withHeaders({ "x-request-id": "auth-failure-request" }), rejectsWith("Unauthorized"));
+		.pipe(RpcClient.withHeaders({ "x-request-id": "auth-failure-request" }), Effect.flip);
+	expect(failure).toBeInstanceOf(Unauthorized);
 	expect(logs().filter((entry) => entry.annotations["rpc.method"] !== undefined)).toEqual([
 		{
 			annotations: {
@@ -21,11 +24,11 @@ app.it("logs a redacted authentication failure with the RPC request id", [], fun
 	]);
 });
 
-app.it("logs a handler rejection with a generated request id", [signedIn()], function* ({ actor, rejectsWith, logs }) {
+app.it("logs a handler rejection with a generated request id", [signedIn()], function* ({ actor, logs }) {
 	const client = actor().notes;
 	const note = yield* client.create({ title: "Original" });
 	yield* client.update({ ...note, title: "Saved" });
-	yield* client.update({ ...note, title: "token=hidden-request-token" }).pipe(rejectsWith("Conflict"));
+	expect(yield* client.update({ ...note, title: "token=hidden-request-token" }).pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
 	expect(logs().filter((entry) => entry.annotations["rpc.method"] !== undefined)).toEqual([
 		{
 			annotations: {

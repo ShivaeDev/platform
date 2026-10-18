@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Fiber } from "effect";
 import { daemonClient, daemonRequest } from "#host/daemonClient.ts";
 import { answerDelay } from "#test/answerDelay.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
@@ -35,11 +35,13 @@ const steerRequest = Effect.fn("AnswerTimeoutTest.steerRequest")(function* (
 	expect(accepted.workId).toBe("one");
 	if (command === "answer") {
 		expect("blocker" in accepted ? accepted.blocker : undefined).toBe("Answer recorded; applying in the background");
+	}
+	yield* delay.entered;
+	if (command === "answer") {
 		expect(boardHttpFiles(fixture.host.boardDir).read(`responses/response.fleet-retry.${stopped.decision?.published?.questionId}.md`)).toContain(
 			"author: orchestrator",
 		);
 	}
-	yield* delay.entered;
 	const pending = yield* client("fleet.get", { workId: "one" });
 	expect(pending.boardContext).toBe(current);
 	expect(pending.attempts[0]?.receipt).toEqual(started.attempts[0]?.receipt);
@@ -72,12 +74,13 @@ const cliRequest = Effect.fn("AnswerTimeoutTest.cliRequest")(function* (
 	}
 	delay.enable();
 	const args = command === "dispatch" ? ["dispatch", "one"] : ["answer", "one", ...(command === "release" ? ["--release"] : ["Use PostgreSQL."])];
-	const result = yield* Effect.promise(() => cliProcess([...args, "--port", String(port)], { holdStdin: command === "release" })).pipe(
-		Effect.timeout("3 seconds"),
+	const request = yield* Effect.promise(() => cliProcess([...args, "--port", String(port)], { holdStdin: command === "release" })).pipe(
+		Effect.forkScoped,
 	);
+	yield* delay.entered;
+	const result = yield* Fiber.join(request).pipe(Effect.timeout("3 seconds"));
 	expect(result.code).toBe(0);
 	expect(result.stdout).toContain("recorded");
-	yield* delay.entered;
 	yield* delay.release;
 	yield* waitForRecord(client, "one", (record) =>
 		command === "release" ? record.attempts[0]?.sessionCleanupComplete === true : record.attempts.at(-1)?.receipt !== undefined,

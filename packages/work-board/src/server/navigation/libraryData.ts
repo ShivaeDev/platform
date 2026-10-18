@@ -1,5 +1,6 @@
 import type { Schema } from "effect";
 import type { Library, LibraryInput } from "#browser/navigation/library.ts";
+import { sameStatus, statusOptions } from "#browser/views/statusLabel.ts";
 import { fileUrl } from "#files/url.ts";
 import { fleetRecords } from "#server/attention/inbox.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
@@ -18,7 +19,9 @@ export function libraryData(files: readonly MarkdownFile[], snapshot: Snapshot, 
 	}));
 	const visible = all.filter(
 		(file) =>
-			(input.showFleet || !records.has(file.path)) && (!input.kind || input.kind === file.kind) && (!input.status || input.status === file.status),
+			(input.showFleet || !records.has(file.path))
+			&& (!input.kind || input.kind === file.kind)
+			&& (!input.status || (file.status !== "" && sameStatus(input.status, file.status))),
 	);
 	const prefix = input.folder ? `${input.folder}/` : "";
 	const folders = new Map<string, number>();
@@ -38,6 +41,6 @@ export function libraryData(files: readonly MarkdownFile[], snapshot: Snapshot, 
 		fleetCount: all.filter((file) => records.has(file.path)).length,
 		folders: [...folders].sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => ({ count, name, path: `${prefix}${name}` })),
 		kinds: [...new Set(all.map((file) => file.kind))].sort(),
-		statuses: [...new Set(all.map((file) => file.status).filter(Boolean))].sort(),
+		statuses: statusOptions(all.map((file) => file.status)),
 	};
 }

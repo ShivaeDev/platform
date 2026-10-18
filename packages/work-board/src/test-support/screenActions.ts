@@ -1,6 +1,7 @@
 import { act } from "react";
 import { answerInput, answerPrompt, responseClick } from "./answerDraft.tsx";
 import { control } from "./chrome.ts";
+import { setNativeValue } from "./setNativeValue.ts";
 
 export function screenActions(tell: (line: string) => void) {
 	function input(target: string | HTMLInputElement | HTMLTextAreaElement | null | undefined, value: string) {
@@ -10,7 +11,7 @@ export function screenActions(tell: (line: string) => void) {
 			throw new Error(`Missing text field ${target}`);
 		}
 		act(() => {
-			field.value = value;
+			setNativeValue(field, value);
 			field.dispatchEvent(new Event("input", { bubbles: true }));
 		});
 		return field;
@@ -44,6 +45,22 @@ export function screenActions(tell: (line: string) => void) {
 				field.dispatchEvent(new Event("change", { bubbles: true }));
 			});
 		},
+		chooseOption: async (trigger: string | Element | null | undefined, label: string) => {
+			const combobox = typeof trigger === "string" ? document.querySelector(trigger) : trigger;
+			if (!(combobox instanceof HTMLElement && combobox.getAttribute("role") === "combobox")) {
+				throw new Error(`Missing select trigger ${trigger}`);
+			}
+			const name = document.querySelector(`label[for="${CSS.escape(combobox.id)}"]`)?.textContent ?? combobox.id;
+			tell(`the reader chooses ${JSON.stringify(label)} in ${name}`);
+			await act(() => combobox.click());
+			const option = [...document.querySelectorAll<HTMLElement>(`#${CSS.escape(combobox.getAttribute("aria-controls") ?? "")} [role="option"]`)].find(
+				(candidate) => candidate.textContent === label,
+			);
+			if (!option) {
+				throw new Error(`Missing option ${label}`);
+			}
+			await act(() => option.click());
+		},
 		click: (target: string | Element | null | undefined) => {
 			tell(`the reader clicks ${typeof target === "string" ? target : target?.id || target?.textContent}`);
 			const element = typeof target === "string" ? control(target, HTMLElement) : target;
@@ -59,6 +76,16 @@ export function screenActions(tell: (line: string) => void) {
 			const event = new KeyboardEvent("keydown", { bubbles: true, ...options, key });
 			act(() => (typeof target === "string" ? control(target, HTMLElement) : target).dispatchEvent(event));
 			return event;
+		},
+		press: async (key: string) => {
+			tell(`the reader presses and releases ${JSON.stringify(key)}`);
+			for (const type of ["keydown", "keyup"]) {
+				await act(() => {
+					(document.activeElement ?? document).dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, key }));
+					// Base UI moves focus between radios in a microtask; resolving keeps that move inside act.
+					return Promise.resolve();
+				});
+			}
 		},
 		responseClick: (id: string) => {
 			tell(`the reader clicks response ${id}`);

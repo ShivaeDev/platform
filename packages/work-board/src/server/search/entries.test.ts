@@ -1,68 +1,88 @@
-import { Effect } from "effect";
-import { describe, expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { entriesOf } from "./entries.ts";
-import { searchMatch } from "./match.ts";
+import { expect } from "vitest";
+import { boardHome, boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
 
-describe("search passages", () => {
-	it.live("omits synthetic source lines for board footnotes appended to a rendering fragment", function* () {
-		const source = "# Plan\n\n[^proof]: Supporting citation.\n\n## Review\n\n### Item\n\nA claim[^proof].\n";
-		const entries = yield* Effect.promise(() => entriesOf(source, "board.md", true));
-		const citations = entries.filter((entry) => entry.text.includes("Supporting citation"));
+boardStory.it(
+	"omits synthetic source lines for board footnotes",
+	[
+		serverReading(),
+		projectFiles({ "board.md": "# Plan\n\n[^proof]: Supporting citation.\n\n## Review\n\n### Item\n\nA claim[^proof].\n" }),
+		boardHome("board.md"),
+	],
+	function* ({ search }) {
+		const citations = (yield* search("Supporting citation")).results;
 		expect(citations.length).toBeGreaterThan(0);
 		expect(citations.every((entry) => entry.line === undefined)).toBe(true);
-		expect(entries.find((entry) => entry.text.startsWith("A claim"))?.line).toBe(9);
-	});
+		expect((yield* search("A claim")).results[0]?.line).toBe(9);
+	},
+);
 
-	it.live.each([false, true])("links duplicate headings to the reader's generated anchors (home %s)", function* (home) {
-		const entries = yield* Effect.promise(() =>
-			entriesOf("# Plan\n\n## Evidence\n\nA known phrase.\n\n## Evidence\n\nSecond needle.", "plans/c# & more?.md", home),
-		);
-		expect(entries.find((entry) => entry.text === "Second needle.")?.href).toBe("/plans/c%23%20%26%20more%3F.md#heading-evidence-2");
-		expect(searchMatch(entries, "known phrase").results[0]?.kind).toBe("passage");
-		expect(searchMatch(entries, "evidence").results.filter((entry) => entry.kind === "heading")).toHaveLength(2);
-	});
+for (const home of [false, true]) {
+	boardStory.it(
+		`links duplicate headings to generated anchors (home ${home})`,
+		[
+			serverReading(),
+			projectFiles({ "plans/c# & more?.md": "# Plan\n\n## Evidence\n\nA known phrase.\n\n## Evidence\n\nSecond needle." }),
+			boardHome(home ? "plans/c# & more?.md" : ""),
+		],
+		function* ({ search, renderDocument }) {
+			const found = yield* search("Second needle");
+			expect(found.results[0]?.href).toBe("/plans/c%23%20%26%20more%3F.md#heading-evidence-2");
+			expect(yield* renderDocument("plans/c# & more?.md")).toContain('id="heading-evidence-2"');
+			expect((yield* search("known phrase")).results[0]?.kind).toBe("passage");
+			expect((yield* search("evidence")).results.filter((entry) => entry.kind === "heading")).toHaveLength(2);
+		},
+	);
+}
 
-	it.live("indexes readable GFM, code, links, and Unicode without searching HTML markup", function* () {
-		const entries = yield* Effect.promise(() =>
-			entriesOf("# Ελληνικά\n\nA **bold** [phrase](target.md).\n\n```ts\nconst needle = 1;\n```\n\n| Value |\n| --- |\n| useful |", "note.md", false),
-		);
-		expect(searchMatch(entries, "BOLD phrase").results[0]?.snippet).toContain("bold phrase");
-		expect(searchMatch(entries, "needle").results[0]?.href).toContain("heading-%CE%B5");
-		expect(searchMatch(entries, "useful").total).toBeGreaterThan(0);
-		expect(searchMatch(entries, "href").total).toBe(0);
-		expect(searchMatch(entries, "ελληνικά").results[0]?.kind).toBe("document");
-	});
+boardStory.it(
+	"searches readable GFM, code, links and Unicode without HTML markup",
+	[
+		serverReading(),
+		projectFiles({
+			"note.md": "# Ελληνικά\n\nA **bold** [phrase](target.md).\n\n```ts\nconst needle = 1;\n```\n\n| Value |\n| --- |\n| useful |",
+		}),
+	],
+	function* ({ search }) {
+		expect((yield* search("BOLD phrase")).results[0]?.snippet).toContain("bold phrase");
+		expect((yield* search("needle")).results[0]?.href).toContain("heading-%CE%B5");
+		expect((yield* search("useful")).total).toBeGreaterThan(0);
+		expect((yield* search("href")).total).toBe(0);
+		expect((yield* search("ελληνικά")).results[0]?.kind).toBe("document");
+	},
+);
 
-	it.live("ranks titles then headings then passages, bounds results, and matches terms deterministically", function* () {
-		const entries = yield* Effect.promise(() =>
-			entriesOf(
-				`# Needle\n\n## Needle section\n\n${Array.from({ length: 50 }, (_, i) => `### Entry ${i}\n\nNeedle ${i} other.`).join("\n\n")}`,
-				"needle.md",
-				false,
-			),
-		);
-		const found = searchMatch(entries, "needle");
+boardStory.it(
+	"ranks titles before headings and passages and bounds results after counting",
+	[
+		serverReading(),
+		projectFiles({
+			"needle.md": `# Needle\n\n## Needle section\n\n${Array.from({ length: 50 }, (_, i) => `### Entry ${i}\n\nNeedle ${i} other.`).join("\n\n")}`,
+		}),
+	],
+	function* ({ search }) {
+		const found = yield* search("needle");
 		expect(found.total).toBe(53);
 		expect(found.results).toHaveLength(40);
 		expect(found.results.slice(0, 3).map((entry) => entry.kind)).toEqual(["document", "heading", "heading"]);
-		expect(searchMatch(entries, "other 49").results[0]?.snippet).toBe("Needle 49 other.");
-		expect(searchMatch(entries, "missing").results).toEqual([]);
-		expect(searchMatch(entries, "  ").total).toBe(0);
-	});
+		expect((yield* search("other 49")).results[0]?.snippet).toBe("Needle 49 other.");
+		expect((yield* search("missing")).results).toEqual([]);
+		expect((yield* search("  ")).total).toBe(0);
+	},
+);
 
-	it.live("keeps the best matching block per anchor before limiting and counting results", function* () {
-		const entries = yield* Effect.promise(() =>
-			entriesOf(
-				`# Notes\n\n## Needle\n\n${Array.from({ length: 50 }, (_, i) => `Needle detail ${i}.`).join("\n\n")}\n\n## Other\n\nNeedle elsewhere.`,
-				"note.md",
-				false,
-			),
-		);
-		const found = searchMatch(entries, "needle");
+boardStory.it(
+	"keeps the best block per anchor before limiting and counting results",
+	[
+		serverReading(),
+		projectFiles({
+			"note.md": `# Notes\n\n## Needle\n\n${Array.from({ length: 50 }, (_, i) => `Needle detail ${i}.`).join("\n\n")}\n\n## Other\n\nNeedle elsewhere.`,
+		}),
+	],
+	function* ({ search }) {
+		const found = yield* search("needle");
 		expect(found.total).toBe(2);
 		expect(found.results.map((entry) => entry.kind)).toEqual(["heading", "passage"]);
 		expect(found.results.map((entry) => entry.href)).toEqual(["/note.md#heading-needle", "/note.md#heading-other"]);
 		expect(found.results[0]?.snippet).toBe("Needle");
-	});
-});
+	},
+);

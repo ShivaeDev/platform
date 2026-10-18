@@ -5,15 +5,15 @@ import { componentScreen } from "#test/screenTraits.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
-for (const [stage, lane] of [
-	["prepared", "Queued"],
-	["needs-human", "Waiting on a person"],
-	["adopting", "Executing"],
-	["executing", "Executing"],
-	["reviewing", "Reviewing"],
-	["repairing", "Reviewing"],
-	["validating", "Reviewing"],
-	["delivering", "Delivering"],
+for (const [stage, lane, label] of [
+	["prepared", "Queued", "Prepared"],
+	["needs-human", "Waiting on a person", "Needs you"],
+	["adopting", "Executing", "Adopting"],
+	["executing", "Executing", "Executing"],
+	["reviewing", "Reviewing", "Reviewing"],
+	["repairing", "Reviewing", "Repairing"],
+	["validating", "Reviewing", "Validating"],
+	["delivering", "Delivering", "Delivering"],
 ] as const) {
 	const data = nowWork();
 	const statuses = ["done", "completed", "superseded", "deferred", "cancelled", "canceled"];
@@ -35,7 +35,7 @@ for (const [stage, lane] of [
 				const card = findElement(`[data-item="${row.id}"]`, column);
 				expect(readText("h3", card)).toBe(row.title);
 				expect(findElements("[data-status-token]", card)).toHaveLength(1);
-				expect(readText("[data-status-token]", card)).toBe(stage === "needs-human" ? "needs-you" : stage);
+				expect(readText("[data-status-token]", card)).toBe(label);
 			}
 			expect(findElement(".work-total")).toBeNull();
 		},

@@ -24,6 +24,7 @@ export class SessionFailure extends Schema.TaggedError<SessionFailure>()("Sessio
 	message: Schema.String,
 	reason: Schema.Literals(["unavailable", "rejected", "ambiguous", "protocol", "persistence"]),
 	terminalReceipts: Schema.optional(Schema.Array(SessionReceipt)),
+	threadIdle: Schema.optional(Schema.Boolean),
 }) {}
 
 const Setting = Schema.String.check(Schema.isNonEmpty());

@@ -5,7 +5,7 @@ import { expect } from "vitest";
 import { folder } from "#test/board.ts";
 import { boardStory } from "#test/boardStory.ts";
 import { outsideHandoffDirectory } from "#test/outsideHandoffDirectory.ts";
-import { renderRemaining } from "#test/remainingRendering.tsx";
+import { renderRemaining } from "#test/renderRemaining.tsx";
 import { aHandoffTask } from "#test/storyTraits.ts";
 
 const SOURCE =

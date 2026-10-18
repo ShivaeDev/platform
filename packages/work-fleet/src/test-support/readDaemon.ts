@@ -12,13 +12,14 @@ import { syntheticGithub } from "#test/githubApi.ts";
 import { fixedMainSource } from "#test/mainSource.ts";
 
 export interface ReadDaemonOptions {
+	readonly beforeHandlers?: Effect.Effect<void>;
 	readonly handlerClock?: Clock.Clock;
 	readonly onSnapshot?: () => void;
 	readonly parts?: HostParts;
 	readonly port?: number;
 }
 
-export function readDaemonLayer(host: FleetHost, { handlerClock, onSnapshot, parts, port = 0 }: ReadDaemonOptions = {}) {
+export function readDaemonLayer(host: FleetHost, { beforeHandlers, handlerClock, onSnapshot, parts, port = 0 }: ReadDaemonOptions = {}) {
 	const options = daemonHostOptions(
 		host,
 		parts ?? {
@@ -30,7 +31,10 @@ export function readDaemonLayer(host: FleetHost, { handlerClock, onSnapshot, par
 	);
 	const observed = onSnapshot === undefined ? options.handlers : observeSnapshots(options.handlers, onSnapshot);
 	const handlers = handlerClock === undefined ? observed : observed.pipe(Layer.provide(Layer.succeed(Clock.Clock)(handlerClock)));
-	return daemonHttpLayer({ ...options, handlers });
+	return daemonHttpLayer({
+		...options,
+		handlers: beforeHandlers === undefined ? handlers : Layer.effectDiscard(beforeHandlers).pipe(Layer.provideMerge(handlers)),
+	});
 }
 
 export const withReadDaemon = Effect.fn("DaemonTest.withReadDaemon")(function* <A, E, R>(
