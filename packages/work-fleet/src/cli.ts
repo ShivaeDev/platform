@@ -26,11 +26,25 @@ const serveCommand = Command.make(
 
 const dispatchCommand = Command.make(
 	"dispatch",
-	{ board, config, port, workId: Argument.String("id") },
+	{
+		board,
+		config,
+		ignoreAreas: Flag.Boolean("ignore-areas").pipe(Flag.withDefault(false), Flag.withDescription("With --now, also skip area claims")),
+		now: Flag.Boolean("now").pipe(
+			Flag.withDefault(false),
+			Flag.withDescription("Launch over concurrency, open-PR back pressure and backlog limits; areas and dependencies still apply"),
+		),
+		port,
+		workId: Argument.String("id"),
+	},
 	Effect.fn("WorkFleetCli.dispatch")(function* (input) {
 		const { daemonRequest } = yield* Effect.promise(() => import("#host/daemonClient.ts"));
-		const value = yield* daemonRequest(input.port, (client) => client("daemon.dispatch", { workId: input.workId }), `dispatch ${input.workId}`);
-		yield* Console.log(`${value.workId}: dispatch recorded; preparing and launching in the background`);
+		const value = yield* daemonRequest(
+			input.port,
+			(client) => client("daemon.dispatch", { ignoreAreas: input.ignoreAreas, now: input.now, workId: input.workId }),
+			`dispatch ${input.workId}`,
+		);
+		yield* Console.log(`${value.workId}: dispatch recorded${value.now ? " over the limits" : ""}; preparing and launching in the background`);
 	}),
 ).pipe(Command.withDescription("Prepare the current approved revision of one Board item and launch it"));
 

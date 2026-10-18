@@ -11,12 +11,11 @@ interface MainRun {
 	id: number;
 }
 
-export function mainShardPlan(repository: string, main: boolean, github: (args: string[]) => string) {
-	const fallback = { artifactId: "", count: main ? 1 : 8, runId: "" };
+const MINIMUM_TEST_SHARDS = 4;
+
+export function mainShardPlan(repository: string, github: (args: string[]) => string) {
+	const fallback = { artifactId: "", count: 8, runId: "" };
 	const selected = { consumers: { ...fallback }, tests: { ...fallback } };
-	if (main) {
-		return selected;
-	}
 	const temporary = mkdtempSync(join(tmpdir(), "platform-shard-plan-"));
 	try {
 		const { "workflow_runs": runs }: { "workflow_runs": MainRun[] } = JSON.parse(
@@ -32,7 +31,10 @@ export function mainShardPlan(repository: string, main: boolean, github: (args: 
 	} finally {
 		rmSync(temporary, { force: true, recursive: true });
 	}
-	return selected;
+	return {
+		consumers: selected.consumers,
+		tests: { ...selected.tests, count: Math.max(MINIMUM_TEST_SHARDS, selected.tests.count) },
+	};
 }
 
 function findSnapshot(

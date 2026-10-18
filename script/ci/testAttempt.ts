@@ -18,7 +18,11 @@ const vitest = await VitestNode.createVitest(
 		config: options.config ?? "script/test/vitest.config.ts",
 		configLoader: "native",
 		outputFile: { json: rerun ? ".ci/tests.rerun.json" : ".ci/tests.json", junit: rerun ? ".ci/tests.rerun.junit.xml" : ".ci/tests.junit.xml" },
-		reporters: ["default", new TimedJsonReporter({ outputFile: rerun ? ".ci/tests.rerun.json" : ".ci/tests.json" }), "junit"],
+		reporters: [
+			"default",
+			new TimedJsonReporter({ outputFile: rerun ? ".ci/tests.rerun.json" : ".ci/tests.json" }),
+			["junit", { addFileAttribute: true }],
+		],
 		retry: 0,
 		watch: false,
 	},

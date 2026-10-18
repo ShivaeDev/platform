@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "independent-host-traces.md",
-			"text": "### Fixed\n\n- Run engine creation without the story's parent span, so in-process HTTP handlers capture an independent context: requests without trace headers start root traces, and `traceparent` continues the supplied trace. Traits, steps and the story body retain their story span.\n"
+			"name": "otlp-stalled-responses.md",
+			"text": "### Added\n\n- Let the OTLP receiver's status callback return `undefined` to withhold response headers, or set `answer: null` to send headers without completing the body.\n"
 		}
 	],
-	"version": "0.4.1"
+	"version": "0.6.0"
 }

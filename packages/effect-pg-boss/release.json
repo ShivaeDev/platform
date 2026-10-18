@@ -1,10 +1,18 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "batch-deadlines.md",
-			"text": "### Added\n\n- `JobContext.remainingBudget` is an `Effect.Effect<Duration.Duration>` that reads the time left until the fetched job's expiry deadline, clamped to zero.\n\n### Fixed\n\n- Bound queue and scheduled handlers by each job's pg-boss `startedOn` plus `expireInSeconds`, including time spent waiting in a batch. Skip jobs whose window has passed and interrupt running Effects at their deadline, leaving interrupted and unstarted jobs for pg-boss expiry and retry. Worker registration requests start-time metadata even when `includeMetadata: false` is supplied.\n"
+			"name": "create-queue-deadlock.md",
+			"text": "### Fixed\n\n- Registration creates a queue again, up to six times with a short backoff, when PostgreSQL rolls the creation back as a deadlock victim (SQLSTATE `40P01`). A partitioned queue created while other queues in the schema have traffic no longer fails Layer acquisition.\n"
+		},
+		{
+			"name": "error-message.md",
+			"text": "### Changed\n\n- `PgBossError` has a message that names the operation, the queue and the original error's class and code, such as a PostgreSQL SQLSTATE, without the redacted original message. A registration failure names the queue it was preparing.\n"
+		},
+		{
+			"name": "idle-client-termination.md",
+			"text": "### Fixed\n\n- Observe pg-boss connection errors throughout startup and shutdown, and log administrator-terminated connections at debug while preserving query failures and application error callbacks.\n- Keep observing idle errors from closing sockets after shutdown, when shutdown fails, and when `stop({ close: false })` leaves the pool open.\n"
 		}
 	],
-	"version": "0.8.0"
+	"version": "0.8.1"
 }

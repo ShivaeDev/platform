@@ -36,10 +36,12 @@ export interface EngineOptions {
 	readonly mainQuery?: (preparation: Preparation) => Effect.Effect<MainObservation, FleetError>;
 	readonly noChange?: boolean;
 	readonly now?: () => number;
+	readonly openPullRequests?: FleetConfiguration["openPullRequests"];
 	readonly operationCollision?: boolean;
 	readonly publishFailure?: boolean;
 	readonly publishGate?: Effect.Effect<void>;
 	readonly quota?: number;
+	readonly readRetryMs?: number;
 	readonly refreshQuota?: FleetConfiguration["refreshQuota"];
 	readonly rejectTurn?: boolean;
 	readonly repairs?: boolean;

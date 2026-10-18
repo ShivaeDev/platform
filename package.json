@@ -19,10 +19,10 @@
 		"lint:quality": "node --conditions=source packages/quality/src/cli.ts lint",
 		"quality:commit": "pnpm changelog:check",
 		"ready": "pnpm lint && pnpm test:orchestration && pnpm build && pnpm typecheck && pnpm test && pnpm test:package --prepare .ci/packages && pnpm test:package --archives .ci/packages && pnpm --filter @shivaedev/starter check:published --archives .ci/packages",
-		"report:bundles": "node --conditions=source script/ci/bundles.ts",
 		"setup": "pnpm install --frozen-lockfile && pnpm hooks && pnpm db:setup",
 		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",
-		"test:orchestration": "node --conditions=source --test script/ci/*.test.ts script/package-check/archives.test.ts script/package-check/server.test.ts script/changelog/*.test.ts script/starter-published/*.test.ts && pnpm test:quality",
+		"test:changelog": "node --conditions=source node_modules/vitest/vitest.mjs run script/changelog/*.spec.ts --configLoader native",
+		"test:orchestration": "node --conditions=source --test script/ci/*.test.ts script/ci/*.spec.ts script/package-check/archives.test.ts script/package-check/server.test.ts script/changelog/*.test.ts script/starter-published/*.test.ts && pnpm test:quality && pnpm test:changelog",
 		"test:package": "node --conditions=source packages/heavy-lock/src/cli.ts -- node script/package-check.ts",
 		"test:quality": "node --conditions=source node_modules/vitest/vitest.mjs run script/quality --configLoader native",
 		"typecheck": "node --conditions=source packages/heavy-lock/src/cli.ts -- sh -c 'pnpm typecheck:root && pnpm --recursive --workspace-concurrency=${CI_WORKSPACE_CONCURRENCY:-1} --if-present typecheck'",
@@ -30,10 +30,11 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
-		"@codecov/bundle-analyzer": "catalog:",
 		"@effect/platform-node": "catalog:",
+		"@shivaedev/changesets": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
 		"@vitest/coverage-v8": "catalog:",
@@ -41,7 +42,7 @@
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},
-	"packageManager": "pnpm@12.10.1+sha512.ba40a37eb1a370d60fea8c4cf1d364c13bcccef518e98ad2bcee954f539d38da37458e58261a3fa55e06523450ea0ffff9f497b135be41f2c15c1642bacace6c",
+	"packageManager": "pnpm@12.12.0+sha512.2ee06ac86db554cf384421461220f0e336a487bfd41b2acd04e17a86b1487832fe45e8d1743f7fc52acc77de12d2356b536fedf8229fc483239e40b13d474449",
 	"engines": {
 		"node": ">=24"
 	}

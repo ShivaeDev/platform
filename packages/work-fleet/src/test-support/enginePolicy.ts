@@ -9,11 +9,13 @@ export function enginePolicy(options: EngineOptions): FleetConfiguration {
 		executionConcurrency: options.concurrency ?? 2,
 		...(options.launch === undefined ? {} : { launch: options.launch }),
 		now: options.now ?? (() => 100),
+		...(options.openPullRequests === undefined ? {} : { openPullRequests: options.openPullRequests }),
 		operationId: () => {
 			operationCount += 1;
 			return options.operationCollision ? "operation-fixed" : `operation-${operationCount}`;
 		},
 		quota: { ...(options.unknownQuota ? {} : { available: options.quota ?? 100 }), expiresAt: Number.MAX_SAFE_INTEGER, observedAt: 0 },
+		...(options.readRetryMs === undefined ? {} : { readRetryMs: options.readRetryMs }),
 		...(options.refreshQuota === undefined ? {} : { refreshQuota: options.refreshQuota }),
 		...(options.reviewerGuidance === undefined ? {} : { reviewerGuidance: options.reviewerGuidance }),
 		...(options.workerGuidance === undefined ? {} : { workerGuidance: options.workerGuidance }),

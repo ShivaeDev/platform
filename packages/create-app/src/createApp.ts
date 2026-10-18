@@ -25,10 +25,7 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 		const source = Buffer.from(entry.content, "base64");
 		const content = yield* Effect.try({
 			catch: (cause) => new CreateAppError({ message: String(cause) }),
-			try: () =>
-				["package.json", ".env.example", "AGENTS.md", "README.md"].includes(entry.path)
-					? Buffer.from(appFile(entry.path, source.toString(), name))
-					: source,
+			try: () => appFile(entry.path, source, name),
 		});
 		yield* fs.makeDirectory(dirname(path), { recursive: true });
 		yield* fs.writeFile(path, content, { mode: 0o644 });

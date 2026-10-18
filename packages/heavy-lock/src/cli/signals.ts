@@ -6,7 +6,9 @@ const FORWARDED = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
 
 export type ForwardedSignal = (typeof FORWARDED)[number];
 
-export const signalExitCode = (signal: string): number => 128 + (Object.entries(constants.signals).find(([name]) => name === signal)?.[1] ?? 0);
+export function signalExitCode(signal: string): number {
+	return 128 + (Object.entries(constants.signals).find(([name]) => name === signal)?.[1] ?? 0);
+}
 
 // Listening replaces Node's default of dying on these signals, so the lock is released and the child's exit decides ours.
 export const receiveSignals = Effect.gen(function* () {

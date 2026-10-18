@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.3 - 2026-10-18
+
+### Fixed
+
+- Close the isolated test's application scope before closing its SQL services and dropping its database.
+
+## 0.5.2 - 2026-10-17
+
+### Changed
+
+- Block `@shivaedev/effect-test-sql/internal/*` imports; use the public test isolation modules instead.
+
 ## 0.5.1 - 2026-10-17
 
 ### Fixed

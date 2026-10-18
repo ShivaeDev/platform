@@ -1,4 +1,4 @@
-import { Deferred, Effect, Ref, Stream } from "effect";
+import { Deferred, Effect, PubSub, Ref, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "#keys.ts";
 import type { LiveHint } from "#live.ts";
@@ -28,6 +28,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 	const streamUnavailable = Effect.runSync(Ref.make(false));
 	const disconnect = Effect.runSync(Ref.make(Effect.runSync(Deferred.make<void>())));
 	const gate = Effect.runSync(Ref.make<Effect.Effect<void>>(Effect.void));
+	const events = Effect.runSync(PubSub.bounded<LiveHint>(256));
 	const connections = Effect.runSync(Ref.make(0));
 	const active = Effect.runSync(Ref.make(0));
 	const handlers = LiveNotes.toLayer({
@@ -51,7 +52,10 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 					const ended = yield* Ref.get(disconnect);
 					const firstHint = yield* Ref.get(initialHint);
 					const keys = [...(yield* Ref.get(server.stored)).keys()].map((id) => notes.item(id));
-					return hintStream(hints, keys, active, firstHint).pipe(Stream.interruptWhen(Deferred.await(ended)));
+					const injected = yield* PubSub.subscribe(events);
+					return Stream.merge(hintStream(hints, keys, active, firstHint), Stream.fromEffectRepeat(PubSub.take(injected))).pipe(
+						Stream.interruptWhen(Deferred.await(ended)),
+					);
 				}),
 			),
 		"notes.watch": ({ id, helper }) => (helper === "first" ? hints : secondHints).stream([notes.item(id)]),
@@ -61,6 +65,10 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 		...host,
 		...server,
 		active,
+		close: async () => {
+			await Effect.runPromise(PubSub.shutdown(events));
+			await host.close();
+		},
 		connections,
 		disconnect: () =>
 			Effect.runPromise(
@@ -79,7 +87,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 			);
 			await Effect.runPromise(reactivity.invalidate(invalidationKeys([notes.item(id)])));
 		},
-		emit: (hint: LiveHint) => Effect.runPromise(hint._tag === "Resync" ? hints.resync : reactivity.invalidate(invalidationKeys(hint.keys))),
+		emit: (hint: LiveHint) => Effect.runPromise(PubSub.publish(events, hint)),
 		gate,
 		hints,
 		initialHint,

@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "migration-target-names.md",
-			"text": "### Fixed\n\n- The `migrateTo(name: string | number)` helper returned by `migrationSteps` accepts zero-padded migration names as written, unpadded names and bare numeric ids. Unknown or ambiguous targets fail with a typed `MigrationError` naming the requested target.\n"
+			"name": "app-scope-before-database.md",
+			"text": "### Fixed\n\n- Close the isolated test's application scope before closing its SQL services and dropping its database.\n"
 		}
 	],
-	"version": "0.5.1"
+	"version": "0.5.3"
 }

@@ -1,233 +1,65 @@
-import { Effect, Exit, Fiber, Semaphore, Stream } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import type { DatabaseExecutor } from "#internal/executor.ts";
-import { makeModelRelation } from "#internal/relation-runtime.ts";
-import { ControlledCollection, EventStreamCollection } from "#test/controlled-collection.ts";
-import { unusedClient } from "#test/unused-client.ts";
+import { holdsParallelQueries, postgresStory, hasUsers as postgresUsers } from "#test/postgresStory.ts";
+import { controlledRows, controlledUsers } from "#test/queryControls.ts";
+import { controlsQueries, hasUsers, sqliteStory } from "#test/sqlite/story.ts";
 
-interface User {
-	readonly id: number;
-}
+postgresStory.it(
+	"does not serialize queries outside a transaction",
+	[postgresUsers(controlledUsers), holdsParallelQueries()],
+	function* ({ parallelQueries }) {
+		const result = yield* parallelQueries();
+		expect(result.maximumActive).toBe(2);
+		expect(result.results).toEqual([controlledRows, controlledRows]);
+	},
+);
 
-const rows: readonly User[] = [{ id: 1 }, { id: 2 }, { id: 3 }];
+sqliteStory.it(
+	"serializes queries that share a transaction executor",
+	[hasUsers(controlledUsers), controlsQueries("serial")],
+	function* ({ queryProbes }) {
+		const result = yield* queryProbes.serialized();
+		expect(result.startedBeforeRelease).toBe(1);
+		expect(result.results).toEqual([controlledRows, controlledRows]);
+		expect(result.maximumActive).toBe(1);
+	},
+);
 
-interface Models {
-	readonly User: ControlledCollection<User>;
-}
+sqliteStory.it(
+	"releases a transaction query permit after failure",
+	[hasUsers(controlledUsers), controlsQueries("failure")],
+	function* ({ queryProbes }) {
+		const result = yield* queryProbes.retry();
+		expect(result.failed).toBe(true);
+		expect(result.rows).toEqual(controlledRows);
+	},
+);
 
-function makeExecutor(execute: () => Promise<User[]>, querySemaphore?: Semaphore.Semaphore): DatabaseExecutor<Models> {
-	return {
-		client: unusedClient(),
-		identity: {},
-		liveness: { closedCode: "RUNTIME.TRANSACTION_CLOSED", open: true },
-		mode: querySemaphore === undefined ? "root" : "transaction",
-		models: { User: new ControlledCollection(execute) },
-		querySemaphore,
-		transactionIdentity: querySemaphore === undefined ? undefined : {},
-		transactionSemaphore: undefined,
-	};
-}
+sqliteStory.it(
+	"holds a transaction query permit until interrupted work settles",
+	[hasUsers(controlledUsers), controlsQueries("serial")],
+	function* ({ queryProbes }) {
+		const result = yield* queryProbes.interrupt();
+		expect(result.attemptsBeforeRelease).toBe(1);
+		expect(result.rows).toEqual(controlledRows);
+	},
+);
 
-function relation(executor: DatabaseExecutor<Models>) {
-	return makeModelRelation<ControlledCollection<User>, Models>(executor, "User");
-}
+sqliteStory.it(
+	"keeps a root stream incremental when root queries share an access permit",
+	[hasUsers(controlledUsers), controlsQueries("stream")],
+	function* ({ queryProbes }) {
+		const result = yield* queryProbes.incremental();
+		expect(result.rows).toEqual(controlledRows);
+		expect(result.events).toEqual(["source:start", "downstream:1", "downstream:2", "downstream:3", "source:end"]);
+	},
+);
 
-it.effect("does not serialize queries outside a transaction", () => {
-	let active = 0;
-	let maximumActive = 0;
-	let started = 0;
-	let releaseQueries!: () => void;
-	let bothStarted!: () => void;
-	const released = new Promise<void>((resolve) => {
-		releaseQueries = resolve;
-	});
-	const startedTwice = new Promise<void>((resolve) => {
-		bothStarted = resolve;
-	});
-	async function execute() {
-		active += 1;
-		started += 1;
-		maximumActive = Math.max(maximumActive, active);
-		if (started === 2) {
-			bothStarted();
-		}
-		try {
-			await released;
-			return [...rows];
-		} finally {
-			active -= 1;
-		}
-	}
-
-	const executor = makeExecutor(execute);
-	return Effect.gen(function* () {
-		const query = relation(executor);
-		const fiber = yield* Effect.forkChild(Effect.all([query, query], { concurrency: "unbounded" }), { startImmediately: true });
-
-		yield* Effect.promise(() => startedTwice);
-		expect(maximumActive).toBe(2);
-		releaseQueries();
-		expect(yield* Fiber.join(fiber)).toEqual([rows, rows]);
-	});
-});
-
-it.effect("serializes queries that share a transaction executor", () => {
-	let active = 0;
-	let maximumActive = 0;
-	let started = 0;
-	let releaseFirst!: () => void;
-	let firstStarted!: () => void;
-	const firstReleased = new Promise<void>((resolve) => {
-		releaseFirst = resolve;
-	});
-	const startedOnce = new Promise<void>((resolve) => {
-		firstStarted = resolve;
-	});
-	async function execute() {
-		active += 1;
-		started += 1;
-		maximumActive = Math.max(maximumActive, active);
-		if (started === 1) {
-			firstStarted();
-			await firstReleased;
-		}
-		active -= 1;
-		return [...rows];
-	}
-
-	const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
-	return Effect.gen(function* () {
-		const query = relation(executor);
-		const fiber = yield* Effect.forkChild(Effect.all([query, query], { concurrency: "unbounded" }), { startImmediately: true });
-
-		yield* Effect.promise(() => startedOnce);
-		yield* Effect.yieldNow;
-		expect(started).toBe(1);
-		releaseFirst();
-		expect(yield* Fiber.join(fiber)).toEqual([rows, rows]);
-		expect(maximumActive).toBe(1);
-	});
-});
-
-it.effect("releases a transaction query permit after failure", () => {
-	let attempt = 0;
-	async function execute() {
-		attempt += 1;
-		if (attempt === 1) {
-			throw new Error("expected query failure");
-		}
-		return [...rows];
-	}
-
-	const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
-	return Effect.gen(function* () {
-		const query = relation(executor);
-		expect(Exit.isFailure(yield* Effect.exit(query))).toBe(true);
-		expect(yield* query).toEqual(rows);
-	});
-});
-
-it.effect("holds a transaction query permit until interrupted work settles", () => {
-	let attempt = 0;
-	let firstStarted!: () => void;
-	let releaseFirst!: () => void;
-	const started = new Promise<void>((resolve) => {
-		firstStarted = resolve;
-	});
-	const released = new Promise<void>((resolve) => {
-		releaseFirst = resolve;
-	});
-	async function execute() {
-		attempt += 1;
-		if (attempt === 1) {
-			firstStarted();
-			await released;
-		}
-		return [...rows];
-	}
-
-	const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
-	return Effect.gen(function* () {
-		const query = relation(executor);
-		const first = yield* Effect.forkChild(query, { startImmediately: true });
-		yield* Effect.promise(() => started);
-		const interruption = yield* Effect.forkChild(Fiber.interrupt(first), {
-			startImmediately: true,
-		});
-		const second = yield* Effect.forkChild(query, { startImmediately: true });
-
-		yield* Effect.yieldNow;
-		expect(attempt).toBe(1);
-		releaseFirst();
-		yield* Fiber.join(interruption);
-		expect(yield* Fiber.join(second)).toEqual(rows);
-	});
-});
-
-it.effect("keeps a root stream incremental when root queries share an access permit", function* () {
-	const events: string[] = [];
-	interface StreamModels {
-		readonly Source: EventStreamCollection<User>;
-	}
-	const executor: DatabaseExecutor<StreamModels> = {
-		client: unusedClient(),
-		identity: {},
-		liveness: {
-			closedCode: "RUNTIME.DATABASE_CLOSED",
-			open: true,
-		},
-		mode: "root",
-		models: { Source: new EventStreamCollection(rows, events) },
-		querySemaphore: Semaphore.makeUnsafe(1),
-		transactionIdentity: undefined,
-		transactionSemaphore: undefined,
-	};
-	const source = makeModelRelation<EventStreamCollection<User>, StreamModels>(executor, "Source");
-
-	const result = yield* Stream.runCollect(
-		source.stream.pipe(
-			Stream.map((row) => {
-				events.push(`downstream:${row.id}`);
-				return row;
-			}),
-		),
-	);
-
-	expect(result).toEqual(rows);
-	expect(events).toEqual(["source:start", "downstream:1", "downstream:2", "downstream:3", "source:end"]);
-});
-
-it.effect("buffers a transaction stream before running downstream effects", function* () {
-	const events: string[] = [];
-	interface StreamModels {
-		readonly Lookup: ControlledCollection<User>;
-		readonly Source: EventStreamCollection<User>;
-	}
-	const executor: DatabaseExecutor<StreamModels> = {
-		client: unusedClient(),
-		identity: {},
-		liveness: {
-			closedCode: "RUNTIME.TRANSACTION_CLOSED",
-			open: true,
-		},
-		mode: "transaction",
-		models: {
-			Lookup: new ControlledCollection(async () => {
-				events.push("lookup");
-				return [...rows];
-			}),
-			Source: new EventStreamCollection(rows, events),
-		},
-		querySemaphore: Semaphore.makeUnsafe(1),
-		transactionIdentity: {},
-		transactionSemaphore: undefined,
-	};
-	const source = makeModelRelation<EventStreamCollection<User>, StreamModels>(executor, "Source");
-	const lookup = makeModelRelation<ControlledCollection<User>, StreamModels>(executor, "Lookup");
-
-	const result = yield* Stream.runCollect(source.stream.pipe(Stream.mapEffect(() => lookup.exists())));
-
-	expect(result).toEqual([true, true, true]);
-	expect(events).toEqual(["source:start", "source:end", "lookup", "lookup", "lookup"]);
-});
+sqliteStory.it(
+	"buffers a transaction stream before running downstream effects",
+	[hasUsers(controlledUsers), controlsQueries("stream")],
+	function* ({ queryProbes }) {
+		const result = yield* queryProbes.buffered();
+		expect(result.rows).toEqual([true, true, true]);
+		expect(result.events).toEqual(["source:start", "source:end", "lookup", "lookup", "lookup"]);
+	},
+);

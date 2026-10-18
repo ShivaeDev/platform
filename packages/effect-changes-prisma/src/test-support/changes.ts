@@ -4,6 +4,7 @@ import { makePrismaChanges } from "#changes.ts";
 import type { ChangeMap } from "#model.ts";
 import type { PrismaClient } from "#test/generated/client.ts";
 import type { UnnamedWrite } from "#write.ts";
+import { nonnegativeOrderChanges } from "./nonnegativeOrderChanges.ts";
 
 export interface Change {
 	readonly domain: string;
@@ -24,14 +25,14 @@ export function label(change: Change) {
 	return `${change.subject}:${change.domain}`;
 }
 
-export function makeChanges(client: PrismaClient, publish?: (changes: readonly Change[]) => Effect.Effect<void>) {
+export function makeChanges(client: PrismaClient, publish?: (changes: readonly Change[]) => Effect.Effect<void>, mappingError?: Error) {
 	const published: (readonly string[])[] = [];
 	const observations: Observation<Change>[] = [];
 	const unnamed: UnnamedWrite[] = [];
 	const changes = makePrismaChanges({
 		client,
 		key: label,
-		models,
+		models: mappingError === undefined ? models : { Order: nonnegativeOrderChanges(mappingError) },
 		name: "TestChanges",
 		publish: (batch: readonly Change[]) =>
 			Effect.andThen(

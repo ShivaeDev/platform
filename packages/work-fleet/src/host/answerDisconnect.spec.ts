@@ -33,7 +33,7 @@ const abandonedAnswer = Effect.fn("AnswerDisconnectTest.abandonedAnswer")(functi
 for (const release of [false, true]) {
 	test(`a ${release ? "release" : "text"} answer the client stops waiting for still applies once admission frees`, () =>
 		withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-			withReadDaemon(fixture.host, (port) => abandonedAnswer(fixture, port, release), fixture.parts),
+			withReadDaemon(fixture.host, (port) => abandonedAnswer(fixture, port, release), { parts: fixture.parts }),
 		));
 }
 
@@ -51,7 +51,7 @@ test("daemon answers share one watched Board response index", () =>
 	withHost({ "one.md": task("one", "approved"), "two.md": task("two", "approved") }, {}, (fixture) =>
 		Effect.gen(function* () {
 			const spans = spanCounts();
-			yield* spans.trace(withReadDaemon(fixture.host, (port) => answerBoth(fixture, port), fixture.parts));
+			yield* spans.trace(withReadDaemon(fixture.host, (port) => answerBoth(fixture, port), { parts: fixture.parts }));
 			expect(spans.count("WorkBoard.searchSnapshot")).toBe(1);
 		}),
 	));

@@ -12,8 +12,8 @@ function psStartTime(pid: number) {
 	});
 }
 
-export const processStartTime = (pid: number) =>
-	Effect.scoped(
+export function processStartTime(pid: number) {
+	return Effect.scoped(
 		Effect.gen(function* () {
 			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 			const ps = yield* spawner.spawn(psStartTime(pid));
@@ -22,7 +22,9 @@ export const processStartTime = (pid: number) =>
 			return exitCode === 0 && started !== "" ? Option.some(started) : Option.none<string>();
 		}),
 	);
+}
 
 // A holder killed outright leaves its lock behind, and the OS may hand its pid to a new process.
-export const isHolderAlive = (holder: Holder) =>
-	Effect.map(processStartTime(holder.pid), (started) => Option.contains(started, holder.processStartedAt));
+export function isHolderAlive(holder: Holder) {
+	return Effect.map(processStartTime(holder.pid), (started) => Option.contains(started, holder.processStartedAt));
+}

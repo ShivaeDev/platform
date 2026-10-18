@@ -54,12 +54,10 @@ const launchStory = Effect.fn("WatchFollowTest.launchStory")(function* (fixture:
 test("watch --follow stays alive for new launches and repeated human decisions over HTTP", () =>
 	withHost({ "b.md": task("b", "approved") }, {}, (fixture) => {
 		const snapshot = Promise.withResolvers<void>();
-		return withReadDaemon(
-			fixture.host,
-			(port) => launchStory(fixture, port, snapshot.promise),
-			fixture.parts,
-			() => snapshot.resolve(),
-		);
+		return withReadDaemon(fixture.host, (port) => launchStory(fixture, port, snapshot.promise), {
+			onSnapshot: () => snapshot.resolve(),
+			parts: fixture.parts,
+		});
 	}));
 
 test("watch --follow keeps explicit IDs and reports new decisions with identical text and repeated releases", function* () {

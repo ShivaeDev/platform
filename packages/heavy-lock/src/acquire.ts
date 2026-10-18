@@ -30,13 +30,13 @@ const ownStartTime = Effect.gen(function* () {
 	return started.value;
 });
 
-const takeLock = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOptions) {
+const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOptions) {
 	const settings = yield* readSettings(options.lockPath);
 	if (settings.ci) {
 		return { env: {} } satisfies HeldLockShape;
 	}
 	const current = yield* readHolder(settings.lock);
-	const inherited = Option.filter(settings.inherited, (id) => Option.exists(current, (holder) => holder.id === id));
+	const inherited = Option.filter(settings.inherited, (id) => Option.exists(current, (currentHolder) => currentHolder.id === id));
 	if (Option.isSome(inherited)) {
 		return heldBy(inherited.value);
 	}
@@ -57,5 +57,6 @@ const takeLock = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpt
 
 export type HeavyLockServices = FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner;
 
-export const acquireHeavyLock = (options: HeavyLockOptions = {}): Effect.Effect<HeldLockShape, HeavyLockError, Scope.Scope | HeavyLockServices> =>
-	Effect.flatMap(Effect.serviceOption(HeldLock), (held) => (Option.isSome(held) ? Effect.succeed(held.value) : takeLock(options)));
+export function acquireHeavyLock(options: HeavyLockOptions = {}): Effect.Effect<HeldLockShape, HeavyLockError, Scope.Scope | HeavyLockServices> {
+	return Effect.flatMap(Effect.serviceOption(HeldLock), (held) => (Option.isSome(held) ? Effect.succeed(held.value) : acquire(options)));
+}

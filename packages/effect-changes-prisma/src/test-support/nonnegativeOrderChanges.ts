@@ -6,6 +6,6 @@ export function nonnegativeOrderChanges(error: Error) {
 		if (row.total < 0) {
 			throw error;
 		}
-		return [row.ownerId];
+		return [{ domain: "orders", subject: row.ownerId }];
 	};
 }

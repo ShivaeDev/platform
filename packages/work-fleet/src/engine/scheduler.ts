@@ -10,9 +10,7 @@ import type { Versioned } from "#storage/model.ts";
 
 const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: readonly Versioned<FleetRecord>[]) {
 	const fleet = yield* Fleet;
-	const prepared = records
-		.filter(({ value }) => value.stage === "prepared")
-		.sort((left, right) => (right.value.launchRetry?.retryAt ?? 0) - (left.value.launchRetry?.retryAt ?? 0));
+	const prepared = yield* fleet.admissionOrder(records);
 	const dispatched: Result.Result<Effect.Success<ReturnType<typeof fleet.dispatch>>, Effect.Error<ReturnType<typeof fleet.dispatch>>>[] = [];
 	for (const { value } of prepared) {
 		const result = yield* fleet.dispatch(value.workId).pipe(Effect.result);
@@ -60,8 +58,8 @@ export const cycle = inBoardReadPass(
 		return result;
 	}),
 );
-export const run = Effect.fn("Fleet.run")(function* <R = never>(
-	interval: Parameters<typeof Effect.sleep>[0],
+export const run = Effect.fn("Fleet.run")(function* <R = never, TPause = never>(
+	pause: Effect.Effect<void, never, TPause>,
 	admit: Effect.Effect<void, never, R> = Effect.void,
 ) {
 	const fleet = yield* Fleet;
@@ -82,6 +80,6 @@ export const run = Effect.fn("Fleet.run")(function* <R = never>(
 				yield* dispatchPrepared;
 				yield* schedulerPassed;
 			}),
-		).pipe(Effect.andThen(Effect.sleep(interval))),
+		).pipe(Effect.andThen(pause)),
 	);
 });

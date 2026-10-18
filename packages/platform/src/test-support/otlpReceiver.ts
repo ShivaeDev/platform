@@ -1,7 +1,11 @@
 import { Effect, Exit, Scope } from "effect";
 import { otlpReceiver as makeReceiver } from "@shivaedev/test-story/otlpReceiver.ts";
 
-export async function otlpReceiver(status: number | ((attempt: number) => number) = 200, answer = "{}", path = "/v1/traces") {
+export async function otlpReceiver(
+	status: number | ((attempt: number) => number | undefined) = 200,
+	answer: string | null = "{}",
+	path = "/v1/traces",
+) {
 	const scope = Effect.runSync(Scope.make());
 	const receiver = await Effect.runPromise(makeReceiver({ answer, path, status }).pipe(Scope.provide(scope)));
 	return {
