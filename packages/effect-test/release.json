@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-16",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "live-clock-escape.md",
-			"text": "### Added\n\n- `withLive(effect)` from `@shivaedev/effect-test/withLive.ts` runs sleeps and readiness polls in live time under either TestClock or the live clock, without advancing the surrounding TestClock.\n"
+			"name": "camel-case-modules.md",
+			"text": "### Breaking\n\n- Modules are named in camelCase: `any-test-layer.ts` becomes `anyTestLayer.ts`.\n"
 		}
 	],
-	"version": "0.5.0"
+	"version": "0.6.0"
 }

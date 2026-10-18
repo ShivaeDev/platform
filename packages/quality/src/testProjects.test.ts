@@ -4,11 +4,12 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { packageRoot, removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
 import { testProjects } from "#testProjects.ts";
 
 afterEach(removeSeededTrees);
+afterEach(() => vi.unstubAllEnvs());
 
 const vitestRoot = dirname(realpathSync(createRequire(import.meta.url).resolve("vitest/package.json")));
 
@@ -89,6 +90,16 @@ function vitest(root: string, ...args: readonly string[]) {
 }
 
 describe("testProjects", { timeout: 60_000 }, () => {
+	it.each([
+		{ ci: undefined, silent: "passed-only" },
+		{ ci: "true", silent: false },
+	])("sets silent to $silent with CI=$ci and leaves reporter selection to Vitest", ({ ci, silent }) => {
+		vi.stubEnv("CI", ci);
+		const produced = testProjects();
+		expect(produced.silent).toBe(silent);
+		expect(produced).not.toHaveProperty("reporters");
+	});
+
 	it("runs unit tests and specs in Node, in any folder, and .dom tests and specs in a DOM, and leaves out slow and type tests", () => {
 		expect(vitest(repository())).toMatchObject({
 			ran: [

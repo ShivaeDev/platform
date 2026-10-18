@@ -11,11 +11,25 @@ export interface CliRun {
 }
 
 export function cliProcess(
-	args: readonly string[],
+	args: readonly string[] | string,
 	options: { readonly stdin?: string; readonly holdStdin?: boolean; readonly onError?: (text: string) => void } = {},
 ): Promise<CliRun> {
 	return new Promise((resolve, reject) => {
-		const child = spawn(process.execPath, ["--conditions=source", "--import", DATABASE_GUARD, CLI, ...args], { stdio: "pipe" });
+		const child =
+			typeof args === "string"
+				? spawn(
+						"bash",
+						[
+							"-c",
+							`fleet_test_node=$1\nfleet_test_guard=$2\nfleet_test_cli=$3\nwork-fleet() { exec "$fleet_test_node" --conditions=source --import "$fleet_test_guard" "$fleet_test_cli" "$@"; }\n${args}`,
+							"fleet-answer-hint",
+							process.execPath,
+							DATABASE_GUARD,
+							CLI,
+						],
+						{ stdio: "pipe" },
+					)
+				: spawn(process.execPath, ["--conditions=source", "--import", DATABASE_GUARD, CLI, ...args], { stdio: "pipe" });
 		let stdout = "";
 		child.stdout.on("data", (chunk: Buffer) => {
 			stdout += chunk.toString();
@@ -32,4 +46,12 @@ export function cliProcess(
 			code === 97 ? reject(new Error("Fleet client attempted a direct PostgreSQL connection")) : resolve({ code, stdout: stdout.trim() }),
 		);
 	});
+}
+
+export function waitProcess(
+	boardDir: string,
+	workId: string,
+	{ intervalSeconds = 0.1, timeoutSeconds = 20 }: { readonly intervalSeconds?: number; readonly timeoutSeconds?: number } = {},
+): Promise<CliRun> {
+	return cliProcess(["wait", workId, "--board", boardDir, "--interval", String(intervalSeconds), "--timeout", String(timeoutSeconds)]);
 }

@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-13",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "effect-4-stable.md",
-			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/platform-node` and `@effect/platform-node-shared` 4.0.4 alongside it.\n"
+			"name": "effect-service-0-4.md",
+			"text": "### Fixed\n\n- Publish against `@shivaedev/effect-service` 0.4.0 so consumers share the current service definitions.\n"
 		}
 	],
-	"version": "0.1.0"
+	"version": "0.1.1"
 }

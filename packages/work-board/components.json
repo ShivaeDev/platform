@@ -5,11 +5,15 @@
 		"hooks": "#client/react/hooks",
 		"lib": "#client/react/lib",
 		"ui": "#client/react/components/ui",
-		"utils": "#client/react/lib/cn.ts"
+		"utils": "cn"
 	},
 	"iconLibrary": "lucide",
+	"menuAccent": "subtle",
+	"menuColor": "default",
+	"registries": {},
 	"rsc": false,
-	"style": "new-york",
+	"rtl": false,
+	"style": "base-mira",
 	"tailwind": {
 		"baseColor": "neutral",
 		"config": "",

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { type SourceLink, sourceGroups } from "#browser/document/sourceGroups.ts";
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { StatusChip } from "#client/react/StatusChip.tsx";
 
 export function SourceList({ links }: { readonly links: readonly SourceLink[] }) {
 	return (

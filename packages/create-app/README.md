@@ -22,18 +22,7 @@ Next steps:
 
 Use Node 24 or newer and pnpm. The package contains a snapshot of the starter made when it is packed. Platform dependencies use exact versions from the starter's `published-versions.json`; its self-contained pnpm catalog pins the remaining dependencies.
 
-```sh
-pnpm create @shivaedev/app my-app
-```
-
 The folder argument may include a parent path. Its final folder name becomes the package name and must be a lowercase npm name. The destination must be absent or empty, including hidden files. The command runs `pnpm run setup` in the generated app to install dependencies and Quality's pre-commit hook, and reports setup failure with a nonzero exit status. Setup installs the hook only when the app has its own `.git`; it leaves an enclosing repository's hooks alone.
-
-After installation, follow the printed steps:
-
-```sh
-cd my-app
-pnpm dev
-```
 
 The command writes a git-ignored `.env.local` with a fresh authentication secret and local development and test database URLs. Existing files are never overwritten. Database names replace dots and hyphens in the app name with underscores, prefix a name starting with a digit with `app_`, and limit the stem to 58 characters before adding `_dev` and `_test`.
 

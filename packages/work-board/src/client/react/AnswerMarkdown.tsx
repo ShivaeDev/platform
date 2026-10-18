@@ -1,4 +1,4 @@
-import { cn } from "#client/react/lib/cn.ts";
+import { cn } from "cn";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 
 export function AnswerMarkdown({ className, file, source }: { readonly className?: string; readonly file: string; readonly source: string }) {

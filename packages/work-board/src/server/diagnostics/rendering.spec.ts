@@ -20,23 +20,13 @@ it.live("links Diagnostics from the sidebar and renders all three sources throug
 	expect(response.status).toBe(200);
 	expect(response.body).toContain("/_board/react.js");
 	const body = yield* Effect.promise(() => renderRemaining(board.url, "/_board/system"));
-	for (const text of [
-		"24% used",
-		"63% used",
-		"4321 / 5000",
-		"0 / 5000",
-		"3 / 8",
-		"Provider is at capacity",
-		"Last scheduler pass",
-		"Waiting on maintainer",
-		"Waiting on orchestrator",
-		"Waiting on automation",
-	]) {
+	for (const text of ["24% used", "63% used", "4321 / 5000", "0 / 5000", "3 / 8", "Provider is at capacity", "Last scheduler pass"]) {
 		expect(body).toContain(text);
 	}
-	for (const [owner, count] of Object.entries(health.waiting)) {
-		expect(body).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>${count}</strong>`);
-	}
+	expect(body).toContain("<dt>Needs you</dt>");
+	expect(body).not.toContain("Waiting on maintainer");
+	expect(body).toContain(`<dt>Waiting on the orchestrator</dt><dd><strong>${health.waiting.orchestrator}</strong>`);
+	expect(body).toContain(`<dt>Waiting on Fleet agents</dt><dd><strong>${health.waiting.automation}</strong>`);
 	expect((yield* rawGet(board, "/_board/system", "example.invalid")).status).toBe(403);
 });
 

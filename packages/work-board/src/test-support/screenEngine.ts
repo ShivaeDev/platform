@@ -11,6 +11,7 @@ import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
 import type { mountSession } from "./mountSession.ts";
 import type { BoardTestApi, renderBoard } from "./react.tsx";
 import type { renderRouter } from "./renderRouter.tsx";
+import type { HeldQueries } from "./screenQueries.ts";
 
 export interface ScreenEngine {
 	ageModified?: number;
@@ -35,6 +36,7 @@ export interface ScreenEngine {
 	options?: BoardFixtureOptions | undefined;
 	path: string;
 	pendingNavigation?: Promise<void> | undefined;
+	queries?: HeldQueries;
 	readingStatus?: string[];
 	referenceMarkup?: HTMLElement;
 	routed?: Awaited<ReturnType<typeof chrome>>;

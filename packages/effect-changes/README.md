@@ -94,7 +94,7 @@ const grant = (owner: string, member: string) =>
 
 Provide the application's native SQL layer when running `grant`. Publication happens after the native transaction succeeds and before the wrapper returns. A typed failure, defect, body interruption or failed commit discards the root frame. A nested commit merges into its parent; a nested rollback leaves the parent's own changes intact.
 
-When interruption arrives while commit is in flight, the boundary waits for the native outcome. A successful commit still publishes its changes, and the caller still sees the interruption. This is covered by the channel's deterministic transaction fixture and by the SQL binding's PostgreSQL commit tests.
+When interruption arrives while commit is in flight, the boundary waits for the native outcome. A successful commit still publishes its changes, and the caller still sees the interruption.
 
 Concurrent records from Effects that inherit the same frame join that frame and publish together. Keep all write-related work within the transaction's lifetime.
 
@@ -176,52 +176,7 @@ Import from the module that defines the name; the package has no root entry.
 | `observe.ts` | `Observation`, `Observer` |
 | `publish.ts` | `Publish`, `PublishFailure` |
 
-```ts
-interface ChannelOptions<A, R, E = never> {
-  readonly beforeCommit?: BeforeCommit<A, E, R>;
-  readonly name: string;
-  readonly owner: Effect.Effect<unknown, never, R>;
-  readonly key?: (change: A) => unknown;
-  readonly publish: Publish<A, R>;
-  readonly onPublishFailure?: PublishFailure;
-  readonly unowned?: Effect.Effect<void, never, R>;
-}
-
-interface Channel<A, R, HookError = never> {
-  readonly BeforeCommit: Context.Reference<BeforeCommit<A, HookError, R>>;
-  readonly CommittedSink: Context.Reference<Publish<A, R> | undefined>;
-  readonly record: (changes: Iterable<A>) => Effect.Effect<void, never, R>;
-  readonly within: <X, E, R2, E2, R3>(
-    native: (body: Effect.Effect<X, E | HookError, R2>) => Effect.Effect<X, E2, R3>,
-  ) => (body: Effect.Effect<X, E, R2>) => Effect.Effect<X, E2, R | R3>;
-  readonly open: Effect.Effect<CommitFrame<HookError>, never, R>;
-  readonly batch: <X, E, R2>(body: Effect.Effect<X, E, R2>) => Effect.Effect<X, E, R | R2>;
-  readonly Sink: Context.Reference<Publish<A, R>>;
-  readonly Observer: Context.Reference<Observer<A>>;
-}
-
-interface CommitFrame<E = never> extends Frame {
-  readonly beforeCommit: Effect.Effect<void, E>;
-}
-
-interface Frame {
-  readonly provide: <X, E, R>(body: Effect.Effect<X, E, R>) => Effect.Effect<X, E, R>;
-  readonly settle: (outcome: Outcome) => Effect.Effect<void>;
-}
-
-type Outcome = "committed" | "rolledBack";
-type PublishFailure = "log" | "die";
-type Publish<A, R = never> = (changes: readonly A[]) => Effect.Effect<void, unknown, R>;
-type Observer<A> = (observation: Observation<A>) => Effect.Effect<void>;
-type Observation<A> =
-  | { readonly _tag: "Recorded"; readonly changes: readonly A[] }
-  | { readonly _tag: "Published"; readonly changes: readonly A[] }
-  | { readonly _tag: "Discarded"; readonly changes: readonly A[] };
-```
-
-`makeChannel<A, R = never, THookError = never>(options)` returns `Channel<A, R, THookError>`. `key` is optional; for string changes, omitting it deduplicates repeated strings. A custom key is useful when a change is a structured description of an affected subject.
-
-The modules also export the implementation helpers `Buffer`, `makeBuffer`, `settled`, `add`, `keyed`, `makeFrame` from `frame.ts`, `unobserved` from `observe.ts`, and `publisher` from `publish.ts`. The channel uses these to manage its buffers and delivery policy.
+`key` is optional; for string changes, omitting it deduplicates repeated strings. A custom key is useful when a change is a structured description of an affected subject.
 
 ### Install, setup and limits
 
@@ -235,4 +190,3 @@ pnpm add @shivaedev/effect-changes effect@4.0.4
 - Only explicitly recorded changes reach the channel. Trigger, cascade and raw SQL write discovery belongs to a binding or the application.
 - A native adapter must observe the real commit outcome. Wrapping only the body of a transaction does not establish that outcome.
 - Use a durable event design when every business event must be retained. A deduplicated notification is a request to refresh, not an event journal.
-- Core tests use a fake transaction. SQL and Prisma bindings have PostgreSQL tests for their actual commit behavior, which require a database URL to run.
