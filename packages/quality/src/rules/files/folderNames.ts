@@ -5,15 +5,13 @@ import { packageLayout } from "#naming/packageLayout.ts";
 import { KEBAB, PASCAL } from "#naming/words.ts";
 import { defineRule, type Finding } from "#rule.ts";
 
-const DEFAULT_TOOL_OWNED: readonly string[] = ["migrations/"];
-
 const SNAKE = /^[a-z0-9]+(?:_[a-z0-9]+)*$/u;
 
 const CODE = /\.[cm]?[jt]sx?$/u;
 
 const FolderNamesOptions = Schema.Struct({
 	content: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
-	toolOwned: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_TOOL_OWNED))),
+	toolOwned: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
 });
 
 function foldersIn(files: readonly string[]): readonly string[] {

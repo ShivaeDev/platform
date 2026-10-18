@@ -22,7 +22,39 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  release-diff:
+    name: Check release-only diff
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 3
+    outputs:
+      release-only: ${{ steps.release.outputs.release-only || 'false' }}
+    steps:
+      - name: Identify release branch events
+        id: candidate
+        env:
+          RELEASE_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'release/next' && github.event.pull_request.head.repo.full_name == github.repository }}
+          RELEASE_DISPATCH: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/release/next' }}
+        run: echo "release=$([[ $RELEASE_PR == true || $RELEASE_DISPATCH == true ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: steps.candidate.outputs.release == 'true'
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+        if: steps.candidate.outputs.release == 'true'
+      - name: Reproduce the release and compare its entire tree
+        if: steps.candidate.outputs.release == 'true'
+        id: release
+        run: |
+          base=origin/main
+          if [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            base=$(git rev-parse HEAD^1)
+          fi
+          node --conditions=source script/ci/releaseOnly.ts "$base"
+
   lint:
+    needs: release-diff
+    if: needs.release-diff.outputs.release-only != 'true'
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
@@ -39,6 +71,8 @@ jobs:
         run: pnpm test:orchestration
 
   build:
+    needs: release-diff
+    if: needs.release-diff.outputs.release-only != 'true'
     # Failed-job reruns must reuse this upload even when build ran in an earlier attempt.
     outputs:
       packages-artifact-id: ${{ steps.packages.outputs.artifact-id }}
@@ -66,6 +100,8 @@ jobs:
           compression-level: 0
 
   macos-smoke:
+    needs: release-diff
+    if: needs.release-diff.outputs.release-only != 'true'
     name: macOS smoke
     runs-on: macos-latest
     timeout-minutes: 10
@@ -87,6 +123,8 @@ jobs:
           src/server/rpc/rootRemoval.spec.ts
 
   typecheck:
+    needs: release-diff
+    if: needs.release-diff.outputs.release-only != 'true'
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
@@ -97,6 +135,8 @@ jobs:
       - run: pnpm typecheck
 
   shard-plan:
+    needs: release-diff
+    if: needs.release-diff.outputs.release-only != 'true'
     name: Select measured shard counts
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     permissions:
@@ -143,7 +183,8 @@ jobs:
           JS
 
   tests:
-    needs: shard-plan
+    needs: [release-diff, shard-plan]
+    if: needs.release-diff.outputs.release-only != 'true'
     permissions:
       contents: read
       actions: read
@@ -233,8 +274,8 @@ jobs:
 
   codecov-notify:
     name: Codecov notifications
-    if: ${{ !cancelled() }}
-    needs: verify
+    if: ${{ !cancelled() && needs.release-diff.outputs.release-only != 'true' }}
+    needs: [verify, release-diff]
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
@@ -249,7 +290,8 @@ jobs:
           fail_ci_if_error: false
 
   consumers:
-    needs: [build, shard-plan]
+    needs: [release-diff, build, shard-plan]
+    if: needs.release-diff.outputs.release-only != 'true'
     name: packed consumers (${{ matrix.shard }})
     permissions:
       contents: read
@@ -302,7 +344,8 @@ jobs:
 
   published-starter:
     name: Packed starter
-    needs: build
+    needs: [release-diff, build]
+    if: needs.release-diff.outputs.release-only != 'true'
     permissions:
       contents: read
       actions: read
@@ -327,14 +370,14 @@ jobs:
 
   verify:
     if: always()
-    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke]
+    needs: [release-diff, shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke]
     permissions:
       contents: read
       actions: read
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:
-      - name: Require every CI job to succeed
+      - name: Require the selected CI path to succeed
         env:
           JOB_RESULTS: ${{ toJSON(needs) }}
         run: |
@@ -343,7 +386,9 @@ jobs:
           for (const [name, job] of Object.entries(jobs)) {
             console.log(`${name}: ${job.result}`);
           }
-          if (Object.values(jobs).some(job => job.result !== 'success')) process.exit(1);
+          const release = jobs['release-diff'];
+          const expected = release.outputs['release-only'] === 'true' ? 'skipped' : 'success';
+          if (release.result !== 'success' || Object.entries(jobs).some(([name, job]) => name !== 'release-diff' && job.result !== expected)) process.exit(1);
           JS
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

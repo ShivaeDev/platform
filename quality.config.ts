@@ -1,9 +1,9 @@
-import { MIGRATIONS_DIRECTORY } from "@shivaedev/effect-sql/migrationConvention.ts";
 import { defineConfig } from "@shivaedev/quality/config.ts";
 import { catalogOnly } from "#quality/catalogOnly.ts";
 import { catalogOverrides } from "#quality/catalogOverrides.ts";
 import { codecovComponents } from "#quality/codecovComponents.ts";
 import { exactCatalogVersion } from "#quality/exactCatalogVersion.ts";
+import { migrationConvention } from "#quality/migrationConvention.ts";
 import { unreadable } from "#quality/unreadable.ts";
 import { workspaceSection } from "#quality/workspaceSection.ts";
 
@@ -62,22 +62,8 @@ export default defineConfig({
 			rules: ["biome/lint/correctness/noUndeclaredDependencies"],
 		},
 	],
-	local: [catalogOnly, catalogOverrides, codecovComponents, exactCatalogVersion, unreadable, workspaceSection],
+	local: [catalogOnly, catalogOverrides, codecovComponents, exactCatalogVersion, migrationConvention, unreadable, workspaceSection],
 	rules: {
-		"files/named-after-export": {
-			options: {
-				toolOwned: [
-					`**/${MIGRATIONS_DIRECTORY}/`,
-					"*.config.*",
-					"*.d.ts",
-					"*.d.mts",
-					"*.d.cts",
-					"**/.railway/railway.ts",
-					"**/.railway/railway.py",
-					"**/.railway/railway.go",
-				],
-			},
-		},
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },
 	},
 	sources: ["packages", "examples", "script"],

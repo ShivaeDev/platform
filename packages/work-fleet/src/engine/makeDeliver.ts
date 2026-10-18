@@ -1,15 +1,17 @@
 import { Effect, Result } from "effect";
 import { validateChecks, validateReview } from "#completion.ts";
-import { authorizeBriefContext } from "#engine/boardBrief.ts";
+import { authorizeBriefContext, briefChanged, isChangedBriefDecision, stopChangedBrief } from "#engine/boardBrief.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas } from "#engine/mergeReadiness.ts";
 import { observeDeliveryFailure } from "#engine/observeDeliveryFailure.ts";
+import { recordClosedSweep } from "#engine/recordClosedSweep.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { settleMergedDelivery } from "#engine/settleMergedDelivery.ts";
+import type { FleetError } from "#errors.ts";
 import { executing, type FleetRecord } from "#model.ts";
-import type { BoardWork, ChangeResult, WorkResult } from "#policy.ts";
+import type { BoardWork, ChangeResult, Delivery, WorkResult } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function makeDeliver(state: EngineState) {
@@ -81,16 +83,12 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	if (Result.isSuccess(observed) && observed.success !== undefined && !executing(record)) {
 		return yield* settleMergedDelivery(state, stored, result, observed.success, deliveryPending(record));
 	}
-	const released = yield* releaseClosedDelivery(state, stored);
+	const released = (yield* releaseClosedDelivery(state, stored)) ?? (yield* holdChangedDelivery(state, stored, observed));
 	if (released !== undefined) {
 		return released;
 	}
 	if (Result.isFailure(observed)) {
-		return (["delivering", "needs-human"].includes(record.stage)
-			|| (failureCode(observed.failure) === "pr-head-moved" && ["reviewing", "validating"].includes(record.stage) && !executing(record)))
-			&& !deliveryPending(record)
-			? yield* observeDeliveryFailure(state, stored, result, observed.failure)
-			: stored;
+		return canObserveDeliveryFailure(record, observed.failure) ? yield* observeDeliveryFailure(state, stored, result, observed.failure) : stored;
 	}
 	if (executing(record)) {
 		return stored;
@@ -112,11 +110,12 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	return yield* awaitHumanMerge(state, stored, result.head);
 });
 
-function recordClosedSweep(state: EngineState, stored: Versioned<FleetRecord>) {
-	const record = stored.value;
-	return (record.sweep?.length ?? 0) > 0 && record.sweepClosed !== true
-		? state.save(stored, { ...record, sweepClosed: true })
-		: Effect.succeed(stored);
+function canObserveDeliveryFailure(record: FleetRecord, error: FleetError) {
+	return (
+		!deliveryPending(record)
+		&& (["delivering", "needs-human"].includes(record.stage)
+			|| (failureCode(error) === "pr-head-moved" && ["reviewing", "validating"].includes(record.stage) && !executing(record)))
+	);
 }
 
 const releaseClosedDelivery = Effect.fn("Fleet.releaseClosedDelivery")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
@@ -124,4 +123,23 @@ const releaseClosedDelivery = Effect.fn("Fleet.releaseClosedDelivery")(function*
 		return undefined;
 	}
 	return yield* releaseClosedPreparation(state, stored, yield* state.board.get(stored.value.workId));
+});
+
+const holdChangedDelivery = Effect.fn("Fleet.holdChangedDelivery")(function* (
+	state: EngineState,
+	stored: Versioned<FleetRecord>,
+	observed: Result.Result<typeof Delivery.Type | undefined, FleetError>,
+) {
+	const record = stored.value;
+	if (executing(record) || !["delivering", "needs-human"].includes(record.stage) || deliveryPending(record)) {
+		return undefined;
+	}
+	if (Result.isSuccess(observed) && !isChangedBriefDecision(record)) {
+		return undefined;
+	}
+	const work = yield* state.board.get(record.workId);
+	if (!briefChanged(record, work)) {
+		return undefined;
+	}
+	return yield* stopChangedBrief(state)(stored, Result.isFailure(observed) ? [observed.failure.message] : []);
 });

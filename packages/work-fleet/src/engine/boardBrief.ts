@@ -37,10 +37,13 @@ export const authorizeBriefContext = Effect.fn("Fleet.authorizeBriefContext")(fu
 });
 
 export function stopChangedBrief(state: EngineState) {
-	return Effect.fn("Fleet.stopChangedBrief")(function* (stored: Versioned<FleetRecord>) {
+	return Effect.fn("Fleet.stopChangedBrief")(function* (stored: Versioned<FleetRecord>, deliveryBlockers?: readonly string[]) {
 		const work = yield* state.board.get(stored.value.workId);
+		const blocker =
+			deliveryBlockers === undefined ? (stored.value.blocker ?? CHANGED_BRIEF_REASON) : [CHANGED_BRIEF_REASON, ...deliveryBlockers].join("; ");
 		if (
 			isChangedBriefDecision(stored.value)
+			&& stored.value.blocker === blocker
 			&& stored.value.decision?.publicationWork !== undefined
 			&& !briefChanged(
 				{
@@ -59,7 +62,7 @@ export function stopChangedBrief(state: EngineState) {
 			mergeReadyHead: undefined,
 			review: undefined,
 		});
-		return yield* state.decision(
+		const decided = yield* state.decision(
 			stopped,
 			"fleet-stale",
 			CHANGED_BRIEF_REASON,
@@ -68,6 +71,7 @@ export function stopChangedBrief(state: EngineState) {
 			undefined,
 			work,
 		);
+		return yield* state.save(decided, { ...decided.value, blocker });
 	});
 }
 
