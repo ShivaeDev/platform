@@ -13,6 +13,6 @@ screenStory.it(
 			expect(segments[index]?.classList.contains(color)).toBe(true);
 			expect(segments[index]?.classList.contains("border-r")).toBe(true);
 		}
-		expect([...findElements("li")].map((entry) => entry.textContent)).toEqual(["2 done", "0 in progress", "1 planned"]);
+		expect([...findElements("li")].map((entry) => entry.textContent)).toEqual(["2 Done", "0 In progress", "1 Planned"]);
 	},
 );

@@ -19,6 +19,7 @@ export function releaseFinishedWork(state: EngineState, stored: Versioned<FleetR
 			mergeReadyAt: undefined,
 			mergeReadyHead: undefined,
 			outcome: undefined,
+			pendingContinuation: undefined,
 			releaseReason,
 			stage: "released",
 			supersededDecisions:

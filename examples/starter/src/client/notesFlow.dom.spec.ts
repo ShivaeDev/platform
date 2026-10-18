@@ -1,13 +1,15 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
-import { aliceAccount, notesApp, signInScreen } from "#test-support/notesApp.tsx";
+import { aliceAccount, notesApp, signInResponseHeld, signInScreen } from "#test-support/notesApp.tsx";
 
 notesApp.it(
 	"signs in, creates, opens, saves and deletes a note on screen against PostgreSQL",
-	[aliceAccount(), signInScreen()],
+	[aliceAccount(), signInResponseHeld(), signInScreen()],
 	function* ({
 		heading,
+		button,
+		releaseSignIn,
 		storedUsers,
 		storedSessions,
 		storedNotes,
@@ -30,6 +32,9 @@ notesApp.it(
 		yield* enter("alice@app.test", "Email");
 		yield* enter("correct-horse-battery-staple", "Password");
 		yield* click("Sign in");
+		yield* Effect.promise(() => eventually(() => expect(button("Please wait…")).toEqual({ disabled: true, text: "Please wait…" })));
+		expect(heading()).toBe("Sign in");
+		yield* releaseSignIn();
 		yield* Effect.promise(() => eventually(() => expect(heading()).toBe("Notes")));
 		yield* Effect.promise(() => eventually(() => expect(route()).toBe("/")));
 		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
@@ -72,5 +77,9 @@ notesApp.it(
 		yield* Effect.promise(() => eventually(() => expect(savedNote()).toBeNull()));
 		expect(yield* storedUsers).toEqual([{ email: "alice@app.test" }]);
 		expect(yield* storedSessions).toEqual([{ email: "alice@app.test" }]);
+		yield* click("Sign out");
+		yield* Effect.promise(() => eventually(() => expect(heading()).toBe("Sign in")));
+		expect(route()).toBe("/sign-in");
+		expect(yield* storedSessions).toEqual([]);
 	},
 );

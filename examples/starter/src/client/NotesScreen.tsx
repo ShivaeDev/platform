@@ -1,27 +1,25 @@
 import { useAtomMount } from "@effect/atom-react";
 import { Option } from "effect";
-import { useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import { useEffect } from "react";
+import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";
+import type { AuthActions } from "./auth.ts";
 import type { NotesClient } from "./makeNotes.ts";
 import { NoteCreate } from "./NoteCreate.tsx";
 import { NotesTable } from "./NotesTable.tsx";
 
-export function NotesScreen({ client, onSignOut }: { readonly client: NotesClient; readonly onSignOut?: () => Promise<string | undefined> }) {
+export function NotesScreen({
+	client,
+	signOut,
+	onSignedOut,
+}: {
+	readonly client: NotesClient;
+	readonly signOut?: AuthActions["signOut"];
+	readonly onSignedOut?: (() => void) | undefined;
+}) {
 	useAtomMount(client.connection);
-	const [signingOut, setSigningOut] = useState(false);
-	const [failure, setFailure] = useState<string>();
-	async function signOut() {
-		setSigningOut(true);
-		try {
-			setFailure(await onSignOut?.());
-		} catch {
-			setFailure("Could not sign out. Try again.");
-		} finally {
-			setSigningOut(false);
-		}
-	}
 	const query = useQuery(client.api.list.query());
 	const rows = Option.getOrElse(query.data, () => []);
 	const loading = query.pending && !query.refreshing;
@@ -31,12 +29,7 @@ export function NotesScreen({ client, onSignOut }: { readonly client: NotesClien
 				<p className="font-medium text-muted-foreground text-sm">Your first app</p>
 				<h1 className="font-semibold text-3xl tracking-tight">Notes</h1>
 				<p className="text-muted-foreground">A small place for things worth keeping.</p>
-				{onSignOut !== undefined && (
-					<Button disabled={signingOut} onClick={() => void signOut()} variant="outline">
-						Sign out
-					</Button>
-				)}
-				{failure !== undefined && <p role="alert">{failure}</p>}
+				{signOut !== undefined && <SignOut action={signOut} onSignedOut={onSignedOut} />}
 			</header>
 			<section aria-label="Add a note">
 				<Card>
@@ -58,5 +51,25 @@ export function NotesScreen({ client, onSignOut }: { readonly client: NotesClien
 				{rows.length > 0 && <NotesTable notes={rows} />}
 			</section>
 		</main>
+	);
+}
+
+function SignOut({ action, onSignedOut }: { readonly action: AuthActions["signOut"]; readonly onSignedOut: (() => void) | undefined }) {
+	const state = useAction(action);
+	const failure = AsyncResult.error(state.result);
+	useEffect(() => {
+		if (AsyncResult.isSuccess(state.result) && !state.pending) {
+			onSignedOut?.();
+		}
+	}, [state.result, state.pending, onSignedOut]);
+	return (
+		<>
+			<Button disabled={state.pending} onClick={() => state.dispatch()} variant="outline">
+				{state.pending ? "Signing out…" : "Sign out"}
+			</Button>
+			{!state.pending && Option.isSome(failure) && (
+				<p role="alert">{"_tag" in failure.value ? "Could not sign out. Try again." : (failure.value.message ?? "Could not sign out. Try again.")}</p>
+			)}
+		</>
 	);
 }

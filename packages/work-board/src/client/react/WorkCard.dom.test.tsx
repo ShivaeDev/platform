@@ -6,6 +6,6 @@ screenStory.it("shows the orchestrator holder and hides missing PR and stage tim
 	expect(readText(".work-owner")).toBe("Waiting on the orchestrator");
 	expect(readText()).not.toContain("PR not recorded");
 	expect(count("[data-status-token]")).toBe(1);
-	expect(readText("[data-status-token]")).toBe("executing");
+	expect(readText("[data-status-token]")).toBe("Executing");
 	expect(findElement(".work-stage")).toBeNull();
 });

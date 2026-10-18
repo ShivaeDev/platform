@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import { useId, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { statusLabel } from "#browser/views/statusLabel.ts";
 import { Checkbox } from "#client/react/components/ui/checkbox.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#client/react/components/ui/select.tsx";
@@ -26,7 +27,7 @@ export function LibraryPage({ api, url = "/_board/library" }: { readonly api: Sh
 			<PageHeader summary="Every document in your workspace." title="Library" />
 			<div className="my-6 flex flex-wrap items-end gap-4">
 				<Filter label="Kind" onChange={setKind} options={data?.kinds ?? []} value={kind} />
-				<Filter label="Status" onChange={setStatus} options={data?.statuses ?? []} value={status} />
+				<Filter label="Status" name={statusLabel} onChange={setStatus} options={data?.statuses ?? []} value={status} />
 				<ViewToggle onChange={setView} view={view} />
 				<div className="flex h-7 items-center gap-2">
 					<Checkbox checked={showFleet} id={fleetId} onCheckedChange={setShowFleet} />
@@ -64,13 +65,19 @@ const views = [
 	["recently changed", "Recently changed"],
 ] as const;
 
+function sameOption(option: string) {
+	return option;
+}
+
 function Filter({
 	label,
+	name = sameOption,
 	options,
 	value,
 	onChange,
 }: {
 	readonly label: string;
+	readonly name?: (option: string) => string;
 	readonly options: readonly string[];
 	readonly value: string;
 	readonly onChange: (value: string) => void;
@@ -80,7 +87,7 @@ function Filter({
 		<div className="grid gap-2">
 			<Label htmlFor={id}>{label}</Label>
 			<Select
-				items={[{ label: "All", value: null }, ...options.map((option) => ({ label: option, value: option }))]}
+				items={[{ label: "All", value: null }, ...options.map((option) => ({ label: name(option), value: option }))]}
 				onValueChange={(next) => onChange(next ?? "")}
 				value={value || null}
 			>
@@ -91,7 +98,7 @@ function Filter({
 					<SelectItem value={null}>All</SelectItem>
 					{options.map((option) => (
 						<SelectItem key={option} value={option}>
-							{option}
+							{name(option)}
 						</SelectItem>
 					))}
 				</SelectContent>

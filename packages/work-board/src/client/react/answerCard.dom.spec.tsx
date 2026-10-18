@@ -131,7 +131,7 @@ screenStory.it(
 	function* ({ readText }) {
 		yield* Effect.promise(() => eventually(() => expect(readText(".response-panel h2")).toBe("Answer unavailable")));
 		expect(readText(".response-panel")).not.toContain("Question closed");
-		expect(readText(".item-summary")).toContain("needs-you");
+		expect(readText(".item-summary")).toContain("Needs you");
 	},
 );
 

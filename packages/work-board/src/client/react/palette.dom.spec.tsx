@@ -37,7 +37,7 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readText("strong", rows()[0])).toBe("Build the inbox")));
 		expect(readText("code", rows()[0])).toBe("task.triage");
 		expect(readText("small", rows()[0])).toContain("task");
-		expect(readText("[data-status-token]", rows()[0])).toBe("active");
+		expect(readText("[data-status-token]", rows()[0])).toBe("Active");
 		expect(readText("#search-dialog", document)).not.toContain("Inbox decision");
 		input(QUERY, "records: inbox");
 		yield* Effect.promise(() => eventually(() => expect(rows().some((row) => readText("strong", row) === "Inbox decision 9")).toBe(true)));
