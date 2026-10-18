@@ -26,7 +26,20 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
   created_at timestamp with time zone not null default now(),
   name text not null
 )`;
-			return yield* migrate({ loader, table });
+			const current = [...(yield* loader)].sort(([left], [right]) => left - right);
+			const applied = yield* sql<{ id: number }>`select migration_id as id from ${sql(table)}`.withoutTransform;
+			const appliedIds = new Set(applied.map(({ id }) => id));
+			const latest = applied.reduce((max, { id }) => Math.max(max, id), 0);
+			const missing = current.filter(([id]) => id <= latest && !appliedIds.has(id));
+			if (missing.length > 0) {
+				return yield* Effect.fail(
+					new Migrator.MigrationError({
+						kind: "BadState",
+						message: `Migrations missing from the ledger at or below latest applied id ${latest}: ${missing.map(([id]) => id).join(", ")}`,
+					}),
+				);
+			}
+			return yield* migrate({ loader: Effect.succeed(current), table });
 		}),
 	);
 });
