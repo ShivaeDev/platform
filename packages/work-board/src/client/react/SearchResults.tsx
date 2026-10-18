@@ -1,4 +1,4 @@
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { StatusChip } from "#client/react/StatusChip.tsx";
 import type { SearchItem } from "./searchCommands.ts";
 import { shellIds } from "./shellIds.ts";
 export function SearchResults({

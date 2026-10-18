@@ -7,15 +7,9 @@ Published packages may change quickly before 1.0.
 
 ## Native Effect framework
 
-The [framework design](./docs/framework/README.md) explains the application path
-and its boundaries. The [framework roadmap](./docs/framework/roadmap.md) owns
-composed features, application adoption, version alignment and deployment validation. Each package's
-`docs/roadmap.md` owns its implementation and open questions.
+The [framework design](./docs/framework/README.md) explains the application path and its boundaries.
 
-Every package has a README for people and agents using it, a short `AGENTS.md`
-for agents changing it, and `docs/north-star.md` for its design priorities.
-Published packages include the README and `docs/` on npm; agent instructions
-stay in the repository.
+Every package has a README for people and agents using it and a short `AGENTS.md` for agents changing it. Published packages ship their README, and `docs/` where they have one, to npm; agent instructions stay in the repository.
 
 ## Packages
 
@@ -77,11 +71,9 @@ For a new application, follow the [framework quickstart](./docs/framework/quicks
 
 Requirements:
 
-- Node.js at the version in [`.node-version`](./.node-version) (the development runtime; published packages retain their Node 24 minimum)
-- pnpm at the `packageManager` version in [`package.json`](./package.json)
+- Node.js at the version in `.node-version` for development and CI; published packages need Node 24 or newer, so deployment hosts such as Vercel can use Node 24
+- pnpm through Corepack, at the version in `package.json`'s `packageManager`
 - Docker, or PostgreSQL client tools (`psql`) when reusing a native local service
-
-The package Node requirement is `>=24`, so deployment hosts such as Vercel can use Node 24. Local development and CI use the pinned development runtime.
 
 ```sh
 corepack enable
@@ -91,7 +83,7 @@ pnpm ready
 
 `./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, installs the pre-commit hook with `quality hooks install`, and prepares the database. Installation runs no build, lint, typecheck, or test gates. `pnpm ready` is the explicit handoff gate. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. Setup starts no application server; the starter uses ports 3000 and 5173. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
 
-Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`, using `postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873`. A new service stores data in the named `development-postgres` volume. Setup never stops or removes an existing service or volume.
+Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup never stops or removes an existing service or volume.
 
 `DATABASE_URL` defaults to `postgresql://postgres:postgres@127.0.0.1:55432/platform_dev`. `TEST_DATABASE_URL` supplies the connection settings for tests, with a base name of `platform_test`; each package receives its own suffixed database. Shell settings take precedence over `.env.local`.
 
@@ -129,29 +121,6 @@ before anything is built; its README describes the protocol.
 
 ### Packed consumers
 
-`pnpm test:package` packs every publishable package once, validates its manifest
-and source maps, then installs clean consumers with its workspace dependency
-tarballs. Consumers use the catalog Effect versions, reject duplicate Effect
-installations, and import every exported module with both supported TypeScript
-versions. The same gate runs executable bins against real input.
-Consumers for packages with executable bins omit the repository's Effect
-overrides, so exact peers must keep their Effect stack aligned. Unrelated
-dependency pins and installation trust policies stay in force. Packed
-executables using the Node platform must declare its shared layer as an exact
-peer at the same version. The gate removes that peer from a temporary copy of
-the Heavy Lock tarball and verifies that archive validation rejects it.
-Every `#` import in a packed module must name an `imports` entry whose
-targets are all packed; the gate also removes one such target from a copy of
-the Heavy Lock tarball and verifies that archive validation rejects it. Every
-source module the `./*.ts` export matches must ship its built `.js` and `.d.ts`;
-the gate removes one built module from a copy of the Heavy Lock tarball and
-verifies that archive validation rejects that too. A module under a `null`
-export such as `./internal/*` is left out, and the consumer verifies that
-importing one fails. Each
-consumer lib-checks the declarations of Platform's packages, third-party
-declarations aside, and rejects an entry that exports a value or type as `any`.
+`pnpm test:package` packs every publishable package once, validates its manifest, source maps and packed files, then installs clean consumers from the tarballs. Consumers use the catalog Effect versions, reject duplicate Effect installations, import every exported module with both supported TypeScript versions, lib-check Platform's declarations, reject `any` exports and run executable bins against real input. Executable packages on the Node platform declare its shared layer as an exact peer, because their consumers omit the repository's Effect overrides.
 
-Consumer type-error fixtures live in `script/package-check/fixtures`. Declarative
-cases alongside the runner describe optional-peer consumers, browser entry
-constraints and executable input; package file lists come from manifests.
-The publish workflow runs this gate in a read-only prerequisite job.
+Consumer type-error fixtures live in `script/package-check/fixtures`; declarative cases beside the runner describe optional-peer consumers, browser entry constraints and executable input. The publish workflow runs this gate in a read-only prerequisite job.

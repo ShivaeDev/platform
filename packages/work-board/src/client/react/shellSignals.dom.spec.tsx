@@ -11,7 +11,7 @@ for (const panel of ["Files", "More"]) {
 	screenStory.it(
 		`dismisses ${panel} when its current destination is selected without a router transition`,
 		[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen({ "home.md": "# Home" }, "/_board/library")],
-		function* ({ click, control, location }) {
+		function* ({ click, control, findElement, location }) {
 			const previousLocation = location();
 			if (panel === "Files") {
 				click("#sidebar-toggle");
@@ -20,9 +20,9 @@ for (const panel of ["Files", "More"]) {
 				yield* Effect.promise(() => eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true)));
 			} else {
 				click('[aria-controls="phone-more"]');
-				expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
+				expect(findElement("#phone-more", document)).not.toBeNull();
 				click('#phone-more a[href="/_board/library"]');
-				yield* Effect.promise(() => eventually(() => expect(control("#phone-more", HTMLDialogElement).open).toBe(false)));
+				yield* Effect.promise(() => eventually(() => expect(findElement("#phone-more", document)).toBeNull()));
 			}
 			expect(location()).toBe(previousLocation);
 		},
@@ -33,15 +33,15 @@ const files = { "home.md": "# Home", "notes/plan.md": "# Plan", "other.md": "# O
 screenStory.it(
 	"closes Files and More on direct router navigation and retains the new recent title",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen(files)],
-	function* ({ click, control, navigate, readText, editFile, refreshDocument, readTitle }) {
+	function* ({ click, control, findElement, navigate, readText, editFile, refreshDocument, readTitle }) {
 		click("#sidebar-toggle");
 		expect(control("#sidebar", HTMLElement).hidden).toBe(false);
 		yield* Effect.promise(() => navigate("/other.md"));
 		yield* Effect.promise(() => eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true)));
 		click('[aria-controls="phone-more"]');
-		expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
+		expect(findElement("#phone-more", document)).not.toBeNull();
 		yield* Effect.promise(() => navigate("/notes/plan.md"));
-		yield* Effect.promise(() => eventually(() => expect(control("#phone-more", HTMLDialogElement).open).toBe(false)));
+		yield* Effect.promise(() => eventually(() => expect(findElement("#phone-more", document)).toBeNull()));
 		editFile("notes/plan.md", "# Revised plan");
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
 		yield* Effect.promise(() => eventually(() => expect(readText('section[aria-label="Recent"] a[aria-current="page"]')).toBe("Revised plan")));

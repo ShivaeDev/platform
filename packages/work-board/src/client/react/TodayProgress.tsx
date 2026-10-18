@@ -1,5 +1,5 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
-import { Badge } from "#client/react/components/ui/Badge.tsx";
+import { Badge } from "#client/react/components/ui/badge.tsx";
 import { inProgressItems } from "./inProgressItems.ts";
 
 export function TodayProgress({ data, failed }: { readonly data: FleetItemsProjection | undefined; readonly failed: boolean }) {

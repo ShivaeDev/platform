@@ -137,7 +137,7 @@ create.dispatch({
 });
 ```
 
-`NotesClient` is an application's `AtomRpc.Service` with `ListNotes` and `CreateNote` RPCs. The native mutation's reactivity keys refresh the matching query after success. The package's rendered native RPC fixture exercises this shape through a real repository, including a rejected save that preserves the list.
+`NotesClient` is an application's `AtomRpc.Service` with `ListNotes` and `CreateNote` RPCs. The native mutation's reactivity keys refresh the matching query after success.
 
 An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result. Disable duplicate submissions or give independent work distinct native action atoms. When one caller needs its own success or failure, run the actual RPC Effect through its runtime, as the editor's `save` does; shared atom state cannot identify one invocation's completion.
 
@@ -195,7 +195,7 @@ export function App() {
 }
 ```
 
-`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The render fixture proves navigation between two note payloads, shared loader/component query execution, and a declared RPC failure reaching the error component as the original tagged error.
+`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution.
 
 `loadQuery` waits through a native query refresh instead of returning its retained success. Typed failures are thrown directly, so the route can inspect `_tag` rather than an Effect fiber wrapper. Defects remain failed Promises. TanStack's loader `abortController` cancels the waiting subscription and rejects with `name: "AbortError"`; other readers of the same query can still complete. The application owns the registry's lifetime and disposes it when its client or session ends. Use the same registry for router context and `RegistryContext.Provider`.
 
@@ -356,22 +356,9 @@ const query = Atom.swr(atom, {
 
 `useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom.
 
-| Defining module | Exports |
-| --- | --- |
-| `client/resultState.ts` | `useQuery`, `useAction`, `isUnauthorized`; `ResultState`, `QueryOptions`, `QueryState`, `ActionState`. |
-| `client/sessionBoundary.ts` | `SessionBoundary`, `useSessionRecheck`; `SessionBoundaryProps`. |
-| `client/editor.ts` | `useEditor`; `Editor`, `EditorConfig`. |
-| `client/create.ts` | `useCreate`; `Create`, `CreateConfig`. |
-| `resumeSignal.ts` | `resumeSignal`; `ResumeSource`, `ResumeWindow`, `ResumeOptions`. |
-| `loadQuery.ts` | `loadQuery`. |
-| `client/saveState.ts` | `useSaveState`; `SaveState`. |
-| `fieldRejection.ts` | `fieldRejectionOf`, `rejecting`; `FieldRejection`, `RejectField`, `FieldRejectionMapping`, `AtomServices`. |
-| `client/testing.ts` | `render`, `eventually`, `expectNoReactWarnings`; `Rendered`. |
-| `submission.ts` | `submission`; `Submission`, `SubmissionConfig`. |
+Import the defining `.ts` module, such as `@shivaedev/effect-react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` reads the boundary's `recheck` callback.
 
-Import the defining `.ts` module, such as `@shivaedev/effect-react/client/editor.ts`. There is no root import. `SessionBoundaryProps` supplies `session`, `identify`, `connect`, `recheck`, a client-to-children function and optional `signedOut`; `useSessionRecheck()` reads that boundary's callback.
-
-`Editor` exposes `query`, optional `form` and `SaveState`; `Create` exposes `form`, `created` and `SaveState`. `SaveState` has `save`, `saving`, `dirty`, `failure` and `revert`. Prefer the two complete hooks when binding a form to a command. The lower-level form modules expose the same composition pieces: `submission` makes a form and its submission snapshot reader, `rejecting` maps save failures through a submitter, and `useSaveState` observes submission and invokes a success callback.
+Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback.
 
 ### Render tests in happy-dom
 
@@ -458,13 +445,7 @@ it("renders a query and refetches it after a command through a test RPC layer", 
 
 `render(node)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` retries the assertion for up to three seconds, allowing pending responses to settle inside `act` between attempts; it throws the last assertion failure on timeout. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
 
-The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs. This test proves rendered query data and command-triggered invalidation in happy-dom, without an HTTP server or a physical browser. The generic `effect-test` package has no React dependency.
-
-### Testing a feature through its stack
-
-The [order feature’s application-owned kit](https://github.com/ShivaeDev/platform/tree/main/packages/effect-react/src/test-support/order-example) uses `test-story` above `effect-test` to compose real PostgreSQL, HTTP RPC and the actual React components. Its screen traits mount fresh native atom registries and scoped roots; its verbs dispatch DOM events and wait for rendered output. The [stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/orderStory.dom.spec.tsx) verify list refresh through `useAction` and rejected-input retention and retry through `useEditor`, with persistence read from a separate PostgreSQL pool. These tests require `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`; DOM and loopback HTTP establish no physical browser, SSR or mobile behavior.
-
-The [reference PostgreSQL feature](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses the same leased database infrastructure and a scoped story verb for its real server and rendered clients. Its stories verify commit visibility, live refresh of a second editor, retained local edits and rollback without publication. To start an application, use the [copyable starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) with `pnpm create @shivaedev/app my-app`.
+The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs.
 
 ### Install, setup and limits
 
@@ -478,12 +459,7 @@ For editor, create or lower-level form modules, also install the optional form p
 pnpm add @shivaedev/effect-form
 ```
 
-Query, action, session and resume modules do not require effect-form. The package declares Node 24 or newer and peers on Effect, atom-react and React; this repository checks Effect and atom-react `4.0.4` with React `19.3.0`.
+Query, action, session and resume modules do not require effect-form. The package needs Node 24 or newer.
 
 - Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
-- Action state describes the atom's latest result. A `dispatch` is not a Promise or a separate result handle.
-- A session generation is application-defined. Credentials captured by `connect` require a changed generation when they rotate.
 - The package has no SSR registry/hydration adapter, offline write queue or optimistic reconciliation policy.
-- DOM tests and an injected resume source do not prove real-browser or mobile lifecycle behavior. The real HTTP order fixture proves its local composition, not a deployed host's auth, cancellation or rendering policy.
-
-The full design is in [the north star](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/north-star.md). Implementation status and unresolved choices are in [the roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/roadmap.md).
