@@ -12,6 +12,7 @@ const TABLE_START = new Set(["from", "join", "update", "into", "table", "truncat
 const TABLE_END = new Set(["where", "group", "order", "having", "limit", "returning", "set", "values", "on", ";"]);
 const SKIP = new Set(["if", "not", "exists", "only", "table"]);
 const AUTH_TABLES = new Set(["user", "account", "session", "verification"]);
+const EXPRESSION_FROM = new Set(["extract", "overlay", "substring", "trim"]);
 const NON_TABLE_TARGETS = new Set([
 	"all",
 	"database",
@@ -59,26 +60,26 @@ function tableBoundary(tokens: readonly string[], index: number, statementStart:
 
 interface SqlContext {
 	depth: number;
-	readonly queriesAtDepth: Set<number>;
+	readonly expressionFromDepths: Set<number>;
 	statementStart: number;
 	readonly tablesAtDepth: Set<number>;
 }
 
-function advanceContext(context: SqlContext, token: string, index: number): void {
+function advanceContext(context: SqlContext, token: string, index: number, previous: string | undefined): void {
 	if (token === ";") {
 		context.statementStart = index + 1;
-		context.queriesAtDepth.clear();
+		context.expressionFromDepths.clear();
 	}
 	if (token === "(") {
 		context.depth += 1;
+		if (EXPRESSION_FROM.has(previous?.toLowerCase() ?? "")) {
+			context.expressionFromDepths.add(context.depth);
+		}
 	}
 	if (token === ")") {
 		context.tablesAtDepth.delete(context.depth);
-		context.queriesAtDepth.delete(context.depth);
+		context.expressionFromDepths.delete(context.depth);
 		context.depth -= 1;
-	}
-	if (token.toLowerCase() === "select") {
-		context.queriesAtDepth.add(context.depth);
 	}
 }
 
@@ -86,10 +87,10 @@ function authTableIn(text: string): boolean {
 	const tokens = [...text.matchAll(TOKENS)]
 		.map(([token]) => token)
 		.filter((token) => !(token.startsWith("--") || token.startsWith("/*") || token.startsWith("'")));
-	const context: SqlContext = { depth: 0, queriesAtDepth: new Set(), statementStart: 0, tablesAtDepth: new Set() };
+	const context: SqlContext = { depth: 0, expressionFromDepths: new Set(), statementStart: 0, tablesAtDepth: new Set() };
 	return tokens.some((token, index) => {
-		advanceContext(context, token, index);
-		const boundary = tableBoundary(tokens, index, context.statementStart, context.depth === 0 || context.queriesAtDepth.has(context.depth));
+		advanceContext(context, token, index, tokens[index - 1]);
+		const boundary = tableBoundary(tokens, index, context.statementStart, !context.expressionFromDepths.has(context.depth));
 		if (boundary.ends) {
 			context.tablesAtDepth.delete(context.depth);
 		}

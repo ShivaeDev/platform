@@ -10,6 +10,7 @@ ruleKit.it(
 				'SELECT extract(epoch FROM "session") FROM notes;',
 				'SELECT substring("account" FROM 1 FOR 2) FROM notes;',
 				'SELECT trim("verification" FROM "user") FROM notes;',
+				'SELECT overlay("account" placing "user" FROM "session") FROM notes;',
 				'SELECT extract(epoch FROM (SELECT "session" FROM notes)) FROM notes;',
 			].join("\n"),
 			path: "src/observations.sql",
@@ -42,7 +43,7 @@ ruleKit.it(
 );
 
 ruleKit.it(
-	"subqueries inside expressions and derived tables still reach auth storage",
+	"nested queries, joins and data-changing CTEs still reach auth storage",
 	[
 		repositoryHas({
 			content: [
@@ -50,12 +51,13 @@ ruleKit.it(
 				"sql`SELECT extract(epoch FROM (SELECT created_at FROM account)) FROM notes`;",
 				"sql`SELECT * FROM (SELECT * FROM verification) AS records`;",
 				'sql`SELECT * FROM (notes JOIN public."user" USING (id))`;',
+				'sql`WITH removed AS (DELETE FROM "session" RETURNING id) SELECT * FROM removed`;',
 			].join("\n"),
 			path: "src/users.ts",
 		}),
 	],
 	function* ({ checks }) {
 		const findings = yield* checks(authSql);
-		expect(findings.map((finding) => finding.line)).toEqual([1, 2, 3, 4]);
+		expect(findings.map((finding) => finding.line)).toEqual([1, 2, 3, 4, 5]);
 	},
 );
