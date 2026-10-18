@@ -8,6 +8,7 @@ import { storyDatabase } from "#test-support/storyDatabase.ts";
 import type { Engine } from "./applicationState.ts";
 import { applicationVerbs } from "./applicationVerbs.ts";
 import { DatabaseLifetime } from "./DatabaseLifetime.ts";
+import { mintUser } from "./sessionPrecondition.ts";
 import { workerQueue } from "./workerQueue.ts";
 
 export const app = storyKit({
@@ -44,8 +45,9 @@ export function signedIn(name = "alice") {
 			return yield* Effect.die("Host has not started");
 		}
 		const http = requests(engine.host, (line) => engine.tell(line));
-		const cookie = yield* http.authenticate(name);
-		engine.actors.set(name, { cookie, notes: yield* http.notes(cookie) });
+		const { headers, user } = yield* mintUser(engine.host, name);
+		const cookie = headers.get("cookie") ?? "";
+		engine.actors.set(name, { cookie, notes: yield* http.notes(cookie), userId: user.id });
 	});
 }
 
@@ -82,6 +84,8 @@ export function notesPredatingMigration(migration: 4 | 5, title: string) {
 		const note = yield* actor.notes.create({ title });
 		engine.existingNotes.set(title, note);
 		const sql = yield* SqlClient.SqlClient;
+		yield* sql`alter table notes rename column owner_id to "ownerId"`;
+		yield* sql`alter table notes rename column word_count to "wordCount"`;
 		if (migration === 4) {
 			yield* sql`alter table notes drop column "wordCount"`;
 		}
@@ -89,5 +93,19 @@ export function notesPredatingMigration(migration: 4 | 5, title: string) {
 		yield* sql`alter table "user" drop column role, drop column banned, drop column "banReason", drop column "banExpires"`;
 		yield* sql`alter table "session" drop column "impersonatedBy"`;
 		yield* sql`delete from app_migrations where migration_id >= ${migration}`;
+	});
+}
+
+export function notesPredatingSnakeCase(title: string) {
+	return app.trait("notes", "a saved note uses the previous camelCase columns", function* (engine) {
+		const actor = engine.actors.get("alice");
+		if (actor === undefined) {
+			return yield* Effect.die("Alice must be signed in");
+		}
+		engine.existingNotes.set(title, yield* actor.notes.create({ title }));
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`alter table notes rename column owner_id to "ownerId"`;
+		yield* sql`alter table notes rename column word_count to "wordCount"`;
+		yield* sql`delete from app_migrations where migration_id = 7`;
 	});
 }

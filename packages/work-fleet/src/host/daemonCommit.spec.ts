@@ -1,76 +1,25 @@
 import { expect } from "@effect/vitest";
-import { Deferred, Effect, Stream } from "effect";
-import { transact } from "@shivaedev/effect-sql/transact.ts";
-import { FleetRepository } from "#engine/repository.ts";
-import { daemonClient } from "#host/daemonClient.ts";
-import { dispatchAndWait } from "#test/daemonActions.ts";
-import { finishWorkers } from "#test/engine.ts";
-import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
-import { untilOutput, withFollower } from "#test/follower.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { withReadDaemon } from "#test/readDaemon.ts";
-import { type SnapshotReads, snapshotReads } from "#test/snapshotReads.ts";
+import { Effect } from "effect";
+import { approvedWork, host } from "#test/hostStory.ts";
 import { statusRecord } from "#test/status.ts";
 
-const test = postgresTests("live");
-
-const commitStory = Effect.fn("DaemonCommitTest.commitStory")(function* (
-	fixture: HostFixture,
-	port: number,
-	snapshot: Promise<void>,
-	reads: SnapshotReads,
-) {
-	const client = yield* daemonClient(port);
-	yield* withFollower(fixture.configFile, "watch", ["one"], { port }, (follower) =>
-		Effect.gen(function* () {
-			yield* Effect.promise(() => snapshot);
-			yield* Effect.sleep("1200 millis");
-			expect(reads.count()).toBe(1);
-			yield* dispatchAndWait(client, "one");
-			finishWorkers(fixture.provider);
-			yield* client("fleet.reconcile", { workId: "one" });
-			yield* untilOutput(follower, "one needs-human");
-			expect(yield* Effect.promise(() => follower.done)).toMatchObject({ code: 0, stderr: "" });
-		}),
-	);
-});
-
-const rollbackStory = Effect.fn("DaemonCommitTest.rollbackStory")(function* (port: number, reads: SnapshotReads) {
-	const ready = yield* Deferred.make<void>();
-	const received: unknown[] = [];
-	const client = yield* daemonClient(port);
-	yield* client("daemon.follow", { workIds: ["one"] }).pipe(
-		Stream.tap((states) => Effect.sync(() => received.push(states))),
-		Stream.tap(() => Deferred.succeed(ready, undefined)),
-		Stream.runDrain,
-		Effect.forkScoped,
-	);
-	yield* Deferred.await(ready);
-	const store = yield* FleetRepository;
-	const result = yield* transact(store.insert(statusRecord("one")).pipe(Effect.andThen(Effect.fail("rollback"))), {
-		onSqlError: (error) => error,
-	}).pipe(Effect.flip);
-	expect(result).toBe("rollback");
-	expect(yield* store.load("one")).toBeUndefined();
+host.it("a daemon command commit reaches a CLI follower without periodic PostgreSQL reads", [approvedWork(["one"])], function* (daemon) {
+	yield* daemon.follow("watcher", "watch", ["one"]);
+	yield* daemon.awaitSnapshot();
 	yield* Effect.sleep("1200 millis");
-	expect(received).toEqual([[]]);
-	expect(reads.count()).toBe(1);
+	expect(daemon.snapshotReadCount()).toBe(1);
+	const started = yield* daemon.dispatch("one");
+	daemon.finishTurn(started);
+	yield* daemon.reconcile("one");
+	yield* daemon.awaitOutput("watcher", "one needs-human");
+	expect(yield* daemon.followerExit("watcher")).toMatchObject({ code: 0, stderr: "" });
 });
 
-test("a daemon command commit reaches a CLI follower without periodic PostgreSQL reads", () =>
-	withHost({ "one.md": task("one", "approved") }, {}, (fixture) => {
-		const snapshot = Promise.withResolvers<void>();
-		const reads = snapshotReads(fixture.host);
-		return reads.observe(
-			withReadDaemon(fixture.host, (port) => commitStory(fixture, port, snapshot.promise, reads), {
-				onSnapshot: () => snapshot.resolve(),
-				parts: fixture.parts,
-			}),
-		);
-	}));
-
-test("a rolled-back daemon store write sends no snapshot or refresh query", () =>
-	withHost({}, {}, (fixture) => {
-		const reads = snapshotReads(fixture.host);
-		return reads.observe(withReadDaemon(fixture.host, (port) => rollbackStory(port, reads), { parts: fixture.parts }));
-	}));
+host.it("a rolled-back daemon store write sends no snapshot or refresh query", [], function* (daemon) {
+	yield* daemon.subscribe(["one"]);
+	expect(yield* daemon.rollbackInsert(statusRecord("one"), "rollback").pipe(Effect.flip)).toBe("rollback");
+	expect(yield* daemon.loadStoredRecord("one")).toBeUndefined();
+	yield* Effect.sleep("1200 millis");
+	expect(daemon.snapshots()).toEqual([[]]);
+	expect(daemon.snapshotReadCount()).toBe(1);
+});

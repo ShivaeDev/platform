@@ -5,6 +5,7 @@ import { input, Payment } from "#test/postgresCodecs.ts";
 import { hasJsonReceipts } from "#test/repositoryTraits.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { hasPayments, inTimezone } from "#test/sqlTraits.ts";
+import { transaction } from "#test/transaction.ts";
 
 postgres.it(
 	"PostgreSQL model codecs round-trip precise numeric, int8, dates and generated fields",
@@ -63,7 +64,7 @@ postgres.it("schema failure from a persisted value rolls back the enclosing tran
 		yield* sql`update ${sql(tableName)} set amount = 'NaN'::numeric, note = 'rejected' where id = ${inserted.id}`;
 		return yield* payments.findMany({ select: ["amount"] });
 	});
-	const invalidNumeric = yield* sql.withTransaction(invalidNumericProgram).pipe(Effect.result);
+	const invalidNumeric = yield* transaction(invalidNumericProgram).pipe(Effect.result);
 	expect(invalidNumeric._tag).toBe("Failure");
 	if (invalidNumeric._tag === "Failure") {
 		expect(Schema.isSchemaError(invalidNumeric.failure)).toBe(true);
@@ -77,7 +78,7 @@ postgres.it(
 	"timestamp without time zone is read and written as UTC wall time with millisecond precision",
 	[hasPayments(), inTimezone("America/New_York")],
 	function* ({ paymentFixture, sql }) {
-		yield* sql.withTransaction(
+		yield* transaction(
 			Effect.gen(function* () {
 				const { payments, tableName } = paymentFixture();
 				const inserted = yield* payments.insert(input);

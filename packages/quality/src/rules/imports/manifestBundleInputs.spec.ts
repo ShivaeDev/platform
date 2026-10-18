@@ -1,23 +1,13 @@
 import { afterEach, expect, it } from "vitest";
 import { importsManifest } from "#rules/imports/manifest.ts";
+import { blocked, manifest } from "#test/bundleManifest.ts";
 import { findingsIn } from "#test/imports.ts";
 import { manifestTree } from "#test/manifestTree.ts";
 import { removeSeededTrees } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
 
-const blocked = {
-	"./*.ts": "./src/*.ts",
-	"./bundle/*": null,
-};
 const input = { content: 'import "plain-kit";', path: "modules/app/src/bundle/input.ts" };
-
-function manifest(exports: object = blocked, bin?: string) {
-	return {
-		content: JSON.stringify({ bin, devDependencies: { "plain-kit": "workspace:*" }, exports, name: "@acme/app" }),
-		path: "modules/app/package.json",
-	};
-}
 
 it("allows declared development dependencies in explicitly export-blocked bundle inputs", async () => {
 	const root = manifestTree([manifest(), input]);
@@ -69,12 +59,16 @@ it.each([
 
 it.each(["./dist/bundle/input.js", "./src/bundle/input.ts"])("keeps executable %s in the runtime dependency boundary", async (bin) => {
 	const root = manifestTree([manifest(blocked, bin), input]);
-	expect(await findingsIn(importsManifest, undefined, root)).toHaveLength(1);
+	expect((await findingsIn(importsManifest, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
+		{ file: input.path, subject: "plain-kit" },
+	]);
 });
 
 it("keeps executable tooling inside the runtime dependency boundary", async () => {
 	const root = manifestTree([manifest(blocked, "./tooling/cli.ts"), { ...input, path: "modules/app/tooling/cli.ts" }]);
-	expect(await findingsIn(importsManifest, undefined, root)).toHaveLength(1);
+	expect((await findingsIn(importsManifest, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
+		{ file: "modules/app/tooling/cli.ts", subject: "plain-kit" },
+	]);
 });
 
 it.each([
@@ -82,14 +76,18 @@ it.each([
 	{ ...blocked, "./bundle/input.*": "./src/bundle/input.*" },
 ])("honors a more specific public export inside a blocked pattern", async (exports) => {
 	const root = manifestTree([manifest(exports), input]);
-	expect(await findingsIn(importsManifest, undefined, root)).toHaveLength(1);
+	expect((await findingsIn(importsManifest, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
+		{ file: input.path, subject: "plain-kit" },
+	]);
 });
 
 it.each(["./src/bundle/input.ts", "./dist/bundle/input.js", "./dist/bundle/input.d.ts"])(
 	"rejects a blocked source also exported through alias %s",
 	async (target) => {
 		const root = manifestTree([manifest({ ...blocked, "./public.ts": target }), input]);
-		expect(await findingsIn(importsManifest, undefined, root)).toHaveLength(1);
+		expect((await findingsIn(importsManifest, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
+			{ file: input.path, subject: "plain-kit" },
+		]);
 	},
 );
 
@@ -104,5 +102,7 @@ it.each([
 		},
 		{ ...input, path },
 	]);
-	expect(await findingsIn(importsManifest, undefined, root)).toHaveLength(1);
+	expect((await findingsIn(importsManifest, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
+		{ file: path, subject: "plain-kit" },
+	]);
 });

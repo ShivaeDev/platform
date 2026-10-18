@@ -1,7 +1,16 @@
 import { Effect } from "effect";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
+import { openSweep } from "#scheduling/sweeps.ts";
 import { StorageAdmission } from "#storage/errors.ts";
-import type { AdmissionLimits } from "#storage/model.ts";
+import type { AdmissionLimits, ForeignReservation } from "#storage/model.ts";
+
+export function areasOverlap(left: string, right: string): boolean {
+	return left === "*" || right === "*" || left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`);
+}
+
+export function overlappingArea(areas: readonly string[], other: readonly string[] = []): string | undefined {
+	return areas.find((area) => other.some((candidate) => areasOverlap(area, candidate)));
+}
 
 export const DEFAULT_AREA_MERGE_WAIT_MS = 30 * 60 * 1000;
 
@@ -46,21 +55,29 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	previous: FleetRecord | undefined,
 	records: readonly FleetRecord[],
 	limits: AdmissionLimits,
+	external: readonly ForeignReservation[] = [],
 ) {
 	const scheduling = limits.scheduling;
 	if (scheduling === undefined || !needsAreaRecords(record, previous, limits)) {
 		return;
 	}
 	const areas = record.areas ?? [];
+	const foreign = external.find((entry) => overlappingArea(areas, entry.areas) !== undefined);
+	if (foreign !== undefined) {
+		return yield* Effect.fail(
+			new StorageAdmission({ message: `waiting for area ${overlappingArea(areas, foreign.areas)} held by ${foreign.owner}` }),
+		);
+	}
 	const index = records.findIndex((entry) => entry.workId === record.workId);
 	const holder = records.find(
 		(entry) =>
 			entry.workId !== record.workId
+			&& !(openSweep(entry) && previous !== undefined && previous.attempts.length > 0)
 			&& holdsAreas(entry, scheduling.now, scheduling.areaMergeWaitMs)
-			&& entry.areas?.some((area) => areas.includes(area)),
+			&& overlappingArea(areas, entry.areas) !== undefined,
 	);
 	if (holder !== undefined) {
-		const heldArea = areas.find((area) => holder.areas?.includes(area));
+		const heldArea = overlappingArea(areas, holder.areas);
 		return yield* Effect.fail(new StorageAdmission({ message: `waiting for area ${heldArea} held by ${holder.workId}` }));
 	}
 	if (previous !== undefined && holdsAreas(previous, scheduling.now, scheduling.areaMergeWaitMs)) {
@@ -68,9 +85,9 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	}
 	const ahead = records
 		.slice(0, index)
-		.find((entry) => entry.stage === "prepared" && scheduling.waiters.includes(entry.workId) && entry.areas?.some((area) => areas.includes(area)));
+		.find((entry) => entry.stage === "prepared" && scheduling.waiters.includes(entry.workId) && overlappingArea(areas, entry.areas) !== undefined);
 	if (ahead !== undefined) {
-		const queuedArea = areas.find((area) => ahead.areas?.includes(area));
+		const queuedArea = overlappingArea(areas, ahead.areas);
 		return yield* Effect.fail(new StorageAdmission({ message: `waiting for area ${queuedArea} queued ahead by ${ahead.workId}` }));
 	}
 });

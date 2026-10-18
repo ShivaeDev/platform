@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.20.3 - 2026-10-18
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.20.2 - 2026-10-18
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.20.1 - 2026-10-18
+
+### Changed
+
+- The Board's top bar stays in place while the page scrolls, and anchored sections land below it.
+- Every page opens with the same header: title, an optional summary line and its actions. Item pages share the other pages' padding, and their actions look like buttons: Save favorite, Clear selections and Change your answer are buttons, while actions that open another page, such as Prepare an agent handoff, stay links for screen readers. The top bar's Today link is a link too. `DocumentView` accepts an `actions` slot for the title row.
+
 ## 0.20.0 - 2026-10-18
 
 ### Added

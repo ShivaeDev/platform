@@ -1,13 +1,13 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { SourceFailure } from "#diagnostics/source.ts";
-import { boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { codexResponse, githubObservations, health, syntheticSources } from "#test/diagnostics.ts";
 import { daemonSnapshot, diagnosticsSources, readingTime } from "#test/readingTraits.ts";
 
 boardStory.it(
 	"serves System and renders each provider through normal HTTP",
-	[serverReading(), projectFiles({ "home.md": "# Home" }), diagnosticsSources(syntheticSources())],
+	[projectFiles({ "home.md": "# Home" }), diagnosticsSources(syntheticSources())],
 	function* ({ getPage, systemHtml }) {
 		expect((yield* getPage("/_board/system")).status).toBe(200);
 		const body = yield* systemHtml();
@@ -25,7 +25,6 @@ boardStory.it(
 boardStory.it(
 	"source failures leave System usable and escape their causes",
 	[
-		serverReading(),
 		diagnosticsSources(
 			syntheticSources({
 				codex: Effect.fail(new SourceFailure({ kind: "not-configured", message: "Codex missing" })),
@@ -64,7 +63,7 @@ for (const [readAt, label] of [
 ] as const) {
 	boardStory.it(
 		`discloses ${label} without inventing missing observations`,
-		[serverReading(), readingTime(readAt), daemonSnapshot(() => unobserved)],
+		[readingTime(readAt), daemonSnapshot(() => unobserved)],
 		function* ({ systemHtml }) {
 			const body = yield* systemHtml();
 			expect(body).toContain(label);
@@ -78,7 +77,6 @@ for (const [readAt, label] of [
 boardStory.it(
 	"shows each recorded GitHub resource with its own age and pause reason",
 	[
-		serverReading(),
 		readingTime(now),
 		daemonSnapshot(() => ({ codex: missing, fleet: missing, github: { observedAt: now, state: "ready", value: githubObservations } })),
 	],
@@ -108,7 +106,6 @@ boardStory.it(
 boardStory.it(
 	"uses Fleet's observation time instead of the Board read time for stale counts",
 	[
-		serverReading(),
 		readingTime(now + 120_000),
 		daemonSnapshot(() => ({ codex: missing, fleet: { observedAt: now + 120_000, state: "ready", value: health }, github: missing })),
 	],
@@ -126,7 +123,6 @@ const resetNow = (codexResponse.rateLimits.primary.resetsAt - 3 * 3600) * 1000;
 boardStory.it(
 	"labels Codex windows by duration with local and relative resets",
 	[
-		serverReading(),
 		readingTime(resetNow),
 		daemonSnapshot(() => ({ codex: { observedAt: resetNow, state: "ready", value: codexResponse.rateLimits }, fleet: missing, github: missing })),
 	],
@@ -147,7 +143,6 @@ for (const [minutes, label] of [
 	boardStory.it(
 		`labels a ${label} Codex window`,
 		[
-			serverReading(),
 			readingTime(resetNow),
 			daemonSnapshot(() => ({
 				codex: {

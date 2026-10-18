@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { boardStory, projectFiles, readerAt, responsesEnabled } from "#test/boardStory.ts";
 import { held, type openPage } from "#test/browser.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
 import { enterField } from "#test/enterField.ts";
@@ -21,7 +21,7 @@ function* open(reader: BoardReader, kind: "handoff" | "response", beforeScripts?
 
 boardStory.it(
 	"shows Schema field messages for handoff direction and clears them when corrected",
-	[projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled()],
+	[readerAt("/"), projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled()],
 	function* ({ reader }) {
 		const page = yield* open(reader, "handoff");
 		yield* formEvent(page, () => enterField(page, "recipient", "agent-local"));
@@ -44,7 +44,7 @@ boardStory.it(
 
 boardStory.it(
 	"saves the captured response while retaining and resubmitting input typed during the command",
-	[projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled()],
+	[readerAt("/"), projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled()],
 	function* ({ reader }) {
 		const gate = held();
 		let reached = false;
@@ -91,7 +91,7 @@ boardStory.it(
 for (const kind of ["handoff", "response"] as const) {
 	boardStory.it(
 		`retains the ${kind} form after persisted pageshow with the durable draft intact`,
-		[projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled()],
+		[readerAt("/"), projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled()],
 		function* ({ reader }) {
 			const page = yield* open(reader, kind);
 			yield* formEvent(page, () => enterField(page, kind === "handoff" ? "recipient" : "author", "local-label"));
@@ -115,7 +115,7 @@ for (const kind of ["handoff", "response"] as const) {
 
 boardStory.it(
 	"puts each questionnaire Schema message on its own unanswered control",
-	[projectFiles({ "item.md": questionnaireSource }), responsesEnabled(true)],
+	[readerAt("/"), projectFiles({ "item.md": questionnaireSource }), responsesEnabled(true)],
 	function* ({ reader }) {
 		const page = yield* reader.open("/_board/respond?item=investigation.choices&request=direction");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false)));

@@ -1,4 +1,5 @@
-import { Effect, Schema } from "effect";
+import * as PgTypes from "@effect/sql-pg/PgTypes";
+import { Effect, Result, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/schema";
 import { FleetRecord } from "#model.ts";
 import { inputColumns } from "#storage/recordChildren.ts";
@@ -55,13 +56,28 @@ export function modelFromColumns(columns: Readonly<Record<string, ColumnKind>>):
 }
 
 export const ForeignReservation = Schema.Struct({
+	areas: Schema.Array(Schema.String),
 	backlog: Schema.Boolean,
 	executing: Schema.Boolean,
 	owner: Schema.String,
 });
 export type ForeignReservation = typeof ForeignReservation.Type;
 
-export class ForeignReservationRow extends Model.Class<ForeignReservationRow>("ForeignReservationRow")(ForeignReservation.fields) {}
+const StoredAreas = Schema.Unknown.pipe(
+	Schema.decodeTo(ForeignReservation.fields.areas, {
+		decode: SchemaGetter.transformEffect((value) =>
+			Schema.decodeUnknownEffect(ForeignReservation.fields.areas)(PgTypes.isParameter(value) ? value.value : value).pipe(
+				Effect.mapError((error) => error.issue),
+			),
+		),
+		encode: SchemaGetter.transform((areas) => Result.getOrThrow(PgTypes.array(areas, PgTypes.OID.text))),
+	}),
+);
+
+export class ForeignReservationRow extends Model.Class<ForeignReservationRow>("ForeignReservationRow")({
+	...ForeignReservation.fields,
+	areas: Model.Field({ insert: StoredAreas, json: ForeignReservation.fields.areas, select: StoredAreas, update: StoredAreas }),
+}) {}
 
 export function recordInput(value: object, schema: Schema.Top = FleetRecord) {
 	return inputColumns(value, recordShape(schema));

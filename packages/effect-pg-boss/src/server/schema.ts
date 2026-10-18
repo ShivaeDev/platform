@@ -4,6 +4,7 @@ import type { Connection } from "effect/sql/SqlConnection";
 import { getConstructionPlans, getMigrationPlans, type MigrationPartition, PgBoss } from "pg-boss";
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
 import { type PgBossError, toPgBossError } from "#error.ts";
+import { deferralStorePlan } from "#internal/deferralStorePlan.ts";
 import { runSchemaPlan } from "#internal/runSchemaPlan.ts";
 import { resumeSchemaIndexes } from "#internal/schemaIndexBuilds.ts";
 
@@ -51,7 +52,13 @@ export function installPgBossSchema(options: PgBossSchemaOptions = {}): Effect.E
 			const sql = yield* SqlClient.SqlClient;
 			const connection = yield* sql.reserve;
 			const run = Effect.runPromiseWith(yield* Effect.context<never>());
-			yield* Effect.tryPromise({ catch: (error) => error, try: () => installSchema(connection, options, run) });
+			yield* Effect.tryPromise({
+				catch: (error) => error,
+				try: async () => {
+					await installSchema(connection, options, run);
+					await run(connection.executeRaw(deferralStorePlan(options.schema ?? "pgboss"), []));
+				},
+			});
 		}).pipe(Effect.mapError((error) => toPgBossError("install", error))),
 	).pipe(Effect.uninterruptible);
 }

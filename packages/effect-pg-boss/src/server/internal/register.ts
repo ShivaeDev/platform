@@ -12,7 +12,7 @@ import {
 import { PgBossError, PgBossPayloadError, PgBossQueueOptionsError, toPgBossError } from "#error.ts";
 import { ensureQueue } from "#internal/ensureQueue.ts";
 import { registerWorker } from "#internal/registerWorker.ts";
-import { payloadOf, traceJob } from "#internal/tracing.ts";
+import { payloadOf } from "#internal/tracing.ts";
 
 function isQueueWorker(registration: JobRegistration): registration is QueueWorker {
 	return registration._tag === "QueueWorker";
@@ -65,7 +65,7 @@ function workerContext(context: unknown): unknown {
 	return context;
 }
 
-function runQueueWorker(worker: QueueWorker, job: Job<unknown>, context: Context.Context<unknown>) {
+function runQueueWorker(worker: QueueWorker, job: Job<unknown>) {
 	return Schema.decodeUnknownEffect(worker.queue.schema)(payloadOf(job.data)).pipe(
 		Effect.mapError(
 			(error) =>
@@ -76,8 +76,6 @@ function runQueueWorker(worker: QueueWorker, job: Job<unknown>, context: Context
 				}),
 		),
 		Effect.flatMap((payload) => worker.handler(payload, jobContext(job))),
-		(effect) => traceJob(effect, job, worker.queue.name),
-		Effect.provide(context),
 	);
 }
 
@@ -86,24 +84,25 @@ async function registerQueue(
 	registration: QueueWorker | QueueDefinition,
 	context: Context.Context<unknown>,
 	scope: Scope.Scope,
+	schema: string,
 ): Promise<void> {
 	const queue = registration._tag === "QueueWorker" ? registration.queue : registration;
 	const name = queue.name;
 	if (registration._tag === "QueueDefinition") {
 		return;
 	}
-	await registerWorker(client, name, queue.workerOptions, (job) => runQueueWorker(registration, job, context), scope);
+	await registerWorker(client, name, queue.workerOptions, (job) => runQueueWorker(registration, job), scope, schema, queue.maxDeferrals, context);
 }
 
-async function registerSchedule(client: PgBossClient, worker: ScheduledWorker, context: Context.Context<unknown>, scope: Scope.Scope): Promise<void> {
+async function registerSchedule(
+	client: PgBossClient,
+	worker: ScheduledWorker,
+	context: Context.Context<unknown>,
+	scope: Scope.Scope,
+	schema: string,
+): Promise<void> {
 	const { schedule } = worker;
-	await registerWorker(
-		client,
-		schedule.name,
-		schedule.workerOptions,
-		(job) => Effect.provide(traceJob(worker.effect, job, schedule.name), context),
-		scope,
-	);
+	await registerWorker(client, schedule.name, schedule.workerOptions, () => worker.effect, scope, schema, schedule.maxDeferrals, context);
 	await client.schedule(schedule.name, schedule.cron, null, schedule.scheduleOptions);
 }
 
@@ -120,6 +119,7 @@ export const registerJobs = <R>(
 	registrations: readonly JobRegistration[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
+	schema = "pgboss",
 ): Effect.Effect<void, PgBossError | PgBossQueueOptionsError, Scope.Scope> =>
 	Effect.flatMap(Effect.scope, (scope) =>
 		Effect.tryPromise({
@@ -130,9 +130,9 @@ export const registerJobs = <R>(
 				const provided = workerContext(context);
 				for (const registration of registrations) {
 					if (isQueueWorker(registration) || isQueueDefinition(registration)) {
-						await registerQueue(client, registration, provided, scope);
+						await registerQueue(client, registration, provided, scope, schema);
 					} else if (isScheduledWorker(registration)) {
-						await registerSchedule(client, registration, provided, scope);
+						await registerSchedule(client, registration, provided, scope, schema);
 					}
 				}
 			},

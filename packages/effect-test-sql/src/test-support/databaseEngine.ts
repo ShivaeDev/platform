@@ -15,7 +15,6 @@ export class DatabaseEngine {
 	template = "";
 	idleClock = false;
 	marker = `story_${crypto.randomUUID()}`;
-	cloneNames: string[] = [];
 	pressure: Effect.Success<ReturnType<typeof databasePressure>> | undefined;
 	pressureCount = 0;
 

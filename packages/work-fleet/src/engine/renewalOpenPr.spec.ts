@@ -23,7 +23,9 @@ describe("renewal refreshes adopted open PR ownership", () => {
 				fixture.approveWork("one", "board-one-next");
 				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "Forbidden", message: expect.stringContaining("scope exceeds") });
 				expect((yield* fleet.get("one")).value.history).toBeUndefined();
-				expect(yield* fixture.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
+				expect(yield* fixture.foreignReservations()).toEqual([
+					{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" },
+				]);
 				expect(fixture.launched).toHaveLength(2);
 			}),
 		);
@@ -113,7 +115,9 @@ describe("renewal refreshes adopted open PR ownership", () => {
 				const decisionId = denied.value.decision?.id ?? "missing";
 				const responseId = fixture.respond(decisionId, "release");
 				expect((yield* fleet.resolve("one", decisionId, responseId)).value.stage).toBe("released");
-				expect(yield* fixture.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
+				expect(yield* fixture.foreignReservations()).toEqual([
+					{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" },
+				]);
 			}),
 		);
 	});

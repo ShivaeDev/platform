@@ -4,6 +4,9 @@ import { nativeStackDiagnostics, publicStackDiagnostics } from "#test/app-host/n
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
+const HTTP_OK = 200;
+const INTERRUPTING_FIBER_ID = 123;
+
 for (const protocol of ["http/json", "http/protobuf"]) {
 	host.it(
 		`deep public native stack chains still reach reporters and ${protocol} traces`,
@@ -13,8 +16,8 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 				`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { depth: 10, kind: "interruption", marker: "public-frame" }, tag: "nativeStack" })}\n`,
 				false,
 			);
-			expect(response.status).toBe(200);
-			expect(reportedCauses()).toHaveLength(1);
+			expect(response.status).toBe(HTTP_OK);
+			expect(reportedCauses()).toEqual([expect.objectContaining({ reasons: expect.any(Array) })]);
 			expect(
 				reportedCauses()
 					.map((cause) => Cause.pretty(cause))
@@ -42,11 +45,11 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 					`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { kind, marker }, tag: "nativeStack" })}\n`,
 					false,
 				);
-				expect(response.status).toBe(200);
+				expect(response.status).toBe(HTTP_OK);
 				const reasons = reportedCauses().flatMap((cause) => cause.reasons);
 				expect(reasons.map((reason) => reason._tag)).toEqual(kind === "defect" ? ["Die"] : ["Die", "Interrupt"]);
 				if (kind === "interruption") {
-					expect(reasons.find(Cause.isInterruptReason)?.fiberId).toBe(123);
+					expect(reasons.find(Cause.isInterruptReason)?.fiberId).toBe(INTERRUPTING_FIBER_ID);
 				}
 				for (const reason of reasons) {
 					expect(reason.annotations.has(Cause.StackTrace.key)).toBe(false);

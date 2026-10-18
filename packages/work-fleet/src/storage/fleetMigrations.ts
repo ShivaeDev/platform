@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { addShapeColumns } from "#storage/addShapeColumns.ts";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
+import { mergedDeliveries } from "#storage/mergedDeliveries.ts";
 import { modelTables } from "#storage/modelTables.ts";
 import { pruneEmptyCycles } from "#storage/pruneEmptyCycles.ts";
 import { childTable } from "#storage/recordChildren.ts";
@@ -9,6 +10,7 @@ import { recordTimeColumns } from "#storage/recordTimes.ts";
 import { shapeV12 } from "#storage/shapeV12.ts";
 import { shapeV14 } from "#storage/shapeV14.ts";
 import { shapeV17 } from "#storage/shapeV17.ts";
+import { sweeps } from "#storage/sweeps.ts";
 import { typedTables } from "#storage/typedTables.ts";
 
 const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
@@ -74,5 +76,8 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			position integer generated always as identity, decision_code text, decision_reason text not null,
 			text text not null, release boolean not null, error text, response_decision_id text, response_id text
 		)`,
+		"20_merged_deliveries": mergedDeliveries(namespace),
+		"21_foreign_areas": sql`alter table ${sql(`${namespace}_foreign_reservations`)} add column areas text[] not null default '{}'`,
+		"22_sweeps": sweeps(namespace),
 	});
 });

@@ -3,6 +3,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createContext, createElement, Fragment, type ReactNode, useContext, useEffect, useState } from "react";
 import { DraftSessionContext } from "@shivaedev/effect-form/client/react.ts";
 import { registerSessionRecheck } from "#internal/sessionRecheck.ts";
+import { mountLive } from "./mountLive.ts";
 import { useDraftOwner } from "./useDraftOwner.ts";
 export interface SessionBoundaryProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
@@ -53,7 +54,9 @@ function Generation<TSession, TClient>({ session, connect, recheck, children }: 
 	useEffect(() => registerSessionRecheck(owned.registry, recheck), [owned, recheck]);
 	useEffect(() => {
 		owned.mounted += 1;
+		const stopLive = mountLive(owned.registry, owned.client);
 		return () => {
+			stopLive();
 			owned.mounted -= 1;
 			queueMicrotask(() => {
 				if (owned.mounted > 0) {

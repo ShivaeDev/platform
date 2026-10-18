@@ -88,6 +88,8 @@ export const liveNotesStory = storyKit({
 				story.tell(`watch note ${id} with the ${helper} helper`);
 				return run(client.api.watch.run({ helper, id }).pipe(Stream.runForEach((hint) => Effect.sync(() => hints.push(hint)))));
 			},
+			watchKeys: (keys: readonly import("#keys.ts").Key[], hints: unknown[]) =>
+				run(server.hints.stream(keys).pipe(Stream.runForEach((hint) => Effect.sync(() => hints.push(hint))))),
 		};
 	},
 });

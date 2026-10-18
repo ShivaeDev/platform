@@ -2,10 +2,12 @@ import { Effect } from "effect";
 import { act } from "react";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
+import { signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
 import { domFetch } from "@shivaedev/test-story/domFetch.ts";
 import { domNavigate } from "@shivaedev/test-story/domNavigate.ts";
 import { routeOutbound } from "@shivaedev/test-story/routeOutbound.ts";
 import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
+import { seedCookies } from "@shivaedev/test-story/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { oauthProvider } from "./oauthProvider.ts";
 import { postgres } from "./postgres.ts";
@@ -38,7 +40,7 @@ export const socialApp = storyKit({
 	layer: postgres,
 	name: "social auth",
 	stages: ["account"],
-	verbs: ({ baseUrl, fetch, pool, provider, screen, failAccountLookup }, story) => {
+	verbs: ({ auth, baseUrl, fetch, pool, provider, screen, failAccountLookup, accountLookups, expireBeforeAccountLookup }, story) => {
 		provider.narrate(story.tell);
 		const driver = screenDriver({
 			act: async (action) => {
@@ -49,11 +51,13 @@ export const socialApp = storyKit({
 			tell: story.tell,
 		});
 		return {
+			accountLookups,
 			clickGitHubSignIn: () => driver.click("button"),
 			cookie: () => {
 				story.tell("read the document's visible cookies");
 				return document.cookie;
 			},
+			expireBeforeAccountLookup: () => Effect.sync(expireBeforeAccountLookup),
 			failAccountLookup: () => Effect.sync(failAccountLookup),
 			followRedirect: () =>
 				Effect.promise(() => {
@@ -61,10 +65,17 @@ export const socialApp = storyKit({
 					return domNavigate();
 				}),
 			heading: () => driver.text("h1"),
+			identityOnly: () => readProviderAccounts(baseUrl, fetch, "identityOnly"),
 			location: () => {
 				story.tell(`read the page location: ${window.location.href}`);
 				return window.location.href;
 			},
+			mintSession: (email: string) =>
+				Effect.gen(function* () {
+					story.tell(`the browser starts with a minted session for ${email}`);
+					const { cookies } = yield* Effect.promise(() => signedInUser(auth, { email, name: email }));
+					yield* seedCookies(cookies);
+				}),
 			providerAccounts: () => {
 				story.tell("the signed-in user reads provider account IDs through native RPC");
 				return readProviderAccounts(baseUrl, fetch);
@@ -94,20 +105,15 @@ export const socialApp = storyKit({
 						throw new Error(`Sign-out failed: ${response.status}`);
 					}
 				}),
-			signUpWithEmail: () =>
-				Effect.promise(async () => {
-					story.tell("Bob signs up with email and password");
-					const response = await fetch("/api/auth/sign-up/email", {
-						body: JSON.stringify({ email: "bob@social.test", name: "Bob", password: "story-password-123" }),
-						headers: { "content-type": "application/json", origin: baseUrl },
-						method: "POST",
-					});
-					if (!response.ok) {
-						throw new Error(`Sign-up failed: ${response.status}`);
-					}
-				}),
 			storedSessions: () => Effect.promise(async () => (await pool.query('select count(*)::int as count from "session"')).rows),
 			storedUsers: () => Effect.promise(async () => (await pool.query('select "email" from "user"')).rows),
 		};
 	},
 });
+
+export function mintedSocialSession() {
+	return socialApp.trait("account", "Bob starts signed in without linked providers", function* ({ auth }) {
+		const { cookies } = yield* Effect.promise(() => signedInUser(auth, { email: "bob@social.test", name: "Bob" }));
+		yield* seedCookies(cookies);
+	});
+}

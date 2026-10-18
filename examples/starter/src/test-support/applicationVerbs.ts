@@ -10,6 +10,7 @@ import { createInRolledBackTransaction } from "./createInRolledBackTransaction.t
 import { startHost } from "./host.ts";
 import { liveNotes } from "./liveNotes.ts";
 import { requests } from "./requests.ts";
+import { sessionPrecondition } from "./sessionPrecondition.ts";
 import { storedNotes } from "./storedNotes.ts";
 import { workerTracing } from "./workerTracing.ts";
 
@@ -39,6 +40,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		});
 	});
 	return {
+		awaitDatabaseCleanup: () => engine.databaseLifetime.awaitCleanup,
 		...storedNotes(story.tell),
 		databaseLifetime: () => engine.databaseLifetime,
 		existingNote: (title: string) => {
@@ -67,7 +69,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			const { baseUrl, origin } = host();
 			return makeAuth({ baseUrl, fetchOptions: { headers: { cookie, origin } } });
 		},
-		authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
 		authenticateResponse: (name: string, path: string) => authPost(host().baseUrl, path, credentials(name), "", host().origin),
 		createInRolledBackTransaction: (title: string, ownerId: string) => createInRolledBackTransaction(host(), story.tell, title, ownerId),
 		failNextNoteJob: Effect.fn("AppStory.failNextNoteJob")(function* () {
@@ -84,12 +85,24 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			return liveNotes(host(), actor.cookie);
 		},
 		logs: () => host().logs,
+		mintSession: Effect.fn("AppStory.mintSession")(function* (name: string) {
+			story.tell(`mint a new session for ${name}'s existing account`);
+			const actor = engine.actors.get(name);
+			if (actor === undefined) {
+				return yield* Effect.die(`No account ${name}`);
+			}
+			const auth = yield* sessionPrecondition(host());
+			const { test } = yield* Effect.promise(() => auth.$context);
+			const { headers } = yield* Effect.promise(() => test.login({ userId: actor.userId }));
+			return headers.get("cookie") ?? "";
+		}),
 		notes: (cookie: string) => http().notes(cookie),
 		rerunMigrations: Effect.fn("AppStory.rerunMigrations")(function* () {
 			story.tell("run the deployment migrations and open another app host");
 			engine.host = yield* startHost(engine.hostOptions);
 		}),
 		runningHost: host,
+		signOut: (cookie: string) => http().signOut(cookie),
 		startWorker,
 		wordCountCompletions: engine.workerQueue.completions,
 	};

@@ -2,8 +2,7 @@ import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
-import { LiveHint } from "@shivaedev/effect-contract/live.ts";
-import { command, query, stream } from "@shivaedev/effect-contract/operation.ts";
+import { command, query } from "@shivaedev/effect-contract/operation.ts";
 import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
 import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { AuthenticatedUser } from "@shivaedev/platform/rpc/middleware.ts";
@@ -21,7 +20,7 @@ const NoteVersion = Schema.Struct({ ...NoteId.fields, version: Note.fields.versi
 export const notes = collection("notes", Schema.Number);
 export const Get = query("get", {
 	payload: NoteId,
-	reads: ({ id }) => [notes.item(id), notes.list],
+	reads: ({ id }) => [notes.item(id)],
 	rejections: { NotFound, ServiceUnavailable },
 	success: Note.json,
 });
@@ -35,10 +34,6 @@ export const Create = command("create", {
 	payload: NoteFields,
 	rejections: { Invalid: fieldRejection(NoteFields), ServiceUnavailable },
 	success: Note.json,
-});
-export const Subscribe = stream("subscribe", {
-	reads: () => [notes.list],
-	success: LiveHint,
 });
 export const Update = command("update", {
 	invalidates: ({ id }) => [notes.item(id)],
@@ -56,6 +51,4 @@ export const Whoami = query("whoami", {
 	reads: () => [],
 	success: Schema.Struct({ email: Schema.String, id: Schema.String, name: Schema.String }),
 });
-export const Notes = contract("notes", { commands: [Create, Update, Delete], queries: [List, Get, Whoami], streams: [Subscribe] }).middleware(
-	AuthenticatedUser,
-);
+export const Notes = contract("notes", { commands: [Create, Update, Delete], queries: [List, Get, Whoami] }).middleware(AuthenticatedUser);

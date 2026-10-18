@@ -47,6 +47,7 @@ const MarkdownBoard = defineService({
 				approved: fleetApproved(found.parsed),
 				areas: found.parsed.fields.areas,
 				status: found.parsed.fields.status,
+				sweep: found.parsed.fields.sweep,
 				...(deliverable === "report" ? { deliverable: "report" as const } : {}),
 				context: found.source,
 				dependsOn: (found.parsed.fields.relationships ?? []).filter((relation) => relation.kind === "depends_on").map((relation) => relation.target),

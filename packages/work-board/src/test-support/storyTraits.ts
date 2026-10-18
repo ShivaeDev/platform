@@ -11,7 +11,7 @@ import { enterField } from "./enterField.ts";
 import { inboxFixture, inboxQuestion } from "./inboxFixture.ts";
 import { waitFor } from "./live.ts";
 import { REVIEW_TASK, reviewResult } from "./resultReview.ts";
-import { connected } from "./storyEngine.ts";
+import { connected, openReader } from "./storyEngine.ts";
 
 export function recordedReplies(...replies: readonly RecordedResponse[]) {
 	return projectFiles(
@@ -43,6 +43,7 @@ export function anUnreadableSource(file: string) {
 
 export function anAnswerForm(prefix = "response") {
 	return boardStory.trait("reader", `the ${prefix} form is ready`, function* (engine) {
+		yield* openReader(engine);
 		yield* Effect.promise(() =>
 			waitFor(() => expect(connected(engine).page.document.getElementById(`${prefix}-preview`)?.hasAttribute("disabled")).toBe(false)),
 		);
@@ -51,6 +52,7 @@ export function anAnswerForm(prefix = "response") {
 
 export function aRememberedAuthor(author: string) {
 	return boardStory.trait("reader", `the reader remembers the author ${author}`, function* (engine) {
+		yield* openReader(engine);
 		const page = connected(engine).page;
 		enterField(page, "author", author);
 		yield* Effect.promise(() => new Promise<void>((resolve) => page.window.requestAnimationFrame(() => resolve())));

@@ -3,6 +3,7 @@ import { expect } from "vitest";
 import { Reading } from "#test/compositeReadings.ts";
 import { hasCompositeReadings } from "#test/repositoryTraits.ts";
 import { postgres } from "#test/sqlStory.ts";
+import { transaction } from "#test/transaction.ts";
 
 postgres.it(
 	"PostgreSQL composite keys support idempotent ingest and isolate full-key CRUD",
@@ -34,15 +35,13 @@ postgres.it(
 		expect((yield* readings.findById({ sequence: 2, source: "meter" })).amount).toBe(80);
 		expect(yield* readings.findById({ sequence: 1, source: "meter" }).pipe(Effect.flip)).toMatchObject({ _tag: "NoSuchElementError" });
 		yield* readings.delete({ sequence: 1, source: "meter" });
-		const rollback = yield* sql
-			.withTransaction(
-				Effect.gen(function* () {
-					yield* readings.upsert({ ...input, amount: 100, sequence: 2 }, { updateColumns: ["amount"] });
-					yield* readings.insertOrIgnore({ ...input, sequence: 5 });
-					return yield* Effect.fail("cancelled");
-				}),
-			)
-			.pipe(Effect.result);
+		const rollback = yield* transaction(
+			Effect.gen(function* () {
+				yield* readings.upsert({ ...input, amount: 100, sequence: 2 }, { updateColumns: ["amount"] });
+				yield* readings.insertOrIgnore({ ...input, sequence: 5 });
+				return yield* Effect.fail("cancelled");
+			}),
+		).pipe(Effect.result);
 		expect(rollback._tag).toBe("Failure");
 		expect((yield* readings.findById({ sequence: 2, source: "meter" })).amount).toBe(80);
 		expect(yield* readings.findMany({ where: { sequence: 5 } })).toEqual([]);

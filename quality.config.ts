@@ -1,35 +1,17 @@
-import { MIGRATIONS_DIRECTORY } from "@shivaedev/effect-sql/migrationConvention.ts";
 import { defineConfig } from "@shivaedev/quality/config.ts";
 import { catalogOnly } from "#quality/catalogOnly.ts";
 import { catalogOverrides } from "#quality/catalogOverrides.ts";
 import { codecovComponents } from "#quality/codecovComponents.ts";
 import { exactCatalogVersion } from "#quality/exactCatalogVersion.ts";
+import { migrationConvention } from "#quality/migrationConvention.ts";
 import { unreadable } from "#quality/unreadable.ts";
 import { workspaceSection } from "#quality/workspaceSection.ts";
 
 export default defineConfig({
 	exceptions: [
 		{
-			files: [
-				"examples/starter/src/client/ui/chart.tsx",
-				"packages/work-board/src/client/react/components/ui/command.tsx",
-				"packages/work-board/src/client/react/components/ui/dialog.tsx",
-				"packages/work-board/src/client/react/components/ui/input-group.tsx",
-				"packages/work-board/src/client/react/components/ui/select.tsx",
-			],
-			reason: "The shadcn CLI owns these stock chart, command, dialog, input group and select modules, including their size.",
-			rules: ["structure/max-lines"],
-		},
-		{
-			"files": [
-				"**",
-				"!**/test-support/generated",
-				"!**/test-support/*/generated",
-				"!examples/starter",
-				"!packages/work-board/src/client/react/components/ui",
-			],
-			"reason":
-				"Generated test clients are not source. The starter has a nested Biome config and runs its own Quality gate, preserving stock shadcn output there. components.json assigns the Board's components/ui folder to the shadcn CLI; preserve its stock output, which TypeScript still checks.",
+			"files": ["**", "!**/test-support/generated", "!**/test-support/*/generated", "!examples/starter"],
+			"reason": "Generated test clients are not source. The starter has a nested Biome config and runs its own Quality gate.",
 			"rules": ["biome/files/includes"],
 		},
 		{
@@ -80,25 +62,32 @@ export default defineConfig({
 			rules: ["biome/lint/correctness/noUndeclaredDependencies"],
 		},
 	],
-	local: [catalogOnly, catalogOverrides, codecovComponents, exactCatalogVersion, unreadable, workspaceSection],
+	local: [catalogOnly, catalogOverrides, codecovComponents, exactCatalogVersion, migrationConvention, unreadable, workspaceSection],
 	rules: {
-		"files/named-after-export": {
+		"boundaries/auth-sql": { options: { owners: ["packages/platform/src/server/better-auth/**"] } },
+		"boundaries/http-status": { options: { edge: ["packages/platform/src/server/rpc-server/**", "packages/platform/src/server/node-http/**"] } },
+		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },
+		"tests/support-imports": {
 			options: {
-				toolOwned: [
-					`**/${MIGRATIONS_DIRECTORY}/`,
-					"*.config.*",
-					"*.d.ts",
-					"*.d.mts",
-					"*.d.cts",
-					"**/.railway/railway.ts",
-					"**/.railway/railway.py",
-					"**/.railway/railway.go",
-					"examples/starter/src/client/ui/",
-					"packages/work-board/src/client/react/components/ui/",
+				modules: [
+					"packages/quality/src/biome/report.ts",
+					"packages/quality/src/cli/program.ts",
+					"packages/quality/src/cli/runMain.ts",
+					"packages/quality/src/config.ts",
+					"packages/quality/src/engine/violation.ts",
+					"packages/quality/src/imports/fences/dsl.ts",
+					"packages/quality/src/imports/fences/selectors.ts",
+					"packages/quality/src/inventory/collect.ts",
+					"packages/quality/src/rule.ts",
+					"packages/quality/src/rules/suppressions/biomeOverrides.ts",
+					"packages/test-story/src/server/storyKit.ts",
+					"packages/platform/src/server/appHost.ts",
+					"examples/starter/src/server/notesHost.ts",
+					"examples/starter/src/notes.ts",
+					"examples/starter/src/server/noteJobs.ts",
 				],
 			},
 		},
-		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },
 	},
 	sources: ["packages", "examples", "script"],
 });

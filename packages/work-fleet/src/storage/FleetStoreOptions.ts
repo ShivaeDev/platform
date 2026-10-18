@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
 import type { StorageAdmission, StorageCapacity } from "#storage/errors.ts";
-import type { AdmissionLimits } from "#storage/model.ts";
+import type { AdmissionLimits, ForeignReservation } from "#storage/model.ts";
 
 export interface FleetStoreOptions<A> {
 	readonly admission?: (
@@ -8,6 +8,7 @@ export interface FleetStoreOptions<A> {
 		previous: A | undefined,
 		records: readonly A[],
 		limits: AdmissionLimits,
+		external?: readonly ForeignReservation[],
 	) => Effect.Effect<void, StorageAdmission | StorageCapacity>;
 	readonly admissionNeedsRecords?: (record: A, previous: A | undefined, limits: AdmissionLimits) => boolean;
 	readonly backlog?: (record: A) => boolean;

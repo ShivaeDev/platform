@@ -115,9 +115,21 @@ The worker brief is the authored content in the item's own Markdown source. Edit
 
 Cloud hosts compute the Board directory's repository-relative path only when that directory is inside the repository and git-ignored. Before launching, Fleet checks each criterion's text for that path. A match publishes an orchestrator decision naming the criteria and explaining that Cloud workers cannot read local-only Board data, without starting a session. Edit the criteria to use data available to the worker, then dispatch again. Local workers, Board directories outside the repository, directories that are not ignored, and paths mentioned only in the body do not trigger this guard.
 
+### Sweeps
+
+A task that migrates a shared catalog, release-note format or repository-wide name can declare `sweep` as a nonempty list of repository-relative path globs:
+
+```yaml
+sweep: ["packages/*/changes/**", "pnpm-workspace.yaml", "**/package.json"]
+```
+
+Use `sweep: ['*']` to cover every path. Board validates the list; absolute paths, parent-directory segments, empty lists and non-string entries are invalid. From launch until its PR merges or closes, a sweep blocks every new implementer, including urgent dispatch. Running work, reviews and repairs continue. Reviewed, green PRs touching a sweep path wait on automation as `Held behind sweep <id>`; unrelated PRs become ready as usual. The sweep's own readiness decision identifies it as a sweep, and its repairs run before other work, bypassing execution, backlog and area limits while retaining approval and provider-quota requirements.
+
+After the sweep merges, each held PR receives one repair turn on its existing branch and PR to merge main and migrate its changes, with the sweep's saved task brief as context. Fleet then independently reviews and validates the new result before declaring it ready. Holds and migration handoffs survive restart. Closing the sweep without merging releases its holds without a migration turn.
+
 ### Schedule areas and dependencies
 
-Use `areas` to name the code areas a task changes. Area names are exact shared labels, such as `work-fleet/host`; they do not expand into filesystem paths. Fleet admits one task per area, while disjoint areas and tasks without areas can run concurrently within the existing capacity and quota limits.
+Use `areas` to name the code areas a task changes. Two areas overlap when they are equal or one is a `/`-prefix of the other: `work-fleet` and `work-fleet/host` block each other, while `work-fleet/host` and `work-fleet/cli` stay independent. The area `*` overlaps every area. Areas are labels, not filesystem paths. Fleet serializes overlapping claims; disjoint areas and tasks without areas can run concurrently within capacity and quota limits.
 
 ```yaml
 ---
@@ -134,9 +146,11 @@ relationships:
 
 An overlapping task remains prepared, waiting on automation, with a reason such as `waiting for area work-fleet/host held by task.foundation`. Areas are held through execution, review and validation, and are freed on completion or safe release. For a reviewed, green PR ready for a human merge, `areaMergeWaitMs` in Fleet policy or `fleet.config.json` defaults to `1800000` (30 minutes), counted from that readiness event. Once the wait expires, other tasks can use its areas while Fleet continues observing the PR for delivery. PostgreSQL preserves admission order across restarts; eligible overlapping tasks wait behind earlier prepared work. Each scheduler pass retries waiting work but rewrites a waiting item only when its reason changes, and admission reads decode only the records that changed since the previous read.
 
+Reserve a PR Fleet did not launch with `work-fleet reserve-pr <url> --areas work-fleet --areas work-board/ui`. Fleet uses the matching Board task's areas when its `pr:` URL, `branch:` name or configured worker branch matches the PR; otherwise it uses the repeated `--areas` values. Foreign PR reservations hold those areas and an open-PR backlog slot until a scheduler pass observes the PR closed or merged. Failed GitHub reads retain the reservation. Reservations persist in PostgreSQL.
+
 Fleet identifies work by its authored brief: the Markdown title and body, criteria, Board kind, deliverable kind and authored relationships. Bookkeeping fields such as `status`, `next_action` and `owner` do not change that revision. Editing them on executing or reviewing work preserves the attempts; editing them on work with an open decision preserves the question and its recorded answers. Criteria or body edits refresh eligible prepared and active work in place. Work waiting on a human decision still stops with Board context changed; an answer to the earlier decision cannot authorize execution against the changed brief. This revision rule applies to every status, including `done`: marking executing work done leaves its original work and decision intact and resolvable. Completed work can be prepared again only after its authored brief changes; unchanged source or bookkeeping edits leave its accepted outcome intact. Saved whole-file revisions are compared through their exact saved source without rewriting records or publication receipts; records without that source still need renewed preparation when their revision differs. Approval remains a separate execution requirement.
 
-A `depends_on` relationship waits on automation for an accepted Fleet outcome on the target's current brief revision: an observed merge or validated no-change completion. Bookkeeping edits on the target preserve that acceptance before dispatch and while dependents execute, review or wait on a decision. Changes to the target's authored brief still need a new accepted outcome. If the target has no Fleet record, its authored `status: done` also qualifies. A prepared, released or unfinished Fleet record does not qualify through Board status alone. Missing or ambiguous targets and criterion-specific references remain blocked. Status, wait timeout summaries and the generated Board view show the stored reason.
+A `depends_on` relationship is satisfied when the target's delivery PR merged into the base branch, whoever merged it and whatever Fleet's review covered. Fleet retains that merge evidence on released records and archived cycles. The target also qualifies through Board `status: done` when it has no active Fleet record: no record, completed work and released work qualify. Later brief edits do not undo either form of satisfaction. A validated no-change outcome qualifies on its accepted brief revision; bookkeeping edits preserve that revision. Released work without a merged delivery stays blocked unless it is done on the Board. Missing or ambiguous targets and criterion-specific references remain blocked. Dependency waits belong to automation and list every unmet dependency with its reason; status, wait timeout summaries and the generated Board view show the stored blocker.
 
 Before launching prepared work, Fleet rereads its Markdown source for the current Board status, including changes made during preparation assessment in the same scheduler pass. A `done`, `superseded` or `deferred` item moves to `released` with a durable `releaseReason`, clears its admission blocker and leaves the waiting list. Release survives restart.
 
@@ -175,6 +189,7 @@ fleet-priority: high
 | Command | Behavior |
 |---|---|
 | `work-fleet serve <board-dir> [--port <port>]` | Starts the local HTTP RPC daemon, admits approved work, dispatches prepared items and reconciles running work. |
+| `work-fleet reserve-pr <url> [--areas <area> ...] [--port <port>]` | Reserves a foreign PR using matching Board areas or the supplied areas. |
 | `work-fleet dispatch <work-id> [--now [--ignore-areas]] [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. `--now` launches over capacity limits; `--ignore-areas` also skips area claims. |
 | `work-fleet status [--port <port>]` | Prints Active, owner-grouped waiting and Completed views from stored records, then the config the daemon applies. |
 | `work-fleet status <work-id> --json [--port <port>]` | Filters to one item and prints the views as JSON. |

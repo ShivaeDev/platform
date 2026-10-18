@@ -8,4 +8,5 @@ if (url === undefined && ci !== "") {
 }
 
 export const configured = url !== undefined;
-export const postgresLayer = PgClient.layer({ maxConnections: 6, url: Redacted.make(url ?? "postgresql://integration-tests-disabled") });
+export const postgresOptions = { maxConnections: 6, url: Redacted.make(url ?? "postgresql://integration-tests-disabled") };
+export const postgresLayer = PgClient.layer(postgresOptions);

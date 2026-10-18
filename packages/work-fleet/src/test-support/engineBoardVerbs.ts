@@ -1,9 +1,10 @@
-import { readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import type { EngineFixture } from "#test/engine.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
+import { upgradeMergedDeliveries } from "#test/upgradeMergedDeliveries.ts";
 
 export function engineBoardVerbs(state: EngineStory, tell: (line: string) => void) {
 	function files() {
@@ -21,6 +22,10 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 			return running(state).fixture.acknowledgeTurn(...args);
 		},
 		boardBrief: () => state.source,
+		boardDecisionFiles: () => {
+			files();
+			return readdirSync(join(state.root, "responses")).filter((file) => file.startsWith("decision."));
+		},
 		boardFileIdentity: (path = "one.md") => {
 			files();
 			return statSync(join(state.root, path)).ino;
@@ -33,6 +38,10 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 		editBoardDuringAssessment: (text: string) => {
 			state.closeDuringAssessment = () => write("one.md", text);
 			tell("a Board edit will arrive during main assessment");
+		},
+		occupyExecution: (owner: string) => {
+			tell(`reserve foreign execution for ${owner}`);
+			return running(state).fixture.occupy(owner);
 		},
 		readBoardPublication: (path: string) => {
 			files();
@@ -65,6 +74,14 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 		upgradeDecisionCodes: () => {
 			tell("upgrade persisted decision codes");
 			return running(state).fixture.upgradeDecisionCodes;
+		},
+		upgradeMergedDeliveries: () => {
+			tell("migrate released deliveries from the previous PostgreSQL schema");
+			return upgradeMergedDeliveries;
+		},
+		vacateExecution: (owner: string) => {
+			tell(`release foreign execution for ${owner}`);
+			return running(state).fixture.vacate(owner);
 		},
 		writeBoardWork: (path: string, text: string) => {
 			write(path, text);

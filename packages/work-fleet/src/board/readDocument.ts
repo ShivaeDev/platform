@@ -20,7 +20,9 @@ export const readDocument = Effect.fn("FleetBoard.readDocument")(function* (root
 		return { document: undefined, problem: undefined };
 	}
 	const parsed = boardApi.metadataParse(source);
-	const diagnostics = parsed.diagnostics;
+	const diagnostics = parsed.diagnostics.filter(
+		(diagnostic) => !((diagnostic.field === "pr" || diagnostic.field === "branch") && diagnostic.message.startsWith("Unknown field ")),
+	);
 	return {
 		document: { file, parsed, source },
 		problem:

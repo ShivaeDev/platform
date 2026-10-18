@@ -1,25 +1,29 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Deferred, Effect } from "effect";
-import { browserClient } from "#client/client.ts";
+import type { browserClient } from "#client/client.ts";
 import type { Sources } from "#diagnostics/source.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { responseFrom } from "#server/responses/records.ts";
-import { type FileSystemWrapper, type Folder, folder, type RunningBoard, startBoard } from "./board.ts";
+import { type FileSystemWrapper, type Folder, folder, type RunningBoard } from "./board.ts";
 import { type OpenPage, openPage } from "./browser.ts";
+import { startProject } from "./servingEngine.ts";
 
 export interface BoardEngine {
 	activeDiagnosticsPolls?: () => number;
 	beforeScripts?: Parameters<typeof openPage>[2];
+	changeDelivery?: { dropped: boolean; loseNext: boolean; omitPath?: string };
 	fleetPort?: number | undefined;
 	home?: string | undefined;
 	lastView?: ReturnType<typeof readerView>;
+	linked?: import("./linkedProject.ts").LinkedProject;
 	live?: { board: RunningBoard; client: ReturnType<typeof browserClient>; page: OpenPage };
-	readonly notes: Folder;
+	manualServing?: boolean;
+	notes: Folder;
+	outside?: Folder;
 	path: string;
 	pollDiagnostics?: () => void;
 	readAt?: number;
-	readingOnly?: boolean;
 	reads?: WorkspaceReads;
 	responses: boolean;
 	server?: { board: RunningBoard; client: ReturnType<typeof browserClient> };
@@ -42,13 +46,16 @@ export function wrapFilesystem(engine: BoardEngine, wrap?: FileSystemWrapper) {
 
 export function connected(engine: BoardEngine) {
 	if (!engine.live) {
-		throw new Error("The story's board has not started");
+		throw new Error("The story has no bundle page. Add the readerAt(path) reader trait before reading page or opening through reader.");
 	}
 	return engine.live;
 }
 
 export function served(engine: BoardEngine) {
-	return engine.live ?? engine.server ?? connected(engine);
+	if (!engine.server) {
+		throw new Error("The story's board has not started");
+	}
+	return engine.server;
 }
 
 export function* createBoard() {
@@ -61,23 +68,19 @@ export function* createBoard() {
 }
 
 export function* serveProject(engine: BoardEngine) {
-	const board = yield* startBoard(engine.notes.root, engine.home, engine.wrap, engine.responses, engine.sources, undefined, engine.fleetPort);
-	let client: ReturnType<typeof browserClient> | undefined;
-	yield* Effect.addFinalizer(() => Effect.sync(() => client?.registry.dispose()));
-	// A client starts reading the workspace, so server-only stories create it when a verb first uses it.
-	engine.server = {
-		board,
-		get client() {
-			client ??= browserClient(board.url);
-			return client;
-		},
-	};
-	if (engine.readingOnly) {
+	if (engine.manualServing) {
 		return;
 	}
-	const reader = engine.server.client;
+	yield* startProject(engine);
+}
+
+export function* openReader(engine: BoardEngine) {
+	if (engine.live) {
+		return;
+	}
+	const { board, client } = served(engine);
 	const page = yield* openPage(board, engine.path, engine.beforeScripts);
-	engine.live = { board, client: reader, page };
+	engine.live = { board, client, page };
 	yield* rememberReader(engine);
 }
 

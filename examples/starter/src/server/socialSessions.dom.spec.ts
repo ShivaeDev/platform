@@ -1,13 +1,25 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { socialApp } from "#test-support/socialApp.ts";
+import { mintedSocialSession, socialApp } from "#test-support/socialApp.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 socialApp.it(
 	"a social sign-in returns from the fake provider with a PostgreSQL cookie session",
 	[],
-	function* ({ clickGitHubSignIn, settle, followRedirect, location, heading, cookie, session, storedUsers, storedSessions, providerRequests }) {
+	function* ({
+		clickGitHubSignIn,
+		settle,
+		followRedirect,
+		location,
+		heading,
+		cookie,
+		session,
+		storedUsers,
+		storedSessions,
+		providerRequests,
+		providerAccounts,
+	}) {
 		yield* clickGitHubSignIn();
 		yield* settle();
 		expect(new URL(location()).hostname).toBe("github.com");
@@ -15,10 +27,11 @@ socialApp.it(
 		expect(response.redirected).toBe(true);
 		expect(response.status).toBe(200);
 		expect(yield* Effect.promise(() => response.text())).toContain("Signed in as alice@social.test");
-		expect(location()).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/signed-in$/u);
+		expect(location()).toMatch(/^http:\/\/localhost:\d+\/signed-in$/u);
 		expect(heading()).toBe("Signed in as alice@social.test");
 		expect(cookie()).not.toContain("session_token");
 		expect(yield* session()).toMatchObject({ user: { email: "alice@social.test" } });
+		expect(yield* providerAccounts()).toEqual([{ accountId: "123", providerId: "github" }]);
 		expect(yield* storedUsers()).toEqual([{ email: "alice@social.test" }]);
 		expect(yield* storedSessions()).toEqual([{ count: 1 }]);
 		const requests = providerRequests();
@@ -34,20 +47,47 @@ socialApp.it(
 );
 
 socialApp.it(
-	"provider account IDs follow the signed-in user through the PostgreSQL host",
-	[],
-	function* ({ clickGitHubSignIn, settle, followRedirect, providerAccounts, signOut, signUpWithEmail, failAccountLookup }) {
-		yield* clickGitHubSignIn();
-		yield* settle();
-		yield* followRedirect();
-		expect(yield* providerAccounts()).toEqual([{ accountId: "123", providerId: "github" }]);
+	"a minted session resolves account lookups and rejects unavailable or revoked sessions",
+	[mintedSocialSession()],
+	function* ({ providerAccounts, signOut, failAccountLookup, identityOnly, accountLookups }) {
+		expect(yield* providerAccounts()).toEqual([]);
+		yield* failAccountLookup();
+		expect(yield* identityOnly()).toEqual(expect.any(String));
+		expect(accountLookups()).toBe(1);
+		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "AuthUnavailable" } });
 		yield* signOut();
 		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
-		yield* signUpWithEmail();
-		const accounts = yield* providerAccounts();
-		expect(accounts.find(({ providerId }) => providerId === "github")).toBeUndefined();
-		expect(accounts).toEqual([{ accountId: expect.any(String), providerId: "credential" }]);
-		yield* failAccountLookup();
-		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "AuthUnavailable" } });
+	},
+);
+
+socialApp.it(
+	"identity-only RPCs leave accounts unloaded and each accounts request shares just its own lookup",
+	[mintedSocialSession()],
+	function* ({ identityOnly, providerAccounts, accountLookups, mintSession }) {
+		const bob = yield* identityOnly();
+		expect(bob).toEqual(expect.any(String));
+		expect(accountLookups()).toBe(0);
+		expect(yield* providerAccounts()).toEqual([]);
+		expect(accountLookups()).toBe(1);
+		expect(yield* providerAccounts()).toEqual([]);
+		expect(accountLookups()).toBe(2);
+		yield* mintSession("carol@social.test");
+		const carol = yield* identityOnly();
+		expect(carol).toEqual(expect.any(String));
+		expect(carol).not.toBe(bob);
+		expect(accountLookups()).toBe(2);
+		expect(yield* providerAccounts()).toEqual([]);
+		expect(accountLookups()).toBe(3);
+	},
+);
+socialApp.it(
+	"a session expiring after identity resolution fails the handler's accounts read as Unauthorized",
+	[mintedSocialSession()],
+	function* ({ expireBeforeAccountLookup, providerAccounts, accountLookups, identityOnly }) {
+		yield* expireBeforeAccountLookup();
+		expect(yield* identityOnly()).toEqual(expect.any(String));
+		expect(accountLookups()).toBe(0);
+		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+		expect(accountLookups()).toBe(1);
 	},
 );

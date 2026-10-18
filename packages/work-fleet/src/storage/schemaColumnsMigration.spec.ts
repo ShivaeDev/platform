@@ -1,29 +1,25 @@
-import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { FleetRecord } from "#model.ts";
-import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
+import type { FleetRecord } from "#model.ts";
 import { recordColumns } from "#storage/model.ts";
 import { childTable } from "#storage/recordChildren.ts";
 import { collections, recordShape, shapeColumns, sqlTypes } from "#storage/recordShape.ts";
-import { migrateFleet } from "#test/migrateFleet.ts";
-import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
+import { isolatedStorage } from "#test/storageStory.ts";
 
-const test = postgresTests("live", "isolated");
+const test = isolatedStorage;
 
 for (const path of ["fresh", "upgrade", "typed upgrade"] as const) {
-	test(`${path} database columns, PostgreSQL types and logical kinds match the Fleet record schema`, function* () {
-		const sql = yield* SqlClient.SqlClient;
+	test.it(`${path} database columns, PostgreSQL types and logical kinds match the Fleet record schema`, [], function* ({ sql, migrate }) {
 		const namespace = "fleet_schema";
 		const table = `${namespace}_records`;
 		if (path === "upgrade") {
-			yield* migrateFleet(namespace, "attention_owner");
+			yield* migrate(namespace, "attention_owner");
 			expect(yield* sql`select max(migration_id) as latest from ${sql(`${namespace}_migrations`)}`).toEqual([{ latest: 4 }]);
 		}
 		if (path === "typed upgrade") {
-			yield* migrateFleet(namespace, "orchestrator_decisions");
+			yield* migrate(namespace, "orchestrator_decisions");
 		}
-		yield* migrateFleet(namespace);
+		yield* migrate(namespace);
 		const columns = yield* sql<{ readonly name: string; readonly type: string }>`
 			select attname as name, format_type(atttypid, atttypmod) as type from pg_attribute
 			where attrelid = ${table}::regclass and attnum > 0 and not attisdropped`;
@@ -54,11 +50,10 @@ for (const path of ["fresh", "upgrade", "typed upgrade"] as const) {
 	});
 }
 
-test("existing model tables gain every Fleet schema column and persist release reasons", function* () {
-	const sql = yield* SqlClient.SqlClient;
+test.it("existing model tables gain every Fleet schema column and persist release reasons", [], function* ({ sql, migrate, openFleetStore }) {
 	const namespace = "fleet_upgrade";
 	const table = `${namespace}_records`;
-	yield* migrateFleet(namespace, "decision_codes");
+	yield* migrate(namespace, "decision_codes");
 	const before = yield* sql<{ readonly name: string }>`
 			select attname as name from pg_attribute where attrelid = ${table}::regclass and attnum > 0 and not attisdropped`;
 	expect(before.map((column) => column.name)).not.toContain("releaseReason");
@@ -73,8 +68,8 @@ test("existing model tables gain every Fleet schema column and persist release r
 	};
 	yield* sql`insert into ${sql(table)} (work_id, version, attempts, "boardRevision", cwd, preparation, prompt, stage)
 			values (${value.workId}, 3, '[]', ${value.boardRevision}, ${value.cwd}, ${JSON.stringify(value.preparation)}, ${value.prompt}, ${value.stage})`;
-	const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
-	yield* migrateFleet(namespace);
+	const store = yield* openFleetStore({ namespace });
+	yield* migrate(namespace);
 	expect(yield* store.load(value.workId)).toEqual({ value, version: 4 });
 	const updated = yield* store.compareAndSet(value.workId, 4, { ...value, prompt: "Edited legacy work" });
 	expect(updated.value.stageEnteredAt).toBeUndefined();
@@ -86,6 +81,6 @@ test("existing model tables gain every Fleet schema column and persist release r
 	expect(yield* store.load(value.workId)).toEqual(saved);
 	const inserted = yield* store.insert({ ...released, workId: "new" });
 	expect(yield* store.list()).toEqual([saved, inserted]);
-	expect(yield* migrateFleet(namespace)).toEqual([]);
+	expect(yield* migrate(namespace)).toEqual([]);
 	expect(yield* store.list()).toEqual([saved, inserted]);
 });

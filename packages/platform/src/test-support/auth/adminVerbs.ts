@@ -23,6 +23,15 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 			const response = yield* Effect.promise(() => fetch(`${host.baseUrl}/admin-tools`, { headers: host.headers }));
 			return { body: yield* Effect.promise(() => response.text()), status: response.status };
 		}),
+		profile: Effect.fn("AuthStory.profile")(function* () {
+			story.tell("read the protected profile from the HTTP host");
+			const response = yield* Effect.promise(() => fetch(`${host.baseUrl}/profile`, { headers: host.headers }));
+			return { status: response.status, user: response.ok ? yield* Effect.promise(() => response.json()) : null };
+		}),
+		revokeSession: Effect.fn("AuthStory.revokeSession")(function* () {
+			story.tell("revoke the minted session through Better Auth");
+			yield* Effect.promise(() => host.auth.api.signOut({ headers: host.headers }));
+		}),
 		setRole: Effect.fn("AuthStory.setRole")(function* (role: "admin" | "user") {
 			story.tell(`an operator changes the current user's role to ${role}`);
 			const { test } = yield* Effect.promise(() => host.auth.$context);

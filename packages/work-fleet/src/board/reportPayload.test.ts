@@ -1,14 +1,7 @@
-import { NodeServices } from "@effect/platform-node";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { markdownBoard } from "#board/markdown.ts";
 import { reportIdentity } from "#board/reportIdentity.ts";
-import { reportPayload } from "#board/reportPayload.ts";
-import { reportPayloadFile } from "#board/reportPayloadFile.ts";
-import { exposeFailure } from "#exposeFailure.ts";
-import { BoardGateway } from "#policy.ts";
-import { reportBoard } from "#test/report.ts";
+import { boardFileStory, withReportWork } from "#test/boardFileStory.ts";
 
 const OBSERVATION = { execution: "completed", output: "Evidence", provisioning: "ready", receipt: { sessionId: "worker", turnId: "turn" } } as const;
 for (const [problem, content] of [
@@ -18,24 +11,18 @@ for (const [problem, content] of [
 	["duplicate names", JSON.stringify({ files: Array.from({ length: 2 }, () => ({ base64: "", path: "evidence.txt" })), output: "Evidence" })],
 	["too many files", JSON.stringify({ files: Array.from({ length: 65 }, (_, index) => ({ base64: "", path: `${index}.txt` })), output: "Evidence" })],
 ] as const) {
-	it.live(`refuses a persisted payload with ${problem}`, () =>
-		Effect.gen(function* () {
-			const root = yield* reportBoard;
-			const work = yield* BoardGateway.pipe(
-				Effect.flatMap((board) => board.get("one")),
-				Effect.provide(markdownBoard(root)),
-			);
-			const { itemId } = reportIdentity(work, OBSERVATION.receipt);
-			yield* reportPayloadFile(root, itemId, content);
-			const error = yield* exposeFailure(reportPayload(root, work, OBSERVATION).read).pipe(Effect.flip);
-			expect(error._tag).toBe("ServiceUnavailable");
-			let path = `.fleet-reports/${itemId}.json`;
-			if (problem === "unsafe names") {
-				path = "../outside";
-			} else if (problem === "invalid base64" || problem === "duplicate names") {
-				path = "evidence.txt";
-			}
-			expect(error.message).toContain(path);
-		}).pipe(Effect.provide(NodeServices.layer)),
-	);
+	boardFileStory.it(`refuses a persisted payload with ${problem}`, [withReportWork], function* ({ files }) {
+		const work = yield* files.work("one");
+		const { itemId } = reportIdentity(work, OBSERVATION.receipt);
+		yield* files.payload(itemId, content);
+		const error = yield* files.readReport(work, OBSERVATION).pipe(Effect.flip);
+		expect(error._tag).toBe("ServiceUnavailable");
+		let path = `.fleet-reports/${itemId}.json`;
+		if (problem === "unsafe names") {
+			path = "../outside";
+		} else if (problem === "invalid base64" || problem === "duplicate names") {
+			path = "evidence.txt";
+		}
+		expect(error.message).toContain(path);
+	});
 }

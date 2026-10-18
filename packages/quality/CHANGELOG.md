@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.27.1 - 2026-10-18
+
+### Changed
+
+- Treat the UI folder named by each app's `components.json` as shadcn-owned by default. Quality's source rules and Biome lint, formatting and fixes skip that folder without app-specific exceptions; TypeScript's inputs stay unchanged.
+- Treat numbered `NNNN_snake_case.ts` files directly in `src/server/migrations` as tool-owned in naming checks, including in nested apps, without app configuration. Other files and folders under `migrations` remain checked.
+
+### Fixed
+
+- Install a repository-local hooks path so Quality checks commits even with a global `core.hooksPath`, including paths supplied by `include` or `includeIf`. Chain executable global pre-commit hooks, block commits when either hook fails, and report inactive Quality hooks with `quality hooks status`, without changing global or system Git configuration.
+
 ## 0.27.0 - 2026-10-18
 
 ### Added

@@ -142,7 +142,7 @@ Set `config.maxConnections` on `appDatabase` or a migrated `appHost` to bound th
 
 For a deployment behind a proxy, set `HOST=0.0.0.0` and `TRUSTED_PROXY` to a comma-separated list of proxy peer IPs or CIDR ranges (IPv4 or IPv6), or use `config.host` and `config.trustedProxy`. Only matching peers may supply `X-Forwarded-Host` and `X-Forwarded-Proto` (`http` or `https`) for the guard's same-origin check; the proxy must overwrite both headers and preserve Origin. A single authority is required, and comma-separated forwarding chains are refused. IPv4-mapped IPv6 peers match their IPv4 address. Malformed addresses or ranges fail `appHost` startup with a typed `ConfigError`. NDJSON and the application's session Origin policy still apply. See the [deployment quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy).
 
-A subscription handler reads `AppChanges` and returns `changes.stream(keys)` after its authorization check. Writes use `transact` and `invalidateOnCommit` from effect-sql: local streams receive committed invalidations and rollback emits none. For delivery between processes, set `config.changes: { channel: "app_changes" }`; the host binds PostgreSQL LISTEN/NOTIFY to the same SQL pool and resyncs streams when its listener recovers. The native heartbeat and retry options may be supplied in `changes`. A worker can provide `appDatabase({ migrations, config })` to its service Layer to share this database and delivery composition without starting HTTP.
+Database-backed hosts enable PostgreSQL change delivery by default and serve each contract's reserved change stream under its middleware. After a command handler succeeds, its declared invalidation keys publish without repeating keys already announced by repository commits. The handler keeps ownership of its transactions and error mapping. `config.changes.channel` overrides the app-derived default, and heartbeat and retry settings remain optional. Use the same application name or channel across web and worker processes. A worker can provide `appDatabase({ migrations, config })` without starting HTTP. See [commit-bound changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults and limits.
 
 ### Public client configuration
 
@@ -281,9 +281,14 @@ Here `sessions` is the application's policy from the previous example, with a Be
 
 #### Reading provider account IDs
 
-Opt in to provider account IDs by passing Better Auth's account lookup as the second argument to `betterAuthSessions`. It runs after a session is found, using the same transport headers:
+Pass Better Auth's account lookup as the second argument to `betterAuthSessions`. Declare `AuthenticatedUserWithProviderAccounts` on account-reading RPCs and merge `authenticatedUserWithProviderAccountsLayer(sessions)` alongside their handlers. This boundary requires a provider whose user has a `providerAccounts` Effect; a provider without the second lookup does not satisfy that type.
 
 ```ts
+import { SessionUserWithProviderAccounts } from "@shivaedev/platform/rpc/identity.ts";
+import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/platform/rpc/middleware.ts";
+import { AuthUnavailable, Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
+import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
+
 const sessions = {
   origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
   provider: betterAuthSessions(
@@ -292,14 +297,18 @@ const sessions = {
   ),
 };
 
-const githubAccount = Effect.map(SessionUser, (user) =>
-  user.providerAccounts?.find((account) => account.providerId === "github"),
-);
+const githubAccount = Effect.gen(function* () {
+  const user = yield* SessionUserWithProviderAccounts;
+  const accounts = yield* user.providerAccounts;
+  return accounts.find((account) => account.providerId === "github");
+});
 ```
 
-Use `authenticatedUserLayer(sessions)` as above. `SessionUserValue.providerAccounts` is an optional readonly array of `ProviderAccountValue`, each containing only `{ providerId: string, accountId: string }`. GitHub's numeric user ID is represented as a string, for example `{ providerId: "github", accountId: "123" }`; it is not Better Auth's account-row id. A user without a GitHub account has no matching entry. Without the second lookup, the profile omits `providerAccounts`. No application SQL against Better Auth's `account` table is needed.
+Declare `Schema.Union([AuthUnavailable, Unauthorized])` in the account-reading RPC's `error` schema: lookup failures now come from the handler's Effect. An outage fails with `AuthUnavailable`; a session that expires before the lookup fails with `Unauthorized`. Neither failure exposes provider exception details.
 
-An account lookup failure follows the same `AuthUnavailable` path as a session lookup failure.
+The lookup uses the same transport headers and runs only when the handler evaluates `user.providerAccounts`. The boundary memoizes its result in that invocation's Effect context, including concurrent reads, without sharing it across requests or users. Identity-only handlers never run the accounts lookup. `SessionUserWithProviderAccountsValue.providerAccounts` is a required `Effect<readonly ProviderAccountValue[], AuthUnavailable | Unauthorized>`. Each result contains only `{ providerId: string, accountId: string }`; for example, GitHub's numeric user ID is the string `"123"`, not Better Auth's account-row id. `SessionUser` and `SessionUserValue` contain the base profile without accounts.
+
+A custom session provider supplies `user.providerAccounts` as a lazy Effect with that same result and failure type, described by `ProviderAccountsSessionShape`. The boundary owns request-local memoization and the reduction to public IDs; custom providers need not cache or project the returned account objects.
 
 ### Requiring an admin
 
@@ -525,7 +534,7 @@ The signal aborts on an additional signal, socket close, incomplete request clos
 
 ```ts
 import { Config, Effect } from "effect";
-import { authDatabase, betterAuthMount } from "@shivaedev/platform/better-auth.ts";
+import { authDatabase, betterAuthMount } from "@shivaedev/platform/server/better-auth/mount.ts";
 
 const authentication = Effect.gen(function* () {
   const database = yield* authDatabase(yield* Config.Redacted("DATABASE_URL"));
@@ -542,6 +551,29 @@ Run this Effect in the host's scope. The pool logs idle-client errors at Debug a
 The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL` supplies the default base URL, trusted origin and HTTPS secure-cookie setting; without it, the defaults accept loopback HTTP. Application options can override those defaults. RPC Origin policy remains an application choice.
 
 `AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`; other Better Auth rate-limit options pass through. `TRUSTED_PROXY` supplies the same address and CIDR policy used by the host. An untrusted transport peer loses `x-forwarded-for` and the configured client-IP header before Better Auth sees the request. `AUTH_CLIENT_IP_HEADER` defaults to `x-forwarded-for`. With no trusted proxy, Better Auth ignores forwarded IPs and shares a rate-limit bucket per path.
+
+### Signed-in story preconditions
+
+Use `authTestUtils()` from `@shivaedev/platform/server/better-auth/testing.ts` in a test-only Better Auth instance with the host's database, secret and cookie policy. The wrapper preserves the plugin's typed `$context.test` under `exactOptionalPropertyTypes`. Keep the plugin out of production auth options.
+
+```ts
+import { betterAuth } from "better-auth";
+import { authTestUtils, signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
+
+const testAuth = betterAuth({
+  ...options,
+  plugins: [...(options.plugins ?? []), authTestUtils()],
+});
+const { user, headers, cookies } = await signedInUser(testAuth, {
+  email: "member@example.test",
+  name: "Member",
+  role: "user,admin",
+});
+```
+
+`options` is the application's auth configuration. `signedInUser` saves the supplied user fields and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. It returns Better Auth's login result: the user, session, signed request headers, browser cookies and token. Roles require the application's role plugin, such as Better Auth's `admin()`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
+
+With database-backed sessions and cookie caching disabled, revocation rejects that same minted session on the next protected HTTP or RPC request. Cookie caching and secondary storage can change revocation timing.
 
 ### Optional Better Auth storage on Effect Prisma
 
@@ -616,13 +648,13 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | --- | --- |
 | `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
 | `errors/rejectedField.ts` | `rejectedField(unknown)`: the field and message of a field rejection. |
-| `rpc/identity.ts` | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`: request-local services. |
-| `rpc/middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `MaybeAuthenticated`: native RPC middleware declarations. |
+| `rpc/identity.ts` | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`: request-local services. |
+| `rpc/middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`: native RPC middleware declarations. |
 | `rpc/requireAdmin.ts` | `requireAdmin`: the signed-in user with an admin role. |
 | `server/appHost.ts` | `appHost`, `appDatabase`, `AppChanges`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
 | `server/boundedBody.ts` | `readBoundedBody`, `RequestBodyTooLarge`: bounded body bytes and a typed HTTP 413 failure. |
 | `server/otlpTracing.ts` | `otlpTracing`: opt-in Effect OTLP trace export for worker Layers. |
-| `server/rpc-server/session.ts` | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary. |
+| `server/rpc-server/session.ts` | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary. |
 | `server/rpc-server/adapters/betterAuthSessions.ts` | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups. |
 | `server/rpc-server/origin.ts` | `trustedOrigins({ allow, missing })`: an exact Origin allowlist. |
 | `server/rpc-server/local.ts` | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`, `trustedProxyRanges`: loopback and proxy guards. |
@@ -634,7 +666,8 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/redactingDiagnostics.ts`, `server/redactingTracer.ts`, `server/redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactRecord(values, sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
-| `better-auth.ts` | `betterAuthMount(options)`, `authDatabase(url)`: native auth routes and a scoped PostgreSQL pool. |
+| `server/better-auth/mount.ts` | `betterAuthMount(options)`, `authDatabase(url)`: native auth routes and a scoped PostgreSQL pool. |
+| `server/better-auth/testing.ts` | `authTestUtils(options?)`, `signedInUser(auth, fields)`: test-only typed Better Auth helpers and minted user sessions. |
 | `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, options?)`: a Better Auth adapter over Effect Prisma; `modelName` maps model names. |
 | `server/testing/makePlatformIt.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |
 
@@ -652,7 +685,7 @@ Install the optional peers for the selected integration:
 | --- | --- |
 | `server/boundedBody.ts` | `@effect/platform-node` |
 | `server/appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
-| `better-auth.ts` | `better-auth`, `pg` |
+| `server/better-auth/mount.ts` | `better-auth`, `pg` |
 | `server/better-auth/adapter.ts` | `better-auth`, `@shivaedev/effect-prisma`, `@prisma-next/sql-orm-client` |
 | `server/testing/makePlatformIt.ts` | `@effect/vitest`, `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`, `@trpc/server` |
 

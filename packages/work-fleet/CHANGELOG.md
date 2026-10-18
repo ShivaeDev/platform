@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.10.2 - 2026-10-18
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.10.1 - 2026-10-18
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.10.0 - 2026-10-18
+
+### Added
+
+- `publishAfterBoardPass(publication, backgroundScope?)` accepts a scope for background publication outside a shared Board pass. Publications inside a pass retain their existing batching and completion behavior.
+- `releaseItems(host, workIds, background?)` can acknowledge recorded release responses while applying them in the background; its default remains synchronous.
+- `statusLayer(root, healthConfig?, background?)` and `hostLayer(host, parts, config?, backgroundPublication?)` let daemon hosts publish in the background and flush on shutdown. Composed layers retain synchronous publication by default.
+- `Fleet.listSnapshot()` reads the committed records without waiting for admission. The shutdown flush reads through it, so a daemon stops while another process holds admission.
+- `work-fleet reserve-pr <url>` reserves a foreign PR through the daemon, using matching Board task areas or repeated `--areas` options. Scheduler observations release closed or merged foreign PR reservations and retain them when GitHub reads fail.
+- Foreign reservations expose typed `areas` lists, stored as PostgreSQL `text[]`; `reserveForeign` accepts an optional third `areas` argument.
+
+### Changed
+
+- The daemon opens one PostgreSQL connection beyond `database.maxConnections` to record answers and serve status and watch while admission is busy.
+- Guidance sent during execution or repair now prints "Answer recorded; applying in the background" instead of "queued for the next turn".
+- Area scheduling uses equality, slash-delimited prefixes and `*` overlap for held areas, waiting order and foreign PR reservations. Parent and child areas block each other; sibling areas remain independent.
+
+### Fixed
+
+- Control commands confirm their recorded outcome without waiting for the generated Board status and health publication. Publication continues in the host scope, and a repeated continuation after a lost acknowledgement cannot launch the worker twice.
+- Bulk release confirms the recorded closing responses before provider cleanup finishes, using the same background response handling as answer.
+- Answers, including guidance during execution or repair, and `answer --release` acknowledge their durable request before admission work, preserve queued-message order, keep answer status visible during provider-capacity waits, assign application failures to the orchestrator, and report recording failures instead of confirming an unsaved request. Pending answers resume automatically after transient completion-storage failures.
+- Answer recording, status and watch remain available when pending answers and reconciliations fill the admission pool.
+- Reconciled clarification and deferral receipts keep later answers and releases applicable. Restarting the daemon during answer publication no longer duplicates an applied answer as guidance.
+- Answers recorded for a waiting decision that becomes execution or repair guidance queue once across daemon restarts.
+- Unblock dependencies after a delivery PR merges, including human merges without Fleet approval and older released merges and PRs that merge after release. Preserve observed delivery evidence in the optional `mergedDelivery` field on Fleet records and archived cycles, with the merge commit when known. Reconciliation uses `needsReleasedDelivery(record)` and `observeReleasedDeliveries(state, stored)` to observe unmerged released deliveries, including archived cycles, without reopening their work.
+- Accept Board-done dependencies without active Fleet work, including released records, and retain dependency satisfaction after later brief edits. Report every unmet dependency with its actual blocker.
+- Keep a changed Board brief ahead of a moved PR head, report both blockers in status and watch summaries, and leave record versions, decision publications and watch notifications unchanged while those blockers persist.
+
+### Breaking
+
+- `FleetRepository` implementations provide `listSnapshot()`. Return the same records as `list()` from a committed read that does not take the admission lock.
+- Host answer integrations pass `AnswerOptions` to `answerWork(host, workId, options)`; the answer-request apply callback receives `(workId, options)`.
+- Code constructing a `ForeignReservation` value must include an `areas` array; use `[]` for occupancy-only reservations. Existing PostgreSQL reservations migrate with empty areas.
+
 ## 0.9.0 - 2026-10-18
 
 ### Added

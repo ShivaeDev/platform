@@ -65,6 +65,7 @@ for (const mode of ["managed", "registered", "needs-human"]) {
 	boardStory.it(
 		`links an open packet from Today straight to the response form (${mode})`,
 		[
+			readerAt("/"),
 			projectFiles(
 				{ "decision.md": source, ...(mode === "managed" ? {} : { "responses/question.md": capturedQuestionnaire(source) }) },
 				"an open packet awaits a reply",

@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
+import { FleetRecord } from "#model.ts";
 export class StorageConflict extends Schema.TaggedError<StorageConflict>()("StorageConflict", {
 	actualVersion: Schema.NullOr(Schema.Number),
 	expectedVersion: Schema.NullOr(Schema.Number),
@@ -19,6 +20,10 @@ export class StorageQuota extends Schema.TaggedError<StorageQuota>()("StorageQuo
 	submitted: Schema.optional(Schema.Number),
 }) {}
 
-export class StorageAdmission extends Schema.TaggedError<StorageAdmission>()("StorageAdmission", { message: Schema.String }) {}
+export class StorageAdmission extends Schema.TaggedError<StorageAdmission>()("StorageAdmission", {
+	head: Schema.optional(Schema.String),
+	message: Schema.String,
+	sweepHold: FleetRecord.fields.sweepHold,
+}) {}
 
 export type StorageError = StorageAdmission | SqlError | Schema.SchemaError | StorageConflict | StorageCapacity | StorageQuota;

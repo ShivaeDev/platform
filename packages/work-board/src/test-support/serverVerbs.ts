@@ -4,12 +4,24 @@ import { Effect } from "effect";
 import { browserClient } from "#client/client.ts";
 import { folder, type RunningBoard } from "./board.ts";
 import { embeddedBoard } from "./embeddedBoard.ts";
-import { subscribe } from "./nativeRpc.ts";
+import { changesUntil, type EventStream, rpcWatcher, subscribe } from "./nativeRpc.ts";
 import { type SocketExchange, socketExchange } from "./socketRpc.ts";
-import { type BoardEngine, connected } from "./storyEngine.ts";
+import { type BoardEngine, served } from "./storyEngine.ts";
 
 export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	const boards: RunningBoard[] = [];
+	function watchState(events: EventStream, watching: boolean) {
+		return Effect.gen(function* () {
+			tell(`the reader waits for watching=${watching}`);
+			for (;;) {
+				yield* events.next();
+				const observed = (yield* rpcWatcher(served(engine).board)).watching;
+				if (observed === watching) {
+					return observed;
+				}
+			}
+		});
+	}
 	return {
 		anotherFolder: (files: Readonly<Record<string, string>>) =>
 			Effect.acquireRelease(
@@ -43,25 +55,44 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		},
 		restart: Effect.fn("Story.restart")(function* (responses = engine.responses) {
 			tell("the board restarts from its project files");
-			yield* Effect.promise(() => connected(engine).page.close());
-			connected(engine).client.registry.dispose();
-			yield* connected(engine).board.stop();
+			const page = engine.live?.page;
+			if (page) {
+				yield* Effect.promise(() => page.close());
+			}
+			served(engine).client.registry.dispose();
+			yield* served(engine).board.stop();
 			engine.responses = responses;
-			const { serveProject } = yield* Effect.promise(() => import("./storyEngine.ts"));
+			const reopen = engine.live !== undefined;
+			delete engine.live;
+			const { serveProject, openReader } = yield* Effect.promise(() => import("./storyEngine.ts"));
 			yield* serveProject(engine);
-			return connected(engine);
+			if (reopen) {
+				yield* openReader(engine);
+			}
+			return served(engine);
 		}),
 		stopBoards: Effect.fn("Story.stopBoards")(function* () {
 			tell("all HTTP boards stop before the project is reopened");
-			yield* Effect.promise(() => connected(engine).page.close());
-			yield* connected(engine).board.stop();
+			const page = engine.live?.page;
+			if (page) {
+				yield* Effect.promise(() => page.close());
+			}
+			yield* served(engine).board.stop();
 			for (const board of boards.splice(0)) {
 				yield* board.stop();
 			}
 		}),
-		watchProject: () => {
+		watchProject: Effect.fn("Story.watchProject")(function* () {
 			tell("a live RPC client subscribes to project changes");
-			return subscribe(connected(engine).board);
-		},
+			const events = yield* subscribe(served(engine).board);
+			return {
+				...events,
+				changed: (path: string) => {
+					tell(`the reader waits for a live change naming ${path}`);
+					return changesUntil(events, path);
+				},
+				watching: (watching: boolean) => watchState(events, watching),
+			};
+		}),
 	};
 }

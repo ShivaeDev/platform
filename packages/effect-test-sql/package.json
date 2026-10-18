@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-test-sql",
-	"version": "0.5.5",
+	"version": "0.6.0",
 	"description": "PostgreSQL rollback and real-commit test isolation for Effect",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-test-sql#readme",
 	"bugs": {
@@ -57,6 +57,7 @@
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",
+		"pg-boss": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},

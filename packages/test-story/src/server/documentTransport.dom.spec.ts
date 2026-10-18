@@ -2,6 +2,19 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { documentApp } from "#test/documentApp.ts";
 
+documentApp.it(
+	"sends a seeded HttpOnly session and cookieStore cookies to its real host",
+	[],
+	function* ({ seedSession, storeCookie, hostRequest, cookies }) {
+		yield* seedSession();
+		yield* storeCookie();
+		expect(cookies()).toContain("theme=dark");
+		expect(cookies()).toContain("preference=compact");
+		expect(cookies()).not.toContain("session=");
+		expect(yield* hostRequest()).toMatchObject({ cookie: "session=minted-session; theme=dark; preference=compact", method: "GET", path: "/echo" });
+	},
+);
+
 for (const [status, method, body] of [
 	[302, "GET", ""],
 	[307, "POST", "story-body"],

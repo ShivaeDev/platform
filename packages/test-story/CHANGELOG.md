@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.11.1 - 2026-10-18
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.11.0 - 2026-10-18
+
+### Added
+
+- Pass a UTC `DateTime` to the existing `clock` option to pin a story or Effect fixture before its per-test setup runs. The exported `EffectClock` type now accepts `DateTime.Utc` alongside `"test"` and `"live"`. Hosts, workers and screens acquired with the story's Effect Context share native `Clock` / `TestClock`, including explicit `TestClock.adjust` advances; application code using `Clock` or `DateTime.now` needs no changes.
+
+## 0.10.0 - 2026-10-18
+
+### Added
+
+- Platform exports `authTestUtils(options?)` and `signedInUser(auth, fields)` from `server/better-auth/testing.ts` for typed Better Auth test utilities and signed-in story preconditions with user fields and roles, without OAuth or password hashing.
+- Test-story exports `seedCookies(cookies)` and `DomCookie` from `seedCookies.ts` to seed happy-dom's cookie container, including HttpOnly session cookies accepted by a real HTTP host.
+
 ## 0.9.0 - 2026-10-18
 
 ### Added

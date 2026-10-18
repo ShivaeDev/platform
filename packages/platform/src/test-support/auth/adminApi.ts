@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Forbidden, Unauthorized } from "#errors/taxonomy.ts";
+import { SessionUser } from "#rpc/identity.ts";
 import { AuthenticatedUser } from "#rpc/middleware.ts";
 import { requireAdmin } from "#rpc/requireAdmin.ts";
 import { type SessionPolicy, type UserSessionShape, withSessionUser } from "#server/rpc-server/session.ts";
@@ -20,8 +21,17 @@ const routeErrors = {
 
 export function adminRoutes(sessions: SessionPolicy<UserSessionShape>) {
 	return HttpRouter.use((router) =>
-		router.add("GET", "/admin-tools", (request) =>
-			tools.pipe(withSessionUser(sessions, request.headers, "admin-tools"), Effect.map(HttpServerResponse.text), Effect.catchTags(routeErrors)),
-		),
+		Effect.all([
+			router.add("GET", "/admin-tools", (request) =>
+				tools.pipe(withSessionUser(sessions, request.headers, "admin-tools"), Effect.map(HttpServerResponse.text), Effect.catchTags(routeErrors)),
+			),
+			router.add("GET", "/profile", (request) =>
+				SessionUser.pipe(
+					withSessionUser(sessions, request.headers, "profile"),
+					Effect.map(HttpServerResponse.jsonUnsafe),
+					Effect.catchTags(routeErrors),
+				),
+			),
+		]),
 	);
 }

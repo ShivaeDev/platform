@@ -3,6 +3,8 @@ import { checkedDiagnostics } from "#test/app-host/checkedDiagnostics.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
+const HTTP_OK = 200;
+
 for (const check of ["filter", "group", "nestedFilter", "nestedGroup"] as const) {
 	host.it(
 		`${check} sensitivity hides contact from logs, client failures and exported spans`,
@@ -10,7 +12,7 @@ for (const check of ["filter", "group", "nestedFilter", "nestedGroup"] as const)
 		function* ({ postNdjson, logs, close, exportedSpans }) {
 			const payload = { contact: `private-${check}-contact`, visible: "public detail" };
 			const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "diagnose" })}\n`, false);
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HTTP_OK);
 			expect(response.body).toContain('"_tag":"Fail"');
 			expect(response.body).toContain('"contact":"<redacted>"');
 			expect(response.body).toContain(payload.visible);

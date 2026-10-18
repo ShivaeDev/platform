@@ -21,13 +21,29 @@ const rows = yield* lines.findMany({
 
 ### How to think about it
 
-The application owns the database schema and its native Effect `SqlClient` layer. A **model** describes decoded row fields and the variants used for insertion, updating and JSON. A **repository** combines native `SqlModel` CRUD with a small `findMany` query whose filters and selected results use those fields.
+The application owns the database schema and its native Effect `SqlClient` layer. Configure new clients with `clientOptions` to map camelCase model fields to snake_case PostgreSQL columns. A **model** describes decoded row fields and the variants used for insertion, updating and JSON. A **repository** combines native `SqlModel` CRUD with a small `findMany` query whose filters and selected results use those fields.
 
-A transaction is a separate boundary. Repository calls participate in a caller's native `sql.withTransaction`. When writes also announce changed Reactivity keys, start that boundary with `transact`: it uses the native transaction and records keys until its owning database commits. The change ownership comes from `effect-changes`; this package supplies the SQL boundary and the Reactivity publisher.
+Repository writes announce their table and returned row keys automatically. Each write uses `transact`; start a surrounding multi-write boundary with `transact` too, so keys leave only after its owning database commits. Bare native transactions are refused because their commit cannot be observed. The change ownership comes from `effect-changes`; this package supplies the SQL boundary and the Reactivity publisher.
 
 Migrations are ordinary Effects loaded by native Migrator. `migratePostgres` adds coordination for PostgreSQL runners sharing a ledger. It does not derive a table from a model: migration SQL and row codecs must agree.
 
 The work has three parts: describe the model and provide its database once, choose repository operations per feature, and put each changed write inside the transaction that owns its commit.
+
+### SQL names: configure the client once
+
+```ts
+import * as PgClient from "@effect/sql-pg/PgClient";
+import { Redacted } from "effect";
+import { clientOptions } from "@shivaedev/effect-sql/clientOptions.ts";
+
+const database = PgClient.layer(clientOptions({
+  url: Redacted.make("postgresql://localhost/example"),
+}));
+```
+
+`clientOptions` enables Effect SQL's `transformQueryNames` with Effect's `String.camelToSnake` and `transformResultNames` with `String.snakeToCamel` by default. A model field `createdAt` writes the migration-created `created_at` column, and returned rows contain `createdAt`. Inserts, selects, filters, ordering, updates and raw SQL share the client's transforms; column aliases are unnecessary. Write literal migration SQL with snake_case columns. In tagged SQL, interpolated identifiers such as `sql("createdAt")` are transformed; literal SQL text stays as written.
+
+To opt out for an existing database with quoted camelCase columns or models with snake_case fields, use `PgClient.layer(clientOptions(options, { snakeCase: false }))`. Existing native clients are unchanged until configured with this helper. Native `transformQueryNames` and `transformResultNames` supplied in `options` take precedence. For `platform`'s `appHost` or `appDatabase`, use `clientOptions` on their `config` object; the host forwards those native transforms to its client.
 
 ### 1. Once per model: fields and writable variants
 
@@ -200,7 +216,7 @@ const saved = yield* readings.upsertMany(
 
 Batch writes use one `INSERT ... RETURNING` statement per chunk, with at most 1,000 rows and 10,000 bind parameters per statement, below PostgreSQL's 65,535 parameter limit. Missing optional fields use SQL `DEFAULT`; an explicit null stays null. Return values contain the rows returned by the database, with ignored conflicts omitted. PostgreSQL's native conflict rules apply within each chunk, including an error when an upsert tries to update the same stored row twice.
 
-The methods use the surrounding native transaction. To roll back earlier chunks when a later chunk fails, put the whole call inside `sql.withTransaction` or `transact`; a batch call does not start its own transaction.
+Each batch call starts `transact`, so a later chunk failure rolls back earlier chunks. A surrounding `transact` groups several calls into one commit and one deduplicated change batch.
 
 ### Optimistic concurrency
 
@@ -240,7 +256,7 @@ These writes use SQL `RETURNING`. Repositories without `versionColumn` retain na
 
 ```ts
 import { Data } from "effect";
-import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
+import { transact } from "@shivaedev/effect-sql/transact.ts";
 
 class StorageUnavailable extends Data.TaggedError("StorageUnavailable")<{
   readonly reason: string;
@@ -250,7 +266,6 @@ const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
   Effect.gen(function* () {
     const lines = yield* makeInvoiceLines;
     const saved = yield* lines.update(input);
-    yield* invalidateOnCommit({ invoiceLines: [saved.id] });
     return saved;
   }).pipe(
     transact({
@@ -259,7 +274,7 @@ const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
   );
 ```
 
-`transact` wraps native `sql.withTransaction`. It maps typed `SqlError` failures through `onSqlError` and keeps other typed failures and service requirements. `invalidateOnCommit` records the readers' keys; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
+`transact` wraps native `sql.withTransaction`. It maps typed `SqlError` failures through `onSqlError` and keeps other typed failures and service requirements. `invalidateOnCommit` records derived reader keys that a repository or command declaration does not already name; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
 
 The transaction rules follow the database owner:
 
@@ -342,6 +357,7 @@ Import the module that defines the name; there is no root entry.
 
 | Module | Export | Input or role |
 | --- | --- | --- |
+| `@shivaedev/effect-sql/clientOptions.ts` | `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` | Add default native name transforms to driver or app host options; opt out with `snakeCase: false`. |
 | `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn` or `conflictColumns`; requires native `SqlClient`. |
 | `@shivaedev/effect-sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`. |
 | `@shivaedev/effect-sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |
@@ -364,9 +380,10 @@ pnpm add @shivaedev/effect-sql effect@4.0.4 @effect/sql-pg@4.0.4
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Layer, Redacted } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { clientOptions } from "@shivaedev/effect-sql/clientOptions.ts";
 
 const database = Layer.merge(
-  PgClient.layer({ url: Redacted.make("postgresql://localhost/example") }),
+  PgClient.layer(clientOptions({ url: Redacted.make("postgresql://localhost/example") })),
   Reactivity.layer,
 );
 
@@ -415,3 +432,5 @@ JSON and JSONB columns are not supported. A repository write of a plain object t
 `timestamptz` preserves an instant at millisecond precision; `timestamp without time zone` holds UTC wall time, whatever the Node process time zone. A model cannot recover microseconds the driver has discarded. See [PostgreSQL codec cases and limits](https://github.com/ShivaeDev/platform/blob/main/docs/framework/postgres-codecs.md) before choosing a storage representation.
 
 The package's PostgreSQL tests use a disposable database through `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`. Without the URL they skip locally; under `CI`, collection fails at the shared gate.
+
+The `withChangeCoverage(body)` story verb from `testing.ts` checks PostgreSQL transaction write counters before commit and fails with `UnannouncedWrites` for tables without a recorded table key. See [automatic change delivery](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for host defaults and coverage limits.

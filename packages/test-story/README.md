@@ -131,7 +131,7 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 | `name` | What the engine is called in failures, "the bakery", and the kit's genre, "Bakery Story". |
 | `outbound` | Optional. A map of exact hostnames to fake server origins for Node fetch and the DOM environment's document requests. |
 | `around(effect)` | Optional. Wraps creation, staged seeding and the body; worker Layer acquisition remains outside it. It may require the worker services and per-test Scope. |
-| `clock` | Optional. `"test"` by default, or `"live"` for HTTP and DOM stories. A story’s `options.clock` takes precedence. |
+| `clock` | Optional. `"test"` by default, `"live"` for real time, or a UTC `DateTime` to start TestClock at that instant. A story’s `options.clock` takes precedence. |
 | `create()` | A fresh engine. Every story starts from a new one. |
 | `layer` | Optional. The worker Effect layer that provides the services hooks, traits and test bodies use. Per-test Scope is already available to creation, staged and run hooks, traits and bodies. A hook that needs a service the layer does not provide does not compile, and neither does a test whose traits or body need one. |
 | `stages` | The order traits are applied in. A trait names its stage, and one that names a stage the kit does not declare does not compile. |
@@ -379,6 +379,29 @@ bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, o
 
 A spec starts a story, acts through verbs and checks what a user would see. When it needs a setup or an action the kit lacks, add a trait or verb to the kit instead of building it in the spec.
 
+### Pinning time
+
+Pass a UTC `DateTime` as the story's `clock` option to pin time before its wrapper, creation, traits and hooks run. Code that uses `Clock` or `DateTime.now` reads that instant. Advance it explicitly with native `TestClock.adjust`:
+
+```ts
+import { DateTime } from "effect";
+import * as TestClock from "effect/testing/TestClock";
+
+app.it("shows the worker's date", [], function* ({ click, settle, text }) {
+  yield* click("button");
+  yield* settle();
+  expect(text("#worker")).toBe("Worker: since Oct 17");
+  yield* TestClock.adjust("1 day");
+  yield* click("button");
+  yield* settle();
+  expect(text("#worker")).toBe("Worker: since Oct 18");
+}, { clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z") });
+```
+
+Acquire hosts, workers and screens in per-story Scope so they inherit the story's Clock. An independent runtime or native HTTP handler must capture the Effect Context at acquisition, as with `HttpEffect.toWebHandlerWith(context)` or `Effect.runPromiseWith(context)`. Worker-scoped kit `layer` acquisition stays outside the per-story clock; shared services acquired there do not acquire a new clock for each story. Direct JavaScript wall-time reads are not replaced. Formatting stays with the application, including its locale and time zone.
+
+The [clock application stories](src/server/fixedClock.dom.spec.ts) run loopback HTTP, a queued worker that writes a timestamp to a file, and a DOM screen with its own Effect runner. They check exact timestamps and rendered dates, advancing time, and a live story without the option. A live-clock kit still runs on real time when a story omits the override.
+
 ### Running the engine
 
 Hooks and steps that wait for real workers can use `withLive(Effect.sleep(...))` or `withLive(eventually(...))` from `@shivaedev/effect-test/withLive.ts` and `@shivaedev/effect-test/eventually.ts`. Both work under the kit's live clock and a story's TestClock override. The wrapped work uses live time without advancing the story's virtual time; outside it, the selected clock still applies. Unwrapped `eventually` uses the active clock and advances TestClock between attempts.
@@ -477,6 +500,23 @@ const cookieApp = storyKit({
 
 `startHost`, `postgres` and `authVerbs` are application plumbing. Actions in `authVerbs` perform requests, and readouts return response data for assertions in the spec. A sign-in story drives its real sign-in flow; feature stories start from a faked signed-in precondition as described in the shared skill.
 
+#### Seeding a signed-in precondition
+
+`seedCookies(cookies)` from `@shivaedev/test-story/seedCookies.ts` returns an Effect that seeds the current happy-dom window's cookie container, including HttpOnly cookies. Call `domFetch(baseUrl)` first so the document and requests use the same origin. Each cookie has `name` and `value`, with optional `domain`, `path`, `httpOnly`, `secure`, `sameSite` (`Lax`, `Strict` or `None`) and `expires` (Unix seconds). Better Auth's test-utils login cookies fit this shape directly.
+
+```ts
+import { signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
+import { seedCookies } from "@shivaedev/test-story/seedCookies.ts";
+
+const { cookies } = yield* Effect.promise(() => signedInUser(testAuth, {
+  email: "alice@example.test",
+  name: "Alice",
+}));
+yield* seedCookies(cookies);
+```
+
+`testAuth` is a test-only auth instance configured with Platform's `authTestUtils()` and the real host's database, secret and cookie policy. The seeded session travels on the document's fetch and stays hidden from `document.cookie` when HttpOnly. Use `http://localhost:<port>` for local DOM hosts with secure cookies: happy-dom matches secure cookies on localhost, but not on `http://127.0.0.1`. The listener can still bind to `127.0.0.1`.
+
 #### Social sign-in through an outbound provider
 
 Happy-dom's detached window records a location change without loading the next document. `domNavigate(url = window.location.href)` from `@shivaedev/test-story/domNavigate.ts` performs that load: it follows HTTP redirects through the document transport, keeps cookies for each destination, sets the final location, writes the returned HTML and returns the happy-dom response. Call it after the sign-in client has set the provider location, and before checking the returned page. An unrouted external redirect fails with its hostname.
@@ -531,6 +571,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | --- | --- |
 | `storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
 | `domFetch.ts` | `domFetch(baseUrl)` |
+| `seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
 | `routeOutbound.ts` | `routeOutbound(routes)` |
 | `screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver` |
 | `domNavigate.ts` | `domNavigate(url?)` |

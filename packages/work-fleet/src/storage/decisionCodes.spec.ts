@@ -1,28 +1,21 @@
-import { Effect } from "effect";
-import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import { codedDecisionRecord, legacyDecisionRecord } from "#test/legacyDecisionRecords.ts";
-import { legacyStore } from "#test/legacyStore.ts";
-import { migrateFleet } from "#test/migrateFleet.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { readDecisionRecords } from "#test/readDecisionRecords.ts";
-import { withStorage } from "#test/storage.ts";
+import { isolatedStorage } from "#test/storageStory.ts";
 
-postgresTests("live", "isolated")("backfills current and archived decisions without changing publication receipts or existing codes", () =>
-	withStorage((_store, namespace) =>
-		Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			yield* legacyStore(namespace);
-			yield* migrateFleet(namespace, "attention_owner");
-			yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values ('one', 1, ${JSON.stringify(legacyDecisionRecord)}::jsonb)`;
-			yield* migrateFleet(namespace, "decision_codes");
-			yield* backfillDecisionCodes(namespace);
-			yield* migrateFleet(namespace);
-			const rows = yield* readDecisionRecords(namespace);
-			expect(rows).toEqual([{ payload: codedDecisionRecord, version: 2 }]);
-			yield* migrateFleet(namespace);
-			expect(yield* readDecisionRecords(namespace)).toEqual(rows);
-		}),
-	),
+isolatedStorage.it(
+	"backfills current and archived decisions without changing publication receipts or existing codes",
+	[],
+	function* ({ namespace, sql, restoreLegacy, migrate, readDecisions }) {
+		yield* restoreLegacy(namespace);
+		yield* migrate(namespace, "attention_owner");
+		yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values ('one', 1, ${JSON.stringify(legacyDecisionRecord)}::jsonb)`;
+		yield* migrate(namespace, "decision_codes");
+		yield* backfillDecisionCodes(namespace);
+		yield* migrate(namespace);
+		const rows = yield* readDecisions(namespace);
+		expect(rows).toEqual([{ payload: codedDecisionRecord, version: 2 }]);
+		yield* migrate(namespace);
+		expect(yield* readDecisions(namespace)).toEqual(rows);
+	},
 );

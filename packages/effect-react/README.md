@@ -28,7 +28,7 @@ State belongs to an **atom in a registry**. A query hook reads that atom's nativ
 
 An **editor** joins a query atom, an effect-form field schema and a save Effect. The query provides the row; `values(row)` converts it to input values; the schema decodes those values before the save runs. effect-form owns the draft and the per-field merge. A **create form** uses the same submission rules without a query and starts a fresh form after success.
 
-A **session generation** is the string returned by `identify(session)`. `SessionBoundary` owns its client, registry and React subtree. Your auth owner supplies the session and decides when to replace or end it. Cache policy, RPC declarations and transport stay with native Effect and the application; this package supplies their React state and lifecycle boundary.
+A **session generation** is the string returned by `identify(session)`. `SessionBoundary` owns its client, registry and React subtree. Your auth owner supplies the session and decides when to replace or end it. The boundary automatically mounts live connections on bound contract APIs returned by `connect`, directly or as client properties such as `api`. Use a Platform database host and NDJSON transport; the application needs no subscribe handler or `live()` call. Cache policy, RPC declarations and transport stay with native Effect and the application; this package supplies their React state and lifecycle boundary.
 
 `useEditor` and `useCreate` opt into persisted input with `persistedDraft: { key }`. Choose a stable key for the record or create request, independent of its server revision. The adapters use effect-form's browser storage and inherit ownership from `SessionBoundary`: reload and query refresh preserve edits, successful submission clears accepted input, and a committed session replacement drops tracked drafts. A suspended replacement that is canceled keeps the visible session's draft and future writes. Later edits made during a save remain persisted. Optional `storage`, `maxBytes` and `maxAgeMs` customize the provider and bounds; defaults are `localStorage`, 256 KiB of UTF-8 JSON and seven days. See [effect-form's persisted input API](https://github.com/ShivaeDev/platform/tree/main/packages/effect-form#persist-input-across-reloads) for direct form hooks and limits.
 
@@ -165,6 +165,38 @@ function SignInButton({ email, password }: { email: string; password: string }) 
 ```
 
 The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Returned auth errors keep their fields in the typed failure channel. Rejected promises become `AuthActionUnavailable` with the original rejection in `cause`. The application chooses error text and what happens after success.
+
+### Commands with a pending display value
+
+Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive refetches:
+
+```tsx
+import * as Atom from "effect/reactivity/Atom";
+import { usePendingCommand } from "@shivaedev/effect-react/client/pendingCommand.ts";
+
+const toggle = Atom.family((id: number) =>
+  ItemsClient.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })),
+);
+const list = api.list.query();
+
+function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly enabled: boolean } }) {
+  const command = usePendingCommand(toggle(row.id), {
+    queries: [list],
+    value: row.enabled,
+    wanted: (input) => input.enabled,
+  });
+  return <button aria-pressed={command.value} disabled={command.pending}
+    onClick={() => command.dispatch({ enabled: !command.value })} type="button">
+    Enabled
+  </button>;
+}
+```
+
+Each row needs its own action atom because the native atom owns its current result, including failures. `Atom.family` keeps an independent action atom stable for each row ID. This lets one row fail while another keeps its requested display through the shared list refetch. Do not share one action atom across independently controlled rows.
+
+The example assumes a bound `api.toggle.run` accepting `{ id, enabled }`, a bound list query and their native `ItemsClient`. `queries` lists the query atoms whose refetches the display waits for; it does not add invalidations. Include every relevant query and keep the action and query atom identities stable. `value` is the current server value; `wanted(input)` computes the requested display value.
+
+`command.value` changes on dispatch and stays at the requested value while the command or any watched query is waiting. `pending` covers that whole interval. After the queries settle, `value` follows the server again, even if it differs from the requested value. A command failure immediately returns to the server value and remains typed in `result` and `cause`, just as with `useAction`. The other action fields describe the native command result, so `result` can already be successful while `pending` still waits for refetches. This binding holds a display value; it does not write to the query cache.
 
 ### Route loaders with TanStack Router
 

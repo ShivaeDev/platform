@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.17.0",
+	"version": "0.18.2",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {
@@ -28,12 +28,7 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"./package.json": "./package.json",
-		"./better-auth.ts": {
-			"source": "./src/server/better-auth/mount.ts",
-			"types": "./dist/server/better-auth/mount.d.ts",
-			"default": "./dist/server/better-auth/mount.js"
-		}
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",

@@ -16,9 +16,9 @@ Use minor for Added or Breaking behavior while a package is pre-1.0, and patch f
 
 ## Release packages
 
-Merge the open release PR whenever you want a release. After each push to main, GitHub Actions regenerates `release/next` from main with the changesets plan applied and keeps one release PR current. Its title and body show the packages, versions and change entries. When no changes are pending, it closes the PR. While the PR is in the merge queue, the workflow leaves it untouched so a force-push cannot eject it.
+The release PR (`release/next`) always holds the current release plan. To release, press **Approve and run** on the PR, then merge when the normal, full CI is green. The workflow uses only `GITHUB_TOKEN`; the wait for a maintainer's approval is intentional.
 
-Enable **Allow GitHub Actions to create pull requests** in Settings → Actions → General → Workflow permissions. The workflow uses only `GITHUB_TOKEN`, with branch and pull request write access plus Actions write access to dispatch CI for the generated head. GitHub suppresses PR events from this token, so the workflow explicitly dispatches the existing CI workflow once after each generated push; it does not poll GitHub. The merge queue also checks the release against current main.
+Enable **Allow GitHub Actions to create pull requests** in Settings → Actions → General → Workflow permissions. After each push to main, the workflow regenerates the branch only when the applied release changes or the branch no longer merges cleanly. Unrelated main pushes leave the branch and its waiting CI run alone. It opens a missing PR, closes it when nothing is pending, and leaves a queued PR untouched.
 
 Merging the release PR changes package versions on main, which starts the existing publish workflow. Publishing still uses npm trusted publishing from main only. The release PR workflow has no npm credential or OIDC permission.
 
