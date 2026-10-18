@@ -1,39 +1,55 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
-import { browserClient } from "#client/client.ts";
-import { folder, rawGet, startBoard } from "#test/board.ts";
+import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 
-it.live.each([false, true])("resolves .md item identities through HTTP and RPC with colliding file: %s", function* (collision) {
-	const notes = yield* Effect.acquireRelease(
-		Effect.sync(() =>
-			folder({
+for (const collision of [false, true]) {
+	boardStory.it(
+		`resolves .md identities and mounted reads with colliding file: ${collision}`,
+		[
+			projectFiles({
 				"_board/item/missing.md": "# Unidentified file",
 				...(collision ? { "_board/item/source.md": "# Colliding file" } : {}),
 				"identified.md": "---\nid: source.md\n---\n# Identified item",
 			}),
-		),
-		(resource) => Effect.sync(() => resource.remove()),
+			deferredServing,
+		],
+		function* ({ start, get, connectClient, waitForConnection, editFile, waitUntil }) {
+			yield* start();
+			const client = connectClient();
+			for (const id of ["source.md", "source%2Emd"]) {
+				for (const slash of ["", "/"]) {
+					const url = `/_board/item/${id}${slash}`;
+					const page = yield* get(url);
+					expect(page.status).toBe(200);
+					const document = yield* Effect.promise(() => client.run(client.api.document.run({ url })));
+					expect(document).toMatchObject({ file: "identified.md", identity: "source.md", source: "# Identified item" });
+				}
+			}
+			const watched = ["/_board/item/source.md", "/_board/item/source.md/", "/_board/item/source%2Emd"].map((url) =>
+				client.api.document.query({ url }),
+			);
+			const releases = watched.map((query) => client.registry.mount(query));
+			for (const query of watched) {
+				yield* Effect.promise(() => client.read(query));
+			}
+			yield* waitForConnection();
+			editFile("identified.md", "---\nid: source.md\n---\n# Changed stable identity");
+			yield* waitUntil(async () => {
+				for (const query of watched) {
+					expect((await client.read(query)).source).toContain("Changed stable identity");
+				}
+			});
+			for (const release of releases) {
+				release();
+			}
+
+			for (const slash of ["", "/"]) {
+				const url = `/_board/item/missing.md${slash}`;
+				const missing = yield* get(url);
+				expect(missing.status).toBe(404);
+				yield* Effect.promise(() => expect(client.run(client.api.document.run({ url }))).rejects.toBeInstanceOf(NotFound));
+			}
+		},
 	);
-	const board = yield* startBoard(notes.root);
-	const client = yield* Effect.acquireRelease(
-		Effect.sync(() => browserClient(board.url)),
-		(resource) => Effect.sync(() => resource.registry.dispose()),
-	);
-	for (const id of ["source.md", "source%2Emd"]) {
-		for (const slash of ["", "/"]) {
-			const url = `/_board/item/${id}${slash}`;
-			const page = yield* rawGet(board, url);
-			expect(page.status).toBe(200);
-			const document = yield* Effect.promise(() => client.run(client.api.document.run({ url })));
-			expect(document).toMatchObject({ file: "identified.md", identity: "source.md", source: "# Identified item" });
-		}
-	}
-	for (const slash of ["", "/"]) {
-		const url = `/_board/item/missing.md${slash}`;
-		const missing = yield* rawGet(board, url);
-		expect(missing.status).toBe(404);
-		yield* Effect.promise(() => expect(client.run(client.api.document.run({ url }))).rejects.toBeInstanceOf(NotFound));
-	}
-});
+}

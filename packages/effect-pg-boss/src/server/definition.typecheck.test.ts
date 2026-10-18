@@ -3,7 +3,7 @@ import type { SendOptions } from "pg-boss";
 import { expectTypeOf } from "vitest";
 import { defineQueue, type QueuePolicy } from "#definition.ts";
 import { makePgBoss } from "#service.ts";
-import { PullRequestJob } from "#test/singletonQueue.ts";
+import { PullRequestJob } from "#test/singletonQueueOptions.ts";
 
 expectTypeOf<QueuePolicy>().toEqualTypeOf<"standard" | "short" | "singleton" | "stately" | "exclusive" | "key_strict_fifo">();
 

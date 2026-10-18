@@ -51,6 +51,7 @@ export function approveBrief(state: EngineState) {
 				published === undefined
 					? record.supersededDecisions
 					: [...(record.supersededDecisions ?? []), { published, supersededAt: state.policy.now() }],
+			sweep: record.attempts.length === 0 ? work.sweep : (record.sweep ?? work.sweep),
 		};
 		const approved = yield* state.save(stored, briefSteerIntent(record, updated, state.policy.now())).pipe(Effect.flatMap(closeDecisions(state)));
 		return yield* steerBrief(state, approved, record);

@@ -11,7 +11,7 @@ import type { Versioned } from "#storage/model.ts";
 
 export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork) {
 	const ready = stored.value.stage === "needs-human" && stored.value.decision?.code === "reviewed-pr-ready" && stored.value.result?.kind === "change";
-	const changed = briefChanged(stored.value, work) || preparedAreasChanged(stored.value, work);
+	const changed = briefChanged(stored.value, work) || preparedSchedulingChanged(stored.value, work);
 	if (
 		["completed", "released"].includes(stored.value.stage)
 		|| (!ready && (stored.value.stage === "needs-human" || stored.value.decision !== undefined))
@@ -39,14 +39,19 @@ export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: En
 				boardRevision: work.revision,
 				boardSourcePath: work.sourcePath,
 				mergeAreasReleased: undefined,
+				sweep: published.value.sweep ?? work.sweep,
 			},
 		},
 		work.context,
 	);
 });
 
-function preparedAreasChanged(record: FleetRecord, work: BoardWork): boolean {
-	return record.stage === "prepared" && JSON.stringify(record.areas ?? []) !== JSON.stringify(work.areas ?? []);
+function preparedSchedulingChanged(record: FleetRecord, work: BoardWork): boolean {
+	return (
+		record.stage === "prepared"
+		&& (JSON.stringify(record.areas ?? []) !== JSON.stringify(work.areas ?? [])
+			|| JSON.stringify(record.sweep ?? []) !== JSON.stringify(work.sweep ?? []))
+	);
 }
 
 export const reconcileBrief = Effect.fn("Fleet.reconcileBrief")(function* (state: EngineState, stored: Versioned<FleetRecord>) {

@@ -76,7 +76,10 @@ export function makeLaunch(state: EngineState) {
 			status: "submitting",
 			submittedAt: policy.now(),
 		};
-		const record = launchRecord(stored.value, launchRole, policy.now(), continuation?.responses);
+		const record = {
+			...launchRecord(stored.value, launchRole, policy.now(), continuation?.responses),
+			sweep: stored.value.sweep ?? work.sweep,
+		};
 		yield* saveLaunch(state, stored, record, attempt, { priority: work.priority, quota, role: launchRole });
 		const submitted =
 			sessionId === undefined

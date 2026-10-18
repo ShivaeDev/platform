@@ -1,11 +1,9 @@
 import { Config, Effect, Layer, Redacted } from "effect";
-import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
 import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/client.ts";
-import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
+import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
 import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { otlpTracing } from "@shivaedev/platform/server/otlpTracing.ts";
-import { notes } from "#notes.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { makeNotesRepository } from "#server/makeNotesRepository.ts";
 import { CountWords, NoteJobs } from "#server/noteJobs.ts";
@@ -17,7 +15,6 @@ const countWords = CountWords.handle(({ noteId }) =>
 		for (const row of rows) {
 			yield* repository.update({ ...row, wordCount: row.title.split(/\s+/u).length });
 		}
-		yield* invalidateOnCommit(invalidationKeys([notes.item(noteId)]));
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.withSpan("CountWords", { kind: "consumer" })),
 );
 

@@ -1,11 +1,12 @@
 import { Effect, Option } from "effect";
 import { expect } from "vitest";
+import { defineQueue } from "#definition.ts";
 import { deadLetterQueueName } from "#health.ts";
 import { postgresIt, realPostgres } from "#test/boss.ts";
-import { singletonQueue } from "#test/singletonQueue.ts";
+import { singletonQueueOptions } from "#test/singletonQueueOptions.ts";
 
 postgresIt("serializes tagged jobs for one entity while other keys run in parallel", [realPostgres], function* ({ boot, until, untilJob }) {
-	const Queue = singletonQueue();
+	const Queue = defineQueue(singletonQueueOptions());
 	const release = Promise.withResolvers<void>();
 	const active = new Map<number, number>();
 	const overlaps: number[] = [];
@@ -45,15 +46,16 @@ postgresIt("serializes tagged jobs for one entity while other keys run in parall
 	expect(Option.getOrThrow(yield* first.jobs.getJob(Queue, reconcile))).toMatchObject({ singletonKey: "pr:42", state: "created" });
 	expect(Option.getOrThrow(yield* first.jobs.getJob(Queue, other))).toMatchObject({ singletonKey: "pr:99", state: "active" });
 	release.resolve();
-	for (const id of [refresh, reconcile, other]) {
+	const enqueued = [refresh, reconcile, other];
+	for (const id of enqueued) {
 		yield* untilJob(first.jobs, Queue, id, "completed");
 	}
-	expect(started).toHaveLength(3);
+	expect(started).toHaveLength(enqueued.length);
 	expect(overlaps).toEqual([]);
 });
 
 postgresIt("lets the next job use an entity key while an earlier job waits to retry", [realPostgres], function* ({ boot, untilJob }) {
-	const Queue = singletonQueue({ retryBackoff: false, retryDelay: 3600, retryLimit: 1 });
+	const Queue = defineQueue(singletonQueueOptions({ retryBackoff: false, retryDelay: 3600, retryLimit: 1 }));
 	const handled: string[] = [];
 	const { jobs } = yield* boot([
 		Queue.handle(({ _tag }) => {
@@ -70,7 +72,8 @@ postgresIt("lets the next job use an entity key while an earlier job waits to re
 });
 
 postgresIt("dead-letters an exhausted job and leaves its entity key available", [realPostgres], function* ({ boot, admin, untilJob, untilJobs }) {
-	const Queue = singletonQueue({ retryBackoff: false, retryDelay: 0, retryLimit: 1 });
+	const Queue = defineQueue(singletonQueueOptions({ retryBackoff: false, retryDelay: 0, retryLimit: 1 }));
+	const expectedAttempts = 2;
 	const client = yield* admin();
 	let attempts = 0;
 	const { jobs } = yield* boot([
@@ -89,5 +92,5 @@ postgresIt("dead-letters an exhausted job and leaves its entity key available", 
 	]);
 	const next = Option.getOrThrow(yield* jobs.enqueue(Queue, { _tag: "Reconcile", pullRequestId: 42 }));
 	expect(yield* untilJob(jobs, Queue, next, "completed")).toMatchObject({ singletonKey: "pr:42" });
-	expect(attempts).toBe(2);
+	expect(attempts).toBe(expectedAttempts);
 });

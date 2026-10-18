@@ -39,6 +39,7 @@ const invalidations = makeChannel<unknown, SqlClient.SqlClient | Reactivity.Reac
 	unowned: nativeTransactionWithoutTransact(),
 });
 
+export const ChangeObserver = invalidations.Observer;
 export const BeforeCommit = invalidations.BeforeCommit;
 export const CommittedSink = invalidations.CommittedSink;
 

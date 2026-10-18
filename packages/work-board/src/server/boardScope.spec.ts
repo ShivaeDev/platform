@@ -1,42 +1,38 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { folder, startBoard } from "#test/board.ts";
+import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 
-it.live("releases the real HTTP listener when a scoped board read succeeds", function* () {
-	const notes = folder({ "home.md": "# Home" });
-	try {
+boardStory.it(
+	"releases the real HTTP listener after a scoped read succeeds",
+	[projectFiles({ "home.md": "# Home" }), deferredServing],
+	function* ({ start, request }) {
 		const url = yield* Effect.scoped(
 			Effect.gen(function* () {
-				const board = yield* startBoard(notes.root);
-				expect((yield* Effect.promise(() => fetch(board.url))).status).toBe(200);
+				const board = yield* start();
+				expect((yield* request("/")).status).toBe(200);
 				return board.url;
 			}),
 		);
 		yield* Effect.promise(() => expect(fetch(url)).rejects.toThrow());
-	} finally {
-		notes.remove();
-	}
-});
-
-it.live("releases the real HTTP listener when its owning fiber is interrupted", function* () {
-	const notes = folder({ "home.md": "# Home" });
-	try {
+	},
+);
+boardStory.it(
+	"releases the listener when the owning fiber is interrupted",
+	[projectFiles({ "home.md": "# Home" }), deferredServing],
+	function* ({ start, request }) {
 		const listening = yield* Deferred.make<string>();
 		const owner = yield* Effect.scoped(
 			Effect.gen(function* () {
-				const board = yield* startBoard(notes.root);
+				const board = yield* start();
 				yield* Deferred.succeed(listening, board.url);
 				return yield* Effect.never;
 			}),
 		).pipe(Effect.forkChild);
 		const url = yield* Deferred.await(listening);
-		expect((yield* Effect.promise(() => fetch(url))).status).toBe(200);
+		expect((yield* request("/")).status).toBe(200);
 		yield* Fiber.interrupt(owner);
 		const stopped = yield* Fiber.await(owner);
 		expect(Exit.isFailure(stopped) && Cause.hasInterrupts(stopped.cause)).toBe(true);
 		yield* Effect.promise(() => expect(fetch(url)).rejects.toThrow());
-	} finally {
-		notes.remove();
-	}
-});
+	},
+);

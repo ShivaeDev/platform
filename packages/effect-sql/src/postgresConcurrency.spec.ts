@@ -4,6 +4,7 @@ import { OptimisticConcurrencyError } from "#repository.ts";
 import { Document } from "#test/postgresVersioned.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { hasVersionedDocuments } from "#test/sqlTraits.ts";
+import { transaction } from "#test/transaction.ts";
 
 postgres.it("PostgreSQL inserts initialize versions and updates return the incremented model", [hasVersionedDocuments()], function* ({ versions }) {
 	const { documents } = versions();
@@ -18,19 +19,17 @@ postgres.it("PostgreSQL inserts initialize versions and updates return the incre
 	expect(yield* documents.findById(original.id)).toEqual(updated);
 });
 
-postgres.it("PostgreSQL versioned writes roll back with the caller's transaction", [hasVersionedDocuments()], function* ({ versions, sql }) {
+postgres.it("PostgreSQL versioned writes roll back with the caller's transaction", [hasVersionedDocuments()], function* ({ versions }) {
 	const { documents } = versions();
 	const original = yield* documents.insert({ name: "Draft" });
-	const result = yield* sql
-		.withTransaction(
-			Effect.gen(function* () {
-				const updated = yield* documents.update({ ...original, name: "Published" });
-				yield* documents.insertVoid({ name: "Temporary" });
-				yield* documents.delete(updated.id, updated.lockVersion);
-				return yield* Effect.fail("cancelled");
-			}),
-		)
-		.pipe(Effect.result);
+	const result = yield* transaction(
+		Effect.gen(function* () {
+			const updated = yield* documents.update({ ...original, name: "Published" });
+			yield* documents.insertVoid({ name: "Temporary" });
+			yield* documents.delete(updated.id, updated.lockVersion);
+			return yield* Effect.fail("cancelled");
+		}),
+	).pipe(Effect.result);
 	expect(result).toEqual(Result.fail("cancelled"));
 	expect(yield* documents.findById(original.id)).toEqual(original);
 	expect(yield* documents.findMany({ select: ["lockVersion", "name"] })).toEqual([{ lockVersion: 0, name: "Draft" }]);
