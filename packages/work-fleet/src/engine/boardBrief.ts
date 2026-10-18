@@ -7,7 +7,7 @@ import type { FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
-const CHANGED_BRIEF_REASON = "Board context changed";
+export const CHANGED_BRIEF_REASON = "Board context changed";
 
 export function briefChanged(record: Pick<FleetRecord, "boardRevision" | "boardContext">, work: BoardWork): boolean {
 	return workRevision(record.boardRevision, record.boardContext) !== workRevision(work.revision, work.context);

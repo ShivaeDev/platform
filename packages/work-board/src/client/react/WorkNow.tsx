@@ -22,7 +22,7 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 					Fleet is unavailable. Lanes use authored status. {fleet?.state === "unavailable" ? fleet.reason : "Fleet data has not loaded."}
 				</p>
 			)}
-			<div className="work-columns work-now grid auto-cols-[minmax(260px,1fr)] grid-flow-col gap-4 overflow-x-auto pb-2 max-md:auto-cols-auto max-md:grid-flow-row">
+			<div className="work-columns work-now grid grid-cols-[repeat(6,minmax(8.5rem,1fr))] gap-3 overflow-x-auto pb-2">
 				{nowLanes.map((lane, index) => {
 					const rows = (groups.get(lane) ?? []).filter((item) => index !== 5 || recent.has(item.id));
 					return (
