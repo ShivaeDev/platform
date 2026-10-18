@@ -6,7 +6,7 @@ import { folder, type RunningBoard } from "./board.ts";
 import { embeddedBoard } from "./embeddedBoard.ts";
 import { subscribe } from "./nativeRpc.ts";
 import { type SocketExchange, socketExchange } from "./socketRpc.ts";
-import { type BoardEngine, connected } from "./storyEngine.ts";
+import { type BoardEngine, served } from "./storyEngine.ts";
 
 export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	const boards: RunningBoard[] = [];
@@ -43,25 +43,36 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		},
 		restart: Effect.fn("Story.restart")(function* (responses = engine.responses) {
 			tell("the board restarts from its project files");
-			yield* Effect.promise(() => connected(engine).page.close());
-			connected(engine).client.registry.dispose();
-			yield* connected(engine).board.stop();
+			const page = engine.live?.page;
+			if (page) {
+				yield* Effect.promise(() => page.close());
+			}
+			served(engine).client.registry.dispose();
+			yield* served(engine).board.stop();
 			engine.responses = responses;
-			const { serveProject } = yield* Effect.promise(() => import("./storyEngine.ts"));
+			const reopen = engine.live !== undefined;
+			delete engine.live;
+			const { serveProject, openReader } = yield* Effect.promise(() => import("./storyEngine.ts"));
 			yield* serveProject(engine);
-			return connected(engine);
+			if (reopen) {
+				yield* openReader(engine);
+			}
+			return served(engine);
 		}),
 		stopBoards: Effect.fn("Story.stopBoards")(function* () {
 			tell("all HTTP boards stop before the project is reopened");
-			yield* Effect.promise(() => connected(engine).page.close());
-			yield* connected(engine).board.stop();
+			const page = engine.live?.page;
+			if (page) {
+				yield* Effect.promise(() => page.close());
+			}
+			yield* served(engine).board.stop();
 			for (const board of boards.splice(0)) {
 				yield* board.stop();
 			}
 		}),
 		watchProject: () => {
 			tell("a live RPC client subscribes to project changes");
-			return subscribe(connected(engine).board);
+			return subscribe(served(engine).board);
 		},
 	};
 }

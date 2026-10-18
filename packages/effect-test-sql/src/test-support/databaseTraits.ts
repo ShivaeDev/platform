@@ -2,7 +2,6 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted, Schedule, Scope } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { committingClone } from "./committingClone.ts";
 import { database } from "./database.ts";
 import { databasePressure } from "./databasePressure.ts";
 import { limitedRole } from "./limitedRole.ts";
@@ -52,16 +51,6 @@ export const sequence = database.trait("configuration", "the template contains a
 export const failingFixtures = database.trait("configuration", "template fixtures fail after acquiring their database", (engine) => {
 	engine.options = { ...engine.options, fixtures: Effect.fail("fixtures failed") };
 });
-
-export const committingClones = database.trait("activity", "two clones commit while the shared database changes", (engine) =>
-	engine.run(
-		Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			yield* sql`update items set value = 'shared'`;
-			yield* Effect.all([committingClone("a", engine.cloneNames), committingClone("b", engine.cloneNames)], { concurrency: "unbounded" });
-		}),
-	),
-);
 
 export const idleClock = database.trait("configuration", "pool expiry uses a controlled clock", (engine) => {
 	engine.idleClock = true;

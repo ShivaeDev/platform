@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { boardStory, projectFiles, responsesEnabled, serverReading } from "#test/boardStory.ts";
+import { boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
 
 const project = projectFiles({
 	"first.md":
@@ -10,7 +10,7 @@ const project = projectFiles({
 
 boardStory.it(
 	"streams two questions' answers in order without replaying earlier responses or repeating records",
-	[project, responsesEnabled(), serverReading()],
+	[project, responsesEnabled()],
 	function* ({ followResponses, recordFeedResponse, editFile }) {
 		yield* recordFeedResponse("task.first", "direction", "response.older", "Old direction.");
 		const feed = yield* followResponses();
@@ -26,7 +26,7 @@ boardStory.it(
 
 boardStory.it(
 	"replays responses from the inclusive since timestamp and continues following new replies",
-	[project, responsesEnabled(), serverReading()],
+	[project, responsesEnabled()],
 	function* ({ followResponses, recordFeedResponse }) {
 		yield* recordFeedResponse("task.first", "direction", "response.before", "Earlier direction.");
 		const replay = yield* recordFeedResponse("task.second", "review", "response.replay", "Revisit tomorrow.", "not_now");

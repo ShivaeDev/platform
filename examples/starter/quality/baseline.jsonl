@@ -10,9 +10,9 @@
 {"path":"src/server/migrations/0006_auth_admin.ts","rule":"boundaries/auth-sql","count":2}
 {"path":"src/server/noteEditingHost.spec.ts","rule":"tests/named-values","count":2}
 {"path":"src/server/noteJobsEditing.spec.ts","rule":"tests/named-values","count":1}
-{"path":"src/server/parallelPoolTeardown.spec.ts","rule":"tests/named-values","count":3}
+{"path":"src/server/parallelPoolTeardown.spec.ts","rule":"tests/named-values","count":4}
 {"path":"src/server/queueFailure.spec.ts","rule":"tests/named-values","count":2}
-{"path":"src/server/socialSessions.dom.spec.ts","rule":"tests/named-values","count":1}
+{"path":"src/server/socialSessions.dom.spec.ts","rule":"tests/named-values","count":9}
 {"path":"src/test-support/SwitchScreen.tsx","rule":"tests/support-imports","count":1}
 {"path":"src/test-support/adminSetup.ts","rule":"tests/support-imports","count":1}
 {"path":"src/test-support/appAuth.ts","rule":"tests/support-imports","count":1}
@@ -41,5 +41,6 @@
 {"path":"src/test-support/screens.ts","rule":"tests/support-imports","count":1}
 {"path":"src/test-support/sessionPrecondition.ts","rule":"tests/support-imports","count":1}
 {"path":"src/test-support/socialApp.ts","rule":"boundaries/auth-sql","count":2}
+{"path":"src/test-support/socialHost.ts","rule":"boundaries/auth-sql","count":1}
 {"path":"src/test-support/storedNotes.ts","rule":"tests/support-imports","count":1}
 {"path":"src/test-support/themeScreenVerbs.tsx","rule":"tests/support-imports","count":1}

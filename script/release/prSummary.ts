@@ -15,7 +15,7 @@ export function releasePrSummary(plan: ReleasePlan) {
 		})
 		.join("\n\n");
 	return {
-		body: `### Why?\n\nMerge this PR whenever you want a release of the pending changes.\n\n### How?\n\nThis branch is regenerated from main with the changesets plan applied. Merging it publishes through the existing main-only npm trusted publishing workflow.\n\n| Package | Current | Release | Bump |\n| --- | --- | --- | --- |\n${packages}\n\n#### Changes\n\n${entries}\n\n### Decisions\n\n- Enable **Allow GitHub Actions to create pull requests** under Settings → Actions → General → Workflow permissions. Only GITHUB_TOKEN is used.\n- While this PR is in the merge queue, the automation leaves it untouched so a force-push cannot eject it.\n`,
+		body: `### Why?\n\nThis PR holds the current release plan: press **Approve and run**, then merge when full CI is green.\n\n### How?\n\nThis branch is regenerated from main with the changesets plan applied. Merging it publishes through the existing main-only npm trusted publishing workflow.\n\n| Package | Current | Release | Bump |\n| --- | --- | --- | --- |\n${packages}\n\n#### Changes\n\n${entries}\n\n### Decisions\n\n- Enable **Allow GitHub Actions to create pull requests** under Settings → Actions → General → Workflow permissions. Only GITHUB_TOKEN is used.\n- While this PR is in the merge queue, the automation leaves it untouched so a force-push cannot eject it.\n`,
 		title,
 	};
 }

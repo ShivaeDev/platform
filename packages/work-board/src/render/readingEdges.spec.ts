@@ -1,10 +1,10 @@
 import { expect } from "vitest";
-import { boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { TEXT_QUESTION } from "#test/coverageEdges.ts";
 
 boardStory.it(
 	"keeps unrecognized fenced languages readable without guessing a highlighter",
-	[serverReading(), projectFiles({ "nested/home.md": "```consumer-specific-language\nvalue < limit\n```\n" })],
+	[projectFiles({ "nested/home.md": "```consumer-specific-language\nvalue < limit\n```\n" })],
 	function* ({ renderDocument }) {
 		const html = yield* renderDocument("nested/home.md");
 		expect(html).toContain("value &lt; limit");
@@ -15,7 +15,7 @@ boardStory.it(
 
 boardStory.it(
 	"renders an empty authored heading with a usable labeled section anchor",
-	[serverReading(), projectFiles({ "nested/home.md": "##\n" })],
+	[projectFiles({ "nested/home.md": "##\n" })],
 	function* ({ renderDocument }) {
 		const html = yield* renderDocument("nested/home.md");
 		expect(html).toContain('aria-label="Link to section"');
@@ -25,7 +25,7 @@ boardStory.it(
 
 boardStory.it(
 	"renders questionnaire source as reading sections on ordinary document pages",
-	[serverReading(), projectFiles({ "nested/home.md": TEXT_QUESTION })],
+	[projectFiles({ "nested/home.md": TEXT_QUESTION })],
 	function* ({ renderDocument }) {
 		const html = yield* renderDocument("nested/home.md");
 		expect(html).toContain('class="questionnaire-reading questionnaire-question"');
@@ -35,7 +35,7 @@ boardStory.it(
 
 boardStory.it(
 	"discloses a visual component missing its required label instead of inventing one",
-	[serverReading(), projectFiles({ "nested/home.md": ':::metric{value="1" unit="documents"}\nSource: [Checks](checks.md)\n:::\n' })],
+	[projectFiles({ "nested/home.md": ':::metric{value="1" unit="documents"}\nSource: [Checks](checks.md)\n:::\n' })],
 	function* ({ renderDocument }) {
 		const html = yield* renderDocument("nested/home.md");
 		expect(html).toContain("Start with a Markdown label paragraph.");
@@ -47,7 +47,6 @@ boardStory.it(
 boardStory.it(
 	"accepts an authored reference-style source link as visual provenance",
 	[
-		serverReading(),
 		projectFiles({
 			"nested/home.md": ':::metric{value="1" unit="documents"}\nReviewed files\n\nSource: [Checks][checks]\n:::\n\n[checks]: checks.md\n',
 		}),

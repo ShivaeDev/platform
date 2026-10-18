@@ -49,11 +49,45 @@ socialApp.it(
 socialApp.it(
 	"a minted session resolves account lookups and rejects unavailable or revoked sessions",
 	[mintedSocialSession()],
-	function* ({ providerAccounts, signOut, failAccountLookup }) {
+	function* ({ providerAccounts, signOut, failAccountLookup, identityOnly, accountLookups }) {
 		expect(yield* providerAccounts()).toEqual([]);
 		yield* failAccountLookup();
+		expect(yield* identityOnly()).toEqual(expect.any(String));
+		expect(accountLookups()).toBe(1);
 		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "AuthUnavailable" } });
 		yield* signOut();
 		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+	},
+);
+
+socialApp.it(
+	"identity-only RPCs leave accounts unloaded and each accounts request shares just its own lookup",
+	[mintedSocialSession()],
+	function* ({ identityOnly, providerAccounts, accountLookups, mintSession }) {
+		const bob = yield* identityOnly();
+		expect(bob).toEqual(expect.any(String));
+		expect(accountLookups()).toBe(0);
+		expect(yield* providerAccounts()).toEqual([]);
+		expect(accountLookups()).toBe(1);
+		expect(yield* providerAccounts()).toEqual([]);
+		expect(accountLookups()).toBe(2);
+		yield* mintSession("carol@social.test");
+		const carol = yield* identityOnly();
+		expect(carol).toEqual(expect.any(String));
+		expect(carol).not.toBe(bob);
+		expect(accountLookups()).toBe(2);
+		expect(yield* providerAccounts()).toEqual([]);
+		expect(accountLookups()).toBe(3);
+	},
+);
+socialApp.it(
+	"a session expiring after identity resolution fails the handler's accounts read as Unauthorized",
+	[mintedSocialSession()],
+	function* ({ expireBeforeAccountLookup, providerAccounts, accountLookups, identityOnly }) {
+		yield* expireBeforeAccountLookup();
+		expect(yield* identityOnly()).toEqual(expect.any(String));
+		expect(accountLookups()).toBe(0);
+		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+		expect(accountLookups()).toBe(1);
 	},
 );

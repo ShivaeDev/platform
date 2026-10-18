@@ -3,7 +3,6 @@ import type { GitHubRequest } from "#release/gitHub.ts";
 interface PrState {
 	body: string;
 	created: number;
-	dispatched: Readonly<Record<string, unknown>>[];
 	open: boolean;
 	queued: boolean;
 	requests: { endpoint: string; method: string; body: Readonly<Record<string, unknown>> | undefined }[];
@@ -27,7 +26,6 @@ export function releasePrApi(branchHead: () => string) {
 	const state: PrState = {
 		body: "",
 		created: 0,
-		dispatched: [],
 		open: false,
 		queued: false,
 		requests: [],
@@ -41,9 +39,7 @@ export function releasePrApi(branchHead: () => string) {
 		if (body === undefined) {
 			throw new Error(`Missing body for ${endpoint}`);
 		}
-		if (endpoint.endsWith("/dispatches")) {
-			state.dispatched.push(body);
-		} else if (body.state === "closed") {
+		if (body.state === "closed") {
 			state.open = false;
 		} else {
 			if (method === "POST") {

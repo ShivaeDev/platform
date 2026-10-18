@@ -1,13 +1,18 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
-import { Unauthorized } from "#errors/taxonomy.ts";
-import { expiryDuringAccountLookup } from "#test/rpc/expiryDuringAccountLookup.ts";
-import { sessions, signedUp } from "#test/rpc/sessionStory.ts";
+import { customAccounts, providerProfile } from "#test/rpc/providerProfile.ts";
 
-sessions.it(
-	"a session that expires between its read and the provider account lookup is unauthorized over HTTP",
-	[expiryDuringAccountLookup, signedUp("alice")],
-	function* ({ whoami }) {
-		const result = yield* whoami("alice");
-		expect(result._tag === "Failure" && result.failure).toBeInstanceOf(Unauthorized);
+providerProfile.it(
+	"projects custom provider accounts to public IDs at the session boundary",
+	[
+		customAccounts({
+			email: "alice@example.test",
+			id: "alice",
+			name: "Alice",
+			providerAccounts: Effect.succeed([{ accessToken: "secret", accountId: "123", id: "account-row", providerId: "github" }]),
+		}),
+	],
+	function* ({ accounts }) {
+		expect(yield* accounts()).toEqual({ accounts: [{ accountId: "123", providerId: "github" }], identity: { id: "alice" } });
 	},
 );

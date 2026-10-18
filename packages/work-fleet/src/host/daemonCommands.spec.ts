@@ -1,98 +1,54 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
-import { daemonClient } from "#host/daemonClient.ts";
-import { boardHttpFiles } from "#test/boardHttp.ts";
-import { appliedAnswer, dispatchAndWait } from "#test/daemonActions.ts";
-import { daemonResources } from "#test/daemonResources.ts";
-import { finishWorkers } from "#test/engine.ts";
-import { cliProcess } from "#test/fleetCli.ts";
-import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { withReadDaemon } from "#test/readDaemon.ts";
-
-const test = postgresTests("live");
-
-const decisionStory = Effect.fn("DaemonCommandsTest.decisionStory")(function* (
-	fixture: HostFixture,
-	port: number,
-	action: "retry" | "release",
-	resources: Effect.Success<ReturnType<typeof daemonResources>>,
-) {
-	const client = yield* daemonClient(port);
-	yield* dispatchAndWait(client, "one");
-	finishWorkers(fixture.provider);
-	const waiting = yield* client("fleet.reconcile", { workId: "one" });
-	expect(waiting.stage).toBe("needs-human");
-	const published = waiting.decision?.published;
-	if (published === undefined) {
-		return yield* Effect.die("Expected a published decision");
-	}
-	const args = ["answer", "one", ...(action === "release" ? ["--release"] : []), "--board", fixture.host.boardDir, "--config", "unused.json"];
-	expect(yield* Effect.promise(() => cliProcess(args))).toEqual({
-		code: 0,
-		stdout: "one needs-human: Answer recorded; applying in the background",
-	});
-	const current = yield* appliedAnswer(client, "one");
-	expect(current.decision).toBeUndefined();
-	expect(current.responses).toMatchObject([{ action, boardAcknowledged: true, decisionId: waiting.decision?.id, questionId: published.questionId }]);
-	const files = boardHttpFiles(fixture.host.boardDir);
-	expect(boardApi.metadataParse(files.read(`responses/response.fleet-${action}.${published.questionId}.md`)).fields.response?.answers).toEqual([
-		{ prompt: "fleet-action", selected: [action], text: "" },
-	]);
-	expect(files.receipts()).toHaveLength(1);
-	expect((yield* Effect.promise(() => cliProcess(args))).code).toBe(1);
-	expect(files.receipts()).toHaveLength(1);
-	expect(resources.providers).toBe(1);
-	expect(resources.releases).toBe(0);
-	expect(fixture.provider.launched).toHaveLength(1);
-});
+import { approvedWork, host } from "#test/hostStory.ts";
 
 for (const action of ["retry", "release"] as const) {
-	test(
+	host.it(
 		`answer ${action} answers the published decision by item through the daemon without a client database connection`,
-		() => withHost({ "one.md": task("one", "approved") }, {}, (fixture) => decisionResources(fixture, action)),
+		[approvedWork(["one"])],
+		function* (daemon) {
+			const started = yield* daemon.dispatch("one");
+			daemon.finishTurn(started);
+			const waiting = yield* daemon.reconcile("one");
+			expect(waiting.stage).toBe("needs-human");
+			const published = waiting.decision?.published;
+			if (published === undefined) {
+				throw new Error("Expected a published decision");
+			}
+			const args = ["answer", "one", ...(action === "release" ? ["--release"] : []), "--config", "unused.json"];
+			expect(yield* daemon.cli(args)).toMatchObject({ code: 0, stderr: "", stdout: "one needs-human: Answer recorded; applying in the background" });
+			const current = yield* daemon.appliedAnswer("one");
+			expect(current.decision).toBeUndefined();
+			expect(current.responses).toMatchObject([
+				{ action, boardAcknowledged: true, decisionId: waiting.decision?.id, questionId: published.questionId },
+			]);
+			expect(
+				boardApi.metadataParse(daemon.readBoard(`responses/response.fleet-${action}.${published.questionId}.md`)).fields.response?.answers,
+			).toEqual([{ prompt: "fleet-action", selected: [action], text: "" }]);
+			expect(daemon.receiptFiles()).toHaveLength(1);
+			expect((yield* daemon.cli(args)).code).toBe(1);
+			expect(daemon.receiptFiles()).toHaveLength(1);
+			expect(daemon.providerResources()).toEqual({ providers: 1, releases: 0 });
+			expect(daemon.providerStarts()).toHaveLength(1);
+			yield* daemon.stop();
+			expect(daemon.providerResources()).toEqual({ providers: 1, releases: 1 });
+		},
 		30_000,
 	);
 }
 
-const decisionResources = Effect.fn("DaemonCommandsTest.decisionResources")(function* (fixture: HostFixture, action: "retry" | "release") {
-	const resources = yield* daemonResources(fixture.parts.provider);
-	yield* withReadDaemon(fixture.host, (port) => decisionStory(fixture, port, action, resources), {
-		parts: { ...fixture.parts, provider: resources.provider },
-	});
-	expect(resources.releases).toBe(1);
-});
-
-test(
+host.it(
 	"answer rejects an active item without recording a response",
-	() =>
-		withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-			withReadDaemon(fixture.host, (port) => activeStory(fixture, port), { parts: fixture.parts }),
-		),
+	[approvedWork(["one"])],
+	function* (daemon) {
+		yield* daemon.dispatch("one");
+		const result = yield* daemon.cli(["answer", "one", "--release"], { selection: "port" });
+		expect(result.code).toBe(1);
+		expect(result.stderr).toContain("one waits on no answer in stage executing");
+		expect(yield* daemon.answer("one").pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining("executing") });
+		expect((yield* daemon.get("one")).stage).toBe("executing");
+		expect(daemon.boardExists("responses")).toBe(false);
+	},
 	30_000,
 );
-
-const activeStory = Effect.fn("DaemonCommandsTest.activeStory")(function* (fixture: HostFixture, port: number) {
-	const client = yield* daemonClient(port);
-	yield* dispatchAndWait(client, "one");
-	let stderr = "";
-	function captureError(text: string) {
-		stderr += text;
-	}
-	const result = yield* Effect.promise(() =>
-		cliProcess(["answer", "one", "--release", "--port", String(port)], {
-			onError: captureError,
-		}),
-	);
-	expect(result.code).toBe(1);
-	expect(stderr).toContain("one waits on no answer in stage executing");
-	expect(yield* client("daemon.answer", { workId: "one" }).pipe(Effect.flip)).toMatchObject({
-		_tag: "BadRequest",
-		message: expect.stringContaining("executing"),
-	});
-	expect((yield* client("fleet.get", { workId: "one" })).stage).toBe("executing");
-	expect(existsSync(join(fixture.host.boardDir, "responses"))).toBe(false);
-});
