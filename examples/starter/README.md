@@ -18,6 +18,8 @@ Follow the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/fra
 
 The app uses Tailwind's neutral theme and stock shadcn components in `src/client/ui`, configured by `components.json`. The notes list uses the TanStack React Table data-table pattern. The application-owned `CodePreview` renders added, removed and context lines outside the shadcn folder. Server entry points are in `src/server`; the shared contract is `src/notes.ts`; the browser starts in `src/client/entry.tsx`.
 
+Use `LabelledSwitch` for a setting with a visible label, controlled `checked` state and `onCheckedChange` callback. Its Base UI field associates the setting label with the stock shadcn Switch; the separate On/Off text is hidden from the accessible name. Put the setting text in `Field.Label`, since its association supplies the switch's name through `aria-labelledby`.
+
 `pnpm build && pnpm migrate && pnpm start` serves the built UI, Better Auth endpoints and HTTP/NDJSON RPC together at `http://127.0.0.1:3000`. Set `DATABASE_URL` and `BETTER_AUTH_SECRET` in `.env.local` or the shell. The secret needs at least 32 random characters; generate one with `openssl rand -base64 32`. For hosting behind a proxy, follow the quickstart's [Deploy section](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy), setting `PUBLIC_URL` to your public app URL.
 
 `AUTH_RATE_LIMIT_ENABLED` is an Effect Config boolean that defaults to `true` in every environment, including tests. Set it to `false` to disable Better Auth rate limiting for this app.

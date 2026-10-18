@@ -7,12 +7,13 @@ for (const style of ["display: none", "visibility: hidden", "content-visibility:
 		screenApp.it(
 			`refuses actions and readouts when ${ancestor ? "an ancestor has" : "targets have"} ${style}`,
 			[hiddenScreen(style, ancestor)],
-			function* ({ click, enter, submit, text, value }) {
+			function* ({ accessible, click, enter, submit, text, value }) {
 				for (const action of [click("#load"), enter('[name="email"]', "alice@example.test"), enter("textarea", "draft"), submit()]) {
 					const exit = yield* Effect.exit(action);
 					expect(Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "acted").toContain("is not rendered");
 				}
 				expect(() => text("output")).toThrow("is not rendered");
+				expect(() => accessible("#load")).toThrow("is not rendered");
 				expect(() => value('[name="email"]')).toThrow("is not rendered");
 				expect(() => value("textarea")).toThrow("is not rendered");
 				if (ancestor) {
