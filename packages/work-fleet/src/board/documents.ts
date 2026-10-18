@@ -13,6 +13,9 @@ export const snapshotDocument = Effect.fn("FleetBoard.snapshotDocument")(functio
 	const matches = snapshot.model.ids.get(workId);
 	const found = matches?.length === 1 ? snapshot.files.get(matches[0]?.file ?? "") : undefined;
 	if (found === undefined) {
+		if (matches === undefined && snapshot.problems.size === 0) {
+			return yield* Effect.fail(new BoardFailure({ code: "board-item-missing", message: `Board item no longer exists: ${workId}`, workId }));
+		}
 		const message = [
 			`Board identity is missing or ambiguous: ${workId}`,
 			...Array.from(snapshot.problems.values(), (failure) => failure.message),

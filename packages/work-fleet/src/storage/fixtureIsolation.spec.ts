@@ -1,8 +1,8 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
+import { hostDatabase } from "#test/hostDatabase.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { makeTestStore, record, withStorage } from "#test/storage.ts";
 
@@ -34,7 +34,7 @@ const committedClone = withStorage((store, namespace) =>
 		const database = yield* PostgresTestDatabase;
 		const observed = yield* makeTestStore(namespace).pipe(
 			Effect.flatMap((reader) => reader.load("committed")),
-			Effect.provide(PgClient.layer({ url: database.url })),
+			Effect.provide(hostDatabase(database.url, "work-fleet-isolation-reader", 1)),
 		);
 		expect(observed).toEqual(saved);
 	}),

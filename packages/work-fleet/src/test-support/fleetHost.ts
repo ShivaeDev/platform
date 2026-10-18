@@ -11,14 +11,12 @@ import type { HostParts } from "#host/commands.ts";
 import { type FleetHost, type HostConfig, resolveHost } from "#host/config.ts";
 import { loadHost } from "#host/configFile.ts";
 import { CONFIG_FILE } from "#host/defaults.ts";
-import { MainSource, unchanged } from "#host/mainSource.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import type { CliRun } from "#test/fleetCli.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
+import { fixedMainSource } from "#test/mainSource.ts";
 import { daemonCli } from "#test/readDaemon.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
-
-export const MAIN = { observedAt: 1, revision: "main-revision" };
 
 export function task(id: string, fleet?: string, body = "Do the work.") {
 	return `---\nid: ${id}\nkind: task\n${fleet === undefined ? "" : `fleet: ${fleet}\n`}---\n# ${id}\n\n${body}\n`;
@@ -31,13 +29,6 @@ export interface HostFixture {
 	readonly provider: EngineProvider;
 	readonly write: (file: string, source: string) => void;
 }
-
-const mainSource = Layer.succeed(MainSource)({
-	current: Effect.succeed(MAIN),
-	observe: (preparation) => Effect.succeed(unchanged(preparation.baseRevision, MAIN)),
-	refresh: Effect.succeed(MAIN),
-	repositoryRoot: "/synthetic-repository",
-});
 
 export function hostBoard(config?: string) {
 	const boardDir = mkdtempSync(join(tmpdir(), "fleet-config-"));
@@ -54,7 +45,7 @@ function hostParts(boardDir: string, provider: EngineProvider["transport"]): Hos
 			Layer.succeed(ReportInspection)({ check: () => Effect.void }),
 		),
 		github: syntheticGithub().layer,
-		main: mainSource,
+		main: fixedMainSource(),
 		provider,
 	};
 }
