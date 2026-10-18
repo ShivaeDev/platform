@@ -27,24 +27,17 @@ export function withFollower<A, E, R>(
 }
 
 export const untilOutput = Effect.fn("FollowerTest.untilOutput")(function* (follower: Follower, text: string) {
-	yield* untilText(follower, follower.output, text);
+	yield* untilText(follower.output, text);
 });
 
 export const untilError = Effect.fn("FollowerTest.untilError")(function* (follower: Follower, text: string) {
-	yield* untilText(follower, follower.errors, text);
+	yield* untilText(follower.errors, text);
 });
 
-const untilText = Effect.fn("FollowerTest.untilText")(function* (follower: Follower, output: () => string, text: string) {
+const untilText = Effect.fn("FollowerTest.untilText")(function* (output: () => string, text: string) {
 	for (let attempt = 0; attempt < 1000; attempt += 1) {
 		if (output().includes(text)) {
 			return;
-		}
-		if (!follower.isRunning()) {
-			const result = yield* Effect.promise(() => follower.done);
-			if (output().includes(text)) {
-				return;
-			}
-			return yield* Effect.die(new Error(`Follower exited before printing ${JSON.stringify(text)}: ${JSON.stringify(result)}`));
 		}
 		yield* Effect.sleep("10 millis");
 	}
