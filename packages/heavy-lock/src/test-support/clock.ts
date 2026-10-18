@@ -1,4 +1,4 @@
-import { Clock, Console, Deferred, Duration, Effect, Fiber, Queue } from "effect";
+import { Clock, Console, Deferred, Duration, Effect, Exit, Fiber, Queue } from "effect";
 import { TestClock } from "effect/testing";
 import { HeldLock } from "#held-lock.ts";
 import { readHolder } from "#lock-file.ts";
@@ -38,7 +38,15 @@ const startWaiting = Effect.fn("LockStory.startWaiting")(function* (engine: Lock
 			Effect.provideService(Console.Console, observedConsole),
 		),
 	);
-	let nextWakeup = yield* Queue.take(wakeups);
+	const nextObservation = Effect.raceFirst(
+		Queue.take(wakeups),
+		Fiber.await(worker).pipe(
+			Effect.flatMap((exit) =>
+				Exit.isFailure(exit) ? Effect.failCause(exit.cause) : Effect.die(new Error("The lock waiter exited without a clock observation.")),
+			),
+		),
+	);
+	let nextWakeup = yield* nextObservation;
 	return {
 		advance: (milliseconds: number) =>
 			Effect.gen(function* () {
@@ -46,7 +54,7 @@ const startWaiting = Effect.fn("LockStory.startWaiting")(function* (engine: Lock
 				const target = testClock.currentTimeMillisUnsafe() + milliseconds;
 				while (nextWakeup <= target) {
 					yield* TestClock.setTime(nextWakeup);
-					nextWakeup = yield* Queue.take(wakeups);
+					nextWakeup = yield* nextObservation;
 				}
 				yield* TestClock.setTime(target);
 			}),
@@ -57,6 +65,10 @@ const startWaiting = Effect.fn("LockStory.startWaiting")(function* (engine: Lock
 				yield* Fiber.join(worker);
 				return held;
 			}),
+		interrupt: () => {
+			tell("the waiting command is interrupted");
+			return Fiber.interrupt(worker);
+		},
 		lines: () => lines,
 	};
 });

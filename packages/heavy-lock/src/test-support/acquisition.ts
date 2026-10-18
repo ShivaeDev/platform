@@ -1,7 +1,4 @@
 import { Context, Deferred, Effect, Exit, Fiber, Layer, Scope } from "effect";
-import { TestConsole } from "effect/testing";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
-import { withLive } from "@shivaedev/effect-test/withLive.ts";
 import { HeldLock } from "#held-lock.ts";
 import { readSettings } from "#settings.ts";
 import { heavyLockLayer } from "#with-heavy-lock.ts";
@@ -46,14 +43,5 @@ export function acquisition(engine: Lock, tell: (line: string) => void) {
 				tell("a nested command starts under the parent's hold");
 				return yield* startCommand(engine, yield* Deferred.await(parent.acquired));
 			}),
-		waitingLines: () =>
-			withLive(
-				eventually(
-					TestConsole.errorLines.pipe(
-						Effect.flatMap((lines) => (lines.length > 0 ? Effect.succeed(lines) : Effect.fail("The waiter has not announced its holder."))),
-					),
-					{ times: 1000 },
-				),
-			),
 	};
 }

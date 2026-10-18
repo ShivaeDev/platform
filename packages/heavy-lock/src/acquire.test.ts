@@ -1,4 +1,4 @@
-import { Cause, Exit, Option } from "effect";
+import { Cause, Effect, Exit, Option } from "effect";
 import { assert, expect } from "vitest";
 import { HOLDER_ID_ENV } from "#holder.ts";
 import { environment, heldBy, lockStory, pollingEvery } from "#test/kit.ts";
@@ -127,12 +127,12 @@ lockStory.it("a layer holds the lock for its scope", [], function* ({ run, lock 
 	expect(lock.contents()).toBeUndefined();
 });
 
-lockStory.it("an interrupted waiter leaves its holder's lock alone and no temporary files", [heldBy("build")], function* ({ run, lock }) {
+lockStory.it("an interrupted waiter leaves its holder's lock alone and no temporary files", [heldBy("build")], function* ({ clock, lock }) {
 	const before = lock.contents();
-	const waiter = yield* run.start();
-	const lines = yield* run.waitingLines();
-	expect(lines[0]).toContain("running `pnpm build`");
-	yield* run.interrupt(waiter);
+	const waiter = yield* clock.wait();
+	expect(waiter.lines()[0]).toContain("running `pnpm build`");
+	yield* waiter.interrupt();
+	expect(Exit.hasInterrupts(yield* Effect.exit(waiter.advance(10_000)))).toBe(true);
 	expect(yield* lock.read()).toEqual(Option.some(lock.holder("build")));
 	expect(lock.contents()).toBe(before);
 	expect(lock.files()).toEqual(["heavy-process.lock"]);
