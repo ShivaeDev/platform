@@ -1,6 +1,6 @@
 # Start a Platform app
 
-Use Node 24 or newer and pnpm 12.8.1. The [starter](../../examples/starter) is a private notes app with PostgreSQL, Platform's app host, RPC, shared query state, routing, a form, Vite, React and Tailwind with stock shadcn components.
+Use Node 24 or newer and the pnpm version in the starter's `packageManager` field. The [starter](../../examples/starter) is a private notes app with PostgreSQL, Platform's app host, RPC, shared query state, routing, a form, Vite, React and Tailwind with stock shadcn components.
 
 1. Run `pnpm create @shivaedev/app my-app`, then `cd my-app`. The command writes the starter with exact published Platform versions, keeps its self-contained pnpm catalog, installs dependencies, and generates a git-ignored `.env.local` with a fresh authentication secret and `my_app_dev`/`my_app_test` database URLs. Use an absent or empty folder; existing files are never overwritten.
 2. Run `pnpm dev` and open `http://127.0.0.1:5173`. It first runs `pnpm db:setup` to prepare both databases through `@shivaedev/local-postgres`; have local PostgreSQL 18.6 on port 55432 or Docker available. The server and background worker watch TypeScript, Vite serves React, and `pnpm migrate` applies migrations, including Better Auth's tables, before either process starts. Follow the sign-in link, create an account, then add a note. The worker counts each note's words; the count appears without refreshing. Sign out and sign back in to see your saved notes.
@@ -25,7 +25,7 @@ After the worker writes, call `invalidateOnCommit` with the contract's invalidat
 
 ## Deploy
 
-Enable Railway's per-service tracing setting separately for the web and worker services to supply the standard OpenTelemetry exporter variables. Both export their Effect spans through Effect's OTLP/HTTP JSON tracer. For another collector, set `OTEL_EXPORTER_OTLP_ENDPOINT` to its base URL (the exporter appends `/v1/traces`) or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to its complete traces URL, which takes precedence. Set `OTEL_EXPORTER_OTLP_HEADERS` to comma-separated `key=value` headers with URL-encoded values, `OTEL_SERVICE_NAME` to the service identity, and optional `OTEL_RESOURCE_ATTRIBUTES` to comma-separated resource attributes. Without an endpoint, no exporter runs. eBPF auto-instrumentation is not part of the framework path.
+Enable Railway's per-service tracing setting separately for the web and worker services to supply the standard OpenTelemetry exporter variables. Both export their Effect spans through Effect's OTLP/HTTP tracer, as protobuf by default or JSON with `OTEL_EXPORTER_OTLP_PROTOCOL=http/json`. For another collector, set `OTEL_EXPORTER_OTLP_ENDPOINT` to its base URL (the exporter appends `/v1/traces`) or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to its complete traces URL, which takes precedence. Set `OTEL_EXPORTER_OTLP_HEADERS` to comma-separated `key=value` headers with URL-encoded values, `OTEL_SERVICE_NAME` to the service identity, and optional `OTEL_RESOURCE_ATTRIBUTES` to comma-separated resource attributes. Without an endpoint, no exporter runs. eBPF auto-instrumentation is not part of the framework path.
 
 ### Railway with PostgreSQL
 

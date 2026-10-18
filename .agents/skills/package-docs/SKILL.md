@@ -11,7 +11,7 @@ Every package in this repo explains itself to three readers, and each reader get
 
 | File | Reader | Holds |
 |---|---|---|
-| `packages/<name>/AGENTS.md` | An agent changing the package | The north star in a few short paragraphs: the problem, the ideal, and the order of priorities when they conflict. Points to `docs/` for the rest. `CLAUDE.md` beside it is a symlink to it. |
+| `packages/<name>/AGENTS.md` | An agent changing the package | The north star in a few short paragraphs: the problem, the ideal, and the order of priorities when they conflict. Links to the README, and to `docs/` when the package has one. `CLAUDE.md` beside it is a symlink to it. |
 | `packages/<name>/README.md` | A human first, then an agent using the package | The first screen sells; the rest teaches. Published to npm. |
 | `packages/<name>/docs/north-star.md` | Anyone deciding where the package goes | Optional. The long form of the vision, only when it says something durable that `AGENTS.md` cannot hold in a screen. |
 

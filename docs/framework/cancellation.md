@@ -6,7 +6,7 @@ replace the latest rendered result.
 
 For Node request lifetimes,
 [`nodeSubscriptionSignal`](../../packages/platform/src/server/node-http/subscriptionSignal.ts) combines
-request and caller abort signals and removes its listeners when either ends.
+request and caller abort signals; call its `dispose` to remove its Node listeners.
 
 An HTTP host must forward the disconnect to the Web Request's AbortSignal for
 native RPC cancellation to reach the server. Verify that bridge in the deployed

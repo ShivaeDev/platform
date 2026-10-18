@@ -27,4 +27,4 @@ error; catching that error inside the transaction does not restore the database
 transaction. A deliberate nested transaction/savepoint is a separate choice.
 
 Constraint names and reason precision are driver-specific: SQLite and PostgreSQL
-do not identify every constraint identically.
+may not identify every constraint identically.

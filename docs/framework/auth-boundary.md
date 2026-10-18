@@ -28,7 +28,7 @@ The provider's Promise API is wrapped once with `Effect.tryPromise`. A missing o
 
 ## Application decisions
 
-Immediate revocation is a property of database-backed sessions with Better Auth's cookie cache disabled, as in the starter; a cookie cache or secondary storage changes when a revoked session stops working.
+Immediate revocation is a property of database-backed sessions with Better Auth's cookie cache disabled, as in the starter; a cookie cache or secondary storage may delay when a revoked session stops working, and no test covers that delay.
 
 The middleware takes an explicit Origin policy, and `trustedOrigins` requires a decision about missing headers; see [Origin policy](./request-context.md#origin-policy). Browser deployment still needs explicit credential and cookie settings, a CSRF review and CORS behavior where applicable. Native clients and server-to-server callers need a deliberate authentication policy; allowing a missing Origin unconditionally would erase the browser boundary.
 
