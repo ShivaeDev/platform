@@ -48,14 +48,18 @@ function encodedMarkers(source: SchemaAST.Objects, link: SchemaAST.Link, markers
 		return [];
 	}
 }
-function propagateKeys(source: SchemaAST.Objects, link: SchemaAST.Link, keys: Set<string>) {
-	if (link.to._tag !== "Objects") {
+function propagateKeys(source: SchemaAST.AST, link: SchemaAST.Link, keys: Set<string>) {
+	const properties = source._tag === "Objects" ? source.propertySignatures : propertiesOf(source);
+	const sensitive = properties.filter((property) => typeof property.name === "string" && (keys.has(property.name) || isSensitiveKey(property.name)));
+	if (sensitive.length === 0 && !marked(source)) {
 		return;
 	}
-	const sensitive = source.propertySignatures.filter(
-		(property) => typeof property.name === "string" && (keys.has(property.name) || isSensitiveKey(property.name) || marked(property.type)),
-	);
-	if (sensitive.length === 0) {
+	if (source._tag !== "Objects" || link.to._tag !== "Objects" || marked(source)) {
+		for (const name of propertiesOf(link.to)
+			.map((property) => property.name)
+			.filter(Predicate.isString)) {
+			keys.add(name);
+		}
 		return;
 	}
 	const markers = new Map(source.propertySignatures.map((property) => [property.name, Symbol(String(property.name))]));
@@ -75,37 +79,29 @@ function propagateKeys(source: SchemaAST.Objects, link: SchemaAST.Link, keys: Se
 function collectEncodedKeys(ast: SchemaAST.AST, keys: Set<string>) {
 	let source = ast;
 	for (const link of ast.encoding ?? []) {
-		if (source._tag === "Objects") {
-			propagateKeys(source, link, keys);
-		}
+		propagateKeys(source, link, keys);
 		source = link.to;
 	}
 }
-function collect(ast: SchemaAST.AST, keys: Set<string>, seen: Set<SchemaAST.AST>) {
-	if (seen.has(ast)) {
+function collect(ast: SchemaAST.AST, nodes: Set<SchemaAST.AST>, encodings = true) {
+	if (nodes.has(ast)) {
 		return;
 	}
-	seen.add(ast);
-	if (ast._tag === "Objects") {
-		for (const property of ast.propertySignatures) {
-			if (typeof property.name === "string" && marked(property.type)) {
-				keys.add(property.name);
-			}
-		}
+	nodes.add(ast);
+	for (const child of [...children(ast), ...(encodings ? (ast.encoding?.map((link) => link.to) ?? []) : [])]) {
+		collect(child, nodes, encodings);
 	}
-	collectEncodedKeys(ast, keys);
-	for (const child of children(ast)) {
-		collect(child, keys, seen);
-	}
-	for (const link of ast.encoding ?? []) {
-		collect(link.to, keys, seen);
-	}
+}
+function propertiesOf(ast: SchemaAST.AST) {
+	const nodes = new Set<SchemaAST.AST>();
+	collect(ast, nodes, false);
+	return [...nodes].flatMap((node) => (node._tag === "Objects" ? node.propertySignatures : []));
 }
 export function schemaSensitiveKeys<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>, extra: readonly string[] = []) {
 	const keys = new Set(extra);
-	const seen = new Set<SchemaAST.AST>();
+	const nodes = new Set<SchemaAST.AST>();
 	function schema(value: Schema.Top) {
-		collect(value.ast, keys, seen);
+		collect(value.ast, nodes);
 	}
 	function request(rpc: Rpc.AnyWithProps) {
 		schema(rpc.payloadSchema);
@@ -121,5 +117,17 @@ export function schemaSensitiveKeys<R extends Rpc.Any>(group: RpcGroup.RpcGroup<
 			request(rpc);
 		}
 	}
+	for (const property of [...nodes].flatMap((ast) => (ast._tag === "Objects" ? ast.propertySignatures : []))) {
+		if (typeof property.name === "string" && marked(property.type)) {
+			keys.add(property.name);
+		}
+	}
+	let previousSize: number;
+	do {
+		previousSize = keys.size;
+		for (const ast of nodes) {
+			collectEncodedKeys(ast, keys);
+		}
+	} while (keys.size !== previousSize);
 	return (key: string) => keys.has(key) || isSensitiveKey(key);
 }
