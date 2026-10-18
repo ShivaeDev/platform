@@ -1,22 +1,29 @@
 import { Effect } from "effect";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { recoverMissingTurn } from "#engine/recoverMissingTurn.ts";
 import { resumeAttempt } from "#engine/resumeAttempt.ts";
+import { VISIBILITY_GRACE_MS } from "#engine/visibility.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
-
-const VISIBILITY_GRACE_MS = 5 * 60_000;
 
 export const recoverUnobservable = Effect.fn("Fleet.recoverUnobservable")(function* (
 	state: EngineState,
 	stored: Versioned<FleetRecord>,
 	attempt: Attempt | undefined,
+	threadIdle?: boolean,
 ) {
 	if (attempt?.missingSince === undefined) {
 		return undefined;
 	}
+	if (stored.value.stage !== "needs-human" && state.integrations.publication !== undefined && attempt.role !== "reviewer" && threadIdle === false) {
+		return yield* recoverMissingTurn(state, stored, undefined, threadIdle);
+	}
 	if (stored.value.stage === "needs-human" || state.policy.now() - Math.max(attempt.missingSince, attempt.progress?.at ?? 0) < VISIBILITY_GRACE_MS) {
 		return stored;
+	}
+	if (state.integrations.publication !== undefined && attempt.role !== "reviewer") {
+		return yield* recoverMissingTurn(state, stored, undefined, threadIdle);
 	}
 	if ((attempt.observationRetries ?? 0) >= 1) {
 		return yield* state.decision(

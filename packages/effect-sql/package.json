@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-sql",
-	"version": "0.5.1",
+	"version": "0.5.2",
 	"description": "Schema-derived repositories over native Effect SQL",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-sql#readme",
 	"bugs": {
@@ -51,9 +51,10 @@
 	"devDependencies": {
 		"@effect/sql-pg": "catalog:",
 		"@effect/sql-sqlite-node": "catalog:",
+		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
-		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"

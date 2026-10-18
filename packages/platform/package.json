@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.16.0",
+	"version": "0.16.1",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {
@@ -69,7 +69,6 @@
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",
 		"@types/pg": "catalog:",
-		"@typescript/native": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
 		"pg": "catalog:",

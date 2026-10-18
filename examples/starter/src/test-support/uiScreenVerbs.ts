@@ -1,8 +1,20 @@
 import { Effect } from "effect";
+import { act } from "react";
+import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
 import { type ScreenSurface, screenView } from "./screenState.ts";
 
 export function uiScreenVerbs(engine: ScreenSurface, tell: (line: string) => void) {
+	const driver = screenDriver({
+		act: async (action) => {
+			await act(action);
+		},
+		pending: () => false,
+		root: () => screenView(engine).container,
+		tell,
+	});
 	return {
+		accessible: driver.accessible,
+		clickControl: driver.click,
 		codePreview: () =>
 			Effect.sync(() => {
 				tell("read the rendered code preview");
@@ -12,6 +24,7 @@ export function uiScreenVerbs(engine: ScreenSurface, tell: (line: string) => voi
 				}
 				return preview;
 			}),
+		controlText: driver.text,
 		notesTable: () =>
 			Effect.sync(() => {
 				tell("read the rendered notes table");

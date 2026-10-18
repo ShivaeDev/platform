@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import { expect } from "vitest";
 import { domFetch } from "@shivaedev/test-story/domFetch.ts";
 import { makeAuth } from "#client/auth.ts";
 import { startHost } from "#test-support/host.ts";
@@ -12,7 +11,9 @@ export const createCookieHost = Effect.fn("CookieStory.createCookieHost")(functi
 		Effect.promise(async () => {
 			try {
 				const response = await fetch("/api/auth/sign-out", { body: "{}", headers: { "content-type": "application/json" }, method: "POST" });
-				expect(response.status).toBe(200);
+				if (response.status !== 200) {
+					throw new Error(`Cookie cleanup sign-out failed: HTTP ${response.status}`);
+				}
 				await response.text();
 			} finally {
 				window.location.href = previousLocation;

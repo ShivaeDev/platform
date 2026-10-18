@@ -1,51 +1,42 @@
-import { spawn } from "node:child_process";
-import process from "node:process";
-import { fileURLToPath } from "node:url";
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { codexRateLimits } from "./codexRateLimits.ts";
+import { boardStory, serverReading } from "#test/boardStory.ts";
+import { codexProtocolStory } from "#test/codexProtocolStory.ts";
+import { codexProvider } from "#test/readingTraits.ts";
 
-function synthetic(mode: string, timeoutMs = 2000) {
-	return codexRateLimits(
-		() => spawn(process.execPath, [fileURLToPath(new URL("../../test-support/codexAppServer.ts", import.meta.url)), mode], { stdio: "pipe" }),
-		timeoutMs,
-	);
-}
-
-it.live("uses the rate-limit method after initialization and account read, and denies provider approvals", function* () {
-	expect(yield* synthetic("ready")).toEqual({ synthetic: "limits" });
-});
-
+boardStory.it(
+	"initializes the provider, reads its account and limits, and denies approval requests",
+	[serverReading(), codexProvider("ready")],
+	function* ({ systemHtml }) {
+		const html = yield* systemHtml();
+		expect(html).toContain("24% used");
+		expect(html).toContain("63% used");
+	},
+);
 for (const mode of ["missing", "api-key"]) {
-	it.live(`${mode} account is not configured for Codex usage windows`, function* () {
-		expect(yield* synthetic(mode).pipe(Effect.flip)).toMatchObject({ kind: "not-configured" });
+	boardStory.it(`${mode} accounts have no Codex usage windows`, [serverReading(), codexProvider(mode)], function* ({ systemHtml }) {
+		const html = yield* systemHtml();
+		expect(html).toContain('data-source="codex" data-state="not-configured"');
+		if (mode === "api-key") {
+			expect(html).toContain("Codex usage windows are not available for API-key accounts");
+		}
 	});
 }
-
-it.live("reports API-key usage windows as not available without requesting rate limits", function* () {
-	expect(yield* synthetic("api-key").pipe(Effect.flip)).toMatchObject({
-		kind: "not-configured",
-		message: "Codex usage windows are not available for API-key accounts",
-	});
-});
-
 for (const [mode, message] of [
 	["initialize-error", "Initialize refused"],
 	["refusal", "Account forbidden"],
 	["exit", "exited"],
 	["malformed", "invalid"],
-]) {
-	it.live(`reports the cause of ${mode}`, function* () {
-		const error = yield* synthetic(mode ?? "").pipe(Effect.flip);
-		expect(error.kind).toBe("error");
-		expect(error.message).toContain(message);
+] as const) {
+	boardStory.it(`reports the provider's ${mode} failure`, [serverReading(), codexProvider(mode)], function* ({ systemHtml }) {
+		const html = yield* systemHtml();
+		expect(html).toContain('data-source="codex" data-state="error"');
+		expect(html).toContain(message);
 	});
 }
-
-it.live("times out and interruption terminates the child", function* () {
-	expect(yield* synthetic("timeout", 50).pipe(Effect.flip)).toMatchObject({ kind: "error", message: "Codex rate limits timed out" });
-	const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "pipe" });
-	yield* codexRateLimits(() => child).pipe(Effect.timeout("50 millis"), Effect.ignore);
-	expect(child.killed).toBe(true);
+boardStory.it("bounds a stalled provider read", [serverReading(), codexProvider("timeout", 50)], function* ({ systemHtml }) {
+	expect(yield* systemHtml()).toContain("Codex rate limits timed out");
+});
+codexProtocolStory.it("interruption terminates the provider child", [], function* ({ cancelRead, childKilled }) {
+	expect((yield* cancelRead())._tag).toBe("Failure");
+	expect(childKilled()).toBe(true);
 });

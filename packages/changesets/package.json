@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/changesets",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Explicit changesets and reproducible workspace releases with Effect",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/changesets#readme",
 	"bugs": {
@@ -56,7 +56,6 @@
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
-		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"happy-dom": "catalog:",
 		"typescript": "catalog:",

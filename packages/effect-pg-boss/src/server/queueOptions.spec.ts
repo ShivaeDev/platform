@@ -1,45 +1,29 @@
-import { Context, Effect, Layer, Redacted, Schema } from "effect";
-import { expect, it } from "vitest";
+import { Effect, Redacted, Schema } from "effect";
+import { expect } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
-import { registerJobs } from "#internal/register.ts";
-import { makePgBoss } from "#service.ts";
-import { constructorOptions, FakeClient } from "#test/fakeClient.ts";
+import { boss } from "#test/boss.ts";
 import { queueResult } from "#test/queueResult.ts";
 
-it("reconciles schedules, preserves unspecified settings and avoids unchanged updates", async () => {
-	const client = new FakeClient();
+boss.it("reconciles schedules, preserves unspecified settings and avoids unchanged updates", [], function* ({ boot, client }) {
 	const Initial = defineSchedule({ cron: "0 * * * *", name: "cleanup", queue: { expireInSeconds: 15, notify: true } });
 	const Changed = defineSchedule({ cron: "0 * * * *", name: "cleanup", queue: { notify: false, retryBackoff: false, retryLimit: 0 } });
-	await Effect.runPromise(registerJobs(client, [Initial.run(Effect.void)], Context.empty(), false));
-	await Effect.runPromise(registerJobs(client, [Initial.run(Effect.void)], Context.empty(), true));
+	const options = { clientCacheKey: Symbol("schedules") };
+	yield* boot([Initial.run(Effect.void)], options);
+	yield* boot([Initial.run(Effect.void)], options);
 	expect(client.updateQueueCalls).toEqual([]);
-	await Effect.runPromise(registerJobs(client, [Changed.run(Effect.void)], Context.empty(), true));
+	yield* boot([Changed.run(Effect.void)], options);
 	expect(client.updateQueueCalls).toEqual([
 		{ name: "cleanup", options: { deadLetter: "cleanup-dlq", notify: false, retryBackoff: false, retryLimit: 0 } },
 	]);
 	expect(client.queues.get("cleanup")).toMatchObject({ expireInSeconds: 15, notify: false, retryBackoff: false, retryLimit: 0 });
 });
 
-it("releases the acquired client and application error callback when immutable queue options conflict", async () => {
-	const client = new FakeClient();
+boss.it("releases the acquired client and application error callback when immutable queue options conflict", [], function* ({ boot, client }) {
 	client.queues.set("immutable", queueResult("immutable", { partition: false, policy: "standard" }));
 	const Queue = defineQueue({ name: "immutable", queue: { partition: true, policy: "singleton" }, schema: Schema.Struct({}) });
-	const Jobs = makePgBoss("@test/ImmutableOptions");
 	const reported: Error[] = [];
-	await expect(
-		Effect.runPromise(
-			Effect.scoped(
-				Layer.build(
-					Jobs.layer({
-						...constructorOptions,
-						clientFactory: () => client,
-						jobs: [Queue.handle(() => Effect.void)],
-						onError: (error) => Effect.sync(() => reported.push(error)),
-					}),
-				),
-			),
-		),
-	).rejects.toMatchObject({ _tag: "PgBossQueueOptionsError", options: ["partition", "policy"], queue: "immutable" });
+	const error = yield* Effect.flip(boot([Queue.handle(() => Effect.void)], { onError: (failure) => Effect.sync(() => reported.push(failure)) }));
+	expect(error).toMatchObject({ _tag: "PgBossQueueOptionsError", options: ["partition", "policy"], queue: "immutable" });
 	expect(client.workers).toEqual([]);
 	expect(client.updateQueueCalls).toEqual([]);
 	expect(client.stopCalls).toBe(1);
@@ -53,22 +37,20 @@ function deadlock() {
 	return Object.assign(new Error("deadlock detected"), { code: "40P01" });
 }
 
-it("creates a queue again after PostgreSQL rolls its creation back as a deadlock victim", async () => {
-	const client = new FakeClient();
+boss.it("creates a queue again after PostgreSQL rolls its creation back as a deadlock victim", [], function* ({ boot, client }) {
 	client.createQueueFailures.push(deadlock(), deadlock());
 	const Queue = defineQueue({ name: "contended", queue: { partition: true }, schema: Schema.Struct({}) });
-	await Effect.runPromise(registerJobs(client, [Queue], Context.empty(), false));
+	yield* boot([Queue]);
 	expect(client.createQueueCalls.map(({ name }) => name)).toEqual(["contended-dlq", "contended"]);
 	expect(client.queues.get("contended")).toMatchObject({ partition: true });
 });
 
-it("fails registration at once on a queue creation error other than a deadlock, and after repeated deadlocks", async () => {
+boss.it("fails registration at once on a non-deadlock error, and after repeated deadlocks", [], function* ({ boot, client }) {
 	const unique = Object.assign(new Error("duplicate key value violates unique constraint"), { code: "23505" });
 	const Queue = defineQueue({ name: "contended", schema: Schema.Struct({}) });
 	for (const failures of [[unique], Array.from({ length: 6 }, deadlock)]) {
-		const client = new FakeClient();
-		client.createQueueFailures.push(...failures, deadlock());
-		const error = await Effect.runPromise(Effect.flip(registerJobs(client, [Queue], Context.empty(), false)));
+		client.createQueueFailures.splice(0, client.createQueueFailures.length, ...failures, deadlock());
+		const error = yield* Effect.flip(boot([Queue]));
 		expect(error).toMatchObject({ _tag: "PgBossError", operation: "register" });
 		expect(error._tag === "PgBossError" && Redacted.value(error.original)).toBe(failures.at(-1));
 		expect(client.createQueueFailures).toHaveLength(1);

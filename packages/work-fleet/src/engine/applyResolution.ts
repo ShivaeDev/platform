@@ -4,6 +4,7 @@ import { authorizeBriefContext, isChangedBriefDecision } from "#engine/boardBrie
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueWorker } from "#engine/continueWorker.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { recoverMissingTurn } from "#engine/recoverMissingTurn.ts";
 import { requestRework } from "#engine/requestRework.ts";
 import { resolveExecution } from "#engine/resolveExecution.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
@@ -24,6 +25,12 @@ export function applyResolution(state: EngineState) {
 			const blocker =
 				responses.at(-1)?.type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`;
 			return yield* save(stored, { ...stored.value, blocker, responses });
+		}
+		if (action === "retry" && stored.value.decision?.code === "session-turn-missing") {
+			const recovered = yield* recoverMissingTurn(state, stored, { body, responses });
+			if (recovered !== undefined) {
+				return yield* closeDecisions(state)(recovered);
+			}
 		}
 		if (action === "continue") {
 			return yield* continueWorker(state)(stored, responses, body).pipe(Effect.flatMap(closeDecisions(state)));

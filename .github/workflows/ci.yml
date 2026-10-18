@@ -74,8 +74,6 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Test real filesystem delivery to live clients
-        env:
-          NODE_OPTIONS: --conditions=source
         run: >-
           pnpm --filter @shivaedev/work-board test
           src/server/liveDelivery.spec.ts

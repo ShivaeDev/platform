@@ -1,14 +1,16 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { app, legacyNote, notesPredatingMigration, signedIn } from "#test-support/application.ts";
 
-app.it("creates and queries a persisted note over authenticated HTTP/NDJSON", [signedIn()], function* ({ actor, storedNotesAre, rejectsWith }) {
+app.it("creates and queries a persisted note over authenticated HTTP/NDJSON", [signedIn()], function* ({ actor, storedNotes }) {
 	const { notes: client } = actor();
 	expect(yield* client.list()).toEqual([]);
 	const created = yield* client.create({ title: "  First note  " });
 	expect(created.title).toBe("First note");
 	expect(yield* client.list()).toEqual([created]);
-	yield* storedNotesAre([created]);
-	yield* client.create({ title: "   " }).pipe(rejectsWith("Invalid"));
+	expect(yield* storedNotes()).toEqual([created].map((note) => expect.objectContaining(note)));
+	expect(yield* client.create({ title: "   " }).pipe(Effect.flip)).toMatchObject({ _tag: "Invalid" });
 	expect(yield* client.list()).toEqual([created]);
 });
 
@@ -50,20 +52,26 @@ app.it(
 app.it(
 	"protects queries and commands, isolates users, and revokes the signed-out session before signing in again",
 	[signedIn(), signedIn("bob"), legacyNote("Legacy note")],
-	function* ({ actor, authenticate, notes, anonymous, rejectsWith, storedNoteOwnerIs }) {
+	function* ({ actor, authenticate, notes, anonymous, storedNoteOwners }) {
 		const signedOut = yield* anonymous();
-		yield* signedOut.list().pipe(rejectsWith("Unauthorized"));
-		yield* signedOut.create({ title: "Anonymous note" }).pipe(rejectsWith("Unauthorized"));
+		const anonymousList = yield* signedOut.list().pipe(Effect.flip);
+		expect(anonymousList).toMatchObject({ _tag: "Unauthorized" });
+		expect(anonymousList).toBeInstanceOf(Unauthorized);
+		const anonymousCreate = yield* signedOut.create({ title: "Anonymous note" }).pipe(Effect.flip);
+		expect(anonymousCreate).toMatchObject({ _tag: "Unauthorized" });
+		expect(anonymousCreate).toBeInstanceOf(Unauthorized);
 		const { cookie: aliceCookie, notes: alice } = actor();
 		const note = yield* alice.create({ title: "Alice's note" });
 		const bob = actor("bob").notes;
 		expect(yield* bob.list()).toEqual([]);
 		expect(yield* alice.list()).toEqual([note]);
 		const user = yield* alice.whoami();
-		yield* storedNoteOwnerIs(note.title, user.id);
-		yield* storedNoteOwnerIs("Legacy note", null);
+		expect(yield* storedNoteOwners(note.title)).toEqual([{ ownerId: user.id }]);
+		expect(yield* storedNoteOwners("Legacy note")).toEqual([{ ownerId: null }]);
 		yield* authenticate("alice", "sign-out", aliceCookie);
-		yield* alice.create({ title: "Revoked note" }).pipe(rejectsWith("Unauthorized"));
+		const revokedCreate = yield* alice.create({ title: "Revoked note" }).pipe(Effect.flip);
+		expect(revokedCreate).toMatchObject({ _tag: "Unauthorized" });
+		expect(revokedCreate).toBeInstanceOf(Unauthorized);
 		const returningCookie = yield* authenticate("alice", "sign-in/email");
 		const returning = yield* notes(returningCookie);
 		expect(yield* returning.list()).toEqual([note]);

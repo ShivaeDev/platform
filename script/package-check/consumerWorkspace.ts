@@ -10,7 +10,8 @@ export const consumerWorkspace = Effect.fn("Packed.consumerWorkspace")(function*
 	tarballs: Readonly<Record<string, string>>,
 ) {
 	const fs = yield* FileSystem.FileSystem;
-	let workspace = yield* fs.readFileString(join(root, "pnpm-workspace.yaml"));
+	// Packed consumers must resolve built exports rather than the workspace's source condition.
+	let workspace = (yield* fs.readFileString(join(root, "pnpm-workspace.yaml"))).replace(/^nodeOptions:.*\n/mu, "");
 	if (Object.keys(bins(pkg.manifest)).length > 0) {
 		const overrides = decodeVersions(yield* command(root, "pnpm", ["config", "get", "overrides", "--json"]));
 		const retained = Object.entries(overrides)

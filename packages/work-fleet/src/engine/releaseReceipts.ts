@@ -17,7 +17,7 @@ export function releaseReceipts(state: EngineState, attempt: Attempt) {
 			if (error.terminalReceipts !== undefined && error.terminalReceipts.length > 0) {
 				return Effect.succeed(error.terminalReceipts);
 			}
-			return error.code === "session-turn-missing" && error.reason === "ambiguous"
+			return error.code === "session-turn-missing" && error.reason === "ambiguous" && error.threadIdle === true
 				? Effect.succeed([])
 				: Effect.fail(new ServiceUnavailable({ message: error.message }));
 		}),

@@ -1,0 +1,167 @@
+{
+	"date": "2026-10-18",
+	"plan": {
+		"changesets": [
+			{
+				"name": "changesets-pending-merge.md",
+				"text": "---\n\"@shivaedev/changesets\": patch\n---\n\n### Fixed\n\n- Validate an in-progress merge against all incoming parents, including octopus merges, so releases already on main pass the commit hook while edits to released history still fail.\n"
+			},
+			{
+				"name": "create-app-database-configuration.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps read local database setup configuration inside Effect, use the database names in `DATABASE_URL` and `TEST_DATABASE_URL`, and fail with a typed configuration error when either URL is missing.\n"
+			},
+			{
+				"name": "create-app-job-board.md",
+				"text": "---\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Generated apps serve the official pg-boss dashboard at `/admin/jobs`, with admin-only access on pages, data and assets, enforced read-only operation, and the app's existing database configuration. The generated README explains creating an admin and inspecting jobs. Startup checks that the dashboard's bundled pg-boss matches the app's installed version.\n"
+			},
+			{
+				"name": "create-app-labelled-switch.md",
+				"text": "---\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Generated apps include a stock shadcn Base UI Switch and a `LabelledSwitch` pattern that keeps its setting label as its accessible name while displaying On/Off separately.\n"
+			},
+			{
+				"name": "create-app-react-table-v9.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- New apps build their sortable notes table on TanStack Table 9: `DataTable` registers row sorting through `tableFeatures`, renders with `FlexRender` and exports `DataTableFeatures` for typed column helpers.\n"
+			},
+			{
+				"name": "create-app-starter-native-typecheck.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps typecheck with TypeScript 7 instead of TypeScript 6, while Quality keeps its own compiler API dependency.\n"
+			},
+			{
+				"name": "effect-react-loader-session.md",
+				"text": "---\n\"@shivaedev/effect-react\": patch\n---\n\n### Fixed\n\n- Route loaders and `loadQuery` recheck the owning `SessionBoundary` session once when a query fails with `Unauthorized`, so sign-in redirects can see an ended session.\n"
+			},
+			{
+				"name": "effect-sql-ledger-policy.md",
+				"text": "---\n\"@shivaedev/effect-sql\": patch\n---\n\n### Changed\n\n- `migratePostgres` rejects loaded migration IDs at or below the latest applied ID that are missing from the ledger with a typed native `MigrationError` (`kind: \"BadState\"`) naming those IDs; a deployment that relied on silently skipping them now fails. Migrations run in ID order, including with a custom loader.\n"
+			},
+			{
+				"name": "platform-account-lookup-expiry.md",
+				"text": "---\n\"@shivaedev/platform\": patch\n---\n\n### Fixed\n\n- Report an expired session during Better Auth's provider account lookup as Unauthorized instead of AuthUnavailable.\n"
+			},
+			{
+				"name": "quality-quiet-local-tests.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Changed\n\n- `testProjects()` sets `silent: \"passed-only\"` outside CI and `silent: false` in CI, while leaving reporter selection to Vitest.\n"
+			},
+			{
+				"name": "quality-stale-options.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Added\n\n- `cli/messages.ts` exports `SUBCOMMANDS: Readonly<Record<string, string>>`, the usage hints for commands with subcommands.\n\n### Changed\n\n- Stale `adopt` and `preCommit` configuration keys and the `quality adopt` command now fail with the general unknown-key and unknown-command errors.\n"
+			},
+			{
+				"name": "test-story-accessible-readout.md",
+				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- `screenDriver(options).accessible(selector)` returns and narrates an element's computed accessible name and role, including label references that take precedence over `aria-label`.\n"
+			},
+			{
+				"name": "test-story-screen-driver.md",
+				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- Export `screenDriver(options)`, `ScreenDriverOptions` and `ScreenDriver` from `screenDriver.ts`: narrated DOM clicks, text entry, form submission and screen readouts, with settlement driven by the app's pending signal and an optional renderer `act` adapter. Screens use the existing DOM transport to reach fake HTTP services, including identity providers.\n- Screen drivers accept a root getter for document navigation and a per-call `settle({ timeoutMs })` limit.\n- Export `routeOutbound(routes)` from `routeOutbound.ts` to scope outbound routing alongside a story's fake HTTP service.\n- Screen actions and readouts reject hidden targets and targets inside hidden ancestors; form submission also refuses inert ancestors.\n"
+			},
+			{
+				"name": "test-story-unstaged-kits.md",
+				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- Accept `stages: []` in `storyKit` definitions for engines initialized entirely in `create`, preserving inferred engine and verb types with no available trait stages.\n"
+			},
+			{
+				"name": "work-board-answered-waiting.md",
+				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- An answered Fleet decision that Fleet has not acknowledged yet leaves Needs you for an **Answered, waiting for Fleet** group on Today and moves its task to Queued on Now. Its answer card and Now card say who answered and what, for example \"You answered: Request changes. Fleet picks this up on its next pass.\", and say \"Fleet isn't running. It picks this up when it starts again.\" while Fleet is unavailable. **Change your answer** supersedes the current answer. The attention projection carries these rows as `answered`, and inbox rows, work items and document requests carry an `answered` summary.\n\n### Fixed\n\n- Response history and the saved-answer messages show the authored option labels instead of \"Option 1\".\n"
+			},
+			{
+				"name": "work-board-daemon-decode-observations.md",
+				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Export `DaemonReadContract` from `diagnostics/daemonContract.ts`, accepting unknown diagnostics payloads while retaining the typed Fleet items query for independent source validation.\n\n### Fixed\n\n- Keep System usable when a Fleet daemon diagnostics source has an incompatible shape: show that source's decode error while retaining valid Codex usage, GitHub limits and Fleet health observations.\n"
+			},
+			{
+				"name": "work-board-plain-copy.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- Now cards say who holds the work in plain words, such as \"Fleet is working on this\", \"Needs you\" or \"Assigned to you\", and how long it has been in its stage, such as \"Executing for 4h\". Task cards no longer repeat the word \"task\".\n- Now lanes share the page width and scroll inside their own container when the window is too narrow.\n- System shows the same \"Needs you\" count as Today, by Today's rule, in place of Fleet's own \"Waiting on maintainer\" count. Inbox count badges and the Today links name that count \"need you\".\n- A Fleet decision shows the Board work it reviewed as the work's title, criteria and description instead of its raw front matter.\n\n### Fixed\n\n- Today says \"Fleet unavailable\" instead of \"? in progress\" when the Fleet daemon cannot be reached, and names loading or unavailable counts instead of showing \"?\".\n- Sidebar destinations carry explicit accessible names that include their counts.\n"
+			},
+			{
+				"name": "work-board-response-stream.md",
+				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- `work-board responses --follow <dir>` streams responses across all questions as tab-separated item, request, response ID and first answer line. It starts with new responses; `--since <ISO timestamp>` includes recorded history from that time.\n- `responseFeed(root, since?)` from `server/responses/feed.ts` exposes the same lines as an Effect Stream using the workspace filesystem services.\n"
+			},
+			{
+				"name": "work-board-shadcn-second.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- The Library filters are stock shadcn controls: Kind and Status are Selects, View is a toggle group and the Fleet records switch is a Checkbox, with the same URL state as before.\n- The search palette is a stock Command inside a stock Dialog, with the same debounce, keyboard selection and Enter behaviour as before.\n"
+			},
+			{
+				"name": "work-board-stock-shadcn.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- The Board's buttons, badges, cards, popovers, tabs, the phone More sheet and the answer form's text, label, input and select controls are now stock shadcn/ui components in the base-mira style on Base UI, so the settings and Today answer popovers, the item context tabs and the phone sheet get Base UI focus handling, dismissal and keyboard support.\n- The Board uses the Amber Watch theme: graphite surfaces with an amber accent in light and dark, and the Geist and Geist Mono fonts, which ship with the Board instead of loading from the web.\n"
+			},
+			{
+				"name": "work-fleet-daemon-discovery.md",
+				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Fixed\n\n- Fleet client commands discover the daemon's bound port from the Board folder's `.fleet-port` file unless `--port` overrides it. The daemon writes the file after binding, including when serving on an automatically assigned port.\n- On shutdown, the daemon removes `.fleet-port` only if it still holds that daemon's port.\n- `watch --follow` prints an error on stderr for each failed connection attempt and keeps retrying, rereading the port file after a daemon restart.\n- An explicit `watch --follow --timeout` also bounds initial connection retries, reporting the timeout and exiting with code 4 even when no daemon is reachable.\n- Fleet clients fail with a file-specific error when the Board daemon port file cannot be read.\n- Status answer hints preserve the selected `--board` and any explicit `--port` override, so the printed command answers the same daemon.\n\n### Added\n\n- `host/daemonPort.ts` exports `readDaemonPort(board, override?)` and `publishDaemonPort(board)` Effects. `host/cliOptions.ts` exports `clientPort(input)`, and `FollowOptions` accepts an optional `board` folder for discovery.\n\n### Breaking\n\n- The exported CLI `port` flag changes from a number to an optional number so an omitted flag allows daemon discovery.\n- `renderStatus(current, selection?)` accepts `{ board?: string, port?: number }` instead of a numeric port argument, preserving the caller's daemon selection in answer hints.\n"
+			},
+			{
+				"name": "work-fleet-reviewer-area-order.md",
+				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- `areaWaiters(state, record)` in `engine/areaWaiters.ts` computes earlier eligible area waiters for engine launch admission.\n\n### Fixed\n\n- Reviewers reacquiring a released area wait behind earlier eligible area waiters, including when a moved PR head needs a fresh review.\n"
+			}
+		],
+		"releases": [
+			{
+				"bump": "patch",
+				"directory": "packages/changesets",
+				"from": "0.1.0",
+				"name": "@shivaedev/changesets",
+				"to": "0.1.1"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/create-app",
+				"from": "0.7.0",
+				"name": "@shivaedev/create-app",
+				"to": "0.8.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-react",
+				"from": "0.5.0",
+				"name": "@shivaedev/effect-react",
+				"to": "0.5.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-sql",
+				"from": "0.5.1",
+				"name": "@shivaedev/effect-sql",
+				"to": "0.5.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-test-sql",
+				"from": "0.5.4",
+				"name": "@shivaedev/effect-test-sql",
+				"to": "0.5.5"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/platform",
+				"from": "0.16.0",
+				"name": "@shivaedev/platform",
+				"to": "0.16.1"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/quality",
+				"from": "0.25.0",
+				"name": "@shivaedev/quality",
+				"to": "0.26.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/test-story",
+				"from": "0.7.1",
+				"name": "@shivaedev/test-story",
+				"to": "0.8.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/work-board",
+				"from": "0.18.0",
+				"name": "@shivaedev/work-board",
+				"to": "0.19.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/work-fleet",
+				"from": "0.7.0",
+				"name": "@shivaedev/work-fleet",
+				"to": "0.8.0"
+			}
+		]
+	}
+}

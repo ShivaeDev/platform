@@ -8,6 +8,7 @@ import type { FleetHost } from "#host/config.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
+import { githubPublication } from "#host/githubPublication.ts";
 import { githubResult } from "#host/githubResult.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { reportRepository } from "#host/reportPublication.ts";
@@ -29,6 +30,11 @@ export function hostIntegrations(host: FleetHost) {
 						: githubChecks(github, host.repository.branch)(result),
 				delivery: githubDelivery(readPullRequest(github.get)),
 				main: main.observe,
+				publication: githubPublication(
+					host,
+					github,
+					reportRepository(main.repositoryRoot, host.repository.remote).pipe(Effect.provide(NodeServices.layer)),
+				),
 				result:
 					host.result === "github"
 						? githubResult(host, github, reportRepository(main.repositoryRoot, host.repository.remote).pipe(Effect.provide(NodeServices.layer)))

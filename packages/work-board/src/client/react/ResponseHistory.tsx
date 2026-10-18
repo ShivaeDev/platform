@@ -1,6 +1,6 @@
 import type { DocumentRequest } from "#browser/document/schema.ts";
+import { chosenLabels } from "#browser/responses/cardContext.ts";
 import type { RecordedResponse } from "#browser/responses/schema.ts";
-import { chosenLabels } from "#client/responses/summary.ts";
 import { Age } from "./Age.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { shellIds } from "./shellIds.ts";
@@ -39,7 +39,7 @@ function ResponseEntry({
 	readonly request: DocumentRequest | undefined;
 }) {
 	const answers = record.response.answers;
-	const chosen = chosenLabels(request?.prompts ?? [], answers);
+	const chosen = chosenLabels(request?.prompts ?? [], answers, request?.options);
 	const notes = (answers ?? []).map((answer) => answer.text.trim()).filter(Boolean);
 	return (
 		<article className="space-y-2 rounded-lg bg-muted/50 px-4 py-3 text-sm" id={record.id}>

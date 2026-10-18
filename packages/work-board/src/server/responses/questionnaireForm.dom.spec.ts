@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { boardStory, projectFiles, readerAt, responsesEnabled } from "#test/boardStory.ts";
-import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
 import { anAnswerForm } from "#test/storyTraits.ts";
@@ -27,7 +26,7 @@ boardStory.it(
 		expect(page.document.querySelector("article.doc strong")?.textContent).toBe("reasoning");
 		yield* Effect.promise(() => waitFor(() => expect(page.mermaid.calls.length).toBeGreaterThan(0)));
 		reader.text('[name="author"]', "maintainer");
-		yield* formEvent(page, () => reader.choice("history"));
+		yield* reader.chooseOption("history");
 		yield* reader.preview();
 		expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 		reader.text('[data-prompt="checks"] textarea', "None of these; test keyboard use instead.");
@@ -58,7 +57,7 @@ boardStory.it(
 	],
 	function* ({ page, reader, editFile }) {
 		reader.text('[name="author"]', "maintainer");
-		yield* formEvent(page, () => reader.choice("history"));
+		yield* reader.chooseOption("history");
 		reader.text('[data-prompt="display"] textarea', "Keep this rationale.");
 		editFile("proposal.md", questionnaireSource.replace("Full history", "Changed meaning of the same option"));
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Source changed")));

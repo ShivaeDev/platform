@@ -25,6 +25,7 @@ export const Attempt = Schema.Struct({
 	overLimit: Schema.optional(Schema.Boolean),
 	prompt: Schema.optional(Schema.String),
 	providerFailures: Schema.optional(Schema.Number),
+	publishedRecovery: Schema.optional(Schema.Boolean),
 	readRetry: Schema.optional(Schema.Struct({ error: Schema.String, failures: Schema.Number, retryAt: Schema.Number })),
 	receipt: Schema.optional(SessionReceipt),
 	reviewHead: Schema.optional(Schema.String),
@@ -105,6 +106,7 @@ export const FleetView = Schema.Struct({
 	links: Schema.Array(Schema.String),
 	outcome: FleetRecord.fields.outcome,
 	overLimit: Schema.optional(Schema.Boolean),
+	recovery: Schema.optional(Schema.String),
 	sessions: Schema.Array(
 		Schema.Struct({
 			...SessionReceipt.fields,

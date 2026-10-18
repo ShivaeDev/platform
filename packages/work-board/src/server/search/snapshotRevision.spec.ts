@@ -1,15 +1,13 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { listingRace } from "#test/listingRace.ts";
+import { aFileAddedDuringListing, indexedFiles, indexStory } from "#test/indexStory.ts";
 
-it.live("does not cache an older file listing under a revision that advances during the listing", () =>
-	listingRace((read) =>
-		Effect.gen(function* () {
-			const snapshot = yield* read;
-			expect(snapshot.revision).toBe(1);
-			expect([...snapshot.model.ids.keys()].sort()).toEqual(["added", "first"]);
-			expect(yield* read).toBe(snapshot);
-		}),
-	),
+indexStory.it(
+	"does not cache an older listing under an advancing revision",
+	[indexedFiles({ "first.md": "---\nid: first\n---\n# First" }), aFileAddedDuringListing()],
+	function* ({ readIndex }) {
+		const snapshot = yield* readIndex();
+		expect(snapshot.revision).toBe(1);
+		expect([...snapshot.model.ids.keys()].sort()).toEqual(["added", "first"]);
+		expect(yield* readIndex()).toBe(snapshot);
+	},
 );

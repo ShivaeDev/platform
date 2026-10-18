@@ -1,8 +1,10 @@
-import { useState } from "react";
-import { Modal } from "#client/react/Modal.tsx";
+import { useLayoutEffect, useRef, useState } from "react";
+import { Button } from "#client/react/components/ui/button.tsx";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "#client/react/components/ui/dialog.tsx";
 import { SearchPalette } from "#client/react/SearchPalette.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
+import { textControl, textSelection } from "#client/react/textSelection.ts";
 import type { AppearanceControls } from "#client/react/useAppearance.ts";
 
 export function SearchDialog({
@@ -21,25 +23,63 @@ export function SearchDialog({
 	readonly returnFocus?: HTMLElement | undefined;
 }) {
 	const [input, setInput] = useState("");
+	const inputRef = useRef<HTMLInputElement>(null);
+	const navigatingRef = useRef(false);
+	const selectionRef = useRef<ReturnType<typeof textSelection>>(undefined);
+	useLayoutEffect(() => {
+		if (open) {
+			navigatingRef.current = false;
+			selectionRef.current = textSelection(returnFocus);
+		}
+	}, [open, returnFocus]);
 	return (
-		<Modal
-			className="command-palette"
-			close={close}
-			focus="search-query"
-			id={shellIds.searchDialog}
+		<Dialog
+			onOpenChange={(next) => {
+				if (!next) {
+					close();
+				}
+			}}
+			onOpenChangeComplete={(next) => {
+				if (!(next || navigatingRef.current)) {
+					restoreFocus(returnFocus, selectionRef.current);
+				}
+			}}
 			open={open}
-			returnFocus={returnFocus}
-			title="search-title"
 		>
-			<div className="search-header">
-				<h2 id={shellIds.searchTitle}>Find work</h2>
-				<button aria-label="Close search" id={shellIds.searchClose} onClick={() => close()} type="button">
-					Close
-				</button>
-			</div>
-			{open ? (
-				<SearchPalette api={api} appearance={appearance} close={close} input={input} setInput={setInput} toggleSidebar={toggleSidebar} />
-			) : null}
-		</Modal>
+			<DialogContent
+				className="top-[12dvh] max-h-[76dvh] translate-y-0 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-xl"
+				finalFocus={false}
+				id={shellIds.searchDialog}
+				initialFocus={inputRef}
+				showCloseButton={false}
+			>
+				<DialogHeader className="flex-row items-center justify-between px-3 pt-3">
+					<DialogTitle>Find work</DialogTitle>
+					<DialogClose aria-label="Close search" id={shellIds.searchClose} render={<Button size="sm" variant="ghost" />}>
+						Close
+					</DialogClose>
+				</DialogHeader>
+				<SearchPalette
+					api={api}
+					appearance={appearance}
+					close={(navigating) => {
+						navigatingRef.current = navigating;
+						close();
+					}}
+					input={input}
+					inputRef={inputRef}
+					setInput={setInput}
+					toggleSidebar={toggleSidebar}
+				/>
+			</DialogContent>
+		</Dialog>
 	);
+}
+
+function restoreFocus(target: HTMLElement | undefined, selection: ReturnType<typeof textSelection>) {
+	target?.focus({ preventScroll: true });
+	const control = textControl(target);
+	if (selection && control) {
+		control.setSelectionRange(selection.start, selection.end, selection.direction);
+	}
 }

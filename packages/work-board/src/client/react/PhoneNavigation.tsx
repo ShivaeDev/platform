@@ -46,7 +46,7 @@ export function PhoneNavigation({
 						</a>
 					);
 				})}
-				<button aria-controls="search-dialog" aria-haspopup="dialog" className={TAB_CLASS} onClick={() => openSearch()} type="button">
+				<button aria-haspopup="dialog" className={TAB_CLASS} onClick={() => openSearch()} type="button">
 					<Search aria-hidden="true" className="size-5" />
 					Search
 				</button>

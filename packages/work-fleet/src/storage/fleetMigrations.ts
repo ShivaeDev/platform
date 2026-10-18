@@ -8,6 +8,7 @@ import { childTable } from "#storage/recordChildren.ts";
 import { recordTimeColumns } from "#storage/recordTimes.ts";
 import { shapeV12 } from "#storage/shapeV12.ts";
 import { shapeV14 } from "#storage/shapeV14.ts";
+import { shapeV17 } from "#storage/shapeV17.ts";
 import { typedTables } from "#storage/typedTables.ts";
 
 const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
@@ -66,6 +67,7 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 				and ("decision__code" = 'reviewed-pr-ready' or ("decision__code" = 'fleet-stale' and "decision__reason" = 'Board context changed'))
 				and not exists (select 1 from ${sql(childTable(namespace, ["supersededDecisions"]))} as superseded
 					where superseded.work_id = records.work_id and superseded."reassignedTo__decisionId" = records."decision__id")`,
+		"17_published_recovery": addShapeColumns(namespace, shapeV14, shapeV17),
 		"18_pending_continuation": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("pendingContinuation")} text`,
 	});
 });

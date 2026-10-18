@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.1 - 2026-10-18
+
+### Fixed
+
+- Report an expired session during Better Auth's provider account lookup as Unauthorized instead of AuthUnavailable.
+
 ## 0.16.0 - 2026-10-18
 
 ### Added
