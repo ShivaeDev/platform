@@ -1,8 +1,8 @@
 import { Config, Effect, Layer, Redacted } from "effect";
 import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
-import { appDatabase } from "@shivaedev/platform/appHost.ts";
-import { otlpTracing } from "@shivaedev/platform/otlpTracing.ts";
+import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
+import { otlpTracing } from "@shivaedev/platform/server/otlpTracing.ts";
 import { notes } from "#notes.ts";
 import { authDatabase } from "#server/authDatabase.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";

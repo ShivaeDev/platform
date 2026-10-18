@@ -2,10 +2,10 @@ import { expect } from "@effect/vitest";
 import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, ManagedRuntime, Schema } from "effect";
 import { afterAll } from "vitest";
-import { makeEffectTRPC } from "#adapter.ts";
-import { makeRequestServices } from "#request-services.ts";
-import { makeEffectCallerFactory } from "#testing/caller.ts";
-import { makeTrpcHarnessIt, makeTrpcIt } from "#testing/vitest.ts";
+import { makeEffectTRPC } from "#server/adapter.ts";
+import { makeRequestServices } from "#server/requestServices.ts";
+import { makeEffectCallerFactory } from "#server/testing/caller.ts";
+import { makeTrpcHarnessIt, makeTrpcIt } from "#server/testing/vitest.ts";
 
 class RuntimeValue extends Context.Service<RuntimeValue, string>()("@test/RuntimeValue") {}
 class RuntimeOnlyValue extends Context.Service<RuntimeOnlyValue, string>()("@test/RuntimeOnlyValue") {}

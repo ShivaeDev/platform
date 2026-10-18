@@ -1,7 +1,7 @@
 import { useAtomMount } from "@effect/atom-react";
 import { Option } from "effect";
 import { useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";
 import type { NotesClient } from "./makeNotes.ts";

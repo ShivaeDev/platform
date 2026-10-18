@@ -67,7 +67,7 @@ stay in the repository.
   optional Board-backed execution, independent review and authorized delivery with
   durable ownership and receipts.
 
-No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, with `"./internal/*": null` keeping a package's `internal/` folder private, so you import the module that defines what you need, such as `import { transact } from "@shivaedev/effect-sql/transact.ts"`, and a bundler sees only what you use.
+No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder, and a `null` entry such as `"./internal/*": null` keeps an internal folder or browser bundle sources private. You import the module that defines what you need, such as `import { transact } from "@shivaedev/effect-sql/transact.ts"`, and a bundler sees only what you use.
 
 ## Development
 

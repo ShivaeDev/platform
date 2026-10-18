@@ -47,7 +47,7 @@ export function App() {
 `Orders` is the application's feature component. For authenticated screens, use `SessionBoundary` at the authenticated root instead:
 
 ```tsx
-import { SessionBoundary } from "@shivaedev/effect-react/session-boundary.ts";
+import { SessionBoundary } from "@shivaedev/effect-react/client/sessionBoundary.ts";
 import { makeOrderClient, OrderScreens } from "./orders.tsx";
 
 interface Session {
@@ -84,7 +84,7 @@ The hooks accept native atoms directly. This complete component module shows que
 
 ```tsx
 import { RegistryProvider } from "@effect/atom-react";
-import { useAction, useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { Effect, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 
@@ -143,7 +143,7 @@ An action's `dispatch(input)` returns `void`. Read the atom's latest result from
 
 ### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, loader data and error components. `@shivaedev/effect-react/router.ts` supplies `loadQuery(registry, atom, loaderContext)` to read a contract query atom in the same registry as React. The atom runs through its native RPC runtime; the loader does not create another runtime or query cache.
+TanStack Router owns routes, navigation, loader data and error components. `@shivaedev/effect-react/loadQuery.ts` supplies `loadQuery(registry, atom, loaderContext)` to read a contract query atom in the same registry as React. The atom runs through its native RPC runtime; the loader does not create another runtime or query cache.
 
 This example assumes an application-owned `api.get.query({ id })` returning `{ id, title }`, with a declared `NoteMissing` rejection:
 
@@ -153,7 +153,7 @@ import { createRootRouteWithContext, createRoute, createRouter, Outlet, RouterPr
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Predicate } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { loadQuery } from "@shivaedev/effect-react/router.ts";
+import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
 import { api } from "./notes-client.ts";
 
 const registry = AtomRegistry.make();
@@ -210,9 +210,9 @@ pnpm add @tanstack/react-router
 The next module assumes `./invoice-lines-client.ts` exports a contract-bound `api` with `get`, `save` and `create`, and its native `InvoiceLinesClient`. `get` returns `{ id, name, quantity }`; both commands return the saved row. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/effect-contract/README.md) describes that binding.
 
 ```tsx
-import { useCreate } from "@shivaedev/effect-react/create.ts";
-import { useEditor } from "@shivaedev/effect-react/editor.ts";
-import { useField } from "@shivaedev/effect-form/react.ts";
+import { useCreate } from "@shivaedev/effect-react/client/create.ts";
+import { useEditor } from "@shivaedev/effect-react/client/editor.ts";
+import { useField } from "@shivaedev/effect-form/client/react.ts";
 import type { Form } from "@shivaedev/effect-form/shape.ts";
 import { Option, Schema } from "effect";
 import { api, InvoiceLinesClient } from "./invoice-lines-client.ts";
@@ -358,24 +358,24 @@ const query = Atom.swr(atom, {
 
 | Defining module | Exports |
 | --- | --- |
-| `result-state.ts` | `useQuery`, `useAction`, `isUnauthorized`; `ResultState`, `QueryOptions`, `QueryState`, `ActionState`. |
-| `session-boundary.ts` | `SessionBoundary`, `useSessionRecheck`; `SessionBoundaryProps`. |
-| `editor.ts` | `useEditor`; `Editor`, `EditorConfig`. |
-| `create.ts` | `useCreate`; `Create`, `CreateConfig`. |
+| `client/resultState.ts` | `useQuery`, `useAction`, `isUnauthorized`; `ResultState`, `QueryOptions`, `QueryState`, `ActionState`. |
+| `client/sessionBoundary.ts` | `SessionBoundary`, `useSessionRecheck`; `SessionBoundaryProps`. |
+| `client/editor.ts` | `useEditor`; `Editor`, `EditorConfig`. |
+| `client/create.ts` | `useCreate`; `Create`, `CreateConfig`. |
 | `resume-signal.ts` | `resumeSignal`; `ResumeSource`, `ResumeWindow`, `ResumeOptions`. |
-| `router.ts` | `loadQuery`. |
-| `save-state.ts` | `useSaveState`; `SaveState`. |
+| `loadQuery.ts` | `loadQuery`. |
+| `client/saveState.ts` | `useSaveState`; `SaveState`. |
 | `field-rejection.ts` | `fieldRejectionOf`, `rejecting`; `FieldRejection`, `RejectField`, `FieldRejectionMapping`, `AtomServices`. |
-| `testing.ts` | `render`, `eventually`, `expectNoReactWarnings`; `Rendered`. |
+| `client/testing.ts` | `render`, `eventually`, `expectNoReactWarnings`; `Rendered`. |
 | `submission.ts` | `submission`; `Submission`, `SubmissionConfig`. |
 
-Import the defining `.ts` module, such as `@shivaedev/effect-react/editor.ts`. There is no root import. `SessionBoundaryProps` supplies `session`, `identify`, `connect`, `recheck`, a client-to-children function and optional `signedOut`; `useSessionRecheck()` reads that boundary's callback.
+Import the defining `.ts` module, such as `@shivaedev/effect-react/client/editor.ts`. There is no root import. `SessionBoundaryProps` supplies `session`, `identify`, `connect`, `recheck`, a client-to-children function and optional `signedOut`; `useSessionRecheck()` reads that boundary's callback.
 
 `Editor` exposes `query`, optional `form` and `SaveState`; `Create` exposes `form`, `created` and `SaveState`. `SaveState` has `save`, `saving`, `dirty`, `failure` and `revert`. Prefer the two complete hooks when binding a form to a command. The lower-level form modules expose the same composition pieces: `submission` makes a form and its submission snapshot reader, `rejecting` maps save failures through a submitter, and `useSaveState` observes submission and invokes a success callback.
 
 ### Render tests in happy-dom
 
-Use `@shivaedev/effect-react/testing.ts` with Vitest's `happy-dom` environment. Install effect-contract for the example's query and command declarations, and the testing peers and environment in your app's dev dependencies:
+Use `@shivaedev/effect-react/client/testing.ts` with Vitest's `happy-dom` environment. Install effect-contract for the example's query and command declarations, and the testing peers and environment in your app's dev dependencies:
 
 ```sh
 pnpm add @shivaedev/effect-contract
@@ -394,8 +394,8 @@ import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
-import { useAction, useQuery } from "@shivaedev/effect-react/result-state.ts";
-import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
+import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/client/testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

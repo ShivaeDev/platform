@@ -1,6 +1,6 @@
 import { act } from "react";
 import { expect, it } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { control } from "#test/chrome.ts";
 import { recordSourceFixture } from "#test/recordSourceFixture.ts";
 import { renderRouter } from "#test/renderRouter.tsx";

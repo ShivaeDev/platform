@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { Window } from "happy-dom";
 import { act } from "react";
 import { afterEach, expect, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { session } from "#client/session.ts";
 import { folder, startBoard } from "#test/board.ts";

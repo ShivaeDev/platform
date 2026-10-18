@@ -1,12 +1,12 @@
 import { initTRPC } from "@trpc/server";
 import { Effect } from "effect";
 import { makeDatabase } from "@shivaedev/effect-prisma/database.ts";
-import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts";
-import { effectPrismaAdapter } from "#better-auth/adapter.ts";
-import { makePlatformRuntime } from "#runtime/make.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
+import { effectPrismaAdapter } from "#server/better-auth/adapter.ts";
+import { makePlatformRuntime } from "#server/runtime/makePlatform.ts";
+import { makePlatformIt } from "#server/testing/makePlatformIt.ts";
 import { type Contract, contractJson } from "#test/auth/contract.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
-import { makePlatformIt } from "#testing/vitest.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
 export const Database = makeDatabase<Contract>()("@test/PlatformAuthDatabase", {

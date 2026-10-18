@@ -2,7 +2,7 @@ import { Clock, Duration, Effect, Exit, Fiber, Layer, Queue, Scope } from "effec
 import { HttpServer } from "effect/http";
 import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#server/appHost.ts";
 import type { MigrationState } from "./migrationStory.ts";
 import { Ping, ping, pingHandlers } from "./ping.ts";
 

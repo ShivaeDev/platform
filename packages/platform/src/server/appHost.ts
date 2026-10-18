@@ -1,10 +1,10 @@
 import { Context, type Effect } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
-import type { SessionPolicy, SessionShape } from "#rpc-server/session.ts";
 import { appHostHttp, deferredHost, migratedHost } from "#server/appHostHttp.ts";
 import { type DatabaseConfig, databaseLayer } from "#server/databaseLayer.ts";
 import type { HostOptions, HostPolicy } from "#server/hostOptions.ts";
+import type { SessionPolicy, SessionShape } from "#server/rpc-server/session.ts";
 import type { MigrationOptions } from "./MigrationOptions.ts";
 
 export class AppChanges extends Context.Service<AppChanges, Effect.Success<typeof makeLiveServer>>()("@shivaedev/platform/AppChanges") {}

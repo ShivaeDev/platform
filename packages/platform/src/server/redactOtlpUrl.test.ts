@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { redactOtlpUrl } from "#redactOtlpUrl.ts";
+import { redactOtlpUrl } from "#server/redactOtlpUrl.ts";
 
 it.each([
 	["url.full", "https://example.test/path?one=secret&two=other", "https://example.test/path?one=<redacted>&two=<redacted>"],

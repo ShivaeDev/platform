@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { renderRouter } from "#test/renderRouter.tsx";
 

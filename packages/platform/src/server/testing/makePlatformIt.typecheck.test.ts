@@ -2,13 +2,13 @@ import { initTRPC } from "@trpc/server";
 import { Effect, Layer } from "effect";
 import { expectTypeOf } from "vitest";
 import { makeDatabase } from "@shivaedev/effect-prisma/database.ts";
-import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts";
-import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts";
-import { effectPrismaAdapter } from "#better-auth/adapter.ts";
-import { makePlatformRuntime } from "#runtime/make.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
+import { makeRequestServices } from "@shivaedev/effect-trpc/server/requestServices.ts";
+import { effectPrismaAdapter } from "#server/better-auth/adapter.ts";
+import { makePlatformRuntime } from "#server/runtime/makePlatform.ts";
+import { makePlatformIt } from "#server/testing/makePlatformIt.ts";
 import type { Contract } from "#test/auth/generated/contract.d.ts";
 import contractJson from "#test/auth/generated/contract.json" with { type: "json" };
-import { makePlatformIt } from "#testing/vitest.ts";
 
 type IsAny<TValue> = 0 extends 1 & TValue ? true : false;
 const Database = makeDatabase<Contract>()("@types/PlatformDatabase", {

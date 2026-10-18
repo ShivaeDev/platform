@@ -1,4 +1,4 @@
-import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { fleetDeliverable } from "#board/fleetField.ts";
 
 export function briefEditPrompt(previous: string | undefined, current: string): string {
