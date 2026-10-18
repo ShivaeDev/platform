@@ -3,5 +3,11 @@ import { admin } from "better-auth/plugins";
 import type { Pool } from "pg";
 
 export function authOptions(database: Pool) {
-	return { database, emailAndPassword: { enabled: true }, plugins: [admin()] } satisfies BetterAuthOptions;
+	return {
+		advanced: { database: { validateSchema: true } },
+		database,
+		emailAndPassword: { enabled: true },
+		plugins: [admin()],
+		session: { cookieCache: { enabled: false } },
+	} satisfies BetterAuthOptions;
 }

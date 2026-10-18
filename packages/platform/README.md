@@ -500,6 +500,30 @@ export async function consumeSubscription(
 
 The signal aborts on an additional signal, socket close, incomplete request close or an already destroyed connection. Normal completion of a request does not abort a continuing response. Without an explicit `nodeRequest`, the helper can read one from an srvx Web request's `runtime.node.req`. `dispose()` removes Node listeners and can be called repeatedly.
 
+### Mount Better Auth
+
+`betterAuthMount(options)` returns the Better Auth instance and a native route Layer for `/api/auth/*`. It accepts Better Auth options, including application plugins and session policy. Merge `routes` into the HTTP host and use `auth.api.getSession` with `betterAuthSessions` for the application's RPC session provider.
+
+```ts
+import { Config, Effect } from "effect";
+import { authDatabase, betterAuthMount } from "@shivaedev/platform/better-auth.ts";
+
+const authentication = Effect.gen(function* () {
+  const database = yield* authDatabase(yield* Config.Redacted("DATABASE_URL"));
+  return yield* betterAuthMount({
+    database,
+    emailAndPassword: { enabled: true },
+    session: { cookieCache: { enabled: false } },
+  });
+});
+```
+
+Run this Effect in the host's scope. The pool logs idle-client errors at Debug and replaces failed connections on the next query; closing the scope disconnects its clients. A rejected auth handler returns HTTP 503 with `Authentication is temporarily unavailable`.
+
+The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL` supplies the default base URL, trusted origin and HTTPS secure-cookie setting; without it, the defaults accept loopback HTTP. Application options can override those defaults. RPC Origin policy remains an application choice.
+
+`AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`; other Better Auth rate-limit options pass through. `TRUSTED_PROXY` supplies the same address and CIDR policy used by the host. An untrusted transport peer loses `x-forwarded-for` and the configured client-IP header before Better Auth sees the request. `AUTH_CLIENT_IP_HEADER` defaults to `x-forwarded-for`. With no trusted proxy, Better Auth ignores forwarded IPs and shares a rate-limit bucket per path.
+
 ### Optional Better Auth storage on Effect Prisma
 
 When Better Auth's rows belong to an Effect Prisma database, give its adapter the same database service and runtime:
@@ -589,6 +613,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/rpc-server/redact.ts`, `server/rpc-server/redactCause.ts`, `server/rpc-server/sensitive.ts` | `redact`, `redactCause`, `redactDefect`, `redactingErrorReporter`, `isSensitiveKey`, `redactText`: diagnostic redaction. |
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
+| `better-auth.ts` | `betterAuthMount(options)`, `authDatabase(url)`: native auth routes and a scoped PostgreSQL pool. |
 | `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, options?)`: a Better Auth adapter over Effect Prisma; `modelName` maps model names. |
 | `server/testing/makePlatformIt.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |
 
@@ -606,6 +631,7 @@ Install the optional peers for the selected integration:
 | --- | --- |
 | `server/boundedBody.ts` | `@effect/platform-node` |
 | `server/appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
+| `better-auth.ts` | `better-auth`, `pg` |
 | `server/better-auth/adapter.ts` | `better-auth`, `@shivaedev/effect-prisma`, `@prisma-next/sql-orm-client` |
 | `server/testing/makePlatformIt.ts` | `@effect/vitest`, `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`, `@trpc/server` |
 

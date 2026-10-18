@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { authPool, openAuthPool } from "#test-support/authPool.ts";
+import { authPool, openAuthPool } from "#test/better-auth/pool.ts";
 
 authPool.it(
 	"logs a terminated idle auth connection and keeps serving queries",

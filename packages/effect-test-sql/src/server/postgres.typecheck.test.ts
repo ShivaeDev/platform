@@ -43,6 +43,18 @@ expectTypeOf<Layer.Services<typeof layer>>().toEqualTypeOf<never>();
 expectTypeOf<Layer.Success<typeof layer>>().toEqualTypeOf<PostgresTestServices | PostgresTestDatabase>();
 const required = makePostgresTestLayer({ ...options, fixtures: Effect.service(Missing) });
 expectTypeOf<Layer.Services<typeof required>>().toEqualTypeOf<Missing>();
+const requiredLoader = makePostgresTestLayer({
+	...options,
+	fixtures: (url) =>
+		Effect.gen(function* () {
+			expectTypeOf(url).toEqualTypeOf<Redacted.Redacted<string>>();
+			yield* Scope.Scope;
+			yield* Missing;
+			return yield* Effect.fail("loader refused" as const);
+		}),
+});
+expectTypeOf<Layer.Services<typeof requiredLoader>>().toEqualTypeOf<Missing>();
+expectTypeOf<Layer.Error<typeof requiredLoader>>().toEqualTypeOf<SqlError | "loader refused" | Migrator.MigrationError>();
 
 const { effectApp } = makeEffectIt({
 	around: withTestTransaction,

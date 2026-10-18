@@ -24,6 +24,7 @@ export function fleetItemStore(records: readonly FleetRecord[]): typeof FleetRep
 		hasLaunchRetry: () => Effect.die("Unexpected retry read"),
 		insert: () => Effect.die("Unexpected store insert"),
 		list: () => Effect.succeed(records.map((value) => ({ value, version: 1 }))),
+		listSnapshot: () => Effect.succeed(records.map((value) => ({ value, version: 1 }))),
 		load: () => Effect.die("Unexpected store load"),
 		releaseForeign: () => Effect.die("Unexpected reservation release"),
 		reserveForeign: () => Effect.die("Unexpected reservation write"),

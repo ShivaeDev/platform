@@ -27,7 +27,12 @@ export function productionParts(host: FleetHost): HostParts {
 	return { main: gitMainSource(host), provider: hostProvider(host) };
 }
 
-export function hostLayer(host: FleetHost, parts: HostParts, config: Layer.Layer<LiveConfig, unknown> = staticConfig(host)) {
+export function hostLayer(
+	host: FleetHost,
+	parts: HostParts,
+	config: Layer.Layer<LiveConfig, unknown> = staticConfig(host),
+	backgroundPublication = false,
+) {
 	const runtime = Layer.mergeAll(fleetHostLayer(host, parts, config), NodeServices.layer).pipe(Layer.provideMerge(healthLayer(host.boardDir)));
 	const status = Layer.unwrap(
 		Effect.map(LiveConfig, (live) =>
@@ -37,6 +42,7 @@ export function hostLayer(host: FleetHost, parts: HostParts, config: Layer.Layer
 					concurrency: applied.concurrency,
 					staleAfterMs: Math.max(60_000, applied.interval * 3000),
 				})),
+				backgroundPublication,
 			),
 		),
 	);
