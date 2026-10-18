@@ -37,6 +37,19 @@ jobs:
       - name: Test CI orchestration
         run: pnpm test:orchestration
 
+  release:
+    name: Collected release
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Apply, build and check packed release consumers
+        run: pnpm test:release
+
   build:
     # Failed-job reruns must reuse this upload even when build ran in an earlier attempt.
     outputs:
@@ -300,7 +313,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter]
+    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter, release]
     permissions:
       contents: read
       actions: read
