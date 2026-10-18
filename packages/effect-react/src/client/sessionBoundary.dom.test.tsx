@@ -1,274 +1,179 @@
-import { Cause, Data, Effect, Option } from "effect";
-import * as Atom from "effect/reactivity/Atom";
-import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { Activity, act, StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { expect, it, vi } from "vitest";
-import { SessionBoundary } from "#session-boundary.ts";
-import { activityRegistry } from "#test/activityRegistry.ts";
-import { startOrderServer } from "#test/order-example/http-test.ts";
-import { resultSession } from "#test/resultSession.ts";
-import { sessions, shell } from "#test/session.ts";
-import { DraftProbe, type RegistryHolder, ReplayProbe, TrackedProbe } from "#test/sessionProbes.ts";
-import { eventually, expectNoReactWarnings } from "#testing.ts";
+import { Cause, Option } from "effect";
+import { expect, vi } from "vitest";
+import { activity, registryActivity, replay, rotation, tracked } from "#test/lifecycleStories.ts";
+import { resultProbe, results } from "#test/resultStories.ts";
+import { orderSessions, sessionScreens } from "#test/sessionStories.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-expectNoReactWarnings();
-it("an Unauthorized action rechecks once per failed result and retains data and the typed cause", async () => {
-	class Unauthorized extends Data.TaggedError("Unauthorized")<{ readonly message: string }> {}
-	const denied = new Unauthorized({ message: "Session expired" });
-	let fail = false;
-	const view = await resultSession("action", () => (fail ? Effect.fail(denied) : Effect.succeed("Saved order")));
-	try {
-		await view.execute();
+results.it(
+	"an Unauthorized action rechecks once per failed result and retains data and typed cause",
+	[resultProbe("action", "unauthorized")],
+	function* ({ result, execute, rejectNext, rerender }) {
+		const view = result();
+		yield* execute();
 		expect(view.current().data).toEqual(Option.some("Saved order"));
 		expect(view.rechecks).toEqual([]);
-		fail = true;
+		rejectNext();
 		for (let failures = 1; failures <= 2; failures += 1) {
-			await view.execute();
+			yield* execute();
 			expect(view.rechecks).toHaveLength(failures);
 			expect(view.current().data).toEqual(Option.some("Saved order"));
-			expect(Option.getOrThrow(Option.flatMap(view.current().cause, Cause.findErrorOption))).toBe(denied);
-			await view.rerender();
+			expect(Option.getOrThrow(Option.flatMap(view.current().cause, Cause.findErrorOption))).toBe(view.denied);
+			yield* rerender();
 			expect(view.rechecks).toHaveLength(failures);
 		}
-	} finally {
-		await view.close();
-	}
-});
-it("each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one", async () => {
-	const server = await startOrderServer({ sessions: sessions() });
-	const view = shell(server.url);
-	try {
-		await view.show({ id: "a1", token: "alice-token" }, 1);
-		await eventually(() => expect(view.container.textContent).toContain("Printer paper / 300"));
-		await view.edit("Alice draft");
-		await view.show({ id: "a1", token: "alice-token" }, 1);
+	},
+);
+sessionScreens.it(
+	"each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one",
+	[orderSessions()],
+	function* ({ session, show, type, observe, close }) {
+		const view = session();
+
+		yield* show({ id: "a1", token: "alice-token" }, 1);
+		yield* observe("the session screen settles", () => expect(view.container.textContent).toContain("Printer paper / 300"));
+		yield* type("Alice draft");
+		yield* show({ id: "a1", token: "alice-token" }, 1);
 		expect(view.input()?.value).toBe("Alice draft");
 		expect(view.registries).toHaveLength(1);
-		await view.show({ id: "b1", token: "bob-token" }, 2);
-		await eventually(() => expect(view.input()?.value).toBe("Desk lamps"));
+		yield* show({ id: "b1", token: "bob-token" }, 2);
+		yield* observe("the session screen settles", () => expect(view.input()?.value).toBe("Desk lamps"));
 		expect(view.container.textContent).not.toContain("Printer paper");
 		expect(view.registries[0]?.getNodes().size).toBe(0);
-		await view.show(undefined, 1);
+		yield* show(undefined, 1);
 		expect(view.container.textContent).toBe("Signed out");
 		expect(view.registries[1]?.getNodes().size).toBe(0);
-		await view.show({ id: "a2", token: "alice-token" }, 1);
-		await eventually(() => expect(view.input()?.value).toBe("Printer paper"));
+		yield* show({ id: "a2", token: "alice-token" }, 1);
+		yield* observe("the session screen settles", () => expect(view.input()?.value).toBe("Printer paper"));
 		expect(view.container.textContent).not.toContain("Unsaved changes");
 		expect(view.registries).toHaveLength(3);
 		expect(view.rechecks).toEqual([]);
-	} finally {
-		await view.close();
-		await server.close();
-	}
-	expect(view.registries[2]?.getNodes().size).toBe(0);
-});
-it("Unauthorized keeps the retained screen and asks the auth owner to re-check; its expiry verdict tears the session down", async () => {
-	const active = sessions();
-	const server = await startOrderServer({ sessions: active });
-	const view = shell(server.url);
-	try {
-		await view.show({ id: "a1", token: "alice-token" }, 1);
-		await eventually(() => expect(view.container.textContent).toContain("Printer paper / 300"));
-		await view.edit("Unsaved order");
-		active.delete("alice-token");
-		await view.refresh();
-		await eventually(() => expect(view.rechecks).toEqual(["a1"]));
+		yield* close();
+		expect(view.registries[2]?.getNodes().size).toBe(0);
+	},
+);
+sessionScreens.it(
+	"Unauthorized keeps the retained screen and asks the auth owner to re-check; its expiry verdict tears the session down",
+	[orderSessions()],
+	function* ({ session, show, type, refresh, observe, expire }) {
+		const view = session();
+
+		yield* show({ id: "a1", token: "alice-token" }, 1);
+		yield* observe("the session screen settles", () => expect(view.container.textContent).toContain("Printer paper / 300"));
+		yield* type("Unsaved order");
+		expire();
+		yield* refresh();
+		yield* observe("the session screen settles", () => expect(view.rechecks).toEqual(["a1"]));
 		expect(view.container.textContent).toContain("Printer paper / 300");
 		expect(view.input()?.value).toBe("Unsaved order");
-		await view.show(undefined, 1);
+		yield* show(undefined, 1);
 		expect(view.container.textContent).toBe("Signed out");
 		expect(view.registries[0]?.getNodes().size).toBe(0);
 		expect(view.rechecks).toEqual(["a1"]);
-	} finally {
-		await view.close();
-		await server.close();
-	}
-});
-it("refresh retry recovers without losing the session's dirty form", async () => {
-	const active = sessions();
-	const server = await startOrderServer({ sessions: active });
-	const view = shell(server.url);
-	try {
-		await view.show({ id: "a1", token: "alice-token" }, 1);
-		await eventually(() => expect(view.container.textContent).toContain("Printer paper / 300"));
-		await view.edit("Unsaved order");
-		active.delete("alice-token");
-		await view.refresh();
-		await eventually(() => expect(view.container.querySelector('[role="alert"]')?.textContent).toContain("Could not load"));
+	},
+);
+sessionScreens.it(
+	"refresh retry recovers without losing the session's dirty form",
+	[orderSessions()],
+	function* ({ session, show, type, refresh, observe, expire, restore }) {
+		const view = session();
+
+		yield* show({ id: "a1", token: "alice-token" }, 1);
+		yield* observe("the session screen settles", () => expect(view.container.textContent).toContain("Printer paper / 300"));
+		yield* type("Unsaved order");
+		expire();
+		yield* refresh();
+		yield* observe("the session screen settles", () =>
+			expect(view.container.querySelector('[role="alert"]')?.textContent).toContain("Could not load"),
+		);
 		expect(view.input()?.value).toBe("Unsaved order");
-		active.set("alice-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" });
-		await view.refresh();
-		await eventually(() => expect(view.container.querySelector('[role="alert"]')).toBeNull());
+		restore();
+		yield* refresh();
+		yield* observe("the session screen settles", () => expect(view.container.querySelector('[role="alert"]')).toBeNull());
 		expect(view.input()?.value).toBe("Unsaved order");
-	} finally {
-		await view.close();
-		await server.close();
-	}
-});
-it("StrictMode's effect replay keeps the generation's registry alive until the real unmount", async () => {
-	const container = document.createElement("div");
-	const root = createRoot(container);
-	const count = Atom.make(Effect.succeed(41));
-	const held: RegistryHolder = {};
-	function render(session: string | undefined) {
-		return act(async () => {
-			root.render(
-				<StrictMode>
-					<SessionBoundary connect={() => undefined} identify={(id) => id} recheck={() => undefined} session={session}>
-						{() => <ReplayProbe count={count} held={held} />}
-					</SessionBoundary>
-				</StrictMode>,
-			);
-			await Promise.resolve();
-		});
-	}
-	await render("s1");
-	expect(container.textContent).toBe("42");
+	},
+);
+
+replay.it("StrictMode replay keeps the registry alive until real unmount", [replay.mounted()], function* ({ probe, act }) {
+	const { root, held, show } = probe();
+	yield* act("sign in", () => show("s1"));
+	expect(root.container.textContent).toBe("42");
 	expect(held.registry?.getNodes().size).toBeGreaterThan(0);
 	const first = held.registry;
-	await render(undefined);
-	expect(container.textContent).toBe("");
+	yield* act("sign out", () => show(undefined));
+	expect(root.container.textContent).toBe("");
 	expect(first?.getNodes().size).toBe(0);
-	await act(async () => root.unmount());
 });
-async function activity(hoisted: boolean) {
-	const count = Atom.make(Effect.succeed(41));
-	const registries: AtomRegistry.AtomRegistry[] = [];
-	function boundary() {
-		return (
-			<SessionBoundary connect={() => undefined} identify={(id) => id} recheck={() => undefined} session="s1">
-				{() => <DraftProbe count={count} registries={registries} />}
-			</SessionBoundary>
-		);
-	}
-	const kept = boundary();
-	const container = document.createElement("div");
-	const root = createRoot(container);
-	const errors: unknown[] = [];
-	async function render(mode: "visible" | "hidden") {
-		try {
-			await act(async () => {
-				root.render(<Activity mode={mode}>{hoisted ? kept : boundary()}</Activity>);
-				await Promise.resolve();
-			});
-		} catch (error) {
-			errors.push(error);
-		}
-	}
-	await render("visible");
-	expect(errors).toEqual([]);
-	expect(container.textContent).toBe("draft-1:42");
-	await render("hidden");
-	await render("visible");
-	expect(errors).toEqual([]);
-	expect(container.textContent).toBe("draft-1:42");
-	expect(registries.at(-1)?.getNodes().size).toBeGreaterThan(0);
-	await act(async () => root.unmount());
-	expect(registries.map((registry) => registry.getNodes().size)).toEqual(registries.map(() => 0));
+for (const hoisted of [false, true]) {
+	const stories = activity(hoisted);
+	stories.it(`Activity preserves the draft and live registry (hoisted ${hoisted})`, [stories.mounted()], function* ({ probe, act, close }) {
+		const { root, show, errors, registries } = probe();
+		yield* act("show the generation", () => show("visible"));
+		expect(errors).toEqual([]);
+		expect(root.container.textContent).toBe("draft-1:42");
+		yield* act("hide the generation", () => show("hidden"));
+		yield* act("reveal the generation", () => show("visible"));
+		expect(errors).toEqual([]);
+		expect(root.container.textContent).toBe("draft-1:42");
+		expect(registries.at(-1)?.getNodes().size).toBeGreaterThan(0);
+		yield* close();
+		expect(registries.map((registry) => registry.getNodes().size)).toEqual(registries.map(() => 0));
+	});
 }
-it("a generation hidden by <Activity> and revealed keeps its state on a live registry", () => activity(false));
-it("a hoisted generation element hidden by <Activity> and revealed keeps its state on a live registry", () => activity(true));
-it("a generation re-rendered while hidden by <Activity> and then unmounted disposes what the hidden render created", async () => {
-	const built: number[] = [];
-	const finalized: number[] = [];
-	const rendered: number[] = [];
-	const held = Atom.keepAlive(
-		Atom.make((get) => {
-			built.push(1);
-			get.addFinalizer(() => finalized.push(1));
-			return 1;
-		}),
-	);
-	const container = document.createElement("div");
-	const root = createRoot(container);
-	function render(mode: "visible" | "hidden", round: number) {
-		return act(async () => {
-			root.render(
-				<Activity mode={mode}>
-					<SessionBoundary connect={() => undefined} identify={(id) => id} recheck={() => undefined} session="s1">
-						{() => <TrackedProbe held={held} rendered={rendered} round={round} />}
-					</SessionBoundary>
-				</Activity>,
-			);
-			await Promise.resolve();
-		});
-	}
-	await render("visible", 1);
-	await render("hidden", 1);
-	await render("hidden", 2);
-	expect(rendered).toContain(2);
-	expect(built.length).toBeGreaterThan(1);
-	await act(async () => root.unmount());
-	await eventually(() => expect(finalized).toHaveLength(built.length));
-});
-it("connect runs once per identity: a rotated credential reaches the client only when identify includes its generation", async () => {
-	interface Rotating {
-		readonly credential: number;
-		readonly id: string;
-		readonly token: string;
-	}
-	const container = document.createElement("div");
-	const root = createRoot(container);
-	const connected: string[] = [];
-	function show(session: Rotating, identify: (session: Rotating) => string) {
-		return act(async () => {
-			root.render(
-				<SessionBoundary
-					connect={(current) => {
-						connected.push(current.token);
-						return current.token;
-					}}
-					identify={identify}
-					recheck={() => undefined}
-					session={session}
-				>
-					{(token) => <output>{token}</output>}
-				</SessionBoundary>,
-			);
-			await Promise.resolve();
-		});
-	}
-	function byId(session: Rotating) {
+tracked.it(
+	"unmounting a generation rerendered while hidden disposes hidden-render resources",
+	[tracked.mounted()],
+	function* ({ probe, act, close, observe }) {
+		const { show, rendered, built, finalized } = probe();
+		yield* act("show the first generation", () => show("visible", 1));
+		yield* act("hide the first generation", () => show("hidden", 1));
+		yield* act("rerender while hidden", () => show("hidden", 2));
+		expect(rendered).toContain(2);
+		expect(built.length).toBeGreaterThan(1);
+		yield* close();
+		yield* observe("all resources are finalized", () => expect(finalized).toHaveLength(built.length));
+	},
+);
+rotation.it("credentials rotate only when identify includes their generation", [rotation.mounted()], function* ({ probe, act }) {
+	const { show, root, connected } = probe();
+	function byId(session: { readonly id: string }) {
 		return session.id;
 	}
-	await show({ credential: 1, id: "a1", token: "t1" }, byId);
-	await show({ credential: 2, id: "a1", token: "t2" }, byId);
-	expect(container.textContent).toBe("t1");
-	function byCredential(session: Rotating) {
+	function byCredential(session: { readonly id: string; readonly credential: number }) {
 		return `${session.id}:${session.credential}`;
 	}
-	await show({ credential: 2, id: "a1", token: "t2" }, byCredential);
-	await show({ credential: 3, id: "a1", token: "t3" }, byCredential);
-	expect(container.textContent).toBe("t3");
+	yield* act("connect with the first credential", () => show({ credential: 1, id: "a1", token: "t1" }, byId));
+	yield* act("rotate without changing identity", () => show({ credential: 2, id: "a1", token: "t2" }, byId));
+	expect(root.container.textContent).toBe("t1");
+	yield* act("include credential generation in identity", () => show({ credential: 2, id: "a1", token: "t2" }, byCredential));
+	yield* act("rotate with a new identity", () => show({ credential: 3, id: "a1", token: "t3" }, byCredential));
+	expect(root.container.textContent).toBe("t3");
 	expect(connected).toEqual(["t1", "t2", "t3"]);
-	await act(async () => root.unmount());
 });
-it("revealing an Activity before hidden cleanup runs preserves its registry, including atoms added after reveal", async () => {
-	vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-	const view = activityRegistry();
-	try {
-		await view.render("visible", 1);
+registryActivity.it(
+	"revealing before hidden cleanup preserves the registry and newly added atoms",
+	[registryActivity.mounted()],
+	function* ({ probe, act, close }) {
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+		const view = probe();
+		yield* act("show the first atom", () => view.render("visible", 1));
 		const outgoing = view.registry();
-		await view.render("hidden", 1);
-		await view.render("hidden", 2);
+		yield* act("hide the first atom", () => view.render("hidden", 1));
+		yield* act("add a second atom while hidden", () => view.render("hidden", 2));
 		const revealed = view.registry();
 		expect(revealed).not.toBe(outgoing);
 		expect(view.built).toEqual(["first", "first", "second"]);
 		expect(view.finalized).toEqual(["first"]);
-		await view.render("visible", 2);
-		await act(async () => vi.runOnlyPendingTimers());
+		yield* act("reveal both atoms", () => view.render("visible", 2));
+		yield* act("run hidden cleanup", () => vi.runOnlyPendingTimers());
 		expect(view.registry()).toBe(revealed);
 		expect(view.finalized).toEqual(["first"]);
-		await view.render("visible", 3);
-		await act(async () => vi.runOnlyPendingTimers());
+		yield* act("add a third atom after reveal", () => view.render("visible", 3));
+		yield* act("run pending cleanup", () => vi.runOnlyPendingTimers());
 		expect(view.container.textContent).toBe("retained draftfirstsecondthird");
 		expect(view.built).toEqual(["first", "first", "second", "third"]);
 		expect(view.finalized).toEqual(["first"]);
-	} finally {
-		await view.close();
+		yield* close();
 		vi.useRealTimers();
-	}
-	expect(view.finalized).toHaveLength(view.built.length);
-});
+		expect(view.finalized).toHaveLength(view.built.length);
+	},
+);

@@ -2,10 +2,11 @@ import { Data, Effect, Layer, Schema } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
-import { createRoot } from "react-dom/client";
+import { useField } from "@shivaedev/effect-form/react.ts";
 import { type Create, useCreate } from "#create.ts";
 import { type Editor, useEditor } from "#editor.ts";
 import { SessionBoundary } from "#session-boundary.ts";
+import type { Rendered } from "#testing.ts";
 
 export class Unauthorized extends Data.TaggedError("Unauthorized")<{ readonly message: string }> {}
 
@@ -24,17 +25,33 @@ interface ProbeProps {
 
 function CreateProbe({ held, denied }: ProbeProps) {
 	held.current = useCreate({ create: (_values: Name) => Effect.fail(denied), fields: Name, initialValues: { name: "" }, runtime });
-	return null;
+	return createElement(SaveControls, { held });
 }
 
 function EditorProbe({ held, denied }: ProbeProps) {
 	held.current = useEditor({ fields: Name, query, runtime, save: (_values: Name) => Effect.fail(denied), values: (row) => row });
-	return null;
+	return createElement(SaveControls, { held });
 }
 
-export async function saveSession(kind: "create" | "editor") {
-	const container = document.createElement("div");
-	const root = createRoot(container);
+function SaveControls({ held }: { readonly held: Held }) {
+	const current = held.current;
+	if (!current?.form) {
+		throw new Error("No save form");
+	}
+	const name = useField(current.form, "name");
+	return createElement(
+		"section",
+		null,
+		createElement("input", {
+			name: "name",
+			onChange: (event: React.ChangeEvent<HTMLInputElement>) => name.onChange(event.target.value),
+			value: name.value,
+		}),
+		createElement("button", { onClick: current.save, type: "button" }, "Save"),
+		createElement("output", null, JSON.stringify({ dirty: current.dirty, failure: current.failure, saving: current.saving })),
+	);
+}
+export async function saveSession(view: Rendered, kind: "create" | "editor") {
 	const denied = new Unauthorized({ message: "Session expired before saving" });
 	const rechecks: string[] = [];
 	const held: Held = {};
@@ -47,7 +64,7 @@ export async function saveSession(kind: "create" | "editor") {
 	};
 	function render() {
 		return act(async () => {
-			root.render(createElement(SessionBoundary<string, undefined>, boundary));
+			await view.render(createElement(SessionBoundary<string, undefined>, boundary));
 			await Promise.resolve();
 		});
 	}
@@ -59,7 +76,8 @@ export async function saveSession(kind: "create" | "editor") {
 		return held.current;
 	}
 	return {
-		close: () => act(async () => root.unmount()),
+		close: view.unmount,
+		container: view.container,
 		current,
 		denied,
 		form: () => {

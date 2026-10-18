@@ -101,14 +101,6 @@
 {"path":"packages/effect-react/src/formHooks.typecheck.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/effect-react/src/formHooks.typecheck.spec.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/effect-react/src/formHooks.typecheck.spec.ts","rule":"biome/plugin","count":1}
-{"path":"packages/effect-react/src/formSubmit.dom.spec.tsx","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-react/src/formSubmit.dom.spec.tsx","rule":"biome/plugin","count":2}
-{"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"biome/lint/correctness/noChildrenProp","count":3}
-{"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"biome/lint/correctness/useUniqueElementIds","count":1}
-{"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"biome/lint/nursery/noComponentHookFactories","count":2}
-{"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"biome/lint/suspicious/useAwait","count":1}
-{"path":"packages/effect-react/src/nativeFeature.dom.spec.tsx","rule":"biome/lint/nursery/noComponentHookFactories","count":3}
-{"path":"packages/effect-react/src/nativeFeature.dom.spec.tsx","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-react/src/resume-signal.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-react/src/submission.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-react/src/submission.ts","rule":"biome/lint/style/useNamingConvention","count":6}
@@ -119,9 +111,6 @@
 {"path":"packages/effect-react/src/test-support/order-example/frontend.tsx","rule":"biome/lint/nursery/noComponentHookFactories","count":2}
 {"path":"packages/effect-react/src/test-support/order-example/frontend.tsx","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-react/src/test-support/order-example/http-test.ts","rule":"files/named-after-export","count":2}
-{"path":"packages/effect-react/src/test-support/session.ts","rule":"biome/lint/correctness/noChildrenProp","count":1}
-{"path":"packages/effect-react/src/test-support/session.ts","rule":"biome/lint/nursery/noComponentHookFactories","count":1}
-{"path":"packages/effect-react/src/test-support/session.ts","rule":"biome/lint/suspicious/useAwait","count":2}
 {"path":"packages/effect-service/src/define-service.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-service/src/generic-method.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-service/src/initializer-proof.ts","rule":"files/named-after-export","count":1}

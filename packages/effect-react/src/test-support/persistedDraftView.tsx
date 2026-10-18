@@ -4,11 +4,13 @@ import * as Atom from "effect/reactivity/Atom";
 import { Activity, act, StrictMode } from "react";
 import type { BrowserDraftConfig } from "@shivaedev/effect-form/react.ts";
 import { SessionBoundary } from "#session-boundary.ts";
-import { render } from "#testing.ts";
+import type { Rendered } from "#testing.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
 import { draftInitial, type Held, type Row, type Save } from "./draftFields.ts";
+import { typeInput } from "./screenKit.ts";
 
 export async function persistedDraftView(
+	view: Rendered,
 	persistedDraft: BrowserDraftConfig = { key: "order-draft" },
 	save: Save = (values) => Effect.succeed({ ...values, quantity: String(values.quantity) }),
 ) {
@@ -25,7 +27,7 @@ export async function persistedDraftView(
 			</StrictMode>
 		);
 	}
-	const view = await render(node("first"));
+	await view.render(node("first"));
 	function editor() {
 		if (!held.current?.form) {
 			throw new Error("Expected an editor form");
@@ -37,7 +39,7 @@ export async function persistedDraftView(
 		activity: (mode: "visible" | "hidden") => view.render(node("first", true, mode)),
 		change: (name: "name" | "quantity", value: string) =>
 			act(() => {
-				editor().form.change(name, value);
+				typeInput(view.container, name, value);
 			}),
 		editor,
 		refresh: (row: Row) =>
@@ -46,7 +48,7 @@ export async function persistedDraftView(
 			}),
 		save: () =>
 			act(() => {
-				editor().save();
+				view.container.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
 			}),
 		show: (session: string | undefined, visible = true) => view.render(node(session, visible)),
 	};

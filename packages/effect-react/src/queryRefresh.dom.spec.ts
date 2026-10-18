@@ -1,56 +1,60 @@
 import { Cause, Exit, Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import * as Atom from "effect/reactivity/Atom";
-import { act } from "react";
-import { expect, it } from "vitest";
-import { finishQuery, queryRequests, queryView, type Unavailable } from "#test/queryView.ts";
-import { expectNoReactWarnings } from "#testing.ts";
+import { expect } from "vitest";
+import { queries, queryScreen } from "#test/queryStories.ts";
+import type { Unavailable } from "#test/queryView.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-expectNoReactWarnings();
+queries.it(
+	"same-identity refreshes retain data even when native results drop their previous success",
+	[queryScreen({}, "Last success")],
+	function* ({ query, setNativeResult }) {
+		const { view, native } = query();
+		yield* setNativeResult(AsyncResult.initial(true));
+		if (!native) {
+			throw new Error("Expected a native query");
+		}
+		expect(Option.isNone(AsyncResult.value(view.registry.get(native)))).toBe(true);
+		expect(view.snapshot()).toEqual({ data: "Last success", failure: null, pending: true, refreshing: true });
 
-it("same-identity refreshes retain data even when native results drop their previous success", async () => {
-	const query = Atom.make<AsyncResult.AsyncResult<string, Unavailable>>(AsyncResult.success("Last success"));
-	const view = await queryView(query);
-	await act(async () => view.registry.set(query, AsyncResult.initial(true)));
-	expect(view.snapshot()).toEqual({ data: "Last success", failure: null, pending: true, refreshing: true });
-	expect(Option.isNone(AsyncResult.value(view.registry.get(query)))).toBe(true);
-	const failure: Unavailable = { _tag: "Unavailable", message: "Offline" };
-	await act(async () => view.registry.set(query, AsyncResult.failure(Cause.fail(failure))));
-	expect(view.snapshot()).toEqual({ data: "Last success", failure, pending: false, refreshing: false });
-});
+		const failure: Unavailable = { _tag: "Unavailable", message: "Offline" };
+		yield* setNativeResult(AsyncResult.failure(Cause.fail(failure)));
+		expect(view.snapshot()).toEqual({ data: "Last success", failure, pending: false, refreshing: false });
+	},
+);
 
-it("live invalidation retains the rendered value and interrupts the superseded refresh", async () => {
-	const requests = queryRequests();
-	const view = await queryView(requests.queries("first"));
-	expect(view.snapshot()).toEqual({ data: null, failure: null, pending: true, refreshing: false });
-	await finishQuery(requests.gate(), Exit.succeed("Last success"));
-	const superseded = requests.next();
-	await view.invalidate(requests.invalidation);
-	expect(view.snapshot()).toEqual({ data: "Last success", failure: null, pending: true, refreshing: true });
-	const latest = requests.next();
-	await view.invalidate(requests.invalidation);
-	expect(requests.interrupted).toEqual(["first"]);
-	expect(view.snapshot()).toEqual({ data: "Last success", failure: null, pending: true, refreshing: true });
-	await finishQuery(latest, Exit.succeed("Fresh value"));
-	await finishQuery(superseded, Exit.succeed("Stale value"));
-	expect(view.snapshot()).toEqual({ data: "Fresh value", failure: null, pending: false, refreshing: false });
-});
+queries.it(
+	"live invalidation retains the rendered value and interrupts the superseded refresh",
+	[queryScreen()],
+	function* ({ query, finish, invalidate }) {
+		const { view, requests } = query();
+		expect(view.snapshot()).toEqual({ data: null, failure: null, pending: true, refreshing: false });
+		yield* finish(requests.gate(), Exit.succeed("Last success"));
+		const superseded = requests.next();
+		yield* invalidate();
+		expect(view.snapshot()).toEqual({ data: "Last success", failure: null, pending: true, refreshing: true });
+		const latest = requests.next();
+		yield* invalidate();
+		expect(requests.interrupted).toEqual(["first"]);
+		expect(view.snapshot()).toEqual({ data: "Last success", failure: null, pending: true, refreshing: true });
+		yield* finish(latest, Exit.succeed("Fresh value"));
+		yield* finish(superseded, Exit.succeed("Stale value"));
+		expect(view.snapshot()).toEqual({ data: "Fresh value", failure: null, pending: false, refreshing: false });
+	},
+);
 
-it("a failed manual refresh keeps the rendered success next to its typed failure", async () => {
-	const requests = queryRequests();
-	const view = await queryView(requests.queries("first"));
-	await finishQuery(requests.gate(), Exit.succeed("Last success"));
+queries.it("a failed manual refresh keeps the rendered success next to its typed failure", [queryScreen()], function* ({ query, finish, refresh }) {
+	const { view, requests } = query();
+	yield* finish(requests.gate(), Exit.succeed("Last success"));
 	const gate = requests.next();
-	await view.refresh();
+	yield* refresh();
 	expect(view.snapshot()).toEqual({ data: "Last success", failure: null, pending: true, refreshing: true });
 	const failure = { _tag: "Unavailable", message: "Offline" } as const;
-	await finishQuery(gate, Exit.fail(failure));
+	yield* finish(gate, Exit.fail(failure));
 	expect(view.snapshot()).toEqual({ data: "Last success", failure, pending: false, refreshing: false });
 	const retry = requests.next();
-	await view.refresh();
+	yield* refresh();
 	expect(view.snapshot().data).toBe("Last success");
 	expect(view.snapshot().refreshing).toBe(true);
-	await finishQuery(retry, Exit.succeed("Recovered"));
+	yield* finish(retry, Exit.succeed("Recovered"));
 	expect(view.snapshot()).toEqual({ data: "Recovered", failure: null, pending: false, refreshing: false });
 });
