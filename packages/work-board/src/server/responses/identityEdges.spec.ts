@@ -2,13 +2,9 @@ import { renameSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { responseWorkspace } from "#test/responseEdges.ts";
+import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
 
-let workspace: Effect.Success<ReturnType<typeof responseWorkspace>>;
-
-it.live("rejects registration retries after the durable question file is moved", function* () {
-	workspace = yield* responseWorkspace();
+boardStory.it("rejects registration retries after the durable question file is moved", [aQuestionnaire()], function* ({ workspace }) {
 	const question = yield* Effect.promise(() => workspace.register());
 	renameSync(join(workspace.notes.root, `responses/${question.id}.md`), join(workspace.notes.root, "moved.md"));
 	yield* Effect.promise(() =>
@@ -24,8 +20,7 @@ it.live("rejects registration retries after the durable question file is moved",
 	);
 });
 
-it.live("rejects a new response identity already owned by an ordinary project item", function* () {
-	workspace = yield* responseWorkspace();
+boardStory.it("rejects a new response identity already owned by an ordinary project item", [aQuestionnaire()], function* ({ workspace }) {
 	const question = yield* Effect.promise(() => workspace.register());
 	yield* Effect.promise(() =>
 		expect(
@@ -45,8 +40,7 @@ it.live("rejects a new response identity already owned by an ordinary project it
 	);
 });
 
-it.live("rejects response retries after the saved reply is moved by an external editor", function* () {
-	workspace = yield* responseWorkspace();
+boardStory.it("rejects response retries after the saved reply is moved by an external editor", [aQuestionnaire()], function* ({ workspace }) {
 	const question = yield* Effect.promise(() => workspace.register());
 	const input = {
 		author: "reviewer",

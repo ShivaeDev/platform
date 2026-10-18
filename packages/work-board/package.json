@@ -473,6 +473,7 @@
 		"@shivaedev/effect-react": "workspace:*",
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@tailwindcss/vite": "catalog:",
 		"@tanstack/react-router": "catalog:",
 		"@types/hast": "catalog:",
