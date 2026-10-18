@@ -4,7 +4,7 @@
 
 ### Added
 
-- Database hosts serve contract change subscriptions, and command declarations publish their remaining invalidation keys after handlers succeed, without repeating keys already announced by their repository commits.
+- Database hosts serve contract change subscriptions, and command declarations publish their remaining invalidation keys after handlers succeed, without repeating keys already announced by their repository commits. PostgreSQL change hooks are installed before default startup migrations, so repository seed writes notify existing listeners after commit.
 
 ### Breaking
 

@@ -1,10 +1,11 @@
-import { Effect, Hash } from "effect";
+import { Effect, Exit, Hash } from "effect";
 import { dual } from "effect/Function";
 import type { ReadonlyRecord } from "effect/Record";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { isSqlError, type SqlError } from "effect/sql/SqlError";
 import { makeChannel } from "@shivaedev/effect-changes/channel.ts";
+import { TransactionCheckpoint } from "./TransactionCheckpoint.ts";
 
 export type InvalidationKeys = readonly unknown[] | ReadonlyRecord<string, readonly unknown[]>;
 
@@ -53,8 +54,11 @@ export interface TransactOptions<E2> {
 
 const run = Effect.fn("Transact.transact")(function* <A, E, R, E2>(effect: Effect.Effect<A, E, R>, options: TransactOptions<E2>) {
 	const sql = yield* SqlClient.SqlClient;
+	const checkpoint = yield* TransactionCheckpoint;
+	const rollback = yield* checkpoint;
 	return yield* invalidations
 		.within(sql.withTransaction)(effect)
+		.pipe(Effect.onExit((exit) => (Exit.isFailure(exit) ? rollback : Effect.void)))
 		.pipe(Effect.catchIf(isSqlError, (error) => Effect.fail(options.onSqlError(error))));
 });
 

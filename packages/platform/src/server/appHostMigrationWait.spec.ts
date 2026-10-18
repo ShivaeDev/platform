@@ -66,7 +66,7 @@ migrationHost.it(
 	function* ({ start, connections, lifecycle }) {
 		const host = yield* start();
 		expect(yield* host.next).toEqual({ _tag: "Sleeping", millis: 10 });
-		expect(yield* connections()).toBe(1);
+		expect(yield* connections()).toBe(2);
 		yield* host.interrupt;
 		const exit = yield* host.exit;
 		expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);

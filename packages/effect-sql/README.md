@@ -433,4 +433,4 @@ JSON and JSONB columns are not supported. A repository write of a plain object t
 
 The package's PostgreSQL tests use a disposable database through `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`. Without the URL they skip locally; under `CI`, collection fails at the shared gate.
 
-The `withChangeCoverage(body)` story verb from `testing.ts` checks PostgreSQL transaction write counters before commit and fails with `UnannouncedWrites` for tables without a recorded table key. See [automatic change delivery](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for host defaults and coverage limits.
+The `withChangeCoverage(body)` story verb from `testing.ts` checks PostgreSQL transaction write counters before commit and fails with `UnannouncedWrites` for tables without a surviving table key. It excludes nested `transact` savepoint rollbacks from both the keys and PostgreSQL’s retained write counters. See [automatic change delivery](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for host defaults and coverage limits.

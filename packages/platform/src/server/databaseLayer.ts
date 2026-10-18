@@ -31,11 +31,10 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 			});
 		}),
 	);
-	const prepared = Layer.effectDiscard(prepareMigrations(options.migrations)).pipe(Layer.provideMerge(pool));
 	const live = Layer.effect(changesService, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer));
-	const base = Layer.merge(prepared, live);
+	const base = Layer.merge(pool, live);
 	const changes = options.config?.changes;
-	return Layer.unwrap(
+	const connected = Layer.unwrap(
 		Effect.gen(function* () {
 			const client = yield* PgClient.PgClient;
 			const hints = yield* changesService;
@@ -45,6 +44,7 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 			return postgresChanges({ ...changes, channel, client, resync: hints.resync });
 		}),
 	).pipe(Layer.provideMerge(base));
+	return Layer.effectDiscard(prepareMigrations(options.migrations)).pipe(Layer.provideMerge(connected));
 }
 
 function prepareMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {

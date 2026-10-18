@@ -7,7 +7,7 @@
 - Repository insert, update, delete, conflict and batch writes record the table key and returned row item keys through the existing commit channel, including generated IDs and void writes. Transactions deduplicate keys and discard rolled-back writes.
 - PostgreSQL migration batches own the same commit boundary, so repository seed and upgrade writes announce after the batch commits.
 - Low-level composition exposes `repositoryChanges(sql, table, columns)`, `RepositoryChanges`, and `repositoryWrites(model, sql, options, changes)`.
-- `testing.ts` exports `withChangeCoverage(body)` and `UnannouncedWrites`; PostgreSQL transaction statistics catch tables written without a recorded table key. `transact.ts` exports `ChangeObserver` for observing that channel.
+- `testing.ts` exports `withChangeCoverage(body)` and `UnannouncedWrites`; PostgreSQL transaction statistics catch tables written without a surviving table key, excluding nested savepoint rollbacks from the announcements and retained counters. `transact.ts` exports `ChangeObserver` for observing that channel. `TransactionCheckpoint.ts` exports `TransactionCheckpoint`, an Effect reference that captures a rollback callback before each `transact`; coverage uses it to restore its observations after native rollback.
 
 ### Breaking
 
