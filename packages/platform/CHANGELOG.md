@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.0 - 2026-10-18
+
+### Added
+
+- `appHost` accepts a native `preflight` Layer that builds before migration checks or execution and application startup. Typed failures stop startup; its services remain available to migrations, application construction, application services, RPC handlers and host callers, and its resources close with the host scope. The host option types accept preflight service, error and requirement parameters and require the Layer whenever any of those types are declared.
+- Export `AppHostFactory`, `AppHostInput` and `HostPreflight` types for annotated host factories, inputs and preflight options.
+
+### Breaking
+
+- `requireAdmin` now requires `SessionUser` and fails with `Forbidden` for non-admin users. Put RPC handlers behind `AuthenticatedUser`, and wrap HTTP handlers with `withSessionUser`, so authentication supplies the profile and rejects signed-out requests with `Unauthorized`.
+
 ## 0.16.1 - 2026-10-18
 
 ### Fixed
