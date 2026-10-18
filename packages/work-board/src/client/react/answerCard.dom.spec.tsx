@@ -164,7 +164,10 @@ it("puts the recommendation and primary PR action above secondary human choices 
 		expect(link?.getAttribute("href")).toBe("https://github.com/ShivaeDev/platform/pull/395");
 		expect(link?.classList.contains("bg-primary")).toBe(true);
 		expect(link?.compareDocumentPosition(card?.querySelector("fieldset") ?? document.body)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		expect([...(card?.querySelectorAll(".question-choice strong") ?? [])].map((label) => label.textContent)).toEqual(["Request changes", "Release"]);
+		expect([...(card?.querySelectorAll(".question-choice strong") ?? [])].map((label) => label.textContent)).toEqual([
+			"Request changes",
+			"Stop and hand back",
+		]);
 		expect(card?.querySelector<HTMLInputElement>('[name="author"]')?.value).toBe("Last reviewer");
 		expect(card?.querySelector('[name="author"]')?.getAttribute("aria-invalid")).toBe("false");
 		expect(card?.textContent).not.toContain("Add your local author label.");
@@ -184,7 +187,7 @@ it("puts the recommendation and primary PR action above secondary human choices 
 });
 
 it.each(["### Release ownership", ""])("uses an option heading or capitalised id: %s", async (heading) => {
-	const files = { ...readyDecisionFixture, [decisionFile]: (readyDecisionFixture[decisionFile] ?? "").replace("### Release", heading) };
+	const files = { ...readyDecisionFixture, [decisionFile]: (readyDecisionFixture[decisionFile] ?? "").replace("### Stop and hand back", heading) };
 	const view = await renderRouter(files, url);
 	try {
 		await eventually(() => expect(view.container.querySelectorAll(".question-choice strong")).toHaveLength(2));

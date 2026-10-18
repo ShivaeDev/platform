@@ -28,7 +28,10 @@ it.each(["/guide.md", "/_board/item/task.guide/"])("shows the decision's quiet a
 		const card = view.container.querySelector(".response-panel");
 		expect(card?.querySelector(".answer-reason strong")?.textContent).toBe("Reviewed PR is ready to merge.");
 		expect(card?.querySelector(".answer-links a")?.textContent).toBe("Open PR #395");
-		expect([...view.container.querySelectorAll(".question-choice strong")].map((label) => label.textContent)).toEqual(["Request changes", "Release"]);
+		expect([...view.container.querySelectorAll(".question-choice strong")].map((label) => label.textContent)).toEqual([
+			"Request changes",
+			"Stop and hand back",
+		]);
 		const more = card?.querySelector("details[data-key='response-details']");
 		expect(more).toHaveProperty("open", false);
 		expect(more?.querySelector("summary")?.textContent).toBe("More");

@@ -6,6 +6,7 @@ import { decisionAnswer } from "#board/decisionAnswer.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { recordBoardSource } from "#board/readPass.ts";
 import type { BoardDecision } from "#board/schema.ts";
+import { type DecisionCopy, decisionCopy } from "#engine/decisionCopy.ts";
 import { BoardFailure, type BoardWork, type Decision } from "#policy.ts";
 
 const { publish, questionFrom, questionId, questionMarkdown, revisionOf } = responses;
@@ -23,14 +24,14 @@ function linked(text: string): string {
 	return url.protocol === "https:" || url.protocol === "http:" ? `<${url.href.replaceAll("<", "%3C").replaceAll(">", "%3E")}>` : quoted(text);
 }
 
-function decisionSource(itemId: string, work: BoardWork, input: Decision): string {
+function decisionSource(itemId: string, work: BoardWork, input: Decision, copy: DecisionCopy): string {
 	const metadata = {
 		attention: [
 			{
 				id: input.id,
 				kind: "decision",
 				managed: true,
-				reason: input.reason,
+				reason: copy.reason,
 				"response_from": [input.attentionOwner ?? "orchestrator"],
 				state: "open",
 				unblocks: [work.workId],
@@ -40,8 +41,8 @@ function decisionSource(itemId: string, work: BoardWork, input: Decision): strin
 		kind: "decision",
 		relationships: [{ kind: "relates_to", target: work.workId }],
 	};
-	const answer = decisionAnswer(input);
-	return `---\n${JSON.stringify(metadata)}\n---\n# Fleet decision for ${work.workId}\n\n## Decision\n\n${quoted(input.reason)}\n\n## Recommendation\n\n${quoted(input.recommendation)}\n\n## Relevant links\n\n${input.links.map(linked).join("\n\n")}\n\n${answer}\n\n## Reviewed Board work\n\n${quoted(work.context)}\n`;
+	const answer = decisionAnswer(copy);
+	return `---\n${JSON.stringify(metadata)}\n---\n# Fleet decision for ${work.workId}\n\n## Decision\n\n${quoted(copy.reason)}\n\n## Recommendation\n\n${quoted(copy.recommendation)}\n\n## Relevant links\n\n${input.links.map(linked).join("\n\n")}\n\n${answer === undefined ? "" : `${answer}\n\n`}## Reviewed Board work\n\n${quoted(work.context)}\n`;
 }
 
 export function publishBoard(root: string, realRoot: string, documents: Effect.Effect<readonly BoardDocument[], BoardFailure>) {
@@ -49,7 +50,8 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 		const workSourcePath = relative(realRoot, work.sourcePath);
 		const itemId = `decision.${revisionOf(JSON.stringify([work.workId, work.revision, workSourcePath, input.id, input.reason, input.recommendation, input.links, ...(input.worker === undefined ? [] : [input.worker])]))}`;
 		const existing = input.published === undefined ? undefined : (yield* documents).find((document) => document.file === input.published?.sourcePath);
-		const context = existing?.parsed.fields.id === itemId ? existing.source : decisionSource(itemId, work, input);
+		const copy = decisionCopy(input);
+		const context = existing?.parsed.fields.id === itemId ? existing.source : decisionSource(itemId, work, input, copy);
 		const parsed = boardApi.metadataParse(context);
 		if (new TextEncoder().encode(context).length > 256 * 1024 || parsed.diagnostics.length > 0) {
 			return yield* Effect.fail(new BoardFailure({ message: "Fleet decision context exceeds Board limits or contains invalid attention metadata." }));
@@ -82,7 +84,7 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 			question: {
 				deadline: registeredAt + 48 * 60 * 60 * 1000,
 				item: itemId,
-				reason: input.reason,
+				reason: copy.reason,
 				registeredAt,
 				request: input.id,
 				reviewedRevision: revision,

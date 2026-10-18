@@ -10,13 +10,10 @@ export function cardContext(source: string) {
 	return { links, recommendation };
 }
 
-export function optionLabel(id: string, source: string, reason: string) {
+export function optionLabel(id: string, source: string) {
 	const heading = /^#{1,6}\s+(?<title>.+)$/mu.exec(source)?.groups?.title;
 	if (heading) {
 		return heading;
-	}
-	if (id === "retry" && /reviewed pr is ready to merge/iu.test(reason)) {
-		return "Request changes (retry)";
 	}
 	return id.charAt(0).toUpperCase() + id.slice(1).replaceAll("-", " ");
 }

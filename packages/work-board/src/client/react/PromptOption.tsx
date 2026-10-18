@@ -33,7 +33,7 @@ export function PromptOption({
 			value={option.id}
 		/>
 	);
-	const label = source?.label ?? optionLabel(option.id, option.source, document.requests.find((request) => request.open)?.preview?.reason ?? "");
+	const label = source?.label ?? optionLabel(option.id, option.source);
 	return (
 		<div>
 			{control}

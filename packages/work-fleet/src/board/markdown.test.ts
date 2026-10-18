@@ -32,10 +32,10 @@ it.effect("reads stable Board identity and publishes a durable retryable Board d
 		const source = `responses/${receipt.questionId}.md`;
 		const parsed = metadataParse(readFileSync(join(root, source), "utf8"));
 		const context = readFileSync(join(root, receipt.sourcePath), "utf8");
-		expect(context).toContain("### Request changes\nFleet keeps the branch and PR and works on your answer");
-		expect(context).toContain("### Release\nFleet stops and hands the work back");
-		expect(context).not.toContain("if execution and delivery permit it");
-		expect(context).not.toContain("Retry after the blocker is resolved under trusted runtime policy");
+		expect(context).toContain(':::option{id="retry"}');
+		expect(context).toContain(':::option{id="release"}');
+		expect(questionFrom({ file: source, parsed })?.question.reason).toContain(decision.reason);
+		expect(context).not.toContain(decision.recommendation);
 		expect(questionFrom({ file: source, parsed })?.question.item).toBe(receipt.itemId);
 		expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Pending" });
 	}).pipe(Effect.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));

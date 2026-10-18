@@ -2,6 +2,7 @@ import { describe, expect, it } from "@effect/vitest";
 import { Effect, Schema } from "effect";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { decisionAnswer } from "#board/decisionAnswer.ts";
+import { decisionCopy } from "#engine/decisionCopy.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import { Fleet } from "#fleet.ts";
 import { Decision } from "#policy.ts";
@@ -17,20 +18,20 @@ const ready: Decision = {
 };
 
 describe("stable decision codes", () => {
-	it("directs a worker answer to the item card", () => {
-		const answer = decisionAnswer({ ...ready, worker: { sessionId: "session", turnId: "turn" } });
-		expect(answer).toContain("item’s answer card");
-		expect(answer).not.toContain("Record your answer below");
+	it("keeps a worker question as the card reason without guided actions", () => {
+		const copy = decisionCopy({ ...ready, reason: "Which fixture should I use?", worker: { sessionId: "session", turnId: "turn" } });
+		expect(copy.reason).toBe("Which fixture should I use?");
+		expect(decisionAnswer(copy)).toBeUndefined();
 	});
 	it("rewording release-only text preserves the release-only answer", () => {
 		const reworded = Schema.decodeUnknownSync(Decision)({ ...ready, reason: "This pull request belongs to another repository." });
 		expect(reworded.code).toBe(ready.code);
-		expect(decisionAnswer(reworded)).toBe(decisionAnswer(ready));
-		expect(decisionAnswer(reworded)).toContain(':::option{id="release"}');
-		expect(decisionAnswer(reworded)).not.toContain(':::option{id="retry"}');
+		expect(decisionCopy(reworded)).toEqual(decisionCopy(ready));
+		expect(decisionAnswer(decisionCopy(reworded))).toContain(':::option{id="release"}');
+		expect(decisionAnswer(decisionCopy(reworded))).not.toContain(':::option{id="retry"}');
 	});
 	it("wording alone cannot select a release-only rule", () => {
-		expect(decisionAnswer({ ...ready, code: "fleet-integration" })).toContain(':::option{id="retry"}');
+		expect(decisionAnswer(decisionCopy({ ...ready, code: "fleet-integration" }))).toContain(':::option{id="retry"}');
 		expect(Schema.is(Decision)({ ...ready, code: "unknown-code" })).toBe(false);
 	});
 	postgresTests("test")("reworded merge readiness sends requested changes to the existing worker after restart", () =>
@@ -81,7 +82,7 @@ describe("stable decision codes", () => {
 						Effect.flip,
 					),
 				);
-				expect(failure).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining("Retry cannot move a PR") });
+				expect(failure).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining("Fleet cannot move a PR") });
 			}),
 		),
 	);

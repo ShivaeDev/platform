@@ -90,7 +90,7 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 		<fieldset aria-label={`Options for ${data.identity}`} className="m-0 min-w-0 space-y-2 border-0 px-2 pb-2">
 			<div className="flex flex-wrap gap-2">
 				{prompt?.options.map((option, index) => {
-					const text = data.metadata.options?.[index]?.label ?? optionLabel(option.id, option.source, request.preview?.reason ?? "");
+					const text = data.metadata.options?.[index]?.label ?? optionLabel(option.id, option.source);
 					return (
 						<Button
 							disabled={!(data.writable && author.trim()) || action.pending || Boolean(saved)}
