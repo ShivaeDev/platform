@@ -58,6 +58,24 @@ const notifications = directoryNotifications();
 const directoriesOnly = directoryNotifications(true);
 
 boardStory.it(
+	"completes reads after unchanged directory notifications with document and attachment extensions",
+	[projectFiles({ "archive.md/log.md": "# Log", "images.png/plan.md": "# Plan" }), directoriesOnly.trait],
+	function* ({ board, watchProject }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		for (const directory of ["archive.md", "images.png"]) {
+			yield* directoriesOnly.changed(directory);
+			yield* Effect.sleep("200 millis");
+			expect(yield* rpcPaths(board).pipe(Effect.timeout("1 second"))).toEqual(["/archive.md/log.md", "/images.png/plan.md"]);
+			expect((yield* rpcDocument(board, "/archive.md/log.md").pipe(Effect.timeout("1 second"))).source).toBe("# Log");
+		}
+		expect((yield* rpcWatcher(board)).watching).toBe(true);
+		expect(directoriesOnly.watchStarts()).toBe(1);
+		yield* events.close();
+	},
+);
+
+boardStory.it(
 	"announces a populated directory move when only the destination directory is reported",
 	[projectFiles({ "drafts/log.md": "# Log", "drafts/nested/plan.md": "# Plan" }), directoriesOnly.trait],
 	function* ({ board, editFile, moveDirectory, watchProject }) {

@@ -30,6 +30,7 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 	setWatching: (watching: boolean) => Effect.Effect<unknown>,
 	publish: (paths: readonly string[]) => Effect.Effect<unknown>,
 	observed: Effect.Effect<void> = Effect.void,
+	settled: Effect.Effect<unknown> = Effect.void,
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
@@ -82,11 +83,18 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 				Stream.filter(
 					(relative) => !relative.split("/").some((segment) => segment === ".board.sock.starting" || /^\.s[A-Za-z0-9]{6}$/u.test(segment)),
 				),
-				Stream.tap((relative) => (isMarkdown(relative) || attachmentType(relative) !== undefined ? observed : Effect.void)),
-				Stream.filterEffect(changedPath),
-				Stream.tap((relative) =>
-					Effect.sync(() => {
-						pending.add(relative);
+				Stream.filterEffect((relative) =>
+					Effect.gen(function* () {
+						if (isMarkdown(relative) || attachmentType(relative) !== undefined) {
+							yield* observed;
+						}
+						const changed = yield* changedPath(relative);
+						if (changed) {
+							pending.add(relative);
+						} else if (pending.size === 0) {
+							yield* settled;
+						}
+						return changed;
 					}),
 				),
 				Stream.interruptWhen(Deferred.await(topology)),
