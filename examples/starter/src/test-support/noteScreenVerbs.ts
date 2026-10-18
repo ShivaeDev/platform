@@ -53,7 +53,7 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 			}),
 		wordCountIs: (count: number | null) =>
 			observe(`the saved note shows ${count === null ? "Counting words…" : `${count} ${count === 1 ? "word" : "words"}`}`, () => {
-				const text = screenView(engine).container.querySelector("tbody tr[data-state]")?.textContent;
+				const text = screenView(engine).container.querySelector("tbody td a")?.closest("tr")?.textContent;
 				expect(text).toContain(count === null ? "Counting words…" : `${count} ${count === 1 ? "word" : "words"}`);
 				if (count === 1) {
 					expect(text).not.toContain("1 words");

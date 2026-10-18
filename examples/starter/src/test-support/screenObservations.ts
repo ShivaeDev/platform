@@ -40,7 +40,7 @@ export function screenObservations(engine: ScreenSurface, tell: (line: string) =
 			}),
 		noSavedNotes: () =>
 			observe("there are no saved notes", () => {
-				expect(container().querySelector("tbody tr[data-state]")).toBeNull();
+				expect(container().querySelector("tbody td a")).toBeNull();
 			}),
 		noteLinkIs: (title: string) =>
 			observe(`the saved note links to ${JSON.stringify(title)}`, () => {
