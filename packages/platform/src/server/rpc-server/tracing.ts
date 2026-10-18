@@ -2,6 +2,7 @@ import { Cause, Effect, Layer, Option, Predicate, Random } from "effect";
 import { Headers } from "effect/http";
 import { RequestId } from "#rpc/identity.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
+import { commandChanges } from "#server/commandChanges.ts";
 import { redact } from "./redact.ts";
 import { redactCause } from "./redactCause.ts";
 import type { SensitiveKey } from "./sensitive.ts";
@@ -45,7 +46,7 @@ export function requestTracingLayer(options: RequestTracingOptions = {}): Layer.
 		Effect.gen(function* () {
 			const requestId = yield* requestIdOf(headers, options.header ?? "x-request-id");
 			yield* Effect.annotateCurrentSpan({ "request.id": requestId, "rpc.method": rpc._tag });
-			return yield* effect.pipe(
+			return yield* commandChanges(effect, rpc, payload).pipe(
 				Effect.catchCauseIf(Cause.hasDies, (cause) => Effect.failCause(redactCause(cause, options.sensitive))),
 				Effect.tapCause((cause) => logFailure(cause, payload, options.sensitive)),
 				Effect.provideService(RequestId, requestId),

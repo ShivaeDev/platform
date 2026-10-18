@@ -1,4 +1,6 @@
-# Optional native live invalidation
+# Live invalidation
+
+Database-backed Platform hosts and React session boundaries provide live queries by default. Declare read keys, bind the contract with an NDJSON client, and return the binding from the session's `connect`, directly or as a property such as `api`. See [commit-bound changes](./changes.md). Explicit coordination remains useful for custom streams or application pause/status controls.
 
 `effect-contract/live.ts` composes an opt-in hint stream with the same native
 Reactivity instance that owns a consumer's AtomRpc queries. It owns neither a

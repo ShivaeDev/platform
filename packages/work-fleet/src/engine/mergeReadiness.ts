@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import type { EngineState } from "#engine/makeState.ts";
+import { reconcileSweepHold } from "#engine/reconcileSweepHold.ts";
 import type { FleetRecord } from "#model.ts";
 import { DEFAULT_AREA_MERGE_WAIT_MS, mergeWaitExpired } from "#scheduling/areas.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -10,11 +11,12 @@ export function invalidateMergeReadiness({ save }: EngineState, stored: Versione
 		: save(stored, { ...stored.value, mergeReadyAt: undefined, mergeReadyHead: undefined });
 }
 
-export const awaitHumanMerge = Effect.fn("Fleet.awaitHumanMerge")(function* (
-	{ save, decision, policy }: EngineState,
-	stored: Versioned<FleetRecord>,
-	head: string,
-) {
+export const awaitHumanMerge = Effect.fn("Fleet.awaitHumanMerge")(function* (state: EngineState, stored: Versioned<FleetRecord>, head: string) {
+	const held = yield* reconcileSweepHold(state, stored);
+	if (held !== undefined) {
+		return held;
+	}
+	const { save, decision, policy } = state;
 	const record = stored.value;
 	const ready =
 		record.mergeReadyAt !== undefined && record.mergeReadyHead === head
@@ -29,7 +31,7 @@ export const awaitHumanMerge = Effect.fn("Fleet.awaitHumanMerge")(function* (
 	return yield* decision(
 		ready,
 		"reviewed-pr-ready",
-		"Reviewed PR is ready to merge",
+		(record.sweep?.length ?? 0) > 0 ? "Reviewed sweep PR is ready to merge" : "Reviewed PR is ready to merge",
 		"Merge the reviewed, green PR, or choose retry with an overall response to request changes on the same branch and PR",
 	);
 });

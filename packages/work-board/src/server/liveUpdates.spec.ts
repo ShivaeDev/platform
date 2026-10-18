@@ -1,36 +1,21 @@
-import { join } from "node:path";
-import { Effect, Layer } from "effect";
-import { afterEach, describe, expect } from "vitest";
-import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
-import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
+import { Effect } from "effect";
+import { describe, expect } from "vitest";
+import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { faultyWatch } from "#test/faults.ts";
-import { changesUntil, type EventStream, rpcDocument, rpcPaths, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
+import { changesUntil, rpcDocument, rpcPaths, rpcWatcher } from "#test/nativeRpc.ts";
+import { nestedProject } from "#test/servingTraits.ts";
 
-let notes: Folder;
-let board: RunningBoard;
-
-const setupBoard = Effect.gen(function* () {
-	notes = folder({ "notes/log.md": "# Log\n", "plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n" });
-	board = yield* startBoard(notes.root, "plan.md");
-});
-
-const { effectApp } = makeEffectIt({ clock: "live", layer: Layer.empty, makeHarness: () => setupBoard });
-
-afterEach(() => {
-	notes.remove();
-});
-
-const ready = Effect.fn("Test.ready")(function* () {
-	const events = yield* subscribe(board);
-	expect(yield* events.next()).toEqual({ _tag: "Resync" });
-	expect((yield* rpcWatcher(board)).watching).toBe(true);
-	return events;
-});
+const liveProject = [
+	projectFiles({ "notes/log.md": "# Log\n", "plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n" }),
+	boardHome("plan.md"),
+];
 
 describe("live updates", () => {
-	effectApp("pushes a change event naming the markdown file that was written", function* () {
-		const events = yield* ready();
-		notes.write("notes/log.md", "# Log\n\nA new line.\n");
+	boardStory.it("pushes a change event naming the markdown file that was written", liveProject, function* ({ board, watchProject, editFile }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		expect((yield* rpcWatcher(board)).watching).toBe(true);
+		editFile("notes/log.md", "# Log\n\nA new line.\n");
 		expect(yield* changesUntil(events, "notes/log.md")).toMatchObject({
 			_tag: "Changed",
 			keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/log.md" }]),
@@ -38,20 +23,24 @@ describe("live updates", () => {
 		yield* events.close();
 	});
 
-	effectApp("never names a file that is not markdown", function* () {
-		const events = yield* ready();
-		notes.write("notes/raw.txt", "plain\n");
-		notes.write("plan.md", "# Plan\n");
+	boardStory.it("never names a file that is not markdown", liveProject, function* ({ board, watchProject, editFile }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		expect((yield* rpcWatcher(board)).watching).toBe(true);
+		editFile("notes/raw.txt", "plain\n");
+		editFile("plan.md", "# Plan\n");
 		const hint = yield* changesUntil(events, "plan.md");
 		expect(hint).toMatchObject({ _tag: "Changed" });
 		expect(JSON.stringify(hint)).not.toContain("notes/raw.txt");
 		yield* events.close();
 	});
 
-	effectApp("settles changes that land together into one event", function* () {
-		const events = yield* ready();
-		notes.write("notes/log.md", "# Log\n\nOne.\n");
-		notes.write("plan.md", "# Plan\n\nTwo.\n");
+	boardStory.it("settles changes that land together into one event", liveProject, function* ({ board, watchProject, editFile }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		expect((yield* rpcWatcher(board)).watching).toBe(true);
+		editFile("notes/log.md", "# Log\n\nOne.\n");
+		editFile("plan.md", "# Plan\n\nTwo.\n");
 		const seen = yield* changesUntil(events, "plan.md");
 		expect(seen).toMatchObject({
 			_tag: "Changed",
@@ -63,9 +52,11 @@ describe("live updates", () => {
 		yield* events.close();
 	});
 
-	effectApp("serves and announces a file in a new folder without a restart", function* () {
-		const events = yield* ready();
-		notes.write("later/idea.md", "# Idea\n");
+	boardStory.it("serves and announces a file in a new folder without a restart", liveProject, function* ({ board, watchProject, editFile }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		expect((yield* rpcWatcher(board)).watching).toBe(true);
+		editFile("later/idea.md", "# Idea\n");
 		yield* changesUntil(events, "later/idea.md");
 		const page = yield* Effect.map(rpcDocument(board, "/later/idea.md"), (data) => data.source);
 		expect(page).toContain("# Idea");
@@ -73,50 +64,49 @@ describe("live updates", () => {
 		yield* events.close();
 	});
 
-	effectApp("shows an edit on the next request without a rebuild", function* () {
-		notes.write("plan.md", "# Plan\n\n## To do\n\n### One\n\n### Two\n");
+	boardStory.it("shows an edit on the next request without a rebuild", liveProject, function* ({ board, editFile }) {
+		editFile("plan.md", "# Plan\n\n## To do\n\n### One\n\n### Two\n");
 		expect((yield* rpcDocument(board, "/plan.md")).source).toContain("### Two");
 	});
 });
 
-const nextWatching = Effect.fn("Test.nextWatching")(function* (events: EventStream, watching: boolean) {
-	for (;;) {
-		yield* events.next();
-		if ((yield* rpcWatcher(board)).watching === watching) {
-			return;
-		}
-	}
-});
-
 describe("watcher recovery", () => {
-	effectApp("says the folder is not watched after the watcher fails, restarts it with backoff and reports changes again", function* () {
-		yield* board.stop();
-		const faults = faultyWatch();
-		board = yield* startBoard(notes.root, "plan.md", faults.wrap);
-		const events = yield* ready();
-		yield* faults.fail();
-		yield* nextWatching(events, false);
-		const late = yield* subscribe(board);
-		expect(yield* late.next()).toEqual({ _tag: "Resync" });
-		expect((yield* rpcWatcher(board)).watching).toBe(false);
-		yield* late.close();
-		faults.heal();
-		yield* nextWatching(events, true);
-		notes.write("notes/log.md", "# Log\n\nAfter the restart.\n");
-		expect(yield* changesUntil(events, "notes/log.md")).toMatchObject({
-			_tag: "Changed",
-			keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/log.md" }]),
-		});
-		yield* events.close();
-	});
+	boardStory.it(
+		"says the folder is not watched after the watcher fails, restarts it with backoff and reports changes again",
+		liveProject,
+		function* ({ board, start, watchProject, editFile }) {
+			yield* board.stop();
+			const faults = faultyWatch();
+			board = yield* start({ home: "plan.md", wrap: faults.wrap });
+			const events = yield* watchProject();
+			expect(yield* events.next()).toEqual({ _tag: "Resync" });
+			expect((yield* rpcWatcher(board)).watching).toBe(true);
+			yield* faults.fail();
+			expect(yield* events.watching(false)).toBe(false);
+			const late = yield* watchProject();
+			expect(yield* late.next()).toEqual({ _tag: "Resync" });
+			expect((yield* rpcWatcher(board)).watching).toBe(false);
+			yield* late.close();
+			faults.heal();
+			expect(yield* events.watching(true)).toBe(true);
+			editFile("notes/log.md", "# Log\n\nAfter the restart.\n");
+			expect(yield* changesUntil(events, "notes/log.md")).toMatchObject({
+				_tag: "Changed",
+				keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/log.md" }]),
+			});
+			yield* events.close();
+		},
+	);
 
-	effectApp("waits longer between each restart while the watcher keeps failing", function* () {
+	boardStory.it("waits longer between each restart while the watcher keeps failing", liveProject, function* ({ board, start, watchProject }) {
 		yield* board.stop();
 		const faults = faultyWatch();
-		board = yield* startBoard(notes.root, "plan.md", faults.wrap);
-		const events = yield* ready();
+		board = yield* start({ home: "plan.md", wrap: faults.wrap });
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		expect((yield* rpcWatcher(board)).watching).toBe(true);
 		yield* faults.fail();
-		yield* nextWatching(events, false);
+		expect(yield* events.watching(false)).toBe(false);
 		yield* Effect.promise(() => new Promise((resolve) => setTimeout(resolve, 1500)));
 		yield* events.close();
 		const retries = faults.attempts.slice(1);
@@ -127,42 +117,30 @@ describe("watcher recovery", () => {
 	});
 });
 
-let dotted: Folder;
-let dotBoard: RunningBoard;
-
-const setupDottedBoard = Effect.gen(function* () {
-	yield* setupBoard;
-	dotted = folder({
-		".notes/.hidden/x.md": "# Hidden\n",
-		".notes/node_modules/x.md": "# Dependency\n",
-		".notes/notes/log.md": "# Log\n",
-		".notes/plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n",
-	});
-	dotBoard = yield* startBoard(join(dotted.root, ".notes"), "plan.md");
-});
-
-const { effectApp: effectDottedBoard } = makeEffectIt({ clock: "live", layer: Layer.empty, makeHarness: () => setupDottedBoard });
-
 describe("a folder whose own name starts with a dot", () => {
-	afterEach(() => {
-		dotted.remove();
-	});
-
-	effectDottedBoard("lists, serves and watches it, and still skips dot folders and node_modules inside it", function* () {
-		const home = yield* Effect.promise(async () => (await fetch(dotBoard.url)).text());
-		expect(home).toContain("data-board-react-root");
-		expect(yield* rpcPaths(dotBoard)).toContain("/notes/log.md");
-		expect(yield* rpcPaths(dotBoard)).toEqual(["/notes/log.md", "/plan.md"]);
-		expect((yield* rpcDocument(dotBoard, "/notes/log.md")).source).toContain("# Log");
-		expect((yield* Effect.promise(() => fetch(`${dotBoard.url}/.hidden/x.md`))).status).toBe(404);
-		expect((yield* Effect.promise(() => fetch(`${dotBoard.url}/node_modules/x.md`))).status).toBe(404);
-		const events = yield* subscribe(dotBoard);
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
-		expect((yield* rpcWatcher(dotBoard)).watching).toBe(true);
-		dotted.write(".notes/.hidden/x.md", "# Hidden, edited\n");
-		dotted.write(".notes/notes/log.md", "# Log\n\nEdited.\n");
-		const seen = yield* changesUntil(events, "notes/log.md");
-		expect(JSON.stringify(seen)).not.toContain(".hidden/x.md");
-		yield* events.close();
-	});
+	boardStory.it(
+		"lists, serves and watches it, and still skips dot folders and node_modules inside it",
+		[
+			nestedProject(".notes"),
+			projectFiles({ ".hidden/x.md": "# Hidden", "node_modules/x.md": "# Dependency", "notes/log.md": "# Log", "plan.md": "# Plan" }),
+			boardHome("plan.md"),
+		],
+		function* ({ board, editFile, watchProject }) {
+			const home = yield* Effect.promise(async () => (await fetch(board.url)).text());
+			expect(home).toContain("data-board-react-root");
+			expect(yield* rpcPaths(board)).toContain("/notes/log.md");
+			expect(yield* rpcPaths(board)).toEqual(["/notes/log.md", "/plan.md"]);
+			expect((yield* rpcDocument(board, "/notes/log.md")).source).toContain("# Log");
+			expect((yield* Effect.promise(() => fetch(`${board.url}/.hidden/x.md`))).status).toBe(404);
+			expect((yield* Effect.promise(() => fetch(`${board.url}/node_modules/x.md`))).status).toBe(404);
+			const events = yield* watchProject();
+			expect(yield* events.next()).toEqual({ _tag: "Resync" });
+			expect((yield* rpcWatcher(board)).watching).toBe(true);
+			editFile(".hidden/x.md", "# Hidden, edited\n");
+			editFile("notes/log.md", "# Log\n\nEdited.\n");
+			const seen = yield* changesUntil(events, "notes/log.md");
+			expect(JSON.stringify(seen)).not.toContain(".hidden/x.md");
+			yield* events.close();
+		},
+	);
 });

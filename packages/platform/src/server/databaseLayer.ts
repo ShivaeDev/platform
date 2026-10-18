@@ -1,5 +1,6 @@
+import { createHash } from "node:crypto";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Layer, type Redacted, Schedule } from "effect";
+import { Config, Effect, Layer, Redacted, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { assertPostgresMigrations } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
@@ -11,7 +12,7 @@ import { databaseAddress } from "./databaseAddress.ts";
 
 export interface DatabaseConfig extends SqlNameTransforms {
 	readonly applicationName?: string;
-	readonly changes?: Omit<PostgresChangesOptions, "client" | "resync">;
+	readonly changes?: Partial<Omit<PostgresChangesOptions, "client" | "resync">>;
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly maxConnections?: number;
 }
@@ -34,14 +35,14 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 	const live = Layer.effect(changesService, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer));
 	const base = Layer.merge(prepared, live);
 	const changes = options.config?.changes;
-	if (changes === undefined) {
-		return base;
-	}
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const client = yield* PgClient.PgClient;
 			const hints = yield* changesService;
-			return postgresChanges({ ...changes, client, resync: hints.resync });
+			const url = options.config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
+			const name = yield* Config.String("APP_NAME").pipe(Config.withDefault(new URL(Redacted.value(url)).pathname));
+			const channel = changes?.channel ?? `changes_${createHash("sha256").update(name).digest("hex").slice(0, 32)}`;
+			return postgresChanges({ ...changes, channel, client, resync: hints.resync });
 		}),
 	).pipe(Layer.provideMerge(base));
 }

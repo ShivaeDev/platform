@@ -9,6 +9,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { releaseMissingBoardWork } from "#engine/missingBoardWork.ts";
 import { persistTerminalReceipts } from "#engine/persistTerminalReceipts.ts";
 import { clearIntegrationRetry, readRetry, retryPending } from "#engine/readRetry.ts";
+import { holdRejectedReadiness } from "#engine/reconcileSweepHold.ts";
 import { refreshBrief } from "#engine/refreshBrief.ts";
 import type { FleetRecord } from "#model.ts";
 import { SessionFailure } from "#session/schema.ts";
@@ -38,6 +39,10 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 	const { load, save, decision } = state;
 	const handleFailure = Effect.fn("Fleet.handleFailure")(function* (workId: string, error: unknown) {
 		let current = yield* load(workId);
+		const held = yield* holdRejectedReadiness(state, current, error);
+		if (held !== undefined) {
+			return held;
+		}
 		const continuing = current.value.pendingContinuation !== undefined;
 		if (!continuing && (error instanceof StorageConflict || ["completed", "released", "needs-human"].includes(current.value.stage))) {
 			return current;

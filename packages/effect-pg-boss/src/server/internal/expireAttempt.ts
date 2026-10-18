@@ -1,12 +1,14 @@
 import type { Job, PgBoss } from "pg-boss";
 
-export async function expireAttempt(client: PgBoss, schema: string, job: Job<unknown>): Promise<void> {
+export async function expireAttempt(client: PgBoss, schema: string, job: Job<unknown>, cause: "expiry" | "heartbeat" = "expiry"): Promise<void> {
 	if ((await client.schemaVersion()) !== 45) {
 		throw new Error("Testing expiry requires pg-boss schema version 45");
 	}
 	const quoted = `"${schema.replaceAll('"', '""')}"`;
+	const timestamp = cause === "expiry" ? "started_on" : "heartbeat_on";
+	const seconds = cause === "expiry" ? "expire_seconds" : "heartbeat_seconds";
 	await client.getDb().executeSql(
-		`UPDATE ${quoted}.job SET started_on = ${quoted}.job_now() - (expire_seconds + 1) * interval '1 second'
+		`UPDATE ${quoted}.job SET ${timestamp} = ${quoted}.job_now() - (${seconds} + 1) * interval '1 second'
 		WHERE name = $1 AND id = $2 AND retry_count = $3 AND state = 'active'`,
 		[job.name, job.id, job.retryCount],
 	);

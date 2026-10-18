@@ -107,11 +107,11 @@ export const appHost: AppHostFactory = <
 	>,
 ) => {
 	if ("application" in options) {
-		return deferredHost(options.application, appDatabase(options)).pipe(Layer.provideMerge(options.preflight ?? Layer.empty));
+		return deferredHost(options.application, appDatabase(options), AppChanges).pipe(Layer.provideMerge(options.preflight ?? Layer.empty));
 	}
 	return options.migrations === undefined
-		? appHostHttp(options).pipe(Layer.provideMerge(options.preflight ?? Layer.empty))
-		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations })).pipe(
+		? appHostHttp(options, AppChanges).pipe(Layer.provideMerge(options.preflight ?? Layer.empty))
+		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations }), AppChanges).pipe(
 				Layer.provideMerge(options.preflight ?? Layer.empty),
 			);
 };

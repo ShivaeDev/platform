@@ -57,6 +57,7 @@
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",
+		"pg-boss": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},

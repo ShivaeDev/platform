@@ -14,6 +14,7 @@ import { engineProviderVerbs } from "#test/engineProviderVerbs.ts";
 import { engineRpcVerbs } from "#test/engineRpcVerbs.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { engineStatusVerbs } from "#test/engineStatusVerbs.ts";
+import { engineSweepVerbs } from "#test/engineSweepVerbs.ts";
 import { engineWorldVerbs } from "#test/engineWorldVerbs.ts";
 
 export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect.Effect<void, unknown>>) {
@@ -112,6 +113,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		...engineLostTurnVerbs(state, story.tell),
 		...engineStatusVerbs(state, story.tell),
 		...engineLaunchVerbs(state, story.tell),
+		...engineSweepVerbs(state, story.tell),
 		fleet: {
 			continue: verbs.continueWork,
 			dispatch: verbs.dispatch,

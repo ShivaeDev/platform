@@ -5,7 +5,7 @@ import { migrations } from "#server/migrations.ts";
 
 export function databaseOptions(database: Pool, databaseUrl: Redacted.Redacted<string>, mode: "check" | "wait" = "check") {
 	return {
-		config: clientOptions({ changes: { channel: "notes_changes" }, databaseUrl }),
+		config: clientOptions({ databaseUrl }),
 		migrations: { ...migrations(database), mode },
 	};
 }

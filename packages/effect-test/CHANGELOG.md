@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.1 - 2026-10-18
+
+### Fixed
+
+- Wait for an interrupted test's Scope to close after its Vitest timeout, so application workers and database pools finish teardown before the next test starts. Keep the timeout as the test failure without leaking the interrupted program's rejection as an uncaught error.
+
+## 0.7.0 - 2026-10-18
+
+### Added
+
+- Pass a UTC `DateTime` to the existing `clock` option to pin a story or Effect fixture before its per-test setup runs. The exported `EffectClock` type now accepts `DateTime.Utc` alongside `"test"` and `"live"`. Hosts, workers and screens acquired with the story's Effect Context share native `Clock` / `TestClock`, including explicit `TestClock.adjust` advances; application code using `Clock` or `DateTime.now` needs no changes.
+
 ## 0.6.0 - 2026-10-18
 
 ### Breaking

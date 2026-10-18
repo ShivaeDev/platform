@@ -6,34 +6,31 @@ import { inputs } from "#test/postgresBatch.ts";
 import { hasCompositeMeasurements, hasGeneratedRows } from "#test/repositoryTraits.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { hasBatchReadings } from "#test/sqlTraits.ts";
+import { transaction } from "#test/transaction.ts";
 
-postgres.it(
-	"batch conflict writes validate every row and retain native duplicate-key failures",
-	[hasBatchReadings()],
-	function* ({ batchFixture, sql }) {
-		const { readings, statements } = batchFixture();
-		const batch = inputs(2);
-		for (const columns of [[], ["source"], ["id"], ["missing"], ["note"]]) {
-			const settings: { updateColumns: ["amount"] } = JSON.parse(JSON.stringify({ updateColumns: columns }));
-			expect(yield* readings.upsertMany(batch, settings).pipe(Effect.flip)).toBeInstanceOf(Schema.SchemaError);
-		}
-		const invalid: typeof batch = JSON.parse('[{"source":"missing-fields"}]');
-		expect(yield* readings.insertMany(invalid).pipe(Effect.flip)).toBeInstanceOf(Schema.SchemaError);
-		expect(yield* statements).toEqual([]);
-		const first = batch[0];
-		if (first === undefined) {
-			throw new Error("Expected batch input");
-		}
-		const duplicate = yield* sql.withTransaction(readings.upsertMany([first, first], { updateColumns: ["amount"] })).pipe(Effect.flip);
-		expect(duplicate).toBeInstanceOf(SqlError);
-	},
-);
+postgres.it("batch conflict writes validate every row and retain native duplicate-key failures", [hasBatchReadings()], function* ({ batchFixture }) {
+	const { readings, statements } = batchFixture();
+	const batch = inputs(2);
+	for (const columns of [[], ["source"], ["id"], ["missing"], ["note"]]) {
+		const settings: { updateColumns: ["amount"] } = JSON.parse(JSON.stringify({ updateColumns: columns }));
+		expect(yield* readings.upsertMany(batch, settings).pipe(Effect.flip)).toBeInstanceOf(Schema.SchemaError);
+	}
+	const invalid: typeof batch = JSON.parse('[{"source":"missing-fields"}]');
+	expect(yield* readings.insertMany(invalid).pipe(Effect.flip)).toBeInstanceOf(Schema.SchemaError);
+	expect(yield* statements).toEqual([]);
+	const first = batch[0];
+	if (first === undefined) {
+		throw new Error("Expected batch input");
+	}
+	const duplicate = yield* transaction(readings.upsertMany([first, first], { updateColumns: ["amount"] })).pipe(Effect.flip);
+	expect(duplicate).toBeInstanceOf(SqlError);
+});
 
 postgres.it(
 	"PostgreSQL batch composite keys preserve model codec services",
 	[hasCompositeMeasurements()],
 	function* ({ sql, compositeMeasurements }) {
-		yield* sql.withTransaction(
+		yield* transaction(
 			Effect.gen(function* () {
 				const { readings, tableName } = compositeMeasurements();
 				const input = { amount: 10, sequence: 1, source: "meter" };

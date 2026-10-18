@@ -6,6 +6,7 @@ import { failureOwner } from "#engine/failureOwner.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas } from "#engine/mergeReadiness.ts";
 import { observeDeliveryFailure } from "#engine/observeDeliveryFailure.ts";
+import { recordClosedSweep } from "#engine/recordClosedSweep.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { settleMergedDelivery } from "#engine/settleMergedDelivery.ts";
 import type { FleetError } from "#errors.ts";
@@ -69,13 +70,15 @@ function deliveryPending(record: FleetRecord): boolean {
 
 const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	state: EngineState,
-	stored: Versioned<FleetRecord>,
+	input: Versioned<FleetRecord>,
 	result: typeof ChangeResult.Type,
 ) {
+	let stored = input;
 	const record = stored.value;
 	const observed = yield* state.integrations.delivery(result).pipe(Effect.result);
 	if (Result.isFailure(observed) && failureCode(observed.failure) === "pr-closed") {
 		yield* state.store.releaseForeign(result.pr);
+		stored = yield* recordClosedSweep(state, stored);
 	}
 	if (Result.isSuccess(observed) && observed.success !== undefined && !executing(record)) {
 		return yield* settleMergedDelivery(state, stored, result, observed.success, deliveryPending(record));

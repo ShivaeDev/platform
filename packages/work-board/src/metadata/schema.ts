@@ -7,6 +7,13 @@ import { Identity as SourceIdentity } from "#path/Identity.ts";
 export const Identity = SourceIdentity;
 export const Reference = Schema.String.check(Schema.isPattern(/^[a-zA-Z\d][a-zA-Z\d._-]*(?:#[a-zA-Z\d][a-zA-Z\d._-]*)?$/u));
 const Text = Schema.String.check(Schema.isPattern(/\S/u));
+const SweepPath = Text.check(
+	Schema.makeFilter(
+		(value) =>
+			(value === value.trim() && !/^[\\/]|^[a-z]:|\\/iu.test(value) && !value.split("/").some((part) => part === ".." || part === "." || part === ""))
+			|| "Expected a repository-relative path glob",
+	),
+);
 const Attention = Schema.Struct({
 	id: Identity,
 	kind: Schema.Literals(["decision", "review", "blocker"]),
@@ -59,5 +66,6 @@ export const Metadata = Schema.Struct({
 	requestReceipt: Schema.optional(RequestReceipt),
 	response: Schema.optional(ResponseRecord),
 	status: Schema.optional(Text),
+	sweep: Schema.optional(Schema.Array(SweepPath).check(Schema.isMinLength(1))),
 }).pipe(Schema.encodeKeys({ nextAction: "next_action", requestReceipt: "request_receipt" }));
 export type Metadata = typeof Metadata.Type;
