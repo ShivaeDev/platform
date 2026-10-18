@@ -14,7 +14,7 @@ rerunStory.it(
 	"a fresh rerun repeats only the failed tests and merges reports, durations and coverage",
 	[withCoverage(), failsTimes(1), passes()],
 	function* ({ files, reports, runner }) {
-		expect((yield* runner.run()).status).toBe(0);
+		expect((yield* runner.spawn()).status).toBe(0);
 		expect(files.read("attempts.txt")).toBe("attempt\nattempt\n");
 		expect(files.read("beside.txt")).toBe("passed\n");
 		expect(files.read("passed.txt")).toBe("passed\n");

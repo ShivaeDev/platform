@@ -88,3 +88,46 @@ it('leaves an unhandled error', async () => {
 `;
 
 export const COVERED_MODULE = "export function covered() {\n\treturn 2;\n}\nexport function alsoCovered() {\n\treturn 1;\n}\n";
+
+function perAttempt(body: string): string {
+	return `import { appendFileSync, readFileSync } from 'node:fs';
+import { it } from ${vitest};
+
+appendFileSync('collections.txt', 'attempt\\n');
+const attempt = readFileSync('collections.txt', 'utf8').split('\\n').length - 1;
+${body}`;
+}
+
+export const passingThenFailing = perAttempt(`
+it('settles in the first attempt', () => {
+	if (attempt > 1) {
+		throw new Error('Later attempts fail');
+	}
+});
+`);
+
+export const failingThenSkipped = perAttempt(`
+(attempt === 1 ? it : it.skip)('is skipped by the rerun', () => {
+	throw new Error('The first attempt fails');
+});
+`);
+
+export const gainingTest = perAttempt(`
+it('fails first', () => {
+	if (attempt === 1) {
+		throw new Error('The first attempt fails');
+	}
+});
+if (attempt > 1) {
+	it('appears in the rerun', () => {});
+}
+`);
+
+export const losingTest = perAttempt(`
+if (attempt === 1) {
+	it('disappears in the rerun', () => {
+		throw new Error('The first attempt fails');
+	});
+}
+it('stays', () => {});
+`);

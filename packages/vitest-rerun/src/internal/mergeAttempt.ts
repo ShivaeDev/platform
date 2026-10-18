@@ -1,5 +1,4 @@
 import { relative } from "node:path";
-import type { Vitest } from "vitest/node";
 import { type FlakyTest, failureMessage, testcases } from "#flakyTests.ts";
 import { junitClassname } from "#internal/junit.ts";
 import { type FailureHistory, type Files, type Snapshot, type Task, tests } from "#internal/snapshot.ts";
@@ -86,15 +85,21 @@ function mergeFile(file: File, next: File, outcome: Outcome) {
 	finishFile(file, next, ranTests);
 }
 
-export function mergeAttempt(vitest: Vitest, previous: Snapshot, summary: (line: string) => void): Snapshot {
-	const outcome: Outcome = { failures: { ...previous.failures }, flaky: [...previous.flaky], root: vitest.config.root, summary };
-	const rerun = vitest.state.getFiles();
-	for (const file of previous.files) {
+export interface Merged {
+	readonly failures: Readonly<Record<string, FailureHistory>>;
+	readonly files: Files;
+	readonly flaky: readonly FlakyTest[];
+}
+
+export function mergeAttempt(previous: Snapshot, rerun: Files, root: string, summary: (line: string) => void): Merged {
+	const outcome: Outcome = { failures: { ...previous.failures }, flaky: [...previous.flaky], root, summary };
+	const files = previous.files.map((file) => {
 		const next = rerun.find((item) => item.id === file.id);
-		if (next !== undefined) {
-			mergeFile(file, next, outcome);
+		if (next === undefined) {
+			return file;
 		}
-		vitest.state.collectFiles(vitest.getProjectByName(file.projectName ?? ""), [next ?? file]);
-	}
-	return { errors: vitest.state.getUnhandledErrors(), failures: outcome.failures, files: vitest.state.getFiles(), flaky: outcome.flaky };
+		mergeFile(file, next, outcome);
+		return next;
+	});
+	return { failures: outcome.failures, files, flaky: outcome.flaky };
 }

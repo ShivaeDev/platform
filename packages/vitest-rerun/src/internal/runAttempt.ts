@@ -84,7 +84,10 @@ const rerunFailed = Effect.fn("VitestRerun.rerunFailed")(function* (vitest: Vite
 	}
 	yield* promise("Vitest could not rerun the failed tests", () => vitest.runTestSpecifications(specifications));
 	const lines: string[] = [];
-	const merged = mergeAttempt(vitest, previous, (line) => lines.push(line));
+	const merged = mergeAttempt(previous, vitest.state.getFiles(), vitest.config.root, (line) => lines.push(line));
+	for (const file of merged.files) {
+		vitest.state.collectFiles(vitest.getProjectByName(file.projectName ?? ""), [file]);
+	}
 	yield* Effect.forEach(lines, summaryLine);
 	for (const reporter of [new TimedJsonReporter({ outputFile: final.json }), new RerunJunitReporter(final.junit)]) {
 		yield* promise("Vitest could not write the merged reports", async () => {
@@ -98,7 +101,13 @@ const rerunFailed = Effect.fn("VitestRerun.rerunFailed")(function* (vitest: Vite
 	if (vitest.config.coverage.enabled) {
 		yield* mergeCoverage(vitest, outputDir, attempt);
 	}
-	return merged;
+	const snapshot: Snapshot = {
+		errors: vitest.state.getUnhandledErrors(),
+		failures: merged.failures,
+		files: vitest.state.getFiles(),
+		flaky: merged.flaky,
+	};
+	return snapshot;
 });
 
 export const runAttempt = Effect.fn("VitestRerun.runAttempt")(function* (input: Attempt) {

@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { alwaysFails, failsTimes, inProjects, passes, rerunStory } from "#test/kit.ts";
 
 rerunStory.it("a test that fails once and then passes is listed with its JUnit identity", [failsTimes(1)], function* ({ files, reports, runner }) {
-	expect((yield* runner.run()).status).toBe(0);
+	expect((yield* runner.spawn()).status).toBe(0);
 	expect(yield* reports.flakyTests()).toStrictEqual([
 		{
 			attempts: 2,

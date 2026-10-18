@@ -1,9 +1,14 @@
 import { spawn } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Effect, FileSystem } from "effect";
+import { Console, Effect, FileSystem } from "effect";
+import { vi } from "vitest";
+import { main } from "#internal/main.ts";
+import { type Merged, mergeAttempt } from "#internal/mergeAttempt.ts";
+import { attemptPaths } from "#internal/reportPaths.ts";
+import { readSnapshot, type Snapshot, tests } from "#internal/snapshot.ts";
 import { type SuiteConfig, vitestConfig } from "./specFiles.ts";
 
 const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
@@ -38,11 +43,35 @@ export function listFiles(suite: Suite): readonly string[] {
 		.sort();
 }
 
-export function runCli(suite: Suite, args: readonly string[]): Promise<Run> {
-	writeFile(suite, "vitest.config.ts", vitestConfig(suite.directory, suite.config));
+function summaryPath(suite: Suite): string {
+	return join(suite.directory, "summary.md");
+}
+
+// Runs the executable's program in this process so coverage sees it; each attempt still runs in its own process.
+export const runProgram = Effect.fn("VitestRerunSuite.runProgram")(function* (suite: Suite, args: readonly string[]) {
+	writeFile(suite, "vitest.config.mts", vitestConfig(suite.directory, suite.config));
+	const console = yield* Console.Console;
+	let output = "";
+	const captured: Console.Console = {
+		...console,
+		error: (...parts) => {
+			output += `${parts.join(" ")}\n`;
+		},
+	};
+	vi.stubEnv("GITHUB_STEP_SUMMARY", summaryPath(suite));
+	const status = yield* main(["--output-dir", REPORTS, ...args], suite.directory).pipe(
+		Effect.provideService(Console.Console, captured),
+		Effect.ensuring(Effect.sync(() => vi.unstubAllEnvs())),
+	);
+	const run: Run = { output, status };
+	return run;
+});
+
+export function spawnCli(suite: Suite, args: readonly string[]): Promise<Run> {
+	writeFile(suite, "vitest.config.mts", vitestConfig(suite.directory, suite.config));
 	const child = spawn(process.execPath, ["--conditions=source", CLI, "--output-dir", REPORTS, ...args], {
 		cwd: suite.directory,
-		env: { "GITHUB_STEP_SUMMARY": join(suite.directory, "summary.md") },
+		env: { "GITHUB_STEP_SUMMARY": summaryPath(suite) },
 		stdio: ["ignore", "pipe", "pipe"],
 	});
 	let output = "";
@@ -56,4 +85,32 @@ export function runCli(suite: Suite, args: readonly string[]): Promise<Run> {
 		child.on("error", reject);
 		child.on("close", (status) => resolve({ output, status }));
 	});
+}
+
+export const recordAttempt = Effect.fn("VitestRerunSuite.recordAttempt")(function* (suite: Suite) {
+	yield* runProgram(suite, ["--reruns", "0"]);
+	return yield* readSnapshot(attemptPaths(join(suite.directory, REPORTS), 1).snapshot);
+});
+
+export interface MergedAttempt extends Merged, Snapshot {
+	readonly summary: readonly string[];
+}
+
+export function mergeAttempts(suite: Suite, previous: Snapshot, rerun: Snapshot): MergedAttempt {
+	const summary: string[] = [];
+	const merged = mergeAttempt(previous, rerun.files, realpathSync(suite.directory), (line) => summary.push(line));
+	return { ...merged, errors: rerun.errors, summary };
+}
+
+export function states(snapshot: Snapshot): Readonly<Record<string, string | undefined>> {
+	return Object.fromEntries(
+		snapshot.files.flatMap((file) => [
+			[file.name, file.result?.state],
+			...tests(file.tasks).map((test) => [`${file.name} > ${test.name}`, test.result?.state]),
+		]),
+	);
+}
+
+export function duration(snapshot: Snapshot, name: string): number | undefined {
+	return snapshot.files.flatMap((file) => tests(file.tasks)).find((test) => test.name === name)?.result?.duration;
 }

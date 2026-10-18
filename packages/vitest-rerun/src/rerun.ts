@@ -22,7 +22,7 @@ const spawnAttempt = Effect.fn("VitestRerun.spawnAttempt")(function* (options: R
 	const command = ChildProcess.make(
 		process.execPath,
 		[...process.execArgv, ATTEMPT_MODULE, String(attempt), options.outputDir, ...options.vitestArgs],
-		{ extendEnv: true, stderr: "inherit", stdin: "inherit", stdout: "inherit" },
+		{ cwd: options.cwd, extendEnv: true, stderr: "inherit", stdin: "inherit", stdout: "inherit" },
 	);
 	return yield* spawner.exitCode(command).pipe(
 		Effect.map((code) => Option.some(Number(code))),

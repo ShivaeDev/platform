@@ -1,7 +1,9 @@
+import { resolve } from "node:path";
 import { Effect } from "effect";
 import { VitestRerunError } from "#error.ts";
 
 export interface RerunOptions {
+	readonly cwd: string;
 	readonly outputDir: string;
 	readonly reruns: number;
 	readonly vitestArgs: readonly string[];
@@ -17,7 +19,7 @@ function option(arg: string, name: string, next: string | undefined): { value: s
 	return arg.startsWith(`${name}=`) ? { consumed: 1, value: arg.slice(name.length + 1) } : undefined;
 }
 
-export function parseOptions(args: readonly string[]): Effect.Effect<RerunOptions, VitestRerunError> {
+export function parseOptions(args: readonly string[], cwd: string): Effect.Effect<RerunOptions, VitestRerunError> {
 	let outputDir = DEFAULT_OUTPUT_DIR;
 	let reruns = String(DEFAULT_RERUNS);
 	const vitestArgs: string[] = [];
@@ -41,5 +43,5 @@ export function parseOptions(args: readonly string[]): Effect.Effect<RerunOption
 	if (!/^\d+$/u.test(reruns)) {
 		return Effect.fail(new VitestRerunError({ message: `--reruns expects a whole number, got ${JSON.stringify(reruns)}` }));
 	}
-	return Effect.succeed({ outputDir, reruns: Number(reruns), vitestArgs });
+	return Effect.succeed({ cwd, outputDir: resolve(cwd, outputDir), reruns: Number(reruns), vitestArgs });
 }
