@@ -12,16 +12,17 @@ export function recoverTurn(
 	startTurn: (input: ContinueSession) => Effect.Effect<SessionReceipt, SessionFailure>,
 	graceMs?: number,
 ) {
-	function missingTurn() {
+	function missingTurn(threadIdle: boolean) {
 		return new SessionFailure({
 			code: "session-turn-missing",
 			message: "No matching accepted turn is observable; absence does not authorize replay",
 			reason: "ambiguous",
+			threadIdle,
 		});
 	}
 	const operations = new Map<string, Recovery>();
-	function resumeMissingTurn(input: ContinueSession, replayable: boolean) {
-		return replayable ? startTurn(input) : Effect.fail(missingTurn());
+	function resumeMissingTurn(input: ContinueSession, replayable: boolean, idle: boolean) {
+		return replayable ? startTurn(input) : Effect.fail(missingTurn(idle));
 	}
 	const recover = Effect.fn("Codex.recover")(function* (input: ReconcileSession & { readonly sessionId: string }) {
 		const deadline = (yield* Clock.currentTimeMillis) + (graceMs ?? 0);
@@ -35,13 +36,14 @@ export function recoverTurn(
 				return { sessionId: input.sessionId, turnId };
 			}
 			if (graceMs === undefined || input.resume === undefined) {
-				return yield* Effect.fail(missingTurn());
+				return yield* Effect.fail(missingTurn(idle));
 			}
 			const remaining = deadline - (yield* Clock.currentTimeMillis);
 			if (remaining <= 0) {
 				return yield* resumeMissingTurn(
 					{ ...input.resume, operationId: input.operationId, sessionId: input.sessionId },
 					replayableThread(input.resume.afterTimeout, emptyThread, idleThread),
+					idle,
 				);
 			}
 			yield* Effect.sleep(Math.min(250, remaining));

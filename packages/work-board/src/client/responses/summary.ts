@@ -1,4 +1,4 @@
-import { optionText, promptHeading } from "#browser/responses/cardContext.ts";
+import { promptHeading } from "#browser/responses/cardContext.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { PromptAnswer } from "#browser/responses/schema.ts";
 import type { ResponseInput } from "./formSchema.ts";
@@ -25,13 +25,4 @@ export function responseSummary(values: ResponseInput, prompts: readonly Prompt[
 
 export function responseFeedback(status: string, outcome: string | undefined, summary: string) {
 	return outcome || status.startsWith("Draft cleared") ? status : summary || status;
-}
-
-export function chosenLabels(prompts: readonly Prompt[], answers: readonly PromptAnswer[] | undefined) {
-	return prompts
-		.flatMap((prompt) => {
-			const selected = answers?.find((answer) => answer.prompt === prompt.id)?.selected ?? [];
-			return prompt.options.filter((option) => selected.includes(option.id)).map((option) => optionText(option.id, option.source).label);
-		})
-		.join(", ");
 }

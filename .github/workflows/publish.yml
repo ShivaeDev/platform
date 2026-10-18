@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --trust-lockfile=false
       - name: Validate collected release notes
-        run: pnpm run changelog:release --check
+        run: pnpm changelog:check
         env:
           CHANGELOG_BASE_REF: ${{ github.event.before }}
       - name: Build packages
@@ -78,7 +78,7 @@ jobs:
         run: pnpm install --frozen-lockfile --trust-lockfile=false
 
       - name: Validate collected release notes
-        run: pnpm run changelog:release --check
+        run: pnpm changelog:check
         env:
           CHANGELOG_BASE_REF: ${{ github.event.before }}
       - name: Build packages

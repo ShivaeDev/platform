@@ -1,15 +1,18 @@
 import { Option } from "effect";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { inProgressItems } from "./inProgressItems.ts";
 import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
+import { SOURCE_PROBLEMS_ID, sourceProblemsSummary } from "./sourceProblems.ts";
 import { TodayGoals } from "./TodayGoals.tsx";
-import { TodayLater, TodayNeeds } from "./TodayNeeds.tsx";
+import { TodayAnswered, TodayLater, TodayNeeds } from "./TodayNeeds.tsx";
 import { TodayProgress } from "./TodayProgress.tsx";
 
-const todayIds = { goals: "today-goals", later: "later", needs: "needs-you", progress: "in-progress" };
+const todayIds = { answered: "answered", goals: "today-goals", later: "later", needs: "needs-you", progress: "in-progress" };
 
 export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data: InboxProjection }) {
 	const query = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
@@ -19,6 +22,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 	const progress = inProgressItems(fleet);
 	const navigation = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const home = Option.getOrUndefined(navigation.data)?.home;
+	useArrivalFocus(data.answered);
 	return (
 		<div className="today-page min-w-0 space-y-3 md:space-y-6">
 			<header className="flex items-center justify-between gap-3">
@@ -29,16 +33,30 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 					</a>
 				)}
 			</header>
-			<nav aria-label="Today summary" className="today-strip flex items-center gap-1 whitespace-nowrap text-xs tabular-nums sm:gap-2 sm:text-sm">
+			<nav
+				aria-label="Today summary"
+				className="today-strip flex flex-wrap items-center gap-1 whitespace-nowrap text-xs tabular-nums sm:gap-2 sm:text-sm"
+			>
 				<a href={`#${todayIds.needs}`}>{data.complete ? `${data.you.length} need you` : "Needs you unavailable"}</a>
 				<span aria-hidden="true">·</span>
 				<a href={`#${todayIds.progress}`}>{progressSummary(progress?.length, fleet?.state === "unavailable" || Option.isSome(fleetQuery.cause))}</a>
 				<span aria-hidden="true">·</span>
 				<a href={`#${todayIds.goals}`}>{goalsSummary(goals?.goals.length, Option.isSome(query.cause))}</a>
+				{data.issues.length > 0 && (
+					<>
+						<span aria-hidden="true">·</span>
+						<a className="text-needs-you" data-source-problems href={`/_board/system#${SOURCE_PROBLEMS_ID}`}>
+							{sourceProblemsSummary(data.issues)}
+						</a>
+					</>
+				)}
 			</nav>
 			<div className="today-grid grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<div className="min-w-0 space-y-6">
 					<NeedsYou api={api} data={data} />
+					{data.complete && data.answered.length > 0 && (
+						<Answered fleet={Option.isSome(fleetQuery.cause) ? undefined : fleet} items={data.answered} />
+					)}
 					<section className="min-w-0" id={todayIds.progress}>
 						<h2 className="mt-0 mb-3 font-semibold text-lg">In progress</h2>
 						<TodayProgress data={fleet} failed={Option.isSome(fleetQuery.cause)} />
@@ -67,6 +85,27 @@ function NeedsYou({ api, data }: { readonly api: ShellApi; readonly data: InboxP
 			)}
 		</section>
 	);
+}
+
+function Answered({ fleet, items }: { readonly fleet: FleetItemsProjection | undefined; readonly items: InboxProjection["answered"] }) {
+	return (
+		<section className="min-w-0" id={todayIds.answered}>
+			<h2 className="mt-0 mb-3 font-semibold text-lg">Answered, waiting for Fleet</h2>
+			<TodayAnswered fleet={fleet} items={items} />
+		</section>
+	);
+}
+
+function useArrivalFocus(items: InboxProjection["answered"]) {
+	const seenRef = useRef(new Set(items.map((item) => item.id)));
+	useEffect(() => {
+		const arrived = items.find((item) => !seenRef.current.has(item.id));
+		seenRef.current = new Set(items.map((item) => item.id));
+		if (arrived !== undefined && (document.activeElement === null || document.activeElement === document.body)) {
+			const row = [...document.querySelectorAll<HTMLElement>("[data-answered-id]")].find((element) => element.dataset.answeredId === arrived.id);
+			row?.querySelector("a")?.focus();
+		}
+	}, [items]);
 }
 
 function Later({ items }: { readonly items: InboxProjection["later"] }) {

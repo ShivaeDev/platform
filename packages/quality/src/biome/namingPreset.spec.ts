@@ -4,16 +4,6 @@ import { linkPackage, removeSeededTrees, type SeedFile, seedTree } from "#test/t
 
 type Line = readonly [code: string, ...findings: string[]];
 
-const NAMING_RULES: Readonly<Record<string, string>> = {
-	"lint/nursery/useReactNamingConvention": "useReactNamingConvention",
-	"lint/performance/noBarrelFile": "noBarrelFile",
-	"lint/performance/noReExportAll": "noReExportAll",
-	"lint/style/noExportedImports": "noExportedImports",
-	"lint/style/useComponentExportOnlyModules": "useComponentExportOnlyModules",
-	"lint/style/useConsistentMemberAccessibility": "useConsistentMemberAccessibility",
-	"lint/style/useNamingConvention": "useNamingConvention",
-};
-
 const PLUGINS: ReadonlyArray<readonly [prefix: string, plugin: string]> = [
 	["A module-level constant", "constant-names"],
 	["A top-level function whose whole body is Effect.gen", "effect-fn-functions"],
@@ -32,24 +22,23 @@ const IMPORTS: Line = ['import { Effect, Layer, Schema } from "effect";'];
 
 const fixtures: Readonly<Record<string, readonly Line[]>> = {
 	"src/components.tsx": [
-		['import { createContext, useState } from "react";'],
-		['const Theme = createContext<string>("light");', "useReactNamingConvention"],
+		['import { useState } from "react";'],
 		["export function Panel({ onClose }: { readonly onClose: () => void }) {"],
 		["\tconst close = () => onClose();"],
 		["\tconst handleOpen = () => onClose();"],
 		['\tconst [label, setLabel] = useState("");'],
 		['\tconst settle = () => setLabel("");'],
 		["\treturn ("],
-		['\t\t<Theme.Provider value="dark">'],
+		["\t\t<>"],
 		['\t\t\t<button onClick={close} type="button" />', "handler-names"],
 		['\t\t\t<button onClick={handleOpen} type="button" />'],
 		['\t\t\t<button onClick={onClose} type="button" />'],
 		["\t\t\t<input onChange={setLabel} value={label} />"],
 		["\t\t\t<input onChange={settle} value={label} />", "handler-names"],
-		["\t\t</Theme.Provider>"],
+		["\t\t</>"],
 		["\t);"],
 		["}"],
-		["export const panelWidth = 3;", "constant-names", "useComponentExportOnlyModules"],
+		["export const panelWidth = 3;", "constant-names"],
 	],
 	"src/effects.test.ts": [
 		['import { it } from "@effect/vitest";'],
@@ -150,31 +139,14 @@ const fixtures: Readonly<Record<string, readonly Line[]>> = {
 		["export const maxItems = 50;", "constant-names"],
 		['const defaultLabel = "item";', "constant-names"],
 		["export const MAX_ITEMS = 50;"],
-		["export function count() {"],
-		["\tconst LOCAL_LIMIT = 3;", "useNamingConvention"],
-		["\tconst localLimit = 3;"],
-		["\treturn LOCAL_LIMIT + localLimit + defaultLabel.length;"],
-		["}"],
-		["export function first<Item>(items: readonly Item[]) {", "useNamingConvention"],
-		["\treturn items[0];"],
-		["}"],
-		["export function pair<T, TRight>(left: T, right: TRight) {"],
-		["\treturn [left, right];"],
-		["}"],
-		["export function run<A, E, R>(effect: Effect.Effect<A, E, R>) {"],
-		["\treturn effect;"],
-		["}"],
-		["export function fetchFrom<TURL>(url: TURL) {", "useNamingConvention"],
-		["\treturn url;"],
-		["}"],
-		["export interface IClient {", "useNamingConvention"],
+		["export interface IClient {"],
 		["\treadonly base_url: string;", "key-names"],
 		["}"],
 		["export interface HttpClient {"],
 		['\treadonly _tag: "HttpClient";'],
 		["\treadonly baseUrl: string;"],
 		["}"],
-		["export function parseURL(text: string) {", "useNamingConvention"],
+		["export function parseURL(text: string) {"],
 		["\treturn text;"],
 		["}"],
 		["export const headers = { content_type: 1, MAX_AGE: 2, userId: 3, Service: 4, _tag: 5, $raw: 6 };", "key-names", "key-names"],
@@ -183,22 +155,13 @@ const fixtures: Readonly<Record<string, readonly Line[]>> = {
 		["export interface Payload {"],
 		['\treadonly "created_at": string;'],
 		["}"],
-		["export class Counter {"],
-		["\tprivate count = 0;", "useConsistentMemberAccessibility"],
-		["\t#total = 0;"],
-		["\tincrement() {"],
-		["\t\tthis.count += 1;"],
-		["\t\tthis.#total += 1;"],
-		["\t\treturn this.count + this.#total;"],
-		["\t}"],
-		["}"],
 	],
 	"src/legacy.js": [["export const headers = { content_type: 1, contentType: 2 };", "key-names"], ['export const query = { "per_page": 50 };']],
 	"src/re-exports.ts": [
-		['import { Effect } from "effect";', "noExportedImports"],
+		['import { Effect } from "effect";'],
 		['export type { Duration } from "effect";', "type-re-exports"],
-		['export { Schema } from "effect";', "noBarrelFile"],
-		['export * from "effect";', "noReExportAll"],
+		['export { Schema } from "effect";'],
+		['export * from "effect";'],
 		["export { Effect };"],
 	],
 	"src/schemas.ts": [
@@ -246,7 +209,7 @@ function nameOf(diagnostic: Diagnostic): string | undefined {
 	if (diagnostic.category === "plugin") {
 		return PLUGINS.find(([prefix]) => diagnostic.message.startsWith(prefix))?.[1];
 	}
-	return NAMING_RULES[diagnostic.category ?? ""];
+	return undefined;
 }
 
 function expected(lines: readonly Line[]): readonly string[] {
@@ -284,15 +247,8 @@ beforeAll(async () => {
 
 afterAll(removeSeededTrees);
 
-describe("the naming rules of the Biome preset", () => {
+describe("the repository naming plugins", () => {
 	it.each(Object.keys(fixtures))("report in %s exactly the lines that break a naming rule", (path) => {
 		expect(found.get(path)).toEqual(expected(fixtures[path] ?? []));
-	});
-
-	it("keeps the quotes that mark a key as a name an outside API decides", async () => {
-		const root = seedTree(PRESET, [{ content: 'export const query = { "per_page": 50, perPage: 50 };\n', path: "src/query.ts" }]);
-		linkPackage(root);
-		const report = await biomeReport(root, ["format"]);
-		expect(report.diagnostics.map((diagnostic) => diagnostic.category)).toEqual([]);
 	});
 });

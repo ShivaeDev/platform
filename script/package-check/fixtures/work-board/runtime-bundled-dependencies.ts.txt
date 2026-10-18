@@ -4,14 +4,18 @@ import manifest from "@shivaedev/work-board/package.json" with { type: "json" }
 
 const installedBoard = createRequire(import.meta.resolve("@shivaedev/work-board/package.json"))
 for (const name of [
+  "@base-ui/react",
   "@effect/atom-react",
+  "@fontsource-variable/geist",
+  "@fontsource-variable/geist-mono",
   "@shivaedev/effect-form",
   "@shivaedev/effect-react",
   "@tanstack/react-router",
   "class-variance-authority",
-  "clsx",
+  "cmdk",
+  "cn",
   "lucide-react",
-  "tailwind-merge",
+  "tw-animate-css",
 ]) {
   assert(!(name in manifest.dependencies), `${name} must not be a runtime dependency`)
   assert(name in manifest.devDependencies, `${name} must be a build dependency`)

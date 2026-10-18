@@ -4,8 +4,11 @@ import type { Document } from "#browser/document/schema.ts";
 import { promptHeading } from "#browser/responses/cardContext.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { PromptAnswer } from "#browser/responses/schema.ts";
+import { Button } from "#client/react/components/ui/button.tsx";
+import { Label } from "#client/react/components/ui/label.tsx";
+import { Textarea } from "#client/react/components/ui/textarea.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
-import { PromptOption } from "./PromptOption.tsx";
+import { PromptChoices } from "./PromptChoices.tsx";
 import type { useResponseForm } from "./useResponseForm.ts";
 
 type Model = ReturnType<typeof useResponseForm>["form"];
@@ -29,7 +32,7 @@ function PromptField({
 	onEdit,
 	showErrors,
 }: PromptProps & { readonly prompt: Prompt; readonly index: number }) {
-	const errorId = useId();
+	const fieldId = useId();
 	const answer = answers[index] ?? { prompt: prompt.id, selected: [], text: "" };
 	const validation = useAtomValue(form.errorAt(["answers", index, "text"]));
 	const error = showErrors ? validation : undefined;
@@ -59,50 +62,42 @@ function PromptField({
 	}
 	return (
 		<fieldset className="m-0 min-w-0 space-y-3 border-0 p-0" data-mode={prompt.mode} data-prompt={prompt.id} data-source={prompt.source}>
-			<legend className="mb-1 p-0 font-semibold text-base">{choices === undefined ? title : "Your answer"}</legend>
+			<legend className="mb-1 p-0 font-semibold text-base" id={`${fieldId}-legend`}>
+				{choices === undefined ? title : "Your answer"}
+			</legend>
 			{choices === undefined && heading.rest ? <AnswerMarkdown className="text-sm" file={document.file} source={heading.rest} /> : null}
 			<p className="text-muted-foreground text-sm">{guidance}</p>
-			<div className={`grid gap-2 ${choices ? "question-choices" : ""}`}>
-				{prompt.options.map((option, choice) => (
-					<PromptOption
-						checked={answer.selected.includes(option.id)}
-						choice={choice}
-						choose={choose}
-						document={document}
-						key={option.id}
-						option={option}
-						prompt={prompt}
-					/>
-				))}
-			</div>
+			<PromptChoices choose={choose} document={document} labelledBy={`${fieldId}-legend`} prompt={prompt} selected={answer.selected} />
 			{prompt.mode !== "text" && (
-				<button
-					className="text-muted-foreground text-xs underline-offset-4 hover:underline disabled:opacity-50"
+				<Button
+					className="h-auto px-0 text-muted-foreground text-xs"
 					data-clear-choices
 					disabled={answer.selected.length === 0}
 					onClick={() => change({ ...answer, selected: [] })}
+					size="sm"
 					type="button"
+					variant="link"
 				>
 					Clear selections
-				</button>
+				</Button>
 			)}
-			<label className="grid gap-2 text-sm">
-				<span>{prompt.mode === "text" ? "Your answer" : "Add a note or answer in your own words (optional)"}</span>
-				<textarea
-					aria-describedby={`${errorId}-error`}
-					aria-invalid={Boolean(error)}
-					className="w-full rounded-md border bg-background px-3 py-2 text-sm aria-invalid:border-destructive"
-					data-answer-text
-					maxLength={8192}
-					onInput={(event) => change({ ...answer, text: event.currentTarget.value })}
-					ref={ref}
-					rows={choices || prompt.mode === "text" ? 4 : 2}
-					value={answer.text}
-				/>
-				<span className="response-field-error text-destructive text-xs" hidden={!error} id={`${errorId}-error`}>
-					{message}
-				</span>
-			</label>
+			<Label className="font-normal leading-normal" htmlFor={fieldId}>
+				{prompt.mode === "text" ? "Your answer" : "Add a note or answer in your own words (optional)"}
+			</Label>
+			<Textarea
+				aria-describedby={`${fieldId}-error`}
+				aria-invalid={Boolean(error)}
+				data-answer-text
+				id={fieldId}
+				maxLength={8192}
+				onInput={(event) => change({ ...answer, text: event.currentTarget.value })}
+				ref={ref}
+				rows={choices || prompt.mode === "text" ? 4 : 2}
+				value={answer.text}
+			/>
+			<span className="response-field-error block text-destructive text-xs" hidden={!error} id={`${fieldId}-error`}>
+				{message}
+			</span>
 		</fieldset>
 	);
 }

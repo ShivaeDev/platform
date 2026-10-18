@@ -35,6 +35,9 @@ export function screenActions(engine: ScreenSurface, tell: (line: string) => voi
 				if (button === undefined) {
 					throw new Error(`Missing ${label} button`);
 				}
+				if (button.disabled) {
+					throw new Error(`Cannot click disabled ${label} button`);
+				}
 				await act(async () => button.click());
 			}),
 		enter: (value: string, label?: string) =>
@@ -42,7 +45,11 @@ export function screenActions(engine: ScreenSurface, tell: (line: string) => voi
 				tell(`enter ${JSON.stringify(value)} in ${label ?? "the title"}`);
 				const input = screenInput(engine, label);
 				await act(() => {
-					Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, value);
+					const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+					if (setValue === undefined) {
+						throw new Error("Missing input value setter");
+					}
+					setValue.call(input, value);
 					input.dispatchEvent(new Event("input", { bubbles: true }));
 				});
 			}),

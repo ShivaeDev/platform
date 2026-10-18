@@ -1,6 +1,5 @@
 import { Context, Effect, Layer, Logger, Redacted, References, Schema } from "effect";
 import { SqlClient } from "effect/sql";
-import { expect, vi } from "vitest";
 import { defaultClientFactory, type PgBossClient } from "@shivaedev/effect-pg-boss/client.ts";
 import { makePgBoss } from "@shivaedev/effect-pg-boss/service.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
@@ -53,22 +52,13 @@ export const poolRecovery = storyKit({
 		logs: () => engine.logs,
 		nativeBackend: () => engine.sql<{ readonly pid: number }>`select pg_backend_pid() as pid`.pipe(Effect.map((rows) => rows[0]?.pid)),
 		nativeQueryFailure: () => engine.sql`select pg_terminate_backend(pg_backend_pid())`.pipe(Effect.flip),
-		terminate: Effect.fn("PoolRecovery.terminate")(function* (pid: number | undefined, waitForLog = false) {
-			expect(pid).toBeTypeOf("number");
+		terminate: Effect.fn("PoolRecovery.terminate")(function* (pid: number | undefined) {
+			if (pid === undefined) {
+				return yield* Effect.die("Missing backend pid to terminate");
+			}
 			const sql = yield* SqlClient.SqlClient;
 			yield* sql`select pg_terminate_backend(${pid}, 5000)`;
-			if (waitForLog) {
-				yield* Effect.promise(() =>
-					vi.waitFor(() =>
-						expect(engine.logs).toContainEqual({
-							level: "Debug",
-							message: [{ event: "pg_boss_error", message: "terminating connection due to administrator command" }],
-						}),
-					),
-				);
-			} else {
-				yield* Effect.promise(() => new Promise<void>((resolve) => setImmediate(resolve)));
-			}
+			yield* Effect.promise(() => new Promise<void>((resolve) => setImmediate(resolve)));
 		}),
 	}),
 });

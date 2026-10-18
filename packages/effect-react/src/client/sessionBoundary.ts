@@ -2,6 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createContext, createElement, Fragment, type ReactNode, useContext, useEffect, useState } from "react";
 import { DraftSessionContext } from "@shivaedev/effect-form/client/react.ts";
+import { registerSessionRecheck } from "#internal/sessionRecheck.ts";
 import { useDraftOwner } from "./useDraftOwner.ts";
 export interface SessionBoundaryProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
@@ -49,6 +50,7 @@ interface GenerationProps<TSession, TClient> {
 }
 function Generation<TSession, TClient>({ session, connect, recheck, children }: GenerationProps<TSession, TClient>): ReactNode {
 	const [owned, own] = useState(() => owning(connect(session)));
+	useEffect(() => registerSessionRecheck(owned.registry, recheck), [owned, recheck]);
 	useEffect(() => {
 		owned.mounted += 1;
 		return () => {

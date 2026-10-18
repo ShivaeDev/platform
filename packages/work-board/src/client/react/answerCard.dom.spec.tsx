@@ -77,17 +77,21 @@ screenStory.it(
 	}) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(".question-choice")).not.toBeNull()));
 		answerInput("author", "Reviewer");
-		click(findElement<HTMLButtonElement>(".question-choice"));
+		click(".question-choice label");
 		const input = answerPrompt("answer", "Use the reviewed version.");
 		selectText(input, 4, 7);
 		yield* Effect.promise(() => refreshDocument(url));
-		yield* Effect.promise(() => eventually(() => expect(readAttribute(".question-choice", "aria-pressed")).toBe("true")));
+		yield* Effect.promise(() => eventually(() => expect(readAttribute("[data-choice='option-1']", "aria-checked")).toBe("true")));
 		expect(answerPrompt("answer")).toBe(input);
 		expect(input.value).toBe("Use the reviewed version.");
 		expect(readFocus()).toBe(input);
 		expect([input.selectionStart, input.selectionEnd]).toEqual([4, 7]);
 		yield* Effect.promise(async () => responseClick("submit"));
-		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Saved:")));
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(readText("[data-answered]")).toBe("Answered by Reviewer: Publish now. Fleet isn't running. It picks this up when it starts again."),
+			),
+		);
 		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
 		expect(saved.responses).toHaveLength(1);
 		expect(saved.responses[0]?.response).toMatchObject({
@@ -181,14 +185,63 @@ for (const heading of ["### Release ownership", ""]) {
 
 const files = { ...readyDecisionFixture, [decisionFile]: (readyDecisionFixture[decisionFile] ?? "").replace('select="one"', 'select="many"') };
 screenStory.it(
-	"toggles directive buttons when several choices are allowed",
+	"toggles option checkboxes when several choices are allowed",
 	[screenWorkspace("answer-card-fixture"), routedScreen(files, url)],
-	function* ({ click, findElement }) {
+	function* ({ click, findElement, readAttribute }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(".question-choice")).not.toBeNull()));
-		const button = findElement<HTMLButtonElement>(".question-choice");
-		click(button);
-		expect(button?.getAttribute("aria-pressed")).toBe("true");
-		click(button);
-		expect(button?.getAttribute("aria-pressed")).toBe("false");
+		expect(findElement("[role='radio']")).toBeNull();
+		click(".question-choice label");
+		expect(readAttribute("[data-choice='retry']", "role")).toBe("checkbox");
+		expect(readAttribute("[data-choice='retry']", "aria-checked")).toBe("true");
+		click(".question-choice label");
+		expect(readAttribute("[data-choice='retry']", "aria-checked")).toBe("false");
+	},
+);
+
+screenStory.it(
+	"moves a single answer with arrow keys from one tab stop and records the chosen option",
+	[screenWorkspace("answer-keyboard"), routedScreen(readyDecisionFixture, url, { home: "home.md", writable: true })],
+	function* ({ answerInput, findElement, focus, press, readAttribute, readFocus, readResponses, readText, responseClick }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("[role='radiogroup']")).not.toBeNull()));
+		expect(readAttribute("[role='radiogroup']", "aria-labelledby")).toBe(findElement("fieldset legend")?.id);
+		expect([readAttribute("[data-choice='retry']", "tabindex"), readAttribute("[data-choice='release']", "tabindex")]).toEqual(["0", "-1"]);
+		answerInput("author", "maintainer");
+		focus("[data-choice='retry']");
+		yield* Effect.promise(() => press("ArrowDown"));
+		expect(readFocus()).toBe(findElement("[data-choice='release']"));
+		expect(readAttribute("[data-choice='release']", "aria-checked")).toBe("true");
+		expect(readAttribute("[data-choice='retry']", "aria-checked")).toBe("false");
+		yield* Effect.promise(() => press("ArrowUp"));
+		yield* Effect.promise(() => press("ArrowUp"));
+		expect(readFocus()).toBe(findElement("[data-choice='release']"));
+		expect(readAttribute("[data-choice='release']", "aria-checked")).toBe("true");
+		yield* Effect.promise(async () => responseClick("submit"));
+		yield* Effect.promise(() => eventually(() => expect(readText("[data-answered]")).toContain("Stop and hand back")));
+		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
+		expect(saved.responses.map((entry) => entry.response.answers)).toEqual([[{ prompt: "fleet-action", selected: ["release"], text: "" }]]);
+	},
+);
+
+screenStory.it(
+	"toggles several answers with Space and records them in the order they were chosen",
+	[screenWorkspace("answer-keyboard-many"), routedScreen(files, url, { home: "home.md", writable: true })],
+	function* ({ answerInput, findElement, focus, press, readAttribute, readResponses, readText, responseClick }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("[data-choice='retry']")).not.toBeNull()));
+		expect([readAttribute("[data-choice='retry']", "tabindex"), readAttribute("[data-choice='release']", "tabindex")]).toEqual(["0", "0"]);
+		answerInput("author", "maintainer");
+		focus("[data-choice='release']");
+		yield* Effect.promise(() => press(" "));
+		focus("[data-choice='retry']");
+		yield* Effect.promise(() => press(" "));
+		expect([readAttribute("[data-choice='retry']", "aria-checked"), readAttribute("[data-choice='release']", "aria-checked")]).toEqual([
+			"true",
+			"true",
+		]);
+		yield* Effect.promise(() => press(" "));
+		yield* Effect.promise(() => press(" "));
+		yield* Effect.promise(async () => responseClick("submit"));
+		yield* Effect.promise(() => eventually(() => expect(readText("[data-answered]")).toContain("Stop and hand back")));
+		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
+		expect(saved.responses.map((entry) => entry.response.answers)).toEqual([[{ prompt: "fleet-action", selected: ["release", "retry"], text: "" }]]);
 	},
 );

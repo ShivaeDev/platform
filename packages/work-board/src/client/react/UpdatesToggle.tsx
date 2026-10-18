@@ -1,7 +1,7 @@
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { Pause, Play } from "lucide-react";
 import type { BrowserClient } from "#client/client.ts";
-import { Button } from "#client/react/components/ui/Button.tsx";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { shellIds } from "./shellIds.ts";
 
 export function UpdatesToggle({ client }: { readonly client: { readonly updates: Pick<BrowserClient["updates"], "paused"> } }) {

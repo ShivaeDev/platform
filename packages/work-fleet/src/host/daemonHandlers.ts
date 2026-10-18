@@ -32,7 +32,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	const dispatch = yield* dispatchRequests(host);
 	const live = yield* LiveConfig;
 	const status = Effect.zipWith(read(fleetStatus(host)), live.current, (views, applied) => ({ ...views, config: configStatus(applied) }));
-	// The server already accepts connections while handlers build, so the Board watcher starts beside them instead of delaying them.
+	// Start Board observation beside the handlers so startup does not wait for its initial scan.
 	const responses = yield* Layer.buildWithScope(decisionResponses(host), scope).pipe(Effect.forkIn(scope));
 	function withResponses<A, E, R>(effect: Effect.Effect<A, E, R>) {
 		return Fiber.join(responses).pipe(Effect.flatMap((context) => effect.pipe(Effect.provide(context))));

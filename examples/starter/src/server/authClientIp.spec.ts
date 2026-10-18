@@ -9,7 +9,9 @@ for (const trustedProxy of ["127.0.0.1", " 192.0.2.1, 127.0.0.0/8, 2001:db8::/32
 			const limits = authRateLimits();
 			const alice = limits.visitor("::1");
 			const bob = limits.visitor("127.0.0.1");
-			yield* alice.failedSignIns(3, "198.51.100.10");
+			for (let attempt = 0; attempt < 3; attempt += 1) {
+				expect(yield* alice.signIn("198.51.100.10")).toBe(401);
+			}
 			expect(yield* alice.signIn("198.51.100.10")).toBe(429);
 			expect(yield* bob.signIn("198.51.100.20")).toBe(401);
 		},
@@ -23,7 +25,9 @@ for (const trustedProxy of [undefined, "127.0.0.2", "::ffff:126.0.0.0/104"]) {
 			const limits = authRateLimits();
 			const alice = limits.visitor("::1");
 			const bob = limits.visitor("127.0.0.1");
-			yield* alice.failedSignIns(3);
+			for (let attempt = 0; attempt < 3; attempt += 1) {
+				expect(yield* alice.signIn()).toBe(401);
+			}
 			expect(yield* bob.signIn()).toBe(429);
 		},
 	);
@@ -32,7 +36,9 @@ for (const trustedProxy of [undefined, "127.0.0.2", "::ffff:126.0.0.0/104"]) {
 app.it("enables sign-in limits through app configuration", [behindProxy(), authRateLimiting(true)], function* ({ authRateLimits }) {
 	const limits = authRateLimits();
 	const alice = limits.visitor("::1");
-	yield* alice.failedSignIns(3);
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		expect(yield* alice.signIn()).toBe(401);
+	}
 	expect(yield* alice.signIn()).toBe(429);
 });
 
@@ -44,7 +50,9 @@ for (const trustedProxy of [undefined, "127.0.0.1"]) {
 			const limits = authRateLimits();
 			const alice = limits.visitor("::1");
 			const bob = limits.visitor("127.0.0.1");
-			yield* alice.failedSignIns(4);
+			for (let attempt = 0; attempt < 4; attempt += 1) {
+				expect(yield* alice.signIn()).toBe(401);
+			}
 			expect(yield* bob.signIn()).toBe(401);
 		},
 	);
@@ -54,7 +62,9 @@ app.it("keeps the same sign-in bucket when a visitor forges forwarding headers",
 	const limits = authRateLimits();
 	const alice = limits.visitor("::1");
 	const bob = limits.visitor("127.0.0.1");
-	yield* alice.failedSignIns(3, "198.51.100.10");
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		expect(yield* alice.signIn("198.51.100.10")).toBe(401);
+	}
 	expect(yield* alice.signIn("198.51.100.20")).toBe(429);
 	expect(yield* alice.signIn()).toBe(429);
 	expect(yield* bob.signIn("198.51.100.10")).toBe(401);

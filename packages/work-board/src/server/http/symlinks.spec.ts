@@ -1,11 +1,21 @@
 import { renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { afterEach, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { faultyWatch } from "#test/faults.ts";
-import { changesUntil, type EventStream, rpcDocument, rpcNavigation, rpcPaths, rpcSearch, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
+import {
+	changesUntil,
+	changesUntilShown,
+	type EventStream,
+	rpcDocument,
+	rpcNavigation,
+	rpcPaths,
+	rpcSearch,
+	rpcWatcher,
+	subscribe,
+} from "#test/nativeRpc.ts";
 import { referenceLink } from "#test/referenceLink.ts";
 
 let workspace: Folder;
@@ -37,6 +47,15 @@ afterEach(() => {
 function get(path: string) {
 	return fetch(`${board.url}${path}`);
 }
+
+function searchFinds(query: string, path: string) {
+	return Effect.map(rpcSearch(board, query), (found) => JSON.stringify(found).includes(path));
+}
+
+const watchedDocumentShows = Effect.fn("Test.watchedDocumentShows")(function* (url: string, text: string) {
+	const read = yield* Effect.option(rpcDocument(board, url));
+	return (yield* rpcWatcher(board)).watching && Option.isSome(read) && read.value.source.includes(text);
+});
 
 const ready = Effect.fn("Test.ready")(function* (events: EventStream) {
 	for (;;) {
@@ -92,9 +111,8 @@ effectApp("watches external edits, additions, renames and removals using workspa
 		yield* ready(events);
 		yield* rpcSearch(board, "Reference passage");
 		reference.write("guide/start.md", "# Reference guide\n\nUpdated linked passage.\n");
-		yield* changesUntil(events, "reference/guide/start.md");
+		yield* changesUntilShown(events, "reference/guide/start.md", searchFinds("Updated linked passage", "reference/guide/start.md"));
 		expect(yield* Effect.map(rpcDocument(board, "/reference/guide/start.md"), (data) => data.source)).toContain("Updated linked passage");
-		expect(JSON.stringify(yield* rpcSearch(board, "Updated linked passage"))).toContain("reference/guide/start.md");
 		expect((yield* rpcSearch(board, "Reference passage")).total).toBe(0);
 		reference.write("guide/added.md", "# Added reference\n");
 		yield* changesUntil(events, "reference/guide/added.md");
@@ -116,18 +134,15 @@ effectApp("discovers newly linked folders and retargeted links without restartin
 	try {
 		yield* ready(events);
 		referenceLink(workspace, "new-reference", replacement.root);
-		yield* ready(events);
-		expect(yield* Effect.map(rpcDocument(board, "/new-reference/guide/start.md"), (data) => data.source)).toContain("Replacement guide");
+		yield* changesUntilShown(events, "new-reference/guide/start.md", watchedDocumentShows("/new-reference/guide/start.md", "Replacement guide"));
 		replacement.write("guide/start.md", "# New live replacement\n");
 		yield* changesUntil(events, "new-reference/guide/start.md");
 		rmSync(join(workspace.root, "reference"));
 		referenceLink(workspace, "reference", replacement.root);
-		yield* ready(events);
-		expect(yield* Effect.map(rpcDocument(board, "/reference/guide/start.md"), (data) => data.source)).toContain("New live replacement");
+		yield* changesUntilShown(events, "reference/guide/start.md", watchedDocumentShows("/reference/guide/start.md", "New live replacement"));
 		expect((yield* Effect.promise(() => get("/reference/guide/next.md"))).status).toBe(404);
 		replacement.write("guide/start.md", "# Retargeted live reference\n");
-		yield* changesUntil(events, "reference/guide/start.md");
-		expect(JSON.stringify(yield* rpcSearch(board, "Retargeted live reference"))).toContain("reference/guide/start.md");
+		yield* changesUntilShown(events, "reference/guide/start.md", searchFinds("Retargeted live reference", "reference/guide/start.md"));
 	} finally {
 		yield* events.close();
 	}

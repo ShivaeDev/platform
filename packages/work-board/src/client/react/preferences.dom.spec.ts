@@ -11,6 +11,10 @@ function ready(page: OpenPage) {
 	return waitFor(() => expect(page.document.documentElement.dataset.theme).toBeDefined());
 }
 
+function settingsOpen(page: OpenPage) {
+	return waitFor(() => expect(page.document.getElementById("theme")).not.toBeNull());
+}
+
 function key(notes: Folder) {
 	return `work-board:appearance:${realpathSync(notes.root)}`;
 }
@@ -30,6 +34,8 @@ describe("workspace preferences", () => {
 			expect(page.document.getElementById("sidebar")?.hasAttribute("hidden")).toBe(true);
 			expect(page.document.getElementById("sidebar-toggle")?.getAttribute("aria-expanded")).toBe("false");
 			page.document.getElementById("sidebar-toggle")?.dispatchEvent(new page.window.Event("click", { bubbles: true }));
+			reader.clickSelector("#settings-open");
+			yield* Effect.promise(() => settingsOpen(page));
 			reader.choose("#density", "comfortable");
 			yield* Effect.promise(() => frame(page));
 			notes.write("plan.md", "# A new plan\n\nChanged by an agent.");
@@ -62,6 +68,8 @@ describe("workspace preferences", () => {
 			});
 		});
 		yield* Effect.promise(() => ready(page));
+		reader.clickSelector("#settings-open");
+		yield* Effect.promise(() => settingsOpen(page));
 		reader.choose("#theme", "dark");
 		yield* Effect.promise(() => frame(page));
 		expect(page.document.documentElement.dataset.scheme).toBe("dark");
@@ -76,6 +84,8 @@ describe("workspace preferences", () => {
 			page = yield* reader.open("/flow.md");
 			yield* Effect.promise(() => ready(page));
 			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("figure svg")?.getAttribute("data-dark")).toBe("false")));
+			reader.clickSelector("#settings-open");
+			yield* Effect.promise(() => settingsOpen(page));
 			reader.choose("#theme", "dark");
 			yield* Effect.promise(() => frame(page));
 			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("figure svg")?.getAttribute("data-dark")).toBe("true")));

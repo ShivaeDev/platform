@@ -1,25 +1,32 @@
 import { type ReactNode, useContext } from "react";
 import type { Observation } from "#browser/diagnostics/schema.ts";
 import type { DiagnosticsProjection } from "#browser/views/remaining.ts";
-import { Card as Surface } from "#client/react/components/ui/Card.tsx";
+import { Badge } from "#client/react/components/ui/badge.tsx";
+import { CardAction, CardContent, CardFooter, CardHeader, CardTitle, Card as Surface } from "#client/react/components/ui/card.tsx";
 import { DiagnosticsGithub, DiagnosticsWindows, ObservedTime } from "./diagnosticsValues.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { githubLimited } from "./githubLimited.ts";
 import { SystemFleetLane } from "./SystemFleetLane.tsx";
 import { SystemHealth } from "./SystemHealth.tsx";
+import { SystemSourceProblems } from "./SystemSourceProblems.tsx";
 export function SystemPage({
 	data: { sources: data, now },
 	needsYou,
+	sourceProblems,
 }: {
 	readonly data: DiagnosticsProjection;
 	readonly needsYou?: number | null | undefined;
+	readonly sourceProblems?: Parameters<typeof SystemSourceProblems>[0];
 }) {
 	const items = useContext(FleetItemsContext);
 	const fleet = data.fleet.state === "ready" ? { ...data.fleet, observedAt: data.fleet.value.observedAt } : data.fleet;
 	return (
 		<div className="space-y-6">
 			<h1 className="font-semibold text-2xl">System</h1>
-			<p>Agent usage and Fleet health. Refreshes every 15 seconds while this view is visible; Pause updates holds the current view.</p>
+			<p>
+				Agent usage, Fleet health and workspace source problems. Refreshes every 15 seconds while this view is visible; Pause updates holds the
+				current view.
+			</p>
 			<div className="grid gap-4 lg:grid-cols-2">
 				<Card
 					attention={
@@ -50,6 +57,7 @@ export function SystemPage({
 				/>
 			</div>
 			<SystemFleetLane data={items} />
+			{sourceProblems !== undefined && <SystemSourceProblems {...sourceProblems} />}
 		</div>
 	);
 }
@@ -75,22 +83,30 @@ function Card<A>({
 	}
 	const label = { attention: "Needs attention", error: "Unavailable", "not-configured": "Not configured", ready: "Available", stale: "Stale" }[state];
 	return (
-		<Surface
+		<article
 			aria-labelledby={`diagnostics-${name.toLowerCase()}`}
-			className="min-w-0 space-y-4 [overflow-wrap:anywhere]"
+			className="min-w-0 [overflow-wrap:anywhere]"
 			data-source={name.toLowerCase()}
 			data-state={state}
 		>
-			<header className="flex flex-wrap items-center justify-between gap-2">
-				<h2 className="font-semibold text-lg" id={`diagnostics-${name.toLowerCase()}`}>
-					{name}
-				</h2>
-				<span className="rounded-full bg-muted px-2 py-1 text-xs">{label}</span>
-			</header>
-			{source.state === "ready" ? render(source.value) : <p role="status">{source.cause}</p>}
-			<p className="text-muted-foreground text-xs">
-				Observed <ObservedTime at={source.observedAt} />
-			</p>
-		</Surface>
+			<Surface className="h-full">
+				<CardHeader>
+					<CardTitle>
+						<h2 className="text-lg" id={`diagnostics-${name.toLowerCase()}`}>
+							{name}
+						</h2>
+					</CardTitle>
+					<CardAction>
+						<Badge variant="secondary">{label}</Badge>
+					</CardAction>
+				</CardHeader>
+				<CardContent className="space-y-4">{source.state === "ready" ? render(source.value) : <p role="status">{source.cause}</p>}</CardContent>
+				<CardFooter className="mt-auto text-muted-foreground text-xs">
+					<p>
+						Observed <ObservedTime at={source.observedAt} />
+					</p>
+				</CardFooter>
+			</Surface>
+		</article>
 	);
 }

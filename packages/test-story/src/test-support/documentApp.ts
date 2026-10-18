@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { domFetch } from "#domFetch.ts";
 import { domNavigate } from "#domNavigate.ts";
-import { routeOutbound } from "#internal/routeOutbound.ts";
+import { routeOutbound } from "#routeOutbound.ts";
 import { storyKit } from "#storyKit.ts";
 import { domHost } from "#test/domHost.ts";
 

@@ -21,9 +21,9 @@ for (const { mode, url } of [
 			if (mode === "search") {
 				yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
 				click("#search-open");
-				input("#search-query", "keyboard-review");
-				const result = '[role="option"][href$="#attention-request-keyboard-review"]';
-				yield* Effect.promise(() => eventually(() => expect(findElement(result)).not.toBeNull()));
+				input('#search-dialog [role="combobox"]', "keyboard-review");
+				const result = '#search-dialog [role="option"] a[href$="#attention-request-keyboard-review"]';
+				yield* Effect.promise(() => eventually(() => expect(findElement(result, document)).not.toBeNull()));
 				click(result);
 			}
 			if (mode === "same-document") {

@@ -36,7 +36,6 @@
 		"!src/**/*.test.ts",
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
-		"docs",
 		"CHANGELOG.md",
 		"README.md"
 	],
@@ -54,7 +53,6 @@
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
-		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"react": "catalog:",
 		"typescript": "catalog:",

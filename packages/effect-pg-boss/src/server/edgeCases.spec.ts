@@ -1,280 +1,149 @@
-import { Context, Effect, Layer, Logger, Redacted, Schema } from "effect";
-import { describe, expect, it, vi } from "vitest";
+import { Context, Effect, Fiber, Redacted, Schema } from "effect";
+import { expect, vi } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
 import { PgBossError, PgBossPayloadError } from "#error.ts";
-import { makeService } from "#internal/service.ts";
-import { makePgBoss } from "#service.ts";
-import { constructorOptions } from "#test/fakeClient.ts";
+import { boss } from "#test/boss.ts";
 import { scriptedClient } from "#test/scriptedClient.ts";
 
 class ErrorReporter extends Context.Service<ErrorReporter, (error: Error) => void>()("@test/PgBossErrorReporter") {}
 
-describe("pg-boss external lifecycle boundaries", () => {
-	it("delivers background errors to the captured onError service only while its scope is open", async () => {
-		const reported = Promise.withResolvers<Error>();
-		const delivered: Error[] = [];
-		const failure = new Error("pg-boss background worker stopped unexpectedly");
-		const listeners = new Set<(error: Error) => void>();
-		const client = scriptedClient({
-			off: (_event, listener) => listeners.delete(listener),
-			on: (_event, listener) => listeners.add(listener),
-			start: async () => undefined,
-			stop: async () => undefined,
-		});
-		const Jobs = makePgBoss("@test/BackgroundErrorJobs");
-		const live = Jobs.layer({
-			...constructorOptions,
-			clientFactory: () => client,
-			jobs: [],
-			onError: (error) => Effect.flatMap(ErrorReporter, (report) => Effect.sync(() => report(error))),
-		}).pipe(
-			Layer.provide(
-				Layer.succeed(ErrorReporter, (error) => {
-					delivered.push(error);
-					reported.resolve(error);
-				}),
-			),
-		);
+boss.it("delivers background errors to the captured onError service only while its scope is open", [], function* ({ boot, events }) {
+	const reported = Promise.withResolvers<Error>();
+	const delivered: Error[] = [];
+	const failure = new Error("pg-boss background worker stopped unexpectedly");
+	const client = scriptedClient({ off: (event, listener) => events.off(event, listener), on: (event, listener) => events.on(event, listener) });
+	const runtime = yield* boot([], {
+		clientFactory: () => client,
+		onError: (error) => Effect.flatMap(ErrorReporter, (report) => Effect.sync(() => report(error))),
+	}).pipe(
+		Effect.provideService(ErrorReporter, (error) => {
+			delivered.push(error);
+			reported.resolve(error);
+		}),
+	);
+	expect(events.listenerCount("error")).toBe(1);
+	events.emit("error", failure);
+	expect(yield* Effect.promise(() => reported.promise)).toBe(failure);
+	yield* runtime.stop;
+	events.emit("error", Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" }));
+	expect(delivered).toEqual([failure]);
+});
 
-		await Effect.runPromise(
-			Effect.scoped(
-				Effect.gen(function* () {
-					yield* Jobs;
-					expect(listeners.size).toBe(1);
-					for (const listener of listeners) {
-						listener(failure);
-					}
-					expect(yield* Effect.promise(() => reported.promise)).toBe(failure);
-				}).pipe(Effect.provide(live)),
-			),
-		);
-		for (const listener of listeners) {
-			listener(Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" }));
-		}
-		expect(delivered).toEqual([failure]);
-	});
-
-	it("fails both concurrent cached builds on startup failure and starts afresh on retry", async () => {
-		const startup = Promise.withResolvers<void>();
-		const failure = new Error("external client initialization failed");
-		const stop = vi.fn(async () => undefined);
-		const failedClient = scriptedClient({ off: () => undefined, on: () => undefined, start: () => startup.promise, stop });
-		const replacement = scriptedClient({
-			off: () => undefined,
-			on: () => undefined,
-			start: async () => undefined,
-			stop: async () => undefined,
-		});
-		const factory = vi.fn().mockReturnValueOnce(failedClient).mockReturnValueOnce(replacement);
-		const Jobs = makePgBoss("@test/ConcurrentStartFailureJobs");
-		const live = Jobs.layer({
-			...constructorOptions,
-			clientCacheKey: Symbol("failed-start"),
-			clientFactory: factory,
-			jobs: [],
-		});
-		function build() {
-			return Effect.runPromise(Effect.scoped(Layer.build(live)));
-		}
-		const outcomes = Promise.allSettled([build(), build()]);
-		await vi.waitFor(() => expect(factory).toHaveBeenCalledTimes(1));
-		startup.reject(failure);
-
-		for (const outcome of await outcomes) {
-			expect(outcome.status).toBe("rejected");
-			if (outcome.status !== "rejected") {
-				throw new Error("A build unexpectedly acquired the failed client");
-			}
-			expect(outcome.reason).toBeInstanceOf(PgBossError);
-			expect(outcome.reason.operation).toBe("start");
-			expect(Redacted.value(outcome.reason.original)).toBe(failure);
-		}
-		expect(stop).toHaveBeenCalledTimes(1);
-		await build();
-		expect(factory).toHaveBeenCalledTimes(2);
-	});
-
-	it("preserves the startup error when best-effort cleanup also fails", async () => {
-		const failure = new Error("external client initialization failed");
-		const cleanupFailure = new Error("external client teardown failed");
-		const stop = vi.fn(() => Promise.reject(cleanupFailure));
-		const client = scriptedClient({
-			off: () => undefined,
-			on: () => undefined,
-			start: () => Promise.reject(failure),
-			stop,
-		});
-		const Jobs = makePgBoss("@test/StartAndStopFailureJobs");
-		try {
-			await Effect.runPromise(Effect.scoped(Layer.build(Jobs.layer({ ...constructorOptions, clientFactory: () => client, jobs: [] }))));
-			throw new Error("A build unexpectedly acquired the failed client");
-		} catch (error) {
-			expect(error).toBeInstanceOf(PgBossError);
-			if (!(error instanceof PgBossError)) {
-				throw error;
-			}
-			expect(error.operation).toBe("start");
-			expect(Redacted.value(error.original)).toBe(failure);
-		}
-		expect(stop).toHaveBeenCalledTimes(1);
-	});
-
-	it("logs a failed stop without failing the scope and evicts the cached client", async () => {
-		const failure = new Error("external client teardown failed");
-		const messages: unknown[] = [];
-		const logger = Logger.make(({ message }) => {
-			messages.push(message);
-		});
-		const stop = vi.fn(() => Promise.reject(failure));
-		const failedClient = scriptedClient({
-			off: () => undefined,
-			on: () => undefined,
-			start: async () => undefined,
-			stop,
-		});
-		const replacement = scriptedClient({
-			off: () => undefined,
-			on: () => undefined,
-			start: async () => undefined,
-			stop: async () => undefined,
-		});
-		const factory = vi.fn().mockReturnValueOnce(failedClient).mockReturnValueOnce(replacement);
-		const Jobs = makePgBoss("@test/StopFailureJobs");
-		const live = Jobs.layer({
-			...constructorOptions,
-			clientCacheKey: Symbol("failed-stop"),
-			clientFactory: factory,
-			jobs: [],
-		});
-		function build() {
-			return Effect.runPromise(Effect.scoped(Layer.build(live)).pipe(Effect.provide(Logger.layer([logger]))));
-		}
-		await build();
-		expect(stop).toHaveBeenCalledTimes(1);
-		expect(messages).toHaveLength(1);
-		const error = Array.isArray(messages[0]) ? messages[0][0] : messages[0];
+boss.it("fails both concurrent cached builds on startup failure and starts afresh on retry", [], function* ({ boot }) {
+	const startup = Promise.withResolvers<void>();
+	const failure = new Error("external client initialization failed");
+	const stop = vi.fn(async () => undefined);
+	const failedClient = scriptedClient({ start: () => startup.promise, stop });
+	const factory = vi.fn().mockReturnValueOnce(failedClient).mockReturnValueOnce(scriptedClient({}));
+	const options = { clientCacheKey: Symbol("failed-start"), clientFactory: factory };
+	const first = yield* boot([], options).pipe(Effect.exit, Effect.forkChild);
+	const second = yield* boot([], options).pipe(Effect.exit, Effect.forkChild);
+	yield* Effect.promise(() => vi.waitFor(() => expect(factory).toHaveBeenCalledTimes(1)));
+	startup.reject(failure);
+	for (const result of [yield* Fiber.join(first), yield* Fiber.join(second)]) {
+		expect(result._tag).toBe("Failure");
+		const error = yield* Effect.flip(result);
 		expect(error).toBeInstanceOf(PgBossError);
 		if (!(error instanceof PgBossError)) {
-			throw new Error("Missing typed stop error");
+			throw error;
 		}
-		expect(error.operation).toBe("stop");
-		expect(Redacted.value(error.original)).toBe(failure);
-		await build();
-		expect(factory).toHaveBeenCalledTimes(2);
-	});
+		expect(error.operation).toBe("start");
+		expect(error._tag === "PgBossError" && Redacted.value(error.original)).toBe(failure);
+	}
+	expect(stop).toHaveBeenCalledTimes(1);
+	yield* boot([], options);
+	expect(factory).toHaveBeenCalledTimes(2);
+});
 
-	it("replaces a cached schedule worker before registering its new handler", async () => {
-		const calls: string[] = [];
-		const client = scriptedClient({
-			createQueue: (name) => {
-				calls.push(`queue:${name}`);
-				return Promise.resolve();
-			},
-			getQueue: async () => null,
-			off: () => undefined,
-			offWork: (name) => {
-				calls.push(`off:${name}`);
-				return Promise.resolve();
-			},
-			on: () => undefined,
-			schedule: (name) => {
-				calls.push(`schedule:${name}`);
-				return Promise.resolve();
-			},
-			start: async () => undefined,
-			stop: async () => undefined,
-			work: (name) => {
-				calls.push(`work:${name}`);
-				return Promise.resolve("worker-id");
-			},
-		});
-		const Cleanup = defineSchedule({ cron: "17 3 * * *", name: "cached-cleanup" });
-		const Jobs = makePgBoss("@test/CachedScheduleJobs");
-		const live = Jobs.layer({
-			...constructorOptions,
-			clientCacheKey: Symbol("cached-schedule"),
-			clientFactory: () => client,
-			jobs: [Cleanup.run(Effect.void)],
-		});
-		await Effect.runPromise(
-			Effect.scoped(
-				Effect.gen(function* () {
-					yield* Layer.build(live);
-					yield* Layer.build(live);
-				}),
-			),
-		);
-		expect(calls).toEqual([
-			"queue:cached-cleanup-dlq",
-			"queue:cached-cleanup",
-			"work:cached-cleanup",
-			"schedule:cached-cleanup",
-			"off:cached-cleanup",
-			"queue:cached-cleanup-dlq",
-			"queue:cached-cleanup",
-			"work:cached-cleanup",
-			"schedule:cached-cleanup",
-		]);
-	});
+boss.it("preserves the startup error when best-effort cleanup also fails", [], function* ({ boot }) {
+	const failure = new Error("external client initialization failed");
+	const stop = vi.fn(() => Promise.reject(new Error("external client teardown failed")));
+	const client = scriptedClient({ start: () => Promise.reject(failure), stop });
+	const error = yield* Effect.flip(boot([], { clientFactory: () => client }));
+	expect(error).toBeInstanceOf(PgBossError);
+	if (!(error instanceof PgBossError)) {
+		throw error;
+	}
+	expect(error.operation).toBe("start");
+	expect(error._tag === "PgBossError" && Redacted.value(error.original)).toBe(failure);
+	expect(stop).toHaveBeenCalledTimes(1);
+});
 
-	it("rejects duplicate job names before registering either worker", async () => {
-		const stop = vi.fn(async () => undefined);
-		const reported: Error[] = [];
-		const listeners = new Set<(error: Error) => void>();
-		const client = scriptedClient({
-			off: (_event, listener) => listeners.delete(listener),
-			on: (_event, listener) => listeners.add(listener),
-			start: async () => undefined,
-			stop,
-		});
-		const Queue = defineQueue({ name: "duplicate", schema: Schema.Struct({}) });
-		const Schedule = defineSchedule({ cron: "17 3 * * *", name: "duplicate" });
-		const Jobs = makePgBoss("@test/DuplicateNamesJobs");
-		try {
-			await Effect.runPromise(
-				Effect.scoped(
-					Layer.build(
-						Jobs.layer({
-							...constructorOptions,
-							clientFactory: () => client,
-							jobs: [Queue.handle(() => Effect.void), Schedule.run(Effect.void)],
-							onError: (error) => Effect.sync(() => reported.push(error)),
-						}),
-					),
-				),
-			);
-			throw new Error("Duplicate registrations unexpectedly succeeded");
-		} catch (error) {
-			expect(error).toBeInstanceOf(PgBossError);
-			if (!(error instanceof PgBossError)) {
-				throw error;
-			}
-			expect(error.operation).toBe("register");
-			expect(Redacted.value(error.original)).toEqual(new TypeError("pg-boss job names must be unique"));
-			expect(error.message).toBe("pg-boss register failed: TypeError");
-		}
-		expect(stop).toHaveBeenCalledTimes(1);
-		for (const listener of listeners) {
-			listener(Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" }));
-		}
-		expect(reported).toEqual([]);
-	});
+boss.it("logs a failed stop without failing the scope and evicts the cached client", [], function* ({ boot, logs }) {
+	const failure = new Error("external client teardown failed");
+	const stop = vi.fn(() => Promise.reject(failure));
+	const factory = vi.fn().mockReturnValueOnce(scriptedClient({ stop })).mockReturnValueOnce(scriptedClient({}));
+	const options = { clientCacheKey: Symbol("failed-stop"), clientFactory: factory };
+	const first = yield* boot([], options);
+	yield* first.stop;
+	expect(stop).toHaveBeenCalledTimes(1);
+	expect(logs).toHaveLength(1);
+	const message = logs[0]?.message;
+	const error = Array.isArray(message) ? message[0] : message;
+	expect(error).toBeInstanceOf(PgBossError);
+	if (!(error instanceof PgBossError)) {
+		throw error;
+	}
+	expect(error.operation).toBe("stop");
+	expect(Redacted.value(error.original)).toBe(failure);
+	const second = yield* boot([], options);
+	yield* second.stop;
+	expect(factory).toHaveBeenCalledTimes(2);
+});
 
-	it("rejects an unencodable consumer payload before sending it", async () => {
-		const client = scriptedClient({});
-		const Queue = defineQueue({ name: "encode-failure", schema: Schema.Struct({ id: Schema.NumberFromString.check(Schema.isFinite()) }) });
-		const service = makeService(client, []);
-		try {
-			await Effect.runPromise(service.enqueue(Queue, { id: Number.NaN }));
-			throw new Error("An unencodable payload unexpectedly succeeded");
-		} catch (error) {
-			expect(error).toBeInstanceOf(PgBossPayloadError);
-			if (!(error instanceof PgBossPayloadError)) {
-				throw error;
-			}
-			expect(error.direction).toBe("encode");
-			expect(error.queue).toBe("encode-failure");
-			expect(String(Redacted.value(error.original))).toBe('SchemaError(Expected a finite number\n  at ["id"])');
-		}
-	});
+boss.it("replaces a cached schedule worker before registering its new handler", [], function* ({ boot, client }) {
+	const calls: string[] = [];
+	const offWork = client.offWork.bind(client);
+	const work = client.work.bind(client);
+	client.offWork = (name) => {
+		calls.push(`off:${name}`);
+		return offWork(name);
+	};
+	client.work = (name, workOptions, run) => {
+		calls.push(`work:${name}`);
+		return work(name, workOptions, run);
+	};
+	const Cleanup = defineSchedule({ cron: "17 3 * * *", name: "cached-cleanup" });
+	const options = { clientCacheKey: Symbol("cached-schedule") };
+	const first = yield* boot([Cleanup.run(Effect.void)], options);
+	const second = yield* boot([Cleanup.run(Effect.void)], options);
+	expect(calls).toEqual(["work:cached-cleanup", "off:cached-cleanup", "work:cached-cleanup"]);
+	yield* first.stop;
+	yield* second.stop;
+});
+
+boss.it("rejects duplicate job names before registering either worker", [], function* ({ boot, client }) {
+	const reported: Error[] = [];
+	const Queue = defineQueue({ name: "duplicate", schema: Schema.Struct({}) });
+	const Schedule = defineSchedule({ cron: "17 3 * * *", name: "duplicate" });
+	const error = yield* Effect.flip(
+		boot([Queue.handle(() => Effect.void), Schedule.run(Effect.void)], { onError: (failure) => Effect.sync(() => reported.push(failure)) }),
+	);
+	expect(error).toBeInstanceOf(PgBossError);
+	if (!(error instanceof PgBossError)) {
+		throw error;
+	}
+	expect(error.operation).toBe("register");
+	expect(error._tag === "PgBossError" && Redacted.value(error.original)).toEqual(new TypeError("pg-boss job names must be unique"));
+	expect(error.message).toBe("pg-boss register failed: TypeError");
+	expect(client.workers).toEqual([]);
+	expect(client.stopCalls).toBe(1);
+	for (const listener of client.errors) {
+		listener(Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" }));
+	}
+	expect(reported).toEqual([]);
+});
+
+boss.it("rejects an unencodable consumer payload before sending it", [], function* ({ boot, client }) {
+	const Queue = defineQueue({ name: "encode-failure", schema: Schema.Struct({ id: Schema.NumberFromString.check(Schema.isFinite()) }) });
+	const { jobs } = yield* boot([Queue]);
+	const error = yield* Effect.flip(jobs.enqueue(Queue, { id: Number.NaN }));
+	expect(error).toBeInstanceOf(PgBossPayloadError);
+	if (!(error instanceof PgBossPayloadError)) {
+		throw error;
+	}
+	expect(error.direction).toBe("encode");
+	expect(error.queue).toBe("encode-failure");
+	expect(String(Redacted.value(error.original))).toBe('SchemaError(Expected a finite number\n  at ["id"])');
+	expect(client.sendCalls).toEqual([]);
 });

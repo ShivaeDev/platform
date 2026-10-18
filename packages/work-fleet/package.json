@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/work-fleet",
-	"version": "0.7.0",
+	"version": "0.8.0",
 	"description": "Optional Board-backed execution, review and authorized delivery",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-fleet#readme",
 	"bugs": {
@@ -68,7 +68,7 @@
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",
-		"typescript": "catalog:",
+		"typescript": "catalog:compiler-api",
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {

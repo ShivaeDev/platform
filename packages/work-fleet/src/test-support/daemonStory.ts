@@ -10,6 +10,7 @@ import { cliProcess } from "#test/fleetCli.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import { untilError, untilOutput } from "#test/follower.ts";
 import { type Follower, followerProcess } from "#test/followerProcess.ts";
+import { ownedFollower } from "#test/ownedFollower.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { statusRecord } from "#test/status.ts";
 import { storeState } from "#test/storeState.ts";
@@ -41,9 +42,17 @@ export const fleetDaemon = storyKit({
 	runIf: postgresEnabled,
 	stages: ["daemon"],
 	verbs: (engine, story) => ({
-		awaitError: (text: string) => untilError(follower(engine), text),
+		awaitError: (text: string, offset = 0) => untilError(follower(engine), text, offset),
 		awaitOutput: (text: string) => untilOutput(follower(engine), text),
-		awaitSnapshot: () => Effect.promise(() => engine.daemon.subscribed).pipe(Effect.timeout("5 seconds")),
+		awaitSnapshot: () =>
+			Effect.promise(() =>
+				Promise.race([
+					engine.daemon.subscribed,
+					follower(engine).done.then((result) => {
+						throw new Error(`Follower exited before its snapshot: ${JSON.stringify(result)}`);
+					}),
+				]),
+			).pipe(Effect.timeout("5 seconds")),
 		client: (args: readonly [string, ...string[]]) =>
 			Effect.promise(async () => {
 				story.tell(`run ${args[0]} against the fixture Board`);
@@ -59,6 +68,16 @@ export const fleetDaemon = storyKit({
 		exit: () => Effect.promise(() => follower(engine).done).pipe(Effect.timeout("5 seconds")),
 		isRunning: () => follower(engine).isRunning(),
 		output: () => follower(engine).output(),
+		ownedWatchWithoutDiscovery: () => {
+			story.tell("start a follower on its owned daemon without a discovery file");
+			return ownedFollower(engine.fixture).pipe(
+				Effect.tap((watch) =>
+					Effect.sync(() => {
+						engine.follower = watch;
+					}),
+				),
+			);
+		},
 		port: () => engine.daemon.port,
 		portFile: () =>
 			Effect.sync(() => {
@@ -70,19 +89,21 @@ export const fleetDaemon = storyKit({
 				story.tell(`replace the Board port file with ${port}`);
 				engine.fixture.write(".fleet-port", `${port}\n`);
 			}),
-		restart: () =>
+		restart: (port = 0) =>
 			Effect.gen(function* () {
-				story.tell("restart the daemon on an allocated port");
+				story.tell(`restart the daemon on ${port === 0 ? "an allocated port" : `port ${port}`}`);
 				const previousPort = engine.daemon.port;
-				yield* engine.daemon.close;
-				engine.daemon = yield* discoveryDaemon(engine.fixture);
-				if (engine.daemon.port === previousPort) {
+				yield* engine.daemon.close.pipe(Effect.timeout("5 seconds"));
+				story.tell("the old daemon stopped; start its replacement");
+				engine.daemon = yield* discoveryDaemon(engine.fixture, port);
+				story.tell("the replacement daemon is ready for a subscription");
+				if (port === 0 && engine.daemon.port === previousPort) {
 					return yield* Effect.die("Restart discovery stories require a different daemon port");
 				}
 			}),
 		stop: () => {
 			story.tell("stop the daemon");
-			return engine.daemon.close;
+			return engine.daemon.close.pipe(Effect.timeout("5 seconds"));
 		},
 		transition: (workId: string, stage: FleetRecord["stage"], decision?: FleetRecord["decision"]) => {
 			story.tell(`${workId} enters ${stage}`);
@@ -90,11 +111,11 @@ export const fleetDaemon = storyKit({
 				Effect.provideService(Reactivity.Reactivity, engine.daemon.reactivity),
 			);
 		},
-		watch: (interval: number, options: { readonly port?: number; readonly timeout?: number } = {}) =>
+		watch: (interval: number, options: { readonly ids?: readonly string[]; readonly port?: number; readonly timeout?: number } = {}) =>
 			Effect.gen(function* () {
 				const { port } = options;
 				story.tell(`start watch --follow ${port === undefined ? "without --port" : `with --port ${port}`}`);
-				engine.follower = yield* followerProcess(engine.fixture.configFile, "watch", [], {
+				engine.follower = yield* followerProcess(engine.fixture.configFile, "watch", options.ids ?? [], {
 					follow: true,
 					interval,
 					...options,

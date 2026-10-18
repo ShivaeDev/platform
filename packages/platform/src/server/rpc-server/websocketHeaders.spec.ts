@@ -1,48 +1,54 @@
-import { Effect } from "effect";
-import { HttpServerRequest } from "effect/http";
-import { RpcSerialization, RpcServer } from "effect/rpc";
-import { Socket } from "effect/socket";
-import { expect, it } from "vitest";
+import { expect } from "vitest";
 import { trustedOrigins } from "#server/rpc-server/origin.ts";
-import { Api, serverLayer } from "#test/rpc/api.ts";
-import { createProvider, ORIGIN, type Provider, signup } from "#test/rpc/harness.ts";
+import { ORIGIN } from "#test/rpc/harness.ts";
+import { originPolicy, sessions, signedUp, websocketHeaders } from "#test/rpc/sessionStory.ts";
 
-function upgradeable(request: Request, socket: Socket.Socket) {
-	return new Proxy(HttpServerRequest.fromWeb(request), {
-		get: (target, key, receiver) => (key === "upgrade" ? Effect.succeed(socket) : Reflect.get(target, key, receiver)),
-	});
-}
-function whoamiOverWebSocket(provider: Provider, transport: Readonly<Record<string, string>>, message: ReadonlyArray<readonly [string, string]>) {
-	const inbound = new TransformStream<string, string>();
-	const outbound = new TransformStream<Uint8Array, Uint8Array>();
-	return Effect.runPromise(
-		Effect.gen(function* () {
-			const socket = yield* Socket.fromTransformStream(Effect.succeed({ readable: inbound.readable, writable: outbound.writable }));
-			const { protocol, httpEffect } = yield* RpcServer.makeProtocolWithHttpEffectWebsocket;
-			yield* Effect.forkScoped(Effect.provideService(RpcServer.make(Api), RpcServer.Protocol, protocol));
-			const request = upgradeable(new Request(`${ORIGIN}/rpc`, { headers: transport }), socket);
-			yield* Effect.forkScoped(Effect.provideService(httpEffect, HttpServerRequest.HttpServerRequest, request));
-			const writer = inbound.writable.getWriter();
-			const reader = outbound.readable.getReader();
-			yield* Effect.promise(() => writer.write(JSON.stringify({ _tag: "Request", headers: message, id: "1", payload: null, tag: "Whoami" })));
-			const { value } = yield* Effect.promise(() => reader.read());
-			return new TextDecoder().decode(value);
-		}).pipe(
-			Effect.provide(serverLayer(provider, trustedOrigins({ allow: [ORIGIN], missing: "reject" }))),
-			Effect.provide(RpcSerialization.layerJson),
-			Effect.scoped,
-		),
-	);
-}
-it("WebSocket RPC decides origin and session from the upgrade request, not message headers", async () => {
-	const provider = await createProvider();
-	try {
-		const alice = await signup(provider, "alice");
-		expect(await whoamiOverWebSocket(provider, { cookie: alice.cookie, origin: ORIGIN }, [])).toContain(alice.userId);
-		const hijack = await whoamiOverWebSocket(provider, { cookie: alice.cookie, origin: "https://attacker.example" }, [["origin", ORIGIN]]);
-		expect(hijack).toMatch(/"_tag":"Forbidden".*"Origin not allowed"/u);
-		expect(await whoamiOverWebSocket(provider, { origin: ORIGIN }, [["cookie", alice.cookie]])).toContain('"_tag":"Unauthorized"');
-	} finally {
-		provider.database.close();
-	}
-});
+sessions.it(
+	"WebSocket RPC authenticates the session from the upgrade request",
+	[originPolicy(), signedUp("alice"), websocketHeaders("alice")],
+	function* ({ account, websocket }) {
+		const alice = account("alice");
+		expect(yield* websocket([])).toContain(alice.userId);
+	},
+);
+
+sessions.it(
+	"WebSocket RPC rejects an untrusted upgrade origin despite forged message headers",
+	[originPolicy(), signedUp("alice"), websocketHeaders("alice", { origin: "https://attacker.example" })],
+	function* ({ websocket }) {
+		expect(yield* websocket([["origin", ORIGIN]])).toMatch(/"_tag":"Forbidden".*"Origin not allowed"/u);
+	},
+);
+
+sessions.it(
+	"WebSocket RPC ignores a message cookie when the upgrade is anonymous",
+	[originPolicy(), signedUp("alice"), websocketHeaders()],
+	function* ({ account, websocket }) {
+		expect(yield* websocket([["cookie", account("alice").cookie]])).toContain('"_tag":"Unauthorized"');
+	},
+);
+
+sessions.it(
+	"WebSocket RPC uses the application's configured origin policy",
+	[
+		originPolicy("browser", trustedOrigins({ allow: ["https://desktop.example"], missing: "reject" })),
+		signedUp("alice"),
+		websocketHeaders("alice", { origin: "https://desktop.example" }),
+	],
+	function* ({ account, websocket }) {
+		const alice = account("alice");
+		expect(yield* websocket([])).toContain(alice.userId);
+	},
+);
+
+sessions.it(
+	"WebSocket RPC rejects an upgrade origin excluded by the application's configured policy",
+	[
+		originPolicy("browser", trustedOrigins({ allow: ["https://desktop.example"], missing: "reject" })),
+		signedUp("alice"),
+		websocketHeaders("alice", { origin: ORIGIN }),
+	],
+	function* ({ websocket }) {
+		expect(yield* websocket([])).toContain('"_tag":"Forbidden"');
+	},
+);

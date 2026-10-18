@@ -32,6 +32,7 @@ export function engineIntegrations(options: EngineOptions, merged: string[]) {
 				return checks;
 			});
 			return {
+				...(options.publicationQuery === undefined ? {} : { publication: options.publicationQuery }),
 				checks: (_board, result) => checkResult(result),
 				delivery: (result) =>
 					options.deliveryQuery?.(result)

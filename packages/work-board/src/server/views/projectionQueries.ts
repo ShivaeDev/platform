@@ -3,6 +3,7 @@ import type { BoardProjection, WorkProjection } from "#browser/views/schema.ts";
 import { stateOf } from "#browser/views/state.ts";
 import { inboxItems } from "#server/attention/inbox.ts";
 import { attentionProjection } from "#server/attention/projection.ts";
+import { requestInbox } from "#server/attention/requestInbox.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import { boardOf, countsOf } from "#server/render/board.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
@@ -28,8 +29,10 @@ export const projectionQueries = Effect.gen(function* () {
 						.filter((entry) => !entry.problem)
 						.map((entry) => [entry.id, entry.reason]),
 				);
+				const answered = new Map(requestInbox(snapshot).answered.map((entry) => [entry.id, entry.answered]));
 				function toItem({ document: source, id, title }: Item) {
 					return {
+						answered: waiting.has(id) ? undefined : answered.get(id),
 						file: source.file,
 						fleetApproved: fleetApproval(source.parsed),
 						id,

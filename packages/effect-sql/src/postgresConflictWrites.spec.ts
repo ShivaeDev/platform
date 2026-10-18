@@ -1,40 +1,17 @@
-import { Context, Effect, Option, Schema, SchemaGetter } from "effect";
-import { Model } from "effect/schema";
-import { SqlClient } from "effect/sql";
+import { Effect, Option } from "effect";
 import { expect } from "vitest";
-import { makeRepository } from "#repository.ts";
-import { integration, runPostgres } from "#test/postgresTransact.ts";
+import { Account, Prefix } from "#test/conflictAccounts.ts";
+import { hasConflictAccounts } from "#test/repositoryTraits.ts";
+import { postgres } from "#test/sqlStory.ts";
 
-class Prefix extends Context.Service<Prefix, string>()("ingest/Prefix") {}
-const ExternalKey = Schema.String.pipe(
-	Schema.decodeTo(Schema.String, {
-		decode: SchemaGetter.transformEffect((value: string) => Effect.map(Prefix, (prefix) => value.slice(prefix.length))),
-		encode: SchemaGetter.transformEffect((value: string) => Effect.map(Prefix, (prefix) => prefix + value)),
-	}),
-);
-class Account extends Model.Class<Account>("Account")({
-	amount: Schema.NumberFromString,
-	createdAt: Model.Field({ json: Schema.DateFromString, select: Schema.Date }),
-	email: Schema.String,
-	externalKey: ExternalKey,
-	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
-	note: Schema.optional(Schema.NullOr(Schema.String)),
-	origin: Model.Field({ insert: Schema.String, select: Schema.String }),
-}) {}
-
-integration("PostgreSQL conflict writes use declared unique keys, generated fields and codec services", async () => {
-	await runPostgres(
-		Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
+postgres.it(
+	"PostgreSQL conflict writes use declared unique keys, generated fields and codec services",
+	[hasConflictAccounts()],
+	function* ({ sql, makeRepository, conflictAccounts }) {
+		yield* Effect.gen(function* () {
 			yield* sql.withTransaction(
 				Effect.gen(function* () {
-					const tableName = `platform_effect_sql_accounts_${crypto.randomUUID().replaceAll("-", "")}`;
-					yield* sql`create temporary table ${sql(tableName)} (
-        id integer generated always as identity primary key, "externalKey" text not null unique,
-        email text not null unique, amount text not null, origin text not null, note text,
-        "createdAt" timestamptz not null default now()
-      ) on commit drop`;
-					const accounts = yield* makeRepository(Account, { conflictColumns: ["externalKey"], idColumn: "id", spanPrefix: "Account", tableName });
+					const { accounts, tableName } = conflictAccounts();
 					const input = { amount: 52, email: "one@example.test", externalKey: "one", origin: "import" };
 					const original = Option.getOrThrow(yield* accounts.insertOrIgnore(input));
 					expect(original).toBeInstanceOf(Account);
@@ -68,6 +45,6 @@ integration("PostgreSQL conflict writes use declared unique keys, generated fiel
 					expect(yield* accounts.findMany()).toEqual([updated]);
 				}),
 			);
-		}).pipe(Effect.provideService(Prefix, "prefix:")),
-	);
-});
+		}).pipe(Effect.provideService(Prefix, "prefix:"));
+	},
+);

@@ -27,5 +27,8 @@ hooks pre-commit  What the hook runs: lint, then package.json scripts typecheck 
 --against <ref>  The branch the work merges into, whose merge base prune follows moves from. Defaults to origin/HEAD, then origin/main, then origin/master.
 Exit codes: 0 passed, 1 failed the gate, 2 could not run.`;
 
-export const ADOPT_REMOVED =
-	"`quality adopt` was removed in 0.7.0. To record a rule's existing findings in the baseline, run `quality baseline write --rule <id>`; to apply the fixes Biome can make first, run `quality fix`.";
+export const SUBCOMMANDS: Readonly<Record<string, string>> = {
+	baseline: "baseline takes write, prune, tighten or migrate.",
+	exceptions: "exceptions takes migrate.",
+	hooks: "hooks takes install, uninstall or pre-commit.",
+};
