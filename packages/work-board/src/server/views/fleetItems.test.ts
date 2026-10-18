@@ -1,13 +1,15 @@
-import { Effect } from "effect";
+import { Effect, PlatformError } from "effect";
+import { RpcTest } from "effect/rpc";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { browserClient } from "#client/client.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
+import { workRpcs } from "#rpc/contract.ts";
 import { type Folder, folder, startBoard } from "#test/board.ts";
 import { codexResponse, githubObservations, health } from "#test/diagnostics.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
-import { fleetItems } from "./fleetItems.ts";
+import { inMemoryBoard } from "#test/inMemoryBoard.ts";
 
 let notes: Folder;
 afterEach(() => notes?.remove());
@@ -98,7 +100,22 @@ it.live("a Board with no configured Fleet returns unavailable over RPC", functio
 
 it.live("a Board index failure becomes unavailable instead of a page error", function* () {
 	const daemon = yield* diagnosticsDaemon(snapshot, 0, () => data);
-	expect(yield* fleetItems({ fleetPort: daemon.port, index: Effect.fail("Synthetic index failure") })).toEqual({
+	const projection = yield* Effect.gen(function* () {
+		const client = yield* RpcTest.makeClient(workRpcs, { flatten: true });
+		return yield* client("work-board.fleetItems", undefined);
+	}).pipe(
+		Effect.provide(
+			inMemoryBoard(
+				{},
+				{
+					fleetPort: daemon.port,
+					home: undefined,
+					index: Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readDirectory", module: "FileSystem" })),
+				},
+			),
+		),
+	);
+	expect(projection).toEqual({
 		reason: "Board documents could not be read for Fleet items",
 		state: "unavailable",
 	});

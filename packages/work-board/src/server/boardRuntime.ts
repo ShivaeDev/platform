@@ -1,16 +1,15 @@
 import { Context, Effect, FileSystem, Layer, Path, type PlatformError } from "effect";
-import { DiagnosticsSources } from "#diagnostics/source.ts";
+import { DiagnosticsConfig, DiagnosticsSources } from "#diagnostics/source.ts";
 import type { BoardOptions } from "#server/board.ts";
 import { boardServices } from "#server/boardServices.ts";
 import { daemonDiagnostics } from "#server/diagnostics/daemon.ts";
-import { readDocument } from "#server/document/read.ts";
 import { watchChanges } from "#server/files/changes.ts";
 import { homeIn } from "#server/files/home.ts";
 import { checkBrowserAssets, mermaidRoot } from "#server/http/assets.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
-import { handlers } from "#server/rpc/handlers.ts";
 import { type Snapshot, searchSnapshot } from "#server/search/snapshot.ts";
+import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
 
 export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (options: BoardOptions, server?: HandlerOptions["server"]) {
 	const home = yield* homeIn(options.root, options.home);
@@ -28,30 +27,26 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 	);
 	const provided = yield* Effect.serviceOption(DiagnosticsSources);
 	const services = yield* Layer.build(
-		boardServices(
-			{ changes, enabled: options.responses === true, index: Effect.provideContext(index, platform), root: options.root },
-			provided._tag === "Some" ? { _tag: "Sources", sources: provided.value } : { _tag: "Read", read: daemonDiagnostics(options.fleetPort) },
+		boardServices({
+			...(options.fleetPort === undefined ? {} : { fleetPort: options.fleetPort }),
+			...(server === undefined ? {} : { server }),
+		}).pipe(
+			Layer.provideMerge(Workspace.layer),
+			Layer.provide([
+				Layer.succeed(WorkspaceConfig, {
+					changes,
+					home,
+					index: Effect.provideContext(index, platform),
+					root: options.root,
+					writable: options.responses === true,
+				}),
+				Layer.succeed(
+					DiagnosticsConfig,
+					provided._tag === "Some" ? { _tag: "Sources", sources: provided.value } : { _tag: "Read", read: daemonDiagnostics(options.fleetPort) },
+				),
+			]),
 		),
 	);
 	const context = Context.merge(platform, services);
-	const rpcHandlers = yield* handlers({
-		...(options.fleetPort === undefined ? {} : { fleetPort: options.fleetPort }),
-		changes,
-		document: (url) =>
-			Effect.provideContext(
-				readDocument({
-					changes,
-					home,
-					index: Effect.provideContext(index, context),
-					root: options.root,
-					writable: options.responses === true,
-				})(url),
-				context,
-			),
-		home,
-		index: Effect.provideContext(index, context),
-		...(server === undefined ? {} : { server }),
-		writable: options.responses === true,
-	}).pipe(Effect.provideContext(context));
-	return { changes, context, home, index, mermaid, rpcHandlers };
+	return { changes, context, home, index, mermaid, rpcHandlers: Layer.succeedContext(services) };
 });

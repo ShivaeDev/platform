@@ -53,7 +53,11 @@ const ReadWork = query("work", {
 const ReadInbox = query("inbox", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: InboxProjection });
 const ReadServer = query("server", { reads: () => [], rejections: { ServiceUnavailable }, success: Server });
 const ReadDiagnostics = query("diagnostics", { reads: () => [workspace.list], rejections: { InternalServerError }, success: DiagnosticsProjection });
-const ReadFleetItems = query("fleetItems", { reads: () => [workspace.list, index.list], success: FleetItemsProjection });
+const ReadFleetItems = query("fleetItems", {
+	reads: () => [workspace.list, index.list],
+	rejections: { InternalServerError },
+	success: FleetItemsProjection,
+});
 const ReadGoals = query("goals", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: GoalsProjection });
 const ReadStart = query("start", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: StartProjection });
 const ReadRespond = query("respond", {

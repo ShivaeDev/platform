@@ -1,29 +1,20 @@
-import { Clock, Context, Effect, FileSystem, Path, Schema, Semaphore } from "effect";
+import { Clock, Effect, FileSystem, Path, Schema, Semaphore } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { Conflict, Forbidden, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
 import type { DraftInput } from "#browser/responses/schema.ts";
-import type { Changes } from "#server/files/changes.ts";
-import type { Snapshot } from "#server/search/snapshot.ts";
-import { awaitResponse } from "./await.ts";
-import { responseHistory } from "./history.ts";
-import { locate as locateQuestion } from "./locate.ts";
-import { makeResponse } from "./make.ts";
-import { publish } from "./publish.ts";
-import { readResponses } from "./read.ts";
-import { responseMarkdown } from "./records.ts";
-import { registerQuestion } from "./registerQuestion.ts";
-import { retryResponse } from "./retry.ts";
-import { validatedInput } from "./validatedInput.ts";
-import { validateSupersedes } from "./validateSupersedes.ts";
-
-export interface ResponseOptions {
-	readonly changes: Changes;
-	readonly enabled: boolean;
-	readonly index: Effect.Effect<Snapshot, unknown>;
-	readonly root: string;
-}
-export class ResponseConfig extends Context.Service<ResponseConfig, ResponseOptions>()("WorkBoard/ResponseConfig") {}
+import { awaitResponse } from "#server/responses/await.ts";
+import { responseHistory } from "#server/responses/history.ts";
+import { locate as locateQuestion } from "#server/responses/locate.ts";
+import { makeResponse } from "#server/responses/make.ts";
+import { publish } from "#server/responses/publish.ts";
+import { readResponses } from "#server/responses/read.ts";
+import { responseMarkdown } from "#server/responses/records.ts";
+import { registerQuestion } from "#server/responses/registerQuestion.ts";
+import { retryResponse } from "#server/responses/retry.ts";
+import { validatedInput } from "#server/responses/validatedInput.ts";
+import { validateSupersedes } from "#server/responses/validateSupersedes.ts";
+import { Workspace } from "#server/workspace.ts";
 
 function invalidResponse(cause: unknown): Conflict {
 	return Schema.is(Conflict)(cause)
@@ -34,19 +25,20 @@ function invalidResponse(cause: unknown): Conflict {
 export const Responses = defineService({
 	id: "WorkBoard/Responses",
 	initialize: Effect.gen(function* () {
-		return { fs: yield* FileSystem.FileSystem, lock: yield* Semaphore.make(1), options: yield* ResponseConfig };
+		const workspace = yield* Workspace;
+		return { fs: yield* FileSystem.FileSystem, lock: yield* Semaphore.make(1), options: yield* workspace.settings(), workspace };
 	}),
-	methods: ({ options, fs, lock }) => {
-		const snapshot = options.index.pipe(
+	methods: ({ options, fs, lock, workspace }) => {
+		const snapshot = workspace.index().pipe(
 			rpcBoundary(ServiceUnavailable, {
 				message: "The workspace could not be indexed.",
 				unexpected: (message) => new ServiceUnavailable({ message }),
 			}),
 		);
-		const enabled = options.enabled
+		const enabled = options.writable
 			? Effect.void
 			: Effect.fail(new Forbidden({ message: "Start with --responses to explicitly enable local question/response writes." }));
-		const locate = locateQuestion(options.root, options.changes.realRoot, snapshot, fs);
+		const locate = locateQuestion(options.root, options.realRoot, snapshot, fs);
 		const read = readResponses(snapshot);
 		const register = registerQuestion(options, snapshot, locate, read);
 		function record(draft: DraftInput) {
@@ -80,7 +72,7 @@ export const Responses = defineService({
 						question,
 						result.responses.reduce((time, saved) => Math.max(time, saved.response.recordedAt + 1), yield* Clock.currentTimeMillis),
 					);
-					yield* publish(options.root, options.changes.realRoot, response.id, responseMarkdown(response)).pipe(
+					yield* publish(options.root, options.realRoot, response.id, responseMarkdown(response)).pipe(
 						Effect.ensuring(options.changes.refresh ?? Effect.void),
 					);
 					return response;
@@ -107,6 +99,6 @@ export const Responses = defineService({
 			register: (input: Parameters<typeof register>[0]) => lock.withPermit(register(input)),
 		};
 	},
-	requires: [ResponseConfig, FileSystem.FileSystem, Path.Path],
+	requires: [Workspace, FileSystem.FileSystem, Path.Path],
 });
 export type Responses = typeof Responses.Identifier;
