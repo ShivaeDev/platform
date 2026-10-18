@@ -28,8 +28,8 @@
 		},
 		"#*.css": "./src/*.css",
 		"#client/react/components/ui/button": {
-			"types": "./dist/client/react/components/ui/button.d.ts",
 			"source": "./src/client/react/components/ui/button.tsx",
+			"types": "./dist/client/react/components/ui/button.d.ts",
 			"default": "./dist/client/react/components/ui/button.js"
 		}
 	},
