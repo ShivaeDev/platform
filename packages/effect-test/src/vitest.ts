@@ -1,6 +1,6 @@
 import { it as effectIt, type TestContext, type TestOptions } from "@effect/vitest";
-import { Cause, type Context, Effect, Exit, type Layer, Scope } from "effect";
-import { environmentFor } from "#internal/environmentFor.ts";
+import { type Context, Effect, Exit, type Layer, Scope } from "effect";
+import { runEffectTest } from "#internal/runEffectTest.ts";
 import { type AnyTestLayer, buildTestLayer } from "./anyTestLayer.ts";
 import type { EffectClock, EffectTest, EffectTestBody, EffectTester, EffectTestOptions, MakeEffectItOptions, MakeEffectItResult } from "./types.ts";
 
@@ -21,20 +21,6 @@ function restoreContext<TProvided>(
 		[fixtureName]: fixture,
 	};
 }
-
-const runEffectTest = <A, E>(effect: Effect.Effect<A, E, Scope.Scope>, context: TestContext, clock: EffectClock): Promise<A> =>
-	Effect.runPromise(
-		Effect.gen(function* () {
-			const exit = yield* Effect.exit(effect);
-			if (Exit.isFailure(exit)) {
-				for (const error of Cause.prettyErrors(exit.cause)) {
-					yield* Effect.logError(error);
-				}
-			}
-			return yield* exit;
-		}).pipe(Effect.scoped, Effect.provide(environmentFor(clock))),
-		{ signal: context.signal },
-	);
 
 function splitOptions(options: number | EffectTestOptions | undefined): {
 	readonly vitest: TestOptions;
