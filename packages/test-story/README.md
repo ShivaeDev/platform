@@ -270,7 +270,7 @@ For timeout stories, return `undefined` from the `status` callback to accept an 
 
 #### Faking an outbound HTTP API
 
-Use `fakeHttpService` from `@shivaedev/test-story/fakeHttpService.ts` in a kit's scoped `create` hook. Like the OTLP receiver, it listens on an allocated loopback port and closes with the scope. Routes have names for controls, a method (default `GET`), and a path whose `:segments` become decoded `request.params`. A reply receives the request and returns a JSON `body`, optional `status` (default 200), and optional response `headers`.
+Use `fakeHttpService` from `@shivaedev/test-story/fakeHttpService.ts` in a kit's scoped `create` hook. Like the OTLP receiver, it listens on an allocated loopback port and closes with the scope. Routes have names for controls, a method (default `GET`), and a path whose `:segments` become decoded `request.params`. A reply receives the request and returns a JSON `body` (or a `Uint8Array`/Buffer sent as raw bytes), optional `status` (default 200), and optional response `headers`.
 
 ```ts
 import { fakeHttpService } from "@shivaedev/test-story/fakeHttpService.ts";
@@ -299,6 +299,26 @@ const user = yield* Fiber.join(pending);
 ```
 
 `application.loadUser` is the application's real client call. `failOnce` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses that route until `release`; `waiting` completes when a request reaches the hold, so a story needs no polling to know when to release it. Other routes still answer. Effects that wait for HTTP should use a live-clock kit.
+
+Use the controls through kit verbs after acquiring the service. `replyOnce(route, reply)` scripts the next authorized reply, including raw bytes or `chunks`, a synchronous or asynchronous iterable of strings and byte arrays. Set `headers["content-type"]` to the story's media type; the default is JSON. Chunks are written in iteration order as they become available, so an async iterable can wait between pieces.
+
+```ts
+yield* api.replyOnce("download", {
+  body: Uint8Array.from([0, 255, 128]),
+  headers: { "content-type": "application/octet-stream" },
+});
+const stalled = yield* api.stall("download");
+const pending = yield* Effect.forkChild(application.download());
+yield* stalled.waiting;
+yield* stalled.release;
+const bytes = yield* Fiber.join(pending);
+```
+
+`stall(route)` sends the reply's status and headers, then pauses its body. Its `waiting` effect completes at that pause. Its `release` lets the body continue; a client that gives up also stops waiting on the server. Like a hold, a stall remains installed for matching requests until released. Holds pause before headers. `releaseOnArrival(heldRoute, arrivingRoute)` releases the current hold when an authorized request reaches the named route; script it before that arrival. Rejected requests do not trigger release.
+
+`fault(route, fault)` acts on an arrived request in the required phase. `{ kind: "status", reply: { status: 503, body: { error: "unavailable" } } }` replaces a held reply before headers. `{ kind: "drop" }` drops a connection before headers. `{ kind: "reset" }` terminates a reply after headers, including after body chunks have arrived. Wait for the hold, stall or client observation before injecting the fault. A fault fails with guidance when no request is in the required phase; it does not queue a failure for a future call. `failOnce` continues to queue a status reply for the next request.
+
+All controls validate route names and narrate through the service's story sink. Closing the scope closes active connections and releases holds, stalls and arrival scripts.
 
 A `pages` route accepts a one-based `?page=` query and returns `{ items, next }`, with `next: null` on the last page. No query means page 1; a page past the end returns an empty list; a non-positive or non-integer page gets 400. `api.requests` reads a snapshot of the request log, including rejected and held requests, with `method`, `path` (including query), raw `body` Buffer, `headers`, `params` and `query`.
 
@@ -577,7 +597,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `domNavigate.ts` | `domNavigate(url?)` |
 | `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
 | `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
-| `fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpHold`, `FakeHttpServiceOptions` |
+| `fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpFault`, `FakeHttpHold`, `FakeHttpServiceOptions` |
 | `forwardingProxy.ts` | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions` |
 | `otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
 
