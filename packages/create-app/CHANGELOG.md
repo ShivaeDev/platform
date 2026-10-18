@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 - 2026-10-18
+
+### Added
+
+- Generated apps include light and dark shadcn tokens that meet WCAG AA for text and focus, follow the system color scheme, and offer a saved System, Light or Dark theme choice. A contrast story checks the stylesheet's text and focus pairs.
+- Generated apps include a PostgreSQL story that applies every numbered migration and checks Better Auth's configured plugins need no additional columns or tables.
+
 ## 0.8.0 - 2026-10-18
 
 ### Added

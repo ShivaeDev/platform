@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.20.0 - 2026-10-18
+
+### Added
+
+- The Today summary row ends with how many workspace sources have problems, linking to a new Source problems section on System, which lists each problem's file, line and reason.
+
+### Changed
+
+- Answer cards use the stock shadcn RadioGroup for single-choice questions and the stock Checkbox for multi-choice questions. Arrow keys move and select within a single-choice question, which is one Tab stop, and Space toggles a multi-choice option. Labels, descriptions, the recommended option and the recorded answers are unchanged.
+- Today's Needs you, Answered and Later rows no longer repeat their section's state in a status chip; each row keeps its ID, age and Answer control.
+- Status chips on Now, goal and item pages, search results, the All work status filter and the Library's rows and status filter show plain words such as "Needs you", "Blocked" or "In progress" instead of raw values like `needs-you`.
+- The Library and All work status filters offer one option per plain name, matching every status that shares it, so **Needs you** lists both `needs-you` and `needs-human` items. `client.api.library.query({ status })` matches the same way and returns one entry per name in `statuses`.
+
+### Fixed
+
+- Opening the Board shows its header, sidebar and an "Opening view…" state at once instead of a blank page while the workspace is still being indexed.
+- The live status reads "connecting" before the first live update, instead of a red "reconnecting".
+- The Board starts indexing the workspace as soon as it starts and reads files concurrently, so the first page after a start waits less for its data.
+
 ## 0.19.0 - 2026-10-18
 
 ### Added
