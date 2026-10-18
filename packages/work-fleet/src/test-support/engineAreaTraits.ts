@@ -6,6 +6,8 @@ import { engineConfiguration } from "#test/engineConfiguration.ts";
 
 export function deliveryChangesAfterAreaRelease() {
 	return engineConfiguration("delivery can change after the area reservation expires", (state) => {
+		state.capabilities.add("closePullRequest");
+		state.capabilities.add("restoreDeliveryEvidence");
 		state.deliveryChanged = false;
 		return {
 			areaMergeWaitMs: 5000,
@@ -16,6 +18,8 @@ export function deliveryChangesAfterAreaRelease() {
 }
 export function deliveryEvidenceCanDisappear() {
 	return engineConfiguration("valid delivery evidence can disappear before the area wait expires", (state) => {
+		state.capabilities.add("movePullRequestHead");
+		state.capabilities.add("restoreDeliveryEvidence");
 		state.deliveryChanged = false;
 		return {
 			areaMergeWaitMs: 5000,
@@ -25,6 +29,7 @@ export function deliveryEvidenceCanDisappear() {
 }
 export function humanMergeCanArriveLate() {
 	return engineConfiguration("a human merge can arrive after the area wait expires", (state) => {
+		state.capabilities.add("mergePullRequest");
 		state.deliveryMerged = false;
 		return {
 			deliveryQuery: (result) => Effect.succeed(state.deliveryMerged ? { head: result.head, revision: "merged", url: result.pr } : undefined),
@@ -49,6 +54,8 @@ export function continuedWorkHasExpiredAreas() {
 }
 export function conflictRepairCanRaceDispatch(released: boolean) {
 	return engineConfiguration("a conflict repair races a prepared provider retry", (state) => {
+		state.capabilities.add("providerRejection");
+		state.capabilities.add("conflictPullRequest");
 		state.providerRejects = false;
 		state.conflicting = false;
 		return {

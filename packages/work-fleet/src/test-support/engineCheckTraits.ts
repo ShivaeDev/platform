@@ -41,6 +41,7 @@ export function repairKeepsTheSameHead() {
 }
 export function repairSubmissionCanBeRejected() {
 	return engineConfiguration("same-head check repairs include a rejected submission", (state) => {
+		state.capabilities.add("providerRejection");
 		const github = githubFixture();
 		github.required(["verify"]);
 		github.reply(ADOPTED_HEAD, [[checkRun({ conclusion: "failure", name: "verify" })]]);
@@ -62,6 +63,7 @@ export function repairSubmissionCanBeRejected() {
 }
 export function requiredCheckKeepsFailing() {
 	return engineConfiguration("the required verify check keeps failing at successive heads", (state) => {
+		state.capabilities.add("movePullRequestHead");
 		const github = githubFixture();
 		github.required(["verify"]);
 		github.reply(ADOPTED_HEAD, [[checkRun({ conclusion: "failure", name: "verify" })]]);
@@ -80,6 +82,7 @@ export function checksAreQueued() {
 }
 export function checksAreRunning() {
 	return engineConfiguration("required checks are running and repairs can push a new head", (state) => {
+		state.capabilities.add("movePullRequestHead");
 		const github = githubFixture();
 		github.reply(ADOPTED_HEAD, [[checkRun({ conclusion: null, status: "in_progress" })]]);
 		state.resultHead = ADOPTED_HEAD;

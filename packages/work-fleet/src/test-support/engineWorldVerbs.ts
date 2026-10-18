@@ -1,4 +1,5 @@
 import { Deferred } from "effect";
+import { requireCapability } from "#test/engineCapabilities.ts";
 import type { EngineStory } from "#test/engineState.ts";
 export function engineWorldVerbs(state: EngineStory, tell: (line: string) => void) {
 	function change(line: string, action: () => void) {
@@ -17,10 +18,12 @@ export function engineWorldVerbs(state: EngineStory, tell: (line: string) => voi
 		providerRequests: () => [...(state.missingTurns?.requests ?? [])],
 		recoverProvider: () =>
 			change("the provider accepts submissions again", () => {
+				requireCapability(state, "providerRejection");
 				state.providerRejects = false;
 			}),
 		rejectProvider: () =>
 			change("the provider rejects new submissions", () => {
+				requireCapability(state, "providerRejection");
 				state.providerRejects = true;
 			}),
 		restoreTerminalEvidence: (turn: string) =>
@@ -33,6 +36,9 @@ export function engineWorldVerbs(state: EngineStory, tell: (line: string) => voi
 			}),
 		resumeMovedHeadWrites: () =>
 			change("allow moved-head writes after the interruption", () => {
+				if (state.launching === undefined) {
+					throw new Error("No moved-head write gate is configured");
+				}
 				state.movedWriteResumed = true;
 			}),
 		resumeReviewer: () => {
@@ -42,7 +48,6 @@ export function engineWorldVerbs(state: EngineStory, tell: (line: string) => voi
 			tell("allow the reviewer to finish");
 			return Deferred.succeed(state.reviewResume, undefined);
 		},
-		terminalReceipts: () => structuredClone(state.terminalReceipts),
 		waitForMovedHeadWrite: () => {
 			if (state.launching === undefined) {
 				throw new Error("No moved-head write gate is configured");

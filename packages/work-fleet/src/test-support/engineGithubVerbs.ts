@@ -1,3 +1,4 @@
+import { requireCapability } from "#test/engineCapabilities.ts";
 import type { EngineStory } from "#test/engineState.ts";
 import type { githubFixture } from "#test/githubChecks.ts";
 
@@ -57,6 +58,7 @@ export function engineGithubVerbs(state: EngineStory, tell: (line: string) => vo
 			}),
 		closePullRequest: () =>
 			change("the pull request closes without merging", () => {
+				requireCapability(state, "closePullRequest", state.github !== undefined || state.pullObservation !== undefined);
 				state.deliveryChanged = true;
 				if (state.github !== undefined) {
 					state.github.state.status = "CLOSED";
@@ -66,6 +68,7 @@ export function engineGithubVerbs(state: EngineStory, tell: (line: string) => vo
 			}),
 		conflictPullRequest: () =>
 			change("the pull request conflicts with main", () => {
+				requireCapability(state, "conflictPullRequest", state.github !== undefined);
 				state.conflicting = true;
 				if (state.github !== undefined) {
 					state.github.state.mergeable = "CONFLICTING";
@@ -74,10 +77,12 @@ export function engineGithubVerbs(state: EngineStory, tell: (line: string) => vo
 		currentPullRequestHead: () => state.github?.state.head ?? state.resultHead,
 		githubBecomesUnavailable: () =>
 			change("GitHub reads become unavailable", () => {
+				requireCapability(state, "githubAvailability");
 				state.githubUnavailable = true;
 			}),
 		githubRecovers: () =>
 			change("GitHub reads recover", () => {
+				requireCapability(state, "githubAvailability");
 				state.githubUnavailable = false;
 			}),
 		githubRequests: () => [...(state.github?.requests ?? state.checks?.requests ?? state.adoption?.requests ?? [])],
@@ -90,6 +95,7 @@ export function engineGithubVerbs(state: EngineStory, tell: (line: string) => vo
 			}),
 		mergePullRequest: (head?: string, revision = "merged-revision", base?: string) =>
 			change("a human merges the pull request", () => {
+				requireCapability(state, "mergePullRequest", state.github !== undefined || state.pullObservation !== undefined);
 				state.deliveryMerged = true;
 				if (state.github !== undefined) {
 					state.github.state.status = "MERGED";
@@ -102,6 +108,7 @@ export function engineGithubVerbs(state: EngineStory, tell: (line: string) => vo
 			}),
 		movePullRequestHead: (head: string) =>
 			change(`the pull request moves to ${head}`, () => {
+				requireCapability(state, "movePullRequestHead", state.github !== undefined || state.pullObservation !== undefined);
 				state.resultHead = head;
 				state.deliveryChanged = true;
 				if (state.github !== undefined) {
@@ -117,6 +124,7 @@ export function engineGithubVerbs(state: EngineStory, tell: (line: string) => vo
 			}),
 		restoreDeliveryEvidence: () =>
 			change("valid delivery evidence is available again", () => {
+				requireCapability(state, "restoreDeliveryEvidence");
 				state.deliveryChanged = false;
 			}),
 	};

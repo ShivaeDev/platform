@@ -70,6 +70,7 @@ export function pullRequestIsBehindMain() {
 }
 export function pullRequestHeadCanMove() {
 	return engineConfiguration("the reported pull request can move while review runs", (state) => {
+		state.capabilities.add("movePullRequestHead");
 		state.resultHead = "first-head";
 		return {
 			resultQuery: () =>

@@ -25,6 +25,7 @@ export function humanDeliveryWithoutReview(status: "CLOSED" | "MERGED") {
 }
 export function deliveryReadsCanFail(status: "CLOSED" | "OPEN") {
 	return engineConfiguration("delivery reads can fail after a Board decision", (state) => {
+		state.capabilities.add("githubAvailability");
 		state.githubUnavailable = false;
 		state.pullObservation = { ...open, state: status };
 		const deliveryQuery = githubDelivery(() =>
@@ -36,6 +37,7 @@ export function deliveryReadsCanFail(status: "CLOSED" | "OPEN") {
 }
 export function movedHeadReadCanFail() {
 	return engineConfiguration("a moved-head refresh can fail without replacing the decision", (state) => {
+		state.capabilities.add("githubAvailability");
 		state.githubUnavailable = false;
 		state.pullObservation = open;
 		const deliveryQuery = githubDelivery(() => Effect.succeed(state.pullObservation));

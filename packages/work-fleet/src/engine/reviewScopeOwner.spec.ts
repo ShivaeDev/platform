@@ -33,7 +33,9 @@ for (const timing of ["between review passes", "while the reviewer finishes"] as
 			}
 			writeBoardWork("one.md", boardBrief().replace("fleet: approved", "fleet: draft"));
 			finishWorkers();
-			yield* resumeReviewer();
+			if (timing === "while the reviewer finishes") {
+				yield* resumeReviewer();
+			}
 			const stopped = reconciliation === undefined ? yield* fleet.reconcile("one") : yield* Fiber.join(reconciliation);
 			expect(stopped.value.review).toBeUndefined();
 			expect(stopped.value).toMatchObject({

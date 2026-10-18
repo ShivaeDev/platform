@@ -35,9 +35,7 @@ export function duplicateTerminalTurns(fault: "acknowledged" | "mismatch" | "non
 	return engineConfiguration("the provider reports three terminal receipts with conflicting evidence", (state) => {
 		const native = duplicateTurns();
 		state.terminalEvidenceRestored = false;
-		const receipts = ["first", "second", "third"].map((turnId) => ({ sessionId: "session-operation-1", turnId }));
 		state.nativeTurns = native;
-		state.terminalReceipts = receipts;
 		return {
 			decorateTransport: decorated(native, fault, () => state.terminalEvidenceRestored),
 			lostAcknowledgement: true,

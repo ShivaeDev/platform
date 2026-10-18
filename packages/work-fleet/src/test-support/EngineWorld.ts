@@ -1,12 +1,13 @@
 import type { Deferred } from "effect";
-import type { SessionReceipt } from "#session/schema.ts";
 import type { duplicateTurns } from "#test/duplicateTurns.ts";
+import type { EngineCapability } from "#test/engineCapabilities.ts";
 import type { githubFixture } from "#test/githubChecks.ts";
 import type { resultFixture } from "#test/githubResult.ts";
 import type { missingTurnTransport } from "#test/missingTurnTransport.ts";
 
 export interface EngineWorld {
 	adoption?: ReturnType<typeof resultFixture> | undefined;
+	capabilities: Set<EngineCapability>;
 	checkedHeads: string[];
 	checks?: ReturnType<typeof githubFixture> | undefined;
 	closeDuringAssessment?: (() => void) | undefined;
@@ -30,11 +31,11 @@ export interface EngineWorld {
 	resultHead: string;
 	reviewResume?: Deferred.Deferred<void> | undefined;
 	terminalEvidenceRestored: boolean;
-	terminalReceipts: SessionReceipt[];
 }
 
 export function worldDefaults() {
 	return {
+		capabilities: new Set<EngineCapability>(),
 		checkedHeads: [],
 		conflicting: false,
 		deliveryChanged: false,
@@ -48,6 +49,5 @@ export function worldDefaults() {
 		providerReviews: 0,
 		resultHead: "",
 		terminalEvidenceRestored: false,
-		terminalReceipts: [],
 	};
 }

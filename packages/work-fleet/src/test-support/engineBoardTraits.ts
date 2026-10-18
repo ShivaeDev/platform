@@ -6,6 +6,7 @@ import { mainObservation } from "#test/preparation.ts";
 
 export function boardEditRacesCompletion() {
 	return engineConfiguration("a human Board edit races completion bookkeeping", (state) => {
+		state.capabilities.add("editBoardAtCompletion");
 		state.completionEdit = undefined;
 		function applyEdit() {
 			state.completionEdit?.();
@@ -18,6 +19,7 @@ export function boardEditRacesCompletion() {
 }
 export function workClosesDuringAssessment() {
 	return engineConfiguration("Board work can close during main assessment", (state) => {
+		state.capabilities.add("editBoardDuringAssessment");
 		state.closeDuringAssessment = undefined;
 		return {
 			mainQuery: (preparation) =>
@@ -32,8 +34,8 @@ export function scopeApproval(timing: "between review passes" | "while the revie
 			const resume = yield* Deferred.make<void>();
 			const betweenPasses = timing === "between review passes";
 
-			state.observing = observing;
-			state.reviewResume = resume;
+			state.observing = betweenPasses ? undefined : observing;
+			state.reviewResume = betweenPasses ? undefined : resume;
 			return {
 				reviewGate: betweenPasses ? Effect.void : Deferred.succeed(observing, undefined).pipe(Effect.andThen(Deferred.await(resume))),
 				reviewRunning: betweenPasses,

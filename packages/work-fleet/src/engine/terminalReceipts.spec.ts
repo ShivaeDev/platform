@@ -4,32 +4,27 @@ import { engine } from "#test/engineStory.ts";
 import { duplicateTerminalTurns } from "#test/engineTurnTraits.ts";
 
 const REASON = "Multiple Codex turns match one operation; retain reservation";
+const RECEIPTS = [
+	{ sessionId: "session-operation-1", turnId: "first" },
+	{ sessionId: "session-operation-1", turnId: "second" },
+	{ sessionId: "session-operation-1", turnId: "third" },
+];
 for (const fault of ["none", "running", "unavailable", "mismatch", "wrong-session", "acknowledged"] as const) {
 	engine.it(
 		`duplicate completed turns persist every paginated receipt and release with ${fault} evidence after restart`,
 		[duplicateTerminalTurns(fault)],
-		function* ({
-			fleet,
-			prepareWork,
-			restart,
-			respond,
-			terminalReceipts,
-			replaceStoredRecord,
-			acknowledgeProviderTurn,
-			restoreTerminalEvidence,
-			providerCalls,
-		}) {
+		function* ({ fleet, prepareWork, restart, respond, replaceStoredRecord, acknowledgeProviderTurn, restoreTerminalEvidence, providerCalls }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			const stopped = yield* fleet.reconcile("one");
 			expect(stopped.value.decision?.reason).toBe(REASON);
-			expect(stopped.value.attempts[0]?.terminalReceipts).toEqual(terminalReceipts());
+			expect(stopped.value.attempts[0]?.terminalReceipts).toEqual(RECEIPTS);
 			if (fault === "wrong-session") {
 				yield* replaceStoredRecord({
 					...stopped.value,
 					attempts: stopped.value.attempts.map((attempt) => ({
 						...attempt,
-						terminalReceipts: [...terminalReceipts().slice(0, 2), { sessionId: "other-session", turnId: "third" }],
+						terminalReceipts: [...RECEIPTS.slice(0, 2), { sessionId: "other-session", turnId: "third" }],
 					})),
 				});
 			}
@@ -48,14 +43,14 @@ for (const fault of ["none", "running", "unavailable", "mismatch", "wrong-sessio
 				const pending = yield* fleet.get("one");
 				yield* replaceStoredRecord({
 					...pending.value,
-					attempts: pending.value.attempts.map((attempt) => ({ ...attempt, terminalReceipts: terminalReceipts() })),
+					attempts: pending.value.attempts.map((attempt) => ({ ...attempt, terminalReceipts: RECEIPTS })),
 				});
 			}
 			restoreTerminalEvidence("third");
 			yield* restart();
 			const released = yield* release;
 			expect(released.value.stage).toBe("released");
-			expect(released.value.attempts[0]?.terminalReceipts).toEqual(terminalReceipts());
+			expect(released.value.attempts[0]?.terminalReceipts).toEqual(RECEIPTS);
 			expect(released.value.attempts[0]?.receipt?.turnId).toBe(fault === "acknowledged" ? "third" : undefined);
 			expect(providerCalls().filter((setting) => setting.call === "turn")).toHaveLength(1);
 			yield* restart();

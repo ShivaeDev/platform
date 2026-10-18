@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import type { EngineFixture } from "#test/engine.ts";
+import { requireCapability } from "#test/engineCapabilities.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 
 export function engineBoardVerbs(state: EngineStory, tell: (line: string) => void) {
@@ -27,10 +28,14 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 		},
 		boardReceipts: () => files().receipts(),
 		editBoardAtCompletion: (text: string) => {
+			requireCapability(state, "editBoardAtCompletion");
+			files();
 			state.completionEdit = () => write("one.md", text);
 			tell("a Board edit will race completion");
 		},
 		editBoardDuringAssessment: (text: string) => {
+			requireCapability(state, "editBoardDuringAssessment");
+			files();
 			state.closeDuringAssessment = () => write("one.md", text);
 			tell("a Board edit will arrive during main assessment");
 		},
