@@ -8,7 +8,7 @@ httpFaultApp.it("releases a held call when the named authorized route arrives", 
 	const client = yield* request();
 	yield* paused.waiting;
 	const body = yield* Effect.forkChild(client.finished);
-	expect((yield* requestRejected()).status).toBe(401);
+	expect(yield* requestRejected()).toMatchObject({ status: 401 });
 	expect(body.pollUnsafe()).toBeUndefined();
 	const trigger = yield* request("/trigger");
 	expect(yield* trigger.finished).toEqual({ bytes: Buffer.from('{"triggered":true}'), kind: "complete" });
