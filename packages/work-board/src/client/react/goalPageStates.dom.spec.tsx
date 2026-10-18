@@ -1,13 +1,11 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
-import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { closedGoalPageFixture, goalFleetFixture, goalPageFixture } from "#test/goalPageFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { boardScreen } from "#test/screenTraits.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
-import { routeQueryOptions } from "./routeQuery.ts";
 
 const files = goalPageFixture();
 screenStory.it(
@@ -52,22 +50,12 @@ screenStory.it(
 );
 
 for (const status of ["completed", "closed"]) {
-	let readProgress: () => GoalsProjection | undefined = () => undefined;
 	screenStory.it(
 		`shows query-derived goal and criterion counts for a ${status} project`,
-		[
-			boardScreen(closedGoalPageFixture(status), (api, registry) => {
-				const query = api.goals.query(undefined, routeQueryOptions);
-				readProgress = () => {
-					const result = registry.get(query);
-					return result._tag === "Success" ? result.value : undefined;
-				};
-				return <DocumentMain api={api} onPage={() => undefined} url="/closed.md" />;
-			}),
-		],
-		function* ({ readText, findElements, findElement }) {
+		[boardScreen(closedGoalPageFixture(status), (api) => <DocumentMain api={api} onPage={() => undefined} url="/closed.md" />)],
+		function* ({ readText, findElements, findElement, readGoals }) {
 			yield* Effect.promise(() => eventually(() => expect(readText('[data-goal-section="progress"]')).toContain("6 linked items")));
-			const data = readProgress();
+			const data = yield* Effect.promise(readGoals);
 			const goal = data?.closedGoals.find((entry) => entry.id === "project.closed");
 			expect(data?.goals.map((entry) => entry.id)).toEqual(["project.empty", "project.example"]);
 			expect(goal?.counts).toEqual({ done: 2, "in progress": 1, planned: 3 });
