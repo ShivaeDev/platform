@@ -14,15 +14,15 @@ interface MainRun {
 const MINIMUM_TEST_SHARDS = 4;
 const COMPLETE_CONSUMER_STORE_SHARDS = 1;
 
-export function mainShardPlan(repository: string, main: boolean, github: (args: string[]) => string) {
+export function mainShardPlan(repository: string, consumerStore: string | undefined, github: (args: string[]) => string) {
 	const fallback = { artifactId: "", count: 8, runId: "" };
-	const selected = { consumers: { ...fallback, count: main ? COMPLETE_CONSUMER_STORE_SHARDS : 8 }, tests: { ...fallback } };
+	const selected = { consumers: { ...fallback }, tests: { ...fallback } };
 	const temporary = mkdtempSync(join(tmpdir(), "platform-shard-plan-"));
 	try {
 		const { "workflow_runs": runs }: { "workflow_runs": MainRun[] } = JSON.parse(
 			github(["api", `repos/${repository}/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=10`]),
 		);
-		for (const kind of main ? (["tests"] as const) : (["tests", "consumers"] as const)) {
+		for (const kind of ["tests", "consumers"] as const) {
 			const artifact = kind === "tests" ? "test-balancing" : "consumer-balancing";
 			const file = kind === "tests" ? "test-durations.json" : "consumer-durations.json";
 			selected[kind] = findSnapshot(repository, runs, artifact, file, temporary, github) ?? fallback;
@@ -32,7 +32,24 @@ export function mainShardPlan(repository: string, main: boolean, github: (args: 
 	} finally {
 		rmSync(temporary, { force: true, recursive: true });
 	}
-	return { ...selected, tests: { ...selected.tests, count: Math.max(MINIMUM_TEST_SHARDS, selected.tests.count) } };
+	return {
+		consumers:
+			consumerStore === undefined || mainCacheExists(repository, consumerStore, github)
+				? selected.consumers
+				: { ...selected.consumers, count: COMPLETE_CONSUMER_STORE_SHARDS },
+		tests: { ...selected.tests, count: Math.max(MINIMUM_TEST_SHARDS, selected.tests.count) },
+	};
+}
+
+function mainCacheExists(repository: string, key: string, github: (args: string[]) => string) {
+	try {
+		const { "actions_caches": caches }: { "actions_caches": { key: string }[] } = JSON.parse(
+			github(["api", `repos/${repository}/actions/caches?key=${encodeURIComponent(key)}&ref=refs/heads/main`]),
+		);
+		return caches.some((cache) => cache.key === key);
+	} catch {
+		return false;
+	}
 }
 
 function findSnapshot(
