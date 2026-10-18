@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { Effect, FileSystem } from "effect";
+import { claudePluginManifest } from "#lib/claudePluginManifest.ts";
 import { decodeManifest, decodeVersions } from "#package-check/model.ts";
 import { assertPackageChange } from "./assertPackageChange.ts";
 import { attempt } from "./attempt.ts";
@@ -59,7 +60,7 @@ export const checkRepository = Effect.fn("Changelog.checkRepository")(function* 
 	const packages = yield* Effect.forEach(names, (name) =>
 		Effect.gen(function* () {
 			const directory = join(root, "packages", name);
-			if (!(yield* fs.exists(join(directory, "package.json")))) {
+			if (!(yield* fs.exists(join(directory, "package.json"))) || (yield* fs.exists(claudePluginManifest(directory)))) {
 				return;
 			}
 			const before = yield* attempt(() => basePackage(root, base, name, paths));

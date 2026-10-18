@@ -66,6 +66,7 @@ stay in the repository.
 - [`@shivaedev/work-fleet`](./packages/work-fleet): A private workspace package for
   optional Board-backed execution, independent review and authorized delivery with
   durable ownership and receipts.
+- [Work Board plugin](./packages/work-board-plugin): The Work Board inside Claude Code, installed with `/plugin install workboard --marketplace ShivaeDev/platform` from this repository's plugin marketplace.
 
 No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder, and a `null` entry such as `"./internal/*": null` keeps an internal folder or browser bundle sources private. You import the module that defines what you need, such as `import { transact } from "@shivaedev/effect-sql/transact.ts"`, and a bundler sees only what you use.
 

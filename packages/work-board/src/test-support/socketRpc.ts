@@ -40,6 +40,34 @@ export function socketRpc(address: string, tag: string): Promise<readonly unknow
 	});
 }
 
+export interface SocketExchange {
+	readonly body: string;
+	readonly headers: Readonly<Record<string, string>>;
+	readonly method: string;
+}
+
+export function socketExchange(socketPath: string, exchange: SocketExchange): Promise<{ ok: boolean; status: number; text: string }> {
+	return new Promise((resolve, reject) => {
+		const outgoing = request(
+			"http://localhost/_board/rpc",
+			{ headers: { ...exchange.headers, host: "localhost" }, method: exchange.method, socketPath },
+			(response) => {
+				let text = "";
+				response.setEncoding("utf8");
+				response.on("data", (chunk: string) => {
+					text += chunk;
+				});
+				response.on("end", () => {
+					const status = response.statusCode ?? 0;
+					resolve({ ok: status >= 200 && status < 300, status, text });
+				});
+			},
+		);
+		outgoing.on("error", reject);
+		outgoing.end(exchange.body);
+	});
+}
+
 export function staleSocket(path: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const server = createServer();
