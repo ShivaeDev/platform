@@ -2,30 +2,8 @@ import { Effect } from "effect";
 import type { ConstructorOptions, StopOptions } from "pg-boss";
 import { defaultClientFactory, type PgBossClient, type PgBossClientFactory } from "#client.ts";
 import { toPgBossError } from "#error.ts";
-
-interface CachedClient {
-	readonly client: Promise<PgBossClient>;
-	references: number;
-}
-
-const CacheKey = Symbol.for("@shivaedev/effect-pg-boss/client-cache");
-const sharedCache: unknown = Reflect.get(globalThis, CacheKey);
-const clientCache: Map<string | symbol, unknown> = sharedCache instanceof Map ? sharedCache : new Map<string | symbol, unknown>();
-Reflect.set(globalThis, CacheKey, clientCache);
-
-function isCachedClient(value: unknown): value is CachedClient {
-	return (
-		typeof value === "object"
-		&& value !== null
-		&& Reflect.get(value, "client") instanceof Promise
-		&& typeof Reflect.get(value, "references") === "number"
-	);
-}
-
-function cachedClient(key: string | symbol): CachedClient | undefined {
-	const entry = clientCache.get(key);
-	return isCachedClient(entry) ? entry : undefined;
-}
+import { acquireCachedClient, releaseCachedClient } from "./clientCache.ts";
+import { closeClientErrors, logClientError, observeClientErrors } from "./clientErrors.ts";
 
 export interface AcquireClientOptions {
 	readonly clientCacheKey?: string | symbol | undefined;
@@ -39,86 +17,57 @@ export interface AcquiredClient {
 	readonly reused: boolean;
 }
 
-function startClient(options: AcquireClientOptions): Promise<PgBossClient> {
+async function startClient(options: AcquireClientOptions, report: (error: Error) => void): Promise<PgBossClient> {
 	const client = (options.clientFactory ?? defaultClientFactory)(options.constructor);
-	return client.start().then(
-		() => client,
-		async (error) => {
-			try {
-				await client.stop();
-			} catch {
-				// Preserve the startup failure; stop is best effort on failed acquisition.
-			}
-			throw error;
-		},
-	);
+	observeClientErrors(client, report);
+	try {
+		await client.start();
+		return client;
+	} catch (error) {
+		try {
+			await client.stop();
+		} catch {
+			// Preserve the startup failure; stop is best effort on failed acquisition.
+		}
+		closeClientErrors(client);
+		throw error;
+	}
 }
 
-export const acquireClient = (options: AcquireClientOptions): Effect.Effect<AcquiredClient, import("#error.ts").PgBossError> =>
-	Effect.tryPromise({
-		catch: (error) => toPgBossError("start", error),
-		try: async () => {
-			const cacheKey = options.clientCacheKey;
-			if (cacheKey === undefined) {
-				return {
-					client: await startClient(options),
-					reused: false,
-				};
-			}
-
-			const existing = cachedClient(cacheKey);
-			if (existing !== undefined) {
-				existing.references += 1;
-				try {
-					return {
-						cacheKey,
-						client: await existing.client,
-						reused: true,
-					};
-				} catch (error) {
-					existing.references -= 1;
-					throw error;
-				}
-			}
-
-			const entry: CachedClient = {
-				client: startClient(options),
-				references: 1,
-			};
-			clientCache.set(cacheKey, entry);
-			try {
-				return {
-					cacheKey,
-					client: await entry.client,
-					reused: false,
-				};
-			} catch (error) {
-				if (clientCache.get(cacheKey) === entry) {
-					clientCache.delete(cacheKey);
-				}
-				throw error;
-			}
-		},
+export function acquireClient(options: AcquireClientOptions): Effect.Effect<AcquiredClient, import("#error.ts").PgBossError> {
+	return Effect.contextWith((context) => {
+		const run = Effect.runForkWith(context);
+		function report(error: Error) {
+			run(logClientError(error));
+		}
+		return Effect.tryPromise({
+			catch: (error) => toPgBossError("start", error),
+			try: async () => {
+				const cacheKey = options.clientCacheKey;
+				return cacheKey === undefined
+					? { client: await startClient(options, report), reused: false }
+					: { cacheKey, ...(await acquireCachedClient(cacheKey, () => startClient(options, report))) };
+			},
+		});
 	});
+}
 
-export const releaseClient = (acquired: AcquiredClient, stopOptions?: StopOptions): Effect.Effect<void> =>
-	Effect.tryPromise({
+async function stopClient(client: PgBossClient, options?: StopOptions): Promise<void> {
+	try {
+		await client.stop(options);
+	} finally {
+		closeClientErrors(client);
+	}
+}
+
+export function releaseClient(acquired: AcquiredClient, stopOptions?: StopOptions): Effect.Effect<void> {
+	return Effect.tryPromise({
 		catch: (error) => toPgBossError("stop", error),
 		try: async () => {
-			if (acquired.cacheKey === undefined) {
-				await acquired.client.stop(stopOptions);
-				return;
+			const client = acquired.cacheKey === undefined ? acquired.client : await releaseCachedClient(acquired.cacheKey);
+			if (client !== undefined) {
+				await stopClient(client, stopOptions);
 			}
-
-			const entry = cachedClient(acquired.cacheKey);
-			if (entry === undefined) {
-				return;
-			}
-			entry.references -= 1;
-			if (entry.references > 0) {
-				return;
-			}
-			clientCache.delete(acquired.cacheKey);
-			await acquired.client.stop(stopOptions);
 		},
 	}).pipe(Effect.catch((error) => Effect.logError(error)));
+}

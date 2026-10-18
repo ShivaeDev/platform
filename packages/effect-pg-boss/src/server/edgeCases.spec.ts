@@ -47,7 +47,7 @@ describe("pg-boss external lifecycle boundaries", () => {
 		const startup = Promise.withResolvers<void>();
 		const failure = new Error("external client initialization failed");
 		const stop = vi.fn(async () => undefined);
-		const failedClient = scriptedClient({ start: () => startup.promise, stop });
+		const failedClient = scriptedClient({ off: () => undefined, on: () => undefined, start: () => startup.promise, stop });
 		const replacement = scriptedClient({
 			off: () => undefined,
 			on: () => undefined,
@@ -88,6 +88,8 @@ describe("pg-boss external lifecycle boundaries", () => {
 		const cleanupFailure = new Error("external client teardown failed");
 		const stop = vi.fn(() => Promise.reject(cleanupFailure));
 		const client = scriptedClient({
+			off: () => undefined,
+			on: () => undefined,
 			start: () => Promise.reject(failure),
 			stop,
 		});

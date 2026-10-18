@@ -1,4 +1,4 @@
-import { Effect, Logger, type LogLevel } from "effect";
+import { Effect, Logger, type LogLevel, References } from "effect";
 import { SqlClient } from "effect/sql";
 import type { Pool } from "pg";
 import { vi } from "vitest";
@@ -63,6 +63,9 @@ export function openAuthPool() {
 		const logger = Logger.make(({ logLevel, message }) => {
 			engine.logs.push({ level: logLevel, message });
 		});
-		engine.pool = yield* authDatabase(database.url).pipe(Effect.provide(Logger.layer([logger])));
+		engine.pool = yield* authDatabase(database.url).pipe(
+			Effect.provide(Logger.layer([logger])),
+			Effect.provideService(References.MinimumLogLevel, "Debug"),
+		);
 	});
 }
