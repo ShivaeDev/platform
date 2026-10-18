@@ -251,6 +251,7 @@ describe("pg-boss external lifecycle boundaries", () => {
 			}
 			expect(error.operation).toBe("register");
 			expect(Redacted.value(error.original)).toEqual(new TypeError("pg-boss job names must be unique"));
+			expect(error.message).toBe("pg-boss register failed: TypeError");
 		}
 		expect(stop).toHaveBeenCalledTimes(1);
 		for (const listener of listeners) {
