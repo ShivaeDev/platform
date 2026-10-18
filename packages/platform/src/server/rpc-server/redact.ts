@@ -47,9 +47,10 @@ function walk(value: unknown, sensitive: SensitiveKey, depth: number): unknown {
 		return value.length > MAX_ENTRIES ? [...items, `<${value.length - MAX_ENTRIES} more items>`] : items;
 	}
 	const entries = entriesOf(value, sensitive);
-	const kept = entries
-		.slice(0, MAX_ENTRIES)
-		.map(([key, nested]): [string, unknown] => [key, sensitive(key) ? REDACTED : walk(nested, sensitive, depth + 1)]);
+	const kept = entries.slice(0, MAX_ENTRIES).map(([key, nested]): [string, unknown] => {
+		const stackHeader = key === "stack" && typeof nested === "string" && (sensitive("name") || sensitive("message"));
+		return [key, sensitive(key) || stackHeader ? REDACTED : walk(nested, sensitive, depth + 1)];
+	});
 	return Object.fromEntries(entries.length > MAX_ENTRIES ? [...kept, ["<truncated>", `${entries.length - MAX_ENTRIES} more keys`]] : kept);
 }
 export function redact(value: unknown, sensitive: SensitiveKey = isSensitiveKey): unknown {

@@ -11,6 +11,8 @@
 
 - Apply sensitive-key declarations to non-enumerable Error `cause`, `message`, `name` and `stack` fields in reported causes and exported exceptions. Mask stacks when the name or message is sensitive, so their native stack headers cannot repeat those values.
 - Apply the same stack masking recursively to Error values in log messages and annotations, reported causes and exported span attributes. Expose `redactErrorStack(error, sensitive)` for the shared native Error stack policy.
+- Carry sensitive field names through `Schema.encodeKeys` so renamed failure fields and diagnostics stay redacted. Mask declared encoded target fields when a value-dependent object transformation prevents identifying their source fields.
+- Mask encoded Error stacks in RPC failure payloads when `message` or `name` is sensitive, including `Schema.Defect({ includeStack: true })`.
 
 ### Breaking
 
