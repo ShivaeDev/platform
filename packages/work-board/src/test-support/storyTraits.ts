@@ -1,3 +1,5 @@
+import { chmodSync } from "node:fs";
+import { join } from "node:path";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import type { RecordedResponse } from "#browser/responses/schema.ts";
@@ -62,9 +64,6 @@ export function clipboardUnavailable() {
 		};
 	});
 }
-
-import { chmodSync } from "node:fs";
-import { join } from "node:path";
 
 export function fleetReports(items: FleetItems) {
 	return boardStory.trait("project", `Fleet reports ${items.items.map((item) => `${item.workId} ${item.stage}`).join(", ")}`, function* (engine) {
