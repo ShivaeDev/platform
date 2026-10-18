@@ -4,6 +4,7 @@ import type { PgBossClient } from "#client.ts";
 
 export const deferredAttempt = Symbol("deferredAttempt");
 export const deferralObservers = new WeakMap<PgBossClient, () => void>();
+export const STATELY_DEFERRAL_POLICY = "effect-stately-deferred";
 
 export const Deferral = Schema.Struct({
 	at: Schema.String,

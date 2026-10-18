@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
+import { STATELY_DEFERRAL_POLICY } from "./deferral.ts";
 
 const Settlement = Schema.Struct({ claimed: Schema.Boolean, deferred: Schema.Boolean });
 
@@ -28,6 +29,7 @@ export async function settleDeferral(client: PgBossClient, schema: string, job: 
 			RETURNING name, id, keep_until
 		), deferred AS (
 			UPDATE ${quoted}.job AS job SET state = 'retry', start_after = $4::timestamptz,
+				policy = CASE WHEN job.policy = 'stately' THEN '${STATELY_DEFERRAL_POLICY}' ELSE job.policy END,
 				keep_until = counted.keep_until, started_on = NULL, heartbeat_on = NULL,
 				output = jsonb_build_object('jobDeferral', jsonb_build_object('at', $4::text, 'reason', $5::text))
 			FROM counted WHERE job.name = counted.name AND job.id = counted.id
