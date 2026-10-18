@@ -6,4 +6,4 @@ class Secret extends Context.Service<Secret, object>()("invalid/Secret") {}
 
 type InvalidCallerRequirement = ServiceRequirements<readonly [typeof Declared], void, never, Secret>;
 
-export declare const invalid: InvalidCallerRequirement;
+export declare const callerRequirement: InvalidCallerRequirement;

@@ -3,7 +3,7 @@ import { defineService } from "#define-service.ts";
 import type { ServiceRequirements } from "#service-requirements.ts";
 
 const requirements = [Scope.Scope] as const;
-type Requirements<Success> = ServiceRequirements<typeof requirements, Success>;
+type Requirements<TSuccess> = ServiceRequirements<typeof requirements, TSuccess>;
 
 defineService({
 	id: "invalid/ScopeRequirement",

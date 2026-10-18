@@ -1,88 +1,44 @@
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { compileInvalidFixtures, compileValidFixture } from "#test/compilerFixtures.ts";
 
-const compilerTimeout = 60_000;
-const packageDirectory = fileURLToPath(new URL("..", import.meta.url));
+const COMPILER_TIMEOUT = 60_000;
 
-function compile(arguments_: readonly string[]) {
-	return spawnSync(join(packageDirectory, "node_modules", ".bin", "tsc"), arguments_, {
-		cwd: packageDirectory,
-		encoding: "utf8",
-	});
-}
-
-function invalidArguments(fixtures: readonly string[]) {
-	return [
-		"--ignoreConfig",
-		"--noEmit",
-		"--noErrorTruncation",
-		"--pretty",
-		"false",
-		"--strict",
-		"--skipLibCheck",
-		"--target",
-		"ESNext",
-		"--module",
-		"ESNext",
-		"--moduleResolution",
-		"Bundler",
-		"--allowImportingTsExtensions",
-		"--customConditions",
-		"source",
-		...fixtures.map((fixture) => `src/test-support/fixtures/invalid/${fixture}.ts`),
-	];
-}
-
-describe("service definition compiler fixtures", { timeout: compilerTimeout }, () => {
+describe("service definition compiler fixtures", { timeout: COMPILER_TIMEOUT }, () => {
 	it("emits only the initialized public service surface", () => {
-		const output = mkdtempSync(join(tmpdir(), "effect-service-"));
-		try {
-			const result = compile(["-p", "src/test-support/fixtures/tsconfig.json", "--outDir", output]);
-			expect(result.stderr || result.stdout).toBe("");
-			expect(result.status).toBe(0);
-			const declaration = readFileSync(join(output, "src/test-support/fixtures/valid.d.ts"), "utf8");
-			expect(declaration).toContain("...arguments_: number[]");
-			expect(declaration).toContain("Effect.Effect<number, MethodFailure, never>");
-			expect(declaration).toContain("Scope.Scope");
-			expect(declaration).toContain('Layer<"fixture/Ordinary", InitializationFailure, Declared | Residual>');
-			expect(declaration).toContain("preserve: <Success, Failure, Requirements>");
-			expect(declaration).toContain("readonly value: Success;\n    }, Failure | GenericFailure, Requirements>");
-			expect(declaration).toContain('Layer<"fixture/Generic", never, never>');
-			expect(declaration).not.toContain("PrivateState");
-			expect(declaration).not.toContain("initialize");
-			expect(declaration).not.toContain("methods");
-		} finally {
-			rmSync(output, { force: true, recursive: true });
-		}
+		const declaration = compileValidFixture();
+		expect(declaration).toContain("...arguments_: number[]");
+		expect(declaration).toContain("Effect.Effect<number, MethodFailure, never>");
+		expect(declaration).toContain("Scope.Scope");
+		expect(declaration).toContain('Layer<"fixture/Ordinary", InitializationFailure, Declared | Residual>');
+		expect(declaration).toContain("preserve: <TSuccess, TFailure, TRequirements>");
+		expect(declaration).toContain("readonly value: TSuccess;\n    }, TFailure | GenericFailure, TRequirements>");
+		expect(declaration).toContain('Layer<"fixture/Generic", never, never>');
+		expect(declaration).not.toContain("PrivateState");
+		expect(declaration).not.toContain("initialize");
+		expect(declaration).not.toContain("methods");
 	});
 
 	const invalidFixtures = {
-		"caller-requirement": "missing the following properties from type 'Scope'",
+		callerRequirement: "missing the following properties from type 'Scope'",
 		fake: "second",
 		generic: "GenericOrStructurallyOverloadedMethodsAreUnsupported",
-		"generic-declared-requirement": "GenericMethodWithDeclaredRequirementsIsUnsupported",
-		"generic-marker-overloaded": "GenericOrStructurallyOverloadedMethodsAreUnsupported",
-		"initializer-requirement": "InitializerHasUndeclaredServiceRequirements",
-		"method-requirement": "MethodHasUndeclaredServiceRequirements",
-		"method-value": "not assignable",
+		genericDeclaredRequirement: "GenericMethodWithDeclaredRequirementsIsUnsupported",
+		genericMarkerOverloaded: "GenericOrStructurallyOverloadedMethodsAreUnsupported",
+		initializerRequirement: "InitializerHasUndeclaredServiceRequirements",
+		methodRequirement: "MethodHasUndeclaredServiceRequirements",
+		methodValue: "not assignable",
 		overloaded: "GenericOrStructurallyOverloadedMethodsAreUnsupported",
-		"overloaded-hidden-requirement": "GenericOrStructurallyOverloadedMethodsAreUnsupported",
-		"private-state": "Property 'secret' does not exist",
-		"requirement-free-ordinary-requirement": "MethodHasUndeclaredServiceRequirements",
-		"scope-requirement": "ScopeCannotBeDeclaredAsAServiceRequirement",
+		overloadedHiddenRequirement: "GenericOrStructurallyOverloadedMethodsAreUnsupported",
+		privateState: "Property 'secret' does not exist",
+		requirementFreeOrdinaryRequirement: "MethodHasUndeclaredServiceRequirements",
+		scopeRequirement: "ScopeCannotBeDeclaredAsAServiceRequirement",
 	} as const;
 
 	it("rejects each invalid service definition", () => {
-		const result = compile(invalidArguments(Object.keys(invalidFixtures)));
-		const diagnostics = (result.stderr || result.stdout).split(/(?=^src\/test-support\/fixtures\/invalid\/)/mu);
+		const result = compileInvalidFixtures(Object.keys(invalidFixtures));
 		expect(result.status).not.toBe(0);
 		for (const [fixture, expectedDiagnostic] of Object.entries(invalidFixtures)) {
-			const fixtureDiagnostics = diagnostics.filter((message) => message.startsWith(`src/test-support/fixtures/invalid/${fixture}.ts(`)).join("\n");
-			expect(fixtureDiagnostics, fixture).toContain(expectedDiagnostic);
+			expect(result.diagnostics[fixture], fixture).toContain(expectedDiagnostic);
 		}
 	});
 });
