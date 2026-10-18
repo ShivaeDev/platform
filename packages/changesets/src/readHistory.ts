@@ -11,8 +11,10 @@ function git(root: string, args: readonly string[]): string {
 }
 export const readHistory = Effect.fn("Changesets.readHistory")(function* (root: string, config: ChangesetConfig, reference?: string) {
 	const base = yield* attempt(() => {
+		const merging = spawnSync("git", ["-C", root, "rev-parse", "--verify", "MERGE_HEAD"], { encoding: "utf8" });
+		const heads = merging.status === 0 ? ["HEAD", ...merging.stdout.trim().split("\n")] : ["HEAD"];
 		for (const candidate of reference === undefined ? ["origin/main", "main"] : [reference]) {
-			const result = spawnSync("git", ["-C", root, "merge-base", candidate, "HEAD"], { encoding: "utf8" });
+			const result = spawnSync("git", ["-C", root, "merge-base", candidate, ...heads], { encoding: "utf8" });
 			if (result.status === 0) {
 				return result.stdout.trim();
 			}

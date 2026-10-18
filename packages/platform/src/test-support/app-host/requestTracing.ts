@@ -1,0 +1,33 @@
+import { Effect } from "effect";
+import { appHost } from "#appHost.ts";
+import { Authenticated, RequestTracing } from "#rpc/middleware.ts";
+import { sessions } from "./fixture.ts";
+import { AuthenticatedPing, Ping, pingHandlers } from "./ping.ts";
+import { host } from "./story.ts";
+
+export const defectiveRpc = host.trait("configured", "an untraced loopback RPC handler defects", (state) => {
+	function build() {
+		return appHost({
+			config: state.config,
+			group: Ping,
+			handlers: Ping.toLayer({ ping: () => Effect.die(new Error("password=hidden-defect-password")) }),
+			policy: "loopback",
+		});
+	}
+	state.build = build;
+});
+
+export function tracingDeclaration(position: "omitted" | "first" | "last") {
+	return host.trait("configured", `the shared group's tracing declaration is ${position}`, (state) => {
+		const authenticated = AuthenticatedPing;
+		function build() {
+			const options = { config: state.config, handlers: pingHandlers, sessions: sessions(state.lookups) };
+			if (position === "omitted") {
+				return appHost({ ...options, group: authenticated });
+			}
+			const group = position === "first" ? Ping.middleware(RequestTracing).middleware(Authenticated) : authenticated.middleware(RequestTracing);
+			return appHost({ ...options, group });
+		}
+		state.build = build;
+	});
+}
