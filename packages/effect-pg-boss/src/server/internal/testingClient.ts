@@ -1,5 +1,6 @@
 import type { Job, PgBoss, SendOptions, UpdateOptions, UpdateRequest, UpdateResponse } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
+import { deferralObservers } from "#internal/deferral.ts";
 import { expireAttempt } from "#internal/expireAttempt.ts";
 import { observeTestingSettlements } from "#internal/observeTestingSettlements.ts";
 import { testingExpirations } from "#internal/testingExpirations.ts";
@@ -102,7 +103,7 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 			});
 		},
 	};
-	return new Proxy(client, {
+	const wrapped = new Proxy(client, {
 		get(target, property) {
 			if (Object.hasOwn(overrides, property)) {
 				const override: unknown = Reflect.get(overrides, property);
@@ -112,4 +113,6 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 			return typeof value === "function" ? value.bind(target) : value;
 		},
 	});
+	deferralObservers.set(wrapped, controls.changed);
+	return wrapped;
 }

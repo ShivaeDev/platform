@@ -189,6 +189,11 @@
 {"path":"packages/effect-pg-boss/src/server/producerQueues.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-pg-boss/src/server/queueOptions.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/effect-pg-boss/src/server/queueOptions.spec.ts","rule":"tests/spec-helpers","count":1}
+{"path":"packages/effect-pg-boss/src/server/retryAtConcurrencyPostgres.spec.ts","rule":"tests/named-values","count":1}
+{"path":"packages/effect-pg-boss/src/server/retryAtExpiryPostgres.spec.ts","rule":"tests/named-values","count":2}
+{"path":"packages/effect-pg-boss/src/server/retryAtLimitPostgres.spec.ts","rule":"tests/named-values","count":4}
+{"path":"packages/effect-pg-boss/src/server/retryAtPostgres.spec.ts","rule":"tests/named-values","count":2}
+{"path":"packages/effect-pg-boss/src/server/retryAtStatelyPostgres.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-pg-boss/src/server/retryWakePostgres.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/effect-pg-boss/src/server/schemaPostgres.spec.ts","rule":"boundaries/queue-sql","count":1}
 {"path":"packages/effect-pg-boss/src/server/schemaPostgres.spec.ts","rule":"tests/named-values","count":1}
@@ -205,7 +210,7 @@
 {"path":"packages/effect-pg-boss/src/test-support/clientEngine.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-pg-boss/src/test-support/fakeClient.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-pg-boss/src/test-support/observeWorker.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-pg-boss/src/test-support/pgBossRuntime.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/effect-pg-boss/src/test-support/pgBossRuntime.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/effect-pg-boss/src/test-support/postgresLayer.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-pg-boss/src/test-support/schemaStories.ts","rule":"tests/support-imports","count":4}
 {"path":"packages/effect-pg-boss/src/test-support/scriptedClient.ts","rule":"tests/support-imports","count":1}
@@ -483,6 +488,8 @@
 {"path":"packages/effect-test-sql/src/test-support/stepsVerbs.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/effect-test-sql/src/test-support/templateLayer.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-test-sql/src/test-support/templates.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/effect-test-sql/src/test-support/timeoutApp.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/effect-test-sql/src/test-support/timeoutStories.ts","rule":"tests/no-expect-in-support","count":4}
 {"path":"packages/effect-test-sql/src/test-support/transactionVerbs.ts","rule":"tests/no-expect-in-support","count":13}
 {"path":"packages/effect-test-sql/src/test-support/transactionVerbs.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-test-sql/src/test-support/upgradeCommitVerbs.ts","rule":"tests/no-expect-in-support","count":10}
@@ -501,7 +508,7 @@
 {"path":"packages/effect-test/src/test-support/startupFailureFixture.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-test/src/test-support/timeoutFixture.ts","rule":"tests/no-expect-in-support","count":3}
 {"path":"packages/effect-test/src/test-support/timeoutFixture.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-test/src/vitest.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
+{"path":"packages/effect-test/src/vitest.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-test/src/vitest.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-test/src/vitest.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-trpc/src/server/adapter.ts","rule":"biome/lint/style/useNamingConvention","count":4}
