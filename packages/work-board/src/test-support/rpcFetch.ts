@@ -31,7 +31,7 @@ function pageRead(call: RpcRequest | undefined, path: string) {
 		return path === "/_board/inbox" || path === "/";
 	}
 	return (
-		["work-board.document", "work-board.board", "work-board.work", "work-board.respond", "work-board.handoff", "work-board.result"].includes(call.tag)
+		["work-board.document", "work-board.board", "work-board.work", "work-board.handoff", "work-board.result"].includes(call.tag)
 		&& JSON.stringify(call.payload).includes(JSON.stringify(path))
 	);
 }

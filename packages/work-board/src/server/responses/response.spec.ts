@@ -144,9 +144,7 @@ boardStory.it(
 		const question = yield* register("investigation.model", "review-model");
 		editFile("duplicate.md", readFileSync(join(notes.root, "responses", `${question.id}.md`), "utf8"));
 		yield* Effect.promise(() =>
-			expect(client.run(client.api.respond.run({ url: "/_board/respond?item=investigation.model&request=review-model" }))).rejects.toThrow(
-				"response history is unknown",
-			),
+			expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("response history is unknown"),
 		);
 	},
 );
@@ -190,10 +188,6 @@ boardStory.it(
 		yield* Effect.promise(() => expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed"));
 		editFile("responses/response.broken.md", "---\nid: response.broken\nkind: response\nActual human feedback\n");
 		yield* Effect.promise(() => expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed"));
-		yield* Effect.promise(() =>
-			expect(client.run(client.api.respond.run({ url: "/_board/respond?item=investigation.model&request=review-model" }))).rejects.toThrow(
-				"malformed",
-			),
-		);
+		yield* Effect.promise(() => expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("malformed"));
 	},
 );

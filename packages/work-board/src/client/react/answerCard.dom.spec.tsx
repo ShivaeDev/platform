@@ -119,9 +119,13 @@ it("retains an option and free text through a document query refresh and records
 	}
 });
 
-it("redirects the separate respond route to the item and focuses its answer card", async () => {
-	const view = await renderRouter(answerCardFixture, `/_board/respond?item=${decisionId}&request=direction`);
+it("opens a Today ask directly on the item and focuses its answer card", async () => {
+	const view = await renderRouter(answerCardFixture, "/");
 	try {
+		await eventually(() => expect(view.container.querySelector("[data-attention-row] a[title]")).not.toBeNull());
+		const link = view.container.querySelector<HTMLAnchorElement>("[data-attention-row] a[title]");
+		expect(link?.getAttribute("href")).toBe(`${url}#answer-card-direction`);
+		await act(async () => link?.click());
 		await eventually(() => expect(view.router.state.location.pathname).toBe(url));
 		expect(view.router.state.location.hash).toBe("answer-card-direction");
 		await eventually(() => expect(document.activeElement?.id).toBe("answer-card-direction"));

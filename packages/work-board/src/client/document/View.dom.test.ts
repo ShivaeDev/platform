@@ -19,8 +19,8 @@ vi.mock("mermaid", () => ({ default: engine }));
 
 it.live("renders Board document fixtures with GFM, footnotes, directives, query links, HTML and a Mermaid code override", function* () {
 	const questionActions = {
-		"/checks": "/_board/respond?item=investigation.choices&request=direction",
-		"/display": "/_board/respond?item=investigation.choices&request=direction",
+		"/checks": "/_board/item/investigation.choices/#answer-card-direction",
+		"/display": "/_board/item/investigation.choices/#answer-card-direction",
 	};
 	const { container } = yield* Effect.promise(() => mountDocument({ ...documentData(documentSource), questionActions }, "reading-"));
 	yield* Effect.promise(() => settledDocument(() => expect(container.querySelector(".diagram")?.getAttribute("data-state")).toBe("drawn")));
@@ -55,8 +55,8 @@ it.live("renders Board document fixtures with GFM, footnotes, directives, query 
 it.live("matches server Markdown output apart from query-fed links and the drawn Mermaid SVG", function* () {
 	const source = metadataParse(documentSource).body;
 	const questionActions = {
-		"/checks": "/_board/respond?item=investigation.choices&request=direction",
-		"/display": "/_board/respond?item=investigation.choices&request=direction",
+		"/checks": "/_board/item/investigation.choices/#answer-card-direction",
+		"/display": "/_board/item/investigation.choices/#answer-card-direction",
 	};
 	const html = yield* renderMarkdown(source, {
 		file: "nested/reading.md",
