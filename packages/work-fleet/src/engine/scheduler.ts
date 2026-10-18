@@ -49,6 +49,21 @@ const activeWork = Effect.gen(function* () {
 	const fleet = yield* Fleet;
 	return activeRecords(yield* fleet.list());
 });
+
+const reconcileRecords = Effect.fn("Fleet.reconcileRecords")(function* (records: readonly Versioned<FleetRecord>[]) {
+	const fleet = yield* Fleet;
+	function reconcile(continuing: boolean) {
+		return Effect.forEach(
+			records.filter(({ value }) => (value.pendingContinuation !== undefined) === continuing),
+			({ value }) => fleet.reconcile(value.workId).pipe(Effect.result),
+			{ concurrency: "unbounded" },
+		);
+	}
+	const progressed = yield* reconcile(false);
+	const continued = yield* reconcile(true);
+	return [...progressed, ...continued];
+});
+
 export const cycle = inBoardReadPass(
 	Effect.gen(function* () {
 		const fleet = yield* Fleet;
@@ -61,13 +76,7 @@ export const cycle = inBoardReadPass(
 		const result = yield* Effect.all(
 			{
 				dispatched: dispatchRecords(records),
-				reconciled: Effect.forEach(
-					active.filter(({ value }) => !openSweep(value)),
-					({ value }) => fleet.reconcile(value.workId).pipe(Effect.result),
-					{
-						concurrency: "unbounded",
-					},
-				),
+				reconciled: reconcileRecords(active.filter(({ value }) => !openSweep(value))),
 			},
 			{ concurrency: "unbounded" },
 		);
