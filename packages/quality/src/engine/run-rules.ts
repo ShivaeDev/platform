@@ -14,10 +14,14 @@ export interface ActiveRule {
 	readonly registrable?: boolean;
 }
 
-const messageOf = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
+function messageOf(cause: unknown): string {
+	return cause instanceof Error ? cause.message : String(cause);
+}
 
 // Registry and baseline entries match on the path, so every finding names its file the same way.
-const repositoryPath = (root: string, file: string): string => posix(isAbsolute(file) ? relative(root, file) : file).replace(/^(\.\/)+/u, "");
+function repositoryPath(root: string, file: string): string {
+	return posix(isAbsolute(file) ? relative(root, file) : file).replace(/^(?:\.\/)+/u, "");
+}
 
 function exceptionHint(rule: ActiveRule, finding: Finding, file: string, config: string): string {
 	const id = rule.family && finding.subject !== undefined ? `${rule.id}/${finding.subject}` : rule.id;
@@ -34,25 +38,29 @@ function exceptionHint(rule: ActiveRule, finding: Finding, file: string, config:
 	return ` For a permanent exception, add to exceptions in ${config}: ${shape}.`;
 }
 
-const violationOf = (rule: ActiveRule, root: string, finding: Finding, exceptionFile: string): Violation => ({
-	...finding,
-	file: repositoryPath(root, finding.file),
-	level: rule.level,
-	message: finding.message + exceptionHint(rule, finding, repositoryPath(root, finding.file), exceptionFile),
-	rule: rule.family && finding.subject !== undefined ? `${rule.id}/${finding.subject}` : rule.id,
-});
+function violationOf(rule: ActiveRule, root: string, finding: Finding, exceptionFile: string): Violation {
+	return {
+		...finding,
+		file: repositoryPath(root, finding.file),
+		level: rule.level,
+		message: finding.message + exceptionHint(rule, finding, repositoryPath(root, finding.file), exceptionFile),
+		rule: rule.family && finding.subject !== undefined ? `${rule.id}/${finding.subject}` : rule.id,
+	};
+}
 
-const runRule = (rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], SetupFailure> =>
-	Effect.map(
+function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], SetupFailure> {
+	return Effect.map(
 		Effect.tryPromise({
 			catch: (cause) => new SetupFailure({ message: `rule ${rule.id} failed: ${messageOf(cause)}` }),
 			try: () => rule.check(inputs),
 		}),
 		(findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile)),
 	);
+}
 
-export const runRules = (rules: readonly ActiveRule[], inputs: RuleInputs): Effect.Effect<readonly Violation[], SetupFailure> =>
-	Effect.map(
+export function runRules(rules: readonly ActiveRule[], inputs: RuleInputs): Effect.Effect<readonly Violation[], SetupFailure> {
+	return Effect.map(
 		Effect.forEach(rules, (rule) => runRule(rule, inputs, inputs.configFile ?? "quality.config.ts"), { concurrency: "unbounded" }),
 		(results) => results.flat(),
 	);
+}

@@ -19,32 +19,39 @@ export interface Session {
 	readonly violations: readonly Violation[];
 }
 
-const setup = <TValue, TRequirements>(
+function setup<TValue, TRequirements>(
 	effect: Effect.Effect<TValue, FilesystemFailure, TRequirements>,
-): Effect.Effect<TValue, SetupFailure, TRequirements> => Effect.mapError(effect, (failure) => new SetupFailure({ message: failure.message }));
+): Effect.Effect<TValue, SetupFailure, TRequirements> {
+	return Effect.mapError(effect, (failure) => new SetupFailure({ message: failure.message }));
+}
 
-export const scan = (config: ResolvedConfig): Effect.Effect<Pick<Session, "inventory" | "violations">, SetupFailure, FileSystem.FileSystem> =>
-	Effect.gen(function* () {
-		const inventory = yield* setup(collectInventory(config.root, config));
-		const services = yield* Effect.context<FileSystem.FileSystem>();
-		const readText = (path: string): Promise<string | undefined> => Effect.runPromiseWith(services)(readOptionalText(resolve(config.root, path)));
-		const violations = yield* runRules(config.active, {
-			configFile: relative(config.root, config.file),
-			exceptions: config.exceptions,
-			files: inventory.files,
-			readText,
-			root: config.root,
-			sources: inventory.sources,
-		});
-		return { inventory, violations };
+export const scan = Effect.fn("Engine.scan")(function* (
+	config: ResolvedConfig,
+): Effect.fn.Return<Pick<Session, "inventory" | "violations">, SetupFailure, FileSystem.FileSystem> {
+	const inventory = yield* setup(collectInventory(config.root, config));
+	const services = yield* Effect.context<FileSystem.FileSystem>();
+	function readText(path: string): Promise<string | undefined> {
+		return Effect.runPromiseWith(services)(readOptionalText(resolve(config.root, path)));
+	}
+	const violations = yield* runRules(config.active, {
+		configFile: relative(config.root, config.file),
+		exceptions: config.exceptions,
+		files: inventory.files,
+		readText,
+		root: config.root,
+		sources: inventory.sources,
 	});
+	return { inventory, violations };
+});
 
-export const openSession = (cwd: string, configPath: string | undefined): Effect.Effect<Session, SetupFailure, FileSystem.FileSystem> =>
-	Effect.gen(function* () {
-		const config = yield* loadConfig(cwd, configPath);
-		const registryRaw = yield* readInput(config.root, config.registry);
-		const registry = yield* validOrFail(config.registry, yield* Effect.promise(() => decodeRegistry(registryRaw)));
-		const baseline = yield* readBaseline(config);
-		const { inventory, violations } = yield* scan(config);
-		return { baseline, config, inventory, registry: [...registry, ...registryEntries(config.exceptions)], violations };
-	});
+export const openSession = Effect.fn("Engine.openSession")(function* (
+	cwd: string,
+	configPath: string | undefined,
+): Effect.fn.Return<Session, SetupFailure, FileSystem.FileSystem> {
+	const config = yield* loadConfig(cwd, configPath);
+	const registryRaw = yield* readInput(config.root, config.registry);
+	const registry = yield* validOrFail(config.registry, yield* Effect.promise(() => decodeRegistry(registryRaw)));
+	const baseline = yield* readBaseline(config);
+	const { inventory, violations } = yield* scan(config);
+	return { baseline, config, inventory, registry: [...registry, ...registryEntries(config.exceptions)], violations };
+});

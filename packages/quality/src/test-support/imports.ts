@@ -44,7 +44,7 @@ export async function scanned(root: string): Promise<RuleInputs> {
 	return { files: inventory.files, readText: readText(root), root, sources: inventory.sources };
 }
 
-export async function findingsIn<Input>(rule: Rule<string, Input>, options: Input | undefined, root: string): Promise<Findings> {
+export async function findingsIn<TInput>(rule: Rule<string, TInput>, options: TInput | undefined, root: string): Promise<Findings> {
 	const configured = await rule.configure(options);
 	if (configured._tag === "Invalid") {
 		throw new Error(`invalid options: ${configured.issues.join("; ")}`);
