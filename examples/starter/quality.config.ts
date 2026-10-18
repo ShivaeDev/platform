@@ -12,20 +12,4 @@ export default defineConfig({
 			rules: ["biome/lint/style/noDefaultExport"],
 		},
 	],
-	rules: {
-		"files/named-after-export": {
-			options: {
-				toolOwned: [
-					`${MIGRATIONS_DIRECTORY}/`,
-					"*.config.*",
-					"*.d.ts",
-					"*.d.mts",
-					"*.d.cts",
-					"**/.railway/railway.ts",
-					"**/.railway/railway.py",
-					"**/.railway/railway.go",
-				],
-			},
-		},
-	},
 });
