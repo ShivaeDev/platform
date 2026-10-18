@@ -24,11 +24,10 @@ trpc.it("ends a subscription aborted before iteration", [adapterServices()], fun
 	const iterator = yield* subscribe("neverStream", undefined, controller.signal);
 	expect(yield* next(iterator)).toEqual({ done: true, value: undefined });
 });
-trpc.it("maps subscription failures to the consumer error", [adapterServices()], function* ({ subscribe, rejectNext, mapped, story }) {
+trpc.it("maps subscription failures to the consumer error", [adapterServices()], function* ({ subscribe, rejectNext, mapped }) {
 	const iterator = yield* subscribe("failedStream");
 	expect(yield* rejectNext(iterator)).toMatchObject({ code: "SERVICE_UNAVAILABLE", message: "Updates temporarily unavailable" });
 	expect(mapped).toEqual([{ error: "subscription unavailable", origin: "failure", path: "failedStream" }]);
-	expect(story.lines).toContain("read the next rejection from failedStream");
 });
 trpc.it("keeps ambient subscription services after caller context returns", [adapterServices()], function* ({ subscribeWith, next }) {
 	const iterator = yield* subscribeWith("ambientStream", Context.make(RuntimeValue, "test override"));

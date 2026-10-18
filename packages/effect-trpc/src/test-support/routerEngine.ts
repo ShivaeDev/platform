@@ -30,6 +30,7 @@ export interface RouterEngine {
 	mapped: { error: unknown; origin: string; path: string }[];
 	mode: { trait: string; value: "instrument-defect" | "mapper-defect" | "runtime-failure" } | undefined;
 	requestId: string;
+	requestTrait: string | undefined;
 	resolverCauses: { cause: Cause.Cause<unknown>; path: string }[];
 	streamStarted: ReturnType<typeof Promise.withResolvers<void>>;
 }
@@ -47,6 +48,7 @@ export function emptyEngine(): RouterEngine {
 		mapped: [],
 		mode: undefined,
 		requestId: "request-1",
+		requestTrait: undefined,
 		resolverCauses: [],
 		streamStarted: Promise.withResolvers<void>(),
 	};

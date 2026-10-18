@@ -22,8 +22,9 @@ trpc.it("leaves successes, undeclared failures and defects untouched", [rejectio
 	expect(yield* query("success")).toBe(1);
 	const failure = yield* rejectQuery("other");
 	expect(rejection(failure)).toEqual(Option.none());
-	expect(mapped).toContainEqual({ error: other, origin: "failure", path: "other" });
-	expect(mapped.find(({ path }) => path === "other")?.error).toBe(other);
+	const entry = mapped.find(({ path }) => path === "other");
+	expect(entry).toEqual({ error: other, origin: "failure", path: "other" });
+	expect(entry?.error).toBe(other);
 	const defect = yield* rejectQuery("die");
 	expect(rejection(defect)).toEqual(Option.none());
 	expect(mapped).toContainEqual({ error: expect.any(Conflict), origin: "defect", path: "die" });

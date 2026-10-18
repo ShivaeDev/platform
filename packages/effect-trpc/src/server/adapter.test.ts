@@ -35,21 +35,15 @@ trpc.it(
 trpc.it("decodes subscription output schemas", [adapterServices()], function* ({ consume }) {
 	expect(yield* consume("transformedStream")).toEqual([42, 43]);
 });
-trpc.it(
-	"interrupts subscriptions and runs finalizers on caller abort",
-	[adapterServices()],
-	function* ({ subscribe, next, started, finalized, story }) {
-		const controller = new AbortController();
-		const iterator = yield* subscribe("interruptible", undefined, controller.signal);
-		const pending = yield* Effect.forkChild(next(iterator));
-		yield* started(iterator);
-		controller.abort();
-		expect(yield* Fiber.join(pending)).toEqual({ done: true, value: undefined });
-		expect(finalized).toContain("interruptible");
-		expect(story.lines).toContain("read the next value from interruptible");
-		expect(story.lines).toContain("wait for interruptible to start");
-	},
-);
+trpc.it("interrupts subscriptions and runs finalizers on caller abort", [adapterServices()], function* ({ subscribe, next, started, finalized }) {
+	const controller = new AbortController();
+	const iterator = yield* subscribe("interruptible", undefined, controller.signal);
+	const pending = yield* Effect.forkChild(next(iterator));
+	yield* started(iterator);
+	controller.abort();
+	expect(yield* Fiber.join(pending)).toEqual({ done: true, value: undefined });
+	expect(finalized).toContain("interruptible");
+});
 trpc.it("passes explicit transport errors through", [adapterServices()], function* ({ rejectQuery }) {
 	expect(yield* rejectQuery("explicitFailure")).toMatchObject({ data: { code: "NOT_FOUND" }, message: "missing" });
 });

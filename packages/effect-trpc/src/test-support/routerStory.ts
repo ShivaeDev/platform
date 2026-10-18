@@ -20,7 +20,12 @@ export const trpc = storyKit({
 });
 
 export function requestIs(requestId: string) {
+	const trait = `requestIs(${JSON.stringify(requestId)})`;
 	return trpc.trait("router", `the request is ${requestId}`, (engine) => {
+		if (engine.requestTrait !== undefined) {
+			throw new Error(`Request traits ${engine.requestTrait} and ${trait} cannot be combined`);
+		}
+		engine.requestTrait = trait;
 		engine.requestId = requestId;
 	});
 }
