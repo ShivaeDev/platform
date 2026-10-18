@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.19.0 - 2026-10-18
+
+### Added
+
+- An answered Fleet decision that Fleet has not acknowledged yet leaves Needs you for an **Answered, waiting for Fleet** group on Today and moves its task to Queued on Now. Its answer card and Now card say who answered and what, for example "You answered: Request changes. Fleet picks this up on its next pass.", and say "Fleet isn't running. It picks this up when it starts again." while Fleet is unavailable. **Change your answer** supersedes the current answer. The attention projection carries these rows as `answered`, and inbox rows, work items and document requests carry an `answered` summary.
+- Export `DaemonReadContract` from `diagnostics/daemonContract.ts`, accepting unknown diagnostics payloads while retaining the typed Fleet items query for independent source validation.
+- `work-board responses --follow <dir>` streams responses across all questions as tab-separated item, request, response ID and first answer line. It starts with new responses; `--since <ISO timestamp>` includes recorded history from that time.
+- `responseFeed(root, since?)` from `server/responses/feed.ts` exposes the same lines as an Effect Stream using the workspace filesystem services.
+
+### Changed
+
+- Now cards say who holds the work in plain words, such as "Fleet is working on this", "Needs you" or "Assigned to you", and how long it has been in its stage, such as "Executing for 4h". Task cards no longer repeat the word "task".
+- Now lanes share the page width and scroll inside their own container when the window is too narrow.
+- System shows the same "Needs you" count as Today, by Today's rule, in place of Fleet's own "Waiting on maintainer" count. Inbox count badges and the Today links name that count "need you".
+- A Fleet decision shows the Board work it reviewed as the work's title, criteria and description instead of its raw front matter.
+- The Library filters are stock shadcn controls: Kind and Status are Selects, View is a toggle group and the Fleet records switch is a Checkbox, with the same URL state as before.
+- The search palette is a stock Command inside a stock Dialog, with the same debounce, keyboard selection and Enter behaviour as before.
+- The Board's buttons, badges, cards, popovers, tabs, the phone More sheet and the answer form's text, label, input and select controls are now stock shadcn/ui components in the base-mira style on Base UI, so the settings and Today answer popovers, the item context tabs and the phone sheet get Base UI focus handling, dismissal and keyboard support.
+- The Board uses the Amber Watch theme: graphite surfaces with an amber accent in light and dark, and the Geist and Geist Mono fonts, which ship with the Board instead of loading from the web.
+
+### Fixed
+
+- Response history and the saved-answer messages show the authored option labels instead of "Option 1".
+- Keep System usable when a Fleet daemon diagnostics source has an incompatible shape: show that source's decode error while retaining valid Codex usage, GitHub limits and Fleet health observations.
+- Today says "Fleet unavailable" instead of "? in progress" when the Fleet daemon cannot be reached, and names loading or unavailable counts instead of showing "?".
+- Sidebar destinations carry explicit accessible names that include their counts.
+
 ## 0.18.0 - 2026-10-18
 
 ### Fixed
