@@ -21,7 +21,7 @@ afterEach(async () => {
 	vi.unstubAllGlobals();
 });
 
-it("restores a valid saved passage once when readiness precedes the queued frame, without scrolling or focusing the heading", async () => {
+it("restores a valid saved passage once after readiness, on the queued frame, without scrolling or focusing the heading", async () => {
 	const passageId = "heading-evidence";
 	const view = await render(
 		<article id={shellIds.doc}>
@@ -38,8 +38,8 @@ it("restores a valid saved passage once when readiness precedes the queued frame
 		const status = vi.fn();
 		act(() => {
 			scheduleReading(control("#doc", HTMLElement), { scroll: [0, 480], selection: null }, passageId, () => true, status, false);
-			document.dispatchEvent(new Event("board-reading-ready"));
 		});
+		await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
 		expect(document.documentElement.style.overflowAnchor).toBe("none");
 		await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
 		expect(scroll.mock.calls).toEqual([[0, 480]]);
@@ -70,7 +70,7 @@ it.each(["Back", "reload"])("reports a missing saved passage after %s while reta
 		await act(async () => view.registry.refresh(documentQuery(api, "/notes/plan.md")));
 		await eventually(() => expect(control("#doc", HTMLElement).textContent).toContain("The heading disappeared."));
 		control("article details:not(.item-context)", HTMLDetailsElement).open = true;
-		vi.stubGlobal("scrollY", 480);
+		vi.spyOn(window, "scrollY", "get").mockReturnValue(480);
 		if (navigation === "Back") {
 			await act(async () => view.router.navigate({ to: "/other.md" }));
 			await eventually(() => expect(control("#doc h1", HTMLElement).textContent).toBe("Other"));
@@ -81,7 +81,7 @@ it.each(["Back", "reload"])("reports a missing saved passage after %s while reta
 			await view.unmount();
 			window.history.replaceState({ workBoard: { id: state.key } }, "");
 		}
-		vi.stubGlobal("scrollY", 0);
+		vi.spyOn(window, "scrollY", "get").mockReturnValue(0);
 		const scroll = vi.spyOn(window, "scrollTo");
 		const focus = vi.spyOn(HTMLElement.prototype, "focus");
 		const passage = vi.spyOn(HTMLElement.prototype, "scrollIntoView");

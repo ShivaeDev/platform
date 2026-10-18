@@ -27,6 +27,7 @@ function holdsAreas(record: FleetRecord, now: number, mergeWaitMs: number): bool
 	return (
 		!["completed", "released"].includes(record.stage)
 		&& record.attempts.length > 0
+		&& (record.stage !== "prepared" || executing(record))
 		&& record.mergeAreasReleased !== true
 		&& !mergeWaitExpired(record, now, mergeWaitMs)
 	);

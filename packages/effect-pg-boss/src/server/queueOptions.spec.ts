@@ -20,11 +20,12 @@ it("reconciles schedules, preserves unspecified settings and avoids unchanged up
 	expect(client.queues.get("cleanup")).toMatchObject({ expireInSeconds: 15, notify: false, retryBackoff: false, retryLimit: 0 });
 });
 
-it("releases the acquired client and listener when immutable queue options conflict", async () => {
+it("releases the acquired client and application error callback when immutable queue options conflict", async () => {
 	const client = new FakeClient();
 	client.queues.set("immutable", queueResult("immutable", { partition: false, policy: "standard" }));
 	const Queue = defineQueue({ name: "immutable", queue: { partition: true, policy: "singleton" }, schema: Schema.Struct({}) });
 	const Jobs = makePgBoss("@test/ImmutableOptions");
+	const reported: Error[] = [];
 	await expect(
 		Effect.runPromise(
 			Effect.scoped(
@@ -33,6 +34,7 @@ it("releases the acquired client and listener when immutable queue options confl
 						...constructorOptions,
 						clientFactory: () => client,
 						jobs: [Queue.handle(() => Effect.void)],
+						onError: (error) => Effect.sync(() => reported.push(error)),
 					}),
 				),
 			),
@@ -41,5 +43,8 @@ it("releases the acquired client and listener when immutable queue options confl
 	expect(client.workers).toEqual([]);
 	expect(client.updateQueueCalls).toEqual([]);
 	expect(client.stopCalls).toBe(1);
-	expect(client.errors).toEqual([]);
+	for (const listener of client.errors) {
+		listener(Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" }));
+	}
+	expect(reported).toEqual([]);
 });

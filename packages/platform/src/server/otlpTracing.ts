@@ -34,11 +34,25 @@ export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.unwrap(
 		const serviceName = yield* Config.String("OTEL_SERVICE_NAME").pipe(Config.withDefault(attributes["service.name"] ?? "unknown_service"));
 		const serviceVersion = yield* Config.String("OTEL_SERVICE_VERSION").pipe(Config.withDefault(undefined));
 		const headers = yield* Config.Record(Schema.String, Schema.StringFromUriComponent, "OTEL_EXPORTER_OTLP_HEADERS").pipe(Config.withDefault({}));
-		return OtlpTracer.layer({ headers, resource: { attributes, serviceName, serviceVersion }, url: endpoint.toString() }).pipe(
+		const requestTimeout = yield* Config.Int("OTEL_EXPORTER_OTLP_TRACES_TIMEOUT").pipe(
+			Config.orElse(() => Config.Int("OTEL_EXPORTER_OTLP_TIMEOUT")),
+			Config.withDefault(10_000),
+		);
+		const exportInterval = yield* Config.Int("OTEL_BSP_SCHEDULE_DELAY").pipe(Config.withDefault(5000));
+		const maxBatchSize = yield* Config.Int("OTEL_BSP_MAX_EXPORT_BATCH_SIZE").pipe(Config.withDefault(1000));
+		const exportTimeout = yield* Config.Int("OTEL_BSP_EXPORT_TIMEOUT").pipe(Config.withDefault(3000));
+		return OtlpTracer.layer({
+			exportInterval,
+			headers,
+			maxBatchSize,
+			resource: { attributes, serviceName, serviceVersion },
+			shutdownTimeout: Math.min(exportTimeout, requestTimeout),
+			url: endpoint.toString(),
+		}).pipe(
 			Layer.provide(
 				safeOtlpSerialization.pipe(Layer.provide(protocol === "http/protobuf" ? OtlpSerialization.layerProtobuf : OtlpSerialization.layerJson)),
 			),
-			Layer.provide(otlpHttpClient),
+			Layer.provide(otlpHttpClient(requestTimeout)),
 		);
 	}),
 );

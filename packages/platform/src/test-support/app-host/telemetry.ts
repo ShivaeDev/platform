@@ -6,9 +6,9 @@ import { host } from "./story.ts";
 
 export function collector(
 	options: {
-		status?: number | ((attempt: number) => number);
+		status?: number | ((attempt: number) => number | undefined);
 		offline?: boolean;
-		answer?: string;
+		answer?: string | null;
 		env?: Record<string, string>;
 		endpoint?: "base" | "traces";
 	} = {},

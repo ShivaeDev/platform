@@ -95,9 +95,7 @@ application can tolerate it. The test also reads SQL-formatted microseconds to
 prove PostgreSQL still stores `.345678` when JS has decoded only `.345`.
 
 Applications needing exact microseconds or PostgreSQL infinity require an
-explicit encoding policy before adoption. This slice does not introduce custom
-type handling or imply that changing a schema can recover precision already
-discarded by a driver.
+explicit encoding policy before adoption. Changing a schema cannot recover precision already discarded by a driver.
 
 Arrays other than the demonstrated one-dimensional `int4[]`, enums, ranges, binary data and custom type policies remain unproven.
 `findMany` still supports only its existing selected fields, equality filters,

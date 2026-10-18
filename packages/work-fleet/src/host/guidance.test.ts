@@ -1,9 +1,11 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect } from "@effect/vitest";
-import { Effect, FileSystem, Path } from "effect";
+import { Effect, FileSystem, Layer, Path } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { loadHost, resolveHost } from "#host/config.ts";
+import { resolveHost } from "#host/config.ts";
+import { loadHost } from "#host/configFile.ts";
 import { hostGuidance } from "#host/guidance.ts";
+import { staticConfig } from "#host/liveConfig.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { hostPolicy } from "#host/runtime.ts";
 import { FleetPolicy } from "#policy.ts";
@@ -29,7 +31,7 @@ const configuredPrompt = Effect.fn("Guidance.configuredPrompt")(function* (
 	}
 	const host = yield* loadHost(board);
 	const policy = yield* FleetPolicy.pipe(
-		Effect.provide(hostPolicy(host)),
+		Effect.provide(hostPolicy(host).pipe(Layer.provide(staticConfig(host)))),
 		Effect.provideService(MainSource, {
 			current: Effect.succeed(MAIN),
 			observe: () => Effect.die("Guidance does not observe main"),

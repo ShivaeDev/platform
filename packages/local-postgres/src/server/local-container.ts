@@ -1,7 +1,7 @@
 import type { ExecFileSyncOptionsWithStringEncoding } from "node:child_process";
 import { env } from "node:process";
 
-const IMAGE = "postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873";
+export const POSTGRES_IMAGE = "postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873";
 const CONTAINER = "development-postgres";
 type Docker = (args: readonly string[], options?: ExecFileSyncOptionsWithStringEncoding) => string;
 
@@ -10,7 +10,7 @@ export function sqlInContainer(docker: Docker, url: URL, args: readonly string[]
 	if (!id || id.includes("\n")) {
 		throw new Error("Install psql or start the shared PostgreSQL service with Docker.");
 	}
-	if (docker(["inspect", "--format", "{{.Config.Image}}", id], options).trim() !== IMAGE) {
+	if (docker(["inspect", "--format", "{{.Config.Image}}", id], options).trim() !== POSTGRES_IMAGE) {
 		throw new Error("The shared PostgreSQL image differs from the pinned baseline. Upgrade explicitly, preserving data.");
 	}
 	// libpq treats + literally in URI passwords.
@@ -40,7 +40,7 @@ export function startContainer(docker: Docker) {
 		existing = false;
 	}
 	if (existing) {
-		if (docker(["inspect", "--format", "{{.Config.Image}}", CONTAINER]).trim() !== IMAGE) {
+		if (docker(["inspect", "--format", "{{.Config.Image}}", CONTAINER]).trim() !== POSTGRES_IMAGE) {
 			throw new Error("The shared PostgreSQL container uses a different image. Preserve its volume and upgrade it explicitly.");
 		}
 		docker(["start", CONTAINER]);
@@ -58,7 +58,7 @@ export function startContainer(docker: Docker) {
 			"POSTGRES_PASSWORD=postgres",
 			"--mount",
 			"type=volume,src=development-postgres,dst=/var/lib/postgresql",
-			IMAGE,
+			POSTGRES_IMAGE,
 		]);
 	}
 }

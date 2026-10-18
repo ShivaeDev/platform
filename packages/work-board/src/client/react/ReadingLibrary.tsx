@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { LibraryContext, restoreLibrary } from "#client/react/LibraryContext.ts";
 import { useMainLocation } from "./MainLocationContext.ts";
 import { Modal } from "./Modal.tsx";
@@ -36,7 +36,7 @@ export function ReadingLibrary({
 		},
 		[key],
 	);
-	useEffect(() => {
+	useLayoutEffect(() => {
 		function sync() {
 			if (!page.route) {
 				return;
@@ -55,10 +55,6 @@ export function ReadingLibrary({
 			}
 		}
 		sync();
-		document.addEventListener("board-index-change", sync);
-		return () => {
-			document.removeEventListener("board-index-change", sync);
-		};
 	}, [save, page]);
 
 	return (

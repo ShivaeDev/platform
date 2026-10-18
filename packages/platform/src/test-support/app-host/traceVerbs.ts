@@ -24,7 +24,7 @@ async function collectorResponses(state: HostState, statuses: readonly number[])
 	const logger = Logger.make((options) => {
 		state.logs.push({ annotations: {}, attempt: state.receiver?.requests.length ?? 0, level: options.logLevel, message: options.message });
 	});
-	const runtime = ManagedRuntime.make(otlpHttpClient.pipe(Layer.provideMerge(Logger.layer([logger]))));
+	const runtime = ManagedRuntime.make(otlpHttpClient().pipe(Layer.provideMerge(Logger.layer([logger]))));
 	try {
 		for (const status of statuses) {
 			const response = await runtime.runPromise(

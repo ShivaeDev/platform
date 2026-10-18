@@ -7,7 +7,7 @@ import { Age } from "#client/react/Age";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
-import { footnoteIds } from "#render/footnotes.ts";
+import { footnoteIds } from "#render/footnoteIds.ts";
 import { boardLayout } from "./boardLayout.ts";
 import { DetailStatesContext, DocumentDetails } from "./Details.ts";
 import { highlightDocument } from "./highlight.ts";

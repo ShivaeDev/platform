@@ -62,7 +62,7 @@ isolated("run publishes a suspended validation stage without waiting for reconci
 			yield* prepareWork("one");
 			yield* cycle;
 			finishWorkers(fixture);
-			const scheduler = yield* Effect.scoped(run("5 millis")).pipe(Effect.forkChild);
+			const scheduler = yield* Effect.scoped(run(Effect.sleep("5 millis"))).pipe(Effect.forkChild);
 			yield* Deferred.await(entered);
 			yield* Effect.gen(function* () {
 				while (!readFileSync(join(root, "fleet/status.md"), "utf8").includes("Stage: validating")) {

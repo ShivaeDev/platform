@@ -1,9 +1,11 @@
+import { RouterContextProvider } from "@tanstack/react-router";
 import * as Atom from "effect/reactivity/Atom";
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { browserStorage } from "#test/browserStorage.ts";
 import { choose, click, control } from "#test/chrome.ts";
 import { renderBoard } from "#test/react.tsx";
+import { boardRouter } from "./boardRouter.ts";
 import { Header } from "./Header.tsx";
 import { emptyMainLocation } from "./mainLocation.ts";
 import { UpdatesToggle } from "./UpdatesToggle.tsx";
@@ -37,7 +39,11 @@ function Shell({ client }: { readonly client: { readonly updates: { readonly pau
 it("changes saved theme and density and pauses native updates from the header settings", async () => {
 	const client = { updates: { paused: Atom.make(false) } };
 
-	const view = await renderBoard({}, () => <Shell client={client} />);
+	const view = await renderBoard({}, () => (
+		<RouterContextProvider router={boardRouter()}>
+			<Shell client={client} />
+		</RouterContextProvider>
+	));
 	try {
 		expect(control('[role="dialog"][aria-label="Settings"]', HTMLElement).hidden).toBe(true);
 		click("#settings-open");

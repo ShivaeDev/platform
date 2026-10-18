@@ -10,9 +10,9 @@ export interface OtlpExport {
 	readonly rawHeaders: readonly string[];
 }
 export interface OtlpReceiverOptions {
-	readonly answer?: string;
+	readonly answer?: string | null;
 	readonly path?: string;
-	readonly status?: number | ((attempt: number) => number);
+	readonly status?: number | ((attempt: number) => number | undefined);
 }
 
 async function receive(request: IncomingMessage, response: ServerResponse, requests: OtlpExport[], spans: OtlpSpan[], options: OtlpReceiverOptions) {
@@ -33,7 +33,16 @@ async function receive(request: IncomingMessage, response: ServerResponse, reque
 			return;
 		}
 		spans.push(...otlpReadout(body, contentType));
-		response.writeHead(typeof options.status === "function" ? options.status(requests.length) : (options.status ?? 200)).end(options.answer ?? "{}");
+		const status = typeof options.status === "function" ? options.status(requests.length) : (options.status ?? 200);
+		if (status === undefined) {
+			return;
+		}
+		response.writeHead(status);
+		if (options.answer === null) {
+			response.flushHeaders();
+		} else {
+			response.end(options.answer ?? "{}");
+		}
 	} catch {
 		response.writeHead(400).end();
 	}
@@ -54,7 +63,14 @@ export const otlpReceiver = Effect.fnUntraced(function* (options: OtlpReceiverOp
 					});
 				}),
 		),
-		() => Effect.promise(() => new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())))),
+		() =>
+			Effect.promise(
+				() =>
+					new Promise<void>((resolve, reject) => {
+						server.close((error) => (error ? reject(error) : resolve()));
+						server.closeAllConnections();
+					}),
+			),
 	);
 	const address = server.address();
 	if (address === null || typeof address === "string") {

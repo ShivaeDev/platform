@@ -2,8 +2,9 @@ import { Effect, Schema } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
+import type { GithubRead } from "#host/github.ts";
 import { CheckPages, githubCheckState, StatusPages } from "#host/githubCheckState.ts";
-import { githubRead } from "#host/githubRead.ts";
+import { githubFailure } from "#host/githubRateLimit.ts";
 import { githubRequiredChecks } from "#host/githubRequiredChecks.ts";
 import type { WorkResult } from "#policy.ts";
 
@@ -30,11 +31,11 @@ export function makeGithubChecks<R>(read: (endpoint: string) => Effect.Effect<st
 		const commit = `repos/${owner}/${repository}/commits/${result.head}`;
 		const checks = yield* read(`${commit}/check-runs?per_page=100&filter=latest`).pipe(
 			Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(CheckPages))),
-			Effect.mapError(() => failure("GitHub check runs are unavailable or invalid")),
+			Effect.mapError(githubFailure("GitHub check runs are unavailable or invalid")),
 		);
 		const statuses = yield* read(`${commit}/status?per_page=100`).pipe(
 			Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(StatusPages))),
-			Effect.mapError(() => failure("GitHub commit statuses are unavailable or invalid")),
+			Effect.mapError(githubFailure("GitHub commit statuses are unavailable or invalid")),
 		);
 		if (
 			statuses.length === 0
@@ -48,6 +49,6 @@ export function makeGithubChecks<R>(read: (endpoint: string) => Effect.Effect<st
 	});
 }
 
-export function githubChecks(result: WorkResult, branch = "main") {
-	return makeGithubChecks((endpoint) => githubRead(["api", "--method", "GET", "--paginate", "--slurp", endpoint]), branch)(result);
+export function githubChecks(read: GithubRead, branch = "main") {
+	return makeGithubChecks(read.pages, branch);
 }

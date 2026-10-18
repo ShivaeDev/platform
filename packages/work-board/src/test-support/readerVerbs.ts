@@ -1,0 +1,105 @@
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { openPage } from "./browser.ts";
+import { enterField } from "./enterField.ts";
+import { followLink } from "./followLink.ts";
+import { formEvent } from "./formEvent.ts";
+import { waitFor } from "./live.ts";
+import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "./storyEngine.ts";
+import { currentReplies } from "./storyReplies.ts";
+
+export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
+	function page() {
+		return connected(engine).page;
+	}
+	function text(selector: string, value: string) {
+		tell(`the reader enters ${JSON.stringify(value)} in ${selector}`);
+		const field = page().document.querySelector(selector);
+		if (!(field instanceof page().window.HTMLInputElement || field instanceof page().window.HTMLTextAreaElement)) {
+			throw new Error(`Missing ${selector}`);
+		}
+		field.value = value;
+		field.dispatchEvent(new (page().window.Event)("input", { bubbles: true }));
+		return field;
+	}
+	function click(id: string) {
+		tell(`the reader clicks ${id}`);
+		page()
+			.document.getElementById(id)
+			?.dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true }));
+	}
+	return {
+		answer: (prompt: string, value: string) => text(`[data-prompt="${prompt}"] textarea`, value),
+		choice: (value: string) => {
+			tell(`the reader chooses ${value}`);
+			const field = page().document.querySelector(`input[value="${value}"]`);
+			if (!(field instanceof page().window.HTMLInputElement)) {
+				throw new Error(`Missing option ${value}`);
+			}
+			field.checked = true;
+			field.dispatchEvent(new (page().window.Event)("input", { bubbles: true }));
+		},
+		chooseOption: (value: string) =>
+			formEvent(page(), () => {
+				tell(`the reader chooses ${value}`);
+				page()
+					.document.querySelector(`[data-choice="${value}"]`)
+					?.dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true }));
+			}),
+		click,
+		currentReplies: () => {
+			tell("the reader reads the current saved replies");
+			return currentReplies(engine);
+		},
+		enterAnswer: (value: string) => formEvent(page(), () => text("[data-answer-text]", value)),
+		enterAuthor: (value: string) =>
+			formEvent(page(), () => {
+				tell(`the reader signs as ${value}`);
+				enterField(page(), "author", value);
+			}),
+		fieldValue: (name: string) => {
+			const field = page().document.querySelector(`[name="${name}"]`);
+			return field instanceof page().window.HTMLTextAreaElement ? field.value : undefined;
+		},
+		follow: (href: string) =>
+			formEvent(page(), () => {
+				tell(`the reader follows ${href}`);
+				followLink(page(), href);
+			}),
+		input: (name: string, value: string) => text(`[name="${name}"]`, value),
+		open: Effect.fn("Story.open")(function* (path: string, before?: Parameters<typeof openPage>[2]) {
+			tell(`the reader opens ${path}`);
+			yield* Effect.promise(() => page().close());
+			const opened = yield* openPage(connected(engine).board, path, before);
+			connected(engine).page = opened;
+			yield* rememberReader(engine);
+			return opened;
+		}),
+		preview: () => formEvent(page(), () => click("response-preview")),
+		responseStatus: () => page().document.getElementById("response-status")?.textContent,
+		savedResponses: () => savedResponseItems(engine),
+		submit: (form = "response-form") =>
+			formEvent(page(), () => {
+				tell(`the reader submits ${form}`);
+				page()
+					.document.getElementById(form)
+					?.dispatchEvent(new (page().window.Event)("submit", { bubbles: true, cancelable: true }));
+			}),
+		text,
+		view: () => readerView(engine),
+		waitForInbox: (count: number) => {
+			tell(`the reader waits for ${count} waiting in both Inbox counts`);
+			return Effect.promise(() =>
+				waitFor(() => {
+					for (const id of ["inbox-count", "inbox-topbar-count"]) {
+						expect(page().document.getElementById(id)?.textContent).toBe(String(count));
+					}
+				}),
+			);
+		},
+		waitForResponseStatus: (status: string) => {
+			tell(`the reader waits for response status ${JSON.stringify(status)}`);
+			return Effect.promise(() => waitFor(() => expect(page().document.getElementById("response-status")?.textContent).toContain(status)));
+		},
+	};
+}

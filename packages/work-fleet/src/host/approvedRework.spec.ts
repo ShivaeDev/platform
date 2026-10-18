@@ -81,12 +81,12 @@ for (const author of ["maintainer", "orchestrator"]) {
 		));
 }
 
-for (const body of ["", "  \n  "]) {
-	test("daemon retries an unchanged approved head without text by republishing merge readiness", () =>
-		withApprovedPrDaemon((fixture) =>
-			fixture.serve((client) =>
-				Effect.gen(function* () {
-					const ready = yield* fixture.ready(client);
+test("daemon retries an unchanged approved head without text by republishing merge readiness", () =>
+	withApprovedPrDaemon((fixture) =>
+		fixture.serve((client) =>
+			Effect.gen(function* () {
+				let ready = yield* fixture.ready(client);
+				for (const body of ["", "  \n  "]) {
 					fixture.answer(ready, body);
 					const retried = yield* client("fleet.reconcile", { workId: "one" });
 					expect(retried.decision?.reason).toBe("Reviewed PR is ready to merge");
@@ -96,10 +96,11 @@ for (const body of ["", "  \n  "]) {
 					expect(retried.checks).toEqual(ready.checks);
 					expect(retried.attempts).toEqual(ready.attempts);
 					expect(fixture.provider.launched).toHaveLength(2);
-				}),
-			),
-		));
-}
+					ready = retried;
+				}
+			}),
+		),
+	));
 
 test("answer text queues requested changes on the same branch and PR through daemon HTTP", () =>
 	withApprovedPrDaemon((fixture) =>

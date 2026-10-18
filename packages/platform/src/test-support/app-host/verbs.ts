@@ -4,6 +4,7 @@ import { requests } from "./requests.ts";
 import { runtimeVerbs } from "./runtime.ts";
 import type { HostState } from "./state.ts";
 import { subscriptionVerbs } from "./subscription.ts";
+import { timeoutVerbs } from "./timeoutVerbs.ts";
 import { traceVerbs } from "./traceVerbs.ts";
 
 export function hostVerbs(state: HostState, story: { tell: (line: string) => void }) {
@@ -11,6 +12,7 @@ export function hostVerbs(state: HostState, story: { tell: (line: string) => voi
 		...requests(state, story.tell),
 		...runtimeVerbs(state, story.tell),
 		...traceVerbs(state),
+		...timeoutVerbs(state, story.tell),
 		...subscriptionVerbs(state),
 		address: () => state.address,
 		bootFailure: () => {
