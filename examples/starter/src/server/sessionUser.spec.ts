@@ -1,11 +1,12 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { app, signedIn } from "#test-support/application.ts";
 
 app.it(
 	"keeps concurrent signed-in profiles and note ownership separate and revokes access at sign-out",
 	[signedIn(), signedIn("bob")],
-	function* ({ actor, anonymous, authenticate, storedNoteOwners, rejectsWith }) {
+	function* ({ actor, anonymous, authenticate, storedNoteOwners }) {
 		const { cookie: aliceCookie, notes: alice } = actor();
 		const bob = actor("bob").notes;
 		const profiles = yield* Effect.all(
@@ -28,8 +29,12 @@ app.it(
 		const note = yield* alice.create({ title: "Owned by the current user" });
 		expect(yield* storedNoteOwners(note.title)).toEqual([{ ownerId: aliceProfile.id }]);
 		const signedOut = yield* anonymous();
-		yield* signedOut.whoami().pipe(rejectsWith("Unauthorized"));
+		const anonymousProfile = yield* signedOut.whoami().pipe(Effect.flip);
+		expect(anonymousProfile).toMatchObject({ _tag: "Unauthorized" });
+		expect(anonymousProfile).toBeInstanceOf(Unauthorized);
 		yield* authenticate("alice", "sign-out", aliceCookie);
-		yield* alice.whoami().pipe(rejectsWith("Unauthorized"));
+		const revokedProfile = yield* alice.whoami().pipe(Effect.flip);
+		expect(revokedProfile).toMatchObject({ _tag: "Unauthorized" });
+		expect(revokedProfile).toBeInstanceOf(Unauthorized);
 	},
 );

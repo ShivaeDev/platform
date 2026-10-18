@@ -1,5 +1,6 @@
 import { Config, Effect, Layer, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
+import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/client.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AppChanges, appHost } from "@shivaedev/platform/server/appHost.ts";
 import { authenticatedUserLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
@@ -27,6 +28,7 @@ const handlers = Notes.toLayer(
 );
 
 export function notesHost(config?: {
+	readonly jobsClientFactory?: PgBossClientFactory;
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly port?: number;
 	readonly secret?: Redacted.Redacted<string>;
@@ -40,7 +42,7 @@ export function notesHost(config?: {
 				...database,
 				application: Effect.gen(function* () {
 					const { routes, sessions } = yield* makeAuth({ database: pool, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
-					const producer = noteProducer(Redacted.value(databaseUrl));
+					const producer = noteProducer(Redacted.value(databaseUrl), false, config?.jobsClientFactory);
 					return {
 						config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 						group: Notes,

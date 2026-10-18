@@ -1,39 +1,35 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { app, signedIn } from "#test-support/application.ts";
 
 app.it(
 	"counts an edited title, rejects the pre-count edit and completes jobs for deleted notes",
 	[signedIn()],
-	function* ({ actor, startWorker, rejectsWith, wordCountJobs }) {
+	function* ({ actor, collector, wordCountCompletions }) {
 		const { notes: client } = actor();
 		const original = yield* client.create({ title: "Old title" });
 		const edited = yield* client.update({ ...original, title: "Three new words" });
 		expect(edited.wordCount).toBeNull();
 		const deleted = yield* client.create({ title: "Deleted before counting" });
 		yield* client.delete({ id: deleted.id, version: deleted.version });
-		yield* startWorker();
+		const receiver = yield* collector();
+		const stopWorker = yield* receiver.startWorker();
 		const counted = { ...edited, version: 2, wordCount: 3 };
-		yield* eventually(client.get({ id: edited.id }).pipe(Effect.flatMap((note) => Effect.try(() => expect(note).toEqual(counted)))), {
-			interval: "50 millis",
-			times: 100,
-		});
-		yield* client.update({ ...edited, title: "Before counting" }).pipe(rejectsWith("Conflict"));
+		yield* Effect.promise(() => expect.poll(() => Effect.runPromise(client.get({ id: edited.id })), { timeout: 8000 }).toEqual(counted));
+		expect(yield* client.update({ ...edited, title: "Before counting" }).pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
 		expect(yield* client.list()).toEqual([counted]);
-		yield* eventually(
-			wordCountJobs().pipe(
-				Effect.flatMap((jobs) =>
-					Effect.try(() => {
-						expect(jobs).not.toEqual([]);
-						for (const job of jobs) {
-							expect(job).toEqual({ retryCount: 0, state: "completed" });
-						}
-					}),
-				),
-			),
-			{ interval: "50 millis", times: 160 },
+		yield* Effect.promise(() => expect.poll(() => receiver.spans.filter((span) => span.name === "CountWords"), { timeout: 8000 }).toHaveLength(3));
+		yield* Effect.promise(() =>
+			expect
+				.poll(() => Effect.runPromise(wordCountCompletions()), { timeout: 8000 })
+				.toMatchObject([
+					{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
+					{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
+					{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
+				]),
 		);
+		yield* stopWorker;
+		expect(receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code)).toEqual([1, 1, 1]);
 	},
 	15_000,
 );

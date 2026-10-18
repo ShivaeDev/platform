@@ -1,12 +1,15 @@
 import { Effect } from "effect";
-import { expect } from "vitest";
 import { authPost, credentials, notesHttp } from "./authHttp.ts";
 import type { RunningHost } from "./host.ts";
 
 export function requests(host: RunningHost, tell: (line: string) => void) {
 	const authenticate = Effect.fn("AppStory.authenticate")(function* (name: string, path = "sign-up/email", cookie = "") {
 		tell(`${name} calls ${path}`);
-		return yield* authPost(host.baseUrl, path, path === "sign-out" ? {} : credentials(name), cookie, host.origin);
+		const response = yield* authPost(host.baseUrl, path, path === "sign-out" ? {} : credentials(name), cookie, host.origin);
+		if (response.status !== 200) {
+			return yield* Effect.die(`Could not authenticate ${name} through ${path}: HTTP ${response.status}`);
+		}
+		return response.cookie;
 	});
 	const notes = Effect.fn("AppStory.notes")(function* (cookie = "") {
 		const client = yield* notesHttp(host.baseUrl, cookie, host.origin);
@@ -37,8 +40,9 @@ export function requests(host: RunningHost, tell: (line: string) => void) {
 				method: "POST",
 			}),
 		);
-		expect(response.status).toBe(403);
+		const status = response.status;
 		yield* Effect.promise(() => response.text());
+		return status;
 	});
 	return { authenticate, foreignRequest, notes };
 }
