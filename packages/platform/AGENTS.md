@@ -12,4 +12,4 @@ When goals conflict, they win in this order:
 4. **Prove the particular composition.** A test of injected HTTP or simulated socket events does not establish a deployed host's behavior. Document only the boundary the test exercises, and keep sensitive data out of diagnostics.
 5. **Remove repeated application code thinly.** Prefer a small provider function or native Layer over another application framework. An extra option needs a real caller's need.
 
-The full purpose and trade-offs are in [docs/north-star.md](docs/north-star.md); implementation status and maintainer decisions are in [docs/roadmap.md](docs/roadmap.md). The [README](README.md) teaches consumers. Follow the repository's `AGENTS.md` for checks and changes to public APIs.
+The [README](README.md) teaches consumers. Follow the repository's `AGENTS.md` for checks and changes to public APIs.

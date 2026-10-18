@@ -4,6 +4,9 @@ import type { Document } from "#browser/document/schema.ts";
 import { promptHeading } from "#browser/responses/cardContext.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { PromptAnswer } from "#browser/responses/schema.ts";
+import { Button } from "#client/react/components/ui/button.tsx";
+import { Label } from "#client/react/components/ui/label.tsx";
+import { Textarea } from "#client/react/components/ui/textarea.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { PromptOption } from "./PromptOption.tsx";
 import type { useResponseForm } from "./useResponseForm.ts";
@@ -29,7 +32,7 @@ function PromptField({
 	onEdit,
 	showErrors,
 }: PromptProps & { readonly prompt: Prompt; readonly index: number }) {
-	const errorId = useId();
+	const fieldId = useId();
 	const answer = answers[index] ?? { prompt: prompt.id, selected: [], text: "" };
 	const validation = useAtomValue(form.errorAt(["answers", index, "text"]));
 	const error = showErrors ? validation : undefined;
@@ -76,33 +79,35 @@ function PromptField({
 				))}
 			</div>
 			{prompt.mode !== "text" && (
-				<button
-					className="text-muted-foreground text-xs underline-offset-4 hover:underline disabled:opacity-50"
+				<Button
+					className="h-auto px-0 text-muted-foreground text-xs"
 					data-clear-choices
 					disabled={answer.selected.length === 0}
 					onClick={() => change({ ...answer, selected: [] })}
+					size="sm"
 					type="button"
+					variant="link"
 				>
 					Clear selections
-				</button>
+				</Button>
 			)}
-			<label className="grid gap-2 text-sm">
-				<span>{prompt.mode === "text" ? "Your answer" : "Add a note or answer in your own words (optional)"}</span>
-				<textarea
-					aria-describedby={`${errorId}-error`}
-					aria-invalid={Boolean(error)}
-					className="w-full rounded-md border bg-background px-3 py-2 text-sm aria-invalid:border-destructive"
-					data-answer-text
-					maxLength={8192}
-					onInput={(event) => change({ ...answer, text: event.currentTarget.value })}
-					ref={ref}
-					rows={choices || prompt.mode === "text" ? 4 : 2}
-					value={answer.text}
-				/>
-				<span className="response-field-error text-destructive text-xs" hidden={!error} id={`${errorId}-error`}>
-					{message}
-				</span>
-			</label>
+			<Label className="font-normal leading-normal" htmlFor={fieldId}>
+				{prompt.mode === "text" ? "Your answer" : "Add a note or answer in your own words (optional)"}
+			</Label>
+			<Textarea
+				aria-describedby={`${fieldId}-error`}
+				aria-invalid={Boolean(error)}
+				data-answer-text
+				id={fieldId}
+				maxLength={8192}
+				onInput={(event) => change({ ...answer, text: event.currentTarget.value })}
+				ref={ref}
+				rows={choices || prompt.mode === "text" ? 4 : 2}
+				value={answer.text}
+			/>
+			<span className="response-field-error block text-destructive text-xs" hidden={!error} id={`${fieldId}-error`}>
+				{message}
+			</span>
 		</fieldset>
 	);
 }

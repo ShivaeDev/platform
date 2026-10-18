@@ -1,6 +1,6 @@
 import { useContext, useId } from "react";
 import { goalState } from "#browser/views/goalWorkState.ts";
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { StatusChip } from "#client/react/StatusChip.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { type GoalWorkItem, goalGroup, goalGroups, goalRun } from "./goalWork.ts";
 

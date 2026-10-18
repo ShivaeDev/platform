@@ -1,15 +1,13 @@
-import { Option } from "effect";
+import { cn } from "cn";
 import { PanelsTopLeft } from "lucide-react";
-import { useContext, useEffect } from "react";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { type ReactNode, useContext, useEffect } from "react";
 import type { Navigation } from "#browser/Navigation.ts";
-import { Badge } from "#client/react/components/ui/Badge.tsx";
-import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
+import { ActiveGoals } from "#client/react/ActiveGoals.tsx";
+import { Badge } from "#client/react/components/ui/badge.tsx";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { destinationName } from "#client/react/destinationName.ts";
-import { GoalProgress } from "#client/react/GoalProgress.tsx";
 import { InboxCount } from "#client/react/Header.tsx";
 import { type Item, LibraryContext } from "#client/react/LibraryContext.ts";
-import { cn } from "#client/react/lib/cn.ts";
 import type { MainLocation } from "#client/react/mainLocation.ts";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
@@ -37,6 +35,12 @@ export function Sidebar({
 		today: data?.inboxCount,
 		work: data?.counts.now,
 	};
+	const workCount =
+		counts.work === undefined ? null : (
+			<Badge aria-hidden="true" variant="secondary">
+				{counts.work}
+			</Badge>
+		);
 	function name(view: (typeof workspaceDestinations)[number]["view"], label: string) {
 		if (view === "today") {
 			return destinationName(label, counts.today, "need you");
@@ -61,30 +65,19 @@ export function Sidebar({
 		>
 			<a
 				aria-current={home ? "page" : undefined}
-				className="flex items-center gap-2 px-2 py-3 font-semibold text-lg text-primary no-underline"
+				className="flex items-center gap-2 px-2 py-3 font-semibold text-foreground text-lg no-underline"
 				href="/"
 			>
-				<PanelsTopLeft aria-hidden="true" className="size-5" />
+				<PanelsTopLeft aria-hidden="true" className="size-5 text-primary" />
 				work board
 			</a>
 			<nav aria-label="Workspace" className="grid shrink-0 gap-1" data-inbox-count={String(data?.inboxCount ?? "?")} id={shellIds.primaryNavigation}>
 				{workspaceDestinations.map(({ label, href, view, id }) => (
-					<a
-						aria-current={(view === "today" ? home : main.view === view) ? "page" : undefined}
-						aria-label={name(view, label)}
-						className={cn(
-							buttonVariants({ variant: "ghost" }),
-							"justify-between no-underline",
-							(view === "today" ? home : main.view === view) && "bg-accent",
-						)}
-						href={href}
-						id={id}
-						key={view}
-					>
+					<WorkspaceLink current={view === "today" ? home : main.view === view} href={href} id={id} key={view} name={name(view, label)}>
 						<span>{label}</span>
 						{view === "today" && <InboxCount count={counts.today ?? null} id={shellIds.inboxCount} />}
-						{view === "work" && counts.work !== undefined && <Badge aria-hidden="true">{counts.work}</Badge>}
-					</a>
+						{view === "work" && workCount}
+					</WorkspaceLink>
 				))}
 			</nav>
 			<ReadingSection current={main.file} items={reading.favorites} title="Pinned" />
@@ -99,21 +92,28 @@ export function Sidebar({
 		</aside>
 	);
 }
-function ActiveGoals({ api }: { readonly api: ShellApi }) {
-	const query = useQuery(api.goals.query(undefined, { timeToLive: 60_000 }), { keepPreviousData: true });
-	const goals = Option.getOrUndefined(query.data)?.goals;
+function WorkspaceLink({
+	current,
+	href,
+	id,
+	name,
+	children,
+}: {
+	readonly current: boolean;
+	readonly href: string;
+	readonly id: string;
+	readonly name: string;
+	readonly children: ReactNode;
+}) {
 	return (
-		<>
-			{goals?.length === 0 && <p className="px-2 text-muted-foreground text-xs">No active goals.</p>}
-			{goals?.map((goal) => (
-				<div className="mb-3 px-2" key={goal.id}>
-					<a className="block truncate text-sm" href={`/_board/item/${encodeURIComponent(goal.id)}/`}>
-						{goal.title}
-					</a>
-					<GoalProgress compact counts={goal.counts} title={goal.title} />
-				</div>
-			))}
-		</>
+		<Button
+			className={cn("justify-between no-underline", current && "bg-accent")}
+			nativeButton={false}
+			render={<a aria-current={current ? "page" : undefined} aria-label={name} href={href} id={id} />}
+			variant="ghost"
+		>
+			{children}
+		</Button>
 	);
 }
 function ReadingSection({ title, items, current }: { readonly title: string; readonly items: readonly Item[]; readonly current: string }) {
