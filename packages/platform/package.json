@@ -28,7 +28,12 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./better-auth.ts": {
+			"source": "./src/server/better-auth/mount.ts",
+			"types": "./dist/server/better-auth/mount.d.ts",
+			"default": "./dist/server/better-auth/mount.js"
+		}
 	},
 	"files": [
 		"dist",
@@ -85,7 +90,8 @@
 		"@shivaedev/effect-trpc": "workspace:*",
 		"@trpc/server": "catalog:",
 		"better-auth": "catalog:",
-		"effect": "catalog:"
+		"effect": "catalog:",
+		"pg": "catalog:"
 	},
 	"peerDependenciesMeta": {
 		"@effect/platform-node": {
@@ -110,6 +116,9 @@
 			"optional": true
 		},
 		"better-auth": {
+			"optional": true
+		},
+		"pg": {
 			"optional": true
 		}
 	},

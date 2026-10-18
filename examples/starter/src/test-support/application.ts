@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { type HostOptions, startHost } from "#test-support/host.ts";
+import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { requests } from "#test-support/requests.ts";
 import { storyDatabase } from "#test-support/storyDatabase.ts";
@@ -49,15 +49,9 @@ export function signedIn(name = "alice") {
 	});
 }
 
-export function behindProxy(options: Pick<HostOptions, "trustedProxy" | "authClientIpHeader"> = { trustedProxy: "127.0.0.1" }) {
+export function behindProxy() {
 	return app.trait("hosting", "the app is behind an HTTPS forwarding proxy", (engine) => {
-		engine.hostOptions = { ...engine.hostOptions, deployed: true, ...options };
-	});
-}
-
-export function authRateLimiting(enabled: boolean) {
-	return app.trait("hosting", `auth rate limiting is ${enabled ? "enabled" : "disabled"}`, (engine) => {
-		engine.hostOptions = { ...engine.hostOptions, rateLimitEnabled: enabled };
+		engine.hostOptions = { ...engine.hostOptions, deployed: true, trustedProxy: "127.0.0.1" };
 	});
 }
 

@@ -3,10 +3,10 @@ import { getMigrations } from "better-auth/db/migration";
 import { Effect, Layer, type Redacted } from "effect";
 import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import { authDatabase } from "@shivaedev/platform/better-auth.ts";
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
 import { authenticatedUserLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
-import { authDatabase } from "#server/authDatabase.ts";
 import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
 
 export const socialHost = Effect.fn("SocialStory.socialHost")(function* (databaseUrl: Redacted.Redacted<string>) {
