@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect } from "vitest";
 import { application } from "#test/application.ts";
 import { configuredIdentity, destination, enclosingRepository, installationFails, missingGit } from "#test/traits.ts";
@@ -52,13 +53,18 @@ application.it("preserves the environment and refuses another run after installa
 	expect(read(".env.local")).toBe(env);
 });
 
-application.it("prepares both databases and runs generated tests with the app environment on PostgreSQL", [], function* ({ cli, checkDatabases }) {
-	const name = `setup_${crypto.randomUUID().replaceAll("-", "")}`;
-	expect(cli([name, "--no-git"]).status).toBe(0);
-	const { setup, test } = yield* checkDatabases();
-	expect(setup.status, setup.stdout + setup.stderr).toBe(0);
-	expect(test.status, test.stdout + test.stderr).toBe(0);
-});
+application.it(
+	"prepares both databases and runs generated tests with the app environment on PostgreSQL",
+	[],
+	({ cli, prepareDatabases, runTests }) => {
+		const name = `setup_${crypto.randomUUID().replaceAll("-", "")}`;
+		expect(cli([name, "--no-git"]).status).toBe(0);
+		const setup = prepareDatabases();
+		expect(setup.status, setup.stdout + setup.stderr).toBe(0);
+		const test = runTests();
+		expect(test.status, test.stdout + test.stderr).toBe(0);
+	},
+);
 
 application.it("does not overwrite a user environment", [destination("environment")], ({ cli, read, files }) => {
 	expect(cli(["my-app"]).status).toBe(1);
@@ -66,14 +72,15 @@ application.it("does not overwrite a user environment", [destination("environmen
 	expect(files()).toEqual([".env.local"]);
 });
 
-application.it("prints a working cd command for paths with shell characters", [], ({ cli, navigate }) => {
-	const result = cli(["parent 'quoted' $literal/my-app", "--no-git"]);
+application.it("prints a working cd command for paths with shell characters", [], ({ cli, navigate, workspace }) => {
+	const folder = "parent 'quoted' $literal/my-app";
+	const result = cli([folder, "--no-git"]);
 	expect(result.status).toBe(0);
 	const cd = result.stdout.split("\n").find((line) => line.trimStart().startsWith("cd "));
 	expect(cd).toBeDefined();
 	const navigation = navigate(cd ?? "");
 	expect(navigation.status).toBe(0);
-	expect(navigation.stdout.trim()).toBe(navigation.expected);
+	expect(navigation.stdout.trim()).toBe(join(workspace, folder));
 });
 
 application.it("accepts an existing empty folder", [destination("empty")], ({ cli, exists }) => {

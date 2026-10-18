@@ -6,7 +6,7 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { appFolder, runCli } from "./cli.ts";
 import { createEngine } from "./createEngine.ts";
-import { testEnvironment } from "./environment.ts";
+import { appScript, testEnvironment } from "./environment.ts";
 
 export const application = storyKit({
 	after: {
@@ -33,11 +33,6 @@ export const application = storyKit({
 				story.tell("the template source changes");
 				engine.source.changeApp(content);
 			},
-			*checkDatabases() {
-				story.tell("the app prepares its databases and runs its tests");
-				const fixture = testEnvironment(target(), { databases: true, name: app });
-				return yield* Effect.sync(() => ({ setup: fixture.prepareDatabases(), test: fixture.run() }));
-			},
 			cli: (args: readonly string[], environment: readonly string[] = []) => {
 				story.tell(`create-app ${args.join(" ")}`);
 				if (args[0] !== undefined && !args[0].startsWith("--")) {
@@ -60,17 +55,24 @@ export const application = storyKit({
 					}),
 			git: (...args: readonly string[]) => spawnSync("git", args, { cwd: target(), encoding: "utf8" }),
 			guidanceLink: () => readlinkSync(join(target(), "CLAUDE.md")),
-			navigate: (command: string) => ({
-				...spawnSync("sh", ["-c", `${command}\npwd`], { cwd: engine.root, encoding: "utf8" }),
-				expected: join(realpathSync(engine.root), app),
-			}),
+			navigate: (command: string) => spawnSync("sh", ["-c", `${command}\npwd`], { cwd: engine.root, encoding: "utf8" }),
 			pack: () => {
 				story.tell("the template source is packed");
 				return engine.source.pack();
 			},
 			parentGit: (...args: readonly string[]) => spawnSync("git", args, { cwd: engine.root, encoding: "utf8" }),
+			prepareDatabases: () => {
+				story.tell("the app prepares its databases");
+				testEnvironment(target(), { databases: true, name: app });
+				return appScript(target(), "db:setup");
+			},
 			read: (path: string) => readFileSync(join(target(), path), "utf8"),
+			runTests: () => {
+				story.tell("the app runs its tests");
+				return appScript(target(), "test", ["--config", "environment.config.ts"]);
+			},
 			starterFile: (path: string) => readFileSync(join(engine.source.starter, path), "utf8"),
+			workspace: realpathSync(engine.root),
 			workspaceExists: (path: string) => existsSync(join(engine.root, path)),
 			workspaceFiles: () => readdirSync(engine.root),
 		};

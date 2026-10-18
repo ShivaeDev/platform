@@ -51,8 +51,4 @@ export function testEnvironment(app: string, { databases = false, name = "my-app
 				: "")
 			+ (databases ? databaseProbe() : ""),
 	);
-	return {
-		prepareDatabases: () => appScript(app, "db:setup"),
-		run: () => appScript(app, "test", ["--config", "environment.config.ts"]),
-	};
 }
