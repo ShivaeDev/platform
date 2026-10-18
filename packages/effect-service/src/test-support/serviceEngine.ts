@@ -80,13 +80,20 @@ export function genericService() {
 
 type Acquired<TService> = Effect.Effect<Context.Service.Shape<TService>>;
 
-export type Declaration =
-	| { readonly kind: "undeclared" }
+export type BuiltService =
+	| { readonly kind: "unbuilt" }
 	| { readonly kind: "scoped"; readonly read: Acquired<ReturnType<typeof scopedService>> }
 	| { readonly kind: "required"; readonly read: Acquired<ReturnType<typeof requiredService>> }
 	| { readonly kind: "generic"; readonly read: Acquired<ReturnType<typeof genericService>> };
 
+export type Declaration =
+	| { readonly kind: "undeclared" }
+	| { readonly kind: "scoped"; readonly service: ReturnType<typeof scopedService> }
+	| { readonly kind: "required"; readonly service: ReturnType<typeof requiredService>; readonly prefix: string }
+	| { readonly kind: "generic"; readonly service: ReturnType<typeof genericService> };
+
 export interface ServiceEngine {
+	built: BuiltService;
 	readonly counts: ServiceCounts;
 	declaration: Declaration;
 	readonly scope: Scope.Closeable;
@@ -94,5 +101,5 @@ export interface ServiceEngine {
 
 export function* serviceEngine(): Effect.fn.Return<ServiceEngine, never, Scope.Scope> {
 	const scope = yield* Scope.fork(yield* Effect.scope);
-	return { counts: serviceCounts(), declaration: { kind: "undeclared" }, scope };
+	return { built: { kind: "unbuilt" }, counts: serviceCounts(), declaration: { kind: "undeclared" }, scope };
 }
