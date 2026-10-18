@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { expect } from "vitest";
-import { responseMarkdown } from "@shivaedev/work-board/responses/records.ts";
+import { responseMarkdown } from "@shivaedev/work-board/server/responses/records.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
 import { Fleet } from "#fleet.ts";
 import { BoardFailure, BoardGateway } from "#policy.ts";
