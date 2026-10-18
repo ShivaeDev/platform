@@ -44,6 +44,4 @@ pnpm --filter @shivaedev/work-board-plugin test
 pnpm --filter @shivaedev/work-board-plugin typecheck
 ```
 
-`test` runs Vitest over the plugin's pure functions: reading the Board's RPC stream, the Needs you, Fleet and goal answers, the goal each flight implements, flight groups, stage counts, goal shares, the band line and the tools' answers. CI also runs a contract test in `@shivaedev/work-board`, `src/rpc/claudePluginContract.spec.ts`, which serves a real Board and reads its answers to the plugin's requests through these parsers, so a change to the Board's answers that the plugin reads fails there. `typecheck` checks the whole plugin against `src/claude-code.d.ts`, a short hand-written declaration of the part of Claude Code's mod API the plugin uses. Nothing installs or runs Claude Code.
-
 The pane, the band, the toasts, the hooks and the tool registration are not tested automatically. Check them by hand: start Claude Code with `--plugin-dir packages/work-board-plugin`, or list the folder in `CLAUDE_CODE_PLUGIN_DIRS`, in a folder with a running Work Board, then open `/workboard`.
