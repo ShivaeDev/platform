@@ -38,6 +38,10 @@ component_management:
       name: "@shivaedev/starter"
       paths:
         - "examples/starter/src/**"
+    - component_id: changesets
+      name: "@shivaedev/changesets"
+      paths:
+        - "packages/changesets/src/**"
     - component_id: create-app
       name: "@shivaedev/create-app"
       paths:
