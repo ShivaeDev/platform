@@ -17,7 +17,7 @@ export const authorizeResolution = Effect.fn("Fleet.authorizeResolution")(functi
 	if (executing(record)) {
 		return yield* Effect.fail(new Forbidden({ message: "Confirm terminal execution before releasing ownership" }));
 	}
-	if (record.result?.kind === "change") {
+	if (record.result?.kind === "change" && record.decision?.code !== "pr-closed") {
 		yield* state.store.reserveForeign(record.result.pr, { backlog: true, executing: false });
 	}
 });

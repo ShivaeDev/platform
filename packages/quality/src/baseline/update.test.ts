@@ -2,14 +2,13 @@ import { describe, expect, it } from "vitest";
 import { adopt, prune } from "#baseline/update.ts";
 import { levels, violation } from "#test/violations.ts";
 
-const known = levels({ "local/new": "error", "local/off": "off", "local/todo": "warn", "structure/max-lines": "error" });
+const known = levels({ "local/new": "error", "structure/max-lines": "error" });
 const long = violation({ count: 262, file: "src/big.ts", rule: "structure/max-lines", threshold: 150 });
 const fresh = violation({ file: "src/a.ts", rule: "local/new" });
-const warned = violation({ file: "src/a.ts", level: "warn", rule: "local/todo" });
 
 describe("baseline write", () => {
 	it("records every error-level violation when no baseline exists", () => {
-		expect(adopt(undefined, [], [long, fresh, fresh, warned], known)).toEqual({
+		expect(adopt(undefined, [], [long, fresh, fresh], known)).toEqual({
 			_tag: "Adopted",
 			added: 2,
 			entries: [
@@ -60,13 +59,9 @@ describe("baseline write", () => {
 		expect(adopt(undefined, [], [within], known)).toEqual({ _tag: "Adopted", added: 0, entries: [], replaced: 0 });
 	});
 
-	it.each([
-		["a rule at warn", "local/todo", "Set it to error"],
-		["a rule that is off", "local/off", "Set it to error"],
-		["an unknown rule", "local/typo", "no built-in or local rule"],
-	])("refuses %s", (_, rule, reason) => {
-		const adoption = adopt([{ count: 1, file: "src/big.ts", rule: "structure/max-lines" }], [rule], [long, fresh], known);
-		expect(adoption).toEqual({ _tag: "Refused", reasons: [expect.stringContaining(reason)] });
+	it("refuses an unknown rule", () => {
+		const adoption = adopt([{ count: 1, file: "src/big.ts", rule: "structure/max-lines" }], ["local/typo"], [long, fresh], known);
+		expect(adoption).toEqual({ _tag: "Refused", reasons: [expect.stringContaining("no built-in or local rule")] });
 	});
 });
 
@@ -97,12 +92,9 @@ describe("baseline prune", () => {
 		expect(prune(existing, [long], known)).toEqual({ entries: existing, lowered: 0, moved: 0, removed: 0 });
 	});
 
-	it("drops entries for unknown and disabled rules", () => {
-		const existing = [
-			{ count: 1, file: "src/a.ts", rule: "local/typo" },
-			{ count: 1, file: "src/a.ts", rule: "local/off" },
-		];
-		expect(prune(existing, [violation({ file: "src/a.ts", rule: "local/off" })], known).removed).toBe(2);
+	it("drops entries for unknown rules", () => {
+		const existing = [{ count: 1, file: "src/a.ts", rule: "local/typo" }];
+		expect(prune(existing, [violation({ file: "src/a.ts", rule: "local/typo" })], known).removed).toBe(1);
 	});
 
 	it("carries the entry of a moved file to its new path, lowered to what is left there", () => {

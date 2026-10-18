@@ -29,7 +29,7 @@ function refusal(id: string, index: RuleIndex): readonly string[] {
 	if (level === undefined) {
 		return [`${id}: no built-in or local rule has this id.`];
 	}
-	return level === "error" ? [] : [`${id}: the rule is ${level}. Set it to error before baselining it.`];
+	return [];
 }
 
 export function adopt(
@@ -49,7 +49,7 @@ export function adopt(
 		return rules.some((name) => covers(name, rule));
 	}
 	const kept = (existing ?? []).filter((entry) => !named(entry.rule));
-	const adopted = violations.filter((violation) => violation.level === "error" && (rules.length === 0 || named(violation.rule)));
+	const adopted = violations.filter((violation) => rules.length === 0 || named(violation.rule));
 	const added = record(adopted);
 	return { _tag: "Adopted", added: added.length, entries: [...kept, ...added], replaced: (existing ?? []).length - kept.length };
 }
@@ -89,7 +89,7 @@ export function prune(
 		}
 		const level = levelOf(index, before.rule);
 		const now = current.get(keyOf(before.rule, before.file)) ?? destination(before, current, scope.moves, taken);
-		if (now === undefined || level === undefined || level === "off") {
+		if (now === undefined || level === undefined) {
 			return [];
 		}
 		moved += Number(now.file !== before.file);

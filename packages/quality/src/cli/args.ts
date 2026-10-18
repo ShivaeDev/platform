@@ -1,10 +1,9 @@
 import { parseArgs } from "node:util";
 import { Result } from "effect";
-import type { WarningDetail } from "#report/render.ts";
 import { ADOPT_REMOVED, USAGE as COMMAND_USAGE } from "./messages.ts";
 
 export type Command =
-	| { readonly _tag: "Lint"; readonly config: string | undefined; readonly warnings: WarningDetail }
+	| { readonly _tag: "Lint"; readonly config: string | undefined }
 	| { readonly _tag: "ExceptionsMigrate"; readonly config: string | undefined; readonly from: string | undefined }
 	| { readonly _tag: "Fix"; readonly config: string | undefined }
 	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: readonly string[] }
@@ -28,7 +27,6 @@ const OPTIONS = {
 	help: { short: "h", type: "boolean" },
 	rule: { multiple: true, type: "string" },
 	staged: { type: "boolean" },
-	warnings: { type: "string" },
 } as const;
 
 function usage(problem: string): Parsed {
@@ -49,7 +47,7 @@ type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allowPositi
 
 type Option = Exclude<keyof Values, "config" | "help">;
 
-const COMMAND_OPTIONS: readonly Option[] = ["against", "force", "from", "rule", "staged", "warnings"];
+const COMMAND_OPTIONS: readonly Option[] = ["against", "force", "from", "rule", "staged"];
 
 const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline migrate": ["from"],
@@ -61,7 +59,7 @@ const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"hooks install": ["force"],
 	"hooks pre-commit": [],
 	"hooks uninstall": [],
-	lint: ["warnings"],
+	lint: [],
 };
 
 function misplaced(name: string, values: Values): string | undefined {
@@ -77,12 +75,8 @@ function ref(against: string | undefined, command: Command): Parsed {
 function commandFor(name: string, values: Values): Parsed {
 	const config = values.config;
 	switch (name) {
-		case "lint": {
-			const warnings = values.warnings ?? "summary";
-			return warnings === "summary" || warnings === "all"
-				? parsed({ _tag: "Lint", config, warnings })
-				: usage(`--warnings takes summary or all, not "${warnings}".`);
-		}
+		case "lint":
+			return parsed({ _tag: "Lint", config });
 		case "exceptions migrate":
 			return parsed({ _tag: "ExceptionsMigrate", config, from: values.from });
 		case "fix":

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyRegistry, decodeRegistry } from "#exceptions/registry.ts";
 import { levels, violation } from "#test/violations.ts";
 
-const known = levels({ "biome/override": "error", "local/off": "off", "pragmas/ts-expect-error": "error" });
+const known = levels({ "biome/override": "error", "pragmas/ts-expect-error": "error" });
 const pragma = violation({ file: "test/a.typecheck.ts", rule: "pragmas/ts-expect-error" });
 const REASON = "Compile-time proof that the types reject the value.";
 
@@ -43,16 +43,9 @@ describe("registry", () => {
 		expect(applyRegistry([pragma], [entry, { ...entry }], known).stale).toHaveLength(1);
 	});
 
-	it("reports entries for unknown and disabled rules", () => {
-		const checked = applyRegistry(
-			[],
-			[
-				{ file: "src/a.ts", reason: REASON, rule: "local/typo" },
-				{ file: "src/a.ts", reason: REASON, rule: "local/off" },
-			],
-			known,
-		);
-		expect(checked.stale.map((stale) => stale.problem)).toEqual(["names no known rule", "names a rule that is off"]);
+	it("reports entries for unknown rules", () => {
+		const checked = applyRegistry([], [{ file: "src/a.ts", reason: REASON, rule: "local/typo" }], known);
+		expect(checked.stale.map((stale) => stale.problem)).toEqual(["names no known rule"]);
 	});
 
 	it("never covers a violation of a rule that takes no exceptions, and reports the entry", () => {
