@@ -73,7 +73,7 @@ for (const mode of ["managed", "registered", "needs-human"]) {
 		({ page }) => {
 			const links = [...page.document.querySelectorAll("[data-attention-row] a[title]")];
 			expect(links).toHaveLength(1);
-			expect(links[0]?.getAttribute("href")).toBe("/_board/respond?item=investigation.choices&request=direction");
+			expect(links[0]?.getAttribute("href")).toBe("/_board/item/investigation.choices/#answer-card-direction");
 		},
 	);
 }

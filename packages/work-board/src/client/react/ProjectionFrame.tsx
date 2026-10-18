@@ -130,7 +130,7 @@ function projectionView(route: ProjectionRoute | RemainingRoute) {
 	if (route === "board") {
 		return "";
 	}
-	return route === "respond" ? "response" : route;
+	return route;
 }
 
 function failureStatus(missing: boolean, conflict: boolean) {

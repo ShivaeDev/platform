@@ -24,4 +24,6 @@ export interface QualityConfig<TLocal extends readonly Rule[] = readonly Rule[]>
 	readonly sources?: readonly string[];
 }
 
-export const defineConfig = <const TLocal extends readonly Rule[] = readonly []>(config: QualityConfig<TLocal>): QualityConfig<TLocal> => config;
+export function defineConfig<const TLocal extends readonly Rule[] = readonly []>(config: QualityConfig<TLocal>): QualityConfig<TLocal> {
+	return config;
+}

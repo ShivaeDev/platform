@@ -5,7 +5,6 @@ import { HandoffsService } from "#server/handoffs/Service.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { startTemplates } from "#server/page/startTemplates.ts";
-import { Responses } from "#server/Responses.ts";
 import { Workspace } from "#server/workspace.ts";
 import { resultProjection } from "./resultProjection.ts";
 export const remainingQueries = Effect.gen(function* () {
@@ -13,7 +12,7 @@ export const remainingQueries = Effect.gen(function* () {
 	const { changes, writable } = yield* workspace.settings();
 	const index = workspace.index();
 	const read = workspace.document;
-	const services = { diagnostics: yield* Diagnostics, handoffs: yield* HandoffsService, responses: yield* Responses };
+	const services = { diagnostics: yield* Diagnostics, handoffs: yield* HandoffsService };
 	return {
 		diagnostics: () =>
 			Effect.gen(function* () {
@@ -36,20 +35,6 @@ export const remainingQueries = Effect.gen(function* () {
 					unavailable: result._tag === "Failure" ? String(result.failure) : undefined,
 					writable: writable === true,
 				};
-			}),
-		respond: (url: string) =>
-			Effect.gen(function* () {
-				const params = new URL(url, "http://127.0.0.1").searchParams;
-				const service = services.responses;
-				const preview = yield* service.locate(params.get("item") ?? "", params.get("request") ?? "");
-				yield* service.read(preview.id).pipe(Effect.catch((error) => (error._tag === "NotFound" ? Effect.void : Effect.fail(error))));
-				const responses = yield* service.history(preview);
-				const data = yield* read(identityUrl(preview.item));
-				const request = data.requests.find((entry) => entry.id === preview.request);
-				if (!request) {
-					return yield* Effect.fail(new Conflict({ message: "The response request is unavailable." }));
-				}
-				return { document: data, request: { ...request, preview, responses } };
 			}),
 		result: (url: string) =>
 			Effect.gen(function* () {

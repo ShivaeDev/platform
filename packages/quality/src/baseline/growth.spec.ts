@@ -6,7 +6,7 @@ import { branchOff, commitAll, git } from "#test/git.ts";
 import { qualityTree } from "#test/qualityTree.ts";
 import { linkPackage, removeSeededTrees, seedTree } from "#test/tree.ts";
 
-const cliTimeout = 60_000;
+const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
 
@@ -23,7 +23,7 @@ function baseline(root: string): string {
 const HINT =
 	"If the baseline should keep these findings, such as the debt of a moved or renamed file, record them again with `quality baseline write --rule structure/max-lines` and call out the baseline growth in the pull request description.";
 
-describe("a baseline that grows", { timeout: cliTimeout }, () => {
+describe("a baseline that grows", { timeout: CLI_TIMEOUT }, () => {
 	it("fails lint on a finding it does not cover, ending with the command that records the rule again", async () => {
 		const root = await baselined();
 		appendFileSync(join(root, "src/longer.ts"), "String(7);\n");
@@ -77,7 +77,7 @@ async function moved(): Promise<string> {
 
 const CARRIED = "carried 1 entry to moved files";
 
-describe("quality baseline prune finds the merge base it follows moves from", { timeout: cliTimeout }, () => {
+describe("quality baseline prune finds the merge base it follows moves from", { timeout: CLI_TIMEOUT }, () => {
 	it.each([
 		["origin/master when it is the only default branch", [["update-ref", "refs/remotes/origin/master", "main"]]],
 		[
@@ -129,7 +129,7 @@ describe("quality baseline prune finds the merge base it follows moves from", { 
 	});
 });
 
-describe("quality baseline migrate", { timeout: cliTimeout }, () => {
+describe("quality baseline migrate", { timeout: CLI_TIMEOUT }, () => {
 	it("moves a baseline in the earlier format to JSON Lines, after which lint passes", async () => {
 		const legacy = { "src/long.ts": { count: 1, measure: 4 }, "src/longer.ts": { count: 1, measure: 7 }, "src/short.ts": { count: 1, measure: 5 } };
 		const root = qualityTree(trees.dirty, [{ content: JSON.stringify({ "structure/max-lines": legacy }), path: "quality/baseline.json" }]);

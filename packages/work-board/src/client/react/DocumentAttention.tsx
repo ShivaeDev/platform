@@ -1,5 +1,6 @@
 import type { Document } from "#browser/document/schema.ts";
 import { fileUrl } from "#files/url.ts";
+import { responseUrl } from "#responses/url.ts";
 import { keyed } from "./keyed.ts";
 import { Reference } from "./Reference.tsx";
 export function DocumentAttention({ document }: { readonly document: Document }) {
@@ -28,9 +29,7 @@ function Request({ document, index }: { readonly document: Document; readonly in
 		document.metadata.attention?.filter((entry) => entry.id === request.id).length === 1
 			? `attention-request-${request.id}`
 			: `attention-record-${index}`;
-	const respond = document.requests.some((entry) => entry.id === request.id && entry.open)
-		? `#answer-card-${request.id}`
-		: `/_board/respond?item=${encodeURIComponent(document.metadata.id ?? "")}&request=${encodeURIComponent(request.id)}`;
+	const respond = responseUrl(document.metadata.id ?? "", request.id);
 	const targets = request.unblocks.map((target, targetIndex) => (
 		<span key={target}>
 			{targetIndex > 0 && ", "}

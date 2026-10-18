@@ -9,57 +9,58 @@ import { SetupFailure } from "#failure.ts";
 import { writeText } from "#inventory/filesystem.ts";
 import { plural } from "#report/plural.ts";
 
-const save = (session: Session, entries: readonly BaselineEntry[]): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> =>
-	Effect.mapError(
+function save(session: Session, entries: readonly BaselineEntry[]): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> {
+	return Effect.mapError(
 		writeText(join(session.config.root, session.config.baseline), rewriteBaseline(session.baseline.raw, session.baseline.entries, entries)),
 		(failure) => new SetupFailure({ message: failure.message }),
 	);
+}
 
-const unregistered = (session: Session) => applyRegistry(session.violations, session.registry, session.config).kept;
+function unregistered(session: Session) {
+	return applyRegistry(session.violations, session.registry, session.config).kept;
+}
 
-export const writeBaseline = (
+export const writeBaseline = Effect.fn("Cli.writeBaseline")(function* (
 	cwd: string,
 	config: string | undefined,
 	rules: readonly string[],
-): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> =>
-	Effect.gen(function* () {
-		const session = yield* openSession(cwd, config);
-		const existing = session.baseline.raw === undefined ? undefined : session.baseline.entries;
-		const adoption = adopt(existing, rules, unregistered(session), session.config);
-		if (adoption._tag === "Refused") {
-			return yield* new SetupFailure({ message: `baseline write refused:\n${adoption.reasons.map((reason) => `  - ${reason}`).join("\n")}` });
-		}
-		if (adoption.added === 0 && adoption.replaced === 0) {
-			return yield* Console.log(`quality: no error-level violations to record; ${session.config.baseline} is unchanged.`);
-		}
-		yield* save(session, adoption.entries);
-		const replaced = adoption.replaced > 0 ? `, replacing ${plural(adoption.replaced, "entry", "entries")}` : "";
-		yield* Console.log(`quality: recorded ${plural(adoption.added, "entry", "entries")} in ${session.config.baseline}${replaced}.`);
-	});
+): Effect.fn.Return<void, SetupFailure, FileSystem.FileSystem> {
+	const session = yield* openSession(cwd, config);
+	const existing = session.baseline.raw === undefined ? undefined : session.baseline.entries;
+	const adoption = adopt(existing, rules, unregistered(session), session.config);
+	if (adoption._tag === "Refused") {
+		return yield* new SetupFailure({ message: `baseline write refused:\n${adoption.reasons.map((reason) => `  - ${reason}`).join("\n")}` });
+	}
+	if (adoption.added === 0 && adoption.replaced === 0) {
+		return yield* Console.log(`quality: no error-level violations to record; ${session.config.baseline} is unchanged.`);
+	}
+	yield* save(session, adoption.entries);
+	const replaced = adoption.replaced > 0 ? `, replacing ${plural(adoption.replaced, "entry", "entries")}` : "";
+	yield* Console.log(`quality: recorded ${plural(adoption.added, "entry", "entries")} in ${session.config.baseline}${replaced}.`);
+});
 
-const changes = (pruned: Pruned): string => {
+function changes(pruned: Pruned): string {
 	const parts = [
 		`removed ${plural(pruned.removed, "entry", "entries")}`,
 		`lowered ${plural(pruned.lowered, "entry", "entries")}`,
 		...(pruned.moved > 0 ? [`carried ${plural(pruned.moved, "entry", "entries")} to moved files`] : []),
 	];
 	return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
-};
+}
 
-export const shrinkBaseline = <TRequirements>(
+export const shrinkBaseline = Effect.fn("Cli.shrinkBaseline")(function* <TRequirements>(
 	cwd: string,
 	config: string | undefined,
 	scopeOf: (session: Session) => Effect.Effect<Scope, SetupFailure, TRequirements>,
-): Effect.Effect<void, SetupFailure, FileSystem.FileSystem | TRequirements> =>
-	Effect.gen(function* () {
-		const session = yield* openSession(cwd, config);
-		if (session.baseline.raw === undefined) {
-			return yield* Console.log(`quality: no baseline at ${session.config.baseline}; nothing to lower.`);
-		}
-		const pruned = prune(session.baseline.entries, unregistered(session), session.config, yield* scopeOf(session));
-		if (pruned.removed === 0 && pruned.lowered === 0 && pruned.moved === 0) {
-			return yield* Console.log(`quality: ${session.config.baseline} is current.`);
-		}
-		yield* save(session, pruned.entries);
-		yield* Console.log(`quality: ${changes(pruned)} in ${session.config.baseline}.`);
-	});
+): Effect.fn.Return<void, SetupFailure, FileSystem.FileSystem | TRequirements> {
+	const session = yield* openSession(cwd, config);
+	if (session.baseline.raw === undefined) {
+		return yield* Console.log(`quality: no baseline at ${session.config.baseline}; nothing to lower.`);
+	}
+	const pruned = prune(session.baseline.entries, unregistered(session), session.config, yield* scopeOf(session));
+	if (pruned.removed === 0 && pruned.lowered === 0 && pruned.moved === 0) {
+		return yield* Console.log(`quality: ${session.config.baseline} is current.`);
+	}
+	yield* save(session, pruned.entries);
+	yield* Console.log(`quality: ${changes(pruned)} in ${session.config.baseline}.`);
+});

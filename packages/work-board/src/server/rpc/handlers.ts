@@ -61,7 +61,6 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.question": ({ item, request }) => Effect.suspend(() => responses.locate(item, request)).pipe(responseBoundary),
 			"work-board.recordResponse": (input) => Effect.suspend(() => responses.record(input)).pipe(responseBoundary),
 			"work-board.registerQuestion": (input) => Effect.suspend(() => responses.register(input)).pipe(responseBoundary),
-			"work-board.respond": ({ url }) => remaining.respond(url).pipe(documentBoundary),
 			"work-board.responses": ({ question }) => Effect.suspend(() => responses.read(question)).pipe(responseBoundary),
 			"work-board.result": ({ url }) => remaining.result(url).pipe(documentBoundary),
 			"work-board.search": ({ query }) =>

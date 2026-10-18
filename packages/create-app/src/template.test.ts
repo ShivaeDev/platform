@@ -127,7 +127,7 @@ it("packages the real starter with registry dependencies, standalone configurati
 		"src/server/migrate.ts",
 		"src/server/migrateDatabase.ts",
 		"src/server/setup-database.ts",
-		"src/server/notesHost.test.ts",
+		"src/server/noteLifecycle.spec.ts",
 		"src/server/appDeploy.spec.ts",
 		"src/test-support/application.ts",
 		"src/test-support/requests.ts",

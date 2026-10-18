@@ -2,10 +2,10 @@ import { Effect, type FileSystem, type Path, type Scope } from "effect";
 import { HttpRouter, type HttpServerRequest, HttpServerResponse } from "effect/http";
 import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
 import type { Diagnostics } from "#diagnostics/source.ts";
+import { responseUrl } from "#responses/url.ts";
 import type { BoardOptions } from "#server/board.ts";
 import type { boardRuntime } from "#server/boardRuntime.ts";
 import type { HandoffsService } from "#server/handoffs/Service.ts";
-import { identityUrl } from "#server/metadata/links.ts";
 import { shell } from "#server/page/shell.ts";
 import { Responses } from "#server/Responses.ts";
 import type { Highlighter } from "#server/render/Highlighter.ts";
@@ -47,7 +47,7 @@ export function boardRoutes(options: BoardOptions, runtime: Effect.Success<Retur
 					const params = new URL(request.url, "http://127.0.0.1").searchParams;
 					const service = yield* Responses;
 					const preview = yield* service.locate(params.get("item") ?? "", params.get("request") ?? "");
-					return HttpServerResponse.redirect(`${identityUrl(preview.item)}#answer-card-${encodeURIComponent(preview.request)}`);
+					return HttpServerResponse.redirect(responseUrl(preview.item, preview.request));
 				}).pipe(Effect.catch(() => Effect.succeed(respond("Response unavailable", "text/html", 409)))),
 			);
 			for (const view of ["system", "start", "handoff", "result", "library", "goals", "work"] as const) {

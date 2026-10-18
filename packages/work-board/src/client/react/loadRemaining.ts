@@ -22,8 +22,6 @@ export function loadRemaining(
 				loadQuery(registry, api.diagnostics.query(undefined, routeQueryOptions), { abortController }),
 				loadQuery(registry, api.fleetItems.query(undefined, routeQueryOptions), { abortController }),
 			]);
-		case "respond":
-			return loadQuery(registry, api.respond.query({ url }, routeQueryOptions), { abortController });
 		case "handoff":
 			return loadQuery(registry, api.handoff.query({ url }, routeQueryOptions), { abortController });
 		case "result":

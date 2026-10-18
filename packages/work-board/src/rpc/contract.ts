@@ -10,7 +10,7 @@ import { Library, LibraryInput } from "#browser/navigation/library.ts";
 import { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { ResultProjection } from "#browser/views/ResultProjection.ts";
-import { DiagnosticsProjection, HandoffProjection, RespondProjection, StartProjection } from "#browser/views/remaining.ts";
+import { DiagnosticsProjection, HandoffProjection, StartProjection } from "#browser/views/remaining.ts";
 import { BoardProjection, InboxProjection, WorkProjection } from "#browser/views/schema.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";
@@ -60,12 +60,6 @@ const ReadFleetItems = query("fleetItems", {
 });
 const ReadGoals = query("goals", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: GoalsProjection });
 const ReadStart = query("start", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: StartProjection });
-const ReadRespond = query("respond", {
-	payload: { url: PageUrl },
-	reads: ({ url }) => [...pageKeys(url), index.list],
-	rejections: documentRejections,
-	success: RespondProjection,
-});
 const ReadHandoff = query("handoff", {
 	payload: { url: PageUrl },
 	reads: () => [workspace.list, index.list],
@@ -113,7 +107,6 @@ export const workContract = contract("work-board", {
 		ReadFleetItems,
 		ReadGoals,
 		ReadStart,
-		ReadRespond,
 		ReadHandoff,
 		ReadResult,
 		ReadNavigation,

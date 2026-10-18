@@ -14,12 +14,12 @@ export interface Outcome {
 	readonly warnings: readonly Violation[];
 }
 
-export const evaluate = (
+export function evaluate(
 	violations: readonly Violation[],
 	registry: readonly RegistryEntry[],
 	baseline: readonly BaselineEntry[],
 	rules: RuleIndex,
-): Outcome => {
+): Outcome {
 	const registered = applyRegistry(violations, registry, rules);
 	const baselined = applyBaseline(registered.kept, baseline, rules);
 	const kept = [...baselined.kept].sort(byLocation);
@@ -33,7 +33,8 @@ export const evaluate = (
 		staleRegistry: registered.stale,
 		warnings: kept.filter((violation) => violation.level === "warn"),
 	};
-};
+}
 
-export const passes = (outcome: Outcome): boolean =>
-	outcome.errors.length === 0 && outcome.staleBaseline.length === 0 && outcome.staleRegistry.length === 0;
+export function passes(outcome: Outcome): boolean {
+	return outcome.errors.length === 0 && outcome.staleBaseline.length === 0 && outcome.staleRegistry.length === 0;
+}

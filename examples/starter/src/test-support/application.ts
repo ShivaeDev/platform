@@ -1,27 +1,12 @@
-import { ConfigProvider, Effect, Exit, Layer, Scope } from "effect";
+import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { makeAuth } from "#client/auth.ts";
-import { noteWorker } from "#server/noteWorker.ts";
-import { authRateLimits } from "#test-support/authRateLimits.ts";
-import { type HostOptions, type RunningHost, startHost } from "#test-support/host.ts";
-import { liveNotes } from "#test-support/liveNotes.ts";
+import { type HostOptions, startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { requests } from "#test-support/requests.ts";
 import { storyDatabase } from "#test-support/storyDatabase.ts";
-
-interface Actor {
-	readonly cookie: string;
-	readonly notes: Effect.Success<ReturnType<ReturnType<typeof requests>["notes"]>>;
-}
-
-interface Engine {
-	actors: Map<string, Actor>;
-	host: RunningHost | undefined;
-	hostOptions: HostOptions;
-	tell: (line: string) => void;
-}
+import type { Engine } from "./applicationState.ts";
+import { applicationVerbs } from "./applicationVerbs.ts";
 
 export const app = storyKit({
 	after: {
@@ -31,69 +16,12 @@ export const app = storyKit({
 	},
 	around: storyDatabase,
 	clock: "live",
-	create: (): Engine => ({ actors: new Map(), host: undefined, hostOptions: {}, tell: () => undefined }),
+	create: (): Engine => ({ actors: new Map(), existingNotes: new Map(), host: undefined, hostOptions: {}, tell: () => undefined }),
 	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),
 	layer: postgres,
 	name: "app",
 	stages: ["hosting", "accounts", "notes"],
-	verbs: (engine, story) => {
-		function host() {
-			if (engine.host === undefined) {
-				throw new Error("Host has not started");
-			}
-			return engine.host;
-		}
-		engine.tell = story.tell;
-		function http() {
-			return requests(host(), story.tell);
-		}
-		return {
-			actor: (name = "alice") => {
-				const actor = engine.actors.get(name);
-				if (actor === undefined) {
-					throw new Error(`No signed-in account ${name}`);
-				}
-				return actor;
-			},
-			anonymous: () => http().notes(),
-			authClient: (cookie = "") => {
-				story.tell("connect an auth client to this story's app host");
-				const { baseUrl, origin } = host();
-				return makeAuth({ baseUrl, fetchOptions: { headers: { cookie, origin } } });
-			},
-			authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
-			authRateLimits: () => authRateLimits(host(), story.tell),
-			foreignRequest: (cookie: string) => http().foreignRequest(cookie),
-			liveNotes: (name = "alice") => {
-				story.tell(`${name} watches the live notes list`);
-				const actor = engine.actors.get(name);
-				if (actor === undefined) {
-					throw new Error(`No signed-in account ${name}`);
-				}
-				return liveNotes(host(), actor.cookie);
-			},
-			notes: (cookie: string) => http().notes(cookie),
-			rerunMigrations: Effect.fn("AppStory.rerunMigrations")(function* () {
-				story.tell("run the deployment migrations and open another app host");
-				engine.host = yield* startHost(engine.hostOptions);
-			}),
-			runningHost: host,
-			startWorker: Effect.fn("AppStory.startWorker")(function* (env?: Record<string, string>) {
-				story.tell("start the word-count worker");
-				const database = yield* PostgresTestDatabase;
-				const worker = noteWorker({ databaseUrl: database.url });
-				const scope = yield* Scope.fork(yield* Scope.Scope);
-				yield* Layer.buildWithScope(
-					env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),
-					scope,
-				);
-				return Effect.suspend(() => {
-					story.tell("stop the word-count worker");
-					return Scope.close(scope, Exit.void);
-				});
-			}),
-		};
-	},
+	verbs: applicationVerbs,
 });
 
 export function signedIn(name = "alice") {
@@ -141,5 +69,22 @@ export function rejectedNoteCommits() {
 		$$`;
 		yield* sql`create constraint trigger reject_note_commit after insert on notes
 			deferrable initially deferred for each row execute function reject_note_commit()`;
+	});
+}
+
+export function notesPredatingMigration(migration: 4 | 5, title: string) {
+	return app.trait("notes", `a saved note predates migration ${migration}`, function* (engine) {
+		const actor = engine.actors.get("alice");
+		if (actor === undefined) {
+			return yield* Effect.die("Alice must be signed in");
+		}
+		const note = yield* actor.notes.create({ title });
+		engine.existingNotes.set(title, note);
+		const sql = yield* SqlClient.SqlClient;
+		if (migration === 4) {
+			yield* sql`alter table notes drop column "wordCount"`;
+		}
+		yield* sql`alter table notes drop column version`;
+		yield* sql`delete from app_migrations where migration_id >= ${migration}`;
 	});
 }

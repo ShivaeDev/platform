@@ -7,7 +7,7 @@ interface Row {
 }
 
 // An untouched entry keeps its exact line and a new one goes before the first line that sorts after it, so two branches conflict only on the same or neighbouring entries.
-export const rewriteBaseline = (raw: string | undefined, before: readonly BaselineEntry[], after: readonly BaselineEntry[]): string => {
+export function rewriteBaseline(raw: string | undefined, before: readonly BaselineEntry[], after: readonly BaselineEntry[]): string {
 	const wanted = new Map(after.map((entry) => [keyOf(entry.rule, entry.file), entry]));
 	const lines = linesOf(raw);
 	const rows: Row[] = before.flatMap((old, index) => {
@@ -21,4 +21,4 @@ export const rewriteBaseline = (raw: string | undefined, before: readonly Baseli
 		rows.splice(at === -1 ? rows.length : at, 0, { entry, text: encodeEntry(entry) });
 	}
 	return rows.map((row) => `${row.text}\n`).join("");
-};
+}

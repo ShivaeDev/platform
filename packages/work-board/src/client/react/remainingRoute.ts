@@ -8,8 +8,6 @@ export function remainingRoute(pathname: string) {
 			return "system";
 		case "/_board/start":
 			return "start";
-		case "/_board/respond":
-			return "respond";
 		case "/_board/handoff":
 			return "handoff";
 		case "/_board/result":

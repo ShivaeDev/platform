@@ -1,102 +1,49 @@
-import { ConfigProvider, Context, Effect, Layer, ManagedRuntime, Option } from "effect";
-import { HttpRouter, HttpServer } from "effect/http";
+import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { expect, it } from "vitest";
-import { AppChanges, appHost } from "#appHost.ts";
-import { InternalServerError } from "#errors/taxonomy.ts";
-import { post, sessions } from "#test/app-host/fixture.ts";
-import { Ping, ping, pingHandlers } from "#test/app-host/ping.ts";
+import { expect } from "vitest";
+import { AppChanges } from "#appHost.ts";
+import { failedRoute, lifecycleServices, rpcPath } from "#test/app-host/options.ts";
+import { configuration, environment, host, sessionPolicy } from "#test/app-host/story.ts";
 
-const common = { config: { port: 0 }, group: Ping, handlers: pingHandlers, services: Layer.empty };
-const options = { ...common, sessions: sessions([]) };
-const noEnvironment = ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }));
-
-it.each([{ sessions: sessions([]) }, { policy: "loopback" as const }])("omitting services serves RPC with %o", async (policy) => {
-	const runtime = ManagedRuntime.make(
-		appHost({ config: { port: 0 }, group: Ping, handlers: pingHandlers, ...policy }).pipe(Layer.provide(noEnvironment)),
-	);
-	try {
-		const server = await runtime.runPromise(HttpServer.HttpServer);
-		expect(await ping(`${HttpServer.formatAddress(server.address)}/rpc`)).toBe("pong");
-	} finally {
-		await runtime.dispose();
-	}
+for (const policy of [[], [sessionPolicy]]) {
+	host.it(`omitting services serves RPC with ${policy.length > 0 ? "sessions" : "loopback policy"}`, policy, function* ({ ping }) {
+		expect(yield* ping()).toBe("pong");
+	});
+}
+host.it(
+	"omitting migrations serves RPC without database configuration or SQL services",
+	[lifecycleServices],
+	function* ({ ping, health, hasService, lifecycle, close, request }) {
+		expect(yield* ping()).toBe("pong");
+		expect(yield* health()).toMatchObject({ body: "", status: 503 });
+		expect(yield* hasService(SqlClient.SqlClient)).toBe(false);
+		expect(yield* hasService(AppChanges)).toBe(false);
+		expect(lifecycle()).toEqual(["started"]);
+		yield* close();
+		expect(lifecycle()).toEqual(["started", "closed"]);
+		expect(yield* Effect.result(request())).toMatchObject({ _tag: "Failure" });
+	},
+);
+host.it("rpcPath serves the native client at the chosen route instead of /rpc", [sessionPolicy, rpcPath("/custom/rpc")], function* ({ ping, post }) {
+	expect(yield* ping()).toBe("pong");
+	expect(yield* post({})).toBe(404);
 });
-
-it("omitting migrations serves RPC without database configuration or SQL services", async () => {
-	const lifecycle: string[] = [];
-	const services = Layer.effectDiscard(
-		Effect.acquireRelease(
-			Effect.sync(() => lifecycle.push("started")),
-			() => Effect.sync(() => lifecycle.push("closed")),
-		),
-	);
-	const runtime = ManagedRuntime.make(appHost({ ...options, services }).pipe(Layer.provide(noEnvironment)));
-	let url = "";
-	try {
-		const server = await runtime.runPromise(HttpServer.HttpServer);
-		url = HttpServer.formatAddress(server.address);
-		expect(await ping(`${url}/rpc`)).toBe("pong");
-		const health = await fetch(`${url}/health`);
-		expect(health.status).toBe(503);
-		expect(await health.text()).toBe("");
-		const context = await runtime.runPromise(Effect.context());
-		expect(Option.isNone(Context.getOption(context, SqlClient.SqlClient))).toBe(true);
-		expect(Option.isNone(Context.getOption(context, AppChanges))).toBe(true);
-		expect(lifecycle).toEqual(["started"]);
-	} finally {
-		await runtime.dispose();
-	}
-	expect(lifecycle).toEqual(["started", "closed"]);
-	await expect(fetch(url)).rejects.toThrow();
-});
-
-it("rpcPath serves the native client at the chosen route instead of /rpc", async () => {
-	const runtime = ManagedRuntime.make(appHost({ ...options, rpcPath: "/custom/rpc" }).pipe(Layer.provide(noEnvironment)));
-	try {
-		const server = await runtime.runPromise(HttpServer.HttpServer);
-		const url = HttpServer.formatAddress(server.address);
-		expect(await ping(`${url}/custom/rpc`)).toBe("pong");
-		expect(await post(url, {})).toBe(404);
-	} finally {
-		await runtime.dispose();
-	}
-});
-
-it("loopback policy serves without sessions and refuses origin, Host, content type and proxy forwarding", async () => {
-	const runtime = ManagedRuntime.make(
-		appHost({
-			...common,
-			config: { port: 0, trustedProxy: "127.0.0.1" },
-			policy: "loopback",
-		}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "TRUSTED_PROXY": "127.0.0.1" } })))),
-	);
-	try {
-		const server = await runtime.runPromise(HttpServer.HttpServer);
-		const url = HttpServer.formatAddress(server.address);
-		expect(await ping(`${url}/rpc`)).toBe("pong");
+host.it(
+	"loopback policy refuses origin, Host, content type and proxy forwarding",
+	[configuration({ trustedProxy: "127.0.0.1" }), environment({ "TRUSTED_PROXY": "127.0.0.1" })],
+	function* ({ ping, post }) {
+		expect(yield* ping()).toBe("pong");
 		for (const headers of [
 			{ origin: "https://elsewhere.test" },
 			{ host: "elsewhere.test" },
 			{ "content-type": "application/json" },
 			{ host: "elsewhere.test", origin: "https://elsewhere.test", "x-forwarded-host": "elsewhere.test", "x-forwarded-proto": "https" },
 		]) {
-			expect(await post(url, headers)).toBe(403);
+			expect(yield* post(headers)).toBe(403);
 		}
-	} finally {
-		await runtime.dispose();
-	}
-});
-
-it("application routes retain native typed failures at the HTTP boundary", async () => {
-	const routes = HttpRouter.add("GET", "/failed", Effect.fail(new InternalServerError({ message: "Route failed" })));
-	const runtime = ManagedRuntime.make(appHost({ ...common, policy: "loopback", routes }).pipe(Layer.provide(noEnvironment)));
-	try {
-		const server = await runtime.runPromise(HttpServer.HttpServer);
-		const url = HttpServer.formatAddress(server.address);
-		expect((await fetch(`${url}/failed`)).status).toBe(500);
-		expect(await ping(`${url}/rpc`)).toBe("pong");
-	} finally {
-		await runtime.dispose();
-	}
+	},
+);
+host.it("application routes retain native typed failures at the HTTP boundary", [failedRoute], function* ({ request, ping }) {
+	expect((yield* request("/failed")).status).toBe(500);
+	expect(yield* ping()).toBe("pong");
 });

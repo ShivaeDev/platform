@@ -1,0 +1,65 @@
+import type { Agent } from "node:http";
+import { Effect, Layer } from "effect";
+import type { HttpRouter, HttpServer } from "effect/http";
+import type { PlatformRuntime } from "#runtime/types.ts";
+import { otlpHost } from "#test/otlpHost.ts";
+import type { otlpReceiver } from "#test/otlpReceiver.ts";
+import type { databaseProxy } from "./databaseProxy.ts";
+import type { SubscriptionState } from "./subscription.ts";
+
+export interface HostState {
+	address: unknown;
+	agent?: Agent;
+	assets?: { root: string; spa: boolean };
+	bindAddress: string;
+	bootFailure?: import("effect").Cause.Cause<unknown>;
+	build: (state: HostState) => Layer.Layer<HttpServer.HttpServer, unknown>;
+	calls: (string | Buffer)[];
+	cleanup: (() => void | Promise<void>)[];
+	config: { port?: number; host?: string; trustedProxy?: string; maxBodySize?: number };
+	env: Record<string, string>;
+	expectBootFailure: boolean;
+	lifecycle: string[];
+	logs: { level: string; attempt: number; annotations: Record<string, unknown>; message: unknown }[];
+	lookups: string[];
+	loopback: boolean;
+	proxy?: Awaited<ReturnType<typeof databaseProxy>>;
+	receiver?: Awaited<ReturnType<typeof otlpReceiver>>;
+	routes: Layer.Layer<never, never, HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>>;
+	rpcPath: HttpRouter.PathInput;
+	runtime?: PlatformRuntime<HttpServer.HttpServer, unknown>;
+	runtimeLifecycle: string[];
+	subscription?: SubscriptionState;
+	url: string;
+}
+
+export function emptyHost(): HostState {
+	return {
+		address: undefined,
+		bindAddress: "",
+		build: (state) => otlpHost(state),
+		calls: [],
+		cleanup: [],
+		config: { port: 0 },
+		env: {},
+		expectBootFailure: false,
+		lifecycle: [],
+		logs: [],
+		lookups: [],
+		loopback: true,
+		routes: Layer.empty,
+		rpcPath: "/rpc",
+		runtimeLifecycle: [],
+		url: "",
+	};
+}
+
+export function runtimeOf(state: HostState) {
+	if (state.runtime === undefined) {
+		throw new Error("The app host has not been constructed");
+	}
+	return state.runtime;
+}
+export function io<A>(action: () => Promise<A>) {
+	return Effect.tryPromise({ catch: (error) => error, try: action });
+}

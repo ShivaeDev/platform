@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
-import { dispatchWork, hostLayer } from "#host/commands.ts";
+import { hostLayer } from "#host/commands.ts";
+import { dispatchWork } from "#test/dispatchWork.ts";
 import { withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 
