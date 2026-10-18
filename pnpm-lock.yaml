@@ -754,6 +754,9 @@ importers:
 
   packages/effect-pg-boss:
     devDependencies:
+      '@shivaedev/effect-test':
+        specifier: workspace:*
+        version: link:../effect-test
       '@shivaedev/effect-test-sql':
         specifier: workspace:*
         version: link:../effect-test-sql
@@ -964,9 +967,15 @@ importers:
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
         version: 4.0.4(effect@4.0.4)
+      '@shivaedev/effect-test':
+        specifier: workspace:*
+        version: link:../effect-test
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2

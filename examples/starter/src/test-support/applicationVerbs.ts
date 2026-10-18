@@ -9,7 +9,6 @@ import { startHost } from "./host.ts";
 import { liveNotes } from "./liveNotes.ts";
 import { rejectsWith } from "./rejectsWith.ts";
 import { requests } from "./requests.ts";
-import { sessionVerbs } from "./sessionVerbs.ts";
 import { storedNotes } from "./storedNotes.ts";
 import { workerTracing } from "./workerTracing.ts";
 
@@ -47,7 +46,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			}
 			return note;
 		},
-		...sessionVerbs(engine, story.tell),
 		...workerTracing(story.tell, startWorker),
 		actor: (name = "alice") => {
 			const actor = engine.actors.get(name);
@@ -64,7 +62,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		},
 		authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
 		authRateLimits: () => authRateLimits(host(), story.tell),
-		createInRolledBackTransaction: () => createInRolledBackTransaction(host(), story.tell),
+		createInRolledBackTransaction: (title: string, ownerId: string) => createInRolledBackTransaction(host(), story.tell, title, ownerId),
 		foreignRequest: (cookie: string) => http().foreignRequest(cookie),
 		liveNotes: (name = "alice") => {
 			story.tell(`${name} watches the live notes list`);

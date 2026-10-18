@@ -9,7 +9,7 @@ import type { Folder, RunningBoard } from "./board.ts";
 import type { OpenPage } from "./browser.ts";
 import { inboxQuestion } from "./inboxFixture.ts";
 import type { readerVerbs } from "./readerVerbs.ts";
-import { renderRemaining } from "./remainingRendering.tsx";
+import { renderRemaining } from "./renderRemaining.tsx";
 
 const REVIEW_PATH = "/_board/result?item=result.keyboard";
 
