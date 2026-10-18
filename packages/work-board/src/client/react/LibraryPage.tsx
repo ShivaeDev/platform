@@ -1,6 +1,10 @@
 import { Option } from "effect";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { Checkbox } from "#client/react/components/ui/checkbox.tsx";
+import { Label } from "#client/react/components/ui/label.tsx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#client/react/components/ui/select.tsx";
+import { ToggleGroup, ToggleGroupItem } from "#client/react/components/ui/toggle-group.tsx";
 import { LibraryContents } from "./LibraryContents.tsx";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
@@ -15,6 +19,7 @@ export function LibraryPage({ api, url = "/_board/library" }: { readonly api: Sh
 		keepPreviousData: true,
 	});
 	const data = Option.getOrUndefined(query.data);
+	const fleetId = useId();
 	return (
 		<div className="mx-auto max-w-5xl p-4 md:p-8">
 			<h1>Library</h1>
@@ -22,11 +27,11 @@ export function LibraryPage({ api, url = "/_board/library" }: { readonly api: Sh
 			<div className="my-6 flex flex-wrap items-end gap-4">
 				<Filter label="Kind" onChange={setKind} options={data?.kinds ?? []} value={kind} />
 				<Filter label="Status" onChange={setStatus} options={data?.statuses ?? []} value={status} />
-				<Filter label="View" onChange={setView} options={["titles", "folders", "recently changed"]} value={view} />
-				<label className="flex items-center gap-2 text-sm">
-					<input checked={showFleet} onChange={(event) => setShowFleet(event.target.checked)} type="checkbox" />
-					Show Fleet records ({data?.fleetCount ?? 0})
-				</label>
+				<ViewToggle onChange={setView} view={view} />
+				<div className="flex h-7 items-center gap-2">
+					<Checkbox checked={showFleet} id={fleetId} onCheckedChange={setShowFleet} />
+					<Label htmlFor={fleetId}>Show Fleet records ({data?.fleetCount ?? 0})</Label>
+				</div>
 			</div>
 			{query.pending ? <p role="status">Loading Library…</p> : null}
 			{Option.isSome(query.cause) && <p role="alert">Library refresh failed. Try again.</p>}
@@ -34,6 +39,31 @@ export function LibraryPage({ api, url = "/_board/library" }: { readonly api: Sh
 		</div>
 	);
 }
+
+function ViewToggle({ view, onChange }: { readonly view: string; readonly onChange: (view: string) => void }) {
+	const labelId = useId();
+	return (
+		<div className="grid gap-2">
+			<span className="font-medium text-xs leading-none" id={labelId}>
+				View
+			</span>
+			<ToggleGroup aria-labelledby={labelId} onValueChange={([next]) => next && onChange(next)} spacing={0} value={[view]} variant="outline">
+				{views.map(([value, label]) => (
+					<ToggleGroupItem key={value} value={value}>
+						{label}
+					</ToggleGroupItem>
+				))}
+			</ToggleGroup>
+		</div>
+	);
+}
+
+const views = [
+	["titles", "Titles"],
+	["folders", "Folders"],
+	["recently changed", "Recently changed"],
+] as const;
+
 function Filter({
 	label,
 	options,
@@ -45,30 +75,27 @@ function Filter({
 	readonly value: string;
 	readonly onChange: (value: string) => void;
 }) {
+	const id = useId();
 	return (
-		<label className="grid gap-1 text-sm">
-			{label}
-			<select aria-label={label} className="rounded-md border bg-background p-2" onChange={(event) => onChange(event.target.value)} value={value}>
-				{label !== "View" && <option value="">All</option>}
-				{options.map((option) => (
-					<option key={option} value={option}>
-						{viewLabel(option)}
-					</option>
-				))}
-			</select>
-		</label>
+		<div className="grid gap-2">
+			<Label htmlFor={id}>{label}</Label>
+			<Select
+				items={[{ label: "All", value: null }, ...options.map((option) => ({ label: option, value: option }))]}
+				onValueChange={(next) => onChange(next ?? "")}
+				value={value || null}
+			>
+				<SelectTrigger className="min-w-32" id={id}>
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value={null}>All</SelectItem>
+					{options.map((option) => (
+						<SelectItem key={option} value={option}>
+							{option}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+		</div>
 	);
-}
-
-function viewLabel(value: string) {
-	if (value === "recently changed") {
-		return "Recently changed";
-	}
-	if (value === "folders") {
-		return "Folders";
-	}
-	if (value === "titles") {
-		return "Titles";
-	}
-	return value;
 }

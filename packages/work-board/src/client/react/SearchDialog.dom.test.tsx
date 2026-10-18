@@ -5,8 +5,12 @@ import { screenStory } from "#test/screenStory.ts";
 import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
+const QUERY = '#search-dialog [role="combobox"]';
+const OPTIONS = '#search-dialog [role="option"]';
+const SEARCH = '#search-dialog button[type="submit"]';
+const SELECTED = '#search-dialog [role="option"][aria-selected="true"] a';
 screenStory.it(
-	"selects and opens the remaining result when a query refresh removes the selected third result",
+	"names and opens the remaining result when a query refresh removes the selected third result",
 	[
 		searchScreen({
 			"notes/first.md": "# First\n\nShared phrase one.",
@@ -14,22 +18,29 @@ screenStory.it(
 			"notes/third.md": "# Third\n\nShared phrase three.",
 		}),
 	],
-	function* ({ input, keyboard, editFile, refreshSearch, count, readAttribute, findElement }) {
-		input("#search-query", "Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(count('#search-results [role="option"]')).toBe(3)));
-		keyboard("ArrowDown", {}, "#search-query");
-		keyboard("ArrowDown", {}, "#search-query");
-		expect(readAttribute("#search-query", "aria-activedescendant")).toBe("search-result-2");
+	function* ({ input, keyboard, editFile, refreshSearch, count, readAttribute, findElement, findElements }) {
+		input(QUERY, "Shared phrase");
+		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(3)));
+		yield* Effect.promise(() =>
+			eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[0]?.id)),
+		);
+		keyboard("ArrowDown", {}, QUERY);
+		keyboard("ArrowDown", {}, QUERY);
+		yield* Effect.promise(() =>
+			eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[2]?.id)),
+		);
+		expect(findElement(`${OPTIONS}[aria-selected="true"]`, document)?.id).toBe(readAttribute(QUERY, "aria-activedescendant", document));
 		editFile("notes/second.md", "# Second\n\nNo match.");
 		editFile("notes/third.md", "# Third\n\nNo match.");
 		yield* Effect.promise(() => refreshSearch("Shared phrase"));
-		yield* Effect.promise(() => eventually(() => expect(count('#search-results [role="option"]')).toBe(1)));
-		expect(readAttribute("#search-query", "aria-activedescendant")).toBe("search-result-0");
-		expect(readAttribute('#search-results [aria-selected="true"]', "href")).toBe("/notes/first.md#heading-first");
-		const enter = keyboard("Enter", { cancelable: true }, "#search-query");
+		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(1)));
+		yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/first.md#heading-first")));
+		yield* Effect.promise(() =>
+			eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[0]?.id)),
+		);
+		const enter = keyboard("Enter", { cancelable: true }, QUERY);
 		expect(enter.defaultPrevented).toBe(true);
-		expect(findElement("dialog")).toHaveProperty("returnValue", "navigate");
-		expect(findElement("dialog")).toHaveProperty("open", false);
+		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 	},
 );
 
@@ -38,26 +49,56 @@ for (const { initial, previous } of [
 	{ initial: "First phrase", previous: "/notes/first.md#heading-first" },
 ]) {
 	screenStory.it(
-		`does not activate '${initial}' options when Enter follows a query edit before debounce`,
+		`searches instead of activating '${initial}' options when Enter follows a query edit before debounce`,
 		[searchScreen({ "notes/first.md": "# First\n\nFirst phrase.", "notes/second.md": "# Second\n\nSecond phrase." })],
-		function* ({ input, keyboard, submit, count, readAttribute, findElement }) {
+		function* ({ input, keyboard, count, readAttribute, findElement, freezeTimers }) {
 			if (initial) {
-				input("#search-query", initial);
+				input(QUERY, initial);
 			}
-			yield* Effect.promise(() => eventually(() => expect(readAttribute('#search-results [aria-selected="true"]', "href")).toBe(previous)));
-			input("#search-query", "Second phrase");
-			const enter = keyboard("Enter", { cancelable: true }, "#search-query");
-			expect(findElement("dialog")).toHaveProperty("open", true);
-			expect(readAttribute("#search-query", "aria-activedescendant")).toBeNull();
-			expect(count('#search-results [role="option"]')).toBe(0);
-			expect(enter.defaultPrevented).toBe(false);
-			submit("#search-form");
-			yield* Effect.promise(() =>
-				eventually(() => expect(readAttribute('#search-results [aria-selected="true"]', "href")).toBe("/notes/second.md#heading-second")),
-			);
-			expect(count('#search-results [role="option"]')).toBe(1);
-			keyboard("Enter", { cancelable: true }, "#search-query");
-			expect(findElement("dialog")).toHaveProperty("returnValue", "navigate");
+			yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe(previous)));
+			freezeTimers(() => {
+				input(QUERY, "Second phrase");
+				expect(count(OPTIONS, document)).toBe(0);
+				expect(readAttribute(QUERY, "aria-activedescendant", document)).toBeNull();
+				keyboard("Enter", { cancelable: true }, QUERY);
+			});
+			expect(findElement("#search-dialog", document)).not.toBeNull();
+			yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/second.md#heading-second")));
+			expect(count(OPTIONS, document)).toBe(1);
+			keyboard("Enter", { cancelable: true }, QUERY);
+			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 		},
 	);
 }
+
+screenStory.it(
+	"reruns the query instead of opening the selected result when Enter activates the Search button",
+	[searchScreen({ "notes/first.md": "# First\n\nShared phrase one.", "notes/second.md": "# Second\n\nShared phrase two." })],
+	function* ({ input, keyboard, click, editFile, count, readAttribute, findElement }) {
+		input(QUERY, "Shared phrase");
+		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(2)));
+		editFile("notes/second.md", "# Second\n\nNo match.");
+		const enter = keyboard("Enter", { cancelable: true }, SEARCH);
+		expect(enter.defaultPrevented).toBe(false);
+		click(findElement(SEARCH, document));
+		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(1)));
+		expect(readAttribute(SELECTED, "href", document)).toBe("/notes/first.md#heading-first");
+		expect(findElement("#search-dialog", document)).not.toBeNull();
+	},
+);
+
+screenStory.it(
+	"keeps the selected result when Home and End move the caret in the query",
+	[searchScreen({ "notes/first.md": "# First\n\nShared phrase one.", "notes/second.md": "# Second\n\nShared phrase two." })],
+	function* ({ input, keyboard, count, findElement, findElements }) {
+		input(QUERY, "Shared phrase");
+		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(2)));
+		keyboard("ArrowDown", {}, QUERY);
+		const selected = findElements(OPTIONS, document)[1]?.id;
+		expect(findElement(`${OPTIONS}[aria-selected="true"]`, document)?.id).toBe(selected);
+		keyboard("Home", { cancelable: true }, QUERY);
+		expect(findElement(`${OPTIONS}[aria-selected="true"]`, document)?.id).toBe(selected);
+		keyboard("End", { cancelable: true }, QUERY);
+		expect(findElement(`${OPTIONS}[aria-selected="true"]`, document)?.id).toBe(selected);
+	},
+);

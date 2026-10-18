@@ -22,11 +22,12 @@ for (const [route, target, title] of [
 				return <RouterProvider router={router} />;
 			}),
 		],
-		function* ({ readText, findElement }) {
+		function* ({ readText, findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(readText("h1")).toBe(title)));
 			expect(router?.state.location.href).toBe(target);
 			if (route === "changes") {
-				expect(findElement<HTMLSelectElement>('select[aria-label="View"]')?.value).toBe("recently changed");
+				const recent = [...findElements("button")].find((button) => button.textContent === "Recently changed");
+				expect(recent?.getAttribute("aria-pressed")).toBe("true");
 			}
 		},
 	);
