@@ -1,7 +1,7 @@
 import { Cause, Effect, Exit } from "effect";
 import { expect } from "vitest";
 import type { Publish } from "#publish.ts";
-import { type Change, type Current, change } from "#test/fake-database.ts";
+import { type Change, type Current, change } from "#test/fakeDatabase.ts";
 import { changes, configured, hasObserver } from "#test/kit.ts";
 
 const failing: ReadonlyArray<readonly [string, string, Publish<Change, Current>]> = [

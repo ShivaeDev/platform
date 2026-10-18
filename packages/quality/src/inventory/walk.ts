@@ -1,7 +1,7 @@
 import { dirname, join, relative, sep } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { FilesystemFailure, orWhenAbsent, readOptionalText } from "./filesystem.ts";
-import { emptyScope, type IgnoreScope, insideKept, verdictFor, withIgnoreFile } from "./ignore-scope.ts";
+import { emptyScope, type IgnoreScope, insideKept, verdictFor, withIgnoreFile } from "./ignoreScope.ts";
 import { trackedPaths } from "./trackedPaths.ts";
 
 const SKIPPED = new Set([".git", "node_modules"]);

@@ -1,6 +1,6 @@
 import { Clock, Effect } from "effect";
 import { HttpClient } from "effect/http";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { type CachedResponse, decodeResponse, fetchResponse } from "./httpResponse.ts";
 import { WatchError } from "./model.ts";
 import { type Budget, observeBudget, pollDelay } from "./quota.ts";

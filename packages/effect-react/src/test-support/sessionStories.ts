@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { startOrderServer } from "#test/order-example/http-test.ts";
+import { startServer } from "#test/order-example/startServer.ts";
 import { screenKit } from "./screenKit.ts";
 import { sessions, shell } from "./session.tsx";
 
@@ -39,7 +39,7 @@ export const sessionScreens = storyKit(
 export function orderSessions() {
 	return sessionScreens.trait("screen", "order sessions over loopback HTTP", function* ({ screen, state }) {
 		const server = yield* Effect.acquireRelease(
-			Effect.promise(() => startOrderServer({ sessions: state.active })),
+			Effect.promise(() => startServer({ sessions: state.active })),
 			(host) => Effect.promise(host.close),
 		);
 		const root = yield* screen.open();

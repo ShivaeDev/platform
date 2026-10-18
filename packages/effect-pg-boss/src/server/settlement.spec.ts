@@ -3,7 +3,7 @@ import { Effect, Layer, Schema } from "effect";
 import { expect, it, vi } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions, FakeClient, job } from "#test/fake-client.ts";
+import { constructorOptions, FakeClient, job } from "#test/fakeClient.ts";
 import { scriptedClient } from "#test/scriptedClient.ts";
 
 it.each(["failure", "defect"] as const)("settles scheduled jobs separately after a %s", async (outcome) => {

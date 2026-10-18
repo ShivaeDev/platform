@@ -1,8 +1,8 @@
 import { Clock, Console, Deferred, Duration, Effect, Exit, Fiber, Queue } from "effect";
 import { TestClock } from "effect/testing";
-import { HeldLock } from "#held-lock.ts";
-import { readHolder } from "#lock-file.ts";
-import { withHeavyLock } from "#with-heavy-lock.ts";
+import { HeldLock } from "#HeldLock.ts";
+import { readHolder } from "#lockFile.ts";
+import { withHeavyLock } from "#withHeavyLock.ts";
 import { configured, type Lock } from "./lock.ts";
 
 const startWaiting = Effect.fn("LockStory.startWaiting")(function* (engine: Lock, tell: (line: string) => void, startMs: number) {

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { change } from "#test/fake-database.ts";
+import { change } from "#test/fakeDatabase.ts";
 import { changes, hasObserver, hasSink } from "#test/kit.ts";
 
 changes.it(
