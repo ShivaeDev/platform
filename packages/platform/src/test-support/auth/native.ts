@@ -1,44 +1,34 @@
-import type { BetterAuthOptions } from "better-auth";
+import { initTRPC } from "@trpc/server";
 import { Effect } from "effect";
-import { withTestTransaction } from "@shivaedev/effect-prisma/testing/transaction.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import type { EffectPrismaAdapterOptions } from "#server/better-auth/adapter.ts";
-import { Database, DatabaseLive, databaseUrl } from "./database.ts";
-import { authEngine } from "./engine.ts";
-import { filterRows } from "./filterCases.ts";
-import { authVerbs, type User } from "./verbs.ts";
-export const auth = storyKit({
-	around: (effect) =>
-		withTestTransaction(
-			Database,
-			Effect.flatMap(Database, () => effect),
-		),
-	clock: "live",
-	create: authEngine,
-	inspect: () => ({ boundary: "Better Auth adapter", isolation: "rollback", storage: "PostgreSQL" }),
+import { makeDatabase } from "@shivaedev/effect-prisma/database.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
+import { effectPrismaAdapter } from "#server/better-auth/adapter.ts";
+import { makePlatformRuntime } from "#server/runtime/makePlatform.ts";
+import { makePlatformIt } from "#server/testing/makePlatformIt.ts";
+import { type Contract, contractJson } from "#test/auth/contract.ts";
+import { environmentVariable } from "#test/environmentVariable.ts";
+
+const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
+export const Database = makeDatabase<Contract>()("@test/PlatformAuthDatabase", {
+	contractJson,
+});
+const DatabaseLive = Database.layer({
+	url: databaseUrl ?? "postgresql://integration-tests-disabled",
+});
+export const runtime = makePlatformRuntime(DatabaseLive);
+export const authDatabase = effectPrismaAdapter(Database, runtime, {
+	modelName: (model) => `Auth${model.length === 0 ? model : `${model[0]?.toUpperCase()}${model.slice(1)}`}`,
+})({});
+const adapter = makeEffectTRPC({ runtime });
+const t = initTRPC.create();
+const router = t.router({});
+export const it = makePlatformIt(Database)({
+	adapter,
+	createCaller: () => router.createCaller({}),
+	extend: ({ db }) =>
+		Effect.succeed({
+			userExists: (id: string) => db.AuthUser.where({ id }).exists(),
+		}),
 	layer: DatabaseLive,
-	name: "Better Auth PostgreSQL",
-	runIf: databaseUrl !== undefined,
-	stages: ["configured", "rows"],
-	verbs: (state, story) => authVerbs(state, story.tell),
 });
-export function configuredAdapter(options: BetterAuthOptions, adapterOptions?: EffectPrismaAdapterOptions) {
-	return auth.trait("configured", "the application configures the Better Auth adapter", (state) => {
-		state.authDatabase = state.configure(options, adapterOptions);
-	});
-}
-export function usersNamed(...names: string[]) {
-	return usersWith(...names.map((name) => ({ email: `${crypto.randomUUID()}@example.test`, id: crypto.randomUUID(), name })));
-}
-export function usersWith(...users: User[]) {
-	return auth.trait("rows", `PostgreSQL contains users named ${users.map(({ name }) => name).join(", ")}`, function* ({ db }) {
-		for (const user of users) {
-			yield* db.AuthUser.create(user);
-		}
-	});
-}
-export const filterUsers = auth.trait("rows", "PostgreSQL contains nullable and literal-pattern filter fixtures", function* ({ db }) {
-	for (const row of filterRows) {
-		yield* db.AuthUser.create({ ...row, email: `${crypto.randomUUID()}@example.test`, id: crypto.randomUUID() });
-	}
-});
+export const integrationOptions = { skip: databaseUrl === undefined };

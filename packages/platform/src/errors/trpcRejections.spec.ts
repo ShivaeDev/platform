@@ -1,22 +1,97 @@
-import { Effect, Option } from "effect";
-import { expect } from "vitest";
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import { initTRPC } from "@trpc/server";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import { Effect, Layer, ManagedRuntime, Option, Schema } from "effect";
+import superjson from "superjson";
+import { afterAll, expect, it } from "vitest";
 import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/rejectionDecoding.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
+import { rejectWith } from "@shivaedev/effect-trpc/server/rejection.ts";
+import { rejectionFormatter } from "@shivaedev/effect-trpc/server/rejectionFormatter.ts";
+import { makeRequestServices } from "@shivaedev/effect-trpc/server/requestServices.ts";
 import { rejectedField } from "#errors/rejectedField.ts";
-import { BadRequest, Conflict, InternalServerError, NotFound, ServiceUnavailable, TooManyRequests } from "#errors/taxonomy.ts";
-import { Rejection, trpc } from "#test/rpc/trpcStory.ts";
+import {
+	AuthUnavailable,
+	BadRequest,
+	Conflict,
+	InternalServerError,
+	NotFound,
+	PreconditionFailed,
+	ServiceUnavailable,
+	TooManyRequests,
+} from "#errors/taxonomy.ts";
 
-trpc.it("taxonomy errors cross tRPC HTTP as rejections whose field reaches the form", [], function* ({ rename }) {
-	const taken = yield* rename("taken");
+const Rejection = Schema.Union([
+	NotFound,
+	BadRequest,
+	Conflict,
+	PreconditionFailed,
+	TooManyRequests,
+	AuthUnavailable,
+	InternalServerError,
+	ServiceUnavailable,
+]);
+const failures = {
+	busy: new TooManyRequests({ message: "Slow down" }),
+	internal: new InternalServerError({ message: "Internal server error" }),
+	malformed: new BadRequest({ message: "Malformed" }),
+	missing: new NotFound({ message: "No profile" }),
+	outage: new AuthUnavailable({ message: "Sessions are unavailable" }),
+	required: new BadRequest({ field: "name", message: "Name is required" }),
+	stale: new PreconditionFailed({ message: "Profile changed" }),
+	taken: new Conflict({ field: "name", message: "Name is taken" }),
+	unavailable: new ServiceUnavailable({ message: "Storage is unavailable" }),
+};
+const runtime = ManagedRuntime.make(Layer.empty);
+const t = initTRPC.create({ errorFormatter: rejectionFormatter, transformer: superjson });
+const procedure = makeEffectTRPC({ runtime }).procedure(
+	t.procedure,
+	makeRequestServices(() => Layer.empty),
+);
+const router = t.router({
+	rename: procedure.input(Schema.Struct({ name: Schema.NonEmptyString })).mutation(function* ({ name }) {
+		const failure = Object.entries(failures).find(([key]) => key === name)?.[1];
+		return yield* (failure === undefined ? Effect.succeed(name) : Effect.fail(failure)).pipe(rejectWith(Rejection));
+	}),
+});
+const client = createTRPCClient<typeof router>({
+	links: [
+		httpBatchLink({
+			fetch: (input, init) =>
+				fetchRequestHandler({
+					createContext: () => ({}),
+					endpoint: "/trpc",
+					req: new Request(input, { ...init, signal: init?.signal ?? null }),
+					router,
+				}),
+			transformer: superjson,
+			url: "http://localhost/trpc",
+		}),
+	],
+});
+async function rename(name: string): Promise<unknown> {
+	try {
+		return await client.rename.mutate({ name });
+	} catch (error) {
+		return error;
+	}
+}
+afterAll(() => runtime.dispose());
+it("taxonomy errors cross tRPC HTTP as rejections whose field reaches the form", async () => {
+	const taken = await rename("taken");
 	expect(taken).toMatchObject({ data: { code: "CONFLICT", httpStatus: 409 } });
 	expect(Option.flatMap(rejectionOf(taken), rejectedField)).toEqual(Option.some({ field: "name", message: "Name is taken" }));
 	expect(Option.getOrThrow(decodeRejection(Rejection)(taken))).toBeInstanceOf(Conflict);
-	expect(Option.flatMap(rejectionOf(yield* rename("required")), rejectedField)).toEqual(Option.some({ field: "name", message: "Name is required" }));
+	expect(Option.flatMap(rejectionOf(await rename("required")), rejectedField)).toEqual(Option.some({ field: "name", message: "Name is required" }));
 });
-trpc.it("taxonomy errors without a field keep their code and are not field rejections", [], function* ({ rename }) {
-	const [malformed, stale, busy, missing, outage] = yield* Effect.all(
-		[rename("malformed"), rename("stale"), rename("busy"), rename("missing"), rename("outage")],
-		{ concurrency: "unbounded" },
-	);
+it("taxonomy errors without a field keep their code and are not field rejections", async () => {
+	const [malformed, stale, busy, missing, outage] = await Promise.all([
+		rename("malformed"),
+		rename("stale"),
+		rename("busy"),
+		rename("missing"),
+		rename("outage"),
+	]);
 	expect([malformed, stale, busy, missing, outage].map((error) => Option.flatMap(rejectionOf(error), rejectedField))).toEqual([
 		Option.none(),
 		Option.none(),
@@ -32,17 +107,17 @@ trpc.it("taxonomy errors without a field keep their code and are not field rejec
 	expect(Option.getOrThrow(decodeRejection(Rejection)(missing))).toBeInstanceOf(NotFound);
 	expect(missing).toMatchObject({ data: { code: "NOT_FOUND", httpStatus: 404 } });
 });
-trpc.it("an input the procedure's schema rejects reaches the form as a BadRequest field rejection", [], function* ({ rename }) {
-	const invalid = yield* rename("");
+it("an input the procedure's schema rejects reaches the form as a BadRequest field rejection", async () => {
+	const invalid = await rename("");
 	expect(invalid).toMatchObject({ data: { code: "BAD_REQUEST", httpStatus: 400 } });
 	expect(Option.getOrThrow(decodeRejection(Rejection)(invalid))).toBeInstanceOf(BadRequest);
 	expect(Option.map(Option.flatMap(rejectionOf(invalid), rejectedField), ({ field }) => field)).toEqual(Option.some("name"));
 	expect(Option.map(rejectionOf(invalid), ({ invalidInput }) => invalidInput)).toEqual(Option.some(true));
-	expect(Option.map(rejectionOf(yield* rename("required")), ({ invalidInput }) => invalidInput)).toEqual(Option.some(undefined));
+	expect(Option.map(rejectionOf(await rename("required")), ({ invalidInput }) => invalidInput)).toEqual(Option.some(undefined));
 });
-trpc.it("general server taxonomy errors retain their declared type and HTTP status through tRPC", [], function* ({ rename }) {
-	const internal = yield* rename("internal");
-	const unavailable = yield* rename("unavailable");
+it("general server taxonomy errors retain their declared type and HTTP status through tRPC", async () => {
+	const internal = await rename("internal");
+	const unavailable = await rename("unavailable");
 	expect(internal).toMatchObject({ data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500, rejection: { _tag: "InternalServerError" } } });
 	expect(unavailable).toMatchObject({ data: { code: "SERVICE_UNAVAILABLE", httpStatus: 503, rejection: { _tag: "ServiceUnavailable" } } });
 	expect(Option.getOrThrow(decodeRejection(Rejection)(internal))).toBeInstanceOf(InternalServerError);

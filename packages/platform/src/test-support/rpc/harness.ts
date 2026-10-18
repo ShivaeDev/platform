@@ -1,9 +1,8 @@
-import { DatabaseSync } from "node:sqlite";
 import { betterAuth } from "better-auth";
-import { getMigrations } from "better-auth/db/migration";
-import { Layer, Logger, References, Tracer } from "effect";
+import { Effect, Layer, Logger, Redacted, References, Tracer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
+import { Pool } from "pg";
 
 export const ORIGIN = "http://localhost:3000";
 
@@ -34,8 +33,14 @@ export function recorder() {
 	return { layer, logs, spans };
 }
 
-export async function createProvider() {
-	const database = new DatabaseSync(":memory:");
+export const createProvider = Effect.fnUntraced(function* (url: Redacted.Redacted<string>) {
+	const database = new Pool({ connectionString: Redacted.value(url), max: 2 });
+	let closing: Promise<void> | undefined;
+	function close() {
+		closing ??= database.end();
+		return closing;
+	}
+	yield* Effect.addFinalizer(() => Effect.promise(close));
 	const options = {
 		"baseURL": ORIGIN,
 		database,
@@ -43,17 +48,16 @@ export async function createProvider() {
 		secret: "integration-only-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 	};
-	await (await getMigrations(options)).runMigrations();
 	const auth = betterAuth(options);
 	let lookups = 0;
 	function getSession(headers: Headers) {
 		lookups += 1;
 		return auth.api.getSession({ headers });
 	}
-	return { auth, database, getSession, lookups: () => lookups };
-}
+	return { auth, close, database, getSession, lookups: () => lookups };
+});
 
-export type Provider = Awaited<ReturnType<typeof createProvider>>;
+export type Provider = Effect.Success<ReturnType<typeof createProvider>>;
 
 export async function signup(provider: Provider, name: string) {
 	const response = await provider.auth.handler(

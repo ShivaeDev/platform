@@ -1,36 +1,35 @@
 import { Effect, Option } from "effect";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { type OriginPolicy, trustedOrigins } from "#server/rpc-server/origin.ts";
 import { makeApp } from "./api.ts";
 import { annotationsOf, createProvider, ORIGIN, signup } from "./harness.ts";
+import { databaseUrl, postgres } from "./postgres.ts";
 import { expireSession, signOut } from "./sessionLifecycle.ts";
 import { whoamiOverWebSocket } from "./whoamiOverWebSocket.ts";
 
 export const browser = trustedOrigins({ allow: [ORIGIN, "capacitor://localhost"], missing: "reject" });
 export const sessions = storyKit({
+	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const provider = yield* Effect.promise(createProvider);
+		const database = yield* PostgresTestDatabase;
+		const provider = yield* createProvider(database.url);
 		const apps = new Map<string, ReturnType<typeof makeApp>>();
-		let closed = false;
-		function close() {
-			if (!closed) {
-				provider.database.close();
-				closed = true;
-			}
-		}
 		const accounts = new Map<string, Awaited<ReturnType<typeof signup>>>();
 		yield* Effect.addFinalizer(() =>
 			Effect.promise(async () => {
 				await Promise.all([...apps.values()].map(({ app }) => app.dispose()));
-				close();
 			}),
 		);
 		const upgrade: { headers?: Record<string, string> } = {};
-		return { accounts, apps, close, provider, upgrade };
+		return { accounts, apps, close: provider.close, provider, upgrade };
 	},
 	inspect: ({ provider, accounts }) => ({ accounts: [...accounts.keys()], lookups: provider.lookups() }),
+	layer: postgres,
 	name: "RPC session",
+	runIf: databaseUrl !== undefined,
 	stages: ["accounts"],
 	verbs: (state, story) => {
 		function app(policy = "browser") {
@@ -54,9 +53,9 @@ export const sessions = storyKit({
 			account,
 			annotations: (message: string) => annotationsOf(app().logs, message),
 			closeProvider: () =>
-				Effect.sync(() => {
-					story.tell("the session database closes");
-					state.close();
+				Effect.promise(async () => {
+					story.tell("the session provider's PostgreSQL pool closes");
+					await state.close();
 				}),
 			expire: (name: string) => {
 				story.tell(`${name}'s persisted session expires`);

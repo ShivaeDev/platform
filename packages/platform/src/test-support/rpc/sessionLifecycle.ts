@@ -2,10 +2,13 @@ import { Effect } from "effect";
 import { ORIGIN, type Provider } from "./harness.ts";
 
 export function expireSession(provider: Provider, token: string) {
-	return Effect.sync(() => {
-		const { changes } = provider.database.prepare('UPDATE "session" SET "expiresAt" = ? WHERE token = ?').run(Date.UTC(2000, 0, 1), token);
-		if (changes !== 1) {
-			throw new Error(`Cannot expire the session: expected one stored session, found ${changes}`);
+	return Effect.promise(async () => {
+		const { rowCount } = await provider.database.query('UPDATE "session" SET "expiresAt" = $1 WHERE token = $2', [
+			new Date(Date.UTC(2000, 0, 1)),
+			token,
+		]);
+		if (rowCount !== 1) {
+			throw new Error(`Cannot expire the session: expected one stored session, found ${rowCount}`);
 		}
 	});
 }
