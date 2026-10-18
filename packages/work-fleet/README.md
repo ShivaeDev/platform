@@ -46,14 +46,15 @@ Set optional `worker.workerGuidance` to repository-specific worker instructions.
 
 Set optional `worker.reviewerGuidance` to repository-specific review instructions. It accepts inline text or `{ "file": "reviewer.md" }`; file paths resolve from the Board folder. An unreadable file fails host policy creation. The host includes the text in initial reviewer prompts and verdict follow-ups. Omitted guidance leaves the default prompt repository-independent.
 
-For this repository, configure the `worker` section in `.work/fleet.config.json` with the Platform guidance:
+A `worker` section with both kinds of guidance looks like this:
 
 ```json
 {
   "worker": {
     "branchPrefix": "<branch-prefix>",
     "sharedEnvironment": "<environment-script-path>",
-    "reviewerGuidance": "To check that PostgreSQL tests are not skipped without job logs, read .github/workflows/ci.yml at the reviewed head and follow its test job database setup and environment configuration. In this repository, pnpm db:setup provisions PostgreSQL and pnpm test supplies PLATFORM_EFFECT_*_TEST_DATABASE_URL through script/test.ts and script/lib/postgresTestEnvironment.ts. Inspect those files at the same head; the checkout may differ."
+    "workerGuidance": { "file": "<worker-guidance-file>" },
+    "reviewerGuidance": "<review instructions for your repository>"
   }
 }
 ```
