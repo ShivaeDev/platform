@@ -19,7 +19,7 @@ for (const url of ["/guide.md", "/_board/item/task.guide/"]) {
 			const card = findElement(".response-panel");
 			expect(readText(".answer-reason strong", card)).toBe("Reviewed PR is ready to merge.");
 			expect(readText(".answer-links a", card)).toBe("Open PR #395");
-			expect([...findElements(".question-choice strong")].map((label) => label.textContent)).toEqual(["Request changes", "Release"]);
+			expect([...findElements(".question-choice strong")].map((label) => label.textContent)).toEqual(["Request changes", "Stop and hand back"]);
 			const more = findElement("details[data-key='response-details']", card);
 			expect(more).toHaveProperty("open", false);
 			expect(readText("summary", more)).toBe("More options");

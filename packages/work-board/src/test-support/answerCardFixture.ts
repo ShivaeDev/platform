@@ -58,14 +58,14 @@ export const readyDecisionFixture = {
 			.replace("**Publish** the reviewed guide.", "Merge the reviewed PR on GitHub.")
 		+ `
 ::::question{id="fleet-action" select="one"}
-### How should Fleet proceed?
+### Do you want changes before merging?
 :::option{id="retry"}
 ### Request changes
-Fleet keeps the branch and PR and works on your answer
+Write the changes in your answer. The worker makes them on the same branch and PR, then Fleet reviews and checks the PR again.
 :::
 :::option{id="release"}
-### Release
-Fleet stops and hands the work back
+### Stop and hand back
+Fleet stops watching this PR and hands the task back to you. The PR stays open.
 :::
 ::::
 `,

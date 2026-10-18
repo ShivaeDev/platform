@@ -13,7 +13,7 @@ export function cardContext(source: string) {
 	return { links, recommendation };
 }
 
-export function optionText(id: string, source: string, reason: string) {
+export function optionText(id: string, source: string) {
 	const heading = promptHeading(source);
 	if (heading.title) {
 		return { description: heading.rest, label: heading.title };
@@ -21,9 +21,6 @@ export function optionText(id: string, source: string, reason: string) {
 	const lead = /^\*\*(?<label>[^*]+)\*\*\s*(?:[—–:-]\s*)?/u.exec(source.trim());
 	if (lead?.groups?.label) {
 		return { description: source.trim().slice(lead[0].length).trim(), label: lead.groups.label.trim() };
-	}
-	if (id === "retry" && /reviewed pr is ready to merge/iu.test(reason)) {
-		return { description: source.trim(), label: "Request changes (retry)" };
 	}
 	return { description: source.trim(), label: id.charAt(0).toUpperCase() + id.slice(1).replaceAll("-", " ") };
 }
@@ -66,7 +63,7 @@ export function chosenLabels(prompts: readonly Prompt[], answers: readonly Promp
 		.flatMap((prompt) => {
 			const selected = answers?.find((answer) => answer.prompt === prompt.id)?.selected ?? [];
 			return prompt.options.flatMap((option, index) =>
-				selected.includes(option.id) ? [options?.[index]?.label ?? optionText(option.id, option.source, "").label] : [],
+				selected.includes(option.id) ? [options?.[index]?.label ?? optionText(option.id, option.source).label] : [],
 			);
 		})
 		.join(", ");

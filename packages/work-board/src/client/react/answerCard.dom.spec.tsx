@@ -151,7 +151,10 @@ screenStory.it(
 		expect(link?.getAttribute("href")).toBe("https://github.com/ShivaeDev/platform/pull/395");
 		expect(link?.classList.contains("bg-primary")).toBe(true);
 		expect(link?.compareDocumentPosition(findElement("fieldset", card) ?? document.body)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		expect([...(findElements(".question-choice strong", card) ?? [])].map((label) => label.textContent)).toEqual(["Request changes", "Release"]);
+		expect([...(findElements(".question-choice strong", card) ?? [])].map((label) => label.textContent)).toEqual([
+			"Request changes",
+			"Stop and hand back",
+		]);
 		expect(findElement<HTMLInputElement>('[name="author"]', card)?.value).toBe("Last reviewer");
 		expect(readAttribute('[name="author"]', "aria-invalid", card)).toBe("false");
 		expect(card?.textContent).not.toContain("Add your local author label.");
@@ -169,7 +172,7 @@ screenStory.it(
 );
 
 for (const heading of ["### Release ownership", ""]) {
-	const files = { ...readyDecisionFixture, [decisionFile]: (readyDecisionFixture[decisionFile] ?? "").replace("### Release", heading) };
+	const files = { ...readyDecisionFixture, [decisionFile]: (readyDecisionFixture[decisionFile] ?? "").replace("### Stop and hand back", heading) };
 	screenStory.it(
 		`uses an option heading or capitalised id: ${heading}`,
 		[screenWorkspace("answer-card-fixture"), routedScreen(files, url)],
