@@ -1,42 +1,36 @@
-import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
-import { appFolder, cleanup } from "#test/cli.ts";
+import { expect } from "vitest";
+import { application } from "#test/application.ts";
+import { enclosingRepository, failingQualityGate, realSetup } from "#test/traits.ts";
 
-afterEach(cleanup);
-
-it("runs setup after Git initialization and installs the active Quality gate before the initial commit", () => {
-	const { root, run } = appFolder({ realSetup: true });
-	const result = run(["my-app"]);
+application.it("installs the active Quality gate after Git initialization and before the initial commit", [realSetup], ({ cli, read, git }) => {
+	const result = cli(["my-app"]);
 	expect(result.status, result.stdout + result.stderr).toBe(0);
-	const app = join(root, "my-app");
-	expect(readFileSync(join(app, ".git/hooks/pre-commit"), "utf8")).toContain("Installed by @shivaedev/quality");
-	const setup = JSON.parse(readFileSync(join(app, ".git/setup-order.json"), "utf8"));
+	expect(read(".git/hooks/pre-commit")).toContain("Installed by @shivaedev/quality");
+	const setup = JSON.parse(read(".git/setup-order.json"));
 	expect(setup.head).not.toBe(0);
 	expect(setup.staged).toBe("");
-	const gate = JSON.parse(readFileSync(join(app, ".git/initial-gate.json"), "utf8"));
+	const gate = JSON.parse(read(".git/initial-gate.json"));
 	expect(gate.staged.split("\n")).toEqual(expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/setup.ts"]));
-	expect(spawnSync("git", ["rev-list", "--count", "HEAD"], { cwd: app, encoding: "utf8" }).stdout).toBe("1\n");
+	expect(git("rev-list", "--count", "HEAD").stdout).toBe("1\n");
 });
 
-it("leaves the initial commit blocked when the installed Quality gate fails", () => {
-	const { root, run } = appFolder({ realSetup: true, typecheckExit: 7 });
-	const result = run(["my-app"]);
+application.it("blocks the initial commit when the installed Quality gate fails", [failingQualityGate], ({ cli, exists, git }) => {
+	const result = cli(["my-app"]);
 	expect(result.status, result.stdout + result.stderr).toBe(1);
-	const app = join(root, "my-app");
-	expect(existsSync(join(app, ".git/hooks/pre-commit"))).toBe(true);
-	expect(existsSync(join(app, ".git/initial-gate.json"))).toBe(true);
+	expect(exists(".git/hooks/pre-commit")).toBe(true);
+	expect(exists(".git/initial-gate.json")).toBe(true);
 	expect(result.stderr).toContain("commit -m Initialize a generated app failed");
-	expect(spawnSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: app }).status).not.toBe(0);
+	expect(git("rev-parse", "--verify", "HEAD").status).not.toBe(0);
 });
 
-it("runs setup without installing a hook when a repository encloses the app", () => {
-	const { root, run } = appFolder({ realSetup: true });
-	expect(spawnSync("git", ["init", "--quiet"], { cwd: root }).status).toBe(0);
-	const result = run(["my-app"]);
-	expect(result.status, result.stdout + result.stderr).toBe(0);
-	expect(existsSync(join(root, "my-app/node_modules"))).toBe(true);
-	expect(existsSync(join(root, "my-app/.git"))).toBe(false);
-	expect(existsSync(join(root, ".git/hooks/pre-commit"))).toBe(false);
-});
+application.it(
+	"runs setup without a hook when a repository encloses the app",
+	[realSetup, enclosingRepository],
+	({ cli, exists, workspaceExists }) => {
+		const result = cli(["my-app"]);
+		expect(result.status, result.stdout + result.stderr).toBe(0);
+		expect(exists("node_modules")).toBe(true);
+		expect(exists(".git")).toBe(false);
+		expect(workspaceExists(".git/hooks/pre-commit")).toBe(false);
+	},
+);

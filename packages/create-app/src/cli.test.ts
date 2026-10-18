@@ -1,25 +1,20 @@
-import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
-import { basename, join } from "node:path";
-import { afterEach, expect, it } from "vitest";
-import { appFolder, cleanup, testEnvironment } from "#test/cli.ts";
+import { readFileSync } from "node:fs";
+import { expect } from "vitest";
+import { application } from "#test/application.ts";
+import { configuredIdentity, destination, enclosingRepository, installationFails, missingGit } from "#test/traits.ts";
 
 const version: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
-afterEach(cleanup);
-
-it("creates a named app in a new parent path, installs, commits as Create App without a configured identity, and prints the next steps", () => {
-	const { root, run } = appFolder();
-	const result = run(["apps/my-app"], ["EMAIL=guessed@example.com"]);
-	expect(result.status).toBe(0);
-	const app = join(root, "apps/my-app");
-	expect(JSON.parse(readFileSync(join(app, "package.json"), "utf8"))).toMatchObject({ name: "my-app" });
-	expect(readFileSync(join(app, "package.json"), "utf8")).toMatch(/^\{\n\t"name": "my-app",/u);
-	expect(readFileSync(join(app, "installation.json"), "utf8")).toBe('["run","setup"]');
-	expect(spawnSync("git", ["rev-list", "--count", "HEAD"], { cwd: app, encoding: "utf8" }).stdout).toBe("1\n");
-	expect(spawnSync("git", ["log", "-1", "--format=%an <%ae>"], { cwd: app, encoding: "utf8" }).stdout).toBe("Create App <create-app@localhost>\n");
-	expect(spawnSync("git", ["status", "--porcelain"], { cwd: app, encoding: "utf8" }).stdout).toBe("");
-	const tracked = spawnSync("git", ["ls-files"], { cwd: app, encoding: "utf8" }).stdout.split("\n");
+application.it("creates a named app, installs, commits with a fallback identity and prints next steps", [], ({ cli, read, git }) => {
+	const result = cli(["apps/my-app"], ["EMAIL=guessed@example.com"]);
+	expect(result.status, result.stderr).toBe(0);
+	expect(JSON.parse(read("package.json"))).toMatchObject({ name: "my-app" });
+	expect(read("package.json")).toMatch(/^\{\n\t"name": "my-app",/u);
+	expect(read("installation.json")).toBe('["run","setup"]');
+	expect(git("rev-list", "--count", "HEAD").stdout).toBe("1\n");
+	expect(git("log", "-1", "--format=%an <%ae>").stdout).toBe("Create App <create-app@localhost>\n");
+	expect(git("status", "--porcelain").stdout).toBe("");
+	const tracked = git("ls-files").stdout.split("\n");
 	expect(tracked).toEqual(
 		expect.arrayContaining(["package.json", "pnpm-lock.yaml", ".github/workflows/ci.yml", ".railway/railway.ts", "src/notes.ts"]),
 	);
@@ -27,150 +22,112 @@ it("creates a named app in a new parent path, installs, commits as Create App wi
 	expect(result.stdout).toMatch(/Created apps\/my-app\.\n\nNext steps:\n {2}cd 'apps\/my-app'\n {2}pnpm dev\n$/u);
 });
 
-it("preserves the configured Git identity for the initial commit", () => {
-	const { root, run } = appFolder();
-	expect(
-		run(
-			["my-app"],
-			[
-				"GIT_AUTHOR_NAME=App Author",
-				"GIT_AUTHOR_EMAIL=author@example.com",
-				"GIT_COMMITTER_NAME=App Author",
-				"GIT_COMMITTER_EMAIL=author@example.com",
-			],
-		).status,
-	).toBe(0);
-	expect(spawnSync("git", ["log", "-1", "--format=%an <%ae>"], { cwd: join(root, "my-app"), encoding: "utf8" }).stdout).toBe(
-		"App Author <author@example.com>\n",
-	);
+application.it("preserves the configured Git identity for the initial commit", [configuredIdentity], ({ cli, git }) => {
+	expect(cli(["my-app"]).status).toBe(0);
+	expect(git("log", "-1", "--format=%an <%ae>").stdout).toBe("App Author <author@example.com>\n");
 });
 
-it("skips git when disabled or unavailable", () => {
-	for (const gitAvailable of [true, false]) {
-		const { root, run } = appFolder({ gitAvailable });
-		const result = run(gitAvailable ? ["my-app", "--no-git"] : ["my-app"]);
+for (const [name, traits, args] of [
+	["disabled", [], ["my-app", "--no-git"]],
+	["unavailable", [missingGit], ["my-app"]],
+] as const) {
+	application.it(`skips Git when ${name}`, traits, ({ cli, exists }) => {
+		const result = cli(args);
 		expect(result.status, result.stderr).toBe(0);
-		expect(existsSync(join(root, "my-app/.git"))).toBe(false);
-	}
+		expect(exists(".git")).toBe(false);
+	});
+}
+
+application.it("leaves an enclosing repository without a nested repository or new commit", [enclosingRepository], ({ cli, exists, parentGit }) => {
+	expect(cli(["apps/my-app"]).status).toBe(0);
+	expect(exists(".git")).toBe(false);
+	expect(parentGit("rev-parse", "--verify", "HEAD").status).not.toBe(0);
+	expect(parentGit("diff", "--cached", "--name-only").stdout).toBe("");
 });
 
-it("leaves an enclosing repository without a nested repository or a new commit", () => {
-	const { root, run } = appFolder();
-	expect(spawnSync("git", ["init", "--quiet"], { cwd: root }).status).toBe(0);
-	expect(run(["apps/my-app"]).status).toBe(0);
-	expect(existsSync(join(root, "apps/my-app/.git"))).toBe(false);
-	expect(spawnSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: root }).status).not.toBe(0);
-	expect(spawnSync("git", ["diff", "--cached", "--name-only"], { cwd: root, encoding: "utf8" }).stdout).toBe("");
+application.it("preserves the environment and refuses another run after installation failure", [installationFails()], ({ cli, read }) => {
+	expect(cli(["my-app", "--no-git"]).status).toBe(1);
+	const env = read(".env.local");
+	expect(cli(["my-app", "--no-git"]).stderr).toContain("the destination must be an empty folder");
+	expect(read(".env.local")).toBe(env);
 });
 
-it("writes app-specific local database URLs and a fresh secret on every run, ignored by Git", () => {
-	const secrets = new Set<string>();
-	for (const [name, database] of [
-		["my-app", "my_app"],
-		["my-app", "my_app"],
-	] as const) {
-		const { root, run } = appFolder();
-		expect(run([name]).status).toBe(0);
-		const app = join(root, name);
-		const env = readFileSync(join(app, ".env.local"), "utf8");
-		const example = readFileSync(join(app, ".env.example"), "utf8");
-		expect(example).toContain(`/${database}_dev\n`);
-		expect(example).toContain(`/${database}_test\n`);
-		expect(env).toContain(`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\n`);
-		expect(env).toContain(`TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\n`);
-		const secret = env.match(/^BETTER_AUTH_SECRET=(?<secret>.+)$/mu)?.groups?.secret ?? "";
-		expect(secret.length).toBeGreaterThanOrEqual(32);
-		secrets.add(secret);
-		expect(spawnSync("git", ["check-ignore", ".env.local"], { cwd: app, encoding: "utf8" }).stdout).toBe(".env.local\n");
-	}
-	expect(secrets.size).toBe(2);
-});
-
-it("preserves an existing environment and refuses to run again even after installation failure", () => {
-	const { root, run } = appFolder({ installationExit: 7 });
-	expect(run(["my-app", "--no-git"]).status).toBe(1);
-	const path = join(root, "my-app/.env.local");
-	const env = readFileSync(path, "utf8");
-	expect(run(["my-app", "--no-git"]).stderr).toContain("the destination must be an empty folder");
-	expect(readFileSync(path, "utf8")).toBe(env);
-});
-
-it("prepares both generated databases with db:setup, then runs pnpm test with TEST_DATABASE_URL from .env.local on real PostgreSQL", () => {
-	const { root, run } = appFolder();
-	const name = `setup_${basename(root).slice(-6).toLowerCase()}`;
-	expect(run([name, "--no-git"]).status).toBe(0);
-	const app = testEnvironment(join(root, name), { databases: true, name });
-	const setup = app.prepareDatabases();
+application.it("prepares both databases and runs generated tests with the app environment on PostgreSQL", [], function* ({ cli, checkDatabases }) {
+	const name = `setup_${crypto.randomUUID().replaceAll("-", "")}`;
+	expect(cli([name, "--no-git"]).status).toBe(0);
+	const { setup, test } = yield* checkDatabases();
 	expect(setup.status, setup.stdout + setup.stderr).toBe(0);
-	const result = app.run();
-	expect(result.status, result.stdout + result.stderr).toBe(0);
+	expect(test.status, test.stdout + test.stderr).toBe(0);
 });
 
-it("does not overwrite a user environment in an otherwise empty destination", () => {
-	const { root, run } = appFolder({ destination: "environment" });
-	const app = join(root, "my-app");
-	expect(run(["my-app"]).status).toBe(1);
-	expect(readFileSync(join(app, ".env.local"), "utf8")).toBe("user settings");
-	expect(readdirSync(app)).toEqual([".env.local"]);
+application.it("does not overwrite a user environment", [destination("environment")], ({ cli, read, files }) => {
+	expect(cli(["my-app"]).status).toBe(1);
+	expect(read(".env.local")).toBe("user settings");
+	expect(files()).toEqual([".env.local"]);
 });
 
-it("prints a working cd command for parent paths with shell characters", () => {
-	const { root, run } = appFolder();
-	const folder = "parent 'quoted' $literal/my-app";
-	const result = run([folder, "--no-git"]);
+application.it("prints a working cd command for paths with shell characters", [], ({ cli, navigate }) => {
+	const result = cli(["parent 'quoted' $literal/my-app", "--no-git"]);
 	expect(result.status).toBe(0);
 	const cd = result.stdout.split("\n").find((line) => line.trimStart().startsWith("cd "));
 	expect(cd).toBeDefined();
-	const navigation = spawnSync("sh", ["-c", `${cd}\npwd`], { cwd: root, encoding: "utf8" });
+	const navigation = navigate(cd ?? "");
 	expect(navigation.status).toBe(0);
-	expect(navigation.stdout.trim()).toBe(join(realpathSync(root), folder));
+	expect(navigation.stdout.trim()).toBe(navigation.expected);
 });
 
-it("accepts an existing empty folder", () => {
-	const { root, run } = appFolder({ destination: "empty" });
-	expect(run(["my-app", "--no-git"]).status).toBe(0);
-	expect(existsSync(join(root, "my-app/src/notes.ts"))).toBe(true);
+application.it("accepts an existing empty folder", [destination("empty")], ({ cli, exists }) => {
+	expect(cli(["my-app", "--no-git"]).status).toBe(0);
+	expect(exists("src/notes.ts")).toBe(true);
 });
 
-it("refuses existing files and nonempty folders including hidden files without writing or installing", () => {
-	for (const kind of ["file", "nonempty"] as const) {
-		const { root, run } = appFolder({ destination: kind });
-		const target = join(root, "my-app");
-		const existing = kind === "nonempty" ? join(target, ".keep") : target;
-		const result = run(["my-app"]);
+for (const kind of ["file", "nonempty"] as const) {
+	application.it(`refuses a ${kind} destination without writing or installing`, [destination(kind)], ({ cli, destinationContents }) => {
+		const result = cli(["my-app"]);
 		expect(result.status).toBe(1);
 		expect(result.stderr).toContain("the destination must be an empty folder");
-		expect(readFileSync(existing, "utf8")).toBe("user data");
-		if (kind === "nonempty") {
-			expect(readdirSync(target)).toEqual([".keep"]);
-		}
-	}
-});
+		expect(destinationContents()).toEqual(kind === "file" ? { ".": "user data" } : { ".keep": "user data" });
+	});
+}
 
-it("reports installation failure and leaves the generated app available for retry", () => {
-	const { root, run } = appFolder({ installationExit: 7 });
-	const result = run(["my-app"]);
+application.it("reports installation failure and leaves the app available for retry", [installationFails()], ({ cli, exists, git }) => {
+	const result = cli(["my-app"]);
 	expect(result.status).toBe(1);
 	expect(result.stderr).toContain("pnpm run setup failed (exit 7)");
 	expect(result.stderr).toContain("Run pnpm run setup in my-app to retry");
 	expect(result.stdout).not.toContain("Next steps");
-	expect(existsSync(join(root, "my-app/package.json"))).toBe(true);
-	expect(spawnSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: join(root, "my-app") }).status).not.toBe(0);
+	expect(exists("package.json")).toBe(true);
+	expect(git("rev-parse", "--verify", "HEAD").status).not.toBe(0);
 });
 
-it("rejects invalid package names before creating a folder", () => {
-	const { root, run } = appFolder();
+application.it("rejects invalid package names before creating folders", [], ({ cli, workspaceExists }) => {
 	for (const name of ["Bad Name", "node_modules", "favicon.ico"]) {
-		expect(run([name]).status).toBe(1);
-		expect(existsSync(join(root, name))).toBe(false);
+		expect(cli([name]).status).toBe(1);
+		expect(workspaceExists(name)).toBe(false);
 	}
 });
 
-it("provides help and reports the package version without generating an app", () => {
-	const { root, run } = appFolder();
-	const help = run(["--help"]);
+application.it("provides help and version without generating an app", [], ({ cli, workspaceFiles }) => {
+	const help = cli(["--help"]);
 	expect(help.status).toBe(0);
 	expect(help.stdout).toContain("folder");
-	expect(run(["--version"])).toMatchObject({ status: 0, stdout: `create-app v${version}\n` });
-	expect(readdirSync(root)).toEqual(["bin"]);
+	expect(cli(["--version"])).toMatchObject({ status: 0, stdout: `create-app v${version}\n` });
+	expect(workspaceFiles()).toEqual(["bin"]);
+});
+
+application.it("writes app database URLs and fresh secrets on each run, ignored by Git", [], ({ cli, read, git }) => {
+	const secrets = new Set<string>();
+	for (const folder of ["first/my-app", "second/my-app"]) {
+		expect(cli([folder]).status).toBe(0);
+		const env = read(".env.local");
+		expect(read(".env.example")).toContain("/my_app_dev\n");
+		expect(read(".env.example")).toContain("/my_app_test\n");
+		expect(env).toContain("DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/my_app_dev\n");
+		expect(env).toContain("TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/my_app_test\n");
+		const secret = env.match(/^BETTER_AUTH_SECRET=(?<secret>.+)$/mu)?.groups?.secret ?? "";
+		expect(secret.length).toBeGreaterThanOrEqual(32);
+		secrets.add(secret);
+		expect(git("check-ignore", ".env.local").stdout).toBe(".env.local\n");
+	}
+	expect(secrets.size).toBe(2);
 });

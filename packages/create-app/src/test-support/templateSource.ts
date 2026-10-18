@@ -1,6 +1,5 @@
 import { Buffer } from "node:buffer";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
@@ -8,11 +7,7 @@ import { Effect } from "effect";
 import { packTemplate } from "#packTemplate.ts";
 import { decodeTemplate } from "#template.ts";
 
-const folders: string[] = [];
-
-export function templateSource({ realStarter = false, localArtifacts = false } = {}) {
-	const root = mkdtempSync(join(tmpdir(), "create-app-template-"));
-	folders.push(root);
+export function templateSource(root: string, { realStarter = false, localArtifacts = false } = {}) {
 	const starter = realStarter ? fileURLToPath(new URL("../../../../examples/starter", import.meta.url)) : join(root, "starter");
 	const output = join(root, "template.json");
 	if (!realStarter) {
@@ -37,18 +32,16 @@ export function templateSource({ realStarter = false, localArtifacts = false } =
 				writeFileSync(join(starter, path), content);
 			}
 		},
-		pack: async () => {
-			await Effect.runPromise(packTemplate(starter, output).pipe(Effect.provide(NodeServices.layer)));
-			return Object.fromEntries(
-				decodeTemplate(readFileSync(output, "utf8")).map((entry) => [entry.path, Buffer.from(entry.content, "base64").toString()]),
-			);
-		},
+		output,
+		pack: () =>
+			packTemplate(starter, output).pipe(
+				Effect.provide(NodeServices.layer),
+				Effect.map(() =>
+					Object.fromEntries(
+						decodeTemplate(readFileSync(output, "utf8")).map((entry) => [entry.path, Buffer.from(entry.content, "base64").toString()]),
+					),
+				),
+			),
 		starter,
 	};
-}
-
-export function removeTemplates() {
-	for (const folder of folders.splice(0)) {
-		rmSync(folder, { force: true, recursive: true });
-	}
 }
