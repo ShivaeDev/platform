@@ -1,6 +1,6 @@
 # @shivaedev/test-story
 
-You are changing the package that lets a test read like a short English story while it runs the real engine. When agents write most of the code, test files grow into hundreds of lines no human reads: each rebuilds its setup by hand or mocks what was too much work to build, so nobody can see what is actually tested. This package shifts the balance. Writing a story test is less work for an agent than writing the slop, every story runs the whole engine and so checks what a mock would have skipped, and a spec holds only what is specific to its test, so a human reviewer reads it in seconds and a sloppy test stands out. The full vision is in [docs/north-star.md](docs/north-star.md); what is built and still open is in [docs/roadmap.md](docs/roadmap.md); how to use the package is in [README.md](README.md).
+You are changing the package that lets a test read like a short English story while it runs the real engine. When agents write most of the code, test files grow into hundreds of lines no human reads: each rebuilds its setup by hand or mocks what was too much work to build, so nobody can see what is actually tested. This package shifts the balance. Writing a story test is less work for an agent than writing the slop, every story runs the whole engine and so checks what a mock would have skipped, and a spec holds only what is specific to its test, so a human reviewer reads it in seconds and a sloppy test stands out. How to use the package is in [README.md](README.md).
 
 ## Which way to lean
 
@@ -21,3 +21,10 @@ Every error and every failure appendix is written for an agent that may never ha
 - Point at places: the spec line where the story stopped, the kit that defines the traits, the command that reruns the test. One location, where it matters, beats one on every line. Prefer what is cheap and reliable, such as matching the spec's path in a stack, over machinery that parses or guesses.
 - Show the state, never `[object Object]`. Render a thrown string, plain object or tagged error by its content, and when something is too large to print, write it to a file and name the file.
 - Stay short and fit a terminal. A failure that a CI log shows must be enough to reproduce and fix the test locally, nothing in it should repeat on every failure that an agent does not need, and what the package prints breaks at 120 columns, except the story's own lines.
+
+## What it will not do
+
+- Run without Vitest, or print a failure anywhere but the failing test's own error.
+- Own any application's traits, verbs or steps; they belong to the application's `test-support/`.
+- Mock the application's own code, or help a test reach into an engine's internals. A fake belongs only at a true external boundary, and the kit's `create` is where it is wired in.
+- Let an engine bypass the kit. An engine that does not fit the kit's hooks changes them; a story is slower than a mocked unit test, and engines stay fast enough to step instead of being faked.
