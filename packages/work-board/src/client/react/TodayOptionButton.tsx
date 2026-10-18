@@ -5,18 +5,16 @@ export function TodayOptionButton({
 	disabled,
 	onChoose,
 	option,
-	reason,
 	recommended,
 	source,
 }: {
 	readonly disabled: boolean;
 	readonly onChoose: () => void;
 	readonly option: { readonly id: string; readonly source: string };
-	readonly reason: string;
 	readonly recommended: string | undefined;
 	readonly source: { readonly label: string; readonly description: string } | undefined;
 }) {
-	const authored = optionText(option.id, option.source, reason);
+	const authored = optionText(option.id, option.source);
 	const text = source?.label ?? authored.label;
 	const description = source?.description ?? authored.description;
 	return (

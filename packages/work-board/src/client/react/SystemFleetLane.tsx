@@ -1,4 +1,5 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import { fleetHolder } from "#browser/views/now.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "#client/react/components/ui/card.tsx";
 
@@ -45,7 +46,7 @@ function FleetRow({ item }: { readonly item: Item }) {
 				{title}
 			</a>
 			<Badge variant="outline">{item.stage}</Badge>
-			{Boolean(item.attentionOwner) && <span className="text-muted-foreground text-xs">Waiting on {item.attentionOwner}</span>}
+			<span className="text-muted-foreground text-xs">{fleetHolder(item)}</span>
 			{Boolean(item.prUrl) && (
 				<a aria-label={`Pull request for ${title}`} className="text-sm underline" href={item.prUrl}>
 					PR ↗

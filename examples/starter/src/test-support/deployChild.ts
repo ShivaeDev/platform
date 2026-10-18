@@ -30,6 +30,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (kind: "worke
 		}),
 	);
 	const started = yield* Deferred.make<string, Error>();
+	const waitingForSchema = yield* Deferred.make<void, Error>();
 	const logs: string[] = [];
 	const errors: string[] = [];
 	yield* child.stdout.pipe(
@@ -38,12 +39,16 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (kind: "worke
 		Stream.runForEach((line) =>
 			Effect.gen(function* () {
 				logs.push(line);
+				if (line === "EFFECT_LOG Worker waiting for schema") {
+					yield* Deferred.succeed(waitingForSchema, undefined);
+				}
 				if (line.startsWith("DEPLOY_READY ")) {
 					yield* Deferred.succeed(started, line.slice("DEPLOY_READY ".length));
 				}
 			}),
 		),
-		Effect.ensuring(Deferred.fail(started, new Error(`${kind} exited before starting`))),
+		Effect.ensuring(Effect.suspend(() => Deferred.fail(started, new Error(`${kind} exited before starting\n${[...logs, ...errors].join("\n")}`)))),
+		Effect.ensuring(Deferred.fail(waitingForSchema, new Error(`${kind} exited before waiting for its schema`))),
 		Effect.forkScoped,
 	);
 	yield* child.stderr.pipe(
@@ -52,5 +57,12 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (kind: "worke
 		Stream.runForEach((line) => Effect.sync(() => errors.push(line))),
 		Effect.forkScoped,
 	);
-	return { child, errors, logs, ready: Deferred.await(started).pipe(Effect.timeout("20 seconds")), url: `http://127.0.0.1:${port}` };
+	return {
+		child,
+		errors,
+		logs,
+		ready: Deferred.await(started).pipe(Effect.timeout("20 seconds")),
+		url: `http://127.0.0.1:${port}`,
+		waitingForSchema: Deferred.await(waitingForSchema).pipe(Effect.timeout("20 seconds")),
+	};
 });

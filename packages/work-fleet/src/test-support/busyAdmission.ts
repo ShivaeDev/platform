@@ -1,7 +1,7 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Deferred, Effect, Redacted } from "effect";
+import { Deferred, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import type { FleetHost } from "#host/config.ts";
+import { hostDatabase } from "#test/hostDatabase.ts";
 
 // Holds the admission lock that every Fleet record read and write queues behind, as a long admission pass does.
 export const busyAdmission = Effect.fn("FleetFixture.busyAdmission")(function* (host: FleetHost) {
@@ -16,7 +16,7 @@ export const busyAdmission = Effect.fn("FleetFixture.busyAdmission")(function* (
 				yield* Deferred.await(release);
 			}),
 		);
-	}).pipe(Effect.provide(PgClient.layer({ maxConnections: 1, url: Redacted.make(host.databaseUrl) })), Effect.orDie, Effect.forkScoped);
+	}).pipe(Effect.provide(hostDatabase(host, "work-fleet-busy-admission", 1)), Effect.orDie, Effect.forkScoped);
 	yield* Deferred.await(held);
 	return Deferred.succeed(release, undefined);
 });

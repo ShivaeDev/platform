@@ -20,8 +20,9 @@ export const waitCommand = Command.make(
 	Effect.fn("WorkFleetCli.wait")(function* (input) {
 		const { waitFor } = yield* Effect.promise(() => import("#host/wait.ts"));
 		const outcome = yield* waitFor({
+			board: input.board,
 			intervalMs: input.interval * 1000,
-			port: input.port,
+			...Option.match(input.port, { onNone: () => ({}), onSome: (value) => ({ port: value }) }),
 			workId: input.workId,
 			...Option.match(input.timeout, { onNone: () => ({}), onSome: (seconds) => ({ timeoutMs: seconds * 1000 }) }),
 		});
@@ -44,9 +45,10 @@ export const watchCommand = Command.make(
 	Effect.fn("WorkFleetCli.watch")(function* (input) {
 		const { watchFor } = yield* Effect.promise(() => import("#host/watch.ts"));
 		process.exitCode = yield* watchFor({
+			board: input.board,
 			follow: input.follow,
 			intervalMs: input.interval * 1000,
-			port: input.port,
+			...Option.match(input.port, { onNone: () => ({}), onSome: (value) => ({ port: value }) }),
 			workIds: input.workIds,
 			...Option.match(input.timeout, { onNone: () => ({}), onSome: (seconds) => ({ timeoutMs: seconds * 1000 }) }),
 		});

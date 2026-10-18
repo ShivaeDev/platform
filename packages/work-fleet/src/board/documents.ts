@@ -13,6 +13,9 @@ export const snapshotDocument = Effect.fn("FleetBoard.snapshotDocument")(functio
 	const matches = snapshot.model.ids.get(workId);
 	const found = matches?.length === 1 ? snapshot.files.get(matches[0]?.file ?? "") : undefined;
 	if (found === undefined) {
+		if (matches === undefined && snapshot.problems.size === 0) {
+			return yield* Effect.fail(new BoardFailure({ code: "board-item-missing", message: `Board item no longer exists: ${workId}`, workId }));
+		}
 		const message = [
 			`Board identity is missing or ambiguous: ${workId}`,
 			...Array.from(snapshot.problems.values(), (failure) => failure.message),
@@ -82,8 +85,4 @@ export function boardDocuments(root: string, realRoot: string) {
 
 export function boundSnapshot(root: string, realRoot: string, fs: FileSystem.FileSystem, path: Path.Path) {
 	return boardSnapshot(root, realRoot).pipe(Effect.provideService(FileSystem.FileSystem, fs), Effect.provideService(Path.Path, path));
-}
-
-export function boundDocuments(root: string, realRoot: string, fs: FileSystem.FileSystem, path: Path.Path) {
-	return boardDocuments(root, realRoot).pipe(Effect.provideService(FileSystem.FileSystem, fs), Effect.provideService(Path.Path, path));
 }

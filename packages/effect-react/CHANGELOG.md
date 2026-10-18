@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 - 2026-10-18
+
+### Breaking
+
+- Modules are named in camelCase: `field-rejection.ts` becomes `fieldRejection.ts`, and `resume-signal.ts` becomes `resumeSignal.ts`.
+- Every module's import path is now its path under `src/`. `router.ts` becomes `loadQuery.ts`; `create.ts`, `editor.ts` and `testing.ts` move under `client/`; `result-state.ts`, `save-state.ts` and `session-boundary.ts` become `client/resultState.ts`, `client/saveState.ts` and `client/sessionBoundary.ts`.
+
 ## 0.4.1 - 2026-10-17
 
 ### Fixed

@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import type { EngineState, LaunchAdmission } from "#engine/makeState.ts";
+import { missingBoardItem } from "#engine/missingBoardWork.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
 import { qualifyDependencies } from "#qualifyDependencies.ts";
@@ -63,6 +64,7 @@ const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: EngineState
 					Effect.catchTag("Forbidden", () => Effect.succeed(false)),
 				),
 			),
+			Effect.catchTag("BoardFailure", (error) => (missingBoardItem(error) ? Effect.succeed(false) : Effect.fail(error))),
 		),
 	).pipe(Effect.map((entries) => entries.map((entry) => entry.workId)));
 });

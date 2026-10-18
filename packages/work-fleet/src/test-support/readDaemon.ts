@@ -6,10 +6,10 @@ import type { HostParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { daemonHostOptions, daemonHttpLayer } from "#host/daemon.ts";
 import { ClientContract } from "#host/daemonContract.ts";
-import { MainSource, unchanged } from "#host/mainSource.ts";
 import { engineProvider } from "#test/engineProvider.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
+import { fixedMainSource } from "#test/mainSource.ts";
 
 export interface ReadDaemonOptions {
 	readonly handlerClock?: Clock.Clock;
@@ -19,17 +19,11 @@ export interface ReadDaemonOptions {
 }
 
 export function readDaemonLayer(host: FleetHost, { handlerClock, onSnapshot, parts, port = 0 }: ReadDaemonOptions = {}) {
-	const main = { observedAt: 1, revision: "main-revision" };
 	const options = daemonHostOptions(
 		host,
 		parts ?? {
 			github: syntheticGithub().layer,
-			main: Layer.succeed(MainSource)({
-				current: Effect.succeed(main),
-				observe: (preparation) => Effect.succeed(unchanged(preparation.baseRevision, main)),
-				refresh: Effect.succeed(main),
-				repositoryRoot: "/synthetic-repository",
-			}),
+			main: fixedMainSource(),
 			provider: engineProvider({}, []).transport,
 		},
 		port,
@@ -53,9 +47,11 @@ export const withReadDaemon = Effect.fn("DaemonTest.withReadDaemon")(function* <
 }, Effect.scoped);
 
 export function daemonCli(host: FleetHost, args: readonly string[], options: Omit<ReadDaemonOptions, "port"> = {}) {
-	return withReadDaemon(host, (port) => Effect.promise(() => cliProcess([...args, "--port", String(port)])), options).pipe(
-		Effect.provide(NodeServices.layer),
-	);
+	return withReadDaemon(
+		host,
+		() => Effect.promise(() => cliProcess([...args, ...(args.includes("--board") ? [] : ["--board", host.boardDir])])),
+		options,
+	).pipe(Effect.provide(NodeServices.layer));
 }
 
 function observeSnapshots(handlers: ReturnType<typeof daemonHostOptions>["handlers"], onSnapshot: () => void) {

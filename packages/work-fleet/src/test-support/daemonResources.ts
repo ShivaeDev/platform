@@ -1,8 +1,8 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Context, Effect, Fiber, Layer, Redacted, Ref } from "effect";
+import { Context, Effect, Fiber, Layer, Ref } from "effect";
 import { SqlClient } from "effect/sql";
 import type { FleetHost } from "#host/config.ts";
 import { SessionTransport } from "#session/service.ts";
+import { hostDatabase } from "#test/hostDatabase.ts";
 
 export const daemonResources = Effect.fn("DaemonTest.daemonResources")(function* (source: Layer.Layer<SessionTransport, unknown>, host?: FleetHost) {
 	let providers = 0;
@@ -18,13 +18,7 @@ export const daemonResources = Effect.fn("DaemonTest.daemonResources")(function*
 			return yield* SessionTransport;
 		}).pipe(Effect.provide(source)),
 	);
-	const control =
-		host === undefined
-			? undefined
-			: Context.get(
-					yield* Layer.build(PgClient.layer({ applicationName: "work-fleet-test", maxConnections: 1, url: Redacted.make(host.databaseUrl) })),
-					SqlClient.SqlClient,
-				);
+	const control = host === undefined ? undefined : Context.get(yield* Layer.build(hostDatabase(host, "work-fleet-test", 1)), SqlClient.SqlClient);
 	// PostgreSQL itself reports the daemon's open sessions, whatever client library opened them.
 	const connections = Effect.gen(function* () {
 		if (control === undefined) {

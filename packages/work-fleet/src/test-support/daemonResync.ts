@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
 import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import { until } from "#test/cloudRestart.ts";
@@ -10,6 +11,7 @@ import { statusRecord } from "#test/status.ts";
 import { storeState } from "#test/storeState.ts";
 
 export const daemonResync = Effect.fn("DaemonTest.daemonResync")(function* (fixture: HostFixture) {
+	const sql = yield* SqlClient.SqlClient;
 	yield* storeState(fixture.host, "one", statusRecord("one"));
 	return yield* withReadDaemon(
 		fixture.host,
@@ -27,6 +29,7 @@ export const daemonResync = Effect.fn("DaemonTest.daemonResync")(function* (fixt
 				yield* Deferred.await(ready);
 				yield* storeState(fixture.host, "one", statusRecord("one", "completed")).pipe(
 					Effect.provideService(Reactivity.Reactivity, yield* Reactivity.make),
+					Effect.provideService(SqlClient.SqlClient, sql),
 				);
 				yield* Effect.sleep("100 millis");
 				expect(received).toMatchObject([[{ stage: "executing", workId: "one" }]]);

@@ -6,6 +6,7 @@ import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeAdvance } from "#engine/makeAdvance.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { releaseMissingBoardWork } from "#engine/missingBoardWork.ts";
 import { persistTerminalReceipts } from "#engine/persistTerminalReceipts.ts";
 import { clearIntegrationRetry, readRetry, retryPending } from "#engine/readRetry.ts";
 import { refreshBrief } from "#engine/refreshBrief.ts";
@@ -67,7 +68,12 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 		}
 		return yield* advance(workId).pipe(
 			Effect.flatMap((updated) => clearIntegrationRetry(state, updated)),
-			Effect.catch((error) => handleFailure(workId, error)),
+			Effect.catch((error) =>
+				load(workId).pipe(
+					Effect.flatMap((stored) => releaseMissingBoardWork(state, stored, error)),
+					Effect.flatMap((released) => (released === undefined ? handleFailure(workId, error) : Effect.succeed(released))),
+				),
+			),
 			Effect.flatMap(completeBoardWork(state)),
 		);
 	});

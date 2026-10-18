@@ -2,6 +2,7 @@ import { AlertCircle, Inbox, PanelLeft, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Button } from "#client/react/components/ui/button.tsx";
+import { destinationName } from "#client/react/destinationName.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { SettingsPopover } from "./SettingsPopover.tsx";
@@ -10,7 +11,7 @@ import type { AppearanceControls } from "./useAppearance.ts";
 import type { SidebarControls } from "./useSidebar.ts";
 export function InboxCount({ count, id }: { readonly count: number | null; readonly id: string }) {
 	return (
-		<Badge aria-label={`${count ?? "?"} waiting`} id={id} role="status" variant="secondary">
+		<Badge aria-label={count === null ? "Needs you unavailable" : `${count} need you`} id={id} role="status" variant="secondary">
 			{count ?? "?"}
 		</Badge>
 	);
@@ -57,7 +58,14 @@ export function Header({
 			<Button
 				className="hidden md:inline-flex"
 				nativeButton={false}
-				render={<a aria-current={main.view === "today" ? "page" : undefined} aria-label="Today" href="/" id={shellIds.inboxTopbar} />}
+				render={
+					<a
+						aria-current={main.view === "today" ? "page" : undefined}
+						aria-label={destinationName("Today", count, "need you")}
+						href="/"
+						id={shellIds.inboxTopbar}
+					/>
+				}
 				size="sm"
 				variant="ghost"
 			>

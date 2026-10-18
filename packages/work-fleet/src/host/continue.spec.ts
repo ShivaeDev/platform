@@ -14,9 +14,9 @@ import { dispatchWork } from "#test/dispatchWork.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { task, withHost } from "#test/fleetHost.ts";
+import { hostDatabase } from "#test/hostDatabase.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
-import { readOnlySql } from "#test/readOnlySql.ts";
 
 const test = postgresTests("live");
 const ItemRequest = Schema.Struct({ turnId: Schema.String });
@@ -75,7 +75,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 					errors += text;
 				}
 				const options = { onError: captureError, stdin: message };
-				const run = yield* withReadDaemon(fixture.host, (port) => Effect.promise(() => cliProcess([...args, "--port", String(port)], options)), {
+				const run = yield* withReadDaemon(fixture.host, () => Effect.promise(() => cliProcess(args, options)), {
 					parts: { ...fixture.parts, provider: hostProvider(fixture.host) },
 				});
 				expect(run).toEqual({ code: 0, stdout: "one executing" });
@@ -91,7 +91,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				});
 				expect(requests.filter((request) => request.method === "turn/start")).toHaveLength(1);
 				expect(requests.filter((request) => request.method === "thread/start")).toHaveLength(0);
-				const status = yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host)));
+				const status = yield* fleetStatus(fixture.host).pipe(Effect.provide(hostDatabase(fixture.host, "work-fleet-reader", 1)));
 				expect(status.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
 				expect(status.active[0]?.sessions[0]?.turnId).toBe("continued-turn");
 				expect(yield* withReadDaemon(fixture.host, (port) => waitFor({ intervalMs: 50, port, timeoutMs: 300, workId: "one" }))).toEqual({

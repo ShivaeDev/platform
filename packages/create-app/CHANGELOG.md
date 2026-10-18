@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 - 2026-10-18
+
+### Added
+
+- Generated apps enable Better Auth's admin plugin, migrate its schema on new and existing databases, and provide `pnpm admin:create` to create the first administrator through Better Auth's server API.
+
+### Fixed
+
+- A generated app pins the current published framework versions, including `platform` 0.16.0, `effect-form` 0.5.0, `effect-react` 0.5.0, `effect-service` 0.4.0, `effect-test` 0.6.0, `effect-trpc` 0.8.0, `effect-prisma` 0.10.0, `local-postgres` 0.4.0, `quality` 0.25.0 and `test-story` 0.7.1.
+
 ## 0.6.11 - 2026-10-18
 
 ### Changed
