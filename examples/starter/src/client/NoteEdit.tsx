@@ -6,9 +6,9 @@ import { useField } from "@shivaedev/effect-form/react.ts";
 import type { Form } from "@shivaedev/effect-form/shape.ts";
 import { useEditor } from "@shivaedev/effect-react/editor.ts";
 import { fieldRejectionOf } from "@shivaedev/effect-react/field-rejection.ts";
+import { Button } from "#client/ui/button";
+import { Input } from "#client/ui/input";
 import { NoteEditFields } from "#notes.ts";
-import { Button } from "./Button.tsx";
-import { Input } from "./Input.tsx";
 import type { NotesClient } from "./makeNotes.ts";
 import { NoteDelete } from "./NoteDelete.tsx";
 

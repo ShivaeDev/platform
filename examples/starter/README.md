@@ -16,7 +16,7 @@ Follow the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/fra
 
 `pnpm dev` first runs `pnpm db:setup`, which prepares both local databases through `@shivaedev/local-postgres`. Have PostgreSQL 18.6 on loopback port 55432 or local Docker available. Then `pnpm migrate` applies migrations before the watchers start. Run `pnpm db:setup` separately to prepare databases without starting the app.
 
-The app uses Tailwind's neutral shadcn theme and application-owned `Button` and `Input` components. Server entry points are in `src/server`; the shared contract is `src/notes.ts`; the browser starts in `src/client/entry.tsx`.
+The app uses Tailwind's neutral theme and stock shadcn components in `src/client/ui`, configured by `components.json`. The notes list uses the TanStack React Table data-table pattern. The application-owned `CodePreview` renders added, removed and context lines outside the shadcn folder. Server entry points are in `src/server`; the shared contract is `src/notes.ts`; the browser starts in `src/client/entry.tsx`.
 
 `pnpm build && pnpm migrate && pnpm start` serves the built UI, Better Auth endpoints and HTTP/NDJSON RPC together at `http://127.0.0.1:3000`. Set `DATABASE_URL` and `BETTER_AUTH_SECRET` in `.env.local` or the shell. The secret needs at least 32 random characters; generate one with `openssl rand -base64 32`. For hosting behind a proxy, follow the quickstart's [Deploy section](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy), setting `PUBLIC_URL` to your public app URL.
 

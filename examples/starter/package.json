@@ -4,7 +4,8 @@
 	"private": true,
 	"type": "module",
 	"imports": {
-		"#*": "./src/*"
+		"#*": "./src/*",
+		"#client/ui/*": "./src/client/ui/*.tsx"
 	},
 	"scripts": {
 		"build": "vite build",
@@ -35,13 +36,18 @@
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
 		"@tanstack/react-router": "catalog:",
+		"@tanstack/react-table": "catalog:",
 		"better-auth": "catalog:",
 		"class-variance-authority": "catalog:",
 		"clsx": "catalog:",
+		"cn": "catalog:",
 		"effect": "catalog:",
+		"lucide-react": "catalog:",
 		"pg": "catalog:",
+		"radix-ui": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
+		"recharts": "catalog:",
 		"tailwind-merge": "catalog:"
 	},
 	"devDependencies": {

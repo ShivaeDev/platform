@@ -1,30 +1,12 @@
 import { useAtomMount } from "@effect/atom-react";
-import { Link } from "@tanstack/react-router";
 import { Option } from "effect";
 import { useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
-import type { Note } from "#notes.ts";
-import { Button } from "./Button.tsx";
+import { Button } from "#client/ui/button";
+import { Card, CardContent } from "#client/ui/card";
 import type { NotesClient } from "./makeNotes.ts";
 import { NoteCreate } from "./NoteCreate.tsx";
-
-function wordCountLabel(count: number | null) {
-	if (count === null) {
-		return "Counting words…";
-	}
-	return `${count} ${count === 1 ? "word" : "words"}`;
-}
-
-function SavedNote({ note }: { readonly note: typeof Note.Type }) {
-	return (
-		<li className="break-words rounded-lg border bg-card p-4">
-			<Link className="underline" params={{ noteId: String(note.id) }} to="/notes/$noteId">
-				{note.title}
-			</Link>
-			<p className="mt-2 text-muted-foreground text-sm">{wordCountLabel(note.wordCount)}</p>
-		</li>
-	);
-}
+import { NotesTable } from "./NotesTable.tsx";
 
 export function NotesScreen({ client, onSignOut }: { readonly client: NotesClient; readonly onSignOut?: () => Promise<string | undefined> }) {
 	useAtomMount(client.connection);
@@ -56,9 +38,11 @@ export function NotesScreen({ client, onSignOut }: { readonly client: NotesClien
 				)}
 				{failure !== undefined && <p role="alert">{failure}</p>}
 			</header>
-			<section aria-label="Add a note" className="rounded-lg border bg-card p-5 shadow-sm">
-				<NoteCreate client={client} />
-			</section>
+			<Card aria-label="Add a note">
+				<CardContent>
+					<NoteCreate client={client} />
+				</CardContent>
+			</Card>
 			<section aria-label="Saved notes" className="space-y-4">
 				<div className="flex items-center justify-between">
 					<h2 className="font-semibold text-lg">Saved notes</h2>
@@ -69,11 +53,7 @@ export function NotesScreen({ client, onSignOut }: { readonly client: NotesClien
 				{Option.isSome(query.cause) && <p role="alert">Could not load notes. Try refreshing.</p>}
 				{loading ? <p role="status">Loading notes…</p> : null}
 				{!loading && rows.length === 0 && <p className="text-muted-foreground text-sm">No notes yet. Add your first one above.</p>}
-				<ul className="space-y-3">
-					{rows.map((row) => (
-						<SavedNote key={row.id} note={row} />
-					))}
-				</ul>
+				<NotesTable notes={rows} />
 			</section>
 		</main>
 	);

@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
+import { Button } from "#client/ui/button";
+import { Input } from "#client/ui/input";
 import type { AuthActions } from "./auth.ts";
-import { Button } from "./Button.tsx";
-import { Input } from "./Input.tsx";
 
 export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActions; readonly onAuthenticated: () => void }) {
 	const id = useId();

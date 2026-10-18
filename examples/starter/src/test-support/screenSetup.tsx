@@ -6,6 +6,7 @@ import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { App } from "#client/App.tsx";
 import { appRouter } from "#client/appRouter.tsx";
 import type { Credentials } from "#client/auth.ts";
+import { CodePreview, type CodePreviewLine } from "#client/CodePreview.tsx";
 import { LoginScreen } from "#client/LoginScreen.tsx";
 import { NotesScreen } from "#client/NotesScreen.tsx";
 import { SessionApp } from "#client/SessionApp.tsx";
@@ -99,4 +100,9 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 	}
 	engine.switchSession = switchSession;
 	yield* Effect.promise(() => switchSession("alice"));
+});
+
+export const openCodePreview = Effect.fn("ScreenStory.openCodePreview")(function* (engine: Screen, lines: readonly CodePreviewLine[]) {
+	const view = yield* acquireScreen(engine);
+	yield* Effect.promise(() => view.render(<CodePreview label="Note changes" lines={lines} />));
 });
