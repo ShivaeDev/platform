@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
+import { seedCookies } from "@shivaedev/test-story/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { credentials } from "#test-support/authHttp.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { postgres } from "#test-support/postgres.ts";
+import { mintUser } from "./sessionPrecondition.ts";
 
-const alice = credentials("alice");
 export const cookieApp = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
@@ -21,11 +21,6 @@ export const cookieApp = storyKit({
 				const response = await fetch(new Request(`${baseUrl}/api/auth/get-session`, { cache: "no-store" }));
 				return { response, result: await client.getSession(), session: await response.json() };
 			}),
-		signIn: () =>
-			Effect.promise(() => {
-				story.tell("Alice signs in");
-				return client.signIn.email(alice);
-			}),
 		signOut: () =>
 			Effect.promise(async () => {
 				story.tell("Alice signs out");
@@ -35,10 +30,13 @@ export const cookieApp = storyKit({
 				await response.text();
 				return response.status;
 			}),
-		signUp: () =>
-			Effect.promise(() => {
-				story.tell("Alice signs up");
-				return client.signUp.email(alice);
-			}),
+		visibleCookies: () => document.cookie,
 	}),
 });
+
+export function mintedCookieSession() {
+	return cookieApp.trait("account", "Alice starts with a minted HttpOnly session", function* ({ baseUrl }) {
+		const { cookies } = yield* mintUser({ origin: baseUrl }, "alice");
+		yield* seedCookies(cookies);
+	});
+}

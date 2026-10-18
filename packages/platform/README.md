@@ -524,6 +524,29 @@ The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL
 
 `AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`; other Better Auth rate-limit options pass through. `TRUSTED_PROXY` supplies the same address and CIDR policy used by the host. An untrusted transport peer loses `x-forwarded-for` and the configured client-IP header before Better Auth sees the request. `AUTH_CLIENT_IP_HEADER` defaults to `x-forwarded-for`. With no trusted proxy, Better Auth ignores forwarded IPs and shares a rate-limit bucket per path.
 
+### Signed-in story preconditions
+
+Use `authTestUtils()` from `@shivaedev/platform/server/better-auth/testing.ts` in a test-only Better Auth instance with the host's database, secret and cookie policy. The wrapper preserves the plugin's typed `$context.test` under `exactOptionalPropertyTypes`. Keep the plugin out of production auth options.
+
+```ts
+import { betterAuth } from "better-auth";
+import { authTestUtils, signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
+
+const testAuth = betterAuth({
+  ...options,
+  plugins: [...(options.plugins ?? []), authTestUtils()],
+});
+const { user, headers, cookies } = await signedInUser(testAuth, {
+  email: "member@example.test",
+  name: "Member",
+  role: "user,admin",
+});
+```
+
+`options` is the application's auth configuration. `signedInUser` saves the supplied user fields and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. It returns Better Auth's login result: the user, session, signed request headers, browser cookies and token. Roles require the application's role plugin, such as Better Auth's `admin()`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
+
+With database-backed sessions and cookie caching disabled, revocation rejects that same minted session on the next protected HTTP or RPC request. Cookie caching and secondary storage can change revocation timing.
+
 ### Optional Better Auth storage on Effect Prisma
 
 When Better Auth's rows belong to an Effect Prisma database, give its adapter the same database service and runtime:
@@ -614,6 +637,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
 | `better-auth.ts` | `betterAuthMount(options)`, `authDatabase(url)`: native auth routes and a scoped PostgreSQL pool. |
+| `server/better-auth/testing.ts` | `authTestUtils(options?)`, `signedInUser(auth, fields)`: test-only typed Better Auth helpers and minted user sessions. |
 | `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, options?)`: a Better Auth adapter over Effect Prisma; `modelName` maps model names. |
 | `server/testing/makePlatformIt.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |
 

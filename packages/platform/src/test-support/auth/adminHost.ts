@@ -1,6 +1,6 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { admin, testUtils } from "better-auth/plugins";
+import { admin } from "better-auth/plugins";
 import { Effect, Layer, Redacted } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -9,6 +9,7 @@ import { Pool } from "pg";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { appHost } from "#server/appHost.ts";
+import { authTestUtils } from "#server/better-auth/testing.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { authenticatedUserLayer } from "#server/rpc-server/session.ts";
 import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
@@ -19,20 +20,10 @@ export const startAdminHost = Effect.gen(function* () {
 		Effect.sync(() => new Pool({ connectionString: Redacted.value(database.url) })),
 		(value) => Effect.promise(() => value.end()),
 	);
-	const testing = testUtils();
 	const options = {
 		"baseURL": "http://localhost:3000",
 		database: pool,
-		plugins: [
-			admin(),
-			{
-				...testing,
-				init(authContext) {
-					const result = testing.init(authContext);
-					return { context: result.context, ...(result.options === undefined ? {} : { options: result.options }) };
-				},
-			},
-		],
+		plugins: [admin(), authTestUtils()],
 		secret: "integration-only-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 	} satisfies BetterAuthOptions;

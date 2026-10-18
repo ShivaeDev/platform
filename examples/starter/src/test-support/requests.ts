@@ -1,15 +1,14 @@
 import { Effect } from "effect";
-import { authPost, credentials, notesHttp } from "./authHttp.ts";
+import { authPost, notesHttp } from "./authHttp.ts";
 import type { RunningHost } from "./host.ts";
 
 export function requests(host: RunningHost, tell: (line: string) => void) {
-	const authenticate = Effect.fn("AppStory.authenticate")(function* (name: string, path = "sign-up/email", cookie = "") {
-		tell(`${name} calls ${path}`);
-		const response = yield* authPost(host.baseUrl, path, path === "sign-out" ? {} : credentials(name), cookie, host.origin);
+	const signOut = Effect.fn("AppStory.signOut")(function* (cookie: string) {
+		tell("the signed-in user signs out");
+		const response = yield* authPost(host.baseUrl, "sign-out", {}, cookie, host.origin);
 		if (response.status !== 200) {
-			return yield* Effect.die(`Could not authenticate ${name} through ${path}: HTTP ${response.status}`);
+			return yield* Effect.die(`Could not sign out: HTTP ${response.status}`);
 		}
-		return response.cookie;
 	});
 	const notes = Effect.fn("AppStory.notes")(function* (cookie = "") {
 		const client = yield* notesHttp(host.baseUrl, cookie, host.origin);
@@ -44,5 +43,5 @@ export function requests(host: RunningHost, tell: (line: string) => void) {
 		yield* Effect.promise(() => response.text());
 		return status;
 	});
-	return { authenticate, foreignRequest, notes };
+	return { foreignRequest, notes, signOut };
 }

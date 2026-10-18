@@ -477,6 +477,23 @@ const cookieApp = storyKit({
 
 `startHost`, `postgres` and `authVerbs` are application plumbing. Actions in `authVerbs` perform requests, and readouts return response data for assertions in the spec. A sign-in story drives its real sign-in flow; feature stories start from a faked signed-in precondition as described in the shared skill.
 
+#### Seeding a signed-in precondition
+
+`seedCookies(cookies)` from `@shivaedev/test-story/seedCookies.ts` returns an Effect that seeds the current happy-dom window's cookie container, including HttpOnly cookies. Call `domFetch(baseUrl)` first so the document and requests use the same origin. Each cookie has `name` and `value`, with optional `domain`, `path`, `httpOnly`, `secure`, `sameSite` (`Lax`, `Strict` or `None`) and `expires` (Unix seconds). Better Auth's test-utils login cookies fit this shape directly.
+
+```ts
+import { signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
+import { seedCookies } from "@shivaedev/test-story/seedCookies.ts";
+
+const { cookies } = yield* Effect.promise(() => signedInUser(testAuth, {
+  email: "alice@example.test",
+  name: "Alice",
+}));
+yield* seedCookies(cookies);
+```
+
+`testAuth` is a test-only auth instance configured with Platform's `authTestUtils()` and the real host's database, secret and cookie policy. The seeded session travels on the document's fetch and stays hidden from `document.cookie` when HttpOnly. Use `http://localhost:<port>` for local DOM hosts with secure cookies: happy-dom matches secure cookies on localhost, but not on `http://127.0.0.1`. The listener can still bind to `127.0.0.1`.
+
 #### Social sign-in through an outbound provider
 
 Happy-dom's detached window records a location change without loading the next document. `domNavigate(url = window.location.href)` from `@shivaedev/test-story/domNavigate.ts` performs that load: it follows HTTP redirects through the document transport, keeps cookies for each destination, sets the final location, writes the returned HTML and returns the happy-dom response. Call it after the sign-in client has set the provider location, and before checking the returned page. An unrouted external redirect fails with its hostname.
@@ -531,6 +548,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | --- | --- |
 | `storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
 | `domFetch.ts` | `domFetch(baseUrl)` |
+| `seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
 | `routeOutbound.ts` | `routeOutbound(routes)` |
 | `screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver` |
 | `domNavigate.ts` | `domNavigate(url?)` |

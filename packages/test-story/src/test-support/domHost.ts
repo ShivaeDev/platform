@@ -15,5 +15,5 @@ export const domHost = Effect.fnUntraced(function* (listener: RequestListener) {
 	if (address === null || typeof address === "string") {
 		return yield* Effect.die("DOM story host needs a TCP address");
 	}
-	return `http://127.0.0.1:${address.port}`;
+	return `http://localhost:${address.port}`;
 });
