@@ -1,27 +1,27 @@
 import { expect } from "@effect/vitest";
-import { recoveryFleet } from "#test/recoveryFleet.ts";
-import { lostAcknowledgement, publishedWork } from "#test/recoveryTraits.ts";
+import { lostAcknowledgement, publishedWork, workerTurnsCanBeLost } from "#test/engineLostTurnTraits.ts";
+import { engine } from "#test/engineStory.ts";
 import { WORK_PR } from "#test/workPublication.ts";
 
 for (const published of ["none", "pr"] as const) {
-	recoveryFleet.it(
+	engine.it(
 		`a lost ${published} turn keeps its intent until quota admits its replacement after restart`,
-		[lostAcknowledgement(), publishedWork(published)],
-		function* ({ fleet, provider, observed, quota }) {
-			yield* fleet.prepare();
-			const initial = (yield* fleet.dispatch()).value;
-			provider.lose(initial.attempts.at(-1)?.sessionId);
-			quota(1);
-			const blocked = (yield* fleet.reconcile()).value;
+		[workerTurnsCanBeLost(), lostAcknowledgement(), publishedWork(published)],
+		function* ({ fleet, prepareWork, restart, loseTurn, setProviderQuota, launches, publishedDecisions }) {
+			yield* prepareWork("one");
+			const initial = (yield* fleet.dispatch("one")).value;
+			loseTurn(initial.attempts.at(-1)?.sessionId);
+			setProviderQuota(1);
+			const blocked = (yield* fleet.reconcile("one")).value;
 			expect(blocked.stage).toBe("executing");
 			expect(blocked.blocker).toContain("Fresh available provider quota");
 			expect(blocked.attempts).toHaveLength(1);
 			expect(blocked.attempts[0]?.publishedRecovery).toBeUndefined();
 			expect(blocked.attempts[0]?.status).toBe("submitting");
-			expect(observed.launched).toHaveLength(1);
-			yield* fleet.restart();
-			quota(100);
-			const recovered = (yield* fleet.reconcile()).value;
+			expect(launches()).toHaveLength(1);
+			yield* restart();
+			setProviderQuota(100);
+			const recovered = (yield* fleet.reconcile("one")).value;
 			expect(recovered.stage).toBe("executing");
 			expect(recovered.prompt).toBe(initial.prompt);
 			expect(recovered.attempts.at(-1)?.prompt?.split(initial.prompt)).toHaveLength(2);
@@ -30,8 +30,8 @@ for (const published of ["none", "pr"] as const) {
 			if (published === "pr") {
 				expect(recovered.attempts.at(-1)?.prompt).toContain(WORK_PR);
 			}
-			expect(observed.launched).toHaveLength(2);
-			expect(observed.decisions).toEqual([]);
+			expect(launches()).toHaveLength(2);
+			expect(publishedDecisions()).toEqual([]);
 		},
 	);
 }

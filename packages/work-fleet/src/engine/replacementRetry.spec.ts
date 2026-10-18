@@ -1,32 +1,32 @@
 import { expect } from "@effect/vitest";
-import { recoveryFleet } from "#test/recoveryFleet.ts";
-import { lostAcknowledgement, publishedWork } from "#test/recoveryTraits.ts";
+import { lostAcknowledgement, publishedWork, workerTurnsCanBeLost } from "#test/engineLostTurnTraits.ts";
+import { engine } from "#test/engineStory.ts";
 import { WORK_BRANCH, WORK_PR } from "#test/workPublication.ts";
 
 for (const published of ["branch", "pr"] as const) {
 	for (const rejection of ["session", "turn"] as const) {
-		recoveryFleet.it(
+		engine.it(
 			`a receiptless ${published} repair retries a capacity-rejected replacement ${rejection} after restart`,
-			[lostAcknowledgement(), publishedWork(published)],
-			function* ({ fleet, provider, observed, setTime }) {
-				yield* fleet.prepare();
-				const original = (yield* fleet.dispatch()).value.attempts.at(-1);
+			[workerTurnsCanBeLost(), lostAcknowledgement(), publishedWork(published)],
+			function* ({ fleet, prepareWork, restart, schedule, loseTurn, rejectNextSubmission, advanceTime, publishedDecisions }) {
+				yield* prepareWork("one");
+				const original = (yield* fleet.dispatch("one")).value.attempts.at(-1);
 				expect(original?.receipt).toBeUndefined();
-				provider.lose(original?.sessionId);
-				provider.rejectNext(rejection);
-				const rejected = (yield* fleet.reconcile()).value;
+				loseTurn(original?.sessionId);
+				rejectNextSubmission(rejection);
+				const rejected = (yield* fleet.reconcile("one")).value;
 				expect(rejected.stage).toBe("repairing");
 				expect(rejected.decision).toBeUndefined();
 				expect(rejected.launchRetry).toMatchObject({ rejections: 1, retryAt: 30_100 });
 				expect(rejected.attempts.at(-1)).toMatchObject({ output: "Replacement capacity unavailable", role: "repair", status: "failed" });
 				expect(rejected.attempts.at(-1)?.sessionUnusable).toBeUndefined();
-				yield* fleet.restart();
-				setTime(30_099);
-				yield* fleet.cycle();
-				expect((yield* fleet.get()).value.attempts).toHaveLength(2);
-				setTime(30_100);
-				yield* fleet.cycle();
-				const resumed = (yield* fleet.get()).value;
+				yield* restart();
+				advanceTime(29_999);
+				yield* schedule();
+				expect((yield* fleet.get("one")).value.attempts).toHaveLength(2);
+				advanceTime(1);
+				yield* schedule();
+				const resumed = (yield* fleet.get("one")).value;
 				expect(resumed.stage).toBe("executing");
 				expect(resumed.launchRetry).toBeUndefined();
 				expect(resumed.decision).toBeUndefined();
@@ -38,9 +38,9 @@ for (const published of ["branch", "pr"] as const) {
 				if (published === "pr") {
 					expect(resumed.attempts.at(-1)?.prompt).toContain(WORK_PR);
 				}
-				yield* fleet.cycle();
-				expect((yield* fleet.get()).value.attempts.at(-1)?.status).toBe("running");
-				expect(observed.decisions).toEqual([]);
+				yield* schedule();
+				expect((yield* fleet.get("one")).value.attempts.at(-1)?.status).toBe("running");
+				expect(publishedDecisions()).toEqual([]);
 			},
 		);
 	}

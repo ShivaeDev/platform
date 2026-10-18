@@ -7,9 +7,9 @@ import { withTestTransaction } from "@shivaedev/effect-test-sql/withTestTransact
 import { migrateFleet } from "#test/migrateFleet.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
-export const postgresUrl = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"))));
+const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"))));
 const ci = Effect.runSync(Config.String("CI").pipe(Config.withDefault("")));
-if (postgresUrl === undefined && ci !== "") {
+if (url === undefined && ci !== "") {
 	throw new Error("CI requires PLATFORM_EFFECT_SQL_TEST_DATABASE_URL; skipped PostgreSQL tests prove nothing.");
 }
 
@@ -25,11 +25,11 @@ const postgresOptions = {
 		}),
 		lockTimeout: "5 seconds",
 	},
-	url: Redacted.make(postgresUrl ?? "postgresql://integration-tests-disabled"),
+	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
 } satisfies PostgresTestOptions;
 
 export const postgresLayer = makePostgresTestLayer(postgresOptions);
-export const postgresEnabled = postgresUrl !== undefined;
+export const postgresEnabled = url !== undefined;
 
 function makeTests(clock: "live" | "test", isolation: "rollback" | "isolated", options?: Pick<PostgresTestOptions, "maxConnections">) {
 	const { effectApp } = makeEffectIt({
@@ -38,7 +38,7 @@ function makeTests(clock: "live" | "test", isolation: "rollback" | "isolated", o
 		layer: options === undefined ? postgresLayer : makePostgresTestLayer({ ...postgresOptions, ...options }),
 		makeHarness: () => Effect.void,
 	});
-	return effectApp.skipIf(postgresUrl === undefined);
+	return effectApp.skipIf(url === undefined);
 }
 
 const testers = {

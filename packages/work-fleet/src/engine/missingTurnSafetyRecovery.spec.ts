@@ -1,98 +1,99 @@
 import { expect } from "@effect/vitest";
-import { recoveryFleet } from "#test/recoveryFleet.ts";
-import { lostAcknowledgement, publishedWork, requestedRepair, runningReview } from "#test/recoveryTraits.ts";
+import { lostAcknowledgement, publishedWork, workerTurnsCanBeLost } from "#test/engineLostTurnTraits.ts";
+import { engine } from "#test/engineStory.ts";
+import { reviewerStillRunning, reviewRequestsRepairs } from "#test/engineTraits.ts";
 import { WORK_BRANCH, WORK_PR } from "#test/workPublication.ts";
 
 for (const receiptLost of [false, true]) {
-	recoveryFleet.it(
+	engine.it(
 		`a lost active thread ${receiptLost ? "without" : "with"} a receipt keeps its reservation through grace and asks instead of duplicating work`,
-		receiptLost ? [lostAcknowledgement()] : [],
-		function* ({ fleet, provider, observed, setTime, respond, status }) {
-			yield* fleet.prepare();
-			const first = (yield* fleet.dispatch()).value;
+		[workerTurnsCanBeLost(), ...(receiptLost ? [lostAcknowledgement()] : [])],
+		function* ({ fleet, prepareWork, restart, loseTurn, threadActive, threadIdle, advanceTime, respond, status, launches, publishedDecisions }) {
+			yield* prepareWork("one");
+			const first = (yield* fleet.dispatch("one")).value;
 			const session = first.attempts.at(-1)?.sessionId;
 			if (session === undefined) {
 				throw new Error("Expected the accepted thread");
 			}
-			provider.lose(session);
-			provider.active(session);
-			const waiting = (yield* fleet.reconcile()).value;
+			loseTurn(session);
+			threadActive(session);
+			const waiting = (yield* fleet.reconcile("one")).value;
 			expect(waiting.stage).toBe("executing");
 			expect(waiting.blocker).toContain("thread remains active");
 			expect(yield* status()).toContain("Waiting on automation (1)");
-			expect(observed.launched).toHaveLength(1);
-			expect(observed.decisions).toEqual([]);
-			yield* fleet.restart();
-			setTime(300_099);
-			expect((yield* fleet.reconcile()).value.stage).toBe("executing");
-			setTime(300_100);
-			const parked = (yield* fleet.reconcile()).value;
+			expect(launches()).toHaveLength(1);
+			expect(publishedDecisions()).toEqual([]);
+			yield* restart();
+			advanceTime(299_999);
+			expect((yield* fleet.reconcile("one")).value.stage).toBe("executing");
+			advanceTime(1);
+			const parked = (yield* fleet.reconcile("one")).value;
 			expect(parked.decision?.reason).toContain("thread remains active after the visibility grace period");
-			expect(observed.launched).toHaveLength(1);
+			expect(launches()).toHaveLength(1);
 			if (parked.decision === undefined) {
 				throw new Error("Expected an active-thread decision");
 			}
 			respond(parked.decision.id, "release");
-			expect((yield* fleet.reconcile()).value.stage).toBe("needs-human");
+			expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
 			respond(parked.decision.id, "retry");
-			expect((yield* fleet.reconcile()).value.stage).toBe("needs-human");
-			expect(observed.launched).toHaveLength(1);
-			provider.idle(session);
-			yield* fleet.restart();
-			expect((yield* fleet.reconcile()).value.stage).toBe("executing");
-			expect(observed.launched).toHaveLength(2);
+			expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+			expect(launches()).toHaveLength(1);
+			threadIdle(session);
+			yield* restart();
+			expect((yield* fleet.reconcile("one")).value.stage).toBe("executing");
+			expect(launches()).toHaveLength(2);
 		},
 	);
 }
 
 for (const state of ["merged", "closed"] as const) {
-	recoveryFleet.it(
+	engine.it(
 		`a ${state} PR with its branch deleted prevents a lost-turn relaunch`,
-		[lostAcknowledgement()],
-		function* ({ fleet, provider, publication, observed, respond }) {
-			yield* fleet.prepare();
-			provider.lose((yield* fleet.dispatch()).value.attempts.at(-1)?.sessionId);
-			publication.pullRequest(state);
-			const parked = (yield* fleet.reconcile()).value;
+		[workerTurnsCanBeLost(), lostAcknowledgement()],
+		function* ({ fleet, prepareWork, restart, loseTurn, publishPullRequest, respond, launches }) {
+			yield* prepareWork("one");
+			loseTurn((yield* fleet.dispatch("one")).value.attempts.at(-1)?.sessionId);
+			publishPullRequest(state);
+			const parked = (yield* fleet.reconcile("one")).value;
 			expect(parked.stage).toBe("needs-human");
 			expect(parked.decision?.reason).toContain(`is ${state}`);
-			expect(observed.launched).toHaveLength(1);
+			expect(launches()).toHaveLength(1);
 			if (parked.decision === undefined) {
 				throw new Error("Expected a delivery decision");
 			}
 			respond(parked.decision.id, "retry");
-			yield* fleet.restart();
-			expect((yield* fleet.reconcile()).value.stage).toBe("needs-human");
-			expect(observed.launched).toHaveLength(1);
+			yield* restart();
+			expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+			expect(launches()).toHaveLength(1);
 		},
 	);
 }
 
 for (const receiptLost of [false, true]) {
 	for (const published of ["none", "branch", "pr"] as const) {
-		recoveryFleet.it(
+		engine.it(
 			`a second loss with ${published} after ${receiptLost ? "losing" : "receiving"} the first receipt recovers automatically`,
-			[publishedWork(published), ...(receiptLost ? [lostAcknowledgement()] : [])],
-			function* ({ fleet, provider, observed, setTime }) {
-				yield* fleet.prepare();
-				const first = (yield* fleet.dispatch()).value;
-				provider.lose(first.attempts.at(-1)?.sessionId);
-				yield* fleet.reconcile();
-				setTime(300_100);
-				const recovered = (yield* fleet.reconcile()).value;
-				expect(observed.launched).toHaveLength(2);
+			[workerTurnsCanBeLost(), publishedWork(published), ...(receiptLost ? [lostAcknowledgement()] : [])],
+			function* ({ fleet, prepareWork, restart, loseTurn, advanceTime, launches, providerStarts, publishedDecisions }) {
+				yield* prepareWork("one");
+				const first = (yield* fleet.dispatch("one")).value;
+				loseTurn(first.attempts.at(-1)?.sessionId);
+				yield* fleet.reconcile("one");
+				advanceTime(300_000);
+				const recovered = (yield* fleet.reconcile("one")).value;
+				expect(launches()).toHaveLength(2);
 				expect(recovered.prompt).toBe(first.prompt);
-				provider.lose(recovered.attempts.at(-1)?.sessionId);
-				yield* fleet.reconcile();
-				setTime(600_100);
-				yield* fleet.restart();
-				const replacement = (yield* fleet.reconcile()).value;
+				loseTurn(recovered.attempts.at(-1)?.sessionId);
+				yield* fleet.reconcile("one");
+				advanceTime(300_000);
+				yield* restart();
+				const replacement = (yield* fleet.reconcile("one")).value;
 				expect(replacement.stage).toBe("executing");
 				expect(replacement.decision).toBeUndefined();
-				expect(observed.decisions).toHaveLength(0);
+				expect(publishedDecisions()).toHaveLength(0);
 				expect(replacement.attempts.at(-1)?.role).toBe(published === "none" ? "worker" : "repair");
 				expect(replacement.prompt).toBe(first.prompt);
-				const prompt = observed.starts.at(-1)?.prompt;
+				const prompt = providerStarts().at(-1)?.prompt;
 				expect(prompt?.split(first.prompt)).toHaveLength(2);
 				expect(prompt?.match(/Accepted Codex turn is not observable/gu)).toHaveLength(1);
 				if (published !== "none") {
@@ -101,35 +102,35 @@ for (const receiptLost of [false, true]) {
 				if (published === "pr") {
 					expect(prompt).toContain(WORK_PR);
 				}
-				expect(observed.launched).toHaveLength(3);
+				expect(launches()).toHaveLength(3);
 			},
 		);
 	}
 }
 
-recoveryFleet.it(
+engine.it(
 	"a lost repair after a completed replacement rechecks the current PR and recovers automatically",
-	[lostAcknowledgement(), runningReview, requestedRepair],
-	function* ({ fleet, provider, publication, observed, setTime }) {
-		yield* fleet.prepare();
-		provider.lose((yield* fleet.dispatch()).value.attempts.at(-1)?.sessionId);
-		yield* fleet.reconcile();
-		provider.finish();
-		expect((yield* fleet.reconcile()).value.stage).toBe("reviewing");
-		provider.finish();
-		const repair = (yield* fleet.reconcile()).value;
+	[workerTurnsCanBeLost(), lostAcknowledgement(), reviewerStillRunning(), reviewRequestsRepairs()],
+	function* ({ fleet, prepareWork, restart, loseTurn, finishWorkers, publishPullRequest, advanceTime, publishedDecisions }) {
+		yield* prepareWork("one");
+		loseTurn((yield* fleet.dispatch("one")).value.attempts.at(-1)?.sessionId);
+		yield* fleet.reconcile("one");
+		finishWorkers();
+		expect((yield* fleet.reconcile("one")).value.stage).toBe("reviewing");
+		finishWorkers();
+		const repair = (yield* fleet.reconcile("one")).value;
 		expect(repair.attempts.at(-1)?.role).toBe("repair");
-		publication.pullRequest();
-		provider.lose(repair.attempts.at(-1)?.sessionId);
-		yield* fleet.reconcile();
-		setTime(300_100);
-		yield* fleet.restart();
-		const recovered = (yield* fleet.reconcile()).value;
+		publishPullRequest();
+		loseTurn(repair.attempts.at(-1)?.sessionId);
+		yield* fleet.reconcile("one");
+		advanceTime(300_000);
+		yield* restart();
+		const recovered = (yield* fleet.reconcile("one")).value;
 		expect(recovered.stage).toBe("executing");
 		expect(recovered.decision).toBeUndefined();
 		expect(recovered.attempts.at(-1)?.role).toBe("repair");
 		expect(recovered.attempts.at(-1)?.sessionId).not.toBe(repair.attempts.at(-1)?.sessionId);
 		expect(recovered.attempts.at(-1)?.prompt).toContain(WORK_PR);
-		expect(observed.decisions).toHaveLength(0);
+		expect(publishedDecisions()).toHaveLength(0);
 	},
 );
