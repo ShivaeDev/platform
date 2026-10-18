@@ -1,7 +1,7 @@
 ### Fixed
-- Lost accepted Codex turns check remote branches and open PRs before recovery. Unpublished work releases its lost execution and relaunches automatically; published work starts a repair turn on the existing branch or PR. Answers to lost-turn decisions reach the replacement turn.
+- Lost accepted Codex turns check thread idleness, remote branches and all PR states before recovery. Active threads wait up to five minutes before asking; merged or closed PRs prevent relaunch. Unpublished work releases its lost execution and relaunches automatically; published work starts a repair turn on the existing branch or PR. One automatic relaunch is allowed per execution cycle. Answers to lost-turn decisions recheck safety and reach the replacement turn. Relaunch prompts keep one copy of the original brief and leave the saved brief unchanged. Status and watch display the recovery reason.
 - Publication-backed repairs retain recovery eligibility when a replacement turn is rejected by provider capacity, so scheduled retries resume without human intervention.
 
 ### Added
-- Optional `FleetIntegrations.publication(work)` returns `WorkPublication` (`branch`, `remoteBranch`, optional `pullRequest`) so hosts can supply publication evidence for lost-turn recovery. Missing or inconclusive evidence still needs a decision.
-- Optional `Attempt.publishedRecovery` records that publication evidence authorized replacement of a lost turn.
+- Optional `FleetIntegrations.publication(work)` returns `WorkPublication` (`branch`, `remoteBranch`, optional `pullRequest` and `pullRequestState` (`open`, `closed` or `merged`)) so hosts can supply publication evidence for lost-turn recovery. Missing or inconclusive evidence still needs a decision.
+- Optional `Attempt.publishedRecovery` records replacement of a lost turn and whether work was published. Optional `SessionFailure.threadIdle` carries provider thread state for safe recovery; `FleetView.recovery` exposes the recovery reason. Follow snapshots include the recovery reason.

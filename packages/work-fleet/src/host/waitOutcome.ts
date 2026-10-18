@@ -21,6 +21,7 @@ export const WaitState = Schema.Struct({
 		}),
 	),
 	outcome: Schema.optional(Schema.Struct({ evidence: Schema.optional(Schema.Array(Schema.String)), url: Schema.optional(Schema.String) })),
+	recovery: Schema.optional(Schema.String),
 	stage: Schema.String,
 });
 export type WaitState = typeof WaitState.Type;

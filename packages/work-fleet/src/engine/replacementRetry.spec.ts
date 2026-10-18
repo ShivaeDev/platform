@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
-import { lostAcknowledgement, publishedWork, recoveryFleet } from "#test/recoveryFleet.ts";
+import { recoveryFleet } from "#test/recoveryFleet.ts";
+import { lostAcknowledgement, publishedWork } from "#test/recoveryTraits.ts";
 import { WORK_BRANCH, WORK_PR } from "#test/workPublication.ts";
 
 for (const published of ["branch", "pr"] as const) {
@@ -7,7 +8,7 @@ for (const published of ["branch", "pr"] as const) {
 		recoveryFleet.it(
 			`a receiptless ${published} repair retries a capacity-rejected replacement ${rejection} after restart`,
 			[lostAcknowledgement(), publishedWork(published)],
-			function* ({ fleet, provider, fixture, setTime }) {
+			function* ({ fleet, provider, observed, setTime }) {
 				yield* fleet.prepare();
 				const original = (yield* fleet.dispatch()).value.attempts.at(-1);
 				expect(original?.receipt).toBeUndefined();
@@ -39,7 +40,7 @@ for (const published of ["branch", "pr"] as const) {
 				}
 				yield* fleet.cycle();
 				expect((yield* fleet.get()).value.attempts.at(-1)?.status).toBe("running");
-				expect(fixture.decisions).toEqual([]);
+				expect(observed.decisions).toEqual([]);
 			},
 		);
 	}

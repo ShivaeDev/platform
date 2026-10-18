@@ -3,7 +3,7 @@ import { Conflict, Forbidden, ServiceUnavailable } from "@shivaedev/platform/err
 import type { EngineState } from "#engine/makeState.ts";
 import { releaseReceipts } from "#engine/releaseReceipts.ts";
 import type { FleetRecord } from "#model.ts";
-import type { SessionFailure, SessionObservation } from "#session/schema.ts";
+import type { ContinueSession, SessionFailure, SessionObservation } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
 import type { Versioned } from "#storage/model.ts";
 
@@ -14,6 +14,29 @@ function missingObservation(observation: SessionObservation, singleReceipt: bool
 function observationFailure(error: SessionFailure) {
 	return new ServiceUnavailable({ message: error.message });
 }
+
+const confirmMissingObservation = Effect.fn("Fleet.confirmMissingObservation")(function* (
+	state: EngineState,
+	input: Pick<ContinueSession, "operationId" | "sessionId">,
+	error: SessionFailure,
+) {
+	if (error.threadIdle === true) {
+		return undefined;
+	}
+	if (error.threadIdle === undefined) {
+		const current = yield* state.sessions.reconcile(input).pipe(Effect.result);
+		if (
+			current._tag === "Failure"
+			&& current.failure.code === "session-turn-missing"
+			&& current.failure.reason === "ambiguous"
+			&& current.failure.threadIdle === true
+		) {
+			return undefined;
+		}
+	}
+	return yield* observationFailure(error);
+});
+
 export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
 	let current = stored;
 	for (const attempt of stored.value.attempts) {
@@ -38,7 +61,7 @@ export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (s
 				Effect.map((observed) => (missingObservation(observed, receipts.length === 1) ? undefined : observed)),
 				Effect.catch((error) =>
 					receipts.length === 1 && error.code === "session-turn-missing" && error.reason === "ambiguous"
-						? Effect.succeed(undefined)
+						? confirmMissingObservation(state, { operationId: acknowledged.operationId, sessionId: receipt.sessionId }, error)
 						: Effect.fail(observationFailure(error)),
 				),
 			);

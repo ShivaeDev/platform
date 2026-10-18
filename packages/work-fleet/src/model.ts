@@ -120,6 +120,7 @@ export const FleetView = Schema.Struct({
 	links: Schema.Array(Schema.String),
 	outcome: FleetRecord.fields.outcome,
 	overLimit: Schema.optional(Schema.Boolean),
+	recovery: Schema.optional(Schema.String),
 	sessions: Schema.Array(
 		Schema.Struct({
 			...SessionReceipt.fields,

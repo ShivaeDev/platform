@@ -38,7 +38,7 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 				Effect.gen(function* () {
 					const current = yield* state.load(workId);
 					if (missingAcceptedTurn(error) && current.value.stage !== "needs-human") {
-						const recovered = yield* recoverMissingTurn(state, current);
+						const recovered = yield* recoverMissingTurn(state, current, undefined, error.threadIdle);
 						if (recovered !== undefined) {
 							return recovered;
 						}

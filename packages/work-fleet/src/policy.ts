@@ -131,6 +131,7 @@ export class FleetPolicy extends Context.Service<FleetPolicy, FleetConfiguration
 export interface WorkPublication {
 	readonly branch: string;
 	readonly pullRequest?: string | undefined;
+	readonly pullRequestState?: "open" | "closed" | "merged" | undefined;
 	readonly remoteBranch: boolean;
 }
 export class FleetIntegrations extends Context.Service<
