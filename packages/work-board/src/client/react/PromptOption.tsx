@@ -1,6 +1,6 @@
 import { useId } from "react";
 import type { Document } from "#browser/document/schema.ts";
-import { optionLabel, promptHeading } from "#browser/responses/cardContext.ts";
+import { optionText } from "#browser/responses/cardContext.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import { Badge } from "#client/react/components/ui/Badge.tsx";
 import { cn } from "#client/react/lib/cn.ts";
@@ -22,8 +22,9 @@ export function PromptOption({
 }) {
 	const source = document.metadata.options?.[choice];
 	const id = useId();
-	const label = source?.label ?? optionLabel(option.id, option.source, document.requests.find((request) => request.open)?.preview?.reason ?? "");
-	const description = source?.description ?? promptHeading(option.source).rest;
+	const authored = optionText(option.id, option.source, document.requests.find((request) => request.open)?.preview?.reason ?? "");
+	const label = source?.label ?? authored.label;
+	const description = source?.description ?? authored.description;
 	return (
 		<div>
 			<input

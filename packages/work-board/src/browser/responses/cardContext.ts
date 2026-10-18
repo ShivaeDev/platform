@@ -10,15 +10,19 @@ export function cardContext(source: string) {
 	return { links, recommendation };
 }
 
-export function optionLabel(id: string, source: string, reason: string) {
-	const heading = /^#{1,6}\s+(?<title>.+)$/mu.exec(source)?.groups?.title;
-	if (heading) {
-		return heading;
+export function optionText(id: string, source: string, reason: string) {
+	const heading = promptHeading(source);
+	if (heading.title) {
+		return { description: heading.rest, label: heading.title };
+	}
+	const lead = /^\*\*(?<label>[^*]+)\*\*\s*(?:[—–:-]\s*)?/u.exec(source.trim());
+	if (lead?.groups?.label) {
+		return { description: source.trim().slice(lead[0].length).trim(), label: lead.groups.label.trim() };
 	}
 	if (id === "retry" && /reviewed pr is ready to merge/iu.test(reason)) {
-		return "Request changes (retry)";
+		return { description: source.trim(), label: "Request changes (retry)" };
 	}
-	return id.charAt(0).toUpperCase() + id.slice(1).replaceAll("-", " ");
+	return { description: source.trim(), label: id.charAt(0).toUpperCase() + id.slice(1).replaceAll("-", " ") };
 }
 
 function section(source: string, title: string) {
