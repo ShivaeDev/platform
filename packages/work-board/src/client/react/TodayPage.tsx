@@ -7,6 +7,7 @@ import { fileUrl } from "#files/url.ts";
 import { inProgressItems } from "./inProgressItems.ts";
 import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
+import { SOURCE_PROBLEMS_ID, sourceProblemsSummary } from "./sourceProblems.ts";
 import { TodayGoals } from "./TodayGoals.tsx";
 import { TodayAnswered, TodayLater, TodayNeeds } from "./TodayNeeds.tsx";
 import { TodayProgress } from "./TodayProgress.tsx";
@@ -32,12 +33,23 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 					</a>
 				)}
 			</header>
-			<nav aria-label="Today summary" className="today-strip flex items-center gap-1 whitespace-nowrap text-xs tabular-nums sm:gap-2 sm:text-sm">
+			<nav
+				aria-label="Today summary"
+				className="today-strip flex flex-wrap items-center gap-1 whitespace-nowrap text-xs tabular-nums sm:gap-2 sm:text-sm"
+			>
 				<a href={`#${todayIds.needs}`}>{data.complete ? `${data.you.length} need you` : "Needs you unavailable"}</a>
 				<span aria-hidden="true">·</span>
 				<a href={`#${todayIds.progress}`}>{progressSummary(progress?.length, fleet?.state === "unavailable" || Option.isSome(fleetQuery.cause))}</a>
 				<span aria-hidden="true">·</span>
 				<a href={`#${todayIds.goals}`}>{goalsSummary(goals?.goals.length, Option.isSome(query.cause))}</a>
+				{data.issues.length > 0 && (
+					<>
+						<span aria-hidden="true">·</span>
+						<a className="text-needs-you" data-source-problems href={`/_board/system#${SOURCE_PROBLEMS_ID}`}>
+							{sourceProblemsSummary(data.issues)}
+						</a>
+					</>
+				)}
 			</nav>
 			<div className="today-grid grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<div className="min-w-0 space-y-6">
