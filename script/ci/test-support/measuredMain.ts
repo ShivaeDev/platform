@@ -6,9 +6,6 @@ export function measuredMain(args: string[]) {
 			"workflow_runs": [43, 42].map((id) => ({ conclusion: "success", event: "push", "head_branch": "main", "head_sha": `sha-${id}`, id })),
 		});
 	}
-	if (args[1]?.includes("actions/caches?")) {
-		return JSON.stringify({ "actions_caches": [{ key: "consumer-store-cached" }, { key: "consumer-store-cached-older" }] });
-	}
 	if (args[0] === "api") {
 		return JSON.stringify({ artifacts: [{ expired: false, id: args[1]?.includes("/43/") ? 4300 : 4200, name: args[1]?.split("name=")[1] }] });
 	}
