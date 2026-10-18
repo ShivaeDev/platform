@@ -17,11 +17,16 @@ const { SourceFailure } = diagnosticsApi;
 class StatusHealth extends Context.Service<StatusHealth, Option.Option<Health["Service"]>>()("Fleet/StatusHealth") {}
 class StatusGithub extends Context.Service<StatusGithub, Effect.Effect<readonly GithubObservation[]>>()("Fleet/StatusGithub") {}
 
-export function statusLayer(root: string, healthConfig?: Effect.Effect<{ readonly concurrency: number; readonly staleAfterMs: number }>) {
+export function statusLayer(
+	root: string,
+	healthConfig?: Effect.Effect<{ readonly concurrency: number; readonly staleAfterMs: number }>,
+	background = false,
+) {
 	const StatusPublication = defineService({
 		id: "Fleet/StatusPublication",
 		initialize: Effect.gen(function* () {
 			const fleet = yield* Fleet;
+			const publicationScope = background ? yield* Effect.scope : undefined;
 			const health = yield* StatusHealth;
 			const github = yield* StatusGithub;
 			const fs = yield* FileSystem.FileSystem;
@@ -60,11 +65,14 @@ export function statusLayer(root: string, healthConfig?: Effect.Effect<{ readonl
 			if (healthConfig !== undefined) {
 				yield* publish;
 			}
-			return { fleet, publish, snapshot };
+			if (background) {
+				yield* Effect.addFinalizer(() => publish);
+			}
+			return { fleet, publicationScope, publish, snapshot };
 		}),
-		methods: ({ fleet, publish, snapshot }) => {
+		methods: ({ fleet, publicationScope, publish, snapshot }) => {
 			function after<A, E, R>(effect: Effect.Effect<A, E, R>) {
-				return effect.pipe(Effect.ensuring(publishAfterBoardPass(publish)));
+				return effect.pipe(Effect.ensuring(publishAfterBoardPass(publish, publicationScope)));
 			}
 			return {
 				...fleet,

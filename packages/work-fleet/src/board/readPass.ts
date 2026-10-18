@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { Context, Effect, type FileSystem, type Path } from "effect";
+import { Context, Effect, type FileSystem, type Path, type Scope } from "effect";
 import type { MetadataModel, ParsedMetadata } from "@shivaedev/work-board/server/integration/board.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import type { BoardDocument } from "#board/documents.ts";
@@ -105,11 +105,16 @@ export const workMetadata = Effect.fn("FleetBoard.workMetadata")(function* (work
 	return boardApi.metadataParse(work.context);
 });
 
-export const publishAfterBoardPass = Effect.fn("FleetBoard.publishAfterBoardPass")(function* (publication: Effect.Effect<void>) {
+export const publishAfterBoardPass = Effect.fn("FleetBoard.publishAfterBoardPass")(function* (
+	publication: Effect.Effect<void>,
+	backgroundScope?: Scope.Scope,
+) {
 	const pass = yield* ReadPass;
 	if (pass?.active === true) {
 		pass.publications.add(publication);
-	} else {
+	} else if (backgroundScope === undefined) {
 		yield* publication;
+	} else {
+		yield* publication.pipe(Effect.forkIn(backgroundScope));
 	}
 });

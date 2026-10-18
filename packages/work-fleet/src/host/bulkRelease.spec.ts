@@ -4,8 +4,10 @@ import { Effect } from "effect";
 import type { BoardDecision } from "#board/schema.ts";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
+import { daemonClient } from "#host/daemonClient.ts";
 import { boardAskFiles, boardHttpFiles } from "#test/boardHttp.ts";
 import { codexServer } from "#test/codex.ts";
+import { appliedAnswer } from "#test/daemonActions.ts";
 import { dispatchWork } from "#test/dispatchWork.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
@@ -19,7 +21,7 @@ const test = postgresTests("live");
 test("bulk CLI release closes changed done and deferred decisions and records one response per question", function* () {
 	const server = yield* codexServer(() => ({}));
 	yield* withHost({ "one.md": task("one", "approved"), "two.md": task("two", "approved") }, { local: { endpoint: server.endpoint } }, (fixture) =>
-		withReadDaemon(fixture.host, () => bulkReleaseStory(fixture), { parts: fixture.parts }),
+		withReadDaemon(fixture.host, (port) => bulkReleaseStory(fixture, port), { parts: fixture.parts }),
 	);
 });
 
@@ -39,7 +41,7 @@ function waitingDecision(fixture: HostFixture, id: string) {
 	}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 }
 
-const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function* (fixture: HostFixture) {
+const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function* (fixture: HostFixture, port: number) {
 	execFileSync("git", ["init", "--quiet", "--initial-branch=main", fixture.host.boardDir]);
 	const decisions: BoardDecision[] = [];
 	for (const [id, status] of [
@@ -65,7 +67,14 @@ const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function*
 			},
 		}),
 	);
-	expect(released, errors).toEqual({ code: 0, stdout: "one released\ntwo released" });
+	expect(released, errors).toEqual({
+		code: 0,
+		stdout: "one needs-human: Answer recorded; applying in the background\ntwo needs-human: Answer recorded; applying in the background",
+	});
+	const client = yield* daemonClient(port);
+	for (const workId of ["one", "two"]) {
+		expect((yield* appliedAnswer(client, workId)).stage).toBe("released");
+	}
 	expect(yield* boardAskFiles(fixture.host.boardDir)).toEqual([]);
 	expect(yield* boardAskFiles(fixture.host.boardDir, "orchestrator")).toEqual([]);
 	const files = boardHttpFiles(fixture.host.boardDir);
@@ -81,7 +90,7 @@ const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function*
 			expect(current.responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);
 		}
 	}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-	expect(yield* Effect.promise(() => cliProcess(args))).toEqual(released);
+	expect(yield* Effect.promise(() => cliProcess(args))).toEqual({ code: 0, stdout: "one released\ntwo released" });
 	expect(files.receipts()).toHaveLength(2);
 	expect(fixture.provider.launched).toHaveLength(2);
 });

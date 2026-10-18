@@ -24,7 +24,7 @@ export function daemonHostOptions(host: FleetHost, parts: HostParts = production
 		handlers: Layer.merge(fleetHandlers, Layer.unwrap(daemonHandlers(host))),
 		policy: "loopback" as const,
 		rpcPath: RPC_PATH,
-		services: hostLayer(host, parts, watchedConfig(host)),
+		services: hostLayer(host, parts, watchedConfig(host), true),
 	};
 }
 
