@@ -35,7 +35,6 @@
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
 		"template.json",
-		"docs",
 		"CHANGELOG.md",
 		"README.md"
 	],

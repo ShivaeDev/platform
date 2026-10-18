@@ -2,7 +2,7 @@
 
 A flaky test in CI either blocks a merge for a reason unrelated to the change or, with Vitest's in-process `retry`, passes in the same polluted worker that made it fail. This package reruns failed Vitest tests in a fresh process under its own retry policy and records every test that needed a rerun in `flaky-tests.json`, so a repository can merge through flakiness without losing sight of it.
 
-`flaky-tests.json` and the JUnit `classname` are contracts that consumers build against. Keep the file name, its fields and their meaning stable; a change to them is a breaking change that needs the maintainer. Read [the north star](./docs/north-star.md) for the full boundaries, [the roadmap](./docs/roadmap.md) for work and open questions, and [the README](./README.md) for usage.
+`flaky-tests.json` and the JUnit `classname` are contracts that consumers build against. Keep the file name, its fields and their meaning stable; a change to them is a breaking change. Quarantining or ranking flaky tests belongs to whatever reads `flaky-tests.json`, and choosing which CI events may rerun belongs to the repository; the package never retries unhandled errors, crashed workers or setup outside a test file, and never runs a test runner other than Vitest. Read [the README](./README.md) for usage.
 
 When goals conflict, lean in this order:
 
