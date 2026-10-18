@@ -4,16 +4,16 @@ import { usePendingCommand } from "#client/pendingCommand.ts";
 import { useQuery } from "#client/resultState.ts";
 import type { PendingClient } from "./pendingCommandClient.ts";
 
-function ToggleRow({ client, enabled }: { readonly client: PendingClient; readonly enabled: boolean }) {
-	const toggle = usePendingCommand(client.command, {
+function ToggleRow({ client, enabled, id }: { readonly client: PendingClient; readonly enabled: boolean; readonly id: number }) {
+	const toggle = usePendingCommand(client.command(id), {
 		queries: [client.list, client.count],
 		value: enabled,
 		wanted: (input) => input.enabled,
 	});
 	const failure = AsyncResult.error(toggle.result);
 	return (
-		<li>
-			<button aria-pressed={toggle.value} disabled={toggle.pending} onClick={() => toggle.dispatch({ enabled: !toggle.value, id: 1 })} type="button">
+		<li data-row={id}>
+			<button aria-pressed={toggle.value} disabled={toggle.pending} onClick={() => toggle.dispatch({ enabled: !toggle.value })} type="button">
 				Enabled
 			</button>
 			<output data-command={toggle.result._tag}>
@@ -33,7 +33,7 @@ export function PendingCommandScreen({ client }: { readonly client: PendingClien
 			</output>
 			<ul>
 				{Option.getOrElse(list.data, () => []).map((row) => (
-					<ToggleRow client={client} enabled={row.enabled} key={row.id} />
+					<ToggleRow client={client} enabled={row.enabled} id={row.id} key={row.id} />
 				))}
 			</ul>
 		</section>

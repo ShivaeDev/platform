@@ -1,4 +1,5 @@
 import { Deferred, Effect, Schema } from "effect";
+import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
@@ -18,13 +19,20 @@ const Toggle = command("toggle", {
 });
 const Items = contract("items", { commands: [Toggle], queries: [List, Count] });
 
-export function pendingCommandClient() {
-	const commandGate = Effect.runSync(Deferred.make<void, ToggleRejected>());
+export function pendingCommandClient(ids: readonly number[] = [1]) {
+	const commandGates = new Map(ids.map((id) => [id, Effect.runSync(Deferred.make<void, ToggleRejected>())]));
+	function commandGate(id: number) {
+		const gate = commandGates.get(id);
+		if (!gate) {
+			throw new Error(`No command response for row ${id}`);
+		}
+		return gate;
+	}
 	const listGate = Effect.runSync(Deferred.make<boolean>());
 	const countGate = Effect.runSync(Deferred.make<number>());
 	let written = false;
-	function toggle() {
-		return Deferred.await(commandGate).pipe(
+	function toggle({ id }: typeof Row.Type) {
+		return Deferred.await(commandGate(id)).pipe(
 			Effect.tap(() =>
 				Effect.sync(() => {
 					written = true;
@@ -36,7 +44,8 @@ export function pendingCommandClient() {
 		Effect.succeed(
 			Items.of({
 				"items.count": () => (written ? Deferred.await(countGate) : Effect.succeed(0)),
-				"items.list": () => (written ? Deferred.await(listGate) : Effect.succeed(false)).pipe(Effect.map((enabled) => [{ enabled, id: 1 }])),
+				"items.list": () =>
+					(written ? Deferred.await(listGate) : Effect.succeed(false)).pipe(Effect.map((enabled) => ids.map((id) => ({ enabled, id })))),
 				"items.toggle": toggle,
 			}),
 		),
@@ -47,6 +56,7 @@ export function pendingCommandClient() {
 		protocol: handlers,
 	}) {}
 	const api = bind(Items, Client);
-	return { command: Client.runtime.fn(api.toggle.run), commandGate, count: api.count.query(), countGate, list: api.list.query(), listGate };
+	const toggles = Atom.family((id: number) => Client.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })));
+	return { command: toggles, commandGate, count: api.count.query(), countGate, list: api.list.query(), listGate };
 }
 export type PendingClient = ReturnType<typeof pendingCommandClient>;

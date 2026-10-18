@@ -56,3 +56,28 @@ pendingCommands.it(
 		);
 	},
 );
+
+pendingCommands.it(
+	"another row's typed failure does not revert a successful toggle awaiting refetch",
+	[toggleScreen([1, 2])],
+	function* ({ observe, click, commandSucceeds, commandFails, listResponds, countResponds, snapshot }) {
+		yield* observe("both server rows are disabled", () => expect(snapshot(1).server).toBe("false,false"));
+		yield* click(1);
+		yield* commandSucceeds(1);
+		yield* observe("A waits for its refetch while B is available", () => {
+			expect(snapshot(1)).toMatchObject({ command: "Success", enabled: true, pending: true });
+			expect(snapshot(2).pending).toBe(false);
+		});
+		yield* click(2);
+		expect(snapshot(2).enabled).toBe(true);
+		yield* commandFails("B is locked", 2);
+		yield* observe("B's typed rejection reverts only B", () => {
+			expect(snapshot(2)).toMatchObject({ command: "Failure", enabled: false, failure: "ToggleRejected: B is locked", pending: false });
+			expect(snapshot(1)).toMatchObject({ command: "Success", enabled: true, failure: "", pending: true, server: "false,false" });
+		});
+		yield* listResponds(false);
+		expect(snapshot(1)).toMatchObject({ enabled: true, pending: true });
+		yield* countResponds(0);
+		yield* observe("A returns to the server after its refetches finish", () => expect(snapshot(1)).toMatchObject({ enabled: false, pending: false }));
+	},
+);

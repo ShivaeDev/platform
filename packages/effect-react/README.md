@@ -168,26 +168,31 @@ The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and 
 
 ### Commands with a pending display value
 
-Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Create its action atom once with the existing bound command, so the command's declared invalidation keys still drive refetches:
+Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive refetches:
 
 ```tsx
+import * as Atom from "effect/reactivity/Atom";
 import { usePendingCommand } from "@shivaedev/effect-react/client/pendingCommand.ts";
 
-const toggle = ItemsClient.runtime.fn(api.toggle.run);
+const toggle = Atom.family((id: number) =>
+  ItemsClient.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })),
+);
 const list = api.list.query();
 
 function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly enabled: boolean } }) {
-  const command = usePendingCommand(toggle, {
+  const command = usePendingCommand(toggle(row.id), {
     queries: [list],
     value: row.enabled,
     wanted: (input) => input.enabled,
   });
   return <button aria-pressed={command.value} disabled={command.pending}
-    onClick={() => command.dispatch({ id: row.id, enabled: !command.value })} type="button">
+    onClick={() => command.dispatch({ enabled: !command.value })} type="button">
     Enabled
   </button>;
 }
 ```
+
+Each row needs its own action atom because the native atom owns its current result, including failures. `Atom.family` keeps an independent action atom stable for each row ID. This lets one row fail while another keeps its requested display through the shared list refetch. Do not share one action atom across independently controlled rows.
 
 The example assumes a bound `api.toggle.run` accepting `{ id, enabled }`, a bound list query and their native `ItemsClient`. `queries` lists the query atoms whose refetches the display waits for; it does not add invalidations. Include every relevant query and keep the action and query atom identities stable. `value` is the current server value; `wanted(input)` computes the requested display value.
 
