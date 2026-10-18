@@ -10,7 +10,7 @@ The file is one JSON object, in this key order, with no formatting whitespace or
 {"id":"3f1c9a52-0d4e-4b8f-9a71-5c2e8d6b4f10","pid":4242,"processStartedAt":"Sat Sep 26 12:00:00 2026","command":"pnpm --filter \"@shivaedev/*\" test","cwd":"/repo/checkout","startedAtMs":1790409600123}
 ```
 
-The same bytes are in `src/test-support/fixtures/reference-holder.lock`.
+The same bytes are in [the reference fixture](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/src/test-support/fixtures/reference-holder.lock).
 
 | Field | Meaning |
 | --- | --- |
@@ -25,7 +25,7 @@ The PID alone is insufficient. The holder is live only when `ps` succeeds, print
 
 ## Acquire and reclaim
 
-1. Resolve the path from the Effect API's explicit `lockPath`, then `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`. Create its directory if missing.
+1. Resolve the path from the Effect API's explicit `lockPath`, then `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`; no test covers this order or the `HOME` default. Create its directory if missing.
 2. Read this process's start time before taking a new hold. If `ps` cannot run or supplies no start time, fail before starting the command.
 3. Write the complete holder to `<lock>.<id>.draft`, hard-link the draft to `<lock>` and remove the draft. The complete file is published through the link rather than written into an already visible lock path.
 4. If the path already exists and its holder is live, return that holder to the waiting loop. Do not preempt it.

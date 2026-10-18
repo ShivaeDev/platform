@@ -33,7 +33,7 @@ Separate two jobs when choosing the type:
 1. **Define a callback precisely.** Keep its real input type, such as `string`, so its implementation and ordinary callers share the same contract.
 2. **Collect or erase callbacks at a boundary.** Use `Bivariant` only on the property whose common shape must accept those narrower callback types. The code that calls it owns the relationship between each callback and its valid input.
 
-Use the same choice when adapting a typed public callback to an implementation that no longer carries its input type. Leave the public callback strict; place `Bivariant` on the erased implementation property that needs it.
+Apply the second job when adapting a typed public callback to an implementation that no longer carries its input type. Leave the public callback strict; place `Bivariant` on the erased implementation property that needs it.
 
 ### API
 
@@ -49,4 +49,4 @@ Enable `strictFunctionTypes`, usually through `strict`, to retain the ordinary f
 
 - A callback assigned under an `unknown` input shape has not become able to handle every value. Keep its valid input paired with it, or validate input in the owning integration before calling it.
 - This package supplies no runtime validation.
-- The demonstrated compiler cases use an ordinary callback with one parameter. Do not infer guarantees for overloads, generic signatures or explicit `this` parameters from these examples.
+- Overloads, generic signatures and explicit `this` parameters have no tested contract.
