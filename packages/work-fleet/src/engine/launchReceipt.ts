@@ -7,7 +7,12 @@ export const launchReceipt = Effect.fn("Fleet.launchReceipt")(function* (record:
 		return yield* Effect.fail(new Forbidden({ message: "Reconcile terminal execution before launching another turn" }));
 	}
 	const original = allAttempts(record).findLast((previous) => previous.role !== "reviewer" && previous.receipt !== undefined)?.receipt;
-	if (role === "repair" && original === undefined) {
+	const latest = record.attempts.at(-1);
+	if (
+		role === "repair"
+		&& original === undefined
+		&& !(latest?.role !== "reviewer" && latest?.status === "failed" && latest.sessionUnusable && latest.sessionId !== undefined)
+	) {
 		return yield* Effect.fail(new Forbidden({ message: "Repair requires an existing worker receipt" }));
 	}
 	return original;

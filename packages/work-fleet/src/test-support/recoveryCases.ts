@@ -16,6 +16,7 @@ import { recoveryJournalCases } from "#test/recoveryJournalCases.ts";
 import { recoveryPreparationCases } from "#test/recoveryPreparationCases.ts";
 import { recoveryProducerCases } from "#test/recoveryProducerCases.ts";
 import { recoveryProviderCases } from "#test/recoveryProviderCases.ts";
+import { recoveryPublicationCase } from "#test/recoveryPublicationCase.ts";
 import { recoveryReadCase } from "#test/recoveryReadCase.ts";
 import { recoveryRecordCases } from "#test/recoveryRecordCases.ts";
 import { recoveryReportCases } from "#test/recoveryReportCases.ts";
@@ -46,6 +47,7 @@ export const recoveryCaseGroups = {
 		...recoveryJournalCases(),
 		recoveryStallCase(),
 		recoveryUnobservableCase(),
+		recoveryPublicationCase(),
 		...recoveryUncertainCases(),
 		...recoveryWorkerCases(),
 	],

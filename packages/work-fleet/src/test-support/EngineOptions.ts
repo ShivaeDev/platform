@@ -3,7 +3,17 @@ import type { SqlError } from "effect/sql/SqlError";
 import type { BoardAcknowledgementStale, BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetRecord } from "#model.ts";
-import type { BoardFailure, BoardGateway, BoardWork, ChangeResult, Checks, Delivery, FleetConfiguration, WorkResult } from "#policy.ts";
+import type {
+	BoardFailure,
+	BoardGateway,
+	BoardWork,
+	ChangeResult,
+	Checks,
+	Delivery,
+	FleetConfiguration,
+	WorkPublication,
+	WorkResult,
+} from "#policy.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { ReportAttachments } from "#reportAttachments.ts";
 import type { LaunchSettings, SessionFailure, SessionObservation } from "#session/schema.ts";
@@ -38,6 +48,7 @@ export interface EngineOptions {
 	readonly now?: () => number;
 	readonly openPullRequests?: FleetConfiguration["openPullRequests"];
 	readonly operationCollision?: boolean;
+	readonly publicationQuery?: (work: BoardWork) => Effect.Effect<WorkPublication, FleetError>;
 	readonly publishFailure?: boolean;
 	readonly publishGate?: Effect.Effect<void>;
 	readonly quota?: number;
