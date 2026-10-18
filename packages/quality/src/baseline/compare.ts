@@ -33,7 +33,7 @@ export function applyBaseline(violations: readonly Violation[], entries: readonl
 		const group = groups.get(keyOf(entry.rule, entry.file)) ?? [];
 		if (group.length === 0) {
 			const level = levelOf(rules, entry.rule);
-			(level === undefined || level === "off" ? stale : loose).push({
+			(level === undefined ? stale : loose).push({
 				entry,
 				problem: unusedEntryProblem(rules, entry.rule, "has no violations left"),
 			});

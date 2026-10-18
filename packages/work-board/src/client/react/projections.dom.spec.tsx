@@ -1,14 +1,9 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { act } from "react";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { renderBoard } from "#test/react.tsx";
-import { boardRouter } from "./boardRouter.ts";
-import { routeQueryOptions } from "./routeQuery.ts";
+import { screenStory } from "#test/screenStory.ts";
+import { routedScreen } from "#test/screenTraits.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 const files = {
 	"home.md":
@@ -24,70 +19,51 @@ const routes = [
 	{ kind: "work", selector: ".work-card[data-item='task.fixture']", text: "A task", url: "/_board/work?view=board" },
 	{ kind: "work", selector: ".work-table", text: "A task", url: "/_board/work?view=table&owner=value%3Areader&q=task&item=task.fixture" },
 ];
-it.live.each(routes)("renders $url from its typed projection", function* ({ url, selector, text, kind }) {
-	const view = yield* Effect.promise(() =>
-		renderBoard(files, (api, registry) => {
-			const router = boardRouter({ api, registry });
-			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
-			return <RouterProvider router={router} />;
-		}),
+for (const { url, selector, text, kind } of routes) {
+	screenStory.it(
+		`renders ${url} from its typed projection`,
+		[routedScreen(files, url, undefined)],
+		function* ({ readText, findElement, findElements }) {
+			yield* Effect.promise(() => eventually(() => expect(readText(selector)).toContain(text)));
+			expect(findElement("main")?.dataset.projection).toBe(kind);
+			if (kind === "board") {
+				expect(readText(".item-introduction h1")).toBe("Project board");
+				expect(findElement(".item-introduction")?.classList.contains("sticky")).toBe(true);
+				expect(findElement('.document-outline a[href="#heading-plans"]')).not.toBeNull();
+				expect(readText(".board .notes")).toContain("Section note");
+				expect(readText(".counts")).toBe("1 plans · 1 waiting");
+				expect(readText("footer")).toContain("Footer");
+				expect(findElement("#heading-task-2")).not.toBeNull();
+				expect(findElement(".item a[href='/task.md']")).not.toBeNull();
+			}
+			if (url.includes("item=task.fixture")) {
+				expect(findElements(".work-table tbody tr")).toHaveLength(1);
+				yield* Effect.promise(() => eventually(() => expect(readText("#work-detail article.doc")).toContain("Task details")));
+				expect(readText("#work-detail .item-summary")).toContain("Read evidence");
+			}
+		},
 	);
-	try {
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(selector)?.textContent).toContain(text)));
-		expect(view.container.querySelector("main")?.dataset.projection).toBe(kind);
-		if (kind === "board") {
-			expect(view.container.querySelector(".item-introduction h1")?.textContent).toBe("Project board");
-			expect(view.container.querySelector(".item-introduction")?.classList.contains("sticky")).toBe(true);
-			expect(view.container.querySelector('.document-outline a[href="#heading-plans"]')).not.toBeNull();
-			expect(view.container.querySelector(".board .notes")?.textContent).toContain("Section note");
-			expect(view.container.querySelector(".counts")?.textContent).toBe("1 plans · 1 waiting");
-			expect(view.container.querySelector("footer")?.textContent).toContain("Footer");
-			expect(view.container.querySelector("#heading-task-2")).not.toBeNull();
-			expect(view.container.querySelector(".item a[href='/task.md']")).not.toBeNull();
-		}
-		if (url.includes("item=task.fixture")) {
-			expect(view.container.querySelectorAll(".work-table tbody tr")).toHaveLength(1);
-			yield* Effect.promise(() =>
-				eventually(() => expect(view.container.querySelector("#work-detail article.doc")?.textContent).toContain("Task details")),
-			);
-			expect(view.container.querySelector("#work-detail .item-summary")?.textContent).toContain("Read evidence");
-		}
-	} finally {
-		yield* Effect.promise(() => view.unmount());
-	}
-});
+}
 
-it.live("retains inline answer edits and selected detail through a Work projection refresh", function* () {
-	let refresh: (() => void) | undefined;
-	const url = "/_board/work?view=board&item=question.fixture&q=task";
-	const view = yield* Effect.promise(() =>
-		renderBoard(files, (api, registry) => {
-			refresh = () => registry.refresh(api.work.query({ url }, routeQueryOptions));
-			const router = boardRouter({ api, registry });
-			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
-			return <RouterProvider router={router} />;
-		}),
-	);
-	try {
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#response-form textarea")).not.toBeNull()));
-		expect(view.container.querySelector(".detail-notice")?.textContent).toContain("outside the current board or filters");
-		const body = view.container.querySelector<HTMLTextAreaElement>("#response-form textarea");
+screenStory.it(
+	"retains inline answer edits and selected detail through a Work projection refresh",
+	[routedScreen({ ...files }, "/_board/work?view=board&item=question.fixture&q=task")],
+	function* ({ refreshQuery, selectText, findElement, readText, typeText }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form textarea")).not.toBeNull()));
+		expect(readText(".detail-notice")).toContain("outside the current board or filters");
+		const body = findElement<HTMLTextAreaElement>("#response-form textarea");
 		if (!body) {
 			throw new Error("Missing answer textarea");
 		}
-		act(() => {
-			body.value = "Keep my answer";
-			body.dispatchEvent(new Event("input", { bubbles: true }));
-		});
-		body.focus();
-		body.setSelectionRange(5, 7);
-		yield* Effect.promise(() => act(async () => refresh?.()));
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("main")?.dataset.route).toBe(url)));
-		expect(view.container.querySelector("#response-form textarea")).toBe(body);
+		typeText(body, "Keep my answer");
+		selectText(body, 5, 7);
+		yield* Effect.promise(() => refreshQuery("work", { url: "/_board/work?view=board&item=question.fixture&q=task" }));
+		yield* Effect.promise(() =>
+			eventually(() => expect(findElement("main")?.dataset.route).toBe("/_board/work?view=board&item=question.fixture&q=task")),
+		);
+		expect(findElement("#response-form textarea")).toBe(body);
 		expect(body.value).toBe("Keep my answer");
 		expect(body.selectionStart).toBe(5);
 		expect(body.selectionEnd).toBe(7);
-	} finally {
-		yield* Effect.promise(() => view.unmount());
-	}
-});
+	},
+);

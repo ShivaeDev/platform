@@ -1,21 +1,20 @@
-import { act } from "react";
-import { expect, it, vi } from "vitest";
+import { Effect } from "effect";
+import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
-import { renderBoard } from "#test/react.tsx";
+import { screenStory } from "#test/screenStory.ts";
 import { identityRankingFixture, searchRankingFixture } from "#test/searchRankingFixture.ts";
-import { SearchDialog } from "./SearchDialog.tsx";
+import { searchScreen } from "#test/searchScreen.tsx";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
-it.each([
+for (const { fixture, first, id, queries, status } of [
 	{ first: "A running watch sees reviews finish", fixture: searchRankingFixture(), id: "", queries: ["watch"], status: "planned" },
-	...["active", "done", "deferred"].map((status) => ({
+	...["active", "done", "deferred"].map((itemStatus) => ({
 		first: "Inbox triage",
-		fixture: identityRankingFixture(status, status),
+		fixture: identityRankingFixture(itemStatus, itemStatus),
 		id: "task.inbox",
 		queries: ["inbox", "task.inbox"],
-		status,
+		status: itemStatus,
 	})),
 	...["planned", "active"].flatMap((passageStatus) =>
 		["done", "deferred"].map((titleStatus) => ({
@@ -26,54 +25,40 @@ it.each([
 			status: passageStatus,
 		})),
 	),
-])("ranks status first, then title/ID relevance and recency ($status, $id)", async ({ fixture, first, id, queries, status }) => {
+]) {
 	const { files, modified } = fixture;
-	const view = await renderBoard(
-		files,
-		(api) => (
-			<SearchDialog
-				api={api}
-				appearance={{ change: vi.fn(), closed: false, density: "comfortable", notice: "", theme: "light" }}
-				close={vi.fn()}
-				open
-				toggleSidebar={vi.fn()}
-			/>
-		),
-		{ home: undefined, modified },
-	);
-	try {
-		const field = view.container.querySelector("input");
-		if (!field) {
-			throw new Error("Missing palette input");
-		}
-		for (const query of queries) {
-			act(() => {
-				field.value = query;
-				field.dispatchEvent(new Event("input", { bubbles: true }));
-			});
-			await eventually(() => expect(view.container.querySelector('[role="option"] strong')?.textContent).toBe(first));
-			const rows = [...view.container.querySelectorAll('[role="option"]')];
-			expect(rows[0]?.querySelector("[data-status-token]")?.textContent).toBe(status);
-			if (query === "watch") {
-				const sources = [...new Set(rows.map((row) => row.querySelector("strong")?.textContent))];
-				expect(sources).toEqual([
-					"A running watch sees reviews finish",
-					"Watch needs you",
-					"Active watch",
-					"Held watch",
-					"Keep reviews visible",
-					"Done watch",
-					"Deferred watch",
-					"Superseded watch",
-					"Finished",
-				]);
-			} else {
-				expect(rows[0]?.querySelector("code")?.textContent).toBe(id);
-				expect(rows.some((row) => row.querySelector("strong")?.textContent === "Inbox triage")).toBe(true);
-				expect(rows.some((row) => row.querySelector("strong")?.textContent === "Captured notes")).toBe(true);
+	screenStory.it(
+		`ranks status first, then title/ID relevance and recency (${status}, ${id})`,
+		[searchScreen(files, { home: undefined, modified })],
+		function* ({ findElement, readText, findElements, typeText }) {
+			const field = findElement("input");
+			if (!field) {
+				throw new Error("Missing palette input");
 			}
-		}
-	} finally {
-		await view.unmount();
-	}
-});
+			for (const query of queries) {
+				typeText(field, query);
+				yield* Effect.promise(() => eventually(() => expect(readText('[role="option"] strong')).toBe(first)));
+				const rows = [...findElements('[role="option"]')];
+				expect(readText("[data-status-token]", rows[0])).toBe(status);
+				if (query === "watch") {
+					const sources = [...new Set(rows.map((row) => readText("strong", row)))];
+					expect(sources).toEqual([
+						"A running watch sees reviews finish",
+						"Watch needs you",
+						"Active watch",
+						"Held watch",
+						"Keep reviews visible",
+						"Done watch",
+						"Deferred watch",
+						"Superseded watch",
+						"Finished",
+					]);
+				} else {
+					expect(readText("code", rows[0])).toBe(id);
+					expect(rows.some((row) => readText("strong", row) === "Inbox triage")).toBe(true);
+					expect(rows.some((row) => readText("strong", row) === "Captured notes")).toBe(true);
+				}
+			}
+		},
+	);
+}
