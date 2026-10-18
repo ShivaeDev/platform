@@ -6,7 +6,7 @@ import { goalFleetFixture, goalPageFixture } from "#test/goalPageFixture.ts";
 
 for (const stage of ["executing", "reviewing", "needs-human"] as const) {
 	boardStory.it(
-		"counts Fleet %s as in progress through the goals RPC",
+		`counts Fleet ${stage} as in progress through the goals RPC`,
 		[projectFiles(goalPageFixture()), deferredServing],
 		function* ({ start, connectClient }) {
 			const missing = { cause: "Not configured for fixture", observedAt: 0, state: "not-configured" as const };
