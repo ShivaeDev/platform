@@ -3,81 +3,123 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "effect-pg-boss-retry-at.md",
-				"text": "---\n\"@shivaedev/effect-pg-boss\": minor\n---\n\n### Added\n\n- Fail a queue or scheduled handler with `RetryAt({ at, reason })` from `definition.ts` to defer the same job until a UTC time without spending a retry, changing its payload or singleton key, or calling `onError`. A deferred attempt ends its span OK with a `job.deferred` event. The exported `QueueOptions` type adds `maxDeferrals`, and queue and schedule definitions expose its resolved value. `queue.maxDeferrals` defaults to 10 per job; subsequent deferrals fail normally. Deferred jobs use the polling backstop, including with `notify: true`.\n- Inspect waiting deferrals with the testing controller's `deferred(queue)`, returning `{ at, reason }[]`, and pull them forward with `runDeferredNow(queue)`. Both integrate with the controller's revision and change notification controls.\n- Deferral counts survive native expiry and heartbeat failures. Automatic migrations and `installPgBossSchema` install the adapter's durable counter table alongside the pg-boss schema.\n- Stately jobs sharing a singleton key can defer together without colliding or spending retries, and resume one at a time. Waiting deferrals use the `effect-stately-deferred` policy in native job metadata; an adapter-installed database trigger restores `stately` when claimed.\n"
+				"name": "create-app-automatic-live-queries.md",
+				"text": "---\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Generated notes apps use repository announcements, host subscriptions and session-owned live queries without application invalidation calls, channel configuration, subscription handlers or `live()` wiring.\n"
 			},
 			{
-				"name": "effect-test-timeout-teardown.md",
-				"text": "---\n\"@shivaedev/effect-test\": patch\n---\n\n### Fixed\n\n- Wait for an interrupted test's Scope to close after its Vitest timeout, so application workers and database pools finish teardown before the next test starts. Keep the timeout as the test failure without leaking the interrupted program's rejection as an uncaught error.\n"
+				"name": "effect-contract-automatic-subscriptions.md",
+				"text": "---\n\"@shivaedev/effect-contract\": minor\n---\n\n### Added\n\n- Contracts attach command invalidation metadata and a host-served change subscription. `serverMetadata.ts` exports `CommandInvalidation` and `changesRpc(name)` for server adapters.\n- Bindings expose the `LiveConnection` symbol from `automaticLive.ts`; React session boundaries mount its `connection` atom and track the binding's query keys. `LiveBound` describes its connection and status atoms; `automaticLive(service, name)` and `ChangesClient` expose the underlying tracked coordination. `live` also accepts a function for `resyncKeys`.\n\n### Fixed\n\n- Live server hints contain only changed keys intersecting the subscription, so one item's change does not refetch unrelated item queries.\n\n### Breaking\n\n- Contracts reserve the `<contract>.$changes` RPC name for automatic subscriptions. Use Platform's database host and NDJSON transport for automatic live queries, and remove application subscription handlers and `live()` mounting when using a React session boundary.\n"
 			},
 			{
-				"name": "release-starter-pins.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+				"name": "effect-pg-boss-singleton-keys.md",
+				"text": "---\n\"@shivaedev/effect-pg-boss\": minor\n---\n\n### Added\n\n- Export `QueuePolicy` as the pinned pg-boss policy literals. Singleton queue definitions require `key: (payload) => string`, evaluated from the decoded payload when enqueueing. Related tagged-union job kinds can share one entity key: PostgreSQL allows one active job per key, other keys can run in parallel, and jobs waiting to retry or sent to the dead-letter queue leave the key available. Singleton does not guarantee ordering; applications keep handlers idempotent and guard writes against stale sources.\n\n### Breaking\n\n- `defineQueue` rejects unknown policy strings and requires `key` for `queue.policy: \"singleton\"`. Move per-job `singletonKey` options into the queue definition's key callback and remove them from `enqueue` calls for singleton queues. Ordinary queues retain native send options. Let `enqueue` infer its type arguments, or supply the queue-definition type as its third type argument in explicit generic calls.\n"
+			},
+			{
+				"name": "effect-react-session-live-queries.md",
+				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- Session boundaries mount automatic live connections on bound contract APIs returned by `connect`, either directly or as properties such as `client.api`. Connections follow the session registry lifetime and query keys. `client/mountLive.ts` also exports `mountLive(registry, client)`, returning the release function for a custom owner.\n\n### Breaking\n\n- `SessionBoundary` now connects live queries automatically when its client contains a contract binding. Remove application `live()` calls and connection mounts; serve the contract through a Platform database host with NDJSON serialization.\n"
+			},
+			{
+				"name": "effect-sql-automatic-announcements.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Repository insert, update, delete, conflict and batch writes record the table key and returned row item keys through the existing commit channel, including generated IDs and void writes. Transactions deduplicate keys and discard rolled-back writes.\n- PostgreSQL migration batches own the same commit boundary, so repository seed and upgrade writes announce after the batch commits.\n- Low-level composition exposes `repositoryChanges(sql, table, columns)`, `RepositoryChanges`, and `repositoryWrites(model, sql, options, changes)`.\n- `testing.ts` exports `withChangeCoverage(body)` and `UnannouncedWrites`; PostgreSQL transaction statistics catch tables written without a recorded table key. `transact.ts` exports `ChangeObserver` for observing that channel.\n\n### Breaking\n\n- Repository writes now open their own `transact` boundary. Use `transact` for an enclosing transaction instead of bare `sql.withTransaction`, and remove explicit invalidations for repository table/item keys. Keep explicit invalidations for derived keys. Standalone batch calls now roll back all chunks together. Direct callers of `makeInsertMany`, `makeConflictWrites` or `makeVersionedWrites` must supply `options.changes` from `repositoryChanges`, or use `makeRepository`.\n"
+			},
+			{
+				"name": "platform-default-change-delivery.md",
+				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Database hosts serve contract change subscriptions, and command declarations publish their remaining invalidation keys after handlers succeed, without repeating keys already announced by their repository commits.\n\n### Breaking\n\n- `appDatabase` and database-backed `appHost` enable PostgreSQL change delivery by default. The channel derives from the application name or database name; `config.changes.channel` overrides it and other change settings remain optional. Use the same application name or channel across web and worker processes. Remove application subscription handlers and repeated command invalidations.\n\n- Direct callers of the low-level `appHostHttp`, `migratedHost` and `deferredHost` builders pass `AppChanges` as the final argument. The ordinary `appHost` call signature stays the same.\n"
+			},
+			{
+				"name": "quality-story-boundaries.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Added\n\n- Enforce story boundaries: queue and Better Auth SQL ownership, expectations outside test-support, helpers outside specs, an allowlist of public modules for test-support, HTTP error translation at named edge modules, named numeric expectations and stories independent of implementation caps. Configure `boundaries/auth-sql.options.owners`, `boundaries/http-status.options.edge` and `tests/support-imports.options.modules` with repository paths or glob patterns.\n"
+			},
+			{
+				"name": "test-story-http-fault-controls.md",
+				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- Fake HTTP services expose `stall`, `replyOnce`, `releaseOnArrival` and `fault` controls for body stalls, raw byte and iterable chunk replies, automatic hold release on route arrival, and faults injected into arrived requests or replies in flight. `FakeHttpReply.chunks` accepts string or byte iterables, and the exported `FakeHttpFault` describes status, pre-header drop and mid-body reset faults. Controls validate route names, narrate through the story and clean up with its scope.\n"
+			},
+			{
+				"name": "work-fleet-queued-continuations.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- A bounded scheduler pass observes active work before resuming queued continuations, so capacity released during the pass is available to them before the pass returns.\n"
+			},
+			{
+				"name": "work-fleet-sweeps.md",
+				"text": "---\n\"@shivaedev/work-fleet\": minor\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Board task metadata accepts a nonempty `sweep` list of repository-relative path globs, including `['*']` for all paths.\n- Fleet carries sweep paths in `BoardWork` and durable Fleet records. Sweeps block new implementers, hold matching reviewed PRs on automation, prioritize their own repairs, and send held PRs through one migration repair with the sweep brief after merging.\n- PostgreSQL admission also guards merge readiness. `StorageAdmission` can carry an exact-head sweep hold, so a sweep launching during a readiness observation records a durable hold before any ready decision can publish.\n"
 			}
 		],
 		"releases": [
 			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/create-app",
-				"from": "0.10.1",
+				"from": "0.10.2",
 				"name": "@shivaedev/create-app",
-				"to": "0.10.2"
+				"to": "0.11.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-contract",
+				"from": "0.5.1",
+				"name": "@shivaedev/effect-contract",
+				"to": "0.6.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-pg-boss",
-				"from": "0.10.1",
-				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.11.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-prisma",
-				"from": "0.10.1",
-				"name": "@shivaedev/effect-prisma",
-				"to": "0.10.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-test",
-				"from": "0.7.0",
-				"name": "@shivaedev/effect-test",
-				"to": "0.7.1"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-trpc",
-				"from": "0.8.1",
-				"name": "@shivaedev/effect-trpc",
-				"to": "0.8.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/platform",
-				"from": "0.18.1",
-				"name": "@shivaedev/platform",
-				"to": "0.18.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/test-story",
 				"from": "0.11.0",
+				"name": "@shivaedev/effect-pg-boss",
+				"to": "0.12.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-react",
+				"from": "0.7.0",
+				"name": "@shivaedev/effect-react",
+				"to": "0.8.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-sql",
+				"from": "0.6.0",
+				"name": "@shivaedev/effect-sql",
+				"to": "0.7.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-test-sql",
+				"from": "0.6.0",
+				"name": "@shivaedev/effect-test-sql",
+				"to": "0.6.1"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/platform",
+				"from": "0.18.2",
+				"name": "@shivaedev/platform",
+				"to": "0.19.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/quality",
+				"from": "0.27.1",
+				"name": "@shivaedev/quality",
+				"to": "0.28.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/test-story",
+				"from": "0.11.1",
 				"name": "@shivaedev/test-story",
-				"to": "0.11.1"
+				"to": "0.12.0"
 			},
 			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/work-board",
-				"from": "0.20.2",
+				"from": "0.20.3",
 				"name": "@shivaedev/work-board",
-				"to": "0.20.3"
+				"to": "0.21.0"
 			},
 			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/work-fleet",
-				"from": "0.10.1",
+				"from": "0.10.2",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.10.2"
+				"to": "0.11.0"
 			}
 		]
 	}
