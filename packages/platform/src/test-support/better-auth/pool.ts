@@ -5,8 +5,8 @@ import { vi } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { authDatabase } from "#server/authDatabase.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { authDatabase } from "#server/better-auth/mount.ts";
+import { databaseUrl, postgres } from "./postgres.ts";
 
 interface Engine {
 	readonly logs: Array<{ readonly level: LogLevel.LogLevel; readonly message: unknown }>;
@@ -20,6 +20,7 @@ export const authPool = storyKit({
 	inspect: (engine) => ({ logs: engine.logs.length, poolSize: engine.pool?.totalCount }),
 	layer: postgres,
 	name: "auth database",
+	runIf: databaseUrl !== undefined,
 	stages: ["pool"],
 	verbs: (engine, story) => {
 		function pool() {

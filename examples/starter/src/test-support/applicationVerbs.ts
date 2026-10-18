@@ -6,7 +6,6 @@ import { CountWords } from "#server/noteJobs.ts";
 import { noteWorker } from "#server/noteWorker.ts";
 import type { Engine } from "./applicationState.ts";
 import { authPost, credentials } from "./authHttp.ts";
-import { authRateLimits } from "./authRateLimits.ts";
 import { createInRolledBackTransaction } from "./createInRolledBackTransaction.ts";
 import { startHost } from "./host.ts";
 import { liveNotes } from "./liveNotes.ts";
@@ -70,7 +69,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		},
 		authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
 		authenticateResponse: (name: string, path: string) => authPost(host().baseUrl, path, credentials(name), "", host().origin),
-		authRateLimits: () => authRateLimits(host(), story.tell),
 		createInRolledBackTransaction: (title: string, ownerId: string) => createInRolledBackTransaction(host(), story.tell, title, ownerId),
 		failNextNoteJob: Effect.fn("AppStory.failNextNoteJob")(function* () {
 			story.tell("the queue client rejects the next word-count send");
