@@ -7,6 +7,7 @@ import { pruneEmptyCycles } from "#storage/pruneEmptyCycles.ts";
 import { recordTimeColumns } from "#storage/recordTimes.ts";
 import { shapeV12 } from "#storage/shapeV12.ts";
 import { shapeV14 } from "#storage/shapeV14.ts";
+import { shapeV15 } from "#storage/shapeV15.ts";
 import { typedTables } from "#storage/typedTables.ts";
 
 const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
@@ -56,5 +57,6 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			yield* addShapeColumns(namespace, shapeV12, shapeV14);
 			yield* sql`alter table ${sql(`${namespace}_dispatches`)} add column now boolean, add column ignore_areas boolean`;
 		}),
+		"15_published_recovery": addShapeColumns(namespace, shapeV14, shapeV15),
 	});
 });

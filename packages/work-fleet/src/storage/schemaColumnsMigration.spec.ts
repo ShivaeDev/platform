@@ -5,7 +5,7 @@ import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import { recordColumns } from "#storage/model.ts";
 import { childTable } from "#storage/recordChildren.ts";
 import { collections, recordShape, shapeColumns, sqlTypes } from "#storage/recordShape.ts";
-import { shapeV14 } from "#storage/shapeV14.ts";
+import { shapeV15 } from "#storage/shapeV15.ts";
 import { migrateFleet } from "#test/migrateFleet.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
@@ -36,7 +36,7 @@ for (const path of ["fresh", "upgrade"] as const) {
 			return left.name.localeCompare(right.name, "en");
 		}
 		expect([...columns].sort(byName)).toEqual(expected.sort(byName));
-		expect(recordShape()).toEqual(shapeV14);
+		expect(recordShape()).toEqual(shapeV15);
 		for (const collection of collections(recordShape())) {
 			const child = childTable(namespace, collection.path);
 			const actual = yield* sql<{

@@ -45,7 +45,7 @@ export const recoverMissingTurn = Effect.fn("Fleet.recoverMissingTurn")(function
 		...record,
 		attempts: record.attempts.map((entry) =>
 			entry.operationId === attempt.operationId
-				? { ...entry, output: reason, readRetry: undefined, sessionUnusable: true, status: "failed" as const }
+				? { ...entry, output: reason, publishedRecovery: published, readRetry: undefined, sessionUnusable: true, status: "failed" as const }
 				: entry,
 		),
 		checks: undefined,
