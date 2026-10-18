@@ -76,5 +76,6 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			text text not null, release boolean not null, error text, response_decision_id text, response_id text
 		)`,
 		"20_merged_deliveries": mergedDeliveries(namespace),
+		"21_foreign_areas": sql`alter table ${sql(`${namespace}_foreign_reservations`)} add column areas text[] not null default '{}'`,
 	});
 });

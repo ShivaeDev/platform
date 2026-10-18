@@ -12,5 +12,5 @@ export function admissionReads<A>(options: FleetStoreOptions<A>, record: A, prev
 		&& options.submissions !== undefined
 		&& (previous === undefined || !(options.submissions(record, limits.quota.observedAt) <= options.submissions(previous, limits.quota.observedAt)));
 	const admission = options.admission !== undefined && (options.admissionNeedsRecords?.(record, previous, limits) ?? true);
-	return { foreign: capacity, records: admission || capacity || quota };
+	return { foreign: admission || capacity, records: admission || capacity || quota };
 }

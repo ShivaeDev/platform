@@ -13,6 +13,7 @@ import * as Option from "effect/Option";
 import { answerCommand, continueCommand, nameThreadsCommand, reassignCommand, releaseCommand } from "#host/actionCommands.ts";
 import { board, clientPort, config, host, port } from "#host/cliOptions.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
+import { reservePrCommand } from "#host/reservePrCommand.ts";
 import { VERSION } from "#packageInfo.ts";
 
 const serveCommand = Command.make(
@@ -84,6 +85,7 @@ const cli = Command.make("work-fleet").pipe(
 	Command.withSubcommands([
 		serveCommand,
 		dispatchCommand,
+		reservePrCommand,
 		continueCommand,
 		releaseCommand,
 		answerCommand,

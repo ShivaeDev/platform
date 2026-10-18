@@ -117,7 +117,7 @@ Cloud hosts compute the Board directory's repository-relative path only when tha
 
 ### Schedule areas and dependencies
 
-Use `areas` to name the code areas a task changes. Area names are exact shared labels, such as `work-fleet/host`; they do not expand into filesystem paths. Fleet admits one task per area, while disjoint areas and tasks without areas can run concurrently within the existing capacity and quota limits.
+Use `areas` to name the code areas a task changes. Two areas overlap when they are equal or one is a `/`-prefix of the other: `work-fleet` and `work-fleet/host` block each other, while `work-fleet/host` and `work-fleet/cli` stay independent. The area `*` overlaps every area. Areas are labels, not filesystem paths. Fleet serializes overlapping claims; disjoint areas and tasks without areas can run concurrently within capacity and quota limits.
 
 ```yaml
 ---
@@ -133,6 +133,8 @@ relationships:
 ```
 
 An overlapping task remains prepared, waiting on automation, with a reason such as `waiting for area work-fleet/host held by task.foundation`. Areas are held through execution, review and validation, and are freed on completion or safe release. For a reviewed, green PR ready for a human merge, `areaMergeWaitMs` in Fleet policy or `fleet.config.json` defaults to `1800000` (30 minutes), counted from that readiness event. Once the wait expires, other tasks can use its areas while Fleet continues observing the PR for delivery. PostgreSQL preserves admission order across restarts; eligible overlapping tasks wait behind earlier prepared work. Each scheduler pass retries waiting work but rewrites a waiting item only when its reason changes, and admission reads decode only the records that changed since the previous read.
+
+Reserve a PR Fleet did not launch with `work-fleet reserve-pr <url> --areas work-fleet --areas work-board/ui`. Fleet uses the matching Board task's areas when its `pr:` URL, `branch:` name or configured worker branch matches the PR; otherwise it uses the repeated `--areas` values. Foreign PR reservations hold those areas and an open-PR backlog slot until a scheduler pass observes the PR closed or merged. Failed GitHub reads retain the reservation. Reservations persist in PostgreSQL.
 
 Fleet identifies work by its authored brief: the Markdown title and body, criteria, Board kind, deliverable kind and authored relationships. Bookkeeping fields such as `status`, `next_action` and `owner` do not change that revision. Editing them on executing or reviewing work preserves the attempts; editing them on work with an open decision preserves the question and its recorded answers. Criteria or body edits refresh eligible prepared and active work in place. Work waiting on a human decision still stops with Board context changed; an answer to the earlier decision cannot authorize execution against the changed brief. This revision rule applies to every status, including `done`: marking executing work done leaves its original work and decision intact and resolvable. Completed work can be prepared again only after its authored brief changes; unchanged source or bookkeeping edits leave its accepted outcome intact. Saved whole-file revisions are compared through their exact saved source without rewriting records or publication receipts; records without that source still need renewed preparation when their revision differs. Approval remains a separate execution requirement.
 
@@ -175,6 +177,7 @@ fleet-priority: high
 | Command | Behavior |
 |---|---|
 | `work-fleet serve <board-dir> [--port <port>]` | Starts the local HTTP RPC daemon, admits approved work, dispatches prepared items and reconciles running work. |
+| `work-fleet reserve-pr <url> [--areas <area> ...] [--port <port>]` | Reserves a foreign PR using matching Board areas or the supplied areas. |
 | `work-fleet dispatch <work-id> [--now [--ignore-areas]] [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. `--now` launches over capacity limits; `--ignore-areas` also skips area claims. |
 | `work-fleet status [--port <port>]` | Prints Active, owner-grouped waiting and Completed views from stored records, then the config the daemon applies. |
 | `work-fleet status <work-id> --json [--port <port>]` | Filters to one item and prints the views as JSON. |

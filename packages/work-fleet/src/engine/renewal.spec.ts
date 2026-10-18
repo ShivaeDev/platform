@@ -132,7 +132,9 @@ describe("context-bound Fleet renewal", () => {
 				const renewed = yield* prepareWork("one");
 				expect(renewed.value.history?.[0]?.resultObservations).toEqual([denied.value.result]);
 				expect(renewed.value.history?.[0]?.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
-				expect(yield* fixture.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
+				expect(yield* fixture.foreignReservations()).toEqual([
+					{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" },
+				]);
 				expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
 				expect(fixture.launched).toHaveLength(3);
 			}),

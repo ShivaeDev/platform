@@ -12,6 +12,7 @@ import { daemonDiagnostics } from "#host/daemonDiagnostics.ts";
 import { daemonSnapshots } from "#host/daemonSnapshots.ts";
 import { dispatchRequests } from "#host/dispatchRequests.ts";
 import { fleetStatus } from "#host/fleetStatus.ts";
+import { reserveForeignPr } from "#host/foreignReservations.ts";
 import { LiveConfig } from "#host/liveConfig.ts";
 import { nameStoredThreads } from "#host/nameThreads.ts";
 import { decisionResponses, releaseItems } from "#host/releaseWork.ts";
@@ -58,6 +59,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 					"daemon.name-threads": () => exposeFailure(nameStoredThreads(host)),
 					"daemon.release": ({ workIds }) =>
 						exposeFailure(settle(withResponses(releaseItems(host, workIds, true))).pipe(Effect.map((records) => records.map(({ value }) => value)))),
+					"daemon.reserve-pr": ({ areas, pr }) => exposeFailure(settle(reserveForeignPr(host, pr, areas))),
 					"daemon.status": ({ workId }) => exposeFailure(workId === undefined ? status : read(fleetStatus(host, workId))),
 				}),
 			),

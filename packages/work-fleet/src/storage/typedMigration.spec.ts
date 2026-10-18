@@ -50,7 +50,7 @@ test("text records migrate every current and archived field, preserving empty an
 		expect(yield* store.load(entry.value.workId)).toEqual(entry);
 	}
 	expect(yield* sql`select work_id, admission_order, version from ${sql(`${namespace}_records`)} order by admission_order`).toEqual(before);
-	expect(yield* store.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "external" }]);
+	expect(yield* store.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "external" }]);
 	expect(yield* store.operationEntries("operation")).toHaveLength(3);
 	expect(yield* migrateFleet(namespace)).toEqual([]);
 	expect(yield* store.list()).toEqual(expected);

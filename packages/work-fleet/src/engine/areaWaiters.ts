@@ -3,7 +3,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { missingBoardItem } from "#engine/missingBoardWork.ts";
 import type { FleetRecord } from "#model.ts";
 import { qualifyDependencies } from "#qualifyDependencies.ts";
-import { DEFAULT_AREA_MERGE_WAIT_MS, holdsAreas } from "#scheduling/areas.ts";
+import { DEFAULT_AREA_MERGE_WAIT_MS, holdsAreas, overlappingArea } from "#scheduling/areas.ts";
 
 export const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: EngineState, record: FleetRecord) {
 	const policy = yield* state.current;
@@ -12,7 +12,9 @@ export const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: Engi
 	}
 	const records = (yield* state.store.list()).map(({ value }) => value);
 	const index = records.findIndex((entry) => entry.workId === record.workId);
-	const waiting = records.slice(0, index).filter((entry) => entry.stage === "prepared" && entry.areas?.some((area) => record.areas?.includes(area)));
+	const waiting = records
+		.slice(0, index)
+		.filter((entry) => entry.stage === "prepared" && overlappingArea(record.areas ?? [], entry.areas) !== undefined);
 	return yield* Effect.filter(waiting, (entry) =>
 		state.board.get(entry.workId).pipe(
 			Effect.flatMap((work) =>

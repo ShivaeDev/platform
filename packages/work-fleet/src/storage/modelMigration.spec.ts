@@ -32,7 +32,7 @@ test("populated JSONB records migrate without changing records, versions, order 
 			for (const entry of expected) {
 				expect(yield* store.load(entry.value.workId)).toEqual(entry);
 			}
-			expect(yield* store.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "external" }]);
+			expect(yield* store.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "external" }]);
 			expect(yield* sql`select work_id, admission_order from ${sql(`${namespace}_records`)} order by admission_order`).toEqual(before);
 			expect(yield* migrateFleet(namespace)).toEqual([]);
 			const first = expected[0];

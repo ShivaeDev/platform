@@ -33,7 +33,7 @@ describe("Fleet delivery ownership", () => {
 			finishWorkers();
 			const denied = yield* fleet.reconcile("one");
 			yield* fleet.resolve("one", denied.value.decision?.id ?? "missing", respond(denied.value.decision?.id ?? "missing", "release"));
-			expect(yield* foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
+			expect(yield* foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
 			yield* fleet.prepare({ cwd: "/synthetic", preparation: prepared({ ownedPaths: ["src/one.ts"] }), prompt: "Same scope", workId: "two" });
 			expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
 		},

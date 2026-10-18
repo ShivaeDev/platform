@@ -38,3 +38,11 @@ export function fleetDeliverable(parsed: ParsedMetadata): unknown {
 export function fleetPriority(parsed: ParsedMetadata): unknown {
 	return fleetField(parsed, PRIORITY);
 }
+
+export function fleetPullRequest(parsed: ParsedMetadata): unknown {
+	return fleetField(parsed, "pr");
+}
+
+export function fleetBranch(parsed: ParsedMetadata): unknown {
+	return fleetField(parsed, "branch");
+}
