@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { recoveryFleet } from "#test/recoveryFleet.ts";
-import { lostAcknowledgement, publishedWork } from "#test/recoveryTraits.ts";
+import { lostAcknowledgement, publishedWork, requestedRepair, runningReview } from "#test/recoveryTraits.ts";
 import { WORK_BRANCH, WORK_PR } from "#test/workPublication.ts";
 
 for (const receiptLost of [false, true]) {
@@ -71,9 +71,9 @@ for (const state of ["merged", "closed"] as const) {
 for (const receiptLost of [false, true]) {
 	for (const published of ["none", "branch", "pr"] as const) {
 		recoveryFleet.it(
-			`a second loss with ${published} after ${receiptLost ? "losing" : "receiving"} the first receipt asks after one automatic relaunch`,
+			`a second loss with ${published} after ${receiptLost ? "losing" : "receiving"} the first receipt recovers automatically`,
 			[publishedWork(published), ...(receiptLost ? [lostAcknowledgement()] : [])],
-			function* ({ fleet, provider, observed, setTime, respond }) {
+			function* ({ fleet, provider, observed, setTime }) {
 				yield* fleet.prepare();
 				const first = (yield* fleet.dispatch()).value;
 				provider.lose(first.attempts.at(-1)?.sessionId);
@@ -86,26 +86,15 @@ for (const receiptLost of [false, true]) {
 				yield* fleet.reconcile();
 				setTime(600_100);
 				yield* fleet.restart();
-				const parked = (yield* fleet.reconcile()).value;
-				expect(parked.stage).toBe("needs-human");
-				expect(parked.decision?.attentionOwner).toBe("orchestrator");
-				expect(parked.decision?.reason).toContain("one automatic relaunch");
-				expect(observed.launched).toHaveLength(2);
-				if (parked.decision === undefined) {
-					throw new Error("Expected a repeated-loss decision");
-				}
-				yield* fleet.restart();
-				yield* fleet.reconcile();
-				expect(observed.decisions).toHaveLength(1);
-				expect(observed.launched).toHaveLength(2);
-				respond(parked.decision.id, "retry");
-				const answered = (yield* fleet.reconcile()).value;
-				expect(answered.stage).toBe("executing");
-				expect(answered.prompt).toBe(first.prompt);
+				const replacement = (yield* fleet.reconcile()).value;
+				expect(replacement.stage).toBe("executing");
+				expect(replacement.decision).toBeUndefined();
+				expect(observed.decisions).toHaveLength(0);
+				expect(replacement.attempts.at(-1)?.role).toBe(published === "none" ? "worker" : "repair");
+				expect(replacement.prompt).toBe(first.prompt);
 				const prompt = observed.starts.at(-1)?.prompt;
 				expect(prompt?.split(first.prompt)).toHaveLength(2);
 				expect(prompt?.match(/Accepted Codex turn is not observable/gu)).toHaveLength(1);
-				expect(prompt).toContain("Human context");
 				if (published !== "none") {
 					expect(prompt).toContain(`existing branch ${WORK_BRANCH}`);
 				}
@@ -117,3 +106,30 @@ for (const receiptLost of [false, true]) {
 		);
 	}
 }
+
+recoveryFleet.it(
+	"a lost repair after a completed replacement rechecks the current PR and recovers automatically",
+	[lostAcknowledgement(), runningReview, requestedRepair],
+	function* ({ fleet, provider, publication, observed, setTime }) {
+		yield* fleet.prepare();
+		provider.lose((yield* fleet.dispatch()).value.attempts.at(-1)?.sessionId);
+		yield* fleet.reconcile();
+		provider.finish();
+		expect((yield* fleet.reconcile()).value.stage).toBe("reviewing");
+		provider.finish();
+		const repair = (yield* fleet.reconcile()).value;
+		expect(repair.attempts.at(-1)?.role).toBe("repair");
+		publication.pullRequest();
+		provider.lose(repair.attempts.at(-1)?.sessionId);
+		yield* fleet.reconcile();
+		setTime(300_100);
+		yield* fleet.restart();
+		const recovered = (yield* fleet.reconcile()).value;
+		expect(recovered.stage).toBe("executing");
+		expect(recovered.decision).toBeUndefined();
+		expect(recovered.attempts.at(-1)?.role).toBe("repair");
+		expect(recovered.attempts.at(-1)?.sessionId).not.toBe(repair.attempts.at(-1)?.sessionId);
+		expect(recovered.attempts.at(-1)?.prompt).toContain(WORK_PR);
+		expect(observed.decisions).toHaveLength(0);
+	},
+);

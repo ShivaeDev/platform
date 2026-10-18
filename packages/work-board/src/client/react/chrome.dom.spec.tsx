@@ -45,6 +45,7 @@ function fixtures() {
 		"saves appearance and sidebar choices through a document refresh and reload",
 		[screenWorkspace("reading-fixture"), chromeScreen(files)],
 		function* ({ chrome, click, choose, control, refreshDocument, editFile, readRootAttribute, closeScreen }) {
+			click("#settings-open");
 			choose("#theme", "dark");
 			choose("#density", "compact");
 			click("#sidebar-toggle");
@@ -55,6 +56,7 @@ function fixtures() {
 			expect(control("#sidebar", HTMLElement).hidden).toBe(true);
 			yield* Effect.promise(() => closeScreen());
 			yield* Effect.promise(() => chrome());
+			click("#settings-open");
 			expect(control("#theme", HTMLSelectElement).value).toBe("dark");
 			expect(control("#density", HTMLSelectElement).value).toBe("compact");
 			expect(control("#sidebar-toggle", HTMLButtonElement).getAttribute("aria-expanded")).toBe("false");

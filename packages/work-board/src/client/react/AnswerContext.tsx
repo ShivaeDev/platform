@@ -1,8 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { cardContext } from "#browser/responses/cardContext.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
-import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
-import { cn } from "#client/react/lib/cn.ts";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 
 export function AnswerContext({ preview }: { readonly preview: QuestionPreview }) {
@@ -18,17 +17,19 @@ export function AnswerContext({ preview }: { readonly preview: QuestionPreview }
 			{context.links.length > 0 && (
 				<div className="answer-links flex flex-wrap gap-2">
 					{context.links.map((link) => (
-						<a
-							className={cn(buttonVariants({ size: "sm", variant: link.primary ? "default" : "outline" }), "answer-link")}
-							href={link.url}
-							key={link.url}
-						>
-							{link.label}
-							<ExternalLink aria-hidden="true" />
-						</a>
+						<AnswerLink key={link.url} link={link} />
 					))}
 				</div>
 			)}
 		</>
+	);
+}
+
+function AnswerLink({ link }: { readonly link: ReturnType<typeof cardContext>["links"][number] }) {
+	return (
+		<Button className="answer-link" nativeButton={false} render={<a href={link.url} />} size="sm" variant={link.primary ? "default" : "outline"}>
+			{link.label}
+			<ExternalLink aria-hidden="true" />
+		</Button>
 	);
 }

@@ -46,7 +46,10 @@ export const watchFor = Effect.fn("FleetWatch.watchFor")(function* (options: Wat
 	);
 	yield* options.timeoutMs === undefined
 		? consume
-		: Effect.raceFirst(consume, Deferred.await(ready).pipe(Effect.andThen(Effect.sleep(options.timeoutMs))));
+		: Effect.raceFirst(
+				consume,
+				options.follow ? Effect.sleep(options.timeoutMs) : Deferred.await(ready).pipe(Effect.andThen(Effect.sleep(options.timeoutMs))),
+			);
 	if (!options.follow && pending?.size === 0) {
 		return WAIT_EXIT.completed;
 	}

@@ -3,7 +3,7 @@ import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
 import * as Flag from "effect/cli/Flag";
 import { answerText } from "#host/answerText.ts";
-import { board, config, port } from "#host/cliOptions.ts";
+import { board, clientPort, config, port } from "#host/cliOptions.ts";
 import { continuationMessage } from "#host/continuationMessage.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
 
@@ -13,7 +13,7 @@ export const continueCommand = Command.make(
 	Effect.fn("WorkFleetCli.continue")(function* (input) {
 		const message = yield* continuationMessage(Option.getOrUndefined(input.args[1]));
 		const value = yield* daemonRequest(
-			input.port,
+			yield* clientPort(input),
 			(client) => client("fleet.continue", { message, workId: input.args[0] }),
 			`continue ${input.args[0]}`,
 		);
@@ -28,7 +28,7 @@ export const releaseCommand = Command.make(
 	{ board, config, port, workIds: Argument.String("id").pipe(Argument.variadic({ min: 1 })) },
 	Effect.fn("WorkFleetCli.release")(function* (input) {
 		const released = yield* daemonRequest(
-			input.port,
+			yield* clientPort(input),
 			(client) => client("daemon.release", { workIds: input.workIds }),
 			`release ${input.workIds.join(", ")}`,
 		);
@@ -50,7 +50,7 @@ export const reassignCommand = Command.make(
 	},
 	Effect.fn("WorkFleetCli.reassign")(function* (input) {
 		const value = yield* daemonRequest(
-			input.port,
+			yield* clientPort(input),
 			(client) => client("fleet.reassign", { attentionOwner: input.to, decisionId: input.question, workId: input.id }),
 			`reassign ${input.id}`,
 		);
@@ -62,7 +62,7 @@ export const nameThreadsCommand = Command.make(
 	"name-threads",
 	{ board, config, port },
 	Effect.fn("WorkFleetCli.nameThreads")(function* (input) {
-		const results = yield* daemonRequest(input.port, (client) => client("daemon.name-threads", {}), "name-threads");
+		const results = yield* daemonRequest(yield* clientPort(input), (client) => client("daemon.name-threads", {}), "name-threads");
 		for (const result of results) {
 			yield* result.error ? Console.error(result.message) : Console.log(result.message);
 		}
@@ -82,7 +82,7 @@ export const answerCommand = Command.make(
 		const supplied = Option.getOrUndefined(input.args[1]);
 		const text = input.release && supplied === undefined ? "" : yield* answerText(supplied);
 		const value = yield* daemonRequest(
-			input.port,
+			yield* clientPort(input),
 			(client) => client("daemon.answer", { release: input.release, text, workId: input.args[0] }),
 			`answer ${input.args[0]}`,
 		);

@@ -1,8 +1,14 @@
 import { type ReactNode, useId, useLayoutEffect, useRef } from "react";
 import { useField } from "@shivaedev/effect-form/client/react.ts";
 import type { Fields, Form, Name } from "@shivaedev/effect-form/shape.ts";
+import { Input } from "#client/react/components/ui/input.tsx";
+import { Label } from "#client/react/components/ui/label.tsx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#client/react/components/ui/select.tsx";
+import { Textarea } from "#client/react/components/ui/textarea.tsx";
 
-type Control = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+const UNSET = "unset";
+
+type Control = HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement;
 export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	form,
 	name,
@@ -10,7 +16,7 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	maxLength,
 	required,
 	rows,
-	children,
+	options,
 	autoComplete,
 	showErrors = true,
 }: {
@@ -20,7 +26,7 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	readonly maxLength?: number;
 	readonly required?: boolean;
 	readonly rows?: number;
-	readonly children?: ReactNode;
+	readonly options?: readonly { readonly value: string; readonly label: string }[];
 	readonly autoComplete?: string;
 	readonly showErrors?: boolean;
 }) {
@@ -34,39 +40,72 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	const props = {
 		"aria-describedby": `${id}-error`,
 		"aria-invalid": Boolean(error),
-		className: "w-full rounded-md border bg-background px-3 py-2 text-sm",
 		id,
-		name,
 		onBlur: field.onBlur,
 		ref: (element: Control | null) => {
 			ref.current = element;
 		},
-		required,
-		value,
 	};
 	function change(next: string) {
 		form.values.set({ ...form.values.value, [name]: next || (name === "supersedes" ? undefined : "") });
 		form.blur(name);
 	}
 	let control: ReactNode;
-	if (children) {
+	if (options) {
 		control = (
-			<select {...props} onChange={(event) => change(event.currentTarget.value)} onInput={(event) => change(event.currentTarget.value)}>
-				{children}
-			</select>
+			<Select
+				items={options.map((option) => ({ label: option.label, value: option.value || UNSET }))}
+				name={name}
+				onValueChange={(next) => change(next === null || next === UNSET ? "" : next)}
+				required={Boolean(required)}
+				value={value || UNSET}
+			>
+				<SelectTrigger {...props} className="w-full">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{options.map((option) => (
+						<SelectItem key={option.value || UNSET} value={option.value || UNSET}>
+							{option.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
 		);
 	} else if (rows) {
-		control = <textarea {...props} maxLength={maxLength} onInput={(event) => change(event.currentTarget.value)} rows={rows} />;
+		control = (
+			<Textarea
+				{...props}
+				maxLength={maxLength}
+				name={name}
+				onInput={(event) => change(event.currentTarget.value)}
+				required={required}
+				rows={rows}
+				value={value}
+			/>
+		);
 	} else {
-		control = <input {...props} autoComplete={autoComplete} maxLength={maxLength} onInput={(event) => change(event.currentTarget.value)} />;
+		control = (
+			<Input
+				{...props}
+				autoComplete={autoComplete}
+				maxLength={maxLength}
+				name={name}
+				onInput={(event) => change(event.currentTarget.value)}
+				required={required}
+				value={value}
+			/>
+		);
 	}
 	return (
-		<label className="grid gap-2 text-sm" htmlFor={id}>
-			{label}
+		<div className="grid gap-2 text-sm">
+			<Label className="font-normal" htmlFor={id}>
+				{label}
+			</Label>
 			{control}
 			<span className="response-field-error text-destructive text-xs" hidden={!error} id={`${id}-error`}>
 				{error}
 			</span>
-		</label>
+		</div>
 	);
 }

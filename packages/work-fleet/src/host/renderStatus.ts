@@ -1,21 +1,20 @@
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { sessionStatus } from "#engine/sessionStatus.ts";
 import { type DaemonStatus, renderConfig } from "#host/configSettings.ts";
 import type { FleetViews } from "#model.ts";
 
-const { DAEMON_PORT } = diagnosticsApi;
-
 type View = (typeof FleetViews.Type)["active"][number];
 
-function line(view: View, waiting: boolean, port: number) {
+function line(view: View, waiting: boolean, selection: string) {
 	const reason = view.blocker ?? view.decision?.reason ?? (view.overLimit ? "launched over the limit" : undefined);
 	const detail = reason === undefined ? "" : `  ${reason}`;
 	const links = [...(view.recovery === undefined ? [] : [view.recovery]), ...view.links, ...view.sessions.map(sessionStatus)];
-	const answer = waiting ? `\n    work-fleet answer ${view.workId}${port === DAEMON_PORT ? "" : ` --port ${port}`}` : "";
+	const answer = waiting ? `\n    work-fleet answer ${view.workId}${selection}` : "";
 	return `  ${view.workId}  ${view.stage}${detail}${links.length === 0 ? "" : `  (${links.join(", ")})`}${answer}`;
 }
 
-export function renderStatus(current: typeof DaemonStatus.Type, port: number = DAEMON_PORT): string {
+export function renderStatus(current: typeof DaemonStatus.Type, selection: { readonly board?: string; readonly port?: number } = {}): string {
+	const board = selection.board === undefined || selection.board === ".work" ? "" : ` --board '${selection.board.replaceAll("'", "'\\''")}'`;
+	const endpoint = `${board}${selection.port === undefined ? "" : ` --port ${selection.port}`}`;
 	const sections: readonly [string, readonly View[]][] = [
 		["Active", current.active],
 		["Waiting on maintainer", current.waiting.maintainer],
@@ -27,7 +26,7 @@ export function renderStatus(current: typeof DaemonStatus.Type, port: number = D
 		.map(([title, items]) =>
 			[
 				`${title} (${items.length})`,
-				...items.map((item) => line(item, title === "Waiting on maintainer" || title === "Waiting on orchestrator", port)),
+				...items.map((item) => line(item, title === "Waiting on maintainer" || title === "Waiting on orchestrator", endpoint)),
 			].join("\n"),
 		)
 		.join("\n");

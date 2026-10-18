@@ -16,11 +16,21 @@ export function fleetVerbs(engine: FleetStoryState, story: { readonly tell: (mes
 		...foreignPrVerbs(fixture, runtime.fleet, engine.github, story),
 		attemptContinue: (id: string, message: string) => {
 			story.tell(`Fleet attempts to continue ${id}`);
-			return runtime.fleet.continue(id, message).pipe(Effect.flip);
+			return runtime.fleet.continue(id, message).pipe(
+				Effect.matchEffect({
+					onFailure: Effect.succeed,
+					onSuccess: () => Effect.die(new Error(`Expected continuing ${id} to fail, but it succeeded`)),
+				}),
+			);
 		},
 		attemptDispatch: (id: string) => {
 			story.tell(`Fleet attempts to dispatch ${id}`);
-			return runtime.fleet.dispatch(id).pipe(Effect.flip);
+			return runtime.fleet.dispatch(id).pipe(
+				Effect.matchEffect({
+					onFailure: Effect.succeed,
+					onSuccess: () => Effect.die(new Error(`Expected dispatching ${id} to fail, but it succeeded`)),
+				}),
+			);
 		},
 		commits: engine.commits,
 		continue: (id: string, message: string) => {

@@ -78,5 +78,3 @@ pnpm lint
 pnpm typecheck
 pnpm build
 ```
-
-The DOM test proves form and query behavior. The preceding host test proves real PostgreSQL and authenticated HTTP behavior. Neither establishes deployed browser cookies, responsive layout or mobile behavior; verify those in the application that will ship the feature.

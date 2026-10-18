@@ -25,14 +25,9 @@ export const guardLostTurn = Effect.fn("Fleet.guardLostTurn")(function* (
 			blocker: "Accepted Codex turn is not observable; thread remains active; waiting within the visibility grace period",
 		});
 	}
-	let reason: string | undefined;
 	if (idle !== true) {
 		const uncertainty = idle === false ? "thread remains active after the visibility grace period" : "thread idle state is unknown";
-		reason = `Accepted Codex turn is not observable; ${uncertainty}; retain execution ownership`;
-	} else if (!answered && record.attempts.some((entry) => entry.publishedRecovery !== undefined)) {
-		reason = "Accepted Codex turn is not observable after one automatic relaunch in this execution cycle";
-	}
-	if (reason !== undefined) {
+		const reason = `Accepted Codex turn is not observable; ${uncertainty}; retain execution ownership`;
 		return record.decision === undefined
 			? yield* state.decision(
 					stored,

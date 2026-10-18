@@ -2,9 +2,9 @@
 	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "empty-test-layers.md",
-			"text": "### Fixed\n\n- The tRPC test helpers accept test Layers that provide nothing, such as `Layer.empty`.\n"
+			"name": "file-path-exports.md",
+			"text": "### Breaking\n\n- Every module's import path is now its path under `src/`, and `server/internal/` stays private. Server modules gain a `server/` prefix and keep their file names, for example `server/adapter.ts`, `server/EffectProcedureBuilder.ts`, `server/rejectionFormatter.ts`, `server/requestServices.ts`, `server/RequestSignal.ts` and `server/testing/AnyTestLayer.ts`. `client/rejection.ts` becomes `rejectionDecoding.ts`.\n"
 		}
 	],
-	"version": "0.7.2"
+	"version": "0.8.0"
 }
