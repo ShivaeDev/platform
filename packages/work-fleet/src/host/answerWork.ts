@@ -14,7 +14,7 @@ export const answerWork = Effect.fn("FleetHost.answerWork")(function* <E = never
 	release = false,
 	background = false,
 	originalDecision?: Pick<Decision, "code" | "reason">,
-	onPublished?: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, E, R>,
+	beforePublish?: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, E, R>,
 	queue?: () => Effect.Effect<Versioned<FleetRecord>, E, R>,
 ) {
 	const fleet = yield* Fleet;
@@ -30,8 +30,7 @@ export const answerWork = Effect.fn("FleetHost.answerWork")(function* <E = never
 			return yield* queue?.() ?? fleet.queueAnswer(workId, text);
 		}
 		yield* checkDecision(current, original);
-		const response = yield* publishAnswer(host, workId, original, text, release);
-		yield* onPublished?.(response) ?? Effect.void;
+		const response = yield* publishAnswer(host, workId, original, text, release, beforePublish);
 		recorded = response;
 		return yield* resolve(workId, response.decisionId, response.responseId).pipe(
 			Effect.catchTag("Conflict", (error) => decisionConflict(fleet, workId, response.decisionId, error)),
@@ -66,12 +65,13 @@ function hasResponse(record: FleetRecord, recorded: { readonly decisionId: strin
 	return receipts.some((receipt) => receipt.decisionId === recorded.decisionId && receipt.responseId === recorded.responseId);
 }
 
-const publishAnswer = Effect.fn("FleetHost.publishAnswer")(function* (
+const publishAnswer = Effect.fn("FleetHost.publishAnswer")(function* <E, R>(
 	host: FleetHost,
 	workId: string,
 	original: Pick<Decision, "code" | "reason"> | undefined,
 	text: string,
 	release: boolean,
+	beforePublish: ((response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, E, R>) | undefined,
 ) {
 	const fleet = yield* Fleet;
 	const stored = yield* fleet.publishDecision(workId);
@@ -91,7 +91,13 @@ const publishAnswer = Effect.fn("FleetHost.publishAnswer")(function* (
 		{ ...decision, published: decision.published },
 		release ? "release" : "retry",
 		text,
-	).pipe(Effect.catchTag("Conflict", (error) => decisionConflict(fleet, workId, decision.id, error)));
+		(selectedId) => beforePublish?.({ decisionId: decision.id, responseId: selectedId }) ?? Effect.void,
+	).pipe(
+		Effect.catchIf(
+			(error): error is Conflict => error instanceof Conflict,
+			(error) => decisionConflict(fleet, workId, decision.id, error),
+		),
+	);
 	return { decisionId: decision.id, responseId };
 });
 

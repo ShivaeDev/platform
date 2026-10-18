@@ -33,8 +33,8 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	}
 	const answers = yield* answerRequests(
 		host,
-		(workId, text, release, original, onPublished, queue) =>
-			withResponses(answerWork(host, workId, text, release, true, original, onPublished, queue)),
+		(workId, text, release, original, beforePublish, queue) =>
+			withResponses(answerWork(host, workId, text, release, true, original, beforePublish, queue)),
 		receipts,
 	);
 	// A client that stops waiting closes its request; the answer it asked for must still be recorded and applied.

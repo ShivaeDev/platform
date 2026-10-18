@@ -20,7 +20,7 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		text: string,
 		release: boolean,
 		original: Pick<Decision, "code" | "reason">,
-		onPublished: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, unknown>,
+		beforePublish: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, unknown>,
 		queue: () => Effect.Effect<Versioned<FleetRecord>, unknown>,
 	) => Effect.Effect<{ readonly value: FleetRecord }, unknown, R>,
 	recordingSql?: SqlClient.SqlClient,

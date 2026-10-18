@@ -4,6 +4,6 @@
 
 - Answer recording, status and watch remain available when pending answers and reconciliations fill the admission pool.
 
-- Reconciled clarification and deferral receipts keep later answers and releases applicable. Recovery deduplicates only the exact response published for the pending request.
+- Reconciled clarification and deferral receipts keep later answers and releases applicable. Restarting the daemon during answer publication no longer duplicates an applied answer as guidance.
 
 - Answers recorded for a waiting decision that becomes execution or repair guidance queue once across daemon restarts.
