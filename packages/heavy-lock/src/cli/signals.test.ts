@@ -1,115 +1,73 @@
-import { chmodSync, existsSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import process from "node:process";
-import { afterEach, expect, it } from "vitest";
-import { cliEnvironment, pollWhile, runCli, start, TEST_TIMEOUT_MS, waitFor } from "#test/cli.ts";
-import { holder, lockDirectory, readLock, removeTemporaryDirectories, temporaryDirectory, temporaryLock, writeLock } from "#test/lock.ts";
+import { expect } from "vitest";
+import { heldBy, lockStory } from "#test/kit.ts";
 
-afterEach(removeTemporaryDirectories);
+const live = { clock: "live", timeout: 20_000 } as const;
 
-function trapping(ready: string) {
-	return `trap "exit 10" INT; trap "exit 11" TERM; trap "exit 12" HUP; touch "${ready}"; ${pollWhile(`[ -d "${dirname(ready)}" ]`)}; exit 1`;
-}
-
-it.each([
+for (const [signal, code] of [
 	["SIGINT", 10],
 	["SIGTERM", 11],
 	["SIGHUP", 12],
-] as const)(
-	"forwards %s to the command, exits with the command's code, and releases the lock",
-	async (signal, code) => {
-		const lock = temporaryLock();
-		const ready = join(temporaryDirectory(), "ready");
-		const run = start(["--", "/bin/sh", "-c", trapping(ready)], cliEnvironment(lock));
-		try {
-			await waitFor(() => existsSync(ready));
+] as const) {
+	lockStory.it(
+		`forwarding ${signal} preserves the child's exit code and releases`,
+		[],
+		function* ({ cli, lock }) {
+			const child = yield* cli.startTrapping();
+			yield* cli.signal(child, signal);
+			expect((yield* cli.exit(child)).status).toBe(code);
+			expect(lock.contents()).toBeUndefined();
+		},
+		live,
+	);
+}
 
-			process.kill(run.pid, signal);
-
-			expect((await run.exited).status).toBe(code);
-			expect(existsSync(lock)).toBe(false);
-		} finally {
-			run.stop();
-		}
+lockStory.it(
+	"the command leads its own process group",
+	[],
+	function* ({ cli }) {
+		expect(yield* cli.command(["/bin/sh", "-c", 'test "$(ps -o pgid= -p $$ | tr -d " ")" = "$$"'])).toEqual({ status: 0, stderr: "" });
 	},
-	TEST_TIMEOUT_MS,
+	live,
 );
 
-it(
-	"runs the command as the leader of its own process group",
-	async () => {
-		const lock = temporaryLock();
-
-		const result = await runCli(["--", "/bin/sh", "-c", 'test "$(ps -o pgid= -p $$ | tr -d " ")" = "$$"'], cliEnvironment(lock));
-
-		expect(result).toEqual({ status: 0, stderr: "" });
+lockStory.it(
+	"a command killed by a signal exits with the conventional code",
+	[],
+	function* ({ cli, lock }) {
+		const child = yield* cli.startTrapping(false);
+		yield* cli.signal(child, "SIGINT");
+		expect((yield* cli.exit(child)).status).toBe(130);
+		expect((yield* cli.command(["/bin/sh", "-c", "kill -KILL $$"])).status).toBe(137);
+		expect(lock.contents()).toBeUndefined();
 	},
-	TEST_TIMEOUT_MS,
+	live,
 );
 
-it(
-	"exits with the conventional code when the command dies of a signal",
-	async () => {
-		const lock = temporaryLock();
-		const ready = join(temporaryDirectory(), "ready");
-		const run = start(["--", "/bin/sh", "-c", `touch "${ready}"; exec sleep 10`], cliEnvironment(lock));
-		try {
-			await waitFor(() => existsSync(ready));
-			process.kill(run.pid, "SIGINT");
-			expect((await run.exited).status).toBe(130);
-		} finally {
-			run.stop();
-		}
-
-		const killed = await runCli(["--", "/bin/sh", "-c", "kill -KILL $$"], cliEnvironment(lock));
-
-		expect(killed.status).toBe(137);
-		expect(existsSync(lock)).toBe(false);
+lockStory.it(
+	"a signal abandons a wait and preserves the holder's lock",
+	[heldBy("build")],
+	function* ({ cli, lock }) {
+		const before = lock.contents();
+		const waiter = yield* cli.startWaiting();
+		yield* cli.signal(waiter, "SIGTERM");
+		expect((yield* cli.exit(waiter)).status).toBe(143);
+		expect(lock.contents()).toBe(before);
+		expect(lock.files()).toEqual(["heavy-process.lock"]);
 	},
-	TEST_TIMEOUT_MS,
+	live,
 );
 
-it(
-	"a signal while waiting abandons the wait and leaves the holder's lock alone",
-	async () => {
-		const lock = temporaryLock();
-		const build = JSON.stringify(holder("build"));
-		writeLock(lock, build);
-		const waiter = start(["--", "true"], cliEnvironment(lock));
-		try {
-			await waitFor(() => waiter.stderr().includes("waiting for"));
-
-			process.kill(waiter.pid, "SIGTERM");
-
-			expect((await waiter.exited).status).toBe(143);
-			expect(readLock(lock)).toBe(build);
-			expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
-		} finally {
-			waiter.stop();
-		}
-	},
-	TEST_TIMEOUT_MS,
-);
-
-it.each([
-	["cannot run ps", "", "Could not run ps to read this process's start time."],
-	["gets no start time from ps", "#!/bin/sh\nexit 0\n", "Could not read this process's start time from ps."],
-])(
-	"fails before running the command when it %s",
-	async (_, fakePs, message) => {
-		const lock = temporaryLock();
-		const bin = temporaryDirectory();
-		if (fakePs !== "") {
-			writeFileSync(join(bin, "ps"), fakePs);
-			chmodSync(join(bin, "ps"), 0o755);
-		}
-		const marker = join(bin, "ran");
-
-		const result = await runCli(["--", "/usr/bin/touch", marker], cliEnvironment(lock, { "PATH": bin }));
-
-		expect(result).toEqual({ status: 1, stderr: `heavy-lock: ${message}\n` });
-		expect(existsSync(marker)).toBe(false);
-		expect(existsSync(lock)).toBe(false);
-	},
-	TEST_TIMEOUT_MS,
-);
+for (const [description, fakePs, message] of [
+	["ps cannot run", "", "Could not run ps to read this process's start time."],
+	["ps returns no start time", "#!/bin/sh\nexit 0\n", "Could not read this process's start time from ps."],
+] as const) {
+	lockStory.it(
+		`${description} fails before the command runs`,
+		[],
+		function* ({ cli, lock }) {
+			expect(yield* cli.failsProcessLookup(fakePs)).toEqual({ ran: false, status: 1, stderr: `heavy-lock: ${message}\n` });
+			expect(lock.contents()).toBeUndefined();
+		},
+		live,
+	);
+}

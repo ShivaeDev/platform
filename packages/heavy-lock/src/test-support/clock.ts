@@ -1,42 +1,72 @@
-import { Clock, Console, Effect } from "effect";
-import { TestConsole } from "effect/testing";
+import { Clock, Console, Deferred, Effect, Fiber } from "effect";
+import { TestClock } from "effect/testing";
+import { HeldLock } from "#held-lock.ts";
+import { readHolder } from "#lock-file.ts";
+import { withHeavyLock } from "#with-heavy-lock.ts";
+import { waitFor } from "./cliProcess.ts";
+import { configured, type Lock } from "./lock.ts";
 
-export interface Scripted {
-	readonly lines: readonly string[];
-	readonly provide: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>;
-}
-
-// Advancing time at output and polling boundaries exercises reminders without real waiting.
-export const scriptedClock = Effect.fn("HeavyLockTest.scriptedClock")(function* (
-	startMs: number,
-	onLine: (line: string, lines: readonly string[]) => number,
-	onPoll: (nowMs: number, lines: readonly string[]) => number = () => 0,
-) {
-	const base = yield* TestConsole.make;
-	let nowMs = startMs;
+const startWaiting = Effect.fn("LockStory.startWaiting")(function* (engine: Lock, tell: (line: string) => void, startMs: number) {
+	tell(`a command starts waiting at ${startMs}ms`);
+	yield* TestClock.setTime(startMs);
+	const testClock = yield* Clock.Clock;
+	const output = yield* Console.Console;
 	const lines: string[] = [];
-	const clock: Clock.Clock = {
-		currentTimeMillis: Effect.sync(() => nowMs),
-		currentTimeMillisUnsafe: () => nowMs,
-		currentTimeNanos: Effect.sync(() => BigInt(nowMs) * 1_000_000n),
-		currentTimeNanosUnsafe: () => BigInt(nowMs) * 1_000_000n,
-		monotonicTimeNanos: Effect.sync(() => BigInt(nowMs) * 1_000_000n),
-		monotonicTimeNanosUnsafe: () => BigInt(nowMs) * 1_000_000n,
-		sleep: () =>
+	let polls = 0;
+	let holding = false;
+	const observedClock: Clock.Clock = {
+		...testClock,
+		sleep: (duration) =>
 			Effect.sync(() => {
-				nowMs += onPoll(nowMs, lines);
-			}).pipe(Effect.andThen(Effect.yieldNow)),
+				polls += 1;
+			}).pipe(Effect.andThen(testClock.sleep(duration))),
 	};
-	const output: Console.Console = {
-		...base,
-		error: (line: unknown) => {
+	const observedConsole: Console.Console = {
+		...output,
+		error: (line) => {
 			lines.push(String(line));
-			nowMs += onLine(String(line), lines);
+			output.error(line);
 		},
 	};
-	const scripted: Scripted = {
-		lines,
-		provide: (effect) => effect.pipe(Effect.provideService(Clock.Clock, clock), Effect.provideService(Console.Console, output)),
+	const acquired = yield* Deferred.make<{ env: Readonly<Record<string, string>>; holder: Effect.Success<ReturnType<typeof readHolder>> }>();
+	const finish = yield* Deferred.make<void>();
+	const command = Effect.gen(function* () {
+		const { env } = yield* HeldLock;
+		holding = true;
+		yield* Deferred.succeed(acquired, { env, holder: yield* readHolder(engine.lock) });
+		yield* Deferred.await(finish);
+	});
+	const worker = yield* Effect.forkChild(
+		configured(engine, withHeavyLock(command, engine.options)).pipe(
+			Effect.provideService(Clock.Clock, observedClock),
+			Effect.provideService(Console.Console, observedConsole),
+		),
+	);
+	yield* Effect.promise(() => waitFor(() => polls > 0));
+	function pollFinished(before: number) {
+		return Effect.promise(() => waitFor(() => polls > before || holding));
+	}
+	return {
+		advance: (milliseconds: number) =>
+			Effect.gen(function* () {
+				tell(`time advances ${milliseconds}ms`);
+				for (let elapsed = 0; elapsed < milliseconds; elapsed += 10_000) {
+					const before = polls;
+					yield* TestClock.adjust(Math.min(10_000, milliseconds - elapsed));
+					yield* pollFinished(before);
+				}
+			}),
+		finish: () =>
+			Effect.gen(function* () {
+				const held = yield* Deferred.await(acquired);
+				yield* Deferred.succeed(finish, undefined);
+				yield* Fiber.join(worker);
+				return held;
+			}),
+		lines: () => lines,
 	};
-	return scripted;
 });
+
+export function clock(engine: Lock, tell: (line: string) => void) {
+	return { wait: (startMs = 0) => startWaiting(engine, tell, startMs) };
+}
