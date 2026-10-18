@@ -1,5 +1,4 @@
 import { Cause, Effect, Semaphore } from "effect";
-import { SqlClient } from "effect/sql";
 import { BadRequest, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -8,6 +7,7 @@ import { answerRecords } from "#host/answerRecords.ts";
 import type { FleetHost } from "#host/config.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Decision, DecisionResponse } from "#policy.ts";
+import { admissionLock } from "#storage/admissionLock.ts";
 import { type AnswerRequest, answerStore } from "#storage/answerStore.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 
@@ -24,7 +24,6 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 	const scope = yield* Effect.scope;
 	const fleet = yield* Fleet;
 	const store = yield* answerStore(host.namespace);
-	const sql = yield* SqlClient.SqlClient;
 	const commit = yield* makeFleetTransaction;
 	const locks = new Map<string, Semaphore.Semaphore>();
 	const process = Effect.fn("FleetAnswer.process")(function* (request: AnswerRequest) {
@@ -32,7 +31,7 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 			yield* commit(
 				[],
 				Effect.gen(function* () {
-					yield* sql`select pg_advisory_xact_lock(hashtextextended(${`work_fleet_admission:${host.namespace}`}, 0))`;
+					yield* admissionLock(host.namespace);
 					yield* fleet.queueAnswer(request.work_id, request.text);
 					yield* store.finish(request);
 				}),

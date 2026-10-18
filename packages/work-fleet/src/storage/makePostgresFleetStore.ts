@@ -3,6 +3,7 @@ import { SqlClient } from "effect/sql";
 import { makeRepository, OptimisticConcurrencyError } from "@shivaedev/effect-sql/repository.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import { checkRecordAdmission } from "#storage/admission.ts";
+import { admissionLock } from "#storage/admissionLock.ts";
 import { admissionReads } from "#storage/admissionReads.ts";
 import { StorageConflict } from "#storage/errors.ts";
 import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
@@ -59,7 +60,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 	function list() {
 		return readRecords(namespace, readList()).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 	}
-	const lock = sql`select pg_advisory_xact_lock(hashtextextended(${`work_fleet_admission:${namespace}`}, 0))`.pipe(Effect.asVoid);
+	const lock = admissionLock(namespace);
 	const persist = Effect.fn("FleetStore.persist")(function* (
 		workId: string,
 		expectedVersion: number | null,

@@ -1,5 +1,4 @@
 import { Deferred, Effect, Fiber, Schedule } from "effect";
-import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { FleetRecord } from "#model.ts";
@@ -10,12 +9,12 @@ import { recordShape } from "#storage/recordShape.ts";
 import { recordValue } from "#storage/recordValue.ts";
 import { migrateFleet } from "#test/migrateFleet.ts";
 import { postgresTests } from "#test/postgres.ts";
+import { spanCounts } from "#test/spanCounts.ts";
 import { typedMigrationRecords } from "#test/typedMigrationRecords.ts";
 
 const snapshotTests = postgresTests("live", "isolated", { maxConnections: 3 });
 
 snapshotTests("a reader keeps one record version while a concurrent writer replaces root fields and children", function* () {
-	const sql = yield* SqlClient.SqlClient;
 	const namespace = "typed_snapshot";
 	const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
 	yield* migrateFleet(namespace);
@@ -37,12 +36,12 @@ snapshotTests("a reader keeps one record version while a concurrent writer repla
 		}),
 	).pipe(Effect.forkChild);
 	yield* Deferred.await(entered);
+	const spans = spanCounts();
 	const writer = yield* store
 		.compareAndSet(value.workId, saved.version, { ...saved.value, attempts: [], history: [], prompt: "changed" })
-		.pipe(Effect.forkChild);
-	yield* sql<{ readonly waiting: number }>`select count(*)::integer as waiting from pg_locks
-		where locktype = 'advisory' and not granted and database = (select oid from pg_database where datname = current_database())`.pipe(
-		Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (rows) => rows[0]?.waiting === 1 }),
+		.pipe(spans.trace, Effect.forkChild);
+	yield* Effect.sync(() => spans.count("FleetStore.waitAdmission")).pipe(
+		Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (count) => count > 0 }),
 		Effect.timeout("5 seconds"),
 	);
 	yield* Deferred.succeed(resume, undefined);
