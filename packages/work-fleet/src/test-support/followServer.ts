@@ -35,11 +35,17 @@ export const followServer = Effect.fn("FollowTest.followServer")(function* () {
 	if (address === null || typeof address === "string") {
 		return yield* Effect.die("Expected a TCP server");
 	}
+	function connection() {
+		if (response === undefined || response.destroyed || response.writableEnded) {
+			throw new Error("No active follower subscription");
+		}
+		return response;
+	}
 	return {
-		disconnect: () => response?.destroy(),
-		fail: (message: string) => response?.end(`${JSON.stringify({ _tag: "Defect", defect: { message, name: "Error" } })}\n`),
+		disconnect: () => connection().destroy(),
+		fail: (message: string) => connection().end(`${JSON.stringify({ _tag: "Defect", defect: { message, name: "Error" } })}\n`),
 		port: address.port,
-		send: (states: readonly unknown[]) => response?.write(`${JSON.stringify({ _tag: "Chunk", requestId, values: [states] })}\n`),
+		send: (states: readonly unknown[]) => connection().write(`${JSON.stringify({ _tag: "Chunk", requestId, values: [states] })}\n`),
 		subscribed: subscribed.promise,
 		subscriptions: () => subscriptions,
 	};

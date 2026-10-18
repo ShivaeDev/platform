@@ -5,17 +5,14 @@ import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { withDecisionResponses } from "#host/releaseWork.ts";
 import { answerStore } from "#storage/answerStore.ts";
 import { appliedAnswer, dispatchAndWait } from "#test/daemonActions.ts";
-import type { HostFixture } from "#test/fleetHost.ts";
+import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
 const TEXT = "Use PostgreSQL.";
 
-export const answerReceiptRecovery = Effect.fn("AnswerTest.answerReceiptRecovery")(function* (
-	fixture: HostFixture,
-	release: boolean,
-	applied: boolean,
-) {
+const recoverReceipt = Effect.fn("AnswerSpec.recoverReceipt")(function* (fixture: HostFixture, release: boolean, applied: boolean) {
 	const previous = yield* withReadDaemon(
 		fixture.host,
 		(port) =>
@@ -60,3 +57,11 @@ export const answerReceiptRecovery = Effect.fn("AnswerTest.answerReceiptRecovery
 		{ parts: fixture.parts },
 	);
 });
+
+for (const release of [false, true]) {
+	for (const applied of [false, true]) {
+		postgresTests("live")(`a ${release ? "release" : "text"} request restarts ${applied ? "after" : "before"} its exact response applies`, () =>
+			withHost({ "one.md": task("one", "approved") }, {}, (fixture) => recoverReceipt(fixture, release, applied)),
+		);
+	}
+}

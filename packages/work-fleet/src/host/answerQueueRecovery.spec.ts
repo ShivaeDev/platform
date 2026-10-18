@@ -5,12 +5,13 @@ import { daemonClient, daemonRequest } from "#host/daemonClient.ts";
 import { answerStore } from "#storage/answerStore.ts";
 import { busyAdmission } from "#test/busyAdmission.ts";
 import { dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
-import type { HostFixture } from "#test/fleetHost.ts";
+import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
 
 const messages = ["Keep the loading indicator visible.", "Preserve the empty state."];
 
-export const queuedAnswerRecovery = Effect.fn("AnswerQueueTest.queuedAnswerRecovery")(function* (fixture: HostFixture) {
+const recoverQueuedAnswers = Effect.fn("AnswerQueueSpec.recoverQueuedAnswers")(function* (fixture: HostFixture) {
 	const scope = yield* Effect.scope;
 	const current = yield* withReadDaemon(fixture.host, (port) => daemonClient(port).pipe(Effect.flatMap((client) => dispatchAndWait(client, "one"))), {
 		parts: fixture.parts,
@@ -48,3 +49,7 @@ export const queuedAnswerRecovery = Effect.fn("AnswerQueueTest.queuedAnswerRecov
 		{ parts: fixture.parts },
 	);
 });
+
+postgresTests("live")("recorded guidance survives shutdown before admission frees and queues once in order after restart", () =>
+	withHost({ "one.md": task("one", "approved") }, {}, recoverQueuedAnswers),
+);
