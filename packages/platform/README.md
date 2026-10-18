@@ -515,7 +515,7 @@ The signal aborts on an additional signal, socket close, incomplete request clos
 
 ```ts
 import { Config, Effect } from "effect";
-import { authDatabase, betterAuthMount } from "@shivaedev/platform/better-auth.ts";
+import { authDatabase, betterAuthMount } from "@shivaedev/platform/server/better-auth/mount.ts";
 
 const authentication = Effect.gen(function* () {
   const database = yield* authDatabase(yield* Config.Redacted("DATABASE_URL"));
@@ -645,7 +645,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/rpc-server/redact.ts`, `server/rpc-server/redactCause.ts`, `server/rpc-server/sensitive.ts` | `redact`, `redactCause`, `redactDefect`, `redactingErrorReporter`, `isSensitiveKey`, `redactText`: diagnostic redaction. |
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
-| `better-auth.ts` | `betterAuthMount(options)`, `authDatabase(url)`: native auth routes and a scoped PostgreSQL pool. |
+| `server/better-auth/mount.ts` | `betterAuthMount(options)`, `authDatabase(url)`: native auth routes and a scoped PostgreSQL pool. |
 | `server/better-auth/testing.ts` | `authTestUtils(options?)`, `signedInUser(auth, fields)`: test-only typed Better Auth helpers and minted user sessions. |
 | `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, options?)`: a Better Auth adapter over Effect Prisma; `modelName` maps model names. |
 | `server/testing/makePlatformIt.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |
@@ -664,7 +664,7 @@ Install the optional peers for the selected integration:
 | --- | --- |
 | `server/boundedBody.ts` | `@effect/platform-node` |
 | `server/appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
-| `better-auth.ts` | `better-auth`, `pg` |
+| `server/better-auth/mount.ts` | `better-auth`, `pg` |
 | `server/better-auth/adapter.ts` | `better-auth`, `@shivaedev/effect-prisma`, `@prisma-next/sql-orm-client` |
 | `server/testing/makePlatformIt.ts` | `@effect/vitest`, `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`, `@trpc/server` |
 

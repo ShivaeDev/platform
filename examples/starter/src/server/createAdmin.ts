@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { Config, Effect, Redacted } from "effect";
-import { authDatabase } from "@shivaedev/platform/better-auth.ts";
+import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { authOptions } from "#server/authOptions.ts";
 
 export const createAdmin = Effect.fn("App.createAdmin")(function* () {

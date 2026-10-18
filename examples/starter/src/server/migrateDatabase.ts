@@ -1,7 +1,7 @@
 import { Config, Effect, Layer, Redacted } from "effect";
 import { clientOptions } from "@shivaedev/effect-sql/clientOptions.ts";
-import { authDatabase } from "@shivaedev/platform/better-auth.ts";
 import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
+import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { migrations } from "#server/migrations.ts";
 import { noteProducer } from "#server/noteProducer.ts";
 

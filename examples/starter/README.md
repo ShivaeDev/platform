@@ -22,7 +22,7 @@ Use `LabelledSwitch` for a setting with a visible label, controlled `checked` st
 
 `pnpm build && pnpm migrate && pnpm start` serves the built UI, Better Auth endpoints and HTTP/NDJSON RPC together at `http://127.0.0.1:3000`. Set `DATABASE_URL` and `BETTER_AUTH_SECRET` in `.env.local` or the shell. The secret needs at least 32 random characters; generate one with `openssl rand -base64 32`. For hosting behind a proxy, follow the quickstart's [Deploy section](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy), setting `PUBLIC_URL` to your public app URL.
 
-The server uses `betterAuthMount` and the scoped `authDatabase` pool from `@shivaedev/platform/better-auth.ts`. The application supplies `authOptions` and composes its RPC session policy.
+The server uses `betterAuthMount` and the scoped `authDatabase` pool from `@shivaedev/platform/server/better-auth/mount.ts`. The application supplies `authOptions` and composes its RPC session policy.
 
 `AUTH_RATE_LIMIT_ENABLED` is an Effect Config boolean that defaults to `true` in every environment, including tests. Set it to `false` to disable Better Auth rate limiting for this app.
 
