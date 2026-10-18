@@ -12,7 +12,7 @@ import { FleetPolicy } from "#policy.ts";
 import { policyGuidance } from "#policyGuidance.ts";
 import { reviewerPrompt } from "#prompt/reviewer.ts";
 import { withWorkerGuidance } from "#prompt/worker.ts";
-import { MAIN } from "#test/fleetHost.ts";
+import { MAIN } from "#test/mainSource.ts";
 
 const configuredPrompt = Effect.fn("Guidance.configuredPrompt")(function* (
 	role: "worker" | "reviewer",

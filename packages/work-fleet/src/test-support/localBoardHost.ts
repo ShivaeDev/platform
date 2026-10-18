@@ -6,7 +6,8 @@ import { Effect, Layer } from "effect";
 import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
-import { type HostFixture, MAIN } from "#test/fleetHost.ts";
+import type { HostFixture } from "#test/fleetHost.ts";
+import { MAIN } from "#test/mainSource.ts";
 
 export function localBoardHost(fixture: HostFixture, { ignored = true, inside = true } = {}) {
 	const root = fixture.host.boardDir;

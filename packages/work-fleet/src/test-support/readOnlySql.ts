@@ -1,13 +1,6 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Redacted } from "effect";
 import type { FleetHost } from "#host/config.ts";
+import { hostDatabase } from "#test/hostDatabase.ts";
 
 export function readOnlySql(host: FleetHost) {
-	return PgClient.layer({
-		applicationName: "work-fleet-reader",
-		connectTimeout: "10 seconds",
-		idleTimeout: "1 second",
-		maxConnections: 1,
-		url: Redacted.make(host.databaseUrl),
-	});
+	return hostDatabase(host, "work-fleet-reader", 1);
 }

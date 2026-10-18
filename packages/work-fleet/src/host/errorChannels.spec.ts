@@ -10,7 +10,8 @@ import { daemonRequest } from "#host/daemonClient.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { until } from "#test/cloudRestart.ts";
 import { waitForDispatch } from "#test/daemonActions.ts";
-import { MAIN, task, withHost } from "#test/fleetHost.ts";
+import { task, withHost } from "#test/fleetHost.ts";
+import { MAIN } from "#test/mainSource.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
 
