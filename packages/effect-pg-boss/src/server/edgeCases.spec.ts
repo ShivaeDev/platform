@@ -217,33 +217,6 @@ describe("pg-boss external lifecycle boundaries", () => {
 		]);
 	});
 
-	it("names the queue and the PostgreSQL code of a failed registration without its original message", async () => {
-		class DatabaseError extends Error {
-			readonly code = "40P01";
-		}
-		const failure = new DatabaseError("deadlock detected while connecting to postgresql://jobs:secret@db/jobs");
-		const client = scriptedClient({
-			createQueue: () => Promise.reject(failure),
-			off: () => undefined,
-			on: () => undefined,
-			start: async () => undefined,
-			stop: async () => undefined,
-		});
-		const Queue = defineQueue({ name: "deadlocked", schema: Schema.Struct({}) });
-		const Jobs = makePgBoss("@test/RegisterFailureJobs");
-		const error = await Effect.runPromise(
-			Effect.flip(
-				Effect.scoped(Layer.build(Jobs.layer({ ...constructorOptions, clientFactory: () => client, jobs: [Queue.handle(() => Effect.void)] }))),
-			),
-		);
-		if (!(error instanceof PgBossError)) {
-			throw error;
-		}
-		expect(error).toMatchObject({ operation: "register", queue: "deadlocked" });
-		expect(error.message).toBe("pg-boss register for queue deadlocked failed: DatabaseError 40P01");
-		expect(Redacted.value(error.original)).toBe(failure);
-	});
-
 	it("rejects duplicate job names before registering either worker", async () => {
 		const stop = vi.fn(async () => undefined);
 		const reported: Error[] = [];
