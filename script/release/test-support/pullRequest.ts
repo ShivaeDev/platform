@@ -1,5 +1,5 @@
 import { NodeServices } from "@effect/platform-node";
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { checkPlatform } from "#release/check.ts";
 import { releaseGitHub } from "#release/gitHub.ts";
@@ -21,6 +21,7 @@ export const releasePullRequest = storyKit({
 	stages: ["main"],
 	verbs: ({ api, git, github, root, pushMain }) => ({
 		check: () => checkPlatform(root, "origin/main"),
+		close: () => Effect.sync(() => github.close(1)),
 		git: (...args: readonly string[]) => Effect.sync(() => git(...args)),
 		pushMain,
 		queue: () =>
@@ -28,6 +29,19 @@ export const releasePullRequest = storyKit({
 				api.state.queued = true;
 			}),
 		readGitHub: () => Effect.sync(() => structuredClone(api.state)),
-		run: () => maintainPullRequest(root, github),
+		run: Effect.fn("ReleasePullRequest.run")(function* (date?: string) {
+			const clock = yield* Clock.Clock;
+			return yield* maintainPullRequest(root, github).pipe(
+				Effect.provideService(Clock.Clock, {
+					currentTimeMillis: date === undefined ? clock.currentTimeMillis : Effect.succeed(Date.parse(date)),
+					currentTimeMillisUnsafe: () => clock.currentTimeMillisUnsafe(),
+					currentTimeNanos: clock.currentTimeNanos,
+					currentTimeNanosUnsafe: () => clock.currentTimeNanosUnsafe(),
+					monotonicTimeNanos: clock.monotonicTimeNanos,
+					monotonicTimeNanosUnsafe: () => clock.monotonicTimeNanosUnsafe(),
+					sleep: (duration) => clock.sleep(duration),
+				}),
+			);
+		}),
 	}),
 });
