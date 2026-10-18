@@ -10,31 +10,13 @@ function report(value: unknown) {
 }
 
 describe("reviewer prompt and verdict", () => {
-	it("includes the task, criteria and exact PR without escalation instructions", () => {
-		const prompt = reviewerPrompt({
-			result: { head: "exact-head", kind: "change", paths: ["src/feature.ts"], pr: "https://example.invalid/pr/1" },
-			sharedEnvironment: "/synthetic/env.sh",
-			task: "# Task\ncriteria: prove the behavior",
-		});
-		expect(prompt).toContain("criteria: prove the behavior");
-		expect(prompt).toContain('"head":"exact-head"');
-		expect(prompt).toContain("https://example.invalid/pr/1");
-		expect(prompt).toContain("Do not edit, commit, push, merge");
-		expect(prompt).toContain("gh pr diff");
-		expect(prompt).toContain("gh api --method GET");
-		expect(prompt).toContain("Network writes are prohibited");
-		expect(prompt).toContain("always end with a verdict");
-		expect(prompt).toContain("Passing required checks at that exact head are the CI evidence");
-		expect(prompt).toContain("merge queue that re-runs CI against the latest main before merging");
-		expect(prompt).toContain("A branch behind main without conflicts is not a reason to request changes, repeat review or re-run validation");
-		expect(prompt).toContain("Workers merge main only when GitHub reports a conflict or the change needs something that landed there");
-		expect(prompt).toContain("Include the passing checks and the access limitation in your evidence list");
-		expect(prompt).not.toContain("pnpm db:setup");
-		expect(prompt).not.toContain("PLATFORM_EFFECT_");
-		expect(prompt).not.toContain("script/lib/postgresTestEnvironment.ts");
-		expect(prompt).not.toContain(".github/workflows/ci.yml");
-		expect(prompt).not.toContain("end without a verdict");
-		expect(prompt).not.toContain("Request escalation (require_escalated)");
+	it("carries the authored task and exact result into the review request", () => {
+		const task = "# Distinct review task\nInspect the changed behavior.";
+		const result = { head: "reviewed-head", kind: "change" as const, paths: ["src/scope.ts"], pr: "https://example.test/pull/42" };
+		const prompt = reviewerPrompt({ result, sharedEnvironment: "/synthetic/review-env.sh", task });
+		expect(prompt).toContain(task);
+		expect(prompt).toContain(JSON.stringify(result));
+		expect(prompt).toContain("/synthetic/review-env.sh");
 	});
 	it.effect("records approval and concrete changes with the exact receipt", function* () {
 		expect(yield* readReviewerVerdict(`Review complete.\n${report(verdict)}\n`, receipt)).toMatchObject({

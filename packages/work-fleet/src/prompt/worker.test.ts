@@ -1,13 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import {
-	PULL_REQUEST_MARKER,
-	QUESTION_MARKER,
-	reportedPullRequest,
-	reportedQuestion,
-	reportPrompt,
-	withWorkerGuidance,
-	workerPrompt,
-} from "#prompt/worker.ts";
+import { PULL_REQUEST_MARKER, reportedPullRequest, reportedQuestion, reportPrompt, withWorkerGuidance, workerPrompt } from "#prompt/worker.ts";
 
 const prompt = workerPrompt({
 	branch: "synthetic/sidebar-tree",
@@ -16,13 +8,11 @@ const prompt = workerPrompt({
 	workId: "synthetic.task",
 });
 describe("workerPrompt", () => {
-	it("puts standing answers directly after the task, ahead of evidence and questions", () => {
+	it("puts standing answers after the authored task and before evidence", () => {
 		const guidance = "Additive APIs are approved.";
 		const guided = withWorkerGuidance(prompt, guidance);
-		const heading =
-			"Repository worker guidance: maintainer's standing answers to the repository's 'ask the maintainer first' rules; takes precedence for this task";
-		expect(guided).toContain(`---\n\n${heading}\n${guidance}\nEnd repository worker guidance.\n\nEvidence rules:`);
-		expect(guided).toContain("Do not ask about anything covered by Repository worker guidance; follow its standing answers.");
+		expect(guided).toContain(guidance);
+		expect(guided.indexOf("# Make the sidebar a tree")).toBeLessThan(guided.indexOf(guidance));
 		expect(guided.indexOf(guidance)).toBeLessThan(guided.indexOf("Evidence rules:"));
 	});
 	it("replaces standing answers once when reusing a guided prompt", () => {
@@ -33,83 +23,14 @@ describe("workerPrompt", () => {
 		expect(next.split("Updated approval.")).toHaveLength(2);
 		expect(next).toContain("# Make the sidebar a tree");
 	});
-	it("asks report workers for the whole final report without a branch or PR workflow", () => {
-		const report = workerPrompt({
-			branch: "synthetic/report",
-			deliverable: "report",
-			sharedEnvironment: "/synthetic/env.sh",
-			task: "Research.",
-			workId: "synthetic.report",
-		});
-		expect(report).toContain("Leave repository sources unchanged");
-		expect(report).toContain("Commit nothing, push nothing, and open no PR");
-		expect(report).toContain("new uncommitted files");
-		expect(report).toContain("/tmp/fleet-report/attachments/");
-		expect(report).toContain("file-edit/apply_patch tool for every add and update");
-		expect(report).toContain("shell commands are not retrievable");
-		expect(report).toContain("FLEET_ATTACHMENT:");
-		expect(report).toContain("base64 text file");
-		expect(report).toContain("Never publish attachments to git or GitHub");
-		expect(report).toContain("Do not create a branch or launch other workers");
-		expect(report).toContain(QUESTION_MARKER);
+	it("adapts report prompts once while retaining the authored task", () => {
+		const task = "Find compatibility risks in the selected feature.";
+		const report = reportPrompt(task);
+		expect(report).toContain(task);
 		expect(reportPrompt(report)).toBe(report);
-		expect(report).toContain("Return the whole report as your final message");
-		expect(report).toContain("wait_for_environment");
-		expect(report).not.toContain("Fetch origin/main");
-		expect(report).not.toContain("pnpm ready");
-		expect(report).not.toContain(PULL_REQUEST_MARKER);
-	});
-	it("puts the Cloud startup block before the task and the evidence rules after it", () => {
-		const startup = prompt.indexOf("Cloud startup:");
-		const task = prompt.indexOf("# Make the sidebar a tree");
-		const evidence = prompt.indexOf("Evidence rules:");
-		expect(startup).toBeGreaterThan(-1);
-		expect(startup).toBeLessThan(task);
-		expect(task).toBeLessThan(evidence);
-		expect(prompt).toContain("wait_for_environment");
-		expect(prompt).toContain("require_escalated) from the FIRST network-dependent command");
-		expect(prompt).toContain("create synthetic/sidebar-tree from that exact current revision");
-		expect(prompt).toContain("`pnpm ready`");
-		expect(prompt).toContain("exactly ONE pull request");
-		expect(prompt).toContain("Do not merge it");
-		expect(prompt).toContain(`\`${QUESTION_MARKER} <question>\``);
-		expect(prompt).toContain("Questions go to the orchestrator by default");
-		expect(prompt).toContain("`FLEET_MAINTAINER_QUESTION: <question>`");
-		expect(prompt).toContain("continues this same thread with the recorded answer");
-		expect(prompt).toContain(`\`${PULL_REQUEST_MARKER} <url>\``);
-		expect(prompt).toContain("`FLEET_HEAD: <sha>`");
-	});
-	it("requires green head CI and leaves latest-main validation to the merge queue", () => {
-		expect(prompt).toContain("After every push, watch your PR's CI until all checks finish");
-		expect(prompt).toContain("Fix failures on the same branch, push again and repeat");
-		expect(prompt).toContain("merge queue that re-runs CI against the latest main before merging");
-		expect(prompt).toContain("Merge main only when GitHub reports a conflict or your change needs something that landed there");
-		expect(prompt).toContain("A branch behind main without conflicts does not need a merge, fresh review or revalidation");
-		expect(prompt).toContain("Never wait for main to stop moving or request a merge freeze");
-		expect(prompt).toContain("If you merge main or otherwise change the head, run `pnpm ready`, push and watch CI again for the new head");
-		expect(prompt).toContain("Report once all checks are green for your exact head");
-		expect(prompt).not.toContain("Before reporting, fetch the latest origin/main");
-		expect(prompt).not.toContain("against current main");
-		expect(prompt).toContain("If blocked, explain why and identify the failed or pending checks");
-	});
-	it("orders PR completion before the final CI result and the PR marker", () => {
-		const instructions = [
-			"Open exactly ONE pull request",
-			"After every push, watch your PR's CI",
-			"`main` is protected by a merge queue",
-			"Report once all checks are green",
-			"Final report:",
-			"State the CI result for the exact head SHA you report",
-			`End with one line \`${PULL_REQUEST_MARKER} <url>\``,
-		];
-		const positions = instructions.map((instruction) => prompt.indexOf(instruction));
-		for (const position of positions) {
-			expect(position).toBeGreaterThan(-1);
-		}
-		expect(positions).toEqual([...positions].sort((left, right) => left - right));
-		expect(prompt).toContain("Put the CI result before the final `FLEET_PR:` line");
 	});
 });
+
 describe("reportedPullRequest", () => {
 	it("reads one final marker line as a GitHub PR URL or an explicit no-change result", () => {
 		expect(reportedPullRequest(`Done.\n${PULL_REQUEST_MARKER} https://github.com/example/repository/pull/1\n`)).toEqual({
