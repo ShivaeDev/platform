@@ -23,7 +23,14 @@ export const resultHooks = screenKit(
 		changeIdentity: () =>
 			screen.act("switch from account A to a pending query", () => root(state).render(createElement(QueryValue, { atom: Atom.make(Effect.never) }))),
 		engine: () => state.engine,
-		execute: () => screen.act("click the query or action", () => root(state).container.querySelector("button")?.click()),
+		execute: () =>
+			screen.act("click the query or action", () => {
+				const button = root(state).container.querySelector("button");
+				if (!button) {
+					throw new Error("Missing result hook execute button");
+				}
+				button.click();
+			}),
 		finish: (result: Exit.Exit<number, string>, which: "gate" | "first" | "second" = "gate") =>
 			screen.act(`complete ${which}: ${JSON.stringify(result)}`, () => Effect.runSync(Deferred.done(state.engine[which], result))),
 		next: () => {

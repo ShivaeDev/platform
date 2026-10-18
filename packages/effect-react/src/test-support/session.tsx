@@ -3,7 +3,7 @@ import { act } from "react";
 import { SessionBoundary } from "#session-boundary.ts";
 import { makeOrderEditor } from "#test/order-example/frontend.tsx";
 import type { Rendered } from "#testing.ts";
-import { typeInput } from "./screenKit.ts";
+import { clickButton, typeInput } from "./screenKit.ts";
 import { RegistryProbe } from "./sessionProbes.ts";
 
 interface Session {
@@ -42,7 +42,7 @@ export function shell(url: string, view: Rendered) {
 		edit: (value: string) => act(() => typeInput(container, "name", value)),
 		input,
 		rechecks,
-		refresh: () => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Refresh")?.click()),
+		refresh: () => act(async () => clickButton(container, "Refresh")),
 		registries,
 		show,
 	};

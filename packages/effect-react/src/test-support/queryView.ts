@@ -72,7 +72,13 @@ export async function queryView(view: Rendered, atom: Query, options: QueryOptio
 			await act(async () => registry.set(invalidation, undefined));
 		},
 		refresh: async () => {
-			await act(async () => container.querySelector("button")?.click());
+			await act(() => {
+				const button = container.querySelector("button");
+				if (!button) {
+					throw new Error("Missing query refresh button");
+				}
+				button.click();
+			});
 		},
 		registry,
 		render,

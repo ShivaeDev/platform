@@ -47,7 +47,11 @@ export async function resultSession<A, E>(view: Rendered, kind: "query" | "actio
 			act(async () => {
 				const state = current();
 				if ("dispatch" in state) {
-					view.container.querySelector("button")?.click();
+					const button = view.container.querySelector("button");
+					if (!button) {
+						throw new Error("Missing result session execute button");
+					}
+					button.click();
 				} else {
 					state.refresh();
 				}
