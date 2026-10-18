@@ -11,15 +11,33 @@ const routes = {
 export const HttpPage = Schema.Struct({ items: Schema.Array(Schema.String), next: Schema.NullOr(Schema.Number) });
 export type HttpPage = typeof HttpPage.Type;
 
-function fakeHttpKit(guarded: boolean) {
+function fakeHttpKit(guarded: boolean, acquisitionTell = false) {
+	const name = guarded ? "fake HTTP service" : "public HTTP service";
 	return storyKit({
 		clock: "live",
-		create: () => fakeHttpService({ ...(guarded ? { guard: ({ headers }) => headers.authorization === "Bearer story-key" } : {}), routes }),
-		inspect: (service) => service.requests,
-		name: guarded ? "fake HTTP service" : "public HTTP service",
+		*create() {
+			let tell: ((line: string) => void) | undefined;
+			const service = yield* fakeHttpService({
+				...(guarded ? { guard: ({ headers }) => headers.authorization === "Bearer story-key" } : {}),
+				routes,
+				tell: (line) => tell?.(line),
+			});
+			return {
+				connectNarration: (sink: (line: string) => void) => {
+					tell = sink;
+				},
+				service,
+			};
+		},
+		inspect: ({ service }) => service.requests,
+		name: acquisitionTell ? "HTTP acquisition narration" : name,
 		stages: ["ready"],
-		verbs: (service, story) => {
-			service.narrate(story.tell);
+		verbs: ({ connectNarration, service }, story) => {
+			if (acquisitionTell) {
+				connectNarration(story.tell);
+			} else {
+				service.narrate(story.tell);
+			}
 			function request(path: string, init: RequestInit = {}) {
 				return Effect.tryPromise(async (signal) => {
 					const response = await fetch(`${service.url}${path}`, { headers: { authorization: "Bearer story-key" }, ...init, signal });
@@ -43,3 +61,4 @@ function fakeHttpKit(guarded: boolean) {
 
 export const fakeHttpApp = fakeHttpKit(true);
 export const publicHttpApp = fakeHttpKit(false);
+export const acquisitionHttpApp = fakeHttpKit(false, true);

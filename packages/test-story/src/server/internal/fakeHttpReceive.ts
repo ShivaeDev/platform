@@ -15,12 +15,23 @@ function match(route: FakeHttpRoute, method: string, pathname: string) {
 	for (const [index, part] of pattern.entries()) {
 		const segment = segments[index] ?? "";
 		if (part.startsWith(":")) {
-			params[part.slice(1)] = decodeURIComponent(segment);
+			params[part.slice(1)] = segment;
 		} else if (part !== segment) {
 			return;
 		}
 	}
 	return params;
+}
+
+function decodeParams(params: Record<string, string>) {
+	try {
+		for (const [name, value] of Object.entries(params)) {
+			params[name] = decodeURIComponent(value);
+		}
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function pageReply(route: FakeHttpRoute, request: FakeHttpRequest): FakeHttpReply {
@@ -60,22 +71,29 @@ export async function fakeHttpReceive(
 		for await (const chunk of incoming) {
 			chunks.push(Buffer.from(chunk));
 		}
+		const params = found?.params ?? {};
 		const request: FakeHttpRequest = {
 			body: Buffer.concat(chunks),
 			headers: incoming.headers,
 			method,
-			params: found?.params ?? {},
+			params,
 			path,
 			query: url.searchParams,
 		};
 		requests.push(request);
 		tell(`fake HTTP received ${method} ${path}`);
+		if (!decodeParams(params)) {
+			tell(`fake HTTP rejected ${method} ${path} with 400`);
+			send(response, { status: 400 });
+			return;
+		}
 		if (options.guard && !options.guard(request)) {
 			tell(`fake HTTP rejected ${method} ${path} with 401`);
 			send(response, { status: 401 });
 			return;
 		}
 		if (!found) {
+			tell(`fake HTTP answered ${method} ${path} with 404`);
 			send(response, { status: 404 });
 			return;
 		}

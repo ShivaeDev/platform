@@ -17,6 +17,34 @@ fakeHttpApp.it("rejects missing and wrong credentials before consuming a scripte
 	expect(yield* request("/users/alice")).toMatchObject({ body: { id: "alice" }, status: 200 });
 });
 
+fakeHttpApp.it("rejects an unauthenticated request without entering or releasing a hold", [], function* ({ hold, request }) {
+	const paused = yield* hold("user");
+	const waiting = yield* Effect.forkChild(paused.waiting);
+	expect(yield* request("/users/alice", { headers: {} })).toMatchObject({ status: 401 });
+	expect(waiting.pollUnsafe()).toBeUndefined();
+	const pending = yield* Effect.forkChild(request("/users/alice"));
+	yield* Fiber.join(waiting);
+	expect(yield* request("/items")).toMatchObject({ status: 200 });
+	expect(pending.pollUnsafe()).toBeUndefined();
+	yield* paused.release;
+	expect(yield* Fiber.join(pending)).toMatchObject({ body: { id: "alice" }, status: 200 });
+});
+
+fakeHttpApp.it("logs malformed path parameters, rejects them with 400 and keeps serving", [], function* ({ request, requests, story }) {
+	expect(yield* request("/users/%?source=story")).toMatchObject({ status: 400 });
+	expect(yield* request("/users/alice")).toMatchObject({ body: { id: "alice" }, status: 200 });
+	expect(requests()).toEqual([
+		{ body: "", method: "GET", path: "/users/%?source=story" },
+		{ body: "", method: "GET", path: "/users/alice" },
+	]);
+	expect(story.lines).toEqual([
+		"fake HTTP received GET /users/%?source=story",
+		"fake HTTP rejected GET /users/%?source=story with 400",
+		"fake HTTP received GET /users/alice",
+		"fake HTTP answered GET /users/alice with 200",
+	]);
+});
+
 fakeHttpApp.it("walks every page and reaches the end", [], function* ({ readPage, request, requests }) {
 	const items: string[] = [];
 	let next: number | null = 1;
