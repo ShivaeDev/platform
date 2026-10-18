@@ -151,8 +151,6 @@ Import the module that defines each name; there is no root entry.
 | `lockPath` | File every participating caller shares. | `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`. |
 | `pollInterval` | Delay between waiting attempts. | One second. |
 
-No test covers the `command` and `pollInterval` defaults.
-
 The package also exposes the modules that implement the shared protocol, such as `@shivaedev/heavy-lock/lockFile.ts`; the [protocol reference](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md) describes the holder and acquisition rules. Use the scoped acquisition API for ordinary command wrapping: the lower-level `tryAcquire` registers no release finalizer, so its caller must release an acquired hold.
 
 ### Install and environment

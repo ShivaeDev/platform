@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 - 2026-10-18
+
+### Fixed
+
+- Keep form and React hook type inference consistent when TypeScript enables the `source` condition by resolving private type aliases to the same declarations as public imports.
+
+### Breaking
+
+- Every module's import path is now its path under `src/`. The React entry moves from `react.ts` to `client/react.ts`.
+
 ## 0.4.0 - 2026-10-13
 
 ### Breaking

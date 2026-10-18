@@ -615,13 +615,11 @@
 {"path":"script/changelog/releasePackage.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/changelog/versionAgreement.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/ci/TestSequencer.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/ci/freshReports.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/ci/mainShardPlan.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/ci/mergeTestTimings.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/ci/shard.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/ci/shardCount.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/ci/testPackages.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/ci/testShard.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/ci/timings.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/package-check/archives.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/package-check/server.test.ts","rule":"tests/story-specs","count":1}

@@ -25,7 +25,7 @@ The PID alone is insufficient. The holder is live only when `ps` succeeds, print
 
 ## Acquire and reclaim
 
-1. Resolve the path from the Effect API's explicit `lockPath`, then `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`; no test covers this order or the `HOME` default. Create its directory if missing.
+1. Resolve the path from the Effect API's explicit `lockPath`, then `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`. Create its directory if missing.
 2. Read this process's start time before taking a new hold. If `ps` cannot run or supplies no start time, fail before starting the command.
 3. Write the complete holder to `<lock>.<id>.draft`, hard-link the draft to `<lock>` and remove the draft. The complete file is published through the link rather than written into an already visible lock path.
 4. If the path already exists and its holder is live, return that holder to the waiting loop. Do not preempt it.

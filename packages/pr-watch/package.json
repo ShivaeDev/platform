@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/pr-watch",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "One REST watcher for pull request transitions across a repository",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/pr-watch#readme",
 	"bugs": {
