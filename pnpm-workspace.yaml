@@ -15,7 +15,7 @@ overrides:
 catalog:
   railway: 3.13.1
   "@tailwindcss/vite": 4.3.3
-  "@tanstack/react-router": 1.170.41
+  "@tanstack/react-router": 1.170.42
   "@vitejs/plugin-react": 6.1.2
   vite: 8.3.4
   tailwindcss: 4.3.3
