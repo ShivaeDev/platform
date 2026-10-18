@@ -219,12 +219,6 @@
 	}
 }
 
-.answer-cards > .response-panel {
-	max-width: 72ch;
-	padding: 1rem;
-	margin: 0;
-}
-
 @layer components {
 	figure.diagram {
 		@apply mx-0;

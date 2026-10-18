@@ -1,5 +1,6 @@
 import { createServer, type IncomingHttpHeaders, type IncomingMessage, type ServerResponse } from "node:http";
 import { Effect } from "effect";
+import { loopbackServer } from "#internal/loopback.ts";
 import { otlpReadout } from "#internal/otlpReadout.ts";
 
 export type OtlpSpan = ReturnType<typeof otlpReadout>[number];
@@ -52,34 +53,11 @@ export const otlpReceiver = Effect.fnUntraced(function* (options: OtlpReceiverOp
 	const requests: OtlpExport[] = [];
 	const spans: OtlpSpan[] = [];
 	const server = createServer((request, response) => receive(request, response, requests, spans, options));
-	yield* Effect.acquireRelease(
-		Effect.tryPromise(
-			() =>
-				new Promise<void>((resolve, reject) => {
-					server.once("error", reject);
-					server.listen(0, "127.0.0.1", () => {
-						server.off("error", reject);
-						resolve();
-					});
-				}),
-		),
-		() =>
-			Effect.promise(
-				() =>
-					new Promise<void>((resolve, reject) => {
-						server.close((error) => (error ? reject(error) : resolve()));
-						server.closeAllConnections();
-					}),
-			),
-	);
-	const address = server.address();
-	if (address === null || typeof address === "string") {
-		return yield* Effect.die("Missing OTLP receiver address");
-	}
+	const url = yield* loopbackServer(server);
 	const receiver: { readonly requests: readonly OtlpExport[]; readonly spans: readonly OtlpSpan[]; readonly url: string } = {
 		requests,
 		spans,
-		url: `http://127.0.0.1:${address.port}`,
+		url,
 	};
 	return receiver;
 });

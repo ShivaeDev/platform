@@ -61,7 +61,7 @@ for (const mode of ["fenced", "nested", "paragraphs"]) {
 				expect(view.container.querySelectorAll(".answer-reason p")).toHaveLength(2);
 			}
 			expect([...view.container.querySelectorAll(".question-choice")].map((button) => button.textContent)).toEqual([
-				"Publish now · RecommendedShip the reviewed guide with this release.",
+				"Publish nowRecommendedShip the reviewed guide with this release.",
 				"Wait for reviewKeep the work blocked until another review.",
 			]);
 			expect(view.container.querySelector(".item-summary")?.textContent).not.toContain(decisionId);

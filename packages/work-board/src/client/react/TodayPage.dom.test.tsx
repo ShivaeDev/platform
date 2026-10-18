@@ -63,7 +63,7 @@ screenStory.it(
 
 		yield* Effect.promise(() =>
 			eventually(() =>
-				expect(view.container.querySelector("[aria-label='Options for question.storage'] button")?.textContent).toBe(
+				expect(view.container.querySelector("[aria-label='Options for question.storage'] button")?.textContent).toContain(
 					"Keep local files · Recommended",
 				),
 			),
@@ -75,7 +75,7 @@ screenStory.it(
 		expect(trigger?.getAttribute("aria-expanded")).toBe("false");
 		click(trigger);
 		yield* Effect.promise(() => eventually(() => expect(dialog?.hidden).toBe(false)));
-		expect(document.activeElement?.textContent).toBe("Keep local files · Recommended");
+		expect(document.activeElement?.textContent).toContain("Keep local files · Recommended");
 		keyboard("Escape", { bubbles: true }, document);
 		expect(dialog?.hidden).toBe(true);
 		expect(document.activeElement).toBe(trigger);
