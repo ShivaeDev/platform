@@ -30,6 +30,12 @@ describe("stable decision codes", () => {
 		expect(decisionAnswer(decisionCopy(reworded))).toContain(':::option{id="release"}');
 		expect(decisionAnswer(decisionCopy(reworded))).not.toContain(':::option{id="retry"}');
 	});
+	it("explains a decision stored without a code generically, keeps its reason as details and offers a retry", () => {
+		const { code: _code, ...uncoded } = ready;
+		const copy = decisionCopy(uncoded);
+		expect(copy.reason).toBe(`Fleet stopped and needs your decision.\n\nDetails: ${ready.reason}`);
+		expect(decisionAnswer(copy)).toContain(':::option{id="retry"}');
+	});
 	it("wording alone cannot select a release-only rule", () => {
 		expect(decisionAnswer(decisionCopy({ ...ready, code: "fleet-integration" }))).toContain(':::option{id="retry"}');
 		expect(Schema.is(Decision)({ ...ready, code: "unknown-code" })).toBe(false);
