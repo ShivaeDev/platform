@@ -7,6 +7,10 @@ import { runAgent } from "./agent-cli.ts";
 const cases: readonly [readonly string[], string][] = [
 	[[], "Usage: work-board question"],
 	[["question"], "Usage: work-board question"],
+	[["responses"], "Usage: work-board responses --follow"],
+	[["responses", "--follow"], "Usage: work-board responses --follow"],
+	[["responses", "--follow", ".", "--since"], "Usage: work-board responses --follow"],
+	[["responses", "--follow", ".", "--since", "invalid"], "Use --since with an ISO timestamp"],
 	[["unknown", "request"], "Usage: work-board question"],
 	[["response", "question", "--port"], "each with a value"],
 	[["response", "question", "--unknown", "value"], "each with a value"],

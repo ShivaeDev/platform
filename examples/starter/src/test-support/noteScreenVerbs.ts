@@ -28,6 +28,6 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				}
 				await act(() => router.navigate({ to: "/" }));
 			}),
-		wordCountText: () => screenView(engine).container.querySelector("tbody tr[data-state]")?.textContent,
+		wordCountText: () => screenView(engine).container.querySelector("tbody td a")?.closest("tr")?.textContent,
 	};
 }
