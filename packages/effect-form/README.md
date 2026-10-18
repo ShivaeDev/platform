@@ -294,6 +294,8 @@ The returned form exposes:
 
 `F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains the top-level string `path`, `message` and optional submitted path `segments`; `Invalid` contains `messages`, a `FieldMessages` record.
 
+The lower-level `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`) and `status.ts` (`statusOf`) modules hold the machinery the form composes; the examples use the form API instead.
+
 ### Install and limits
 
 ```sh

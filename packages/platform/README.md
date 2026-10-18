@@ -524,7 +524,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/rpc-server/transportHeaders.ts` | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision. |
 | `server/rpc-server/boundary.ts` | `rpcBoundary(schema, { unexpected, message? })`: declared failures pass through, unexpected failures become one declared rejection. |
 | `server/rpc-server/tracing.ts` | `requestTracingLayer({ header?, sensitive? })`. |
-| `server/rpc-server/redact.ts`, `redactCause.ts`, `sensitive.ts` | `redact`, `redactCause`, `redactDefect`, `redactingErrorReporter`, `isSensitiveKey`, `redactText`: diagnostic redaction. |
+| `server/rpc-server/redact.ts`, `server/rpc-server/redactCause.ts`, `server/rpc-server/sensitive.ts` | `redact`, `redactCause`, `redactDefect`, `redactingErrorReporter`, `isSensitiveKey`, `redactText`: diagnostic redaction. |
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
 | `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, { modelName? })`. |
