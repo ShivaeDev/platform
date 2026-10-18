@@ -58,7 +58,7 @@ runs:
           node_modules
           packages/*/node_modules
           examples/*/node_modules
-        key: workspace-deps-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.image }}-node${{ steps.store.outputs.node }}-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches/**', '**/.npmrc', '.pnpmfile.cjs') }}
+        key: workspace-deps-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.image }}-node${{ steps.store.outputs.node }}-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches/**', '.npmrc', '.pnpmfile.cjs') }}
     - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
       id: pnpm-cache
       if: inputs.consumer-store-key == '' && steps.workspace-cache.outputs.cache-hit != 'true'
