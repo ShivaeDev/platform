@@ -5,12 +5,12 @@ import { renderBoard } from "./react.tsx";
 import { trackScreen } from "./screenEngine.ts";
 import { screenClient } from "./screenFeatures.tsx";
 import { screenStory } from "./screenStory.ts";
-export function hostedHealthScreen() {
-	return screenStory.trait("screen", "a host supplies its displayed location without a document element", function* (engine) {
+export function hostedHealthScreen(connection: "connecting" | "live" = "live") {
+	return screenStory.trait("screen", `a host supplies its displayed location without a document element while ${connection}`, function* (engine) {
 		engine.documentFailed = true;
 		const paused = Atom.make(false);
 		const status = Atom.make<Atom.Type<LiveClient["updates"]["status"]>>({
-			connection: "live",
+			connection,
 			failure: Option.none(),
 			needsResync: false,
 			pending: 0,

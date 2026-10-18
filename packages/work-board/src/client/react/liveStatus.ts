@@ -5,7 +5,7 @@ interface LiveState {
 	readonly paused: boolean;
 	readonly pending: number;
 	readonly waiting: boolean;
-	readonly watching: boolean;
+	readonly watching: boolean | undefined;
 }
 export function liveStatus(value: LiveState) {
 	const failure = failureText(value.failed, value.navigationFailed);
@@ -14,7 +14,7 @@ export function liveStatus(value: LiveState) {
 		state,
 		text:
 			state === "paused" ? `updates paused · ${value.pending}${value.pending === 256 ? "+" : ""} pending updates` : failure || connectionText(state),
-		title: `Connection: ${value.connection}; last observed source watcher: ${value.watching ? "watching" : "unavailable"}; ${readStatus(value, failure)}`,
+		title: `Connection: ${value.connection}; last observed source watcher: ${watcherText(value.watching)}; ${readStatus(value, failure)}`,
 	};
 }
 function failureText(failed: boolean, navigationFailed: boolean) {
@@ -33,6 +33,9 @@ function connectionState(value: LiveState, failure: string) {
 	if (failure) {
 		return "stale";
 	}
+	if (value.connection === "connecting" || (value.connection === "live" && value.watching === undefined)) {
+		return "connecting";
+	}
 	if (!value.watching || value.connection !== "live") {
 		return "down";
 	}
@@ -49,4 +52,10 @@ function readStatus(value: LiveState, failure: string) {
 		return "reads pending";
 	}
 	return failure ? "showing retained source" : "reads settled";
+}
+function watcherText(watching: boolean | undefined) {
+	if (watching === undefined) {
+		return "not yet observed";
+	}
+	return watching ? "watching" : "unavailable";
 }
