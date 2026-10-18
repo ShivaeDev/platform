@@ -12,6 +12,7 @@ describe("live page", () => {
 	boardStory.it("swaps an edited file into the open page without reloading it", liveProject, function* ({ openLivePage, paragraph, editFile }) {
 		const page = yield* openLivePage("/plan.md");
 		const intro = paragraph("Intro.");
+		expect(intro).toBeDefined();
 		const details = page.document.querySelector("#doc details");
 		if (details === null) {
 			throw new Error("the page has no details block");

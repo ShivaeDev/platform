@@ -23,6 +23,13 @@ export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			}
 			engine.changeDelivery.loseNext = true;
 		},
+		omitNextPath: (path: string) => {
+			tell(`the next live message omits the observed edit to ${path}`);
+			if (!engine.changeDelivery) {
+				throw new Error("No delivery fault was prepared");
+			}
+			engine.changeDelivery.omitPath = path;
+		},
 		searchFinds: (query: string, path: string) => {
 			tell(`the reader checks search for ${path}`);
 			return Effect.map(rpcSearch(served(engine).board, query), (found) => JSON.stringify(found).includes(path));

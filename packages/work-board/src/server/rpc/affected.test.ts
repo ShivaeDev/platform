@@ -1,6 +1,8 @@
+import "#test/liveDeliveryBoundary.ts";
 import { Effect, PlatformError } from "effect";
 import { expect } from "vitest";
 import { boardFilesystem, boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
+import { interruptedDelivery } from "#test/interruptedDelivery.ts";
 
 const graph = projectFiles({
 	"nested/home.md": "---\nid: home\nrelationships:\n - kind: informs\n   target: old\n---\n# Home",
@@ -121,6 +123,18 @@ boardStory.it(
 		const events = yield* watchProject();
 		yield* events.next();
 		editFile("a.md", "# Changed A");
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+	},
+);
+
+boardStory.it(
+	"reconciles when an edit is observed outside the announced paths",
+	[projectFiles({ "note.md": "# Before" }), interruptedDelivery],
+	function* ({ watchProject, omitNextPath, editFile }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		omitNextPath("note.md");
+		editFile("note.md", "# Changed outside the announced paths");
 		expect(yield* events.next()).toEqual({ _tag: "Resync" });
 	},
 );

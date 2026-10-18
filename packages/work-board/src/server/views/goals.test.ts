@@ -1,5 +1,6 @@
+import { Effect, PlatformError } from "effect";
 import { expect } from "vitest";
-import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { boardFilesystem, boardStory, projectFiles } from "#test/boardStory.ts";
 import { closedGoalPageFixture, goalFleetFixture } from "#test/goalPageFixture.ts";
 import { linkedAsks } from "#test/linkedAsks.ts";
 import { fleetReports } from "#test/storyTraits.ts";
@@ -27,3 +28,23 @@ for (const status of ["closed", "done", "superseded", "completed", "cancelled", 
 		},
 	);
 }
+
+boardStory.it(
+	"does not count goal asks while part of the workspace is unreadable",
+	[
+		linkedAsks,
+		projectFiles({ "unreadable.md": "# Unreadable source" }),
+		boardFilesystem((fs) => ({
+			...fs,
+			readFileString: (file, options) =>
+				file.endsWith("unreadable.md")
+					? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
+					: fs.readFileString(file, options),
+		})),
+	],
+	function* ({ rpc }) {
+		const data = yield* rpc((client) => client("work-board.goals", undefined));
+		expect(data.goals[0]?.openAsks).toBe(0);
+		expect((yield* rpc((client) => client("work-board.navigation", { current: "" }))).inboxCount).toBeNull();
+	},
+);

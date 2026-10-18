@@ -12,7 +12,7 @@ import { startProject } from "./servingEngine.ts";
 export interface BoardEngine {
 	activeDiagnosticsPolls?: () => number;
 	beforeScripts?: Parameters<typeof openPage>[2];
-	changeDelivery?: { dropped: boolean; loseNext: boolean };
+	changeDelivery?: { dropped: boolean; loseNext: boolean; omitPath?: string };
 	fleetPort?: number | undefined;
 	home?: string | undefined;
 	lastView?: ReturnType<typeof readerView>;
