@@ -7,8 +7,9 @@ export class StorageConflict extends Schema.TaggedError<StorageConflict>()("Stor
 }) {}
 
 export class StorageCapacity extends Schema.TaggedError<StorageCapacity>()("StorageCapacity", {
-	kind: Schema.Literals(["execution", "backlog"]),
+	kind: Schema.Literals(["execution", "backlog", "open-pull-requests", "merge-work"]),
 	limit: Schema.Number,
+	occupied: Schema.optional(Schema.Number),
 }) {}
 
 export class StorageQuota extends Schema.TaggedError<StorageQuota>()("StorageQuota", {

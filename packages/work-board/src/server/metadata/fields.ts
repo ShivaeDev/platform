@@ -3,7 +3,7 @@ import { Metadata } from "#metadata/schema.ts";
 import type { Diagnostic } from "./parse.ts";
 
 const addonOwners: Readonly<Record<string, readonly string[]>> = {
-	fleet: ["fleet", "fleet-launch", "fleet-deliverable"],
+	fleet: ["fleet", "fleet-launch", "fleet-deliverable", "fleet-priority"],
 };
 const addonFields = new Set(Object.values(addonOwners).flat());
 const schemas: ReadonlyMap<string, Schema.ConstraintDecoder<unknown, never>> = new Map(Object.entries(Metadata.to.fields));

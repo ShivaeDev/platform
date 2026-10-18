@@ -57,7 +57,7 @@ describe("Fleet autonomous scheduling", () => {
 				finishWorkers(fixture);
 				const progression = yield* fleet.reconcile("one").pipe(Effect.forkChild);
 				yield* Deferred.await(entered);
-				const scheduler = yield* Effect.scoped(run("5 millis")).pipe(Effect.forkChild);
+				const scheduler = yield* Effect.scoped(run(Effect.sleep("5 millis"))).pipe(Effect.forkChild);
 				yield* awaitStage("two", "executing");
 				expect((yield* fleet.get("one")).value.stage).toBe("validating");
 				expect(fixture.launched).toHaveLength(3);
@@ -80,7 +80,7 @@ describe("Fleet autonomous scheduling", () => {
 				const fleet = yield* Fleet;
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
-				const scheduler = yield* Effect.scoped(run("5 millis")).pipe(Effect.forkChild);
+				const scheduler = yield* Effect.scoped(run(Effect.sleep("5 millis"))).pipe(Effect.forkChild);
 				yield* Deferred.await(entered);
 				yield* prepareWork("two");
 				yield* awaitStage("two", "executing");

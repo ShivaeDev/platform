@@ -45,7 +45,7 @@ test("daemon startup migrates populated JSONB records and continues serving read
 						expect(dispatched.stage).toBe("executing");
 						expect((yield* client("fleet.get", { workId: "three" })).attempts).toHaveLength(1);
 					}),
-				fixture.parts,
+				{ parts: fixture.parts },
 			);
 		}),
 	));

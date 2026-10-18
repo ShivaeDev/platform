@@ -9,21 +9,22 @@ This file owns Platform's module implementation, package tests and scope questio
 - [x] Shared Schema tagged errors and field-rejection extraction, with native RPC JSON and tRPC rejection tests.
 - [x] Browser-safe native RPC middleware declarations and request-id, identity and optional-identity services, with compile-time checks on guarded handlers.
 - [x] Request-local session middleware, a Better Auth session-provider boundary and an explicit Origin policy. Tests cover concurrent identities, anonymous callers, provider failures and rejection before provider lookup.
-- [x] HTTP transport-header authentication and a WebSocket protocol fixture that uses upgrade-request headers instead of RPC message credentials.
-- [x] Request-id log/span annotations and redaction of failure payloads, defects, reported causes and credential-shaped strings, with bounded collection and string output.
-- [x] An application runtime that acquires its Layer once, shares an explicit development cache key and carries service overrides across Promise calls.
+- [x] HTTP transport-header authentication, direct tests of the RPC-header fallback and HTTP-header precedence, and a WebSocket protocol fixture that uses upgrade-request headers instead of RPC message credentials. [Header selection evidence](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/server/rpc-server/transportHeaders.test.ts).
+- [x] Request-id log/span annotations and redaction of failure payloads, defects, reported causes and credential-shaped strings, with bounded collection and string output. [Tracing tests](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/server/rpc-server/tracing.test.ts) cover successful requests and interruption without failure logs.
+- [x] An application runtime that acquires its Layer once, releases it exactly once, shares an explicit development cache key and recreates disposed cache entries, bypasses caching in production, and carries service overrides across Promise calls. [Runtime tests](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/server/runtime/makePlatform.test.ts) cover typed Layer build failures, Promise rejection, signal interruption with finalization, and nested override replacement and restoration.
 - [x] Node subscription cancellation from Web/procedure signals and simulated request/socket close events, with listener cleanup.
 - [x] A Better Auth Effect Prisma database adapter and Prisma/tRPC rollback harness. Real PostgreSQL tests cover shared transactions, failed transaction rollback, selected row operations and harness types; they require `PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL`.
+- [x] Better Auth adapter filters preserve PostgreSQL null, membership, comparison and literal-pattern semantics, including nonunique updates, OR-filter updates and deletes, and rejection of nonstring patterns. Configured model names map by default. Reads retain their filters through selection, ascending/descending ordering and limit/offset pagination; experimental native joins are rejected for both single and collection reads. [Adapter boundary tests](../src/server/better-auth/filterBoundaries.spec.ts) assert these paths against PostgreSQL.
 - [x] Packed-consumer checks for defining-module imports, types and core entries installed without optional peers.
 - [x] A local app host Layer and reusable database Layer, extracted from the PostgreSQL composition: migrations before services, guarded NDJSON RPC, session policy, static assets, scoped shutdown and commit-bound live delivery. The composed fixture covers two HTTP server processes and a worker. Fleet’s daemon adopts `appHost` and `appDatabase` with a custom RPC route, session-free loopback policy and its existing migration ledger. Platform’s real HTTP option tests cover hosting without a database, while Fleet’s PostgreSQL daemon tests cover pool limits, migration upgrades and existing clients.
 
 ## Next
 
-- [ ] Add focused runtime tests for production cache bypass, disposal and recreation, build failures, exit results and cancellation before documenting stronger lifecycle guarantees.
-- [ ] Extend adapter tests to the remaining public options and filter, selection, ordering and pagination paths. Add a regression test for the rejection of experimental native joins.
-- [ ] Exercise the no-HTTP-request `transportHeaders` fallback directly and the tracing boundary's successful and interrupted paths.
+- [ ] Add focused adapter tests for the remaining public options, `debugLogs` and `usePlural`.
 
 ## Open questions
+
+- What comprehensive application redaction policy should cover span names, free text and custom attributes, and how should request/action correlation work across boundaries?
 
 - Should the package keep the optional Better Auth storage adapter and Prisma/tRPC harness beside its native request-context modules, or should those compositions live with the integration packages? Both serve real boundary work, but they give this package a wider surface than its request-identity job alone.
 - If an application needs Better Auth storage on native Effect SQL, should Platform own that adapter or should the provider retain separate storage? The request middleware needs a session provider, not a particular database.

@@ -5,35 +5,58 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
-import { WAIT_EXIT } from "#host/wait.ts";
+import { WAIT_EXIT, waitFor } from "#host/wait.ts";
 import { codexServer } from "#test/codex.ts";
-import { task, waitProcess, withHost } from "#test/fleetHost.ts";
+import { cliProcess } from "#test/fleetCli.ts";
+import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
-import { daemonCli } from "#test/readDaemon.ts";
+import { daemonCli, withReadDaemon } from "#test/readDaemon.ts";
 import { statusRecord } from "#test/status.ts";
 import { storeState } from "#test/storeState.ts";
 import { askWorker } from "#test/workerQuestion.ts";
 
 const test = postgresTests("live");
 
+function waitSummary(port: number, workId: string) {
+	return waitFor({ intervalMs: 100, port, timeoutMs: 20_000, workId }).pipe(Effect.map(({ code, summary }) => ({ code, stdout: summary })));
+}
+
+function cli(port: number, fixture: HostFixture, args: readonly string[]) {
+	return Effect.promise(() => cliProcess([...args, "--board", fixture.host.boardDir, "--config", fixture.configFile, "--port", String(port)]));
+}
+
 test("CLI status groups all owners and wait names each owner without changing exit codes", function* () {
 	yield* withHost({}, {}, (fixture) =>
 		Effect.gen(function* () {
-			for (const owner of ["maintainer", "orchestrator", "automation"] as const) {
+			const owners = ["maintainer", "orchestrator", "automation"] as const;
+			for (const owner of owners) {
 				yield* storeState(fixture.host, owner, { ...statusRecord(owner, "needs-human"), attentionOwner: owner, blocker: "Synthetic blocker" });
-				expect(yield* Effect.promise(() => waitProcess(fixture.configFile, owner))).toEqual({
-					code: WAIT_EXIT.waitingDecision,
-					stdout: `${owner} needs-human (waiting on ${owner}): Synthetic blocker`,
-				});
 			}
-			const text = yield* daemonCli(fixture.host, ["status", "--board", fixture.host.boardDir, "--config", fixture.configFile]);
+			const [waits, text, json] = yield* withReadDaemon(
+				fixture.host,
+				(port) =>
+					Effect.all(
+						[Effect.forEach(owners, (owner) => waitSummary(port, owner)), cli(port, fixture, ["status"]), cli(port, fixture, ["status", "--json"])],
+						{
+							concurrency: "unbounded",
+						},
+					),
+				{ parts: fixture.parts },
+			);
+			expect(waits).toEqual(
+				owners.map((owner) => ({ code: WAIT_EXIT.waitingDecision, stdout: `${owner} needs-human (waiting on ${owner}): Synthetic blocker` })),
+			);
 			expect(text.code).toBe(0);
-			for (const owner of ["maintainer", "orchestrator", "automation"]) {
+			for (const owner of owners) {
 				expect(text.stdout).toContain(`Waiting on ${owner} (1)\n  ${owner}  needs-human`);
 			}
-			const json = yield* daemonCli(fixture.host, ["status", "--json", "--board", fixture.host.boardDir, "--config", fixture.configFile]);
 			expect(json.code).toBe(0);
-			expect(Object.keys(JSON.parse(json.stdout)).sort((left, right) => left.localeCompare(right))).toEqual(["active", "completed", "waiting"]);
+			expect(Object.keys(JSON.parse(json.stdout)).sort((left, right) => left.localeCompare(right))).toEqual([
+				"active",
+				"completed",
+				"config",
+				"waiting",
+			]);
 			expect(JSON.parse(json.stdout)).toMatchObject({
 				waiting: { automation: [{ workId: "automation" }], maintainer: [{ workId: "maintainer" }], orchestrator: [{ workId: "orchestrator" }] },
 			});
@@ -44,19 +67,22 @@ test("CLI status groups all owners and wait names each owner without changing ex
 test("terminal publication blockers remain grouped by owner with their original wait exit codes", function* () {
 	yield* withHost({}, {}, (fixture) =>
 		Effect.gen(function* () {
-			for (const stage of ["completed", "released"] as const) {
+			const stages = ["completed", "released"] as const;
+			for (const stage of stages) {
 				yield* storeState(fixture.host, stage, {
 					...statusRecord(stage, stage),
 					attentionOwner: "orchestrator",
 					blocker: "Synthetic publication blocker",
 					outcome: undefined,
 				});
-				expect(yield* Effect.promise(() => waitProcess(fixture.configFile, stage))).toEqual({
-					code: WAIT_EXIT[stage],
-					stdout: `${stage} ${stage} (waiting on orchestrator)`,
-				});
 			}
-			const status = yield* daemonCli(fixture.host, ["status", "--board", fixture.host.boardDir, "--config", fixture.configFile]);
+			const [waits, status] = yield* withReadDaemon(
+				fixture.host,
+				(port) =>
+					Effect.all([Effect.forEach(stages, (stage) => waitSummary(port, stage)), cli(port, fixture, ["status"])], { concurrency: "unbounded" }),
+				{ parts: fixture.parts },
+			);
+			expect(waits).toEqual(stages.map((stage) => ({ code: WAIT_EXIT[stage], stdout: `${stage} ${stage} (waiting on orchestrator)` })));
 			expect(status.code).toBe(0);
 			expect(status.stdout).toContain("Waiting on orchestrator (2)");
 			expect(status.stdout).toContain("  completed  completed  Synthetic publication blocker");
@@ -81,7 +107,7 @@ test("CLI reassignment publishes a new maintainer question and refreshes the gen
 			const changed = yield* daemonCli(
 				fixture.host,
 				["reassign", "one", old.decision.id, "maintainer", "--board", fixture.host.boardDir, "--config", fixture.configFile],
-				fixture.parts,
+				{ parts: fixture.parts },
 			);
 			expect(changed).toEqual({ code: 0, stdout: "one needs-human (waiting on maintainer)" });
 			const current = yield* Effect.gen(function* () {

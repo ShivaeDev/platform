@@ -21,7 +21,7 @@ export const recoverStall = Effect.fn("Fleet.recoverStall")(function* (
 	if (attempt.status === "interrupted" && recovery?.interruptRequestedAt !== undefined) {
 		return yield* resumeStalled(state, stored, attempt);
 	}
-	if (!stalled(attempt, now, state.policy.stallMinutes ?? 30)) {
+	if (!stalled(attempt, now, (yield* state.current).stallMinutes ?? 30)) {
 		return undefined;
 	}
 	const work = yield* state.board.get(stored.value.workId);

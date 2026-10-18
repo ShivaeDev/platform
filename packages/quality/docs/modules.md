@@ -30,9 +30,13 @@ A module link opens its source. Type and value declarations with the same name a
 
 | Module | Exported names |
 | --- | --- |
+| [biome/exceptionConfig.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/biome/exceptionConfig.ts) | `exceptionConfig`, `withExceptionConfig` |
+| [biome/nativeEffectCall.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/biome/nativeEffectCall.ts) | `nativeEffectCall` |
+| [biome/recognizeDiagnostics.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/biome/recognizeDiagnostics.ts) | `recognizeDiagnostics` |
 | [biome/recommendedRules.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/biome/recommendedRules.ts) | `recommendedRules` |
 | [biome/report.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/biome/report.ts) | `Diagnostic`, `Report`, `biomeReport` |
 | [biome/run.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/biome/run.ts) | `BiomeRun`, `runBiome` |
+| [biome/syntax.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/biome/syntax.ts) | `Syntax`, `syntaxOf`, `offsetOf`, `nodeAt` |
 
 ## cli
 
@@ -42,8 +46,11 @@ A module link opens its source. Type and value declarations with the same name a
 | [cli/baseline.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/baseline.ts) | `writeBaseline`, `shrinkBaseline` |
 | [cli/fix.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/fix.ts) | `MAX_FIX_ROUNDS`, `snapshotOf`, `Pass`, `Settling`, `settle`, `fix` |
 | [cli/lint.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/lint.ts) | `lint` |
+| [cli/messages.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/messages.ts) | `USAGE`, `ADOPT_REMOVED` |
 | [cli/migrate.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/migrate.ts) | `migrateBaseline` |
-| [cli/run-main.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/run-main.ts) | `quietOnClosedPipe`, `runMain` |
+| [cli/migrateExceptions.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/migrateExceptions.ts) | `migrateExceptions` |
+| [cli/program.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/program.ts) | `Invocation`, `program` |
+| [cli/run-main.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/run-main.ts) | `exitCode`, `quietOnClosedPipe`, `services`, `explained`, `runMain` |
 | [cli/shrink.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/shrink.ts) | `pruneBaseline`, `tightenBaseline` |
 
 ## config
@@ -69,7 +76,10 @@ A module link opens its source. Type and value declarations with the same name a
 
 | Module | Exported names |
 | --- | --- |
+| [exceptions/biomeFindings.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/exceptions/biomeFindings.ts) | `missingBiomeFiles`, `biomeExceptionHint` |
 | [exceptions/declaration.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/exceptions/declaration.ts) | `ExceptionDeclaration`, `decodeExceptions` |
+| [exceptions/migrateBiome.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/exceptions/migrateBiome.ts) | `migrateBiome` |
+| [exceptions/migrateConfig.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/exceptions/migrateConfig.ts) | `migrateConfig` |
 | [exceptions/registryEntries.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/exceptions/registryEntries.ts) | `registryEntries` |
 | [exceptions/registry.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/exceptions/registry.ts) | `RegistryEntry`, `decodeRegistry`, `StaleRegistryEntry`, `RegistryCheck`, `applyRegistry` |
 
@@ -97,6 +107,8 @@ A module link opens its source. Type and value declarations with the same name a
 | Module | Exported names |
 | --- | --- |
 | [imports/ambient.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/ambient.ts) | `Ambient`, `ambientModules` |
+| [imports/browserGlobals.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/browserGlobals.ts) | `browserGlobals` |
+| [imports/browserNames.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/browserNames.ts) | `browserNames` |
 | [imports/components.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/components.ts) | `cyclicComponents` |
 | [imports/departures.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/departures.ts) | `Departure`, `departures` |
 | [imports/extract.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/extract.ts) | `ImportKind`, `ImportRequest`, `importsOf` |
@@ -107,6 +119,7 @@ A module link opens its source. Type and value declarations with the same name a
 | [imports/pnpm-workspace.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/pnpm-workspace.ts) | `pnpmWorkspacePatterns` |
 | [imports/projects.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/projects.ts) | `Project`, `projectsFor` |
 | [imports/resolve.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/resolve.ts) | `Endpoint`, `builtinName`, `packageNameOf`, `isDeclarationFile`, `presumedTarget`, `resolveImport` |
+| [imports/runtime.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/runtime.ts) | `Runtime`, `runtimeOf` |
 | [imports/specifiers.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/specifiers.ts) | `SpecifierSite`, `specifierSites` |
 | [imports/workspace.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/workspace.ts) | `WorkspacePackage`, `workspacePackages`, `packageOf` |
 
@@ -204,8 +217,10 @@ A module link opens its source. Type and value declarations with the same name a
 | [rules/imports/aliased.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/aliased.ts) | `importsAliased` |
 | [rules/imports/cycles.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/cycles.ts) | `importCycles` |
 | [rules/imports/fences.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/fences.ts) | `importFences` |
+| [rules/imports/manifest.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/manifest.ts) | `importsManifest` |
 | [rules/imports/noTestCode.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/noTestCode.ts) | `noTestCode` |
 | [rules/imports/resolvable.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/resolvable.ts) | `importsResolvable` |
+| [rules/imports/runtime.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/runtime.ts) | `importsRuntime` |
 
 ## rules/stories
 
@@ -230,6 +245,7 @@ A module link opens its source. Type and value declarations with the same name a
 
 | Module | Exported names |
 | --- | --- |
+| [rules/suppressions/biome/ConsumerDeclaration.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/biome/ConsumerDeclaration.ts) | `ConsumerDeclaration` |
 | [rules/suppressions/biome/configs.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/biome/configs.ts) | `Preset`, `Layer`, `Chain`, `BiomeConfigs`, `biomeConfigs` |
 | [rules/suppressions/biome/declarations.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/biome/declarations.ts) | `Declaration`, `PRESET_DECLARATIONS`, `decodeShipped`, `Scoped`, `matches`, `scoped`, `scopeText` |
 | [rules/suppressions/biome/json.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/biome/json.ts) | `Json`, `Parsed`, `parseJsonc`, `member`, `entriesOf`, `itemsOf`, `textOf`, `isFalse` |

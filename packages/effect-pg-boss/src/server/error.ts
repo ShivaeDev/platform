@@ -6,7 +6,21 @@ export class PgBossError extends Data.TaggedError("PgBossError")<{
 	readonly operation: PgBossOperation;
 	readonly queue?: string | undefined;
 	readonly original: Redacted.Redacted<unknown>;
-}> {}
+}> {
+	// The original's message can quote payloads or connection strings, so only its class and code are shown.
+	override get message(): string {
+		const target = this.queue === undefined ? "" : ` for queue ${this.queue}`;
+		return `pg-boss ${this.operation}${target} failed: ${originalKind(Redacted.value(this.original))}`;
+	}
+}
+
+function originalKind(original: unknown): string {
+	if (!(original instanceof Error)) {
+		return typeof original;
+	}
+	const code: unknown = Reflect.get(original, "code");
+	return typeof code === "string" ? `${original.constructor.name} ${code}` : original.constructor.name;
+}
 
 export class PgBossQueueOptionsError extends Data.TaggedError("PgBossQueueOptionsError")<{
 	readonly queue: string;

@@ -1,87 +1,27 @@
 name: Set up workspace
-description: Restore exact installed dependencies or install with the shared pnpm store cache.
+description: Install the locked dependencies from npm under the supply-chain policy.
 inputs:
-  consumer-cache:
-    description: Restore the complete consumer store warmed on main.
+  postgres:
+    description: Pull the pinned PostgreSQL image in the background while the workspace is set up.
     default: 'false'
-  save-workspace-cache:
-    description: Save the exact installed dependency tree from the build producer.
-    default: 'false'
-outputs:
-  store-path:
-    description: pnpm's content-addressed store directory.
-    value: ${{ steps.store.outputs.path }}
-  consumer-cache-key:
-    description: Fresh cache key for saving the complete consumer store on main.
-    value: ${{ steps.consumer-cache.outputs.cache-primary-key }}
 runs:
   using: composite
   steps:
-    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
       with:
         node-version: 26.11.1
         package-manager-cache: false
-    - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3.0.0
-      with:
-        cache: false
-        node-version-file: false
-    - id: store
+    - name: Pull PostgreSQL in the background
+      if: inputs.postgres == 'true'
       shell: bash
       run: |
-        echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-        echo "architecture=$(node -p 'process.arch')" >> "$GITHUB_OUTPUT"
-        echo "image=$ImageOS" >> "$GITHUB_OUTPUT"
-        node --input-type=module <<'JS'
-        import { appendFileSync, globSync, readFileSync } from 'node:fs';
-        const hooks = ['preinstall', 'install', 'postinstall', 'prepare', 'prepublish', 'preprepare', 'postprepare', 'pnpm:devPreinstall'];
-        const manifests = ['package.json', ...globSync('packages/*/package.json'), ...globSync('examples/*/package.json')];
-        const hasHooks = manifests.some(path => {
-          const { scripts = {} } = JSON.parse(readFileSync(path, 'utf8'));
-          return hooks.some(hook => Object.hasOwn(scripts, hook));
-        });
-        appendFileSync(process.env.GITHUB_OUTPUT, `install-hooks=${hasHooks}\n`);
-        JS
-    - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-      id: workspace-cache
+        image=$(node --input-type=module -e "import { POSTGRES_IMAGE } from './packages/local-postgres/src/server/local-container.ts'; console.log(POSTGRES_IMAGE)")
+        nohup docker pull --quiet "$image" > "$RUNNER_TEMP/postgres-pull.log" 2>&1 &
+    - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
       with:
-        path: |
-          node_modules
-          packages/*/node_modules
-          examples/*/node_modules
-        key: workspace-deps-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.image }}-node26.10.0-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches/**', '**/.npmrc', '.pnpmfile.cjs') }}
-    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-      if: inputs.consumer-cache != 'true' && steps.workspace-cache.outputs.cache-hit != 'true'
-      with:
-        path: ${{ steps.store.outputs.path }}
-        key: pnpm-cache-${{ runner.os }}-${{ steps.store.outputs.architecture }}-${{ hashFiles('pnpm-lock.yaml') }}
-    - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-      id: consumer-cache
-      if: inputs.consumer-cache == 'true'
-      with:
-        path: ${{ steps.store.outputs.path }}
-        key: consumer-store-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'packages/*/package.json', 'script/package-check/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
-        restore-keys: |
-          consumer-store-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'packages/*/package.json', 'script/package-check/**') }}-
-          consumer-store-v1-${{ runner.os }}-${{ runner.arch }}-
-    - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-      if: inputs.consumer-cache == 'true' && steps.consumer-cache.outputs.cache-matched-key == ''
-      with:
-        path: ${{ steps.store.outputs.path }}
-        key: pnpm-cache-${{ runner.os }}-${{ steps.store.outputs.architecture }}-${{ hashFiles('pnpm-lock.yaml') }}
+        cache: false
+        install: false
+        node-version-file: false
     - shell: bash
-      if: steps.workspace-cache.outputs.cache-hit != 'true' || steps.store.outputs.install-hooks == 'true'
       # Re-verify every entry against the supply-chain policy that local installs trust.
       run: pnpm install --frozen-lockfile --trust-lockfile=false
-    - name: Validate manifests against cached dependencies
-      shell: bash
-      if: steps.workspace-cache.outputs.cache-hit == 'true' && steps.store.outputs.install-hooks != 'true'
-      # These exact dependencies already passed policy checks when the cache was saved.
-      run: pnpm install --frozen-lockfile --lockfile-only --ignore-scripts --trust-lockfile
-    - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-      if: inputs.save-workspace-cache == 'true' && steps.workspace-cache.outputs.cache-hit != 'true'
-      with:
-        path: |
-          node_modules
-          packages/*/node_modules
-          examples/*/node_modules
-        key: ${{ steps.workspace-cache.outputs.cache-primary-key }}

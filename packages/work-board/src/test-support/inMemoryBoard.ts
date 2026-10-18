@@ -1,25 +1,22 @@
-import { ByteSize, Context, Effect, FileSystem, Layer, Option, Path, PubSub, Ref } from "effect";
-import { Diagnostics, DiagnosticsConfig, SourceFailure } from "#diagnostics/source.ts";
-import { readDocument } from "#server/document/read.ts";
+import { ByteSize, Effect, FileSystem, Layer, Option, Path, type PlatformError, PubSub, Ref } from "effect";
+import { DiagnosticsConfig, SourceFailure } from "#diagnostics/source.ts";
+import { boardServices } from "#server/boardServices.ts";
 import type { Change, Changes } from "#server/files/changes.ts";
-import { HandoffsService } from "#server/handoffs/Service.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
-import { ResponseConfig, Responses } from "#server/responses/service.ts";
-import { handlers } from "#server/rpc/handlers.ts";
+import type { Snapshot } from "#server/search/snapshot.ts";
+import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
 import { fixtureSnapshot } from "./fixtureSnapshot.ts";
 
 export interface BoardFixtureOptions {
-	readonly beforeRead?: (kind: "document" | "page", url: string) => Effect.Effect<void>;
+	readonly beforeRead?: (kind: "document", url: string) => Effect.Effect<void>;
 	readonly fleetPort?: number;
 	readonly home: string | undefined;
+	readonly index?: Effect.Effect<Snapshot, PlatformError.PlatformError>;
 	readonly modified?: ReadonlyMap<string, number>;
 	readonly writable?: boolean;
 }
 
 const missing = Effect.fail(new SourceFailure({ kind: "not-configured", message: "Source missing" }));
-const missingDiagnostics = Diagnostics.layer.pipe(
-	Layer.provide(Layer.succeed(DiagnosticsConfig, { _tag: "Sources", sources: { codex: missing, fleet: missing, github: missing } })),
-);
 
 export function inMemoryBoard(files: Readonly<Record<string, string>>, configuration?: BoardFixtureOptions) {
 	return Layer.unwrap(
@@ -32,21 +29,26 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 				revision: Effect.succeed(0),
 				watching: yield* Ref.make(false),
 			};
-			const options = { changes, enabled: false, index: fixtureSnapshot(files, home, configuration?.modified), root: "/board" };
-			const services = yield* Layer.build(
-				Layer.mergeAll(Responses.layer, HandoffsService.layer, missingDiagnostics).pipe(Layer.provide(Layer.succeed(ResponseConfig, options))),
+			const workspace = Layer.effect(Workspace)(
+				Effect.map(Workspace, (service) => ({
+					...service,
+					document: (url: string) =>
+						Effect.suspend(() => configuration?.beforeRead?.("document", url) ?? Effect.void).pipe(Effect.andThen(service.document(url))),
+				})),
+			).pipe(Layer.provide(Workspace.layer));
+			return boardServices({ fleetPort: configuration?.fleetPort ?? null }).pipe(
+				Layer.provide(workspace),
+				Layer.provide([
+					Layer.succeed(WorkspaceConfig, {
+						changes,
+						home,
+						index: configuration?.index ?? fixtureSnapshot(files, home, configuration?.modified),
+						root: "/board",
+						writable: configuration?.writable === true,
+					}),
+					Layer.succeed(DiagnosticsConfig, { _tag: "Sources", sources: { codex: missing, fleet: missing, github: missing } }),
+				]),
 			);
-			const context = Context.merge(yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>(), services);
-			return yield* handlers({
-				...options,
-				document: (url) =>
-					Effect.suspend(() => configuration?.beforeRead?.("document", url) ?? Effect.void).pipe(
-						Effect.andThen(readDocument({ ...options, home, writable: configuration?.writable === true })(url)),
-						Effect.provideContext(context),
-					),
-				fleetPort: configuration?.fleetPort ?? null,
-				home,
-			}).pipe(Effect.provideContext(context));
 		}),
 	).pipe(
 		Layer.provide([

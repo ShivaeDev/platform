@@ -2,7 +2,7 @@ import type { ExecFileSyncOptions, ExecFileSyncOptionsWithStringEncoding, execFi
 import { expect } from "vitest";
 import { dockerScript, PINNED_IMAGE } from "#test/dockerScript.ts";
 
-export function dockerReadiness(unavailableProbes: number, realExec: typeof execFileSync) {
+export function dockerReadiness(unavailableProbes: number, realExec: typeof execFileSync, tell: (line: string) => void) {
 	const startup = dockerScript([
 		{ args: ["info"], result: "Docker is available" },
 		{ args: ["container", "inspect", "development-postgres"], result: "[]" },
@@ -14,7 +14,19 @@ export function dockerReadiness(unavailableProbes: number, realExec: typeof exec
 		if (args[0] === "inspect") {
 			expect(args).toEqual(["inspect", "--format", "{{.Config.Image}}", id]);
 		} else {
-			expect(args.slice(0, 9)).toEqual(["exec", id, "psql", "-X", "--set", "ON_ERROR_STOP=1", "-At", "-c", "SHOW server_version"]);
+			expect(args.slice(0, 11)).toEqual([
+				"exec",
+				"--env",
+				"PGPASSWORD",
+				id,
+				"psql",
+				"-X",
+				"--set",
+				"ON_ERROR_STOP=1",
+				"-At",
+				"-c",
+				"SHOW server_version",
+			]);
 		}
 		return realExec("docker", args, options);
 	}
@@ -39,11 +51,13 @@ export function dockerReadiness(unavailableProbes: number, realExec: typeof exec
 			if (args[0] === "ps") {
 				expect(args).toEqual(["ps", "--filter", "publish=55432", "--format", "{{.ID}}"]);
 				probes += 1;
+				tell(`Docker discovery probe ${probes}`);
 				return probes <= unavailableProbes ? "" : realExec(file, args, stringOptions);
 			}
 			if (probes > unavailableProbes && ["inspect", "exec"].includes(args[0] ?? "")) {
 				return client(args, stringOptions);
 			}
+			tell(`Docker ${args.join(" ")}`);
 			return startup.run(args, stringOptions);
 		},
 	};

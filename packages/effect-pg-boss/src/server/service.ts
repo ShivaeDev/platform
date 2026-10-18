@@ -4,6 +4,7 @@ import type { PgBossClientFactory } from "#client.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#definition.ts";
 import type { PgBossError, PgBossPayloadError, PgBossQueueOptionsError } from "#error.ts";
 import type { JobsHealth, QueueCounts } from "#health.ts";
+import { logClientError, subscribeClientErrors } from "#internal/clientErrors.ts";
 import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
 import { registerJobs, registrationName } from "#internal/register.ts";
 import { makeService } from "#internal/service.ts";
@@ -42,10 +43,6 @@ export interface PgBossDefinition<TIdentifier extends string = string> extends C
 	>;
 }
 
-function logClientError(error: Error): Effect.Effect<void> {
-	return Effect.logError({ event: "pg_boss_error", message: error.message });
-}
-
 export const makePgBoss = <const TIdentifier extends string>(identifier: TIdentifier): PgBossDefinition<TIdentifier> => {
 	const Service = Context.Service<TIdentifier, PgBossService>(identifier);
 
@@ -74,20 +71,14 @@ export const makePgBoss = <const TIdentifier extends string>(identifier: TIdenti
 				const errorListener = (error: Error) => {
 					void Effect.runPromise(Effect.exit(Effect.provide(reportError(error), context)));
 				};
-				acquired.client.on("error", errorListener);
+				const unsubscribe = subscribeClientErrors(acquired.client, errorListener);
 				const registration = registerJobs(acquired.client, jobs, context, acquired.reused);
 				return yield* registration.pipe(
-					Effect.as({ acquired, errorListener, service }),
-					Effect.onError(() => {
-						acquired.client.off("error", errorListener);
-						return releaseClient(acquired, stop);
-					}),
+					Effect.as({ acquired, service, unsubscribe }),
+					Effect.onError(() => releaseClient(acquired, stop).pipe(Effect.ensuring(Effect.sync(unsubscribe)))),
 				);
 			}),
-			(resource) => {
-				resource.acquired.client.off("error", resource.errorListener);
-				return releaseClient(resource.acquired, stop);
-			},
+			(resource) => releaseClient(resource.acquired, stop).pipe(Effect.ensuring(Effect.sync(resource.unsubscribe))),
 		);
 
 		return Layer.effect(

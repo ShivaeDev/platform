@@ -16,7 +16,7 @@ assert.equal(typeof DocumentView, "function")
 assert.equal(typeof serveBoard, "function")
 assert.equal("listenOn" in await import("@shivaedev/work-board/serve.ts"), false)
 const removedRpcPath = "@shivaedev/work-board/rpc/server.ts"
-await assert.rejects(import(removedRpcPath), { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" })
+await assert.rejects(import(removedRpcPath), { code: "ERR_MODULE_NOT_FOUND" })
 for (const schema of [Document, Navigation, HandoffInput, DraftInput]) assert(Schema.isSchema(schema))
 assert(workContract)
 for (const route of ["/_board/native.js", "/_board/react.js", "/_board/react.css"]) {
@@ -24,7 +24,7 @@ for (const route of ["/_board/native.js", "/_board/react.js", "/_board/react.css
 }
 
 for (const path of ["./diagnostics/script.ts", "./history/script.ts", "./page/sidebarScript.ts", "./page/searchResultsScript.ts", "./page/swap.ts", "./page/visualViewport.ts", "./page/stateScript.ts", "./page/searchScript.ts", "./page/visualScript.ts", "./page/itemContextScript.ts", "./page/libraryScript.ts", "./page/ageScript.ts", "./page/navigationScript.ts", "./page/readingStateScript.ts", "./page/formReadingScript.ts", "./page/diagrams.ts", "./page/client.ts", "./views/savedScript.ts"]) {
-  await assert.rejects(import(`@shivaedev/work-board${path.slice(1)}`), { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" })
+  await assert.rejects(import(`@shivaedev/work-board${path.slice(1)}`), { code: "ERR_MODULE_NOT_FOUND" })
 }
 for (const route of ["/_board/client.js", "/_board/navigation.js", "/_board/search.js", "/_board/preferences.js", "/_board/library.js", "/_board/reading-state.js", "/_board/ages.js"]) {
   assert(!ASSET_HANDLERS.some(([path]) => path === route))

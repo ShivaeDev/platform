@@ -1,6 +1,5 @@
 import { Layer, ManagedRuntime } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
-import type { OtlpTracer } from "effect/observability";
 import { expect, it } from "vitest";
 import { appHost } from "#appHost.ts";
 import { sessions } from "#test/app-host/fixture.ts";
@@ -29,10 +28,7 @@ it("exports route templates for RPC and router spans, falls back for missing rou
 		expect((await fetch(`${url}/items/42?secret=value`, { headers: { traceparent: `00-${traceId}-${parentSpanId}-01` } })).status).toBe(200);
 		expect((await fetch(`${url}/unknown/42`)).status).toBe(404);
 		await runtime.dispose();
-		const payloads: OtlpTracer.TraceData[] = receiver.requests.map(({ body }) => JSON.parse(body));
-		const spans = payloads.flatMap(({ resourceSpans }) =>
-			resourceSpans.flatMap(({ scopeSpans }) => scopeSpans.flatMap(({ spans: scopeTraces }) => scopeTraces)),
-		);
+		const spans = receiver.spans;
 		const servers = spans.filter(({ kind, attributes }) => kind === 2 && attributes.some(({ key }) => key === "http.request.method"));
 		expect(servers).toHaveLength(3);
 		expect(servers).toContainEqual(

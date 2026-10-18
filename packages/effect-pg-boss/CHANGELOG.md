@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.1 - 2026-10-18
+
+### Changed
+
+- `PgBossError` has a message that names the operation, the queue and the original error's class and code, such as a PostgreSQL SQLSTATE, without the redacted original message. A registration failure names the queue it was preparing.
+
+### Fixed
+
+- Registration creates a queue again, up to six times with a short backoff, when PostgreSQL rolls the creation back as a deadlock victim (SQLSTATE `40P01`). A partitioned queue created while other queues in the schema have traffic no longer fails Layer acquisition.
+- Observe pg-boss connection errors throughout startup and shutdown, and log administrator-terminated connections at debug while preserving query failures and application error callbacks.
+- Keep observing idle errors from closing sockets after shutdown, when shutdown fails, and when `stop({ close: false })` leaves the pool open.
+
 ## 0.8.0 - 2026-10-17
 
 ### Added

@@ -21,7 +21,7 @@ export function ProjectionFrame<A, E>({
 	url,
 }: {
 	readonly atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
-	readonly location: (data: A) => MainLocation & { readonly identity?: string | undefined; readonly status: number };
+	readonly location: (data: A) => Omit<MainLocation, "route" | "projection"> & { readonly identity?: string | undefined };
 	readonly onPage: (location: MainLocation) => void;
 	readonly render: (data: A) => ReactNode;
 	readonly source?: (data: A) => string | undefined;
@@ -36,7 +36,7 @@ export function ProjectionFrame<A, E>({
 	const failed = Option.isSome(query.cause);
 	useLayoutEffect(() => {
 		const element = hostRef.current;
-		if (element && element.dataset.route !== url) {
+		if (element) {
 			delete element.dataset.route;
 		}
 		if (!element || query.pending || (data === undefined && !failed)) {
@@ -56,8 +56,16 @@ export function ProjectionFrame<A, E>({
 				}
 				renderedRef.current = projectionChanges(mainElement, renderedRef.current, url);
 				mainElement.dataset.route = url;
-				flushSync(() => onPage({ file: main.file, title: mainElement.querySelector("h1")?.textContent?.trim(), view: main.view }));
-				document.dispatchEvent(new Event("board-page"));
+				flushSync(() =>
+					onPage({
+						file: main.file,
+						projection: route,
+						route: url,
+						status: main.status,
+						title: mainElement.querySelector("h1")?.textContent?.trim(),
+						view: main.view,
+					}),
+				);
 			});
 		}
 		const observer = new MutationObserver((records) => {
@@ -78,7 +86,7 @@ export function ProjectionFrame<A, E>({
 			active = false;
 			observer.disconnect();
 		};
-	}, [data, failed, query.pending, expectedSource, main.file, main.view, onPage, url]);
+	}, [data, failed, query.pending, expectedSource, main.file, main.status, main.view, onPage, route, url]);
 	return (
 		<>
 			<main

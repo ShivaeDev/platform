@@ -1,10 +1,14 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "test-sql-0.5.1.md",
-			"text": "### Changed\n\n- New apps start on `@shivaedev/effect-test-sql` 0.5.1, whose migration steps accept zero-padded migration names as written.\n"
+			"name": "idle-auth-client-debug.md",
+			"text": "### Fixed\n\n- Generated apps log terminated idle Better Auth database connections at debug and continue serving queries on a fresh connection.\n"
+		},
+		{
+			"name": "nested-template-files.md",
+			"text": "### Fixed\n\n- Keep nested README.md, AGENTS.md, CLAUDE.md and published-versions.json files in generated apps while excluding the starter's root maintenance files.\n"
 		}
 	],
-	"version": "0.6.6"
+	"version": "0.6.9"
 }

@@ -1,15 +1,22 @@
 import { Effect } from "effect";
+import { RpcTest } from "effect/rpc";
 import { expect, it } from "vitest";
 import { laneOf } from "#browser/views/now.ts";
+import { workRpcs } from "#rpc/contract.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
-import { fixtureSnapshot } from "#test/fixtureSnapshot.ts";
+import { inMemoryBoard } from "#test/inMemoryBoard.ts";
 import { fleetApproval } from "./fleetApproval.ts";
-import { projectionQueries } from "./projectionQueries.ts";
 
 it.each(["approved", '"approved"', "pending", "[approved]", "{value: approved}"])("projects the exact Fleet approval value %s", async (approval) => {
 	const source = `---\nid: task\nkind: task\nstatus: planned\nfleet: ${approval}\n---\n# Task`;
-	const snapshot = await Effect.runPromise(fixtureSnapshot({ "task.md": source }, undefined));
-	const projection = await Effect.runPromise(projectionQueries({ document: undefined, index: Effect.succeed(snapshot) }).work("/_board/work"));
+	const projection = await Effect.runPromise(
+		Effect.scoped(
+			Effect.gen(function* () {
+				const client = yield* RpcTest.makeClient(workRpcs, { flatten: true });
+				return yield* client("work-board.work", { url: "/_board/work" });
+			}),
+		).pipe(Effect.provide(inMemoryBoard({ "task.md": source }))),
+	);
 	const item = projection.rows[0];
 	if (!item) {
 		throw new Error("Missing projected task");

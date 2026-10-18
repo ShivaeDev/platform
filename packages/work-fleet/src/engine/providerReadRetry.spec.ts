@@ -10,8 +10,16 @@ import { postgresTests } from "#test/postgres.ts";
 const test = postgresTests("test", "isolated");
 const READ_FAILURE = new SessionFailure({ capacity: "serverOverloaded", message: "Capacity unavailable for thread/turns/list", reason: "rejected" });
 
-for (const lostAcknowledgement of [true, false]) {
-	test(`capacity read failure preserves its operation across restart: lost acknowledgement=${lostAcknowledgement}`, () => {
+const CASES = [
+	{ lostAcknowledgement: true, readRetryMs: undefined },
+	{ lostAcknowledgement: false, readRetryMs: undefined },
+	{ lostAcknowledgement: true, readRetryMs: 1000 },
+];
+
+for (const { lostAcknowledgement, readRetryMs } of CASES) {
+	test(`capacity read failure preserves its operation across restart: lost acknowledgement=${lostAcknowledgement}, readRetryMs=${readRetryMs}`, () => {
+		const firstRetry = 100 + (readRetryMs ?? 30_000);
+		const secondRetry = firstRetry + 2 * (readRetryMs ?? 30_000);
 		let now = 100;
 		let fail = true;
 		let reads = 0;
@@ -31,6 +39,7 @@ for (const lostAcknowledgement of [true, false]) {
 				}),
 				lostAcknowledgement,
 				now: () => now,
+				...(readRetryMs === undefined ? {} : { readRetryMs }),
 			},
 			(fixture) =>
 				Effect.gen(function* () {
@@ -49,21 +58,21 @@ for (const lostAcknowledgement of [true, false]) {
 					expect(queued.decision).toBeUndefined();
 					expect(queued.launchRetry).toBeUndefined();
 					expect(queued.attentionOwner).toBe("automation");
-					expect(queued.attempts.at(-1)).toMatchObject({ ...before.attempts[0], readRetry: { failures: 1, retryAt: 30_100 } });
+					expect(queued.attempts.at(-1)).toMatchObject({ ...before.attempts[0], readRetry: { failures: 1, retryAt: firstRetry } });
 					expect(executing(queued)).toBe(true);
 					expect(yield* fleet.dispatch("two").pipe(Effect.flip)).toMatchObject({ _tag: "StorageCapacity", kind: "execution" });
 					const failedReads = reads;
-					now = 30_099;
+					now = firstRetry - 1;
 					yield* fixture.restart(cycle);
 					expect(reads).toBe(failedReads);
 					expect((yield* fleet.get("one")).value.attempts).toEqual(queued.attempts);
-					now = 30_100;
+					now = firstRetry;
 					yield* fixture.restart(cycle);
 					const retrying = (yield* fleet.get("one")).value;
-					expect(retrying.attempts.at(-1)?.readRetry).toMatchObject({ failures: 2, retryAt: 90_100 });
+					expect(retrying.attempts.at(-1)?.readRetry).toMatchObject({ failures: 2, retryAt: secondRetry });
 					expect(fixture.launched).toHaveLength(1);
 					fail = false;
-					now = 90_100;
+					now = secondRetry;
 					yield* fixture.restart(cycle);
 					const recovered = (yield* fleet.get("one")).value;
 					expect(recovered.stage).toBe("executing");

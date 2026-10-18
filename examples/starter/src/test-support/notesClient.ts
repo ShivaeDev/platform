@@ -1,4 +1,4 @@
-import { Effect, Layer, PubSub, Stream } from "effect";
+import { Deferred, Effect, Layer, PubSub, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
@@ -13,6 +13,17 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 	const calls: string[] = [];
 	const hints = Effect.runSync(PubSub.unbounded<LiveHint>());
 	const session = { signedIn: true };
+	let listGate: Deferred.Deferred<void> | undefined;
+	function holdList() {
+		listGate = Effect.runSync(Deferred.make<void>());
+	}
+	function releaseList() {
+		if (listGate === undefined) {
+			throw new Error("The notes list is not held");
+		}
+		Effect.runSync(Deferred.succeed(listGate, undefined));
+		listGate = undefined;
+	}
 	const authentication = Layer.succeed(AuthenticatedUser, (effect) =>
 		session.signedIn
 			? effect.pipe(
@@ -59,8 +70,11 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 				}),
 			),
 		"notes.list": () =>
-			Effect.sync(() => {
+			Effect.gen(function* () {
 				calls.push("list");
+				if (listGate !== undefined) {
+					yield* Deferred.await(listGate);
+				}
 				return [...rows];
 			}),
 		"notes.subscribe": () => Stream.fromPubSub(hints),
@@ -103,5 +117,5 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 		}
 		return notify ? Effect.runPromise(PubSub.publish(hints, { _tag: "Changed", keys: [notes.item(id)] })).then(() => undefined) : Promise.resolve();
 	}
-	return { api, calls, finishNote, reviseNote, runtime: Client.runtime, session, ...subscription };
+	return { api, calls, finishNote, holdList, releaseList, reviseNote, runtime: Client.runtime, session, ...subscription };
 }

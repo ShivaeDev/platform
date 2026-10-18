@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.0 - 2026-10-18
+
+### Added
+
+- Let the OTLP receiver's status callback return `undefined` to withhold response headers, or set `answer: null` to send headers without completing the body.
+
+## 0.5.0 - 2026-10-17
+
+### Added
+
+- Export `otlpReceiver` from `otlpReceiver.ts`: a scoped local OTLP/HTTP JSON and protobuf receiver with decoded span readouts and raw export headers and body bytes. Export `OtlpSpan`, `OtlpExport` and `OtlpReceiverOptions` for story kit authors.
+- Gate every story in a kit with the inferred definition's `runIf` boolean option. A false condition skips every `it` variant before setup, including `fails` and `only`, while preserving per-story skips and conditions.
+
+### Fixed
+
+- Run every stage's `after` hook without the story's parent span, including its scoped teardown and finalizers, so hosts booted after deployment can start independent request traces while story verbs keep their story span.
+
 ## 0.4.1 - 2026-10-17
 
 ### Fixed

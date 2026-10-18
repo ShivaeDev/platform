@@ -1,5 +1,5 @@
-import { Clock, Duration, Effect, Schema } from "effect";
-import { PgBoss } from "pg-boss";
+import { Clock, Duration, Effect, Layer, Schema } from "effect";
+import { type Job, PgBoss } from "pg-boss";
 import { describe, expect, it } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { deadLetterQueueName } from "#health.ts";
@@ -17,18 +17,23 @@ integration("PostgreSQL batch expiry budgets", () => {
 			name: `batch-expiry-${crypto.randomUUID()}`,
 			queue: { retryBackoff: false, retryDelay: 0, retryLimit: 1 },
 			schema: Schema.Struct({ id: Schema.Number }),
-			worker: { batchSize: 4, localConcurrency: 2, pollingIntervalSeconds: 0.5 },
+			worker: { batchSize: 4, pollingIntervalSeconds: 0.5 },
 		});
-		const client = new PgBoss({
+		const clientOptions = {
 			connectionString: databaseUrl,
 			monitorIntervalSeconds: 1,
 			schema: "platform_effect_pg_boss_batch_expiry",
 			superviseIntervalSeconds: 1,
-		});
+		};
+		const client = new PgBoss(clientOptions);
 		const Jobs = makePgBoss("@test/BatchExpiryJobs");
+		// The peer joins after the first claim, so one fetcher takes the whole batch and another stays free to take the retries.
+		const Peer = makePgBoss("@test/BatchExpiryPeer");
+		const decode = Schema.decodeUnknownSync(Queue.schema);
 		const fetched = new Map<string, { deadline: number; retry: number }>();
 		const batches: number[] = [];
-		const observed = observeWorker(client, (jobs) => {
+		const peerRetries: number[] = [];
+		function record(jobs: readonly Job<unknown>[]) {
 			batches.push(jobs.length);
 			for (const job of jobs) {
 				if (!("startedOn" in job && job.startedOn instanceof Date)) {
@@ -36,8 +41,12 @@ integration("PostgreSQL batch expiry budgets", () => {
 				}
 				fetched.set(job.id, { deadline: job.startedOn.getTime() + job.expireInSeconds * 1000, retry: job.retryCount });
 			}
-			const decode = Schema.decodeUnknownSync(Queue.schema);
 			return [...jobs].sort((left, right) => decode(left.data).id - decode(right.data).id);
+		}
+		const observed = observeWorker(client, record);
+		const peer = observeWorker(new PgBoss(clientOptions), (jobs) => {
+			peerRetries.push(...jobs.filter((job) => job.retryCount > 0).map((job) => decode(job.data).id));
+			return record(jobs);
 		});
 		const active = new Map<string, number>();
 		const starts: Array<{ id: number; retry: number; remaining: number; budget: number }> = [];
@@ -85,8 +94,11 @@ integration("PostgreSQL batch expiry budgets", () => {
 				Effect.scoped(
 					Effect.gen(function* () {
 						yield* Jobs;
+						yield* Effect.promise(() => until(() => Promise.resolve(batches.length > 0 ? batches : undefined)));
+						yield* Layer.build(Peer.layer({ clientFactory: () => peer, jobs: [worker] }));
 						const stored = yield* Effect.promise(completedJobs);
 						expect(batches[0]).toBe(4);
+						expect(peerRetries).toContain(1);
 						expect(peak).toBe(1);
 						expect(starts.filter(({ retry }) => retry === 0).map(({ id }) => id)).toEqual([0, 1]);
 						expect(starts.every(({ remaining }) => remaining > 0)).toBe(true);

@@ -10,27 +10,33 @@ import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { executing } from "#model.ts";
 
 const { searchSnapshot, watchChanges } = board;
-const { ResponseConfig, Responses } = responses;
+const { Responses, Workspace, WorkspaceConfig } = responses;
 
 export function releaseWork(host: FleetHost, workIds: readonly string[], parts: HostParts = productionParts(host)) {
-	return releaseItems(host, workIds).pipe(Effect.provide(hostLayer(host, parts)));
+	return withDecisionResponses(host, releaseItems(host, workIds)).pipe(Effect.provide(hostLayer(host, parts)));
 }
 
 export function releaseItems(host: FleetHost, workIds: readonly string[]) {
-	return withDecisionResponses(host, Effect.forEach(workIds, releaseItem(host.boardDir)));
+	return Effect.forEach(workIds, releaseItem(host.boardDir));
 }
 
-export function withDecisionResponses<A, E, R>(host: FleetHost, effect: Effect.Effect<A, E, R>) {
-	return Effect.scoped(
+// Indexing a large Board takes seconds, so the watched index starts warming at once and later responses read only changed files.
+export function decisionResponses(host: FleetHost) {
+	return Layer.unwrap(
 		Effect.gen(function* () {
 			const changes = yield* watchChanges(host.boardDir);
-			const read = yield* searchSnapshot(host.boardDir, undefined, changes);
-			const index = read.pipe(Effect.provide(NodeServices.layer));
-			return yield* effect.pipe(
-				Effect.provide(Responses.layer.pipe(Layer.provide(Layer.succeed(ResponseConfig, { changes, enabled: true, index, root: host.boardDir })))),
+			const index = (yield* searchSnapshot(host.boardDir, undefined, changes)).pipe(Effect.provide(NodeServices.layer));
+			yield* index.pipe(Effect.ignore, Effect.forkScoped);
+			return Responses.layer.pipe(
+				Layer.provide(Workspace.layer),
+				Layer.provide(Layer.succeed(WorkspaceConfig, { changes, index, root: host.boardDir, writable: true })),
 			);
 		}),
 	);
+}
+
+export function withDecisionResponses<A, E, R>(host: FleetHost, effect: Effect.Effect<A, E, R>) {
+	return effect.pipe(Effect.provide(decisionResponses(host)));
 }
 
 function releaseItem(root: string) {

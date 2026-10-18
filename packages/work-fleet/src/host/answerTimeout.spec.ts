@@ -54,7 +54,7 @@ const steerRequest = Effect.fn("AnswerTimeoutTest.steerRequest")(function* (
 
 const steerStory = Effect.fn("AnswerTimeoutTest.steerStory")(function* (fixture: HostFixture, command: "answer" | "dispatch", fail: boolean) {
 	const delay = yield* answerDelay(fixture, "steer", fail);
-	return yield* withReadDaemon(fixture.host, (port) => steerRequest(fixture, port, delay, command, fail), delay.parts);
+	return yield* withReadDaemon(fixture.host, (port) => steerRequest(fixture, port, delay, command, fail), { parts: delay.parts });
 });
 
 const cliRequest = Effect.fn("AnswerTimeoutTest.cliRequest")(function* (
@@ -72,7 +72,9 @@ const cliRequest = Effect.fn("AnswerTimeoutTest.cliRequest")(function* (
 	}
 	delay.enable();
 	const args = command === "dispatch" ? ["dispatch", "one"] : ["answer", "one", ...(command === "release" ? ["--release"] : ["Use PostgreSQL."])];
-	const result = yield* Effect.promise(() => cliProcess([...args, "--port", String(port)])).pipe(Effect.timeout("3 seconds"));
+	const result = yield* Effect.promise(() => cliProcess([...args, "--port", String(port)], { holdStdin: command === "release" })).pipe(
+		Effect.timeout("3 seconds"),
+	);
 	expect(result.code).toBe(0);
 	expect(result.stdout).toContain("recorded");
 	yield* delay.entered;
@@ -84,7 +86,7 @@ const cliRequest = Effect.fn("AnswerTimeoutTest.cliRequest")(function* (
 
 const cliStory = Effect.fn("AnswerTimeoutTest.cliStory")(function* (fixture: HostFixture, command: "answer" | "release" | "dispatch") {
 	const delay = yield* answerDelay(fixture, command === "release" ? "archive" : "startTurn");
-	return yield* withReadDaemon(fixture.host, (port) => cliRequest(fixture, port, delay, command), delay.parts);
+	return yield* withReadDaemon(fixture.host, (port) => cliRequest(fixture, port, delay, command), { parts: delay.parts });
 });
 
 for (const command of ["answer", "dispatch"] as const) {

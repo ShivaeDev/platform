@@ -108,3 +108,19 @@ it("checks an exact blocked entry when the defining module has an explicit publi
 	assert.deepEqual(exportEntries(manifest, packed), [{ json: false, specifier: "router/router.ts" }]);
 	assert.deepEqual(blockedEntries(manifest, packed), ["router/loadQuery.ts"]);
 });
+
+it("enumerates modules and build targets only through their selected export pattern", () => {
+	const manifest: Manifest = {
+		exports: {
+			"./*.ts": { import: "./dist/*.js", source: "./src/*.ts" },
+			"./browser/document/*.ts": { import: "./dist/client/document/*.js", source: "./src/client/document/*.ts" },
+			"./rpc/*.ts": { import: "./dist/server/rpc/*.js", source: "./src/server/rpc/*.ts" },
+			"./server/*": null,
+		},
+		name: "board",
+		version: "1.0.0",
+	};
+	const packed = new Set(["src/rpc/PageUrl.ts", "src/browser/document/sourceGroups.ts", "src/rpc/present.ts", "src/server/rpc/present.ts"]);
+	assert.deepEqual(exportEntries(manifest, packed), [{ json: false, specifier: "board/rpc/present.ts" }]);
+	assert.deepEqual(exportTargets(manifest, packed), ["./dist/server/rpc/present.js", "./src/server/rpc/present.ts"]);
+});

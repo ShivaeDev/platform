@@ -1,173 +1,122 @@
-import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
+import { Cause, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { makePrismaChanges } from "#changes.ts";
 import { PrismaError } from "#error.ts";
-import { makeChanges } from "#test/changes.ts";
-import { integration, makeDatabase, orderIds } from "#test/database.ts";
-import { nonnegativeOrderChanges } from "#test/nonnegativeOrderChanges.ts";
+import { postgresEnabled } from "#test/database.ts";
+import { prisma } from "#test/prisma.ts";
+import { postgres, rejectsNegativeTotals, slowWrites } from "#test/prismaTraits.ts";
 
-integration("a missing-row update fails with P2025 without expiring a transaction that can still commit", () =>
-	Effect.runPromise(
-		Effect.scoped(
+const mappingError = new Error("Negative order totals cannot name a change");
+
+prisma.it.runIf(postgresEnabled)(
+	"a missing-row update fails with P2025 without expiring a transaction that can still commit",
+	[postgres()],
+	function* ({ database: { changes, published, orders } }) {
+		const failure = yield* changes.transaction(
 			Effect.gen(function* () {
-				const { client, observer } = yield* makeDatabase;
-				const { changes, published } = makeChanges(client);
-				const failure = yield* changes.transaction(
-					Effect.gen(function* () {
-						const rejected = yield* Effect.flip(changes.use((db) => db.order.update({ data: { total: 2 }, where: { id: "missing" } })));
-						yield* changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "ada", total: 1 } }));
-						return rejected;
-					}),
-				);
-				expect(failure).toBeInstanceOf(PrismaError);
-				expect(failure.cause).toMatchObject({ code: "P2025" });
-				expect(yield* orderIds(observer)).toEqual(["o1"]);
-				expect(published).toEqual([["ada:orders"]]);
+				const rejected = yield* Effect.flip(changes.use((db) => db.order.update({ data: { total: 2 }, where: { id: "missing" } })));
+				yield* changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "ada", total: 1 } }));
+				return rejected;
 			}),
-		),
-	),
+		);
+		expect(failure).toBeInstanceOf(PrismaError);
+		expect(failure.cause).toMatchObject({ code: "P2025" });
+		expect(yield* orders()).toEqual(["o1"]);
+		expect(published).toEqual([["ada:orders"]]);
+	},
 );
 
-integration("a consumer mapping error remains the exact defect after the write autocommits and publishes nothing", () =>
-	Effect.runPromise(
-		Effect.scoped(
-			Effect.gen(function* () {
-				const { client, observer } = yield* makeDatabase;
-				const mappingError = new Error("Negative order totals cannot name a change");
-				const published: (readonly string[])[] = [];
-				const changes = makePrismaChanges({
-					client,
-					models: {
-						Order: nonnegativeOrderChanges(mappingError),
-					},
-					name: "MappingFailure",
-					publish: (batch: readonly string[]) => Effect.sync(() => published.push(batch)),
-				});
-				const exit = yield* Effect.exit(changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "ada", total: -1 } })));
-				expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toBe(mappingError);
-				expect(yield* orderIds(observer)).toEqual(["o1"]);
-				expect(published).toEqual([]);
-			}),
-		),
-	),
+prisma.it.runIf(postgresEnabled)(
+	"a consumer mapping error remains the exact defect after the write autocommits and publishes nothing",
+	[rejectsNegativeTotals(mappingError), postgres()],
+	function* ({ database: { changes, published, orders } }) {
+		const exit = yield* Effect.exit(changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "ada", total: -1 } })));
+		expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toBe(mappingError);
+		expect(yield* orders()).toEqual(["o1"]);
+		expect(published).toEqual([]);
+	},
 );
 
-integration("one write records a change for every subject its mapping names", () =>
-	Effect.runPromise(
-		Effect.scoped(
-			Effect.gen(function* () {
-				const { client } = yield* makeDatabase;
-				const { changes, published } = makeChanges(client);
-				yield* changes.use((db) => db.membership.create({ data: { id: "m1", memberId: "bob", ownerId: "ada" } })).pipe(changes.transaction);
-				yield* changes.use((db) => db.membership.delete({ where: { id: "m1" } }));
-				expect(published).toEqual([
-					["ada:memberships", "bob:memberships"],
-					["ada:memberships", "bob:memberships"],
-				]);
-			}),
-		),
-	),
+prisma.it.runIf(postgresEnabled)(
+	"one write records a change for every subject its mapping names",
+	[postgres()],
+	function* ({ database: { changes, published } }) {
+		yield* changes.use((db) => db.membership.create({ data: { id: "m1", memberId: "bob", ownerId: "ada" } })).pipe(changes.transaction);
+		yield* changes.use((db) => db.membership.delete({ where: { id: "m1" } }));
+		expect(published).toEqual([
+			["ada:memberships", "bob:memberships"],
+			["ada:memberships", "bob:memberships"],
+		]);
+	},
 );
 
-const orders = [
+const returnedOrders = [
 	{ id: "o1", ownerId: "ada", total: 1 },
 	{ id: "o2", ownerId: "bob", total: 2 },
 ];
 
-integration("row-returning writes record per row; reads and models mapped to null record nothing", () =>
-	Effect.runPromise(
-		Effect.scoped(
-			Effect.gen(function* () {
-				const { client } = yield* makeDatabase;
-				const { changes, published, unnamed, observe } = makeChanges(client);
-				yield* Effect.gen(function* () {
-					yield* changes.use((db) => db.order.createManyAndReturn({ data: orders }));
-					yield* changes.use((db) => db.order.update({ data: { total: 3 }, where: { id: "o1" } }));
-					yield* changes.use((db) => db.order.upsert({ create: { id: "o3", ownerId: "cyd", total: 1 }, update: {}, where: { id: "o3" } }));
-					yield* changes.use((db) => db.order.findMany());
-					yield* changes.use((db) => db.auditNote.create({ data: { id: "n1", text: "checked" } }));
-				}).pipe(changes.transaction, observe);
-				expect(published).toEqual([["ada:orders", "bob:orders", "cyd:orders"]]);
-				expect(unnamed).toEqual([]);
-			}),
-		),
-	),
+prisma.it.runIf(postgresEnabled)(
+	"row-returning writes record per row; reads and models mapped to null record nothing",
+	[postgres()],
+	function* ({ database: { changes, published, unnamed, observe } }) {
+		yield* Effect.gen(function* () {
+			yield* changes.use((db) => db.order.createManyAndReturn({ data: returnedOrders }));
+			yield* changes.use((db) => db.order.update({ data: { total: 3 }, where: { id: "o1" } }));
+			yield* changes.use((db) => db.order.upsert({ create: { id: "o3", ownerId: "cyd", total: 1 }, update: {}, where: { id: "o3" } }));
+			yield* changes.use((db) => db.order.findMany());
+			yield* changes.use((db) => db.auditNote.create({ data: { id: "n1", text: "checked" } }));
+		}).pipe(changes.transaction, observe);
+		expect(published).toEqual([["ada:orders", "bob:orders", "cyd:orders"]]);
+		expect(unnamed).toEqual([]);
+	},
 );
 
-integration("count-only *Many writes and narrowed results record nothing and are reported as unnamed", () =>
-	Effect.runPromise(
-		Effect.scoped(
-			Effect.gen(function* () {
-				const { client } = yield* makeDatabase;
-				const { changes, published, unnamed, observe } = makeChanges(client);
-				yield* Effect.gen(function* () {
-					yield* changes.use((db) => db.order.createMany({ data: [{ id: "o1", ownerId: "ada", total: 1 }] }));
-					yield* changes.use((db) => db.order.updateMany({ data: { total: 2 }, where: { ownerId: "ada" } }));
-					yield* changes.use((db) => db.order.update({ data: { total: 3 }, select: { id: true }, where: { id: "o1" } }));
-					yield* changes.use((db) => db.auditNote.deleteMany({}));
-					yield* changes.use((db) => db.order.deleteMany({ where: { ownerId: "nobody" } }));
-				}).pipe(changes.transaction, observe);
-				expect(published).toEqual([]);
-				expect(unnamed).toEqual([
-					{ model: "Order", operation: "createMany", reason: "countOnly" },
-					{ model: "Order", operation: "updateMany", reason: "countOnly" },
-					{ field: "ownerId", model: "Order", operation: "update", reason: "narrowed" },
-					{ model: "Order", operation: "deleteMany", reason: "countOnly" },
-				]);
-			}),
-		),
-	),
+prisma.it.runIf(postgresEnabled)(
+	"count-only *Many writes and narrowed results record nothing and are reported as unnamed",
+	[postgres()],
+	function* ({ database: { changes, published, unnamed, observe } }) {
+		yield* Effect.gen(function* () {
+			yield* changes.use((db) => db.order.createMany({ data: [{ id: "o1", ownerId: "ada", total: 1 }] }));
+			yield* changes.use((db) => db.order.updateMany({ data: { total: 2 }, where: { ownerId: "ada" } }));
+			yield* changes.use((db) => db.order.update({ data: { total: 3 }, select: { id: true }, where: { id: "o1" } }));
+			yield* changes.use((db) => db.auditNote.deleteMany({}));
+			yield* changes.use((db) => db.order.deleteMany({ where: { ownerId: "nobody" } }));
+		}).pipe(changes.transaction, observe);
+		expect(published).toEqual([]);
+		expect(unnamed).toEqual([
+			{ model: "Order", operation: "createMany", reason: "countOnly" },
+			{ model: "Order", operation: "updateMany", reason: "countOnly" },
+			{ field: "ownerId", model: "Order", operation: "update", reason: "narrowed" },
+			{ model: "Order", operation: "deleteMany", reason: "countOnly" },
+		]);
+	},
 );
 
-integration("a write outside any transaction publishes as soon as it autocommits", () =>
-	Effect.runPromise(
-		Effect.scoped(
+prisma.it.runIf(postgresEnabled)(
+	"a write outside any transaction publishes as soon as it autocommits",
+	[postgres()],
+	function* ({ database: { changes, published } }) {
+		yield* changes.use((db) => db.invoice.create({ data: { id: "i1", ownerId: "ada" } }));
+		expect(published).toEqual([["ada:invoices"]]);
+		yield* changes.channel.batch(
 			Effect.gen(function* () {
-				const { client } = yield* makeDatabase;
-				const { changes, published } = makeChanges(client);
-				yield* changes.use((db) => db.invoice.create({ data: { id: "i1", ownerId: "ada" } }));
-				expect(published).toEqual([["ada:invoices"]]);
-				yield* changes.channel.batch(
-					Effect.gen(function* () {
-						yield* changes.use((db) => db.invoice.update({ data: { ownerId: "bob" }, where: { id: "i1" } }));
-						yield* changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "bob", total: 1 } }));
-						expect(published).toHaveLength(1);
-					}),
-				);
-				expect(published).toEqual([["ada:invoices"], ["bob:invoices", "bob:orders"]]);
+				yield* changes.use((db) => db.invoice.update({ data: { ownerId: "bob" }, where: { id: "i1" } }));
+				yield* changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "bob", total: 1 } }));
+				expect(published).toHaveLength(1);
 			}),
-		),
-	),
+		);
+		expect(published).toEqual([["ada:invoices"], ["bob:invoices", "bob:orders"]]);
+	},
 );
 
-function slowInsert(schema: string) {
-	return [
-		`create function "${schema}".slow_insert() returns trigger language plpgsql as $$ begin perform pg_sleep(0.3); return new; end $$`,
-		`create trigger slow_insert before insert on "${schema}".changes_prisma_order for each row execute function "${schema}".slow_insert()`,
-	];
-}
-
-integration("an interrupted use still records a write that ran", () =>
-	Effect.runPromise(
-		Effect.scoped(
-			Effect.gen(function* () {
-				const { schema, client, observer, execute } = yield* makeDatabase;
-				yield* execute(...slowInsert(schema));
-				const { changes, published } = makeChanges(client);
-				const started = yield* Deferred.make<void>();
-				const fiber = yield* changes
-					.use((db) => {
-						Effect.runSync(Deferred.succeed(started, undefined));
-						return db.order.create({ data: { id: "o1", ownerId: "ada", total: 1 } });
-					})
-					.pipe(Effect.forkChild);
-				yield* Deferred.await(started);
-				yield* Fiber.interrupt(fiber);
-				const exit = yield* Fiber.await(fiber);
-				expect(Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause)).toBe(true);
-				expect(yield* orderIds(observer)).toEqual(["o1"]);
-				expect(published).toEqual([["ada:orders"]]);
-			}),
-		),
-	),
+prisma.it.runIf(postgresEnabled)(
+	"an interrupted use still records a write that ran",
+	[postgres(), slowWrites()],
+	function* ({ database: { published, orders, startOrderWrite } }) {
+		const fiber = yield* startOrderWrite();
+		yield* Fiber.interrupt(fiber);
+		const exit = yield* Fiber.await(fiber);
+		expect(Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause)).toBe(true);
+		expect(yield* orders()).toEqual(["o1"]);
+		expect(published).toEqual([["ada:orders"]]);
+	},
 );

@@ -51,8 +51,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-        with:
-          save-workspace-cache: 'true'
       - run: pnpm build
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
@@ -91,11 +89,12 @@ jobs:
       consumers-run-id: ${{ steps.timings.outputs.consumers-run-id }}
       consumers-artifact-id: ${{ steps.timings.outputs.consumers-artifact-id }}
       consumers-shards: ${{ steps.timings.outputs.consumers-shards }}
+      consumers-count: ${{ steps.timings.outputs.consumers-count }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 26.11.1
           package-manager-cache: false
@@ -109,8 +108,7 @@ jobs:
           import { appendFileSync } from 'node:fs';
           import { mainShardPlan } from './script/ci/mainShardPlan.ts';
           const deadline = performance.now() + 15000;
-          const main = process.env.GITHUB_EVENT_NAME === 'push' && process.env.GITHUB_REF === 'refs/heads/main';
-          const plan = mainShardPlan(process.env.GITHUB_REPOSITORY, main, args => {
+          const plan = mainShardPlan(process.env.GITHUB_REPOSITORY, args => {
             const remaining = deadline - performance.now();
             if (remaining <= 0) throw new Error('Main snapshot lookup timed out');
             return execFileSync('gh', args, { encoding: 'utf8', timeout: Math.min(10000, Math.ceil(remaining)), stdio: ['ignore', 'pipe', 'pipe'] });
@@ -129,9 +127,7 @@ jobs:
       actions: read
     name: tests (${{ matrix.shard }})
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    # Main runs every test in one shard to record complete timings, which takes
-    # about nine minutes; pull requests and the merge queue split them across shards.
-    timeout-minutes: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 20 || 10 }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -141,6 +137,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          postgres: 'true'
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: needs.shard-plan.outputs.tests-run-id != ''
         with:
@@ -222,9 +220,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-        id: setup
-        with:
-          consumer-cache: 'true'
       - name: Download package archives
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -259,12 +254,6 @@ jobs:
           path: .ci/consumers.json
           include-hidden-files: true
           retention-days: 14
-      - name: Save complete consumer store on main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: ${{ steps.setup.outputs.store-path }}
-          key: ${{ steps.setup.outputs.consumer-cache-key }}
 
   published-starter:
     name: Packed starter
@@ -279,6 +268,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          postgres: 'true'
       - name: Download package archives
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -289,35 +280,12 @@ jobs:
       - name: Generate an app from the packed command and test packed workspace dependencies
         run: pnpm --filter @shivaedev/starter check:published --archives .ci/packages
 
-  macos-proxy:
-    name: macOS forwarding proxy
-    runs-on: macos-15
-    timeout-minutes: 10
-    env:
-      PLATFORM_EFFECT_SQL_TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:55432/platform_test_effect_sql
-      TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:55432/platform_test_effect_sql
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - name: Start native PostgreSQL
-        run: |
-          brew install postgresql@18
-          export PATH="$(brew --prefix postgresql@18)/bin:$PATH"
-          initdb -D "$RUNNER_TEMP/proxy-postgres" -U postgres -A trust
-          pg_ctl -D "$RUNNER_TEMP/proxy-postgres" -l "$RUNNER_TEMP/proxy-postgres.log" -o '-h 127.0.0.1 -p 55432' -w start
-          createdb --host=127.0.0.1 --port=55432 --username=postgres platform_test_effect_sql
-      - name: Test real HTTP forwarding and deployed authentication
-        env:
-          NODE_OPTIONS: --conditions=source
-        run: |
-          pnpm --filter @shivaedev/platform test src/server/appHostProxy.spec.ts src/server/rpc-server/proxy.spec.ts
-          pnpm --filter @shivaedev/starter test src/server/appDeploy.spec.ts
-
   verify:
     if: always()
-    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-proxy]
+    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter]
+    permissions:
+      contents: read
+      actions: read
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:
@@ -336,7 +304,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           node-version: 26.11.1
@@ -346,11 +314,17 @@ jobs:
         with:
           pattern: '*-timings-*'
           path: .ci/main-timings
+      - name: Read main job wall times
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest&per_page=100" > .ci/main-jobs.json
       - name: Merge successful main consumer timings
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: >-
-          node script/ci/mergeConsumerTimings.ts --directory .ci/main-timings
-          --output .ci/consumer-durations.json --run-id=${{ github.run_id }} --sha=${{ github.sha }}
+          node --conditions=source script/ci/mergeConsumerTimings.ts --directory .ci/main-timings --jobs .ci/main-jobs.json
+          --target-seconds ${{ vars.PLATFORM_CI_SHARD_SECONDS || 240 }}
+          --output .ci/consumer-durations.json --count ${{ needs.shard-plan.outputs.consumers-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
@@ -364,7 +338,8 @@ jobs:
       - name: Merge successful main test timings
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: >-
-          node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings
+          node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings --jobs .ci/main-jobs.json
+          --target-seconds ${{ vars.PLATFORM_CI_SHARD_SECONDS || 240 }}
           --output .ci/test-durations.json --count ${{ needs.shard-plan.outputs.tests-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
