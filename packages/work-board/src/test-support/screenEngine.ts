@@ -11,7 +11,6 @@ import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
 import type { mountSession } from "./mountSession.ts";
 import type { BoardTestApi, renderBoard } from "./react.tsx";
 import type { renderRouter } from "./renderRouter.tsx";
-import type { HeldQueries } from "./screenQueries.ts";
 
 export interface ScreenEngine {
 	ageModified?: number;
@@ -20,6 +19,7 @@ export interface ScreenEngine {
 	readonly cleanups: Array<() => Promise<void>>;
 	container?: HTMLElement;
 	documentFailed?: boolean;
+	documentReads: string[];
 	documentView?: Awaited<ReturnType<typeof mountDocument>>;
 	files: Readonly<Record<string, string>>;
 	fleet?: FleetItemsProjection;
@@ -36,7 +36,6 @@ export interface ScreenEngine {
 	options?: BoardFixtureOptions | undefined;
 	path: string;
 	pendingNavigation?: Promise<void> | undefined;
-	queries?: HeldQueries;
 	readingStatus?: string[];
 	referenceMarkup?: HTMLElement;
 	routed?: Awaited<ReturnType<typeof chrome>>;
@@ -54,14 +53,14 @@ export function* createScreen() {
 	window.sessionStorage.clear();
 	window.history.replaceState({}, "", "/");
 	const attributes = [...document.documentElement.attributes].map(({ name, value }) => [name, value] as const);
-	const engine: ScreenEngine = { cleanups: [], files: {}, path: "/" };
+	const engine: ScreenEngine = { cleanups: [], documentReads: [], files: {}, path: "/" };
 	yield* Effect.addFinalizer(() =>
 		Effect.promise(async () => {
-			if (engine.indexGate) {
-				Effect.runSync(Deferred.succeed(engine.indexGate, undefined));
-			}
 			for (const close of engine.cleanups.reverse()) {
 				await close();
+			}
+			if (engine.indexGate) {
+				Effect.runSync(Deferred.succeed(engine.indexGate, undefined));
 			}
 			window.dispatchEvent(new Event("pagehide"));
 			vi.restoreAllMocks();

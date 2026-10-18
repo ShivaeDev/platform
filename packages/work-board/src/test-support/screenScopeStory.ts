@@ -2,6 +2,7 @@ import { Effect, Exit, Scope } from "effect";
 import type { ReactNode } from "react";
 import { render } from "@shivaedev/effect-react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { mountSession } from "./mountSession.ts";
 import { createScreen, type ScreenEngine, trackScreen } from "./screenEngine.ts";
 
 interface ScreenScope {
@@ -42,6 +43,14 @@ export const screenScopeStory = storyKit({
 				const view = yield* Effect.promise(() => render(node));
 				return trackScreen(screen(engine), view, story.tell);
 			}),
+		openSession: () => {
+			story.tell("the reader opens a live session within the screen scope");
+			return mountSession(screen(engine), "response").pipe(Effect.provideService(Scope.Scope, engine.scope));
+		},
+		readTransport: () => {
+			story.tell("the reader inspects the active browser transport");
+			return globalThis.fetch;
+		},
 		snapshot: () => {
 			story.tell("the reader inspects the retained screen");
 			return screen(engine).lastView;

@@ -16,25 +16,23 @@ const routes: ReadonlyArray<{ readonly url: string; readonly kind: "document" | 
 	{ kind: "work", url: "/_board/work?item=note.next&view=board" },
 ];
 for (const { url, kind } of routes) {
-	const reads: string[] = [];
 	screenStory.it(
 		`preloads ${url} through the shared query registry before navigation`,
-		[
-			routedScreen(files, "/notes/first.md", {
-				beforeRead: (readKind, target) => Effect.sync(() => reads.push(`${readKind}:${target}`)).pipe(Effect.asVoid),
-				home: "home.md",
-			}),
-		],
-		function* ({ preload, findElement, readText, navigate }) {
+		[routedScreen(files, "/notes/first.md", { home: "home.md" })],
+		function* ({ preload, findElement, readText, navigate, readDocumentReads }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md")));
 			const header = findElement("header");
 			yield* Effect.promise(() => preload(url));
-			expect(reads.filter((read) => read === `document:${kind === "work" ? "/_board/item/note.next/" : url}`)).toHaveLength(kind === "today" ? 0 : 1);
+			expect(readDocumentReads().filter((read) => read === (kind === "work" ? "/_board/item/note.next/" : url))).toHaveLength(
+				kind === "today" ? 0 : 1,
+			);
 			expect(readText("#doc h1")).toBe("First");
 			yield* Effect.promise(() => navigate(url));
 			yield* Effect.promise(() => eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe(url)));
 			expect(findElement("header")).toBe(header);
-			expect(reads.filter((read) => read === `document:${kind === "work" ? "/_board/item/note.next/" : url}`)).toHaveLength(kind === "today" ? 0 : 1);
+			expect(readDocumentReads().filter((read) => read === (kind === "work" ? "/_board/item/note.next/" : url))).toHaveLength(
+				kind === "today" ? 0 : 1,
+			);
 			expect(findElement(kind === "document" ? "[data-react-document]" : "[data-react-projection]")).not.toBeNull();
 		},
 	);

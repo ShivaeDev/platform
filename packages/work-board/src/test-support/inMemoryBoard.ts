@@ -19,7 +19,7 @@ export interface BoardFixtureOptions {
 	readonly fleet?: FleetItemsProjection;
 	readonly fleetHealth?: FleetHealth;
 	readonly fleetPort?: number;
-	readonly home: string | undefined;
+	readonly home?: string | undefined;
 	readonly index?: Effect.Effect<Snapshot, PlatformError.PlatformError>;
 	readonly modified?: ReadonlyMap<string, number>;
 	readonly writable?: boolean;
@@ -46,7 +46,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 				);
 				fleetPort = daemon.port;
 			}
-			const home = configuration ? configuration.home : Object.keys(files)[0];
+			const home = configuration && "home" in configuration ? configuration.home : Object.keys(files)[0];
 			let indexed: { readonly files: Readonly<Record<string, string>>; readonly snapshot: Effect.Effect<Snapshot> } | undefined;
 			const index = Effect.gen(function* () {
 				const current = memory.files();

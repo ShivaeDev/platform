@@ -9,7 +9,6 @@ import { goalsFixture } from "./goalsFixture.ts";
 import { PageHealth } from "./PageHealth.tsx";
 import type { BoardTestApi } from "./react.tsx";
 import type { ScreenEngine } from "./screenEngine.ts";
-import { holdQueries } from "./screenQueries.ts";
 
 export function screenContent(engine: ScreenEngine, content: ReactNode) {
 	let visible = content;
@@ -25,7 +24,6 @@ export function screenContent(engine: ScreenEngine, content: ReactNode) {
 }
 export function screenClient(engine: ScreenEngine, api: BoardTestApi) {
 	engine.api = api;
-	holdQueries(api, engine.queries);
 }
 export function* goalsContent(files = goalsFixture()) {
 	return <GoalsPage data={goals(yield* fixtureSnapshot(files, undefined))} />;

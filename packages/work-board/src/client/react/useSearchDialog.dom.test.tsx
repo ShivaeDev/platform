@@ -41,12 +41,11 @@ for (const modifier of ["ctrlKey", "metaKey"] as const) {
 			),
 			selectionResetOnFocus(),
 		],
-		function* ({ control, keyboard, findElement, readFocus, typeText }) {
+		function* ({ control, keyboard, findElement, readFocus, typeText, selectText, readTextSelection }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement("#response-form textarea")).not.toBeNull()));
 			const textarea = control("#response-form textarea", HTMLTextAreaElement);
 			typeText(textarea, "Work in progress");
-			textarea.focus();
-			textarea.setSelectionRange(4, 8, "backward");
+			selectText(textarea, 4, 8, "backward");
 			keyboard("k", { bubbles: true, cancelable: true, [modifier]: true }, textarea);
 			expect(control("#search-dialog", HTMLDialogElement).open).toBe(true);
 			expect(readFocus()).toBe(control("#search-query", HTMLInputElement));
@@ -55,7 +54,7 @@ for (const modifier of ["ctrlKey", "metaKey"] as const) {
 			yield* Effect.promise(() => eventually(() => expect(control("#search-dialog", HTMLDialogElement).open).toBe(false)));
 			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(textarea)));
 			expect(textarea.value).toBe("Work in progress");
-			expect([textarea.selectionStart, textarea.selectionEnd, textarea.selectionDirection]).toEqual([4, 8, "backward"]);
+			expect(readTextSelection("#response-form textarea")).toEqual([4, 8, "backward"]);
 		},
 	);
 }
