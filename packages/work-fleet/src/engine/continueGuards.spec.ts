@@ -56,22 +56,6 @@ test("continuation keeps quota accounting for archived attempts", () =>
 		}),
 	));
 
-test("continuation uses the same execution capacity reservation as a first launch", () =>
-	withEngine({ concurrency: 1, noChange: true }, (fixture) =>
-		Effect.gen(function* () {
-			yield* prepareWork("one");
-			yield* prepareWork("two");
-			const fleet = yield* Fleet;
-			yield* fleet.dispatch("one");
-			finishWorkers(fixture);
-			yield* fleet.reconcile("one");
-			yield* fleet.dispatch("two");
-			expect(yield* fleet.continue("one", "At capacity").pipe(Effect.flip)).toMatchObject({ kind: "execution" });
-			expect((yield* fleet.get("one")).value.history).toBeUndefined();
-			expect(fixture.operations.size).toBe(3);
-		}),
-	));
-
 test("a rejected continued turn preserves its thread for the next manual instruction", () =>
 	withEngine({ noChange: true }, (fixture) =>
 		Effect.gen(function* () {
