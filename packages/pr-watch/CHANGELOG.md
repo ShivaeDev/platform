@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 - 2026-10-18
+
+### Fixed
+
+- Publish against `@shivaedev/effect-service` 0.4.0 so consumers share the current service definitions.
+
 ## 0.1.0 - 2026-10-13
 
 ### Breaking

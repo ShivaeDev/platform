@@ -1,7 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
-import process from "node:process";
 import { format } from "node:util";
 import { Config, Console, Effect, Option, Schema } from "effect";
 import { vi } from "vitest";
@@ -103,28 +102,6 @@ export async function runQuality(root: string, ...args: readonly string[]): Prom
 export function quality(root: string, ...args: readonly string[]): Run {
 	const result = spawnSync("node", qualityArgs(args), { cwd: root, encoding: "utf8", env: ISOLATED_ENV });
 	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
-}
-
-export function qualityWithin(timeout: number, root: string, ...args: readonly string[]): Promise<Run> {
-	return new Promise((resolve) => {
-		const child = spawn("node", qualityArgs(args), { cwd: root, detached: true, env: ISOLATED_ENV });
-		const output = { stderr: "", stdout: "" };
-		child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
-			output.stdout += chunk;
-		});
-		child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
-			output.stderr += chunk;
-		});
-		const timer = setTimeout(() => {
-			if (child.pid !== undefined) {
-				process.kill(-child.pid, "SIGKILL");
-			}
-		}, timeout);
-		child.on("close", (status) => {
-			clearTimeout(timer);
-			resolve({ status, ...output });
-		});
-	});
 }
 
 export function interruptedQuality(root: string): Promise<Run> {

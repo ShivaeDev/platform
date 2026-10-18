@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/test-story",
-	"version": "0.7.0",
+	"version": "0.7.1",
 	"description": "Tests that read like stories over the real engine: a story kit per engine with its own it, traits per feature, and a failure that prints the story, where it stopped and the engine's state",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme",
 	"bugs": {
@@ -37,7 +37,6 @@
 		"!src/**/*.test.ts",
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
-		"docs",
 		"CHANGELOG.md",
 		"README.md"
 	],
@@ -54,7 +53,6 @@
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
-		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"happy-dom": "catalog:",
 		"typescript": "catalog:",

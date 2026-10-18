@@ -22,9 +22,16 @@ export function isWork(metadata: Metadata): boolean {
 	return !(metadata.requestReceipt || ["board", "decision", "question", "response", "result"].includes(metadata.kind ?? ""));
 }
 
-export function laneOf(metadata: Metadata, fleet: FleetWork | undefined, approved = false): NowLane | undefined {
+export function waitsForFleet(fleet: FleetWork | undefined, answered: boolean): boolean {
+	return answered && (fleet === undefined || fleet.stage === "needs-human");
+}
+
+export function laneOf(metadata: Metadata, fleet: FleetWork | undefined, approved = false, answered = false): NowLane | undefined {
 	if (metadata.kind !== "task" || metadata.requestReceipt) {
 		return undefined;
+	}
+	if (waitsForFleet(fleet, answered)) {
+		return "Queued";
 	}
 	if (fleet) {
 		return stages[fleet.stage];
@@ -51,21 +58,64 @@ function authoredLane(status: string | undefined, approved: boolean): NowLane | 
 	return Object.entries(stages).find(([stage]) => stage === status)?.[1];
 }
 
-export function holderOf(metadata: Metadata, fleet: FleetWork | undefined): string | undefined {
-	if (fleet) {
-		return fleet.attentionOwner && fleet.attentionOwner !== "automation" ? fleet.attentionOwner : "Fleet";
+const fleetHolders: Record<FleetWork["stage"], string> = {
+	adopting: "Fleet is working on this",
+	completed: "Fleet finished this",
+	delivering: "Fleet is working on this",
+	executing: "Fleet is working on this",
+	"needs-human": "Waiting on a person",
+	prepared: "Queued for Fleet",
+	released: "Fleet handed this back",
+	repairing: "Fleet is working on this",
+	reviewing: "Fleet is working on this",
+	validating: "Fleet is working on this",
+};
+
+export function fleetHolder(fleet: FleetWork): string {
+	if (fleet.attentionOwner === "maintainer") {
+		return "Needs you";
 	}
-	return ["maintainer", "orchestrator"].includes(metadata.owner ?? "") ? metadata.owner : undefined;
+	return fleet.attentionOwner === "orchestrator" ? "Waiting on the orchestrator" : fleetHolders[fleet.stage];
 }
 
-export function cardStatus(metadata: Metadata, fleet: FleetWork | undefined, waiting: string | undefined): string | undefined {
+export function holderOf(metadata: Metadata, fleet: FleetWork | undefined, answered = false): string | undefined {
+	if (waitsForFleet(fleet, answered)) {
+		return "Waiting for Fleet";
+	}
 	if (fleet) {
-		if (fleet.stage === "needs-human") {
-			return "needs-you";
-		}
+		return fleetHolder(fleet);
+	}
+	if (metadata.owner === "maintainer") {
+		return "Assigned to you";
+	}
+	return metadata.owner === "orchestrator" ? "Assigned to the orchestrator" : undefined;
+}
+
+const stageNames: Record<FleetWork["stage"], string> = {
+	adopting: "Adopting",
+	completed: "Done",
+	delivering: "Delivering",
+	executing: "Executing",
+	"needs-human": "Waiting",
+	prepared: "Queued",
+	released: "Handed back",
+	repairing: "Repairing",
+	reviewing: "Reviewing",
+	validating: "Validating",
+};
+
+export function stageTime(stage: FleetWork["stage"]): { readonly ended: boolean; readonly label: string } {
+	return { ended: stage === "completed" || stage === "released", label: stageNames[stage] };
+}
+
+export function cardStatus(metadata: Metadata, fleet: FleetWork | undefined, waiting: string | undefined, answered = false): string | undefined {
+	if (waitsForFleet(fleet, answered && waiting === undefined)) {
+		return "waiting-on-agents";
+	}
+	if (fleet && fleet.stage !== "needs-human") {
 		return fleet.stage === "completed" ? "done" : fleet.stage;
 	}
-	return waiting ? "needs-you" : metadata.status;
+	return fleet || waiting ? "needs-you" : metadata.status;
 }
 
 const statusOrder = [

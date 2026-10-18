@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-test",
-	"version": "0.5.0",
+	"version": "0.6.0",
 	"description": "Generic Effect Vitest runner with worker-scoped Layers and TestClock",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-test#readme",
 	"bugs": {
@@ -36,7 +36,6 @@
 		"!src/**/*.test.ts",
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
-		"docs",
 		"CHANGELOG.md",
 		"README.md"
 	],
@@ -50,7 +49,6 @@
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
-		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"

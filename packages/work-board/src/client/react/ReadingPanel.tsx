@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import type { ComponentProps } from "react";
-import { cn } from "#client/react/lib/cn.ts";
 
 export function ReadingPanel({ className, ...props }: ComponentProps<"section">) {
 	return (

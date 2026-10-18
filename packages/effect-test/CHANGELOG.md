@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-10-18
+
+### Breaking
+
+- Modules are named in camelCase: `any-test-layer.ts` becomes `anyTestLayer.ts`.
+
 ## 0.5.0 - 2026-10-16
 
 ### Added

@@ -52,7 +52,7 @@ app.it(
 app.it(
 	"protects queries and commands, isolates users, and revokes the signed-out session before signing in again",
 	[signedIn(), signedIn("bob"), legacyNote("Legacy note")],
-	function* ({ actor, authenticate, notes, anonymous, storedNoteOwner }) {
+	function* ({ actor, authenticate, notes, anonymous, storedNoteOwners }) {
 		const signedOut = yield* anonymous();
 		const anonymousList = yield* signedOut.list().pipe(Effect.flip);
 		expect(anonymousList).toMatchObject({ _tag: "Unauthorized" });
@@ -66,8 +66,8 @@ app.it(
 		expect(yield* bob.list()).toEqual([]);
 		expect(yield* alice.list()).toEqual([note]);
 		const user = yield* alice.whoami();
-		expect(yield* storedNoteOwner(note.title)).toEqual([{ ownerId: user.id }]);
-		expect(yield* storedNoteOwner("Legacy note")).toEqual([{ ownerId: null }]);
+		expect(yield* storedNoteOwners(note.title)).toEqual([{ ownerId: user.id }]);
+		expect(yield* storedNoteOwners("Legacy note")).toEqual([{ ownerId: null }]);
 		yield* authenticate("alice", "sign-out", aliceCookie);
 		const revokedCreate = yield* alice.create({ title: "Revoked note" }).pipe(Effect.flip);
 		expect(revokedCreate).toMatchObject({ _tag: "Unauthorized" });

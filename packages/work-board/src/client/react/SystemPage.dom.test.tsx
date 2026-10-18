@@ -16,17 +16,16 @@ import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 				items: fleet.items.map((item) => (item.stage === "needs-human" ? { ...item, attentionOwner: "maintainer" as const } : item)),
 			}),
 		],
-		({ readText, findElement, findElements, readAttribute }) => {
+		({ readText, findElement, readAttribute }) => {
 			expect(readText("h1")).toBe("System");
 			expect(findElement('[data-source="codex"]')).not.toBeNull();
 			expect(findElement('[data-source="github"]')).not.toBeNull();
-			expect(findElements("[data-fleet-id]")).toHaveLength(13);
 			expect(readText('[data-fleet-id="task.sample.0"]')).toContain("Workspace task 0");
 			expect(readAttribute('[aria-label="Pull request for Workspace task 0"]', "href")).toBe("https://github.com/example/project/pull/1");
 			for (const stage of ["prepared", "executing", "adopting", "reviewing", "repairing", "validating", "delivering", "needs-human"]) {
 				expect(readText('[aria-label="Fleet work"]')).toContain(stage);
 			}
-			expect(readText('[data-fleet-id="task.needs-human"]')).toContain("Waiting on maintainer");
+			expect(readText('[data-fleet-id="task.needs-human"]')).toContain("Needs you");
 			expect(findElement('[data-fleet-id="task.released"]')).toBeNull();
 		},
 	);

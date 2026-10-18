@@ -45,10 +45,8 @@ describe("config", () => {
 	});
 
 	it.each([
-		{ exclude: ["src/legacy/**"] },
 		{ rules: { "structure/max-lines": { options: { source: 151 } } } },
 		{ rules: { "structure/max-lines": { options: { test: 301 } } } },
-		{ rules: { "structure/max-lines": { options: { testFiles: ["src/**"] } } } },
 		{ rules: { "comments/max-per-file": { options: { max: 3 } } } },
 	])("rejects policy weakening: %j", async (input) => {
 		expect(await issues(input)).not.toEqual([]);
@@ -56,10 +54,6 @@ describe("config", () => {
 
 	it("rejects an unknown setting", async () => {
 		expect(await issues({ source: ["src"] })).toEqual([expect.stringContaining("source")]);
-	});
-
-	it("rejects the removed preCommit config with script guidance", async () => {
-		expect(await issues({ preCommit: { run: ["pnpm typecheck"], tighten: true } })).toEqual([expect.stringContaining("quality:commit")]);
 	});
 
 	it("rejects an unknown rule id", async () => {

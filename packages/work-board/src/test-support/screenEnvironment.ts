@@ -1,4 +1,8 @@
+import { Effect } from "effect";
 import { vi } from "vitest";
+import type { FleetHealth } from "#diagnostics/health.ts";
+import { fixtureSnapshot } from "./fixtureSnapshot.ts";
+import type { HeldQueries, QueryState } from "./screenQueries.ts";
 import { screenStory } from "./screenStory.ts";
 
 export function screenWorkspace(name: string) {
@@ -41,5 +45,31 @@ export function unavailableWorkspace() {
 	return screenStory.trait("workspace", "the workspace index is temporarily unavailable", (engine) => {
 		engine.indexFailed = true;
 		engine.health = true;
+	});
+}
+
+export function screenQuery(name: keyof HeldQueries, state: QueryState) {
+	return screenStory.trait("workspace", `the ${name} query ${state === "failed" ? "fails" : "keeps loading"}`, (engine) => {
+		engine.queries = { ...engine.queries, [name]: state };
+	});
+}
+
+export function unreadableHome() {
+	return screenStory.trait("workspace", "the home file cannot be read", (engine) => {
+		const home = engine.options?.home;
+		if (home === undefined) {
+			throw new Error("The workspace has no home file");
+		}
+		engine.options = {
+			...engine.options,
+			home,
+			index: fixtureSnapshot(engine.files, home).pipe(Effect.map((snapshot) => ({ ...snapshot, unavailable: [home] }))),
+		};
+	});
+}
+
+export function fleetHealth(value: FleetHealth) {
+	return screenStory.trait("workspace", "Fleet publishes its health", (engine) => {
+		engine.options = { home: Object.keys(engine.files)[0], ...engine.options, fleetHealth: value };
 	});
 }

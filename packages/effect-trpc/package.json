@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-trpc",
-	"version": "0.7.2",
+	"version": "0.8.0",
 	"description": "Effect-native procedures and testing for tRPC",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc#readme",
 	"bugs": {
@@ -38,7 +38,6 @@
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
 		"CHANGELOG.md",
-		"docs",
 		"README.md"
 	],
 	"scripts": {
@@ -58,7 +57,6 @@
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",
-		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"superjson": "catalog:",
 		"typescript": "catalog:",

@@ -1,8 +1,8 @@
 import { ClipboardList, FileText, Flag, MessageCircle, PanelsTopLeft } from "lucide-react";
 import { useContext } from "react";
 import type { Document } from "#browser/document/schema.ts";
-import { Badge } from "#client/react/components/ui/Badge.tsx";
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { Badge } from "#client/react/components/ui/badge.tsx";
+import { StatusChip } from "#client/react/StatusChip.tsx";
 import { Favorite } from "./Favorite.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { PrChip } from "./PrChip.tsx";
@@ -71,10 +71,13 @@ function ItemFields({ fields }: { readonly fields: Document["metadata"] }) {
 
 function ItemStatus({ document, answering }: { readonly document: Document; readonly answering: boolean }) {
 	const fields = document.metadata;
-	const requestState = document.requests.some(
+	const asks = document.requests.filter(
 		(request) => request.open || (request.id === "answer" && request.sourceOpen && fields.kind === "question" && fields.question === undefined),
-	)
-		? "needs-you"
-		: fields.status;
+	);
+	const requestState = asks.length > 0 ? askStatus(asks) : fields.status;
 	return fields.id && (!answering || requestState !== undefined) ? <StatusChip status={answering ? requestState : fields.status} /> : null;
+}
+
+function askStatus(asks: Document["requests"]) {
+	return asks.some((request) => request.answered === undefined) ? "needs-you" : "waiting-on-agents";
 }

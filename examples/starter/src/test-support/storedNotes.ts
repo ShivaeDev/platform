@@ -8,7 +8,7 @@ interface StoredNote extends Note {
 
 export function storedNotes(tell: (line: string) => void) {
 	return {
-		storedNoteOwner: Effect.fn("AppStory.storedNoteOwner")(function* (title: string) {
+		storedNoteOwners: Effect.fn("AppStory.storedNoteOwners")(function* (title: string) {
 			tell(`read the stored owner of ${JSON.stringify(title)}`);
 			const sql = yield* SqlClient.SqlClient;
 			return yield* sql<{ ownerId: string | null }>`select "ownerId" from notes where title = ${title}`;

@@ -26,6 +26,14 @@ export const start = Effect.fnUntraced(function* (
 			},
 			tell: narration.tell,
 		};
-		return yield* body({ ...definition.verbs(engine, story), story });
+		return yield* body(
+			Object.defineProperties(
+				{},
+				{
+					...Object.getOwnPropertyDescriptors(definition.verbs(engine, story)),
+					story: { enumerable: true, value: story },
+				},
+			),
+		);
 	}).pipe(Effect.tapCause((cause) => Effect.sync(() => captureFailure(Cause.prettyErrors(cause)[0]?.stack))));
 });

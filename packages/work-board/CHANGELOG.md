@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.18.0 - 2026-10-18
+
+### Fixed
+
+- Notify live clients and report that watching stopped when an outside process removes the workspace root, including when the filesystem emits no descendant file events.
+- Keep live updates active when delayed directory notifications arrive without a change to the watched roots, and name the edited, added and removed Markdown files when a populated directory moves or its contents change without individual file notifications.
+- Keep reads available after unchanged directory notifications, including directory names with Markdown or image extensions.
+- Saving an answer on Today could be interrupted before the response was recorded.
+
+### Breaking
+
+- Every module's import path is now its path under `src/`, through one `./*.ts` export. Modules that lived under `src/server/` gain a `server/` prefix, for example `@shivaedev/work-board/server/board.ts`, `server/serve.ts` and `server/integration/board.ts`. The browser client moves from `browser/client.ts` to `client/client.ts`, `browser/document/View.ts` moves to `client/document/View.ts`, and `browser/navigation/schema.ts` moves to `browser/Navigation.ts`. The other remapped paths, such as `page/escape.ts`, are gone; import the defining module instead.
+
 ## 0.17.1 - 2026-10-18
 
 ### Changed

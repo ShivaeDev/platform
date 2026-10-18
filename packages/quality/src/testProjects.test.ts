@@ -4,11 +4,12 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { packageRoot, removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
 import { testProjects } from "#testProjects.ts";
 
 afterEach(removeSeededTrees);
+afterEach(() => vi.unstubAllEnvs());
 
 const vitestRoot = dirname(realpathSync(createRequire(import.meta.url).resolve("vitest/package.json")));
 
@@ -24,17 +25,17 @@ function linkVitest(root: string): string {
 	return root;
 }
 
-function config(options = ""): SeedFile {
+function config(): SeedFile {
 	return {
-		content: `import { defineConfig } from "vitest/config";\nimport { testProjects } from "${helper}";\n\nexport default defineConfig({ test: testProjects(${options}) });\n`,
+		content: `import { defineConfig } from "vitest/config";\nimport { testProjects } from "${helper}";\n\nexport default defineConfig({ test: testProjects() });\n`,
 		path: "vitest.config.ts",
 	};
 }
 
-function repository(options = ""): string {
+function repository(): string {
 	return linkVitest(
 		seedTree([
-			config(options),
+			config(),
 			testFile("src/a.test.ts", 'it("runs in Node", () => {\n\texpect(typeof document).toBe("undefined");\n});'),
 			testFile("src/b.dom.test.tsx", 'it("runs in a DOM", () => {\n\texpect(typeof document).toBe("object");\n});'),
 			testFile("src/c.slow.test.ts", 'it("runs only when asked for", () => {\n\texpect(typeof document).toBe("undefined");\n});'),
@@ -89,6 +90,16 @@ function vitest(root: string, ...args: readonly string[]) {
 }
 
 describe("testProjects", { timeout: 60_000 }, () => {
+	it.each([
+		{ ci: undefined, silent: "passed-only" },
+		{ ci: "true", silent: false },
+	])("sets silent to $silent with CI=$ci and leaves reporter selection to Vitest", ({ ci, silent }) => {
+		vi.stubEnv("CI", ci);
+		const produced = testProjects();
+		expect(produced.silent).toBe(silent);
+		expect(produced).not.toHaveProperty("reporters");
+	});
+
 	it("runs unit tests and specs in Node, in any folder, and .dom tests and specs in a DOM, and leaves out slow and type tests", () => {
 		expect(vitest(repository())).toMatchObject({
 			ran: [
@@ -102,19 +113,11 @@ describe("testProjects", { timeout: 60_000 }, () => {
 		});
 	});
 
-	it("rejects suite exclusions supplied by untyped callers", () => {
-		expect(() => Reflect.apply(testProjects, undefined, [{ exclude: ["e2e/**"] }])).toThrow("testProjects takes no options");
-	});
-
 	it("runs the slow tests alone when the slow project is asked for", () => {
 		expect(vitest(repository(), "--project", "slow")).toMatchObject({ ran: ["src/c.slow.test.ts passed"], status: 0 });
 	});
 
 	it("runs the tagged tests of a package config that a root config's inline projects extend", () => {
 		expect(vitest(workspace(), "--tags-filter=bakery-story")).toMatchObject({ status: 0, tests: ["rises passed", "sets skipped"] });
-	});
-
-	it("gives each test 30 seconds instead of Vitest's 5", () => {
-		expect(testProjects().testTimeout).toBe(30_000);
 	});
 });

@@ -166,7 +166,9 @@ const app = storyKit({
 
 `appDefinition` holds the application's kit hooks, and `fakeUrl` is the listening fake server's HTTP or HTTPS origin, such as `http://127.0.0.1:4321`. The map matches exact URL hostnames, across ports. It replaces the destination origin while keeping the request's path, query, method, headers and body. For example, a POST to `https://github.com/login/oauth/access_token` reaches the fake's `/login/oauth/access_token`. In Node stories, other hostnames pass through the previous dispatcher unchanged. In the DOM environment, only loopback hosts (`localhost`, IPv4 loopback addresses and `[::1]`) may pass through without a route; every other hostname must have an `outbound` fake. A refused request fails the story and names its hostname, even when application code catches the fetch error.
 
-Routing uses the global dispatcher that Node's built-in `fetch` already uses. It is installed before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
+`routeOutbound(routes)` from `@shivaedev/test-story/routeOutbound.ts` installs the same routing in the current Effect Scope. Acquire a `fakeHttpService` in `create`, then yield `routeOutbound({ "api.example.com": api.url })` so the fake listener and its routing belong to that story. The starter's social sign-in story exercises this path through both document navigation and host-side requests.
+
+Routing uses the global dispatcher that Node's built-in `fetch` already uses. The kit's `outbound` option installs routing before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
 
 #### Asserting on application traces
 
@@ -229,7 +231,7 @@ app.it("a request continues its supplied trace", [], function* ({ request, reque
 });
 ```
 
-The package's [tracing kit](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/test-support/tracingApp.ts) and [stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/hostTracing.spec.ts) also assert that two requests have different trace IDs, request work stays under its request span, and traits and engine steps stay under the story span. The [after-hook stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/afterHostTracing.spec.ts) boot a loopback HTTP host after deployment and check its startup, requests and cleanup against the story trace, while its request verb remains a child of the story span. Detachment only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
+Detachment only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
 
 #### Reading OTLP exports
 
@@ -281,8 +283,6 @@ const user = yield* Fiber.join(pending);
 `application.loadUser` is the application's real client call. `failOnce` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses that route until `release`; `waiting` completes when a request reaches the hold, so a story needs no polling to know when to release it. Other routes still answer. Effects that wait for HTTP should use a live-clock kit.
 
 A `pages` route accepts a one-based `?page=` query and returns `{ items, next }`, with `next: null` on the last page. No query means page 1; a page past the end returns an empty list; a non-positive or non-integer page gets 400. `api.requests` reads a snapshot of the request log, including rejected and held requests, with `method`, `path` (including query), raw `body` Buffer, `headers`, `params` and `query`.
-
-The [fake HTTP stories](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/src/server/outboundApi.spec.ts) use Node fetch to check params, credentials, pages, one-shot failure, hold/release ordering, request logs, narration and listener cleanup.
 
 ### 2. Once per feature: traits and verbs
 
@@ -398,7 +398,7 @@ A library package has an engine too: its own services or Layer under test. Keep 
 
 The [`backfill` kit](https://github.com/ShivaeDev/platform/blob/main/packages/effect-test-sql/src/test-support/migrationStory.ts) in `effect-test-sql` is a library example. Its `create` returns the package's `migrationSteps(migrations)` API, its worker Layer provides PostgreSQL, and `around: withIsolatedDatabase` isolates each story. The `oldSchema` and `existingContacts` traits put contacts with email addresses into the old schema; the `backfill` verb calls `steps.migrateToLatest`. Its [story](https://github.com/ShivaeDev/platform/blob/main/packages/effect-test-sql/src/server/migrationStory.spec.ts) proves that those existing addresses survive the migration into a new table. It runs only when `PLATFORM_EFFECT_TEST_SQL_TEST_DATABASE_URL` is configured; a skipped story proves nothing.
 
-A fake belongs only at a true external boundary, wired in `create`; keep the package's own engine real. The [resume kit](https://github.com/ShivaeDev/platform/blob/main/packages/effect-contract/src/test-support/resumeStory.ts), for example, creates synthetic browser and native event sources while running the package's real `resumeSignal` API. Its [stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-contract/src/resume.dom.test.ts) exercise refresh on those events and listener cleanup. Those synthetic sources prove the package's response to events, not a physical browser or native application's event delivery.
+A fake belongs only at a true external boundary, wired in `create`; keep the package's own engine real. The [resume kit](https://github.com/ShivaeDev/platform/blob/main/packages/effect-contract/src/test-support/resumeStory.ts), for example, creates synthetic browser and native event sources while running the package's real `resumeSignal` API.
 
 ### Whole-stack application kits
 
@@ -406,7 +406,7 @@ Keep one kit in the application’s `test-support/`. `effect-test` owns Vitest r
 
 Set `runIf: hasPostgres` in the kit definition to gate all its stories once, where `hasPostgres` is a boolean such as `process.env.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL !== undefined`. When false, `it`, `it.fails`, `it.only`, `it.skip`, `it.runIf` and `it.skipIf` all register skipped stories without acquiring the worker Layer or running `around`, creation, traits or bodies. A skipped `it.only` does not focus the file. When true or omitted, each variant keeps its usual Vitest behavior, including explicit skips and `fails` inverting a failure. Per-story conditions can skip more stories; they cannot enable a disabled kit. The engine, traits, verbs and services remain inferred from the definition.
 
-The [order feature kit](https://github.com/ShivaeDev/platform/tree/main/packages/effect-react/src/test-support/order-example) runs the existing feature’s services, repository, contracts, JSON serialization and authentication middleware over a loopback HTTP listener. Its [stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/orderStory.dom.spec.tsx) test visible commits through a separate PostgreSQL pool, rollback of a rejected write without publication, cross-owner rejection, a native React action refreshing a list, and an editor retaining rejected input before a corrected save.
+The [order feature kit](https://github.com/ShivaeDev/platform/tree/main/packages/effect-react/src/test-support/order-example) is an example: it runs the feature’s services, repository, contracts, JSON serialization and authentication middleware over a loopback HTTP listener with bearer tokens.
 
 For full-app stories, use `around: withIsolatedDatabase` from `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` with a PostgreSQL test layer prepared from the application's migrations. Each story gets a database cloned from that template, and HTTP and worker pools commit into the same clone. The clone is dropped after scoped hosts and pools close. The starter's [application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/application.ts) uses this isolation path.
 
@@ -414,7 +414,7 @@ For repository-level tests on a migrated template, `withTestTransaction` from `@
 
 React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events and use bounded observations of rendered output. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook, not HTTP or DOM polling. Creation forms can use the same pattern with the existing `useCreate` path.
 
-The order example proves DOM and loopback HTTP behavior with bearer tokens. For cookie sessions, use the DOM host setup below. These fixtures do not prove browser networking, SSR, mobile or a deployed proxy. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. Failure inspection is synchronous: keep redacted observed values in the engine instead of trying to query PostgreSQL inside `inspect`.
+For cookie sessions, use the DOM host setup below. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. Failure inspection is synchronous: keep redacted observed values in the engine instead of trying to query PostgreSQL inside `inspect`.
 
 ### DOM stories with cookie sessions
 
@@ -463,36 +463,45 @@ const cookieApp = storyKit({
 
 Happy-dom's detached window records a location change without loading the next document. `domNavigate(url = window.location.href)` from `@shivaedev/test-story/domNavigate.ts` performs that load: it follows HTTP redirects through the document transport, keeps cookies for each destination, sets the final location, writes the returned HTML and returns the happy-dom response. Call it after the sign-in client has set the provider location, and before checking the returned page. An unrouted external redirect fails with its hostname.
 
-The starter's [social application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/socialApp.ts) runs a fixture Better Auth host on real PostgreSQL, with a rendered sign-in button and a fake GitHub provider. Its `outbound` map routes both `github.com` and `api.github.com` to the fake's loopback origin. The fake's authorize endpoint returns the application's callback URL with the received state and a test code. The real callback exchanges that code and fetches the user against the fake, creates the account and session in PostgreSQL, and redirects to the signed-in page.
+The starter's [social application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/socialApp.ts) runs a fixture Better Auth host on real PostgreSQL, with a rendered sign-in button and a fake GitHub provider. Its `create` hook acquires the provider and uses scoped `routeOutbound` routing for both `github.com` and `api.github.com`. The fake's authorize endpoint returns the application's callback URL with the received state and a test code. The real callback exchanges that code and fetches the user against the fake, creates the account and session in PostgreSQL, and redirects to the signed-in page.
+
+The kit renders a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The story calls `clickGitHubSignIn`, `settle` and `followRedirect` separately, then reads the heading, cookie and session. The screen driver settles on the screen's request state and reads the heading from the current document after navigation. The provider uses `fakeHttpService`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. The kit does not copy cookies into request headers.
 
 ```ts
-import { domNavigate } from "@shivaedev/test-story/domNavigate.ts";
-
-const socialApp = storyKit({
-  ...socialDefinition,
-  outbound: { "github.com": fakeUrl, "api.github.com": fakeUrl },
-  verbs: (engine, story) => ({
-    clickGitHubSignIn: () => Effect.promise(async () => {
-      story.tell("Alice clicks Sign in with GitHub");
-      await engine.screen.click();
-    }),
-    followRedirect: () => Effect.promise(() => domNavigate()),
-    heading: () => document.querySelector("h1")?.textContent,
-    session: () => Effect.promise(async () => (await engine.fetch("/api/auth/get-session")).json()),
-  }),
-});
-
-socialApp.it("a social sign-in returns with a cookie session", [], function* ({ clickGitHubSignIn, followRedirect, heading, session }) {
+socialApp.it("a social sign-in returns with a cookie session", [], function* ({ clickGitHubSignIn, settle, followRedirect, heading, cookie, session }) {
   yield* clickGitHubSignIn();
-  yield* followRedirect();
+  yield* settle();
+  const response = yield* followRedirect();
+  expect(response.status).toBe(200);
   expect(heading()).toBe("Signed in as alice@social.test");
+  expect(cookie()).not.toContain("session_token");
   expect(yield* session()).toMatchObject({ user: { email: "alice@social.test" } });
 });
 ```
 
-`socialDefinition` starts the host and renders the screen with a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. It does not copy cookies into request headers.
-
 `domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
+
+### Driving a screen
+
+`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces), the story's `tell`, and a `pending()` function that reads the application's own request or atom state. `settle()` waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
+
+```ts
+import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
+
+verbs: ({ view, requests }, story) => screenDriver({
+  root: view.container,
+  pending: () => requests.pending,
+  tell: story.tell,
+})
+```
+
+`click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
+
+`text(selector?)` returns rendered text from the selected element or the whole root. `value(selector)` returns the current input or textarea value. Both narrate what they read through `tell` and leave assertions to the spec. Entry narration omits the supplied value.
+
+For React, pass `act: async (action) => { await act(action); }` using React's `act`. The adapter wraps each action and flushes renderer work before checking the pending signal, including while waiting for an asynchronous response. The [React driver stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/screenDriver.dom.spec.tsx) cover a native pending atom, a rendered response and a controlled field without React warnings. The driver itself has no renderer dependency.
+
+Settlement has a live-time limit of 3 seconds, configurable with the driver's `timeoutMs` or per call with `settle({ timeoutMs })`, and fails with the current screen text and advice when that limit expires. Use the existing DOM environment and scoped `routeOutbound` routing to reach `fakeHttpService`; the driver does not install another transport. The [screen stories](src/server/screenSignals.dom.spec.ts) hold a real HTTP response across repeated renders and sign in by filling and submitting a form against a fake identity provider. These fixtures prove DOM interactions and loopback HTTP, not a browser or a production authentication system.
 
 ### API by module
 
@@ -502,6 +511,8 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | --- | --- |
 | `storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
 | `domFetch.ts` | `domFetch(baseUrl)` |
+| `routeOutbound.ts` | `routeOutbound(routes)` |
+| `screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver` |
 | `domNavigate.ts` | `domNavigate(url?)` |
 | `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
 | `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
@@ -517,7 +528,7 @@ pnpm add --save-dev @shivaedev/test-story @effect/vitest@4.0.4 effect@4.0.4 vite
 `@effect/vitest`, `effect` and `vitest` are peers, so the application's own versions run the stories.
 
 - The package runs inside Vitest. The story reaches the failure by rewriting the first error's message in Vitest's `onTestFailed` hook.
-- Layer acquisition and engine creation failures precede that hook and carry no story appendix. A printed rerun command still needs a Vitest configuration that collects its file; the intentional `failingStories.ts` examples use the package's explicit fixture runner.
+- Layer acquisition and engine creation failures precede that hook and carry no story appendix. A printed rerun command still needs a Vitest configuration that collects its file.
 - A kit's `it` is created when the kit is defined, so a kit lives in a module that only Vitest test files import.
 - `inspect` runs after the test has failed, so it reads the engine synchronously.
 - The spec line under the `✗` is found by matching the spec's path in the failure's stack, or else in the call site of the last line the story told or the last `runUntil`. A failure raised inside an Effect that the spec does not call directly may have none.

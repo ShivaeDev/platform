@@ -55,7 +55,7 @@ export interface StoryKitDefinition<
 	readonly outbound?: Readonly<Record<string, string>>;
 	readonly run?: RunHooks<TEngine, TStep, TFailed, TDiagnose>;
 	readonly runIf?: boolean;
-	readonly stages: readonly [TStage, ...TStage[]];
+	readonly stages: readonly TStage[];
 	readonly verbs: (engine: TEngine, story: Story<TEngine, TStep | TFailed | TDiagnose>) => TVerbs;
 }
 
@@ -101,8 +101,8 @@ export interface StoryKit<TEngine, TStage extends string, TVerbs, TRun extends A
 
 export function storyKit<
 	TCreate extends () => unknown,
-	const TStage extends string,
-	TVerbs extends object,
+	const TStage extends string = never,
+	TVerbs extends object = object,
 	TProvided = never,
 	TAfter extends AfterResults<TStage> = Record<never, never>,
 	TStep extends AnyEffect = never,
@@ -114,8 +114,8 @@ export function storyKit<
 // Keep explicit engine and effect type arguments accepted by existing kits.
 export function storyKit<
 	TEngine,
-	const TStage extends string,
-	TVerbs extends object,
+	const TStage extends string = never,
+	TVerbs extends object = object,
 	TProvided = never,
 	TCreate extends AnyEffect = never,
 	TAfter extends { readonly [TKey in TStage]?: AnyEffect } = Record<never, never>,

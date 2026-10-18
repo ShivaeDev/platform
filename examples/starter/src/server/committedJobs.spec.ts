@@ -11,7 +11,8 @@ app.it(
 		const note = yield* http.create({ title: "Count these three words" });
 		expect(note.wordCount).toBeNull();
 		yield* Effect.promise(() => expect.poll(live.notes, { timeout: 5000 }).toEqual([note]));
-		expect(yield* createInRolledBackTransaction()).toMatchObject({ _tag: "Failure", failure: "rollback" });
+		const owner = yield* http.whoami();
+		expect(yield* createInRolledBackTransaction("Rolled back", owner.id)).toMatchObject({ _tag: "Failure", failure: "rollback" });
 
 		yield* Effect.sleep("1200 millis");
 		expect(yield* http.get({ id: note.id })).toEqual(note);

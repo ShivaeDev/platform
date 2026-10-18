@@ -1,3 +1,4 @@
+import { Config, ConfigProvider, Effect } from "effect";
 import { defaultExclude, type TestUserConfig } from "vitest/config";
 import type { Environment } from "#naming/testName.ts";
 
@@ -13,10 +14,8 @@ function excluding(...patterns: readonly string[]): string[] {
 	return [...defaultExclude, named("typecheck"), TYPECHECK_ALONE, ...patterns];
 }
 
-export function testProjects(...options: readonly never[]): TestUserConfig {
-	if (options.length > 0) {
-		throw new Error("testProjects takes no options. Remove suite exclusions; every test belongs in its named project.");
-	}
+export function testProjects(): TestUserConfig {
+	const ci = Effect.runSync(Config.String("CI").pipe(Config.withDefault("")).parse(ConfigProvider.fromEnv()));
 	return {
 		project: ["unit", "dom"],
 		projects: [
@@ -24,6 +23,7 @@ export function testProjects(...options: readonly never[]): TestUserConfig {
 			{ extends: true, test: { environment: "happy-dom", exclude: excluding(named("slow")), include: [named("dom")], name: "dom" } },
 			{ extends: true, test: { environment: "node", exclude: excluding(), include: [named("slow")], name: "slow" } },
 		],
+		silent: ci ? false : "passed-only",
 		// Tests that start real servers, browsers or CLIs need seconds on a busy CI runner, and Vitest's 5s default fails them for load, not behavior.
 		testTimeout: 30_000,
 	};

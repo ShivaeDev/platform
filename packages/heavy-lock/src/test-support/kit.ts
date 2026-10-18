@@ -2,7 +2,9 @@ import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
+import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import type { HeavyLockOptions } from "#acquire.ts";
 import { acquisition } from "./acquisition.ts";
 import { cli } from "./cli.ts";
 import { TEST_TIMEOUT_MS } from "./cliProcess.ts";
@@ -40,6 +42,37 @@ export function environment(env: Record<string, string>) {
 export function pollingEvery(milliseconds: number) {
 	return lockStory.trait("configuration", `the lock polls every ${milliseconds}ms`, (engine) => {
 		engine.options = { ...engine.options, pollInterval: `${milliseconds} millis` };
+	});
+}
+
+export function withoutOption(name: keyof HeavyLockOptions) {
+	return lockStory.trait("configuration", `the ${name} option is omitted`, (engine) => {
+		engine.options = { ...engine.options, [name]: undefined };
+	});
+}
+
+export function argumentsAfterExecutable(...args: readonly string[]) {
+	return lockStory.trait("configuration", `the process arguments are ${JSON.stringify(args)}`, () =>
+		Effect.acquireRelease(
+			Effect.sync(() => {
+				const original = process.argv;
+				process.argv = [process.execPath, ...args];
+				return original;
+			}),
+			(original) =>
+				Effect.sync(() => {
+					process.argv = original;
+				}),
+		),
+	);
+}
+
+export function pathEnvironment(source: "home" | "environment" = "environment") {
+	return lockStory.trait("configuration", `lock paths are supplied through ${source}`, (engine) => {
+		engine.env.HOME = engine.home;
+		if (source === "environment") {
+			engine.env.HEAVY_PROCESS_LOCK = engine.paths.environment;
+		}
 	});
 }
 

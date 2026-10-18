@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/quality",
-	"version": "0.24.0",
+	"version": "0.25.0",
 	"description": "Repository quality gate with typed rules, a baseline of existing debt and a registry of reasoned exceptions",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme",
 	"bugs": {
@@ -61,7 +61,7 @@
 		"@shivaedev/types": "workspace:*",
 		"ignore": "catalog:",
 		"sort-package-json": "catalog:",
-		"typescript": "catalog:"
+		"typescript": "catalog:compiler-api"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
