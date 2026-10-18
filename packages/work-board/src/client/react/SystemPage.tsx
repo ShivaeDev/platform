@@ -6,6 +6,7 @@ import { CardAction, CardContent, CardFooter, CardHeader, CardTitle, Card as Sur
 import { DiagnosticsGithub, DiagnosticsWindows, ObservedTime } from "./diagnosticsValues.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { githubLimited } from "./githubLimited.ts";
+import { PageHeader } from "./PageHeader.tsx";
 import { SystemFleetLane } from "./SystemFleetLane.tsx";
 import { SystemHealth } from "./SystemHealth.tsx";
 import { SystemSourceProblems } from "./SystemSourceProblems.tsx";
@@ -22,11 +23,10 @@ export function SystemPage({
 	const fleet = data.fleet.state === "ready" ? { ...data.fleet, observedAt: data.fleet.value.observedAt } : data.fleet;
 	return (
 		<div className="space-y-6">
-			<h1 className="font-semibold text-2xl">System</h1>
-			<p>
-				Agent usage, Fleet health and workspace source problems. Refreshes every 15 seconds while this view is visible; Pause updates holds the
-				current view.
-			</p>
+			<PageHeader
+				summary="Agent usage, Fleet health and workspace source problems. Refreshes every 15 seconds while this view is visible; Pause updates holds the current view."
+				title="System"
+			/>
 			<div className="grid gap-4 lg:grid-cols-2">
 				<Card
 					attention={

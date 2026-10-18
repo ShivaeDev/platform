@@ -1,9 +1,10 @@
-import { Children, createContext, createElement, Fragment, type ReactNode, useContext, useMemo } from "react";
+import { Children, type ComponentProps, createContext, createElement, Fragment, isValidElement, type ReactNode, useContext, useMemo } from "react";
 import { type Components, MarkdownHooks } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import type { PluggableList } from "unified";
 import type { Document } from "#browser/document/schema.ts";
 import { Age } from "#client/react/Age.tsx";
+import { PageHeader } from "#client/react/PageHeader.tsx";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
@@ -37,6 +38,7 @@ const components: Components = {
 };
 
 export interface DocumentViewProps {
+	readonly actions?: ReactNode;
 	readonly answer?: ReactNode;
 	readonly board?: readonly { readonly count: number; readonly title: string }[];
 	readonly content?: ReactNode;
@@ -48,6 +50,7 @@ export interface DocumentViewProps {
 }
 
 const LayoutContext = createContext<{
+	readonly actions: ReactNode;
 	readonly answer: ReactNode;
 	readonly context: ReactNode;
 	readonly content: ReactNode;
@@ -56,6 +59,7 @@ const LayoutContext = createContext<{
 	readonly file: string;
 	readonly identified: boolean;
 }>({
+	actions: null,
 	answer: null,
 	content: null,
 	context: null,
@@ -70,26 +74,31 @@ function LayoutArticle({ node, children, ...props }: React.ComponentProps<"artic
 	return createElement("article", props, node?.properties.dataSource === undefined ? null : content, children);
 }
 function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<"header"> & import("react-markdown").ExtraProps) {
-	const { answer, context, introduction, lead, file, identified } = useContext(LayoutContext);
-	const header = createElement("header", props, children);
+	const { actions, answer, context, introduction, lead, file, identified } = useContext(LayoutContext);
 	if (!props.className?.split(" ").includes("item-introduction")) {
-		return header;
+		return createElement("header", props, children);
 	}
+	const [first, ...rest] = Children.toArray(children);
+	const heading = isValidElement<ComponentProps<"h1">>(first) && first.type === "h1" ? first : undefined;
+	const { children: title, ...titleProps } = heading?.props ?? { children: file, className: "font-mono" };
+	const leading = heading ? rest : Children.toArray(children);
 	return createElement(
 		Fragment,
 		null,
-		createElement(
-			"header",
-			{ ...props, className: `${props.className} col-span-full bg-background py-3 ${identified ? "sticky top-0 z-20 border-b border-border" : ""}` },
-			Children.count(children) > 0 ? children : createElement("h1", { className: "font-mono" }, file),
-			introduction,
-		),
+		createElement(PageHeader, {
+			...props,
+			actions,
+			className: `${props.className} col-span-full bg-background pb-4 ${identified ? "sticky top-[var(--board-header-height,0px)] z-10 -mt-3 border-border border-b pt-3" : ""}`,
+			summary: leading.length > 0 || introduction ? createElement(Fragment, null, ...leading, introduction) : undefined,
+			title,
+			titleProps,
+		}),
 		lead,
 		answer,
 		context,
 	);
 }
-export function DocumentView({ document, idPrefix = "", context, content, introduction, board, answer, lead }: DocumentViewProps) {
+export function DocumentView({ document, idPrefix = "", context, content, introduction, board, answer, lead, actions }: DocumentViewProps) {
 	const layout = context !== undefined;
 	const identity = document.identity ?? document.file;
 	const states = useMemo(() => ({ identity, values: new Map<string, boolean>() }), [identity]);
@@ -116,7 +125,7 @@ export function DocumentView({ document, idPrefix = "", context, content, introd
 			{ key: states.identity, value: states.values },
 			createElement(
 				LayoutContext.Provider,
-				{ value: { answer, content, context, file: document.file, identified: Boolean(document.metadata.id), introduction, lead } },
+				{ value: { actions, answer, content, context, file: document.file, identified: Boolean(document.metadata.id), introduction, lead } },
 				createElement(
 					MarkdownHooks,
 					{

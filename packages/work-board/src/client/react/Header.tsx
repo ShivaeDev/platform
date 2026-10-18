@@ -37,7 +37,7 @@ export function Header({
 }) {
 	return (
 		<header
-			className="sticky top-0 z-20 flex h-12 min-w-0 items-center gap-2 border-b bg-background px-3 text-sm md:static md:h-14 md:px-6 print:hidden"
+			className="sticky top-0 z-20 flex h-12 min-w-0 items-center gap-2 border-b bg-background px-3 text-sm md:h-14 md:px-6 print:hidden"
 			data-workspace-header
 		>
 			<Button

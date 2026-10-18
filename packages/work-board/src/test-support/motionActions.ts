@@ -36,6 +36,10 @@ export function motionActions(engine: ScreenEngine, tell: (line: string) => void
 			tell(`the reader inspects browser ${kind} requests`);
 			return motion()[kind].mock.calls;
 		},
+		readPassageTargets: () => {
+			tell("the reader checks which elements the browser scrolled into view");
+			return motion().passage.mock.contexts.map((element) => (element instanceof HTMLElement ? element.id : undefined));
+		},
 		readReadingStatus: () => {
 			tell("the reader reads the restoration status");
 			return engine.readingStatus;

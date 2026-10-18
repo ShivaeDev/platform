@@ -1,4 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
+import { X } from "lucide-react";
 import { useId, useLayoutEffect, useRef } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import { promptHeading } from "#browser/responses/cardContext.ts";
@@ -70,14 +71,14 @@ function PromptField({
 			<PromptChoices choose={choose} document={document} labelledBy={`${fieldId}-legend`} prompt={prompt} selected={answer.selected} />
 			{prompt.mode !== "text" && (
 				<Button
-					className="h-auto px-0 text-muted-foreground text-xs"
 					data-clear-choices
 					disabled={answer.selected.length === 0}
 					onClick={() => change({ ...answer, selected: [] })}
 					size="sm"
 					type="button"
-					variant="link"
+					variant="ghost"
 				>
+					<X aria-hidden="true" />
 					Clear selections
 				</Button>
 			)}

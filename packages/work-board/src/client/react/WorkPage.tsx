@@ -1,5 +1,7 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { viewUrl } from "#browser/views/state.ts";
+import { LinkButton } from "#client/react/LinkButton.tsx";
+import { PageHeader } from "#client/react/PageHeader.tsx";
 import { SavedViews } from "#client/react/SavedViews.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
@@ -12,11 +14,12 @@ export function WorkPage({ data, api }: { readonly data: WorkProjection; readonl
 	const source = `/_board/item/${encodeURIComponent(state.board)}/`;
 	return (
 		<>
-			<header className="work-head mb-4 space-y-2">
-				{state.view !== "now" && <p className="work-eyebrow">WORK · {state.view.toUpperCase()} VIEW</p>}
-				<h1 className="m-0 font-semibold text-2xl">{data.validBoard ? data.title : "Board unavailable"}</h1>
-				{Boolean(state.board) && data.validBoard && <a href={source}>Board source</a>}
-			</header>
+			<PageHeader
+				actions={Boolean(state.board) && data.validBoard && <LinkButton href={source}>Board source</LinkButton>}
+				className="work-head mb-6"
+				summary={state.view !== "now" && <p className="work-eyebrow m-0">WORK · {state.view.toUpperCase()} VIEW</p>}
+				title={data.validBoard ? data.title : "Board unavailable"}
+			/>
 			<WorkTools state={state} />
 			<details className="work-options mb-4" open={state.view !== "now"}>
 				<summary className="cursor-pointer text-muted-foreground text-sm">Filter</summary>

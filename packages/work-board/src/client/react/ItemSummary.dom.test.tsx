@@ -6,7 +6,7 @@ import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.t
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen, routedScreen } from "#test/screenTraits.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
-import { ItemSummary } from "./ItemSummary.tsx";
+import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
 
 const document: Document = {
 	diagnostics: [],
@@ -77,6 +77,7 @@ for (const [storyCase, value] of [undefined, { reason: "Not configured", state: 
 			componentScreen(
 				<FleetItemsContext.Provider value={value}>
 					<ItemSummary document={document} />
+					<ItemActions document={document} />
 				</FleetItemsContext.Provider>,
 			),
 		],
@@ -85,8 +86,8 @@ for (const [storyCase, value] of [undefined, { reason: "Not configured", state: 
 			expect(header?.textContent).toContain("Owner: reader · Next action: Review the proof");
 			expect(readText("[data-status-token]", header)).toBe("active");
 			expect(findElement("svg.lucide-clipboard-list", header)).not.toBeNull();
-			expect(readText("button", header)).toBe("Save favorite");
-			expect(findElement('a[href^="/_board/handoff"]', header)).not.toBeNull();
+			expect(readText("button")).toBe("Save favorite");
+			expect(findElement('a[href^="/_board/handoff"]')).not.toBeNull();
 			expect(header?.textContent?.includes("Fleet · reviewing")).toBe(value === fleet);
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', header) !== null).toBe(value === fleet);
 		},
