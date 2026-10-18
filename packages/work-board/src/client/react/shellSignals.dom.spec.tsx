@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { documentQuery, navigationQuery } from "#client/page/routeQuery.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen, routedScreen } from "#test/screenTraits.ts";
+import { documentQuery, navigationQuery } from "./routeQuery.ts";
 
 expectNoReactWarnings();
 beforeEach(() => {

@@ -2,12 +2,12 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/testing.ts";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { closedGoalPageFixture, goalFleetFixture, goalPageFixture } from "#test/goalPageFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { boardScreen } from "#test/screenTraits.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 screenStory.it("hides empty groups and leaves evidence-free criteria quiet", [], function* ({ renderBoard }) {
 	const files = goalPageFixture();

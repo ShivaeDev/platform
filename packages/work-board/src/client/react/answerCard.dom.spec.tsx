@@ -2,7 +2,6 @@ import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { documentQuery } from "#client/page/routeQuery.ts";
 import {
 	answerCardFixture,
 	DECISION_REASON,
@@ -14,6 +13,7 @@ import {
 import { responseCommands } from "#test/responseCommands.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen, storedScreenState } from "#test/screenTraits.ts";
+import { documentQuery } from "./routeQuery.ts";
 
 expectNoReactWarnings();
 beforeEach(() => {

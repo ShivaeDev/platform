@@ -1,6 +1,6 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { expect, vi } from "vitest";
+import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { boardScreen } from "#test/screenTraits.ts";
@@ -16,19 +16,12 @@ const files = {
 };
 
 for (const url of ["/notes/task.md", "/_board/item/task.fixture/"]) {
-	screenStory.it(`renders typed document data and context at ${url} without querying page HTML`, [], function* ({ renderRouter }) {
-		const queries: unknown[] = [];
-		const view = yield* Effect.promise(() =>
-			renderRouter(files, url, undefined, (api) => {
-				const page = vi.spyOn(api.page, "query");
-				queries.push(page);
-			}),
-		);
+	screenStory.it(`renders typed document data and context at ${url}`, [], function* ({ renderRouter }) {
+		const view = yield* Effect.promise(() => renderRouter(files, url, undefined));
 		try {
 			yield* Effect.promise(() =>
 				eventually(() => expect(view.container.querySelector("article.doc a")?.getAttribute("href")).toBe("/result.md#recorded-evidence-0")),
 			);
-			expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
 			expect(view.container.querySelector("main")?.dataset.identity).toBe("task.fixture");
 			expect(view.container.querySelector(".item-introduction h1")?.id).toBe("heading-task");
 			expect(view.container.querySelector("#heading-details-2")).not.toBeNull();
@@ -38,12 +31,8 @@ for (const url of ["/notes/task.md", "/_board/item/task.fixture/"]) {
 			expect(backlink?.textContent).toBe("Result");
 			expect(backlink?.getAttribute("title")).toMatch(/^result\.md:\d+$/u);
 			expect(view.container.querySelector(".item-summary")?.textContent).toContain("Read the evidence");
-			for (const query of queries) {
-				expect(query).not.toHaveBeenCalled();
-			}
 		} finally {
 			yield* Effect.promise(() => view.unmount());
-			vi.restoreAllMocks();
 		}
 	});
 }
@@ -68,7 +57,6 @@ for (const url of ["/missing.md", "/_board/item/missing/"]) {
 					),
 				),
 			);
-			expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
 		},
 	);
 }
@@ -86,18 +74,10 @@ screenStory.it("keeps response history readable when a question's prompt templat
 });
 
 screenStory.it("renders a document at its file URL when no home board is configured", [], function* ({ renderRouter }) {
-	let pageQuery: unknown;
-	const view = yield* Effect.promise(() =>
-		renderRouter(files, "/home.md", { home: undefined }, (api) => {
-			pageQuery = vi.spyOn(api.page, "query");
-		}),
-	);
+	const view = yield* Effect.promise(() => renderRouter(files, "/home.md", { home: undefined }));
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(".item-introduction h1")?.textContent).toBe("Home")));
-		expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
-		expect(pageQuery).not.toHaveBeenCalled();
 	} finally {
 		yield* Effect.promise(() => view.unmount());
-		vi.restoreAllMocks();
 	}
 });

@@ -45,15 +45,12 @@ for (const { url, kind } of routes) {
 		expect(view.container.querySelector("header")).toBe(header);
 		expect(reads.filter((read) => read === `document:${kind === "work" ? "/_board/item/note.next/" : url}`)).toHaveLength(kind === "today" ? 0 : 1);
 		expect(view.container.querySelector(kind === "document" ? "[data-react-document]" : "[data-react-projection]")).not.toBeNull();
-		expect(reads).not.toContain(`page:${url}`);
 	});
 }
 
 screenStory.it("loads the new projection query when only the search parameters change", [], function* ({ renderRouter }) {
-	const reads: string[] = [];
 	const view = yield* Effect.promise(() =>
 		renderRouter(files, "/_board/work?view=board", {
-			beforeRead: (kind, url) => Effect.sync(() => reads.push(`${kind}:${url}`)).pipe(Effect.asVoid),
 			home: "home.md",
 		}),
 	);
@@ -66,7 +63,6 @@ screenStory.it("loads the new projection query when only the search parameters c
 			await view.router.preloadRoute({ params: { _splat: "_board/work" }, search: { view: "table" }, to: "/$" });
 		}),
 	);
-	expect(reads).not.toContain("page:/_board/work?view=table");
 	expect(view.container.querySelector(".work-eyebrow")?.textContent).toContain("BOARD");
 	expect(view.container.querySelector<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=board");
 	yield* Effect.promise(() =>
@@ -79,5 +75,4 @@ screenStory.it("loads the new projection query when only the search parameters c
 	);
 	expect(view.container.querySelector(".work-table")).not.toBeNull();
 	expect(view.container.querySelector(".work-eyebrow")?.textContent).toContain("TABLE");
-	expect(reads).not.toContain("page:/_board/work?view=table");
 });

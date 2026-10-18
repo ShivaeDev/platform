@@ -3,10 +3,10 @@ import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { documentQuery } from "#client/page/routeQuery.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { boardScreen } from "#test/screenTraits.ts";
 import { boardRouter } from "./boardRouter.ts";
+import { documentQuery } from "./routeQuery.ts";
 
 expectNoReactWarnings();
 afterEach(() => vi.unstubAllGlobals());

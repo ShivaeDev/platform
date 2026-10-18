@@ -3,12 +3,12 @@ import type { Window } from "happy-dom";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/testing.ts";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { goalFleetFixture, goalPageFixture } from "#test/goalPageFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 declare const window: Window;
 

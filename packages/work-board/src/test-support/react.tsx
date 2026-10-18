@@ -20,11 +20,6 @@ function boardClient(files: Readonly<Record<string, string>>, options?: BoardFix
 	}) {}
 	return Object.assign(bind(workContract, Client), {
 		forms: { handoffs: bind(handoffContract, Client), responses: bind(responseContract, Client), runtime: Client.runtime },
-		page: {
-			query: () => {
-				throw new Error("HTML page queries are forbidden");
-			},
-		},
 	});
 }
 

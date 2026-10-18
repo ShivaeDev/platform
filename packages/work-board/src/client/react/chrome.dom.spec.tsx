@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { documentQuery } from "#client/page/routeQuery.ts";
 import { screenStory } from "#test/screenStory.ts";
+import { documentQuery } from "./routeQuery.ts";
 
 expectNoReactWarnings();
 beforeEach(() => {

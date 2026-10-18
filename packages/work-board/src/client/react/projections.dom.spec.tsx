@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { expect, vi } from "vitest";
+import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { screenStory } from "#test/screenStory.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 expectNoReactWarnings();
 const files = {
@@ -21,18 +21,11 @@ const routes = [
 	{ kind: "work", selector: ".work-table", text: "A task", url: "/_board/work?view=table&owner=value%3Areader&q=task&item=task.fixture" },
 ];
 for (const { url, selector, text, kind } of routes) {
-	screenStory.it(`renders ${url} from its typed projection without requesting HTML`, [], function* ({ renderRouter }) {
-		let page: unknown;
-		const view = yield* Effect.promise(() =>
-			renderRouter(files, url, undefined, (api) => {
-				page = vi.spyOn(api.page, "query");
-			}),
-		);
+	screenStory.it(`renders ${url} from its typed projection`, [], function* ({ renderRouter }) {
+		const view = yield* Effect.promise(() => renderRouter(files, url, undefined));
 		try {
 			yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(selector)?.textContent).toContain(text)));
-			expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
 			expect(view.container.querySelector("main")?.dataset.projection).toBe(kind);
-			expect(page).not.toHaveBeenCalled();
 			if (kind === "board") {
 				expect(view.container.querySelector(".item-introduction h1")?.textContent).toBe("Project board");
 				expect(view.container.querySelector(".item-introduction")?.classList.contains("sticky")).toBe(true);
@@ -52,18 +45,16 @@ for (const { url, selector, text, kind } of routes) {
 			}
 		} finally {
 			yield* Effect.promise(() => view.unmount());
-			vi.restoreAllMocks();
 		}
 	});
 }
 
 screenStory.it("retains inline answer edits and selected detail through a Work projection refresh", [], function* ({ renderRouter }) {
 	let refresh: (() => void) | undefined;
-	let page: unknown;
+
 	const url = "/_board/work?view=board&item=question.fixture&q=task";
 	const view = yield* Effect.promise(() =>
 		renderRouter(files, url, undefined, (api, registry) => {
-			page = vi.spyOn(api.page, "query");
 			refresh = () => registry.refresh(api.work.query({ url }, routeQueryOptions));
 		}),
 	);
@@ -86,9 +77,7 @@ screenStory.it("retains inline answer edits and selected detail through a Work p
 		expect(body.value).toBe("Keep my answer");
 		expect(body.selectionStart).toBe(5);
 		expect(body.selectionEnd).toBe(7);
-		expect(page).not.toHaveBeenCalled();
 	} finally {
 		yield* Effect.promise(() => view.unmount());
-		vi.restoreAllMocks();
 	}
 });

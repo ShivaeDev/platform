@@ -3,10 +3,10 @@ import { act } from "react";
 import { afterEach, expect, vi } from "vitest";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen, screenFleet, todayScreen } from "#test/screenTraits.ts";
 import { todayFleetFixture } from "#test/todayFleetFixture.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 expectNoReactWarnings();
 afterEach(() => {

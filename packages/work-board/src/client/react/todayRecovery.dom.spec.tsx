@@ -6,11 +6,11 @@ import * as Atom from "effect/reactivity/Atom";
 import { act, useMemo } from "react";
 import { afterEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { todayFixture } from "#test/todayFixture.ts";
 import { activeRead } from "./activeRead.ts";
 import { boardRouter } from "./boardRouter.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 expectNoReactWarnings();

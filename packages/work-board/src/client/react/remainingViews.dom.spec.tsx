@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { screenStory } from "#test/screenStory.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 expectNoReactWarnings();
 afterEach(() => {
@@ -25,19 +25,11 @@ const routes = [
 	{ kind: "result", selector: "#result-criteria", text: "Show the result", url: "/_board/result?item=result.fixture" },
 ];
 for (const { kind, url, selector, text } of routes) {
-	screenStory.it(`renders ${kind} from typed queries without an HTML page request`, [], function* ({ renderRouter }) {
-		let page: unknown;
-		const view = yield* Effect.promise(() =>
-			renderRouter(files, url, undefined, (api) => {
-				page = vi.spyOn(api.page, "query");
-			}),
-		);
+	screenStory.it(`renders ${kind} from typed queries`, [], function* ({ renderRouter }) {
+		const view = yield* Effect.promise(() => renderRouter(files, url, undefined));
 		try {
 			yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(selector)?.textContent).toContain(text)));
 			expect(view.container.querySelector("main")?.dataset.projection).toBe(kind);
-			expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
-			expect(view.container.textContent).not.toContain("Legacy HTML must not be shown");
-			expect(page).not.toHaveBeenCalled();
 			if (kind === "result") {
 				expect(view.container.querySelector("#result-report")?.textContent).toContain("Report limitations");
 				expect(view.container.querySelector("#result-criteria h2")?.getAttribute("title")).toContain("authored records");
@@ -79,16 +71,10 @@ screenStory.it("updates answer card context while retaining answer text, node an
 	expect(document.activeElement).toBe(body);
 	expect([body.selectionStart, body.selectionEnd]).toEqual([5, 7]);
 });
-screenStory.it("shows Today and getting-started guidance for an empty workspace", [], function* ({ renderRouter }) {
-	let page: unknown;
-	const view = yield* Effect.promise(() =>
-		renderRouter({}, "/", undefined, (api) => {
-			page = vi.spyOn(api.page, "query");
-		}),
-	);
+screenStory.it("shows Today for an empty workspace", [], function* ({ renderRouter }) {
+	const view = yield* Effect.promise(() => renderRouter({}, "/", undefined));
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("h1")?.textContent).toBe("Today")));
-		expect(page).not.toHaveBeenCalled();
 	} finally {
 		yield* Effect.promise(() => view.unmount());
 		vi.restoreAllMocks();

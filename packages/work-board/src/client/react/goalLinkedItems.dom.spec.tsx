@@ -2,10 +2,10 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/testing.ts";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { goalPageFixture } from "#test/goalPageFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 for (const kind of ["result", "decision", "question", "response"] as const) {
 	screenStory.it(`shows an implementing ${kind} in its criterion and work group`, [], function* ({ renderBoard }) {
