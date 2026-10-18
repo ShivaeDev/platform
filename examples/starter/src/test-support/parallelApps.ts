@@ -1,7 +1,6 @@
 import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
-import { Effect } from "effect";
-import { expect } from "vitest";
+import { Effect, Exit, Scope } from "effect";
 import * as VitestNode from "vitest/node";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 
@@ -27,31 +26,18 @@ function startRunner() {
 export const parallelApps = storyKit({
 	clock: "live",
 	create: () =>
-		Effect.acquireRelease(Effect.promise(startRunner), (runner) =>
-			Effect.promise(async () => {
-				await runner.close();
-				expect(runner.state.getUnhandledErrors()).toEqual([]);
-			}),
-		),
+		Effect.gen(function* () {
+			const scope = yield* Scope.fork(yield* Scope.Scope);
+			const runner = yield* Effect.acquireRelease(Effect.promise(startRunner), (resource) => Effect.promise(() => resource.close())).pipe(
+				Scope.provide(scope),
+			);
+			return { runner, scope };
+		}),
 	name: "parallel apps",
 	stages: ["workers"],
-	verbs: (runner) => ({
-		runWorkers: () =>
-			Effect.promise(async () => {
-				const { testModules } = await runner.start();
-				expect(testModules).toHaveLength(4);
-				expect(testModules.flatMap((module) => module.errors())).toEqual([]);
-				const tests = testModules.flatMap((module) => [...module.children.allTests()]);
-				expect(tests).toHaveLength(4);
-				const workers = tests
-					.flatMap((test) => test.annotations())
-					.filter((item) => item.type === "worker")
-					.map((item) => item.message);
-				expect(new Set(workers).size).toBe(4);
-				for (const test of tests) {
-					expect(test.result().errors ?? []).toEqual([]);
-					expect(test.result().state).toBe("passed");
-				}
-			}),
+	verbs: ({ runner, scope }) => ({
+		close: () => Scope.close(scope, Exit.void),
+		run: () => Effect.promise(() => runner.start()),
+		unhandledErrors: () => runner.state.getUnhandledErrors(),
 	}),
 });
