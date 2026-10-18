@@ -42,7 +42,7 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 	backend: ReturnType<typeof restartBackend>,
 	boundary: Boundary,
 ) {
-	const first = yield* hostProcess(fixture.configFile, true);
+	const first = yield* hostProcess(fixture.configFile);
 	yield* first.until(() => Effect.succeed(first.url !== undefined));
 	const client = yield* daemonClient(first.url ?? "missing");
 	function readRecord() {
@@ -67,7 +67,7 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 		yield* retryInterrupted(fixture);
 		backend.allowRetry();
 	}
-	const restarted = yield* hostProcess(fixture.configFile, true);
+	const restarted = yield* hostProcess(fixture.configFile);
 	yield* restarted.until(() => Effect.succeed(restarted.url !== undefined));
 	const peer = yield* daemonClient(restarted.url ?? "missing");
 	function readRecovered() {

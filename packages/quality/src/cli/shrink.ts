@@ -6,8 +6,8 @@ import type { Git } from "#git/command.ts";
 import { changesSince } from "#git/history.ts";
 import { shrinkBaseline } from "./baseline.ts";
 
-const followedMoves = (root: string, against: string | undefined): Effect.Effect<Scope, SetupFailure, Git> =>
-	resolveBase(root, against).pipe(
+function followedMoves(root: string, against: string | undefined): Effect.Effect<Scope, SetupFailure, Git> {
+	return resolveBase(root, against).pipe(
 		Effect.flatMap((base) => changesSince(root, [base.commit])),
 		Effect.map((changes): Scope => ({ moves: changes.moves })),
 		Effect.catchIf(
@@ -15,17 +15,20 @@ const followedMoves = (root: string, against: string | undefined): Effect.Effect
 			(failure) => Effect.as(Console.error(`quality: moved files are not followed: ${failure.message}`), { moves: new Map() }),
 		),
 	);
+}
 
-export const pruneBaseline = (
+export function pruneBaseline(
 	cwd: string,
 	config: string | undefined,
 	against: string | undefined,
-): Effect.Effect<void, SetupFailure, FileSystem.FileSystem | Git> =>
-	shrinkBaseline(cwd, config, (session) => followedMoves(session.config.root, against));
+): Effect.Effect<void, SetupFailure, FileSystem.FileSystem | Git> {
+	return shrinkBaseline(cwd, config, (session) => followedMoves(session.config.root, against));
+}
 
-export const tightenBaseline = (
+export function tightenBaseline(
 	cwd: string,
 	config: string | undefined,
 	staged: boolean,
-): Effect.Effect<void, SetupFailure, FileSystem.FileSystem | Git> =>
-	shrinkBaseline(cwd, config, (session) => changesSince(session.config.root, staged ? ["--cached"] : ["HEAD"]));
+): Effect.Effect<void, SetupFailure, FileSystem.FileSystem | Git> {
+	return shrinkBaseline(cwd, config, (session) => changesSince(session.config.root, staged ? ["--cached"] : ["HEAD"]));
+}

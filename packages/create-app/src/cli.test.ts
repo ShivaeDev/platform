@@ -1,23 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { basename, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { NodeServices } from "@effect/platform-node";
-import { Effect } from "effect";
-import { afterEach, beforeAll, expect, it } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { appFolder, cleanup, testEnvironment } from "#test/cli.ts";
-import { packTemplate } from "./packTemplate.ts";
 
 const version: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
-beforeAll(() =>
-	Effect.runPromise(
-		packTemplate(
-			fileURLToPath(new URL("../../../examples/starter", import.meta.url)),
-			fileURLToPath(new URL("../template.json", import.meta.url)),
-		).pipe(Effect.provide(NodeServices.layer)),
-	),
-);
 afterEach(cleanup);
 
 it("creates a named app in a new parent path, installs, commits as Create App without a configured identity, and prints the next steps", () => {

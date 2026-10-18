@@ -15,17 +15,23 @@ export interface IgnoreScope {
 
 export const emptyScope: IgnoreScope = { boundary: undefined, matchers: [] };
 
-export const posix = (path: string): string => path.replaceAll("\\", "/");
+export function posix(path: string): string {
+	return path.replaceAll("\\", "/");
+}
 
-export const withIgnoreFile = (scope: IgnoreScope, base: string, contents: string): IgnoreScope => ({
-	boundary: scope.boundary,
-	matchers: [...scope.matchers, { base, rules: ignore().add(contents) }],
-});
+export function withIgnoreFile(scope: IgnoreScope, base: string, contents: string): IgnoreScope {
+	return {
+		boundary: scope.boundary,
+		matchers: [...scope.matchers, { base, rules: ignore().add(contents) }],
+	};
+}
 
 // Re-including a directory resets directory rules below that boundary; filename rules still apply.
-export const insideKept = (scope: IgnoreScope, directory: string): IgnoreScope => ({ boundary: directory, matchers: scope.matchers });
+export function insideKept(scope: IgnoreScope, directory: string): IgnoreScope {
+	return { boundary: directory, matchers: scope.matchers };
+}
 
-const matcherVerdict = (matcher: IgnoreMatcher, boundary: string | undefined, path: string, directory: boolean): Verdict => {
+function matcherVerdict(matcher: IgnoreMatcher, boundary: string | undefined, path: string, directory: boolean): Verdict {
 	const anchor = boundary !== undefined && boundary.length > matcher.base.length ? boundary : matcher.base;
 	const rel = posix(relative(anchor, path));
 	if (rel === "" || rel.startsWith("..")) {
@@ -37,7 +43,11 @@ const matcherVerdict = (matcher: IgnoreMatcher, boundary: string | undefined, pa
 		return "ignored";
 	}
 	return result.unignored ? "kept" : "unknown";
-};
+}
 
-export const verdictFor = (scope: IgnoreScope, path: string, directory: boolean): Verdict =>
-	scope.matchers.map((matcher) => matcherVerdict(matcher, scope.boundary, path, directory)).findLast((verdict) => verdict !== "unknown") ?? "unknown";
+export function verdictFor(scope: IgnoreScope, path: string, directory: boolean): Verdict {
+	return (
+		scope.matchers.map((matcher) => matcherVerdict(matcher, scope.boundary, path, directory)).findLast((verdict) => verdict !== "unknown")
+		?? "unknown"
+	);
+}

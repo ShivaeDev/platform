@@ -29,7 +29,6 @@ const files = {
 const routes = [
 	{ kind: "system", selector: "[data-source=codex]", text: "Source missing", url: "/_board/system" },
 	{ kind: "start", selector: ".start-template textarea", text: "example.project", url: "/_board/start" },
-	{ kind: "respond", selector: ".response-panel", text: "Choose a direction", url: "/_board/respond?item=task.fixture&request=direction" },
 	{ kind: "handoff", selector: "#handoff-form", text: "Recipient", url: "/_board/handoff?item=task.fixture" },
 	{ kind: "result", selector: "#result-criteria", text: "Show the result", url: "/_board/result?item=result.fixture" },
 ];
@@ -45,7 +44,7 @@ it.live.each(routes)("renders $kind from typed queries without an HTML page requ
 	);
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(selector)?.textContent).toContain(text)));
-		expect(view.container.querySelector("main")?.dataset.projection).toBe(kind === "respond" ? undefined : kind);
+		expect(view.container.querySelector("main")?.dataset.projection).toBe(kind);
 		expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
 		expect(view.container.textContent).not.toContain("Legacy HTML must not be shown");
 		expect(page).not.toHaveBeenCalled();
@@ -58,7 +57,7 @@ it.live.each(routes)("renders $kind from typed queries without an HTML page requ
 		vi.restoreAllMocks();
 	}
 });
-it.live("updates Respond context while retaining answer text, node and caret", function* () {
+it.live("updates answer card context while retaining answer text, node and caret", function* () {
 	const url = "/_board/item/task.fixture/";
 	let refresh: (() => void) | undefined;
 	const sources = { ...files };

@@ -3,7 +3,7 @@ import { HttpRouter } from "effect/http";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 import type { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { localRpcGuard } from "@shivaedev/platform/rpc-server/local.ts";
-import type { RenderFailed } from "#render/failed.ts";
+import type { RenderFailed } from "#render/Failed.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { boardRuntime } from "#server/boardRuntime.ts";
 import type { HomeMissing } from "#server/files/home.ts";

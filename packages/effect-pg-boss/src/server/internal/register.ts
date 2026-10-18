@@ -9,7 +9,7 @@ import {
 	type ScheduleDefinition,
 	type ScheduledWorker,
 } from "#definition.ts";
-import { PgBossPayloadError, PgBossQueueOptionsError, toPgBossError } from "#error.ts";
+import { PgBossError, PgBossPayloadError, PgBossQueueOptionsError, toPgBossError } from "#error.ts";
 import { batchHandler } from "#internal/batchHandler.ts";
 import { ensureQueue } from "#internal/ensureQueue.ts";
 import { payloadOf, traceJob } from "#internal/tracing.ts";
@@ -51,7 +51,11 @@ async function prepareQueues(client: PgBossClient, registrations: readonly JobRe
 	}
 	for (const registration of registrations) {
 		const definition = registrationDefinition(registration);
-		await ensureQueue(client, definition.name, definition.queueOptions);
+		try {
+			await ensureQueue(client, definition.name, definition.queueOptions);
+		} catch (error) {
+			throw error instanceof PgBossQueueOptionsError ? error : toPgBossError("register", error, definition.name);
+		}
 	}
 }
 
@@ -113,9 +117,9 @@ export const registerJobs = <R>(
 	registrations: readonly JobRegistration[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
-): Effect.Effect<void, import("#error.ts").PgBossError | PgBossQueueOptionsError> =>
+): Effect.Effect<void, PgBossError | PgBossQueueOptionsError> =>
 	Effect.tryPromise({
-		catch: (error) => (error instanceof PgBossQueueOptionsError ? error : toPgBossError("register", error)),
+		catch: (error) => (error instanceof PgBossQueueOptionsError || error instanceof PgBossError ? error : toPgBossError("register", error)),
 		try: async () => {
 			registrationNames(registrations);
 			await prepareQueues(client, registrations, replaceWorkers);

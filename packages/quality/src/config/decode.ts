@@ -3,15 +3,18 @@ import { type Decoded, decodeWith } from "#decoded.ts";
 import { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import type { Rule } from "#rule.ts";
 
-const isRule = (value: unknown): value is Rule =>
-	typeof value === "object"
-	&& value !== null
-	&& "id" in value
-	&& typeof value.id === "string"
-	&& "description" in value
-	&& typeof value.description === "string"
-	&& "configure" in value
-	&& typeof value.configure === "function";
+function isRule(value: unknown): value is Rule {
+	return (
+		typeof value === "object"
+		&& value !== null
+		&& "id" in value
+		&& typeof value.id === "string"
+		&& "description" in value
+		&& typeof value.description === "string"
+		&& "configure" in value
+		&& typeof value.configure === "function"
+	);
+}
 
 const Level = Schema.Literal("error");
 
@@ -44,4 +47,6 @@ export type ConfigInput = typeof ConfigInput.Type;
 
 const standard = Schema.toStandardSchemaV1(ConfigInput, { parseOptions: { errors: "all", onExcessProperty: "error" } });
 
-export const decodeConfig = (value: unknown): Promise<Decoded<ConfigInput>> => decodeWith(standard, value);
+export function decodeConfig(value: unknown): Promise<Decoded<ConfigInput>> {
+	return decodeWith(standard, value);
+}

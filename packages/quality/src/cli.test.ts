@@ -5,11 +5,11 @@ import { quality, runQuality, trees } from "#test/cli.ts";
 import { formatTree, qualityTree } from "#test/qualityTree.ts";
 import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
 
-const cliTimeout = 60_000;
+const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
 
-describe("quality lint", { timeout: cliTimeout }, () => {
+describe("quality lint", { timeout: CLI_TIMEOUT }, () => {
 	it("exits 0 on a clean tree, skipping declarations and ignored files", async () => {
 		const result = await runQuality(qualityTree(trees.clean), "lint");
 		expect(result).toEqual({ status: 0, stderr: "", stdout: "quality: passed. 3 source files checked.\n" });
@@ -79,7 +79,7 @@ describe("quality lint", { timeout: cliTimeout }, () => {
 	});
 });
 
-describe("quality baseline", { timeout: cliTimeout }, () => {
+describe("quality baseline", { timeout: CLI_TIMEOUT }, () => {
 	it("adopts existing violations, holds them and shrinks with the code", async () => {
 		const root = qualityTree(trees.dirty);
 		expect(await runQuality(root, "baseline", "write")).toMatchObject({
@@ -113,7 +113,7 @@ describe("quality baseline", { timeout: cliTimeout }, () => {
 	});
 });
 
-describe("quality exits 2 when it cannot run", { timeout: cliTimeout }, () => {
+describe("quality exits 2 when it cannot run", { timeout: CLI_TIMEOUT }, () => {
 	it.each([
 		["with a broken config", [{ content: "export default {", path: "quality.config.ts" }], "cannot load"],
 		[

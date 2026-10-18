@@ -10,6 +10,8 @@ import { untilWorker } from "#test/untilWorker.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL") ?? "";
 const integration = databaseUrl === "" ? describe.skip : describe;
+// A partitioned queue attaches its table to pg-boss's job table, which deadlocks with the other specs' job traffic in a shared schema.
+const SCHEMA = "platform_effect_pg_boss_notify";
 
 integration("PostgreSQL notification and live counts", () => {
 	it("wakes a waiting worker before its poll and reports a drain immediately after completion", async () => {
@@ -19,7 +21,7 @@ integration("PostgreSQL notification and live counts", () => {
 			schema: Schema.Struct({ id: Schema.NumberFromString }),
 			worker: { pollingIntervalSeconds: 10 },
 		});
-		const client = new PgBoss({ connectionString: databaseUrl, schema: "platform_effect_pg_boss", useListenNotify: true });
+		const client = new PgBoss({ connectionString: databaseUrl, schema: SCHEMA, useListenNotify: true });
 		const release = Promise.withResolvers<void>();
 		const handled: number[] = [];
 		const Jobs = makePgBoss("@test/NotifyJobs");
@@ -50,7 +52,7 @@ integration("PostgreSQL notification and live counts", () => {
 							clientFactory: () => client,
 							connectionString: databaseUrl,
 							jobs: [Queue.handle(({ id }) => Effect.sync(() => handled.push(id)).pipe(Effect.andThen(Effect.promise(() => release.promise))))],
-							schema: "platform_effect_pg_boss",
+							schema: SCHEMA,
 						}),
 					),
 				),

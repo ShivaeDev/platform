@@ -25,9 +25,9 @@ function substitute(value: unknown, star: string): unknown {
 }
 
 // Node picks the exact key, then the pattern with the longest prefix before its "*".
-export function importEntry(imports: ImportMap, specifier: string): unknown {
+export function importKey(imports: ImportMap, specifier: string): string | undefined {
 	if (specifier in imports && !specifier.includes("*")) {
-		return imports[specifier];
+		return specifier;
 	}
 	const [best] = Object.keys(imports)
 		.flatMap((key) => {
@@ -35,7 +35,16 @@ export function importEntry(imports: ImportMap, specifier: string): unknown {
 			return star === undefined ? [] : [{ key, star }];
 		})
 		.sort((left, right) => right.key.indexOf("*") - left.key.indexOf("*") || right.key.length - left.key.length);
-	return best === undefined ? undefined : substitute(imports[best.key], best.star);
+	return best?.key;
+}
+
+export function importEntry(imports: ImportMap, specifier: string): unknown {
+	const key = importKey(imports, specifier);
+	if (key === undefined) {
+		return undefined;
+	}
+	const star = patternMatch(key, specifier);
+	return star === undefined ? imports[key] : substitute(imports[key], star);
 }
 
 export function conditionalTarget(value: unknown, conditions: readonly string[]): string | undefined {

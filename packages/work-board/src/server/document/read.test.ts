@@ -41,7 +41,7 @@ it.live.each(["", "/"])(
 		expect(result.links["task.md"]).toBe("/nested/task.md");
 		expect(result.links["../shots/review.png"]).toBe("/_board/attachment/shots/review.png");
 		expect(result.references["investigation.choices"]).toBe("/_board/item/investigation.choices/");
-		expect(result.questionActions["direction/display"]).toBe("/_board/respond?item=investigation.choices&request=direction");
+		expect(result.questionActions["direction/display"]).toBe("/_board/item/investigation.choices/#answer-card-direction");
 		expect(result.questionActions["/checks"]).toBe(result.questionActions["direction/display"]);
 		expect(Object.keys(result).sort((left, right) => left.localeCompare(right))).toEqual([
 			"diagnostics",

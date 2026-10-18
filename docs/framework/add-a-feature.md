@@ -2,13 +2,13 @@
 
 Start with a running app from the [quickstart](./quickstart.md). Add a bookmarks resource with a generated numeric `id`, a nonempty `title` and an account owner. Follow the notes feature below in order, replacing its names with bookmarks. Links point to the starter files copied into your generated app; keep using that app's pinned dependencies.
 
-The shared declaration belongs in `src/bookmarks.ts`, persistence and services in `src/server`, and React components in `src/client`. Keep SQL, session lookup and services out of the browser import graph. This walkthrough adds a query and a create command; the notes feature's background word-count job and live subscription are optional extensions described in the [starter README](../../examples/starter/README.md#add-a-job).
+The shared declaration belongs in `src/bookmarks.ts`, persistence and services in `src/server`, and React components in `src/client`. Keep SQL, session lookup and services out of the browser import graph. This walkthrough adds a query and a create command; the notes feature's background word-count job and live subscription are optional extensions described in the [starter README](../../examples/starter/README.md).
 
 ## 1. Add the migration
 
 In `src/server/migrations.ts`, append the next numbered entry to `Migrator.fromRecord`. Create `starter_bookmarks` with `id serial primary key`, `title text not null` and `"ownerId" text not null`. Preserve the existing entries and the `app_migrations` ledger: an existing app upgrades by running a new entry, rather than by editing a migration it has already run.
 
-Follow [`migrations.ts`](../../examples/starter/src/server/migrations.ts): `001_create_notes` creates the table, and later entries add owner and word-count columns. Your new table can include its owner column from the start. [`databaseOptions.ts`](../../examples/starter/src/server/databaseOptions.ts) passes this loader to the host, which runs it before serving requests. The [migration guide](./postgres-migrations.md) explains runner ownership and locks.
+Follow [`migrations.ts`](../../examples/starter/src/server/migrations.ts): `001_create_notes` creates the table, and later entries add owner and word-count columns. Your new table can include its owner column from the start. [`databaseOptions.ts`](../../examples/starter/src/server/databaseOptions.ts) passes this loader to the host with `mode: "check"`, so startup asserts that its migrations are recorded in the ledger. Run `pnpm migrate` to apply the new migration before starting the host, as in the [quickstart](./quickstart.md). The [migration guide](./postgres-migrations.md) explains runner ownership and locks.
 
 ## 2. Define the Model
 
@@ -58,12 +58,12 @@ Keep a label, field error, save failure and pending button state. Follow [`Notes
 
 ## 9. Prove the PostgreSQL host path
 
-Extend [`notesHost.test.ts`](../../examples/starter/src/server/notesHost.test.ts) using its [`test-support/postgres.ts`](../../examples/starter/src/test-support/postgres.ts) harness and authenticated HTTP client pattern in [`test-support/authHttp.ts`](../../examples/starter/src/test-support/authHttp.ts). Add a client for the bookmark group. Sign up a user, create a bookmark over HTTP, list it, and inspect `starter_bookmarks` through `SqlClient` to prove persistence. Check the whitespace rejection leaves the table unchanged, anonymous calls fail, and a second user cannot list the first user's bookmarks.
+Extend [`noteLifecycle.spec.ts`](../../examples/starter/src/server/noteLifecycle.spec.ts) using its [`test-support/postgres.ts`](../../examples/starter/src/test-support/postgres.ts) harness and authenticated HTTP client pattern in [`test-support/authHttp.ts`](../../examples/starter/src/test-support/authHttp.ts). Add a client for the bookmark group. Sign up a user, create a bookmark over HTTP, list it, and inspect `starter_bookmarks` through `SqlClient` to prove persistence. Check the whitespace rejection leaves the table unchanged, anonymous calls fail, and a second user cannot list the first user's bookmarks.
 
 Follow [`notesMigration.spec.ts`](../../examples/starter/src/server/notesMigration.spec.ts) to check the new stored model's columns and PostgreSQL types after upgrading the previous migration prefix. Run against a dedicated PostgreSQL test database whose role can create disposable databases:
 
 ```sh
-pnpm test src/server/notesHost.test.ts src/server/bookmarksMigration.spec.ts
+pnpm test src/server/noteLifecycle.spec.ts src/server/bookmarksMigration.spec.ts
 ```
 
 Set `TEST_DATABASE_URL` first. In this repository, `./script/update` prepares the shared database and `pnpm ready` supplies the test URLs. Confirm the PostgreSQL tests ran: a skipped test supplies no persistence or host evidence.

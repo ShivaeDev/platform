@@ -61,7 +61,7 @@ boardStory.it(
 		yield* Effect.promise(() =>
 			waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("No; use the simpler option.")),
 		);
-		expect(page.document.getElementById("response-status")?.textContent).toContain("Saved:");
-		expect(page.document.getElementById("response-status")?.textContent).toContain("not acceptance");
+		yield* reader.waitForResponseStatus("Saved:");
+		expect(reader.responseStatus()).toContain("not acceptance");
 	},
 );

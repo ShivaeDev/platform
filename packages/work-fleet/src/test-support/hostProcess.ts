@@ -10,16 +10,12 @@ function diagnose(effect: Effect.Effect<void, unknown>, message: () => string) {
 	);
 }
 
-export function hostProcess(configFile: string, daemon = false) {
+export function hostProcess(configFile: string) {
 	return Effect.acquireRelease(
 		Effect.sync(() => {
-			const child = spawn(
-				process.execPath,
-				["--conditions=source", fileURLToPath(new URL("./cloudHostProcess.ts", import.meta.url)), configFile, ...(daemon ? ["daemon"] : [])],
-				{
-					stdio: ["ignore", "pipe", "pipe"],
-				},
-			);
+			const child = spawn(process.execPath, ["--conditions=source", fileURLToPath(new URL("./cloudHostProcess.ts", import.meta.url)), configFile], {
+				stdio: ["ignore", "pipe", "pipe"],
+			});
 			let url: string | undefined;
 			let output = "";
 			child.stdout.on("data", (chunk: Buffer) => {

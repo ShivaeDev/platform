@@ -19,9 +19,11 @@ export interface BaselineCheck {
 	readonly stale: readonly StaleBaselineEntry[];
 }
 
-export const countOf = (violations: readonly Violation[]): number => violations.reduce((total, violation) => total + (violation.count ?? 1), 0);
+export function countOf(violations: readonly Violation[]): number {
+	return violations.reduce((total, violation) => total + (violation.count ?? 1), 0);
+}
 
-export const applyBaseline = (violations: readonly Violation[], entries: readonly BaselineEntry[], rules: RuleIndex): BaselineCheck => {
+export function applyBaseline(violations: readonly Violation[], entries: readonly BaselineEntry[], rules: RuleIndex): BaselineCheck {
 	const groups = groupBy(violations, (violation) => keyOf(violation.rule, violation.file));
 	const covered = new Set<string>();
 	const regressions: Regression[] = [];
@@ -49,4 +51,4 @@ export const applyBaseline = (violations: readonly Violation[], entries: readonl
 	}
 	const kept = violations.filter((violation) => !covered.has(keyOf(violation.rule, violation.file)));
 	return { baselined: violations.length - kept.length, kept, loose, regressions, stale };
-};
+}

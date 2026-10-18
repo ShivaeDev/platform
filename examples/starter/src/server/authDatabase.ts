@@ -10,7 +10,7 @@ export const authDatabase = Effect.fn("App.authDatabase")(function* (url: Redact
 			pool.on("connect", (client) => clients.add(client));
 			pool.on("remove", (client) => clients.delete(client));
 			pool.on("error", (error) => {
-				run(Effect.logWarning({ event: "auth_database_idle_client_failed", message: error.message }));
+				run(Effect.logDebug({ event: "auth_database_idle_client_failed", message: error.message }));
 			});
 			return pool;
 		}),

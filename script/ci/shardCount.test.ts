@@ -1,39 +1,46 @@
 import assert from "node:assert/strict";
 import { test as it } from "node:test";
-import { measuredShardCount, testJobDurations, wallTimeShardCount } from "./shardCount.ts";
-
-function timings(durations: number[]) {
-	return durations.map((durationMs, index) => ({ durationMs, name: String(index) }));
-}
+import { consumerShardMs, jobDurations, shardTargetMs, wallTimeShardCount } from "./shardCount.ts";
 
 function job(name: string, seconds: number, conclusion = "success") {
 	return { "completed_at": new Date(seconds * 1000).toISOString(), conclusion, name, "started_at": new Date(0).toISOString() };
 }
 
-it("sizes shards so the summed job wall time fills four minutes per shard", () => {
-	assert.equal(wallTimeShardCount([240_000, 240_000]), 2);
-	assert.equal(wallTimeShardCount([240_000, 240_001]), 3);
-	assert.equal(wallTimeShardCount([1000]), 1);
-	assert.equal(wallTimeShardCount(Array.from({ length: 40 }, () => 240_000)), 32);
+it("sizes shards so the summed job wall time fills the target per shard", () => {
+	assert.equal(wallTimeShardCount([240_000, 240_000], 240_000), 2);
+	assert.equal(wallTimeShardCount([240_000, 240_001], 240_000), 3);
+	assert.equal(wallTimeShardCount([240_000, 240_001], 600_000), 1);
+	assert.equal(wallTimeShardCount([1000], 240_000), 1);
+	assert.equal(
+		wallTimeShardCount(
+			Array.from({ length: 40 }, () => 240_000),
+			240_000,
+		),
+		32,
+	);
+	assert.throws(() => wallTimeShardCount([1000], 0), /target/u);
 });
 
-it("reads every test shard's wall time and ignores the other jobs", () => {
-	const jobs = { jobs: [job("tests (1)", 300), job("lint", 900), job("tests (2)", 200), job("packed consumers (1)", 900)] };
-	assert.deepEqual(testJobDurations(jobs, 2), [300_000, 200_000]);
-	assert.throws(() => testJobDurations(jobs, 3), /every shard/u);
-	assert.throws(() => testJobDurations({ jobs: [job("tests (1)", 300, "failure")] }, 1), /Invalid test job/u);
-	assert.throws(() => testJobDurations({ jobs: [{ ...job("tests (1)", 300), "completed_at": null }] }, 1), /Invalid test job/u);
-	assert.throws(() => testJobDurations({}, 1), /Invalid workflow jobs/u);
+it("gives consumer shards what the target leaves after the build, but at least a minute", () => {
+	assert.equal(consumerShardMs(240_000, 150_000), 90_000);
+	assert.equal(consumerShardMs(240_000, 200_000), 60_000);
+	assert.equal(consumerShardMs(240_000, 300_000), 60_000);
 });
 
-it("chooses the smallest balanced count within thirty seconds, rather than just dividing total work", () => {
-	assert.equal(measuredShardCount(timings([20_000, 20_000, 20_000])), 3);
-	assert.equal(measuredShardCount(timings([12_000, 10_000, 8000])), 1);
-	assert.equal(measuredShardCount(timings([20_000, 20_000, 10_000, 10_000])), 2);
+it("reads every matching job's wall time and ignores the other jobs", () => {
+	const jobs = { jobs: [job("tests (1)", 300), job("build", 150), job("tests (2)", 200), job("packed consumers (1)", 900)] };
+	assert.deepEqual(jobDurations(jobs, /^tests \(\d+\)$/u, 2), [300_000, 200_000]);
+	assert.deepEqual(jobDurations(jobs, /^build$/u, 1), [150_000]);
+	assert.deepEqual(jobDurations(jobs, /^packed consumers \(\d+\)$/u, 1), [900_000]);
+	assert.throws(() => jobDurations(jobs, /^tests \(\d+\)$/u, 3), /every/u);
+	assert.throws(() => jobDurations({ jobs: [job("tests (1)", 300, "failure")] }, /^tests \(\d+\)$/u, 1), /Invalid job/u);
+	assert.throws(() => jobDurations({ jobs: [{ ...job("tests (1)", 300), "completed_at": null }] }, /^tests \(\d+\)$/u, 1), /Invalid job/u);
+	assert.throws(() => jobDurations({}, /^build$/u, 1), /Invalid workflow jobs/u);
 });
 
-it("avoids chasing an indivisible slow file, caps growth, and falls back without measurements", () => {
-	assert.equal(measuredShardCount(timings([90_000, 10_000, 10_000])), 2);
-	assert.equal(measuredShardCount(timings(Array.from({ length: 100 }, () => 30_000))), 32);
-	assert.equal(measuredShardCount([]), 8);
+it("reads the target from a repository variable in whole seconds", () => {
+	assert.equal(shardTargetMs("240"), 240_000);
+	for (const value of [undefined, "", "0", "-1", "1.5", "four"]) {
+		assert.throws(() => shardTargetMs(value), /target seconds/u);
+	}
 });

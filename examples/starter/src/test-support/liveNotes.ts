@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expect, vi } from "vitest";
 import { makeNotesClient } from "#client/makeNotes.ts";
@@ -17,5 +18,11 @@ export const liveNotes = Effect.fn("AppStory.liveNotes")(function* (host: Runnin
 	registry.mount(list);
 	registry.mount(client.connection);
 	yield* Effect.promise(() => vi.waitFor(() => expect(registry.get(client.status).connection).toBe("live")));
-	return { client, list, registry };
+	return {
+		client,
+		list,
+		registry,
+		shows: (expected: readonly unknown[]) =>
+			Effect.promise(() => vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual(expected), { timeout: 5000 })),
+	};
 });

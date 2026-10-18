@@ -15,7 +15,7 @@ const { managedRequestReceipt, RequestReceipt } = attention;
 const { listMarkdown, markdownPath, metadataModel, metadataParse, searchSnapshot, watchChanges } = board;
 const { DAEMON_PORT, DAEMON_RPC_PATH, DiagnosticsContract, diagnostics, FleetHealth } = diagnosticsApi;
 const { directoryPath, validateDirectory } = publication;
-const { currentResponses, publish, questionFrom, questionId, questionMarkdown, ResponseConfig, Responses, revisionOf } = responses;
+const { currentResponses, publish, questionFrom, questionId, questionMarkdown, Responses, revisionOf, Workspace, WorkspaceConfig } = responses;
 
 const root = await mkdtemp(join(tmpdir(), "board-integration-"));
 try {
@@ -45,9 +45,16 @@ try {
     const changes = yield* watchChanges(root);
     const read = yield* searchSnapshot(root, undefined, changes);
     const index = read.pipe(Effect.provide(NodeServices.layer));
-    const responsesLayer = Responses.layer.pipe(Layer.provide(Layer.succeed(ResponseConfig, { root, changes, index, enabled: true })));
+    const responsesLayer = Responses.layer.pipe(
+      Layer.provideMerge(Workspace.layer),
+      Layer.provide(Layer.succeed(WorkspaceConfig, { root, changes, index, writable: true })),
+    );
     const answer = yield* Effect.gen(function* () {
       const responses = yield* Responses;
+      const workspace = yield* Workspace;
+      assert.equal((yield* workspace.settings()).realRoot, realRoot);
+      assert((yield* workspace.index()).model.ids.has("decision.example"));
+      assert.equal((yield* workspace.document(`/${sourcePath}`)).file, sourcePath);
       const saved = yield* responses.record({ id: "answer.example", question: id, author: "Example reader", type: "answer", body: "Proceed." });
       const reading = yield* responses.read(id);
       assert.equal(currentResponses(reading.responses)[0]?.id, saved.id);
