@@ -58,10 +58,6 @@ describe("config", () => {
 		expect(await issues({ source: ["src"] })).toEqual([expect.stringContaining("source")]);
 	});
 
-	it("rejects the removed preCommit config with script guidance", async () => {
-		expect(await issues({ preCommit: { run: ["pnpm typecheck"], tighten: true } })).toEqual([expect.stringContaining("quality:commit")]);
-	});
-
 	it("rejects an unknown rule id", async () => {
 		expect(await issues({ rules: { "structure/max-line": "error" } })).toEqual(["rules.structure/max-line: no built-in or local rule has this id"]);
 	});

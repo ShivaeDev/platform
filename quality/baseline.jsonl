@@ -208,7 +208,6 @@
 {"path":"packages/quality/src/test-support/alias-tree.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/testProjects.test.ts","rule":"tests/story-setup","count":2}
 {"path":"packages/types/src/bivariant.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/work-board/src/client/document/Mermaid.dom.test.tsx","rule":"tests/story-specs","count":1}
 {"path":"packages/work-board/src/client/react/readerLink.dom.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-board/src/client/react/readingReadiness.dom.spec.tsx","rule":"tests/story-specs","count":1}
 {"path":"packages/work-board/src/client/react/shellSignals.dom.spec.tsx","rule":"tests/story-specs","count":1}

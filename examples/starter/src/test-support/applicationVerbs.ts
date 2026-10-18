@@ -4,7 +4,6 @@ import { makeAuth } from "#client/auth.ts";
 import { noteWorker } from "#server/noteWorker.ts";
 import type { Engine } from "./applicationState.ts";
 import { authRateLimits } from "./authRateLimits.ts";
-import { createInRolledBackTransaction } from "./createInRolledBackTransaction.ts";
 import { startHost } from "./host.ts";
 import { liveNotes } from "./liveNotes.ts";
 import { rejectsWith } from "./rejectsWith.ts";
@@ -64,7 +63,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		},
 		authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
 		authRateLimits: () => authRateLimits(host(), story.tell),
-		createInRolledBackTransaction: () => createInRolledBackTransaction(host(), story.tell),
 		foreignRequest: (cookie: string) => http().foreignRequest(cookie),
 		liveNotes: (name = "alice") => {
 			story.tell(`${name} watches the live notes list`);

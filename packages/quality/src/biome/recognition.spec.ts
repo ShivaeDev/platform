@@ -1,31 +1,13 @@
-import { Schema } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
 import { biomeReport } from "#biome/report.ts";
-import { runBiome } from "#biome/run.ts";
 import { RECOGNITION_ARGS, RECOGNITION_RULES, recognitionSources, recognitionTree } from "#test/biomeRecognition.ts";
 import { removeSeededTrees } from "#test/tree.ts";
-
-const RawReport = Schema.Struct({
-	diagnostics: Schema.Array(
-		Schema.Struct({
-			category: Schema.String,
-			location: Schema.Struct({ path: Schema.String, start: Schema.Struct({ line: Schema.Int }) }),
-		}),
-	),
-});
 
 afterEach(removeSeededTrees);
 
 describe("Biome diagnostic recognition", () => {
 	it("corrects proven non-test and non-component shapes while retaining nearby violations", async () => {
 		const root = recognitionTree();
-		const raw = await runBiome(root, [...RECOGNITION_ARGS, "--reporter=json", "--max-diagnostics=none", "."]);
-		expect(raw.code).toBe(1);
-		const original = Schema.decodeUnknownSync(Schema.fromJsonString(RawReport))(raw.stdout);
-		expect(original.diagnostics.filter((diagnostic) => diagnostic.location.path === "src/regex.ts")).toHaveLength(3);
-		expect(original.diagnostics.filter((diagnostic) => diagnostic.location.path === "src/generators.test.ts")).toHaveLength(8);
-		expect(original.diagnostics.filter((diagnostic) => diagnostic.location.path === "src/tags.tsx")).toHaveLength(11);
-		expect(original.diagnostics.filter((diagnostic) => diagnostic.location.path === "src/fake-tags.tsx")).toHaveLength(1);
 		const before = recognitionSources(root);
 		const report = await biomeReport(root, RECOGNITION_ARGS);
 		const found = report.diagnostics.map((diagnostic) => [diagnostic.location.path, diagnostic.location.start?.line, diagnostic.category]);

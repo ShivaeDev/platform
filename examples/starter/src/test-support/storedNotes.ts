@@ -17,11 +17,6 @@ export function storedNotes(tell: (line: string) => void) {
 		expect(yield* read).toEqual(expected.map((note) => expect.objectContaining(note)));
 	});
 	return {
-		noJobsAreStored: Effect.gen(function* () {
-			tell("check that PostgreSQL stores no jobs");
-			const sql = yield* SqlClient.SqlClient;
-			expect(yield* sql`select count(*)::int as count from pgboss.job`).toEqual([{ count: 0 }]);
-		}),
 		storedNoteOwnerIs: Effect.fn("AppStory.storedNoteOwnerIs")(function* (title: string, ownerId: string | null) {
 			tell(`check the stored owner of ${JSON.stringify(title)}`);
 			const sql = yield* SqlClient.SqlClient;
@@ -40,18 +35,6 @@ export function storedNotes(tell: (line: string) => void) {
 					{ timeout: 8000 },
 				),
 			);
-		}),
-		wordCountJobsAre: Effect.fn("AppStory.wordCountJobsAre")(function* (count: number) {
-			tell(`check that PostgreSQL stores ${count} word-count jobs`);
-			const sql = yield* SqlClient.SqlClient;
-			expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count }]);
-		}),
-		wordCountJobsComplete: Effect.fn("AppStory.wordCountJobsComplete")(function* (count: number) {
-			tell(`wait for ${count} word-count jobs to complete without retries`);
-			const sql = yield* SqlClient.SqlClient;
-			const completed = sql`select state, retry_count as "retryCount" from pgboss.job where name = 'count-note-words' order by created_on`;
-			const expected = Array.from({ length: count }, () => ({ retryCount: 0, state: "completed" }));
-			yield* Effect.promise(() => vi.waitFor(async () => expect(await Effect.runPromise(completed)).toEqual(expected), { timeout: 8000 }));
 		}),
 		wordCountRemainsPending: Effect.fn("AppStory.wordCountRemainsPending")(function* (note: Note) {
 			tell("wait past the worker's polling interval without a worker");

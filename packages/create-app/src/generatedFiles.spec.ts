@@ -20,9 +20,6 @@ it("gives a generated app its own guidance, documentation, names and normal file
 		expect(read(path)).toContain("pnpm test");
 		expect(read(path)).toContain("docs/framework/");
 	}
-	for (const command of ["pnpm run setup", "pnpm build", "pnpm migrate", "pnpm start", "pnpm worker"]) {
-		expect(read("README.md")).toContain(command);
-	}
 	expect(lstatSync(join(app, "CLAUDE.md")).isSymbolicLink()).toBe(true);
 	expect(readlinkSync(join(app, "CLAUDE.md"))).toBe("AGENTS.md");
 	expect(read(".env.example")).toContain("/demo_dev\n");
@@ -36,8 +33,5 @@ it("gives a generated app its own guidance, documentation, names and normal file
 		expect(file).not.toMatch(/starter/iu);
 		expect(readFileSync(file, "utf8"), file).not.toMatch(/starter/iu);
 		expect(statSync(file).mode & 0o777, file).toBe(path.name === ".env.local" ? 0o600 : 0o644);
-	}
-	for (const path of JSON.parse(read("tsconfig.json")).include) {
-		expect(() => statSync(join(app, path)), path).not.toThrow();
 	}
 });

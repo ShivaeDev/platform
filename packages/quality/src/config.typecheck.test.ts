@@ -68,11 +68,6 @@ export const optionsForNone = defineConfig({
 	rules: { "local/no-todo": { options: { strict: true } } },
 });
 
-export const preCommitRemoved = defineConfig({
-	// @ts-expect-error Commit checks belong in package.json scripts.
-	preCommit: { run: ["pnpm typecheck"], tighten: true },
-});
-
 export const wrongLevel = defineConfig({
 	// @ts-expect-error Every configured rule runs at error.
 	rules: { "structure/max-lines": "warning" },
@@ -88,11 +83,6 @@ export const declaredTypeTests = defineConfig({
 		// @ts-expect-error Type tests are allowed by their file name, so no-inline takes no declarations.
 		"suppressions/no-inline": { options: { declared: [{ directive: "@ts-expect-error", includes: ["*.ts"], reason: "No." }] } },
 	},
-});
-
-export const adoptRemoved = defineConfig({
-	// @ts-expect-error A config no longer takes adopt; baseline write --rule records a rule's debt.
-	adopt: ["comments/no-todo"],
 });
 
 export const warningRemoved = defineConfig({

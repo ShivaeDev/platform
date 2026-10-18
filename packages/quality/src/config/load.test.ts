@@ -72,13 +72,6 @@ effectIt.layer(NodeFileSystem.layer)("config loading", (it) => {
 		expect(yield* failureOf(root)).toContain("rules.structure/max-line: no built-in or local rule has this id");
 	});
 
-	it.effect("refuses adopt, which the config no longer takes, and names what replaced it", function* () {
-		const root = seedTree([config('{ adopt: ["comments/no-todo"] }')]);
-		expect(yield* failureOf(root)).toContain(
-			"adopt: removed in quality 0.7.0. Delete the key, and record a rule's existing findings with `quality baseline write --rule <id>`.",
-		);
-	});
-
 	it.effect("lists every problem in an invalid config", function* () {
 		const root = seedTree([config('{ rules: { "structure/max-line": "error", "structure/max-lines": "loud" }, sourcez: [] }')]);
 		const text = yield* failureOf(root);

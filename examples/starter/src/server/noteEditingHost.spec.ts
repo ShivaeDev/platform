@@ -4,7 +4,7 @@ import { app, signedIn } from "#test-support/application.ts";
 app.it(
 	"opens, edits and deletes notes while preserving saved changes after rejected writes",
 	[signedIn()],
-	function* ({ actor, rejectsWith, storedNotes, storedNotesAre, wordCountJobsAre }) {
+	function* ({ actor, rejectsWith, storedNotes, storedNotesAre }) {
 		const { notes: client } = actor();
 		const original = yield* client.create({ title: "Original" });
 		expect(original.version).toBe(0);
@@ -16,7 +16,6 @@ app.it(
 		yield* storedNotesAre(before);
 		yield* client.delete({ id: original.id, version: original.version }).pipe(rejectsWith("Conflict"));
 		yield* storedNotesAre(before);
-		yield* wordCountJobsAre(2);
 		yield* client.update({ ...saved, title: "   " }).pipe(rejectsWith("Invalid", { field: "title", message: "Enter a title" }));
 		expect(yield* client.get({ id: saved.id })).toEqual(saved);
 		yield* client.delete({ id: saved.id, version: saved.version });

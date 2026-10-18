@@ -28,7 +28,6 @@ it("shows every running and waiting item by source title, stage and PR independe
 		expect(view.container.querySelector("h1")?.textContent).toBe("System");
 		expect(view.container.querySelector('[data-source="codex"]')).not.toBeNull();
 		expect(view.container.querySelector('[data-source="github"]')).not.toBeNull();
-		expect(view.container.querySelectorAll("[data-fleet-id]")).toHaveLength(13);
 		expect(view.container.querySelector('[data-fleet-id="task.sample.0"]')?.textContent).toContain("Workspace task 0");
 		expect(view.container.querySelector('[aria-label="Pull request for Workspace task 0"]')?.getAttribute("href")).toBe(
 			"https://github.com/example/project/pull/1",

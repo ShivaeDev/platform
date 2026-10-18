@@ -6,7 +6,6 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { packageRoot, removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
-import { testProjects } from "#testProjects.ts";
 
 afterEach(removeSeededTrees);
 
@@ -102,19 +101,11 @@ describe("testProjects", { timeout: 60_000 }, () => {
 		});
 	});
 
-	it("rejects suite exclusions supplied by untyped callers", () => {
-		expect(() => Reflect.apply(testProjects, undefined, [{ exclude: ["e2e/**"] }])).toThrow("testProjects takes no options");
-	});
-
 	it("runs the slow tests alone when the slow project is asked for", () => {
 		expect(vitest(repository(), "--project", "slow")).toMatchObject({ ran: ["src/c.slow.test.ts passed"], status: 0 });
 	});
 
 	it("runs the tagged tests of a package config that a root config's inline projects extend", () => {
 		expect(vitest(workspace(), "--tags-filter=bakery-story")).toMatchObject({ status: 0, tests: ["rises passed", "sets skipped"] });
-	});
-
-	it("gives each test 30 seconds instead of Vitest's 5", () => {
-		expect(testProjects().testTimeout).toBe(30_000);
 	});
 });

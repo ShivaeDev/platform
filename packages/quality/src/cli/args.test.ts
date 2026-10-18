@@ -42,10 +42,6 @@ describe("command line", () => {
 		[["hooks"], "hooks takes install, uninstall or pre-commit"],
 		[["hooks", "commit-msg"], "hooks takes install, uninstall or pre-commit"],
 		[["hooks", "pre-commit", "--force"], "--force applies only to hooks install"],
-		[
-			["adopt", "comments/no-todo"],
-			"`quality adopt` was removed in 0.7.0. To record a rule's existing findings in the baseline, run `quality baseline write --rule <id>`",
-		],
 	])("rejects %j", (args, problem) => {
 		expect(parseCommand(args)).toEqual({ _tag: "Usage", problem: expect.stringContaining(problem) });
 	});

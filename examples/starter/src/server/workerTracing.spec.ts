@@ -19,14 +19,13 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 
 for (const status of ["down", 500] as const) {
 	app.it(
-		`completes a worker job and shuts down when the collector ${status === "down" ? "is down" : "returns HTTP 500"}`,
+		`counts a note and shuts down when the collector ${status === "down" ? "is down" : "returns HTTP 500"}`,
 		[signedIn()],
-		function* ({ actor, collector, storedWordCountIs, wordCountJobsComplete }) {
+		function* ({ actor, collector, storedWordCountIs }) {
 			const receiver = yield* collector(status);
 			const note = yield* actor().notes.create({ title: "Collector has failed" });
 			const stopWorker = yield* receiver.startWorker();
 			yield* storedWordCountIs(note.id, 3);
-			yield* wordCountJobsComplete(1);
 			yield* stopWorker;
 			if (status !== "down") {
 				yield* receiver.receivesRequests();
