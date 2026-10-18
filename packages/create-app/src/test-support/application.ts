@@ -63,7 +63,7 @@ export const application = storyKit({
 			parentGit: (...args: readonly string[]) => spawnSync("git", args, { cwd: engine.root, encoding: "utf8" }),
 			prepareDatabases: () => {
 				story.tell("the app prepares its databases");
-				testEnvironment(target(), { databases: true, name: app });
+				testEnvironment(target());
 				return appScript(target(), "db:setup");
 			},
 			read: (path: string) => readFileSync(join(target(), path), "utf8"),

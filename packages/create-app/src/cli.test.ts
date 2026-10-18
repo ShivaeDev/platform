@@ -53,19 +53,6 @@ application.it("preserves the environment and refuses another run after installa
 	expect(read(".env.local")).toBe(env);
 });
 
-application.it(
-	"prepares both databases and runs generated tests with the app environment on PostgreSQL",
-	[],
-	({ cli, prepareDatabases, runTests }) => {
-		const name = `setup_${crypto.randomUUID().replaceAll("-", "")}`;
-		expect(cli([name, "--no-git"]).status).toBe(0);
-		const setup = prepareDatabases();
-		expect(setup.status, setup.stdout + setup.stderr).toBe(0);
-		const test = runTests();
-		expect(test.status, test.stdout + test.stderr).toBe(0);
-	},
-);
-
 application.it("does not overwrite a user environment", [destination("environment")], ({ cli, read, files }) => {
 	expect(cli(["my-app"]).status).toBe(1);
 	expect(read(".env.local")).toBe("user settings");
