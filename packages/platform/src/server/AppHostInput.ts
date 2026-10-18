@@ -3,9 +3,9 @@ import type { Rpc } from "effect/rpc";
 import type { AppDatabaseOptions, AppHostOptions, AppHttpHostOptions, AppLocalHostOptions } from "#server/appHost.ts";
 import type { SessionShape } from "#server/rpc-server/session.ts";
 
-export interface HostPreflight<TServices = never, TError = never, TRequirements = never> {
-	readonly preflight?: Layer.Layer<TServices, TError, TRequirements>;
-}
+export type HostPreflight<TServices = never, TError = never, TRequirements = never> =
+	| { readonly preflight: Layer.Layer<TServices, TError, TRequirements> }
+	| ([TServices | TError | TRequirements] extends [never] ? { readonly preflight?: never } : never);
 
 export type AppHostInput<
 	TRpcs extends Rpc.Any,

@@ -81,9 +81,9 @@ export interface AppHostFactory {
 				TApplicationRequirements
 			>
 		>,
-		TPreflight,
-		TPreflightError,
-		TPreflightRequirements
+		NoInfer<TPreflight>,
+		NoInfer<TPreflightError>,
+		NoInfer<TPreflightRequirements>
 	>;
 
 	<
@@ -114,8 +114,8 @@ export interface AppHostFactory {
 		>,
 	): PreflightHost<
 		ReturnType<typeof appHostHttp<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>>,
-		TPreflight,
-		TPreflightError,
-		TPreflightRequirements
+		NoInfer<TPreflight>,
+		NoInfer<TPreflightError>,
+		NoInfer<TPreflightRequirements>
 	>;
 }
