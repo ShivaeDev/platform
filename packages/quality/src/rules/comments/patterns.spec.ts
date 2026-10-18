@@ -8,10 +8,11 @@ import { noTodo } from "#rules/comments/no-todo.ts";
 import { checkRule, issuesOf } from "#test/inputs.ts";
 import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "#test/pragmas.ts";
 
-const messagesFor = async (rule: Rule<string, undefined>, comment: string) =>
-	(await checkRule(rule, undefined, { sources: [{ content: `export const a = 1;\n${comment}\n`, path: "src/a.ts" }] })).map(
+async function messagesFor(rule: Rule<string, undefined>, comment: string) {
+	return (await checkRule(rule, undefined, { sources: [{ content: `export const a = 1;\n${comment}\n`, path: "src/a.ts" }] })).map(
 		(finding) => `${finding.line} ${finding.message}`,
 	);
+}
 
 interface Case {
 	readonly fires: ReadonlyArray<readonly [string, string]>;

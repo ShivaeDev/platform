@@ -3,7 +3,9 @@ import { maxLines } from "#rules/max-lines.ts";
 import { checkRule, issuesOf } from "#test/inputs.ts";
 import { lines } from "#test/tree.ts";
 
-const source = (path: string, count: number) => ({ content: lines(count), path });
+function source(path: string, count: number) {
+	return { content: lines(count), path };
+}
 
 describe("structure/max-lines fires", () => {
 	it("on a source file over 150 lines, counting the lines above the limit", async () => {

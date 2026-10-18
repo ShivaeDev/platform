@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { noDoubleCast } from "#rules/suppressions/no-double-cast.ts";
 import { checkRule } from "#test/inputs.ts";
 
-const casts = async (content: string, path = "src/a.ts") =>
-	(await checkRule(noDoubleCast, undefined, { sources: [{ content, path }] })).map((finding) => `${finding.line} ${finding.message}`);
+async function casts(content: string, path = "src/a.ts") {
+	return (await checkRule(noDoubleCast, undefined, { sources: [{ content, path }] })).map((finding) => `${finding.line} ${finding.message}`);
+}
 
 describe("suppressions/no-double-cast fires", () => {
 	it.each([
