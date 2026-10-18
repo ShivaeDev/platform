@@ -70,7 +70,7 @@ const greeting = Effect.gen(function* () {
 
 The Layer needs `Prefix`. After a caller resolves `Greetings`, `greet` needs no `Prefix` from that caller. Its argument and success type are inferred from the method. An initialization failure fails the Layer build with that typed error and runs finalizers registered before the failure. A method failure reaches the caller as that method's typed error, and the same service instance can handle the next call. A method defect remains a defect.
 
-`initialize` and ordinary methods may require the listed services and `Scope.Scope`. A definition that reads another service is rejected by the compiler fixtures. Scope is supplied by the Layer or method caller, so `Scope.Scope` itself cannot appear in `requires`.
+`initialize` and ordinary methods may require the listed services and `Scope.Scope`. The compiler rejects a definition that reads another service. Scope is supplied by the Layer or method caller, so `Scope.Scope` itself cannot appear in `requires`.
 
 Return functions from the method factory, each producing an Effect. An Effect value placed directly in the method record is rejected. Keep the private state behind those functions; it is absent from the emitted public service declaration.
 
@@ -150,7 +150,7 @@ const testGreetings = Layer.succeed(Greetings, {
 });
 ```
 
-The replacement provides the public method interface, rather than private initialization state. The compiler fixtures reject a replacement that leaves a required method out. Keep the real service in tests of its behavior; use a replacement where the service represents an external boundary.
+The replacement provides the public method interface, rather than private initialization state. The compiler rejects a replacement that leaves a required method out. Keep the real service in tests of its behavior; use a replacement where the service represents an external boundary.
 
 ### Preserve a generic method's signature
 
@@ -190,7 +190,7 @@ const preserved = Effect.gen(function* () {
 
 The wrapped Effect still requires `Caller`, which the caller supplies separately. The generic service's Layer has no declared dependencies. The emitted declarations preserve the generic success and failure types as well as caller requirements.
 
-Marked generic methods require a service with no declared dependencies. The compiler fixtures reject an unmarked generic that correlates its input and returned Effect, and a structurally distinct two-signature overload. Those checks do not establish rejection of every generic or overloaded signature. Use ordinary methods with concrete signatures when the service binds dependencies.
+Marked generic methods require a service with no declared dependencies. The compiler rejects an unmarked generic that correlates its input and returned Effect, and a structurally distinct two-signature overload, but not every unsupported generic or overloaded signature. Use ordinary methods with concrete signatures when the service binds dependencies.
 
 Dependency binding wraps the method's outer returned Effect. A Stream returned as its value retains its own service requirements; provide them when running the Stream.
 
@@ -213,25 +213,13 @@ The definition's fields are:
 | `initialize` | The Effect producing private state; its failure type becomes the Layer's failure type. |
 | `methods(state)` | A function returning the public method record, with declared dependencies removed from ordinary methods' requirement types. |
 
-The exported supporting types are listed here for readers of generated declarations. Service authors use the entry points above.
-
-| Module | Supporting type exports |
-| --- | --- |
-| `genericMethod.ts` | `AnyMethod`, `GenericMethodDescriptor`, `HasDistinctCallSignatures`, `GenericOrStructurallyOverloadedMethodsAreUnsupported` |
-| `ServiceRequirements.ts` | `RequirementRecord`, `RequirementsOf` |
-| `InitializerProof.ts` | `InitializerProof` |
-| `MethodProof.ts` | `MethodEntry`, `MethodRecord`, `MethodInventory`, `RuntimeMethodInventory`, `MethodProof` |
-| `RequirementProof.ts` | `RequirementProof` |
-
 ### Install and limits
 
 ```sh
 pnpm add @shivaedev/effect-service effect@4.0.4
 ```
 
-`effect` is a peer dependency. The repository catalog uses Effect `4.0.4`, and the package declares Node.js 24 or later. The examples use that Effect API.
+`effect` is a peer dependency, and the package needs Node.js 24 or later.
 
-- Private state is hidden by the public interface, rather than exposed as another service field.
-- Ordinary methods may leave only caller scope unresolved. A generic method explicitly marked in a requirement-free service may retain its caller's services.
 - Keep request identity at the request boundary when it changes per call. Pass it as a method argument rather than binding it into a service intended to live across requests.
 - Choose service Layer lifetimes at the application's composition boundary; keep initialization resource ownership separate from a method caller's scope.

@@ -258,14 +258,10 @@ Import the module that defines a name; there is no root entry.
 | Module | Application-facing exports |
 | --- | --- |
 | `@shivaedev/effect-form/form.ts` | `make(schema, config)` |
-| `@shivaedev/effect-form/shape.ts` | `Fields`, `Name`, `ArrayKeys`, `Path`, `Encoded`, `Decoded`, `Services`, `Checks`, `Config`, `Form`, `Submitter`, `FieldFailure`, `Invalid` |
-| `@shivaedev/effect-form/client/react.ts` | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`, `BrowserDraftConfig`, `Field`, `Submit` |
-| `@shivaedev/effect-form/persistence.ts` | `PersistedDraftConfig`, `DraftStorage`; `persistence` and `Persistence` for composing storage machinery |
-| `@shivaedev/effect-form/draftSession.ts` | `draftSession(id)`, `DraftSession` |
-| `@shivaedev/effect-form/paths.ts` | `KeySelectors`, `PathMessage`, `keySelector`, `asPath`, `retainedPath`, `pathMessageAt` |
-| `@shivaedev/effect-form/trackRejections.ts` | `trackRejections(values, selectors, status)`, composing submitted-path rejection tracking with value changes |
+| `@shivaedev/effect-form/shape.ts` | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use |
+| `@shivaedev/effect-form/client/react.ts` | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext` |
+| `@shivaedev/effect-form/draftSession.ts` | `draftSession(id)` |
 | `@shivaedev/effect-form/optional.ts` | `emptyAsNull` |
-| `@shivaedev/effect-form/messages.ts` | `FieldMessages`, `messagesByField`, `messageAt`, `messageAtPath`, `schemaFeedback`, `withoutField`, `literalChoices`, `noMessages` |
 
 `make` takes a `Schema.Struct` and this configuration:
 
@@ -298,10 +294,6 @@ The returned form exposes:
 
 `F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains the top-level string `path`, `message` and optional submitted path `segments`; `Invalid` contains `messages`, a `FieldMessages` record.
 
-`useField(form, name)` returns `name`, `value`, `error`, `choices`, `onChange(value)` and `onBlur()`. `useSubmit(form)` returns `result`, `run()` and `submitting`. `useDirty(form)` returns a boolean.
-
-The module exports also expose `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`), `status.ts` (`statusOf`), and the conversion helpers `Holder`, `holder`, `fieldOf`, `choicesOf` and `checkOf` in `shape.ts`. The examples use the form API instead of composing that machinery directly.
-
 ### Install and limits
 
 ```sh
@@ -314,10 +306,9 @@ For React bindings:
 pnpm add @effect/atom-react@4.0.4 react@19.3.0
 ```
 
-The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The manifest requires Node 24 or newer. The repository's peer catalog uses Effect and atom-react `4.0.4` and React `19.3.0`.
+The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The package needs Node 24 or newer.
 
 - Field names are top-level schema keys. There is no path-addressed field-array API.
 - Replace encoded values rather than mutating objects in place; use `change` for ordinary UI edits.
 - Keep the form and registry for their intended session, and clean up the registry when that session ends.
 - Decide in the application when to receive normalized rows and how to render general failures. Attach a draft owner when persisted input must end with the session.
-- The package and composed DOM/HTTP fixtures do not establish application adoption, SSR isolation or mobile lifecycle behavior.
