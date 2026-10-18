@@ -49,7 +49,7 @@ function rowsOf(result: unknown): readonly object[] {
 
 const nothing: Interpreted<never> = { changes: [], unnamed: undefined };
 
-export const interpret = <A>(models: LooseMap<A>, write: Write): Interpreted<A> => {
+export function interpret<A>(models: LooseMap<A>, write: Write): Interpreted<A> {
 	const { model, operation } = write;
 	const changesOf = models[model];
 	if (changesOf === undefined || changesOf === null) {
@@ -73,4 +73,4 @@ export const interpret = <A>(models: LooseMap<A>, write: Write): Interpreted<A> 
 		throw error;
 	}
 	return { changes, unnamed: undefined };
-};
+}

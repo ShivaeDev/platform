@@ -5,7 +5,7 @@ import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { browserClient } from "#client/client.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { type Folder, folder, startBoard } from "#test/board.ts";
-import { codexResponse, githubResponse, health } from "#test/diagnostics.ts";
+import { codexResponse, githubObservations, health } from "#test/diagnostics.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { fleetItems } from "./fleetItems.ts";
 
@@ -16,7 +16,7 @@ function snapshot() {
 	return {
 		codex: { observedAt: 100, state: "ready" as const, value: codexResponse.rateLimits },
 		fleet: { observedAt: 100, state: "ready" as const, value: health },
-		github: { observedAt: 100, state: "ready" as const, value: githubResponse.resources },
+		github: { observedAt: 100, state: "ready" as const, value: githubObservations },
 	};
 }
 const item = {

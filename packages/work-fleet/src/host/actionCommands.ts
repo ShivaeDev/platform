@@ -79,7 +79,8 @@ export const answerCommand = Command.make(
 		release: Flag.Boolean("release").pipe(Flag.withDefault(false)),
 	},
 	Effect.fn("WorkFleetCli.answer")(function* (input) {
-		const text = yield* answerText(Option.getOrUndefined(input.args[1]));
+		const supplied = Option.getOrUndefined(input.args[1]);
+		const text = input.release && supplied === undefined ? "" : yield* answerText(supplied);
 		const value = yield* daemonRequest(
 			input.port,
 			(client) => client("daemon.answer", { release: input.release, text, workId: input.args[0] }),

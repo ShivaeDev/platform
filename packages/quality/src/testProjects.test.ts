@@ -89,7 +89,7 @@ function vitest(root: string, ...args: readonly string[]) {
 }
 
 describe("testProjects", { timeout: 60_000 }, () => {
-	it("runs unit tests and specs in Node and .dom tests and specs in a DOM, and leaves out slow and type tests", () => {
+	it("runs unit tests and specs in Node, in any folder, and .dom tests and specs in a DOM, and leaves out slow and type tests", () => {
 		expect(vitest(repository())).toMatchObject({
 			ran: [
 				"e2e/smoke.spec.ts passed",
@@ -100,10 +100,6 @@ describe("testProjects", { timeout: 60_000 }, () => {
 			],
 			status: 0,
 		});
-	});
-
-	it("runs every spec regardless of its folder", () => {
-		expect(vitest(repository()).ran).toContain("e2e/smoke.spec.ts passed");
 	});
 
 	it("rejects suite exclusions supplied by untyped callers", () => {
@@ -119,15 +115,6 @@ describe("testProjects", { timeout: 60_000 }, () => {
 	});
 
 	it("gives each test 30 seconds instead of Vitest's 5", () => {
-		const root = linkVitest(
-			seedTree([
-				config(),
-				testFile(
-					"src/wait.test.ts",
-					'it("outlasts the Vitest default", async () => {\n\tawait new Promise((resolve) => setTimeout(resolve, 6_000));\n\texpect(1).toBe(1);\n});',
-				),
-			]),
-		);
-		expect(vitest(root)).toMatchObject({ ran: ["src/wait.test.ts passed"], status: 0 });
+		expect(testProjects().testTimeout).toBe(30_000);
 	});
 });

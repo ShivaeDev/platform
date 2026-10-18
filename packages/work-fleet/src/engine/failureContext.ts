@@ -7,6 +7,7 @@ interface FailureContext {
 	readonly code?: DecisionCode | undefined;
 	readonly head?: string;
 	readonly mainRevision?: string;
+	readonly retryAt?: number;
 	readonly retryable?: boolean;
 }
 

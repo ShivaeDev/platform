@@ -379,7 +379,7 @@ Use `@shivaedev/effect-react/testing.ts` with Vitest's `happy-dom` environment. 
 
 ```sh
 pnpm add @shivaedev/effect-contract
-pnpm add -D vitest happy-dom react-dom@19.2.8 @types/react-dom
+pnpm add -D vitest happy-dom react-dom@19.3.0 @types/react-dom
 ```
 
 Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
@@ -464,10 +464,12 @@ The RPC layer stays application-owned: replace these in-memory handlers with the
 
 The [order feature’s application-owned kit](https://github.com/ShivaeDev/platform/tree/main/packages/effect-react/src/test-support/order-example) uses `test-story` above `effect-test` to compose real PostgreSQL, HTTP RPC and the actual React components. Its screen traits mount fresh native atom registries and scoped roots; its verbs dispatch DOM events and wait for rendered output. The [stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/orderStory.dom.spec.tsx) verify list refresh through `useAction` and rejected-input retention and retry through `useEditor`, with persistence read from a separate PostgreSQL pool. These tests require `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`; DOM and loopback HTTP establish no physical browser, SSR or mobile behavior.
 
+The [reference PostgreSQL feature](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses the same leased database infrastructure and a scoped story verb for its real server and rendered clients. Its stories verify commit visibility, live refresh of a second editor, retained local edits and rollback without publication. To start an application, use the [copyable starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) with `pnpm create @shivaedev/app my-app`.
+
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-react @effect/atom-react@4.0.4 effect@4.0.4 react@19.2.8
+pnpm add @shivaedev/effect-react @effect/atom-react@4.0.4 effect@4.0.4 react@19.3.0
 ```
 
 For editor, create or lower-level form modules, also install the optional form peer:
@@ -476,7 +478,7 @@ For editor, create or lower-level form modules, also install the optional form p
 pnpm add @shivaedev/effect-form
 ```
 
-Query, action, session and resume modules do not require effect-form. The package declares Node 24 or newer and peers on Effect, atom-react and React; this repository checks Effect and atom-react `4.0.4` with React `19.2.8`.
+Query, action, session and resume modules do not require effect-form. The package declares Node 24 or newer and peers on Effect, atom-react and React; this repository checks Effect and atom-react `4.0.4` with React `19.3.0`.
 
 - Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - Action state describes the atom's latest result. A `dispatch` is not a Promise or a separate result handle.
@@ -485,5 +487,3 @@ Query, action, session and resume modules do not require effect-form. The packag
 - DOM tests and an injected resume source do not prove real-browser or mobile lifecycle behavior. The real HTTP order fixture proves its local composition, not a deployed host's auth, cancellation or rendering policy.
 
 The full design is in [the north star](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/north-star.md). Implementation status and unresolved choices are in [the roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/roadmap.md).
-
-The [reference PostgreSQL feature](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses the same leased database infrastructure and a scoped story verb for its real server and rendered clients. Its stories verify commit visibility, live refresh of a second editor, retained local edits and rollback without publication. To start an application, use the [copyable starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) with `pnpm create @shivaedev/app my-app`.

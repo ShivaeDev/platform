@@ -13,6 +13,7 @@ import { CONFIG_FILE } from "#host/defaults.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import type { CliRun } from "#test/fleetCli.ts";
+import { syntheticGithub } from "#test/githubApi.ts";
 import { daemonCli } from "#test/readDaemon.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
@@ -51,6 +52,7 @@ function hostParts(boardDir: string, provider: EngineProvider["transport"]): Hos
 			markdownBoard(boardDir).pipe(Layer.provide(NodeServices.layer)),
 			Layer.succeed(ReportInspection)({ check: () => Effect.void }),
 		),
+		github: syntheticGithub().layer,
 		main: mainSource,
 		provider,
 	};
@@ -80,7 +82,7 @@ export function withHost<A, E, R>(
 					for (const [file, source] of Object.entries(files)) {
 						writeFileSync(join(boardDir, file), source);
 					}
-					return { boardDir, configFile, host: resolveHost(boardDir, settings) };
+					return { boardDir, configFile, host: resolveHost(boardDir, settings, configFile) };
 				}),
 				({ boardDir, configFile, host }) => {
 					const provider = engineProvider({}, []);

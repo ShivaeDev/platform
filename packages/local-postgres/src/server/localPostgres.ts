@@ -1,4 +1,5 @@
 import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:child_process";
+import { env } from "node:process";
 import { sqlInContainer, startContainer } from "./local-container.ts";
 import { type DockerEnvironment, docker } from "./local-docker.ts";
 
@@ -18,13 +19,27 @@ export function assertLocalDatabase(value: string, names: readonly string[]) {
 	return url;
 }
 
-export function localPostgres(environment: DockerEnvironment) {
+function clientEnvironment(url: URL) {
+	// libpq treats + literally in URI passwords.
+	const password = new URLSearchParams(url.search.replaceAll("+", "%2B")).getAll("password").at(-1) ?? decodeURIComponent(url.password);
+	return { ...env, ...(password && { "PGPASSWORD": password }) };
+}
+
+export interface ReadinessOptions {
+	readonly attempts?: number;
+	readonly delayMillis?: number;
+}
+
+export function localPostgres(environment: DockerEnvironment, { attempts = 30, delayMillis = 1000 }: ReadinessOptions = {}) {
 	function localDocker(args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding = { encoding: "utf8" }) {
 		return docker(environment, args, options);
 	}
 	function sql(value: string | URL, query: string) {
 		const url = new URL(value);
 		assertLocalDatabase(url.toString(), [url.pathname.slice(1)]);
+		const childEnvironment = clientEnvironment(url);
+		url.password = "";
+		url.searchParams.delete("password");
 		for (const key of ["schema", "connection_limit", "pool_timeout", "pgbouncer"]) {
 			url.searchParams.delete(key);
 		}
@@ -33,14 +48,18 @@ export function localPostgres(environment: DockerEnvironment) {
 		if (!url.searchParams.has("connect_timeout")) {
 			url.searchParams.set("connect_timeout", "3");
 		}
-		const options = { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] } satisfies ExecFileSyncOptionsWithStringEncoding;
+		const options = {
+			encoding: "utf8",
+			env: childEnvironment,
+			stdio: ["ignore", "pipe", "pipe"],
+		} satisfies ExecFileSyncOptionsWithStringEncoding;
 		try {
-			return execFileSync("psql", [...args, "--dbname", String(url)], options).trim();
+			return execFileSync("psql", [...args, "--dbname", url.toString()], options).trim();
 		} catch (error) {
-			if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) {
-				throw new Error(error instanceof Error && "stderr" in error ? String(error.stderr) : "PostgreSQL query failed.");
+			if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+				return sqlInContainer(localDocker, url, args, options);
 			}
-			return sqlInContainer(localDocker, url, args, options);
+			throw new Error(error instanceof Error && "stderr" in error ? String(error.stderr) : "PostgreSQL query failed.", { cause: error });
 		}
 	}
 
@@ -53,12 +72,12 @@ export function localPostgres(environment: DockerEnvironment) {
 			version = sql(server, "SHOW server_version");
 		} catch {
 			startContainer(localDocker);
-			for (let attempt = 0; attempt < 30; attempt += 1) {
+			for (let attempt = 0; attempt < attempts; attempt += 1) {
 				try {
 					version = sql(server, "SHOW server_version");
 					break;
 				} catch {
-					Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
+					Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMillis);
 				}
 			}
 		}

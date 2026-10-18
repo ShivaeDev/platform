@@ -1,5 +1,6 @@
 import { Clock, Effect } from "effect";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useMainLocation } from "./MainLocationContext.ts";
 
 export interface VisualSource {
 	readonly alt: string;
@@ -13,16 +14,17 @@ export interface VisualSelection {
 	readonly selected: number;
 }
 export function useVisualSources(inspect: (selection: VisualSelection) => void) {
+	const page = useMainLocation();
+	const revisionRef = useRef(0);
 	useEffect(() => {
-		let revision = 0;
 		function refresh() {
-			revision += 1;
+			revisionRef.current += 1;
 			for (const graphic of document.querySelectorAll<HTMLImageElement>("#doc img[data-local-image]")) {
 				graphic.tabIndex = 0;
 				graphic.setAttribute("role", "button");
 				graphic.setAttribute("aria-label", `Inspect image: ${graphic.alt || "Local image"}`);
 				const url = new URL(graphic.dataset.localImage ?? graphic.src, location.href);
-				url.searchParams.set("_wb", `${Effect.runSync(Clock.currentTimeMillis)}-${revision}`);
+				url.searchParams.set("_wb", `${Effect.runSync(Clock.currentTimeMillis)}-${revisionRef.current}`);
 				graphic.src = url.href;
 				graphic.onerror = () => {
 					if (!graphic.isConnected || graphic.nextElementSibling?.hasAttribute("data-image-error")) {
@@ -94,12 +96,12 @@ export function useVisualSources(inspect: (selection: VisualSelection) => void) 
 		}
 		document.addEventListener("click", click);
 		document.addEventListener("keydown", key);
-		document.addEventListener("board-page", refresh);
-		refresh();
+		if (page.route) {
+			refresh();
+		}
 		return () => {
 			document.removeEventListener("click", click);
 			document.removeEventListener("keydown", key);
-			document.removeEventListener("board-page", refresh);
 		};
-	}, [inspect]);
+	}, [inspect, page]);
 }

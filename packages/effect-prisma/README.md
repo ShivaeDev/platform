@@ -251,9 +251,7 @@ pnpm add --save-dev @effect/vitest@4.0.4 vitest@5.0.3
 
 The Vitest dependencies are needed only for `testing/vitest.ts`. Use Node.js 24 or newer and compatible versions of the package's Effect and Prisma Next dependencies.
 
-The application owns its Prisma Next CLI/configuration, initialized schema and
-migration workflow. This package does not apply schema changes. Emit that
-application's contract, then normalize its PostgreSQL declaration:
+The application owns its Prisma Next CLI/configuration, initialized schema and migration workflow. This package does not apply schema changes. Emit that application's contract, then normalize its PostgreSQL declaration:
 
 ```sh
 prisma-next contract emit
