@@ -609,11 +609,6 @@
 {"path":"packages/work-fleet/src/storage/typedMigration.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/test-support/codexSockets.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/test-support/responseApplied.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/changelog/checkRepository.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/changelog/ciBase.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/changelog/releaseManifest.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/changelog/releasePackage.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/changelog/versionAgreement.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/ci/TestSequencer.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/ci/mainShardPlan.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/ci/mergeTestTimings.test.ts","rule":"tests/story-specs","count":1}

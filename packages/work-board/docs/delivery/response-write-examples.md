@@ -1,17 +1,16 @@
 # Local response contract
 
-Questions capture exact reviewed source bytes and path. Independent response Markdown retains human direction, while explicit write opt-in and browser-local drafts keep reading and publication separate. The [README](../../README.md#record-a-human-response) teaches the commands and current source/filesystem limits.
+Questions capture exact reviewed source bytes and path. Independent response Markdown retains human direction, while explicit write opt-in and browser-local drafts keep reading and publication separate. The [README](../../README.md#record-a-human-response) teaches the commands and the source/filesystem limits.
 
 ## One real loop
 
-An agent records an explicit open attention request in `investigation.md`, then reads it with `work-board question investigation.model/review-model`. The command returns the full source, reason, generation ID and reviewed SHA-256 without writing or starting a deadline. `work-board wait investigation.model/review-model
---revision <reviewedRevision>` registers that exact generation and waits.
+An agent records an explicit open attention request in `investigation.md`, then reads it with `work-board question investigation.model/review-model`. The command returns the full source, reason, generation ID and reviewed SHA-256 without writing or starting a deadline. `work-board wait investigation.model/review-model --revision <reviewedRevision>` registers that exact generation and waits.
 
 The person reviews the investigation, chooses **Respond to this request**, previews “Use explicit requests; preserve unknown evidence”, then records it. Question and response records are readable source files; the original investigation is unchanged. The wait returns one attributable JSON question/response with exit 0. If the shell was killed, repeating `work-board wait <question-id>` retrieves the same reply. No agent launcher, scheduler, acknowledgment protocol or verified acceptance is implied.
 
-## Current source records
+## Source records
 
-A question file has `id`, `kind: question` and `question` frontmatter. `question` contains `item`, `request`, `source`, `reviewedRevision`, `reason`, `registeredAt` and `deadline` (milliseconds). Its body preserves the exact original source bytes used for the hash. Generation identity includes item, request, reviewed hash and source path. The request and literal response-from labels still follow D1 attention rules; no owner/status inference is introduced.
+A question file has `id`, `kind: question` and `question` frontmatter. `question` contains `item`, `request`, `source`, `reviewedRevision`, `reason`, `registeredAt` and `deadline` (milliseconds). Its body preserves the exact original source bytes used for the hash. Generation identity includes item, request, reviewed hash and source path. The request and literal response-from labels follow the [attention rules](./attention-examples.md); no owner/status inference is introduced.
 
 A response has `id`, `kind: response` and `response` frontmatter, with `question`, `reviewedRevision`, `author`, `type` (`answer`, `clarify`, `not_now`) and `recordedAt`. Its body is the authored Markdown. The label is local attribution, not authentication. An answer can say no; exit 0 means receipt of a reply, not approval. Recorded feedback remains distinct from criterion-level verified acceptance.
 
@@ -21,12 +20,6 @@ A source change/rename during drafting preserves the text and shows the revision
 
 Publication runs on Linux and macOS with supported hard links/fsync; see the README for the macOS path-based limits. Read-only operation remains available elsewhere. New files publish without replacement; same-ID retries reconcile exact content. Moved/duplicated/conflicting identities, permission failures and changed/symlinked write boundaries are rejected. After a post-publication failure, an uncertain result retains the draft. Reconcile saved identity/content and directory synchronization before confirming a retry.
 
-Browser drafts are separate from Mark seen: effect-form persistence keyed by workspace, item and request, a 256 KiB bound per draft, seven days after edit and explicit current-form clearing. Saved source has no implicit retention deletion. A 48-hour unanswered deadline starts at durable registration; rearming/page visits do not reset it. It returns a distinct nonzero unanswered result, leaves the request intact, and permits a late reply. Service outages never establish that a person left it unanswered.
+Browser drafts use effect-form persistence keyed by workspace, item and request, a 256 KiB bound per draft, seven days after edit and explicit current-form clearing. Saved source has no implicit retention deletion. A 48-hour unanswered deadline starts at durable registration; rearming/page visits do not reset it. It returns a distinct nonzero unanswered result, leaves the request intact, and permits a late reply. Service outages never establish that a person left it unanswered.
 
-Implementation, acceptance and handoff decisions belong in the [roadmap](../roadmap.md). The [ownership boundary](./source-editing-examples.md) keeps ordinary project editing with agents; a passive question wait is a reader for an existing harness.
-
-## Repeatable acceptance path
-
-Run `pnpm ready` for native types, regressions, the real local PostgreSQL suites and packed consumers. Start the production CLI against a disposable folder with an explicit attention request and `--responses`. Open Respond, enter a draft, reload, and modify the proposal externally. The draft must survive and require a new preview. Start concurrent `wait <item>/<request> --revision <hash>` commands; restart the server at the same port, kill and reattach one waiter, then record a reply. Every successful stdout result must name the same question generation and attributable reply. Repeating the wait must not consume it. Compare the original source bytes and inspect the independent Markdown records.
-
-Delay a successful response acknowledgment while typing another draft. Release it and reload: the later text must remain under a fresh response identity. Check narrow dark/reduced-motion layout and saved reply reading. For resources, sample `/proc/<pid>/smaps_rollup`, CPU ticks and descriptors for 20 registered idle waiters over five seconds, without concurrent repository handoff. Report PSS separately from summed RSS; neither a short idle observation nor an edited test deadline proves a 48-hour soak or automatic harness wakeup.
+The [ownership boundary](./source-editing-examples.md) keeps ordinary project editing with agents; a passive question wait is a reader for the agent's own harness.
