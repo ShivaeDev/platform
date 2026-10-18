@@ -5,7 +5,7 @@ import { afterEach, describe, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { homeLinks } from "#test/homeLinks.ts";
-import { rpcNavigation } from "#test/nativeRpc.ts";
+import { rpcDocument, rpcNavigation } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let outside: Folder;
@@ -30,10 +30,6 @@ afterEach(() => {
 	outside.remove();
 });
 
-function get(path: string) {
-	return fetch(`${board.url}${path}`);
-}
-
 describe("the home file", () => {
 	effectApp("is resolved relative to the folder", function* () {
 		yield* board.stop();
@@ -55,9 +51,11 @@ describe("the home file", () => {
 		notes.write("Upper.md", "# Upper\n\n## Doing\n\n### One\n");
 		if (existsSync(join(notes.root, "UPPER.md"))) {
 			board = yield* startBoard(notes.root, "upper.md");
-			const html = yield* Effect.promise(async () => (await get("/")).text());
-			expect(html).toContain("<span><b>1</b> doing</span>");
-			expect((yield* rpcNavigation(board)).home?.file).toBe("Upper.md");
+			const home = (yield* rpcNavigation(board)).home;
+			expect(home?.file).toBe("Upper.md");
+			const homeDocument = yield* rpcDocument(board, `/${home?.file}`);
+			expect(homeDocument.file).toBe("Upper.md");
+			expect(homeDocument.source).toContain("### One");
 		} else {
 			expect(yield* Effect.flip(startBoard(notes.root, "upper.md"))).toMatchObject({
 				message: expect.stringContaining("The home file upper.md is not a markdown file in"),
