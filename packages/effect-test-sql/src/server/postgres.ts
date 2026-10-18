@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, type Redacted, type Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import type { SqlNameTransforms } from "@shivaedev/effect-sql/clientOptions.ts";
 import { migratePostgres, type PostgresMigrationOptions } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase, type PostgresTestDatabaseService, type PostgresTestServices } from "#database.ts";
 import { connectionLimitHint } from "#internal/connectionLimitHint.ts";
@@ -10,7 +11,7 @@ export type PostgresTestLoader<E = never, R = never> = (
 	url: Redacted.Redacted<string>,
 ) => Effect.Effect<unknown, E, R | PostgresTestServices | Scope.Scope>;
 
-export interface PostgresTestOptions<E = never, R = never, TFixtures = never> {
+export interface PostgresTestOptions<E = never, R = never, TFixtures = never> extends SqlNameTransforms {
 	readonly fixtures?: Effect.Effect<unknown, E, TFixtures | PostgresTestServices | Scope.Scope> | PostgresTestLoader<E, TFixtures>;
 	readonly maxConnections?: number;
 	readonly migrations: PostgresMigrationOptions<R>;
@@ -28,7 +29,7 @@ export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(o
 			if (options.prepare !== false) {
 				yield* Effect.scoped(
 					Effect.gen(function* () {
-						const services = yield* Layer.build(connection(template.url, maxConnections));
+						const services = yield* Layer.build(connection(template.url, maxConnections, options));
 						yield* migratePostgres(options.migrations).pipe(Effect.provideContext(services));
 						if (options.fixtures !== undefined) {
 							const fixtures = typeof options.fixtures === "function" ? options.fixtures(template.url) : options.fixtures;
@@ -38,11 +39,11 @@ export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(o
 				);
 			}
 			const shared = yield* database(options.url, release, template.name);
-			const services = yield* Layer.build(connection(shared.url, maxConnections));
+			const services = yield* Layer.build(connection(shared.url, maxConnections, options));
 			const clone: PostgresTestDatabaseService["clone"] = (source) =>
 				Effect.gen(function* () {
 					const target = yield* database(options.url, release, source === "empty" ? empty.name : template.name);
-					const context = yield* Layer.build(connection(target.url, maxConnections));
+					const context = yield* Layer.build(connection(target.url, maxConnections, options));
 					return Context.add(context, PostgresTestDatabase, { awaitCleanup, clone, isolated, url: target.url });
 				});
 			const isolated = clone("migrated");

@@ -3,13 +3,20 @@ import { Context, Effect, Layer, Redacted } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
+import type { SqlNameTransforms } from "@shivaedev/effect-sql/clientOptions.ts";
 import { connectionLimitHint } from "./connectionLimitHint.ts";
 import { databaseName } from "./databaseOwner.ts";
 
-export function connection(url: Redacted.Redacted<string>, maxConnections: number) {
+export function connection(url: Redacted.Redacted<string>, maxConnections: number, transforms: SqlNameTransforms) {
 	return Layer.effectContext(
-		Effect.map(PgClient.make({ maxConnections, url }), (client) =>
-			Context.make(SqlClient.SqlClient, client).pipe(Context.add(PgClient.PgClient, client)),
+		Effect.map(
+			PgClient.make({
+				maxConnections,
+				transformQueryNames: transforms.transformQueryNames,
+				transformResultNames: transforms.transformResultNames,
+				url,
+			}),
+			(client) => Context.make(SqlClient.SqlClient, client).pipe(Context.add(PgClient.PgClient, client)),
 		),
 	).pipe(Layer.provideMerge(Layer.fresh(Reactivity.layer)));
 }
