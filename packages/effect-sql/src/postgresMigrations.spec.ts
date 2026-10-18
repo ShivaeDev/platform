@@ -1,7 +1,8 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import { Migrator } from "effect/sql";
 import { expect } from "vitest";
-import { blockedBy } from "#test/migrationConcurrency.ts";
+import { eventually } from "@shivaedev/effect-test/eventually.ts";
+import { waitingOn } from "#test/migrationConcurrency.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { hasMigrationTables } from "#test/sqlTraits.ts";
 
@@ -84,7 +85,9 @@ postgres.it(
 				const loader = Migrator.fromRecord({
 					...initial,
 					"2_seed_orders": Effect.gen(function* () {
-						const [backend] = yield* sql<{ pid: number }>`select pg_backend_pid() as pid`;
+						const [backend] = yield* sql<{
+							pid: number;
+						}>`select pg_backend_pid() as pid`;
 						yield* Deferred.succeed(entered, backend?.pid ?? 0);
 						yield* Deferred.await(release);
 						yield* sql`insert into ${sql(orders)} (name) values ('Printer paper')`;
@@ -93,7 +96,9 @@ postgres.it(
 				const first = yield* migrate({ loader, table: ledger }).pipe(Effect.forkScoped);
 				const holder = yield* Deferred.await(entered).pipe(Effect.timeout("5 seconds"));
 				const second = yield* migrate({ loader, table: ledger }).pipe(Effect.forkScoped);
-				yield* blockedBy(holder).pipe(Effect.timeout("5 seconds"));
+				yield* eventually(waitingOn(holder).pipe(Effect.flatMap((waiting) => Effect.try(() => expect(waiting).toBe(true))))).pipe(
+					Effect.timeout("5 seconds"),
+				);
 				yield* Deferred.succeed(release, undefined);
 				expect(yield* Fiber.join(first)).toEqual([[2, "seed_orders"]]);
 				expect(yield* Fiber.join(second)).toEqual([]);

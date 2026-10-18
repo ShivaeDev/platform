@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import { expect, expectTypeOf } from "vitest";
 import { InvoiceLine, Prefix } from "#test/sqliteRepository.ts";
 import { sqlite } from "#test/sqlStory.ts";
-import { hasInvoiceLines, hasLabelsWithPrefix } from "#test/sqlTraits.ts";
+import { hasLabelsWithPrefix, hasSqliteInvoiceLines } from "#test/sqlTraits.ts";
 
-sqlite.it("model variants derive CRUD while field codecs drive filters and selections", [hasInvoiceLines()], function* ({ sqliteLines, sql }) {
+sqlite.it("model variants derive CRUD while field codecs drive filters and selections", [hasSqliteInvoiceLines()], function* ({ sqliteLines, sql }) {
 	const { lines } = sqliteLines();
 	const consulting = yield* lines.insert({
 		amount: 52,
@@ -42,7 +42,7 @@ sqlite.it("model variants derive CRUD while field codecs drive filters and selec
 	expect(yield* lines.findMany({ where: { id: consulting.id } })).toEqual([]);
 });
 
-sqlite.it("repository writes participate in the caller's native transaction", [hasInvoiceLines()], function* ({ sqliteLines, sql }) {
+sqlite.it("repository writes participate in the caller's native transaction", [hasSqliteInvoiceLines()], function* ({ sqliteLines, sql }) {
 	const { lines } = sqliteLines();
 	const result = yield* sql
 		.withTransaction(
@@ -57,7 +57,7 @@ sqlite.it("repository writes participate in the caller's native transaction", [h
 	expect(yield* lines.findMany()).toEqual([]);
 });
 
-sqlite.it("query decoding and invalid limits remain typed failures", [hasInvoiceLines()], function* ({ sqliteLines, sql }) {
+sqlite.it("query decoding and invalid limits remain typed failures", [hasSqliteInvoiceLines()], function* ({ sqliteLines, sql }) {
 	const { lines } = sqliteLines();
 	yield* sql`insert into invoice_line (name, amount) values ('Imported', 'not-a-number')`;
 	const badRow = yield* lines.findMany().pipe(Effect.flip);
@@ -69,7 +69,7 @@ sqlite.it("query decoding and invalid limits remain typed failures", [hasInvoice
 	expect(missingTable._tag).toBe("SqlError");
 });
 
-sqlite.it("undefined filter values leave that field unconstrained", [hasInvoiceLines()], function* ({ sqliteLines }) {
+sqlite.it("undefined filter values leave that field unconstrained", [hasSqliteInvoiceLines()], function* ({ sqliteLines }) {
 	const { lines } = sqliteLines();
 	yield* lines.insert({ amount: 52, name: "Consulting", note: null });
 	yield* lines.insert({ amount: 57, name: "Hosting", note: "annual" });
@@ -82,7 +82,7 @@ sqlite.it("undefined filter values leave that field unconstrained", [hasInvoiceL
 	).toEqual([{ name: "Hosting" }]);
 });
 
-sqlite.it("unknown runtime field names fail as SchemaError", [hasInvoiceLines()], function* ({ sqliteLines }) {
+sqlite.it("unknown runtime field names fail as SchemaError", [hasSqliteInvoiceLines()], function* ({ sqliteLines }) {
 	function unknownField(): "name" {
 		return JSON.parse('"missing"');
 	}

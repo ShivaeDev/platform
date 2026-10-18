@@ -1,7 +1,8 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { expect } from "vitest";
-import { committing } from "#test/commitObservation.ts";
+import { eventually } from "@shivaedev/effect-test/eventually.ts";
+import { isCommitting } from "#test/commitObservation.ts";
 import { onSqlError } from "#test/postgresTransact.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { commitsSlowly, hasObserverPool, hasTransactionTables, subscriberThrows } from "#test/sqlTraits.ts";
@@ -16,10 +17,16 @@ postgres.it(
 		const fiber = yield* Effect.gen(function* () {
 			yield* insert(1);
 			yield* invalidateOnCommit({ orders: [1] });
-			const [row] = yield* sql<{ readonly pid: number }>`select pg_backend_pid() as pid`;
+			const [row] = yield* sql<{
+				readonly pid: number;
+			}>`select pg_backend_pid() as pid`;
 			yield* Deferred.succeed(backend, row?.pid ?? -1);
 		}).pipe(transact({ onSqlError }), Effect.forkChild);
-		yield* committing(observer, yield* Deferred.await(backend));
+		const pid = yield* Deferred.await(backend);
+		yield* eventually(isCommitting(observer, pid).pipe(Effect.flatMap((active) => Effect.try(() => expect(active).toBe(true)))), {
+			interval: "5 millis",
+			times: 2000,
+		});
 		expect(yield* orderIds(observer)).toEqual([]);
 		yield* Fiber.interrupt(fiber);
 		const exit = yield* Fiber.await(fiber);
@@ -61,7 +68,11 @@ postgres.it(
 		expect(result).toBe("saved");
 		expect(yield* orderIds(observer)).toEqual([1]);
 		expect(recordedLogs()).toEqual([
-			{ cause: expect.stringContaining("subscriber threw"), level: "Error", message: [expect.stringContaining("committed")] },
+			{
+				cause: expect.stringContaining("subscriber threw"),
+				level: "Error",
+				message: [expect.stringContaining("committed")],
+			},
 		]);
 	},
 );

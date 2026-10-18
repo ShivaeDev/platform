@@ -981,6 +981,9 @@ importers:
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
         version: 4.0.4(effect@4.0.4)
+      '@shivaedev/effect-test':
+        specifier: workspace:*
+        version: link:../effect-test
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality

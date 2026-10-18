@@ -27,7 +27,7 @@ export function hasMigrationTables() {
 		engine.migrations.set(yield* migrationTables);
 	});
 }
-export function hasInvoiceLines() {
+export function hasSqliteInvoiceLines() {
 	return sqlite.trait("schema", "invoice lines have field codecs", function* (engine) {
 		engine.lines.set(yield* lines);
 	});

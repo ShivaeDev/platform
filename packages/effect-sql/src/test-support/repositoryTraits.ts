@@ -8,7 +8,7 @@ import { invoiceLines } from "./invoiceLines.ts";
 import { jsonReceipts } from "./jsonReceipts.ts";
 import { postgres } from "./sqlStory.ts";
 import { wideRows } from "./wideRows.ts";
-export function hasInvoiceLines() {
+export function hasPostgresInvoiceLines() {
 	return postgres.trait("schema", "invoice lines have their database schema", function* (engine) {
 		engine.invoiceLines.set(yield* invoiceLines);
 	});

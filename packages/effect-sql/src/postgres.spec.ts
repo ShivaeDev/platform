@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { expect, expectTypeOf } from "vitest";
 import { InvoiceLine } from "#test/invoiceLines.ts";
-import { hasInvoiceLines } from "#test/repositoryTraits.ts";
+import { hasPostgresInvoiceLines } from "#test/repositoryTraits.ts";
 import { postgres } from "#test/sqlStory.ts";
 
-postgres.it("PostgreSQL repository preserves model codecs and ambient transactions", [hasInvoiceLines()], function* ({ sql, invoiceLines }) {
+postgres.it("PostgreSQL repository preserves model codecs and ambient transactions", [hasPostgresInvoiceLines()], function* ({ sql, invoiceLines }) {
 	const { lines, tableName } = invoiceLines();
 	const consulting = yield* lines.insert({
 		amount: 52,
@@ -50,7 +50,11 @@ postgres.it("PostgreSQL repository preserves model codecs and ambient transactio
 			select: ["name"],
 		}),
 	).toEqual([{ name: "Consulting" }, { name: "Hosting" }]);
-	const updated = yield* lines.update({ ...consulting, amount: 60, name: "Revised" });
+	const updated = yield* lines.update({
+		...consulting,
+		amount: 60,
+		name: "Revised",
+	});
 	expect(updated.name).toBe("Revised");
 	expect(updated.amount).toBe(60);
 	yield* lines.updateVoid({ ...updated, name: "Final" });

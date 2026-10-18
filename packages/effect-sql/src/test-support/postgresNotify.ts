@@ -38,12 +38,6 @@ const instrumentListener = Effect.fn("PostgresNotify.instrumentListener")(functi
 	);
 	return instrumented;
 });
-export function waitFor(check: () => boolean): Effect.Effect<void> {
-	return Effect.suspend(() => (check() ? Effect.void : Effect.andThen(Effect.sleep("10 millis"), waitFor(check)))).pipe(
-		Effect.timeout("5 seconds"),
-		Effect.orDie,
-	);
-}
 export const startNotifications = Effect.fnUntraced(function* (
 	timing: Pick<PostgresChangesOptions, "heartbeatInterval" | "heartbeatTimeout" | "retryDelay"> = {},
 	stallCleanup = false,
@@ -96,5 +90,11 @@ export const startNotifications = Effect.fnUntraced(function* (
 			}),
 		}),
 	).pipe(Effect.provideService(Scope.Scope, scope));
-	return { binding, close: Scope.close(scope, Exit.void), closing: () => closing, release: () => gate.resolve(), state };
+	return {
+		binding,
+		close: Scope.close(scope, Exit.void),
+		closing: () => closing,
+		release: () => gate.resolve(),
+		state,
+	};
 });

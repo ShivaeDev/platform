@@ -1,7 +1,9 @@
 import { Cause, Duration, Effect, Exit, Fiber } from "effect";
 import { Migrator } from "effect/sql";
 import { expect } from "vitest";
-import { heldSeed } from "#test/migrationBootstrap.ts";
+import { eventually } from "@shivaedev/effect-test/eventually.ts";
+import { heldSeed } from "#test/heldSeed.ts";
+import { waitingOn } from "#test/migrationConcurrency.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { hasMigrationTables } from "#test/sqlTraits.ts";
 
@@ -12,11 +14,17 @@ postgres.it(
 		const { ledger, orders } = migrations();
 
 		const held = yield* heldSeed(orders);
-		const options = { loader: held.loader, lockTimeout: "5 seconds", table: ledger } as const;
+		const options = {
+			loader: held.loader,
+			lockTimeout: "5 seconds",
+			table: ledger,
+		} as const;
 		const first = yield* migratePostgres(options).pipe(Effect.forkScoped);
-		yield* held.entered;
+		const holder = yield* held.entered;
 		const second = yield* migratePostgres(options).pipe(Effect.forkScoped);
-		yield* held.waiting;
+		yield* eventually(waitingOn(holder).pipe(Effect.flatMap((waiting) => Effect.try(() => expect(waiting).toBe(true))))).pipe(
+			Effect.timeout("5 seconds"),
+		);
 		yield* held.release;
 		expect(yield* Fiber.join(first)).toEqual([
 			[1, "create_orders"],
@@ -36,13 +44,21 @@ postgres.it(
 		const { ledger, orders } = migrations();
 
 		const held = yield* heldSeed(orders);
-		const first = yield* migratePostgres({ loader: held.loader, lockTimeout: "5 seconds", table: ledger }).pipe(Effect.forkScoped);
+		const first = yield* migratePostgres({
+			loader: held.loader,
+			lockTimeout: "5 seconds",
+			table: ledger,
+		}).pipe(Effect.forkScoped);
 		yield* held.entered;
-		const blocked = yield* migratePostgres({ loader: held.loader, lockTimeout: "100 millis", table: ledger }).pipe(
-			Effect.timeout("3 seconds"),
-			Effect.flip,
-		);
-		expect(blocked).toMatchObject({ _tag: "SqlError", reason: { _tag: "LockTimeoutError" } });
+		const blocked = yield* migratePostgres({
+			loader: held.loader,
+			lockTimeout: "100 millis",
+			table: ledger,
+		}).pipe(Effect.timeout("3 seconds"), Effect.flip);
+		expect(blocked).toMatchObject({
+			_tag: "SqlError",
+			reason: { _tag: "LockTimeoutError" },
+		});
 		yield* held.release;
 		expect(yield* Fiber.join(first)).toHaveLength(2);
 	},
@@ -77,9 +93,14 @@ postgres.it(
 		const seen: Array<string | undefined> = [];
 		const applied = yield* migratePostgres({
 			loader: Migrator.fromRecord({
-				"1_read_lock_timeout": Effect.map(sql<{ timeout: string }>`select current_setting('lock_timeout') as timeout`, ([row]) => {
-					seen.push(row?.timeout);
-				}),
+				"1_read_lock_timeout": Effect.map(
+					sql<{
+						timeout: string;
+					}>`select current_setting('lock_timeout') as timeout`,
+					([row]) => {
+						seen.push(row?.timeout);
+					},
+				),
 			}),
 			lockTimeout: Duration.infinity,
 			table: ledger,

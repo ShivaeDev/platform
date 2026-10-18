@@ -15,8 +15,6 @@ This file owns the implementation status of repositories, SQL transaction change
 - [x] `postgresChanges` sends invalidation keys with transaction-owned SQL and delivers LISTEN notifications into each process's Reactivity. A heartbeat detects silent listener loss and requests resync on loss and recovery. UTF-8 payload splitting, invalid keys and failed commits have [PostgreSQL evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresChanges.test.ts); the framework owns the two-server and pg-boss composition.
 - [x] `migratePostgres` serializes fresh and existing ledger runners with a transaction-scoped advisory lock and an explicit lock timeout. Fresh, upgraded and repeated runs return their applied migrations; failed batches roll back their DDL, data and ledger changes. Lock timeout failures are typed; migration-body failures retain native defects. [Migration evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresMigrations.spec.ts), [bootstrap and timeout evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresMigrationBootstrap.spec.ts).
 
-The PostgreSQL suites skip without `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`. Their presence is separate from a run that actually supplies a disposable database.
-
 ## Next
 
 - [ ] Establish a supported field/storage matrix from concrete consumers, extending the tested cases where needed. Broader PostgreSQL coverage needs direct evidence for arrays beyond one-dimensional `int4[]`, enums, ranges, binary data, exact sub-millisecond time and custom type policies.

@@ -1,7 +1,7 @@
 import { Effect, Result } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import { expect } from "vitest";
-import { waitFor } from "#test/postgresNotify.ts";
+import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { onClient, onSqlError, Unavailable } from "#test/postgresTransact.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { hasNotificationRows, hasObserverPool, listeningForChanges } from "#test/sqlTraits.ts";
@@ -15,7 +15,7 @@ postgres.it(
 		const delivered = yield* watchChanges(keys);
 		const table = notificationTable();
 		yield* Effect.andThen(sql`insert into ${sql(table)} values (1)`, invalidateOnCommit(keys)).pipe(transact({ onSqlError }));
-		yield* waitFor(() => delivered.length === 6);
+		yield* eventually(Effect.try(() => expect(delivered).toHaveLength(6))).pipe(Effect.timeout("5 seconds"));
 		expect(state.payloads).toHaveLength(2);
 		expect(state.payloads.flatMap((payload) => JSON.parse(payload))).toEqual(keys);
 		expect(state.payloads.every((payload) => new TextEncoder().encode(payload).length < 8000)).toBe(true);
@@ -56,16 +56,27 @@ postgres.it(
 
 postgres.it(
 	"a listener that silently stops delivering heartbeats resyncs and starts a fresh subscription",
-	[listeningForChanges({ heartbeatInterval: "50 millis", heartbeatTimeout: "150 millis", retryDelay: "20 millis" })],
+	[
+		listeningForChanges({
+			heartbeatInterval: "50 millis",
+			heartbeatTimeout: "150 millis",
+			retryDelay: "20 millis",
+		}),
+	],
 	function* ({ sql, transact, invalidateOnCommit, notifications, watchChanges }) {
 		const { state } = notifications();
 		const changes = yield* watchChanges(["orders:1"]);
 		state.muted = true;
-		yield* waitFor(() => state.resyncs >= 2);
+		yield* eventually(Effect.try(() => expect(state.resyncs).toBeGreaterThanOrEqual(2))).pipe(Effect.timeout("5 seconds"));
 		state.muted = false;
-		yield* waitFor(() => state.connections >= 2 && state.resyncs >= 3);
+		yield* eventually(
+			Effect.try(() => {
+				expect(state.connections).toBeGreaterThanOrEqual(2);
+				expect(state.resyncs).toBeGreaterThanOrEqual(3);
+			}),
+		).pipe(Effect.timeout("5 seconds"));
 		yield* Effect.andThen(sql`select 1`, invalidateOnCommit(["orders:1"])).pipe(transact({ onSqlError }));
-		yield* waitFor(() => changes.length === 1);
+		yield* eventually(Effect.try(() => expect(changes).toHaveLength(1))).pipe(Effect.timeout("5 seconds"));
 	},
 );
 

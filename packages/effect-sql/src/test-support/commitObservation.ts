@@ -1,4 +1,4 @@
-import { Effect, Schedule } from "effect";
+import { Effect } from "effect";
 import type { SqlClient } from "effect/sql";
 export function slowCommit(sql: SqlClient.SqlClient, table: string, seconds: number) {
 	const name = table.replace("_orders_", "_slow_");
@@ -12,9 +12,11 @@ export function slowCommit(sql: SqlClient.SqlClient, table: string, seconds: num
 		() => Effect.orDie(sql.unsafe(`drop function "${name}"() cascade`)),
 	);
 }
-export function committing(observer: SqlClient.SqlClient, pid: number) {
-	return observer<{ readonly state: string | null; readonly query: string }>`select state, query from pg_stat_activity where pid = ${pid}`.pipe(
-		Effect.flatMap((rows) => (rows.some((row) => row.state === "active" && row.query === "COMMIT") ? Effect.void : Effect.fail("not committing"))),
-		Effect.retry({ schedule: Schedule.spaced("5 millis"), times: 2000 }),
+export function isCommitting(observer: SqlClient.SqlClient, pid: number) {
+	return observer<{
+		readonly state: string | null;
+		readonly query: string;
+	}>`select state, query from pg_stat_activity where pid = ${pid}`.pipe(
+		Effect.map((rows) => rows.some((row) => row.state === "active" && row.query === "COMMIT")),
 	);
 }
