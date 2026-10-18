@@ -271,7 +271,7 @@ Import the module that defines the name. There is no root entry point.
 | `tables.ts` | `RawQueryClient`, `TableWrites`, `tablesOf`, `tableWrites`, `writtenTables` |
 | `error.ts` | `PrismaError`, `TransactionExpired` |
 
-`PrismaChangesOptions` takes `client`, `models` and the effect-changes channel options other than `owner` and `unowned`: `name`, `key`, `publish`, `onPublishFailure` and `beforeCommit`. The `beforeCommit` hook runs inside the Prisma transaction after the body succeeds, with its recorded changes, before commit. A hook failure rolls back the write and publishes nothing. The binding returns `Client`, `channel`, `use`, `transaction`, `recordWrite` and `Unnamed`.
+`PrismaChangesOptions` takes `client`, `models` and the effect-changes channel options other than `owner` and `unowned`: `name`, `key`, `publish`, `onPublishFailure` and `beforeCommit`. The `beforeCommit` hook runs inside the Prisma transaction after the body succeeds, with its recorded changes, before commit. Calls to `use` in the hook use the transaction's scoped `Client`, so they see uncommitted body rows. A hook failure rolls back both body and hook writes and publishes nothing. The binding returns `Client`, `channel`, `use`, `transaction`, `recordWrite` and `Unnamed`.
 
 ```ts
 interface Write {

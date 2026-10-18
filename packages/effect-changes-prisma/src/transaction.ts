@@ -49,6 +49,7 @@ function commit<TTx extends Transactional<TTx>, TX, E, R>(
 
 export function runTransaction<TTx extends Transactional<TTx>, TX, E, R, TOpenRequirements>(options: {
 	readonly client: TTx;
+	readonly Client?: Context.Reference<TTx>;
 	readonly open: Effect.Effect<Frame & Partial<CommitFrame>, never, TOpenRequirements>;
 	readonly body: (tx: TTx) => Effect.Effect<TX, E, R>;
 	readonly transaction: TransactionOptions | undefined;
@@ -63,7 +64,8 @@ export function runTransaction<TTx extends Transactional<TTx>, TX, E, R, TOpenRe
 			const context = yield* Effect.context<R>();
 			const abort = new AbortController();
 			function guarded(tx: TTx) {
-				return expiring(frame.provide(Effect.tap(body(tx), () => frame.beforeCommit ?? Effect.void)), deadline, Expiry);
+				const work = frame.provide(Effect.tap(body(tx), () => frame.beforeCommit ?? Effect.void));
+				return expiring(options.Client === undefined ? work : Effect.provideService(work, options.Client, tx), deadline, Expiry);
 			}
 			const outcome = commit(client, options.transaction, savepoint, guarded, context, abort.signal);
 			const expire = yield* Expiry;
