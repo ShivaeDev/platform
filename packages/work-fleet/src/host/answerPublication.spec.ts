@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { responses as responsesApi } from "@shivaedev/work-board/integration/responses.ts";
+import { responses as responsesApi } from "@shivaedev/work-board/server/integration/responses.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { answerAndWait, dispatchAndWait } from "#test/daemonActions.ts";

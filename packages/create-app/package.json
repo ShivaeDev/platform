@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/create-app",
-	"version": "0.6.10",
+	"version": "0.6.11",
 	"description": "Create and install a Platform application from the maintained starter",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/create-app#readme",
 	"bugs": {
@@ -49,6 +49,7 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",
 		"esbuild": "catalog:",

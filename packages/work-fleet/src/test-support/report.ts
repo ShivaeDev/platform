@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Layer, Path } from "effect";
-import { responseMarkdown } from "@shivaedev/work-board/responses/records.ts";
+import { responseMarkdown } from "@shivaedev/work-board/server/responses/records.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { BoardFailure, BoardGateway } from "#policy.ts";

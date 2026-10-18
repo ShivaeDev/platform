@@ -3,7 +3,7 @@ import { Headers, HttpRouter } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
-import { type AppHostOptions, appHost } from "#appHost.ts";
+import { type AppHostOptions, appHost } from "#server/appHost.ts";
 
 class Required extends Context.Service<Required, string>()("host-test/Required") {}
 class BuildFailure extends Schema.TaggedError<BuildFailure>()("BuildFailure", {}) {}

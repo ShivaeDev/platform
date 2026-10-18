@@ -1,6 +1,6 @@
 import { request } from "node:http";
 import { call, post } from "./fixture.ts";
-import { ping } from "./ping.ts";
+import { directPing, ping } from "./ping.ts";
 import { postBody } from "./postBody.ts";
 import { type HostState, io } from "./state.ts";
 
@@ -9,6 +9,10 @@ export function requests(state: HostState, tell: (line: string) => void) {
 		call: (token: string, reject = false, headers: Readonly<Record<string, string>> = {}) => {
 			tell(`the fixture RPC is called as ${token || "anonymous"}`);
 			return io(() => call(state.url, token, reject, headers));
+		},
+		directPing: () => {
+			tell("an independent native RPC server uses the shared group without host middleware");
+			return directPing();
 		},
 		health: () => {
 			tell("the health monitor probes PostgreSQL");
@@ -20,9 +24,9 @@ export function requests(state: HostState, tell: (line: string) => void) {
 				return { body: await response.text(), cacheControl: response.headers.get("cache-control"), status: response.status };
 			});
 		},
-		ping: () => {
+		ping: (options?: Parameters<typeof ping>[1]) => {
 			tell("the native RPC client pings the host");
-			return io(() => ping(`${state.url}${state.rpcPath}`));
+			return io(() => ping(`${state.url}${state.rpcPath}`, options));
 		},
 		post: (headers: Readonly<Record<string, string>>) => io(() => post(state.url, headers)),
 		postBytes: (chunks: readonly Uint8Array[], options?: Parameters<typeof postBody>[3]) =>

@@ -1,6 +1,6 @@
 import { Effect, FileSystem, Path } from "effect";
-import type { MetadataDocument } from "@shivaedev/work-board/integration/board.ts";
-import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
+import type { MetadataDocument } from "@shivaedev/work-board/server/integration/board.ts";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { readDocument } from "#board/readDocument.ts";
 import { BoardSnapshot, readSnapshot } from "#board/readPass.ts";
 import { BoardFailure } from "#policy.ts";

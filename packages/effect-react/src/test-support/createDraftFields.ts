@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
 import type { Form } from "@shivaedev/effect-form/shape.ts";
-import type { Create } from "#create.ts";
+import type { Create } from "#client/create.ts";
 import type { DraftFields } from "./draftFields.ts";
 
 export type Created = typeof DraftFields.Type;

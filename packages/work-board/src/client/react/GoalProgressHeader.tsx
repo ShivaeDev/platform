@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { useId } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { GoalProgressSummary } from "./GoalProgressSummary.tsx";
 import { routeQueryOptions } from "./routeQuery.ts";

@@ -1,6 +1,6 @@
 # Editing a record and creating one
 
-`useEditor` (`@shivaedev/effect-react/editor.ts`) and `useCreate` (`@shivaedev/effect-react/create.ts`) join three existing pieces:
+`useEditor` (`@shivaedev/effect-react/client/editor.ts`) and `useCreate` (`@shivaedev/effect-react/client/create.ts`) join three existing pieces:
 a query atom (for example `api.get.query({ id })` from an
 `@shivaedev/effect-contract` binding), an `@shivaedev/effect-form` form, and a
 save Effect (`api.save.run(...)`). They add no cache, no mutation atom and no
@@ -19,7 +19,7 @@ if (editor.form === undefined) return editor.query.pending ? <Loading /> : <Load
 return <InvoiceLineForm form={editor.form} save={editor.save} saving={editor.saving} failure={editor.failure} />;
 ```
 
-Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/effect-form/react.ts`
+Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/effect-form/client/react.ts`
 supplies value, change, blur and message.
 
 ## Behavior
@@ -34,7 +34,7 @@ supplies value, change, blur and message.
   the failure and `query.refresh()` retries.
 - A tagged rejection shaped `{ _tag, field, message }` whose `field` names a
   form field (such as a contract `fieldRejection(Draft)`) becomes that field's
-  message; this is the same shape `rejectedField` in `@shivaedev/platform/errors/rejected-field.ts`
+  message; this is the same shape `rejectedField` in `@shivaedev/platform/errors/rejectedField.ts`
   recognizes. `rejectField` overrides the mapping. Other failures appear in
   `failure`.
 - If a save's error type contains a tagged rejection whose `field` type is not

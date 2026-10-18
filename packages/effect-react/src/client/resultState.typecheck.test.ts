@@ -1,6 +1,6 @@
 import { type Cause, Effect, type Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { useAction, useQuery } from "#result-state.ts";
+import { useAction, useQuery } from "#client/resultState.ts";
 
 const query = Atom.make(
 	Effect.succeed({ id: 1, title: "Quarterly report" }).pipe(
