@@ -22,11 +22,15 @@ boardStory.it(
 		expect(page.document.querySelector("#primary-navigation #diagnostics-open")).not.toBeNull();
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("time[data-reset]")?.textContent).toContain(", 14:20")));
 		expect(page.document.getElementById("diagnostics-open")?.getAttribute("aria-current")).toBe("page");
+		reader.clickSelector("#settings-open");
+		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("updates-toggle")?.getAttribute("aria-pressed")).toBe("false")));
 		reader.clickSelector("#updates-toggle");
+		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("updates-toggle")?.getAttribute("aria-pressed")).toBe("true")));
 		editFile("fleet/health.json", JSON.stringify({ ...health, running: 7 }));
 		pollDiagnostics();
 		expect(page.document.querySelector('[data-source="fleet"]')?.textContent).toContain("3 / 8");
 		reader.clickSelector("#updates-toggle");
+		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("updates-toggle")?.getAttribute("aria-pressed")).toBe("false")));
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-source="fleet"]')?.textContent).toContain("7 / 8")));
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("time[data-reset]")?.textContent).toContain(", 14:20")));
 		editFile("fleet/health.json", JSON.stringify({ ...health, running: 6 }));
