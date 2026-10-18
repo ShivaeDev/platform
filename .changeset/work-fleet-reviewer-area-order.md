@@ -1,3 +1,7 @@
+---
+"@shivaedev/work-fleet": minor
+---
+
 ### Added
 
 - `areaWaiters(state, record)` in `engine/areaWaiters.ts` computes earlier eligible area waiters for engine launch admission.
