@@ -1,13 +1,17 @@
 import { expect } from "vitest";
 import { submissionForm, submissions } from "#test/submitStories.ts";
 
-submissions.it("a form-API create records its result and resets the form", [submissionForm()], function* ({ type, submit, snapshot, names }) {
-	yield* type("Desk lamps ");
-	yield* submit("Form submit");
-	expect(snapshot()).toEqual({ created: { id: 1, name: "Desk lamps" }, values: { name: "" } });
-	yield* submit("Form submit");
-	expect(names()).toEqual(["Desk lamps ", ""]);
-});
+submissions.it(
+	"a form-API create with a synchronous Schema records its result and resets the form",
+	[submissionForm()],
+	function* ({ type, submit, snapshot, names }) {
+		yield* type("Desk lamps ");
+		yield* submit("Form submit");
+		expect(snapshot()).toEqual({ created: { id: 1, name: "Desk lamps" }, values: { name: "" } });
+		yield* submit("Form submit");
+		expect(names()).toEqual(["Desk lamps ", ""]);
+	},
+);
 
 submissions.it("a form-API create after save() compares against its own submission", [submissionForm()], function* ({ type, submit, snapshot }) {
 	yield* type("Desk lamps");

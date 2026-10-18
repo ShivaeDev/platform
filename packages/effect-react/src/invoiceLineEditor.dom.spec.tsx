@@ -6,8 +6,12 @@ import { creatingLine, editingLine, invoiceSessions, invoices } from "#test/invo
 invoices.it(
 	"loading, then a refresh failure keeps the data and dirty edits; retry recovers",
 	[editingLine()],
-	function* ({ invoice, type, click, observe }) {
+	function* ({ invoice, type, click, observe, finishLoad }) {
 		const { server, view } = invoice();
+		expect(view.text()).toContain("Loading");
+		expect(view.value("name")).toBeUndefined();
+		yield* finishLoad();
+		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
 		yield* type("name", "Blue stapler");
 		server.control.mode = "unavailable";
 		yield* click("Refresh");
@@ -22,20 +26,28 @@ invoices.it(
 	},
 );
 
-invoices.it("a refresh while dirty adopts untouched fields and keeps edited ones", [editingLine()], function* ({ invoice, type, click, observe }) {
-	const { server, view } = invoice();
-	yield* type("name", "Black stapler");
-	server.edit(new InvoiceLine({ id: 1, name: "Stapler", quantity: 175 }));
-	yield* click("Refresh");
-	yield* observe("the invoice screen settles", () => expect(view.value("quantity")).toBe("175"));
-	expect(view.value("name")).toBe("Black stapler");
-});
+invoices.it(
+	"a refresh while dirty adopts untouched fields and keeps edited ones",
+	[editingLine()],
+	function* ({ invoice, type, click, observe, finishLoad }) {
+		const { server, view } = invoice();
+		yield* finishLoad();
+		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
+		yield* type("name", "Black stapler");
+		server.edit(new InvoiceLine({ id: 1, name: "Stapler", quantity: 175 }));
+		yield* click("Refresh");
+		yield* observe("the invoice screen settles", () => expect(view.value("quantity")).toBe("175"));
+		expect(view.value("name")).toBe("Black stapler");
+	},
+);
 
 invoices.it(
 	"save shows server normalization, keeps edits made while saving and ignores a second submit",
 	[editingLine()],
-	function* ({ invoice, type, click, observe, act }) {
+	function* ({ invoice, type, click, observe, act, finishLoad }) {
 		const { server, view } = invoice();
+		yield* finishLoad();
+		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
 		yield* type("name", "  blue stapler ");
 		const release = server.hold();
 		yield* click("Save");
@@ -54,8 +66,10 @@ invoices.it(
 invoices.it(
 	"field rejections attach to their field; other failures are exposed separately",
 	[editingLine()],
-	function* ({ invoice, type, click, observe }) {
+	function* ({ invoice, type, click, observe, finishLoad }) {
 		const { server, view } = invoice();
+		yield* finishLoad();
+		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
 		yield* type("quantity", "9000");
 		yield* click("Save");
 		yield* observe("the invoice screen settles", () => expect(view.error("quantity")).toBe("Quantity is too large"));
@@ -70,15 +84,21 @@ invoices.it(
 	},
 );
 
-invoices.it("a different key remounts the form without carrying the previous draft", [editingLine()], function* ({ invoice, type, show, observe }) {
-	const { view } = invoice();
-	yield* type("name", "Draft");
-	yield* show(2);
-	yield* observe("the invoice screen settles", () => expect(view.value("name")).toBe("Notebook"));
-	expect(view.status()).toBe("Saved");
-	yield* show(1);
-	yield* observe("the invoice screen settles", () => expect(view.value("name")).toBe("Stapler"));
-});
+invoices.it(
+	"a different key remounts the form without carrying the previous draft",
+	[editingLine()],
+	function* ({ invoice, type, show, observe, finishLoad }) {
+		const { view } = invoice();
+		yield* finishLoad();
+		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
+		yield* type("name", "Draft");
+		yield* show(2);
+		yield* observe("the invoice screen settles", () => expect(view.value("name")).toBe("Notebook"));
+		expect(view.status()).toBe("Saved");
+		yield* show(1);
+		yield* observe("the invoice screen settles", () => expect(view.value("name")).toBe("Stapler"));
+	},
+);
 
 invoices.it(
 	"create resets to its initial values after success, keeping fields edited during the save",

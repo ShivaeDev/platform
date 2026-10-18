@@ -57,7 +57,8 @@ for (const failure of ["getter", "read", "write", "remove"]) {
 	drafts.it(
 		`unavailable storage (${failure}) permits editing, refreshing and saving`,
 		[unavailableDraft(failure)],
-		function* ({ type, refresh, draft, submit, observe, show }) {
+		function* ({ type, refresh, draft, submit, observe, show, state }) {
+			expect(state.storage).toHaveBeenCalled();
 			yield* type("name", "Local");
 			yield* refresh({ name: "Remote", quantity: "350" });
 			expect(draft().editor().form.values.value).toEqual({ name: "Local", quantity: "350" });

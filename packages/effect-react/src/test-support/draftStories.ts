@@ -1,5 +1,5 @@
 import { Clock, Deferred, Effect } from "effect";
-import { expect, vi } from "vitest";
+import { vi } from "vitest";
 import type { BrowserDraftConfig } from "@shivaedev/effect-form/react.ts";
 import type { Row, Save } from "./draftFields.ts";
 import { draftStorage } from "./draftStorage.ts";
@@ -10,6 +10,7 @@ draftStorage();
 interface State {
 	complete: Deferred.Deferred<void>;
 	config?: BrowserDraftConfig | undefined;
+	storage?: BrowserDraftConfig["storage"];
 	view?: Awaited<ReturnType<typeof persistedDraftView>>;
 }
 function current(state: State) {
@@ -88,10 +89,10 @@ export function unavailableDraft(failure: string) {
 		return storage;
 	});
 	return drafts.traits(
-		persistedDraft({ key: "unavailable", storage: getStorage }),
-		drafts.trait("screen", `storage ${failure} is unavailable`, () => {
-			expect(getStorage).toHaveBeenCalled();
+		drafts.trait("screen", `storage ${failure} is unavailable`, ({ state }) => {
+			state.storage = getStorage;
 		}),
+		persistedDraft({ key: "unavailable", storage: getStorage }),
 	);
 }
 export function storedDraft(raw: string) {

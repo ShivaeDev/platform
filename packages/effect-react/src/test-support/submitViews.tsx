@@ -14,17 +14,20 @@ export interface SubmitState {
 }
 export function CreateSubmitView({ state, slow }: { readonly state: SubmitState; readonly slow: boolean }) {
 	function decoded(value: string) {
-		return slow
-			? Effect.as(
-					Effect.promise(() => state.decoding.promise),
-					value,
-				)
-			: Effect.succeed(value);
+		return Effect.as(
+			Effect.promise(() => state.decoding.promise),
+			value,
+		);
 	}
 	const Submission = Schema.Struct({
-		name: Schema.String.pipe(
-			Schema.decodeTo(Schema.String, { decode: SchemaGetter.transformEffect(decoded), encode: SchemaGetter.transform((value: string) => value) }),
-		),
+		name: slow
+			? Schema.String.pipe(
+					Schema.decodeTo(Schema.String, {
+						decode: SchemaGetter.transformEffect(decoded),
+						encode: SchemaGetter.transform((value: string) => value),
+					}),
+				)
+			: Schema.String,
 	});
 	const current = useCreate({
 		create: (values) => Effect.sync(() => ({ id: state.names.push(values.name), name: slow ? values.name : values.name.trim() })),

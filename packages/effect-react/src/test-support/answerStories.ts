@@ -1,5 +1,4 @@
 import { createElement } from "react";
-import { expect } from "vitest";
 import type { Rendered } from "#testing.ts";
 import { AnswerList } from "./AnswerList.tsx";
 import { makeAnswerForm } from "./answerForm.ts";
@@ -19,15 +18,7 @@ export const answers = screenKit(
 	(): State => ({}),
 	(state, screen) => ({
 		click: (label: string) => screen.act(`click ${label}`, () => clickButton(current(state).container, label)),
-		messages: (expected: readonly (readonly [string, string | undefined])[]) =>
-			screen.observe(`answer messages are ${JSON.stringify(expected)}`, () =>
-				expect(
-					[...current(state).container.querySelectorAll("li")].map((item) => [
-						item.getAttribute("data-answer"),
-						item.querySelector('[role="alert"]')?.textContent,
-					]),
-				).toEqual(expected),
-			),
+		list: () => current(state).container,
 		type: (id: string, text: string) => screen.act(`answer ${id}: ${text}`, () => typeInput(current(state).container, id, text)),
 	}),
 );

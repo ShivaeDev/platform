@@ -4,7 +4,7 @@ import { SessionBoundary } from "#session-boundary.ts";
 import type { Rendered } from "#testing.ts";
 import { CreateDraftProbe, DirectDraftProbe } from "./CreateDraftProbe.tsx";
 import type { CreateEffect, CreateHeld } from "./createDraftFields.ts";
-import { typeInput } from "./screenKit.ts";
+import { submitForm, typeInput } from "./screenKit.ts";
 
 export async function persistedCreateView(view: Rendered, create: CreateEffect = Effect.succeed, direct = false) {
 	const held: CreateHeld = {};
@@ -31,7 +31,7 @@ export async function persistedCreateView(view: Rendered, create: CreateEffect =
 		form,
 		save: () =>
 			act(() => {
-				view.container.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+				submitForm(view.container);
 			}),
 		saving: () => held.created?.saving ?? false,
 		show: (session: string) => view.render(node(session)),

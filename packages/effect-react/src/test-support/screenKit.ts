@@ -30,6 +30,14 @@ export function clickButton(container: HTMLElement, label: string) {
 	button.click();
 }
 
+export function submitForm(container: HTMLElement) {
+	const form = container.querySelector("form");
+	if (!form) {
+		throw new Error("Missing form");
+	}
+	form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+}
+
 export class Screen {
 	readonly roots: Rendered[] = [];
 	tell: (line: string) => void;

@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement } from "react";
-import { expect } from "vitest";
 import type { Rendered } from "#testing.ts";
 import { NativeNotesView } from "./NativeNotesView.ts";
 import { NotesClient } from "./NotesClient.ts";
@@ -21,6 +20,7 @@ export const nativeStory = screenKit(
 	(): State => ({}),
 	(state, screen) => ({
 		click: (label: string) => screen.act(`click ${label}`, () => clickButton(current(state).container, label)),
+		notes: () => current(state).container,
 		persisted: () => {
 			screen.tell("read persisted notes through the native RPC client");
 			const read = NotesClient.runtime.atom(
@@ -31,15 +31,6 @@ export const nativeStory = screenKit(
 			);
 			return AtomRegistry.getResult(current(state).registry, read).pipe(Effect.map((rows) => rows.map(({ id, title }) => ({ id, title }))));
 		},
-		settled: (titles: string[], error = false) =>
-			screen.observe(`the list shows ${JSON.stringify(titles)}, error ${error}`, () => {
-				expect(JSON.parse(current(state).container.querySelector("output")?.textContent ?? "null")).toEqual({
-					error,
-					loading: false,
-					saving: false,
-					titles,
-				});
-			}),
 	}),
 );
 export function nativeNotes() {

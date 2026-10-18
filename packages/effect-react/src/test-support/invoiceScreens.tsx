@@ -1,10 +1,9 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
-import { expect } from "vitest";
 import { SessionBoundary } from "#session-boundary.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import { makeInvoiceLineViews } from "#test/invoice-line-editor/frontend.ts";
-import { type Rendered, eventually as settle } from "#testing.ts";
+import type { Rendered } from "#testing.ts";
 import { clickButton, typeInput } from "./screenKit.ts";
 import { RegistryProbe } from "./sessionProbes.ts";
 export const stapler = new InvoiceLine({ id: 1, name: "Stapler", quantity: 150 });
@@ -39,11 +38,7 @@ export async function editing(root: Rendered, id = 1) {
 		);
 	}
 	await show(id);
-	expect(view.text()).toContain("Loading");
-	expect(view.value("name")).toBeUndefined();
-	await act(async () => release());
-	await settle(() => expect(view.value("name")).toBe("Stapler"));
-	return { server, show, view };
+	return { release, server, show, view };
 }
 export async function creating(root: Rendered) {
 	const server = makeInvoiceLineServer([stapler]);

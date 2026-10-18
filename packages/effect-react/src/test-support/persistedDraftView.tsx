@@ -7,7 +7,7 @@ import { SessionBoundary } from "#session-boundary.ts";
 import type { Rendered } from "#testing.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
 import { draftInitial, type Held, type Row, type Save } from "./draftFields.ts";
-import { typeInput } from "./screenKit.ts";
+import { submitForm, typeInput } from "./screenKit.ts";
 
 export async function persistedDraftView(
 	view: Rendered,
@@ -48,7 +48,7 @@ export async function persistedDraftView(
 			}),
 		save: () =>
 			act(() => {
-				view.container.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+				submitForm(view.container);
 			}),
 		show: (session: string | undefined, visible = true) => view.render(node(session, visible)),
 	};

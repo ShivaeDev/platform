@@ -47,11 +47,9 @@ for (const raw of [
 		version: 1,
 	}),
 ]) {
-	drafts.it(`drops malformed or incompatible input (${raw})`, [storedDraft(raw), persistedDraft()], function* ({ draft, observe }) {
-		yield* observe("incompatible input is discarded", () => {
-			expect(draft().editor().form.values.value.name).toBe("Paper");
-			expect(window.localStorage.getItem("order-draft")).toBeNull();
-		});
+	drafts.it(`drops malformed or incompatible input at mount (${raw})`, [storedDraft(raw), persistedDraft()], ({ draft }) => {
+		expect(draft().editor().form.values.value.name).toBe("Paper");
+		expect(window.localStorage.getItem("order-draft")).toBeNull();
 	});
 }
 

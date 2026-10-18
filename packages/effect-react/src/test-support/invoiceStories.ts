@@ -23,6 +23,14 @@ export const invoices = screenKit(
 	(): State => ({}),
 	(state, screen) => ({
 		click: (label: string) => screen.act(`click ${label}`, () => (state.invoice ?? sessions(state)).view.click(label)),
+		finishLoad: () =>
+			screen.act("the invoice load responds", () => {
+				const current = invoice(state);
+				if (!("release" in current)) {
+					throw new Error("Expected a loading editor");
+				}
+				current.release();
+			}),
 		invoice: () => invoice(state),
 		sessions: () => sessions(state),
 		show: (id: number) =>
