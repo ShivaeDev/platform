@@ -5,8 +5,10 @@ import { hostLayer } from "#host/commands.ts";
 import { WAIT_EXIT } from "#host/wait.ts";
 import { boardHttp } from "#test/boardHttp.ts";
 import { dispatchWork } from "#test/dispatchWork.ts";
-import { task, waitProcess, withHost } from "#test/fleetHost.ts";
+import { waitProcess } from "#test/fleetCli.ts";
+import { task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
+import { withReadDaemon } from "#test/readDaemon.ts";
 import { answerWorker, askWorker, QUESTION } from "#test/workerQuestion.ts";
 
 const test = postgresTests("live");
@@ -33,7 +35,7 @@ test("worker questions appear on Board, wait exits needs-human, and an answer co
 			expect(preview.context).toContain("Which storage should I use?");
 			const asks = yield* Effect.tryPromise(() => client.run(client.api.inbox.run(undefined)));
 			expect(asks.agents).toEqual(expect.arrayContaining([expect.objectContaining({ file: published.sourcePath })]));
-			expect(yield* Effect.promise(() => waitProcess(fixture.configFile, "one"))).toEqual({
+			expect(yield* withReadDaemon(fixture.host, () => Effect.promise(() => waitProcess(fixture.host.boardDir, "one")))).toEqual({
 				code: WAIT_EXIT.waitingDecision,
 				stdout: `one needs-human (waiting on orchestrator): ${QUESTION}`,
 			});
