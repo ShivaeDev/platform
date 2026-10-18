@@ -1,6 +1,6 @@
 import { Cause, Context, ErrorReporter, Predicate } from "effect";
 import { redact } from "./redact.ts";
-import { isSensitiveKey, redactText, type SensitiveKey } from "./sensitive.ts";
+import { isSensitiveKey, REDACTED, redactText, type SensitiveKey } from "./sensitive.ts";
 
 function reporterHints(error: Error, sensitive: SensitiveKey) {
 	return {
@@ -9,16 +9,30 @@ function reporterHints(error: Error, sensitive: SensitiveKey) {
 		...(ErrorReporter.attributes in error ? { [ErrorReporter.attributes]: redact(ErrorReporter.getAttributes(error), sensitive) } : {}),
 	};
 }
+function errorText(key: string, value: string, sensitive: SensitiveKey): string {
+	return sensitive(key) ? REDACTED : redactText(value, sensitive);
+}
+function errorStack(error: Error, sensitive: SensitiveKey): string | undefined {
+	if (error.stack === undefined) {
+		return undefined;
+	}
+	return ["message", "name", "stack"].some((key) => sensitive(key)) ? REDACTED : redactText(error.stack, sensitive);
+}
 function redactError(error: Error, sensitive: SensitiveKey): Error {
-	const options = error.cause === undefined ? undefined : { cause: redact(error.cause, sensitive) };
-	const copy = new Error(redactText(error.message, sensitive), options);
-	Object.defineProperty(copy, "name", { configurable: true, value: error.name, writable: true });
+	const cause = sensitive("cause") ? REDACTED : redact(error.cause, sensitive);
+	const options = error.cause === undefined ? undefined : { cause };
+	const copy = Object.assign(
+		new Error(errorText("message", error.message, sensitive), options),
+		redact(Object.fromEntries(Object.entries(error)), sensitive),
+		reporterHints(error, sensitive),
+	);
+	Object.defineProperty(copy, "name", { configurable: true, value: errorText("name", error.name, sensitive), writable: true });
 	Object.defineProperty(copy, "stack", {
 		configurable: true,
-		value: error.stack === undefined ? undefined : redactText(error.stack, sensitive),
+		value: errorStack(error, sensitive),
 		writable: true,
 	});
-	return Object.assign(copy, redact(Object.fromEntries(Object.entries(error)), sensitive), reporterHints(error, sensitive));
+	return copy;
 }
 export function redactDefect(defect: unknown, sensitive: SensitiveKey = isSensitiveKey): unknown {
 	return Predicate.isError(defect) ? redactError(defect, sensitive) : redact(defect, sensitive);
@@ -38,7 +52,11 @@ export function redactDiagnosticCause(cause: Cause.Cause<unknown>, sensitive: Se
 			const redacted = Cause.isFailReason(reason)
 				? Cause.fail(redactDefect(reason.error, sensitive))
 				: redactCause(Cause.fromReasons([reason]), sensitive);
-			const annotations = new Map([...reason.annotations].map(([key, value]) => [key, sensitive(key) ? "<redacted>" : redact(value, sensitive)]));
+			const annotations = new Map(
+				[...reason.annotations]
+					.filter(([key]) => !sensitive("stack") || (key !== Cause.StackTrace.key && key !== Cause.InterruptorStackTrace.key))
+					.map(([key, value]) => [key, sensitive(key) ? REDACTED : redact(value, sensitive)]),
+			);
 			return Cause.annotate(redacted, Context.makeUnsafe(annotations), { overwrite: true }).reasons;
 		}),
 	);
