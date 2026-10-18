@@ -2,7 +2,7 @@
 
 Work Board reads optional YAML frontmatter at the beginning of a Markdown file. The file remains authoritative; the in-memory identity/search index is rebuilt from readable files and invalidated by the watcher. No database, generated source files, cloud service, or migration is required. Parsing uses `yaml` and Effect Schema. The UI reads this structure and never rewrites it.
 
-## Existing heading boards
+## Heading boards
 
 ```markdown
 # Navigation delivery
@@ -17,7 +17,7 @@ Find document titles, headings, and passages.
 
 ### Remember reading state
 
-Evidence: [navigation PR](https://github.com/ShivaeDev/platform/pull/77).
+Evidence: [navigation review](../evidence/review.md).
 ```
 
 Heading boards need no metadata. Section names are presentation, never inferred workflow transitions. An unannotated card has no durable identity, owner, acceptance decision, or machine-readable status. Its passage URL can change when its heading changes. Richer identity uses one file per item.
@@ -50,18 +50,23 @@ Every top-level field is optional. Missing values stay blank in work details. `o
 | Field | Source shape |
 | --- | --- |
 | `id` | Workspace-local, case-sensitive ID: ASCII letter/digit first, then letters/digits, `.`, `_`, or `-` |
-| `kind` | `task`, `investigation`, `decision`, `result`, `project`, `board`, `question`, `response`, or `handoff` |
+| `kind` | `task`, `investigation`, `decision`, `result`, `project`, `board`, `goal`, `report`, `question`, `response`, or `handoff` |
 | `status`, `owner`, `next_action` | Nonblank strings |
 | `criteria` | List of `{ id, text }`; criterion IDs use the item ID syntax and are unique within the file |
 | `relationships` | List of `{ kind, target }`; kind is `implements`, `informs`, `depends_on`, or `relates_to`; target is an item ID or `item.id#criterion-id` |
 | `items` | Explicit list of item IDs declaring board membership, independent of status or section headings |
+| `areas` | List of nonblank area labels; Board checks the shape and Fleet reads it for area claims |
 | `evidence` | List of records described below |
 | `attention` | List of explicit request records; [shapes and reading rules](./attention-examples.md) |
+| `options` | List of at most 32 `{ label, description }` records with unique nonblank labels of at most 128 characters and nonblank descriptions of at most 8192 characters; on a `question` or `decision` item they form one single-choice prompt and cannot be combined with question directives |
+| `recommended` | The label of one `options` entry, marked **Recommended** on the answer card and on Today |
 | `question`, `response` | Optional dedicated record provenance; [anchored response contract](./response-write-examples.md) |
 | `handoff` | Optional direction/source snapshot and explicit receipt; [ordinary-file handoff contract](./handoff-examples.md) |
 | `request_receipt` | Optional immutable acknowledgement of an exact managed decision request; [response and acknowledgement rules](../../README.md#record-a-human-response) |
 
-A unique ID resolves at `/_board/item/work.search/`. This URL survives file and heading renames while the ID remains unchanged and unique. A criterion resolves at `/_board/item/work.search/#criterion-keyboard`. Normal file and generated heading URLs continue working; favorites/recents still refer to file paths.
+Fleet's add-on fields `fleet`, `fleet-launch`, `fleet-deliverable` and `fleet-priority` are accepted without a diagnostic; Board leaves them uninterpreted and Fleet reads them.
+
+A unique ID resolves at `/_board/item/work.search/`. This URL survives file and heading renames while the ID remains unchanged and unique. A criterion resolves at `/_board/item/work.search/#criterion-keyboard`. File and generated heading URLs work alongside it; favorites and recents refer to file paths.
 
 Search includes declared ID, kind, status, owner, next action, and criteria. Results show source lines where known; criterion results open and focus the criterion's work-details context. Source diagnostics identify file/line, and **Original frontmatter** exposes the retained header.
 
@@ -106,13 +111,13 @@ evidence:
 
 This example deliberately has no revision or observation time; they remain blank. Supply real values when available. Relative source links resolve from the file containing the record. HTTP(S) sources are ordinary links; executable URL schemes stay plain text. Local image sources use the contained PNG/JPEG/GIF/WebP attachment route described in the README; other non-Markdown assets are not served.
 
-Records are labeled **Source claims — not independently verified**. A recorded outcome, test link, agent run completion, or proposed decision does not establish verified acceptance. Work Board neither runs checks nor verifies freshness here.
+Records appear under **Recorded evidence**, whose tooltip states that source claims are not independently verified. A recorded outcome, test link, agent run completion, or proposed decision does not establish verified acceptance. Work Board neither runs checks nor verifies freshness here.
 
 ## Invalid, unknown, and unavailable sources
 
 - A header opens with `---` on the first line, optionally after a BOM, and closes with a separate `---` line. CRLF is supported. Scalar/list headers and unclosed headers retain the original Markdown and show a diagnostic.
 - YAML syntax errors, duplicate keys, unsupported tags, or excessive alias expansion leave the header uninterpreted and retain readable body prose.
-- Unknown top-level fields stay in the original header with a diagnostic. An invalid known field, including unknown nested keys, stays uninterpreted as a whole. Independent valid fields still render. No source bytes are rewritten.
+- Unknown top-level fields other than Fleet's add-on fields stay in the original header with a diagnostic. An invalid known field, including unknown nested keys, stays uninterpreted as a whole. Independent valid fields render. No source bytes are rewritten.
 - Duplicate IDs show all matching source files and a conflict page; no winner is chosen. Duplicate criterion IDs do not receive selectable criterion links.
 - Missing IDs/criteria remain unresolved. Removing the source yields an explicit missing-item page. Removing or changing its ID does not preserve that identity.
 - If any listed file cannot be read, identity links report an incomplete index rather than asserting uniqueness. Readable documents and partial search remain usable; reference validation waits for a complete index.

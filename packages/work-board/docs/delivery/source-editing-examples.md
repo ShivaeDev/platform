@@ -9,7 +9,7 @@ Agents use their normal file-editing tools. Work Board adapts to those edits and
 - Agents do not have to use a special mutation command, cooperative lock, acknowledgment command, or editor protocol to edit files.
 - A ready-for-review question is normally answered while the agent is waiting, rather than deliberately editing that question at the same time.
 
-The publisher creates independent question/context, response and handoff Markdown files. Agents edit handoff receipt through ordinary tools. This ownership rule preserves that implementation; it does not introduce an inline-response syntax or silently rewrite an agent's project document. If an inline response area is introduced later, the same ownership rule applies within the shared file.
+The publisher creates independent question/context, response and handoff Markdown files. Agents edit handoff receipt through ordinary tools. Work Board has no inline-response syntax and never rewrites an agent's project document.
 
 ## Concrete example
 
@@ -20,8 +20,6 @@ Use the full history view. Keep the keyboard evidence and proceed.
 ```
 
 Work Board records that human direction in the response. The agent's investigation and new evidence remain authoritative. The response does not rewrite the item, change its status, close attention, or establish acceptance. The agent reads the feedback and updates its project Markdown using its ordinary tools.
-
-If future response editing shares a file, re-read the current content and change only the owned response area, retaining the agent's surrounding edits. Preserve the draft and explain a detected stale target or ordinary save failure. Do not restore an obsolete whole-file snapshot to implement undo.
 
 ## Best-effort engineering
 

@@ -77,15 +77,15 @@ Open **Review returned result** on the report, or `/_board/result?item=result.ke
 
 The page lists explicitly linked criteria, this result's claims, missing provenance, report/limitations and recorded human feedback. An unresolved or duplicate identity does not choose a convenient source. A missing local Markdown evidence source remains disclosed. Report and feedback context use the safe Markdown reader; exact reviewed source remains available separately.
 
-Choose the report's explicit review request to use the existing response surface. Review the exact source, preview and submit one complete response. That response captures the source path and SHA-256 of the original report bytes. Work Board leaves the project task and report unchanged.
+Choose the report's explicit review request to open its answer card. Review the exact source, preview and submit one complete response. That response captures the source path and SHA-256 of the original report bytes. Work Board leaves the project task and report unchanged.
 
-## Read or wait through the existing agent interface
+## Read or wait through the agent CLI
 
 ```sh
 work-board question result.keyboard/review
 ```
 
-This reads the current question/context without registering it. For the complete LF report above, including its final newline, the reviewed SHA-256 is `49a45f23df2f56d8720c0fd8f8c86483a86f5b8eb016c1d17db4a56152f72060`. Inspect that context before registering the wait:
+This reads the question and its source context without registering it. For the complete LF report above, including its final newline, the reviewed SHA-256 is `49a45f23df2f56d8720c0fd8f8c86483a86f5b8eb016c1d17db4a56152f72060`. Inspect that context before registering the wait:
 
 ```sh
 work-board wait result.keyboard/review --revision 49a45f23df2f56d8720c0fd8f8c86483a86f5b8eb016c1d17db4a56152f72060
@@ -103,6 +103,6 @@ After an agent records a revision, the next response can explicitly supersede th
 
 ## Preserve the execution boundary
 
-Work Board owns source identity, reviewed context, relationships and human feedback. An optional execution integration may attach session/turn receipts and stages to the same work ID. It does not acquire authority to change criterion acceptance from a report status or chosen option. The existing metadata, question packets and independent response publisher carry result review; a second task ledger or acceptance writer would create a competing source of truth.
+Work Board owns source identity, reviewed context, relationships and human feedback. An optional execution integration may attach session/turn receipts and stages to the same work ID. It does not acquire authority to change criterion acceptance from a report status or chosen option. Metadata, question packets and the independent response publisher carry result review; a second task ledger or acceptance writer would create a competing source of truth.
 
 The [handoff contract](handoff-examples.md#optional-execution-integration-boundary) and [ordinary editing ownership](source-editing-examples.md) define that boundary.
