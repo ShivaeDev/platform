@@ -71,3 +71,9 @@ export function redactText(text: string, sensitive: SensitiveKey): string {
 	const scrubbed = scrub(text, sensitive);
 	return scrubbed.length > MAX_STRING ? `${scrubbed.slice(0, MAX_STRING)}…<${scrubbed.length - MAX_STRING} more chars>` : scrubbed;
 }
+export function redactErrorStack(error: Error, sensitive: SensitiveKey): string | undefined {
+	if (error.stack === undefined) {
+		return undefined;
+	}
+	return ["message", "name", "stack"].some((key) => sensitive(key)) ? REDACTED : redactText(error.stack, sensitive);
+}

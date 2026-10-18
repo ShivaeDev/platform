@@ -1,6 +1,6 @@
 import { Cause, Context, ErrorReporter, Predicate } from "effect";
-import { redact } from "./redact.ts";
-import { isSensitiveKey, REDACTED, redactText, type SensitiveKey } from "./sensitive.ts";
+import { redact } from "#server/rpc-server/redact.ts";
+import { isSensitiveKey, REDACTED, redactErrorStack, redactText, type SensitiveKey } from "#server/rpc-server/sensitive.ts";
 
 function reporterHints(error: Error, sensitive: SensitiveKey) {
 	return {
@@ -11,12 +11,6 @@ function reporterHints(error: Error, sensitive: SensitiveKey) {
 }
 function errorText(key: string, value: string, sensitive: SensitiveKey): string {
 	return sensitive(key) ? REDACTED : redactText(value, sensitive);
-}
-function errorStack(error: Error, sensitive: SensitiveKey): string | undefined {
-	if (error.stack === undefined) {
-		return undefined;
-	}
-	return ["message", "name", "stack"].some((key) => sensitive(key)) ? REDACTED : redactText(error.stack, sensitive);
 }
 function redactError(error: Error, sensitive: SensitiveKey): Error {
 	const cause = sensitive("cause") ? REDACTED : redact(error.cause, sensitive);
@@ -29,7 +23,7 @@ function redactError(error: Error, sensitive: SensitiveKey): Error {
 	Object.defineProperty(copy, "name", { configurable: true, value: errorText("name", error.name, sensitive), writable: true });
 	Object.defineProperty(copy, "stack", {
 		configurable: true,
-		value: errorStack(error, sensitive),
+		value: redactErrorStack(error, sensitive),
 		writable: true,
 	});
 	return copy;
