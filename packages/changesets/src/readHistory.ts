@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { posix } from "node:path";
 import { Effect, Schema } from "effect";
 import type { ChangesetConfig } from "#config.ts";
@@ -11,8 +12,10 @@ function git(root: string, args: readonly string[]): string {
 }
 export const readHistory = Effect.fn("Changesets.readHistory")(function* (root: string, config: ChangesetConfig, reference?: string) {
 	const base = yield* attempt(() => {
+		const mergeHead = git(root, ["rev-parse", "--path-format=absolute", "--git-path", "MERGE_HEAD"]).trim();
+		const heads = ["HEAD", ...(existsSync(mergeHead) ? readFileSync(mergeHead, "utf8").trim().split("\n") : [])];
 		for (const candidate of reference === undefined ? ["origin/main", "main"] : [reference]) {
-			const result = spawnSync("git", ["-C", root, "merge-base", candidate, "HEAD"], { encoding: "utf8" });
+			const result = spawnSync("git", ["-C", root, "merge-base", candidate, ...heads], { encoding: "utf8" });
 			if (result.status === 0) {
 				return result.stdout.trim();
 			}
