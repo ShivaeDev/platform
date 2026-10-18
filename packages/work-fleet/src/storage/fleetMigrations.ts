@@ -4,6 +4,7 @@ import { addShapeColumns } from "#storage/addShapeColumns.ts";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import { modelTables } from "#storage/modelTables.ts";
 import { pruneEmptyCycles } from "#storage/pruneEmptyCycles.ts";
+import { childTable } from "#storage/recordChildren.ts";
 import { recordTimeColumns } from "#storage/recordTimes.ts";
 import { shapeV12 } from "#storage/shapeV12.ts";
 import { shapeV14 } from "#storage/shapeV14.ts";
@@ -56,7 +57,11 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			yield* addShapeColumns(namespace, shapeV12, shapeV14);
 			yield* sql`alter table ${sql(`${namespace}_dispatches`)} add column now boolean, add column ignore_areas boolean`;
 		}),
-		"15_answer_requests": sql`create table ${sql(`${namespace}_answers`)} (
+		"15_remove_admission_ready": Effect.gen(function* () {
+			yield* sql`alter table ${sql(`${namespace}_records`)} drop column ${sql("admissionReady")}`;
+			yield* sql`alter table ${sql(childTable(namespace, ["history"]))} drop column ${sql("admissionReady")}`;
+		}),
+		"16_answer_requests": sql`create table ${sql(`${namespace}_answers`)} (
 			request_id text primary key, work_id text not null, decision_id text, accepted_at double precision not null,
 			position integer generated always as identity, decision_code text, decision_reason text not null,
 			text text not null, release boolean not null, error text, response_decision_id text, response_id text

@@ -8,7 +8,7 @@ import { answerHostVerbs } from "#test/answerHostVerbs.ts";
 import { answerPullRequestVerbs } from "#test/answerPullRequestVerbs.ts";
 import { answerReceiptVerbs } from "#test/answerReceiptVerbs.ts";
 import { task } from "#test/fleetHost.ts";
-import { postgresConfigured, postgresLayer } from "#test/postgres.ts";
+import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 
 const layer = Layer.merge(postgresLayer, NodeServices.layer);
 
@@ -20,7 +20,7 @@ export const answers = storyKit({
 	inspect: (engine) => engine.inspect(),
 	layer,
 	name: "fleet answer",
-	runIf: postgresConfigured,
+	runIf: postgresEnabled,
 	stages: ["configuration"],
 	verbs: (engine, story) => ({
 		...answerHostVerbs(engine, story.tell),

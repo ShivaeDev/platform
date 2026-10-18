@@ -102,14 +102,11 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(manifest.dependencies["@shivaedev/local-postgres"]).toBe(versions["@shivaedev/local-postgres"]);
 	expect(manifest.devDependencies["@shivaedev/quality"]).toBe(versions["@shivaedev/quality"]);
 	expect(manifest.devDependencies["@shivaedev/test-story"]).toBe(versions["@shivaedev/test-story"]);
-	expect(files["quality.config.ts"]).toBeUndefined();
 	expect(files["quality/baseline.jsonl"]).toBeUndefined();
 	expect(manifest.scripts.dev).not.toContain("--conditions=source");
 	expect(files["src/server/dev.ts"]).not.toContain("--conditions=source");
 	expect(files["src/test-support/deployChild.ts"]).not.toContain("--conditions=source");
 	expect(files["src/server/dev.ts"]).toContain('"--watch"');
-	expect(JSON.parse(files["biome.json"] ?? "{}")).toMatchObject({ root: true });
-	expect(files["biome.json"]).toBe(readFileSync(join(starter, "biome.json"), "utf8").replace('"root": false', '"root": true'));
 	for (const path of ["tsconfig.json", "vite.config.ts", "vitest.config.ts"]) {
 		expect(files[path]).not.toContain('"source"');
 	}

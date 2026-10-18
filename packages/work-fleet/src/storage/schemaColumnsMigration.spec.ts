@@ -5,14 +5,13 @@ import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import { recordColumns } from "#storage/model.ts";
 import { childTable } from "#storage/recordChildren.ts";
 import { collections, recordShape, shapeColumns, sqlTypes } from "#storage/recordShape.ts";
-import { shapeV14 } from "#storage/shapeV14.ts";
 import { migrateFleet } from "#test/migrateFleet.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
 
 const test = postgresTests("live", "isolated");
 
-for (const path of ["fresh", "upgrade"] as const) {
+for (const path of ["fresh", "upgrade", "typed upgrade"] as const) {
 	test(`${path} database columns, PostgreSQL types and logical kinds match the Fleet record schema`, function* () {
 		const sql = yield* SqlClient.SqlClient;
 		const namespace = "fleet_schema";
@@ -20,6 +19,9 @@ for (const path of ["fresh", "upgrade"] as const) {
 		if (path === "upgrade") {
 			yield* migrateFleet(namespace, "attention_owner");
 			expect(yield* sql`select max(migration_id) as latest from ${sql(`${namespace}_migrations`)}`).toEqual([{ latest: 4 }]);
+		}
+		if (path === "typed upgrade") {
+			yield* migrateFleet(namespace, "dispatch_now");
 		}
 		yield* migrateFleet(namespace);
 		const columns = yield* sql<{ readonly name: string; readonly type: string }>`
@@ -36,7 +38,6 @@ for (const path of ["fresh", "upgrade"] as const) {
 			return left.name.localeCompare(right.name, "en");
 		}
 		expect([...columns].sort(byName)).toEqual(expected.sort(byName));
-		expect(recordShape()).toEqual(shapeV14);
 		for (const collection of collections(recordShape())) {
 			const child = childTable(namespace, collection.path);
 			const actual = yield* sql<{
