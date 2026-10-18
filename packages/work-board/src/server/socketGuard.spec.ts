@@ -4,7 +4,7 @@ import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import { RpcSerialization } from "effect/rpc";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { localRpcGuard } from "@shivaedev/platform/rpc-server/local.ts";
+import { localRpcGuard } from "@shivaedev/platform/server/rpc-server/local.ts";
 import { type Folder, folder, rawPost, startBoard } from "#test/board.ts";
 import { socketRpc } from "#test/socketRpc.ts";
 

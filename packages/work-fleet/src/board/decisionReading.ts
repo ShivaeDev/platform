@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { board } from "@shivaedev/work-board/integration/board.ts";
-import type { Reading } from "@shivaedev/work-board/integration/responses.ts";
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
+import type { Reading } from "@shivaedev/work-board/server/integration/responses.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import type { BoardDecision, BoardDecisionReading } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";

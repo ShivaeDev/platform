@@ -2,10 +2,10 @@ import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, ManagedRuntime } from "effect";
 import { expectTypeOf } from "vitest";
 import type { AnyTestLayer as EffectTestLayer } from "@shivaedev/effect-test/any-test-layer.ts";
-import { makeEffectTRPC } from "#adapter.ts";
-import { makeRequestServices } from "#request-services.ts";
-import type { AnyTestLayer } from "#testing/any-test-layer.ts";
-import { makeTrpcHarnessIt, makeTrpcIt } from "#testing/vitest.ts";
+import { makeEffectTRPC } from "#server/adapter.ts";
+import { makeRequestServices } from "#server/requestServices.ts";
+import type { AnyTestLayer } from "#server/testing/AnyTestLayer.ts";
+import { makeTrpcHarnessIt, makeTrpcIt } from "#server/testing/vitest.ts";
 
 class RuntimeService extends Context.Service<RuntimeService, number>()("@testing-types/RuntimeService") {}
 interface CallerOptions {

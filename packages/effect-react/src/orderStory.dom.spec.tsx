@@ -1,8 +1,8 @@
 import { Effect } from "effect";
+import { expectNoReactWarnings } from "#client/testing.ts";
 import { app, realPostgres } from "#test/order-example/application.ts";
 import { localApp, localOrder } from "#test/order-example/localApplication.ts";
 import { aliceHasOrder, orderEditorIsOpen, orderListIsOpen } from "#test/order-example/traits.ts";
-import { expectNoReactWarnings } from "#testing.ts";
 
 expectNoReactWarnings();
 

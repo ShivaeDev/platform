@@ -2,9 +2,9 @@
 	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "release-oct18b-dependencies.md",
-			"text": "### Fixed\n\n- Align published framework dependencies with the current releases.\n"
+			"name": "provider-account-ids.md",
+			"text": "### Added\n\n- Opt in to provider account IDs on `SessionUser.providerAccounts` by passing a `GetProviderAccounts` lookup to `betterAuthSessions`. Export `ProviderAccountValue` (`providerId`, `accountId`) and `SessionWithProviderAccounts` for typed access without querying Better Auth’s account table.\n"
 		}
 	],
-	"version": "0.14.4"
+	"version": "0.15.0"
 }

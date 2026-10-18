@@ -3,17 +3,18 @@ import { NodeHttpServer, NodeServices } from "@effect/platform-node";
 import { ByteSize, Config, Effect, Layer, Option, Schema } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/http";
 import { type Rpc, RpcSerialization, RpcServer } from "effect/rpc";
-import type { AppHostOptions, AppHttpHostOptions, AppLocalHostOptions } from "#appHost.ts";
-import { boundedRpcRequest } from "#boundedRpcRequest.ts";
-import type { databaseLayer } from "#databaseLayer.ts";
-import type { HostOptions, HostPolicy } from "#hostOptions.ts";
-import { otlpTracing } from "#otlpTracing.ts";
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
-import { localRpcGuard } from "#rpc-server/local.ts";
-import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "#rpc-server/session.ts";
-import { requestTracingLayer } from "#rpc-server/tracing.ts";
-import { TrustedProxy } from "#rpc-server/trustedProxy.ts";
+import type { AppHostOptions, AppHttpHostOptions, AppLocalHostOptions } from "#server/appHost.ts";
+import { boundedRpcRequest } from "#server/boundedRpcRequest.ts";
+import type { databaseLayer } from "#server/databaseLayer.ts";
 import { healthRoute } from "#server/healthRoute.ts";
+import type { HostOptions, HostPolicy } from "#server/hostOptions.ts";
+import { otlpTracing } from "#server/otlpTracing.ts";
+import { localRpcGuard } from "#server/rpc-server/local.ts";
+import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "#server/rpc-server/session.ts";
+import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
+import { TrustedProxy } from "#server/rpc-server/trustedProxy.ts";
+import { tracedGroup } from "#server/tracedGroup.ts";
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
 	THandlers,
@@ -46,7 +47,7 @@ export function appHostHttp<
 			const routes = HttpRouter.use((router) =>
 				Effect.gen(function* () {
 					const wire = yield* RpcSerialization.RpcSerialization;
-					const handler = yield* RpcServer.toHttpEffect(options.group);
+					const handler = yield* RpcServer.toHttpEffect(tracedGroup(options.group));
 					const guarded = localRpcGuard(handler, trustedProxy);
 					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) =>
 						guarded.pipe(

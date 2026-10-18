@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { expect } from "vitest";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type BoardTestApi, renderBoard } from "#test/react.tsx";
 

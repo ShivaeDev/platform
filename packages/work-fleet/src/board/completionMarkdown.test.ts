@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { board } from "@shivaedev/work-board/integration/board.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
 

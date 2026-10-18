@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { Context, Effect, type FileSystem, type Path } from "effect";
-import type { MetadataModel, ParsedMetadata } from "@shivaedev/work-board/integration/board.ts";
-import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
+import type { MetadataModel, ParsedMetadata } from "@shivaedev/work-board/server/integration/board.ts";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import type { BoardFailure, BoardWork } from "#policy.ts";
 

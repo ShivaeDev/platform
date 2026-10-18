@@ -1,4 +1,4 @@
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import type { BoardWork } from "#policy.ts";
 import type { SessionReceipt } from "#session/schema.ts";
 

@@ -33,7 +33,7 @@ There are three parts to a native RPC boundary:
 
 An **Origin policy** is a function of the transport request's origin, headers and RPC name. A **session provider** returns `Option<Session>` or fails with `AuthUnavailable`; a session carries `user.id`. These are application inputs, not a second authentication framework.
 
-The optional modules solve different boundaries. `runtime/` carries Effect services into Promise callers, `node-http/` combines subscription cancellation sources, `better-auth/adapter.ts` connects Better Auth storage to Effect Prisma, and `testing/vitest.ts` composes the Prisma and tRPC test harnesses. Choose the modules that match the application rather than adopting every integration.
+The optional modules solve different boundaries. `server/runtime/` carries Effect services into Promise callers, `server/node-http/` combines subscription cancellation sources, `server/better-auth/adapter.ts` connects Better Auth storage to Effect Prisma, and `server/testing/makePlatformIt.ts` composes the Prisma and tRPC test harnesses. Choose the modules that match the application rather than adopting every integration.
 
 ### Host the application
 
@@ -42,7 +42,7 @@ The optional modules solve different boundaries. `runtime/` carries Effect servi
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
 import { Layer } from "effect";
-import { appHost } from "@shivaedev/platform/appHost.ts";
+import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { Api, Handlers, Services, migrations, sessions } from "./app.ts";
 
 const Server = appHost({
@@ -67,12 +67,12 @@ The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABAS
 
 RPC request bodies are limited to 1 MiB by default. Set `MAX_BODY_SIZE` to a byte count or override it with `config.maxBodySize`, a nonnegative safe integer. An oversized NDJSON body returns a 4xx before any RPC handler runs; real HTTP tests cover fixed-length and chunked requests, byte counting, and configuration precedence. This limit applies to the host's RPC route.
 
-For a native Node HTTP route, use `readBoundedBody` from `@shivaedev/platform/boundedBody.ts` with Effect's `HttpIncomingMessage.MaxBodySize`. It returns an `ArrayBuffer` without decoding the bytes. Oversized `content-length` headers are rejected before reading; chunked overflow drains the remaining body and preserves the connection for another request. `RequestBodyTooLarge` is a typed failure that implements Effect's `HttpServerRespondable` protocol with status 413; other read errors remain native `HttpServerError` failures. Consume the body once through this reader and decode the result in the application.
+For a native Node HTTP route, use `readBoundedBody` from `@shivaedev/platform/server/boundedBody.ts` with Effect's `HttpIncomingMessage.MaxBodySize`. It returns an `ArrayBuffer` without decoding the bytes. Oversized `content-length` headers are rejected before reading; chunked overflow drains the remaining body and preserves the connection for another request. `RequestBodyTooLarge` is a typed failure that implements Effect's `HttpServerRespondable` protocol with status 413; other read errors remain native `HttpServerError` failures. Consume the body once through this reader and decode the result in the application.
 
 ```ts
 import { ByteSize, Effect } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServerResponse } from "effect/http";
-import { readBoundedBody } from "@shivaedev/platform/boundedBody.ts";
+import { readBoundedBody } from "@shivaedev/platform/server/boundedBody.ts";
 
 const routes = HttpRouter.add("POST", "/webhook", (request) =>
   readBoundedBody(request).pipe(
@@ -82,7 +82,7 @@ const routes = HttpRouter.add("POST", "/webhook", (request) =>
 );
 ```
 
-RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. With a session policy, contracts declare `Authenticated`, `MaybeAuthenticated` and `RequestTracing` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer(sessions)` beside the handlers as shown below. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
+RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer(sessions)` beside the handlers as shown below. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
 
 For local tools, use `policy: "loopback"` with contracts that do not use session middleware to serve RPC without a session provider. The guard requires a loopback peer and Host, absent or same-origin Origin, and NDJSON content type. This policy does not use `TRUSTED_PROXY` or `config.trustedProxy`. Set `rpcPath` to choose another native RPC route; `/rpc` remains the default.
 
@@ -129,7 +129,7 @@ The supported tracing variables and defaults are:
 
 Timeouts fail through the HTTP client's typed transport-error channel and use the same warning path as other transport failures. Effect retains its native retry policy; the request timeout applies to each attempt. The batch defaults follow Effect's `OtlpTracer.layer`. Its options cannot express a separate batch-operation deadline or a queue capacity, so `OTEL_BSP_EXPORT_TIMEOUT` controls shutdown only and `OTEL_BSP_MAX_QUEUE_SIZE` is unsupported. Other `OTEL_BSP_*` variables are unsupported.
 
-On Railway, enable the per-service tracing setting separately for the web service and worker, and leave both exporter endpoint variables unset in your app's configuration. Railway injects the `OTEL_*` variables, including `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`, only when the app sets no endpoint of its own. The framework exports through Effect's own `effect/observability` OTLP tracer; eBPF auto-instrumentation is outside this path. For a worker, provide `otlpTracing` from `@shivaedev/platform/otlpTracing.ts` to its application Layer. It batches ended Effect spans and flushes during scoped shutdown with a three-second bound by default. The first failed export logs a warning with the collector status and redacted response body, or the transport failure kind when no response arrives. Repeated failures stay quiet until a successful export. Collector connection failures and HTTP errors leave requests, jobs and shutdown successful. HTTP receiver tests cover the host and the starter's PostgreSQL word-count worker; they do not establish delivery in a deployed collector.
+On Railway, enable the per-service tracing setting separately for the web service and worker, and leave both exporter endpoint variables unset in your app's configuration. Railway injects the `OTEL_*` variables, including `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`, only when the app sets no endpoint of its own. The framework exports through Effect's own `effect/observability` OTLP tracer; eBPF auto-instrumentation is outside this path. For a worker, provide `otlpTracing` from `@shivaedev/platform/server/otlpTracing.ts` to its application Layer. It batches ended Effect spans and flushes during scoped shutdown with a three-second bound by default. The first failed export logs a warning with the collector status and redacted response body, or the transport failure kind when no response arrives. Repeated failures stay quiet until a successful export. Collector connection failures and HTTP errors leave requests, jobs and shutdown successful. HTTP receiver tests cover the host and the starter's PostgreSQL word-count worker; they do not establish delivery in a deployed collector.
 
 Exported HTTP server spans use `{method} {route}` with `http.route` for matched RPC and router paths, including parameter templates; unmatched requests use the method alone. The production host continues incoming W3C `traceparent` context, including one sent by an edge proxy.
 
@@ -179,8 +179,8 @@ The middleware declaration makes `Identity` available to guarded handlers and ad
 Supply a provider and an explicit Origin policy as the host's `sessions` input. For a Better Auth provider, adapt its existing session lookup:
 
 ```ts
-import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts";
-import { trustedOrigins } from "@shivaedev/platform/rpc-server/origin.ts";
+import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
+import { trustedOrigins } from "@shivaedev/platform/server/rpc-server/origin.ts";
 import { auth } from "./auth.ts";
 
 export const sessions = {
@@ -202,7 +202,7 @@ import { Effect, Layer, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/platform/rpc/middleware.ts";
-import { authenticatedUserLayer } from "@shivaedev/platform/rpc-server/session.ts";
+import { authenticatedUserLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
 
 export const Account = RpcGroup.make(
   Rpc.make("Whoami", {
@@ -278,7 +278,7 @@ export const GreetingHandlers = Greetings.toLayer({
 
 A missing session produces `Option.none()` here. The same policy still rejects forbidden origins and distinguishes provider failure from an anonymous caller. Signed-in authenticated requests annotate the user's id on logs as `userId` and spans as `user.id`.
 
-For an HTTP RPC server that serves only the local machine, wrap its HTTP effect with `localRpcGuard` from `@shivaedev/platform/rpc-server/local.ts`. Provide the native `HttpServerRequest` and `RpcSerialization` services around the returned effect, using the same serialization as the RPC server. No session provider is required.
+For an HTTP RPC server that serves only the local machine, wrap its HTTP effect with `localRpcGuard` from `@shivaedev/platform/server/rpc-server/local.ts`. Provide the native `HttpServerRequest` and `RpcSerialization` services around the returned effect, using the same serialization as the RPC server. No session provider is required.
 
 By default, the guard returns HTTP 403 before running the effect unless the transport reports a loopback peer address, the Host is a loopback host, any Origin matches the HTTP Host, and the content type matches the serialization. An absent peer address is rejected. Real Node HTTP tests cover accepted local requests and rejected Origin, Host and content-type requests, including a DNS-rebinding Host on a loopback connection. The optional second argument, `localRpcGuard(effect, trustedProxy)`, enables the same address and range forwarding policy as `appHost`.
 
@@ -305,7 +305,7 @@ export const Rename = Rpc.make("Rename", {
 A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`. Native RPC JSON decodes the rejection back to the error instance with its field. Taxonomy errors can be declared on an RPC with no authentication middleware. `rejectedField` reads either that instance or tagged JSON:
 
 ```ts
-import { rejectedField } from "@shivaedev/platform/errors/rejected-field.ts";
+import { rejectedField } from "@shivaedev/platform/errors/rejectedField.ts";
 import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 
 const field = rejectedField(
@@ -324,7 +324,7 @@ At the handler edge, `rpcBoundary(schema, options)` keeps declared rejections an
 ```ts
 import { Schema } from "effect";
 import { Conflict, InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
-import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
+import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError]);
 const expose = rpcBoundary(Rejection, {
@@ -345,8 +345,8 @@ Tracing logs declared failures with `RPC failure` and their tag, and defects wit
 Defects are also redacted in the cause that reaches the client, server span and error reporters. An `Error` keeps its error shape with redacted fields and cause. Extend the sensitive-key rule explicitly:
 
 ```ts
-import { isSensitiveKey } from "@shivaedev/platform/rpc-server/sensitive.ts";
-import { requestTracingLayer } from "@shivaedev/platform/rpc-server/tracing.ts";
+import { isSensitiveKey } from "@shivaedev/platform/server/rpc-server/sensitive.ts";
+import { requestTracingLayer } from "@shivaedev/platform/server/rpc-server/tracing.ts";
 
 export const Tracing = requestTracingLayer({
   sensitive: (key) => isSensitiveKey(key) || key === "email",
@@ -361,7 +361,7 @@ Build the application Layer once. `runWithServices` supplies an invocation's ove
 
 ```ts
 import { Context, Layer } from "effect";
-import { makePlatformRuntime } from "@shivaedev/platform/runtime/make.ts";
+import { makePlatformRuntime } from "@shivaedev/platform/server/runtime/makePlatform.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("app/Greeting") {}
 
@@ -387,7 +387,7 @@ A long-lived response can receive cancellation from a Web request, a procedure a
 
 ```ts
 import type { IncomingMessage } from "node:http";
-import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http/subscription-signal.ts";
+import { nodeSubscriptionSignal } from "@shivaedev/platform/server/node-http/subscriptionSignal.ts";
 
 export async function consumeSubscription(
   request: Request,
@@ -416,8 +416,8 @@ When Better Auth's rows belong to an Effect Prisma database, give its adapter th
 
 ```ts
 import { betterAuth } from "better-auth";
-import { effectPrismaAdapter } from "@shivaedev/platform/better-auth/adapter.ts";
-import { makePlatformRuntime } from "@shivaedev/platform/runtime/make.ts";
+import { effectPrismaAdapter } from "@shivaedev/platform/server/better-auth/adapter.ts";
+import { makePlatformRuntime } from "@shivaedev/platform/server/runtime/makePlatform.ts";
 import { Database, DatabaseLive } from "./database.ts";
 
 export const runtime = makePlatformRuntime(DatabaseLive);
@@ -439,7 +439,7 @@ Set up the application harness once in `test-support/`:
 
 ```ts
 import { Effect } from "effect";
-import { makePlatformIt } from "@shivaedev/platform/testing/vitest.ts";
+import { makePlatformIt } from "@shivaedev/platform/server/testing/makePlatformIt.ts";
 import { adapter, Database, router, TestLive } from "./application.ts";
 
 export const it = makePlatformIt(Database)({
@@ -481,33 +481,33 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 | Module | Names and purpose |
 | --- | --- |
-| `otlpTracing.ts` | `otlpTracing`: scoped, opt-in Effect OTLP trace export configured through standard exporter variables; provide it to worker Layers. |
-| `boundedBody.ts` | `readBoundedBody`, `RequestBodyTooLarge`: bounded body bytes and a typed HTTP 413 failure. |
-| `appHost.ts` | `appHost({ group, handlers, services, migrations?, sessions?, policy?, rpcPath?, assets?, routes?, config? })` or `appHost({ application, migrations, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppHttpHostOptions`, `AppLocalHostOptions`, `AppDatabaseOptions`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
+| `server/otlpTracing.ts` | `otlpTracing`: scoped, opt-in Effect OTLP trace export configured through standard exporter variables; provide it to worker Layers. |
+| `server/boundedBody.ts` | `readBoundedBody`, `RequestBodyTooLarge`: bounded body bytes and a typed HTTP 413 failure. |
+| `server/appHost.ts` | `appHost({ group, handlers, services, migrations?, sessions?, policy?, rpcPath?, assets?, routes?, config? })` or `appHost({ application, migrations, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppHttpHostOptions`, `AppLocalHostOptions`, `AppDatabaseOptions`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
 | `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
-| `errors/rejected-field.ts` | `rejectedField(unknown): Option<RejectedField>`; `RejectedField` is `{ field: string, message: string }`. |
+| `errors/rejectedField.ts` | `rejectedField(unknown): Option<RejectedField>`; `RejectedField` is `{ field: string, message: string }`. |
 | `rpc/identity.ts` | `RequestId`: string service. `Identity`: `IdentityValue`, `{ id: string }`. `OptionalIdentity`: `Option<IdentityValue>`. `SessionUser`: `SessionUserValue`, `{ id, name, email, providerAccounts? }`; `ProviderAccountValue`: `{ providerId, accountId }`. |
 | `rpc/middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `MaybeAuthenticated`: native RPC middleware declarations. |
-| `rpc-server/boundary.ts` | `rpcBoundary(schema, { unexpected, message? })`; `RpcBoundaryOptions<Error>`: declared failures pass through, unexpected failures become one declared rejection. |
-| `rpc-server/session.ts` | `authenticatedLayer(policy)`, `maybeAuthenticatedLayer(policy)`, `resolveSession(policy, headers, rpc)`; `SessionShape`, `SessionProvider<Session>`, `SessionPolicy<Session>`. `authenticatedUserLayer(policy)` requires `UserSessionShape` and implements `AuthenticatedUser`. |
-| `rpc-server/adapters/better-auth-sessions.ts` | `betterAuthSessions(getSession, getProviderAccounts?)`; `GetSession<Session>` returns `Promise<Session \| null>`, `GetProviderAccounts` returns provider/id pairs, and `SessionWithProviderAccounts<Session>` describes an enriched session. |
-| `rpc-server/origin.ts` | `trustedOrigins({ allow, missing })`, `originRequest(headers, rpc)`; `OriginPolicy`, `OriginRequest`, `TrustedOriginsOptions`. |
-| `rpc-server/local.ts` | `localRpcGuard(effect)`: HTTP RPC guard using native request and serialization services; `loopbackOnly(handler)`, `sameOrigin(request)`, `trustedProxyPeer(trustedProxy?)`, `trustedProxyRanges(trustedProxy?)`. |
-| `rpc-server/transport.ts` | `transportHeaders(rpcHeaders)`: Effect returning the headers used for a transport-level decision. |
-| `rpc-server/tracing.ts` | `requestTracingLayer({ header?, sensitive? })`; `RequestTracingOptions`. |
-| `rpc-server/redact.ts` | `redact(value, sensitive?)`: unknown diagnostic value. |
-| `rpc-server/redact-cause.ts` | `redactCause(cause, sensitive?)`, `redactDefect(defect, sensitive?)`, `redactingErrorReporter(reporter, sensitive?)`. |
-| `rpc-server/sensitive.ts` | `isSensitiveKey`, `redactText`, `REDACTED`; `SensitiveKey` is `(key: string) => boolean`. |
-| `runtime/make.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
-| `runtime/types.ts` | `PlatformRuntime<Services, BuildError>`, `PlatformRuntimeOptions`, `PlatformRuntimeServices<Runtime>`, `PlatformRuntimeBuildError<Runtime>`. |
-| `node-http/subscription-signal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })` returns `{ signal, dispose }`; `NodeSubscriptionSignalOptions`, `NodeSubscriptionSignal`. |
-| `better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, { debugLogs?, modelName?, usePlural? })`; `EffectPrismaAdapterOptions`. |
-| `testing/vitest.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |
-| `testing/types.ts` | `MakePlatformItOptions`, `PlatformHarness`, `PlatformIt`, `PlatformTest`, `PlatformTester`. |
+| `server/rpc-server/boundary.ts` | `rpcBoundary(schema, { unexpected, message? })`; `RpcBoundaryOptions<Error>`: declared failures pass through, unexpected failures become one declared rejection. |
+| `server/rpc-server/session.ts` | `authenticatedLayer(policy)`, `maybeAuthenticatedLayer(policy)`, `resolveSession(policy, headers, rpc)`; `SessionShape`, `SessionProvider<Session>`, `SessionPolicy<Session>`. `authenticatedUserLayer(policy)` requires `UserSessionShape` and implements `AuthenticatedUser`. |
+| `server/rpc-server/adapters/betterAuthSessions.ts` | `betterAuthSessions(getSession, getProviderAccounts?)`; `GetSession<Session>` returns `Promise<Session \| null>`, `GetProviderAccounts` returns provider/id pairs, and `SessionWithProviderAccounts<Session>` describes an enriched session. |
+| `server/rpc-server/origin.ts` | `trustedOrigins({ allow, missing })`, `originRequest(headers, rpc)`; `OriginPolicy`, `OriginRequest`, `TrustedOriginsOptions`. |
+| `server/rpc-server/local.ts` | `localRpcGuard(effect)`: HTTP RPC guard using native request and serialization services; `loopbackOnly(handler)`, `sameOrigin(request)`, `trustedProxyPeer(trustedProxy?)`, `trustedProxyRanges(trustedProxy?)`. |
+| `server/rpc-server/transportHeaders.ts` | `transportHeaders(rpcHeaders)`: Effect returning the headers used for a transport-level decision. |
+| `server/rpc-server/tracing.ts` | `requestTracingLayer({ header?, sensitive? })`; `RequestTracingOptions`. |
+| `server/rpc-server/redact.ts` | `redact(value, sensitive?)`: unknown diagnostic value. |
+| `server/rpc-server/redactCause.ts` | `redactCause(cause, sensitive?)`, `redactDefect(defect, sensitive?)`, `redactingErrorReporter(reporter, sensitive?)`. |
+| `server/rpc-server/sensitive.ts` | `isSensitiveKey`, `redactText`, `REDACTED`; `SensitiveKey` is `(key: string) => boolean`. |
+| `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
+| `server/runtime/types.ts` | `PlatformRuntime<Services, BuildError>`, `PlatformRuntimeOptions`, `PlatformRuntimeServices<Runtime>`, `PlatformRuntimeBuildError<Runtime>`. |
+| `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })` returns `{ signal, dispose }`; `NodeSubscriptionSignalOptions`, `NodeSubscriptionSignal`. |
+| `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, { debugLogs?, modelName?, usePlural? })`; `EffectPrismaAdapterOptions`. |
+| `server/testing/makePlatformIt.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |
+| `server/testing/types.ts` | `MakePlatformItOptions`, `PlatformHarness`, `PlatformIt`, `PlatformTest`, `PlatformTester`. |
 
 `PlatformRuntime` exposes `runPromise(effect, { signal? })`, `runPromiseExit(effect, { signal? })`, `runWithServices(context, evaluate)`, `contextEffect`, `currentServices()` and `dispose()`. The harness exposes native Vitest methods plus `effectApp(name, body, options?)`; its tester also has `skip`, `skipIf`, `runIf`, `only`, `each` and `fails`.
 
-The exports also include the adapter's translation modules: `makeRowAdapter` and `RelationQuery` in `better-auth/row-adapter.ts`, `refineRelation` and `DynamicRelation` in `better-auth/relation.ts`, and `whereExpression`, `CleanedWhere`, `DynamicField` and `Expression` in `better-auth/where.ts`. Application storage setup uses `effectPrismaAdapter`.
+The exports also include the adapter's translation modules: `makeRowAdapter` and `RelationQuery` in `server/better-auth/rowAdapter.ts`, `refineRelation` and `DynamicRelation` in `server/better-auth/relation.ts`, and `whereExpression`, `CleanedWhere`, `DynamicField` and `Expression` in `server/better-auth/where.ts`. Application storage setup uses `effectPrismaAdapter`.
 
 ### Install, setup and limits
 
@@ -515,21 +515,21 @@ The exports also include the adapter's translation modules: `makeRowAdapter` and
 pnpm add @shivaedev/platform effect@4.0.4
 ```
 
-Effect is the only required peer. The peer-free implementation lives in the shared `src/errors/` and `src/rpc/` folders and the `src/server/node-http/`, `src/server/rpc-server/` and `src/server/runtime/` folders; explicit exports retain the defining-module import paths listed above. The package-local `quality.fences.config.ts` prevents core from reaching optional peers listed in the manifest. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.
+Effect is the only required peer. The peer-free implementation lives in the shared `errors/` and `rpc/` folders and the `server/node-http/`, `server/rpc-server/` and `server/runtime/` folders; a module's import path is its path under `src/`. The package-local `quality.fences.config.ts` prevents core from reaching optional peers listed in the manifest. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.
 
 Install the optional peers for the selected integration:
 
 | Integration | Additional peers |
 | --- | --- |
-| `boundedBody.ts` | `@effect/platform-node` |
-| `appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
-| `better-auth/adapter.ts` | `better-auth`, `@shivaedev/effect-prisma`, `@prisma-next/sql-orm-client` |
-| `testing/vitest.ts` | `@effect/vitest`, `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`, `@trpc/server` |
+| `server/boundedBody.ts` | `@effect/platform-node` |
+| `server/appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
+| `server/better-auth/adapter.ts` | `better-auth`, `@shivaedev/effect-prisma`, `@prisma-next/sql-orm-client` |
+| `server/testing/makePlatformIt.ts` | `@effect/vitest`, `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`, `@trpc/server` |
 
 - The package declares Node 24 or newer and uses the Effect version in its peer manifest.
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.
 - Without an `HttpServerRequest`, `transportHeaders` falls back to the supplied RPC headers. An application using another transport must decide what headers it can trust.
-- Add tracing last on the native group, as in the example, so it wraps the authentication middleware too. Middleware outside that tracing boundary is responsible for its own diagnostics.
+- `appHost` adds tracing last on its server-side copy of the group. When composing a native RPC server directly, add `RequestTracing` last on the group, as in the example, so it wraps authentication too. Middleware outside that tracing boundary is responsible for its own diagnostics.
 - Redaction recognizes common shapes. Keep secrets out of messages and extend the key predicate for application-specific sensitive fields.
 - A development cache key is ignored when `NODE_ENV` is `production`. The application owns runtime disposal.
 - The Better Auth storage adapter's default model mapping capitalizes the model name. Supply `modelName` for a generated schema with another naming convention. Native Better Auth joins (`advanced.database.joins`) are rejected; leave that option off so Better Auth reads related rows with separate queries.
