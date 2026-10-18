@@ -9,13 +9,13 @@ interface PatternRule<Id extends string> {
 	readonly patterns: readonly RegExp[];
 }
 
-const firstMatch = (comment: SourceComment, patterns: readonly RegExp[]): string | undefined => {
+function firstMatch(comment: SourceComment, patterns: readonly RegExp[]): string | undefined {
 	const text = textOf(comment);
 	return patterns.map((pattern) => pattern.exec(text)?.[0]).find((match) => match !== undefined);
-};
+}
 
-export const definePatternRule = <const Id extends string>({ description, id, message, patterns }: PatternRule<Id>): Rule<Id, undefined> =>
-	defineRule({
+export function definePatternRule<const Id extends string>({ description, id, message, patterns }: PatternRule<Id>): Rule<Id, undefined> {
+	return defineRule({
 		check: ({ sources }) =>
 			sources.flatMap((file) =>
 				commentsOf(file).flatMap((comment): readonly Finding[] => {
@@ -26,3 +26,4 @@ export const definePatternRule = <const Id extends string>({ description, id, me
 		description,
 		id,
 	});
+}

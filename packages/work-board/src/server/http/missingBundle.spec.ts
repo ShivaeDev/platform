@@ -5,7 +5,6 @@ import { folder } from "#test/board.ts";
 import { bundleBoard } from "#test/bundleBoard.ts";
 
 const assets = [
-	["native.js", "text/javascript", "/* @shivaedev/work-board native browser bundle */"],
 	["react.js", "text/javascript", "data-board-react-root"],
 	["react.css", "text/css", "--background:"],
 ] as const;

@@ -182,6 +182,8 @@ A module link opens its source. Type and value declarations with the same name a
 | [rules/built-in.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/built-in.ts) | `builtInRules` |
 | [rules/manifests-sorted.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/manifests-sorted.ts) | `manifestsSorted` |
 | [rules/max-lines.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/max-lines.ts) | `maxLines` |
+| [rules/maxDepth.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/maxDepth.ts) | `maxDepth` |
+| [rules/noBarrel.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/noBarrel.ts) | `noBarrel` |
 | [rules/syntax.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/syntax.ts) | `parse` |
 
 ## rules/comments

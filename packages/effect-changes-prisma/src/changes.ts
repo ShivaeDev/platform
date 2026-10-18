@@ -69,7 +69,8 @@ export function makePrismaChanges<TTx extends Transactional<TTx>, A, R = never>(
 		return Effect.flatMap(Effect.service(Client), (current) => {
 			const savepoint = isTransactionClient(current);
 			const run = runTransaction({
-				body: (tx: TTx) => Effect.provideService(body, Client, tx),
+				body: () => body,
+				Client,
 				client: current,
 				deadline: savepoint ? undefined : (transactionOptions?.timeout ?? configuredTimeout(current)),
 				Expiry,

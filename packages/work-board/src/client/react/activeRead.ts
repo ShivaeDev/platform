@@ -1,7 +1,7 @@
 import type { Cause } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { resolvedDocumentFailure } from "#client/page/resolvedDocumentFailure.ts";
 import { pageQueries } from "./pageQueries.ts";
+import { resolvedDocumentFailure } from "./resolvedDocumentFailure.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 function health(value: { readonly _tag: string; readonly waiting: boolean; readonly cause?: Cause.Cause<unknown> }) {

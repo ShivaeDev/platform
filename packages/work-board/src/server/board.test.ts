@@ -33,22 +33,21 @@ describe("embedding", () => {
 		expect(yield* Effect.promise(() => response.text())).toContain("data-board-react-root");
 	});
 
-	effectApp("serves the React shell and its bundle beside the native client", function* () {
+	effectApp("serves the React shell and its single client bundle", function* () {
 		const handler = board.handler;
 		for (const [path, type] of [
 			["react.js", "javascript"],
 			["react.css", "text/css"],
-			["native.js", "javascript"],
 		]) {
 			const response = yield* Effect.promise(() => handler(new Request(`http://localhost/_board/${path}`, { headers: { host: "localhost" } })));
 			expect(response.status).toBe(200);
 			expect(response.headers.get("content-type")).toContain(type);
 			const body = yield* Effect.promise(() => response.text());
 			expect(body).toBe(readFileSync(new URL(`../../assets/${path}`, import.meta.url), "utf8"));
-			if (path === "native.js") {
-				expect(body).toContain("/* @shivaedev/work-board native browser bundle */");
-			}
 		}
+		expect((yield* Effect.promise(() => handler(new Request("http://localhost/_board/native.js", { headers: { host: "localhost" } })))).status).toBe(
+			404,
+		);
 		const page = yield* Effect.promise(() => handler(new Request("http://localhost/", { headers: { host: "localhost" } })));
 		const html = yield* Effect.promise(() => page.text());
 		expect(html).toContain("data-board-react-root");

@@ -1,8 +1,8 @@
 import type { TestContext, Vitest } from "@effect/vitest";
 import type { Effect, Layer, Scope } from "effect";
+import type { AnyTestLayer } from "@shivaedev/effect-test/any-test-layer.ts";
 import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test/types.ts";
 import type { EffectTRPCAdapter } from "#adapter.ts";
-import type { AnyTestLayer } from "./AnyTestLayer.ts";
 import type { EffectCallerFactory } from "./caller.ts";
 export type TrpcHarnessTest<THarness, TProvided> = <A, TEff extends Effect.Effect<unknown, unknown, TProvided>>(
 	name: string,

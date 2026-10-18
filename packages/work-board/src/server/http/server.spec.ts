@@ -168,11 +168,12 @@ describe("local-only safety", () => {
 });
 
 describe("assets", () => {
-	effectApp("serves the locally bundled native client from a source checkout", function* () {
-		const response = yield* Effect.promise(() => get("/_board/native.js"));
+	effectApp("serves the browser client in one React bundle from a source checkout", function* () {
+		const response = yield* Effect.promise(() => get("/_board/react.js"));
 		expect(response.status).toBe(200);
 		expect(response.headers.get("content-type")).toBe("text/javascript");
-		expect(yield* Effect.promise(() => response.text())).toBe(readFileSync(new URL("../../../assets/native.js", import.meta.url), "utf8"));
+		expect(yield* Effect.promise(() => response.text())).toBe(readFileSync(new URL("../../../assets/react.js", import.meta.url), "utf8"));
+		expect((yield* Effect.promise(() => get("/_board/native.js"))).status).toBe(404);
 	});
 
 	effectApp("serves Mermaid's modules from the installed package and nothing else", function* () {

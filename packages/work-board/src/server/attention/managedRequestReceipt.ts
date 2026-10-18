@@ -6,6 +6,13 @@ import { questionId, revisionOf } from "#server/responses/records.ts";
 
 type Request = NonNullable<Metadata["attention"]>[number];
 
+export type ManagedRequestState =
+	| { readonly _tag: "Open" }
+	| { readonly _tag: "Settled"; readonly receipt: RequestReceipt }
+	| { readonly _tag: "Conflicting"; readonly receipts: readonly string[] };
+
+const open: ManagedRequestState = { _tag: "Open" };
+
 function uniqueDocument(id: string, model: MetadataModel): MetadataDocument | undefined {
 	const matches = model.ids.get(id);
 	return matches?.length === 1 ? matches[0] : undefined;
@@ -38,7 +45,7 @@ function appliedAnswer(question: string, revision: string, responseId: string | 
 	return current.length === 1 && current[0]?.id === responseId;
 }
 
-export function managedRequestReceipt(document: MetadataDocument, request: Request, model: MetadataModel): RequestReceipt | undefined {
+function registeredQuestion(document: MetadataDocument, request: Request, model: MetadataModel) {
 	const item = document.parsed.fields.id;
 	if (
 		request.managed !== true
@@ -57,7 +64,6 @@ export function managedRequestReceipt(document: MetadataDocument, request: Reque
 	const revision = revisionOf(source);
 	const id = questionId(item, request.id, revision, document.file);
 	const archived = uniqueDocument(id, model);
-	const index = responseIndex(model);
 	const question = registeredContext(archived, model);
 	if (
 		archived?.parsed.diagnostics.length !== 0
@@ -70,14 +76,13 @@ export function managedRequestReceipt(document: MetadataDocument, request: Reque
 	) {
 		return undefined;
 	}
-	if (index.receiptProblems) {
-		return undefined;
-	}
-	const receipts = index.receipts.get(id) ?? [];
-	const saved = receipts.length === 1 ? receipts[0] : undefined;
-	const receipt = saved?.parsed.fields.requestReceipt;
+	return { id, revision };
+}
+
+function qualified(saved: MetadataDocument, question: string, revision: string, model: MetadataModel): RequestReceipt | undefined {
+	const receipt = saved.parsed.fields.requestReceipt;
 	if (
-		!(saved && receipt)
+		!receipt
 		|| saved.parsed.fields.kind !== "result"
 		|| saved.parsed.diagnostics.length > 0
 		|| !saved.parsed.fields.id
@@ -89,5 +94,31 @@ export function managedRequestReceipt(document: MetadataDocument, request: Reque
 	if (receipt.disposition === "superseded") {
 		return receipt.response === undefined ? receipt : undefined;
 	}
-	return appliedAnswer(id, revision, receipt.response, model) ? receipt : undefined;
+	return appliedAnswer(question, revision, receipt.response, model) ? receipt : undefined;
+}
+
+function settling(receipts: readonly RequestReceipt[]): RequestReceipt | undefined {
+	return receipts.toSorted(
+		(left, right) => Number(right.disposition === "applied") - Number(left.disposition === "applied") || right.recordedAt - left.recordedAt,
+	)[0];
+}
+
+export function managedRequestState(document: MetadataDocument, request: Request, model: MetadataModel): ManagedRequestState {
+	const question = registeredQuestion(document, request, model);
+	const index = responseIndex(model);
+	if (!question || index.receiptProblems) {
+		return open;
+	}
+	const saved = index.receipts.get(question.id) ?? [];
+	const receipts = saved.flatMap((candidate) => qualified(candidate, question.id, question.revision, model) ?? []);
+	const receipt = receipts.length === saved.length ? settling(receipts) : undefined;
+	if (receipt) {
+		return { _tag: "Settled", receipt };
+	}
+	return receipts.length > 0 ? { _tag: "Conflicting", receipts: saved.map((candidate) => candidate.file) } : open;
+}
+
+export function managedRequestReceipt(document: MetadataDocument, request: Request, model: MetadataModel): RequestReceipt | undefined {
+	const state = managedRequestState(document, request, model);
+	return state._tag === "Settled" ? state.receipt : undefined;
 }

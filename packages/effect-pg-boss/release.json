@@ -2,17 +2,9 @@
 	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "create-queue-deadlock.md",
-			"text": "### Fixed\n\n- Registration creates a queue again, up to six times with a short backoff, when PostgreSQL rolls the creation back as a deadlock victim (SQLSTATE `40P01`). A partitioned queue created while other queues in the schema have traffic no longer fails Layer acquisition.\n"
-		},
-		{
-			"name": "error-message.md",
-			"text": "### Changed\n\n- `PgBossError` has a message that names the operation, the queue and the original error's class and code, such as a PostgreSQL SQLSTATE, without the redacted original message. A registration failure names the queue it was preparing.\n"
-		},
-		{
-			"name": "idle-client-termination.md",
-			"text": "### Fixed\n\n- Observe pg-boss connection errors throughout startup and shutdown, and log administrator-terminated connections at debug while preserving query failures and application error callbacks.\n- Keep observing idle errors from closing sockets after shutdown, when shutdown fails, and when `stop({ close: false })` leaves the pool open.\n"
+			"name": "testing-module.md",
+			"text": "### Added\n\n- Export `testing.ts` with `makePgBossTesting`, `testRetryPolicy`, `PgBossTesting` and `PgBossTestingOptions`, plus `PgBossTestingError` from `error.ts`. Story kits can read Schema-decoded jobs, fail the next send, expire a selected attempt, set immediate retries, check batch budgets and schema versions, and wait for local queue changes or worker idleness without application SQL or timer polling.\n- Expiry rules stay with each successfully sent job, and native terminal worker timeouts wake queue-change waiters even when a handler promise stays pending.\n"
 		}
 	],
-	"version": "0.8.1"
+	"version": "0.9.0"
 }

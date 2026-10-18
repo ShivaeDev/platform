@@ -1,6 +1,7 @@
 import { Option } from "effect";
+import type { BeforeCommit } from "@shivaedev/effect-changes/channel.ts";
 import { bindingIsolation } from "./bindingIsolation.ts";
-import { makeChanges } from "./changes.ts";
+import { type Change, makeChanges } from "./changes.ts";
 import { connect } from "./database.ts";
 import { postgresEngine } from "./postgresEngine.ts";
 import { prisma } from "./prisma.ts";
@@ -8,6 +9,12 @@ import { prisma } from "./prisma.ts";
 export function postgres() {
 	return prisma.trait("database", "Prisma connects to a fresh PostgreSQL schema", function* (engine) {
 		engine.database = Option.some(yield* postgresEngine(engine.options));
+	});
+}
+
+export function beforeCommit(hook: BeforeCommit<Change>) {
+	return prisma.trait("configuration", "the application checks changes before commit", (engine) => {
+		engine.options = { ...engine.options, beforeCommit: hook };
 	});
 }
 

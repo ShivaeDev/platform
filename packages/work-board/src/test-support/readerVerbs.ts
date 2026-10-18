@@ -86,6 +86,11 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 					?.dispatchEvent(new (page().window.Event)("submit", { bubbles: true, cancelable: true }));
 			}),
 		text,
+		todayRows: (list: string) =>
+			[...page().document.querySelectorAll(`ul[aria-label="${list}"] > li`)].map((row) => ({
+				detail: row.querySelector("p")?.getAttribute("title"),
+				title: row.querySelector("a")?.getAttribute("title"),
+			})),
 		view: () => readerView(engine),
 		waitForInbox: (count: number) => {
 			tell(`the reader waits for ${count} waiting in both Inbox counts`);
