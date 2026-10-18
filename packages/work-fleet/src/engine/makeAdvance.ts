@@ -13,12 +13,14 @@ import { makeValidate } from "#engine/makeValidate.ts";
 import { missingAcceptedTurn, recoverMissingTurn } from "#engine/recoverMissingTurn.ts";
 import { reconcileBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
+import { observeReleasedDeliveries } from "#engine/releasedDeliveries.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	return Effect.fn("Fleet.advance")(function* (workId: string) {
 		let stored = yield* state.load(workId);
 		stored = yield* closeDecisions(state)(stored);
+		stored = yield* observeReleasedDeliveries(state, stored);
 		if (stored.value.pendingContinuation !== undefined) {
 			return yield* launch(stored, "repair", stored.value.pendingContinuation);
 		}

@@ -65,6 +65,7 @@ const cycleFields = {
 		Schema.Struct({ prompt: Schema.optional(Schema.String), rejectedAt: Schema.Number, rejections: Schema.Number, retryAt: Schema.Number }),
 	),
 	mergeAreasReleased: Schema.optional(Schema.Boolean),
+	mergedDelivery: Schema.optional(Schema.Struct({ ...Delivery.fields, revision: Schema.optional(Schema.String) })),
 	mergeReadyAt: Schema.optional(Schema.Number),
 	mergeReadyHead: Schema.optional(Schema.String),
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),

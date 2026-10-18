@@ -1,6 +1,9 @@
 const OVERRIDES_HEADING = /^overrides:[ \t]*\n/mu;
 
 export function withTarballOverrides(workspace: string, tarballs: Readonly<Record<string, string>>): string {
+	if (Object.keys(tarballs).length === 0) {
+		return workspace;
+	}
 	const keys = Object.keys(tarballs).map((name) => `  ${JSON.stringify(name)}:`);
 	let inOverrides = false;
 	const source = workspace

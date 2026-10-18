@@ -2,6 +2,7 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { authAction } from "@shivaedev/effect-react/client/authAction.ts";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
+import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
 import { App } from "#client/App.tsx";
 import { appRouter } from "#client/appRouter.tsx";
 import type { AuthActions, Credentials } from "#client/auth.ts";
@@ -74,7 +75,8 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 					engine.signOutCalls += 1;
 					return Promise.resolve({ data: null, error: { message: signOutFailure, status: 400, statusText: "Bad Request" } });
 				});
-	yield* Effect.promise(() => view.render(<NotesScreen client={engine.client} {...(signOut === undefined ? {} : { signOut })} />));
+	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
+	yield* Effect.promise(() => view.render(<NotesScreen client={engine.client} loaded={loaded} {...(signOut === undefined ? {} : { signOut })} />));
 	yield* Effect.promise(() => eventually(() => requireSetup(engine.client.calls.includes("list"), "The notes list did not load")));
 });
 

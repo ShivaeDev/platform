@@ -8,13 +8,13 @@ import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { AuthUnavailable, Conflict } from "#errors/taxonomy.ts";
 import { Identity } from "#rpc/identity.ts";
-import { Authenticated, RequestTracing } from "#rpc/middleware.ts";
+import { Authenticated } from "#rpc/middleware.ts";
 import type { SessionPolicy, SessionShape } from "#server/rpc-server/session.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("host-test/Greeting") {}
-export const Api = RpcGroup.make(Rpc.make("greet", { error: Conflict, payload: { reject: Schema.Boolean }, success: Schema.String }))
-	.middleware(Authenticated)
-	.middleware(RequestTracing);
+export const Api = RpcGroup.make(Rpc.make("greet", { error: Conflict, payload: { reject: Schema.Boolean }, success: Schema.String })).middleware(
+	Authenticated,
+);
 export const handlers = Api.toLayer({
 	greet: ({ reject }) =>
 		Effect.gen(function* () {
