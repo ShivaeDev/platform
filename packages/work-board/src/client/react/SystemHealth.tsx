@@ -40,7 +40,7 @@ export function SystemHealth({
 				<div data-needs-you>
 					<dt>Needs you</dt>
 					<dd className="flex flex-wrap items-baseline gap-2">
-						<strong>{needsYouCount(needsYou)}</strong>
+						<strong>{needsYou ?? "Unavailable"}</strong>
 						<a className="text-xs" href="/#needs-you">
 							Open Today
 						</a>
@@ -81,11 +81,4 @@ function CapacityRejection({ value }: { readonly value: FleetHealth["lastCapacit
 			<ObservedTime at={value.at} />
 		</>
 	);
-}
-
-function needsYouCount(count: number | null | undefined) {
-	if (count === undefined) {
-		return "Loading…";
-	}
-	return count === null ? "Unavailable" : count;
 }

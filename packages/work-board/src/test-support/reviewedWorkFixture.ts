@@ -20,8 +20,9 @@ relationships:
 
 The upload test fails about once in twenty runs.`;
 
-export const reviewedWorkFixture = {
-	[`responses/${reviewedDecisionId}.md`]: `---
+export function reviewedWorkFixture(reviewed = REVIEWED_TASK) {
+	return {
+		[`responses/${reviewedDecisionId}.md`]: `---
 ${JSON.stringify({
 	attention: [
 		{
@@ -60,8 +61,9 @@ Merge the reviewed PR
 ## Reviewed Board work
 
 ~~~
-${REVIEWED_TASK}
+${reviewed}
 ~~~
 `,
-	"tasks/upload.md": REVIEWED_TASK,
-};
+		"tasks/upload.md": REVIEWED_TASK,
+	};
+}

@@ -6,7 +6,7 @@ import { reviewedDecisionId, reviewedWorkFixture } from "#test/reviewedWorkFixtu
 
 boardStory.it(
 	"shows the work a Fleet decision reviewed as its title, criteria and description instead of raw front matter",
-	[projectFiles(reviewedWorkFixture), readerAt(`/_board/item/${reviewedDecisionId}/`)],
+	[projectFiles(reviewedWorkFixture()), readerAt(`/_board/item/${reviewedDecisionId}/`)],
 	function* ({ page }) {
 		function body() {
 			return page.document.querySelector("article.doc");
@@ -24,5 +24,31 @@ boardStory.it(
 			"The upload test fails about once in twenty runs.",
 		]);
 		expect(body()?.querySelector("pre")).toBeNull();
+	},
+);
+
+boardStory.it(
+	"keeps reviewed work without readable front matter as the agent wrote it",
+	[projectFiles(reviewedWorkFixture("Plain notes from the reviewer.")), readerAt(`/_board/item/${reviewedDecisionId}/`)],
+	function* ({ page }) {
+		yield* Effect.promise(() =>
+			waitFor(() => expect(page.document.querySelector("article.doc pre")?.textContent?.trim()).toBe("Plain notes from the reviewer.")),
+		);
+	},
+);
+
+boardStory.it(
+	"names untitled reviewed work by its id and shows no criteria it does not have",
+	[
+		projectFiles(reviewedWorkFixture("---\nid: task.untitled\nkind: task\n---\nOnly a description.")),
+		readerAt(`/_board/item/${reviewedDecisionId}/`),
+	],
+	function* ({ page }) {
+		yield* Effect.promise(() =>
+			waitFor(() => expect(page.document.querySelector("article.doc blockquote")?.textContent?.trim()).toBe("Only a description.")),
+		);
+		const body = page.document.querySelector("article.doc")?.textContent ?? "";
+		expect(body).toContain("task.untitled · task.untitled");
+		expect(body).not.toContain("Criteria:");
 	},
 );
