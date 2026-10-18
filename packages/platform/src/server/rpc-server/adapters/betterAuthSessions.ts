@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Effect, Option, Predicate } from "effect";
 import type { Headers } from "effect/http";
 import { AuthUnavailable } from "#errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#rpc/identity.ts";
@@ -28,10 +28,18 @@ export function betterAuthSessions<TSession extends SessionShape>(getSession: Ge
 			if (resolved === null || getProviderAccounts === undefined) {
 				return resolved;
 			}
-			const accounts = await getProviderAccounts(transport);
+			const accounts = await getProviderAccounts(transport).catch((cause: unknown) => {
+				if (Predicate.hasProperty(cause, "statusCode") && cause.statusCode === 401) {
+					return null;
+				}
+				throw cause;
+			});
+			if (accounts === null) {
+				return null;
+			}
 			return {
 				...resolved,
-				user: { ...resolved.user, providerAccounts: accounts.map(({ accountId, providerId }) => ({ accountId, providerId })) },
+				user: { ...resolved.user, providerAccounts: accounts },
 			};
 		}).pipe(Effect.catch((error) => unavailable(error.cause)));
 		return Option.fromNullishOr(session);

@@ -242,6 +242,15 @@ Set these variables to the returned record IDs. Repeating `wait` reattaches to t
 
 The 48-hour deadline starts at first durable registration and does not reset on reattachment or preview. Exit 2 reports an unanswered deadline; the question stays available and a late response wins over the old timeout. Transport/index failures remain failures, rather than evidence that the human did not answer. Damaged or ambiguous response history is unavailable until repaired. Harnesses own shell lifetime and model wakeup; reading a reply does not promise agent continuation.
 
+To watch replies across every question in a workspace, follow its files:
+
+```sh
+work-board responses --follow ./project-notes
+work-board responses --follow ./project-notes --since 2026-01-01T00:00:00Z
+```
+
+Each stdout line contains the item ID, request ID, response ID and first line of the answer Markdown, separated by tabs. The feed includes answers, clarifications and deferrals once each, ordered by recorded time and then response ID within each refresh. It skips responses recorded before startup unless `--since` supplies an inclusive ISO timestamp. It reads the folder directly, so a running Board server is unnecessary.
+
 #### Ask several related questions in one packet
 
 Add question/option directives to the body of the item with an explicit request:

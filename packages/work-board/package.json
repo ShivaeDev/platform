@@ -95,7 +95,7 @@
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json && pnpm build:browser",
-		"build:browser": "esbuild src/server/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --outfile=assets/agent.js && vite build",
+		"build:browser": "esbuild src/server/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --external:yaml --outfile=assets/agent.js && vite build",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "pnpm test:prepare && vitest run",
 		"test:prepare": "pnpm build:browser",
