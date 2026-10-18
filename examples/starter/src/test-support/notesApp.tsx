@@ -62,7 +62,7 @@ export const notesApp = storyKit({
 		}),
 		storedNotes: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
-			return yield* sql`select n.title, n.version, u.email from notes n left join "user" u on u.id = n."ownerId" order by n.id`;
+			return yield* sql`select n.title, n.version, u.email from notes n left join "user" u on u.id = n.owner_id order by n.id`;
 		}),
 		storedSessions: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;

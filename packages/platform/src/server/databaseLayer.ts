@@ -3,12 +3,13 @@ import { Config, Effect, Layer, type Redacted, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { assertPostgresMigrations } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
+import type { SqlNameTransforms } from "@shivaedev/effect-sql/clientOptions.ts";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
 import type { AppChanges, AppDatabaseOptions } from "#server/appHost.ts";
 import { databaseAddress } from "./databaseAddress.ts";
 
-export interface DatabaseConfig {
+export interface DatabaseConfig extends SqlNameTransforms {
 	readonly applicationName?: string;
 	readonly changes?: Omit<PostgresChangesOptions, "client" | "resync">;
 	readonly databaseUrl?: Redacted.Redacted<string>;
@@ -20,6 +21,8 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 		Effect.gen(function* () {
 			const url = options.config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			return PgClient.layer({
+				transformQueryNames: options.config?.transformQueryNames,
+				transformResultNames: options.config?.transformResultNames,
 				url,
 				...databaseAddress(url),
 				...(options.config?.maxConnections === undefined ? {} : { maxConnections: options.config.maxConnections }),
