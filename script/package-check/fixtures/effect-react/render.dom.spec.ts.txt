@@ -2,8 +2,8 @@ import { Effect, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { createElement } from "react";
 import { expect, it } from "vitest";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
-import { eventually, expectNoReactWarnings, render, type Rendered } from "@shivaedev/effect-react/testing.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { eventually, expectNoReactWarnings, render, type Rendered } from "@shivaedev/effect-react/client/testing.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 expectNoReactWarnings();

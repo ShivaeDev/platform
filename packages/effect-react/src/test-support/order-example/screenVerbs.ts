@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { expect } from "vitest";
-import { eventually } from "#testing.ts";
+import { eventually } from "#client/testing.ts";
 import type { Application } from "./applicationEngine.ts";
 import { getContainer, input } from "./screens.ts";
 

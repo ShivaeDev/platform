@@ -3,7 +3,7 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import type { ReactNode } from "react";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { render } from "@shivaedev/effect-react/client/testing.ts";
 import type { Reader } from "#client/client.ts";
 import { FormContext } from "#client/react/FormContext.ts";
 import { workContract, workRpcs } from "#rpc/contract.ts";
@@ -33,5 +33,9 @@ export async function renderBoard(files: Readonly<Record<string, string>>, compo
 			<BoardFixture create={(registry) => component(api, registry)} />
 		</FormContext.Provider>,
 	);
-	return { ...view, forms: api.forms };
+	return {
+		...view,
+		forms: api.forms,
+		render: (node: ReactNode) => view.render(<FormContext.Provider value={api.forms}>{node}</FormContext.Provider>),
+	};
 }

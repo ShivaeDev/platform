@@ -86,7 +86,9 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 		expect(backlog(recovered.value)).toBe(false);
 		expect((yield* fleet.list()).map(({ value }) => value.stage)).toEqual(["released"]);
 		if (stopped.result?.kind === "change") {
-			expect(yield* context.fixture.foreignReservations()).toContainEqual(expect.objectContaining({ owner: stopped.result.pr }));
+			const owner = stopped.result.pr;
+			const reservations = yield* context.fixture.foreignReservations();
+			expect(reservations.some((reservation) => reservation.owner === owner)).toBe(decision.code !== "pr-closed");
 		}
 	} else {
 		assertRetryProgress(stopped, recovered.value);

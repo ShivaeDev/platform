@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { afterEach, expect, it } from "vitest";
 import { resolveRules } from "#config/resolve.ts";
 import { evaluate, passes } from "#engine/evaluate.ts";
-import { runRules } from "#engine/run-rules.ts";
+import { runRules } from "#engine/runRules.ts";
 import { collectInventory } from "#inventory/collect.ts";
 import { render } from "#report/render.ts";
 import { importFences } from "#rules/imports/fences.ts";
@@ -58,7 +58,7 @@ it("discovers a package boundary outside the source inventory and reports its tr
 			},
 		]),
 	);
-	const report = render(outcome, { baseline: "baseline.jsonl", checked: 2, descriptions: new Map(), registry: "registry.json", warnings: "all" });
+	const report = render(outcome, { baseline: "baseline.jsonl", checked: 2, descriptions: new Map(), registry: "registry.json" });
 	expect(report).toContain("error imports/fences (2)");
 	expect(report).toContain("packages/ui/src/main.ts:1");
 	expect(report).toContain("quality: failed with 2 errors");

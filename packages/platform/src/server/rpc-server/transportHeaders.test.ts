@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { Headers, HttpServerRequest } from "effect/http";
 import { expect, it } from "vitest";
-import { trustedOrigins } from "#rpc-server/origin.ts";
+import { trustedOrigins } from "#server/rpc-server/origin.ts";
 import { makeApp } from "#test/rpc/api.ts";
 import { createProvider, ORIGIN, signup } from "#test/rpc/harness.ts";
 import { transportHeaders } from "./transportHeaders.ts";

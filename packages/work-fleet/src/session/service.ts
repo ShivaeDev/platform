@@ -1,5 +1,5 @@
 import { Cause, Context, Effect } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import {
 	type ContinueSession,
 	type ReconcileSession,

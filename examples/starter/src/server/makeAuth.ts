@@ -2,8 +2,8 @@ import { betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import type { Pool } from "pg";
-import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts";
-import { trustedProxyPeer, trustedProxyRanges } from "@shivaedev/platform/rpc-server/local.ts";
+import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
+import { trustedProxyPeer, trustedProxyRanges } from "@shivaedev/platform/server/rpc-server/local.ts";
 import { authOptions } from "#server/authOptions.ts";
 
 export const makeAuth = Effect.fn("App.makeAuth")(function* (config: { readonly database: Pool; readonly secret?: Redacted.Redacted<string> }) {

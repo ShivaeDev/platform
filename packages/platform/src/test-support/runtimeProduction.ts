@@ -1,7 +1,7 @@
 import process from "node:process";
 import { Layer, Logger } from "effect";
 import { HttpServer } from "effect/http";
-import { makePlatformRuntime } from "#runtime/make.ts";
+import { makePlatformRuntime } from "#server/runtime/makePlatform.ts";
 import { ping } from "#test/app-host/ping.ts";
 import { emptyHost } from "#test/app-host/state.ts";
 import { otlpHost } from "#test/otlpHost.ts";

@@ -9,11 +9,11 @@ A module link opens its source. Type and value declarations with the same name a
 | Module | Exported names |
 | --- | --- |
 | [cli.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli.ts) | None; executable entry. |
-| [config.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/config.ts) | `Level`, `RuleSetting`, `RuleSettings`, `BuiltInRules`, `QualityConfig`, `defineConfig` |
+| [config.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/config.ts) | `Level` (`"error"`), `RuleSetting`, `RuleSettings`, `BuiltInRules`, `QualityConfig`, `defineConfig` |
 | [decoded.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/decoded.ts) | `Decoded`, `decodeWith`, `validOrFail` |
 | [failure.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/failure.ts) | `SetupFailure`, `GateFailed` |
 | [rule.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rule.ts) | `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext`, `Configured`, `Rule`, `defineRule` |
-| [standard-schema.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/standard-schema.ts) | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue` |
+| [standardSchema.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/standardSchema.ts) | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue` |
 | [testProjects.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/testProjects.ts) | `testProjects` |
 
 ## baseline
@@ -50,7 +50,7 @@ A module link opens its source. Type and value declarations with the same name a
 | [cli/migrate.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/migrate.ts) | `migrateBaseline` |
 | [cli/migrateExceptions.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/migrateExceptions.ts) | `migrateExceptions` |
 | [cli/program.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/program.ts) | `Invocation`, `program` |
-| [cli/run-main.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/run-main.ts) | `exitCode`, `quietOnClosedPipe`, `services`, `explained`, `runMain` |
+| [cli/runMain.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/runMain.ts) | `exitCode`, `quietOnClosedPipe`, `services`, `explained`, `runMain` |
 | [cli/shrink.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/shrink.ts) | `pruneBaseline`, `tightenBaseline` |
 
 ## config
@@ -66,11 +66,11 @@ A module link opens its source. Type and value declarations with the same name a
 
 | Module | Exported names |
 | --- | --- |
-| [engine/baseline-file.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/baseline-file.ts) | `BaselineFile`, `readInput`, `readBaseline` |
+| [engine/baselineFile.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/baselineFile.ts) | `BaselineFile`, `readInput`, `readBaseline` |
 | [engine/evaluate.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/evaluate.ts) | `Outcome`, `evaluate`, `passes` |
-| [engine/run-rules.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/run-rules.ts) | `ActiveRule`, `runRules` |
+| [engine/runRules.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/runRules.ts) | `ActiveRule`, `runRules` |
 | [engine/session.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/session.ts) | `Session`, `scan`, `openSession` |
-| [engine/violation.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/violation.ts) | `ActiveLevel`, `Violation`, `keyOf`, `byLocation`, `groupBy`, `RuleIndex`, `covers`, `levelOf`, `registrable`, `unusedEntryProblem` |
+| [engine/violation.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/violation.ts) | `ActiveLevel` (`"error"`), `Violation`, `keyOf`, `byLocation`, `groupBy`, `RuleIndex`, `covers`, `levelOf`, `registrable`, `unusedEntryProblem` |
 
 ## exceptions
 
@@ -116,7 +116,7 @@ A module link opens its source. Type and value declarations with the same name a
 | [imports/glob.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/glob.ts) | `globMatcher` |
 | [imports/graph.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/graph.ts) | `ImportEdge`, `UnresolvedImport`, `ImportGraph`, `importGraph` |
 | [imports/paths.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/paths.ts) | `shortestPath` |
-| [imports/pnpm-workspace.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/pnpm-workspace.ts) | `pnpmWorkspacePatterns` |
+| [imports/pnpmWorkspacePatterns.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/pnpmWorkspacePatterns.ts) | `pnpmWorkspacePatterns` |
 | [imports/projects.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/projects.ts) | `Project`, `projectsFor` |
 | [imports/resolve.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/resolve.ts) | `Endpoint`, `builtinName`, `packageNameOf`, `isDeclarationFile`, `presumedTarget`, `resolveImport` |
 | [imports/runtime.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/runtime.ts) | `Runtime`, `runtimeOf` |
@@ -145,7 +145,7 @@ A module link opens its source. Type and value declarations with the same name a
 | --- | --- |
 | [inventory/collect.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/collect.ts) | `InventoryScope`, `Inventory`, `linesOf`, `collectInventory` |
 | [inventory/filesystem.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/filesystem.ts) | `FilesystemFailure`, `orWhenAbsent`, `readOptionalText`, `readRequiredText`, `writeText` |
-| [inventory/ignore-scope.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/ignore-scope.ts) | `Verdict`, `IgnoreScope`, `emptyScope`, `posix`, `withIgnoreFile`, `insideKept`, `verdictFor` |
+| [inventory/ignoreScope.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/ignoreScope.ts) | `Verdict`, `IgnoreScope`, `emptyScope`, `posix`, `withIgnoreFile`, `insideKept`, `verdictFor` |
 | [inventory/trackedPaths.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/trackedPaths.ts) | `trackedPaths`, `ignoredTrackedPaths` |
 | [inventory/walk.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/walk.ts) | `ignoreScopeAt`, `scopeAbove`, `walk` |
 
@@ -171,7 +171,7 @@ A module link opens its source. Type and value declarations with the same name a
 | Module | Exported names |
 | --- | --- |
 | [report/plural.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/report/plural.ts) | `plural` |
-| [report/render.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/report/render.ts) | `WarningDetail`, `ReportContext`, `render` |
+| [report/render.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/report/render.ts) | `ReportContext`, `render` |
 | [report/stale.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/report/stale.ts) | `staleSections` |
 
 ## rules
@@ -179,9 +179,9 @@ A module link opens its source. Type and value declarations with the same name a
 | Module | Exported names |
 | --- | --- |
 | [rules/biome.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/biome.ts) | `PRESET`, `rootConfig`, `biome` |
-| [rules/built-in.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/built-in.ts) | `builtInRules` |
-| [rules/manifests-sorted.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/manifests-sorted.ts) | `manifestsSorted` |
-| [rules/max-lines.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/max-lines.ts) | `maxLines` |
+| [rules/builtIn.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/builtIn.ts) | `builtInRules` |
+| [rules/manifestsSorted.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/manifestsSorted.ts) | `manifestsSorted` |
+| [rules/maxLines.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/maxLines.ts) | `maxLines` |
 | [rules/maxDepth.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/maxDepth.ts) | `maxDepth` |
 | [rules/noBarrel.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/noBarrel.ts) | `noBarrel` |
 | [rules/syntax.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/syntax.ts) | `parse` |
@@ -191,14 +191,14 @@ A module link opens its source. Type and value declarations with the same name a
 | Module | Exported names |
 | --- | --- |
 | [rules/comments/kinds.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/kinds.ts) | `Pragmas`, `textOf`, `isJsdoc`, `isPragma`, `isDirective` |
-| [rules/comments/max-per-file.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/max-per-file.ts) | `maxPerFile` |
-| [rules/comments/no-banner.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/no-banner.ts) | `noBanner` |
-| [rules/comments/no-environment-pragma.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/no-environment-pragma.ts) | `noEnvironmentPragma` |
-| [rules/comments/no-jsdoc.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/no-jsdoc.ts) | `noJsdoc` |
-| [rules/comments/no-line-reference.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/no-line-reference.ts) | `noLineReference` |
-| [rules/comments/no-pr-reference.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/no-pr-reference.ts) | `noPrReference` |
-| [rules/comments/no-todo.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/no-todo.ts) | `noTodo` |
-| [rules/comments/pattern-rule.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/pattern-rule.ts) | `definePatternRule` |
+| [rules/comments/maxPerFile.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/maxPerFile.ts) | `maxPerFile` |
+| [rules/comments/noBanner.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/noBanner.ts) | `noBanner` |
+| [rules/comments/noEnvironmentPragma.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/noEnvironmentPragma.ts) | `noEnvironmentPragma` |
+| [rules/comments/noJsdoc.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/noJsdoc.ts) | `noJsdoc` |
+| [rules/comments/noLineReference.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/noLineReference.ts) | `noLineReference` |
+| [rules/comments/noPrReference.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/noPrReference.ts) | `noPrReference` |
+| [rules/comments/noTodo.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/noTodo.ts) | `noTodo` |
+| [rules/comments/definePattern.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/definePattern.ts) | `definePatternRule` |
 | [rules/comments/scan.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/comments/scan.ts) | `SourceComment`, `bodyOf`, `scanComments`, `commentsOf` |
 
 ## rules/files
@@ -235,13 +235,13 @@ A module link opens its source. Type and value declarations with the same name a
 
 | Module | Exported names |
 | --- | --- |
-| [rules/suppressions/biome-overrides.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/biome-overrides.ts) | `biomeOverrides` |
+| [rules/suppressions/biomeOverrides.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/biomeOverrides.ts) | `biomeOverrides` |
 | [rules/suppressions/biomeRecommended.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/biomeRecommended.ts) | `biomeRecommendedFrom`, `biomeRecommended` |
 | [rules/suppressions/directives.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/directives.ts) | `SUPPRESSIONS`, `suppressionIn` |
-| [rules/suppressions/no-double-cast.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/no-double-cast.ts) | `noDoubleCast` |
-| [rules/suppressions/no-inline.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/no-inline.ts) | `noInline` |
+| [rules/suppressions/noDoubleCast.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/noDoubleCast.ts) | `noDoubleCast` |
+| [rules/suppressions/noInline.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/noInline.ts) | `noInline` |
 | [rules/suppressions/noIgnoreDeprecations.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/noIgnoreDeprecations.ts) | `noIgnoreDeprecations` |
-| [rules/suppressions/stylesheet-comments.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/stylesheet-comments.ts) | `STYLESHEET`, `stylesheetComments` |
+| [rules/suppressions/stylesheetComments.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/suppressions/stylesheetComments.ts) | `STYLESHEET`, `stylesheetComments` |
 
 ## rules/suppressions/biome
 

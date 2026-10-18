@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { appHost } from "#appHost.ts";
 import { Authenticated, RequestTracing } from "#rpc/middleware.ts";
+import { appHost } from "#server/appHost.ts";
 import { sessions } from "./fixture.ts";
 import { AuthenticatedPing, Ping, pingHandlers } from "./ping.ts";
 import { host } from "./story.ts";

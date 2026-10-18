@@ -1,7 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { appDatabase, appHost } from "#appHost.ts";
+import { appDatabase, appHost } from "#server/appHost.ts";
 import { databaseProxy } from "./databaseProxy.ts";
 import { Api, feature, handlers, sessions } from "./fixture.ts";
 import { Ping } from "./ping.ts";

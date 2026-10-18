@@ -526,6 +526,8 @@ Both commands require `work-board` on the client's PATH. `work-board mcp <dir>` 
 
 Fleet unavailability stays explicit in results. These tools read state without changing files or starting a board.
 
+In Claude Code, the [Work Board plugin](https://github.com/ShivaeDev/platform/tree/main/packages/work-board-plugin) reads the same socket without registering a server: it finds the nearest `.work` folder above the session, shows Needs you, In flight and Goals in a pane and a band above the prompt, and offers the same three tools.
+
 #### CLI reference
 
 | Server argument | Default | Meaning |

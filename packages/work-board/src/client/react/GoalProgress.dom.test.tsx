@@ -1,36 +1,36 @@
-import { expect, it } from "vitest";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { expect } from "vitest";
+import { screenStory } from "#test/screenStory.ts";
+import { componentScreen } from "#test/screenTraits.ts";
 import { GoalProgress } from "./GoalProgress.tsx";
 
-it.each([false, true])("shows three progress groups and a quiet done count (compact: %s)", async (compact) => {
-	const view = await render(<GoalProgress compact={compact} counts={{ active: 7, done: 31, planned: 2 }} title="A goal" />);
-	try {
-		expect(view.container.querySelector('[role="img"]')?.getAttribute("aria-label")).toBe("A goal: 31 of 40 done");
-		expect(view.container.querySelector('[role="img"]')?.getAttribute("title")).toBe("A goal: 31 of 40 done");
-		expect(view.container.querySelector("p")?.textContent).toBe(compact ? "31/40" : "31 of 40 done");
-		expect(view.container.querySelectorAll("[data-status-token]")).toHaveLength(0);
-		expect(view.container.querySelectorAll('[role="img"] > span')).toHaveLength(3);
-	} finally {
-		await view.unmount();
-	}
-});
+for (const compact of [false, true]) {
+	screenStory.it(
+		`shows three progress groups and a quiet done count (compact: ${compact})`,
+		[componentScreen(<GoalProgress compact={compact} counts={{ active: 7, done: 31, planned: 2 }} title="A goal" />)],
+		({ readAttribute, readText, findElements }) => {
+			expect(readAttribute('[role="img"]', "aria-label")).toBe("A goal: 31 of 40 done");
+			expect(readAttribute('[role="img"]', "title")).toBe("A goal: 31 of 40 done");
+			expect(readText("p")).toBe(compact ? "31/40" : "31 of 40 done");
+			expect(findElements("[data-status-token]")).toHaveLength(0);
+			expect(findElements('[role="img"] > span')).toHaveLength(3);
+		},
+	);
+}
 
-it("includes all linked statuses in the total without claiming deferred or unrecorded work is done", async () => {
-	const view = await render(<GoalProgress counts={{ accepted: 1, blocked: 1, completed: 1, deferred: 1, "not recorded": 1 }} title="A goal" />);
-	try {
-		expect(view.container.querySelector("p")?.textContent).toBe("2 of 5 done");
-		expect(view.container.querySelector('[role="img"]')?.getAttribute("aria-description")).toContain("in progress: 1, planned: 2");
-	} finally {
-		await view.unmount();
-	}
-});
+screenStory.it(
+	"includes all linked statuses in the total without claiming deferred or unrecorded work is done",
+	[componentScreen(<GoalProgress counts={{ accepted: 1, blocked: 1, completed: 1, deferred: 1, "not recorded": 1 }} title="A goal" />)],
+	({ readText, readAttribute }) => {
+		expect(readText("p")).toBe("2 of 5 done");
+		expect(readAttribute('[role="img"]', "aria-description")).toContain("in progress: 1, planned: 2");
+	},
+);
 
-it("shows zero linked work without a not-linked label", async () => {
-	const view = await render(<GoalProgress counts={{}} title="Empty goal" />);
-	try {
-		expect(view.container.textContent).toBe("0 of 0 done");
-		expect(view.container.querySelectorAll('[role="img"] > span')).toHaveLength(0);
-	} finally {
-		await view.unmount();
-	}
-});
+screenStory.it(
+	"shows zero linked work without a not-linked label",
+	[componentScreen(<GoalProgress counts={{}} title="Empty goal" />)],
+	({ readText, findElements }) => {
+		expect(readText()).toBe("0 of 0 done");
+		expect(findElements('[role="img"] > span')).toHaveLength(0);
+	},
+);

@@ -32,20 +32,17 @@
 		"./*.ts": {
 			"types": "./dist/*.d.ts",
 			"source": "./src/*.ts",
-			"import": "./dist/*.js",
 			"default": "./dist/*.js"
 		},
 		"./client/*": null,
 		"./client/client.ts": {
 			"types": "./dist/client/client.d.ts",
 			"source": "./src/client/client.ts",
-			"import": "./dist/client/client.js",
 			"default": "./dist/client/client.js"
 		},
 		"./client/document/View.ts": {
 			"types": "./dist/client/document/View.d.ts",
 			"source": "./src/client/document/View.ts",
-			"import": "./dist/client/document/View.js",
 			"default": "./dist/client/document/View.js"
 		},
 		"./package.json": "./package.json"
@@ -101,6 +98,7 @@
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
+		"@shivaedev/work-board-plugin": "workspace:*",
 		"@tailwindcss/vite": "catalog:",
 		"@tanstack/react-router": "catalog:",
 		"@types/hast": "catalog:",

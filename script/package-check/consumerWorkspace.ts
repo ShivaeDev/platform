@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { command } from "#package-check/io.ts";
 import { bins, decodeVersions, effectPackage, type Package } from "#package-check/model.ts";
-import { withTarballOverrides } from "#packed-workspace.ts";
+import { withTarballOverrides } from "#withTarballOverrides.ts";
 
 export const consumerWorkspace = Effect.fn("Packed.consumerWorkspace")(function* (
 	root: string,

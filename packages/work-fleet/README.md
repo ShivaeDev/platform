@@ -53,7 +53,7 @@ For this repository, configure the `worker` section in `.work/fleet.config.json`
   "worker": {
     "branchPrefix": "<branch-prefix>",
     "sharedEnvironment": "<environment-script-path>",
-    "reviewerGuidance": "To check that PostgreSQL tests are not skipped without job logs, read .github/workflows/ci.yml at the reviewed head and follow its test job database setup and environment configuration. In this repository, pnpm db:setup provisions PostgreSQL and pnpm test supplies PLATFORM_EFFECT_*_TEST_DATABASE_URL through script/test.ts and script/lib/postgres-test-environment.ts. Inspect those files at the same head; the checkout may differ."
+    "reviewerGuidance": "To check that PostgreSQL tests are not skipped without job logs, read .github/workflows/ci.yml at the reviewed head and follow its test job database setup and environment configuration. In this repository, pnpm db:setup provisions PostgreSQL and pnpm test supplies PLATFORM_EFFECT_*_TEST_DATABASE_URL through script/test.ts and script/lib/postgresTestEnvironment.ts. Inspect those files at the same head; the checkout may differ."
   }
 }
 ```

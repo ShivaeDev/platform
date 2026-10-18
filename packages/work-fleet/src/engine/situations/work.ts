@@ -24,6 +24,11 @@ export const workSituations = {
 		recommendation: "Fleet recommends running the report worker again.",
 		retry: { label: "Write the report again", outcome: "Fleet starts the report worker again." },
 	},
+	"pr-closed": {
+		happened: "The PR was closed without merging.",
+		recommendation: "Check why the PR was closed. If that was a mistake, reopen it on GitHub and let Fleet check again. Otherwise stop here.",
+		retry: { label: "Check the PR again", outcome: "Fleet checks the PR again and continues the same work if it is open." },
+	},
 	"pr-conflicting": {
 		happened: "The PR has merge conflicts with the main branch.",
 		question: "How should Fleet handle the conflicts?",
