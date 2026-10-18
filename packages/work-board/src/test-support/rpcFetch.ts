@@ -46,17 +46,7 @@ async function answer(pageRequests: PageRequests, window: BrowserWindow) {
 	}
 	return undefined;
 }
-export async function rpcBefore(
-	request: Request,
-	window: BrowserWindow,
-	path: string,
-	pageRequests: PageRequests,
-	streams: RpcStream[],
-	legacy = false,
-) {
-	if (legacy) {
-		return answer(pageRequests, window);
-	}
+export async function rpcBefore(request: Request, window: BrowserWindow, path: string, pageRequests: PageRequests, streams: RpcStream[]) {
 	if (!nativeRequest(request)) {
 		return undefined;
 	}

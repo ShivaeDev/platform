@@ -2,14 +2,16 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/testing.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import type { CodePreviewLine } from "#client/CodePreview.tsx";
 import { authScreenVerbs } from "./authScreenVerbs.ts";
 import { noteScreenVerbs } from "./noteScreenVerbs.ts";
 import { notesClient } from "./notesClient.ts";
 import { notesRefreshVerbs } from "./notesRefreshVerbs.ts";
 import { screenActions } from "./screenActions.ts";
 import { screenObservations } from "./screenObservations.ts";
-import { openApp, openLogin, openNotes, openRoute, openSession } from "./screenSetup.tsx";
+import { openApp, openCodePreview, openLogin, openNotes, openRoute, openSession } from "./screenSetup.tsx";
 import { createScreen, screenView } from "./screenState.ts";
+import { uiScreenVerbs } from "./uiScreenVerbs.ts";
 
 export const screens = storyKit({
 	clock: "live",
@@ -19,6 +21,7 @@ export const screens = storyKit({
 	stages: ["list", "screen", "elsewhere"],
 	verbs: (engine, story) => ({
 		...screenActions(engine, story.tell),
+		...uiScreenVerbs(engine, story.tell),
 		...screenObservations(engine, story.tell),
 		...noteScreenVerbs(engine, story.tell),
 		...notesRefreshVerbs(engine, story.tell),
@@ -80,4 +83,8 @@ export function refusedAppSignOut(message: string) {
 
 export function aliceSession() {
 	return screens.trait("screen", "Alice's session opens the notes app", openSession);
+}
+
+export function codePreviewScreen(lines: readonly CodePreviewLine[]) {
+	return screens.trait("screen", "a code preview is open", (engine) => openCodePreview(engine, lines));
 }

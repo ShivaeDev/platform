@@ -61,7 +61,6 @@ export const Attempt = Schema.Struct({
 });
 export type Attempt = typeof Attempt.Type;
 const cycleFields = {
-	admissionReady: Schema.optional(Schema.Boolean),
 	areas: Schema.optional(Schema.Array(Schema.String)),
 	attempts: Schema.Array(Attempt),
 	attentionOwner: Schema.optional(AttentionOwner),

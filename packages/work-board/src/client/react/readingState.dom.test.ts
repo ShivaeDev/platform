@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from "vitest";
-import { captureReading, restoreReading } from "#client/react/readingState.ts";
+import { captureReading, restoreReading } from "./readingState.ts";
 
 afterEach(() => document.body.replaceChildren());
 it.each(["response", "handoff"])("keeps document reading selection separate from the %s form's caret", (kind) => {

@@ -15,11 +15,12 @@ const INLINE_ESLINT_CONFIG = /^eslint\s+["']?[\w@/-]+["']?\s*:/u;
 
 const LEADER = /^[\s/*]+/u;
 
-const directiveOn = (comment: SourceComment, line: string): string | undefined => {
+function directiveOn(comment: SourceComment, line: string): string | undefined {
 	const content = line.replace(LEADER, "");
 	const patterns = comment.kind === "block" ? [...SUPPRESSIONS, INLINE_ESLINT_CONFIG] : SUPPRESSIONS;
 	return patterns.map((pattern) => pattern.exec(content)?.[0].replace(/\s*:$/u, "")).find((match) => match !== undefined);
-};
+}
 
-export const suppressionIn = (comment: SourceComment): string | undefined =>
-	comment.body.map((line) => directiveOn(comment, line)).find((directive) => directive !== undefined);
+export function suppressionIn(comment: SourceComment): string | undefined {
+	return comment.body.map((line) => directiveOn(comment, line)).find((directive) => directive !== undefined);
+}

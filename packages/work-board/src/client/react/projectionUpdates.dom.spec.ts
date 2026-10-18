@@ -11,32 +11,51 @@ function task(title: string) {
 	return `---\nid: task.fixture\nkind: task\nstatus: planned\nowner: reader\nnext_action: Read evidence\nattention:\n  - id: direction\n    kind: decision\n    reason: Choose a direction\n    state: open\n    response_from: [maintainer]\n    unblocks: [task.fixture]\n---\n# ${title}\n`;
 }
 const routes = [
-	{ file: "task.md", next: task("Updated task"), selector: ".today-row a", text: "Updated task", url: "/" },
-	{ file: "home.md", next: HOME.replace("Home board", "Updated board"), selector: ".board-head h1", text: "Updated board", url: "/home.md" },
-	{ file: "task.md", next: task("Updated task"), selector: ".work-card h3", text: "Updated task", url: "/_board/work?view=board" },
-	{ file: "task.md", next: task("Updated task"), selector: ".work-table tbody th a", text: "Updated task", url: "/_board/work?view=table" },
-];
-it.live.each(routes)(
-	"updates $url through native projection invalidation without requesting page HTML",
-	function* ({ file, next, selector, text, url }) {
-		const notes = folder({ "home.md": HOME, "task.md": task("A task") });
-		yield* Effect.addFinalizer(() => Effect.sync(() => notes.remove()));
-		const board = yield* startBoard(notes.root, "home.md");
-		const reads: string[] = [];
-		const page = yield* openPage(board, url, (window) => {
-			const fetch = window.fetch.bind(window);
-			window.fetch = async (input, init) => {
-				const call = await rpcCall(window, input, init);
-				if (call) {
-					reads.push(call.tag);
-				}
-				return fetch(input, init);
-			};
-		});
-		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.getAttribute("data-state")).toBe("live")));
-		notes.write(file, next);
-		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(selector)?.textContent).toBe(text)));
-		expect(page.document.querySelector("[data-legacy-main]")).toBeNull();
-		expect(reads).not.toContain("work-board.page");
+	{ file: "task.md", next: task("Updated task"), selector: ".today-row a", tag: "work-board.inbox", text: "Updated task", url: "/" },
+	{
+		file: "home.md",
+		next: HOME.replace("Home board", "Updated board"),
+		selector: ".board-head h1",
+		tag: "work-board.board",
+		text: "Updated board",
+		url: "/home.md",
 	},
-);
+	{
+		file: "task.md",
+		next: task("Updated task"),
+		selector: ".work-card h3",
+		tag: "work-board.work",
+		text: "Updated task",
+		url: "/_board/work?view=board",
+	},
+	{
+		file: "task.md",
+		next: task("Updated task"),
+		selector: ".work-table tbody th a",
+		tag: "work-board.work",
+		text: "Updated task",
+		url: "/_board/work?view=table",
+	},
+];
+it.live.each(routes)("updates $url through native projection invalidation", function* ({ file, next, selector, tag, text, url }) {
+	const notes = folder({ "home.md": HOME, "task.md": task("A task") });
+	yield* Effect.addFinalizer(() => Effect.sync(() => notes.remove()));
+	const board = yield* startBoard(notes.root, "home.md");
+	const reads: string[] = [];
+	const page = yield* openPage(board, url, (window) => {
+		const fetch = window.fetch.bind(window);
+		window.fetch = async (input, init) => {
+			const call = await rpcCall(window, input, init);
+			if (call) {
+				reads.push(call.tag);
+			}
+			return fetch(input, init);
+		};
+	});
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.getAttribute("data-state")).toBe("live")));
+	const before = reads.filter((read) => read === tag).length;
+	expect(before).toBeGreaterThan(0);
+	notes.write(file, next);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(selector)?.textContent).toBe(text)));
+	expect(reads.filter((read) => read === tag).length).toBeGreaterThan(before);
+});

@@ -3,8 +3,9 @@ import { noJsdoc } from "#rules/comments/no-jsdoc.ts";
 import { noTodo } from "#rules/comments/no-todo.ts";
 import { checkRule } from "#test/inputs.ts";
 
-const todos = async (path: string, ...content: readonly string[]) =>
-	(await checkRule(noTodo, undefined, { sources: [{ content: content.join("\n"), path }] })).map((finding) => finding.line);
+async function todos(path: string, ...content: readonly string[]) {
+	return (await checkRule(noTodo, undefined, { sources: [{ content: content.join("\n"), path }] })).map((finding) => finding.line);
+}
 
 describe("comment rules read comments, not code", () => {
 	it("ignore comment markers inside strings", async () => {

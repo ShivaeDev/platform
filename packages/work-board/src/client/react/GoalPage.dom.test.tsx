@@ -4,12 +4,12 @@ import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { goalFleetFixture, goalPageFixture } from "#test/goalPageFixture.ts";
 import { renderBoard } from "#test/react.tsx";
 import { DocumentMain } from "./DocumentMain.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 declare const window: Window;
 

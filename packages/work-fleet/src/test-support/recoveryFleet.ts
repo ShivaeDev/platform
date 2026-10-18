@@ -47,7 +47,7 @@ export const recoveryFleet = storyKit({
 					return new SessionFailure({ capacity: "serverOverloaded", message: "Replacement capacity unavailable", reason: "rejected" });
 				},
 			});
-			state.engine = { ...engine, fleet: Context.get(yield* Layer.build(engine.layer), Fleet) };
+			state.engine = { ...engine, fleet: Context.get(yield* Layer.build(engine.fleetLayer), Fleet) };
 		},
 	},
 	around: withTestTransaction,
@@ -79,7 +79,7 @@ export const recoveryFleet = storyKit({
 			restart: Effect.fnUntraced(function* () {
 				story.tell("restart Fleet against its persisted records");
 				const engine = running(state);
-				engine.fleet = Context.get(yield* Layer.build(Layer.fresh(engine.layer)), Fleet);
+				engine.fleet = Context.get(yield* Layer.build(Layer.fresh(engine.fleetLayer)), Fleet);
 			}),
 		},
 		get observed() {

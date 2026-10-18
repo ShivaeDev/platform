@@ -29,6 +29,7 @@ const postgresOptions = {
 } satisfies PostgresTestOptions;
 
 export const postgresLayer = makePostgresTestLayer(postgresOptions);
+export const postgresEnabled = postgresUrl !== undefined;
 
 function makeTests(clock: "live" | "test", isolation: "rollback" | "isolated", options?: Pick<PostgresTestOptions, "maxConnections">) {
 	const { effectApp } = makeEffectIt({

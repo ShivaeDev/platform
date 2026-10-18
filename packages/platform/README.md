@@ -217,9 +217,31 @@ export const AccountHandlers = Account.toLayer({
 export const AccountServer = Layer.merge(AccountHandlers, authenticatedUserLayer(sessions));
 ```
 
-Here `sessions` is the application's policy from the previous example, with a Better Auth lookup that returns all three user fields. Merge `authenticatedUserLayer(sessions)` alongside the handler Layer when using `appHost`; the host continues to supply its id-only and optional middleware. A missing session fails with typed `Unauthorized`; rejected origins fail with `Forbidden`, and provider failures remain `AuthUnavailable`. The profile contains only id, name and email, without exposing the rest of the provider's user record. Handlers do not query the provider's user table.
+Here `sessions` is the application's policy from the previous example, with a Better Auth lookup that returns all three user fields. Merge `authenticatedUserLayer(sessions)` alongside the handler Layer when using `appHost`; the host continues to supply its id-only and optional middleware. A missing session fails with typed `Unauthorized`; rejected origins fail with `Forbidden`, and provider failures remain `AuthUnavailable`. By default, the profile contains only id, name and email, without exposing the rest of the provider's user record. Handlers do not query the provider's user table.
 
 The starter's `notes.whoami` query returns this profile, and its note handlers use `SessionUser.id` for ownership. Its PostgreSQL/HTTP test checks concurrent users, anonymous requests and sign-out revocation.
+
+#### Reading provider account IDs
+
+Opt in to provider account IDs by passing Better Auth's account lookup as the second argument to `betterAuthSessions`. It runs after a session is found, using the same transport headers:
+
+```ts
+const sessions = {
+  origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
+  provider: betterAuthSessions(
+    (headers) => auth.api.getSession({ headers }),
+    (headers) => auth.api.listUserAccounts({ headers }),
+  ),
+};
+
+const githubAccount = Effect.map(SessionUser, (user) =>
+  user.providerAccounts?.find((account) => account.providerId === "github"),
+);
+```
+
+Use `authenticatedUserLayer(sessions)` as above. `SessionUserValue.providerAccounts` is an optional readonly array of `ProviderAccountValue`, each containing only `{ providerId: string, accountId: string }`. GitHub's numeric user ID is represented as a string, for example `{ providerId: "github", accountId: "123" }`; it is not Better Auth's account-row id. A user without a GitHub account has no matching entry. Without the second lookup, the profile omits `providerAccounts`. No application SQL against Better Auth's `account` table is needed.
+
+An account lookup failure follows the same `AuthUnavailable` path as a session lookup failure. The starter's social-session story uses real PostgreSQL, GitHub OAuth responses from a local provider fixture, and Platform's HTTP host: GitHub sign-in exposes its account ID through native RPC, email sign-up has no GitHub entry, sign-out rejects access, and an account lookup failure stays distinct from a missing session.
 
 ### Transport headers and request ids
 
@@ -464,11 +486,11 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `appHost.ts` | `appHost({ group, handlers, services, migrations?, sessions?, policy?, rpcPath?, assets?, routes?, config? })` or `appHost({ application, migrations, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppHttpHostOptions`, `AppLocalHostOptions`, `AppDatabaseOptions`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
 | `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
 | `errors/rejected-field.ts` | `rejectedField(unknown): Option<RejectedField>`; `RejectedField` is `{ field: string, message: string }`. |
-| `rpc/identity.ts` | `RequestId`: string service. `Identity`: `IdentityValue`, `{ id: string }`. `OptionalIdentity`: `Option<IdentityValue>`. `SessionUser`: `SessionUserValue`, `{ id, name, email }`. |
+| `rpc/identity.ts` | `RequestId`: string service. `Identity`: `IdentityValue`, `{ id: string }`. `OptionalIdentity`: `Option<IdentityValue>`. `SessionUser`: `SessionUserValue`, `{ id, name, email, providerAccounts? }`; `ProviderAccountValue`: `{ providerId, accountId }`. |
 | `rpc/middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `MaybeAuthenticated`: native RPC middleware declarations. |
 | `rpc-server/boundary.ts` | `rpcBoundary(schema, { unexpected, message? })`; `RpcBoundaryOptions<Error>`: declared failures pass through, unexpected failures become one declared rejection. |
 | `rpc-server/session.ts` | `authenticatedLayer(policy)`, `maybeAuthenticatedLayer(policy)`, `resolveSession(policy, headers, rpc)`; `SessionShape`, `SessionProvider<Session>`, `SessionPolicy<Session>`. `authenticatedUserLayer(policy)` requires `UserSessionShape` and implements `AuthenticatedUser`. |
-| `rpc-server/adapters/better-auth-sessions.ts` | `betterAuthSessions(getSession)`; `GetSession<Session>` is a Promise lookup returning `Session \| null`. |
+| `rpc-server/adapters/better-auth-sessions.ts` | `betterAuthSessions(getSession, getProviderAccounts?)`; `GetSession<Session>` returns `Promise<Session \| null>`, `GetProviderAccounts` returns provider/id pairs, and `SessionWithProviderAccounts<Session>` describes an enriched session. |
 | `rpc-server/origin.ts` | `trustedOrigins({ allow, missing })`, `originRequest(headers, rpc)`; `OriginPolicy`, `OriginRequest`, `TrustedOriginsOptions`. |
 | `rpc-server/local.ts` | `localRpcGuard(effect)`: HTTP RPC guard using native request and serialization services; `loopbackOnly(handler)`, `sameOrigin(request)`, `trustedProxyPeer(trustedProxy?)`, `trustedProxyRanges(trustedProxy?)`. |
 | `rpc-server/transport.ts` | `transportHeaders(rpcHeaders)`: Effect returning the headers used for a transport-level decision. |
@@ -505,7 +527,7 @@ Install the optional peers for the selected integration:
 | `testing/vitest.ts` | `@effect/vitest`, `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`, `@trpc/server` |
 
 - The package declares Node 24 or newer and uses the Effect version in its peer manifest.
-- Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes only a lookup function and returns a session result; it does not write provider refresh cookies into RPC responses.
+- Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.
 - Without an `HttpServerRequest`, `transportHeaders` falls back to the supplied RPC headers. An application using another transport must decide what headers it can trust.
 - Add tracing last on the native group, as in the example, so it wraps the authentication middleware too. Middleware outside that tracing boundary is responsible for its own diagnostics.
 - Redaction recognizes common shapes. Keep secrets out of messages and extend the key predicate for application-specific sensitive fields.

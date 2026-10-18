@@ -52,7 +52,7 @@ export function invalidSelection(content: string) {
 	return skills.trait("selected", `package.json has an invalid selection: ${content}`, ({ repo }) => writeFile("package.json", content)(repo));
 }
 
-export const shippedSkills = skills.trait("selected", "the repository selects the package's shipped pr-description skill", function* (engine) {
+export const shippedSkills = skills.trait("selected", "the repository selects the package's shipped skills", function* (engine) {
 	engine.installed = yield* readInstalled(fileURLToPath(new URL("../..", import.meta.url)));
-	yield* select(engine.repo, ["pr-description"]);
+	yield* select(engine.repo, ["pr-description", "story-testing"]);
 });
