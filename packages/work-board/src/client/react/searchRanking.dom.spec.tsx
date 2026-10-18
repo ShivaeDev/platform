@@ -31,14 +31,14 @@ for (const { fixture, first, id, queries, status } of [
 		`ranks status first, then title/ID relevance and recency (${status}, ${id})`,
 		[searchScreen(files, { home: undefined, modified })],
 		function* ({ findElement, readText, findElements, typeText }) {
-			const field = findElement("input");
+			const field = findElement<HTMLInputElement>('#search-dialog [role="combobox"]', document);
 			if (!field) {
 				throw new Error("Missing palette input");
 			}
 			for (const query of queries) {
 				typeText(field, query);
-				yield* Effect.promise(() => eventually(() => expect(readText('[role="option"] strong')).toBe(first)));
-				const rows = [...findElements('[role="option"]')];
+				yield* Effect.promise(() => eventually(() => expect(readText('#search-dialog [role="option"] strong', document)).toBe(first)));
+				const rows = [...findElements('#search-dialog [role="option"]', document)];
 				expect(readText("[data-status-token]", rows[0])).toBe(status);
 				if (query === "watch") {
 					const sources = [...new Set(rows.map((row) => readText("strong", row)))];

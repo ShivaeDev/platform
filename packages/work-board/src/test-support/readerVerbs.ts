@@ -19,7 +19,7 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		if (!(field instanceof page().window.HTMLInputElement || field instanceof page().window.HTMLTextAreaElement)) {
 			throw new Error(`Missing ${selector}`);
 		}
-		field.value = value;
+		Object.getOwnPropertyDescriptor(Object.getPrototypeOf(field), "value")?.set?.call(field, value);
 		field.dispatchEvent(new (page().window.Event)("input", { bubbles: true }));
 		return field;
 	}

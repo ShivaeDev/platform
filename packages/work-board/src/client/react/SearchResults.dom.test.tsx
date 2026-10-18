@@ -17,19 +17,20 @@ const other: SearchItem = { href: "/other.md", kind: "document", snippet: "Other
 screenStory.it(
 	"removes and reorders passages sharing a heading URL without retaining rows or repeating IDs",
 	[searchResultScreen([alpha, beta, beta, gamma, other])],
-	function* ({ findElements, readText, findElement, refreshScreen }) {
+	function* ({ findElements, readText, refreshScreen }) {
+		function rows() {
+			return [...findElements<HTMLElement>('[role="option"]')];
+		}
 		function expectRows(items: readonly SearchItem[]) {
-			const rows = [...findElements<HTMLAnchorElement>('[role="option"]')];
-			expect(rows.map((row) => readText("p", row))).toEqual(items.map((item) => item.snippet));
-			expect(rows.map((row) => row.id)).toEqual(items.map((_, index) => `search-result-${index}`));
-			expect(rows.map((row) => row.getAttribute("href"))).toEqual(items.map((item) => item.href));
+			expect(rows().map((row) => readText("p", row))).toEqual(items.map((item) => item.snippet));
+			expect(new Set(rows().map((row) => row.id)).size).toBe(items.length);
+			expect(rows().map((row) => row.querySelector("a")?.getAttribute("href"))).toEqual(items.map((item) => item.href));
 		}
 
 		expectRows([alpha, beta, beta, gamma, other]);
-		yield* Effect.promise(() => refreshScreen(searchResultContent([other, gamma, alpha], 2)));
+		yield* Effect.promise(() => refreshScreen(searchResultContent([other, gamma, alpha])));
 		expectRows([other, gamma, alpha]);
-		yield* Effect.promise(() => refreshScreen(searchResultContent([alpha, other, gamma], 0)));
+		yield* Effect.promise(() => refreshScreen(searchResultContent([alpha, other, gamma])));
 		expectRows([alpha, other, gamma]);
-		expect(findElement('[aria-selected="true"]')?.id).toBe("search-result-0");
 	},
 );
