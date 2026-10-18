@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.14.3 - 2026-10-18
+
+### Fixed
+
+- Bound OTLP HTTP export attempts to 10 seconds by default, honor standard general and traces-specific timeout variables, and read the batch interval, size and shutdown timeout through Effect Config.
+- Redact bare `sig` assignments, including short errors such as `error: sig=...`, and PEM private-key blocks from exported trace values in both JSON and protobuf.
+- SQL spans from `appDatabase` and `appHost` report the host and port from `DATABASE_URL`, including address query parameters, while keeping the connection URL redacted.
+
+## 0.14.2 - 2026-10-17
+
+### Fixed
+
+- Align published framework dependencies with the current releases.
+
 ## 0.14.1 - 2026-10-17
 
 ### Added

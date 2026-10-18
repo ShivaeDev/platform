@@ -2,10 +2,10 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { migrateFleet } from "#storage/migrateFleet.ts";
 import { daemonClient } from "#test/daemonClient.ts";
 import { MAIN, task, withHost } from "#test/fleetHost.ts";
 import { legacyStore } from "#test/legacyStore.ts";
+import { migrateFleet } from "#test/migrateFleet.ts";
 import { migrationRecords } from "#test/migrationRecords.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
@@ -20,7 +20,7 @@ test("daemon startup migrates populated JSONB records and continues serving read
 			yield* Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
 				yield* legacyStore(fixture.host.namespace);
-				yield* migrateFleet(fixture.host.namespace, true);
+				yield* migrateFleet(fixture.host.namespace, "attention_owner");
 				for (const value of values) {
 					yield* sql`insert into ${sql(`${fixture.host.namespace}_records`)} (work_id, version, payload) values (${value.workId}, 7, ${JSON.stringify(value)}::jsonb)`;
 				}
@@ -45,7 +45,7 @@ test("daemon startup migrates populated JSONB records and continues serving read
 						expect(dispatched.stage).toBe("executing");
 						expect((yield* client("fleet.get", { workId: "three" })).attempts).toHaveLength(1);
 					}),
-				fixture.parts,
+				{ parts: fixture.parts },
 			);
 		}),
 	));

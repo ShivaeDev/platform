@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "trace-url-redaction.md",
-			"text": "### Fixed\n\n- Uses Platform 0.14.1 for the exported trace URL redaction security fix.\n"
+			"name": "render-module-names.md",
+			"text": "### Breaking\n\n- Rename `@shivaedev/work-board/render/failed.ts` to `@shivaedev/work-board/render/Failed.ts` and `@shivaedev/work-board/render/footnotes.ts` to `@shivaedev/work-board/render/footnoteIds.ts`. Import `RenderFailed` and `footnoteIds` from their new module paths.\n"
 		}
 	],
-	"version": "0.14.2"
+	"version": "0.16.0"
 }

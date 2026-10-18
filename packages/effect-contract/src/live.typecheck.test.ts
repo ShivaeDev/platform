@@ -5,8 +5,9 @@ import { expectTypeOf } from "vitest";
 import type { LiveStatus } from "#live.ts";
 import { liveClient } from "#test/live/client.ts";
 import type { Unavailable } from "#test/live/contract.ts";
+import type { Denied } from "#test/notes.ts";
 
 const fixture = liveClient("http://127.0.0.1");
-expectTypeOf(fixture.api.get.query).returns.toEqualTypeOf<ReturnType<typeof fixture.Client.query<"documents.get">>>();
-expectTypeOf(fixture.status).toEqualTypeOf<Atom.Writable<LiveStatus<Unavailable | RpcClientError>>>();
+expectTypeOf(fixture.api.get.query).returns.toEqualTypeOf<ReturnType<typeof fixture.Client.query<"notes.get">>>();
+expectTypeOf(fixture.status).toEqualTypeOf<Atom.Writable<LiveStatus<Unavailable | Denied | RpcClientError>>>();
 expectTypeOf(fixture.connection).toEqualTypeOf<Atom.Atom<AsyncResult.AsyncResult<void, never>>>();

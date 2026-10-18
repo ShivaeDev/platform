@@ -1,39 +1,21 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { domFetch } from "@shivaedev/test-story/domFetch.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { makeAuth } from "#client/auth.ts";
-import { credentials } from "./authHttp.ts";
-import { startHost } from "./host.ts";
-import { postgres } from "./postgres.ts";
+import { credentials } from "#test-support/authHttp.ts";
+import { createCookieHost } from "#test-support/createCookieHost.ts";
+import { postgres } from "#test-support/postgres.ts";
 
 const alice = credentials("alice");
 export const cookieApp = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
-	*create() {
-		const { baseUrl } = yield* startHost();
-		const previousLocation = window.location.href;
-		const fetch = domFetch(baseUrl);
-		yield* Effect.addFinalizer(() =>
-			Effect.promise(async () => {
-				try {
-					const response = await fetch("/api/auth/sign-out", { body: "{}", headers: { "content-type": "application/json" }, method: "POST" });
-					expect(response.status).toBe(200);
-					await response.text();
-				} finally {
-					window.location.href = previousLocation;
-				}
-			}).pipe(Effect.timeout("5 seconds"), Effect.orDie),
-		);
-		return { baseUrl, client: makeAuth({ baseUrl, fetchOptions: { customFetchImpl: fetch } }).client, fetch };
-	},
+	create: createCookieHost,
 	inspect: () => ({ authentication: "cookie session" }),
 	layer: postgres,
 	name: "cookie auth",
 	stages: ["account"],
-	verbs: ({ baseUrl, client, fetch }, story) => {
+	verbs: ({ baseUrl, auth: { client }, fetch }, story) => {
 		function post(path: string, body: object) {
 			return Effect.promise(async () => {
 				const response = await fetch(

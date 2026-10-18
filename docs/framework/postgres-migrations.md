@@ -48,6 +48,12 @@ in PostgreSQL, and then release the first runner. They do not depend on a
 sleep to establish ordering. Migration-body SQL failures propagate as native
 `MigrationError` defects; a typed-error-only catch does not handle them.
 
+## Check the ledger before serving
+
+`assertPostgresMigrations` from `@shivaedev/effect-sql/assertPostgresMigrations.ts` checks that the loader's migration IDs and names are present in the ledger. It does not execute migrations or create the ledger. Missing or pending migrations and a mismatched name fail with `MigrationError`. The [readiness tests](../../packages/effect-sql/src/postgresMigrationReadiness.spec.ts) check those failures, acceptance after migration and acceptance of a loader whose entries are a subset of the applied ledger.
+
+Pass `migrations: { loader: migrations, table: "app_migrations", mode: "check" }` to `appHost` to use this assertion during database initialization. The starter uses check mode for its web and worker processes; run `pnpm migrate` separately to apply migrations. Its [deployment readiness tests](../../examples/starter/src/server/deployReadiness.spec.ts) check that both processes refuse an unmigrated database without creating the ledger, then start after the migration command, and that rerunning the command preserves ledger entries and rows. This checks the ledger, not table structure or edited migration content.
+
 ## Application decisions
 
 `lockTimeout` covers lock waits, including migration DDL. It does not bound the
@@ -58,8 +64,7 @@ Use immutable, increasing migration IDs. The ledger records applied migrations;
 it does not detect edited migration content or schema drift. Transactional
 rollback covers the tested table creation and inserts. Concurrent indexes,
 external side effects, process crash recovery and rollout compatibility require
-application-specific verification. Status commands and migration file discovery
-remain application choices.
+application-specific verification. Use the ledger assertion for startup readiness; migration file discovery and additional operational interfaces remain application choices.
 
 ```sh
 PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://... \

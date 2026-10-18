@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-prisma",
-	"version": "0.9.1",
+	"version": "0.9.2",
 	"description": "Effect-native PostgreSQL queries and transactions for Prisma Next",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-prisma#readme",
 	"bugs": {
@@ -59,7 +59,8 @@
 		"@prisma-next/sql-relational-core": "catalog:",
 		"@prisma-next/sql-runtime": "catalog:",
 		"@prisma-next/sqlite": "catalog:",
-		"@shivaedev/effect-test": "workspace:*"
+		"@shivaedev/effect-test": "workspace:*",
+		"pg": "catalog:"
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
@@ -69,6 +70,7 @@
 		"@prisma-next/target-postgres": "catalog:",
 		"@prisma-next/target-sqlite": "catalog:",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/pg": "catalog:",
 		"@typescript/native": "catalog:",

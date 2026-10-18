@@ -7,6 +7,7 @@ This file owns `effect-trpc` implementation status and local next work. The [fra
 - Generator queries and mutations over an application runtime and request services, including context supplied by tRPC middleware and request-Layer extensions that consume base services. `src/server/adapter.test.ts` covers runtime execution; `src/server/EffectProcedureBuilder.typecheck.test.ts` rejects missing services.
 - Effect Schema input and output decoding with encoded/decoded caller and resolver types. Adapter runtime tests and procedure type tests cover the distinction, including subscription output decoding.
 - Stream subscriptions with request services, scoped finalizers and interruption when a caller signal aborts. `src/server/adapter.test.ts` observes values, stream instrumentation and finalization; `src/server/internal/runtime.test.ts` covers pure interruption's transport error.
+- Procedure spans named after the full path with `rpc.method`, `rpc.system: "trpc"` and `trpc.type`, including resolver-child parenting for queries, mutations and subscriptions. The [procedure evidence tests](../src/server/procedureEvidence.spec.ts) use a recording Tracer and also observe the exact caller signal through `RequestSignal`, its aborted state and subscription finalization. The [adapter tests](../src/server/adapter.test.ts) observe Effect instrumentation with request services and stream instrumentation with procedure path and kind.
 - Explicit tRPC errors, application error mapping and redaction of unmapped failures and defects. Adapter/runtime tests cover resolver, request-Layer, mapper and Effect-instrumentation defects; `src/server/httpRejections.spec.ts` checks opaque serialized failures.
 - Tagged declared rejection encoding, taxonomy code mapping, custom code selection and formatter composition. `src/server/rejection.test.ts` and `src/server/httpRejections.spec.ts` cover fields, messages, encodings, HTTP statuses and mixed batches.
 - Input-validation field paths and the reserved `invalidInput` mark. `src/server/inputRejections.spec.ts` covers dotted paths, array indexes, whole-input issues and stripping forged marks; `src/server/rejection.typecheck.test.ts` rejects reserved fields.
@@ -16,9 +17,8 @@ This file owns `effect-trpc` implementation status and local next work. The [fra
 
 ## Next
 
-1. Add direct observations for the declared instrumentation boundary: span naming, stream instrumentation with request services, and the supplied `RequestSignal` value. The source exposes these pieces; existing tests do not establish all of those observations.
-2. Add a representative real-host transport cancellation fixture when a consumer selects that transport. Observe query and subscription interruption and resource release; keep proxy/deployment acceptance with the consuming application.
-3. Exercise test-harness setup inside the `around` wrapper and Layer acquisition lifetime through this adapter if consumers rely on that composition. The shared runner owns the implementation; adapter tests should observe the composition they promise.
+1. Add a representative real-host transport cancellation fixture when a consumer selects that transport. Observe query and subscription interruption and resource release; keep proxy/deployment acceptance with the consuming application.
+2. Exercise test-harness setup inside the `around` wrapper and Layer acquisition lifetime through this adapter if consumers rely on that composition. The shared runner owns the implementation; adapter tests should observe the composition they promise.
 
 These are draft priorities, subject to the maintainer's investment decision below.
 

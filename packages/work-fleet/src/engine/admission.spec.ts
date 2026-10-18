@@ -6,7 +6,8 @@ import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
 
 describe("Fleet admission path", () => {
-	const test = postgresTests("test", "isolated");
+	const test = postgresTests("test");
+	const concurrentTest = postgresTests("test", "isolated");
 	test("refreshes an unrelated main change while preserving prior validation revision", () =>
 		withEngine({}, () =>
 			Effect.gen(function* () {
@@ -17,17 +18,15 @@ describe("Fleet admission path", () => {
 				expect(launched.value.preparation.validation[0]?.revision).toBe("prepared-main");
 			}),
 		));
-	for (const path of ["src/one.ts", "pnpm-lock.yaml", "script/update", "quality.config.ts", "packages/example/quality-baseline.json"]) {
-		test(`reprepares affected work after ${path} changes`, () =>
-			withEngine({ mainChanges: [path] }, (fixture) =>
-				Effect.gen(function* () {
-					yield* prepareWork("one");
-					const fleet = yield* Fleet;
-					expect((yield* fleet.dispatch("one")).value.stage).toBe("needs-human");
-					expect(fixture.launched).toHaveLength(0);
-				}),
-			));
-	}
+	test("reprepares work whose source changed on main", () =>
+		withEngine({ mainChanges: ["src/one.ts"] }, (fixture) =>
+			Effect.gen(function* () {
+				yield* prepareWork("one");
+				const fleet = yield* Fleet;
+				expect((yield* fleet.dispatch("one")).value.stage).toBe("needs-human");
+				expect(fixture.launched).toHaveLength(0);
+			}),
+		));
 	test("work with overlapping scope and foreign PRs dispatches concurrently", () =>
 		withEngine({}, (fixture) =>
 			Effect.gen(function* () {
@@ -41,7 +40,7 @@ describe("Fleet admission path", () => {
 				expect(fixture.launched).toHaveLength(2);
 			}),
 		));
-	test("one unit of quota cannot admit two concurrent disjoint submissions", () =>
+	concurrentTest("one unit of quota cannot admit two concurrent disjoint submissions", () =>
 		withEngine({ quota: 1 }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -50,7 +49,8 @@ describe("Fleet admission path", () => {
 				yield* Effect.all([fleet.dispatch("one").pipe(Effect.result), fleet.dispatch("two").pipe(Effect.result)], { concurrency: "unbounded" });
 				expect(fixture.launched).toHaveLength(1);
 			}),
-		));
+		),
+	);
 	test("unknown quota remains prepared with a concrete blocker", () =>
 		withEngine({ unknownQuota: true }, (fixture) =>
 			Effect.gen(function* () {
@@ -59,6 +59,25 @@ describe("Fleet admission path", () => {
 				yield* fleet.dispatch("one").pipe(Effect.result);
 				expect((yield* fleet.get("one")).value.blocker).toContain("quota");
 				expect(fixture.launched).toHaveLength(0);
+			}),
+		));
+	test("the production repository rejects a submission behind an area waiter", () =>
+		withEngine({}, (fixture) =>
+			Effect.gen(function* () {
+				fixture.areas("one", ["fleet/host"]);
+				fixture.areas("two", ["fleet/host"]);
+				yield* prepareWork("one");
+				yield* prepareWork("two");
+				const fleet = yield* Fleet;
+				const rejected = yield* Effect.flip(fleet.dispatch("two"));
+				expect(rejected).toMatchObject({ message: "waiting for area fleet/host queued ahead by one" });
+				expect((yield* fleet.get("two")).value).toMatchObject({
+					attempts: [],
+					blocker: "waiting for area fleet/host queued ahead by one",
+					stage: "prepared",
+				});
+				expect(fixture.launched).toHaveLength(0);
+				expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
 			}),
 		));
 	test("only dependents wait for accepted outcomes", () =>

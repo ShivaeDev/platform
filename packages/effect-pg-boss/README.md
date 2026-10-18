@@ -170,7 +170,7 @@ export const jobsLayer = (databaseUrl: string) =>
   }).pipe(Layer.provide(MailLive));
 ```
 
-The constructor options belong to pg-boss. `jobs` is the complete list of registrations for this Layer. The Layer captures `MailLive` for both the queue handler and the scheduled Effect. A startup or registration failure fails Layer acquisition with `PgBossError` or `PgBossQueueOptionsError` and releases its acquired client reference. A shared client stays running while another scope still owns a reference.
+The constructor options belong to pg-boss. `jobs` is the complete list of registrations for this Layer. The Layer captures `MailLive` for both the queue handler and the scheduled Effect. A startup or registration failure fails Layer acquisition with `PgBossError` or `PgBossQueueOptionsError` and releases its acquired client reference. Registration creates a queue again, up to six times with a short backoff, when PostgreSQL rolls the creation back as a deadlock victim (SQLSTATE `40P01`), which a partitioned queue can meet when other queues in the schema have traffic. A shared client stays running while another scope still owns a reference.
 
 Keep the Layer in the application's worker runtime scope. A short scope is useful for an acquisition or health check; a worker process needs its scope to remain open while it handles jobs.
 
@@ -352,7 +352,7 @@ The application's service has these operations:
 
 `JobContext` has `id`, `name`, `signal`, `expireInSeconds`, `heartbeatSeconds` and `remainingBudget`. Worker registration always requests `includeMetadata: true`, including when `worker` supplies `includeMetadata: false`; custom clients must return pg-boss's `startedOn` metadata. When calling `jobContext` directly, reading `remainingBudget` requires that same metadata. `QueueHealth` has `name`, `activeCount`, `deadLetteredCount`, `failedCount`, `queuedCount` and `readyCount`. `JobsHealth` has `jobs` and the corresponding `activeTotal`, `deadLetteredTotal`, `failedTotal`, `queuedTotal` and `readyTotal` fields.
 
-`PgBossError` has `operation`, optional `queue` and a `Redacted` `original`. `PgBossPayloadError` has `direction`, `queue` and a `Redacted` `original`. Those fields distinguish the pg-boss operation from the payload boundary.
+`PgBossError` has `operation`, optional `queue` and a `Redacted` `original`. Its message names the operation, the queue and the original error's class and `code`, such as a PostgreSQL SQLSTATE, but never the original message, which can quote payloads or connection strings. A registration failure names the queue it was preparing. `PgBossPayloadError` has `direction`, `queue` and a `Redacted` `original`. Those fields distinguish the pg-boss operation from the payload boundary.
 
 ### Install, setup and limits
 

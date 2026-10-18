@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.16.0 - 2026-10-18
+
+### Breaking
+
+- Rename `@shivaedev/work-board/render/failed.ts` to `@shivaedev/work-board/render/Failed.ts` and `@shivaedev/work-board/render/footnotes.ts` to `@shivaedev/work-board/render/footnoteIds.ts`. Import `RenderFailed` and `footnoteIds` from their new module paths.
+
+## 0.15.0 - 2026-10-17
+
+### Added
+
+- Browser clients expose their AtomRpc runtime for typed form commands.
+
+### Changed
+
+- The diagnostics contract declares a typed `ServiceUnavailable` rejection for `daemon.fleetItems`, so Board returns an unavailable Fleet items projection with a reason when the daemon rejects the read.
+- Board treats a `fleet-priority` frontmatter field as Fleet-owned, like `fleet-launch` and `fleet-deliverable`, so a task carrying it reads without an unknown-field diagnostic and keeps the field in its source.
+
+### Fixed
+
+- Answer and handoff forms retain typed save rejections and use the current session client after page restoration, keeping drafts and retry identities intact.
+- System shows the GitHub rate limits Fleet recorded from its own responses, one row per resource with its observation age and any active rate-limit wait or pause below Fleet's 20% reserve, instead of reading `/rate_limit` itself.
+
+### Breaking
+
+- `GithubLimits` is an array of per-resource observations (`limit`, `remaining`, `used`, `reset`, `resource`, `observedAt`, `limitedUntil`, `limitedBy`), and `FleetHealth` gains an optional `github` field carrying them. `githubLimits(fleet)` reads them from a Fleet health source instead of running `gh api rate_limit`. Release together with `@shivaedev/work-fleet`.
+
 ## 0.14.2 - 2026-10-17
 
 ### Fixed

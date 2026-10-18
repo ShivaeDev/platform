@@ -4,11 +4,9 @@ import { parseArgs } from "node:util";
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
 import { parseShard } from "#ci/shard.ts";
+import { checkArchiveRegressions } from "#package-check/archiveRegressions.ts";
 import { prepareArchives, verifyArchives, workspaceArchives } from "#package-check/archives.ts";
 import { checkConsumers } from "#package-check/consumers.ts";
-import { checkPackedTestRegression } from "#package-check/packedTestRegression.ts";
-import { checkSharedPeerRegression } from "#package-check/peer-regression.ts";
-import { checkMissingTargetRegression } from "#package-check/target-regression.ts";
 
 const { values } = parseArgs({
 	options: {
@@ -38,10 +36,7 @@ const program = Effect.gen(function* () {
 	const packages = yield* workspaceArchives(root, archives);
 	if (values.archives === undefined) {
 		yield* prepareArchives(packages, archives);
-		yield* checkSharedPeerRegression(packages);
-		yield* checkMissingTargetRegression(packages, "./dist/error.js", "whose target ./dist/error.js is not packed");
-		yield* checkMissingTargetRegression(packages, "./dist/with-heavy-lock.js", "missing manifest target ./dist/with-heavy-lock.js");
-		yield* checkPackedTestRegression(packages, "dist/lock-file.test.js");
+		yield* checkArchiveRegressions(packages);
 	} else {
 		yield* verifyArchives(packages, archives);
 	}

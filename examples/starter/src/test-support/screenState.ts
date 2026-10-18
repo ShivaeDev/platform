@@ -3,8 +3,8 @@ import { expect, vi } from "vitest";
 import { type Rendered, render } from "@shivaedev/effect-react/testing.ts";
 import type { appRouter } from "#client/appRouter.tsx";
 import type { Credentials } from "#client/auth.ts";
-import type { appAuth } from "./appAuth.ts";
-import { notesClient } from "./notesClient.ts";
+import type { appAuth } from "#test-support/appAuth.ts";
+import { notesClient } from "#test-support/notesClient.ts";
 
 export interface Screen {
 	auth: ReturnType<typeof appAuth> | undefined;
@@ -46,7 +46,9 @@ export const createScreen = Effect.fn("ScreenStory.createScreen")(function* () {
 	return engine;
 });
 
-export const acquireScreen = Effect.fn("ScreenStory.acquireScreen")(function* (engine: Screen) {
+export type ScreenSurface = Pick<Screen, "view">;
+
+export const acquireScreen = Effect.fn("ScreenStory.acquireScreen")(function* (engine: ScreenSurface) {
 	engine.view = yield* Effect.acquireRelease(
 		Effect.promise(() => render(null)),
 		(view) => Effect.promise(view.unmount),
@@ -54,7 +56,7 @@ export const acquireScreen = Effect.fn("ScreenStory.acquireScreen")(function* (e
 	return engine.view;
 });
 
-export function screenView(engine: Screen) {
+export function screenView(engine: ScreenSurface) {
 	if (engine.view === undefined) {
 		throw new Error("No screen is open; give the story a screen trait");
 	}

@@ -3,6 +3,7 @@ import { recoveryAdmissionCases } from "#test/recoveryAdmissionCases.ts";
 import { recoveryAdoptionCases } from "#test/recoveryAdoptionCases.ts";
 import { recoveryBoardReportCases } from "#test/recoveryBoardReportCases.ts";
 import { recoveryBoundaryCases } from "#test/recoveryBoundaryCases.ts";
+import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { recoveryCheckRepairCase } from "#test/recoveryCheckRepairCase.ts";
 import { recoveryChecksCases } from "#test/recoveryChecksCases.ts";
 import { recoveryConflictCase } from "#test/recoveryConflictCase.ts";
@@ -25,34 +26,32 @@ import { recoveryUncertainCases } from "#test/recoveryUncertainCases.ts";
 import { recoveryUnobservableCase } from "#test/recoveryUnobservableCase.ts";
 import { recoveryWorkerCases } from "#test/recoveryWorkerCases.ts";
 
-export function recoveryCases() {
-	return [
-		recoveryReadCase(),
-		recoveryActiveTurnCase("session-active-turn"),
-		recoveryActiveTurnCase("session-active-turn-exhausted"),
-		...recoveryFallbackCases(),
+export const recoveryCaseGroups = {
+	admission: () => [
 		...recoveryScopeCases(),
 		...recoveryAdmissionCases(),
 		...recoveryRecordCases(),
-		...recoveryBoundaryCases(),
-		...recoveryHostCases(),
+		...recoveryPreparationCases,
 		...recoveryProducerCases(),
+	],
+	boundary: () => [...recoveryFallbackCases(), ...recoveryBoundaryCases(), ...recoveryHostCases()],
+	checks: () => [...recoveryChecksCases(), recoveryCheckRepairCase(), recoveryConflictCase(), ...recoveryIntegrationCases()],
+	delivery: () => [...recoveryGithubDeliveryCases(), ...recoveryAdoptionCases(), ...recoveryDeliveryCases()],
+	report: () => [...recoveryReviewCases, ...recoveryReportCases(), ...recoveryBoardReportCases()],
+	session: () => [
+		recoveryReadCase(),
+		recoveryActiveTurnCase("session-active-turn"),
+		recoveryActiveTurnCase("session-active-turn-exhausted"),
 		...recoveryProviderCases(),
 		...recoveryJournalCases(),
-		...recoveryChecksCases(),
-		recoveryCheckRepairCase(),
-		recoveryConflictCase(),
-		...recoveryGithubDeliveryCases(),
-		...recoveryAdoptionCases(),
-		...recoveryPreparationCases,
-		...recoveryWorkerCases(),
 		recoveryStallCase(),
 		recoveryUnobservableCase(),
 		...recoveryUncertainCases(),
-		...recoveryReviewCases,
-		...recoveryReportCases(),
-		...recoveryBoardReportCases(),
-		...recoveryDeliveryCases(),
-		...recoveryIntegrationCases(),
-	];
+		...recoveryWorkerCases(),
+	],
+} satisfies Record<string, () => readonly RecoveryCase[]>;
+export type RecoveryCaseGroup = keyof typeof recoveryCaseGroups;
+
+export function recoveryCases() {
+	return Object.values(recoveryCaseGroups).flatMap((group) => group());
 }

@@ -3,9 +3,10 @@ import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { FleetRecord } from "#model.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
-import { migrateFleet } from "#storage/migrateFleet.ts";
 import { childTable } from "#storage/recordChildren.ts";
-import { recordShape, type Shape } from "#storage/recordShape.ts";
+import type { Shape } from "#storage/recordShape.ts";
+import { shapeV12 } from "#storage/shapeV12.ts";
+import { migrateFleet } from "#test/migrateFleet.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { textRecordTables } from "#test/textRecordTables.ts";
 import { typedMigrationRecords } from "#test/typedMigrationRecords.ts";
@@ -36,12 +37,12 @@ test("text records migrate every current and archived field, preserving empty an
 	const sql = yield* SqlClient.SqlClient;
 	const namespace = "typed_upgrade";
 	const values = typedMigrationRecords();
-	assertEveryField(recordShape(), values);
+	assertEveryField(shapeV12, values);
 	yield* textRecordTables(namespace, values);
 	yield* sql`insert into ${sql(`${namespace}_foreign_reservations`)} (owner, executing, backlog) values ('external', false, true)`;
 	const before = yield* sql`select work_id, admission_order, version from ${sql(`${namespace}_records`)} order by admission_order`;
 	const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
-	yield* store.initialize();
+	yield* migrateFleet(namespace);
 	const expected = values.map((value, index) => ({ value, version: index + 6 }));
 	expect(yield* store.list()).toEqual(expected);
 	for (const entry of expected) {
@@ -50,7 +51,7 @@ test("text records migrate every current and archived field, preserving empty an
 	expect(yield* sql`select work_id, admission_order, version from ${sql(`${namespace}_records`)} order by admission_order`).toEqual(before);
 	expect(yield* store.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "external" }]);
 	expect(yield* store.operationEntries("operation")).toHaveLength(3);
-	expect(yield* store.initialize()).toEqual([]);
+	expect(yield* migrateFleet(namespace)).toEqual([]);
 	expect(yield* store.list()).toEqual(expected);
 	const first = expected[0];
 	if (first === undefined) {
@@ -82,7 +83,7 @@ test("an invalid text field rolls back the whole upgrade and retains the source 
 	expect(yield* sql`select to_regclass(${childTable(namespace, ["attempts"])}) as child`).toEqual([{ child: null }]);
 	yield* sql`update ${sql(`${namespace}_records`)} set ${sql("integrationRetry")} = null where work_id = 'empty'`;
 	const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
-	yield* store.initialize();
+	yield* migrateFleet(namespace);
 	expect((yield* store.list()).map((entry) => entry.value)).toEqual(
 		values.map((value) => (value.workId === "empty" ? { ...value, integrationRetry: undefined } : value)),
 	);
@@ -92,7 +93,7 @@ test("a child write failure rolls back root fields, versions and replaced childr
 	const sql = yield* SqlClient.SqlClient;
 	const namespace = "typed_atomic";
 	const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
-	yield* store.initialize();
+	yield* migrateFleet(namespace);
 	const value = typedMigrationRecords()[0];
 	if (value === undefined) {
 		return yield* Effect.die("Missing populated fixture");

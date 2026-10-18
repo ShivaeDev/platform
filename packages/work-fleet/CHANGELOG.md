@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.4.0 - 2026-10-18
+
+### Added
+
+- `readRetryMs` in Fleet policy and `fleet.config.json` sets the first provider and integration read-retry delay, defaulting to 30 seconds; later retries still double it. The daemon applies an edited value without a restart.
+
+### Fixed
+
+- Conflict repairs on existing PRs keep or regain their area ahead of prepared items with terminal provider attempts.
+
+### Breaking
+
+- `readHostConfig` and `loadHost` moved from `@shivaedev/work-fleet/host/config.ts` to `@shivaedev/work-fleet/host/configFile.ts`.
+
+## 0.3.0 - 2026-10-17
+
+### Added
+
+- `cloud.recoveryGraceMs` in the host configuration sets how long Fleet polls an acknowledged, empty Cloud thread for a late-accepted turn before it starts the saved turn on that thread. The default stays five seconds.
+- The Fleet daemon watches its config file and applies valid edits to `concurrency`, `backlog`, `intervalSeconds`, `quota`, `launch`, `openPullRequests`, `stallMinutes`, `areaMergeWaitMs` and worker or reviewer guidance on the next scheduler pass or launch, without a restart. Running turns keep their launch settings.
+- Edits to restart-only settings such as `provider`, `database`, `namespace` or `cloud` keep their running values and are reported as needing a restart. An invalid or partly written file keeps the last good config and logs a `HostConfigRejected` warning naming the failing field.
+- `work-fleet status` shows the config the daemon applies, when it was loaded, the settings waiting for a restart and the last rejected edit; `daemon.status` returns it as `config`.
+- `openPullRequests: { ease, max, floor? }` in `fleet.config.json` slows new implementer launches as Fleet-owned open PRs pile up: full `concurrency` up to `ease` open PRs, then linearly fewer down to `floor` (default 0) at `max`. Held items wait with `waiting for open PRs to merge: <open> of <max>`. Reviews, repairs and answers are never throttled, and when slots are short they go ahead of new implementers.
+- `work-fleet dispatch --now <id>`, or `fleet-priority: urgent` in a task's frontmatter, launches the item over `concurrency`, the open-PR curve and `backlog` while still respecting area claims and dependencies; `--ignore-areas` also skips area claims. `work-fleet status` marks such launches as `launched over the limit`.
+- `fleet-priority: urgent | high | normal` in task frontmatter orders prepared work for admission when slots are short.
+- `Fleet.recordResponse(workId, decisionId, responseId)` validates a saved Board response, marks it durably and applies it in the Fleet service's background scope. Reconciliation can recover the saved response after a restart.
+- `ANSWER_RECORDED` in `attention.ts` identifies pending answer application. `answerWork` accepts an optional background flag, and `daemonRequest` accepts a request name and timeout in milliseconds.
+- `DispatchRequest` receipts record acceptance and completion or failure independently of preparation. `dispatchStore(namespace)` persists the latest receipt per item; `dispatchRequests(host)` runs pending requests in the daemon scope and resumes them after a restart. `daemon.dispatch-status` reads the receipt, and `FleetViews.dispatches` exposes pending and failed requests to status.
+
+### Fixed
+
+- The daemon records and applies an answer or release even when the CLI stops waiting for it. Before, a client timeout interrupted the request and the answer was lost.
+- Daemon answers and releases share one watched Board response index instead of reindexing the whole Board for every request.
+- `work-fleet answer --release` without text no longer waits for stdin.
+- Scheduler passes no longer rewrite prepared work whose wait reason is unchanged, and Fleet record lists reuse decoded records that have not changed. A pass over many waiting items stays cheap enough for the daemon to keep answering requests.
+- Fleet store failures from `daemon.fleetItems` reach HTTP RPC clients as the diagnostics contract's typed `ServiceUnavailable` rejection instead of a defect.
+- Fleet no longer exhausts the GitHub budget. PR state, checks, rulesets, PR files and report publication are read through GitHub's REST API with conditional requests, so an unchanged resource answers `304 Not Modified` and costs no rate limit. Delivery polling no longer uses GraphQL.
+- The scheduler runs at the configured interval while the recorded REST `core` budget is above half and slows down between half and 20%. Below 20% remaining Fleet makes no call to that resource until its reset, keeping the rest of the shared token for agents and people, and affected work shows `GitHub paused below the 20% reserve until <time>`.
+- A rate-limited GitHub response stops further calls to that resource until its reset, `retry-after` time or backoff. Affected work shows `GitHub is rate-limited until <time>` and does not escalate as a read failure.
+- `fleet/health.json` and the daemon's diagnostics carry the rate-limit headers of Fleet's own GitHub responses per resource with their observation time. Release together with `@shivaedev/work-board`, whose diagnostics schema changes with it.
+- Cloud dispatch flags a criterion as local-only only when it names the local Board directory as a whole path segment. A criterion that names a longer path starting with the same letters, such as a `.worktrees` folder next to a `.work` Board, now launches.
+- Daemon answer and dispatch commands acknowledge durable recording before provider work completes. Reconciliation applies saved answers after a restart, and watch reports the outcome.
+- Background dispatch preserves explicit approval and the current launch prompt, including when an edited criterion unblocks work before its first attempt.
+- Dispatch records acceptance before refreshing remote main or preparing execution. Status and watch report pending dispatches and background refresh failures even before an execution record exists.
+- Watch preserves the current execution and terminal outcome after scheduler recovery from a failed dispatch without another dispatch. The failed receipt remains available through `daemon.dispatch-status`.
+- CLI request errors distinguish refused connections from timeouts and server failures, name answer and dispatch requests, and say when answer recording is unconfirmed.
+- A broken Fleet database now reports unavailable instead of an empty status when the records or dispatches table is missing.
+
+### Breaking
+
+- `answerWork` and `releaseItems` require the Board `Responses` service. Provide it with `decisionResponses(host)` or `withDecisionResponses(host, effect)`.
+- `ClientContract`'s `daemon.dispatch` returns a `DispatchRequest` receipt instead of a prepared `FleetRecord`.
+- Remove `makePostgresFleetStore(...).initialize()`, the `storage/migrateFleet.ts` export and the `legacyOnly` argument to `fleetMigrations`. Migrate through `appDatabase` with the `fleetMigrations(namespace)` loader before using the store.
+- Remove the unused `recordPayloads` export from `@shivaedev/work-fleet/host/recordPayloads.ts`.
+
 ## 0.2.1 - 2026-10-17
 
 ### Fixed

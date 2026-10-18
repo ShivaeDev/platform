@@ -2,10 +2,11 @@ import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { Fleet } from "#fleet.ts";
 import { resolveHost } from "#host/config.ts";
+import { hostIntegrations } from "#host/integrations.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { codexQuota } from "#host/quota.ts";
-import { hostIntegrations } from "#host/runtime.ts";
 import { FleetIntegrations } from "#policy.ts";
+import { syntheticGithub } from "#test/githubApi.ts";
 import { HEAD, REPORT } from "#test/githubResult.ts";
 import { mainObservation } from "#test/preparation.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
@@ -16,14 +17,15 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 	const stockHost = FleetIntegrations.pipe(
 		Effect.provide(
 			hostIntegrations(resolveHost("/synthetic", { provider: "local", quota: "unlimited" })).pipe(
-				Layer.provide(
+				Layer.provide([
 					Layer.succeed(MainSource)({
 						current: snapshot,
 						observe: () => Effect.succeed(mainObservation()),
 						refresh: snapshot,
 						repositoryRoot: "/synthetic",
 					}),
-				),
+					syntheticGithub().layer,
+				]),
 			),
 		),
 	);

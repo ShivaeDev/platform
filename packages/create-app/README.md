@@ -6,8 +6,16 @@ Start a Platform application without copying repository files or editing workspa
 
 The starter brings PostgreSQL, authenticated RPC and a React notes screen together in a small application you can change. Its source stays in Platform's `examples/starter`, so the generator carries the same app that the framework maintains.
 
+```sh
+pnpm create @shivaedev/app my-app
+```
+
 ```text
 Created my-app.
+
+Next steps:
+  cd 'my-app'
+  pnpm dev
 ```
 
 ## Create and run

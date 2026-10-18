@@ -1,10 +1,11 @@
 import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { browserClient } from "#client/client.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { type Folder, folder, startBoard } from "#test/board.ts";
-import { codexResponse, githubResponse, health } from "#test/diagnostics.ts";
+import { codexResponse, githubObservations, health } from "#test/diagnostics.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { fleetItems } from "./fleetItems.ts";
 
@@ -15,7 +16,7 @@ function snapshot() {
 	return {
 		codex: { observedAt: 100, state: "ready" as const, value: codexResponse.rateLimits },
 		fleet: { observedAt: 100, state: "ready" as const, value: health },
-		github: { observedAt: 100, state: "ready" as const, value: githubResponse.resources },
+		github: { observedAt: 100, state: "ready" as const, value: githubObservations },
 	};
 }
 const item = {
@@ -99,6 +100,16 @@ it.live("a Board index failure becomes unavailable instead of a page error", fun
 	const daemon = yield* diagnosticsDaemon(snapshot, 0, () => data);
 	expect(yield* fleetItems({ fleetPort: daemon.port, index: Effect.fail("Synthetic index failure") })).toEqual({
 		reason: "Board documents could not be read for Fleet items",
+		state: "unavailable",
+	});
+});
+
+it.live("a Fleet ServiceUnavailable rejection becomes unavailable over Board RPC", function* () {
+	const daemon = yield* diagnosticsDaemon(snapshot, 0, Effect.fail(new ServiceUnavailable({ message: "Fleet store unavailable" })));
+	notes = folder({ "one.md": "# One" });
+	const board = yield* startBoard(notes.root, undefined, undefined, false, undefined, undefined, daemon.port);
+	expect(yield* read(board.url)).toEqual({
+		reason: `Fleet daemon communication failed at 127.0.0.1:${daemon.port}`,
 		state: "unavailable",
 	});
 });

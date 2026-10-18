@@ -306,6 +306,24 @@ A failed batch rolls back its DDL, data and ledger entries, retaining previously
 
 For processes whose deployment owns migration execution, call `assertPostgresMigrations({ loader, table? })` from `@shivaedev/effect-sql/assertPostgresMigrations.ts` before starting services. It checks the native loader’s required IDs and names against the ledger without running migration bodies or creating a ledger. A missing ledger, pending migration or mismatched name fails with native `MigrationError` (`kind: "BadState"`); database failures stay typed `SqlError`. Later ledger entries are allowed so an older application version can start during a rolling deployment. This checks recorded migrations, not physical schema drift.
 
+### PostgreSQL delivery between processes
+
+`postgresChanges` from `@shivaedev/effect-sql/postgresChanges.ts` returns a scoped Layer for the `transact` channel. Provide it to every process that writes, including job workers. Every server uses the same database and channel, its own native PostgreSQL client and its own Reactivity service. Create the server's `makeLiveServer` with that same Reactivity service and supply its `resync` Effect to the binding.
+
+```ts
+const delivery = postgresChanges({
+  channel: "application_changes",
+  client: pg,
+  resync: hints.resync,
+});
+```
+
+`pg` is the application's `@effect/sql-pg` client; the binding accepts its native SQL and `listen` methods without creating another pool. Reserve one session connection for LISTEN and another for writes and heartbeats; use a pool client with at least two connections. Compose `delivery` into the Layer that provides feature services using `transact`, alongside the existing SQL and Reactivity services. The [reference server](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/test-support/postgres-example/server.ts) shows the complete composition. The binding sends `select pg_notify(...)` through the writing transaction's `SqlClient`, so a rollback wakes no process. Its transaction sink leaves delivery to the listener, including in the writing process. Unframed `invalidateOnCommit` calls retain local invalidation; cross-process writes must use `transact`.
+
+`PostgresChangesOptions` takes `channel`, `client`, `resync`, and optional `heartbeatInterval`, `heartbeatTimeout` and `retryDelay` Effect durations. The defaults are 5 seconds, 10 seconds and 1 second. Acquisition waits for a heartbeat received through LISTEN. A missing heartbeat or a stream failure resyncs streams before listener cleanup; a successful reconnection resyncs again. Each listener finalizer has the same `heartbeatTimeout` deadline, so a stalled UNLISTEN cannot prevent the following native connection release or a fresh subscription. The heartbeat detects a listener that stops delivering without failing. Keep `resync` infallible. Provide the Layer for the process lifetime so scope release closes the listener.
+
+NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only string or finite-number invalidation keys, with no row values. PostgreSQL requires each payload to be smaller than 8,000 bytes in the default configuration. The binding splits JSON arrays by their UTF-8 byte length; one key that cannot fit, or a nonserializable key type, fails with `SqlError` before commit and rolls back the write. Heartbeats use a separate control payload on the same channel. Applications choose a channel shared only by their cooperating processes. LISTEN requires a session connection; PgBouncer transaction pooling needs another delivery adapter. Missed notifications are reconciled by querying again on resync, with no replay guarantee.
+
 ### API
 
 Import the module that defines the name; there is no root entry.
@@ -319,9 +337,19 @@ Import the module that defines the name; there is no root entry.
 | `@shivaedev/effect-sql/transact.ts` | `TransactOptions` | The typed SQL-error mapper. |
 | `@shivaedev/effect-sql/transact.ts` | `invalidateOnCommit(keys)` | Records keys for its client, or invalidates immediately outside a transaction. |
 | `@shivaedev/effect-sql/transact.ts` | `InvalidationKeys` | A readonly array, or a record of readonly ID arrays. |
+| `@shivaedev/effect-sql/transact.ts` | `BeforeCommit`, `CommittedSink` | Channel-specific references for the pre-commit hook and transaction after-commit sink. |
 | `@shivaedev/effect-sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional ledger `table`, default `effect_sql_migrations`. |
 | `@shivaedev/effect-sql/assertPostgresMigrations.ts` | `assertPostgresMigrations({ loader, table? })` | Read-only readiness check of required migration IDs and names in the native ledger. |
 | `@shivaedev/effect-sql/migrations.ts` | `PostgresMigrationOptions` | Loader environment and migration coordination options. |
+| `@shivaedev/effect-sql/postgresChanges.ts` | `postgresChanges(options)` | Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation. |
+| `@shivaedev/effect-sql/postgresChanges.ts` | `PostgresChangesOptions`, `PostgresChangeClient`, `PostgresNotification` | Delivery configuration, native SQL/listener client and notification shape. |
+| `@shivaedev/effect-sql/batchWrites.ts` | `InsertMany`, `BatchWrites`, `makeInsertMany` | Batch insertion types and implementation helper. |
+| `@shivaedev/effect-sql/compositeRepository.ts` | `CompositeKey`, `PrimaryKey`, `Repository`, `makeCompositeCrud` | Composite-key types and CRUD implementation helper. |
+| `@shivaedev/effect-sql/conflictWrites.ts` | `InsertColumn`, `ConflictColumns`, `ConflictWrites`, `makeConflictWrites` | Conflict-write types and implementation helper. |
+| `@shivaedev/effect-sql/listenForChanges.ts` | `listenForChanges` | Scoped notification listener used by `postgresChanges`. |
+| `@shivaedev/effect-sql/notifyPayload.ts` | `NotificationKeys`, `decodeKeys`, `notificationError`, `encodeKeys` | Notification schema, codec and typed SQL-error helpers. |
+| `@shivaedev/effect-sql/repositoryQueries.ts` | `Queries`, `makeQueries` | Model-derived query interface and implementation helper. |
+| `@shivaedev/effect-sql/versionedRepository.ts` | `IdColumn`, `VersionColumn`, `NativeRepository`, `VersionedWrites`, `makeVersionedWrites` | Versioned-write types and implementation helper. |
 
 The repository's native methods keep the model's variants. For the `InvoiceLine` example:
 
@@ -400,21 +428,3 @@ JSON and JSONB columns are not supported. A repository write of a plain object t
 Migration rollback evidence covers transactional table DDL and writes. Nontransactional DDL, external side effects, crash recovery and deployment compatibility need their own policy and tests. Checksums, edited applied migrations and larger query APIs are open questions in [the package roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/docs/roadmap.md).
 
 The package's PostgreSQL tests require a disposable database through `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` and skip without it. SQLite fixtures establish the SQLite cases; type tests establish compile-time contracts. Neither substitutes for a PostgreSQL run. Public composed repository consumers live in the framework's [order example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/order-example.md); they establish fixture behavior, not application adoption.
-
-### PostgreSQL delivery between processes
-
-`postgresChanges` from `@shivaedev/effect-sql/postgresChanges.ts` returns a scoped Layer for the `transact` channel. Provide it to every process that writes, including job workers. Every server uses the same database and channel, its own native PostgreSQL client and its own Reactivity service. Create the server's `makeLiveServer` with that same Reactivity service and supply its `resync` Effect to the binding.
-
-```ts
-const delivery = postgresChanges({
-  channel: "application_changes",
-  client: pg,
-  resync: hints.resync,
-});
-```
-
-`pg` is the application's `@effect/sql-pg` client; the binding accepts its native SQL and `listen` methods without creating another pool. Reserve one session connection for LISTEN and another for writes and heartbeats; use a pool client with at least two connections. Compose `delivery` into the Layer that provides feature services using `transact`, alongside the existing SQL and Reactivity services. The [reference server](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/test-support/postgres-example/server.ts) shows the complete composition. The binding sends `select pg_notify(...)` through the writing transaction's `SqlClient`, so a rollback wakes no process. Its transaction sink leaves delivery to the listener, including in the writing process. Unframed `invalidateOnCommit` calls retain local invalidation; cross-process writes must use `transact`.
-
-`PostgresChangesOptions` takes `channel`, `client`, `resync`, and optional `heartbeatInterval`, `heartbeatTimeout` and `retryDelay` Effect durations. The defaults are 5 seconds, 10 seconds and 1 second. Acquisition waits for a heartbeat received through LISTEN. A missing heartbeat or a stream failure resyncs streams before listener cleanup; a successful reconnection resyncs again. Each listener finalizer has the same `heartbeatTimeout` deadline, so a stalled UNLISTEN cannot prevent the following native connection release or a fresh subscription. The heartbeat detects a listener that stops delivering without failing. Keep `resync` infallible. Provide the Layer for the process lifetime so scope release closes the listener.
-
-NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only string or finite-number invalidation keys, with no row values. PostgreSQL requires each payload to be smaller than 8,000 bytes in the default configuration. The binding splits JSON arrays by their UTF-8 byte length; one key that cannot fit, or a nonserializable key type, fails with `SqlError` before commit and rolls back the write. Heartbeats use a separate control payload on the same channel. Applications choose a channel shared only by their cooperating processes. LISTEN requires a session connection; PgBouncer transaction pooling needs another delivery adapter. Missed notifications are reconciled by querying again on resync, with no replay guarantee.

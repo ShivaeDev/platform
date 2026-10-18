@@ -1,4 +1,5 @@
-import { createElement, useCallback, useEffect, useId, useRef, useState } from "react";
+import { createElement, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
+import { ThemeContext } from "#client/react/ThemeContext.ts";
 import { mermaidColor } from "./mermaidColor.ts";
 
 const drawings = new Map<string, { readonly source: string; readonly svg: string }>();
@@ -8,17 +9,10 @@ const MAX_DRAWINGS = 30;
 type Drawing = { readonly source: string; readonly svg: string } | { readonly source: string; readonly error: string };
 
 export function Mermaid({ source }: { readonly source: string }) {
+	const theme = useContext(ThemeContext);
 	const id = useId().replace(/[^a-z\d_-]/giu, "");
-	const [drawing, setDrawing] = useState<Drawing | undefined>(() => drawings.get(`${document.documentElement.dataset.scheme ?? "light"}:${source}`));
+	const [drawing, setDrawing] = useState<Drawing | undefined>(() => drawings.get(`${theme}:${source}`));
 	const previousSourceRef = useRef(source);
-	const [theme, setTheme] = useState(() => document.documentElement.dataset.scheme ?? "light");
-	useEffect(() => {
-		function sync() {
-			setTheme(document.documentElement.dataset.scheme ?? "light");
-		}
-		document.addEventListener("board-theme", sync);
-		return () => document.removeEventListener("board-theme", sync);
-	}, []);
 	useEffect(() => {
 		if (previousSourceRef.current !== source) {
 			for (const [key, value] of drawings) {

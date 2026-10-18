@@ -10,8 +10,9 @@ import { scriptedClient } from "#test/scriptedClient.ts";
 class ErrorReporter extends Context.Service<ErrorReporter, (error: Error) => void>()("@test/PgBossErrorReporter") {}
 
 describe("pg-boss external lifecycle boundaries", () => {
-	it("delivers background errors to the captured onError service and removes its listener", async () => {
+	it("delivers background errors to the captured onError service only while its scope is open", async () => {
 		const reported = Promise.withResolvers<Error>();
+		const delivered: Error[] = [];
 		const failure = new Error("pg-boss background worker stopped unexpectedly");
 		const listeners = new Set<(error: Error) => void>();
 		const client = scriptedClient({
@@ -26,7 +27,14 @@ describe("pg-boss external lifecycle boundaries", () => {
 			clientFactory: () => client,
 			jobs: [],
 			onError: (error) => Effect.flatMap(ErrorReporter, (report) => Effect.sync(() => report(error))),
-		}).pipe(Layer.provide(Layer.succeed(ErrorReporter, reported.resolve)));
+		}).pipe(
+			Layer.provide(
+				Layer.succeed(ErrorReporter, (error) => {
+					delivered.push(error);
+					reported.resolve(error);
+				}),
+			),
+		);
 
 		await Effect.runPromise(
 			Effect.scoped(
@@ -40,14 +48,17 @@ describe("pg-boss external lifecycle boundaries", () => {
 				}).pipe(Effect.provide(live)),
 			),
 		);
-		expect(listeners.size).toBe(0);
+		for (const listener of listeners) {
+			listener(Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" }));
+		}
+		expect(delivered).toEqual([failure]);
 	});
 
 	it("fails both concurrent cached builds on startup failure and starts afresh on retry", async () => {
 		const startup = Promise.withResolvers<void>();
 		const failure = new Error("external client initialization failed");
 		const stop = vi.fn(async () => undefined);
-		const failedClient = scriptedClient({ start: () => startup.promise, stop });
+		const failedClient = scriptedClient({ off: () => undefined, on: () => undefined, start: () => startup.promise, stop });
 		const replacement = scriptedClient({
 			off: () => undefined,
 			on: () => undefined,
@@ -88,6 +99,8 @@ describe("pg-boss external lifecycle boundaries", () => {
 		const cleanupFailure = new Error("external client teardown failed");
 		const stop = vi.fn(() => Promise.reject(cleanupFailure));
 		const client = scriptedClient({
+			off: () => undefined,
+			on: () => undefined,
 			start: () => Promise.reject(failure),
 			stop,
 		});
@@ -206,6 +219,7 @@ describe("pg-boss external lifecycle boundaries", () => {
 
 	it("rejects duplicate job names before registering either worker", async () => {
 		const stop = vi.fn(async () => undefined);
+		const reported: Error[] = [];
 		const listeners = new Set<(error: Error) => void>();
 		const client = scriptedClient({
 			off: (_event, listener) => listeners.delete(listener),
@@ -224,6 +238,7 @@ describe("pg-boss external lifecycle boundaries", () => {
 							...constructorOptions,
 							clientFactory: () => client,
 							jobs: [Queue.handle(() => Effect.void), Schedule.run(Effect.void)],
+							onError: (error) => Effect.sync(() => reported.push(error)),
 						}),
 					),
 				),
@@ -236,9 +251,13 @@ describe("pg-boss external lifecycle boundaries", () => {
 			}
 			expect(error.operation).toBe("register");
 			expect(Redacted.value(error.original)).toEqual(new TypeError("pg-boss job names must be unique"));
+			expect(error.message).toBe("pg-boss register failed: TypeError");
 		}
 		expect(stop).toHaveBeenCalledTimes(1);
-		expect(listeners.size).toBe(0);
+		for (const listener of listeners) {
+			listener(Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" }));
+		}
+		expect(reported).toEqual([]);
 	});
 
 	it("rejects an unencodable consumer payload before sending it", async () => {
