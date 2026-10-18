@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "block-internal-modules.md",
-			"text": "### Changed\n\n- Block `@shivaedev/effect-test-sql/internal/*` imports; use the public test isolation modules instead.\n"
+			"name": "app-scope-before-database.md",
+			"text": "### Fixed\n\n- Close the isolated test's application scope before closing its SQL services and dropping its database.\n"
 		}
 	],
-	"version": "0.5.2"
+	"version": "0.5.3"
 }

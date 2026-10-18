@@ -1,12 +1,15 @@
 import { Effect, PubSub, Stream } from "effect";
 import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
-import type { Change, Changes } from "#server/files/changes.ts";
-import type { Snapshot } from "#server/search/snapshot.ts";
+import type { Change } from "#server/files/changes.ts";
+import { Workspace } from "#server/workspace.ts";
 import { affected } from "./affected.ts";
 
-export function hints(changes: Changes, index: Effect.Effect<Snapshot, unknown>) {
+export function hints() {
 	return Stream.unwrap(
 		Effect.gen(function* () {
+			const workspace = yield* Workspace;
+			const { changes } = yield* workspace.settings();
+			const index = workspace.index();
 			const subscription = yield* PubSub.subscribe(changes.events);
 			let sequence = changes.sequence ? yield* changes.sequence : undefined;
 			let previous = yield* Effect.option(index);

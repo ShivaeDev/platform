@@ -380,12 +380,18 @@ importers:
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 4.0.4(effect@4.0.4)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@shivaedev/changesets':
+        specifier: workspace:*
+        version: link:packages/changesets
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:packages/local-postgres
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:packages/quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:packages/test-story
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -516,6 +522,45 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.3)(happy-dom@20.14.6)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/changesets:
+    devDependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.4(effect@4.0.4)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/platform-node-shared':
+        specifier: 4.0.4
+        version: 4.0.4(effect@4.0.4)
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.4(effect@4.0.4)(vitest@5.0.3)
+      '@shivaedev/effect-test':
+        specifier: workspace:*
+        version: link:../effect-test
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      '@typescript/native':
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.4
+      happy-dom:
+        specifier: 'catalog:'
+        version: 20.14.6
+      typescript:
+        specifier: 'catalog:'
+        version: '@typescript/typescript6@6.0.2'
       vitest:
         specifier: 'catalog:'
         version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.3)(happy-dom@20.14.6)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
@@ -1072,12 +1117,18 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
       '@typescript/native':
         specifier: 'catalog:'
         version: typescript@7.0.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.4
       typescript:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'
@@ -1185,6 +1236,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2

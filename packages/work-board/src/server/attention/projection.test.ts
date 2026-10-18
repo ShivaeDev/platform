@@ -1,28 +1,29 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { attention } from "#server/integration/attention.ts";
 import { inboxCount } from "#server/navigation/model.ts";
-import { projectionQueries } from "#server/views/projectionQueries.ts";
 import { attentionLanesFixture } from "#test/attentionLanesFixture.ts";
 import { boardStory } from "#test/boardStory.ts";
 import { responseRecords } from "#test/responseRecords.ts";
 import { anInbox } from "#test/storyTraits.ts";
 import { attentionProjection } from "./projection.ts";
 
-boardStory.it("partitions asks and reports source diagnostics separately with one count for all queries", [anInbox()], function* ({ readAttention }) {
-	const snapshot = { ...(yield* readAttention(attentionLanesFixture("Casey"))), maintainer: "Casey" };
-	const projection = attention.projection(snapshot);
-	expect(projection.you.map((item) => item.id)).toEqual(["decision.reader", "question.storage", "task.person"]);
-	expect(projection.agents.map((item) => item.id)).toEqual(["task.planned", "decision.orchestrator", "decision.automation"]);
-	expect(projection.agents.map((item) => item.responseFrom)).toEqual([["maintainer"], ["orchestrator"], ["automation"]]);
-	expect(projection.resolved.map((item) => item.id)).toEqual(["task.done", "task.done", "task.done", "task.superseded"]);
-	expect(projection.parked.map((item) => item.id)).toEqual(["task.deferred"]);
-	expect(projection.issues.map((issue) => issue.file)).toEqual(["unknown.md", "unresolved.md"]);
-	const queries = projectionQueries({ document: undefined, index: Effect.succeed(snapshot) });
-	const inbox = yield* queries.inbox();
-	expect([inbox.you.length, inboxCount(snapshot)]).toEqual([3, 3]);
-	expect(inbox).toEqual(projection);
-});
+boardStory.it(
+	"partitions asks and reports source diagnostics separately with one count for all queries",
+	[anInbox()],
+	function* ({ readAttention, readInbox }) {
+		const snapshot = { ...(yield* readAttention(attentionLanesFixture("Casey"))), maintainer: "Casey" };
+		const projection = attention.projection(snapshot);
+		expect(projection.you.map((item) => item.id)).toEqual(["decision.reader", "question.storage", "task.person"]);
+		expect(projection.agents.map((item) => item.id)).toEqual(["task.planned", "decision.orchestrator", "decision.automation"]);
+		expect(projection.agents.map((item) => item.responseFrom)).toEqual([["maintainer"], ["orchestrator"], ["automation"]]);
+		expect(projection.resolved.map((item) => item.id)).toEqual(["task.done", "task.done", "task.done", "task.superseded"]);
+		expect(projection.parked.map((item) => item.id)).toEqual(["task.deferred"]);
+		expect(projection.issues.map((issue) => issue.file)).toEqual(["unknown.md", "unresolved.md"]);
+		const inbox = yield* readInbox(snapshot);
+		expect([inbox.you.length, inboxCount(snapshot)]).toEqual([3, 3]);
+		expect(inbox).toEqual(projection);
+	},
+);
 
 boardStory.it("includes unregistered asks and isolates audiences when they share a target", [anInbox()], function* ({ readAttention }) {
 	const files = attentionLanesFixture();

@@ -10,7 +10,7 @@ import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { executing } from "#model.ts";
 
 const { searchSnapshot, watchChanges } = board;
-const { ResponseConfig, Responses } = responses;
+const { Responses, Workspace, WorkspaceConfig } = responses;
 
 export function releaseWork(host: FleetHost, workIds: readonly string[], parts: HostParts = productionParts(host)) {
 	return withDecisionResponses(host, releaseItems(host, workIds)).pipe(Effect.provide(hostLayer(host, parts)));
@@ -27,7 +27,10 @@ export function decisionResponses(host: FleetHost) {
 			const changes = yield* watchChanges(host.boardDir);
 			const index = (yield* searchSnapshot(host.boardDir, undefined, changes)).pipe(Effect.provide(NodeServices.layer));
 			yield* index.pipe(Effect.ignore, Effect.forkScoped);
-			return Responses.layer.pipe(Layer.provide(Layer.succeed(ResponseConfig, { changes, enabled: true, index, root: host.boardDir })));
+			return Responses.layer.pipe(
+				Layer.provide(Workspace.layer),
+				Layer.provide(Layer.succeed(WorkspaceConfig, { changes, index, root: host.boardDir, writable: true })),
+			);
 		}),
 	);
 }

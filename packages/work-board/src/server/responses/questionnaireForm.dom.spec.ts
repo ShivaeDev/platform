@@ -37,7 +37,7 @@ boardStory.it(
 		yield* Effect.promise(() =>
 			waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("test keyboard use instead")),
 		);
-		expect(page.document.getElementById("response-status")?.textContent).toContain("not acceptance");
+		yield* reader.waitForResponseStatus("not acceptance");
 	},
 );
 

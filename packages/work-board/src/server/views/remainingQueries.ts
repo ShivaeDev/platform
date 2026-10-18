@@ -1,24 +1,19 @@
 import { Clock, Effect } from "effect";
-import { Conflict, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
-import type { Diagnostics } from "#diagnostics/source.ts";
-import type { HandoffsService } from "#server/handoffs/Service.ts";
+import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Diagnostics } from "#diagnostics/source.ts";
+import { HandoffsService } from "#server/handoffs/Service.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { startTemplates } from "#server/page/startTemplates.ts";
-import type { Responses } from "#server/responses/service.ts";
-import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
+import { Responses } from "#server/Responses.ts";
+import { Workspace } from "#server/workspace.ts";
 import { resultProjection } from "./resultProjection.ts";
-export function remainingQueries(
-	{ changes, document, index, writable }: HandlerOptions,
-	services: {
-		readonly diagnostics: typeof Diagnostics.Service;
-		readonly responses: typeof Responses.Service;
-		readonly handoffs: typeof HandoffsService.Service;
-	},
-) {
-	function read(url: string) {
-		return document ? document(url) : Effect.fail(new NotFound({ message: "The document is missing." }));
-	}
+export const remainingQueries = Effect.gen(function* () {
+	const workspace = yield* Workspace;
+	const { changes, writable } = yield* workspace.settings();
+	const index = workspace.index();
+	const read = workspace.document;
+	const services = { diagnostics: yield* Diagnostics, handoffs: yield* HandoffsService, responses: yield* Responses };
 	return {
 		diagnostics: () =>
 			Effect.gen(function* () {
@@ -71,4 +66,4 @@ export function remainingQueries(
 			}),
 		start: () => Effect.map(changes.files, (files) => ({ empty: files.length === 0, templates: startTemplates })),
 	};
-}
+});

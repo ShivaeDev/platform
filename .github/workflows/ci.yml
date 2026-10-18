@@ -51,8 +51,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-        with:
-          save-workspace-cache: 'true'
       - run: pnpm build
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
@@ -92,7 +90,6 @@ jobs:
       consumers-artifact-id: ${{ steps.timings.outputs.consumers-artifact-id }}
       consumers-shards: ${{ steps.timings.outputs.consumers-shards }}
       consumers-count: ${{ steps.timings.outputs.consumers-count }}
-      consumer-store-key: ${{ steps.timings.outputs.consumer-store-key }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -105,17 +102,13 @@ jobs:
         id: timings
         env:
           GH_TOKEN: ${{ github.token }}
-          CONSUMER_STORE_KEY: consumer-store-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'packages/*/package.json', 'script/package-check/**') }}
         run: |
           node --input-type=module <<'JS'
           import { execFileSync } from 'node:child_process';
           import { appendFileSync } from 'node:fs';
           import { mainShardPlan } from './script/ci/mainShardPlan.ts';
           const deadline = performance.now() + 15000;
-          const main = process.env.GITHUB_EVENT_NAME === 'push' && process.env.GITHUB_REF === 'refs/heads/main';
-          const store = process.env.CONSUMER_STORE_KEY;
-          appendFileSync(process.env.GITHUB_OUTPUT, `consumer-store-key=${store}\n`);
-          const plan = mainShardPlan(process.env.GITHUB_REPOSITORY, main ? store : undefined, args => {
+          const plan = mainShardPlan(process.env.GITHUB_REPOSITORY, args => {
             const remaining = deadline - performance.now();
             if (remaining <= 0) throw new Error('Main snapshot lookup timed out');
             return execFileSync('gh', args, { encoding: 'utf8', timeout: Math.min(10000, Math.ceil(remaining)), stdio: ['ignore', 'pipe', 'pipe'] });
@@ -227,9 +220,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-        id: setup
-        with:
-          consumer-store-key: ${{ needs.shard-plan.outputs.consumer-store-key }}
       - name: Download package archives
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -264,12 +254,6 @@ jobs:
           path: .ci/consumers.json
           include-hidden-files: true
           retention-days: 14
-      - name: Save complete consumer store on main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && strategy.job-total == 1 && steps.setup.outputs.consumer-cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: ${{ steps.setup.outputs.store-path }}
-          key: ${{ needs.shard-plan.outputs.consumer-store-key }}
 
   published-starter:
     name: Packed starter

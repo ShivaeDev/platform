@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.9 - 2026-10-18
+
+### Fixed
+
+- Generated apps log terminated idle Better Auth database connections at debug and continue serving queries on a fresh connection.
+- Keep nested README.md, AGENTS.md, CLAUDE.md and published-versions.json files in generated apps while excluding the starter's root maintenance files.
+
 ## 0.6.8 - 2026-10-17
 
 ### Fixed

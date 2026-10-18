@@ -2,21 +2,21 @@ import { Clock, Effect } from "effect";
 import { Conflict, Forbidden, PreconditionFailed, type ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { Question } from "#browser/responses/schema.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import type { WorkspaceSettings } from "#server/workspace.ts";
 import type { locate as locateQuestion } from "./locate.ts";
 import { publish } from "./publish.ts";
 import type { readResponses } from "./read.ts";
 import { questionMarkdown } from "./records.ts";
-import type { ResponseOptions } from "./service.ts";
 
 const HOURS_48 = 48 * 60 * 60 * 1000;
 export function registerQuestion(
-	options: ResponseOptions,
+	options: WorkspaceSettings,
 	snapshot: Effect.Effect<Snapshot, ServiceUnavailable>,
 	locate: ReturnType<typeof locateQuestion>,
 	read: ReturnType<typeof readResponses>,
 ) {
 	return Effect.fn("WorkBoard.registerQuestion")(function* (input: { readonly item: string; readonly request: string; readonly revision: string }) {
-		if (!options.enabled) {
+		if (!options.writable) {
 			return yield* Effect.fail(new Forbidden({ message: "Start with --responses to explicitly enable local question/response writes." }));
 		}
 		const preview = yield* locate(input.item, input.request);
@@ -32,7 +32,7 @@ export function registerQuestion(
 				);
 			}
 			const saved = (yield* read(preview.id)).question;
-			yield* publish(options.root, options.changes.realRoot, saved.id, questionMarkdown(saved));
+			yield* publish(options.root, options.realRoot, saved.id, questionMarkdown(saved));
 			return saved;
 		}
 		const now = yield* Clock.currentTimeMillis;
@@ -49,7 +49,7 @@ export function registerQuestion(
 				source: preview.source,
 			},
 		};
-		yield* publish(options.root, options.changes.realRoot, question.id, questionMarkdown(question)).pipe(
+		yield* publish(options.root, options.realRoot, question.id, questionMarkdown(question)).pipe(
 			Effect.ensuring(options.changes.refresh ?? Effect.void),
 		);
 		return question;

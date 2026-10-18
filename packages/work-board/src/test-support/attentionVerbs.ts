@@ -2,8 +2,12 @@ import { chmodSync, readdirSync, rmSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
+import { RpcTest } from "effect/rpc";
+import { workRpcs } from "#rpc/contract.ts";
+import type { Snapshot } from "#server/search/snapshot.ts";
 import { fullIndex } from "./fullIndex.ts";
 import { inboxFixture } from "./inboxFixture.ts";
+import { inMemoryBoard } from "./inMemoryBoard.ts";
 import type { BoardEngine } from "./storyEngine.ts";
 
 export function attentionVerbs(engine: BoardEngine, tell: (line: string) => void) {
@@ -32,5 +36,13 @@ export function attentionVerbs(engine: BoardEngine, tell: (line: string) => void
 					}
 				}
 			}),
+		readInbox: (snapshot: Snapshot) =>
+			Effect.scoped(
+				Effect.gen(function* () {
+					tell("the reader checks the inbox through the shared Board runtime");
+					const client = yield* RpcTest.makeClient(workRpcs, { flatten: true });
+					return yield* client("work-board.inbox", undefined);
+				}),
+			).pipe(Effect.provide(inMemoryBoard({}, { home: undefined, index: Effect.succeed(snapshot) }))),
 	};
 }

@@ -1,10 +1,12 @@
-import { Effect, PubSub, Ref, Stream } from "effect";
+import { NodeServices } from "@effect/platform-node";
+import { Effect, Layer, PubSub, Ref, Stream } from "effect";
 import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import type { Change, Changes } from "#server/files/changes.ts";
 import { metadataModel } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
 import { hints } from "./hints.ts";
 
 it.live(
@@ -38,7 +40,16 @@ it.live(
 						yield* PubSub.publish(events, { _tag: "Watching", sequence: 4, watching: false });
 					}
 				});
-				yield* hints(changes, Effect.succeed(snapshot)).pipe(Stream.take(4), Stream.runForEach(record));
+				yield* hints().pipe(
+					Stream.take(4),
+					Stream.runForEach(record),
+					Effect.provide(
+						Workspace.layer.pipe(
+							Layer.provide(Layer.succeed(WorkspaceConfig, { changes, index: Effect.succeed(snapshot), root: "/notes", writable: false })),
+							Layer.provide(NodeServices.layer),
+						),
+					),
+				);
 				return output;
 			}),
 		);
