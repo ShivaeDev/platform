@@ -4,7 +4,7 @@ import { Effect, PlatformError } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, rawPost, startBoard } from "#test/board.ts";
-import { changesUntil, rpcSearch, subscribe } from "#test/nativeRpc.ts";
+import { changesUntil, changesUntilShown, rpcSearch, subscribe } from "#test/nativeRpc.ts";
 import { searchPrivacyFixture } from "#test/searchPrivacyFixture.ts";
 import { workspaceFixture } from "#test/workspaceFixture.ts";
 
@@ -40,9 +40,12 @@ it.live("invalidates cached text after edits, additions, and deletions", functio
 		yield* events.next();
 		expect((yield* search("old phrase")).total).toBe(1);
 		notes.write("note.md", "# Note\n\nFresh phrase.");
-		yield* changesUntil(events, "note.md");
+		yield* changesUntilShown(
+			events,
+			"note.md",
+			Effect.map(search("fresh phrase"), (found) => found.total === 1),
+		);
 		expect((yield* search("old phrase")).total).toBe(0);
-		expect((yield* search("fresh phrase")).total).toBe(1);
 		notes.write("new.md", "# New\n\nAdded phrase.");
 		yield* changesUntil(events, "new.md");
 		expect((yield* search("added phrase")).total).toBe(1);

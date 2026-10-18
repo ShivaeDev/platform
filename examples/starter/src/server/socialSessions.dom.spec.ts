@@ -14,6 +14,7 @@ socialApp.it(
 		const response = yield* followRedirect();
 		expect(response.redirected).toBe(true);
 		expect(response.status).toBe(200);
+		expect(yield* Effect.promise(() => response.text())).toContain("Signed in as alice@social.test");
 		expect(location()).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/signed-in$/u);
 		expect(heading()).toBe("Signed in as alice@social.test");
 		expect(cookie()).not.toContain("session_token");

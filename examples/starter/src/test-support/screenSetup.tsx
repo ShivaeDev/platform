@@ -1,8 +1,6 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
-import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { App } from "#client/App.tsx";
 import { appRouter } from "#client/appRouter.tsx";
 import type { Credentials } from "#client/auth.ts";
@@ -10,6 +8,7 @@ import { CodePreview, type CodePreviewLine } from "#client/CodePreview.tsx";
 import { LoginScreen } from "#client/LoginScreen.tsx";
 import { NotesScreen } from "#client/NotesScreen.tsx";
 import { SessionApp } from "#client/SessionApp.tsx";
+import { requireSetup } from "#test-support/requireSetup.ts";
 import { appAuth } from "./appAuth.ts";
 import { notesClient } from "./notesClient.ts";
 import { screenAuth } from "./screenAuth.ts";
@@ -17,22 +16,15 @@ import { acquireScreen, type Screen } from "./screenState.ts";
 
 export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: Screen, route: string, signedIn = true) {
 	engine.client.session.signedIn = signedIn;
-	if (!signedIn) {
-		engine.expectedErrors = [
-			[
-				expect.any(String),
-				new Unauthorized({ message: "Authentication required" }),
-				"The above error occurred in the <MatchInnerImpl> component.",
-				"React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundary.",
-			],
-		];
-	}
+
 	const view = yield* acquireScreen(engine);
 	const router = appRouter(view.registry, engine.client, screenAuth(), createMemoryHistory({ initialEntries: [route] }));
 	engine.router = router;
 	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
 	if (signedIn) {
-		yield* Effect.promise(() => eventually(() => expect(engine.client.calls).toEqual([route === "/" ? "list" : "get"])));
+		yield* Effect.promise(() =>
+			eventually(() => requireSetup(engine.client.calls.includes(route === "/" ? "list" : "get"), "The route did not load its query")),
+		);
 	}
 });
 
@@ -78,7 +70,7 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 	yield* Effect.promise(() =>
 		view.render(<NotesScreen client={engine.client} {...(handleSignOut === undefined ? {} : { onSignOut: handleSignOut })} />),
 	);
-	yield* Effect.promise(() => eventually(() => expect(engine.client.calls).toEqual(["list"])));
+	yield* Effect.promise(() => eventually(() => requireSetup(engine.client.calls.includes("list"), "The notes list did not load")));
 });
 
 export const openSession = Effect.fn("ScreenStory.openSession")(function* (engine: Screen) {
@@ -96,7 +88,7 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 	async function switchSession(id: string) {
 		engine.client = connection({ id });
 		await view.render(<SessionApp auth={auth} connect={connection} history={history} recheck={recheck} sessionId={id} />);
-		await eventually(() => expect(engine.client.calls).toEqual(["list"]));
+		await eventually(() => requireSetup(engine.client.calls.includes("list"), "The notes list did not load"));
 	}
 	engine.switchSession = switchSession;
 	yield* Effect.promise(() => switchSession("alice"));

@@ -40,6 +40,7 @@ export default [
 					"cn",
 					"@base-ui/react",
 					"class-variance-authority",
+					"cmdk",
 					"lucide-react",
 				),
 			),

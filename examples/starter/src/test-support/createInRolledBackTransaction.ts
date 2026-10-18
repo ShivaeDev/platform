@@ -14,5 +14,5 @@ export const createInRolledBackTransaction = Effect.fn("AppStory.createInRolledB
 		const service = yield* NotesService;
 		yield* service.create({ title }, ownerId);
 		return yield* Effect.fail("rollback");
-	}).pipe(transact({ onSqlError: (error) => error }), Effect.provide(host.context), Effect.flip);
+	}).pipe(transact({ onSqlError: (error) => error }), Effect.provide(host.context), Effect.result);
 });

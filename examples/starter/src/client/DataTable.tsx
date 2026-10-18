@@ -1,15 +1,26 @@
 import {
 	type ColumnDef,
-	flexRender,
-	getCoreRowModel,
-	getSortedRowModel,
+	createSortedRowModel,
+	FlexRender,
 	type HeaderGroup,
 	type Row,
-	type SortingState,
-	useReactTable,
+	type RowData,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#client/ui/table.tsx";
+
+const features = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: { alphanumeric: sortFn_alphanumeric, datetime: sortFn_datetime, text: sortFn_text },
+});
+
+export type DataTableFeatures = typeof features;
 
 function sortDirection(sorted: false | "asc" | "desc") {
 	if (sorted === false) {
@@ -18,23 +29,25 @@ function sortDirection(sorted: false | "asc" | "desc") {
 	return sorted === "asc" ? "ascending" : "descending";
 }
 
-function HeadingRow<TData>({ group }: { readonly group: HeaderGroup<TData> }) {
+function HeadingRow<TData extends RowData>({ group }: { readonly group: HeaderGroup<DataTableFeatures, TData> }) {
 	return (
 		<TableRow>
 			{group.headers.map((header) => (
 				<TableHead aria-sort={sortDirection(header.column.getIsSorted())} key={header.id}>
-					{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+					{header.isPlaceholder ? null : <FlexRender header={header} />}
 				</TableHead>
 			))}
 		</TableRow>
 	);
 }
 
-function DataRow<TData>({ row }: { readonly row: Row<TData> }) {
+function DataRow<TData extends RowData>({ row }: { readonly row: Row<DataTableFeatures, TData> }) {
 	return (
-		<TableRow data-state={row.getIsSelected() ? "selected" : ""}>
-			{row.getVisibleCells().map((cell) => (
-				<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+		<TableRow>
+			{row.getAllCells().map((cell) => (
+				<TableCell key={cell.id}>
+					<FlexRender cell={cell} />
+				</TableCell>
 			))}
 		</TableRow>
 	);
@@ -50,24 +63,16 @@ function EmptyRow({ columns }: { readonly columns: number }) {
 	);
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends RowData>({
 	"aria-label": ariaLabel,
 	columns,
 	data,
 }: {
 	readonly "aria-label": string;
-	readonly columns: ColumnDef<TData, TValue>[];
-	readonly data: TData[];
+	readonly columns: readonly ColumnDef<DataTableFeatures, TData>[];
+	readonly data: readonly TData[];
 }) {
-	const [sorting, setSorting] = useState<SortingState>([]);
-	const table = useReactTable({
-		columns,
-		data,
-		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		onSortingChange: setSorting,
-		state: { sorting },
-	});
+	const table = useTable({ columns, data, features });
 	return (
 		<div className="overflow-hidden rounded-md border">
 			<Table aria-label={ariaLabel}>

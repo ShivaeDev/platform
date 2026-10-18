@@ -6,28 +6,30 @@ import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
+const QUERY = '#search-dialog [role="combobox"]';
+const RESULT = '#search-dialog [role="option"] p';
 
 const files = { "notes/plan.md": "# Plan\n\nShared phrase.\n" };
 screenStory.it(
 	"retains the search query and refreshed results after dismissal and reopening",
 	[chromeScreen(files)],
-	function* ({ click, input, control, keyboard, refreshQuery, editFile }) {
+	function* ({ click, input, control, keyboard, refreshQuery, editFile, findElement }) {
 		click("#search-open");
-		input("#search-query", "Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase.")));
-		keyboard("Escape", { bubbles: true, cancelable: true }, control("#search-query", HTMLInputElement));
-		yield* Effect.promise(() => eventually(() => expect(control("#search-dialog", HTMLDialogElement).open).toBe(false)));
+		input(QUERY, "Shared phrase");
+		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase.")));
+		keyboard("Escape", { cancelable: true }, control(QUERY, HTMLInputElement));
+		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 		click("#search-open");
-		expect(control("#search-query", HTMLInputElement).value).toBe("Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase.")));
+		expect(control(QUERY, HTMLInputElement).value).toBe("Shared phrase");
+		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase.")));
 		editFile("notes/plan.md", "# Plan\n\nShared phrase changed.\n");
 		yield* Effect.promise(() => refreshQuery("search", { query: "Shared phrase" }));
-		yield* Effect.promise(() => eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase changed.")));
+		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase changed.")));
 		click("#search-close");
-		yield* Effect.promise(() => eventually(() => expect(control("#search-dialog", HTMLDialogElement).open).toBe(false)));
+		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 		click("#search-open");
-		expect(control("#search-query", HTMLInputElement).value).toBe("Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase changed.")));
+		expect(control(QUERY, HTMLInputElement).value).toBe("Shared phrase");
+		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase changed.")));
 	},
 );
 
@@ -46,12 +48,12 @@ for (const modifier of ["ctrlKey", "metaKey"] as const) {
 			const textarea = control("#response-form textarea", HTMLTextAreaElement);
 			typeText(textarea, "Work in progress");
 			selectText(textarea, 4, 8, "backward");
-			keyboard("k", { bubbles: true, cancelable: true, [modifier]: true }, textarea);
-			expect(control("#search-dialog", HTMLDialogElement).open).toBe(true);
-			expect(readFocus()).toBe(control("#search-query", HTMLInputElement));
+			keyboard("k", { cancelable: true, [modifier]: true }, textarea);
+			expect(findElement("#search-dialog", document)).not.toBeNull();
+			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(control(QUERY, HTMLInputElement))));
 
-			keyboard("Escape", { bubbles: true, cancelable: true }, control("#search-query", HTMLInputElement));
-			yield* Effect.promise(() => eventually(() => expect(control("#search-dialog", HTMLDialogElement).open).toBe(false)));
+			keyboard("Escape", { cancelable: true }, control(QUERY, HTMLInputElement));
+			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(textarea)));
 			expect(textarea.value).toBe("Work in progress");
 			expect(readTextSelection("#response-form textarea")).toEqual([4, 8, "backward"]);

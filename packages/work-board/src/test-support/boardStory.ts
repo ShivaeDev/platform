@@ -5,6 +5,7 @@ import type { FileSystemWrapper } from "./board.ts";
 import { questionnaireSource } from "./questionnaire.ts";
 import { readerVerbs } from "./readerVerbs.ts";
 import { readingVerbs } from "./readingVerbs.ts";
+import { responseFeedVerbs } from "./responseFeedVerbs.ts";
 import { responseServiceVerbs } from "./responseServiceVerbs.ts";
 import { serverVerbs } from "./serverVerbs.ts";
 import { connected, createBoard, inspectBoard, serveProject } from "./storyEngine.ts";
@@ -20,6 +21,7 @@ export const boardStory = storyKit({
 	verbs: (engine, story) => ({
 		...readingVerbs(engine, story.tell),
 		...responseServiceVerbs(engine, story.tell),
+		...responseFeedVerbs(engine, story.tell),
 		...attentionVerbs(engine, story.tell),
 		...serverVerbs(engine, story.tell),
 		get board() {
