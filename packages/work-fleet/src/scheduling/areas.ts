@@ -25,12 +25,16 @@ export function mergeWaitExpired(record: FleetRecord, now: number, mergeWaitMs: 
 
 export function holdsAreas(record: FleetRecord, now: number, mergeWaitMs: number): boolean {
 	return (
-		!["completed", "released"].includes(record.stage)
+		!areaClaimsEnded(record)
 		&& record.attempts.length > 0
 		&& (record.stage !== "prepared" || executing(record))
 		&& record.mergeAreasReleased !== true
 		&& !mergeWaitExpired(record, now, mergeWaitMs)
 	);
+}
+
+export function areaClaimsEnded(record: FleetRecord): boolean {
+	return ["completed", "released"].includes(record.stage);
 }
 
 export function needsAreaRecords(record: FleetRecord, previous: FleetRecord | undefined, limits: AdmissionLimits): boolean {
