@@ -3,179 +3,70 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "create-app-shared-auth-mount.md",
-				"text": "---\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Generated apps use Platform's shared Better Auth mount and scoped auth database pool instead of carrying their own server implementations. Provider options and RPC session policy stay in the application.\n"
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			},
 			{
-				"name": "effect-pg-boss-retry-wake.md",
-				"text": "---\n\"@shivaedev/effect-pg-boss\": patch\n---\n\n### Fixed\n\n- Wake workers when a failed job's retry delay ends instead of waiting for the polling backstop, including idle siblings when another worker in a concurrent registration is busy. Pending wakes are canceled when the worker Layer's scope closes. Custom clients can supply the optional `PgBossClient.notifyWorker` method to enable retry wakes and `PgBossClient.getWipData` to wake every native worker in the registration.\n"
-			},
-			{
-				"name": "effect-react-caught-errors.md",
-				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- Pass React's `RootOptions` to test `render(node, options)`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`.\n- Declare expected boundary errors with `expectNoReactWarnings().expectCaughtError(predicate)`, using its returned `onCaughtError` handler in `render`. Unexpected caught errors, console errors, React warnings and missing expected errors still fail the guard.\n"
-			},
-			{
-				"name": "effect-react-loader-handoff.md",
-				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- `useLoaderQuery(atom, routeLoaderData)` and `LoadedQueryState` expose loaded query data directly and retain the last value during refetches, without an Initial result or per-screen loading branch.\n- `useEditor({ ...config, loaded: routeLoaderData })` and `LoadedEditor` provide a defined form and direct query data for loader-backed editors.\n\n### Fixed\n\n- Keep loader queries mounted until a component subscribes or their route owner aborts, so delayed route mounts share the loader's execution. Give SessionBoundary registries the same idle window as atom-react's default registry; unread results are released when their route owner ends.\n"
-			},
-			{
-				"name": "effect-react-pending-command.md",
-				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- `usePendingCommand`, `PendingCommandOptions` and `PendingCommandState` from `client/pendingCommand.ts` expose a command's wanted display value while it runs and its watched queries refetch, then adopt the server value. Typed command failures revert the display and remain in the native action result.\n\n- Bind independently controlled list rows to separate native action atoms with `Atom.family`, so a typed rejection on one row leaves another row's pending display intact.\n"
-			},
-			{
-				"name": "effect-sql-migrations-folder.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- effect-sql exports `MIGRATIONS_DIRECTORY` and `MIGRATION_FILE_PATTERN` from `migrationConvention.ts`, and `migrationsFromDirectory(root)` to discover the app's sequentially numbered migration files with Effect's filesystem loader.\n- create-app ships the starter's discovered `src/server/migrations/` folder and validates its zero-padded sequential filenames when packing the template.\n"
-			},
-			{
-				"name": "effect-sql-snake-case-columns.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n\"@shivaedev/platform\": minor\n\"@shivaedev/create-app\": patch\n---\n\n### Added\n\n- effect-sql exports `clientOptions(options, { snakeCase? })` and `SqlNameTransforms` from `clientOptions.ts`. New clients configured with this helper use Effect SQL's native camelCase-to-snake_case query names and snake_case-to-camelCase results by default. Pass `{ snakeCase: false }` to preserve native names, or supply native transform functions in the options.\n- Platform's app database and app host configuration accept native `transformQueryNames` and `transformResultNames`, so applications can use effect-sql's client options without replacing the host's database layer.\n\n### Changed\n\n- Newly generated applications configure snake_case SQL columns through effect-sql. The starter migrates existing note ownership and word-count columns while retaining camelCase model fields.\n"
-			},
-			{
-				"name": "effect-test-sql-background-cleanup.md",
-				"text": "---\n\"@shivaedev/effect-test-sql\": minor\n---\n\n### Added\n\n- `PostgresTestDatabase.awaitCleanup`, a native `Effect<void>` that waits for already-queued drops and preserves cleanup failures as SQL defects.\n\n### Changed\n\n- Drop isolated databases in the background and await outstanding cleanup when the PostgreSQL test layer closes.\n\n### Fixed\n\n- Retry database drops when PostgreSQL's connection budget is exhausted, and sweep abandoned local test databases at startup. Retries use live time even when a test clock is paused. Permanent cleanup failures still surface as SQL defects when the layer closes.\n"
-			},
-			{
-				"name": "effect-test-sql-template-selection.md",
-				"text": "---\n\"@shivaedev/effect-test-sql\": minor\n---\n\n### Added\n\n- Select an empty or migrated database from one test layer with `PostgresTestDatabase.clone(template)` or `withIsolatedDatabase(effect, { template })`. `PostgresTestTemplate` names the choices; migrated clones remain the default. Story traits can choose a template before acquiring their app services.\n- Accept a scoped `PostgresTestLoader` callback in `fixtures` that receives the migrated template's redacted URL, so app options can open their own pool during once-per-layer preparation. Existing fixture Effects remain supported.\n"
-			},
-			{
-				"name": "fleet-control-publication.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Fixed\n\n- Control commands confirm their recorded outcome without waiting for the generated Board status and health publication. Publication continues in the host scope, and a repeated continuation after a lost acknowledgement cannot launch the worker twice.\n- Bulk release confirms the recorded closing responses before provider cleanup finishes, using the same background response handling as answer.\n\n### Added\n\n- `publishAfterBoardPass(publication, backgroundScope?)` accepts a scope for background publication outside a shared Board pass. Publications inside a pass retain their existing batching and completion behavior.\n- `releaseItems(host, workIds, background?)` can acknowledge recorded release responses while applying them in the background; its default remains synchronous.\n- `statusLayer(root, healthConfig?, background?)` and `hostLayer(host, parts, config?, backgroundPublication?)` let daemon hosts publish in the background and flush on shutdown. Composed layers retain synchronous publication by default.\n- `Fleet.listSnapshot()` reads the committed records without waiting for admission. The shutdown flush reads through it, so a daemon stops while another process holds admission.\n\n### Breaking\n\n- `FleetRepository` implementations provide `listSnapshot()`. Return the same records as `list()` from a committed read that does not take the admission lock.\n"
-			},
-			{
-				"name": "local-postgres-configured-name-guidance.md",
-				"text": "---\n\"@shivaedev/local-postgres\": patch\n---\n\n### Changed\n\n- Setup scripts whose database names come from configured URLs no longer need their own name check; rely on preparation's local-target check. Keep an independent allowlist for setup scripts that own fixed database names.\n"
-			},
-			{
-				"name": "platform-auth-mount-path.md",
-				"text": "---\n\"@shivaedev/platform\": patch\n---\n\n### Changed\n\n- Import `betterAuthMount` and `authDatabase` from `@shivaedev/platform/server/better-auth/mount.ts`, the module's own path under the package's wildcard export. The separate `@shivaedev/platform/better-auth.ts` entry is removed.\n"
-			},
-			{
-				"name": "platform-lazy-provider-accounts.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Breaking\n\n- Provider accounts load when a handler asks for them. Replace `SessionUser.providerAccounts` array reads with `yield* (yield* SessionUserWithProviderAccounts).providerAccounts`, declare `AuthenticatedUserWithProviderAccounts` on the RPC, and install `authenticatedUserWithProviderAccountsLayer(sessions)`. Add `AuthUnavailable` and `Unauthorized` to the RPC's error schema because account lookup failures now fail the reading handler. Base `SessionUserValue` no longer has `providerAccounts`.\n- A custom session provider supplies `user.providerAccounts` as `Effect<readonly ProviderAccountValue[], AuthUnavailable | Unauthorized>`, described by the new `ProviderAccountsSessionShape`, instead of an array. The request boundary memoizes this Effect and projects its results to provider and account IDs. `betterAuthSessions(getSession, getProviderAccounts)` supplies this shape; without a lookup its session user has no accounts field. `SessionUserWithProviderAccountsValue` describes the accounts-capable handler profile. Identity-only requests do not call the lookup, and repeated reads share one lookup per request.\n"
-			},
-			{
-				"name": "platform-public-config.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Declare public client configuration once with `publicConfig(schema)` from `rpc/publicConfig.ts`. Load it at host startup with `publicConfigLayer` from `server/rpc-server/publicConfigLayer.ts` and read the generated contract through native atoms and effect-react's `useQuery`. Only declared fields reach the client; missing or invalid required values fail startup with a typed `ConfigError`.\n"
-			},
-			{
-				"name": "platform-shared-auth-mount.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- `@shivaedev/platform/better-auth.ts` exposes `betterAuthMount(options)`, returning a typed Better Auth instance and native `/api/auth/*` route Layer with a 503 fallback, trusted-peer forwarded-IP handling and Config-controlled rate limiting. Applications supply their Better Auth options and RPC session policy.\n- `authDatabase(url)` scopes the Better Auth PostgreSQL pool, logs idle-client errors at Debug and waits for clients to disconnect on release. The entry uses the existing Better Auth integration and the optional `pg` peer.\n"
-			},
-			{
-				"name": "platform-signed-in-stories.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- Platform exports `authTestUtils(options?)` and `signedInUser(auth, fields)` from `server/better-auth/testing.ts` for typed Better Auth test utilities and signed-in story preconditions with user fields and roles, without OAuth or password hashing.\n- Test-story exports `seedCookies(cookies)` and `DomCookie` from `seedCookies.ts` to seed happy-dom's cookie container, including HttpOnly session cookies accepted by a real HTTP host.\n"
-			},
-			{
-				"name": "quality-global-hooks.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Install a repository-local hooks path so Quality checks commits even with a global `core.hooksPath`, including paths supplied by `include` or `includeIf`. Chain executable global pre-commit hooks, block commits when either hook fails, and report inactive Quality hooks with `quality hooks status`, without changing global or system Git configuration.\n"
-			},
-			{
-				"name": "quality-shadcn-folders.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Changed\n\n- Treat the UI folder named by each app's `components.json` as shadcn-owned by default. Quality's source rules and Biome lint, formatting and fixes skip that folder without app-specific exceptions; TypeScript's inputs stay unchanged.\n"
-			},
-			{
-				"name": "quality-tool-owned-migrations.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Changed\n\n- Treat numbered `NNNN_snake_case.ts` files directly in `src/server/migrations` as tool-owned in naming checks, including in nested apps, without app configuration. Other files and folders under `migrations` remain checked.\n"
-			},
-			{
-				"name": "work-board-layout.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- The Board's top bar stays in place while the page scrolls, and anchored sections land below it.\n- Every page opens with the same header: title, an optional summary line and its actions. Item pages share the other pages' padding, and their actions look like buttons: Save favorite, Clear selections and Change your answer are buttons, while actions that open another page, such as Prepare an agent handoff, stay links for screen readers. The top bar's Today link is a link too. `DocumentView` accepts an `actions` slot for the title row.\n"
-			},
-			{
-				"name": "work-fleet-answer-acknowledgements.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Fixed\n\n- Answers, including guidance during execution or repair, and `answer --release` acknowledge their durable request before admission work, preserve queued-message order, keep answer status visible during provider-capacity waits, assign application failures to the orchestrator, and report recording failures instead of confirming an unsaved request. Pending answers resume automatically after transient completion-storage failures.\n\n- Answer recording, status and watch remain available when pending answers and reconciliations fill the admission pool.\n\n- Reconciled clarification and deferral receipts keep later answers and releases applicable. Restarting the daemon during answer publication no longer duplicates an applied answer as guidance.\n\n- Answers recorded for a waiting decision that becomes execution or repair guidance queue once across daemon restarts.\n\n### Changed\n\n- The daemon opens one PostgreSQL connection beyond `database.maxConnections` to record answers and serve status and watch while admission is busy.\n- Guidance sent during execution or repair now prints \"Answer recorded; applying in the background\" instead of \"queued for the next turn\".\n\n### Breaking\n\n- Host answer integrations pass `AnswerOptions` to `answerWork(host, workId, options)`; the answer-request apply callback receives `(workId, options)`.\n"
-			},
-			{
-				"name": "work-fleet-area-prefix.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- `work-fleet reserve-pr <url>` reserves a foreign PR through the daemon, using matching Board task areas or repeated `--areas` options. Scheduler observations release closed or merged foreign PR reservations and retain them when GitHub reads fail.\n- Foreign reservations expose typed `areas` lists, stored as PostgreSQL `text[]`; `reserveForeign` accepts an optional third `areas` argument.\n\n### Changed\n\n- Area scheduling uses equality, slash-delimited prefixes and `*` overlap for held areas, waiting order and foreign PR reservations. Parent and child areas block each other; sibling areas remain independent.\n\n### Breaking\n\n- Code constructing a `ForeignReservation` value must include an `areas` array; use `[]` for occupancy-only reservations. Existing PostgreSQL reservations migrate with empty areas.\n"
-			},
-			{
-				"name": "work-fleet-merged-dependencies.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Unblock dependencies after a delivery PR merges, including human merges without Fleet approval and older released merges and PRs that merge after release. Preserve observed delivery evidence in the optional `mergedDelivery` field on Fleet records and archived cycles, with the merge commit when known. Reconciliation uses `needsReleasedDelivery(record)` and `observeReleasedDeliveries(state, stored)` to observe unmerged released deliveries, including archived cycles, without reopening their work.\n- Accept Board-done dependencies without active Fleet work, including released records, and retain dependency satisfaction after later brief edits. Report every unmet dependency with its actual blocker.\n"
-			},
-			{
-				"name": "work-fleet-stable-blockers.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Keep a changed Board brief ahead of a moved PR head, report both blockers in status and watch summaries, and leave record versions, decision publications and watch notifications unchanged while those blockers persist.\n"
+				"name": "test-story-pinned-utc-clock.md",
+				"text": "---\n\"@shivaedev/test-story\": minor\n\"@shivaedev/effect-test\": minor\n---\n\n### Added\n\n- Pass a UTC `DateTime` to the existing `clock` option to pin a story or Effect fixture before its per-test setup runs. The exported `EffectClock` type now accepts `DateTime.Utc` alongside `\"test\"` and `\"live\"`. Hosts, workers and screens acquired with the story's Effect Context share native `Clock` / `TestClock`, including explicit `TestClock.adjust` advances; application code using `Clock` or `DateTime.now` needs no changes.\n"
 			}
 		],
 		"releases": [
 			{
-				"bump": "minor",
+				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.9.0",
+				"from": "0.10.0",
 				"name": "@shivaedev/create-app",
-				"to": "0.10.0"
+				"to": "0.10.1"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-pg-boss",
+				"directory": "packages/effect-prisma",
 				"from": "0.10.0",
-				"name": "@shivaedev/effect-pg-boss",
+				"name": "@shivaedev/effect-prisma",
 				"to": "0.10.1"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/effect-react",
+				"directory": "packages/effect-test",
 				"from": "0.6.0",
-				"name": "@shivaedev/effect-react",
+				"name": "@shivaedev/effect-test",
 				"to": "0.7.0"
 			},
 			{
-				"bump": "minor",
-				"directory": "packages/effect-sql",
-				"from": "0.5.2",
-				"name": "@shivaedev/effect-sql",
-				"to": "0.6.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-test-sql",
-				"from": "0.5.5",
-				"name": "@shivaedev/effect-test-sql",
-				"to": "0.6.0"
+				"bump": "patch",
+				"directory": "packages/effect-trpc",
+				"from": "0.8.0",
+				"name": "@shivaedev/effect-trpc",
+				"to": "0.8.1"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/local-postgres",
-				"from": "0.4.1",
-				"name": "@shivaedev/local-postgres",
-				"to": "0.4.2"
-			},
-			{
-				"bump": "minor",
 				"directory": "packages/platform",
-				"from": "0.17.0",
+				"from": "0.18.0",
 				"name": "@shivaedev/platform",
-				"to": "0.18.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/quality",
-				"from": "0.27.0",
-				"name": "@shivaedev/quality",
-				"to": "0.27.1"
+				"to": "0.18.1"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/test-story",
-				"from": "0.9.0",
+				"from": "0.10.0",
 				"name": "@shivaedev/test-story",
-				"to": "0.10.0"
+				"to": "0.11.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.20.0",
+				"from": "0.20.1",
 				"name": "@shivaedev/work-board",
-				"to": "0.20.1"
+				"to": "0.20.2"
 			},
 			{
-				"bump": "minor",
+				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.9.0",
+				"from": "0.10.0",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.10.0"
+				"to": "0.10.1"
 			}
 		]
 	}
