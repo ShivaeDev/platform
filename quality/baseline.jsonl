@@ -379,7 +379,6 @@
 {"path":"packages/platform/src/server/redactOtlpUrl.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/proxy.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/redaction.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/server/rpc-server/session.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/trustedProxyRanges.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/testing/makePlatformIt.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/pr-watch/src/arguments.test.ts","rule":"tests/story-specs","count":1}
