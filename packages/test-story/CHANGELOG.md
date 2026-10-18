@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-10-18
+
+### Added
+
+- Let the OTLP receiver's status callback return `undefined` to withhold response headers, or set `answer: null` to send headers without completing the body.
+
 ## 0.5.0 - 2026-10-17
 
 ### Added

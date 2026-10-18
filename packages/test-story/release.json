@@ -1,18 +1,10 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "detached-hook-traces.md",
-			"text": "### Fixed\n\n- Run every stage's `after` hook without the story's parent span, including its scoped teardown and finalizers, so hosts booted after deployment can start independent request traces while story verbs keep their story span.\n"
-		},
-		{
-			"name": "fake-otlp-receiver.md",
-			"text": "### Added\n\n- Export `otlpReceiver` from `otlpReceiver.ts`: a scoped local OTLP/HTTP JSON and protobuf receiver with decoded span readouts and raw export headers and body bytes. Export `OtlpSpan`, `OtlpExport` and `OtlpReceiverOptions` for story kit authors.\n"
-		},
-		{
-			"name": "kit-condition.md",
-			"text": "### Added\n\n- Gate every story in a kit with the inferred definition's `runIf` boolean option. A false condition skips every `it` variant before setup, including `fails` and `only`, while preserving per-story skips and conditions.\n"
+			"name": "otlp-stalled-responses.md",
+			"text": "### Added\n\n- Let the OTLP receiver's status callback return `undefined` to withhold response headers, or set `answer: null` to send headers without completing the body.\n"
 		}
 	],
-	"version": "0.5.0"
+	"version": "0.6.0"
 }
