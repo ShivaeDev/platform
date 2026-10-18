@@ -5,7 +5,7 @@ import { app, signedIn } from "#test-support/application.ts";
 app.it(
 	"counts an edited title, rejects the pre-count edit and completes jobs for deleted notes",
 	[signedIn()],
-	function* ({ actor, collector }) {
+	function* ({ actor, collector, wordCountCompletions }) {
 		const { notes: client } = actor();
 		const original = yield* client.create({ title: "Old title" });
 		const edited = yield* client.update({ ...original, title: "Three new words" });
@@ -19,6 +19,15 @@ app.it(
 		expect(yield* client.update({ ...edited, title: "Before counting" }).pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
 		expect(yield* client.list()).toEqual([counted]);
 		yield* Effect.promise(() => expect.poll(() => receiver.spans.filter((span) => span.name === "CountWords"), { timeout: 8000 }).toHaveLength(3));
+		yield* Effect.promise(() =>
+			expect
+				.poll(() => Effect.runPromise(wordCountCompletions()), { timeout: 8000 })
+				.toMatchObject([
+					{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
+					{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
+					{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
+				]),
+		);
 		yield* stopWorker;
 		expect(receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code)).toEqual([1, 1, 1]);
 	},
