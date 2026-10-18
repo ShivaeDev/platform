@@ -29,8 +29,13 @@ screenStory.it(
 				expect(next).toBeNull();
 			}
 		}
-		expect(readText(".today-strip")).toBe(`${inbox.you.length} need you·9 in progress·${goals.goals.length} active goals`);
-		expect([...findElements(".today-strip a")].map((link) => link.getAttribute("href"))).toEqual(["#needs-you", "#in-progress", "#today-goals"]);
+		expect(readText(".today-strip")).toBe(`${inbox.you.length} need you·9 in progress·${goals.goals.length} active goals·2 sources have problems`);
+		expect([...findElements(".today-strip a")].map((link) => link.getAttribute("href"))).toEqual([
+			"#needs-you",
+			"#in-progress",
+			"#today-goals",
+			"/_board/system#source-problems",
+		]);
 		expect(readText("[data-goal-id='project.example']")).toContain("51 linked · 1 with evidence");
 		expect(readText("[data-goal-id='project.empty']")).toContain("0 of 0 done");
 		expect(readText("#today-goals")).not.toContain("not linked");

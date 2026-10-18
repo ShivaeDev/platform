@@ -8,19 +8,25 @@ import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { githubLimited } from "./githubLimited.ts";
 import { SystemFleetLane } from "./SystemFleetLane.tsx";
 import { SystemHealth } from "./SystemHealth.tsx";
+import { SystemSourceProblems } from "./SystemSourceProblems.tsx";
 export function SystemPage({
 	data: { sources: data, now },
 	needsYou,
+	sourceProblems,
 }: {
 	readonly data: DiagnosticsProjection;
 	readonly needsYou?: number | null | undefined;
+	readonly sourceProblems?: Parameters<typeof SystemSourceProblems>[0];
 }) {
 	const items = useContext(FleetItemsContext);
 	const fleet = data.fleet.state === "ready" ? { ...data.fleet, observedAt: data.fleet.value.observedAt } : data.fleet;
 	return (
 		<div className="space-y-6">
 			<h1 className="font-semibold text-2xl">System</h1>
-			<p>Agent usage and Fleet health. Refreshes every 15 seconds while this view is visible; Pause updates holds the current view.</p>
+			<p>
+				Agent usage, Fleet health and workspace source problems. Refreshes every 15 seconds while this view is visible; Pause updates holds the
+				current view.
+			</p>
 			<div className="grid gap-4 lg:grid-cols-2">
 				<Card
 					attention={
@@ -51,6 +57,7 @@ export function SystemPage({
 				/>
 			</div>
 			<SystemFleetLane data={items} />
+			{sourceProblems !== undefined && <SystemSourceProblems {...sourceProblems} />}
 		</div>
 	);
 }
