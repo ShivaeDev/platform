@@ -72,7 +72,7 @@ test("native Automation waiting query preserves dependency blockers without prev
 				yield* client("fleet.dispatch", { workId: "two" });
 				const result = yield* client("fleet.views", undefined);
 				expect(result.waiting.automation.find((item) => item.workId === "dependent")?.blocker).toContain(
-					"accepted outcome for current Board revision board-one",
+					"dependency one: not done on the Board; no accepted outcome",
 				);
 				expect(result.waiting.orchestrator).toEqual([]);
 				expect(result.active.find((item) => item.workId === "two")?.stage).toBe("executing");

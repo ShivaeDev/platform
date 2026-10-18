@@ -3,6 +3,7 @@ import { inBoardReadPass, withBoardReadPass } from "#board/readPass.ts";
 import { boardCompletionAction } from "#engine/completeBoardWork.ts";
 import { schedulerPassed } from "#engine/health.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
+import { needsReleasedDelivery } from "#engine/releasedDeliveries.ts";
 import { pendingSessionCleanup } from "#engine/sessionCleanup.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
@@ -30,6 +31,7 @@ function activeRecords(records: readonly Versioned<FleetRecord>[]) {
 		({ value }) =>
 			value.pendingContinuation !== undefined
 			|| !["completed", "released", "prepared"].includes(value.stage)
+			|| needsReleasedDelivery(value)
 			|| boardCompletionAction(value) !== undefined
 			|| pendingAcknowledgements(value).length > 0
 			|| pendingSessionCleanup(value).length > 0,
@@ -48,7 +50,7 @@ export const cycle = inBoardReadPass(
 	Effect.gen(function* () {
 		const fleet = yield* Fleet;
 		const records = yield* fleet.list();
-		const active = activeRecords(records).filter(({ value }) => value.stage !== "prepared");
+		const active = activeRecords(records).filter(({ value }) => value.stage !== "prepared" || needsReleasedDelivery(value));
 		const result = yield* Effect.all(
 			{
 				dispatched: dispatchRecords(records),
