@@ -70,6 +70,8 @@ export default defineConfig({
 		"tests/support-imports": {
 			options: {
 				modules: [
+					"packages/effect-sql/src/advisoryXactLock.ts",
+					"packages/effect-sql/src/transact.ts",
 					"packages/quality/src/biome/report.ts",
 					"packages/quality/src/cli/program.ts",
 					"packages/quality/src/cli/runMain.ts",
