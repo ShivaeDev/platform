@@ -25,6 +25,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 		changes,
 		options.maintainer,
 	);
+	yield* Effect.forkScoped(Effect.ignore(index));
 	const provided = yield* Effect.serviceOption(DiagnosticsSources);
 	const services = yield* Layer.build(
 		boardServices({
