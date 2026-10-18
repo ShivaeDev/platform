@@ -13,10 +13,9 @@ Every package in this repo explains itself to three readers, and each reader get
 |---|---|---|
 | `packages/<name>/AGENTS.md` | An agent changing the package | The north star in a few short paragraphs: the problem, the ideal, and the order of priorities when they conflict. Points to `docs/` for the rest. `CLAUDE.md` beside it is a symlink to it. |
 | `packages/<name>/README.md` | A human first, then an agent using the package | The first screen sells; the rest teaches. Published to npm. |
-| `packages/<name>/docs/north-star.md` | Anyone deciding where the package goes | The full vision: why it exists, what good looks like, what it will not do. |
-| `packages/<name>/docs/roadmap.md` | Anyone planning work | What is built, what is next, and the open questions the maintainer still owns. Status lives here and nowhere else. |
+| `packages/<name>/docs/north-star.md` | Anyone deciding where the package goes | Optional. The long form of the vision, only when it says something durable that `AGENTS.md` cannot hold in a screen. |
 
-Add more files under `docs/` only when a topic outgrows the README; let the pattern grow from real need.
+Add more files under `docs/` only when a topic outgrows the README; let the pattern grow from real need. No package keeps a roadmap: planned work, status and open questions live on the Work Board, and what shipped lives in git and the changelog.
 
 ## AGENTS.md: the north star
 
@@ -53,7 +52,7 @@ Name the two H2 sections in words that fit the package; the split is what matter
 
 ## docs/
 
-`north-star.md` is the long form of the `AGENTS.md` north star: the problem in full, the ideals, the trade-offs, and what the package deliberately leaves out. `roadmap.md` lists what is built, what is next and the open questions. Docs state the current truth; history lives in git and the changelog.
+`north-star.md`, when a package has one, is the long form of the `AGENTS.md` north star: the problem in full, the ideals, the trade-offs, and what the package deliberately leaves out. It does not repeat `AGENTS.md`. Docs state the current truth. Leave out status, "built" or "done" lists, inventories of files, modules or tests, narrated history and counts: they drift, and every parallel pull request edits the same lines.
 
 ## Change fragments and releases
 
@@ -65,5 +64,6 @@ For a consumer-visible change, add one new `packages/<name>/changes/<short-name>
 - [ ] The README title is the package name, followed by the one-to-three-sentence why.
 - [ ] The README's first screen holds the human pitch and one small example, nothing else.
 - [ ] The agent part goes from mental model to examples to API to install and limits.
-- [ ] `docs/north-star.md` and `docs/roadmap.md` exist and agree with `AGENTS.md`.
+- [ ] A `docs/north-star.md`, if present, adds to `AGENTS.md` rather than repeating it.
+- [ ] No doc keeps a roadmap, a status list or an inventory of files or tests.
 - [ ] Each claim in the README has a test behind it.

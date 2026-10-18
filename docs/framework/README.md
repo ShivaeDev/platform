@@ -63,37 +63,17 @@ automatic relationship loading are outside the default path.
 
 Follow [Add a resource to the starter](./add-a-feature.md) to build a feature in order, from a migration and Model through the service, contract, host, route and form to PostgreSQL and DOM tests. Each step points to the starter's notes implementation.
 
-The [starter quickstart](./quickstart.md) begins with a runnable app. The [PostgreSQL order feature](./composed-example.md) is the larger reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. Its test also proves that a rolled-back write publishes nothing. Use each package's README for its mental model and API. The [order-editing fixture](./order-example.md) adds session and save-race scenarios with its own evidence limits.
+The [starter quickstart](./quickstart.md) begins with a runnable app. The [PostgreSQL order feature](./composed-example.md) is the larger reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. Use each package's README for its mental model and API.
 
 - [Native RPC](./native-rpc.md) explains handlers, middleware and transport.
-- [Request context](./request-context.md) explains session resolution, Origin
-  policy and redacted request diagnostics.
-- [Commit-bound changes](./changes.md) connects transaction bindings to
-  application change vocabularies.
-- [Live updates](./live-updates.md) composes optional hint streams with native
-  query invalidation.
-- [Editing](./editing.md) connects queries, forms and saves.
-- [Migrations](./migrations.md) and [PostgreSQL migration boundaries](./postgres-migrations.md)
-  explain authoring and runner ownership.
-
-Work Board owns Markdown identity, context, relationships and human direction.
-[Work Fleet](../../packages/work-fleet/README.md) supplies an optional execution,
-review and authorized-delivery loop using those identities. Its runtime policy
-owns execution authority; Board remains usable without that integration.
+- [Request context](./request-context.md) explains errors, session resolution, Origin policy and redacted request diagnostics; [BetterAuth at the RPC boundary](./auth-boundary.md) shows the session provider.
+- [Commit-bound changes](./changes.md) connects transaction bindings to application change vocabularies.
+- [Live updates](./live-updates.md) composes optional hint streams with native query invalidation.
+- [Editing](./editing.md) connects queries, forms and saves; [client lifetime](./client-lifecycle.md) ties the client registry to the authenticated session.
+- [Cancellation](./cancellation.md) covers interruption from React actions to Node requests.
+- [Migrations](./migrations.md) and [PostgreSQL migrations](./postgres-migrations.md) explain authoring and runner ownership.
+- [PostgreSQL codecs](./postgres-codecs.md) and [constraint failures](./constraint-errors.md) cover the database value boundary.
 
 ## What counts as evidence
 
-A useful feature fixture calls actual services through actual boundaries. It
-checks values and typed failures, rollback, cancellation and release, refetching,
-and preservation of edits while fresh data arrives. Source-local tests and
-installed-package consumers answer different questions, so both matter.
-
-PostgreSQL, authenticated HTTP, SSR isolation, browser lifecycle and native device
-behavior each need their own evidence. SQLite and DOM fixtures establish only
-the paths they execute. PostgreSQL tests that skip without their database URL
-establish no database behavior. The [boundary validation guide](./boundary-validation.md)
-links the executable fixtures and describes their limits.
-
-The [framework roadmap](./roadmap.md) owns composed-feature and application-host
-work. Each package's `docs/roadmap.md` owns its implementation and open questions.
-Status belongs in those roadmaps.
+A useful feature fixture calls actual services through actual boundaries. It checks values and typed failures, rollback, cancellation and release, refetching, and preservation of edits while fresh data arrives. Source-local tests and installed-package consumers answer different questions, so both matter. PostgreSQL, authenticated HTTP, SSR isolation, browser lifecycle and native device behavior each need their own evidence.

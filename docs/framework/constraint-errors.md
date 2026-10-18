@@ -1,7 +1,6 @@
 # Constraint failures at the application boundary
 
-Effect SQL already gives us a useful vocabulary. In the pinned 4.0.4 release,
-`SqlError.reason` distinguishes `UniqueViolation`, `ConstraintError`, transaction
+Effect SQL already gives us a useful vocabulary. `SqlError.reason` distinguishes `UniqueViolation`, `ConstraintError`, transaction
 conflicts and other categories. `UniqueViolation.constraint` identifies the
 violated constraint. We do not need a second framework-wide SQL error hierarchy.
 
@@ -27,8 +26,5 @@ writes in that operation. PostgreSQL marks a transaction failed after a statemen
 error; catching that error inside the transaction does not restore the database
 transaction. A deliberate nested transaction/savepoint is a separate choice.
 
-[The PostgreSQL test](../../packages/effect-sql/src/postgresConstraints.spec.ts)
-checks a duplicate after an earlier insert, verifies rollback through repository
-reads, and verifies an unrelated check violation retains its native SQL error.
-Constraint names and reason precision are driver-specific: this proof does not
-promise that SQLite and PostgreSQL identify every constraint identically.
+Constraint names and reason precision are driver-specific: SQLite and PostgreSQL
+do not identify every constraint identically.
