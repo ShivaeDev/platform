@@ -10,7 +10,7 @@ Each job has one path, and you extend it instead of adding a second one. Service
 
 Follow this guidance over a bad pattern in the surrounding code, and fix the debt you touch in the same change, including deleting superseded code and docs. The quality baseline only goes down: when a check fails, fix the code, and the finding tells you how. A behavior that a README or changelog states needs a test that fails without it, and the claim covers only what that test proves. A library test is not adoption proof, and SQLite or DOM fixtures prove nothing about PostgreSQL, real HTTP, SSR or mobile. Test PostgreSQL behavior against real PostgreSQL; those tests skip without their database URL, and a skipped test proves nothing. A comment states only why the code is this way. Docs state the current truth; planned work and status live on the Work Board and history in git, so no doc keeps a roadmap, a done list or a test inventory.
 
-Releases are routine: cut one whenever a change needs to reach npm, following the release steps. Ask the maintainer only before a breaking change to a framework package's public API, a new package or a new external dependency, because consumers and the npm account carry those. Otherwise do the work and report what you did.
+Releases are routine: cut one whenever a change needs to reach npm, following the release steps. Ask the maintainer only before a new package or a new external dependency, because consumers and the npm account carry those. A breaking change to a public API needs no approval: its `### Breaking` fragment entry says how consumers migrate, and it adds no re-export aliases for the old names. Otherwise do the work and report what you did.
 
 ## Daily commands
 
