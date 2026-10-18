@@ -1,7 +1,9 @@
 import { Schema } from "effect";
 import type { Job } from "pg-boss";
+import type { PgBossClient } from "#client.ts";
 
 export const deferredAttempt = Symbol("deferredAttempt");
+export const deferralObservers = new WeakMap<PgBossClient, () => void>();
 
 export const Deferral = Schema.Struct({
 	at: Schema.String,

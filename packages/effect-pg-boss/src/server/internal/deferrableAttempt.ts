@@ -2,7 +2,7 @@ import { Clock, DateTime, Effect, Schema } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { RetryAt } from "#definition.ts";
-import { deferralOf, deferredAttempt } from "#internal/deferral.ts";
+import { deferralObservers, deferralOf, deferredAttempt } from "#internal/deferral.ts";
 
 const recordDeferral = Effect.fnUntraced(function* (at: string, reason: string) {
 	const span = yield* Effect.currentSpan.pipe(Effect.orDie);
@@ -46,6 +46,9 @@ export function deferrableAttempt<A, E, R>(
 				);
 				// Native batch settlement must not match a sibling's new claim at the unchanged retry count.
 				job.retryCount = Number.MAX_SAFE_INTEGER;
+				if (rows.length > 0) {
+					deferralObservers.get(client)?.();
+				}
 				return rows.length > 0;
 			}).pipe(
 				Effect.tap((settled) => (settled ? recordDeferral(at, error.reason) : Effect.void)),
