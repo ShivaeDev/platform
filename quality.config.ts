@@ -70,6 +70,7 @@ export default defineConfig({
 		"tests/support-imports": {
 			options: {
 				modules: [
+					"packages/effect-react/src/client/testing.ts",
 					"packages/quality/src/biome/report.ts",
 					"packages/quality/src/cli/program.ts",
 					"packages/quality/src/cli/runMain.ts",
