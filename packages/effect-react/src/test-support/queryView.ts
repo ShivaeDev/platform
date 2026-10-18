@@ -4,9 +4,8 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { act, createElement } from "react";
-import { onTestFinished } from "vitest";
 import { type QueryOptions, useQuery } from "#result-state.ts";
-import { render as renderView } from "#testing.ts";
+import type { Rendered } from "#testing.ts";
 
 export interface Unavailable {
 	readonly _tag: "Unavailable";
@@ -31,7 +30,6 @@ export function queryRequests() {
 		Atom.make(Effect.suspend(() => Deferred.await(gate)).pipe(Effect.onInterrupt(() => Effect.sync(() => interrupted.push(payload))))).pipe(
 			Atom.setIdleTTL(0),
 			Atom.withReactivity(["reports"]),
-			Atom.setIdleTTL(0),
 		),
 	);
 	const runtime = Atom.runtime(Layer.empty);
@@ -62,10 +60,8 @@ function QueryProbe({ atom, options }: { readonly atom: Query; readonly options:
 	);
 }
 
-export async function queryView(atom: Query, options: QueryOptions = {}) {
-	const view = await renderView(null);
+export async function queryView(view: Rendered, atom: Query, options: QueryOptions = {}) {
 	const { registry, container } = view;
-	onTestFinished(view.unmount);
 	async function render(next: Query, nextOptions = options, owner = registry) {
 		await view.render(createElement(RegistryContext.Provider, { value: owner }, createElement(QueryProbe, { atom: next, options: nextOptions })));
 	}
@@ -75,10 +71,17 @@ export async function queryView(atom: Query, options: QueryOptions = {}) {
 			await act(async () => registry.set(invalidation, undefined));
 		},
 		refresh: async () => {
-			await act(async () => container.querySelector("button")?.click());
+			await act(() => {
+				const button = container.querySelector("button");
+				if (!button) {
+					throw new Error("Missing query refresh button");
+				}
+				button.click();
+			});
 		},
 		registry,
 		render,
 		snapshot: () => JSON.parse(container.textContent ?? ""),
+		unmount: view.unmount,
 	};
 }
