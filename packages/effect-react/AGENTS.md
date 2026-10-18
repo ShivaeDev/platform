@@ -12,4 +12,4 @@ When goals conflict, they win in this order:
 4. **Shared state tells the truth.** An action atom describes the atom's current result, not the outcome of one dispatch. Keep native interruption and lifetime rules intact; use a real Effect when a caller needs its own completion result.
 5. **Small call sites follow proven behavior.** Add a helper when it removes repeated application code and its observable behavior has a regression test. A shorter call site does not justify a new state owner.
 
-Read [README.md](./README.md) for use, [docs/north-star.md](./docs/north-star.md) for the full boundary and trade-offs, and [docs/roadmap.md](./docs/roadmap.md) for implementation status and maintainer questions.
+The package does not define another RPC contract language, a general form language, optimistic reconciliation or an offline write queue. Read [README.md](./README.md) for use.
