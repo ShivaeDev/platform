@@ -26,6 +26,7 @@ export const BoardWork = Schema.Struct({
 	revision: Schema.String,
 	sourcePath: Schema.String,
 	status: Schema.optional(Schema.String),
+	sweep: Schema.optional(Schema.Array(Schema.String)),
 	workId: Schema.String,
 });
 export type BoardWork = typeof BoardWork.Type;

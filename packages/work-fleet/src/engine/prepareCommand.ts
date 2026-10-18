@@ -34,6 +34,7 @@ export function prepareCommand(state: EngineState) {
 			preparation: input.preparation,
 			prompt: input.prompt,
 			stage: "prepared",
+			sweep: work.sweep,
 			workId: work.workId,
 		};
 		const existing = yield* store.load(work.workId);

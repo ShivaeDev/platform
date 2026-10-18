@@ -56,6 +56,9 @@ export function releaseOnly(code: DecisionCode | undefined) {
 }
 
 function situationOf(decision: Pick<Decision, "code" | "publicationWork" | "reason">) {
+	if (decision.code === "reviewed-pr-ready" && decision.reason === "Reviewed sweep PR is ready to merge") {
+		return { ...situations[decision.code], happened: "The sweep PR passed review and all required checks. It is ready to merge before held PRs." };
+	}
 	if (decision.code === "fleet-stale" && decision.reason === CHANGED_BRIEF_REASON && decision.publicationWork !== undefined) {
 		return changedBrief;
 	}

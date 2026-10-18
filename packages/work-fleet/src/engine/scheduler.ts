@@ -7,6 +7,7 @@ import { needsReleasedDelivery } from "#engine/releasedDeliveries.ts";
 import { pendingSessionCleanup } from "#engine/sessionCleanup.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
+import { openSweep } from "#scheduling/sweeps.ts";
 import type { Versioned } from "#storage/model.ts";
 
 const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: readonly Versioned<FleetRecord>[]) {
@@ -27,15 +28,17 @@ const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: r
 });
 
 function activeRecords(records: readonly Versioned<FleetRecord>[]) {
-	return records.filter(
-		({ value }) =>
-			value.pendingContinuation !== undefined
-			|| !["completed", "released", "prepared"].includes(value.stage)
-			|| needsReleasedDelivery(value)
-			|| boardCompletionAction(value) !== undefined
-			|| pendingAcknowledgements(value).length > 0
-			|| pendingSessionCleanup(value).length > 0,
-	);
+	return records
+		.filter(
+			({ value }) =>
+				value.pendingContinuation !== undefined
+				|| !["completed", "released", "prepared"].includes(value.stage)
+				|| needsReleasedDelivery(value)
+				|| boardCompletionAction(value) !== undefined
+				|| pendingAcknowledgements(value).length > 0
+				|| pendingSessionCleanup(value).length > 0,
+		)
+		.toSorted((left, right) => Number(openSweep(right.value)) - Number(openSweep(left.value)));
 }
 
 const dispatchPrepared = Effect.gen(function* () {
@@ -46,22 +49,39 @@ const activeWork = Effect.gen(function* () {
 	const fleet = yield* Fleet;
 	return activeRecords(yield* fleet.list());
 });
+
+const reconcileRecords = Effect.fn("Fleet.reconcileRecords")(function* (records: readonly Versioned<FleetRecord>[]) {
+	const fleet = yield* Fleet;
+	function reconcile(continuing: boolean) {
+		return Effect.forEach(
+			records.filter(({ value }) => (value.pendingContinuation !== undefined) === continuing),
+			({ value }) => fleet.reconcile(value.workId).pipe(Effect.result),
+			{ concurrency: "unbounded" },
+		);
+	}
+	const progressed = yield* reconcile(false);
+	const continued = yield* reconcile(true);
+	return [...progressed, ...continued];
+});
+
 export const cycle = inBoardReadPass(
 	Effect.gen(function* () {
 		const fleet = yield* Fleet;
 		const records = yield* fleet.list();
 		const active = activeRecords(records).filter(({ value }) => value.stage !== "prepared" || needsReleasedDelivery(value));
+		const sweeps = yield* Effect.forEach(
+			active.filter(({ value }) => openSweep(value)),
+			({ value }) => fleet.reconcile(value.workId).pipe(Effect.result),
+		);
 		const result = yield* Effect.all(
 			{
 				dispatched: dispatchRecords(records),
-				reconciled: Effect.forEach(active, ({ value }) => fleet.reconcile(value.workId).pipe(Effect.result), {
-					concurrency: "unbounded",
-				}),
+				reconciled: reconcileRecords(active.filter(({ value }) => !openSweep(value))),
 			},
 			{ concurrency: "unbounded" },
 		);
 		yield* schedulerPassed;
-		return result;
+		return { ...result, reconciled: [...sweeps, ...result.reconciled] };
 	}),
 );
 export const run = Effect.fn("Fleet.run")(function* <R = never, TPause = never>(
@@ -79,6 +99,10 @@ export const run = Effect.fn("Fleet.run")(function* <R = never, TPause = never>(
 						continue;
 					}
 					running.add(value.workId);
+					if (openSweep(value)) {
+						yield* fleet.reconcile(value.workId).pipe(Effect.ignore, Effect.ensuring(Effect.sync(() => running.delete(value.workId))));
+						continue;
+					}
 					yield* fleet
 						.reconcile(value.workId)
 						.pipe(Effect.ignore, Effect.ensuring(Effect.sync(() => running.delete(value.workId))), Effect.forkScoped);

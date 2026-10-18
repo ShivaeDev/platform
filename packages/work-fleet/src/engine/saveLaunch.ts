@@ -3,6 +3,7 @@ import { areaWaiters } from "#engine/areaWaiters.ts";
 import type { EngineState, LaunchAdmission } from "#engine/makeState.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
+import { openSweep } from "#scheduling/sweeps.ts";
 import type { Versioned } from "#storage/model.ts";
 
 function launched(record: FleetRecord, attempt: Attempt): FleetRecord {
@@ -29,11 +30,13 @@ export const saveLaunch = Effect.fn("Fleet.saveLaunch")(function* (
 	launch: Pick<LaunchAdmission, "quota" | "role"> & { readonly priority: BoardWork["priority"] },
 ) {
 	const implementer = stored.value.stage === "prepared";
-	const ignoreAreas = implementer && stored.value.dispatchNow?.ignoreAreas === true;
+	const priorityRepair = openSweep(record) && attempt.role === "repair";
+	const ignoreAreas = priorityRepair || (implementer && stored.value.dispatchNow?.ignoreAreas === true);
 	const admission: LaunchAdmission = {
 		areaWaiters: ignoreAreas ? [] : yield* areaWaiters(state, stored.value),
 		ignoreAreas,
 		implementer,
+		overLimit: priorityRepair,
 		quota: launch.quota,
 		role: launch.role,
 	};

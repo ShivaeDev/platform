@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { failureContext } from "#engine/failureContext.ts";
 import { makeHuman } from "#engine/makeHuman.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { reconcileSweepHold } from "#engine/reconcileSweepHold.ts";
 import { requestRework } from "#engine/requestRework.ts";
 import type { FleetError } from "#errors.ts";
 import { executing, type FleetRecord } from "#model.ts";
@@ -14,10 +15,15 @@ export const requestConflictRepair = Effect.fn("Fleet.requestConflictRepair")(fu
 ) {
 	const record = stored.value;
 	const { code, mainRevision } = failureContext(failure);
+	if (code !== "pr-conflicting" || executing(record)) {
+		return undefined;
+	}
+	const held = record.sweepHold === undefined ? undefined : yield* reconcileSweepHold(state, stored);
+	if (held !== undefined) {
+		return held;
+	}
 	if (
-		code !== "pr-conflicting"
-		|| mainRevision === undefined
-		|| executing(record)
+		mainRevision === undefined
 		|| record.review?.verdict !== "approved"
 		|| record.review.head !== record.result?.head
 		|| record.checks?.passed !== true
