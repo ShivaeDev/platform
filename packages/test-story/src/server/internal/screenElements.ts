@@ -1,6 +1,6 @@
-export function screenElements(root: HTMLElement) {
+export function screenElements(root: () => HTMLElement) {
 	function element(selector: string) {
-		const matches = root.querySelectorAll<HTMLElement>(selector);
+		const matches = root().querySelectorAll<HTMLElement>(selector);
 		const found = matches[0];
 		if (matches.length !== 1 || found === undefined) {
 			throw new Error(

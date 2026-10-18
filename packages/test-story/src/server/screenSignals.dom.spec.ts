@@ -47,8 +47,10 @@ screenApp.it("narrates field actions and reads the rendered textarea", [], funct
 screenApp.it("refuses missing, ambiguous, disabled and unsuitable controls", [], function* ({ click, enter, submit }) {
 	for (const [action, message] of [
 		[click("#missing"), "0 matches"],
-		[click("button"), "3 matches"],
+		[click("button"), "4 matches"],
 		[click("#unavailable"), "is disabled"],
+		[enter("#disabled-field", "changed"), "is disabled"],
+		[click("#inert-control"), "is disabled"],
 		[enter("#readonly", "changed"), "is read-only"],
 		[enter("output", "text"), "is not a text field"],
 		[submit("output"), "is not a form"],
@@ -63,11 +65,11 @@ screenApp.it("reads rendered text without hidden content", [], ({ text }) => {
 	expect(text()).not.toContain("Hidden detail");
 });
 
-screenApp.it("explains a signal that never clears instead of reporting a settled screen", [], function* ({ holdNews, click, shortSettle, settle }) {
+screenApp.it("explains a signal that never clears instead of reporting a settled screen", [], function* ({ holdNews, click, settle }) {
 	const held = yield* holdNews();
 	yield* click("#load");
 	yield* held.waiting;
-	const exit = yield* Effect.exit(shortSettle());
+	const exit = yield* Effect.exit(settle({ timeoutMs: 40 }));
 	expect(Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "settled").toContain("The screen did not settle within 40ms");
 	yield* held.release;
 	yield* settle();

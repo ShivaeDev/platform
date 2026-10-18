@@ -4,9 +4,9 @@ import type { EffectTest, EffectTestOptions } from "@shivaedev/effect-test/types
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Genre, genreOf } from "#internal/genre.ts";
 import { type AnyEffect, hooked } from "#internal/hooked.ts";
-import { routeOutbound } from "#internal/routeOutbound.ts";
 import type { LooseDefinition, LooseTrait } from "#internal/seed.ts";
 import { start } from "#internal/start.ts";
+import { routeOutbound } from "#routeOutbound.ts";
 
 type LooseBody = (told: object, context: TestContext) => Generator<AnyEffect, unknown, never> | undefined;
 

@@ -15,7 +15,6 @@ This file owns the story kit's implementation, next work and open questions. The
 - [x] In-process host creation separates request traces from the story span: requests without trace headers get distinct root traces, supplied trace headers continue their trace, request work stays under the request span, and traits and steps stay under the story span. [Host tracing stories](../src/server/hostTracing.spec.ts) assert span parents, trace IDs and completed request spans.
 - [x] Creation, traits and stage `after` hooks can return Effects directly, with services from the kit's Layer and resources released in the story's Scope, covered by [Effect hook stories](../src/server/effectHooks.spec.ts).
 - [x] Kit hooks and steps support a live clock and a per-story TestClock override. [Live-time stories](../src/server/liveTime.spec.ts) cover polling real workers with `withLive` without advancing virtual token expiry.
-
 - [x] `screenDriver` narrates DOM actions and readouts and settles on app-owned pending signals. [Screen driver stories](../src/server/screenSignals.dom.spec.ts) hold HTTP data across identical renders and submit sign-in through a fake identity provider; [React stories](../../effect-react/src/screenDriver.dom.spec.tsx) cover native pending state and controlled inputs through an `act` adapter.
 
 ## Next

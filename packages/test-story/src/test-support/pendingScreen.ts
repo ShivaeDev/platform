@@ -1,6 +1,7 @@
 export function pendingScreen(root: HTMLElement) {
 	root.innerHTML = `<button id="load">Load news</button><output>Ready</output>
 		<form><input name="email" type="email" required><button>Sign in</button></form>
+		<input id="disabled-field" disabled><div inert><button id="inert-control">Inert</button></div>
 		<input id="readonly" readonly value="locked"><textarea aria-label="draft"></textarea><span style="display:none">Hidden detail</span><button id="unavailable" disabled>Unavailable</button>`;
 	const output = root.querySelector("output");
 	const form = root.querySelector("form");

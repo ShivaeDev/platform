@@ -1,17 +1,14 @@
-import { Effect, Exit, Scope } from "effect";
-import { afterAll, beforeAll } from "vitest";
+import { Effect } from "effect";
 import { fakeHttpService } from "#fakeHttpService.ts";
+import { routeOutbound } from "#routeOutbound.ts";
 import { screenDriver } from "#screenDriver.ts";
 import { storyKit } from "#storyKit.ts";
 import { pendingScreen } from "./pendingScreen.ts";
 
-const outbound: Record<string, string> = {};
-let scope: Scope.Closeable;
-let service: Effect.Success<ReturnType<typeof fakeHttpService>>;
-beforeAll(async () => {
-	scope = await Effect.runPromise(Scope.make());
-	service = await Effect.runPromise(
-		fakeHttpService({
+export const screenApp = storyKit({
+	clock: "live",
+	*create() {
+		const service = yield* fakeHttpService({
 			routes: {
 				news: { path: "/news", reply: () => ({ body: "Today's news" }) },
 				session: {
@@ -20,15 +17,8 @@ beforeAll(async () => {
 					reply: ({ body }) => ({ body: `Signed in as ${new URLSearchParams(body.toString()).get("email")}` }),
 				},
 			},
-		}).pipe(Effect.provideService(Scope.Scope, scope)),
-	);
-	outbound["identity.test"] = service.url;
-});
-afterAll(async () => Effect.runPromise(Scope.close(scope, Exit.void)));
-
-export const screenApp = storyKit({
-	clock: "live",
-	*create() {
+		});
+		yield* routeOutbound({ "identity.test": service.url });
 		const root = document.createElement("main");
 		document.body.append(root);
 		const app = pendingScreen(root);
@@ -48,13 +38,13 @@ export const screenApp = storyKit({
 				return frames;
 			},
 			root,
+			service,
 		};
 	},
 	inspect: ({ app, root }) => ({ pending: app.pending(), screen: root.textContent }),
 	name: "screen driver",
-	outbound,
 	stages: ["screen"],
-	verbs: ({ app, root, repaints }, story) => {
+	verbs: ({ app, root, repaints, service }, story) => {
 		service.narrate(story.tell);
 		return {
 			...screenDriver({ pending: app.pending, root, tell: story.tell }),
@@ -65,7 +55,6 @@ export const screenApp = storyKit({
 					return hold;
 				}),
 			repaints: (count: number) => Effect.promise(() => repaints(count)),
-			shortSettle: () => screenDriver({ pending: app.pending, root, tell: story.tell, timeoutMs: 40 }).settle(),
 		};
 	},
 });

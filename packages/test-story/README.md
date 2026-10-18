@@ -146,7 +146,9 @@ const app = storyKit({
 
 `appDefinition` holds the application's kit hooks, and `fakeUrl` is the listening fake server's HTTP or HTTPS origin, such as `http://127.0.0.1:4321`. The map matches exact URL hostnames, across ports. It replaces the destination origin while keeping the request's path, query, method, headers and body. For example, a POST to `https://github.com/login/oauth/access_token` reaches the fake's `/login/oauth/access_token`. In Node stories, other hostnames pass through the previous dispatcher unchanged. In the DOM environment, only loopback hosts (`localhost`, IPv4 loopback addresses and `[::1]`) may pass through without a route; every other hostname must have an `outbound` fake. A refused request fails the story and names its hostname, even when application code catches the fetch error.
 
-Routing uses the global dispatcher that Node's built-in `fetch` already uses. It is installed before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
+`routeOutbound(routes)` from `@shivaedev/test-story/routeOutbound.ts` installs the same routing in the current Effect Scope. Acquire a `fakeHttpService` in `create`, then yield `routeOutbound({ "api.example.com": api.url })` so the fake listener and its routing belong to that story. The starter's social sign-in story exercises this path through both document navigation and host-side requests.
+
+Routing uses the global dispatcher that Node's built-in `fetch` already uses. The kit's `outbound` option installs routing before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
 
 #### Asserting on application traces
 
@@ -439,15 +441,15 @@ const cookieApp = storyKit({
 
 Happy-dom's detached window records a location change without loading the next document. `domNavigate(url = window.location.href)` from `@shivaedev/test-story/domNavigate.ts` performs that load: it follows HTTP redirects through the document transport, keeps cookies for each destination, sets the final location, writes the returned HTML and returns the happy-dom response. Call it after the sign-in client has set the provider location, and before checking the returned page. An unrouted external redirect fails with its hostname.
 
-The starter's [social application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/socialApp.ts) runs a fixture Better Auth host on real PostgreSQL, with a rendered sign-in button and a fake GitHub provider. Its `outbound` map routes both `github.com` and `api.github.com` to the fake's loopback origin. The fake's authorize endpoint returns the application's callback URL with the received state and a test code. The real callback exchanges that code and fetches the user against the fake, creates the account and session in PostgreSQL, and redirects to the signed-in page.
+The starter's [social application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/socialApp.ts) runs a fixture Better Auth host on real PostgreSQL, with a rendered sign-in button and a fake GitHub provider. Its `create` hook acquires the provider and uses scoped `routeOutbound` routing for both `github.com` and `api.github.com`. The fake's authorize endpoint returns the application's callback URL with the received state and a test code. The real callback exchanges that code and fetches the user against the fake, creates the account and session in PostgreSQL, and redirects to the signed-in page.
 
-The kit renders a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. Its `signInWithGitHub` verb uses `screenDriver` to click the sign-in button and settle on the screen's request state, then calls `domNavigate`. The provider uses `fakeHttpService`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. The kit does not copy cookies into request headers.
+The kit renders a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The story calls `clickGitHubSignIn`, `settle` and `followRedirect` separately, then reads the heading, cookie and session. The screen driver settles on the screen's request state and reads the heading from the current document after navigation. The provider uses `fakeHttpService`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. The kit does not copy cookies into request headers.
 
 `domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
 
 ### Driving a screen
 
-`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root`, the story's `tell`, and a `pending()` function that reads the application's own request or atom state. `settle()` waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
+`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces), the story's `tell`, and a `pending()` function that reads the application's own request or atom state. `settle()` waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
 
 ```ts
 import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
@@ -459,13 +461,13 @@ verbs: ({ view, requests }, story) => screenDriver({
 })
 ```
 
-`click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
+`click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, inert controls refuse clicks, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 
 `text(selector?)` returns rendered text from the selected element or the whole root. `value(selector)` returns the current input or textarea value. Both narrate what they read through `tell` and leave assertions to the spec. Entry narration omits the supplied value.
 
 For React, pass `act: async (action) => { await act(action); }` using React's `act`. The adapter wraps each action and flushes renderer work before checking the pending signal, including while waiting for an asynchronous response. The [React driver stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/screenDriver.dom.spec.tsx) cover a native pending atom, a rendered response and a controlled field without React warnings. The driver itself has no renderer dependency.
 
-Settlement has a live-time limit of 3 seconds, configurable with `timeoutMs`, and fails with the current screen text and advice when that limit expires. Use the existing DOM environment and the kit's `outbound` routing to reach `fakeHttpService`; the driver does not install another transport. The [screen stories](src/server/screenSignals.dom.spec.ts) hold a real HTTP response across repeated renders and sign in by filling and submitting a form against a fake identity provider. These fixtures prove DOM interactions and loopback HTTP, not a browser or a production authentication system.
+Settlement has a live-time limit of 3 seconds, configurable with the driver's `timeoutMs` or per call with `settle({ timeoutMs })`, and fails with the current screen text and advice when that limit expires. Use the existing DOM environment and scoped `routeOutbound` routing to reach `fakeHttpService`; the driver does not install another transport. The [screen stories](src/server/screenSignals.dom.spec.ts) hold a real HTTP response across repeated renders and sign in by filling and submitting a form against a fake identity provider. These fixtures prove DOM interactions and loopback HTTP, not a browser or a production authentication system.
 
 ### API by module
 
@@ -475,6 +477,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | --- | --- |
 | `storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
 | `domFetch.ts` | `domFetch(baseUrl)` |
+| `routeOutbound.ts` | `routeOutbound(routes)` |
 | `screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver` |
 | `domNavigate.ts` | `domNavigate(url?)` |
 | `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |

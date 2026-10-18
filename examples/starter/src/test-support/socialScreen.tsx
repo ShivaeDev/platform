@@ -32,16 +32,15 @@ export async function socialScreen(baseUrl: string, fetch: typeof globalThis.fet
 		),
 	);
 	return {
-		check() {
-			if (failure !== undefined) {
-				throw new Error(`Social sign-in failed: ${JSON.stringify(failure)}`);
-			}
-		},
 		async close() {
 			await act(async () => root.unmount());
 			container.remove();
 		},
-		container,
-		pending: () => pending,
+		pending() {
+			if (failure !== undefined) {
+				throw new Error(`Social sign-in failed: ${JSON.stringify(failure)}`);
+			}
+			return pending;
+		},
 	};
 }
