@@ -58,7 +58,14 @@ function retryOrRelease(state: EngineState) {
 		if (reportFailure !== undefined) {
 			return yield* correctWorkerReport(state)(current, reportFailure, responses);
 		}
-		return yield* state.save(current, { ...current.value, blocker: undefined, decision: undefined, responses, stage });
+		return yield* state.save(current, {
+			...current.value,
+			blocker: undefined,
+			decision: undefined,
+			pendingContinuation: action === "release" ? undefined : current.value.pendingContinuation,
+			responses,
+			stage,
+		});
 	});
 }
 

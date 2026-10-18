@@ -86,6 +86,7 @@ const cycleFields = {
 	mergeReadyHead: Schema.optional(Schema.String),
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),
 	pendingAnswers: Schema.optional(Schema.Array(Schema.String)),
+	pendingContinuation: Schema.optional(Schema.String),
 	preparation: Preparation,
 	prompt: Schema.String,
 	releaseReason: Schema.optional(Schema.String),
