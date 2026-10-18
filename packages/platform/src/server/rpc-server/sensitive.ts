@@ -67,9 +67,9 @@ function scrub(text: string, sensitive: SensitiveKey): string {
 		.replaceAll(URL_PASSWORD, `$<authority>${REDACTED}@`);
 	return redactAssignments(credentials, sensitive);
 }
-export function redactText(text: string, sensitive: SensitiveKey): string {
+export function redactText(text: string, sensitive: SensitiveKey, maxLength = MAX_STRING): string {
 	const scrubbed = scrub(text, sensitive);
-	return scrubbed.length > MAX_STRING ? `${scrubbed.slice(0, MAX_STRING)}…<${scrubbed.length - MAX_STRING} more chars>` : scrubbed;
+	return scrubbed.length > maxLength ? `${scrubbed.slice(0, maxLength)}…<${scrubbed.length - maxLength} more chars>` : scrubbed;
 }
 export function redactErrorStack(error: Error, sensitive: SensitiveKey): string | undefined {
 	if (error.stack === undefined) {

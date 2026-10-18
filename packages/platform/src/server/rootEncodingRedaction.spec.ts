@@ -51,3 +51,13 @@ host.it("a repeated request ID cannot replace a sensitive failure's schema polic
 	expect(response.body).toContain('"_tag":"Fail","error":"<redacted>"');
 	expect(response.body).not.toContain(contact);
 });
+
+host.it("native numeric request IDs retain their sensitive root policy", [rootEncoding("schema", "scalar")], function* ({ postNdjson }) {
+	const contact = "private numeric request contact";
+	const response = yield* postNdjson(
+		`${JSON.stringify({ _tag: "Request", headers: [], id: 1, payload: { contact, slot: "unused" }, tag: "hidden" })}\n`,
+		false,
+	);
+	expect(response.body).toContain('"_tag":"Fail","error":"<redacted>"');
+	expect(response.body).not.toContain(contact);
+});

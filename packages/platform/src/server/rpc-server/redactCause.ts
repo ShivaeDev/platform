@@ -1,4 +1,4 @@
-import { Cause, Context, ErrorReporter, Predicate } from "effect";
+import { Cause, Context, ErrorReporter, Predicate, type References } from "effect";
 import { redact } from "#server/rpc-server/redact.ts";
 import { isSensitiveKey, REDACTED, redactErrorStack, redactText, type SensitiveKey } from "#server/rpc-server/sensitive.ts";
 
@@ -50,15 +50,48 @@ function diagnosticReason(reason: Cause.Reason<unknown>, sensitive: SensitiveKey
 			return Cause.interrupt(reason.fiberId);
 	}
 }
+function stackFrame(frame: References.StackFrame | undefined, sensitive: SensitiveKey, remaining = 8): References.StackFrame | undefined {
+	if (frame === undefined || remaining === 0) {
+		return undefined;
+	}
+	return {
+		name: sensitive("name") ? REDACTED : redactText(frame.name, sensitive),
+		parent: stackFrame(frame.parent, sensitive, remaining - 1),
+		stack: () => {
+			const value = frame.stack();
+			if (value === undefined) {
+				return undefined;
+			}
+			return sensitive("name") || sensitive("message") ? REDACTED : redactText(value, sensitive);
+		},
+	};
+}
+function diagnosticAnnotations(reason: Cause.Reason<unknown>, sensitive: SensitiveKey) {
+	const nativeStacks: Context.Key<Cause.StackTrace | Cause.InterruptorStackTrace, References.StackFrame>[] = [
+		Cause.StackTrace,
+		Cause.InterruptorStackTrace,
+	];
+	const annotations = new Map(
+		[...reason.annotations]
+			.filter(([key]) => !nativeStacks.some((service) => service.key === key))
+			.map(([key, value]) => [key, sensitive(key) ? REDACTED : redact(value, sensitive)]),
+	);
+	if (!sensitive("stack")) {
+		const context = Cause.reasonAnnotations(reason);
+		for (const service of nativeStacks) {
+			const frame = Context.getOrUndefined(context, service);
+			if (frame !== undefined && !sensitive(service.key)) {
+				annotations.set(service.key, stackFrame(frame, sensitive));
+			}
+		}
+	}
+	return annotations;
+}
 export function redactDiagnosticCause(cause: Cause.Cause<unknown>, sensitive: SensitiveKey = isSensitiveKey): Cause.Cause<unknown> {
 	return Cause.fromReasons(
 		cause.reasons.flatMap((reason) => {
 			const redacted = diagnosticReason(reason, sensitive);
-			const annotations = new Map(
-				[...reason.annotations]
-					.filter(([key]) => !sensitive("stack") || (key !== Cause.StackTrace.key && key !== Cause.InterruptorStackTrace.key))
-					.map(([key, value]) => [key, sensitive(key) ? REDACTED : redact(value, sensitive)]),
-			);
+			const annotations = diagnosticAnnotations(reason, sensitive);
 			return Cause.annotate(redacted, Context.makeUnsafe(annotations), { overwrite: true }).reasons;
 		}),
 	);

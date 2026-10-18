@@ -4,12 +4,16 @@
 
 ### Added
 
+- Expose `redactWire(value, sensitive?)` for native failure serialization without diagnostic collection, depth, binary or string summaries. `redactText(text, sensitive, maxLength?)` accepts an optional length limit; `Infinity` disables truncation while retaining the existing credential and key masking.
 - `appHost` accepts one `config.sensitiveKeys` list and derives sensitive field names from its RPC schemas' `Schema.Redacted`, `Schema.RedactedFromValue` and `sensitive: true` annotations. These names mask log annotations, RPC failure and defect payloads, reported causes and exported trace attributes, including nested structured data. Successful RPC results retain application data; free-text scanning keeps the existing credential and key rules.
 - Expose `RedactionPolicy`, `schemaSensitiveKeys`, `redactingDiagnostics`, `redactRecord`, `redactingTracer` and `redactingRpcSerialization` for native boundary composition. `redactOtlpText` accepts an optional third sensitive-key predicate. `redactDiagnosticCause` and `redactingErrorReporter` also redact typed failure diagnostics; `redactCause` retains typed failures for middleware composition.
 - The predicate returned by `schemaSensitiveKeys(group, extraKeys?)` exposes `maskFailure(tag: string | undefined, reason: "Fail" | "Die")`. Pass it as the optional third argument to `redactingRpcSerialization(wire, sensitive, maskFailure?)` to protect sensitive roots without fixed field names. Serialization correlates RPC responses with decoded request tags; an unassociated defect uses the host's conservative defect policy.
 
 ### Fixed
 
+- Preserve public RPC failure collections, deeply nested values and long text after schema encoding, so client payloads are not changed by diagnostic output limits.
+- Apply failure masking to both native numeric and string request IDs, including sensitive root-schema policies.
+- Copy native cause stack frames with callable stack suppliers and valid parent links. Truncated parent chains end with `undefined`, so deep public stacks remain usable by error reporters and OTLP exception formatting.
 - Mask entire RPC failure values when a sensitive source encodes to a top-level scalar or record whose output keys cannot be named. Other RPC failures and successful results retain their application data.
 - Rebuild diagnostic failure, defect and interruption reasons with only sanitized annotations, so marking `stack` sensitive removes native `Cause.StackTrace` and `Cause.InterruptorStackTrace` metadata from reporter causes and exported traces.
 - Honor sensitive annotations on schema checks and nested check groups in logs, RPC failures and exported span attributes.
