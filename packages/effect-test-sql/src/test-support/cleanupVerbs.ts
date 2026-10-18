@@ -1,5 +1,6 @@
-import { Context, Deferred, Effect, Exit, Fiber, Layer, Redacted, Schedule, Scope, type Tracer } from "effect";
+import { Clock, Context, Deferred, Effect, Exit, Fiber, Layer, Redacted, Schedule, Scope, type Tracer } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
+import * as TestClock from "effect/testing/TestClock";
 import { PostgresTestDatabase } from "#database.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 
@@ -22,6 +23,28 @@ export function cleanupVerbs(state: CleanupState) {
 		return admin<{ datname: string }>`select datname from pg_database where datname = ${state.name}`;
 	}
 	const spans: Tracer.Span[] = [];
+	function openClone(clock: "live" | "test" = "live") {
+		return Effect.gen(function* () {
+			const testClock = clock === "test" ? yield* TestClock.make() : undefined;
+			if (testClock !== undefined) {
+				yield* Effect.addFinalizer(() => testClock.adjust("1 minute"));
+			}
+			const open = engine.run(
+				Effect.gen(function* () {
+					const database = yield* PostgresTestDatabase;
+					const context = yield* database.isolated.pipe(Effect.provideService(Scope.Scope, state.cloneScope));
+					state.name = new URL(Redacted.value(Context.get(context, PostgresTestDatabase).url)).pathname.slice(1);
+					yield* Effect.addFinalizer(() =>
+						Scope.close(state.cloneScope, Exit.void).pipe(
+							Effect.ensuring(Effect.orDie(admin`drop database if exists ${admin(state.name)} with (force)`)),
+						),
+					);
+				}),
+			);
+			return yield* testClock === undefined ? open : open.pipe(Effect.provideService(Clock.Clock, testClock));
+		});
+	}
+
 	return {
 		awaitCleanup: () =>
 			Effect.andThen(
@@ -71,19 +94,7 @@ export function cleanupVerbs(state: CleanupState) {
 				unlock = Effect.andThen(Deferred.succeed(release, undefined), Fiber.join(fiber));
 				yield* Deferred.await(ready);
 			}),
-		openClone: () =>
-			engine.run(
-				Effect.gen(function* () {
-					const database = yield* PostgresTestDatabase;
-					const context = yield* database.isolated.pipe(Effect.provideService(Scope.Scope, state.cloneScope));
-					state.name = new URL(Redacted.value(Context.get(context, PostgresTestDatabase).url)).pathname.slice(1);
-					yield* Effect.addFinalizer(() =>
-						Scope.close(state.cloneScope, Exit.void).pipe(
-							Effect.ensuring(Effect.orDie(admin`drop database if exists ${admin(state.name)} with (force)`)),
-						),
-					);
-				}),
-			),
+		openClone,
 		readCloneScopeExit: () => Effect.sync(() => closed?.pollUnsafe()),
 		readDatabase,
 		readLeftoverDatabases: () => admin<{ datname: string }>`select datname from pg_database where ${admin.in("datname", state.leftovers)}`,

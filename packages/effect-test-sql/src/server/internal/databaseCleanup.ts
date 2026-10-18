@@ -1,4 +1,4 @@
-import { Effect, type Exit, Fiber, Predicate, Schedule } from "effect";
+import { Clock, Effect, type Exit, Fiber, Predicate, Schedule } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import { abandonedDatabase } from "./databaseOwner.ts";
 import { administer } from "./databases.ts";
@@ -12,6 +12,7 @@ export const databaseCleanup = Effect.fn("PostgresTest.databaseCleanup")(functio
 				times: 300,
 				while: (error) => Predicate.hasProperty(error.reason.cause, "code") && error.reason.cause.code === "53300",
 			}),
+			Effect.provideService(Clock.Clock, Clock.Clock.defaultValue()),
 		);
 	}
 	const awaitCleanup = Effect.suspend(() =>

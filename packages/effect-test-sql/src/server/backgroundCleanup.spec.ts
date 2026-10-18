@@ -67,3 +67,18 @@ cleanup.it("queued drops can be drained before the owning layer closes", [], fun
 	yield* awaitCleanup();
 	expect(yield* readDatabase()).toEqual([]);
 });
+
+cleanup.it(
+	"exhausted drops retry while the test clock stays paused",
+	[limitedCleanupRole],
+	function* ({ openClone, exhaustBudget, closeClone, waitForFailedDrop, restoreBudget, waitForDatabaseRemoval, readDatabase, awaitCleanup }) {
+		yield* openClone("test");
+		yield* exhaustBudget();
+		yield* closeClone();
+		expect((yield* waitForFailedDrop())[0]).toMatchObject([{ _tag: "Fail", error: { _tag: "SqlError", reason: { cause: { code: "53300" } } } }]);
+		yield* restoreBudget();
+		yield* waitForDatabaseRemoval();
+		expect(yield* readDatabase()).toEqual([]);
+		yield* awaitCleanup();
+	},
+);

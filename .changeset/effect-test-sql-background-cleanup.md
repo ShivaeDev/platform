@@ -12,4 +12,4 @@
 
 ### Fixed
 
-- Retry database drops when PostgreSQL's connection budget is exhausted, and sweep abandoned local test databases at startup. Permanent cleanup failures still surface as SQL defects when the layer closes.
+- Retry database drops when PostgreSQL's connection budget is exhausted, and sweep abandoned local test databases at startup. Retries use live time even when a test clock is paused. Permanent cleanup failures still surface as SQL defects when the layer closes.
