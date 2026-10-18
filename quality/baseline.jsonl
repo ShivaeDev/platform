@@ -271,9 +271,6 @@
 {"path":"packages/work-board/src/client/react/mainLocation.dom.test.tsx","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/answerDisconnect.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/storage/listReuse.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/create-app/src/cli.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/create-app/src/createApp.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/create-app/src/generatedFiles.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/create-app/src/template.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-changes-prisma/src/coverage.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-changes-prisma/src/tables.test.ts","rule":"tests/story-specs","count":1}
