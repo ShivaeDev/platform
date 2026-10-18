@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 - 2026-10-18
+
+### Fixed
+
+- Wait for an interrupted test's Scope to close after its Vitest timeout, so application workers and database pools finish teardown before the next test starts. Keep the timeout as the test failure without leaking the interrupted program's rejection as an uncaught error.
+
 ## 0.7.0 - 2026-10-18
 
 ### Added
