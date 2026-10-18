@@ -20,7 +20,7 @@ export const prisma = storyKit({
 		};
 	},
 	inspect: (engine) => ({
-		postgres: Option.map(engine.database, ({ schema, published, unnamed, seen }) => ({ published, schema, seen, unnamed })),
+		postgres: Option.map(engine.database, ({ checked, schema, published, unnamed, seen }) => ({ checked, published, schema, seen, unnamed })),
 		recording: { published: engine.recording.published, unnamed: engine.recording.unnamed },
 	}),
 	name: "Prisma changes",
