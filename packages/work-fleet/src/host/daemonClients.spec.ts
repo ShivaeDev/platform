@@ -19,7 +19,7 @@ const dispatchStory = Effect.fn("DaemonClientsTest.dispatchStory")(function* (fi
 	fixture.write("one.md", task("one", "approved", "Edited approved revision."));
 	fixture.write("unused.json", JSON.stringify({ database: { url: "postgresql://unavailable" }, provider: "local" }));
 	function dispatch(id: string) {
-		return Effect.promise(() => cliProcess(["dispatch", id, "--port", String(port), "--config", `${fixture.host.boardDir}/unused.json`]));
+		return Effect.promise(() => cliProcess(["dispatch", id, "--board", fixture.host.boardDir, "--config", `${fixture.host.boardDir}/unused.json`]));
 	}
 	expect(yield* dispatch("one")).toEqual({ code: 0, stdout: "one: dispatch recorded; preparing and launching in the background" });
 	yield* waitForRecord(yield* daemonClient(port), "one", (record) => record.attempts.at(-1)?.receipt !== undefined);

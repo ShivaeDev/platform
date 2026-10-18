@@ -23,9 +23,15 @@ export function WorkLane({
 	const [open, setOpen] = useState(!collapsed);
 	return (
 		<section aria-label={lane} className="work-column min-w-0">
-			<h2 className="m-0 mb-3 flex min-h-8 items-center justify-between gap-3 whitespace-nowrap font-semibold text-sm">
+			<h2 className="m-0 mb-3 flex min-h-8 items-center justify-between gap-2 font-semibold text-sm">
 				{collapsed ? (
-					<Button aria-expanded={open} onClick={() => setOpen(!open)} size="sm" variant="outline">
+					<Button
+						aria-expanded={open}
+						className="h-auto min-h-8 shrink whitespace-normal text-left"
+						onClick={() => setOpen(!open)}
+						size="sm"
+						variant="outline"
+					>
 						{lane}
 					</Button>
 				) : (

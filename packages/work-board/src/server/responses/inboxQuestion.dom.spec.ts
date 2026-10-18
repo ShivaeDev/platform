@@ -82,7 +82,7 @@ boardStory.it(
 			waitFor(() => {
 				for (const id of ["inbox-count", "inbox-topbar-count"]) {
 					expect(page.document.getElementById(id)?.textContent).toBe("0");
-					expect(page.document.getElementById(id)?.getAttribute("aria-label")).toBe("0 waiting");
+					expect(page.document.getElementById(id)?.getAttribute("aria-label")).toBe("0 need you");
 				}
 			}),
 		);
@@ -110,7 +110,7 @@ boardStory.it(
 			waitFor(() => {
 				for (const id of ["inbox-count", "inbox-topbar-count"]) {
 					expect(page.document.getElementById(id)?.textContent).toBe("0");
-					expect(page.document.getElementById(id)?.getAttribute("aria-label")).toBe("0 waiting");
+					expect(page.document.getElementById(id)?.getAttribute("aria-label")).toBe("0 need you");
 				}
 			}),
 		);
