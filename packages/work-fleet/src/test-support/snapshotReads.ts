@@ -1,9 +1,9 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Exit, Redacted, Tracer } from "effect";
+import { Effect, Exit, Tracer } from "effect";
 import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import type { FleetHost } from "#host/config.ts";
 import { type HostFixture, withHost } from "#test/fleetHost.ts";
+import { hostDatabase } from "#test/hostDatabase.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
 import { storeState } from "#test/storeState.ts";
 
@@ -31,7 +31,7 @@ export function snapshotReads(host: FleetHost) {
 			yield* sql.unsafe(`alter table "${host.namespace}_records" rename column ${from} to ${to}`);
 			broken = nowBroken;
 		},
-		Effect.provide(PgClient.layer({ maxConnections: 1, url: Redacted.make(host.databaseUrl) })),
+		Effect.provide(hostDatabase(host, "work-fleet-snapshot", 1)),
 		Effect.orDie,
 	);
 	const restoreReads = rename("unavailable_stage", "stage", false);

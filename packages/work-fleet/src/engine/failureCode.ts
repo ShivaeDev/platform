@@ -24,7 +24,7 @@ export function failureCode(error: unknown): DecisionCode {
 		return error.code ?? `session-${error.reason}`;
 	}
 	if (error instanceof BoardFailure) {
-		return error.code ?? "board-failure";
+		return error.code === "board-item-missing" ? "board-failure" : (error.code ?? "board-failure");
 	}
 	return "integration-failure";
 }

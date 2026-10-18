@@ -3,12 +3,11 @@ import { Console, Effect, type FileSystem } from "effect";
 import { evaluate, passes } from "#engine/evaluate.ts";
 import { openSession } from "#engine/session.ts";
 import { GateFailed, type SetupFailure } from "#failure.ts";
-import { render, type WarningDetail } from "#report/render.ts";
+import { render } from "#report/render.ts";
 
 export const lint = Effect.fn("Cli.lint")(function* (
 	cwd: string,
 	config: string | undefined,
-	warnings: WarningDetail,
 ): Effect.fn.Return<void, SetupFailure | GateFailed, FileSystem.FileSystem> {
 	const session = yield* openSession(cwd, config);
 	const outcome = evaluate(session.violations, session.registry, session.baseline.entries, session.config);
@@ -18,7 +17,6 @@ export const lint = Effect.fn("Cli.lint")(function* (
 			checked: session.inventory.sources.length,
 			descriptions: new Map(session.config.active.map((rule) => [rule.id, rule.description])),
 			registry: session.config.exceptions.length === 0 ? session.config.registry : `${relative(session.config.root, session.config.file)} exceptions`,
-			warnings,
 		}),
 	);
 	if (!passes(outcome)) {

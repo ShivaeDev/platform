@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
+import { SqlClient } from "effect/sql";
 import type { BoardDecision, BoardDecisionReading } from "#board/schema.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import type { FleetRecord } from "#model.ts";
@@ -35,6 +36,7 @@ const replacementStory = Effect.fn("AnswerReplacementTest.replacementStory")(fun
 	if (fixture.parts.board === undefined) {
 		return yield* Effect.die("Expected the fixture Board layer");
 	}
+	const sql = yield* SqlClient.SqlClient;
 	let replace = Effect.void;
 	let remaining = 0;
 	const board = Layer.effect(BoardGateway)(
@@ -70,6 +72,7 @@ const replacementStory = Effect.fn("AnswerReplacementTest.replacementStory")(fun
 				const sourcePath = decision.published.sourcePath;
 				replace = storeState(fixture.host, "one", replacedRecord(waiting, decision, replacement)).pipe(
 					Effect.andThen(staleSource(fixture, sourcePath, window)),
+					Effect.provideService(SqlClient.SqlClient, sql),
 				);
 				const result = yield* answerAndWait(client, { text: TEXT, workId: "one" }).pipe(Effect.result);
 				yield* assertReplacementOutcome(client, replacement, decision.id, result);

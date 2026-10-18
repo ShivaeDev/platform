@@ -1,8 +1,8 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Deferred, Effect, Redacted } from "effect";
+import { Deferred, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import type { FleetHost } from "#host/config.ts";
 import { admissionLockKey } from "#storage/admissionLockKey.ts";
+import { hostDatabase } from "#test/hostDatabase.ts";
 
 export function busyAdmission(host: FleetHost) {
 	return holdLock(host, admissionLockKey(host.namespace)).pipe(Effect.map(({ release }) => release));
@@ -32,7 +32,7 @@ const holdLock = Effect.fn("FleetFixture.holdLock")(function* (host: FleetHost, 
 				yield* Deferred.await(release);
 			}),
 		);
-	}).pipe(Effect.provide(PgClient.layer({ maxConnections: 1, url: Redacted.make(host.databaseUrl) })), Effect.orDie, Effect.forkScoped);
+	}).pipe(Effect.provide(hostDatabase(host, "work-fleet-lock-observer", 1)), Effect.orDie, Effect.forkScoped);
 	const pid = yield* Deferred.await(held);
 	const blocked = Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
@@ -45,6 +45,6 @@ const holdLock = Effect.fn("FleetFixture.holdLock")(function* (host: FleetHost, 
 			}
 			yield* Effect.sleep("10 millis");
 		}
-	}).pipe(Effect.provide(PgClient.layer({ maxConnections: 1, url: Redacted.make(host.databaseUrl) })), Effect.timeout("5 seconds"));
+	}).pipe(Effect.provide(hostDatabase(host, "work-fleet-lock-observer", 1)), Effect.timeout("5 seconds"));
 	return { blocked, release: Deferred.succeed(release, undefined) };
 });

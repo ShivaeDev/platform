@@ -1,4 +1,5 @@
 import { Effect, Layer, Schema } from "effect";
+import { SqlClient } from "effect/sql";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { hostProvider } from "#host/providers.ts";
 import { hostSql } from "#host/runtime.ts";
@@ -85,17 +86,19 @@ export function withNamedCloudHost<A, E>(prefix: string | undefined, use: (fixtu
 					provider: "cloud",
 					worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" },
 				},
-				(fixture) => {
-					const repository = postgresFleetRepository(fixture.host.namespace).pipe(Layer.provide(hostSql(fixture.host)));
-					return use({
-						...fixture,
-						failures,
-						names,
-						requests,
-						sessions: SessionService.layer.pipe(Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), hostProvider(fixture.host)])),
-						store: (record) => storeState(fixture.host, record.workId, record),
-					});
-				},
+				(fixture) =>
+					Effect.gen(function* () {
+						const sql = yield* SqlClient.SqlClient;
+						const repository = postgresFleetRepository(fixture.host.namespace).pipe(Layer.provide(hostSql(fixture.host)));
+						return yield* use({
+							...fixture,
+							failures,
+							names,
+							requests,
+							sessions: SessionService.layer.pipe(Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), hostProvider(fixture.host)])),
+							store: (record) => storeState(fixture.host, record.workId, record).pipe(Effect.provideService(SqlClient.SqlClient, sql)),
+						});
+					}),
 			);
 		}),
 	);

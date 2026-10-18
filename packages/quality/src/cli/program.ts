@@ -27,7 +27,7 @@ export const program = Effect.fn("Cli.program")(function* (args: readonly string
 		case "Help":
 			return yield* Console.log(USAGE);
 		case "Lint":
-			return yield* lint(cwd, command.config, command.warnings);
+			return yield* lint(cwd, command.config);
 		case "Fix":
 			return yield* fix(cwd, command.config);
 		case "BaselineWrite":
