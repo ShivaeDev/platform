@@ -7,6 +7,8 @@ import { requests } from "#test-support/requests.ts";
 import { storyDatabase } from "#test-support/storyDatabase.ts";
 import type { Engine } from "./applicationState.ts";
 import { applicationVerbs } from "./applicationVerbs.ts";
+import { DatabaseLifetime } from "./DatabaseLifetime.ts";
+import { workerQueue } from "./workerQueue.ts";
 
 export const app = storyKit({
 	after: {
@@ -16,7 +18,19 @@ export const app = storyKit({
 	},
 	around: storyDatabase,
 	clock: "live",
-	create: (): Engine => ({ actors: new Map(), existingNotes: new Map(), host: undefined, hostOptions: {}, tell: () => undefined }),
+	create: (): Effect.Effect<Engine> =>
+		Effect.gen(function* () {
+			const databaseLifetime = yield* DatabaseLifetime;
+			return {
+				actors: new Map(),
+				databaseLifetime,
+				existingNotes: new Map(),
+				host: undefined,
+				hostOptions: {},
+				tell: () => undefined,
+				workerQueue: workerQueue(),
+			};
+		}),
 	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),
 	layer: postgres,
 	name: "app",
@@ -51,13 +65,6 @@ export function legacyNote(title: string) {
 	return app.trait("notes", `PostgreSQL contains the unowned note ${JSON.stringify(title)}`, function* () {
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`insert into notes (title) values (${title})`;
-	});
-}
-
-export function rejectedNoteJobs() {
-	return app.trait("notes", "PostgreSQL rejects word-count jobs", function* () {
-		const sql = yield* SqlClient.SqlClient;
-		yield* sql`alter table pgboss.job add constraint reject_note_jobs check (name <> 'count-note-words')`;
 	});
 }
 

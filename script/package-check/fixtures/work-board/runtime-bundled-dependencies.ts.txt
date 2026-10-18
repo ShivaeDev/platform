@@ -12,6 +12,7 @@ for (const name of [
   "@shivaedev/effect-react",
   "@tanstack/react-router",
   "class-variance-authority",
+  "cmdk",
   "cn",
   "lucide-react",
   "tw-animate-css",
