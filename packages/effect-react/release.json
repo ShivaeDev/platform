@@ -1,10 +1,14 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "framework-version-agreement.md",
-			"text": "### Fixed\n\n- Align the published contract dependency with the current framework release.\n"
+			"name": "camel-case-modules.md",
+			"text": "### Breaking\n\n- Modules are named in camelCase: `field-rejection.ts` becomes `fieldRejection.ts`, and `resume-signal.ts` becomes `resumeSignal.ts`.\n"
+		},
+		{
+			"name": "file-path-exports.md",
+			"text": "### Breaking\n\n- Every module's import path is now its path under `src/`. `router.ts` becomes `loadQuery.ts`; `create.ts`, `editor.ts` and `testing.ts` move under `client/`; `result-state.ts`, `save-state.ts` and `session-boundary.ts` become `client/resultState.ts`, `client/saveState.ts` and `client/sessionBoundary.ts`.\n"
 		}
 	],
-	"version": "0.4.1"
+	"version": "0.5.0"
 }

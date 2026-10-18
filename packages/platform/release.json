@@ -2,9 +2,21 @@
 	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "provider-account-ids.md",
-			"text": "### Added\n\n- Opt in to provider account IDs on `SessionUser.providerAccounts` by passing a `GetProviderAccounts` lookup to `betterAuthSessions`. Export `ProviderAccountValue` (`providerId`, `accountId`) and `SessionWithProviderAccounts` for typed access without querying Better Auth’s account table.\n"
+			"name": "admin-guard.md",
+			"text": "### Added\n\n- Export `requireAdmin` from `rpc/requireAdmin.ts` to guard request-local users with typed `Unauthorized` and `Forbidden` failures. Session users carry the provider's optional role, and `withSessionUser` from `server/rpc-server/session.ts` shares the identity boundary between HTTP routes and RPC middleware.\n"
+		},
+		{
+			"name": "file-path-exports.md",
+			"text": "### Breaking\n\n- Every module's import path is now its path under `src/`. Server modules gain a `server/` prefix and keep their file names, for example `server/appHost.ts`, `server/rpc-server/boundary.ts`, `server/better-auth/rowAdapter.ts`, `server/runtime/makePlatform.ts` and `server/testing/makePlatformIt.ts`. `errors/rejected-field.ts` becomes `errors/rejectedField.ts`.\n"
+		},
+		{
+			"name": "host-request-tracing.md",
+			"text": "### Fixed\n\n- App hosts apply request tracing to every served RPC, wrapping authentication and handlers even when the shared group omits `RequestTracing`. Existing declarations run once at the outermost middleware boundary; failures log redacted payloads with request ids.\n"
+		},
+		{
+			"name": "migration-wait.md",
+			"text": "### Added\n\n- `appHost` and `appDatabase` accept `migrations.mode: \"wait\"` to poll the migration ledger before starting application services, with configurable `pollInterval` (one second by default) and `waitTimeout` (five minutes by default). Timeout preserves the schema check's native `MigrationError`, and interruption closes the waiting host's database pool.\n- `server/MigrationOptions.ts` exports `MigrationOptions<R = never>`, the migration settings used by `AppDatabaseOptions.migrations`.\n"
 		}
 	],
-	"version": "0.15.0"
+	"version": "0.16.0"
 }
