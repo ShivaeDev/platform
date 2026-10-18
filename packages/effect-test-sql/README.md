@@ -22,7 +22,7 @@ The next test still sees the original name. Tests that must observe a committed 
 
 ### Prepare one fixture
 
-`makePostgresTestLayer` creates a template database through an administrative connection, runs `migratePostgres` and optional fixtures there, then closes its preparation connections. It creates a shared test database from that template and provides `SqlClient`, `PgClient`, `Reactivity` and `PostgresTestDatabase`. The template remains closed and unchanged while tests run. Each isolated database is another copy of that template; its migrations and fixtures do not run again. Set `prepare: false` for migration tests: both migrations and fixtures are skipped, so the shared database and each clone start empty.
+`makePostgresTestLayer` creates an empty template and a migrated template through an administrative connection, runs `migratePostgres` and optional fixtures in the migrated template, then closes its preparation connections. It creates a shared test database from the migrated template and provides `SqlClient`, `PgClient`, `Reactivity` and `PostgresTestDatabase`. The templates remain closed and unchanged while tests run. Each isolated database copies the template it asks for; migrations and fixtures do not run again when cloning. Set `prepare: false` for a suite that needs only empty databases: both migrations and fixtures are skipped.
 
 The Layer's scope owns the template, shared database and their connections. `makeEffectIt` builds the Layer once for its worker fixture. Each test's wrapper owns the transaction or isolated database. Closing those scopes releases the connections and drops the disposable databases; the administrative database named by `url` remains in place.
 
@@ -62,6 +62,22 @@ export const { effectApp } = makeEffectIt({
 ```
 
 Use the application's migration loader in place of the example. `migrations` takes effect-sql's `PostgresMigrationOptions`. Fixtures are an Effect with access to the native PostgreSQL services. Additional migration or fixture dependencies remain requirements of the Layer and must be supplied before passing it to the runner. Setup failures remain failures; acquired databases are dropped when the acquisition scope closes.
+
+Fixtures can also be a `PostgresTestLoader`: a callback from the migrated template's redacted URL to a scoped Effect. Use it when a loader needs application options with its own pool, such as Better Auth's options. Acquire the pool in that Effect with `Effect.acquireRelease` and close it in the release action. The callback runs once during preparation, after migrations, with the native SQL services available. Its resources close before the first clone. For example, a loader using a separate native PostgreSQL client can be written as:
+
+```ts
+import * as PgClient from "@effect/sql-pg/PgClient";
+
+const layer = makePostgresTestLayer({
+  url,
+  migrations: appMigrations,
+  fixtures: (templateUrl) => Effect.gen(function* () {
+    const client = yield* PgClient.makeClient({ url: templateUrl });
+    yield* client`create table app_fixture (name text not null)`;
+    yield* client`insert into app_fixture values ('Original')`;
+  }),
+});
+```
 
 ### Budget PostgreSQL connections
 
@@ -109,6 +125,21 @@ effectApp("commits in its own database", function* () {
 The clone starts from the template, including the original fixtures, even if the shared database has changed. The outer rollback transaction belongs to a different native client and does not wrap the clone's work. To isolate harness acquisition and the entire body instead, define a tester with `around: withIsolatedDatabase`.
 
 Inside an isolated block, `PostgresTestDatabase.url` names that clone. Use it to acquire additional native PostgreSQL connections in the block's scope. Native SQL services are replaced in the block's Context; application services acquired earlier retain the client they captured. Build application service Layers inside the isolated block when they acquire SQL clients; use `Layer.fresh` when reusing a Layer definition already acquired by the worker. Keep servers and background fibers in that scope so they finish before the database is dropped. Separate databases isolate database contents; external services and server capacity need separate planning.
+
+### Choose an empty database per story or trait
+
+The default clone is migrated. A first-deploy or upgrade block can select the empty template from the same Layer:
+
+```ts
+yield* withIsolatedDatabase(Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  expect(yield* sql`select table_name from information_schema.tables where table_schema = 'public'`).toEqual([]);
+}), { template: "empty" });
+```
+
+For a `test-story` kit that chooses through traits, keep a `template: PostgresTestTemplate` field on its engine, initially `"migrated"`. Add a database stage before the stages that boot the app. A trait in that stage sets `engine.template = "empty"`; the stage's `after` hook acquires `yield* database.clone(engine.template)` from `PostgresTestDatabase`. Run app acquisition and verbs with `Effect.provideContext(services)` using that returned Context. The story's Scope owns the clone and its connections. Do not also use `around: withIsolatedDatabase` for this kit, since that would acquire a migrated clone before the traits run.
+
+Both selections copy a closed PostgreSQL template with `CREATE DATABASE ... TEMPLATE`; neither selection executes migrations or fixture loaders. The amount of preparation work does not add per-clone migration or loader work. PostgreSQL still has to copy the template's stored data.
 
 ### Test a backfill against existing rows
 
@@ -179,15 +210,15 @@ Import each name from the module that defines it. The package has no root entry.
 
 | Module | Exports |
 | --- | --- |
-| `@shivaedev/effect-test-sql/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures?, maxConnections?, prepare? })`, `PostgresTestOptions` |
+| `@shivaedev/effect-test-sql/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures?, maxConnections?, prepare? })`, `PostgresTestOptions`, `PostgresTestLoader` |
 | `@shivaedev/effect-test-sql/withTestTransaction.ts` | `withTestTransaction(effect)` |
-| `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect)` |
-| `@shivaedev/effect-test-sql/database.ts` | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices` |
+| `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect, { template? }?)` |
+| `@shivaedev/effect-test-sql/database.ts` | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices`, `PostgresTestTemplate` |
 | `@shivaedev/effect-test-sql/migrationSteps.ts` | `migrationSteps(appMigrations)` returning `{ migrateTo(name), migrateToLatest }` |
 | `@shivaedev/effect-test-sql/migrationUpgrade.ts` | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn` |
 | `@shivaedev/effect-test-sql/assertModelColumns.ts` | `assertModelColumns(columns, model, types)`, `ModelColumnMismatch` |
 
-`url` is a redacted PostgreSQL URL for an existing administrative database. `PostgresTestDatabase` supplies the current database's redacted `url` and a scoped `isolated` Effect that acquires another clone's service Context. Prefer `withIsolatedDatabase` to acquire and release that Context around a test. Wrappers retain the body's result, failures and unmet service requirements, with native `SqlError` added for acquisition or transaction failures. Cleanup failures are defects rather than successful cleanup.
+`url` is a redacted PostgreSQL URL for an existing administrative database. `PostgresTestDatabase` supplies the current database's redacted `url`, a scoped `isolated` Effect that acquires a migrated clone's service Context, and `clone(template)` for an explicit `"empty"` or `"migrated"` choice. With `prepare: false`, both choices are empty. Prefer `withIsolatedDatabase` to acquire and release that Context around a test. Wrappers retain the body's result, failures and unmet service requirements, with native `SqlError` added for acquisition or transaction failures. Cleanup failures are defects rather than successful cleanup.
 
 ### Install and setup
 
