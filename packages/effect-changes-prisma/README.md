@@ -178,7 +178,7 @@ const save = changes.transaction(
 );
 ```
 
-Pass transaction options as the second argument. Without `timeout`, the binding uses the current client's configured transaction timeout; the tested Prisma default is 5,000 milliseconds. The configuration reader also handles an extended client. If that configuration cannot be read, it supplies no deadline of its own; a query finding the transaction closed still stops the body.
+Pass transaction options as the second argument. Without `timeout`, the binding uses the current client's configured transaction timeout; Prisma's default is 5,000 milliseconds. The configuration reader also handles an extended client. If that configuration cannot be read, it supplies no deadline of its own; a query finding the transaction closed still stops the body.
 
 The deadline follows the wall clock, so moving Effect's `TestClock` does not expire the transaction. An outer transaction's expiry interrupts a nested body too. A separate transaction started on the base client, or another binding's transaction, has independent expiry; handling its failure can leave the original body's transaction running.
 
@@ -271,29 +271,7 @@ Import the module that defines the name. There is no root entry point.
 | `tables.ts` | `RawQueryClient`, `TableWrites`, `tablesOf`, `tableWrites`, `writtenTables` |
 | `error.ts` | `PrismaError`, `TransactionExpired` |
 
-`PrismaChangesOptions` takes `client`, `models` and the effect-changes channel options other than `owner` and `unowned`: `name`, `key`, `publish`, `onPublishFailure` and `beforeCommit`. The `beforeCommit` hook runs inside the Prisma transaction after the body succeeds, with its recorded changes, before commit. Calls to `use` in the hook use the transaction's scoped `Client`, so they see uncommitted body rows. A hook failure rolls back both body and hook writes and publishes nothing. The binding returns `Client`, `channel`, `use`, `transaction`, `recordWrite` and `Unnamed`.
-
-```ts
-interface Write {
-  readonly model: string;
-  readonly operation: string;
-  readonly result: unknown;
-}
-
-type UnnamedWrite =
-  | { readonly model: string; readonly operation: string; readonly reason: "countOnly" }
-  | { readonly model: string; readonly operation: string; readonly reason: "narrowed"; readonly field: string };
-
-type CoverageViolation =
-  | { readonly _tag: "Unrecorded"; readonly table: string; readonly model: string | undefined }
-  | { readonly _tag: "Unnamed"; readonly write: UnnamedWrite };
-```
-
-These are the write input and the two diagnostic results. `Coverage<A>` takes `written`, `tables`, `models`, `observations`, `unnamed` and `covers`, as shown in the harness. `TableWrites` is a `ReadonlyMap<string, bigint>`; `RawQueryClient` requires `$queryRawUnsafe(query)`.
-
-`use` has error type `PrismaError`. `transaction` adds `TransactionExpired | PrismaError` to the body's error type. `PrismaError` carries `cause`; `TransactionExpired` carries `message` and optional `cause`. Transaction options are `maxWait`, `timeout` and `isolationLevel`, whose type is `"ReadUncommitted" | "ReadCommitted" | "RepeatableRead" | "Serializable"`.
-
-The module export pattern also exposes `model.ts`'s `rowOperations`, `countOperations` and `delegateOf`; `write.ts`'s `interpret`, `Interpreted`, `LooseChanges` and `LooseMap`; and the helpers in [`recording.ts`](https://github.com/ShivaeDev/platform/blob/main/packages/effect-changes-prisma/src/recording.ts), [`expiry.ts`](https://github.com/ShivaeDev/platform/blob/main/packages/effect-changes-prisma/src/expiry.ts) and [`transaction.ts`](https://github.com/ShivaeDev/platform/blob/main/packages/effect-changes-prisma/src/transaction.ts). Application examples use the binding API above.
+`makePrismaChanges` also accepts the effect-changes channel options `onPublishFailure` and `beforeCommit`. The `beforeCommit` hook runs inside the Prisma transaction after the body succeeds, with its recorded changes, before commit. Calls to `use` in the hook use the transaction's scoped `Client`, so they see uncommitted body rows. A hook failure rolls back both body and hook writes and publishes nothing.
 
 ### Install, setup and limits
 
@@ -301,11 +279,8 @@ The module export pattern also exposes `model.ts`'s `rowOperations`, `countOpera
 pnpm add @shivaedev/effect-changes-prisma @shivaedev/effect-changes @prisma/client@7.10.0 effect@4.0.4
 ```
 
-`@prisma/client` and `effect` are peers. Generate and construct the application's Prisma Classic client for PostgreSQL before binding it. Package tests use the generated Prisma client and `@prisma/adapter-pg`; the PostgreSQL integration suite requires `PLATFORM_EFFECT_CHANGES_PRISMA_TEST_DATABASE_URL` and otherwise skips.
+`@prisma/client` and `effect` are peers. Generate and construct the application's Prisma Classic client for PostgreSQL before binding it.
 
 - Use the binding's `transaction` for the transaction outcome it observes, and `use` for automatically recorded model writes.
 - Return the fields the model mapping needs. The count-only and missing-field diagnostics are part of coverage, not a way to infer omitted subjects.
 - Coverage is a table-level check: one matching recorded change covers a written model's table. Test the correctness of affected subjects separately.
-- A test harness's native rollback transaction can contain root binding savepoints that publish before the harness rolls back. Capture publication in tests that must not call a real external sink.
-
-Read the [north star](https://github.com/ShivaeDev/platform/blob/main/packages/effect-changes-prisma/docs/north-star.md) for design boundaries and the [roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-changes-prisma/docs/roadmap.md) for status and open questions.

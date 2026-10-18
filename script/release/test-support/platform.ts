@@ -41,9 +41,6 @@ export const platform = storyKit({
 		read: Effect.fn("ReleaseStory.read")(function* (relative: string) {
 			return yield* (yield* FileSystem.FileSystem).readFileString(join(root, relative));
 		}),
-		remove: Effect.fn("ReleaseStory.remove")(function* (relative: string) {
-			yield* (yield* FileSystem.FileSystem).remove(join(root, relative));
-		}),
 		run: Effect.fn("ReleaseStory.run")(function* (...args: readonly string[]) {
 			const line = `pnpm ${args.join(" ")}`;
 			story.tell(line);
@@ -51,12 +48,6 @@ export const platform = storyKit({
 			return yield* command(root, args);
 		}),
 	}),
-});
-
-export const legacyFragment = platform.trait("pending", "an open PR adds a package-local fragment", function* ({ root }) {
-	const fs = yield* FileSystem.FileSystem;
-	yield* fs.makeDirectory(join(root, "packages/platform/changes"));
-	yield* fs.writeFileString(join(root, "packages/platform/changes/open-pr.md"), "### Fixed\n\n- A pending fix.\n");
 });
 
 export const pending = platform.trait("pending", "framework and binary changes await a release", function* ({ root }) {

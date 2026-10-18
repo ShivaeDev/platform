@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Badge } from "#client/react/components/ui/Badge.tsx";
 import { Button } from "#client/react/components/ui/Button.tsx";
 import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
+import { destinationName } from "#client/react/destinationName.ts";
 import { cn } from "#client/react/lib/cn.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 import type { MainLocation } from "./mainLocation.ts";
@@ -12,7 +13,7 @@ import type { AppearanceControls } from "./useAppearance.ts";
 import type { SidebarControls } from "./useSidebar.ts";
 export function InboxCount({ count, id }: { readonly count: number | null; readonly id: string }) {
 	return (
-		<Badge aria-label={`${count ?? "?"} waiting`} id={id} role="status">
+		<Badge aria-label={count === null ? "Needs you unavailable" : `${count} need you`} id={id} role="status">
 			{count ?? "?"}
 		</Badge>
 	);
@@ -57,7 +58,7 @@ export function Header({
 			<Breadcrumbs file={main.title ?? main.file} />
 			<a
 				aria-current={main.view === "today" ? "page" : undefined}
-				aria-label="Today"
+				aria-label={destinationName("Today", count, "need you")}
 				className={cn(buttonVariants({ size: "sm", variant: "ghost" }), "hidden md:inline-flex")}
 				href="/"
 				id={shellIds.inboxTopbar}

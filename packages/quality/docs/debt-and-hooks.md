@@ -1,6 +1,6 @@
 # Existing debt, exceptions and commit checks
 
-The [README](../README.md) introduces the gate. Adopt the whole policy at error level; use the baseline to retain old debt. This page explains how to record debt, keep it current as files change and run the gate at commit time.
+The [README](../README.md) introduces the gate. This page explains how the baseline records debt, how exceptions are applied and how the pre-commit hook runs.
 
 ## Baseline
 
@@ -35,33 +35,19 @@ quality lint
 
 An error-level finding that neither the config exceptions nor the baseline covers fails `quality lint`; that is how new debt gets noticed. The baseline itself may grow: a reviewer sees each new or raised entry in the diff and judges it. When the failing findings are debt the baseline should keep, such as the debt of a file that moved or was renamed, record the rule again with `quality baseline write --rule <id>`. The report ends with that command for the rules that failed. Then call out the baseline growth in the pull request description.
 
-When an upgrade adds a shared check, keep its default error level, inspect its findings and record retained debt with `quality baseline write --rule <id>`. Review any new counts in the commit.
-
 ### Counts after a policy change
 
-A count depends on the rule's limit, so a Quality policy change that adjusts a limit shifts every count of that rule. The public API also exposes numeric overrides; that does not make tuning thresholds an adoption step. Prefer the shared defaults. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit can make an error-level rule's files fail `quality lint`, since each is now further over the limit. Inspect the findings under the new policy before recording retained debt again with `quality baseline write --rule <id>`. Commit the counts with the policy upgrade. The raised entries show in the diff, and the pull request calls them out.
+A count depends on the rule's limit, so a Quality policy change that adjusts a limit shifts every count of that rule. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit can make an error-level rule's files fail `quality lint`, since each is now further over the limit. Inspect the findings under the new policy before recording retained debt again with `quality baseline write --rule <id>`. Commit the counts with the policy upgrade. The raised entries show in the diff, and the pull request calls them out.
 
 ## Exceptions
 
-Declare permanent exceptions in `quality.config.ts`, in `exceptions`. One entry names `files`, `rules` and one `reason`; it can cover both Quality and Biome rules on the same file:
-
-```ts
-export default defineConfig({
-	exceptions: [
-		{
-			files: ["src/parse.ts"],
-			reason: "This parser documents and returns the external format unchanged.",
-			rules: ["comments/no-jsdoc", "biome/lint/suspicious/noExplicitAny"],
-		},
-	],
-});
-```
-
-Paths are explicit, relative to the config folder. A Quality exception can add `subject` to cover only that finding's subject. Rules that refuse exceptions still refuse them. Quality exceptions apply before the baseline and must cover a current finding; unknown rules, refused rules and stale entries fail the gate. Biome declarations permit individual lint rules and assist actions on explicit files, without a subject. A Biome declaration naming a missing file fails too.
+Permanent exceptions live in `quality.config.ts`'s `exceptions`, as the [README](../README.md#configuration-limits) shows. One entry names `files`, `rules` and one `reason`; it can cover both Quality and Biome rules on the same file. Paths are explicit, relative to the config folder. A Quality exception can add `subject` to cover only that finding's subject. Rules that refuse exceptions still refuse them. Quality exceptions apply before the baseline and must cover a current finding; unknown rules, refused rules and stale entries fail the gate. Biome declarations permit individual lint rules and assist actions on explicit files, without a subject. A Biome declaration naming a missing file fails too.
 
 Quality merges the native Biome overrides into a temporary config beside the root config, preserving the repository's settings, preset and plugins, and removes the temporary file after the command. Both `quality lint` and `quality fix` use it. Keep `biome.json` free of consumer exception settings; a manual weakening is still reported. Direct editor or Biome commands use the checked-in config; run Quality to apply its exceptions.
 
-For a generated directory exclusion, use `rules: ["biome/files/includes"]` and `files: ["**", "!**/test-support/generated"]`. The [rule reference](./rules.md#declared-biome-overrides) describes the narrow directory pattern policy.
+For a generated directory exclusion, use `rules: ["biome/files/includes"]` and `files: ["**", "!**/test-support/generated"]`. Each negative pattern names a concrete directory: it may start with `**/` and use `*` for an intermediate directory, as in `!**/test-support/*/generated`; file patterns, nested `**` and wildcard suffixes are rejected.
+
+A package that ships its own Biome preset declares the weakenings the preset makes in a `declarations.json` beside the preset file, as an array of `{ rule, includes, reason }` entries, so a repository that extends it adds nothing for them. Quality's own preset ships its reasons this way.
 
 ### Upgrade existing exceptions
 
@@ -77,24 +63,9 @@ Export an object or `defineConfig({ ... })` without spreads for automatic editin
 
 ## Pre-commit hook
 
-```sh
-quality hooks install
-```
+`quality hooks install` installs a git pre-commit hook that runs `quality hooks pre-commit` before every commit: `quality lint`, then the `typecheck` script, then an optional `quality:commit` script, as the [README](../README.md) describes. A repository opts in by running the command, usually from the setup script each checkout runs once. Running it again is safe.
 
-`quality hooks install` installs a git pre-commit hook that runs `quality hooks pre-commit` before every commit. Installing dependencies never installs it: a repository opts in by running the command, usually from the setup script each checkout runs once. Running it again is safe.
-
-The hook runs `quality lint`, then the `typecheck` script from `package.json` when present, then an optional `quality:commit` script for repository checks:
-
-```json
-{
-	"scripts": {
-		"quality:commit": "pnpm test",
-		"typecheck": "tsc --noEmit"
-	}
-}
-```
-
-Scripts run from the config's folder, or the current directory when there is no config. The hook uses `packageManager` from that folder's manifest (`npm`, `pnpm`, `yarn` or `bun`), defaulting to `npm` when omitted. Without a manifest or either script, it runs lint alone. An invalid manifest stops the run. Baseline tightening is an explicit command; the hook does not change or stage debt records.
+Scripts run from the config's folder, or the current directory when there is no config. Without a manifest or either script, the hook runs lint alone. An invalid manifest stops the run. Baseline tightening is an explicit command; the hook does not change or stage debt records.
 
 After a reported lint failure or a nonzero command exit, later commands still run, so one attempt shows their results too. A config, setup or process-launch failure stops the run. `lint` and the commands check the files on disk, not only what is staged. When checks report failures, the hook blocks the commit and ends with the checks that failed and what to do next:
 

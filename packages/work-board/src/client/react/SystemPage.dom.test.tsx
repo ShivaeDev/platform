@@ -26,7 +26,7 @@ import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 			for (const stage of ["prepared", "executing", "adopting", "reviewing", "repairing", "validating", "delivering", "needs-human"]) {
 				expect(readText('[aria-label="Fleet work"]')).toContain(stage);
 			}
-			expect(readText('[data-fleet-id="task.needs-human"]')).toContain("Waiting on maintainer");
+			expect(readText('[data-fleet-id="task.needs-human"]')).toContain("Needs you");
 			expect(findElement('[data-fleet-id="task.released"]')).toBeNull();
 		},
 	);

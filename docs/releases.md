@@ -12,11 +12,11 @@ A consumer-visible change adds one `.changeset/<short-name>.md` per PR, naming e
 - Keep an editor's draft when its query refreshes.
 ```
 
-Use minor for Added or Breaking behavior while a package is pre-1.0, and patch for Changed or Fixed only. Write Markdown bullets under `### Added`, `### Changed`, `### Fixed` or `### Breaking`. One file can name several packages and contain several entries and sections. Describe behavior a consumer would look for, within the tests that prove it. Do not change package versions, changelogs or release manifests outside an approved release.
+Use minor for Added or Breaking behavior while a package is pre-1.0, and patch for Changed or Fixed only. Write Markdown bullets under `### Added`, `### Changed`, `### Fixed` or `### Breaking`. One file can name several packages and contain several entries and sections. Describe behavior a consumer would look for, within the tests that prove it. Do not change package versions, changelogs or release manifests outside a release PR.
 
 ## Release packages
 
-The repository uses the workspace `@shivaedev/changesets` package. In an approved release pull request:
+The repository uses the workspace `@shivaedev/changesets` package. In a release PR:
 
 1. Run `pnpm changesets plan` (or `pnpm changesets plan --json`) and review the requested bumps and automatic dependent releases.
 2. When starter pins change, include a patch changeset for `@shivaedev/create-app` so generated apps receive the new versions.
