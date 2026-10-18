@@ -12,6 +12,7 @@ screens.it(
 		yield* submit();
 		yield* noteLinkIs("Zebra");
 		const table = yield* notesTable();
+		expect(table.getAttribute("aria-label")).toBe("Saved notes");
 		expect([...table.querySelectorAll("tbody td a")].map((link) => link.textContent)).toEqual(["Zebra", "Apple"]);
 		expect(table.querySelector("tbody td a")?.getAttribute("href")).toBe("/notes/2");
 		yield* click("Title");

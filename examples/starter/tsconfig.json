@@ -4,8 +4,7 @@
 		"jsx": "react-jsx",
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"paths": {
-			"#*": ["./src/*"],
-			"#client/ui/*": ["./src/client/ui/*.tsx"]
+			"#*": ["./src/*"]
 		},
 		"skipLibCheck": true,
 		"types": ["node", "react", "react-dom"]

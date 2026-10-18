@@ -21,5 +21,10 @@ export function uiScreenVerbs(engine: ScreenSurface, tell: (line: string) => voi
 				}
 				return table;
 			}),
+		screenContent: () =>
+			Effect.sync(() => {
+				tell("read the rendered screen");
+				return screenView(engine).container;
+			}),
 	};
 }

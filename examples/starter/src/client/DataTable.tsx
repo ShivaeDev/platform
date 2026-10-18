@@ -9,7 +9,7 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#client/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#client/ui/table.tsx";
 
 function sortDirection(sorted: false | "asc" | "desc") {
 	if (sorted === false) {
@@ -50,10 +50,17 @@ function EmptyRow({ columns }: { readonly columns: number }) {
 	);
 }
 
-export function DataTable<TData, TValue>({ columns, data }: { readonly columns: ColumnDef<TData, TValue>[]; readonly data: TData[] }) {
+export function DataTable<TData, TValue>({
+	"aria-label": ariaLabel,
+	columns,
+	data,
+}: {
+	readonly "aria-label": string;
+	readonly columns: ColumnDef<TData, TValue>[];
+	readonly data: TData[];
+}) {
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const table = useReactTable({
-		autoResetPageIndex: false,
 		columns,
 		data,
 		getCoreRowModel: getCoreRowModel(),
@@ -63,7 +70,7 @@ export function DataTable<TData, TValue>({ columns, data }: { readonly columns: 
 	});
 	return (
 		<div className="overflow-hidden rounded-md border">
-			<Table aria-label="Saved notes">
+			<Table aria-label={ariaLabel}>
 				<TableHeader>
 					{table.getHeaderGroups().map((group) => (
 						<HeadingRow group={group} key={group.id} />

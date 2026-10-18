@@ -1,7 +1,7 @@
 import { Cause, Option, Predicate } from "effect";
 import { useEffect, useState } from "react";
 import { useAction } from "@shivaedev/effect-react/result-state.ts";
-import { Button } from "#client/ui/button";
+import { Button } from "#client/ui/button.tsx";
 import type { Delete, Note } from "#notes.ts";
 import type { NotesClient } from "./makeNotes.ts";
 

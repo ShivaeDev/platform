@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Badge } from "#client/ui/badge";
-import { Button } from "#client/ui/button";
+import { Badge } from "#client/ui/badge.tsx";
+import { Button } from "#client/ui/button.tsx";
 import type { Note } from "#notes.ts";
 import { DataTable } from "./DataTable.tsx";
 
@@ -33,5 +33,5 @@ const columns: ColumnDef<SavedNote>[] = [
 ];
 
 export function NotesTable({ notes }: { readonly notes: readonly SavedNote[] }) {
-	return <DataTable columns={columns} data={[...notes]} />;
+	return <DataTable aria-label="Saved notes" columns={columns} data={[...notes]} />;
 }

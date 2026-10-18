@@ -27,7 +27,7 @@ export function notesRefreshVerbs(engine: Screen, tell: (line: string) => void) 
 		releaseNotesList: () =>
 			Effect.promise(async () => {
 				tell("release the held notes list request");
-				await act(() => engine.client.releaseList());
+				await act(async () => engine.client.releaseList());
 			}),
 	};
 }
