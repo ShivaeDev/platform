@@ -70,6 +70,12 @@ export default defineConfig({
 		"tests/support-imports": {
 			options: {
 				modules: [
+					"packages/effect-sql/src/clientOptions.ts",
+					"packages/effect-sql/src/repository.ts",
+					"packages/effect-test-sql/src/server/assertModelColumns.ts",
+					"packages/effect-test-sql/src/server/database.ts",
+					"packages/effect-test-sql/src/server/migrationUpgrade.ts",
+					"packages/effect-test-sql/src/server/withIsolatedDatabase.ts",
 					"packages/quality/src/biome/report.ts",
 					"packages/quality/src/cli/program.ts",
 					"packages/quality/src/cli/runMain.ts",
