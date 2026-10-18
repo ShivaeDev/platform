@@ -33,7 +33,7 @@ it("discovers a package boundary outside the source inventory and reports its tr
 	);
 	const outcome = evaluate(violations, [], [], rules);
 	expect(passes(outcome)).toBe(false);
-	expect(violations).toHaveLength(2);
+	expect(violations.map(({ file }) => file).toSorted()).toEqual(["packages/ui/src/bridge.ts", "packages/ui/src/main.ts"]);
 	expect(violations).toEqual(
 		expect.arrayContaining([
 			{
@@ -80,12 +80,18 @@ it("validates discovered and config-supplied fences as one policy", async () => 
 });
 
 it("discovers a boundary beside the root manifest", async () => {
-	expect(await findingsIn(importFences, undefined, fenceDiscovery(undefined, "."))).toHaveLength(2);
+	expect((await findingsIn(importFences, undefined, fenceDiscovery(undefined, "."))).map(({ file }) => file).toSorted()).toEqual([
+		"packages/ui/src/bridge.ts",
+		"packages/ui/src/main.ts",
+	]);
 });
 
 it("reads a changed boundary again during a later scan", async () => {
 	const root = fenceDiscovery();
-	expect(await findingsIn(importFences, undefined, root)).toHaveLength(2);
+	expect((await findingsIn(importFences, undefined, root)).map(({ file }) => file).toSorted()).toEqual([
+		"packages/ui/src/bridge.ts",
+		"packages/ui/src/main.ts",
+	]);
 	replaceBoundary(root, "export default [];");
 	expect(await findingsIn(importFences, undefined, root)).toEqual([]);
 });

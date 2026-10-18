@@ -1,23 +1,14 @@
-import { chmodSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { NodeFileSystem } from "@effect/platform-node";
-import { Cause, Effect, Exit } from "effect";
 import { afterEach, expect } from "vitest";
-import { collectInventory, type InventoryScope } from "#inventory/collect.ts";
+import { collectInventory } from "#inventory/collect.ts";
 import { readOptionalText, readRequiredText } from "#inventory/filesystem.ts";
 import { walk } from "#inventory/walk.ts";
+import { failureText, makeRoot, repository, roots, scope } from "#test/inventoryRepository.ts";
 import { it as effectIt } from "#test/it.ts";
 import { removeSeededTrees, seedTree } from "#test/tree.ts";
-
-const roots: string[] = [];
-
-function makeRoot(): string {
-	const root = mkdtempSync(join(tmpdir(), "quality-fs-"));
-	roots.push(root);
-	return root;
-}
 
 afterEach(() => {
 	removeSeededTrees();
@@ -26,27 +17,7 @@ afterEach(() => {
 	}
 });
 
-function failureText<TValue, TError, TRequirements>(
-	effect: Effect.Effect<TValue, TError, TRequirements>,
-): Effect.Effect<string, never, TRequirements> {
-	return Effect.map(Effect.exit(effect), (exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "(it succeeded)"));
-}
-
 const asRoot = process.getuid?.() === 0;
-
-function scope(overrides: Partial<InventoryScope>): InventoryScope {
-	return { exclude: [], extensions: [".ts", ".tsx"], sources: ["."], ...overrides };
-}
-
-function repository() {
-	return seedTree([
-		{ content: "a\nb\n", path: "src/app.ts" },
-		{ content: "<p/>\n", path: "src/view.tsx" },
-		{ content: "# Notes\n", path: "docs/notes.md" },
-		{ content: "export const route = 1;\n", path: "src/routes/tree.gen.ts" },
-		{ content: "export {};\n", path: "scripts/tool.ts" },
-	]);
-}
 
 effectIt.layer(NodeFileSystem.layer)("filesystem adapter", (it) => {
 	it.effect("treats a missing optional file as absent", function* () {

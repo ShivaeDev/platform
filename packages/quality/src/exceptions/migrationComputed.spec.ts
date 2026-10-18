@@ -40,7 +40,7 @@ it.each(['"', "`"])("migrates computed literal keys using %s without losing exce
 	expect(migrated).not.toContain("suppressions/biome-overrides");
 	expect(migrated).not.toContain("custom-registry.json");
 	expect(migrated).toContain('"comments/no-jsdoc": {}');
-	expect(migrated.match(/This parser preserves/gu)).toHaveLength(1);
+	expect(migrated.match(/This parser preserves/gu)).toEqual(["This parser preserves"]);
 	expect(migrated).toContain('"biome/lint/suspicious/noExplicitAny"');
 	expect(migrated).toContain('"comments/no-jsdoc"');
 	expect(readFileSync(join(root, "biome.json"), "utf8")).not.toContain("overrides");
