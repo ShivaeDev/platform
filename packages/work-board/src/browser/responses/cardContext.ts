@@ -10,12 +10,16 @@ export function cardContext(source: string) {
 	return { links, recommendation };
 }
 
-export function optionLabel(id: string, source: string) {
-	const heading = /^#{1,6}\s+(?<title>.+)$/mu.exec(source)?.groups?.title;
-	if (heading) {
-		return heading;
+export function optionText(id: string, source: string) {
+	const heading = promptHeading(source);
+	if (heading.title) {
+		return { description: heading.rest, label: heading.title };
 	}
-	return id.charAt(0).toUpperCase() + id.slice(1).replaceAll("-", " ");
+	const lead = /^\*\*(?<label>[^*]+)\*\*\s*(?:[—–:-]\s*)?/u.exec(source.trim());
+	if (lead?.groups?.label) {
+		return { description: source.trim().slice(lead[0].length).trim(), label: lead.groups.label.trim() };
+	}
+	return { description: source.trim(), label: id.charAt(0).toUpperCase() + id.slice(1).replaceAll("-", " ") };
 }
 
 function section(source: string, title: string) {

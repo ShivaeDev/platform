@@ -1,5 +1,5 @@
 import type { Metadata } from "#metadata/schema.ts";
-import { managedRequestReceipt } from "#server/attention/managedRequestReceipt.ts";
+import { managedRequestState } from "#server/attention/managedRequestReceipt.ts";
 import { identityUrl, referenceTarget } from "#server/metadata/links.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
@@ -10,6 +10,7 @@ export interface AttentionEntry {
 	readonly href: string;
 	readonly itemId: string;
 	readonly line: number;
+	readonly problem: string | undefined;
 	readonly request: Request;
 	readonly title: string;
 }
@@ -35,8 +36,11 @@ function requestsFor(document: MetadataDocument, snapshot: Snapshot, title: stri
 			request.state !== "open"
 			|| requests.filter((other) => other.id === request.id).length !== 1
 			|| request.unblocks.some((target) => !referenceTarget(target, snapshot.model))
-			|| managedRequestReceipt(document, request, snapshot.model) !== undefined
 		) {
+			return [];
+		}
+		const receipts = managedRequestState(document, request, snapshot.model);
+		if (receipts._tag === "Settled") {
 			return [];
 		}
 		return [
@@ -45,6 +49,7 @@ function requestsFor(document: MetadataDocument, snapshot: Snapshot, title: stri
 				href: `${identityUrl(itemId)}#attention-request-${encodeURIComponent(request.id)}`,
 				itemId,
 				line: lines[`attention.${index}`] ?? lines.attention ?? 2,
+				problem: receipts._tag === "Conflicting" ? `Request receipts disagree: ${receipts.receipts.join(", ")}` : undefined,
 				request,
 				title,
 			},

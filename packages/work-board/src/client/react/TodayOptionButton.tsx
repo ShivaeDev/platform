@@ -1,4 +1,4 @@
-import { optionLabel, promptHeading } from "#browser/responses/cardContext.ts";
+import { optionText } from "#browser/responses/cardContext.ts";
 import { Button } from "#client/react/components/ui/Button.tsx";
 
 export function TodayOptionButton({
@@ -14,8 +14,9 @@ export function TodayOptionButton({
 	readonly recommended: string | undefined;
 	readonly source: { readonly label: string; readonly description: string } | undefined;
 }) {
-	const text = source?.label ?? optionLabel(option.id, option.source);
-	const description = source?.description ?? promptHeading(option.source).rest;
+	const authored = optionText(option.id, option.source);
+	const text = source?.label ?? authored.label;
+	const description = source?.description ?? authored.description;
 	return (
 		<Button
 			className="h-auto w-full flex-col items-start gap-0.5 whitespace-normal px-3 py-2 text-left"
