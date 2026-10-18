@@ -6,7 +6,7 @@ import { runQuality } from "#test/cli.ts";
 import { git } from "#test/git.ts";
 import { config, linkPackage, removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
 
-const cliTimeout = 60_000;
+const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
 
@@ -25,7 +25,7 @@ function repository(...files: readonly SeedFile[]): string {
 	return root;
 }
 
-describe("the biome rule", { timeout: cliTimeout }, () => {
+describe("the biome rule", { timeout: CLI_TIMEOUT }, () => {
 	it("reports each Biome finding under the shared preset as biome/<category>, at its line", async () => {
 		const root = repository(preset, looseType, { content: "export const b = 1\n", path: "src/b.ts" });
 		const result = await runQuality(root, "lint");
@@ -89,7 +89,7 @@ describe("the biome rule", { timeout: cliTimeout }, () => {
 	});
 });
 
-describe("quality fix", { timeout: cliTimeout }, () => {
+describe("quality fix", { timeout: CLI_TIMEOUT }, () => {
 	it("formats files but leaves key order and duplicate keys for a person to decide on, and the lint still reports them", async () => {
 		const root = repository(preset, { content: "export const b = { z: 1, a: 2 }\nexport const twice = { a: 1, a: 2 }\n", path: "src/b.ts" });
 		expect(await runQuality(root, "fix")).toMatchObject({

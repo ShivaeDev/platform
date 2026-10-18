@@ -4,35 +4,47 @@ import { checkRule, issuesOf } from "#test/inputs.ts";
 
 type Options = Parameters<typeof biomeOverrides.configure>[0];
 
-const reason = "Tools load their config files through the default export.";
+const REASON = "Tools load their config files through the default export.";
 
 const PACKAGE = "node_modules/@acme/lint";
 
-const manifest = (exports: unknown) => JSON.stringify({ exports, name: "@acme/lint" });
+function manifest(exports: unknown) {
+	return JSON.stringify({ exports, name: "@acme/lint" });
+}
 
-const off = (group: string, rule: string) => ({ linter: { rules: { [group]: { [rule]: "off" } } } });
+function off(group: string, rule: string) {
+	return { linter: { rules: { [group]: { [rule]: "off" } } } };
+}
 
 const configFiles = { includes: ["**/*.config.ts"], linter: { rules: { style: { noDefaultExport: "off" } } } };
 
-const presetTexts = (preset: unknown, declarations?: unknown): Readonly<Record<string, string>> => ({
-	[`${PACKAGE}/package.json`]: manifest({ "./biome": { biome: "./biome/biome.json", default: "./biome/other.json" } }),
-	[`${PACKAGE}/biome/biome.json`]: JSON.stringify(preset),
-	...(declarations === undefined ? {} : { [`${PACKAGE}/biome/declarations.json`]: JSON.stringify(declarations) }),
-});
+function presetTexts(preset: unknown, declarations?: unknown): Readonly<Record<string, string>> {
+	return {
+		[`${PACKAGE}/package.json`]: manifest({ "./biome": { biome: "./biome/biome.json", default: "./biome/other.json" } }),
+		[`${PACKAGE}/biome/biome.json`]: JSON.stringify(preset),
+		...(declarations === undefined ? {} : { [`${PACKAGE}/biome/declarations.json`]: JSON.stringify(declarations) }),
+	};
+}
 
-const consumer = (config: object) => JSON.stringify({ extends: ["@acme/lint/biome"], ...config }, null, "\t");
+function consumer(config: object) {
+	return JSON.stringify({ extends: ["@acme/lint/biome"], ...config }, null, "\t");
+}
 
-const check = async (texts: Readonly<Record<string, string>>, options?: Options, files?: readonly string[]) =>
-	(await checkRule(biomeOverrides, options, { files: files ?? [], texts })).map(
+async function check(texts: Readonly<Record<string, string>>, options?: Options, files?: readonly string[]) {
+	return (await checkRule(biomeOverrides, options, { files: files ?? [], texts })).map(
 		(finding) => `${finding.file}${finding.line === undefined ? "" : `:${finding.line}`} ${finding.message}`,
 	);
+}
 
-const withPreset = (preset: unknown, declarations: unknown, config: object, options?: Options) =>
-	check({ ...presetTexts(preset, declarations), "biome.json": consumer(config) }, options);
+function withPreset(preset: unknown, declarations: unknown, config: object, options?: Options) {
+	return check({ ...presetTexts(preset, declarations), "biome.json": consumer(config) }, options);
+}
 
-const declaring = (rule: string, ...includes: readonly [string, ...string[]]): Options => ({ declared: [{ includes, reason, rule }] });
+function declaring(rule: string, ...includes: readonly [string, ...string[]]): Options {
+	return { declared: [{ includes, reason: REASON, rule }] };
+}
 
-const shipped = [{ includes: ["**/*.config.ts"], reason, rule: "lint/style/noDefaultExport" }];
+const shipped = [{ includes: ["**/*.config.ts"], reason: REASON, rule: "lint/style/noDefaultExport" }];
 
 describe("suppressions/biome-overrides with a package preset", () => {
 	it("takes a weakening the preset declares beside itself as declared", async () => {
@@ -105,14 +117,14 @@ describe("suppressions/biome-overrides with a package preset", () => {
 
 	it("reports a consumer declaration that repeats a narrow shipped exception", async () => {
 		const override = { includes: ["src/config.ts"], linter: { rules: { style: { noDefaultExport: "off" } } } };
-		const declarations = [{ includes: ["src/config.ts"], reason, rule: "lint/style/noDefaultExport" }];
+		const declarations = [{ includes: ["src/config.ts"], reason: REASON, rule: "lint/style/noDefaultExport" }];
 		expect(await withPreset({ overrides: [override] }, declarations, {}, declaring("lint/style/noDefaultExport", "src/config.ts"))).toEqual([
 			'biome.json Declares "lint/style/noDefaultExport" for "src/config.ts", which "@acme/lint/biome" already declares. Remove the declaration.',
 		]);
 	});
 
 	it("does not report a shipped declaration whose weakening the consumer turned back on", async () => {
-		const declarations = [{ includes: ["**"], reason, rule: "lint/suspicious/noConsole" }];
+		const declarations = [{ includes: ["**"], reason: REASON, rule: "lint/suspicious/noConsole" }];
 		expect(await withPreset(off("suspicious", "noConsole"), declarations, { linter: { rules: { suspicious: "on" } } })).toEqual([]);
 	});
 

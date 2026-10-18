@@ -6,7 +6,6 @@ import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { answerBody } from "#browser/responses/answerBody.ts";
 import { optionLabel } from "#browser/responses/cardContext.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
-import { documentQuery, navigationQuery, routeQueryOptions } from "#client/page/routeQuery.ts";
 import { Button } from "#client/react/components/ui/Button.tsx";
 import { Popover } from "#client/react/components/ui/Popover.tsx";
 import { authorLabel } from "#client/responses/authorLabel.ts";
@@ -15,6 +14,7 @@ import { fileUrl } from "#files/url.ts";
 import { responseUrl } from "#responses/url.ts";
 import { createResponse } from "./createResponse.ts";
 import { useFormClient } from "./FormContext.ts";
+import { documentQuery, navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 export function TodayOptions({ api, item }: { readonly api: ShellApi; readonly item: InboxProjection["you"][number] }) {

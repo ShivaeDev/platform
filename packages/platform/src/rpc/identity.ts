@@ -5,8 +5,13 @@ export interface IdentityValue {
 }
 export class Identity extends Context.Service<Identity, IdentityValue>()("@shivaedev/platform/rpc/Identity") {}
 export class OptionalIdentity extends Context.Service<OptionalIdentity, Option.Option<IdentityValue>>()("@shivaedev/platform/rpc/OptionalIdentity") {}
+export interface ProviderAccountValue {
+	readonly accountId: string;
+	readonly providerId: string;
+}
 export interface SessionUserValue extends IdentityValue {
 	readonly email: string;
 	readonly name: string;
+	readonly providerAccounts?: readonly ProviderAccountValue[];
 }
 export class SessionUser extends Context.Service<SessionUser, SessionUserValue>()("@shivaedev/platform/rpc/SessionUser") {}

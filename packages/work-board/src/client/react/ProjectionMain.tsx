@@ -1,9 +1,9 @@
 import { documentSourceId } from "#client/document/layout.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { HomeBoard } from "./HomeBoard.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
 import type { ProjectionRoute } from "./projectionRoute.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { TodayPage } from "./TodayPage.tsx";
 import { WorkPage } from "./WorkPage.tsx";

@@ -1,10 +1,10 @@
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { documentQuery, navigationQuery } from "#client/page/routeQuery.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { chrome, click, control } from "#test/chrome.ts";
 import { renderRouter } from "#test/renderRouter.tsx";
+import { documentQuery, navigationQuery } from "./routeQuery.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

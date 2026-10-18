@@ -14,15 +14,16 @@ interface Shipped extends Scoped {
 	readonly specifier: string;
 }
 
-const shippedBy = ({ base, layers }: Chain): readonly Shipped[] =>
-	layers.flatMap(({ preset }) =>
+function shippedBy({ base, layers }: Chain): readonly Shipped[] {
+	return layers.flatMap(({ preset }) =>
 		preset === undefined
 			? []
 			: preset.declared.map(({ includes, rule }) => ({ includes: includes.map((glob) => scoped(base, glob)), rule, specifier: preset.specifier })),
 	);
+}
 
-const undeclared = ({ includes, layer, line, rule }: Weakening, configFile: string): Finding =>
-	layer.preset === undefined
+function undeclared({ includes, layer, line, rule }: Weakening, configFile: string): Finding {
+	return layer.preset === undefined
 		? {
 				file: layer.path,
 				line,
@@ -35,26 +36,33 @@ const undeclared = ({ includes, layer, line, rule }: Weakening, configFile: stri
 				message: `Extends "${layer.preset.specifier}", which weakens "${rule}" for ${scopeText(includes)} without a declaration. Repair the code and restore the check in the preset.`,
 				subject: rule,
 			};
+}
 
-const unused = (file: string, declaration: Scoped): Finding => ({
-	file,
-	message: `Declares "${declaration.rule}" for ${scopeText(declaration.includes)}, which no Biome config weakens. Remove the declaration.`,
-	subject: declaration.rule,
-});
+function unused(file: string, declaration: Scoped): Finding {
+	return {
+		file,
+		message: `Declares "${declaration.rule}" for ${scopeText(declaration.includes)}, which no Biome config weakens. Remove the declaration.`,
+		subject: declaration.rule,
+	};
+}
 
-const repeated = (file: string, declaration: Scoped, shipped: Shipped): Finding => ({
-	file,
-	message: `Declares "${declaration.rule}" for ${scopeText(declaration.includes)}, which "${shipped.specifier}" already declares. Remove the declaration.`,
-	subject: declaration.rule,
-});
+function repeated(file: string, declaration: Scoped, shipped: Shipped): Finding {
+	return {
+		file,
+		message: `Declares "${declaration.rule}" for ${scopeText(declaration.includes)}, which "${shipped.specifier}" already declares. Remove the declaration.`,
+		subject: declaration.rule,
+	};
+}
 
-const staleOrRepeated = (file: string, weakenings: readonly Weakening[], shipped: readonly Shipped[]) => (declaration: Scoped) => {
-	if (!weakenings.some((weakening) => matches(declaration, weakening))) {
-		return [unused(file, declaration)];
-	}
-	const already = shipped.find((candidate) => matches(declaration, candidate));
-	return already === undefined ? [] : [repeated(file, declaration, already)];
-};
+function staleOrRepeated(file: string, weakenings: readonly Weakening[], shipped: readonly Shipped[]) {
+	return (declaration: Scoped) => {
+		if (!weakenings.some((weakening) => matches(declaration, weakening))) {
+			return [unused(file, declaration)];
+		}
+		const already = shipped.find((candidate) => matches(declaration, candidate));
+		return already === undefined ? [] : [repeated(file, declaration, already)];
+	};
+}
 
 export const biomeOverrides = defineRule({
 	check: async (inputs) => {
@@ -62,7 +70,9 @@ export const biomeOverrides = defineRule({
 		const { declared } = inputs.options;
 		const weakenings = chains.flatMap(weakeningsOf);
 		const shipped = chains.flatMap(shippedBy);
-		const covered = (weakening: Weakening): boolean => [...declared, ...shipped].some((declaration) => matches(declaration, weakening));
+		function covered(weakening: Weakening): boolean {
+			return [...declared, ...shipped].some((declaration) => matches(declaration, weakening));
+		}
 		return [
 			...problems,
 			...(await missingBiomeFiles(inputs)),
