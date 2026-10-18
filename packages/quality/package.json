@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/quality",
-	"version": "0.24.0",
+	"version": "0.25.0",
 	"description": "Repository quality gate with typed rules, a baseline of existing debt and a registry of reasoned exceptions",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme",
 	"bugs": {
@@ -24,8 +24,8 @@
 	},
 	"exports": {
 		"./*.ts": {
-			"types": "./dist/*.d.ts",
 			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
 		"./biome": "./biome/preset.json",

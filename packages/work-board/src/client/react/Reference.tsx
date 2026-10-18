@@ -1,5 +1,5 @@
 import type { Document } from "#browser/document/schema.ts";
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { StatusChip } from "#client/react/StatusChip.tsx";
 export function Reference({ document, target }: { readonly document: Document; readonly target: string }) {
 	const details = document.referenceDetails?.[target];
 	const href = document.references[target];

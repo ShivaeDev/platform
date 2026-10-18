@@ -24,8 +24,8 @@
 	},
 	"exports": {
 		"./*.ts": {
-			"types": "./dist/*.d.ts",
 			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
 		"./package.json": "./package.json"
@@ -41,7 +41,6 @@
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
 		"templates",
-		"docs",
 		"CHANGELOG.md",
 		"README.md"
 	],

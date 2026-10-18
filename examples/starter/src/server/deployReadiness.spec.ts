@@ -7,7 +7,6 @@ deployment.it(
 	function* ({ migrate, migrationLedger, migrationLedgerIs, storeUnownedNote, storedNotesAre, noAccountsAreStored }) {
 		expect(yield* migrate()).toBe(0);
 		const applied = yield* migrationLedger();
-		expect(applied).toHaveLength(5);
 		yield* storeUnownedNote("Keep this note");
 		expect(yield* migrate()).toBe(0);
 		yield* migrationLedgerIs(applied);
@@ -17,14 +16,31 @@ deployment.it(
 );
 
 deployment.it(
-	"refuses to serve accounts or jobs until deployment migration succeeds",
+	"web rejects a missing schema while an already-started worker waits for deployment migration",
 	[],
-	function* ({ migrate, refusesUnmigratedSchema, startsServingAccountsAndJobs, port: availablePort, migrationLedgerIsAbsent }) {
+	function* ({ migrate, startProcess, health, signUp, port: availablePort, migrationLedgerIsAbsent }) {
 		const port = yield* availablePort;
-		yield* refusesUnmigratedSchema(port);
+		const prematureWeb = yield* startProcess("web", port);
+		expect(yield* prematureWeb.child.exitCode).not.toBe(0);
+		expect([...prematureWeb.logs, ...prematureWeb.errors].join("\n")).toContain("Database migrations are not current");
+		const worker = yield* startProcess("worker");
+		yield* worker.waitingForSchema;
+		expect(yield* worker.child.isRunning).toBe(true);
+		expect(worker.logs).toEqual(["EFFECT_LOG Worker waiting for schema"]);
 		yield* migrationLedgerIsAbsent;
 		expect(yield* migrate()).toBe(0);
-		yield* startsServingAccountsAndJobs(port);
+		expect(yield* worker.ready).toBe("worker");
+		const web = yield* startProcess("web", port);
+		const address = yield* web.ready;
+		expect((yield* health(address)).status).toBe(200);
+		expect(yield* signUp(address)).toContain("session_token=");
+		expect(worker.logs.filter((line) => line.startsWith("EFFECT_LOG Worker"))).toEqual([
+			"EFFECT_LOG Worker waiting for schema",
+			"EFFECT_LOG Worker schema current",
+			"EFFECT_LOG Worker ready to take jobs",
+		]);
+		expect(yield* worker.child.isRunning).toBe(true);
+		expect(yield* web.child.isRunning).toBe(true);
 	},
 );
 

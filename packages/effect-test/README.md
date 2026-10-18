@@ -64,8 +64,7 @@ effectApp("reads the fixture's services", function* (harness, context) {
 
 The Layer supplies `Token`. `makeHarness` runs for the test and reads that same service; the generator receives its result and can also yield `Token` directly. Harness fields and provided services keep their types. A body that requires a service the Layer does not provide does not type-check.
 
-A fixture that needs no services uses `Layer.empty`. This separate module
-replaces the token fixture above:
+A fixture that needs no services uses `Layer.empty`. This separate module replaces the token fixture above:
 
 ```ts
 import { expect } from "@effect/vitest";
@@ -142,7 +141,7 @@ effectApp.each(["alpha", "beta"])("checks %s", function* (item, harness, context
 });
 ```
 
-This uses the token fixture from the first example. Case and harness types are inferred. The fixture tester, `it.effect` and `it.live` accept generator bodies and Effect-returning functions. A synchronous DOM fixture test can return `Effect.sync(() => expect(harness.token).toBe("from-layer"))`; the harness, services and per-test Scope are the same for both body forms.
+This uses the token fixture from the first example. Case and harness types are inferred. A synchronous DOM fixture test can return `Effect.sync(() => expect(harness.token).toBe("from-layer"))`; the harness, services and per-test Scope are the same for both body forms.
 
 ### Choosing which clock runs the test
 
@@ -154,9 +153,9 @@ effectApp("reads live time", function* () {
 }, { clock: "live" });
 ```
 
-The override changes the per-test environment used by the wrapper, harness and body. TestConsole is installed for both clock choices.
+The override changes the per-test environment used by the wrapper, harness and body.
 
-Worker acquisition is separate: a Layer that reads the default Clock while it is being built sees live time, even when its tests use TestClock. A fiber started during that acquisition retains its worker environment, so advancing a test's clock does not advance that fiber's timers. A Layer that supplies its own Clock also supplies that service through its Context; the test's clock option chooses the outer environment and does not replace services explicitly supplied by the fixture.
+Worker acquisition is separate: a Layer that reads the default Clock while it is being built sees live time, even when its tests use TestClock.
 
 ### Waiting for a typed readiness condition
 
@@ -226,11 +225,7 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/effect-test/anyTestLayer.ts` | `AnyTestLayer` and `buildTestLayer(layer, scope)`, an Effect that builds the Layer's service Context in the supplied scope. |
 | `@shivaedev/effect-test/types.ts` | `EffectClock`, `EffectTestOptions`, `EffectTestBody`, `EffectTest`, `EffectTester`, `MakeEffectItOptions`, `MakeEffectItResult`, `EffectItTest`, `EffectItTester` and `EffectIt`. |
 
-`effectApp(name, body, options?)` takes a generator or Effect-returning body with `(harness, context)`. Its `each(cases)` takes `(item, harness, context)`. Options are a timeout in milliseconds or Vitest test options with an optional `clock`.
-
-`it.effect` and `it.live` take `(name, body, options?)`; options are a timeout or Vitest test options. A regular body takes the context; an `each` body takes the case. These testers and `effectApp` expose `each`, `fails`, `only`, `runIf`, `skip` and `skipIf`.
-
-`EventuallyOptions` has `interval?: Duration.Input` and `times?: number`. The default interval is `"10 millis"`; omitting `times` leaves retries unbounded.
+`eventually` waits `"10 millis"` between attempts by default; omitting `times` leaves retries unbounded.
 
 ### Install, setup and limits
 
@@ -241,7 +236,4 @@ pnpm add --save-dev @shivaedev/effect-test @effect/vitest@4.0.4 effect@4.0.4 vit
 The package declares `effect` as a peer and `@effect/vitest` as an optional peer. The Vitest runner modules require `@effect/vitest`; install it when using them. The package requires Node.js 24 or later. Use peer versions compatible with the package's `package.json`.
 
 - Define a fixture tester in test support and import it from Vitest tests. Calling `makeEffectIt` declares a Vitest fixture; it is not an application runtime factory.
-- The Layer is shared within its worker fixture. Reset application state in the harness or compose the fixture's own isolation wrapper when tests need it.
-- TestClock controls its Effect environment. It does not establish how external timers, real HTTP or a database behave.
 - An unbounded readiness poll can run until Vitest ends the test. Set a retry budget when the condition may never become true.
-- Compiler tests prove service requirements and inferred types; runtime tests prove the exercised clock and failure paths. Neither is evidence that a consumer's composed application has been validated.

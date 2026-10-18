@@ -65,12 +65,15 @@ const BUNDLED_ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, ReturnType<t
 	["/_board/react.css", bundledAsset("react.css", "text/css")],
 ];
 
+const CHUNK_TYPES: Readonly<Record<string, string>> = { js: "text/javascript", woff2: "font/woff2" };
+
 const reactChunk = Effect.fn("WorkBoard.reactChunk")(function* (request: HttpServerRequest.HttpServerRequest) {
 	const name = new URL(request.url, "http://127.0.0.1").pathname.slice("/_board/react-assets/".length);
-	if (!/^[a-zA-Z\d_-]+\.js$/u.test(name)) {
+	const type = /^[a-zA-Z\d_-]+\.(?<extension>js|woff2)$/u.exec(name)?.groups?.extension;
+	if (!type) {
 		return respond("Not found", "text/plain", 404);
 	}
-	return yield* bundledAsset(`react-assets/${name}`, "text/javascript")();
+	return yield* bundledAsset(`react-assets/${name}`, CHUNK_TYPES[type] ?? "text/javascript")();
 });
 
 function bundledAsset(file: string, contentType: string) {

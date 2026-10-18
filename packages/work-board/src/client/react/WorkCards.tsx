@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { compareStatuses } from "#browser/views/now.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { StatusChip } from "#client/react/StatusChip.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkCardList } from "./WorkCardList.tsx";
 

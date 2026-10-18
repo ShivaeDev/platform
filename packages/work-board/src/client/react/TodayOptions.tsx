@@ -1,13 +1,16 @@
 import { RegistryContext } from "@effect/atom-react";
 import { Cause, Effect, Option } from "effect";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useId, useMemo, useRef, useState } from "react";
 import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { answerBody } from "#browser/responses/answerBody.ts";
 import { promptHeading } from "#browser/responses/cardContext.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
-import { Popover } from "#client/react/components/ui/Popover.tsx";
+import { Button } from "#client/react/components/ui/button.tsx";
+import { Input } from "#client/react/components/ui/input.tsx";
+import { Label } from "#client/react/components/ui/label.tsx";
+import { Popover, PopoverContent, PopoverTrigger } from "#client/react/components/ui/popover.tsx";
 import { authorLabel } from "#client/responses/authorLabel.ts";
 import { chosenLabels } from "#client/responses/summary.ts";
 import { saveFailure } from "#client/saveFailure.ts";
@@ -30,11 +33,18 @@ export function TodayOptions({ api, item }: { readonly api: ShellApi; readonly i
 		&& !request.promptUnavailable
 		&& request.prompts?.length === 1
 		&& request.prompts[0]?.mode === "one" ? (
-		<Popover className="w-80" label={`Answer ${item.title}`} trigger="Answer" triggerClassName="h-8 w-auto px-1 text-xs">
-			<InlineOptions api={api} document={data} key={request.preview.reviewedRevision} request={request} />
-			<a className="mt-3 block border-t px-2 pt-2 text-muted-foreground text-xs hover:text-foreground" href={item.href}>
-				Open the full question with its context →
-			</a>
+		<Popover>
+			<PopoverTrigger
+				render={<Button aria-label={`Answer ${item.title}`} className="shrink-0 px-1 text-xs" size="sm" type="button" variant="ghost" />}
+			>
+				Answer
+			</PopoverTrigger>
+			<PopoverContent align="end" aria-label={`Answer ${item.title}`} className="w-80 max-w-[calc(100vw-2rem)] text-sm">
+				<InlineOptions api={api} document={data} key={request.preview.reviewedRevision} request={request} />
+				<a className="mt-3 block border-t px-2 pt-2 text-muted-foreground text-xs hover:text-foreground" href={item.href}>
+					Open the full question with its context →
+				</a>
+			</PopoverContent>
 		</Popover>
 	) : (
 		<a aria-label={`Answer ${item.title}`} className="shrink-0 text-xs" href={item.href}>
@@ -45,6 +55,9 @@ export function TodayOptions({ api, item }: { readonly api: ShellApi; readonly i
 
 function InlineOptions({ api, document: data, request }: { readonly api: ShellApi; readonly document: Document; readonly request: DocumentRequest }) {
 	const registry = useContext(RegistryContext);
+	const authorId = useId();
+	const requestRef = useRef(request);
+	requestRef.current = request;
 	const client = useFormClient();
 	const [label] = useState(() => authorLabel(() => localStorage, document.documentElement.dataset.workspace));
 	const [author, setAuthor] = useState(() => label.read("") || "maintainer");
@@ -52,8 +65,8 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 		() =>
 			client.runtime.fn(
 				Effect.fn("Board.answerOption")(function* (choice: string) {
-					const preview = request.preview;
-					const prompt = request.prompts?.[0];
+					const preview = requestRef.current.preview;
+					const prompt = requestRef.current.prompts?.[0];
 					if (!(preview && prompt && author.trim())) {
 						return yield* Effect.fail("Add your local author label.");
 					}
@@ -75,7 +88,7 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 					return saved;
 				}),
 			),
-		[client, api, registry, request, author, data.file, label.save],
+		[client, api, registry, author, data.file, label.save],
 	);
 	const action = useAction(actionAtom);
 	const failure = Option.getOrUndefined(Option.flatMap(action.cause, Cause.findErrorOption));
@@ -102,7 +115,6 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 						key={option.id}
 						onChoose={() => action.dispatch(option.id)}
 						option={option}
-						reason={request.preview?.reason ?? ""}
 						recommended={data.metadata.recommended}
 						source={data.metadata.options?.[index]}
 					/>
@@ -110,15 +122,12 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 			</div>
 			<details className="text-muted-foreground text-xs">
 				<summary className="cursor-pointer">Answer as {author || "…"}</summary>
-				<label className="mt-2 flex items-center gap-2">
-					Local author label{" "}
-					<input
-						className="rounded border bg-background px-2 py-1"
-						maxLength={200}
-						onChange={(event) => setAuthor(event.currentTarget.value)}
-						value={author}
-					/>
-				</label>
+				<div className="mt-2 flex items-center gap-2">
+					<Label className="shrink-0 font-normal text-xs" htmlFor={authorId}>
+						Local author label
+					</Label>
+					<Input className="h-8 text-xs" id={authorId} maxLength={200} onChange={(event) => setAuthor(event.currentTarget.value)} value={author} />
+				</div>
 			</details>
 			{!data.writable && <p className="m-0 text-muted-foreground text-xs">This Board is read-only. Start it with --responses to record answers.</p>}
 			{Boolean(status) && (

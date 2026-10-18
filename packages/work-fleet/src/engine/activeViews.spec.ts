@@ -8,7 +8,7 @@ import { postgresTests } from "#test/postgres.ts";
 const test = postgresTests("test", "isolated");
 
 for (const type of ["clarify", "not_now"] as const) {
-	test(`native Maintainer waiting query shows ${type} response blockers while retaining its decision`, () =>
+	test(`native Orchestrator waiting query shows ${type} response blockers while retaining its decision`, () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.scoped(
 				Effect.gen(function* () {
@@ -20,7 +20,7 @@ for (const type of ["clarify", "not_now"] as const) {
 					const decisionId = denied.decision?.id ?? "missing";
 					const responseId = fixture.respond(decisionId, "retry", type);
 					yield* client("fleet.resolve", { decisionId, responseId, workId: "one" });
-					const item = (yield* client("fleet.views", undefined)).waiting.maintainer[0];
+					const item = (yield* client("fleet.views", undefined)).waiting.orchestrator[0];
 					expect(item?.stage).toBe("needs-human");
 					expect(item?.blocker).toBe(
 						type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`,

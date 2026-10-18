@@ -91,7 +91,7 @@ class Sample extends Model.Class<Sample>("Sample")({
 }) {}
 ```
 
-The decoded value is an integer array in every variant. The database variants encode a native typed `int4[]` parameter; JSON retains the ordinary array. The same storage codec on `select` lets equality filters encode empty arrays too. `PgTypes.array` resolves the built-in `int4` array OID; `getOrThrow` unwraps that known constructor result. [PostgreSQL array tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresArrays.spec.ts) cover empty and non-empty inserts, reads, filters, updates and batch writes, including the `int4` bounds. PostgreSQL still enforces its integer range on writes.
+The decoded value is an integer array in every variant. The database variants encode a native typed `int4[]` parameter; JSON retains the ordinary array. The same storage codec on `select` lets equality filters encode empty arrays too. `PgTypes.array` resolves the built-in `int4` array OID; `getOrThrow` unwraps that known constructor result. PostgreSQL still enforces its integer range on writes.
 
 ### 2. Per feature: write and query through the model
 
@@ -180,7 +180,7 @@ The application creates `readings` with `PRIMARY KEY (source, sequence)`; `seque
 
 All four methods encode with the model's insert schema and retain its codec services. `upsert` and `upsertMany` require a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. Only those columns take their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in every encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
 
-These methods use `ON CONFLICT (...) DO NOTHING` or `DO UPDATE SET ...` and `RETURNING`; [PostgreSQL tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresUpsert.spec.ts) establish composite-key CRUD, duplicate ignores, selected-column updates and rollback. [Unique-key tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresConflictWrites.spec.ts) establish generated fields, codec services and unrelated constraint failures. Other SQL dialects are not established by those tests. Use native `SqlClient` and `SqlSchema` for partial-index conflict predicates, SQL expressions or other conflict policies.
+These methods use `ON CONFLICT (...) DO NOTHING` or `DO UPDATE SET ...` and `RETURNING`. Use native `SqlClient` and `SqlSchema` for partial-index conflict predicates, SQL expressions or other conflict policies.
 
 Conflict writes belong to unversioned repositories. They cannot be combined with `versionColumn`, whose writes must compare the version read by the caller. `versionColumn` takes a scalar `idColumn`.
 
@@ -200,7 +200,7 @@ const saved = yield* readings.upsertMany(
 
 Batch writes use one `INSERT ... RETURNING` statement per chunk, with at most 1,000 rows and 10,000 bind parameters per statement, below PostgreSQL's 65,535 parameter limit. Missing optional fields use SQL `DEFAULT`; an explicit null stays null. Return values contain the rows returned by the database, with ignored conflicts omitted. PostgreSQL's native conflict rules apply within each chunk, including an error when an upsert tries to update the same stored row twice.
 
-The methods use the surrounding native transaction. To roll back earlier chunks when a later chunk fails, put the whole call inside `sql.withTransaction` or `transact`; a batch call does not start its own transaction. [PostgreSQL batch tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresBatchWrites.spec.ts) establish statement counts, conflict reruns, selected-column updates, wide rows, empty inputs and rollback after a later chunk fails.
+The methods use the surrounding native transaction. To roll back earlier chunks when a later chunk fails, put the whole call inside `sql.withTransaction` or `transact`; a batch call does not start its own transaction.
 
 ### Optimistic concurrency
 
@@ -234,7 +234,7 @@ The application creates the integer version column; no database default is requi
 
 A stale version or missing row fails with `OptimisticConcurrencyError` in the error channel for `update`, `updateVoid` and `delete`. Import it from `@shivaedev/effect-sql/repository.ts`; its fields are `tableName`, `id` and `expectedVersion`. No separate existence check is needed. Two concurrent writers using the same read version produce one successful update and one conflict, and the losing write leaves the winner's data intact.
 
-These writes use SQL `RETURNING`. [PostgreSQL tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresConcurrency.spec.ts) prove initial versions, returned versions, competing writers, stale and missing-row conflicts, deletion and the void write methods. Repositories without `versionColumn` retain native CRUD signatures and behavior.
+These writes use SQL `RETURNING`. Repositories without `versionColumn` retain native CRUD signatures and behavior.
 
 ### Transactions and invalidation
 
@@ -302,7 +302,7 @@ The first run returns `[[1, "create_orders"], [2, "seed_orders"]]`. Repeating th
 
 `migratePostgres` takes a transaction-scoped advisory lock before creating the ledger and running native Migrator. Concurrent runners on a fresh or existing ledger wait, then see the committed ledger and avoid repeating the migrations. Every runner of that ledger must use this helper and the same ledger name. The required `lockTimeout` bounds PostgreSQL lock waits; `Duration.infinity` sets the transaction's lock timeout to zero. Choose deployment and execution timeouts in the application.
 
-A failed batch rolls back its DDL, data and ledger entries, retaining previously committed migrations. A failed first batch also rolls back the bootstrapped ledger. A lock timeout fails with typed `SqlError` and reason `LockTimeoutError`; a migration-body SQL failure is a native `MigrationError` defect. Inspect startup completion with `Effect.exit` when both typed failures and defects matter.
+A failed batch rolls back its DDL, data and ledger entries, retaining previously committed migrations. A failed first batch also rolls back the bootstrapped ledger. A lock timeout fails with typed `SqlError` and reason `LockTimeoutError`; a migration-body SQL failure is a native `MigrationError` defect. Inspect startup completion with `Effect.exit` when both typed failures and defects matter. Nontransactional DDL, external side effects, crash recovery and deployment compatibility need their own migration policy.
 
 For processes whose deployment owns migration execution, call `assertPostgresMigrations({ loader, table? })` from `@shivaedev/effect-sql/assertPostgresMigrations.ts` before starting services. It checks the native loader’s required IDs and names against the ledger without running migration bodies or creating a ledger. A missing ledger, pending migration or mismatched name fails with native `MigrationError` (`kind: "BadState"`); database failures stay typed `SqlError`. Later ledger entries are allowed so an older application version can start during a rolling deployment. This checks recorded migrations, not physical schema drift.
 
@@ -331,37 +331,12 @@ Import the module that defines the name; there is no root entry.
 | Module | Export | Input or role |
 | --- | --- | --- |
 | `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn` or `conflictColumns`; requires native `SqlClient`. |
-| `@shivaedev/effect-sql/repository.ts` | `FindMany` | Query options derived from the model's fields. |
 | `@shivaedev/effect-sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`. |
 | `@shivaedev/effect-sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |
-| `@shivaedev/effect-sql/transact.ts` | `TransactOptions` | The typed SQL-error mapper. |
 | `@shivaedev/effect-sql/transact.ts` | `invalidateOnCommit(keys)` | Records keys for its client, or invalidates immediately outside a transaction. |
-| `@shivaedev/effect-sql/transact.ts` | `InvalidationKeys` | A readonly array, or a record of readonly ID arrays. |
-| `@shivaedev/effect-sql/transact.ts` | `BeforeCommit`, `CommittedSink` | Channel-specific references for the pre-commit hook and transaction after-commit sink. |
 | `@shivaedev/effect-sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional ledger `table`, default `effect_sql_migrations`. |
 | `@shivaedev/effect-sql/assertPostgresMigrations.ts` | `assertPostgresMigrations({ loader, table? })` | Read-only readiness check of required migration IDs and names in the native ledger. |
-| `@shivaedev/effect-sql/migrations.ts` | `PostgresMigrationOptions` | Loader environment and migration coordination options. |
 | `@shivaedev/effect-sql/postgresChanges.ts` | `postgresChanges(options)` | Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation. |
-| `@shivaedev/effect-sql/postgresChanges.ts` | `PostgresChangesOptions`, `PostgresChangeClient`, `PostgresNotification` | Delivery configuration, native SQL/listener client and notification shape. |
-| `@shivaedev/effect-sql/batchWrites.ts` | `InsertMany`, `BatchWrites`, `makeInsertMany` | Batch insertion types and implementation helper. |
-| `@shivaedev/effect-sql/compositeRepository.ts` | `CompositeKey`, `PrimaryKey`, `Repository`, `makeCompositeCrud` | Composite-key types and CRUD implementation helper. |
-| `@shivaedev/effect-sql/conflictWrites.ts` | `InsertColumn`, `ConflictColumns`, `ConflictWrites`, `makeConflictWrites` | Conflict-write types and implementation helper. |
-| `@shivaedev/effect-sql/listenForChanges.ts` | `listenForChanges` | Scoped notification listener used by `postgresChanges`. |
-| `@shivaedev/effect-sql/notifyPayload.ts` | `NotificationKeys`, `decodeKeys`, `notificationError`, `encodeKeys` | Notification schema, codec and typed SQL-error helpers. |
-| `@shivaedev/effect-sql/repositoryQueries.ts` | `Queries`, `makeQueries` | Model-derived query interface and implementation helper. |
-| `@shivaedev/effect-sql/versionedRepository.ts` | `IdColumn`, `VersionColumn`, `NativeRepository`, `VersionedWrites`, `makeVersionedWrites` | Versioned-write types and implementation helper. |
-
-The repository's native methods keep the model's variants. For the `InvoiceLine` example:
-
-| Method | Input type | Success type |
-| --- | --- | --- |
-| `insert` | `typeof InvoiceLine.insert.Type` | `InvoiceLine` |
-| `insertVoid` | `typeof InvoiceLine.insert.Type` | `void` |
-| `update` | `typeof InvoiceLine.update.Type` | `InvoiceLine` |
-| `updateVoid` | `typeof InvoiceLine.update.Type` | `void` |
-| `findById` | `number` | `InvoiceLine` |
-| `delete` | `number` | `void` |
-| `findMany` | `FindMany<typeof InvoiceLine, SelectedField>` | Array of decoded selected records |
 
 ### Install and database setup
 
@@ -419,12 +394,8 @@ const insertNamedLine = Effect.gen(function* () {
 
 The migration owns the constraint name `invoice_line_name_key`. The mapper recognizes that named unique violation and keeps other failures intact. Put recovery outside the transaction so earlier writes in the operation roll back too. Domain error presentation belongs to the application.
 
-PostgreSQL tests use the native driver's default representations: precise numeric strings with `Schema.BigDecimalFromString`, `int8` values with `Schema.BigInt`, `date` values as `YYYY-MM-DD` strings with `Schema.String`, instants with `Schema.Date`, nullable text and generated values. A persisted value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
+For the native PostgreSQL driver's default representations, use precise numeric strings with `Schema.BigDecimalFromString`, `int8` values with `Schema.BigInt`, `date` values as `YYYY-MM-DD` strings with `Schema.String`, instants with `Schema.Date`, nullable text and generated values. A persisted value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
 
 JSON and JSONB columns are not supported. A repository write of a plain object to one fails with `SqlError` and writes nothing. Give structured data its own columns, or its own table when it repeats, so PostgreSQL constraints and the model both describe it.
 
 `timestamptz` preserves an instant at millisecond precision; `timestamp without time zone` holds UTC wall time, whatever the Node process time zone. A model cannot recover microseconds the driver has discarded. See [PostgreSQL codec cases and limits](https://github.com/ShivaeDev/platform/blob/main/docs/framework/postgres-codecs.md) before choosing a storage representation.
-
-Migration rollback evidence covers transactional table DDL and writes. Nontransactional DDL, external side effects, crash recovery and deployment compatibility need their own policy and tests. Checksums, edited applied migrations and larger query APIs are open questions in [the package roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/docs/roadmap.md).
-
-The package's PostgreSQL tests require a disposable database through `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` and skip without it. SQLite fixtures establish the SQLite cases; type tests establish compile-time contracts. Neither substitutes for a PostgreSQL run. Public composed repository consumers live in the framework's [order example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/order-example.md); they establish fixture behavior, not application adoption.

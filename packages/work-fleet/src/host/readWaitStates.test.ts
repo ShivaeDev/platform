@@ -3,9 +3,9 @@ import { Effect, Tracer } from "effect";
 import { readWaitStates } from "#host/readWaitStates.ts";
 import type { FleetCycleSnapshot } from "#model.ts";
 import { withHost } from "#test/fleetHost.ts";
+import { hostDatabase } from "#test/hostDatabase.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
-import { readOnlySql } from "#test/readOnlySql.ts";
 import { storeState } from "#test/storeState.ts";
 
 describe("Fleet summary reads against PostgreSQL", () => {
@@ -48,7 +48,7 @@ describe("Fleet summary reads against PostgreSQL", () => {
 					expect(statements).toHaveLength(1);
 					expect(statements[0]).not.toContain('"history"');
 				}
-			}).pipe(Effect.provide(readOnlySql(fixture.host))),
+			}).pipe(Effect.provide(hostDatabase(fixture.host, "work-fleet-reader", 1))),
 		);
 	});
 	test("waiting summaries retain a stable code beside reworded reason text", () =>
@@ -57,6 +57,6 @@ describe("Fleet summary reads against PostgreSQL", () => {
 				const decision = { attentionOwner: "maintainer", code: "reviewed-pr-ready", reason: "A human can merge this reviewed change now." };
 				yield* storeState(fixture.host, "one", { decision, stage: "needs-human" });
 				expect(yield* readWaitStates(fixture.host, ["one"])).toEqual([{ decision, outcome: {}, stage: "needs-human", workId: "one" }]);
-			}).pipe(Effect.provide(readOnlySql(fixture.host))),
+			}).pipe(Effect.provide(hostDatabase(fixture.host, "work-fleet-reader", 1))),
 		));
 });

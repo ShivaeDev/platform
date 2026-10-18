@@ -1,33 +1,20 @@
-import { Clock, Effect } from "effect";
-import { act } from "react";
-import { expect, it, vi } from "vitest";
-import { expectNoReactWarnings, render } from "@shivaedev/effect-react/client/testing.ts";
-import { Age, AgeTicker } from "./Age.tsx";
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { ageScreen } from "#test/ageScreen.tsx";
+import { screenStory } from "#test/screenStory.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
-it("ticks mounted ages and updates a refreshed timestamp without replacing its span", async () => {
-	vi.useFakeTimers();
-	const modified = Effect.runSync(Clock.currentTimeMillis);
-	const view = await render(
-		<AgeTicker>
-			<Age modified={modified} short />
-		</AgeTicker>,
-	);
-	try {
-		const span = view.container.querySelector("span");
-		expect(span?.textContent).toBe("0s");
-		await act(async () => vi.advanceTimersByTimeAsync(5000));
-		expect(span?.textContent).toBe("5s");
-		await view.render(
-			<AgeTicker>
-				<Age modified={modified - 60_000} short />
-			</AgeTicker>,
-		);
-		expect(view.container.querySelector("span")).toBe(span);
-		expect(span?.textContent).toBe("1m");
-	} finally {
-		await view.unmount();
-		vi.useRealTimers();
-	}
-});
+screenStory.it(
+	"ticks mounted ages and updates a refreshed timestamp without replacing its span",
+	[ageScreen()],
+	function* ({ advanceTime, refreshAge, findElement, readText }) {
+		const span = findElement("span");
+		expect(readText("span")).toBe("0s");
+		yield* Effect.promise(() => advanceTime(5000));
+		expect(readText("span")).toBe("5s");
+		yield* Effect.promise(() => refreshAge(60_000));
+		expect(findElement("span")).toBe(span);
+		expect(readText("span")).toBe("1m");
+	},
+);
