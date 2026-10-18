@@ -11,6 +11,15 @@ export function* memoryFiles(files: Readonly<Record<string, string>>, writable: 
 		Effect.sync(() => folder({ ...seeded, ...files })),
 		(value) => Effect.sync(value.remove),
 	);
+	const written = new Map(Object.entries({ ...seeded, ...files }));
+	function writeChanges() {
+		for (const [path, source] of Object.entries(files)) {
+			if (written.get(path) !== source) {
+				notes.write(path, source);
+				written.set(path, source);
+			}
+		}
+	}
 	return {
 		files: () => {
 			const saved: Record<string, string> = {};
@@ -22,9 +31,7 @@ export function* memoryFiles(files: Readonly<Record<string, string>>, writable: 
 					}
 				}
 			}
-			for (const [path, source] of Object.entries(files)) {
-				notes.write(path, source);
-			}
+			writeChanges();
 			return { ...seeded, ...files, ...saved };
 		},
 		root: notes.root,
