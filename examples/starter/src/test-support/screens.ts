@@ -11,6 +11,7 @@ import { screenActions } from "./screenActions.ts";
 import { screenObservations } from "./screenObservations.ts";
 import { openApp, openCodePreview, openLogin, openNotes, openRoute, openSession } from "./screenSetup.tsx";
 import { createScreen, screenView } from "./screenState.ts";
+import { themeScreenVerbs } from "./themeScreenVerbs.tsx";
 import { uiScreenVerbs } from "./uiScreenVerbs.ts";
 
 export const screens = storyKit({
@@ -22,6 +23,7 @@ export const screens = storyKit({
 	verbs: (engine, story) => ({
 		...screenActions(engine, story.tell),
 		...uiScreenVerbs(engine, story.tell),
+		...themeScreenVerbs(engine, story.tell),
 		...screenObservations(engine),
 		...noteScreenVerbs(engine, story.tell),
 		...notesRefreshVerbs(engine, story.tell),
