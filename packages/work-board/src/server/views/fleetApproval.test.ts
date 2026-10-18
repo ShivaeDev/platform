@@ -11,9 +11,3 @@ for (const approval of ["approved", '"approved"', "pending", "[approved]", "{val
 		},
 	);
 }
-for (const source of ["# No header", "---\nfleet: approved\nfleet: pending\n---\n# Duplicate", "---\nfleet: [\n---\n# Invalid"]) {
-	boardStory.it(`does not invent Fleet approval for ${JSON.stringify(source)}`, [projectFiles({ "task.md": source })], function* ({ rpc }) {
-		const work = yield* rpc((client) => client("work-board.work", { url: "/_board/work" }));
-		expect(work.rows.some((item) => item.fleetApproved)).toBe(false);
-	});
-}

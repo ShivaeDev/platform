@@ -99,18 +99,41 @@ boardStory.it(
 boardStory.it(
 	"discovers newly linked folders and retargeted links without restarting the server",
 	[linkedProject, boardHome("plan.md")],
-	function* ({ linked, notes: workspace, search, watchedDocumentShows, watchingReady, request, watchProject }) {
+	function* ({ linked, notes: workspace, search, rpc, watchingReady, request, watchProject }) {
 		const { replacement } = linked;
 		const events = yield* watchProject();
+		const watcher = rpc((client) => client("work-board.watcher", undefined));
 		try {
 			yield* watchingReady(events);
 			referenceLink(workspace, "new-reference", replacement.root);
-			yield* changesUntilShown(events, "new-reference/guide/start.md", watchedDocumentShows("/new-reference/guide/start.md", "Replacement guide"));
+			const newlyLinked = rpc((client) => client("work-board.document", { url: "/new-reference/guide/start.md" }));
+			yield* changesUntilShown(
+				events,
+				"new-reference/guide/start.md",
+				Effect.gen(function* () {
+					const read = yield* newlyLinked;
+					const status = yield* watcher;
+					return status.watching && read.source.includes("Replacement guide");
+				}).pipe(Effect.catchTag("NotFound", () => Effect.succeed(false))),
+			);
+			expect((yield* newlyLinked).source).toContain("Replacement guide");
+			expect((yield* watcher).watching).toBe(true);
 			replacement.write("guide/start.md", "# New live replacement\n");
 			yield* changesUntil(events, "new-reference/guide/start.md");
 			rmSync(join(workspace.root, "reference"));
 			referenceLink(workspace, "reference", replacement.root);
-			yield* changesUntilShown(events, "reference/guide/start.md", watchedDocumentShows("/reference/guide/start.md", "New live replacement"));
+			const retargetedDocument = rpc((client) => client("work-board.document", { url: "/reference/guide/start.md" }));
+			yield* changesUntilShown(
+				events,
+				"reference/guide/start.md",
+				Effect.gen(function* () {
+					const read = yield* retargetedDocument;
+					const status = yield* watcher;
+					return status.watching && read.source.includes("New live replacement");
+				}).pipe(Effect.catchTag("NotFound", () => Effect.succeed(false))),
+			);
+			expect((yield* retargetedDocument).source).toContain("New live replacement");
+			expect((yield* watcher).watching).toBe(true);
 			expect((yield* request("/reference/guide/next.md")).status).toBe(404);
 			replacement.write("guide/start.md", "# Retargeted live reference\n");
 			const retargeted = search("Retargeted live reference");

@@ -1,6 +1,6 @@
-import { Effect, Option } from "effect";
+import { Effect } from "effect";
 import { waitFor } from "./live.ts";
-import { changesUntil, type EventStream, rpcDocument, rpcWatcher } from "./nativeRpc.ts";
+import { changesUntil, type EventStream, rpcWatcher } from "./nativeRpc.ts";
 import { type BoardEngine, served } from "./storyEngine.ts";
 
 export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
@@ -41,12 +41,6 @@ export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				}),
 			);
 		},
-		watchedDocumentShows: Effect.fn("Story.watchedDocumentShows")(function* (url: string, text: string) {
-			tell(`the reader checks the watched document ${url}`);
-			const board = served(engine).board;
-			const read = yield* Effect.option(rpcDocument(board, url));
-			return (yield* rpcWatcher(board)).watching && Option.isSome(read) && read.value.source.includes(text);
-		}),
 		watchingReady: Effect.fn("Story.watchingReady")(function* (events: EventStream) {
 			tell("the reader waits for the watcher to recover");
 			for (;;) {
