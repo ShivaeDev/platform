@@ -5,6 +5,7 @@ import type { FleetHost } from "#host/config.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Decision, DecisionResponse } from "#policy.ts";
+import type { Versioned } from "#storage/model.ts";
 
 export const answerWork = Effect.fn("FleetHost.answerWork")(function* <E = never, R = never>(
 	host: FleetHost,
@@ -14,6 +15,7 @@ export const answerWork = Effect.fn("FleetHost.answerWork")(function* <E = never
 	background = false,
 	originalDecision?: Pick<Decision, "code" | "reason">,
 	onPublished?: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, E, R>,
+	queue?: () => Effect.Effect<Versioned<FleetRecord>, E, R>,
 ) {
 	const fleet = yield* Fleet;
 	const resolve = background ? fleet.recordResponse : fleet.resolve;
@@ -25,7 +27,7 @@ export const answerWork = Effect.fn("FleetHost.answerWork")(function* <E = never
 			return yield* resolve(workId, recorded.decisionId, recorded.responseId);
 		}
 		if (canQueueAnswer(current, text, release)) {
-			return yield* fleet.queueAnswer(workId, text);
+			return yield* queue?.() ?? fleet.queueAnswer(workId, text);
 		}
 		yield* checkDecision(current, original);
 		const response = yield* publishAnswer(host, workId, original, text, release);

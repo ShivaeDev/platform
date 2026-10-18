@@ -11,6 +11,7 @@ import type { Decision, DecisionResponse } from "#policy.ts";
 import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { type AnswerRequest, answerStore } from "#storage/answerStore.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
+import type { Versioned } from "#storage/model.ts";
 
 export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* <R>(
 	host: FleetHost,
@@ -20,6 +21,7 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		release: boolean,
 		original: Pick<Decision, "code" | "reason">,
 		onPublished: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, unknown>,
+		queue: () => Effect.Effect<Versioned<FleetRecord>, unknown>,
 	) => Effect.Effect<{ readonly value: FleetRecord }, unknown, R>,
 	recordingSql?: SqlClient.SqlClient,
 ) {
@@ -31,16 +33,20 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 	const recordingStore = yield* answerStore(host.namespace).pipe(Effect.provideService(SqlClient.SqlClient, recordingClient));
 	const commit = yield* makeFleetTransaction;
 	const locks = new Map<string, Semaphore.Semaphore>();
+	function queue(request: AnswerRequest) {
+		return commit(
+			[],
+			Effect.gen(function* () {
+				yield* sql`select pg_advisory_xact_lock(hashtextextended(${admissionLockKey(host.namespace)}, 0))`;
+				const queued = yield* fleet.queueAnswer(request.work_id, request.text);
+				yield* store.finish(request);
+				return queued;
+			}),
+		);
+	}
 	const process = Effect.fn("FleetAnswer.process")(function* (request: AnswerRequest) {
 		if (request.decision_id === null) {
-			yield* commit(
-				[],
-				Effect.gen(function* () {
-					yield* sql`select pg_advisory_xact_lock(hashtextextended(${admissionLockKey(host.namespace)}, 0))`;
-					yield* fleet.queueAnswer(request.work_id, request.text);
-					yield* store.finish(request);
-				}),
-			);
+			yield* queue(request);
 			return;
 		}
 		const current = (yield* fleet.get(request.work_id)).value;
@@ -52,6 +58,7 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 				request.release,
 				{ code: request.decision_code ?? undefined, reason: request.decision_reason },
 				(response) => store.recordResponse(request, response),
+				() => queue(request),
 			);
 		}
 		yield* store.finish(request);
