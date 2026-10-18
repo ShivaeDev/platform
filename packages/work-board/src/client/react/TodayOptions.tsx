@@ -4,7 +4,7 @@ import { useContext, useId, useMemo, useRef, useState } from "react";
 import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { answerBody } from "#browser/responses/answerBody.ts";
-import { promptHeading } from "#browser/responses/cardContext.ts";
+import { chosenLabels, promptHeading } from "#browser/responses/cardContext.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
@@ -12,7 +12,6 @@ import { Input } from "#client/react/components/ui/input.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "#client/react/components/ui/popover.tsx";
 import { authorLabel } from "#client/responses/authorLabel.ts";
-import { chosenLabels } from "#client/responses/summary.ts";
 import { saveFailure } from "#client/saveFailure.ts";
 import { fileUrl } from "#files/url.ts";
 import { responseUrl } from "#responses/url.ts";
@@ -94,7 +93,7 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 	const failure = Option.getOrUndefined(Option.flatMap(action.cause, Cause.findErrorOption));
 	const saved = Option.getOrUndefined(action.data);
 	let status = saved
-		? `Saved: your answer “${chosenLabels(request.prompts ?? [], saved.answers)}” is recorded. The agent reads it the next time it checks.`
+		? `Saved: your answer “${chosenLabels(request.prompts ?? [], saved.answers, request.options)}” is recorded. The agent reads it the next time it checks.`
 		: "";
 	if (failure) {
 		status = typeof failure === "string" ? failure : saveFailure(failure, "response").text;

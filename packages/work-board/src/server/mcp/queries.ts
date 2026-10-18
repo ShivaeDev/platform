@@ -55,6 +55,11 @@ export const item = Effect.fn("BoardMcp.item")(function* (client: BoardClient, i
 		openDecisions: document.requests.filter((request) => request.open),
 		owner: document.metadata.owner,
 		relationships: document.metadata.relationships ?? [],
-		status: cardStatus(document.metadata, held, inbox.you.find((row) => row.id === id)?.reason),
+		status: cardStatus(
+			document.metadata,
+			held,
+			inbox.you.find((row) => row.id === id)?.reason,
+			inbox.answered.some((row) => row.id === id),
+		),
 	};
 });

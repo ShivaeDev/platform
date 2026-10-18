@@ -39,7 +39,7 @@ function sourceRequests(document: MetadataDocument, source: string, snapshot: Sn
 	];
 	const reviewedRevision = revisionOf(source);
 	return ids.map((id) => {
-		const active = activeSource(document, snapshot, item, id);
+		const { active, answered } = requestState(document, snapshot, item, id);
 		const preview = {
 			context: source,
 			id: questionId(item, id, reviewedRevision, document.file),
@@ -50,6 +50,7 @@ function sourceRequests(document: MetadataDocument, source: string, snapshot: Sn
 			source: document.file,
 		};
 		const request = {
+			answered,
 			id,
 			open: active !== undefined,
 			options: document.parsed.fields.options,
@@ -81,8 +82,11 @@ function requestOpenInSource(document: MetadataDocument, id: string): boolean {
 	return document.parsed.fields.attention?.find((entry) => entry.id === id)?.state === "open";
 }
 
-function activeSource(document: MetadataDocument, snapshot: Snapshot, item: string, id: string) {
-	const managed = document.parsed.fields.attention?.find((entry) => entry.id === id)?.managed;
-	const eligible = !managed || requestInbox(snapshot).items.some((entry) => entry.document.file === document.file && entry.request === id);
-	return eligible ? requestSource(snapshot, item, id) : undefined;
+function requestState(document: MetadataDocument, snapshot: Snapshot, item: string, id: string) {
+	if (document.parsed.fields.attention?.find((entry) => entry.id === id)?.managed !== true) {
+		return { active: requestSource(snapshot, item, id), answered: undefined };
+	}
+	const inbox = requestInbox(snapshot);
+	const ask = [...inbox.items, ...inbox.answered].find((entry) => entry.document.file === document.file && entry.request === id);
+	return { active: ask && requestSource(snapshot, item, id), answered: ask?.answered };
 }

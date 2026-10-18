@@ -1,9 +1,12 @@
+import { useContext } from "react";
 import { cardStatus, type FleetWork, holderOf, stageTime } from "#browser/views/now.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
 import { Card } from "#client/react/components/ui/card.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
+import { answeredCopy } from "#client/responses/answeredCopy.ts";
 import { Age } from "./Age.tsx";
+import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { PrChip } from "./PrChip.tsx";
 import { WorkItemTitle } from "./WorkItemTitle.tsx";
 
@@ -16,7 +19,10 @@ export function WorkCard({
 	readonly state: State;
 	readonly fleet: FleetWork | undefined;
 }) {
-	const holder = holderOf(item.metadata, fleet);
+	const fleetItems = useContext(FleetItemsContext);
+	const holder = holderOf(item.metadata, fleet, item.answered !== undefined);
+	const status = cardStatus(item.metadata, fleet, item.waiting, item.answered !== undefined);
+	const answered = status === "waiting-on-agents" && item.answered ? answeredCopy(item.answered, fleetItems) : undefined;
 	const kind = item.metadata.kind === "task" ? undefined : item.metadata.kind;
 	return (
 		<Card className="work-card gap-2 p-4" data-item={item.id} data-selected={item.id === state.item ? "true" : undefined}>
@@ -25,9 +31,10 @@ export function WorkCard({
 				<WorkItemTitle item={item} state={state} />
 			</h3>
 			<div className="flex flex-wrap items-center gap-2">
-				<StatusChip status={cardStatus(item.metadata, fleet, item.waiting)} title={item.waiting} />
+				<StatusChip status={status} title={answered ?? item.waiting} />
 				<PrChip url={fleet?.prUrl} />
 			</div>
+			{answered !== undefined && <p className="work-answer">{answered}</p>}
 			{holder && <p className="work-owner">{holder}</p>}
 			{fleet?.stageEnteredAt !== undefined && fleet.stageEnteredAt !== null && <StageTime entered={fleet.stageEnteredAt} stage={fleet.stage} />}
 		</Card>
