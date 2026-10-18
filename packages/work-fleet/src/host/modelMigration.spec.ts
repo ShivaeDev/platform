@@ -1,10 +1,11 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Redacted } from "effect";
+import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { daemonClient } from "#test/daemonClient.ts";
-import { MAIN, task, withHost } from "#test/fleetHost.ts";
+import { task, withHost } from "#test/fleetHost.ts";
+import { hostDatabase } from "#test/hostDatabase.ts";
 import { legacyStore } from "#test/legacyStore.ts";
+import { MAIN } from "#test/mainSource.ts";
 import { migrateFleet } from "#test/migrateFleet.ts";
 import { migrationRecords } from "#test/migrationRecords.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -24,7 +25,7 @@ test("daemon startup migrates populated JSONB records and continues serving read
 				for (const value of values) {
 					yield* sql`insert into ${sql(`${fixture.host.namespace}_records`)} (work_id, version, payload) values (${value.workId}, 7, ${JSON.stringify(value)}::jsonb)`;
 				}
-			}).pipe(Effect.provide(PgClient.layer({ url: Redacted.make(fixture.host.databaseUrl) })));
+			}).pipe(Effect.provide(hostDatabase(fixture.host, "work-fleet-migration", 1)));
 			yield* withReadDaemon(
 				fixture.host,
 				(port) =>
