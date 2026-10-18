@@ -1,4 +1,5 @@
 import { Cause, Effect, Semaphore } from "effect";
+import { SqlClient } from "effect/sql";
 import { BadRequest, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -7,7 +8,6 @@ import { answerRecords } from "#host/answerRecords.ts";
 import type { FleetHost } from "#host/config.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Decision, DecisionResponse } from "#policy.ts";
-import { admissionLock } from "#storage/admissionLock.ts";
 import { type AnswerRequest, answerStore } from "#storage/answerStore.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 
@@ -20,10 +20,14 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		original: Pick<Decision, "code" | "reason">,
 		onPublished: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, unknown>,
 	) => Effect.Effect<{ readonly value: FleetRecord }, unknown, R>,
+	recordingSql?: SqlClient.SqlClient,
 ) {
 	const scope = yield* Effect.scope;
 	const fleet = yield* Fleet;
 	const store = yield* answerStore(host.namespace);
+	const sql = yield* SqlClient.SqlClient;
+	const recordingClient = recordingSql ?? sql;
+	const recordingStore = yield* answerStore(host.namespace).pipe(Effect.provideService(SqlClient.SqlClient, recordingClient));
 	const commit = yield* makeFleetTransaction;
 	const locks = new Map<string, Semaphore.Semaphore>();
 	const process = Effect.fn("FleetAnswer.process")(function* (request: AnswerRequest) {
@@ -31,7 +35,7 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 			yield* commit(
 				[],
 				Effect.gen(function* () {
-					yield* admissionLock(host.namespace);
+					yield* sql`select pg_advisory_xact_lock(hashtextextended(${`work_fleet_admission:${host.namespace}`}, 0))`;
 					yield* fleet.queueAnswer(request.work_id, request.text);
 					yield* store.finish(request);
 				}),
@@ -76,7 +80,7 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		yield* start(workId);
 	}
 	return Effect.fn("FleetAnswer.accept")(function* (workId: string, text = "", release = false) {
-		const current = (yield* answerRecords(host.namespace, workId))[0];
+		const current = (yield* answerRecords(host.namespace, workId).pipe(Effect.provideService(SqlClient.SqlClient, recordingClient)))[0];
 		if (current === undefined) {
 			return yield* new NotFound({ message: `Unknown Board work ${workId}` });
 		}
@@ -90,7 +94,7 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		if (!release && current.decision?.worker !== undefined && !text.trim()) {
 			return yield* new BadRequest({ message: "Supply a nonempty answer for the worker as text or on stdin" });
 		}
-		yield* store.accept(workId, queued ? undefined : current.decision, text, release);
+		yield* recordingStore.accept(workId, queued ? undefined : current.decision, text, release);
 		yield* start(workId);
 		return { ...current, blocker: ANSWER_RECORDED };
 	});

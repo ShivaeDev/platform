@@ -1,4 +1,6 @@
-import { Effect, Fiber, Layer } from "effect";
+import * as PgClient from "@effect/sql-pg/PgClient";
+import { Effect, Fiber, Layer, Redacted } from "effect";
+import { SqlClient } from "effect/sql";
 import { exposeFailure } from "#exposeFailure.ts";
 import { answerRequests } from "#host/answerRequests.ts";
 import { answerWork } from "#host/answerWork.ts";
@@ -15,18 +17,24 @@ import { decisionResponses, releaseItems } from "#host/releaseWork.ts";
 
 export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* (host: FleetHost) {
 	const scope = yield* Effect.scope;
-	const follow = yield* daemonSnapshots(host);
+	const receipts = yield* PgClient.make({ applicationName: "work-fleet-receipts", maxConnections: 1, url: Redacted.make(host.databaseUrl) });
+	function read<A, E, R>(effect: Effect.Effect<A, E, R>) {
+		return effect.pipe(Effect.provideService(SqlClient.SqlClient, receipts));
+	}
+	const follow = yield* read(daemonSnapshots(host));
 	const diagnostics = yield* daemonDiagnostics;
 	const dispatch = yield* dispatchRequests(host);
 	const live = yield* LiveConfig;
-	const status = Effect.zipWith(fleetStatus(host), live.current, (views, applied) => ({ ...views, config: configStatus(applied) }));
+	const status = Effect.zipWith(read(fleetStatus(host)), live.current, (views, applied) => ({ ...views, config: configStatus(applied) }));
 	// The server already accepts connections while handlers build, so the Board watcher starts beside them instead of delaying them.
 	const responses = yield* Layer.buildWithScope(decisionResponses(host), scope).pipe(Effect.forkIn(scope));
 	function withResponses<A, E, R>(effect: Effect.Effect<A, E, R>) {
 		return Fiber.join(responses).pipe(Effect.flatMap((context) => effect.pipe(Effect.provide(context))));
 	}
-	const answers = yield* answerRequests(host, (workId, text, release, original, onPublished) =>
-		withResponses(answerWork(host, workId, text, release, true, original, onPublished)),
+	const answers = yield* answerRequests(
+		host,
+		(workId, text, release, original, onPublished) => withResponses(answerWork(host, workId, text, release, true, original, onPublished)),
+		receipts,
 	);
 	// A client that stops waiting closes its request; the answer it asked for must still be recorded and applied.
 	function settle<A, E, R>(effect: Effect.Effect<A, E, R>) {
@@ -44,7 +52,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 					"daemon.name-threads": () => exposeFailure(nameStoredThreads(host)),
 					"daemon.release": ({ workIds }) =>
 						exposeFailure(settle(withResponses(releaseItems(host, workIds))).pipe(Effect.map((records) => records.map(({ value }) => value)))),
-					"daemon.status": ({ workId }) => exposeFailure(workId === undefined ? status : fleetStatus(host, workId)),
+					"daemon.status": ({ workId }) => exposeFailure(workId === undefined ? status : read(fleetStatus(host, workId))),
 				}),
 			),
 		),

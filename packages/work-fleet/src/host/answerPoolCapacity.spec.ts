@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { Effect, Fiber, Schedule } from "effect";
+import { Effect, Fiber, Schedule, Stream } from "effect";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { daemonClient, daemonRequest } from "#host/daemonClient.ts";
 import { busyAdmission } from "#test/busyAdmission.ts";
@@ -52,7 +52,7 @@ const poolStory = Effect.fn("AnswerPoolTest.poolStory")(function* (
 		);
 		expect(accepted.blocker).toBe(ANSWER_RECORDED);
 	}
-	yield* Effect.sync(() => spans.count("FleetAnswer.process")).pipe(
+	yield* Effect.sync(() => spans.count("FleetAnswer.drain")).pipe(
 		Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (count) => count >= 2 }),
 		Effect.timeout("5 seconds"),
 	);
@@ -70,6 +70,8 @@ const poolStory = Effect.fn("AnswerPoolTest.poolStory")(function* (
 			.map((record) => record.workId)
 			.sort(),
 	).toEqual([...workIds].sort());
+	const snapshots = yield* client("daemon.follow", { workIds }).pipe(Stream.take(1), Stream.runCollect, Effect.timeout("500 millis"));
+	expect(snapshots).toEqual([[...workIds].sort().map((workId) => expect.objectContaining({ blocker: ANSWER_RECORDED, workId }))]);
 	yield* free;
 	for (const reconciliation of reconciliations) {
 		yield* Fiber.join(reconciliation);
