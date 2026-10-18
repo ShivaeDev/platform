@@ -32,7 +32,11 @@ const NON_TABLE_TARGETS = new Set([
 function tableAt(tokens: readonly string[], index: number): string {
 	let next = index;
 	while (SKIP.has(tokens[next]?.toLowerCase() ?? "")) {
+		const only = tokens[next]?.toLowerCase() === "only";
 		next += 1;
+		if (only && tokens[next] === "(") {
+			next += 1;
+		}
 	}
 	while (tokens[next + 1] === ".") {
 		next += 2;
@@ -40,44 +44,59 @@ function tableAt(tokens: readonly string[], index: number): string {
 	return (tokens[next] ?? "").replaceAll('"', "").toLowerCase();
 }
 
-function tableBoundary(tokens: readonly string[], index: number, statementStart: number) {
+function tableBoundary(tokens: readonly string[], index: number, statementStart: number, fromIsTable: boolean) {
 	const word = tokens[index]?.toLowerCase() ?? "";
 	const permissions = ["grant", "revoke"].includes(tokens[statementStart]?.toLowerCase() ?? "");
 	const roleTarget = permissions && (word === "to" || word === "from");
 	const permissionTarget = permissions && word === "on" && !NON_TABLE_TARGETS.has(tokens[index + 1]?.toLowerCase() ?? "");
 	const indexTarget = word === "on" && tokens.slice(statementStart, index).some((part) => part.toLowerCase() === "index");
+	const tableClause = TABLE_START.has(word) && (word !== "from" || fromIsTable);
 	return {
 		ends: TABLE_END.has(word) || roleTarget,
-		starts: !roleTarget && (TABLE_START.has(word) || indexTarget || permissionTarget),
+		starts: !roleTarget && (tableClause || indexTarget || permissionTarget),
 	};
+}
+
+interface SqlContext {
+	depth: number;
+	readonly queriesAtDepth: Set<number>;
+	statementStart: number;
+	readonly tablesAtDepth: Set<number>;
+}
+
+function advanceContext(context: SqlContext, token: string, index: number): void {
+	if (token === ";") {
+		context.statementStart = index + 1;
+		context.queriesAtDepth.clear();
+	}
+	if (token === "(") {
+		context.depth += 1;
+	}
+	if (token === ")") {
+		context.tablesAtDepth.delete(context.depth);
+		context.queriesAtDepth.delete(context.depth);
+		context.depth -= 1;
+	}
+	if (token.toLowerCase() === "select") {
+		context.queriesAtDepth.add(context.depth);
+	}
 }
 
 function authTableIn(text: string): boolean {
 	const tokens = [...text.matchAll(TOKENS)]
 		.map(([token]) => token)
 		.filter((token) => !(token.startsWith("--") || token.startsWith("/*") || token.startsWith("'")));
-	const tablesAtDepth = new Set<number>();
-	let depth = 0;
-	let statementStart = 0;
+	const context: SqlContext = { depth: 0, queriesAtDepth: new Set(), statementStart: 0, tablesAtDepth: new Set() };
 	return tokens.some((token, index) => {
-		if (token === ";") {
-			statementStart = index + 1;
-		}
-		if (token === "(") {
-			depth += 1;
-		}
-		if (token === ")") {
-			tablesAtDepth.delete(depth);
-			depth -= 1;
-		}
-		const boundary = tableBoundary(tokens, index, statementStart);
+		advanceContext(context, token, index);
+		const boundary = tableBoundary(tokens, index, context.statementStart, context.depth === 0 || context.queriesAtDepth.has(context.depth));
 		if (boundary.ends) {
-			tablesAtDepth.delete(depth);
+			context.tablesAtDepth.delete(context.depth);
 		}
 		if (boundary.starts) {
-			tablesAtDepth.add(depth);
+			context.tablesAtDepth.add(context.depth);
 		}
-		return (boundary.starts || (token === "," && tablesAtDepth.has(depth))) && AUTH_TABLES.has(tableAt(tokens, index + 1));
+		return (boundary.starts || (token === "," && context.tablesAtDepth.has(context.depth))) && AUTH_TABLES.has(tableAt(tokens, index + 1));
 	});
 }
 
