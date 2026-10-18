@@ -1,6 +1,8 @@
-import { Context, type Effect } from "effect";
+import { Context, type Effect, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
+import type { AppHostFactory } from "#server/AppHostFactory.ts";
+import type { AppHostInput, HostPreflight } from "#server/AppHostInput.ts";
 import { appHostHttp, deferredHost, migratedHost } from "#server/appHostHttp.ts";
 import { type DatabaseConfig, databaseLayer } from "#server/databaseLayer.ts";
 import type { HostOptions, HostPolicy } from "#server/hostOptions.ts";
@@ -27,11 +29,15 @@ export type AppHostOptions<
 	TServiceRequirements = never,
 	TMigrations = never,
 	TSession extends SessionShape = SessionShape,
-> = HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & {
-	readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
-	readonly policy?: undefined;
-	readonly sessions: SessionPolicy<TSession>;
-};
+	TPreflight = never,
+	TPreflightError = never,
+	TPreflightRequirements = never,
+> = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
+	HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & {
+		readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
+		readonly policy?: undefined;
+		readonly sessions: SessionPolicy<TSession>;
+	};
 
 export type AppLocalHostOptions<
 	TRpcs extends Rpc.Any,
@@ -42,11 +48,15 @@ export type AppLocalHostOptions<
 	TServiceError = never,
 	TServiceRequirements = never,
 	TMigrations = never,
-> = HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & {
-	readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
-	readonly policy: "loopback";
-	readonly sessions?: never;
-};
+	TPreflight = never,
+	TPreflightError = never,
+	TPreflightRequirements = never,
+> = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
+	HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & {
+		readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
+		readonly policy: "loopback";
+		readonly sessions?: never;
+	};
 
 export type AppHttpHostOptions<
 	TRpcs extends Rpc.Any,
@@ -57,10 +67,13 @@ export type AppHttpHostOptions<
 	TServiceError = never,
 	TServiceRequirements = never,
 	TSession extends SessionShape = SessionShape,
-> = HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	TPreflight = never,
+	TPreflightError = never,
+	TPreflightRequirements = never,
+> = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
+	HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
 	HostPolicy<TSession> & { readonly migrations?: undefined };
-
-export function appHost<
+export const appHost: AppHostFactory = <
 	TRpcs extends Rpc.Any,
 	THandlers,
 	THandlerError,
@@ -72,19 +85,11 @@ export function appHost<
 	TSession extends SessionShape = SessionShape,
 	TApplicationError = never,
 	TApplicationRequirements = never,
+	TPreflight = never,
+	TPreflightError = never,
+	TPreflightRequirements = never,
 >(
-	options:
-		| (AppDatabaseOptions<TMigrations> & {
-				readonly application: Effect.Effect<
-					AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
-					TApplicationError,
-					TApplicationRequirements
-				>;
-		  })
-		| AppHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>
-		| AppLocalHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations>,
-): ReturnType<
-	typeof deferredHost<
+	options: AppHostInput<
 		TRpcs,
 		THandlers,
 		THandlerError,
@@ -95,51 +100,18 @@ export function appHost<
 		TMigrations,
 		TSession,
 		TApplicationError,
-		TApplicationRequirements
-	>
->;
-
-export function appHost<
-	TRpcs extends Rpc.Any,
-	THandlers,
-	THandlerError,
-	THandlerRequirements,
-	TServices = never,
-	TServiceError = never,
-	TServiceRequirements = never,
-	TSession extends SessionShape = SessionShape,
->(
-	options: AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
-): ReturnType<typeof appHostHttp<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>>;
-export function appHost<
-	TRpcs extends Rpc.Any,
-	THandlers,
-	THandlerError,
-	THandlerRequirements,
-	TServices = never,
-	TServiceError = never,
-	TServiceRequirements = never,
-	TMigrations = never,
-	TSession extends SessionShape = SessionShape,
-	TApplicationError = never,
-	TApplicationRequirements = never,
->(
-	options:
-		| (AppDatabaseOptions<TMigrations> & {
-				readonly application: Effect.Effect<
-					AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
-					TApplicationError,
-					TApplicationRequirements
-				>;
-		  })
-		| AppHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>
-		| AppLocalHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations>
-		| AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
-) {
+		TApplicationRequirements,
+		TPreflight,
+		TPreflightError,
+		TPreflightRequirements
+	>,
+) => {
 	if ("application" in options) {
-		return deferredHost(options.application, appDatabase(options));
+		return deferredHost(options.application, appDatabase(options)).pipe(Layer.provideMerge(options.preflight ?? Layer.empty));
 	}
 	return options.migrations === undefined
-		? appHostHttp(options)
-		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations }));
-}
+		? appHostHttp(options).pipe(Layer.provideMerge(options.preflight ?? Layer.empty))
+		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations })).pipe(
+				Layer.provideMerge(options.preflight ?? Layer.empty),
+			);
+};
