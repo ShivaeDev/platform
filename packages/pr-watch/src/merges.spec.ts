@@ -1,104 +1,79 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { effectApp } from "#test/services.ts";
-import { Watcher } from "#Watcher.ts";
+import { hasMergedPull, hasPull, incompleteObservation, queuedPulls, watchesFleet } from "#test/traits.ts";
+import { watch } from "#test/watch.ts";
 
-const refs = [{ ref: "refs/heads/gh-readonly-queue/main/pr-1-abc" }];
-
-effectApp("fleet reports a downtime merge once across clean restarts", function* (h) {
-	h.options.fleet = true;
-	h.options.numbers = [];
-	yield* h.cycle;
-	h.setPull(1, { merged: true, state: "closed" });
-	h.set("/pulls?state=open&per_page=100", { body: [] });
+watch.it("fleet reports a downtime merge once across clean restarts", [watchesFleet()], function* (h) {
+	yield* h.poll;
+	h.merged(1);
+	h.openPulls();
 	yield* h.restart;
 	const count = h.requests.length;
 	yield* h.restart;
-	expect(h.lines.map((line) => JSON.parse(line))).toEqual([{ branch: "feature-1", event: "merged", number: 1, title: "Change 1" }]);
+	expect(h.events()).toEqual([{ branch: "feature-1", event: "merged", number: 1, title: "Change 1" }]);
 	expect(h.requests.slice(count).map((request) => request.path)).toEqual(["/repos/acme/project/pulls?state=open&per_page=100"]);
 });
-
-effectApp("a PR can enter the queue and merge entirely between polls", function* (h) {
-	h.options.fleet = true;
-	h.options.numbers = [];
-	yield* h.cycle;
-	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: refs });
-	h.setPull(1, { "auto_merge": null });
-	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: [] });
-	h.setPull(1, { "auto_merge": null, merged: true, state: "closed" });
-	h.set("/pulls?state=open&per_page=100", { body: [] });
-	yield* h.cycle;
+watch.it("a PR can enter the queue and merge entirely between polls", [watchesFleet()], function* (h) {
+	yield* h.poll;
+	h.queueHas(1);
+	h.pullIs(1, { "auto_merge": null });
+	h.queueHas();
+	h.pullIs(1, { "auto_merge": null, merged: true, state: "closed" });
+	h.openPulls();
+	yield* h.poll;
 	yield* h.restart;
-	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["merged"]);
+	expect(h.eventNames()).toEqual(["merged"]);
 	expect(h.requests.some((request) => request.path === "/graphql")).toBe(false);
 });
-
-effectApp.each(["mergeability", "checks", "detail", "queue"])(
-	"fleet remembers an open PR when its first $item observation fails",
-	function* (failure, h) {
-		h.options.fleet = true;
-		h.options.numbers = [];
-		h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: refs });
-		h.setPull(1, { "auto_merge": null, mergeable: null, "mergeable_state": "unknown" });
-		if (failure !== "mergeability") {
-			h.setPull(1, { "auto_merge": null });
-		}
-		if (failure === "checks") {
-			h.set("/commits/sha1/status", { body: {}, status: 500 });
-		}
-		if (failure === "detail") {
-			h.set("/pulls/1", { body: {}, status: 500 });
-		}
-		if (failure === "queue") {
-			h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: {}, status: 500 });
-		}
-		expect((yield* Effect.result(h.cycle))._tag).toBe("Failure");
-		expect(h.lines).toEqual([]);
-		const watcher = yield* Watcher;
-		expect(yield* watcher.load(h.options)).toMatchObject({ openNumbers: [1], prs: {} });
-		h.setPull(1, { "auto_merge": null, merged: true, state: "closed" });
-		h.set("/pulls?state=open&per_page=100", { body: [] });
-		h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: [] });
-		expect((yield* h.restart).openNumbers).toEqual([]);
+for (const failure of ["mergeability", "checks", "detail", "queue"]) {
+	watch.it(
+		`fleet remembers an open PR when its first ${failure} observation fails`,
+		[watchesFleet(), queuedPulls(1), incompleteObservation(failure)],
+		function* (h) {
+			expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
+			expect(h.events()).toEqual([]);
+			expect(yield* h.saved()).toMatchObject({ openNumbers: [1], prs: {} });
+			h.pullIs(1, { "auto_merge": null, merged: true, state: "closed" });
+			h.openPulls();
+			h.queueHas();
+			expect((yield* h.restart).openNumbers).toEqual([]);
+			yield* h.restart;
+			expect(h.eventNames()).toEqual(["merged"]);
+		},
+	);
+}
+for (const merged of [false, true]) {
+	watch.it(
+		`discovery-only tracking reports a later terminal merged=${merged} observation once`,
+		[watchesFleet(), hasPull(1, { mergeable: null, "mergeable_state": "unknown" })],
+		function* (h) {
+			yield* Effect.result(h.poll);
+			h.openPulls();
+			h.pullIs(1, { merged, state: "closed" });
+			yield* h.poll;
+			yield* h.restart;
+			expect(h.eventNames()).toEqual([merged ? "merged" : "closed"]);
+		},
+	);
+}
+watch.it(
+	"a discovered PR still establishes its first complete open baseline",
+	[watchesFleet(), queuedPulls(1), hasPull(1, { mergeable: null, "mergeable_state": "unknown" })],
+	function* (h) {
+		yield* Effect.result(h.poll);
+		h.pullIs(1, { mergeable: false, "mergeable_state": "dirty" });
 		yield* h.restart;
-		expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["merged"]);
+		expect(h.eventNames()).toEqual(["conflict", "stuck"]);
+		h.merged(1);
+		h.openPulls();
+		h.queueHas();
+		yield* h.restart;
+		yield* h.restart;
+		expect(h.eventNames()).toEqual(["conflict", "stuck", "merged"]);
 	},
 );
-
-effectApp.each([false, true])("discovery-only tracking reports a later terminal merged=$item observation once", function* (merged, h) {
-	h.options.fleet = true;
-	h.options.numbers = [];
-	h.setPull(1, { mergeable: null, "mergeable_state": "unknown" });
-	yield* Effect.result(h.cycle);
-	h.set("/pulls?state=open&per_page=100", { body: [] });
-	h.setPull(1, { merged, state: "closed" });
-	yield* h.cycle;
+watch.it("fleet reports a PR that merges between discovery and its first detail response", [watchesFleet(), hasMergedPull(1)], function* (h) {
+	yield* h.poll;
 	yield* h.restart;
-	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual([merged ? "merged" : "closed"]);
-});
-
-effectApp("a discovered PR still establishes its first complete open baseline", function* (h) {
-	h.options.fleet = true;
-	h.options.numbers = [];
-	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: refs });
-	h.setPull(1, { mergeable: null, "mergeable_state": "unknown" });
-	yield* Effect.result(h.cycle);
-	h.setPull(1, { mergeable: false, "mergeable_state": "dirty" });
-	yield* h.restart;
-	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["conflict", "stuck"]);
-	h.setPull(1, { merged: true, state: "closed" });
-	h.set("/pulls?state=open&per_page=100", { body: [] });
-	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: [] });
-	yield* h.restart;
-	yield* h.restart;
-	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["conflict", "stuck", "merged"]);
-});
-
-effectApp("fleet reports a PR that merges between discovery and its first detail response", function* (h) {
-	h.options.fleet = true;
-	h.options.numbers = [];
-	h.setPull(1, { merged: true, state: "closed" });
-	yield* h.cycle;
-	yield* h.restart;
-	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["merged"]);
+	expect(h.eventNames()).toEqual(["merged"]);
 });

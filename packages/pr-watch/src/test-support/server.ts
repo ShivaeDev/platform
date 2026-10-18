@@ -103,8 +103,14 @@ export async function startServer() {
 			mergeQueueEntry: null,
 			state: pr.merged ? "MERGED" : pr.state.toUpperCase(),
 		});
-		set(`/commits/sha${number}/check-runs?per_page=100&filter=latest`, { body: { "check_runs": [] } });
-		set(`/commits/sha${number}/status`, { body: { state: "success" } });
+		const checks = `/commits/${pr.head.sha}/check-runs?per_page=100&filter=latest`;
+		const status = `/commits/${pr.head.sha}/status`;
+		if (!routes.has(`/repos/acme/project${checks}`)) {
+			set(checks, { body: { "check_runs": [] } });
+		}
+		if (!routes.has(`/repos/acme/project${status}`)) {
+			set(status, { body: { state: "success" } });
+		}
 	}
 	setPull(1);
 	set("/git/matching-refs/heads/gh-readonly-queue/", { body: [] });
