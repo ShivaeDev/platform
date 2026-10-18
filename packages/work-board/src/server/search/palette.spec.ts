@@ -1,10 +1,10 @@
 import { expect } from "vitest";
-import { boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { paletteFixture } from "#test/paletteFixture.ts";
 
 boardStory.it(
 	"ranks the inbox task ahead of captured decisions and excludes records until requested",
-	[serverReading(), projectFiles(paletteFixture())],
+	[projectFiles(paletteFixture())],
 	function* ({ search }) {
 		const ordinary = yield* search("inbox");
 		expect(ordinary.results[0]).toMatchObject({ id: "task.triage", itemKind: "task", status: "active", title: "Build the inbox" });
@@ -27,7 +27,7 @@ boardStory.it(
 
 boardStory.it(
 	"hides captured questions, responses and receipts but keeps human questions",
-	[serverReading(), projectFiles({ ...paletteFixture(), "human.md": "---\nid: question.human\nkind: question\n---\n# Human question\n" })],
+	[projectFiles({ ...paletteFixture(), "human.md": "---\nid: question.human\nkind: question\n---\n# Human question\n" })],
 	function* ({ search }) {
 		for (const query of ["question", "answer", "application", "context"]) {
 			expect((yield* search(query)).results.some((entry) => entry.file.startsWith("responses/"))).toBe(false);
@@ -48,7 +48,7 @@ const privateFiles = {
 };
 boardStory.it(
 	"keeps captured data out of snippets while returning readable prose",
-	[serverReading(), projectFiles({ ...privateFiles, "note.md": "# Note\n\nA readable needle passage.\n" })],
+	[projectFiles({ ...privateFiles, "note.md": "# Note\n\nA readable needle passage.\n" })],
 	function* ({ search }) {
 		const results = (yield* search("needle")).results.filter((entry) => entry.file !== "note.md");
 		expect(results.length).toBeGreaterThan(0);

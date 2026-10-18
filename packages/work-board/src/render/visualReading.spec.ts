@@ -1,5 +1,5 @@
 import { describe, expect } from "vitest";
-import { boardHome, boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 
 function progress(attributes: string) {
 	return `:::progress${attributes}\nBrowser checks recorded\n\nSource: [Reading checks](../checks.md)\n:::\n`;
@@ -8,7 +8,7 @@ function progress(attributes: string) {
 describe("visual document directives", () => {
 	boardStory.it(
 		"renders sourced values and a native labeled progress bar without JavaScript",
-		[serverReading(), projectFiles({ "nested/home.md": progress('{completed="3" total="8"}') })],
+		[projectFiles({ "nested/home.md": progress('{completed="3" total="8"}') })],
 		function* ({ renderDocument }) {
 			const html = yield* renderDocument("nested/home.md");
 			expect(html).toContain('class="visual-document visual-progress"');
@@ -23,7 +23,7 @@ describe("visual document directives", () => {
 	for (const attributes of ['{completed="unknown" total="8"}', '{total="8"}', '{completed="0" total="0"}', "{}"]) {
 		boardStory.it(
 			`keeps incomplete or zero-total tallies explicit (${JSON.stringify(attributes)})`,
-			[serverReading(), projectFiles({ "nested/home.md": progress(attributes) })],
+			[projectFiles({ "nested/home.md": progress(attributes) })],
 			function* ({ renderDocument }) {
 				const html = yield* renderDocument("nested/home.md");
 				expect(html).not.toContain("Percentage unavailable.");
@@ -46,7 +46,7 @@ describe("visual document directives", () => {
 	]) {
 		boardStory.it(
 			`shows the original source for invalid progress (${JSON.stringify(attributes)})`,
-			[serverReading(), projectFiles({ "nested/home.md": `${progress(attributes)}\nAfter the component.\n` })],
+			[projectFiles({ "nested/home.md": `${progress(attributes)}\nAfter the component.\n` })],
 			function* ({ renderDocument }) {
 				const html = yield* renderDocument("nested/home.md");
 				expect(html).toContain("Visual component could not be rendered:");
@@ -60,7 +60,6 @@ describe("visual document directives", () => {
 	boardStory.it(
 		"requires provenance and keeps unknown metrics distinct from zero",
 		[
-			serverReading(),
 			projectFiles({
 				"nested/home.md":
 					':::metric{value="unknown" unit="seconds"}\nReader orientation\n\nSource: [Study](../study.md)\n:::\n\n:::metric{value="0" unit="documents"}\nDocuments measured\n\nSource: [Study](../study.md)\n:::\n',
@@ -80,7 +79,6 @@ describe("visual document directives", () => {
 	boardStory.it(
 		"keeps timeline authorship, Markdown and sources without scheduling inference",
 		[
-			serverReading(),
 			projectFiles({
 				"nested/home.md":
 					":::timeline\nReading delivery\n\n1. **Later · planned:** [Review](../checks.md) with a reader.\n2. **Earlier · recorded:** [Native reads](../checks.md) shipped.\n:::",
@@ -100,7 +98,6 @@ describe("visual document directives", () => {
 	boardStory.it(
 		"indexes visual values and provenance inside heading-board cards",
 		[
-			serverReading(),
 			boardHome("nested/home.md"),
 			projectFiles({
 				"checks.md": "# Checks",
@@ -117,7 +114,6 @@ describe("visual document directives", () => {
 	boardStory.it(
 		"keeps a heading inside a visual out of the board columns",
 		[
-			serverReading(),
 			projectFiles({
 				"nested/home.md":
 					"# Board\n\n:::timeline\nDelivery\n\n## Inside visual\n\n### Visual entry\n\n1. [Source](checks.md)\n:::\n\n## Open\n\n### Real card\n",
@@ -131,7 +127,6 @@ describe("visual document directives", () => {
 	boardStory.it(
 		"keeps unsupported directives readable and renders standard GitHub callouts",
 		[
-			serverReading(),
 			projectFiles({
 				"nested/home.md":
 					":::unknown\nReadable original.\n:::\n\n> [!NOTE]\n> Recorded evidence is separate from acceptance.\n\n> [!UNRECOGNIZED]\n> Keep this quote.",
@@ -149,7 +144,6 @@ describe("visual document directives", () => {
 	boardStory.it(
 		"keeps oversized and nested visual sources intact without dropping later content",
 		[
-			serverReading(),
 			projectFiles({
 				"nested/home.md": `${`:::metric{value="1" unit="documents"}\nLabel\n\n${"x".repeat(65_536)}\n\nSource: [Checks](../checks.md)\n:::\n`}\nAfter oversized.`,
 			}),
@@ -172,7 +166,7 @@ describe("visual document directives", () => {
 	for (const kind of ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"]) {
 		boardStory.it(
 			`renders a standard callout while preserving its Markdown links (${JSON.stringify(kind)})`,
-			[serverReading(), projectFiles({ "nested/home.md": `> [!${kind}]\n> See [evidence](../checks.md).` })],
+			[projectFiles({ "nested/home.md": `> [!${kind}]\n> See [evidence](../checks.md).` })],
 			function* ({ renderDocument }) {
 				const html = yield* renderDocument("nested/home.md");
 				expect(html).toContain(`class="visual-callout visual-${kind.toLowerCase()}"`);
@@ -185,7 +179,6 @@ describe("visual document directives", () => {
 	boardStory.it(
 		"retains inline and leaf directive source and renders a later valid component",
 		[
-			serverReading(),
 			projectFiles({
 				"nested/home.md": `Inline :metric[value]{unit="seconds"} stays readable.\n\n::metric[Leaf]{value="1" unit="seconds"}\n\n${progress('{completed="3" total="8"}')}`,
 			}),
@@ -203,7 +196,6 @@ describe("visual document directives", () => {
 	boardStory.it(
 		"keeps oversized timelines as source rather than presenting a partial chronology",
 		[
-			serverReading(),
 			projectFiles({
 				"nested/home.md": `:::timeline\nDelivery\n\n${Array.from({ length: 101 }, (_, index) => `${index + 1}. Entry ${index} [Source](../checks.md)`).join("\n")}\n:::\n\nAfter the timeline.`,
 			}),

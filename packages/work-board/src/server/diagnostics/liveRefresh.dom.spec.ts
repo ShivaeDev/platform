@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { fleetHealth } from "#server/diagnostics/fleetHealth.ts";
-import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
+import { boardHome, boardStory, projectFiles, readerAt } from "#test/boardStory.ts";
 import { health, syntheticSources } from "#test/diagnostics.ts";
 import { waitFor } from "#test/live.ts";
 import { controlledDiagnosticsPolling, diagnosticsSources } from "#test/readingTraits.ts";
@@ -9,6 +9,7 @@ import { controlledDiagnosticsPolling, diagnosticsSources } from "#test/readingT
 boardStory.it(
 	"navigates to System, pauses and resumes polling, and stops polling after navigation",
 	[
+		readerAt("/"),
 		projectFiles({ "fleet/health.json": JSON.stringify(health), "home.md": "# Home" }),
 		boardHome("home.md"),
 		diagnosticsSources((root) => syntheticSources({ fleet: fleetHealth(root) })),
