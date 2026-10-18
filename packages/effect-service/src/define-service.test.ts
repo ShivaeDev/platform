@@ -1,110 +1,48 @@
-import { describe, expect } from "@effect/vitest";
-import { Context, Effect, Layer, Ref, type Scope } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { defineService } from "#define-service.ts";
-import type { ServiceRequirements } from "#service-requirements.ts";
+import { expect } from "@effect/vitest";
+import { declaresRequirement, declaresScopedService, serviceStory } from "#test/serviceStory.ts";
 
-const noRequirements = [] as const;
-type NoRequirements<TSuccess, TFailure = never, TCallerRequirements extends Scope.Scope = never> = ServiceRequirements<
-	typeof noRequirements,
-	TSuccess,
-	TFailure,
-	TCallerRequirements
->;
-
-describe("defineService", () => {
-	it.effect("provides the one declared requirement to initialization and methods", function* () {
-		class Declared extends Context.Service<Declared, { readonly identity: object }>()("test/Declared") {}
-		const requirements = [Declared] as const;
-		type Requirements<TSuccess> = ServiceRequirements<typeof requirements, TSuccess>;
-		const RequiredService = defineService({
-			id: "test/RequiredService",
-			initialize: Effect.fn("RequiredService.initialize")(function* (): Requirements<{ readonly identity: object }> {
-				return { identity: (yield* Declared).identity };
-			})(),
-			methods: (state) => ({
-				sameIdentity: Effect.fn("RequiredService.sameIdentity")(function* (): Requirements<boolean> {
-					return (yield* Declared).identity === state.identity;
-				}),
-			}),
-			requires: requirements,
-		});
-		const identity = {};
-		const layer = RequiredService.layer.pipe(Layer.provide(Layer.succeed(Declared)({ identity })));
-
-		expect(
-			yield* RequiredService.pipe(
-				Effect.flatMap((service) => service.sameIdentity()),
-				Effect.provide(layer, { local: true }),
-			),
-		).toBe(true);
-	});
-
-	it.effect("initializes private state and constructs methods once per layer", function* () {
-		const initializations = yield* Ref.make(0);
-		const finalizations = yield* Ref.make(0);
-		const factoryCalls = { value: 0 };
-		const initialize = Effect.fn("TestService.initialize")(function* (): NoRequirements<{ readonly identity: object }, never, Scope.Scope> {
-			yield* Ref.update(initializations, (count) => count + 1);
-			yield* Effect.addFinalizer(() => Ref.update(finalizations, (count) => count + 1));
-			return { identity: {} };
-		})();
-		const TestService = defineService({
-			id: "test/OneLifetime",
-			initialize,
-			methods: (state) => {
-				factoryCalls.value += 1;
-				return {
-					identity: Effect.fn("TestService.identity")(() => Effect.succeed(state.identity)),
-				};
-			},
-			requires: noRequirements,
-		});
-		const identities = yield* Effect.gen(function* () {
-			const first = yield* TestService;
-			const second = yield* TestService;
-			return yield* Effect.all([first.identity(), second.identity()]);
-		}).pipe(Effect.provide(TestService.layer, { local: true }));
-
-		expect(identities[0]).toBe(identities[1]);
-		expect(yield* Ref.get(initializations)).toBe(1);
-		expect(factoryCalls.value).toBe(1);
-		expect(yield* Ref.get(finalizations)).toBe(1);
-	});
+serviceStory.it("provides the declared requirement to initialization and methods", [declaresRequirement()], function* ({ build, sameIdentity }) {
+	yield* build();
+	expect(yield* sameIdentity()).toBe(true);
 });
 
-it.effect("keeps declared dependencies bound when the caller provides another value", function* () {
-	class Prefix extends Context.Service<Prefix, string>()("test/BoundPrefix") {}
-	const Greetings = defineService({
-		id: "test/BoundGreetings",
-		initialize: Effect.void,
-		methods: () => ({
-			greet: () => Effect.map(Prefix, (prefix) => prefix),
-		}),
-		requires: [Prefix],
-	});
-	const result = yield* Effect.gen(function* () {
-		const greetings = yield* Greetings;
-		return yield* greetings.greet().pipe(Effect.provideService(Prefix, "caller"));
-	}).pipe(Effect.provide(Greetings.layer.pipe(Layer.provide(Layer.succeed(Prefix, "declared")))));
-	expect(result).toBe("declared");
-});
+serviceStory.it(
+	"initializes private state and constructs methods once per layer",
+	[declaresScopedService()],
+	function* ({ build, close, identity, story }) {
+		yield* build();
+		const first = yield* identity();
+		const second = yield* identity();
+		expect(first).toBe(second);
+		expect(story.engine.counts.initializations).toBe(1);
+		expect(story.engine.counts.factoryCalls).toBe(1);
+		expect(story.engine.counts.finalizations).toBe(0);
 
-it.effect("releases method resources with the caller scope while the service remains live", function* () {
-	const released = yield* Ref.make(0);
-	const Resources = defineService({
-		id: "test/CallerResources",
-		initialize: Effect.void,
-		methods: () => ({
-			open: () => Effect.acquireRelease(Effect.succeed("resource"), () => Ref.update(released, (n) => n + 1)),
-		}),
-		requires: [],
-	});
-	yield* Effect.gen(function* () {
-		const resources = yield* Resources;
-		expect(yield* Effect.scoped(resources.open())).toBe("resource");
-		expect(yield* Ref.get(released)).toBe(1);
-		expect(yield* Effect.scoped(resources.open())).toBe("resource");
-		expect(yield* Ref.get(released)).toBe(2);
-	}).pipe(Effect.provide(Resources.layer));
-});
+		yield* close();
+		expect(story.engine.counts.finalizations).toBe(1);
+	},
+);
+
+serviceStory.it(
+	"keeps declared dependencies bound when the caller provides another value",
+	[declaresRequirement("declared")],
+	function* ({ build, greet }) {
+		yield* build();
+		expect(yield* greet({ callerPrefix: "caller" })).toBe("declared");
+	},
+);
+
+serviceStory.it(
+	"releases method resources with the caller scope while the service remains live",
+	[declaresScopedService()],
+	function* ({ build, open, released, story }) {
+		yield* build();
+		expect(yield* open()).toBe("resource");
+		expect(yield* released()).toBe(1);
+		expect(story.engine.counts.finalizations).toBe(0);
+
+		expect(yield* open()).toBe("resource");
+		expect(yield* released()).toBe(2);
+		expect(story.engine.counts.finalizations).toBe(0);
+	},
+);
