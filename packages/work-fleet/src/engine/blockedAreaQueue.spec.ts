@@ -77,3 +77,11 @@ fleetStory.it("an unreadable area waiter fails admission instead of letting late
 	fleet.unavailableWork("one", false);
 	expect(yield* fleet.attemptDispatch("two")).toMatchObject({ _tag: "StorageAdmission", message: "waiting for area shared queued ahead by one" });
 });
+
+fleetStory.it("an unreadable later area waiter does not block the first item", [sharedArea], function* (fleet) {
+	yield* fleet.prepare("one");
+	yield* fleet.prepare("two");
+	fleet.unavailableWork("two", true);
+	expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+	expect((yield* fleet.get("two")).value).toMatchObject({ attempts: [], stage: "prepared" });
+});

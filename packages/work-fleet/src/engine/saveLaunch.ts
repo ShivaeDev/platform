@@ -48,9 +48,8 @@ export const saveLaunch = Effect.fn("Fleet.saveLaunch")(function* (
 
 const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: EngineState, record: FleetRecord) {
 	const records = (yield* state.store.list()).map(({ value }) => value);
-	const waiting = records.filter(
-		(entry) => entry.workId !== record.workId && entry.stage === "prepared" && entry.areas?.some((area) => record.areas?.includes(area)),
-	);
+	const index = records.findIndex((entry) => entry.workId === record.workId);
+	const waiting = records.slice(0, index).filter((entry) => entry.stage === "prepared" && entry.areas?.some((area) => record.areas?.includes(area)));
 	return yield* Effect.filter(waiting, (entry) =>
 		state.board.get(entry.workId).pipe(
 			Effect.flatMap((work) =>
