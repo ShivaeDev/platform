@@ -2,9 +2,10 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Deferred, Effect, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 import type { FleetHost } from "#host/config.ts";
+import { admissionLockKey } from "#storage/admissionLockKey.ts";
 
 export function busyAdmission(host: FleetHost) {
-	return holdLock(host, `work_fleet_admission:${host.namespace}`);
+	return holdLock(host, admissionLockKey(host.namespace));
 }
 
 export function busyAnswerRecording(host: FleetHost, workId: string) {

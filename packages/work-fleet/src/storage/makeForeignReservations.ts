@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { fleetRecords } from "#fleetRecords.ts";
+import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 import { ForeignReservationRow } from "#storage/model.ts";
 
@@ -13,7 +14,7 @@ export const makeForeignReservations = Effect.fn("FleetStore.makeForeignReservat
 		spanPrefix: "FleetForeign",
 		tableName: `${namespace}_foreign_reservations`,
 	});
-	const lock = sql`select pg_advisory_xact_lock(hashtextextended(${`work_fleet_admission:${namespace}`}, 0))`;
+	const lock = sql`select pg_advisory_xact_lock(hashtextextended(${admissionLockKey(namespace)}, 0))`;
 	return {
 		foreignReservations: () => reservations.findMany({ orderBy: { direction: "asc", field: "owner" } }),
 		releaseForeign: (owner: string) =>

@@ -8,6 +8,7 @@ import { answerRecords } from "#host/answerRecords.ts";
 import type { FleetHost } from "#host/config.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Decision, DecisionResponse } from "#policy.ts";
+import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { type AnswerRequest, answerStore } from "#storage/answerStore.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 
@@ -35,7 +36,7 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 			yield* commit(
 				[],
 				Effect.gen(function* () {
-					yield* sql`select pg_advisory_xact_lock(hashtextextended(${`work_fleet_admission:${host.namespace}`}, 0))`;
+					yield* sql`select pg_advisory_xact_lock(hashtextextended(${admissionLockKey(host.namespace)}, 0))`;
 					yield* fleet.queueAnswer(request.work_id, request.text);
 					yield* store.finish(request);
 				}),

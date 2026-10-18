@@ -57,13 +57,9 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			yield* sql`alter table ${sql(`${namespace}_dispatches`)} add column now boolean, add column ignore_areas boolean`;
 		}),
 		"15_answer_requests": sql`create table ${sql(`${namespace}_answers`)} (
-			work_id text primary key, request_id text not null, decision_id text not null, accepted_at double precision not null,
-			decision_code text, decision_reason text not null, text text not null, release boolean not null, error text
+			request_id text primary key, work_id text not null, decision_id text, accepted_at double precision not null,
+			position integer generated always as identity, decision_code text, decision_reason text not null,
+			text text not null, release boolean not null, error text, response_decision_id text, response_id text
 		)`,
-		"16_queued_answer_requests": sql`alter table ${sql(`${namespace}_answers`)}
-			drop constraint ${sql(`${namespace}_answers_pkey`)}, add primary key (request_id),
-			alter column decision_id drop not null, add column position integer generated always as identity`,
-		"17_answer_response_identity": sql`alter table ${sql(`${namespace}_answers`)}
-			add column response_decision_id text, add column response_id text`,
 	});
 });
