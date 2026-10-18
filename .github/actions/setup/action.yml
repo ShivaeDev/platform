@@ -1,9 +1,9 @@
 name: Set up workspace
 description: Restore exact installed dependencies or install with the shared pnpm store cache.
 inputs:
-  consumer-cache:
-    description: Restore the complete consumer store warmed on main.
-    default: 'false'
+  consumer-store-key:
+    description: Restore the complete consumer store that main warmed under this key.
+    default: ''
   save-workspace-cache:
     description: Save the exact installed dependency tree from the build producer.
     default: 'false'
@@ -14,9 +14,6 @@ outputs:
   store-path:
     description: pnpm's content-addressed store directory.
     value: ${{ steps.store.outputs.path }}
-  consumer-cache-key:
-    description: Cache key for saving the complete consumer store on main.
-    value: ${{ steps.consumer-cache.outputs.cache-primary-key }}
   consumer-cache-hit:
     description: Whether the consumer store for these exact manifests was already cached.
     value: ${{ steps.consumer-cache.outputs.cache-hit }}
@@ -61,23 +58,23 @@ runs:
           node_modules
           packages/*/node_modules
           examples/*/node_modules
-        key: workspace-deps-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.image }}-node${{ steps.store.outputs.node }}-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches/**', '**/.npmrc', '.pnpmfile.cjs') }}
+        key: workspace-deps-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.image }}-node${{ steps.store.outputs.node }}-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches/**', '.npmrc', '.pnpmfile.cjs') }}
     - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
       id: pnpm-cache
-      if: inputs.consumer-cache != 'true' && steps.workspace-cache.outputs.cache-hit != 'true'
+      if: inputs.consumer-store-key == '' && steps.workspace-cache.outputs.cache-hit != 'true'
       with:
         path: ${{ steps.store.outputs.path }}
         key: pnpm-cache-${{ runner.os }}-${{ steps.store.outputs.architecture }}-${{ hashFiles('pnpm-lock.yaml') }}
     - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
       id: consumer-cache
-      if: inputs.consumer-cache == 'true'
+      if: inputs.consumer-store-key != ''
       with:
         path: ${{ steps.store.outputs.path }}
-        key: consumer-store-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'packages/*/package.json', 'script/package-check/**') }}
+        key: ${{ inputs.consumer-store-key }}
         restore-keys: |
           consumer-store-v1-${{ runner.os }}-${{ runner.arch }}-
     - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-      if: inputs.consumer-cache == 'true' && steps.consumer-cache.outputs.cache-matched-key == ''
+      if: inputs.consumer-store-key != '' && steps.consumer-cache.outputs.cache-matched-key == ''
       with:
         path: ${{ steps.store.outputs.path }}
         key: pnpm-cache-${{ runner.os }}-${{ steps.store.outputs.architecture }}-${{ hashFiles('pnpm-lock.yaml') }}
