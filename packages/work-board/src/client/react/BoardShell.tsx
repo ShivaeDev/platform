@@ -11,6 +11,7 @@ import { Header } from "./Header.tsx";
 import { LiveControls } from "./LiveControls.tsx";
 import { MainLocationContext, useMainLocation } from "./MainLocationContext.ts";
 import { emptyMainLocation, type MainLocation } from "./mainLocation.ts";
+import { OpeningView } from "./OpeningView.tsx";
 import { PhoneNavigation } from "./PhoneNavigation.tsx";
 import { ReadingLibrary } from "./ReadingLibrary.tsx";
 import { ReadingReadyContext, readingReady } from "./ReadingReadyContext.ts";
@@ -24,12 +25,14 @@ import { ThemeContext } from "./ThemeContext.ts";
 import { UpdatesToggle } from "./UpdatesToggle.tsx";
 import { useAppearance } from "./useAppearance.ts";
 import { useBoardNavigation } from "./useBoardNavigation.ts";
+import { useOpened } from "./useOpened.ts";
 import { useSearchDialog } from "./useSearchDialog.ts";
 import { useSidebar } from "./useSidebar.ts";
 import { VisualInspection } from "./VisualInspection.tsx";
 export interface ShellOptions {
 	readonly api: ShellApi;
 	readonly client?: BrowserClient;
+	readonly opening?: Promise<void> | undefined;
 	readonly reading?: unknown;
 	readonly ready?: () => void;
 	readonly registry: AtomRegistry.AtomRegistry;
@@ -74,6 +77,7 @@ function BoardWorkspace(
 	const [libraryOpen, setLibraryOpen] = useState(false);
 	const location = useRouterState({ select: (state) => state.location });
 	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
+	const opened = useOpened(options.opening);
 	const data = Option.getOrUndefined(query.data);
 	const { element } = useContext(ReadingReadyContext);
 	useEffect(() => {
@@ -121,7 +125,7 @@ function BoardWorkspace(
 							status={status}
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
-						<FleetMain api={api} home={data?.home} onPage={onPage} url={location.pathname + location.searchStr} />
+						{opened ? <FleetMain api={api} home={data?.home} onPage={onPage} url={location.pathname + location.searchStr} /> : <OpeningView />}
 						<PhoneNavigation main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
 					</div>
 				</div>

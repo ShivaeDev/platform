@@ -12,11 +12,20 @@ import { documentQuery, navigationQuery } from "./routeQuery.ts";
 
 export type RouterShell = ShellOptions & { readonly registry: AtomRegistry.AtomRegistry };
 
-export async function loadBoardPage({
-	context: { shell },
-	location,
-	abortController,
-}: Pick<LoaderFnContext, "location" | "abortController"> & { readonly context: { readonly shell?: RouterShell } }) {
+export type BoardLoaderContext = Pick<LoaderFnContext, "location" | "abortController" | "preload"> & {
+	readonly context: { readonly shell?: RouterShell };
+};
+
+// The first page paints the shell at once; its main view waits for this load, which settles even when a later navigation aborts it.
+export function openBoardPage(context: BoardLoaderContext): Promise<void> {
+	redirectLegacy(context.location.pathname, context.location.searchStr);
+	return loadBoardPage(context).then(
+		() => undefined,
+		() => undefined,
+	);
+}
+
+export async function loadBoardPage({ context: { shell }, location, abortController }: BoardLoaderContext) {
 	redirectLegacy(location.pathname, location.searchStr);
 	if (!shell) {
 		return undefined;

@@ -33,8 +33,6 @@ export function Sidebar({
 	readonly openLibrary: () => void;
 }) {
 	const reading = useContext(LibraryContext);
-	const query = useQuery(api.goals.query(undefined, { timeToLive: 60_000 }), { keepPreviousData: true });
-	const goals = Option.getOrUndefined(query.data)?.goals;
 	const counts = {
 		today: data?.inboxCount,
 		work: data?.counts.now,
@@ -92,21 +90,30 @@ export function Sidebar({
 			<ReadingSection current={main.file} items={reading.favorites} title="Pinned" />
 			<section aria-label="Active goals">
 				<h2 className="mb-2 px-2 font-semibold text-muted-foreground text-xs">Active goals</h2>
-				{goals?.length === 0 && <p className="px-2 text-muted-foreground text-xs">No active goals.</p>}
-				{goals?.map((goal) => (
-					<div className="mb-3 px-2" key={goal.id}>
-						<a className="block truncate text-sm" href={`/_board/item/${encodeURIComponent(goal.id)}/`}>
-							{goal.title}
-						</a>
-						<GoalProgress compact counts={goal.counts} title={goal.title} />
-					</div>
-				))}
+				{data ? <ActiveGoals api={api} /> : null}
 			</section>
 			<ReadingSection current={main.file} items={reading.recents.slice(0, 5)} title="Recent" />
 			<button className="mt-auto text-left text-muted-foreground text-xs" id={shellIds.libraryOpen} onClick={() => openLibrary()} type="button">
 				Reading history
 			</button>
 		</aside>
+	);
+}
+function ActiveGoals({ api }: { readonly api: ShellApi }) {
+	const query = useQuery(api.goals.query(undefined, { timeToLive: 60_000 }), { keepPreviousData: true });
+	const goals = Option.getOrUndefined(query.data)?.goals;
+	return (
+		<>
+			{goals?.length === 0 && <p className="px-2 text-muted-foreground text-xs">No active goals.</p>}
+			{goals?.map((goal) => (
+				<div className="mb-3 px-2" key={goal.id}>
+					<a className="block truncate text-sm" href={`/_board/item/${encodeURIComponent(goal.id)}/`}>
+						{goal.title}
+					</a>
+					<GoalProgress compact counts={goal.counts} title={goal.title} />
+				</div>
+			))}
+		</>
 	);
 }
 function ReadingSection({ title, items, current }: { readonly title: string; readonly items: readonly Item[]; readonly current: string }) {
