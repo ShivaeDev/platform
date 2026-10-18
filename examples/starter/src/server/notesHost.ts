@@ -1,9 +1,9 @@
 import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
 import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/client.ts";
-import { authDatabase, betterAuthMount } from "@shivaedev/platform/better-auth.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AppChanges, appHost } from "@shivaedev/platform/server/appHost.ts";
+import { authDatabase, betterAuthMount } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
 import { authenticatedUserLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
 import { Notes, Subscribe } from "#notes.ts";

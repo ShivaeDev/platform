@@ -2,7 +2,7 @@ import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
 import { Effect } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { authDatabase } from "@shivaedev/platform/better-auth.ts";
+import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { authOptions } from "#server/authOptions.ts";
 
 export const jobBoardSession = Effect.fn("JobBoardStory.jobBoardSession")(function* (role: "admin" | "user") {
