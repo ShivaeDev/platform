@@ -12,7 +12,8 @@ import { daemonClient } from "#test/daemonClient.ts";
 import { daemonResources } from "#test/daemonResources.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
-import { type HostFixture, MAIN, task, withHost } from "#test/fleetHost.ts";
+import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
+import { MAIN } from "#test/mainSource.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
 

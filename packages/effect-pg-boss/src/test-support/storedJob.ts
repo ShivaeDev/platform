@@ -1,5 +1,5 @@
 import type { JobWithMetadata } from "pg-boss";
-import { job } from "#test/fake-client.ts";
+import { job } from "#test/fakeClient.ts";
 
 export function storedJob(name: string, data: unknown): JobWithMetadata<unknown> {
 	return {

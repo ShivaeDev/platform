@@ -1,24 +1,17 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Redacted, Schema } from "effect";
-import * as Reactivity from "effect/reactivity/Reactivity";
-import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
+import { Effect, Schema } from "effect";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
-import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import type { FleetHost } from "#host/config.ts";
+import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 import { recordInput, recordModel } from "#storage/model.ts";
 import { writeChildren } from "#storage/recordChildren.ts";
 import { recordShape } from "#storage/recordShape.ts";
 
-function hostSql(host: FleetHost) {
-	return PgClient.layer({ maxConnections: 2, url: Redacted.make(host.databaseUrl) });
-}
-
 export function storeState(host: FleetHost, workId: string, payload: Readonly<Record<string, unknown>>) {
 	return Effect.gen(function* () {
-		const current = yield* Effect.serviceOption(Reactivity.Reactivity);
-		const reactivity = current._tag === "Some" ? current.value : yield* Reactivity.make;
-		return yield* transact(
+		const transaction = yield* makeFleetTransaction;
+		return yield* transaction(
+			[fleetRecords.item(workId), fleetRecords.list],
 			Effect.gen(function* () {
 				const model = recordModel();
 				const repository = yield* makeRepository(model, {
@@ -38,9 +31,7 @@ export function storeState(host: FleetHost, workId: string, payload: Readonly<Re
 					yield* repository.updateVoid({ ...previous[0], ...input });
 				}
 				yield* writeChildren(host.namespace, workId, payload, recordShape());
-				yield* invalidateOnCommit(invalidationKeys([fleetRecords.item(workId), fleetRecords.list]));
 			}),
-			{ onSqlError: (error) => error },
-		).pipe(Effect.provideService(Reactivity.Reactivity, reactivity), Effect.provide(hostSql(host)));
+		);
 	}).pipe(Effect.orDie);
 }

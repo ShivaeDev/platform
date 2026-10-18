@@ -1,6 +1,6 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { change } from "#test/fake-database.ts";
+import { change } from "#test/fakeDatabase.ts";
 import { changes, hasNestedFrames } from "#test/kit.ts";
 
 changes.it("settle is idempotent: the first outcome wins and a frame publishes at most once", [], function* ({ published, record, open }) {

@@ -3,8 +3,8 @@ import { applyBaseline } from "#baseline/compare.ts";
 import { decodeBaseline, encodeBaseline } from "#baseline/format.ts";
 import { levels, violation } from "#test/violations.ts";
 
-const known = levels({ "local/off": "off", "local/todo": "warn", "structure/max-lines": "error" });
-const todo = violation({ file: "src/a.ts", level: "warn", rule: "local/todo" });
+const known = levels({ "local/todo": "error", "structure/max-lines": "error" });
+const todo = violation({ file: "src/a.ts", rule: "local/todo" });
 function long(lines: number) {
 	return violation({ count: lines - 150, file: "src/big.ts", rule: "structure/max-lines", threshold: 150 });
 }
@@ -59,16 +59,9 @@ describe("baseline coverage", () => {
 		]);
 	});
 
-	it("reports entries for unknown and disabled rules", () => {
-		const checked = applyBaseline(
-			[],
-			[
-				{ count: 1, file: "src/a.ts", rule: "local/typo" },
-				{ count: 1, file: "src/a.ts", rule: "local/off" },
-			],
-			known,
-		);
-		expect(checked.stale.map((stale) => stale.problem)).toEqual(["names no known rule", "names a rule that is off"]);
+	it("reports entries for unknown rules", () => {
+		const checked = applyBaseline([], [{ count: 1, file: "src/a.ts", rule: "local/typo" }], known);
+		expect(checked.stale.map((stale) => stale.problem)).toEqual(["names no known rule"]);
 	});
 
 	it("knows the rules a family reports under its own name", () => {

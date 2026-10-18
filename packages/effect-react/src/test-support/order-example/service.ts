@@ -3,7 +3,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 import { Order, OrderNotFound, SaveOrder, type SaveOrderInput, StorageUnavailable } from "./contract.ts";

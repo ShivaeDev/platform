@@ -144,9 +144,10 @@ describe("quality exits 2 when it cannot run", { timeout: CLI_TIMEOUT }, () => {
 		expect(result.stderr).toContain(message);
 	});
 
-	it("on a usage error, printing the usage", async () => {
-		const result = await runQuality(qualityTree(trees.clean), "lint", "--warnings", "loud");
+	it("rejects warning-report options with usage", () => {
+		const result = quality(qualityTree(trees.clean), "lint", "--warnings", "all");
 		expect(result.status).toBe(2);
-		expect(result.stderr).toContain("Usage:");
+		expect(result.stderr).toContain("Unknown option '--warnings'");
+		expect(result.stderr).toContain("Usage:\n  quality lint [--config <file>]");
 	});
 });

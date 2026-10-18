@@ -72,6 +72,9 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 ) {
 	const record = stored.value;
 	const observed = yield* state.integrations.delivery(result).pipe(Effect.result);
+	if (Result.isFailure(observed) && failureCode(observed.failure) === "pr-closed") {
+		yield* state.store.releaseForeign(result.pr);
+	}
 	if (Result.isSuccess(observed) && observed.success !== undefined && !executing(record)) {
 		return yield* settleMergedDelivery(state, stored, result, observed.success, deliveryPending(record));
 	}

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { Clock, Effect, FileSystem, Path, Semaphore } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { Conflict, Forbidden, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import type { Handoff, HandoffInput } from "#browser/handoffs/schema.ts";
