@@ -1,13 +1,13 @@
 import type { Server } from "node:http";
 import { Effect } from "effect";
 
-export const loopbackServer = Effect.fnUntraced(function* (server: Server) {
+export const loopbackServer = Effect.fnUntraced(function* (server: Server, options: { readonly host?: string; readonly port?: number } = {}) {
 	yield* Effect.acquireRelease(
 		Effect.tryPromise(
 			() =>
 				new Promise<void>((resolve, reject) => {
 					server.once("error", reject);
-					server.listen(0, "127.0.0.1", () => {
+					server.listen(options.port ?? 0, options.host ?? "127.0.0.1", () => {
 						server.off("error", reject);
 						resolve();
 					});
