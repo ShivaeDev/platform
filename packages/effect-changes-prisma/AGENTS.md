@@ -10,4 +10,4 @@ When goals conflict, lean in this order:
 4. **Prove the boundary.** PostgreSQL claims need the real PostgreSQL tests. Keep typed failures intact and prove that an expired body stops before later side effects. A coverage check is evidence about tables, not every affected subject.
 5. **Wrap thinly.** Prefer `use`, `transaction` and the explicit `recordWrite` seam over a broader ORM abstraction. Native persistence and migrations belong to effect-sql; effect-prisma owns the separate Prisma Next database facade.
 
-Read [the README](README.md) for usage. Follow the [root guidance](../../AGENTS.md); ask before changing the public surface.
+Read [the README](README.md) for usage. Follow the [root guidance](../../AGENTS.md). The package is in maintenance mode: fixes and quality clean-ups are welcome, and a breaking change follows the root rule.
