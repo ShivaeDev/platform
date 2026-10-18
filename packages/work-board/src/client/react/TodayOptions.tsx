@@ -104,7 +104,6 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 						key={option.id}
 						onChoose={() => action.dispatch(option.id)}
 						option={option}
-						reason={request.preview?.reason ?? ""}
 						recommended={data.metadata.recommended}
 						source={data.metadata.options?.[index]}
 					/>

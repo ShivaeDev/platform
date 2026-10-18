@@ -6,11 +6,15 @@ import { mill } from "#test/mill.ts";
 import { unattendedMill } from "#test/unattendedMill.ts";
 
 bakery.it("steps until the condition holds", [ovenIsLit(), hasDough(3)], function* ({ oven }) {
-	expect(yield* oven.bakesEverything()).toEqual({ loaves: 3, minutes: 3 });
+	yield* oven.bakesEverything();
+	expect(oven.loaves()).toBe(3);
+	expect(oven.minutes()).toBe(3);
 });
 
 bakery.it("takes no step when the condition already holds", [ovenIsLit()], function* ({ oven }) {
-	expect(yield* oven.bakesEverything(0)).toEqual({ loaves: 0, minutes: 0 });
+	yield* oven.bakesEverything(0);
+	expect(oven.loaves()).toBe(0);
+	expect(oven.minutes()).toBe(0);
 });
 
 bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, oven, story }) {

@@ -193,6 +193,9 @@ jobs:
       - name: Record the measured commits for Tally
         if: ${{ !cancelled() }}
         run: mkdir -p .ci/coverage && git rev-parse HEAD HEAD^1 > .ci/coverage/measured-commits.txt
+      - name: Record the job that produced the test reports
+        if: ${{ !cancelled() }}
+        run: echo "${{ job.check_run_id }}" > .ci/job.txt
       - name: Upload coverage for Tally
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ !cancelled() }}
@@ -202,6 +205,8 @@ jobs:
           path: |
             .ci/coverage/lcov.info
             .ci/coverage/measured-commits.txt
+            .ci/flaky-tests.json
+            .ci/job.txt
             .ci/tests.junit.xml
           include-hidden-files: true
           if-no-files-found: error

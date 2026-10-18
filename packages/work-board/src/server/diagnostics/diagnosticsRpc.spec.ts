@@ -14,16 +14,15 @@ function snapshot(observedAt: number): DiagnosticsSnapshot {
 }
 
 boardStory.it(
-	"reads health, rate limits and each waiting owner through HTTP RPC, ignoring a conflicting file",
+	"reads health, rate limits and the Fleet waiting counts through HTTP RPC, ignoring a conflicting file",
 	[serverReading(), projectFiles({ "fleet/health.json": JSON.stringify({ ...health, running: 99 }) }), daemonSnapshot(snapshot)],
 	function* ({ systemHtml }) {
 		const body = yield* systemHtml();
 		for (const text of ["24% used", "4321 / 5000", "3 / 8", "Current snapshot"]) {
 			expect(body).toContain(text);
 		}
-		for (const [owner, count] of Object.entries(health.waiting)) {
-			expect(body).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>${count}</strong>`);
-		}
+		expect(body).toContain(`<dt>Waiting on the orchestrator</dt><dd><strong>${health.waiting.orchestrator}</strong>`);
+		expect(body).toContain(`<dt>Waiting on Fleet agents</dt><dd><strong>${health.waiting.automation}</strong>`);
 		expect(body).not.toContain("99 / 8");
 	},
 );

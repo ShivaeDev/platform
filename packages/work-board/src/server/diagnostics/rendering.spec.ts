@@ -14,9 +14,10 @@ boardStory.it(
 		for (const text of ["24% used", "63% used", "4321 / 5000", "0 / 5000", "3 / 8", "Provider is at capacity", "Last scheduler pass"]) {
 			expect(body).toContain(text);
 		}
-		expect(body).toContain("<dt>Waiting on maintainer</dt><dd><strong>2</strong>");
-		expect(body).toContain("<dt>Waiting on orchestrator</dt><dd><strong>3</strong>");
-		expect(body).toContain("<dt>Waiting on automation</dt><dd><strong>1</strong>");
+		expect(body).toContain("<dt>Needs you</dt>");
+		expect(body).not.toContain("Waiting on maintainer");
+		expect(body).toContain("<dt>Waiting on the orchestrator</dt><dd><strong>3</strong>");
+		expect(body).toContain("<dt>Waiting on Fleet agents</dt><dd><strong>1</strong>");
 		expect((yield* getPage("/_board/system", "example.invalid")).status).toBe(403);
 	},
 );
