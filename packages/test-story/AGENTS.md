@@ -12,6 +12,12 @@ When goals conflict, they win in this order:
 4. **The failure fixes itself.** A failure carries everything an agent needs to find and fix the cause without rerunning anything.
 5. **Small and native.** Vitest and Effect stay visible; the package wraps them thinly.
 
+## Writing the kit's own stories
+
+A verb performs one action on the real engine or reads one observation; the spec shows each action and states each expectation. Acquire real services in `create` or a trait in the story's per-test Scope and reuse them across verbs, with cleanup owned by the Scope. Follow the README's [verb shape](README.md#the-verb-shape-every-kit-follows) for package fixtures as well as application kits.
+
+Split scenario runners and verbs with two jobs into individual actions and readouts. Return real observations instead of hard-coded expected outcomes, and keep assertions in the spec. Fail when an action's target is missing. Keep engine defaults neutral and declare meaningful preconditions in traits or explicit action inputs.
+
 ## Failure messages are for agents
 
 Every error and every failure appendix is written for an agent that may never have heard of this package and wants to fix the test, in the spirit of the Rust compiler:

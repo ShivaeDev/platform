@@ -1,5 +1,5 @@
 import { Effect, Exit, Scope } from "effect";
-import { afterAll, beforeAll, expect } from "vitest";
+import { afterAll, beforeAll } from "vitest";
 import { domFetch } from "#domFetch.ts";
 import { domNavigate } from "#domNavigate.ts";
 import { storyKit } from "#storyKit.ts";
@@ -49,38 +49,27 @@ afterAll(async () => Effect.runPromise(Scope.close(scope, Exit.void)));
 
 export const documentApp = storyKit({
 	clock: "live",
-	create: () => {
-		expect(window.fetch).not.toBe(globalThis.fetch);
-		return { fetch: domFetch(baseUrl) };
-	},
+	create: () => ({ fetch: domFetch(baseUrl) }),
 	name: "document",
 	outbound,
 	stages: ["page"],
 	verbs: ({ fetch }) => ({
-		loadPage: () =>
-			Effect.promise(async () => {
-				const response = await domNavigate("https://provider.test/page");
-				expect(document.querySelector("h1")?.textContent).toBe("Routed document");
-				expect(window.location.href).toBe("https://provider.test/page");
-				expect(await response.text()).toContain("Routed document");
-			}),
-		redirectedPostIs: (status: number, method: string, body: string) =>
-			Effect.promise(async () => {
-				const response = await fetch(
+		cookies: () => document.cookie,
+		heading: () => document.querySelector("h1")?.textContent,
+		loadPage: () => Effect.promise(() => domNavigate("https://provider.test/page")),
+		location: () => window.location.href,
+		post: (status: number, body: string) =>
+			Effect.promise(() =>
+				fetch(
 					new Request(`https://provider.test/redirect?status=${status}`, {
-						body: "story-body",
+						body,
 						credentials: "include",
 						headers: new Headers({ "x-story": "retained" }),
 						method: "POST",
 					}),
-				);
-				expect(response.redirected).toBe(true);
-				expect(response.url).toBe("https://provider.test/echo");
-				expect(response.headers.get("set-cookie")).toBeNull();
-				expect(await response.json()).toEqual({ body, cookie: "first=one; second=two", header: "retained", method, path: "/echo" });
-				expect(document.cookie).not.toContain("first=");
-			}),
-		syncRequestIsRefused: () => {
+				),
+			),
+		syncRequest: () => {
 			const request = new window.XMLHttpRequest();
 			let message: string | undefined;
 			request.addEventListener("error", (event) => {
@@ -90,18 +79,18 @@ export const documentApp = storyKit({
 			});
 			request.open("GET", "https://provider.test/echo", false);
 			request.send();
-			expect(message).toContain("test-story refuses synchronous document requests to provider.test");
+			return message;
 		},
-		xhrIsRouted: () =>
-			Effect.promise(async () => {
-				const text = await new Promise<string>((resolve, reject) => {
-					const request = new window.XMLHttpRequest();
-					request.open("GET", "https://provider.test/echo");
-					request.onload = () => resolve(request.responseText);
-					request.onerror = () => reject(new Error("Document XMLHttpRequest failed"));
-					request.send();
-				});
-				expect(JSON.parse(text)).toMatchObject({ method: "GET", path: "/echo" });
-			}),
+		xhr: () =>
+			Effect.promise(
+				() =>
+					new Promise<string>((resolve, reject) => {
+						const request = new window.XMLHttpRequest();
+						request.open("GET", "https://provider.test/echo");
+						request.onload = () => resolve(request.responseText);
+						request.onerror = () => reject(new Error("Document XMLHttpRequest failed"));
+						request.send();
+					}),
+			),
 	}),
 });

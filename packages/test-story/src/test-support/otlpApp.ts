@@ -1,4 +1,4 @@
-import { Effect, Layer, ManagedRuntime, Tracer } from "effect";
+import { Effect, Exit, Layer, ManagedRuntime, Scope, Tracer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
 import { otlpReceiver } from "#otlpReceiver.ts";
@@ -26,7 +26,6 @@ const exportWork = Effect.gen(function* () {
 		});
 		return { parentSpanId: parent.spanId, spanId: span.spanId, traceId: span.traceId };
 	}).pipe(Effect.withSpan("child", { kind: "client" }));
-	yield* Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore);
 	return child;
 }).pipe(Effect.withSpan("parent"));
 
@@ -50,14 +49,14 @@ export function otlpApp(protobuf: boolean) {
 		name: protobuf ? "protobuf traces" : "JSON traces",
 		stages: ["ready"],
 		verbs: ({ receiver, runtime }, story) => ({
-			exportSpans: () =>
-				Effect.promise(async () => {
-					story.tell("the application exports its spans");
-					const ids = await runtime.runPromise(exportWork);
-					await runtime.dispose();
-					return ids;
-				}),
+			failWork: () => Effect.promise(() => runtime.runPromise(Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore))),
+			flushExporter: () => Effect.promise(() => runtime.dispose()),
 			requests: receiver.requests,
+			runWork: () =>
+				Effect.promise(() => {
+					story.tell("the application runs traced work");
+					return runtime.runPromise(exportWork);
+				}),
 			spans: receiver.spans,
 		}),
 	});
@@ -65,11 +64,15 @@ export function otlpApp(protobuf: boolean) {
 
 export const lifecycle = storyKit({
 	clock: "live",
-	create: () => otlpReceiver(),
+	*create() {
+		const scope = yield* Scope.fork(yield* Scope.Scope);
+		const receiver = yield* otlpReceiver().pipe(Effect.provideService(Scope.Scope, scope));
+		return { receiver, scope };
+	},
 	name: "receiver scope",
 	stages: ["ready"],
-	verbs: (receiver) => ({
-		closedUrl: () => Effect.scoped(Effect.map(otlpReceiver(), ({ url }) => url)),
+	verbs: ({ receiver, scope }) => ({
+		close: () => Scope.close(scope, Exit.void),
 		requests: receiver.requests,
 		send: (path: string, contentType: string, body: Buffer) =>
 			Effect.promise(async () => {
@@ -81,5 +84,6 @@ export const lifecycle = storyKit({
 				await response.arrayBuffer();
 				return response.status;
 			}),
+		url: () => receiver.url,
 	}),
 });

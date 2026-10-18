@@ -4,8 +4,10 @@ import { lifecycle, otlpApp } from "#test/otlpApp.ts";
 
 for (const protobuf of [false, true]) {
 	const app = otlpApp(protobuf);
-	app.it("reads real exported spans and every raw export byte", [], function* ({ exportSpans, requests, spans }) {
-		const ids = yield* exportSpans();
+	app.it("reads real exported spans and every raw export byte", [], function* ({ runWork, failWork, flushExporter, requests, spans }) {
+		const ids = yield* runWork();
+		yield* failWork();
+		yield* flushExporter();
 		expect(spans.map(({ name }) => name).sort()).toEqual(["child", "failed", "parent"]);
 		expect(spans.find(({ name }) => name === "child")).toMatchObject({
 			...ids,
@@ -40,9 +42,11 @@ for (const protobuf of [false, true]) {
 	});
 }
 
-lifecycle.it("releases its listening port with the scope", [], function* ({ closedUrl }) {
-	const url = yield* closedUrl();
-	yield* Effect.promise(() => expect(fetch(`${url}/v1/traces`)).rejects.toThrow());
+lifecycle.it("releases its listening port with the scope", [], function* ({ close, send, url }) {
+	const address = url();
+	expect(yield* send("/v1/traces", "application/json", Buffer.from("{}"))).toBe(200);
+	yield* close();
+	yield* Effect.promise(() => expect(fetch(`${address}/v1/traces`)).rejects.toThrow());
 });
 
 lifecycle.it("keeps malformed export bytes and continues receiving", [], function* ({ requests, send }) {
