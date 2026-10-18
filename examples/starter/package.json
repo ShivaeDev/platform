@@ -7,6 +7,7 @@
 		"#*": "./src/*"
 	},
 	"scripts": {
+		"admin:create": "node --conditions=source --env-file-if-exists=.env.local src/server/admin.ts",
 		"build": "vite build",
 		"check:published": "node --conditions=source --env-file-if-exists=../../.env.local ../../script/starter-published.ts",
 		"ci": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
