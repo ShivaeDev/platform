@@ -113,8 +113,7 @@ last successful query value automatically. Inside a `SessionBoundary` it asks th
 auth owner to re-check; once that owner decides the session has expired or ended,
 it changes the boundary's session. A retained value is useful during transient
 refresh failure; it is not permission to keep an expired authenticated screen
-visible. Wiring `recheck` to Better Auth or another real auth owner remains
-application integration work.
+visible. The starter's [App](../../examples/starter/src/client/App.tsx) supplies Better Auth's `session.refetch` as `recheck`. Its [session screen test](../../examples/starter/src/client/SessionApp.dom.test.tsx) checks that a changed session replaces cached notes and the draft; the boundary tests above check Unauthorized re-checks.
 
 ## Native cache policy
 
@@ -163,18 +162,3 @@ refresh/retry behavior and explicit registry teardown. They do not establish
 browser cookie behavior, SSR isolation, real Capacitor lifecycle, secure token storage, offline writes or server-side cancellation of an
 already accepted write. Registry disposal is not a database rollback mechanism.
 Those policies need the real application's host and authentication integration.
-
-## Bun
-
-Bun 1.3.14 was checked by hand against the same native components: `Bun.serve`
-hosting `HttpRouter.toWebHandler(RpcServer.layerHttp(...))` with the order
-contract and authentication middleware, a `FetchHttpClient` RPC client and an
-`AtomRpc` query through an atom registry. Reads, typed rejections, Unauthorized
-and saves round-tripped. Interrupting the client fiber aborted the request and
-the server handler's scope closed with interruption, so `Bun.serve` forwards the
-disconnect to `request.signal`. Vitest's DOM hook and resume tests also pass when
-run with `bun --bun`.
-
-The SQLite-backed order backend does not run under Bun: `@effect/sql-sqlite-node`
-imports `node:sqlite`, which Bun 1.3.14 lacks. A Bun host needs a Bun SQL driver.
-This check is not part of CI.

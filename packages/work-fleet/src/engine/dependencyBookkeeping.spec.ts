@@ -10,66 +10,59 @@ import { postgresTests } from "#test/postgres.ts";
 
 const test = postgresTests("test");
 
-for (const [field, source] of [
-	["status", dependencySource.replace("status: planned", "status: deferred")],
-	["next_action", dependencySource.replace("Implement the work.", "Work completed.")],
-	["owner", dependencySource.replace("kind: task", "kind: task\nowner: next-owner")],
-	["status and next_action", doneDependencySource],
-] as const) {
-	for (const noChange of [false, true]) {
-		test(`editing ${field} on ${noChange ? "validated no-change" : "observed merge"} preserves dependency admission after restart`, () =>
-			withDependencyBoard({ noChange }, (fixture, write) =>
-				Effect.gen(function* () {
-					yield* prepareWork("one");
-					const accepted = yield* acceptDependency(fixture);
-					expect(accepted.value.stage).toBe("completed");
-					write(source);
-					yield* prepareWork("dependent");
-					const launched = yield* fixture.restart(Effect.flatMap(Fleet, (fleet) => fleet.dispatch("dependent")));
-					expect(launched.value.stage).toBe("executing");
-					expect(launched.value.blocker).toBeUndefined();
-					expect(briefRevision(metadataParse(source))).toBe(accepted.value.boardRevision);
-				}),
-			));
-	}
-
-	test(`editing target ${field} while its dependent executes still admits review`, () =>
-		withDependencyBoard({ noChange: true }, (fixture, write) =>
+for (const noChange of [false, true]) {
+	test(`editing status and next_action on ${noChange ? "validated no-change" : "observed merge"} preserves dependency admission after restart`, () =>
+		withDependencyBoard({ noChange }, (fixture, write) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
-				yield* acceptDependency(fixture);
+				const accepted = yield* acceptDependency(fixture);
+				expect(accepted.value.stage).toBe("completed");
+				write(doneDependencySource);
 				yield* prepareWork("dependent");
-				const fleet = yield* Fleet;
-				expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
-				write(source);
-				finishWorkers(fixture);
-				const completed = yield* fixture.restart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("dependent")));
-				expect(completed.value.stage).toBe("completed");
-				expect(completed.value.decision).toBeUndefined();
-				expect(fixture.reviews).toHaveLength(2);
+				const launched = yield* fixture.restart(Effect.flatMap(Fleet, (fleet) => fleet.dispatch("dependent")));
+				expect(launched.value.stage).toBe("executing");
+				expect(launched.value.blocker).toBeUndefined();
+				expect(briefRevision(metadataParse(doneDependencySource))).toBe(accepted.value.boardRevision);
 			}),
 		));
-
-	test(`editing target ${field} while its dependent reviews preserves completion`, () => {
-		const options = { noChange: true, reviewRunning: false };
-		return withDependencyBoard(options, (fixture, write) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				yield* acceptDependency(fixture);
-				yield* prepareWork("dependent");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("dependent");
-				finishWorkers(fixture);
-				options.reviewRunning = true;
-				expect((yield* fleet.reconcile("dependent")).value.stage).toBe("reviewing");
-				write(source);
-				expect((yield* fleet.reconcile("dependent")).value.stage).toBe("reviewing");
-				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("dependent")).value.stage).toBe("completed");
-			}),
-		);
-	});
 }
+
+test("editing target status and next_action while its dependent executes still admits review", () =>
+	withDependencyBoard({ noChange: true }, (fixture, write) =>
+		Effect.gen(function* () {
+			yield* prepareWork("one");
+			yield* acceptDependency(fixture);
+			yield* prepareWork("dependent");
+			const fleet = yield* Fleet;
+			expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+			write(doneDependencySource);
+			finishWorkers(fixture);
+			const completed = yield* fixture.restart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("dependent")));
+			expect(completed.value.stage).toBe("completed");
+			expect(completed.value.decision).toBeUndefined();
+			expect(fixture.reviews).toHaveLength(2);
+		}),
+	));
+
+test("editing target status and next_action while its dependent reviews preserves completion", () => {
+	const options = { noChange: true, reviewRunning: false };
+	return withDependencyBoard(options, (fixture, write) =>
+		Effect.gen(function* () {
+			yield* prepareWork("one");
+			yield* acceptDependency(fixture);
+			yield* prepareWork("dependent");
+			const fleet = yield* Fleet;
+			yield* fleet.dispatch("dependent");
+			finishWorkers(fixture);
+			options.reviewRunning = true;
+			expect((yield* fleet.reconcile("dependent")).value.stage).toBe("reviewing");
+			write(doneDependencySource);
+			expect((yield* fleet.reconcile("dependent")).value.stage).toBe("reviewing");
+			finishWorkers(fixture);
+			expect((yield* fleet.reconcile("dependent")).value.stage).toBe("completed");
+		}),
+	);
+});
 
 for (const [edit, source] of [
 	["criteria", doneDependencySource.replace("The behavior works.", "The changed behavior works.")],

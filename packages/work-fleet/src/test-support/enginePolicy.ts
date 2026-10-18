@@ -15,6 +15,7 @@ export function enginePolicy(options: EngineOptions): FleetConfiguration {
 			return options.operationCollision ? "operation-fixed" : `operation-${operationCount}`;
 		},
 		quota: { ...(options.unknownQuota ? {} : { available: options.quota ?? 100 }), expiresAt: Number.MAX_SAFE_INTEGER, observedAt: 0 },
+		...(options.readRetryMs === undefined ? {} : { readRetryMs: options.readRetryMs }),
 		...(options.refreshQuota === undefined ? {} : { refreshQuota: options.refreshQuota }),
 		...(options.reviewerGuidance === undefined ? {} : { reviewerGuidance: options.reviewerGuidance }),
 		...(options.workerGuidance === undefined ? {} : { workerGuidance: options.workerGuidance }),

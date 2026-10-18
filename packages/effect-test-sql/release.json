@@ -2,9 +2,9 @@
 	"date": "2026-10-17",
 	"fragments": [
 		{
-			"name": "migration-target-names.md",
-			"text": "### Fixed\n\n- The `migrateTo(name: string | number)` helper returned by `migrationSteps` accepts zero-padded migration names as written, unpadded names and bare numeric ids. Unknown or ambiguous targets fail with a typed `MigrationError` naming the requested target.\n"
+			"name": "block-internal-modules.md",
+			"text": "### Changed\n\n- Block `@shivaedev/effect-test-sql/internal/*` imports; use the public test isolation modules instead.\n"
 		}
 	],
-	"version": "0.5.1"
+	"version": "0.5.2"
 }

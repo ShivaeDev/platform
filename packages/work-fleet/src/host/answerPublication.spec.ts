@@ -15,7 +15,7 @@ const test = postgresTests("live");
 for (const action of ["retry", "release"] as const) {
 	test(`answer ${action} re-registers a republished decision with a changed template`, () =>
 		withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-			withReadDaemon(fixture.host, (port) => republishedStory(fixture, port, action), fixture.parts),
+			withReadDaemon(fixture.host, (port) => republishedStory(fixture, port, action), { parts: fixture.parts }),
 		));
 }
 

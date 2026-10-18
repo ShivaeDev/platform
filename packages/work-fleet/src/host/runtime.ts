@@ -1,52 +1,22 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Clock, Effect, Layer, Redacted } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { appDatabase } from "@shivaedev/platform/appHost.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import type { DecisionCode } from "#DecisionCode.ts";
-import { withFailureContext } from "#engine/failureContext.ts";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import { type FleetHost, HostFailure } from "#host/config.ts";
-import { githubChecks } from "#host/githubChecks.ts";
-import { githubDelivery } from "#host/githubDelivery.ts";
-import { githubResult } from "#host/githubResult.ts";
+import { type GithubApi, githubApiLayer } from "#host/githubApi.ts";
+import { hostIntegrations } from "#host/integrations.ts";
 import { type AppliedConfig, LiveConfig, staticConfig } from "#host/liveConfig.ts";
 import { localOnlyBoardPath } from "#host/localOnlyBoardPath.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { hostReportBoard } from "#host/reportBoard.ts";
-import { type BoardGateway, type FleetConfiguration, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { type BoardGateway, type FleetConfiguration, type FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 import { fleetMigrations } from "#storage/fleetMigrations.ts";
-
-function unconfigured(message: string, code: DecisionCode = "fleet-integration") {
-	return Effect.fail(withFailureContext(new ServiceUnavailable({ message }), { attentionOwner: "automation", code, retryable: false }));
-}
-
-export function hostIntegrations(host: FleetHost) {
-	const HostIntegrations = defineService({
-		id: "Fleet/HostIntegrations",
-		initialize: MainSource,
-		methods: (main) =>
-			FleetIntegrations.of({
-				checks: (_work, result) =>
-					result.kind === "no-change"
-						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session", "no-change-checks-unconfigured")
-						: githubChecks(result, host.repository.branch).pipe(Effect.provide(NodeServices.layer)),
-				delivery: githubDelivery(main.repositoryRoot),
-				main: main.observe,
-				result:
-					host.result === "github"
-						? githubResult(host, main)
-						: () => unconfigured("Worker result adoption is not configured in this Fleet host; inspect the worker session"),
-			}),
-		requires: [MainSource],
-	});
-	return Layer.effect(FleetIntegrations)(HostIntegrations).pipe(Layer.provide(HostIntegrations.layer));
-}
 
 export function hostPolicy(host: FleetHost) {
 	return Layer.effect(FleetPolicy)(
@@ -81,6 +51,7 @@ export function hostPolicy(host: FleetHost) {
 					operationId: () => crypto.randomUUID(),
 					quota: { expiresAt: 0, observedAt: 0 },
 					readGuidance: (role) => guidance[role].pipe(Effect.mapError((error) => new ServiceUnavailable({ message: error.message }))),
+					readRetryMs: applied.readRetryMs,
 					refreshQuota: refreshQuota(applied),
 					stallMinutes: applied.stallMinutes,
 					...(applied.worker === undefined ? {} : { sharedEnvironment: applied.worker.sharedEnvironment }),
@@ -118,8 +89,9 @@ export function hostSql(host: FleetHost) {
 export function fleetHostLayer<TProvider, TMain>(
 	host: FleetHost,
 	parts: {
-		readonly board?: Layer.Layer<BoardGateway | ReportInspection, unknown, MainSource>;
-		readonly integrations?: Layer.Layer<FleetIntegrations, unknown, MainSource>;
+		readonly board?: Layer.Layer<BoardGateway | ReportInspection, unknown, MainSource | GithubApi>;
+		readonly github?: Layer.Layer<GithubApi>;
+		readonly integrations?: Layer.Layer<FleetIntegrations, unknown, MainSource | GithubApi>;
 		readonly main: Layer.Layer<MainSource, TMain>;
 		readonly policy?: Layer.Layer<FleetPolicy>;
 		readonly provider: Layer.Layer<SessionTransport, TProvider>;
@@ -130,6 +102,7 @@ export function fleetHostLayer<TProvider, TMain>(
 	const sessions = SessionService.layer.pipe(
 		Layer.provideMerge([fleetSessionJournal.pipe(Layer.provide(repository)), providerHealth.pipe(Layer.provide(parts.provider))]),
 	);
+	const github = parts.github ?? githubApiLayer.pipe(Layer.provide(NodeServices.layer));
 	const board = (parts.board ?? hostReportBoard(host)).pipe(Layer.provide(parts.main), Layer.provide(NodeServices.layer));
 	const integrations = (parts.integrations ?? hostIntegrations(host)).pipe(Layer.provide(parts.main));
 	return Fleet.layer.pipe(
@@ -143,6 +116,7 @@ export function fleetHostLayer<TProvider, TMain>(
 				parts.main,
 			),
 		),
+		Layer.provideMerge(github),
 		Layer.provideMerge(hostSql(host)),
 	);
 }

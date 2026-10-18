@@ -1,115 +1,77 @@
-import { expect } from "@effect/vitest";
-import { Effect } from "effect";
-import { makeDatabase } from "#database.ts";
-import { type Contract, contractJson } from "#test/contract.ts";
-import { environmentVariable } from "#test/environment.ts";
-import { withTestTransaction } from "#testing/transaction.ts";
-import { makeDatabaseIt } from "#testing/vitest.ts";
+import { expect } from "vitest";
+import { postgresStory } from "#test/postgresStory.ts";
 
-const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
-const Database = makeDatabase<Contract>()("@test/TestingDatabase", {
-	contractJson,
-});
-const DatabaseLive = Database.layer({
-	url: databaseUrl ?? "postgresql://integration-tests-disabled",
-});
-const it = makeDatabaseIt({
-	database: Database,
-	layer: DatabaseLive,
-});
-const effectDB = it.effectDB;
-const integrationOptions = { skip: databaseUrl === undefined };
-
-const ids = {
-	each: crypto.randomUUID(),
-	failed: crypto.randomUUID(),
-	rolledBack: crypto.randomUUID(),
-};
-
-effectDB(
+postgresStory.it(
 	"passes the typed database facade and Vitest context to the generator",
-	function* (db, context) {
-		expect(context.task.name).toContain("passes the typed database facade");
-
-		const user = yield* db.User.create({
-			email: `${ids.rolledBack}@example.test`,
-			id: ids.rolledBack,
-			name: "Rolled back",
+	[],
+	function* ({ testing }) {
+		expect(yield* testing("passes the typed database facade and Vitest context to the generator")).toMatchObject({
+			errors: [],
+			state: "passed",
 		});
-
-		expect(user.id).toBe(ids.rolledBack);
-		expect(yield* db.User.where({ id: ids.rolledBack }).exists()).toBe(true);
 	},
-	integrationOptions,
+	{ clock: "live", timeout: 30_000 },
 );
 
-effectDB(
+postgresStory.it(
 	"does not retain successful writes from the previous test",
-	function* (db) {
-		expect(yield* db.User.where({ id: ids.rolledBack }).exists()).toBe(false);
-	},
-	integrationOptions,
-);
-
-effectDB.each([
-	{ id: ids.each, name: "First" },
-	{ id: ids.each, name: "Second" },
-])(
-	"supports table-driven rollback tests",
-	function* (example, db) {
-		expect(yield* db.User.where({ id: example.id }).exists()).toBe(false);
-
-		const user = yield* db.User.create({
-			email: `${example.name}-${example.id}@example.test`,
-			id: example.id,
-			name: example.name,
+	[],
+	function* ({ testing }) {
+		expect(yield* testing("does not retain successful writes from the previous test")).toMatchObject({
+			errors: [],
+			state: "passed",
 		});
-
-		expect(user.name).toBe(example.name);
 	},
-	integrationOptions,
+	{ clock: "live", timeout: 30_000 },
 );
 
-effectDB.fails(
+postgresStory.it(
+	"supports table-driven rollback tests (1)",
+	[],
+	function* ({ testing }) {
+		expect(yield* testing("supports table-driven rollback tests")).toMatchObject({ errors: [], state: "passed" });
+	},
+	{ clock: "live", timeout: 30_000 },
+);
+
+postgresStory.it(
+	"supports table-driven rollback tests (2)",
+	[],
+	function* ({ testing }) {
+		expect(yield* testing("supports table-driven rollback tests", 1)).toMatchObject({ errors: [], state: "passed" });
+	},
+	{ clock: "live", timeout: 30_000 },
+);
+
+postgresStory.it(
 	"rolls back a failed Effect",
-	function* (db) {
-		yield* db.User.create({
-			email: `${ids.failed}@example.test`,
-			id: ids.failed,
-			name: "Failed",
-		});
-
-		return yield* Effect.fail("expected test failure");
+	[],
+	function* ({ testing }) {
+		expect(yield* testing("rolls back a failed Effect")).toMatchObject({ errors: [], state: "passed" });
 	},
-	integrationOptions,
+	{ clock: "live", timeout: 30_000 },
 );
 
-effectDB(
+postgresStory.it(
 	"does not retain writes from an expected failure",
-	function* (db) {
-		expect(yield* db.User.where({ id: ids.failed }).exists()).toBe(false);
+	[],
+	function* ({ testing }) {
+		expect(yield* testing("does not retain writes from an expected failure")).toMatchObject({
+			errors: [],
+			state: "passed",
+		});
 	},
-	integrationOptions,
+	{ clock: "live", timeout: 30_000 },
 );
 
-effectDB(
+postgresStory.it(
 	"exposes the framework-neutral forced-rollback primitive",
-	function* (db) {
-		const nestedId = crypto.randomUUID();
-
-		yield* withTestTransaction(
-			Database,
-			Effect.gen(function* () {
-				const transactionDb = yield* Database;
-				yield* transactionDb.User.create({
-					email: `${nestedId}@example.test`,
-					id: nestedId,
-					name: "Nested",
-				});
-			}),
-		);
-
-		expect(yield* db.User.where({ id: nestedId }).exists()).toBe(true);
+	[],
+	function* ({ testing }) {
+		expect(yield* testing("exposes the framework-neutral forced-rollback primitive")).toMatchObject({
+			errors: [],
+			state: "passed",
+		});
 	},
-	integrationOptions,
+	{ clock: "live", timeout: 30_000 },
 );

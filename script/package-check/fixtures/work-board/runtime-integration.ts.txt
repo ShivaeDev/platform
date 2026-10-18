@@ -74,8 +74,10 @@ try {
     const health = Schema.decodeUnknownSync(FleetHealth)({ version: 2, observedAt: 1, staleAfterMs: 1000, concurrency: 1,
       running: 0, queued: 0, waiting: { automation: 0, maintainer: 0, orchestrator: 0 }, lastSchedulerPass: null, lastCapacityRejection: null });
     const readDiagnostics = yield* diagnostics({ fleet: Effect.succeed(health), codex: Effect.succeed({ primary: null, secondary: null }),
-      github: Effect.succeed({ core: { limit: 1, remaining: 1, reset: 1 }, graphql: { limit: 1, remaining: 1, reset: 1 } }) });
-    assert.equal((yield* readDiagnostics).fleet.state, "ready");
+      github: Effect.succeed([{ limit: 5000, limitedBy: null, limitedUntil: null, observedAt: 1, remaining: 4999, reset: 1, resource: "core", used: 1 }]) });
+    const observed = yield* readDiagnostics;
+    assert.equal(observed.fleet.state, "ready");
+    assert.equal(observed.github.state, "ready");
     assert(DiagnosticsContract.requests.has("daemon.diagnostics"));
     assert.equal(DAEMON_PORT, 3457);
     assert.equal(DAEMON_RPC_PATH, "/_fleet/rpc");

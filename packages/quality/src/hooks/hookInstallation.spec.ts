@@ -1,18 +1,8 @@
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-	commits,
-	gitIn,
-	hookMode,
-	hookRepository,
-	hookText,
-	quality,
-	qualityFrom,
-	withOwnHook,
-	withQualityAt,
-	withWorktree,
-} from "#test/hookRepository.ts";
+import { runQuality } from "#test/cli.ts";
+import { commits, gitIn, hookMode, hookRepository, hookText, qualityFrom, withOwnHook, withQualityAt, withWorktree } from "#test/hookRepository.ts";
 import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
 
 const CLI_TIMEOUT = 60_000;
@@ -25,18 +15,18 @@ function hookAt(root: string): string {
 }
 
 describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
-	it("explains how to initialize a repository before installing a hook", () => {
+	it("explains how to initialize a repository before installing a hook", async () => {
 		const root = seedTree([config("{}")]);
-		expect(quality(root, "hooks", "install")).toEqual({
+		expect(await runQuality(root, "hooks", "install")).toEqual({
 			status: 2,
 			stderr: `quality: ${realpathSync(root)} is not in a git work tree, so there is no hook to manage.\nhelp: run quality from inside the repository, or run \`git init\` first.\n`,
 			stdout: "",
 		});
 	});
-	it("installs an executable pre-commit hook that runs the checked-out worktree's quality", () => {
+	it("installs an executable pre-commit hook that runs the checked-out worktree's quality", async () => {
 		const repository = hookRepository();
 
-		expect(quality(repository.root, "hooks", "install")).toEqual({
+		expect(await runQuality(repository.root, "hooks", "install")).toEqual({
 			status: 0,
 			stderr: "",
 			stdout: `quality: installed the pre-commit hook at ${hookAt(repository.root)}; each commit runs \`node_modules/.bin/quality hooks pre-commit\`.\n`,
@@ -61,17 +51,19 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 		expect(gitIn(repository.root, "config", "--local", "--list")).not.toContain("hookspath");
 	});
 
-	it("installs again over its own hook and says it is up to date", () => {
+	it("installs again over its own hook and says it is up to date", async () => {
 		const repository = hookRepository();
-		quality(repository.root, "hooks", "install");
+		await runQuality(repository.root, "hooks", "install");
 
-		expect(quality(repository.root, "hooks", "install").stdout).toBe(`quality: the pre-commit hook at ${hookAt(repository.root)} is up to date.\n`);
+		expect((await runQuality(repository.root, "hooks", "install")).stdout).toBe(
+			`quality: the pre-commit hook at ${hookAt(repository.root)} is up to date.\n`,
+		);
 	});
 
-	it("keeps a pre-commit hook that is not quality's and says how to check commits with it", () => {
+	it("keeps a pre-commit hook that is not quality's and says how to check commits with it", async () => {
 		const repository = withOwnHook(hookRepository(), "#!/bin/sh\nmake check\n");
 
-		const result = quality(repository.root, "hooks", "install");
+		const result = await runQuality(repository.root, "hooks", "install");
 
 		expect(result.status).toBe(0);
 		expect(result.stderr).toBe(
@@ -80,29 +72,29 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 		expect(hookText(repository)).toBe("#!/bin/sh\nmake check\n");
 	});
 
-	it("replaces a pre-commit hook that is not quality's with --force", () => {
+	it("replaces a pre-commit hook that is not quality's with --force", async () => {
 		const repository = withOwnHook(hookRepository(), "#!/bin/sh\nmake check\n");
 
-		expect(quality(repository.root, "hooks", "install", "--force").stdout).toContain(
+		expect((await runQuality(repository.root, "hooks", "install", "--force")).stdout).toContain(
 			`quality: replaced ${hookAt(repository.root)}, which was not quality's hook;`,
 		);
 		expect(hookText(repository)).toContain(OWNER);
 	});
 
-	it("installs from a linked worktree into the hooks every worktree shares", () => {
+	it("installs from a linked worktree into the hooks every worktree shares", async () => {
 		const repository = hookRepository();
 		const worktree = withWorktree(repository, "feature");
 
-		expect(quality(worktree, "hooks", "install").status).toBe(0);
+		expect((await runQuality(worktree, "hooks", "install")).status).toBe(0);
 		expect(hookText(repository)).toContain(OWNER);
-		expect(quality(repository.root, "hooks", "install").stdout).toContain("is up to date");
+		expect((await runQuality(repository.root, "hooks", "install")).stdout).toContain("is up to date");
 	});
 
-	it("notes a core.hooksPath that git runs instead of the installed hook", () => {
+	it("notes a core.hooksPath that git runs instead of the installed hook", async () => {
 		const repository = hookRepository();
 		gitIn(repository.root, "config", "core.hooksPath", ".husky/_");
 
-		expect(quality(repository.root, "hooks", "install").stderr).toBe(
+		expect((await runQuality(repository.root, "hooks", "install")).stderr).toBe(
 			`note: core.hooksPath is .husky/_, so git runs the pre-commit hook there; ${hookAt(repository.root)} runs only when that hook calls it.\n`,
 		);
 	});
@@ -118,10 +110,10 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 		expect(commits(repository.root, "Checked by the repository's own quality").status).toBe(0);
 	});
 
-	it("runs from the folder of a config below the repository root", () => {
+	it("runs from the folder of a config below the repository root", async () => {
 		const repository = hookRepository({ folder: "app", scripts: { "quality:commit": "test -f quality.config.ts" } });
 
-		quality(join(repository.root, "app"), "hooks", "install");
+		await runQuality(join(repository.root, "app"), "hooks", "install");
 
 		expect(hookText(repository)).toContain('cd "$top"/app || exit 2\n');
 		expect(commits(repository.root, "Checked from app").status).toBe(0);
@@ -129,26 +121,28 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 });
 
 describe("quality hooks uninstall", { timeout: CLI_TIMEOUT }, () => {
-	it("reports that a fresh repository has no hook to uninstall", () => {
+	it("reports that a fresh repository has no hook to uninstall", async () => {
 		const repository = hookRepository();
-		expect(quality(repository.root, "hooks", "uninstall")).toEqual({
+		expect(await runQuality(repository.root, "hooks", "uninstall")).toEqual({
 			status: 0,
 			stderr: "",
 			stdout: `quality: there is no pre-commit hook at ${hookAt(repository.root)}.\n`,
 		});
 	});
-	it("removes quality's hook", () => {
+	it("removes quality's hook", async () => {
 		const repository = hookRepository();
-		quality(repository.root, "hooks", "install");
+		await runQuality(repository.root, "hooks", "install");
 
-		expect(quality(repository.root, "hooks", "uninstall").stdout).toBe(`quality: removed the pre-commit hook at ${hookAt(repository.root)}.\n`);
+		expect((await runQuality(repository.root, "hooks", "uninstall")).stdout).toBe(
+			`quality: removed the pre-commit hook at ${hookAt(repository.root)}.\n`,
+		);
 		expect(hookText(repository)).toBeUndefined();
 	});
 
-	it("keeps a hook that is not quality's", () => {
+	it("keeps a hook that is not quality's", async () => {
 		const repository = withOwnHook(hookRepository(), "#!/bin/sh\nmake check\n");
 
-		expect(quality(repository.root, "hooks", "uninstall").stderr).toBe(
+		expect((await runQuality(repository.root, "hooks", "uninstall")).stderr).toBe(
 			`quality: kept ${hookAt(repository.root)}: it is not quality's pre-commit hook.\n`,
 		);
 		expect(hookText(repository)).toBe("#!/bin/sh\nmake check\n");

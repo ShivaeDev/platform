@@ -14,13 +14,13 @@ This file owns Platform's module implementation, package tests and scope questio
 - [x] An application runtime that acquires its Layer once, releases it exactly once, shares an explicit development cache key and recreates disposed cache entries, bypasses caching in production, and carries service overrides across Promise calls. [Runtime tests](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/server/runtime/makePlatform.test.ts) cover typed Layer build failures, Promise rejection, signal interruption with finalization, and nested override replacement and restoration.
 - [x] Node subscription cancellation from Web/procedure signals and simulated request/socket close events, with listener cleanup.
 - [x] A Better Auth Effect Prisma database adapter and Prisma/tRPC rollback harness. Real PostgreSQL tests cover shared transactions, failed transaction rollback, selected row operations and harness types; they require `PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL`.
-- [x] Better Auth adapter filters, ordering, pagination, projection, native-join rejection and configured model mapping have [PostgreSQL regression tests](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/server/better-auth/filterBoundaries.spec.ts).
+- [x] Better Auth adapter filters preserve PostgreSQL null, membership, comparison and literal-pattern semantics, including nonunique updates, OR-filter updates and deletes, and rejection of nonstring patterns. Configured model names map by default. Reads retain their filters through selection, ascending/descending ordering and limit/offset pagination; experimental native joins are rejected for both single and collection reads. [Adapter boundary tests](../src/server/better-auth/filterBoundaries.spec.ts) assert these paths against PostgreSQL.
 - [x] Packed-consumer checks for defining-module imports, types and core entries installed without optional peers.
 - [x] A local app host Layer and reusable database Layer, extracted from the PostgreSQL composition: migrations before services, guarded NDJSON RPC, session policy, static assets, scoped shutdown and commit-bound live delivery. The composed fixture covers two HTTP server processes and a worker. Fleet’s daemon adopts `appHost` and `appDatabase` with a custom RPC route, session-free loopback policy and its existing migration ledger. Platform’s real HTTP option tests cover hosting without a database, while Fleet’s PostgreSQL daemon tests cover pool limits, migration upgrades and existing clients.
 
 ## Next
 
-- [ ] Add adapter coverage for the `usePlural` option.
+- [ ] Add focused adapter tests for the remaining public options, `debugLogs` and `usePlural`.
 
 ## Open questions
 

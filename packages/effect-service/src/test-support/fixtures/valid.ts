@@ -22,11 +22,11 @@ interface PrivateState {
 }
 
 const requirements = [Declared, Residual] as const;
-type Requirements<Success, Failure = never, CallerRequirements extends Scope.Scope = never> = ServiceRequirements<
+type Requirements<TSuccess, TFailure = never, TCallerRequirements extends Scope.Scope = never> = ServiceRequirements<
 	typeof requirements,
-	Success,
-	Failure,
-	CallerRequirements
+	TSuccess,
+	TFailure,
+	TCallerRequirements
 >;
 
 const initialize = Effect.fn("Ordinary.initialize")(function* (): Requirements<PrivateState, InitializationFailure, Scope.Scope> {
@@ -55,9 +55,9 @@ export const Ordinary = defineService({
 export const ordinaryLayer = Ordinary.layer;
 
 const preserve = Effect.fn("Generic.preserve")(
-	<Success, Failure, Requirements>(
-		effect: Effect.Effect<Success, Failure, Requirements>,
-	): Effect.Effect<{ readonly value: Success }, Failure | GenericFailure, Requirements> => Effect.map(effect, (value) => ({ value })),
+	<TSuccess, TFailure, TRequirements>(
+		effect: Effect.Effect<TSuccess, TFailure, TRequirements>,
+	): Effect.Effect<{ readonly value: TSuccess }, TFailure | GenericFailure, TRequirements> => Effect.map(effect, (value) => ({ value })),
 );
 
 export const Generic = defineService({
@@ -70,7 +70,7 @@ export const Generic = defineService({
 export const genericLayer = Generic.layer;
 
 export const genericFake = Layer.succeed(Generic)({
-	preserve: <Success, Failure, Requirements>(
-		effect: Effect.Effect<Success, Failure, Requirements>,
-	): Effect.Effect<{ readonly value: Success }, Failure | GenericFailure, Requirements> => Effect.map(effect, (value) => ({ value })),
+	preserve: <TSuccess, TFailure, TRequirements>(
+		effect: Effect.Effect<TSuccess, TFailure, TRequirements>,
+	): Effect.Effect<{ readonly value: TSuccess }, TFailure | GenericFailure, TRequirements> => Effect.map(effect, (value) => ({ value })),
 });

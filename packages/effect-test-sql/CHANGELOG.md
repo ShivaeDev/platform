@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2 - 2026-10-17
+
+### Changed
+
+- Block `@shivaedev/effect-test-sql/internal/*` imports; use the public test isolation modules instead.
+
 ## 0.5.1 - 2026-10-17
 
 ### Fixed

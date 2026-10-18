@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { Schema } from "effect";
 import { CreateAppError } from "#CreateAppError.ts";
 
@@ -59,18 +60,18 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 	return `${JSON.stringify(Object.fromEntries(manifestOrder.map((key) => [key, prepared[key]])), null, "\t")}\n`;
 }
 
-export function prepareFile(path: string, content: string, versions: Readonly<Record<string, string>>) {
+export function prepareFile(path: string, content: Buffer, versions: Readonly<Record<string, string>>) {
 	if (["src/server/dev.ts", "src/test-support/deployChild.ts"].includes(path)) {
-		return content.replaceAll('"--conditions=source", ', "");
+		return Buffer.from(content.toString().replaceAll('"--conditions=source", ', ""));
 	}
 	if (path === "package.json") {
-		return prepareManifest(content, versions);
+		return Buffer.from(prepareManifest(content.toString(), versions));
 	}
 	if (path === "biome.json") {
-		return content.replace('"root": false', '"root": true');
+		return Buffer.from(content.toString().replace('"root": false', '"root": true'));
 	}
 	if (["tsconfig.json", "vite.config.ts", "vitest.config.ts"].includes(path)) {
-		return content.replaceAll('"source", ', "").replaceAll('["source"]', "[]");
+		return Buffer.from(content.toString().replaceAll('"source", ', "").replaceAll('["source"]', "[]"));
 	}
 	return content;
 }

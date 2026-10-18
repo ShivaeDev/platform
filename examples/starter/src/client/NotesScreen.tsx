@@ -42,6 +42,7 @@ export function NotesScreen({ client, onSignOut }: { readonly client: NotesClien
 	}
 	const query = useQuery(client.api.list.query());
 	const rows = Option.getOrElse(query.data, () => []);
+	const loading = query.pending && !query.refreshing;
 	return (
 		<main className="mx-auto w-full max-w-2xl space-y-8 px-4 py-12 sm:px-6">
 			<header className="space-y-2">
@@ -66,8 +67,8 @@ export function NotesScreen({ client, onSignOut }: { readonly client: NotesClien
 					</Button>
 				</div>
 				{Option.isSome(query.cause) && <p role="alert">Could not load notes. Try refreshing.</p>}
-				{query.pending ? <p role="status">Loading notes…</p> : null}
-				{!query.pending && rows.length === 0 && <p className="text-muted-foreground text-sm">No notes yet. Add your first one above.</p>}
+				{loading ? <p role="status">Loading notes…</p> : null}
+				{!loading && rows.length === 0 && <p className="text-muted-foreground text-sm">No notes yet. Add your first one above.</p>}
 				<ul className="space-y-3">
 					{rows.map((row) => (
 						<SavedNote key={row.id} note={row} />
