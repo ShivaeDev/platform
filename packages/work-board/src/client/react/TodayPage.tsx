@@ -3,10 +3,12 @@ import { useEffect, useRef } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
+import { Badge } from "#client/react/components/ui/badge.tsx";
 import { fileUrl } from "#files/url.ts";
 import { inProgressItems } from "./inProgressItems.ts";
 import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
+import { SOURCE_PROBLEMS_ID, sourceProblemsSummary } from "./sourceProblems.ts";
 import { TodayGoals } from "./TodayGoals.tsx";
 import { TodayAnswered, TodayLater, TodayNeeds } from "./TodayNeeds.tsx";
 import { TodayProgress } from "./TodayProgress.tsx";
@@ -39,6 +41,13 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 				<span aria-hidden="true">·</span>
 				<a href={`#${todayIds.goals}`}>{goalsSummary(goals?.goals.length, Option.isSome(query.cause))}</a>
 			</nav>
+			{data.issues.length > 0 && (
+				<p className="today-source-problems m-0">
+					<Badge render={<a href={`/_board/system#${SOURCE_PROBLEMS_ID}`} />} variant="outline">
+						{sourceProblemsSummary(data.issues)}
+					</Badge>
+				</p>
+			)}
 			<div className="today-grid grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<div className="min-w-0 space-y-6">
 					<NeedsYou api={api} data={data} />
