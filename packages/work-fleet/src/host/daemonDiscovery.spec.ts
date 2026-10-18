@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { daemonIsStopped, fleetDaemon } from "#test/daemonStory.ts";
+import { daemonPortIsUnreachable, fleetDaemon, unreadablePortFile } from "#test/daemonStory.ts";
 
 fleetDaemon.it("watch without --port discovers the daemon's bound port and receives a live transition", [], function* (daemon) {
 	yield* daemon.watch(0.05);
@@ -46,13 +46,13 @@ fleetDaemon.it("stopping a daemon preserves a port file replaced by another writ
 
 fleetDaemon.it(
 	"watch without --port repeats an error on each unreachable retry and discovers a restarted daemon on a new port",
-	[daemonIsStopped()],
+	[daemonPortIsUnreachable()],
 	function* (daemon) {
 		const interval = 0.08;
 		yield* daemon.watch(interval);
 		yield* daemon.awaitError(`retrying in ${interval}s\n`);
 		const line = daemon.errors().split("\n")[0];
-		expect(line).toContain("work-fleet: ERROR No Fleet daemon is running at 127.0.0.1:3457");
+		expect(line).toContain(`work-fleet: ERROR No Fleet daemon is running at 127.0.0.1:${daemon.port()}`);
 		yield* daemon.awaitError(`${line}\n`.repeat(3));
 		expect(daemon.isRunning()).toBe(true);
 		const previousPort = daemon.port();
@@ -64,3 +64,14 @@ fleetDaemon.it(
 		expect(daemon.output()).toBe("one released\n");
 	},
 );
+
+fleetDaemon.it("watch reports an unreadable port file without inventing a daemon endpoint", [unreadablePortFile()], function* (daemon) {
+	yield* daemon.watch(0.05);
+	const result = yield* daemon.exit();
+	expect(result.code).toBe(1);
+	expect(result.stdout).toBe("");
+	expect(result.stderr).toContain("Cannot read Fleet daemon port from ");
+	expect(result.stderr).toContain(".fleet-port");
+	expect(result.stderr).not.toContain("127.0.0.1:0");
+	expect(result.stderr).not.toContain("retrying");
+});

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -44,6 +44,7 @@ export const fleetDaemon = storyKit({
 		awaitOutput: (text: string) => untilOutput(follower(engine), text),
 		awaitSnapshot: () => Effect.promise(() => engine.daemon.subscribed).pipe(Effect.timeout("5 seconds")),
 		errors: () => follower(engine).errors(),
+		exit: () => Effect.promise(() => follower(engine).done).pipe(Effect.timeout("5 seconds")),
 		isRunning: () => follower(engine).isRunning(),
 		output: () => follower(engine).output(),
 		port: () => engine.daemon.port,
@@ -89,6 +90,20 @@ export const fleetDaemon = storyKit({
 	}),
 });
 
-export function daemonIsStopped() {
-	return fleetDaemon.trait("daemon", "the daemon has stopped", (engine) => engine.daemon.close);
+export function daemonPortIsUnreachable() {
+	return fleetDaemon.trait("daemon", "the Board names an allocated and released daemon port", (engine) =>
+		Effect.gen(function* () {
+			yield* engine.daemon.close;
+			engine.fixture.write(".fleet-port", `${engine.daemon.port}\n`);
+		}),
+	);
+}
+
+export function unreadablePortFile() {
+	return fleetDaemon.trait("daemon", "the Board port file is an unreadable directory", (engine) =>
+		Effect.gen(function* () {
+			yield* engine.daemon.close;
+			mkdirSync(join(engine.fixture.host.boardDir, ".fleet-port"));
+		}),
+	);
 }

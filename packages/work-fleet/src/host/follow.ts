@@ -15,18 +15,14 @@ export interface FollowOptions {
 }
 
 export function follow(options: FollowOptions, workIds: readonly string[]) {
-	let port = options.port ?? 0;
 	let ids = workIds;
 	let connected = false;
 	let failures = 0;
 	function connect(): Stream.Stream<readonly FollowState[], FleetError> {
-		return Stream.unwrap(
-			Effect.gen(function* () {
-				port = yield* readDaemonPort(options.board ?? ".work", options.port).pipe(Effect.provide(NodeServices.layer));
-				const client = yield* daemonClient(port);
-				return client("daemon.follow", { follow: options.follow, workIds: ids });
-			}),
-		).pipe(
+		return Stream.unwrap(readDaemonPort(options.board ?? ".work", options.port).pipe(Effect.provide(NodeServices.layer), Effect.map(subscribe)));
+	}
+	function subscribe(port: number): Stream.Stream<readonly FollowState[], FleetError> {
+		return Stream.unwrap(daemonClient(port).pipe(Effect.map((client) => client("daemon.follow", { follow: options.follow, workIds: ids })))).pipe(
 			Stream.scoped,
 			Stream.map((states) => states.map(decodeFollowState)),
 			Stream.map((states) => {

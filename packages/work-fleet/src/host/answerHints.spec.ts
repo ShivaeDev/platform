@@ -26,12 +26,10 @@ for (const mode of ["board", "port", "board and port"] as const) {
 			const resumed = yield* daemon.reconcile();
 			expect(resumed.stage).toBe("executing");
 			expect(resumed.attempts.at(-1)?.prompt).toBe(text);
-			if (selection.board !== undefined) {
-				expect(hint).toContain("--board ");
-			}
-			if (selection.port !== undefined) {
-				expect(hint).toContain(`--port ${selection.port}`);
-			}
+			const board = ` --board '${daemon.board().replaceAll("'", "'\\''")}'`;
+			const port = ` --port ${daemon.port()}`;
+			const expectedSelection = { board, "board and port": `${board}${port}`, port };
+			expect(hint).toBe(`work-fleet answer one${expectedSelection[mode]}`);
 		},
 	);
 }
