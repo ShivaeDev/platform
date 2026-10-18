@@ -40,6 +40,9 @@ const host = domHost(async (request, response) => {
 export const documentApp = storyKit({
 	clock: "live",
 	*create() {
+		if (window.fetch === globalThis.fetch) {
+			throw new Error("Document stories need the test-story DOM environment with separate window.fetch and host fetch.");
+		}
 		const baseUrl = yield* host;
 		yield* routeOutbound({ "provider.test": baseUrl });
 		return { baseUrl, fetch: domFetch(baseUrl) };

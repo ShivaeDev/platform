@@ -49,15 +49,15 @@ export function otlpApp(protobuf: boolean) {
 		name: protobuf ? "protobuf traces" : "JSON traces",
 		stages: ["ready"],
 		verbs: ({ receiver, runtime }, story) => ({
+			disposeRuntime: () => Effect.promise(() => runtime.dispose()),
 			failWork: () => Effect.promise(() => runtime.runPromise(Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore))),
-			flushExporter: () => Effect.promise(() => runtime.dispose()),
-			requests: receiver.requests,
+			requests: () => receiver.requests,
 			runWork: () =>
 				Effect.promise(() => {
 					story.tell("the application runs traced work");
 					return runtime.runPromise(exportWork);
 				}),
-			spans: receiver.spans,
+			spans: () => receiver.spans,
 		}),
 	});
 }
@@ -73,7 +73,7 @@ export const lifecycle = storyKit({
 	stages: ["ready"],
 	verbs: ({ receiver, scope }) => ({
 		close: () => Scope.close(scope, Exit.void),
-		requests: receiver.requests,
+		requests: () => receiver.requests,
 		send: (path: string, contentType: string, body: Buffer) =>
 			Effect.promise(async () => {
 				const response = await fetch(`${receiver.url}${path}`, {

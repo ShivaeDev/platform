@@ -23,7 +23,6 @@ for (const [status, method, body] of [
 }
 
 documentApp.it("loads the routed page and leaves its response readable", [], function* ({ loadPage, heading, location }) {
-	expect(window.fetch).not.toBe(globalThis.fetch);
 	const response = yield* loadPage();
 	expect(heading()).toBe("Routed document");
 	expect(location()).toBe("https://provider.test/page");

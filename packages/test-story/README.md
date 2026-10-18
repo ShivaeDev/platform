@@ -236,15 +236,15 @@ The package's [tracing kit](https://github.com/ShivaeDev/platform/blob/main/pack
 Use `otlpReceiver` from `@shivaedev/test-story/otlpReceiver.ts` in a kit's scoped `create` hook. It listens on an allocated loopback port and closes with the story scope. Point the application's real exporter at `${receiver.url}/v1/traces`, then flush the exporter before reading:
 
 ```ts
-app.it("exports the work span", [], function* ({ runWork, flushExporter, spans, requests }) {
+app.it("exports the work span", [], function* ({ runWork, disposeRuntime, spans, requests }) {
   yield* runWork();
-  yield* flushExporter();
+  yield* disposeRuntime();
   expect(spans()).toContainEqual(expect.objectContaining({ name: "CountWords" }));
   expect(requests().some(({ body }) => body.includes(Buffer.from("planted-secret")))).toBe(true);
 });
 ```
 
-Here `app` is the application's kit. Its `create` acquires the receiver and the real exporter pointed at that receiver, `runWork` performs the traced operation, `flushExporter` flushes pending spans, and `spans` and `requests` read the receiver's observations. Each action is visible in the spec. The receiver accepts OTLP/HTTP JSON and protobuf. `spans` flattens all exports into decoded trace and span IDs, parent span IDs, names, numeric OTLP kinds and status codes, attributes, events and links. Attributes retain OTLP key/value objects, including lossless decimal strings for integers; each span also has `resourceAttributes`. `requests` retains every request's unmodified `body` Buffer, parsed `headers`, original `rawHeaders` pairs and `path`. Search all body bytes when checking that a secret was not exported. Optional `path`, `status` (a number or attempt callback) and `answer` configure collector responses for failure stories.
+Here `app` is the application's kit. Its `create` acquires the receiver and the real exporter pointed at that receiver, `runWork` performs the traced operation, `disposeRuntime` disposes the exporter's runtime and flushes pending spans, and `spans` and `requests` read the receiver's observations. Each action is visible in the spec. The receiver accepts OTLP/HTTP JSON and protobuf. `spans` flattens all exports into decoded trace and span IDs, parent span IDs, names, numeric OTLP kinds and status codes, attributes, events and links. Attributes retain OTLP key/value objects, including lossless decimal strings for integers; each span also has `resourceAttributes`. `requests` retains every request's unmodified `body` Buffer, parsed `headers`, original `rawHeaders` pairs and `path`. Search all body bytes when checking that a secret was not exported. Optional `path`, `status` (a number or attempt callback) and `answer` configure collector responses for failure stories.
 
 For timeout stories, return `undefined` from the `status` callback to accept an export without sending response headers. Set `answer: null` to send headers without completing the response body.
 
@@ -490,7 +490,7 @@ socialApp.it("a social sign-in returns with a cookie session", [], function* ({ 
 });
 ```
 
-`engine.screen.click()` fails if the sign-in button is missing. `socialDefinition` starts the host and renders the screen with a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. It does not copy cookies into request headers.
+`socialDefinition` starts the host and renders the screen with a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. It does not copy cookies into request headers.
 
 `domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
 
