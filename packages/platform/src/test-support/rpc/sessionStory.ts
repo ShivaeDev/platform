@@ -6,8 +6,6 @@ import { annotationsOf, createProvider, ORIGIN, signup } from "./harness.ts";
 import { whoamiOverWebSocket } from "./whoamiOverWebSocket.ts";
 
 export const browser = trustedOrigins({ allow: [ORIGIN, "capacitor://localhost"], missing: "reject" });
-export const publicWithoutOrigin: OriginPolicy = (request) =>
-	Option.match(request.origin, { onNone: () => request.rpc === "Greeting", onSome: (value) => value === ORIGIN });
 export const sessions = storyKit({
 	clock: "live",
 	*create() {
@@ -120,6 +118,15 @@ export function originPolicy(name = "browser", policy: OriginPolicy = browser) {
 		state.apps.set(name, makeApp(state.provider, policy));
 	});
 }
+
+export const publicWithoutOrigin = sessions.trait("accounts", "only public greetings allow a missing origin", (state) => {
+	state.apps.set(
+		"custom",
+		makeApp(state.provider, (request) =>
+			Option.match(request.origin, { onNone: () => request.rpc === "Greeting", onSome: (value) => value === ORIGIN }),
+		),
+	);
+});
 
 export function websocketHeaders(caller?: string, headers: Record<string, string> = { origin: ORIGIN }) {
 	return sessions.trait("accounts", `the WebSocket upgrade carries ${caller ?? "anonymous"} transport headers`, (state) => {

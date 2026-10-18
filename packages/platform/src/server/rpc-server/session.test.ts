@@ -92,12 +92,7 @@ sessions.it(
 );
 sessions.it(
 	"origin policy is an explicit decision evaluated before the provider is consulted",
-	[
-		originPolicy(),
-		originPolicy("permissive", trustedOrigins({ allow: [ORIGIN], missing: "allow" })),
-		originPolicy("custom", publicWithoutOrigin),
-		signedUp("alice"),
-	],
+	[originPolicy(), originPolicy("permissive", trustedOrigins({ allow: [ORIGIN], missing: "allow" })), publicWithoutOrigin, signedUp("alice")],
 	function* ({ account, greeting, identity, lookups }) {
 		const alice = account("alice");
 		function ask(policy: string, headers: Record<string, string>) {
