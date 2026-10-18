@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
@@ -22,6 +22,10 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 			return running(state).fixture.acknowledgeTurn(...args);
 		},
 		boardBrief: () => state.source,
+		boardDecisionFiles: () => {
+			files();
+			return readdirSync(join(state.root, "responses")).filter((file) => file.startsWith("decision."));
+		},
 		boardFileIdentity: (path = "one.md") => {
 			files();
 			return statSync(join(state.root, path)).ino;
