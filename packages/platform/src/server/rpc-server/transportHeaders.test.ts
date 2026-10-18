@@ -1,7 +1,10 @@
+import { Effect } from "effect";
+import { Headers, HttpServerRequest } from "effect/http";
 import { expect, it } from "vitest";
 import { trustedOrigins } from "#rpc-server/origin.ts";
 import { makeApp } from "#test/rpc/api.ts";
 import { createProvider, ORIGIN, signup } from "#test/rpc/harness.ts";
+import { transportHeaders } from "./transportHeaders.ts";
 
 const browser = trustedOrigins({ allow: [ORIGIN], missing: "reject" });
 async function post(
@@ -40,4 +43,19 @@ it("client-supplied message headers cannot satisfy the origin policy or carry cr
 		await app.dispose();
 		provider.database.close();
 	}
+});
+
+it("returns RPC headers when there is no HTTP request service", async () => {
+	const rpcHeaders = Headers.fromInput({ authorization: "Bearer rpc", origin: "https://rpc.example" });
+	expect(await Effect.runPromise(transportHeaders(rpcHeaders))).toBe(rpcHeaders);
+});
+
+it("uses only the HTTP request headers when a request service is available", async () => {
+	const rpcHeaders = Headers.fromInput({ authorization: "Bearer rpc", origin: "https://rpc.example", "x-rpc-only": "ignored" });
+	const request = HttpServerRequest.fromWeb(new Request("https://http.example/rpc", { headers: { origin: "https://http.example" } }));
+	const headers = await Effect.runPromise(transportHeaders(rpcHeaders).pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request)));
+	expect(headers).toBe(request.headers);
+	expect(headers.origin).toBe("https://http.example");
+	expect(headers.authorization).toBeUndefined();
+	expect(headers["x-rpc-only"]).toBeUndefined();
 });

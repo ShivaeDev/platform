@@ -9,6 +9,7 @@ This file owns the maintained shared skills, their distribution and updates, com
 - [x] A manifest recording package version, copied-folder hashes and package ownership of names.
 - [x] Sync replacement of managed copies, removal of deselected managed skills, coexistence with local skills and refusal of unowned name collisions before changes begin.
 - [x] A check for missing manifest or copies, changed installed version, selection differences and copied-file edits, additions or removals.
+- [x] Malformed sync manifests fail with repair instructions and leave copied skills intact; malformed consumer JSON, non-list selections and non-string selection entries fail with a field-specific error before writing a manifest. [Invalid-file tests](../src/invalidFiles.spec.ts) assert both paths.
 - [x] CLI coverage using the shipped skill and a packed executable case that checks its copied files and version.
 - [x] An opt-in pnpm GitHub Actions template for syncing shared skills on same-repository pull requests. Its configuration is present; live GitHub permissions and pushes are not validated by the package tests.
 
@@ -16,7 +17,7 @@ This file owns the maintained shared skills, their distribution and updates, com
 
 - [ ] Make the core copying/update path reliable when a host cannot create or load the Claude compatibility link. Keep ordinary `.agents/skills/` content primary, decide the compatibility behavior below and test its failure path.
 - [ ] Validate discovery of committed copies in the cloud agent hosts the maintainer actually uses before documenting a supported host matrix.
-- [ ] Add focused tests for the existing helper validation paths, including malformed selection and manifest files.
+- [ ] Add focused tests for unreadable consumer `package.json` files and invalid installed-package metadata in `readSelection` and `readInstalled`, plus installed skill discovery when a folder lacks `SKILL.md`.
 - [ ] Add a test of the workflow configuration before making stronger claims about its composition. Hosted execution remains a separate validation task.
 
 ## Open questions

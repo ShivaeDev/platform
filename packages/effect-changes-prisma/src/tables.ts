@@ -1,12 +1,19 @@
 import { Effect, Schema } from "effect";
 import { PrismaError } from "./error.ts";
 
-const MODEL = /^[ \t]*model[ \t]+(\w+)[ \t]*\{([\s\S]*?)^[ \t]*\}/gmu;
-const MAPPED = /@@map\(\s*(?:name\s*:\s*)?"([^"]+)"/u;
+const MODEL = /^[ \t]*model[ \t]+(?<model>\w+)[ \t]*\{(?<body>[\s\S]*?)^[ \t]*\}/gmu;
+const MAPPED = /@@map\(\s*(?:name\s*:\s*)?"(?<table>[^"]+)"/u;
 const COMMENT = /\/\/.*$/gmu;
 
-export const tablesOf = (schema: string): ReadonlyMap<string, string> =>
-	new Map([...schema.replace(COMMENT, "").matchAll(MODEL)].map(([, model = "", body = ""]) => [MAPPED.exec(body)?.[1] ?? model, model] as const));
+export function tablesOf(schema: string): ReadonlyMap<string, string> {
+	return new Map(
+		[...schema.replace(COMMENT, "").matchAll(MODEL)].map(({ groups }) => {
+			const model = groups?.model ?? "";
+			const body = groups?.body ?? "";
+			return [MAPPED.exec(body)?.groups?.table ?? model, model] as const;
+		}),
+	);
+}
 
 export interface RawQueryClient {
 	$queryRawUnsafe: (query: string) => PromiseLike<unknown>;

@@ -37,7 +37,7 @@ for (const head of [HEAD, MOVED]) {
 							expect(fixture.launched).toHaveLength(2);
 							expect(fixture.reviews).toEqual([HEAD]);
 							expect(fixture.merged).toEqual([]);
-							expect(github.requests).toContain("/delivery");
+							expect(github.requests.filter((request) => request === "/repos/example/repository/pulls/7").length).toBeGreaterThan(2);
 						}),
 					);
 				}),

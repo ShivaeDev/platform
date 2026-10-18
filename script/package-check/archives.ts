@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { Config, Effect, FileSystem, Schema } from "effect";
-import { checkArchive } from "#package-check/archive.ts";
+import { checkPackedArchive, packArchive } from "#package-check/archive.ts";
 import { requireThat, writeJson } from "#package-check/io.ts";
 import { decodeManifest, type Package } from "#package-check/model.ts";
 
@@ -34,17 +34,12 @@ export const prepareArchives = Effect.fn("Packed.prepareArchives")(function* (pa
 	yield* fs.makeDirectory(archives, { recursive: true });
 	const concurrency = yield* Config.Int("CI_WORKSPACE_CONCURRENCY").pipe(Config.withDefault(1));
 	yield* requireThat(concurrency > 0, "CI_WORKSPACE_CONCURRENCY must be positive");
-	const inventory = yield* Effect.forEach(
-		packages,
-		(pkg) =>
-			Effect.gen(function* () {
-				yield* checkArchive(pkg);
-				return { name: pkg.manifest.name, sha256: checksum(yield* fs.readFile(pkg.tarball)), version: pkg.manifest.version };
-			}),
-		{ concurrency },
-	);
+	yield* Effect.forEach(packages, packArchive, { concurrency, discard: true });
+	const inventory = yield* Effect.forEach(packages, (pkg) => Effect.map(fs.readFile(pkg.tarball), (bytes) => ({ bytes, pkg })));
+	const largestFirst = inventory.toSorted((left, right) => right.bytes.byteLength - left.bytes.byteLength);
+	yield* Effect.forEach(largestFirst, ({ pkg }) => checkPackedArchive(pkg), { concurrency, discard: true });
 	yield* writeJson(join(archives, "manifest.json"), {
-		packages: inventory,
+		packages: inventory.map(({ bytes, pkg }) => ({ name: pkg.manifest.name, sha256: checksum(bytes), version: pkg.manifest.version })),
 		sha: yield* Config.String("GITHUB_SHA").pipe(Config.withDefault("local")),
 	});
 });

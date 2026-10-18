@@ -2,8 +2,8 @@ import { execFileSync } from "node:child_process";
 import { Effect } from "effect";
 import { expect, vi } from "vitest";
 import { localPostgres } from "#localPostgres.ts";
-import { dockerReadiness } from "./dockerReadiness.ts";
-import { dockerScript } from "./dockerScript.ts";
+import { dockerReadiness } from "#test/dockerReadiness.ts";
+import { dockerScript } from "#test/dockerScript.ts";
 
 vi.mock("node:child_process", async (original) => {
 	const module = await original<typeof import("node:child_process")>();
@@ -35,7 +35,7 @@ export function createPostgres() {
 				calls: [],
 				contextEndpoint: "unix:///var/run/docker.sock",
 				environment,
-				manager: localPostgres(environment),
+				manager: localPostgres(environment, { delayMillis: 0 }),
 				mode: "script",
 				plan: [],
 				probes: 0,
@@ -83,4 +83,8 @@ export function connectCli(engine: PostgresEngine) {
 		}
 		return engine.script?.run(cliArgs, strings) ?? "";
 	});
+}
+
+export function configureReadiness(engine: PostgresEngine, attempts: number) {
+	engine.manager = localPostgres(engine.environment, { attempts, delayMillis: 0 });
 }

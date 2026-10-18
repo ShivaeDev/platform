@@ -14,7 +14,19 @@ export function dockerReadiness(unavailableProbes: number, realExec: typeof exec
 		if (args[0] === "inspect") {
 			expect(args).toEqual(["inspect", "--format", "{{.Config.Image}}", id]);
 		} else {
-			expect(args.slice(0, 9)).toEqual(["exec", id, "psql", "-X", "--set", "ON_ERROR_STOP=1", "-At", "-c", "SHOW server_version"]);
+			expect(args.slice(0, 11)).toEqual([
+				"exec",
+				"--env",
+				"PGPASSWORD",
+				id,
+				"psql",
+				"-X",
+				"--set",
+				"ON_ERROR_STOP=1",
+				"-At",
+				"-c",
+				"SHOW server_version",
+			]);
 		}
 		return realExec("docker", args, options);
 	}

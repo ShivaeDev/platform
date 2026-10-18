@@ -86,11 +86,11 @@ RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, sam
 
 For local tools, use `policy: "loopback"` with contracts that do not use session middleware to serve RPC without a session provider. The guard requires a loopback peer and Host, absent or same-origin Origin, and NDJSON content type. This policy does not use `TRUSTED_PROXY` or `config.trustedProxy`. Set `rpcPath` to choose another native RPC route; `/rpc` remains the default.
 
-Omit `migrations` to host an app without a database. This form creates no SQL pool and reads no `DATABASE_URL`; `AppHttpHostOptions` describes it. `AppHostOptions` retains its required migrations for existing typed callers. A service that needs SQL still requires a SQL Layer. Provide `appDatabase` to the application’s service Layer when it owns database composition, as Fleet's daemon does with its migration loader and namespace ledger. Real HTTP tests cover the custom route, session-free loopback guard and database-free startup; Fleet's PostgreSQL daemon tests cover the adopted composition.
+Omit `migrations` to host an app without a database. This form creates no SQL pool and reads no `DATABASE_URL`; `AppHttpHostOptions` describes it. `AppHostOptions` requires migrations for database-backed hosts. A service that needs SQL still requires a SQL Layer. Provide `appDatabase` to the application’s service Layer when it owns database composition, as Fleet's daemon does with its migration loader and namespace ledger. Real HTTP tests cover the custom route, session-free loopback guard and database-free startup; Fleet's PostgreSQL daemon tests cover the adopted composition.
 
 `appHost` serves unauthenticated `GET /health`. It queries its SQL client on each request and returns `200` only when the query succeeds within two seconds; a missing SQL client, query failure or timeout returns `503`. Both responses have an empty body and `Cache-Control: no-store`. This route also works when the SQL client comes from the application’s `services` Layer. Use it for database readiness checks.
 
-Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` when a separate pre-deploy command owns migrations. Startup reads the ledger and fails with native `MigrationError` (`kind: "BadState"`) if any required migration ID or name is missing; it does not run migrations or create a ledger. Later ledger entries are allowed for rolling deployments. With `mode` omitted or `"migrate"`, the existing migration behavior remains: startup applies pending migrations with a five-second lock timeout unless `migrations.lockTimeout` overrides it.
+Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` when a separate pre-deploy command owns migrations. Startup reads the ledger and fails with native `MigrationError` (`kind: "BadState"`) if any required migration ID or name is missing; it does not run migrations or create a ledger. Later ledger entries are allowed for rolling deployments. With `mode` omitted or `"migrate"`, startup applies pending migrations with a five-second lock timeout unless `migrations.lockTimeout` overrides it.
 
 When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `AppChanges` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
 
@@ -109,11 +109,31 @@ Construct Better Auth inside `application`, since its constructor starts schema 
 
 Set `OTEL_EXPORTER_OTLP_ENDPOINT` (the collector base URL; `/v1/traces` is appended) or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (the complete traces URL, which takes precedence) to export `appHost`'s Effect spans over OTLP/HTTP. `OTEL_EXPORTER_OTLP_PROTOCOL` selects `http/protobuf` or `http/json`; `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` takes precedence for traces. When neither protocol variable is set, the default is `http/protobuf`, following the [OpenTelemetry recommendation](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#specify-protocol). Unsupported protocols, including `grpc`, fail startup with a `ConfigError` naming the value. `OTEL_EXPORTER_OTLP_HEADERS` supplies comma-separated `key=value` exporter headers with URL-encoded values. `OTEL_SERVICE_NAME` sets the service name and `OTEL_SERVICE_VERSION` sets `service.version`; `OTEL_RESOURCE_ATTRIBUTES` adds comma-separated, URL-encoded resource attributes and can supply `service.name` when no service name is set. The fallback name is `unknown_service`. Configuration is read through Effect Config. Without an endpoint, no exporter or export loop is built, even when service metadata is set.
 
-On Railway, enable the per-service tracing setting separately for the web service and worker, and leave both exporter endpoint variables unset in your app's configuration. Railway injects the `OTEL_*` variables, including `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`, only when the app sets no endpoint of its own. The framework exports through Effect's own `effect/observability` OTLP tracer; eBPF auto-instrumentation is outside this path. For a worker, provide `otlpTracing` from `@shivaedev/platform/otlpTracing.ts` to its application Layer. It batches ended Effect spans and flushes during scoped shutdown with a three-second bound. The first failed export logs a warning with the collector status and redacted response body, or the transport failure kind when no response arrives. Repeated failures stay quiet until a successful export. Collector connection failures and HTTP errors leave requests, jobs and shutdown successful. HTTP receiver tests cover the host and the starter's PostgreSQL word-count worker; they do not establish delivery in a deployed collector.
+The supported tracing variables and defaults are:
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Unset | Collector base URL. |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Base URL plus `/v1/traces` | Complete traces URL; takes precedence. |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | `http/protobuf` or `http/json`. |
+| `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` | General protocol | Overrides the protocol for traces. |
+| `OTEL_EXPORTER_OTLP_HEADERS` | Empty | Comma-separated exporter headers. |
+| `OTEL_SERVICE_NAME` | Resource `service.name`, then `unknown_service` | Service name. |
+| `OTEL_SERVICE_VERSION` | Resource `service.version`, otherwise unset | Service version. |
+| `OTEL_RESOURCE_ATTRIBUTES` | Empty | Comma-separated resource attributes. |
+| `OTEL_EXPORTER_OTLP_TIMEOUT` | `10000` ms | Timeout for each HTTP export attempt, including its response body. |
+| `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT` | General timeout | Overrides the request timeout for traces. |
+| `OTEL_BSP_SCHEDULE_DELAY` | `5000` ms | Effect tracer's batch export interval. |
+| `OTEL_BSP_MAX_EXPORT_BATCH_SIZE` | `1000` spans | Effect tracer's batch-size trigger. |
+| `OTEL_BSP_EXPORT_TIMEOUT` | `3000` ms | Effect tracer's shutdown flush bound, capped at the request timeout. |
+
+Timeouts fail through the HTTP client's typed transport-error channel and use the same warning path as other transport failures. Effect retains its native retry policy; the request timeout applies to each attempt. The batch defaults follow Effect's `OtlpTracer.layer`. Its options cannot express a separate batch-operation deadline or a queue capacity, so `OTEL_BSP_EXPORT_TIMEOUT` controls shutdown only and `OTEL_BSP_MAX_QUEUE_SIZE` is unsupported. Other `OTEL_BSP_*` variables are unsupported.
+
+On Railway, enable the per-service tracing setting separately for the web service and worker, and leave both exporter endpoint variables unset in your app's configuration. Railway injects the `OTEL_*` variables, including `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`, only when the app sets no endpoint of its own. The framework exports through Effect's own `effect/observability` OTLP tracer; eBPF auto-instrumentation is outside this path. For a worker, provide `otlpTracing` from `@shivaedev/platform/otlpTracing.ts` to its application Layer. It batches ended Effect spans and flushes during scoped shutdown with a three-second bound by default. The first failed export logs a warning with the collector status and redacted response body, or the transport failure kind when no response arrives. Repeated failures stay quiet until a successful export. Collector connection failures and HTTP errors leave requests, jobs and shutdown successful. HTTP receiver tests cover the host and the starter's PostgreSQL word-count worker; they do not establish delivery in a deployed collector.
 
 Exported HTTP server spans use `{method} {route}` with `http.route` for matched RPC and router paths, including parameter templates; unmatched requests use the method alone. The production host continues incoming W3C `traceparent` context, including one sent by an edge proxy.
 
-Both JSON and protobuf export serialization apply the existing sensitive-key and credential-text redaction to span attributes, events, links, error details and resource attributes. Exporter headers stay in the collector request, outside the spans. Applications must still avoid placing secrets in span names, free text or custom attributes; a comprehensive application redaction policy and request/action correlation remain open.
+Both JSON and protobuf export serialization apply sensitive-key and credential-text redaction to span attributes, events, links, error details and resource attributes. Credential text includes JWTs, Bearer/Basic credentials, sensitive assignments including bare `sig=...` anywhere in text (with or without `?`), and complete PEM private-key blocks through their matching END marker, including RSA, EC, OPENSSH and encrypted private keys. Matches become `<redacted>`. `sig` uses the shared sensitive-key policy for attributes and text. URL query values, fragments and user information are also redacted. Exporter headers stay in the collector request, outside the spans. Applications must still avoid placing secrets in span names, free text or custom attributes.
 
 Set `config.maxConnections` on `appDatabase` or a migrated `appHost` to bound the pool. A daemon with long-lived RPC streams can use `config.disablePreemptiveShutdown: true` to let scope closure interrupt those streams before closing the listener; omitting it keeps Node's native graceful-shutdown default. Fleet's daemon tests cover one bounded pool and scoped provider and listener cleanup, including follower reconnection after shutdown.
 
@@ -337,9 +357,7 @@ await runtime.dispose();
 
 `base` is `"application"` and `request` is `"request"`. The application's resource Layer is acquired once across calls. An explicit `developmentCacheKey` shares a runtime between calls with that key during development. Each key belongs to one application runtime definition.
 
-A nested `runWithServices` call replaces the outer invocation's overrides for
-its callback. Merge the contexts explicitly when the nested call must retain
-those overrides.
+A nested `runWithServices` call replaces the outer invocation's overrides for its callback. Merge the contexts explicitly when the nested call must retain those overrides.
 
 ### Node subscriptions: combine cancellation and clean up
 
@@ -442,6 +460,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | Module | Names and purpose |
 | --- | --- |
 | `otlpTracing.ts` | `otlpTracing`: scoped, opt-in Effect OTLP trace export configured through standard exporter variables; provide it to worker Layers. |
+| `boundedBody.ts` | `readBoundedBody`, `RequestBodyTooLarge`: bounded body bytes and a typed HTTP 413 failure. |
 | `appHost.ts` | `appHost({ group, handlers, services, migrations?, sessions?, policy?, rpcPath?, assets?, routes?, config? })` or `appHost({ application, migrations, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppHttpHostOptions`, `AppLocalHostOptions`, `AppDatabaseOptions`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
 | `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
 | `errors/rejected-field.ts` | `rejectedField(unknown): Option<RejectedField>`; `RejectedField` is `{ field: string, message: string }`. |
@@ -480,6 +499,7 @@ Install the optional peers for the selected integration:
 
 | Integration | Additional peers |
 | --- | --- |
+| `boundedBody.ts` | `@effect/platform-node` |
 | `appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
 | `better-auth/adapter.ts` | `better-auth`, `@shivaedev/effect-prisma`, `@prisma-next/sql-orm-client` |
 | `testing/vitest.ts` | `@effect/vitest`, `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`, `@trpc/server` |

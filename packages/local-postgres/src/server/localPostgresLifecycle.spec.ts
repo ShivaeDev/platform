@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { postgres } from "#test/postgres.ts";
-import { discoveryFails, readyAfter } from "#test/postgresTraits.ts";
+import { discoveryFails, readyAfter, startupAttempts } from "#test/postgresTraits.ts";
 
 postgres.it(
 	"steps readiness probes until PostgreSQL reports the pinned version",
@@ -21,3 +21,17 @@ postgres.it(
 		yield* stop(4);
 	},
 );
+
+postgres.it(
+	"stops after the configured readiness attempts when Docker never reports a PostgreSQL container",
+	[discoveryFails(4), startupAttempts(3)],
+	function* ({ start, stop }) {
+		expect(start).toThrow("Expected local PostgreSQL 18.6. Check the existing service; setup never removes containers or data.");
+		yield* stop(4);
+	},
+);
+
+postgres.it("makes thirty readiness attempts by default", [discoveryFails(31)], function* ({ start, stop }) {
+	expect(start).toThrow("Expected local PostgreSQL 18.6.");
+	yield* stop(31);
+});

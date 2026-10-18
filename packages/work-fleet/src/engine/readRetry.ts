@@ -11,6 +11,8 @@ import { SessionFailure } from "#session/schema.ts";
 import { requestTimedOut, transientFailure } from "#session/transientFailure.ts";
 import type { Versioned } from "#storage/model.ts";
 
+export const DEFAULT_READ_RETRY_MS = 30_000;
+
 function retryKind(error: unknown, record: FleetRecord) {
 	if (error instanceof SessionFailure && retryProviderRead(error, record)) {
 		return "provider";
@@ -39,6 +41,24 @@ function retryAttempts(record: FleetRecord, operationId: string | undefined, ret
 	);
 }
 
+function rateLimitedUntil(kind: "integration" | "provider", error: unknown) {
+	return kind === "integration" ? failureContext(error).retryAt : undefined;
+}
+
+function providerReadClosed(kind: "integration" | "provider", attempt: Attempt | undefined) {
+	return kind === "provider" && (attempt === undefined || !["submitting", "accepted", "running"].includes(attempt.status));
+}
+
+// An integration that names its retry time, such as a GitHub rate limit, is pacing Fleet rather than failing, so the wait does not count toward escalation.
+function waitForRateLimit(state: EngineState, current: Versioned<FleetRecord>, message: string, retryAt: number) {
+	return state.save(current, {
+		...current.value,
+		attentionOwner: "automation",
+		blocker: message,
+		integrationRetry: { error: message, failures: current.value.integrationRetry?.failures ?? 0, retryAt },
+	});
+}
+
 export const readRetry = Effect.fn("Fleet.readRetry")(function* (
 	state: EngineState,
 	current: Versioned<FleetRecord>,
@@ -56,18 +76,22 @@ export const readRetry = Effect.fn("Fleet.readRetry")(function* (
 		return current;
 	}
 	const attempt = current.value.attempts.at(-1);
-	if (kind === "provider" && (attempt === undefined || !["submitting", "accepted", "running"].includes(attempt.status))) {
+	if (providerReadClosed(kind, attempt)) {
 		return undefined;
 	}
 	const previous = kind === "provider" ? attempt?.readRetry : current.value.integrationRetry;
 	if (retryPending(state, current.value)) {
 		return current;
 	}
+	const limitedUntil = rateLimitedUntil(kind, error);
+	if (limitedUntil !== undefined) {
+		return yield* waitForRateLimit(state, current, failureMessage(error), limitedUntil);
+	}
 	const failures = (previous?.failures ?? 0) + 1;
 	if (failures >= 5 && (yield* retryLostReview(state, current.value, error))) {
 		return yield* state.load(current.value.workId);
 	}
-	const retryAt = state.policy.now() + 30_000 * 2 ** (failures - 1);
+	const retryAt = state.policy.now() + ((yield* state.current).readRetryMs ?? DEFAULT_READ_RETRY_MS) * 2 ** (failures - 1);
 	const message = failureMessage(error);
 	const subject = { integration: "integration evidence", provider: "provider state" }[kind];
 	const retry = failures < 5 ? { error: message, failures, retryAt } : undefined;

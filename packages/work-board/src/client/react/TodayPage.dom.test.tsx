@@ -1,7 +1,7 @@
+import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { session } from "#client/session.ts";
 import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "#server/responses/records.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderRouter } from "#test/renderRouter.tsx";
@@ -21,42 +21,45 @@ it("opens compact answer controls, records an option and removes its ask on quer
 	const source = files["unaddressed.md"] ?? "";
 	const revision = revisionOf(source);
 	const id = questionId("question.storage", "answer", revision, "unaddressed.md");
-	const native = session(window);
-	vi.spyOn(native, "mutate").mockResolvedValue({ id });
-	const register = native.responses.registerQuestion.run;
-	vi.spyOn(native.responses.registerQuestion, "run").mockImplementation((input) => {
-		files["responses/question.md"] = questionMarkdown({
-			context: source,
-			id,
-			question: {
-				deadline: 10_000,
-				item: input.item,
-				reason: "Choose storage",
-				registeredAt: 1,
-				request: input.request,
-				reviewedRevision: input.revision,
-				source: "unaddressed.md",
-			},
-		});
-		return register(input);
-	});
-	const record = native.responses.recordResponse.run;
-	const command = vi.spyOn(native.responses.recordResponse, "run").mockImplementation((input) => {
-		files["responses/answer.md"] = responseMarkdown({
-			body: input.body,
-			id: input.id,
-			response: {
-				answers: input.answers,
-				author: input.author,
-				question: input.question,
-				recordedAt: 2,
-				reviewedRevision: revision,
-				type: input.type,
-			},
-		});
-		return record(input);
-	});
 	const view = await renderRouter(files, "/", { home: "home.md", writable: true });
+	const native = view.forms;
+	vi.spyOn(native.responses.registerQuestion, "run").mockImplementation((input) =>
+		Effect.sync(() => {
+			const question = {
+				context: source,
+				id,
+				question: {
+					deadline: 10_000,
+					item: input.item,
+					reason: "Choose storage",
+					registeredAt: 1,
+					request: input.request,
+					reviewedRevision: input.revision,
+					source: "unaddressed.md",
+				},
+			};
+			files["responses/question.md"] = questionMarkdown(question);
+			return question;
+		}),
+	);
+	const command = vi.spyOn(native.responses.recordResponse, "run").mockImplementation((input) =>
+		Effect.sync(() => {
+			const response = {
+				body: input.body,
+				id: input.id,
+				response: {
+					answers: input.answers,
+					author: input.author,
+					question: input.question,
+					recordedAt: 2,
+					reviewedRevision: revision,
+					type: input.type,
+				},
+			};
+			files["responses/answer.md"] = responseMarkdown(response);
+			return response;
+		}),
+	);
 	try {
 		await eventually(() =>
 			expect(view.container.querySelector("[aria-label='Options for question.storage'] button")?.textContent).toBe("Keep local files · Recommended"),

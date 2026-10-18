@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import { sqlInContainer, startContainer } from "#local-container.ts";
 import { docker } from "#local-docker.ts";
 import { assertLocalDatabase, localServer } from "#localPostgres.ts";
-import type { PostgresEngine } from "./postgresEngine.ts";
-import { containerQuery, prepareTwice, queryAsNewRole } from "./realPostgres.ts";
+import type { PostgresEngine } from "#test/postgresEngine.ts";
+import { containerQuery, prepareTwice, queryAsNewRole } from "#test/realPostgres.ts";
 
 export function postgresVerbs(engine: PostgresEngine, tell: (line: string) => void) {
 	function localDocker(args: readonly string[]) {

@@ -4,7 +4,8 @@ import { expect } from "vitest";
 import { FleetRecord } from "#model.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import { childTable } from "#storage/recordChildren.ts";
-import { recordShape, type Shape } from "#storage/recordShape.ts";
+import type { Shape } from "#storage/recordShape.ts";
+import { shapeV12 } from "#storage/shapeV12.ts";
 import { migrateFleet } from "#test/migrateFleet.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { textRecordTables } from "#test/textRecordTables.ts";
@@ -36,7 +37,7 @@ test("text records migrate every current and archived field, preserving empty an
 	const sql = yield* SqlClient.SqlClient;
 	const namespace = "typed_upgrade";
 	const values = typedMigrationRecords();
-	assertEveryField(recordShape(), values);
+	assertEveryField(shapeV12, values);
 	yield* textRecordTables(namespace, values);
 	yield* sql`insert into ${sql(`${namespace}_foreign_reservations`)} (owner, executing, backlog) values ('external', false, true)`;
 	const before = yield* sql`select work_id, admission_order, version from ${sql(`${namespace}_records`)} order by admission_order`;

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { vi } from "vitest";
+import { eventually as retry } from "@shivaedev/effect-test/eventually.ts";
 
-export function eventually(check: () => void, timeout?: number) {
-	return Effect.promise(() => vi.waitFor(check, timeout));
+export function eventually(check: () => void) {
+	return retry(Effect.try({ catch: (error) => error, try: check }));
 }

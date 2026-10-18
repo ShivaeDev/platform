@@ -38,7 +38,7 @@ export const watchReconnect = Effect.fn("WatchReconnectTest.watchReconnect")(fun
 			const scope = yield* Scope.make();
 			yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void));
 			const context = yield* Layer.buildWithScope(
-				readDaemonLayer(fixture.host, fixture.parts, port, () => snapshot.resolve()),
+				readDaemonLayer(fixture.host, { onSnapshot: () => snapshot.resolve(), parts: fixture.parts, port }),
 				scope,
 			);
 			const address = Context.get(context, HttpServer.HttpServer).address;

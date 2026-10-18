@@ -53,8 +53,7 @@ The session implementation is an injected example boundary, not a replacement
 for Better Auth. Production cookie handling, CSRF policy, session storage and
 mobile authentication still need application integration.
 
-The original boundary tests use SQLite. The [application story kit](../../packages/effect-react/src/test-support/order-example/application.ts) runs the same service, repository, contracts and components against real PostgreSQL and a loopback HTTP listener with native RPC serialization. Its DOM tests do not prove browser networking, SSR hydration,
-Capacitor resume, offline writes or cross-process invalidation. The PostgreSQL story coverage uses the kit described below; broader codec coverage remains separate from this feature.
+The [boundary tests](../../packages/effect-react/src/orderExample.dom.spec.tsx) run the [application story kit](../../packages/effect-react/src/test-support/order-example/application.ts) against real PostgreSQL and a loopback HTTP listener with native RPC serialization. Their DOM assertions do not prove browser networking, SSR hydration, Capacitor resume, offline writes or cross-process invalidation. Broader codec coverage remains separate from this feature.
 
 The small Node HTTP bridge is test infrastructure, not a production server
 adapter. The framework continues to expose native components so applications can
@@ -77,9 +76,7 @@ The focused test runs four scenarios:
 - With the list and two order editors mounted, saving one order refetches that
   order and the list; the server sees no second read of the other order.
 
-Run `pnpm --filter @shivaedev/effect-react exec vitest run src/orderExample.dom.spec.tsx`
-from the workspace. The test binds an ephemeral loopback port and requires local
-network access. The full workspace gate is `pnpm ready`.
+After `pnpm db:setup`, run `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_effect_sql pnpm --filter @shivaedev/effect-react test src/orderExample.dom.spec.tsx` from the workspace. The tests bind an ephemeral loopback port and skip without the database URL. The full workspace gate is `pnpm ready`.
 
 ## Application-owned story kit
 

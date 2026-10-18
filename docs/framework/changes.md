@@ -169,8 +169,7 @@ const observeAll = Layer.succeed(liveChanges.Observer, (observation: Observation
   caller and compare the published keys with what a second pool sees committed;
   they also read from a separate pool inside the sink to show publishing happens
   after `COMMIT`, and show that a throwing subscriber is logged while the result
-  and the rows stand. The interruption case fails against the previous
-  `transact`, which dropped the keys.
+  and the rows stand.
 - [Prisma Classic tests](../../packages/effect-changes-prisma/src) run a
   generated Prisma 7 client with `@prisma/adapter-pg` against PostgreSQL: a sink
   reading from a second client sees the committed rows, rollbacks, failed
@@ -183,7 +182,7 @@ const observeAll = Layer.succeed(liveChanges.Observer, (observation: Observation
 
 ## Limits
 
-- Default delivery is local Reactivity. The optional `postgresChanges` binding in effect-sql sends invalidation keys through the writing transaction's SQL connection and delivers them to each process's local Reactivity. A heartbeat detects listener loss and resyncs on loss and recovery. The [reference test fixture](./composed-example.md) proves two HTTP servers and a pg-boss worker against PostgreSQL. It is not a copyable app; an app template is still needed.
+- Default delivery is local Reactivity. The optional `postgresChanges` binding in effect-sql sends invalidation keys through the writing transaction's SQL connection and delivers them to each process's local Reactivity. A heartbeat detects listener loss and resyncs on loss and recovery. The [reference test fixture](./composed-example.md) proves two HTTP servers and a pg-boss worker against PostgreSQL. Use the [starter quickstart](./quickstart.md) to generate an application with this binding.
 - PostgreSQL NOTIFY is a wake-up signal, not a durable log. It delivers at commit and drops notifications on rollback. Payloads must be smaller than 8,000 bytes in the default configuration; the binding splits UTF-8 JSON key arrays and rejects a key that cannot fit before commit. LISTEN requires a session connection; PgBouncer transaction pooling needs another adapter.
 - Only recorded changes are published. Triggers, cascades and raw SQL that does
   not call `record` are invisible to the channel.

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sqlInContainer } from "#local-container.ts";
 import { docker } from "#local-docker.ts";
 import { localServer } from "#localPostgres.ts";
-import type { PostgresEngine } from "./postgresEngine.ts";
+import type { PostgresEngine } from "#test/postgresEngine.ts";
 
 export function containerQuery(engine: PostgresEngine, connection: URL, query: string) {
 	return sqlInContainer(
@@ -19,7 +19,7 @@ export function queryAsNewRole(engine: PostgresEngine) {
 	try {
 		const connection = new URL(`${localServer}/postgres`);
 		connection.username = role;
-		connection.password = "local-client-fixture-password";
+		connection.password = encodeURIComponent("local-client-fixture-password");
 		return { result: containerQuery(engine, connection, "SELECT session_user, current_database()"), role };
 	} finally {
 		engine.manager.sql(`${localServer}/postgres`, `DROP ROLE "${role}"`);

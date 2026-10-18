@@ -1,5 +1,6 @@
-import { clientPlan, containerPlan, readinessPlan } from "./containerPlans.ts";
-import { postgres } from "./postgres.ts";
+import { clientPlan, containerPlan, readinessPlan } from "#test/containerPlans.ts";
+import { postgres } from "#test/postgres.ts";
+import { configureReadiness } from "#test/postgresEngine.ts";
 
 export function dockerEndpoint(endpoint: string) {
 	return postgres.trait("machine", `Docker uses ${endpoint}`, (engine) => {
@@ -58,5 +59,11 @@ export function discoveryFails(count: number) {
 export function readyAfter(count: number) {
 	return postgres.trait("machine", `PostgreSQL becomes ready after ${count} failed discovery probes`, (engine) => {
 		engine.plan = readinessPlan(count);
+	});
+}
+
+export function startupAttempts(count: number) {
+	return postgres.trait("machine", `PostgreSQL startup permits ${count} readiness attempts`, (engine) => {
+		configureReadiness(engine, count);
 	});
 }

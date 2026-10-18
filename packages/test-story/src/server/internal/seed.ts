@@ -1,4 +1,4 @@
-import { Cause, Effect, type Scope } from "effect";
+import { Cause, Context, Effect, type Scope, Tracer } from "effect";
 import type { AnyTestLayer } from "@shivaedev/effect-test/any-test-layer.ts";
 import type { EffectClock } from "@shivaedev/effect-test/types.ts";
 import { refusal } from "#internal/errors.ts";
@@ -52,7 +52,7 @@ export const seed = Effect.fnUntraced(function* (definition: LooseDefinition, en
 		}
 		const after = definition.after?.[stage];
 		if (after !== undefined) {
-			yield* hooked(() => after(engine));
+			yield* hooked(() => after(engine)).pipe(Effect.updateContext(Context.omit(Tracer.ParentSpan)));
 		}
 	}
 });

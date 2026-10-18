@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Cause, Data, Effect, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { Activity, act, StrictMode } from "react";
@@ -7,12 +7,35 @@ import { expect, it, vi } from "vitest";
 import { SessionBoundary } from "#session-boundary.ts";
 import { activityRegistry } from "#test/activityRegistry.ts";
 import { startOrderServer } from "#test/order-example/http-test.ts";
+import { resultSession } from "#test/resultSession.ts";
 import { sessions, shell } from "#test/session.ts";
 import { DraftProbe, type RegistryHolder, ReplayProbe, TrackedProbe } from "#test/sessionProbes.ts";
 import { eventually, expectNoReactWarnings } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
+it("an Unauthorized action rechecks once per failed result and retains data and the typed cause", async () => {
+	class Unauthorized extends Data.TaggedError("Unauthorized")<{ readonly message: string }> {}
+	const denied = new Unauthorized({ message: "Session expired" });
+	let fail = false;
+	const view = await resultSession("action", () => (fail ? Effect.fail(denied) : Effect.succeed("Saved order")));
+	try {
+		await view.execute();
+		expect(view.current().data).toEqual(Option.some("Saved order"));
+		expect(view.rechecks).toEqual([]);
+		fail = true;
+		for (let failures = 1; failures <= 2; failures += 1) {
+			await view.execute();
+			expect(view.rechecks).toHaveLength(failures);
+			expect(view.current().data).toEqual(Option.some("Saved order"));
+			expect(Option.getOrThrow(Option.flatMap(view.current().cause, Cause.findErrorOption))).toBe(denied);
+			await view.rerender();
+			expect(view.rechecks).toHaveLength(failures);
+		}
+	} finally {
+		await view.close();
+	}
+});
 it("each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one", async () => {
 	const server = await startOrderServer({ sessions: sessions() });
 	const view = shell(server.url);

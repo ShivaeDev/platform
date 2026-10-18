@@ -1,6 +1,6 @@
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { connectCli, createPostgres } from "./postgresEngine.ts";
-import { postgresVerbs } from "./postgresVerbs.ts";
+import { connectCli, createPostgres } from "#test/postgresEngine.ts";
+import { postgresVerbs } from "#test/postgresVerbs.ts";
 
 export const postgres = storyKit({
 	after: { machine: connectCli },

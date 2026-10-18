@@ -1,4 +1,4 @@
-import { PINNED_IMAGE } from "./dockerScript.ts";
+import { PINNED_IMAGE } from "#test/dockerScript.ts";
 
 export function containerPlan(state: "existing" | "missing" | "outdated") {
 	return [
@@ -53,6 +53,8 @@ export function readinessPlan(unavailableProbes: number) {
 		{
 			args: [
 				"exec",
+				"--env",
+				"PGPASSWORD",
 				"container-id",
 				"psql",
 				"-X",
@@ -62,7 +64,7 @@ export function readinessPlan(unavailableProbes: number) {
 				"-c",
 				"SHOW server_version",
 				"--dbname",
-				"postgresql://postgres:postgres@127.0.0.1:5432/postgres?connect_timeout=3",
+				"postgresql://postgres@127.0.0.1:5432/postgres?connect_timeout=3",
 			],
 			result: "18.6\n",
 		},

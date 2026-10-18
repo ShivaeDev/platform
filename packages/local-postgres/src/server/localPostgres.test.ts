@@ -10,7 +10,7 @@ postgres.it("rejects remote, mismatched and redirected local targets", [], funct
 		url.replace("127.0.0.1", "example.com"),
 		url.replace("55432", "5432"),
 		databaseUrl("platform_dev"),
-		`${url}?host=example.com`,
+		...["host", "hostaddr", "port", "dbname", "service"].map((key) => `${url}?${key}=redirected`),
 	]) {
 		expect(() => assertDatabase(value, [name])).toThrow("Use a local database");
 	}
@@ -74,7 +74,7 @@ postgres.it(
 	},
 );
 
-postgres.it.fails(
+postgres.it(
 	"reports only PostgreSQL diagnostics without the connection password when using the Docker client",
 	[realPostgres()],
 	function* ({ containerQuery, stop }) {

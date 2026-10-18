@@ -80,7 +80,7 @@ const replacementStory = Effect.fn("AnswerReplacementTest.replacementStory")(fun
 					expect((yield* client("fleet.get", { workId: "one" })).decision).toBeUndefined();
 				}
 			}),
-		{ ...fixture.parts, board },
+		{ parts: { ...fixture.parts, board } },
 	);
 });
 
