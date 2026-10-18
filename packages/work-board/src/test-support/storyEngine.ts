@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { type Deferred, Effect } from "effect";
 import { browserClient } from "#client/client.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { responseFrom } from "#server/responses/records.ts";
@@ -15,8 +15,24 @@ export interface BoardEngine {
 	live?: { board: RunningBoard; client: ReturnType<typeof browserClient>; page: OpenPage };
 	readonly notes: Folder;
 	path: string;
+	reader?: boolean;
+	reads?: WorkspaceReads;
 	responses: boolean;
+	started?: RunningBoard;
 	wrap?: FileSystemWrapper | undefined;
+}
+
+export interface WorkspaceReads {
+	readonly files: string[];
+	readonly gate?: Deferred.Deferred<void>;
+}
+
+export function wrapFilesystem(engine: BoardEngine, wrap?: FileSystemWrapper) {
+	const previous = engine.wrap;
+	engine.wrap = (fs) => {
+		const boundary = previous ? previous(fs) : fs;
+		return wrap ? wrap(boundary) : boundary;
+	};
 }
 
 export function connected(engine: BoardEngine) {
@@ -37,6 +53,10 @@ export function* createBoard() {
 
 export function* serveProject(engine: BoardEngine) {
 	const board = yield* startBoard(engine.notes.root, engine.home, engine.wrap, engine.responses, undefined, undefined, engine.fleetPort);
+	engine.started = board;
+	if (engine.reader === false) {
+		return;
+	}
 	const client = yield* Effect.acquireRelease(
 		Effect.sync(() => browserClient(board.url)),
 		(acquired) => Effect.sync(() => acquired.registry.dispose()),

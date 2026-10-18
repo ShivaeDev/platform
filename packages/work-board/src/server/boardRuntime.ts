@@ -25,7 +25,12 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 		changes,
 		options.maintainer,
 	);
-	yield* Effect.forkScoped(Effect.ignore(index));
+	yield* Effect.forkScoped(
+		index.pipe(
+			Effect.tapError((error) => Effect.logDebug("The startup index failed; the next read rebuilds it", error)),
+			Effect.ignore,
+		),
+	);
 	const provided = yield* Effect.serviceOption(DiagnosticsSources);
 	const services = yield* Layer.build(
 		boardServices({
