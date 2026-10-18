@@ -1,6 +1,6 @@
 import { request } from "node:http";
 import { call, post } from "./fixture.ts";
-import { ping } from "./ping.ts";
+import { directPing, ping } from "./ping.ts";
 import { postBody } from "./postBody.ts";
 import { type HostState, io } from "./state.ts";
 
@@ -9,6 +9,10 @@ export function requests(state: HostState, tell: (line: string) => void) {
 		call: (token: string, reject = false, headers: Readonly<Record<string, string>> = {}) => {
 			tell(`the fixture RPC is called as ${token || "anonymous"}`);
 			return io(() => call(state.url, token, reject, headers));
+		},
+		directPing: () => {
+			tell("an independent native RPC server uses the shared group without host middleware");
+			return directPing();
 		},
 		health: () => {
 			tell("the health monitor probes PostgreSQL");
