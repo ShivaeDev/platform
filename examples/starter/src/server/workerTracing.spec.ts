@@ -1,23 +1,35 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { app, signedIn } from "#test-support/application.ts";
 
 for (const protocol of ["http/json", "http/protobuf"]) {
 	app.it(
 		`counts a note and exports worker spans with service metadata over ${protocol}`,
 		[signedIn()],
-		function* ({ actor, collector, storedWordCounts }) {
+		function* ({ actor, collector, wordCountCompletions }) {
 			const receiver = yield* collector();
 			const note = yield* actor().notes.create({ title: "Count these words" });
 			const stopWorker = yield* receiver.startWorker(protocol);
-			yield* eventually(storedWordCounts(note.id).pipe(Effect.flatMap((rows) => Effect.try(() => expect(rows).toEqual([{ wordCount: 3 }])))), {
-				interval: "50 millis",
-				times: 160,
-			});
+			yield* Effect.promise(() =>
+				expect.poll(() => Effect.runPromise(actor().notes.get({ id: note.id })), { timeout: 8000 }).toEqual({ ...note, version: 1, wordCount: 3 }),
+			);
 			yield* stopWorker;
-			yield* receiver.exportsCountWords();
-			yield* receiver.omitsSecrets(["worker collector secret", "app-test-secret"]);
+			expect(yield* wordCountCompletions()).toMatchObject([
+				{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
+			]);
+			expect(receiver.spans.some((span) => span.name === "CountWords")).toBe(true);
+			expect(receiver.requests).toContainEqual(
+				expect.objectContaining({ headers: expect.objectContaining({ "x-collector-token": "worker collector secret" }), path: "/v1/traces" }),
+			);
+			expect(receiver.spans.find((span) => span.name === "CountWords")?.resourceAttributes).toEqual(
+				expect.arrayContaining([
+					{ key: "service.name", value: { stringValue: "worker-test" } },
+					{ key: "deployment.environment", value: { stringValue: "worker-test" } },
+				]),
+			);
+			for (const secret of ["worker collector secret", "app-test-secret"]) {
+				expect(receiver.requests.every(({ body }) => !body.includes(Buffer.from(secret)))).toBe(true);
+			}
 		},
 		15_000,
 	);
@@ -27,24 +39,24 @@ for (const status of ["down", 500] as const) {
 	app.it(
 		`completes a worker job and shuts down when the collector ${status === "down" ? "is down" : "returns HTTP 500"}`,
 		[signedIn()],
-		function* ({ actor, collector, storedWordCounts, wordCountJobs }) {
+		function* ({ actor, collector, wordCountCompletions }) {
 			const receiver = yield* collector(status);
 			const note = yield* actor().notes.create({ title: "Collector has failed" });
 			const stopWorker = yield* receiver.startWorker();
-			yield* eventually(storedWordCounts(note.id).pipe(Effect.flatMap((rows) => Effect.try(() => expect(rows).toEqual([{ wordCount: 3 }])))), {
-				interval: "50 millis",
-				times: 160,
-			});
-			yield* eventually(
-				wordCountJobs().pipe(Effect.flatMap((jobs) => Effect.try(() => expect(jobs).toEqual([{ retryCount: 0, state: "completed" }])))),
-				{
-					interval: "50 millis",
-					times: 160,
-				},
+			yield* Effect.promise(() =>
+				expect.poll(() => Effect.runPromise(actor().notes.get({ id: note.id })), { timeout: 8000 }).toEqual({ ...note, version: 1, wordCount: 3 }),
+			);
+			yield* Effect.promise(() =>
+				expect
+					.poll(() => Effect.runPromise(wordCountCompletions()), { timeout: 8000 })
+					.toMatchObject([{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" }]),
 			);
 			yield* stopWorker;
+			expect(yield* wordCountCompletions()).toMatchObject([
+				{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
+			]);
 			if (status !== "down") {
-				yield* receiver.receivesRequests();
+				expect(receiver.requests.length).toBeGreaterThan(0);
 			}
 		},
 		15_000,

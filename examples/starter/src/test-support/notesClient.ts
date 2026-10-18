@@ -104,17 +104,19 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 	function finishNote(id: number, wordCount: number) {
 		const index = rows.findIndex((note) => note.id === id);
 		const row = rows[index];
-		if (row !== undefined) {
-			rows[index] = { ...row, version: row.version + 1, wordCount };
+		if (row === undefined) {
+			throw new Error(`Missing note ${id}`);
 		}
+		rows[index] = { ...row, version: row.version + 1, wordCount };
 		return Effect.runPromise(PubSub.publish(hints, { _tag: "Changed", keys: [notes.item(id)] }));
 	}
 	function reviseNote(id: number, title: string, notify = true) {
 		const index = rows.findIndex((note) => note.id === id);
 		const row = rows[index];
-		if (row !== undefined) {
-			rows[index] = { ...row, title, version: row.version + 1 };
+		if (row === undefined) {
+			throw new Error(`Missing note ${id}`);
 		}
+		rows[index] = { ...row, title, version: row.version + 1 };
 		return notify ? Effect.runPromise(PubSub.publish(hints, { _tag: "Changed", keys: [notes.item(id)] })).then(() => undefined) : Promise.resolve();
 	}
 	return { api, calls, finishNote, holdList, releaseList, reviseNote, runtime: Client.runtime, session, ...subscription };

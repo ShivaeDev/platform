@@ -9,6 +9,7 @@ export default defineConfig({
 		host: "127.0.0.1",
 		port: 5173,
 		proxy: {
+			"/admin/jobs": { changeOrigin: false, target: "http://127.0.0.1:3000" },
 			"/api/auth": { changeOrigin: false, target: "http://127.0.0.1:3000" },
 			"/rpc": { changeOrigin: false, target: "http://127.0.0.1:3000" },
 		},

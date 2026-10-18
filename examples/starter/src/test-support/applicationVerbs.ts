@@ -1,13 +1,15 @@
 import { ConfigProvider, Effect, Exit, Layer, Scope } from "effect";
+import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { makeAuth } from "#client/auth.ts";
+import { CountWords } from "#server/noteJobs.ts";
 import { noteWorker } from "#server/noteWorker.ts";
 import type { Engine } from "./applicationState.ts";
+import { authPost, credentials } from "./authHttp.ts";
 import { authRateLimits } from "./authRateLimits.ts";
 import { createInRolledBackTransaction } from "./createInRolledBackTransaction.ts";
 import { startHost } from "./host.ts";
 import { liveNotes } from "./liveNotes.ts";
-import { rejectsWith } from "./rejectsWith.ts";
 import { requests } from "./requests.ts";
 import { storedNotes } from "./storedNotes.ts";
 import { workerTracing } from "./workerTracing.ts";
@@ -26,7 +28,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 	const startWorker = Effect.fn("AppStory.startWorker")(function* (env?: Record<string, string>) {
 		story.tell("start the word-count worker");
 		const database = yield* PostgresTestDatabase;
-		const worker = noteWorker({ databaseUrl: database.url });
+		const worker = noteWorker({ clientFactory: engine.workerQueue.clientFactory, databaseUrl: database.url });
 		const scope = yield* Scope.fork(yield* Scope.Scope);
 		yield* Layer.buildWithScope(
 			env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),
@@ -39,6 +41,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 	});
 	return {
 		...storedNotes(story.tell),
+		databaseLifetime: () => engine.databaseLifetime,
 		existingNote: (title: string) => {
 			const note = engine.existingNotes.get(title);
 			if (note === undefined) {
@@ -47,6 +50,11 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			return note;
 		},
 		...workerTracing(story.tell, startWorker),
+		acceptNoteCommits: Effect.gen(function* () {
+			story.tell("PostgreSQL accepts note commits again");
+			const sql = yield* SqlClient.SqlClient;
+			yield* sql`drop trigger reject_note_commit on notes`;
+		}),
 		actor: (name = "alice") => {
 			const actor = engine.actors.get(name);
 			if (actor === undefined) {
@@ -61,8 +69,13 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			return makeAuth({ baseUrl, fetchOptions: { headers: { cookie, origin } } });
 		},
 		authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
+		authenticateResponse: (name: string, path: string) => authPost(host().baseUrl, path, credentials(name), "", host().origin),
 		authRateLimits: () => authRateLimits(host(), story.tell),
 		createInRolledBackTransaction: (title: string, ownerId: string) => createInRolledBackTransaction(host(), story.tell, title, ownerId),
+		failNextNoteJob: Effect.fn("AppStory.failNextNoteJob")(function* () {
+			story.tell("the queue client rejects the next word-count send");
+			yield* host().jobsTesting.failNextSend(CountWords);
+		}),
 		foreignRequest: (cookie: string) => http().foreignRequest(cookie),
 		liveNotes: (name = "alice") => {
 			story.tell(`${name} watches the live notes list`);
@@ -74,12 +87,12 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		},
 		logs: () => host().logs,
 		notes: (cookie: string) => http().notes(cookie),
-		rejectsWith,
 		rerunMigrations: Effect.fn("AppStory.rerunMigrations")(function* () {
 			story.tell("run the deployment migrations and open another app host");
 			engine.host = yield* startHost(engine.hostOptions);
 		}),
 		runningHost: host,
 		startWorker,
+		wordCountCompletions: engine.workerQueue.completions,
 	};
 }

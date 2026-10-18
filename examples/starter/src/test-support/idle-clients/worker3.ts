@@ -1,3 +1,1 @@
-import { parallelPoolStory } from "#test-support/parallelPoolStory.ts";
-
-parallelPoolStory();
+import "#server/appPoolTeardown.spec.ts";
