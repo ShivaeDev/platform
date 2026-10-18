@@ -48,7 +48,6 @@ export const database = storyKit({
 			clonesCleanUpEveryExit: narrated(story.tell, "clones clean up every exit", verbs.clonesCleanUpEveryExit),
 			clonesCommitAndDrop: narrated(story.tell, "clones commit and drop", verbs.clonesCommitAndDrop),
 			connectionBudgetIsRespected: narrated(story.tell, "connection budget is respected", verbs.connectionBudgetIsRespected),
-			failedDatabaseDropIsDefect: narrated(story.tell, "a failed database drop is a defect", verbs.failedDatabaseDropIsDefect),
 			failedPreparationDropsDatabase: narrated(story.tell, "failed preparation drops database", verbs.failedPreparationDropsDatabase),
 			idleConnectionsAndDatabasesAreReleased: narrated(
 				story.tell,

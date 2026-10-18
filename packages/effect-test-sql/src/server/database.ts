@@ -8,6 +8,7 @@ export type PostgresTestServices = PgClient.PgClient | SqlClient.SqlClient | Rea
 export type PostgresTestTemplate = "empty" | "migrated";
 
 export interface PostgresTestDatabaseService {
+	readonly awaitCleanup: Effect.Effect<void>;
 	readonly clone: (
 		template: PostgresTestTemplate,
 	) => Effect.Effect<Context.Context<PostgresTestServices | PostgresTestDatabase>, SqlError, Scope.Scope>;

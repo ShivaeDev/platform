@@ -24,7 +24,7 @@ The next test still sees the original name. Tests that must observe a committed 
 
 `makePostgresTestLayer` creates an empty template and a migrated template through an administrative connection, runs `migratePostgres` and optional fixtures in the migrated template, then closes its preparation connections. It creates a shared test database from the migrated template and provides `SqlClient`, `PgClient`, `Reactivity` and `PostgresTestDatabase`. The templates remain closed and unchanged while tests run. Each isolated database copies the template it asks for; migrations and fixtures do not run again when cloning. Set `prepare: false` for a suite that needs only empty databases: both migrations and fixtures are skipped.
 
-The Layer's scope owns the template, shared database and their connections. `makeEffectIt` builds the Layer once for its worker fixture. Each test's wrapper owns the transaction or isolated database. Closing those scopes releases the connections and drops the disposable databases; the administrative database named by `url` remains in place.
+The Layer's scope owns the template, shared database and their connections. `makeEffectIt` builds the Layer once for its worker fixture. Each test's wrapper owns the transaction or isolated database. Closing a test scope releases its connections and queues its database drop in the background. Closing the Layer waits for all queued drops. To wait earlier, run `PostgresTestDatabase.awaitCleanup` after the isolated scope ends; it waits for drops queued before that Effect starts and reports cleanup failures as SQL defects. The shared database and templates stay available; the administrative database named by `url` remains in place.
 
 Define the tester in test support:
 
@@ -107,7 +107,7 @@ PostgreSQL sequence advances survive rollback. Avoid asserting exact generated s
 
 ### Real commits: an isolated database
 
-Use `withIsolatedDatabase` for after-commit effects, LISTEN/NOTIFY, advisory-lock scenarios that need independent connections, migration tests, or work through several connections. It runs without a wrapping transaction on its clone. Ordinary autocommit and `transact` commit for real, and the clone is dropped when the wrapper finishes.
+Use `withIsolatedDatabase` for after-commit effects, LISTEN/NOTIFY, advisory-lock scenarios that need independent connections, migration tests, or work through several connections. It runs without a wrapping transaction on its clone. Ordinary autocommit and `transact` commit for real, and the wrapper queues its clone for background cleanup when it finishes. The Layer waits for cleanup at the end of its scope.
 
 An isolated block can live inside the rollback tester above:
 
@@ -218,7 +218,7 @@ Import each name from the module that defines it. The package has no root entry.
 | `@shivaedev/effect-test-sql/migrationUpgrade.ts` | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn` |
 | `@shivaedev/effect-test-sql/assertModelColumns.ts` | `assertModelColumns(columns, model, types)`, `ModelColumnMismatch` |
 
-`url` is a redacted PostgreSQL URL for an existing administrative database. `PostgresTestDatabase` supplies the current database's redacted `url`, a scoped `isolated` Effect that acquires a migrated clone's service Context, and `clone(template)` for an explicit `"empty"` or `"migrated"` choice. With `prepare: false`, both choices are empty. Prefer `withIsolatedDatabase` to acquire and release that Context around a test. Wrappers retain the body's result, failures and unmet service requirements, with native `SqlError` added for acquisition or transaction failures. Cleanup failures are defects rather than successful cleanup.
+`url` is a redacted PostgreSQL URL for an existing administrative database. `PostgresTestDatabase` supplies the current database's redacted `url`, an `awaitCleanup: Effect<void>` drain, a scoped `isolated` Effect that acquires a migrated clone's service Context, and `clone(template)` for an explicit `"empty"` or `"migrated"` choice. With `prepare: false`, both choices are empty. Prefer `withIsolatedDatabase` to acquire and release that Context around a test. Wrappers retain the body's result, failures and unmet service requirements, with native `SqlError` added for acquisition or transaction failures. Cleanup failures surface as SQL defects when the Layer closes. Drops that fail with connection exhaustion (SQLSTATE `53300`) retry every 100 ms for up to 300 retries; if capacity does not return, the SQL defect remains visible. Startup sweeps databases left by dead processes on the same host and databases from the older unowned naming format. Databases owned by live processes or another host are retained, so local parallel workers keep their databases. Use the same host to reclaim its abandoned databases.
 
 ### Install and setup
 

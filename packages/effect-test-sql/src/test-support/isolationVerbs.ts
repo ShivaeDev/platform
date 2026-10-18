@@ -10,7 +10,6 @@ export function isolationVerbs(engine: DatabaseEngine) {
 		clonesCleanUpEveryExit: () =>
 			engine.run(
 				Effect.gen(function* () {
-					const shared = yield* SqlClient.SqlClient;
 					const names: string[] = [];
 					const entered = yield* Deferred.make<void>();
 					function record() {
@@ -33,17 +32,18 @@ export function isolationVerbs(engine: DatabaseEngine) {
 					).pipe(Effect.forkScoped);
 					yield* Deferred.await(entered);
 					yield* Fiber.interrupt(fiber);
-					expect(yield* shared`select datname from pg_database where ${shared.in("datname", names)}`).toEqual([]);
+					yield* engine.close();
+					expect(yield* engine.admin`select datname from pg_database where ${engine.admin.in("datname", names)}`).toEqual([]);
 				}).pipe(Effect.timeout("5 seconds")),
 			),
 		clonesCommitAndDrop: () =>
 			engine.run(
 				Effect.gen(function* () {
-					const shared = yield* SqlClient.SqlClient;
 					expect(new Set(engine.cloneNames).size).toBe(2);
-					expect(yield* shared`select datname from pg_database where ${shared.in("datname", engine.cloneNames)}`).toEqual([]);
 					expect(yield* values).toEqual([{ value: "shared" }]);
 					expect(engine.fixture.counts).toEqual({ fixtures: 1, migrations: 1 });
+					yield* engine.close();
+					expect(yield* engine.admin`select datname from pg_database where ${engine.admin.in("datname", engine.cloneNames)}`).toEqual([]);
 				}),
 			),
 		workerDatabasesAreDropped: () =>
