@@ -11,6 +11,14 @@ export function foreignPrVerbs(
 	story: { readonly tell: (message: string) => void },
 ) {
 	return {
+		answerDecision: Effect.fnUntraced(function* (workId: string, action: "retry" | "release") {
+			story.tell(`the human answers ${workId}'s decision with ${action}`);
+			const decision = (yield* fleet.get(workId)).value.decision;
+			if (decision === undefined) {
+				return yield* Effect.die(new Error(`No decision to answer for ${workId}`));
+			}
+			return yield* fleet.resolve(workId, decision.id, fixture.respond(decision.id, action));
+		}),
 		closePrOnGithub: () => {
 			story.tell("the PR is closed without merging on GitHub");
 			Option.getOrThrow(github).state.status = "CLOSED";
@@ -24,6 +32,7 @@ export function foreignPrVerbs(
 			}
 			fixture.observations.set(observation.receipt.turnId, { ...observation, execution: "completed", output: REPORT });
 		}),
+		githubRequests: () => Option.getOrThrow(github).requests,
 		launched: fixture.launched,
 		mergePrOnGithub: () => {
 			story.tell("the PR is merged on GitHub");
