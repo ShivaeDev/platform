@@ -152,7 +152,7 @@ Import names from their defining module; there is no root entry. The package's `
 
 | Module | Exports |
 | --- | --- |
-| `config.ts` | `defineConfig`, `QualityConfig`, `Level`, `RuleSetting`, `RuleSettings`, `BuiltInRules` |
+| `config.ts` | `defineConfig`, `QualityConfig`, `Level` (`"error"`), `RuleSetting`, `RuleSettings`, `BuiltInRules` |
 | `rule.ts` | `defineRule`, `Rule`, `Configured`, `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext` |
 | `standard-schema.ts` | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue` |
 | `imports/fences/dsl.ts` | `fence` |

@@ -9,7 +9,7 @@ A module link opens its source. Type and value declarations with the same name a
 | Module | Exported names |
 | --- | --- |
 | [cli.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli.ts) | None; executable entry. |
-| [config.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/config.ts) | `Level`, `RuleSetting`, `RuleSettings`, `BuiltInRules`, `QualityConfig`, `defineConfig` |
+| [config.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/config.ts) | `Level` (`"error"`), `RuleSetting`, `RuleSettings`, `BuiltInRules`, `QualityConfig`, `defineConfig` |
 | [decoded.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/decoded.ts) | `Decoded`, `decodeWith`, `validOrFail` |
 | [failure.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/failure.ts) | `SetupFailure`, `GateFailed` |
 | [rule.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rule.ts) | `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext`, `Configured`, `Rule`, `defineRule` |
@@ -70,7 +70,7 @@ A module link opens its source. Type and value declarations with the same name a
 | [engine/evaluate.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/evaluate.ts) | `Outcome`, `evaluate`, `passes` |
 | [engine/run-rules.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/run-rules.ts) | `ActiveRule`, `runRules` |
 | [engine/session.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/session.ts) | `Session`, `scan`, `openSession` |
-| [engine/violation.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/violation.ts) | `ActiveLevel`, `Violation`, `keyOf`, `byLocation`, `groupBy`, `RuleIndex`, `covers`, `levelOf`, `registrable`, `unusedEntryProblem` |
+| [engine/violation.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/engine/violation.ts) | `ActiveLevel` (`"error"`), `Violation`, `keyOf`, `byLocation`, `groupBy`, `RuleIndex`, `covers`, `levelOf`, `registrable`, `unusedEntryProblem` |
 
 ## exceptions
 
@@ -171,7 +171,7 @@ A module link opens its source. Type and value declarations with the same name a
 | Module | Exported names |
 | --- | --- |
 | [report/plural.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/report/plural.ts) | `plural` |
-| [report/render.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/report/render.ts) | `WarningDetail`, `ReportContext`, `render` |
+| [report/render.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/report/render.ts) | `ReportContext`, `render` |
 | [report/stale.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/report/stale.ts) | `staleSections` |
 
 ## rules

@@ -17,13 +17,7 @@ function rule(id: string, level: ActiveRule["level"], check: () => Promise<Findi
 describe("running rules", () => {
 	it("tags each finding with its rule and level", async () => {
 		const violations = await Effect.runPromise(
-			runRules(
-				[
-					rule("local/a", "error", async () => [{ file: "src/a.ts", line: 2, message: "a" }]),
-					rule("local/b", "warn", async () => [{ file: "src/b.ts", message: "b", subject: "x" }]),
-				],
-				inputsOf({}),
-			),
+			runRules([rule("local/a", "error", async () => [{ file: "src/a.ts", line: 2, message: "a" }])], inputsOf({})),
 		);
 		expect(violations).toEqual([
 			{
@@ -32,13 +26,6 @@ describe("running rules", () => {
 				line: 2,
 				message: expect.stringContaining("a For a permanent exception, add to exceptions in quality.config.ts:"),
 				rule: "local/a",
-			},
-			{
-				file: "src/b.ts",
-				level: "warn",
-				message: expect.stringContaining("b For a permanent exception, add to exceptions in quality.config.ts:"),
-				rule: "local/b",
-				subject: "x",
 			},
 		]);
 	});

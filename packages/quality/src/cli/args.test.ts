@@ -3,8 +3,8 @@ import { parseCommand } from "#cli/args.ts";
 
 describe("command line", () => {
 	it.each([
-		[[], { _tag: "Lint", config: undefined, warnings: "summary" }],
-		[["lint", "--warnings", "all", "--config", "tools/quality.config.ts"], { _tag: "Lint", config: "tools/quality.config.ts", warnings: "all" }],
+		[[], { _tag: "Lint", config: undefined }],
+		[["lint", "--config", "tools/quality.config.ts"], { _tag: "Lint", config: "tools/quality.config.ts" }],
 		[["fix"], { _tag: "Fix", config: undefined }],
 		[["baseline", "write"], { _tag: "BaselineWrite", config: undefined, rules: [] }],
 		[["baseline", "write", "--rule", "a/b", "--rule", "c/d"], { _tag: "BaselineWrite", config: undefined, rules: ["a/b", "c/d"] }],
@@ -26,10 +26,8 @@ describe("command line", () => {
 
 	it.each([
 		[["lint", "--bogus"], "Unknown option"],
-		[["lint", "--warnings", "loud"], "--warnings takes summary or all"],
 		[["lint", "--rule", "a/b"], "--rule applies only to baseline write"],
 		[["baseline", "prune", "--rule", "a/b"], "--rule applies only to baseline write"],
-		[["baseline", "write", "--warnings", "all"], "--warnings applies only to lint"],
 		[["baseline"], "baseline takes write, prune, tighten or migrate"],
 		[["lint", "--against", "origin/main"], "--against applies only to baseline prune"],
 		[["baseline", "write", "--staged"], "--staged applies only to baseline tighten"],
