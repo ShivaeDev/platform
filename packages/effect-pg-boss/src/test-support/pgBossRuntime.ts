@@ -11,7 +11,13 @@ export const Jobs = makePgBoss("@test/PgBossStory");
 
 export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (line: string) => void) {
 	function layer<const T extends readonly JobRegistration[], R = never>(jobs: T, options?: Partial<PgBossLayerOptions<T, R>>) {
-		return Jobs.layer({ ...constructorOptions, clientFactory: state.factory, connectionString: state.connectionString, jobs, ...options });
+		return Jobs.layer({
+			...constructorOptions,
+			...(state.factory === undefined ? {} : { clientFactory: state.factory }),
+			connectionString: state.connectionString,
+			jobs,
+			...options,
+		});
 	}
 	function boot<const T extends readonly JobRegistration[], R = never>(jobs: T, options?: Partial<PgBossLayerOptions<T, R>>) {
 		return Effect.gen(function* () {

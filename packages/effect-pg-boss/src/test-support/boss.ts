@@ -1,11 +1,9 @@
 import { Context, Effect, Layer, Redacted } from "effect";
-import { PgBoss } from "pg-boss";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { batchBudget } from "#test/batchBudget.ts";
 import { budgetVerbs } from "#test/budgetVerbs.ts";
 import { clientEngine } from "#test/clientEngine.ts";
-import { constructorOptions } from "#test/fakeClient.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
 import { postgresLayer } from "#test/postgresLayer.ts";
 import { testingEngine } from "#test/testingEngine.ts";
@@ -63,7 +61,7 @@ export const realPostgres = boss.trait("database", "an isolated real PostgreSQL 
 	const database = Context.get(services, PostgresTestDatabase);
 	const isolated = yield* database.isolated;
 	state.connectionString = Redacted.value(Context.get(isolated, PostgresTestDatabase).url);
-	state.factory = () => new PgBoss({ ...constructorOptions, connectionString: state.connectionString });
+	state.factory = undefined;
 });
 
 export const clientFailsStart = boss.trait("client", "the client cannot start", (state) => {

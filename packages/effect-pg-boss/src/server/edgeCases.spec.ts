@@ -126,6 +126,7 @@ boss.it("rejects duplicate job names before registering either worker", [], func
 	expect(error.operation).toBe("register");
 	expect(error._tag === "PgBossError" && Redacted.value(error.original)).toEqual(new TypeError("pg-boss job names must be unique"));
 	expect(error.message).toBe("pg-boss register failed: TypeError");
+	expect(client.workers).toEqual([]);
 	expect(client.stopCalls).toBe(1);
 	for (const listener of client.errors) {
 		listener(Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" }));
