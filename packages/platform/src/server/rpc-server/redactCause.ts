@@ -40,12 +40,20 @@ export function redactCause<E>(cause: Cause.Cause<E>, sensitive: SensitiveKey = 
 		),
 	);
 }
+function diagnosticReason(reason: Cause.Reason<unknown>, sensitive: SensitiveKey): Cause.Cause<unknown> {
+	switch (reason._tag) {
+		case "Fail":
+			return Cause.fail(redactDefect(reason.error, sensitive));
+		case "Die":
+			return Cause.die(redactDefect(reason.defect, sensitive));
+		case "Interrupt":
+			return Cause.interrupt(reason.fiberId);
+	}
+}
 export function redactDiagnosticCause(cause: Cause.Cause<unknown>, sensitive: SensitiveKey = isSensitiveKey): Cause.Cause<unknown> {
 	return Cause.fromReasons(
 		cause.reasons.flatMap((reason) => {
-			const redacted = Cause.isFailReason(reason)
-				? Cause.fail(redactDefect(reason.error, sensitive))
-				: redactCause(Cause.fromReasons([reason]), sensitive);
+			const redacted = diagnosticReason(reason, sensitive);
 			const annotations = new Map(
 				[...reason.annotations]
 					.filter(([key]) => !sensitive("stack") || (key !== Cause.StackTrace.key && key !== Cause.InterruptorStackTrace.key))

@@ -52,7 +52,7 @@ export function appHostHttp<
 					: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), requestTracingLayer({ sensitive }));
 			const routes = HttpRouter.use((router) =>
 				Effect.gen(function* () {
-					const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive);
+					const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure);
 					const handler = yield* RpcServer.toHttpEffect(tracedGroup(options.group)).pipe(
 						Effect.provideService(RpcSerialization.RpcSerialization, wire),
 					);

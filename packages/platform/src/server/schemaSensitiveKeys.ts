@@ -58,6 +58,12 @@ function collectEncodedKeys(ast: SchemaAST.AST, keys: Set<string>) {
 		source = link.to;
 	}
 }
+function fixedOutput(ast: SchemaAST.AST): boolean {
+	if (ast._tag === "Union") {
+		return ast.types.every(fixedOutput);
+	}
+	return ast._tag === "Objects" && ast.indexSignatures.length === 0;
+}
 function maskedValue(ast: SchemaAST.AST, keys: ReadonlySet<string>, seen = new Set<SchemaAST.AST>()): boolean {
 	if (seen.has(ast)) {
 		return false;
@@ -70,7 +76,7 @@ function maskedValue(ast: SchemaAST.AST, keys: ReadonlySet<string>, seen = new S
 	let sensitive = false;
 	for (const link of ast.encoding ?? []) {
 		sensitive ||= containsSensitive(source, keys);
-		if (sensitive && (link.to._tag !== "Objects" || link.to.indexSignatures.length > 0)) {
+		if (sensitive && !fixedOutput(link.to)) {
 			return true;
 		}
 		source = link.to;
@@ -102,21 +108,22 @@ function collectFieldKeys(properties: SchemaAST.Objects["propertySignatures"], k
 export function schemaSensitiveKeys<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>, extra: readonly string[] = []) {
 	const keys = new Set(extra);
 	const nodes = new Set<SchemaAST.AST>();
-	function schema(value: Schema.Top) {
-		collect(value.ast, nodes);
-	}
-	function request(rpc: Rpc.AnyWithProps) {
-		schema(rpc.payloadSchema);
-		schema(rpc.successSchema);
-		schema(rpc.errorSchema);
-		schema(rpc.defectSchema);
-		for (const middleware of rpc.middlewares) {
-			schema(middleware.error);
-		}
-	}
+	const requests: Rpc.AnyWithProps[] = [];
 	for (const rpc of group.requests.values()) {
 		if (Rpc.isRpc(rpc)) {
-			request(rpc);
+			requests.push(rpc);
+		}
+	}
+	for (const rpc of requests) {
+		const schemas: Schema.Top[] = [
+			rpc.payloadSchema,
+			rpc.successSchema,
+			rpc.errorSchema,
+			rpc.defectSchema,
+			...[...rpc.middlewares].map((m) => m.error),
+		];
+		for (const schema of schemas) {
+			collect(schema.ast, nodes);
 		}
 	}
 	const properties = [...nodes].flatMap((ast) => (ast._tag === "Objects" ? ast.propertySignatures : []));
@@ -129,5 +136,13 @@ export function schemaSensitiveKeys<R extends Rpc.Any>(group: RpcGroup.RpcGroup<
 			collectEncodedKeys(ast, keys);
 		}
 	} while (keys.size !== previousSize);
-	return (key: string) => keys.has(key) || isSensitiveKey(key);
+	const roots = requests.map((rpc) => ({
+		die: maskedValue(rpc.defectSchema.ast, keys),
+		fail: [rpc.errorSchema, ...[...rpc.middlewares].map((m) => m.error)].some((schema) => maskedValue(schema.ast, keys)),
+		tag: rpc._tag,
+	}));
+	return Object.assign((key: string) => keys.has(key) || isSensitiveKey(key), {
+		maskFailure: (tag: string | undefined, reason: "Fail" | "Die") =>
+			roots.some((root) => (tag === undefined || tag === root.tag) && (reason === "Fail" ? root.fail : root.die)),
+	});
 }

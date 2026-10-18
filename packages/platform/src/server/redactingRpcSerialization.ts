@@ -1,11 +1,23 @@
 import { Predicate } from "effect";
 import type { RpcSerialization } from "effect/rpc";
 import { redact } from "#server/rpc-server/redact.ts";
-import type { SensitiveKey } from "#server/rpc-server/sensitive.ts";
+import { REDACTED, type SensitiveKey } from "#server/rpc-server/sensitive.ts";
 
-export function redactingRpcSerialization(wire: RpcSerialization.RpcSerialization["Service"], sensitive: SensitiveKey): typeof wire {
-	function reason(value: unknown): unknown {
+export function redactingRpcSerialization(
+	wire: RpcSerialization.RpcSerialization["Service"],
+	sensitive: SensitiveKey,
+	maskFailure: (tag: string | undefined, reason: "Fail" | "Die") => boolean = () => false,
+): typeof wire {
+	function reason(value: unknown, tag: string | undefined): unknown {
 		const redacted = redact(value, sensitive);
+		if (Predicate.isObjectOrArray(redacted)) {
+			if (Predicate.isTagged(value, "Fail") && maskFailure(tag, "Fail")) {
+				return { ...redacted, _tag: "Fail", error: REDACTED };
+			}
+			if (Predicate.isTagged(value, "Die") && maskFailure(tag, "Die")) {
+				return { ...redacted, _tag: "Die", defect: REDACTED };
+			}
+		}
 		if (
 			(Predicate.isTagged(value, "Fail") || Predicate.isTagged(value, "Die") || Predicate.isTagged(value, "Interrupt"))
 			&& Predicate.isObjectOrArray(redacted)
@@ -14,21 +26,10 @@ export function redactingRpcSerialization(wire: RpcSerialization.RpcSerializatio
 		}
 		return redacted;
 	}
-	function response(value: unknown): unknown {
-		if (Array.isArray(value)) {
-			return value.map(response);
-		}
-		if (Predicate.isTagged(value, "Defect") && Predicate.hasProperty(value, "defect")) {
-			return { ...value, defect: redact(value.defect, sensitive) };
-		}
-		if (
-			Predicate.isTagged(value, "Exit")
-			&& Predicate.hasProperty(value, "exit")
-			&& Predicate.isTagged(value.exit, "Failure")
-			&& Predicate.hasProperty(value.exit, "cause")
-		) {
-			const cause = Array.isArray(value.exit.cause) ? value.exit.cause.map(reason) : redact(value.exit.cause, sensitive);
-			return { ...value, exit: { ...value.exit, cause } };
+	function exit(value: unknown, tag: string | undefined): unknown {
+		if (Predicate.isTagged(value, "Failure") && Predicate.hasProperty(value, "cause")) {
+			const cause = Array.isArray(value.cause) ? value.cause.map((item) => reason(item, tag)) : redact(value.cause, sensitive);
+			return { ...value, cause };
 		}
 		return value;
 	}
@@ -36,7 +37,46 @@ export function redactingRpcSerialization(wire: RpcSerialization.RpcSerializatio
 		...wire,
 		makeUnsafe: () => {
 			const parser = wire.makeUnsafe();
-			return { ...parser, encode: (value) => parser.encode(response(value)) };
+			const requests = new Map<string, string>();
+			function response(value: unknown): unknown {
+				if (Array.isArray(value)) {
+					return value.map(response);
+				}
+				if (Predicate.isTagged(value, "Defect") && Predicate.hasProperty(value, "defect")) {
+					return { ...value, defect: maskFailure(undefined, "Die") ? REDACTED : redact(value.defect, sensitive) };
+				}
+				if (
+					Predicate.isTagged(value, "Exit")
+					&& Predicate.hasProperty(value, "requestId")
+					&& typeof value.requestId === "string"
+					&& Predicate.hasProperty(value, "exit")
+				) {
+					const tag = requests.get(value.requestId);
+					requests.delete(value.requestId);
+					return { ...value, exit: exit(value.exit, tag) };
+				}
+				return value;
+			}
+			return {
+				...parser,
+				decode: (data) => {
+					const decoded = parser.decode(data);
+					for (const request of decoded) {
+						if (
+							Predicate.isTagged(request, "Request")
+							&& Predicate.hasProperty(request, "id")
+							&& typeof request.id === "string"
+							&& Predicate.hasProperty(request, "tag")
+							&& typeof request.tag === "string"
+							&& !requests.has(request.id)
+						) {
+							requests.set(request.id, request.tag);
+						}
+					}
+					return decoded;
+				},
+				encode: (value) => parser.encode(response(value)),
+			};
 		},
 	};
 }
