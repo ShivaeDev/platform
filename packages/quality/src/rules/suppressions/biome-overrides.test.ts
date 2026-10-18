@@ -4,17 +4,21 @@ import { checkRule, issuesOf } from "#test/inputs.ts";
 
 type Options = Parameters<typeof biomeOverrides.configure>[0];
 
-const reason = "Vitest reads the fixture's first parameter and needs an object pattern.";
+const REASON = "Vitest reads the fixture's first parameter and needs an object pattern.";
 
-const check = async (texts: Readonly<Record<string, string>>, options?: Options, files?: readonly string[]) =>
-	(await checkRule(biomeOverrides, options, { files: files ?? [], texts })).map(
+async function check(texts: Readonly<Record<string, string>>, options?: Options, files?: readonly string[]) {
+	return (await checkRule(biomeOverrides, options, { files: files ?? [], texts })).map(
 		(finding) => `${finding.file}${finding.line === undefined ? "" : `:${finding.line}`} ${finding.message}`,
 	);
+}
 
-const weakened = async (config: unknown) =>
-	(await check({ "biome.json": JSON.stringify(config, null, "\t") })).map((line) => /"([^"]+)"/u.exec(line)?.[1]);
+async function weakened(config: unknown) {
+	return (await check({ "biome.json": JSON.stringify(config, null, "\t") })).map((line) => /"(?<rule>[^"]+)"/u.exec(line)?.groups?.rule);
+}
 
-const override = (includes: readonly string[], linter: unknown) => ({ overrides: [{ includes, linter }] });
+function override(includes: readonly string[], linter: unknown) {
+	return { overrides: [{ includes, linter }] };
+}
 
 describe("suppressions/biome-overrides finds", () => {
 	it("a rule turned off at the top level, at its line, scoped to the whole repository", async () => {
@@ -108,9 +112,11 @@ describe("suppressions/biome-overrides finds", () => {
 
 describe("suppressions/biome-overrides declarations", () => {
 	const config = JSON.stringify(override(["src/vitest.ts", "src/fixtures.ts"], { rules: { correctness: { noEmptyPattern: "off" } } }));
-	const declared = (includes: readonly [string, ...string[]], rule = "lint/correctness/noEmptyPattern") => ({
-		declared: [{ includes, reason, rule }],
-	});
+	function declared(includes: readonly [string, ...string[]], rule = "lint/correctness/noEmptyPattern") {
+		return {
+			declared: [{ includes, reason: REASON, rule }],
+		};
+	}
 
 	it("cover a weakening with the same rule and includes, in any order", async () => {
 		expect(await check({ "biome.json": config }, declared(["src/fixtures.ts", "src/vitest.ts"]))).toEqual([]);
@@ -133,9 +139,9 @@ describe("suppressions/biome-overrides declarations", () => {
 
 	it.each([
 		["a blank reason", { declared: [{ includes: ["src/a.ts"], reason: " ", rule: "lint/style/noNonNullAssertion" }] }, "reason"],
-		["no includes", { declared: [{ includes: [], reason, rule: "lint/style/noNonNullAssertion" }] }, "includes"],
-		["no rule", { declared: [{ includes: ["src/a.ts"], reason, rule: "" }] }, "rule"],
-		["an unknown field", { declared: [{ file: "src/a.ts", includes: ["src/a.ts"], reason, rule: "lint/style/noNonNullAssertion" }] }, "file"],
+		["no includes", { declared: [{ includes: [], reason: REASON, rule: "lint/style/noNonNullAssertion" }] }, "includes"],
+		["no rule", { declared: [{ includes: ["src/a.ts"], reason: REASON, rule: "" }] }, "rule"],
+		["an unknown field", { declared: [{ file: "src/a.ts", includes: ["src/a.ts"], reason: REASON, rule: "lint/style/noNonNullAssertion" }] }, "file"],
 	])("reject %s", async (_, options, field) => {
 		expect(await issuesOf(biomeOverrides, options)).toEqual([expect.stringContaining(field)]);
 	});
@@ -166,7 +172,7 @@ describe("narrow consumer Biome declarations", () => {
 		["files/includes", ["**", "!**/src//generated"]],
 		["files/includes", ["**", "!!src/generated"]],
 	])("rejects %s for %j", async (rule, includes) => {
-		expect(await issuesOf(biomeOverrides, { declared: [{ includes, reason, rule }] })).toEqual([expect.stringContaining("Whole checks")]);
+		expect(await issuesOf(biomeOverrides, { declared: [{ includes, reason: REASON, rule }] })).toEqual([expect.stringContaining("Whole checks")]);
 	});
 
 	it("accepts named generated-directory exclusions with a reason", async () => {
@@ -186,7 +192,7 @@ describe("narrow consumer Biome declarations", () => {
 	it.each(["!generated", "!src/generated", "!**/generated", "!**/src/*/generated", "!**/.generated"])(
 		"accepts the concrete directory exclusion %s",
 		async (pattern) => {
-			expect(await issuesOf(biomeOverrides, { declared: [{ includes: ["**", pattern], reason, rule: "files/includes" }] })).toEqual([]);
+			expect(await issuesOf(biomeOverrides, { declared: [{ includes: ["**", pattern], reason: REASON, rule: "files/includes" }] })).toEqual([]);
 		},
 	);
 });

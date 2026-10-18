@@ -3,10 +3,10 @@ import { Rpc, RpcClient, type RpcClientError, RpcGroup } from "effect/rpc";
 import { Forbidden } from "#errors/taxonomy.ts";
 import { Identity, OptionalIdentity, RequestId } from "#rpc/identity.ts";
 import { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
-import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";
-import type { OriginPolicy } from "#rpc-server/origin.ts";
-import { authenticatedLayer, maybeAuthenticatedLayer } from "#rpc-server/session.ts";
-import { requestTracingLayer } from "#rpc-server/tracing.ts";
+import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
+import type { OriginPolicy } from "#server/rpc-server/origin.ts";
+import { authenticatedLayer, maybeAuthenticatedLayer } from "#server/rpc-server/session.ts";
+import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { httpClient, type Provider, recorder, rpcHttp, serve } from "./harness.ts";
 
 const Account = RpcGroup.make(

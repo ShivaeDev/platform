@@ -2,9 +2,9 @@ import { Cause, Effect, ErrorReporter, Layer } from "effect";
 import { Headers } from "effect/http";
 import { RpcTest } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";
-import { redactingErrorReporter } from "#rpc-server/redact-cause.ts";
-import { requestTracingLayer } from "#rpc-server/tracing.ts";
+import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
+import { redactingErrorReporter } from "#server/rpc-server/redactCause.ts";
+import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { Crashes, Handlers } from "./defectFixture.ts";
 import { recorder } from "./harness.ts";
 export const redaction = storyKit({

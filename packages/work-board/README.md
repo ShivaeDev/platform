@@ -48,7 +48,7 @@ The work has three parts: choose a workspace once, author useful files per featu
 work-board ./project-notes --home plan.md
 ```
 
-This serves the existing folder on `http://127.0.0.1:4747`. The first screen at `/` is **Today**: a linked summary, **Needs you**, **In progress** and **Goals**. Human asks come from the shared attention projection. Needs-you entries stay within 48px. For questions with one-choice options, Answer opens a popover with buttons that record an answer against the current reviewed context. In progress shows up to eight items Fleet holds in executing, reviewing, repairing or adopting, with their stage and recorded PR link; **All in Now →** opens the full work view. Its summary counts all held items, including those beyond the preview. An unavailable Fleet source shows an unknown count. Goal cards show the next action clamped to two lines and done, in-progress and planned work with an **N of M done** count; criteria and their evidence counts sit behind a closed **Criteria** disclosure. These counts describe recorded source, not verified success. The optional home file remains a heading board through **Workspace notes**; other files remain documents. An empty Today links to getting-started guidance. **Getting started** remains available at `/_board/start`, with copyable project, investigation and agent-result templates. Save them through your editor or agent tool; the reader does not create files.
+This serves the existing folder on `http://127.0.0.1:4747`. The first screen at `/` is **Today**: a linked summary, **Needs you**, **In progress**, **Later** and **Goals**. Human asks come from the shared attention projection. Needs-you entries stay within 48px. For questions with one-choice options, Answer opens a popover with buttons that record an answer against the current reviewed context. In progress shows up to eight items Fleet holds in executing, reviewing, repairing or adopting, with their stage and recorded PR link; **All in Now →** opens the full work view. Its summary counts all held items, including those beyond the preview. An unavailable Fleet source shows an unknown count. Goal cards show the next action clamped to two lines and done, in-progress and planned work with an **N of M done** count; criteria and their evidence counts sit behind a closed **Criteria** disclosure. These counts describe recorded source, not verified success. **Later** lists parked work with its count, closed by default: deferred items that would otherwise need you, each showing its `next_action`. It appears only when such items exist. The optional home file remains a heading board through **Workspace notes**; other files remain documents. An empty Today links to getting-started guidance. **Getting started** remains available at `/_board/start`, with copyable project, investigation and agent-result templates. Save them through your editor or agent tool; the reader does not create files.
 
 A heading board uses `#` for its title, text before the first `##` for its intro, `##` for sections and `###` for cards. A section without cards shows its text. A `---` after the last heading starts the footer; a divider inside a card before another heading stays in that card. Code spans, reference links, footnotes and `<details>` can stay in the Markdown body. Leave a blank line after `<summary>` and before `</details>` when its content is Markdown.
 
@@ -179,7 +179,7 @@ The view refreshes through `client.api.diagnostics.query()` every 15 seconds whi
 
 A recorded answer to a uniquely registered ordinary request retires that ask only for the reviewed source bytes and path. Managed decisions retire after an exact-context acknowledgement or when all their targets are closed or deferred. Active asks for the same target set share one row, using the newest reason and response link. Agent-only asks remain available through the typed attention projection. Source diagnostics never create human asks. Work cards show Fleet state, or **needs-you** for an authored ask when Fleet has no item state. These projections do not edit source status.
 
-Owner labels are local conventions: `codex`, `claude`, `fleet`, `orchestrator`, `agent`, `automation`, `bot` and `copilot`, including labels beginning with those names followed by a dash, underscore, dot, space or slash, denote automation. Other nonblank owner labels denote people. A human owner needs a nonblank `next_action` to enter Today. Statuses `closed`, `done`, `superseded`, `completed`, `cancelled`, `canceled`, `resolved` and `released` leave the queue. These rules classify waiting work; they do not edit the recorded status.
+Owner labels are local conventions: `codex`, `claude`, `fleet`, `orchestrator`, `agent`, `automation`, `bot` and `copilot`, including labels beginning with those names followed by a dash, underscore, dot, space or slash, denote automation. Other nonblank owner labels denote people. A human owner needs a nonblank `next_action` to enter Today. A `deferred` item stays out of Needs you and moves to **Later**, but remains open everywhere else. Statuses `closed`, `done`, `superseded`, `completed`, `cancelled`, `canceled`, `resolved` and `released` leave the queue. These rules classify waiting work; they do not edit the recorded status.
 
 Fleet decision sources, captured questions, their answers and request receipts are hidden by default in Library. **Show Fleet records (N)** includes them in the current view. Ordinary authored questions remain visible, and all underlying files remain readable and searchable with the `records:` query prefix.
 
@@ -216,7 +216,7 @@ Explicit opt-in enables writes. Open the item’s answer card, read the request 
 
 Registration captures one question generation in `responses/`; submission creates an independent response file there. Original source bytes stay unchanged. Source edits or moves require a fresh review/preview; historical replies still identify the old context. Same-identity/content retries reconcile, conflicting contributions are rejected, and uncertain publication is reported explicitly.
 
-An execution integration may mark a generated `kind: decision` request with `attention[].managed: true`. A separate immutable `kind: result` document records `request_receipt` with the registered question ID, its `reviewedRevision`, `recordedAt` and disposition `applied` or `superseded`. An applied receipt names the unique current `answer`; clarification and deferral cannot acknowledge it. Supersession retires the request without inventing an answer. Only an unambiguous receipt matching the exact current source path and bytes removes the managed request from Today and the item's answer cards. `currentResponses(responses)` from `@shivaedev/work-board/responses/current.ts` selects the latest response per author, ordered by recorded time and then response ID, and removes explicitly superseded responses. Managed acknowledgements use this selection; different authors remain competing, and superseding an author’s latest response does not revive an earlier answer. `src/responses/current.test.ts` and Fleet’s PostgreSQL question tests cover this rule. The source remains unchanged and readable. Ordinary authored requests remain source-driven; receipts grant no execution, acceptance or delivery authority.
+An execution integration may mark a generated `kind: decision` request with `attention[].managed: true`. A separate immutable `kind: result` document records `request_receipt` with the registered question ID, its `reviewedRevision`, `recordedAt` and disposition `applied` or `superseded`. An applied receipt names the unique current `answer`; clarification and deferral cannot acknowledge it. Supersession retires the request without inventing an answer. A receipt counts only when it matches the exact current source path and bytes. When every receipt for the question counts, the request leaves Today and the item's answer cards, and the reading shows the applied receipt if there is one. When only some of several receipts count, Today keeps the request with a problem naming the receipt files instead of offering an answer. `src/server/attention/settledReceipts.spec.ts` covers both cases. `currentResponses(responses)` from `@shivaedev/work-board/responses/current.ts` selects the latest response per author, ordered by recorded time and then response ID, and removes explicitly superseded responses. Managed acknowledgements use this selection; different authors remain competing, and superseding an author’s latest response does not revive an earlier answer. `src/responses/current.test.ts` and Fleet’s PostgreSQL question tests cover this rule. The source remains unchanged and readable. Ordinary authored requests remain source-driven; receipts grant no execution, acceptance or delivery authority.
 
 Browser drafts use effect-form’s persisted drafts, keyed by workspace, item and request, with a 256 KiB limit per draft and a seven-day lifetime after the last edit. Navigation, reload and source refresh retain them; text edited while an earlier save completes remains an unsaved draft with a fresh identity. Malformed or expired drafts are discarded; unavailable storage leaves the form usable. **Clear draft** restores the current form’s initial values without changing saved records or saved responses.
 
@@ -292,24 +292,24 @@ Reported `evidence.checked_revision` is a Git revision, distinct from the report
 
 ### API and integration
 
-Import the module that defines a name. The package has no root entry; its manifest maps `./*.ts` to defining source/declaration/runtime modules, including nested paths. The main integration surfaces are:
+Import the module that defines a name. The package has no root entry; a module's import path is its path under `src/`, which the `./*.ts` export maps to its source, declaration and runtime files. The browser bundle sources under `client/` stay unexported, except `client/client.ts` and `client/document/View.ts`. The main integration surfaces are:
 
 | Module | Names and purpose |
 | --- | --- |
-| `board.ts` | `BoardOptions`, `boardLayer(options)`: Effect HTTP router Layer for the workspace |
-| `serve.ts` | `ServeOptions`, `HOST`, `serveBoard(options)`: loopback Board serving through Platform’s `appHost` |
-| `responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
-| `browser/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
+| `server/board.ts` | `BoardOptions`, `boardLayer(options)`: Effect HTTP router Layer for the workspace |
+| `server/serve.ts` | `ServeOptions`, `HOST`, `serveBoard(options)`: loopback Board serving through Platform’s `appHost` |
+| `server/responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
+| `client/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
 | `rpc/contract.ts` | `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
-| `browser/document/schema.ts`, `browser/document/View.ts` | `Document`, `DocumentRequest`, `DocumentView`, `DocumentViewProps`: source query data and React document rendering |
+| `browser/document/schema.ts`, `client/document/View.ts` | `Document`, `DocumentRequest`, `DocumentView`, `DocumentViewProps`: source query data and React document rendering |
 | `rpc/responseContract.ts` | `responseContract`: question/read/wait queries and register/record commands |
 | `rpc/handoffContract.ts` | `handoffContract`: source/history queries and reviewed preparation command |
-| `browser/navigation/schema.ts` | `Navigation`: compact navigation result schema/type |
+| `browser/Navigation.ts` | `Navigation`: compact navigation result schema/type |
 | `browser/navigation/library.ts` | `Library`, `LibraryFile`, `LibraryInput`: titled document and folder query schemas |
 | `browser/responses/schema.ts` | Question, response, answer and draft schemas/types |
 | `rpc/rejections.ts` | `documentRejections`, `DocumentRejection`, `responseRejections`, `ResponseRejection`: declared taxonomy and application errors; `PublicationUncertain` and `Unanswered` |
 | `browser/handoffs/schema.ts` | Handoff record, input, reading and source-preview schemas/types |
-| `metadata/schema.ts`, `metadata/parse.ts`, `metadata/model.ts` | Source schemas, parsed fields/diagnostics and explicit identity/reference model |
+| `metadata/schema.ts`, `server/metadata/parse.ts`, `server/metadata/model.ts` | Source schemas, parsed fields/diagnostics and explicit identity/reference model |
 
 Other defining modules are also exposed by the wildcard. Their [source directory](https://github.com/ShivaeDev/platform/tree/main/packages/work-board/src) contains file/watch, HTTP, rendering, search, views and result-review helpers. Compose `boardLayer` to retain the package's source policy and request guards.
 
@@ -317,7 +317,7 @@ Other defining modules are also exposed by the wildcard. Their [source directory
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
-import { boardLayer } from "@shivaedev/work-board/board.ts";
+import { boardLayer } from "@shivaedev/work-board/server/board.ts";
 import { Layer } from "effect";
 import { HttpRouter } from "effect/http";
 
@@ -341,7 +341,7 @@ try {
 
 ```ts
 import { Effect } from "effect";
-import { agentRequest } from "@shivaedev/work-board/responses/agent.ts";
+import { agentRequest } from "@shivaedev/work-board/server/responses/agent.ts";
 
 const question = await Effect.runPromise(
   agentRequest("question", {
@@ -357,7 +357,7 @@ Read the returned context before registration. This second program takes the rev
 
 ```ts
 import { Effect } from "effect";
-import { agentRequest } from "@shivaedev/work-board/responses/agent.ts";
+import { agentRequest } from "@shivaedev/work-board/server/responses/agent.ts";
 
 const [revision] = process.argv.slice(2);
 if (!revision) throw new Error("Pass the reviewed revision as the first argument.");
@@ -378,7 +378,7 @@ console.log(JSON.stringify(answer, null, 2));
 #### Use the native browser client
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/browser/client.ts";
+import { browserClient } from "@shivaedev/work-board/client/client.ts";
 
 export async function registerReviewedQuestion(url: string, revision: string) {
   const client = browserClient(url);
@@ -416,7 +416,7 @@ Each criterion shows its progress split in one small line, targeting items and r
 For a handoff, first read the preview with `client.run(client.handoffs.handoffSource.run({ item: "work.search" }))` and inspect its `context`. This complete program takes that reviewed path and revision as inputs:
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/browser/client.ts";
+import { browserClient } from "@shivaedev/work-board/client/client.ts";
 
 export async function prepareReviewedHandoff(
   url: string,
@@ -452,7 +452,7 @@ Pass `preview.source` and `preview.reviewedRevision` only after reviewing the pr
 Result reading returns the report, linked criteria and revision-pinned feedback from its typed query:
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/browser/client.ts";
+import { browserClient } from "@shivaedev/work-board/client/client.ts";
 
 export async function readReturnedResult(url: string, item: string) {
   const client = browserClient(url);
@@ -476,7 +476,7 @@ RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `
 
 Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities reject with `NotFound` and `Conflict`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
 
-Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router. Its route loaders read document and projection contract queries through `effect-react` in the shell's native registry; preloading and navigation share those reads. Document and item pages mount `DocumentView` from the typed document query; Today, Goals, Now, Library and System render typed projection queries in React, as do Workspace notes, Start, Handoff and Result. Their direct URLs load the shell and require JavaScript. The HTML page RPC is removed. The optional `reading` data supplies source context, backlinks, criterion claims and managed receipts; request `prompts` supply answer controls. Hosts can mount `DocumentView` directly from source-query data, or pass `context` and `introduction` React nodes for its document layout.
+Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/client/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router. Its route loaders read document and projection contract queries through `effect-react` in the shell's native registry; preloading and navigation share those reads. Document and item pages mount `DocumentView` from the typed document query; Today, Goals, Now, Library and System render typed projection queries in React, as do Workspace notes, Start, Handoff and Result. Their direct URLs load the shell and require JavaScript. The HTML page RPC is removed. The optional `reading` data supplies source context, backlinks, criterion claims and managed receipts; request `prompts` supply answer controls. Hosts can mount `DocumentView` directly from source-query data, or pass `context` and `introduction` React nodes for its document layout.
 
 #### Headless addon API
 
@@ -484,17 +484,17 @@ Work Fleet uses five server entry points and one portable metadata type entry po
 
 | Entry point | API object and members |
 | --- | --- |
-| `integration/board.ts` | `board`: `metadataParse`, `metadataModel`, `listMarkdown`, `markdownPath`, `watchChanges`, `searchSnapshot`; exported types `Diagnostic`, `ParsedMetadata`, `MetadataDocument`, `MetadataModel`, `MarkdownFile`, `Changes`, `Snapshot` |
+| `server/integration/board.ts` | `board`: `metadataParse`, `metadataModel`, `listMarkdown`, `markdownPath`, `watchChanges`, `searchSnapshot`; exported types `Diagnostic`, `ParsedMetadata`, `MetadataDocument`, `MetadataModel`, `MarkdownFile`, `Changes`, `Snapshot` |
 | `integration/metadata.ts` | Portable types `Diagnostic`, `ParsedMetadata`, `MetadataDocument`, `MetadataModel`, also available through `integration/board.ts` |
-| `integration/responses.ts` | `responses`: `Responses`, `Workspace`, `WorkspaceConfig`, `readResponses`, `currentResponses`, `makeResponse`, `publish`, `revisionOf`, `questionId`, `questionFrom`, `questionMarkdown`, `responseMarkdown`, `DraftInput`, `Question`, `Reading`, `RecordedResponse`; exported types `DraftInput`, `Question`, `Reading`, `RecordedResponse`, `WorkspaceOptions` |
-| `integration/attention.ts` | `attention`: `RequestReceipt`, `managedRequestReceipt`, `projection(snapshot)`; exported types `RequestReceipt`, `AttentionProjection` |
-| `integration/diagnostics.ts` | `diagnostics`: `FleetHealth`, `CapacityRejection`, `FLEET_HEALTH_NAME`, `fleetHealth`, `DiagnosticsContract`, `DAEMON_PORT`, `DAEMON_RPC_PATH`, `DiagnosticsSources`, `SourceFailure`, `diagnostics`, `codexRateLimits`, `codexLimits`, `githubLimits`; exported types `FleetHealth`, `CapacityRejection`, `SourceFailure` |
-| `integration/publication.ts` | `publication`: `directoryPath`, `validateDirectory` for addons that publish their own records through open directory handles |
+| `server/integration/responses.ts` | `responses`: `Responses`, `Workspace`, `WorkspaceConfig`, `readResponses`, `currentResponses`, `makeResponse`, `publish`, `revisionOf`, `questionId`, `questionFrom`, `questionMarkdown`, `responseMarkdown`, `DraftInput`, `Question`, `Reading`, `RecordedResponse`; exported types `DraftInput`, `Question`, `Reading`, `RecordedResponse`, `WorkspaceOptions` |
+| `server/integration/attention.ts` | `attention`: `RequestReceipt`, `managedRequestReceipt`, `projection(snapshot)`; exported types `RequestReceipt`, `AttentionProjection` |
+| `server/integration/diagnostics.ts` | `diagnostics`: `FleetHealth`, `CapacityRejection`, `FLEET_HEALTH_NAME`, `fleetHealth`, `DiagnosticsContract`, `DAEMON_PORT`, `DAEMON_RPC_PATH`, `DiagnosticsSources`, `SourceFailure`, `diagnostics`, `codexRateLimits`, `codexLimits`, `githubLimits`; exported types `FleetHealth`, `CapacityRejection`, `SourceFailure` |
+| `server/integration/publication.ts` | `publication`: `directoryPath`, `validateDirectory` for addons that publish their own records through open directory handles |
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { board } from "@shivaedev/work-board/integration/board.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
 
 const read = Effect.scoped(Effect.gen(function* () {
   const changes = yield* board.watchChanges("./notes");
@@ -503,7 +503,7 @@ const read = Effect.scoped(Effect.gen(function* () {
 })).pipe(Effect.provide(NodeServices.layer));
 ```
 
-The snapshot retains parsed documents, identity diagnostics and unavailable paths. Provide `responses.Workspace.layer` to `responses.Responses.layer`, then supply `responses.WorkspaceConfig` with that typed index, the same watcher, workspace `root`, optional `home` and explicit `writable` choice. The workspace service exposes `settings()` (root, real root, changes, home and write choice), `index()` (with `PlatformError` failures) and `document(url)`; the Board runtime and its in-memory harness compose the same service and RPC Layer. Use the service to register reviewed questions and record answers; `responses.publish` writes an immutable record under `responses/` (or `handoffs/` when selected), and the record helpers preserve exact reviewed bytes and source path. Agent-owned items remain ordinary Markdown edits. `attention.projection(snapshot)` returns the typed attention projection: `you`, `agents`, `resolved`, `parked`, `issues` and `complete`, with `items` retaining the same rows as `you` for existing clients. `attention.managedRequestReceipt` qualifies an acknowledgement against those records; it does not confer execution or acceptance authority. The publication helpers retain the filesystem limits below.
+The snapshot retains parsed documents, identity diagnostics and unavailable paths. Provide `responses.Workspace.layer` to `responses.Responses.layer`, then supply `responses.WorkspaceConfig` with that typed index, the same watcher, workspace `root`, optional `home` and explicit `writable` choice. The workspace service exposes `settings()` (root, real root, changes, home and write choice), `index()` (with `PlatformError` failures) and `document(url)`; the Board runtime and its in-memory harness compose the same service and RPC Layer. Use the service to register reviewed questions and record answers; `responses.publish` writes an immutable record under `responses/` (or `handoffs/` when selected), and the record helpers preserve exact reviewed bytes and source path. Agent-owned items remain ordinary Markdown edits. `attention.projection(snapshot)` returns the typed attention projection: `you`, `agents`, `resolved`, `parked`, `later`, `issues` and `complete`, with `items` retaining the same rows as `you` for existing clients. `attention.managedRequestReceipt` qualifies an acknowledgement against those records; it does not confer execution or acceptance authority. The publication helpers retain the filesystem limits below.
 
 Fleet's production imports are fenced to these six entry points by `pnpm lint`; its test fixtures may still use Board modules directly. The packed-package consumer exercises the headless read, response and receipt path through these exports.
 

@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#errors/taxonomy.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
-import { rpcBoundary } from "#rpc-server/boundary.ts";
+import { rpcBoundary } from "#server/rpc-server/boundary.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError, ServiceUnavailable]);
 export const Api = RpcGroup.make(Rpc.make("Save", { error: Rejection, payload: { mode: Schema.String }, success: Schema.String })).middleware(

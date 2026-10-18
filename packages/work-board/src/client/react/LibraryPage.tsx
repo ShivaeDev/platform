@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { LibraryContents } from "./LibraryContents.tsx";
+import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 export function LibraryPage({ api, url = "/_board/library" }: { readonly api: ShellApi; readonly url?: string }) {

@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/testing.ts";
+import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { goalPageFixture } from "#test/goalPageFixture.ts";
 import { renderBoard } from "#test/react.tsx";
 import { DocumentMain } from "./DocumentMain.tsx";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 it.live.each(["result", "decision", "question", "response"] as const)("shows an implementing %s in its criterion and work group", function* (kind) {
 	const id = `${kind}.linked`;

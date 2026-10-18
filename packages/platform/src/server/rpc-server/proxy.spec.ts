@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { trustedProxyPeer } from "#rpc-server/local.ts";
+import { trustedProxyPeer } from "#server/rpc-server/local.ts";
 import { forwarded, transport, trustedProxy } from "#test/rpc/transportStory.ts";
 
 transport.it("trusts forwarded authority only from the configured transport peer", [trustedProxy("10.0.0.2")], function* ({ guarded }) {

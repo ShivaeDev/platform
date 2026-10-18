@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { HttpServerRequest } from "effect/http";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 import { Socket } from "effect/socket";
-import type { OriginPolicy } from "#rpc-server/origin.ts";
+import type { OriginPolicy } from "#server/rpc-server/origin.ts";
 import { Api, serverLayer } from "#test/rpc/api.ts";
 import { ORIGIN, type Provider } from "#test/rpc/harness.ts";
 

@@ -1,15 +1,15 @@
 import { Option } from "effect";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
-import { navigationQuery, routeQueryOptions } from "#client/page/routeQuery.ts";
 import { fileUrl } from "#files/url.ts";
 import { inProgressItems } from "./inProgressItems.ts";
+import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { TodayGoals } from "./TodayGoals.tsx";
-import { TodayNeeds } from "./TodayNeeds.tsx";
+import { TodayLater, TodayNeeds } from "./TodayNeeds.tsx";
 import { TodayProgress } from "./TodayProgress.tsx";
 
-const todayIds = { goals: "today-goals", needs: "needs-you", progress: "in-progress" };
+const todayIds = { goals: "today-goals", later: "later", needs: "needs-you", progress: "in-progress" };
 
 export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data: InboxProjection }) {
 	const query = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
@@ -43,6 +43,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 						<h2 className="mt-0 mb-3 font-semibold text-lg">In progress</h2>
 						<TodayProgress data={fleet} failed={Option.isSome(fleetQuery.cause)} />
 					</section>
+					{data.complete && data.later.length > 0 && <Later items={data.later} />}
 				</div>
 				<section className="min-w-0" id={todayIds.goals}>
 					<h2 className="mt-0 mb-3 font-semibold text-lg">Goals</h2>
@@ -64,6 +65,20 @@ function NeedsYou({ api, data }: { readonly api: ShellApi; readonly data: InboxP
 					Getting started
 				</a>
 			)}
+		</section>
+	);
+}
+
+function Later({ items }: { readonly items: InboxProjection["later"] }) {
+	return (
+		<section className="min-w-0" id={todayIds.later}>
+			<details>
+				<summary className="mb-3 cursor-pointer">
+					<h2 className="m-0 inline font-semibold text-lg">Later</h2>
+					<span className="ml-2 text-muted-foreground text-sm tabular-nums">{items.length}</span>
+				</summary>
+				<TodayLater items={items} />
+			</details>
 		</section>
 	);
 }

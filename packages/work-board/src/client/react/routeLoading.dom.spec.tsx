@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { renderRouter } from "#test/renderRouter.tsx";
 
@@ -46,17 +46,14 @@ it.live.each(routes)("preloads $url through the shared query registry before nav
 		expect(view.container.querySelector("header")).toBe(header);
 		expect(reads.filter((read) => read === `document:${kind === "work" ? "/_board/item/note.next/" : url}`)).toHaveLength(kind === "today" ? 0 : 1);
 		expect(view.container.querySelector(kind === "document" ? "[data-react-document]" : "[data-react-projection]")).not.toBeNull();
-		expect(reads).not.toContain(`page:${url}`);
 	} finally {
 		yield* Effect.promise(() => view.unmount());
 	}
 });
 
 it.live("loads the new projection query when only the search parameters change", function* () {
-	const reads: string[] = [];
 	const view = yield* Effect.promise(() =>
 		renderRouter(files, "/_board/work?view=board", {
-			beforeRead: (kind, url) => Effect.sync(() => reads.push(`${kind}:${url}`)).pipe(Effect.asVoid),
 			home: "home.md",
 		}),
 	);
@@ -69,7 +66,6 @@ it.live("loads the new projection query when only the search parameters change",
 				await view.router.preloadRoute({ params: { _splat: "_board/work" }, search: { view: "table" }, to: "/$" });
 			}),
 		);
-		expect(reads).not.toContain("page:/_board/work?view=table");
 		expect(view.container.querySelector(".work-eyebrow")?.textContent).toContain("BOARD");
 		expect(view.container.querySelector<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=board");
 		yield* Effect.promise(() =>
@@ -82,7 +78,6 @@ it.live("loads the new projection query when only the search parameters change",
 		);
 		expect(view.container.querySelector(".work-table")).not.toBeNull();
 		expect(view.container.querySelector(".work-eyebrow")?.textContent).toContain("TABLE");
-		expect(reads).not.toContain("page:/_board/work?view=table");
 	} finally {
 		yield* Effect.promise(() => view.unmount());
 	}

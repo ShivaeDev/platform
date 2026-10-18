@@ -4,8 +4,8 @@ import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { AuthUnavailable } from "#errors/taxonomy.ts";
 import { Identity, SessionUser } from "#rpc/identity.ts";
 import { AuthenticatedUser } from "#rpc/middleware.ts";
-import type { OriginPolicy } from "#rpc-server/origin.ts";
-import { authenticatedUserLayer, type SessionPolicy, type UserSessionShape } from "#rpc-server/session.ts";
+import type { OriginPolicy } from "#server/rpc-server/origin.ts";
+import { authenticatedUserLayer, type SessionPolicy, type UserSessionShape } from "#server/rpc-server/session.ts";
 
 const Api = RpcGroup.make(
 	Rpc.make("Whoami", {

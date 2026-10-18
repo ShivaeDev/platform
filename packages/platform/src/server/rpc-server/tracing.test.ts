@@ -1,8 +1,8 @@
 import { Cause, Exit, Option } from "effect";
 import { expect } from "vitest";
-import { rejectedField } from "#errors/rejected-field.ts";
+import { rejectedField } from "#errors/rejectedField.ts";
 import { Conflict } from "#errors/taxonomy.ts";
-import { isSensitiveKey } from "#rpc-server/sensitive.ts";
+import { isSensitiveKey } from "#server/rpc-server/sensitive.ts";
 import { tracePolicy, tracing } from "#test/rpc/tracingStory.ts";
 
 tracing.it("a caller's request id reaches handlers, log annotations and the RPC server span", [], function* ({ echo, annotations, spans }) {

@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { type OriginPolicy, trustedOrigins } from "#rpc-server/origin.ts";
+import { type OriginPolicy, trustedOrigins } from "#server/rpc-server/origin.ts";
 import { makeApp } from "./api.ts";
 import { annotationsOf, createProvider, ORIGIN, signup } from "./harness.ts";
 import { expireSession, signOut } from "./sessionLifecycle.ts";

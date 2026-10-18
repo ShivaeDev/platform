@@ -1,12 +1,12 @@
 import { Cause, Option } from "effect";
 import { useEffect, useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
-import { documentQuery } from "#client/page/routeQuery.ts";
 import { DocumentPage } from "./DocumentPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionMain } from "./ProjectionMain.tsx";
 import { RemainingMain } from "./RemainingMain.tsx";
+import { documentQuery } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
 import { useDocumentPage } from "./useDocumentPage.ts";

@@ -2,8 +2,8 @@ import { Effect, Option } from "effect";
 import { Headers, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { RpcSerialization } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { localRpcGuard, loopbackOnly, sameOrigin } from "#rpc-server/local.ts";
-import { transportHeaders } from "#rpc-server/transport.ts";
+import { localRpcGuard, loopbackOnly, sameOrigin } from "#server/rpc-server/local.ts";
+import { transportHeaders } from "#server/rpc-server/transportHeaders.ts";
 
 export const forwarded = {
 	"content-type": "application/ndjson",

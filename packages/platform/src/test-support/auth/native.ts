@@ -2,7 +2,7 @@ import type { BetterAuthOptions } from "better-auth";
 import { Effect } from "effect";
 import { withTestTransaction } from "@shivaedev/effect-prisma/testing/transaction.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import type { EffectPrismaAdapterOptions } from "#better-auth/adapter.ts";
+import type { EffectPrismaAdapterOptions } from "#server/better-auth/adapter.ts";
 import { Database, DatabaseLive, databaseUrl } from "./database.ts";
 import { authEngine } from "./engine.ts";
 import { filterRows } from "./filterCases.ts";

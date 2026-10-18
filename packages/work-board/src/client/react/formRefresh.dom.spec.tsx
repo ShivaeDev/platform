@@ -1,11 +1,11 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderBoard } from "#test/react.tsx";
 import { boardRouter } from "./boardRouter.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

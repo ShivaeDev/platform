@@ -3,7 +3,7 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import type { ReactNode } from "react";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { render } from "@shivaedev/effect-react/client/testing.ts";
 import type { Reader } from "#client/client.ts";
 import { FormContext } from "#client/react/FormContext.ts";
 import { workContract, workRpcs } from "#rpc/contract.ts";
@@ -20,11 +20,6 @@ function boardClient(files: Readonly<Record<string, string>>, options?: BoardFix
 	}) {}
 	return Object.assign(bind(workContract, Client), {
 		forms: { handoffs: bind(handoffContract, Client), responses: bind(responseContract, Client), runtime: Client.runtime },
-		page: {
-			query: () => {
-				throw new Error("HTML page queries are forbidden");
-			},
-		},
 	});
 }
 

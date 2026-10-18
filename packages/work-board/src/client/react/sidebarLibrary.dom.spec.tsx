@@ -1,11 +1,11 @@
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { navigationQuery } from "#client/page/routeQuery.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { choose, chrome, click, control } from "#test/chrome.ts";
 import { goalsFixture } from "#test/goalsFixture.ts";
 import { inboxFixture } from "#test/inboxFixture.ts";
+import { navigationQuery } from "./routeQuery.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

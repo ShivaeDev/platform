@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { render } from "@shivaedev/effect-react/client/testing.ts";
 import { GoalProgress } from "./GoalProgress.tsx";
 
 it.each([false, true])("shows three progress groups and a quiet done count (compact: %s)", async (compact) => {

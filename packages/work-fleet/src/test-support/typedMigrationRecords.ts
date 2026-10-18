@@ -15,7 +15,6 @@ const published = {
 
 export function typedMigrationRecords(): readonly FleetRecord[] {
 	const first: FleetRecord = {
-		admissionReady: false,
 		areas: ["area", "second", "area"],
 		attempts: typedMigrationAttempts,
 		attentionOwner: "orchestrator",
@@ -123,4 +122,12 @@ export function typedMigrationRecords(): readonly FleetRecord[] {
 		},
 		{ attempts: [], boardRevision: "revision", cwd: "/synthetic", preparation: prepared(), prompt: "minimal", stage: "prepared", workId: "absent" },
 	];
+}
+
+export function legacyTypedMigrationRecords() {
+	return typedMigrationRecords().map((record) => ({
+		...record,
+		admissionReady: false,
+		history: record.history?.map((cycle) => ({ ...cycle, admissionReady: true })),
+	}));
 }

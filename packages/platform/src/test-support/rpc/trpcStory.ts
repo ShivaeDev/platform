@@ -3,10 +3,10 @@ import { initTRPC } from "@trpc/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Effect, Layer, ManagedRuntime, Schema } from "effect";
 import superjson from "superjson";
-import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts";
-import { rejectWith } from "@shivaedev/effect-trpc/rejection.ts";
-import { rejectionFormatter } from "@shivaedev/effect-trpc/rejection-formatter.ts";
-import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
+import { rejectWith } from "@shivaedev/effect-trpc/server/rejection.ts";
+import { rejectionFormatter } from "@shivaedev/effect-trpc/server/rejectionFormatter.ts";
+import { makeRequestServices } from "@shivaedev/effect-trpc/server/requestServices.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import {
 	AuthUnavailable,

@@ -1,8 +1,8 @@
 import { inspect } from "node:util";
 import { Cause, ErrorReporter, Exit } from "effect";
 import { expect, it } from "vitest";
-import { redact } from "#rpc-server/redact.ts";
-import { redactDefect } from "#rpc-server/redact-cause.ts";
+import { redact } from "#server/rpc-server/redact.ts";
+import { redactDefect } from "#server/rpc-server/redactCause.ts";
 import { redaction } from "#test/rpc/redaction.ts";
 
 function leaks(value: unknown, secrets: readonly string[]) {

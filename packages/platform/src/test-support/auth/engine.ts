@@ -1,8 +1,8 @@
 import type { BetterAuthOptions } from "better-auth";
 import { Effect } from "effect";
-import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts";
-import { type EffectPrismaAdapterOptions, effectPrismaAdapter } from "#better-auth/adapter.ts";
-import { makePlatformRuntime } from "#runtime/make.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
+import { type EffectPrismaAdapterOptions, effectPrismaAdapter } from "#server/better-auth/adapter.ts";
+import { makePlatformRuntime } from "#server/runtime/makePlatform.ts";
 import { Database, DatabaseLive } from "./database.ts";
 export const authEngine = Effect.fnUntraced(function* () {
 	const db = yield* Database;

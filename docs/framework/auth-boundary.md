@@ -7,17 +7,17 @@ The executable evidence is [session.test.ts](../../packages/platform/src/server/
 Platform provides reusable middleware for this boundary:
 
 ```ts
-import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/platform/rpc-server/session.ts";
-import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts";
+import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
+import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
 ```
 
 Use these with the shared error classes described in [errors and request context](./request-context.md).
 
 ## Reading the current user
 
-For a signed-in handler that needs id, name and email, declare `AuthenticatedUser` from `@shivaedev/platform/rpc/middleware.ts` and read `SessionUser` from `@shivaedev/platform/rpc/identity.ts`. Merge `authenticatedUserLayer(sessions)` from `@shivaedev/platform/rpc-server/session.ts` beside the handler Layer. The policy's provider must return those three fields in `session.user`; Better Auth's session lookup already does. The [Platform guide](../../packages/platform/README.md#reading-the-signed-in-user) shows the complete composition.
+For a signed-in handler that needs id, name and email, declare `AuthenticatedUser` from `@shivaedev/platform/rpc/middleware.ts` and read `SessionUser` from `@shivaedev/platform/rpc/identity.ts`. Merge `authenticatedUserLayer(sessions)` from `@shivaedev/platform/server/rpc-server/session.ts` beside the handler Layer. The policy's provider must return those three fields in `session.user`; Better Auth's session lookup already does. The [Platform guide](../../packages/platform/README.md#reading-the-signed-in-user) shows the complete composition.
 
-`SessionUser` carries only `{ id, name, email }` for that invocation. The same middleware also provides `Identity` with its existing `{ id }` shape. Missing sessions fail with typed `Unauthorized`, rejected origins with `Forbidden`, and provider outages with `AuthUnavailable`. Applications use this profile instead of querying Better Auth's `user` table.
+`SessionUser` carries `{ id, name, email }` for that invocation. To include provider account IDs, pass `(headers) => auth.api.listUserAccounts({ headers })` as the second argument to `betterAuthSessions`. The optional `SessionUser.providerAccounts` array contains typed `{ providerId, accountId }` pairs; find `providerId === "github"` to read GitHub’s numeric user ID as a string, or get no match when the user has no GitHub account. Applications do not read Better Auth’s `account` table. See [provider account IDs](../../packages/platform/README.md#reading-provider-account-ids) for the composition and PostgreSQL/HTTP story evidence. The same middleware also provides `Identity` with its existing `{ id }` shape. Missing sessions fail with typed `Unauthorized`, rejected origins with `Forbidden`, and provider outages with `AuthUnavailable`. Applications use this profile instead of querying Better Auth's `user` table.
 
 The starter uses this path in its signed-in note handlers and its `notes.whoami` query. [sessionUser.spec.ts](../../examples/starter/src/server/sessionUser.spec.ts) runs against real PostgreSQL and loopback HTTP: concurrent requests return the matching users' profiles, the profile id owns a saved note, and anonymous and signed-out requests return typed `Unauthorized` failures. It does not establish deployed browser behavior.
 

@@ -3,7 +3,7 @@ import { RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
 import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { diagnostics } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { HealthSnapshot } from "#engine/health.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import { DaemonContract } from "#host/daemonContract.ts";

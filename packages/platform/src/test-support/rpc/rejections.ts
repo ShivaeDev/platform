@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import { RpcClient } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { requestTracingLayer } from "#rpc-server/tracing.ts";
+import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { httpClient, recorder, rpcHttp, serve } from "./harness.ts";
 import { Profiles, Handlers as RenameHandlers } from "./renameFixture.ts";
 import { Api, Handlers as SaveHandlers } from "./saveFixture.ts";

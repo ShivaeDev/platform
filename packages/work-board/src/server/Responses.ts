@@ -1,7 +1,7 @@
 import { Clock, Effect, FileSystem, Path, Schema, Semaphore } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { Conflict, Forbidden, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
+import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import type { DraftInput } from "#browser/responses/schema.ts";
 import { awaitResponse } from "#server/responses/await.ts";
 import { responseHistory } from "#server/responses/history.ts";

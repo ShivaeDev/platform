@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { trustedOrigins } from "#rpc-server/origin.ts";
+import { trustedOrigins } from "#server/rpc-server/origin.ts";
 import { ORIGIN } from "#test/rpc/harness.ts";
 import { originPolicy, sessions, signedUp, websocketHeaders } from "#test/rpc/sessionStory.ts";
 

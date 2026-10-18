@@ -1,7 +1,7 @@
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { LibraryPage } from "./LibraryPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
+import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 export function LibraryMain({
 	api,

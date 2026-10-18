@@ -1,5 +1,5 @@
-import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 
 const { revisionOf } = responses;

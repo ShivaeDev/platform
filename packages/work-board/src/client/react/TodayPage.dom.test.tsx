@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "#server/responses/records.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderRouter } from "#test/renderRouter.tsx";
@@ -62,7 +62,9 @@ it("opens compact answer controls, records an option and removes its ask on quer
 	);
 	try {
 		await eventually(() =>
-			expect(view.container.querySelector("[aria-label='Options for question.storage'] button")?.textContent).toBe("Keep local files · Recommended"),
+			expect(view.container.querySelector("[aria-label='Options for question.storage'] button")?.textContent).toContain(
+				"Keep local files · Recommended",
+			),
 		);
 		const entry = view.container.querySelector("[data-attention-id='question.storage']");
 		const trigger = entry?.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]');
@@ -71,7 +73,7 @@ it("opens compact answer controls, records an option and removes its ask on quer
 		expect(trigger?.getAttribute("aria-expanded")).toBe("false");
 		act(() => trigger?.click());
 		await eventually(() => expect(dialog?.hidden).toBe(false));
-		expect(document.activeElement?.textContent).toBe("Keep local files · Recommended");
+		expect(document.activeElement?.textContent).toContain("Keep local files · Recommended");
 		act(() => document.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" })));
 		expect(dialog?.hidden).toBe(true);
 		expect(document.activeElement).toBe(trigger);

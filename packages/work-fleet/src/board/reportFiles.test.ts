@@ -4,7 +4,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect } from "@effect/vitest";
 import { Effect, FileSystem } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { boardDocuments } from "#board/documents.ts";
 import { reportFiles } from "#board/reportFiles.ts";
 import { linkedReportBoundary } from "#test/linkedReportBoundary.ts";

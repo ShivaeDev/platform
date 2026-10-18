@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect";
 import { expect, it } from "vitest";
-import { rejectedField } from "#errors/rejected-field.ts";
+import { rejectedField } from "#errors/rejectedField.ts";
 import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests } from "#errors/taxonomy.ts";
 import { rejections } from "#test/rpc/rejections.ts";
 

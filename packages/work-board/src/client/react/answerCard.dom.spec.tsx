@@ -1,8 +1,7 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { documentQuery } from "#client/page/routeQuery.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import {
 	answerCardFixture,
 	DECISION_REASON,
@@ -17,6 +16,7 @@ import { renderBoard } from "#test/react.tsx";
 import { renderRouter } from "#test/renderRouter.tsx";
 import { responseCommands } from "#test/responseCommands.ts";
 import { boardRouter } from "./boardRouter.ts";
+import { documentQuery } from "./routeQuery.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -64,7 +64,7 @@ it.each(["fenced", "nested", "paragraphs"])(
 				expect(view.container.querySelectorAll(".answer-reason p")).toHaveLength(2);
 			}
 			expect([...view.container.querySelectorAll(".question-choice")].map((button) => button.textContent)).toEqual([
-				"Publish now · RecommendedShip the reviewed guide with this release.",
+				"Publish nowRecommendedShip the reviewed guide with this release.",
 				"Wait for reviewKeep the work blocked until another review.",
 			]);
 			expect(view.container.querySelector(".item-summary")?.textContent).not.toContain(decisionId);

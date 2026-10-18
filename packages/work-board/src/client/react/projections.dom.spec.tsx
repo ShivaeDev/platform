@@ -1,12 +1,12 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { act } from "react";
-import { expect, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { expect } from "vitest";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { renderBoard } from "#test/react.tsx";
 import { boardRouter } from "./boardRouter.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -24,11 +24,9 @@ const routes = [
 	{ kind: "work", selector: ".work-card[data-item='task.fixture']", text: "A task", url: "/_board/work?view=board" },
 	{ kind: "work", selector: ".work-table", text: "A task", url: "/_board/work?view=table&owner=value%3Areader&q=task&item=task.fixture" },
 ];
-it.live.each(routes)("renders $url from its typed projection without requesting HTML", function* ({ url, selector, text, kind }) {
-	let page: unknown;
+it.live.each(routes)("renders $url from its typed projection", function* ({ url, selector, text, kind }) {
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
-			page = vi.spyOn(api.page, "query");
 			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
@@ -36,9 +34,7 @@ it.live.each(routes)("renders $url from its typed projection without requesting 
 	);
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(selector)?.textContent).toContain(text)));
-		expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
 		expect(view.container.querySelector("main")?.dataset.projection).toBe(kind);
-		expect(page).not.toHaveBeenCalled();
 		if (kind === "board") {
 			expect(view.container.querySelector(".item-introduction h1")?.textContent).toBe("Project board");
 			expect(view.container.querySelector(".item-introduction")?.classList.contains("sticky")).toBe(true);
@@ -58,17 +54,14 @@ it.live.each(routes)("renders $url from its typed projection without requesting 
 		}
 	} finally {
 		yield* Effect.promise(() => view.unmount());
-		vi.restoreAllMocks();
 	}
 });
 
 it.live("retains inline answer edits and selected detail through a Work projection refresh", function* () {
 	let refresh: (() => void) | undefined;
-	let page: unknown;
 	const url = "/_board/work?view=board&item=question.fixture&q=task";
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
-			page = vi.spyOn(api.page, "query");
 			refresh = () => registry.refresh(api.work.query({ url }, routeQueryOptions));
 			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
@@ -94,9 +87,7 @@ it.live("retains inline answer edits and selected detail through a Work projecti
 		expect(body.value).toBe("Keep my answer");
 		expect(body.selectionStart).toBe(5);
 		expect(body.selectionEnd).toBe(7);
-		expect(page).not.toHaveBeenCalled();
 	} finally {
 		yield* Effect.promise(() => view.unmount());
-		vi.restoreAllMocks();
 	}
 });

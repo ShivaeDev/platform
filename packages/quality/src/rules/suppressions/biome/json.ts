@@ -12,14 +12,17 @@ const LITERALS: ReadonlyMap<ts.SyntaxKind, boolean> = new Map([
 	[ts.SyntaxKind.FalseKeyword, false],
 ]);
 
-const scalarOf = (node: ts.Expression): string | boolean | undefined => (ts.isStringLiteral(node) ? node.text : LITERALS.get(node.kind));
+function scalarOf(node: ts.Expression): string | boolean | undefined {
+	return ts.isStringLiteral(node) ? node.text : LITERALS.get(node.kind);
+}
 
-const entryOf = (source: ts.JsonSourceFile, property: ts.ObjectLiteralElementLike): ReadonlyArray<readonly [string, Json]> =>
-	ts.isPropertyAssignment(property) && (ts.isStringLiteral(property.name) || ts.isIdentifier(property.name))
+function entryOf(source: ts.JsonSourceFile, property: ts.ObjectLiteralElementLike): ReadonlyArray<readonly [string, Json]> {
+	return ts.isPropertyAssignment(property) && (ts.isStringLiteral(property.name) || ts.isIdentifier(property.name))
 		? [[property.name.text, toJson(source, property.initializer)]]
 		: [];
+}
 
-const toJson = (source: ts.JsonSourceFile, node: ts.Expression): Json => {
+function toJson(source: ts.JsonSourceFile, node: ts.Expression): Json {
 	const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 	if (ts.isObjectLiteralExpression(node)) {
 		return { _tag: "Object", entries: new Map(node.properties.flatMap((property) => entryOf(source, property))), line };
@@ -28,9 +31,9 @@ const toJson = (source: ts.JsonSourceFile, node: ts.Expression): Json => {
 		return { _tag: "Array", items: node.elements.map((element) => toJson(source, element)), line };
 	}
 	return { _tag: "Value", line, value: scalarOf(node) };
-};
+}
 
-export const parseJsonc = (path: string, text: string): Parsed => {
+export function parseJsonc(path: string, text: string): Parsed {
 	const error = ts.parseConfigFileTextToJson(path, text).error;
 	const source = ts.parseJsonText(path, text);
 	const root = source.statements[0]?.expression;
@@ -41,15 +44,24 @@ export const parseJsonc = (path: string, text: string): Parsed => {
 		};
 	}
 	return { _tag: "Parsed", json: toJson(source, root) };
-};
+}
 
-export const member = (node: Json | undefined, key: string): Json | undefined => (node?._tag === "Object" ? node.entries.get(key) : undefined);
+export function member(node: Json | undefined, key: string): Json | undefined {
+	return node?._tag === "Object" ? node.entries.get(key) : undefined;
+}
 
-export const entriesOf = (node: Json | undefined): ReadonlyArray<readonly [string, Json]> => (node?._tag === "Object" ? [...node.entries] : []);
+export function entriesOf(node: Json | undefined): ReadonlyArray<readonly [string, Json]> {
+	return node?._tag === "Object" ? [...node.entries] : [];
+}
 
-export const itemsOf = (node: Json | undefined): readonly Json[] => (node?._tag === "Array" ? node.items : []);
+export function itemsOf(node: Json | undefined): readonly Json[] {
+	return node?._tag === "Array" ? node.items : [];
+}
 
-export const textOf = (node: Json | undefined): string | undefined =>
-	node?._tag === "Value" && typeof node.value === "string" ? node.value : undefined;
+export function textOf(node: Json | undefined): string | undefined {
+	return node?._tag === "Value" && typeof node.value === "string" ? node.value : undefined;
+}
 
-export const isFalse = (node: Json | undefined): boolean => node?._tag === "Value" && node.value === false;
+export function isFalse(node: Json | undefined): boolean {
+	return node?._tag === "Value" && node.value === false;
+}

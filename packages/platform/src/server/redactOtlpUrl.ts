@@ -1,4 +1,4 @@
-import { REDACTED } from "#rpc-server/sensitive.ts";
+import { REDACTED } from "#server/rpc-server/sensitive.ts";
 
 function query(value: string): string {
 	return value

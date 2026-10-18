@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { Fleet } from "#fleet.ts";
 import { type EngineFixture, finishWorkers, prepareWork } from "#test/engine.ts";
 import { askWorker } from "#test/workerQuestion.ts";

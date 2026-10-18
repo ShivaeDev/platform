@@ -1,7 +1,7 @@
 import { relative } from "node:path";
 import { Effect } from "effect";
-import { board } from "@shivaedev/work-board/integration/board.ts";
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { recordBoardSource, workMetadata } from "#board/readPass.ts";

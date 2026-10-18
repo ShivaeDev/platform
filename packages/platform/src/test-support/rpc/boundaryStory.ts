@@ -1,7 +1,7 @@
 import { type Cause, Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#errors/taxonomy.ts";
-import { type RpcBoundaryOptions, rpcBoundary } from "#rpc-server/boundary.ts";
+import { type RpcBoundaryOptions, rpcBoundary } from "#server/rpc-server/boundary.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError, ServiceUnavailable]);
 const boundary = rpcBoundary(Rejection, { unexpected: (message) => new InternalServerError({ message }) });

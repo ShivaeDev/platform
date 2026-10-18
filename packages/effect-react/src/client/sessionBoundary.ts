@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createContext, createElement, Fragment, type ReactNode, useContext, useEffect, useState } from "react";
-import { DraftSessionContext } from "@shivaedev/effect-form/react.ts";
+import { DraftSessionContext } from "@shivaedev/effect-form/client/react.ts";
 import { useDraftOwner } from "./useDraftOwner.ts";
 export interface SessionBoundaryProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
