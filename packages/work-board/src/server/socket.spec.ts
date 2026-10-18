@@ -6,10 +6,6 @@ import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { inboxAudienceFixture } from "#test/inboxAudienceFixture.ts";
 import { socketRpc } from "#test/socketRpc.ts";
 
-function success(value: unknown) {
-	return expect.arrayContaining([expect.objectContaining({ _tag: "Exit", exit: { _tag: "Success", value } })]);
-}
-
 boardStory.it(
 	"serves server info and the same read queries on an owner-only socket and TCP",
 	[projectFiles(inboxAudienceFixture()), deferredServing],
@@ -21,12 +17,16 @@ boardStory.it(
 		expect(statSync(socket).mode & 0o777).toBe(0o600);
 		const info = { directory: root, url: `${board.url}/` };
 		for (const address of [socket, board.url]) {
-			expect(yield* Effect.promise(() => socketRpc(address, "work-board.server"))).toEqual(success(info));
+			expect(yield* Effect.promise(() => socketRpc(address, "work-board.server"))).toEqual(
+				expect.arrayContaining([expect.objectContaining({ _tag: "Exit", exit: { _tag: "Success", value: info } })]),
+			);
 		}
 		for (const tag of ["work-board.inbox", "work-board.fleetItems", "work-board.goals"]) {
 			const local = yield* Effect.promise(() => socketRpc(socket, tag));
 			expect(local).toEqual(yield* Effect.promise(() => socketRpc(board.url, tag)));
-			expect(local).toEqual(success(expect.any(Object)));
+			expect(local).toEqual(
+				expect.arrayContaining([expect.objectContaining({ _tag: "Exit", exit: { _tag: "Success", value: expect.any(Object) } })]),
+			);
 			if (tag === "work-board.inbox") {
 				expect(JSON.stringify(local)).toContain("Where should the project documents live?");
 			}
@@ -47,7 +47,11 @@ boardStory.it(
 		yield* Effect.scoped(
 			Effect.gen(function* () {
 				const board = yield* start();
-				expect(yield* Effect.promise(() => socketRpc(socket, "work-board.server"))).toEqual(success({ directory: root, url: `${board.url}/` }));
+				expect(yield* Effect.promise(() => socketRpc(socket, "work-board.server"))).toEqual(
+					expect.arrayContaining([
+						expect.objectContaining({ _tag: "Exit", exit: { _tag: "Success", value: { directory: root, url: `${board.url}/` } } }),
+					]),
+				);
 			}),
 		);
 		expect(existsSync(socket)).toBe(false);
@@ -66,7 +70,9 @@ boardStory.it(
 			expect(Cause.pretty(second.cause)).toContain(`Another board is already running at ${join(root, "board.sock")}`);
 		}
 		expect(yield* Effect.promise(() => socketRpc(join(root, "board.sock"), "work-board.server"))).toEqual(
-			success({ directory: root, url: `${board.url}/` }),
+			expect.arrayContaining([
+				expect.objectContaining({ _tag: "Exit", exit: { _tag: "Success", value: { directory: root, url: `${board.url}/` } } }),
+			]),
 		);
 	},
 );
@@ -85,7 +91,7 @@ boardStory.it(
 			[second, b],
 		] as const) {
 			expect(yield* Effect.promise(() => socketRpc(join(directory, "board.sock"), "work-board.server"))).toEqual(
-				success({ directory, url: `${board.url}/` }),
+				expect.arrayContaining([expect.objectContaining({ _tag: "Exit", exit: { _tag: "Success", value: { directory, url: `${board.url}/` } } })]),
 			);
 		}
 		yield* a.stop();
@@ -105,7 +111,9 @@ boardStory.it(
 		for (const result of results) {
 			if (Exit.isSuccess(result)) {
 				expect(yield* Effect.promise(() => socketRpc(join(root, "board.sock"), "work-board.server"))).toEqual(
-					success({ directory: root, url: `${result.value.url}/` }),
+					expect.arrayContaining([
+						expect.objectContaining({ _tag: "Exit", exit: { _tag: "Success", value: { directory: root, url: `${result.value.url}/` } } }),
+					]),
 				);
 			} else {
 				expect(Cause.pretty(result.cause)).toContain("Another board is already running at");
