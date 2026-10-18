@@ -15,7 +15,7 @@ for (const dispatch of ["direct", "scheduler"] as const) {
 				yield* fleet.schedule();
 			} else {
 				yield* fleet.dispatch("two");
-				yield* fleet.dispatch("one");
+				expect(yield* fleet.attemptDispatch("one")).toMatchObject({ _tag: "Forbidden" });
 			}
 			expect((yield* fleet.get("one")).value).toMatchObject({
 				attempts: [],
@@ -32,10 +32,10 @@ fleetStory.it("a queued item that becomes dependency-blocked steps aside without
 	for (const id of ["one", "two", "three"]) {
 		yield* fleet.prepare(id);
 	}
-	yield* fleet.dispatch("three");
+	expect(yield* fleet.attemptDispatch("three")).toMatchObject({ _tag: "StorageAdmission" });
 	expect((yield* fleet.get("three")).value.blocker).toBe("waiting for area shared queued ahead by one");
 	fleet.dependencies("one", ["dependency"]);
-	yield* fleet.dispatch("three");
+	expect(yield* fleet.attemptDispatch("three")).toMatchObject({ _tag: "StorageAdmission" });
 	expect((yield* fleet.get("three")).value.blocker).toBe("waiting for area shared queued ahead by two");
 	yield* fleet.dispatch("two");
 	expect((yield* fleet.get("two")).value.stage).toBe("executing");
@@ -54,16 +54,26 @@ fleetStory.it("an item joins the area queue once its dependency has an accepted 
 	fleet.dependencies("one", ["two"]);
 	yield* fleet.prepare("one");
 	yield* fleet.prepare("two");
-	yield* fleet.dispatch("one");
+	expect(yield* fleet.attemptDispatch("one")).toMatchObject({ _tag: "Forbidden" });
 	expect((yield* fleet.get("one")).value.blocker).toContain("waiting for dependency two");
 	yield* fleet.dispatch("two");
 	expect((yield* fleet.get("two")).value.stage).toBe("executing");
 	fleet.finishWorkers();
 	expect((yield* fleet.reconcile("two")).value.stage).toBe("completed");
 	yield* fleet.prepare("three");
-	yield* fleet.dispatch("three");
+	expect(yield* fleet.attemptDispatch("three")).toMatchObject({ _tag: "StorageAdmission" });
 	expect((yield* fleet.get("three")).value.blocker).toBe("waiting for area shared queued ahead by one");
 	yield* fleet.schedule();
 	expect((yield* fleet.get("one")).value.stage).toBe("executing");
 	expect((yield* fleet.get("one")).value.blocker).toBeUndefined();
+});
+
+fleetStory.it("an unreadable area waiter fails admission instead of letting later work pass", [sharedArea], function* (fleet) {
+	yield* fleet.prepare("one");
+	yield* fleet.prepare("two");
+	fleet.unavailableWork("one", true);
+	expect(yield* fleet.attemptDispatch("two")).toMatchObject({ _tag: "BoardFailure", message: "Board work unavailable" });
+	expect((yield* fleet.get("two")).value).toMatchObject({ attempts: [], stage: "prepared" });
+	fleet.unavailableWork("one", false);
+	expect(yield* fleet.attemptDispatch("two")).toMatchObject({ _tag: "StorageAdmission", message: "waiting for area shared queued ahead by one" });
 });

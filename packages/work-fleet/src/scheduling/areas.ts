@@ -68,12 +68,7 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	}
 	const ahead = records
 		.slice(0, index)
-		.find(
-			(entry) =>
-				entry.stage === "prepared"
-				&& (scheduling.waiters === undefined ? entry.admissionReady !== false : scheduling.waiters.includes(entry.workId))
-				&& entry.areas?.some((area) => areas.includes(area)),
-		);
+		.find((entry) => entry.stage === "prepared" && scheduling.waiters.includes(entry.workId) && entry.areas?.some((area) => areas.includes(area)));
 	if (ahead !== undefined) {
 		const queuedArea = areas.find((area) => ahead.areas?.includes(area));
 		return yield* Effect.fail(new StorageAdmission({ message: `waiting for area ${queuedArea} queued ahead by ${ahead.workId}` }));

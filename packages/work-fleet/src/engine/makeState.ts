@@ -12,7 +12,7 @@ import type { SessionReceipt } from "#session/schema.ts";
 import { SessionService } from "#session/service.ts";
 import type { AdmissionLimits, Versioned } from "#storage/model.ts";
 export interface LaunchAdmission {
-	readonly areaWaiters?: readonly string[];
+	readonly areaWaiters: readonly string[];
 	readonly ignoreAreas?: boolean;
 	readonly implementer?: boolean;
 	readonly overLimit?: boolean;
@@ -89,7 +89,7 @@ function launchLimits(policy: FleetConfiguration, admission: LaunchAdmission): A
 					scheduling: {
 						areaMergeWaitMs: policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS,
 						now: policy.now(),
-						...(admission.areaWaiters === undefined ? {} : { waiters: admission.areaWaiters }),
+						waiters: admission.areaWaiters,
 					},
 				}),
 		...(admission.quota.available === undefined ? {} : { quota: { available: admission.quota.available, observedAt: admission.quota.observedAt } }),

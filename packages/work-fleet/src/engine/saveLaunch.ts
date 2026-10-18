@@ -8,7 +8,6 @@ import type { Versioned } from "#storage/model.ts";
 function launched(record: FleetRecord, attempt: Attempt): FleetRecord {
 	return {
 		...record,
-		admissionReady: true,
 		attempts: [...record.attempts, attempt],
 		blocker: undefined,
 		launchRetry: undefined,
@@ -54,8 +53,12 @@ const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: EngineState
 	);
 	return yield* Effect.filter(waiting, (entry) =>
 		state.board.get(entry.workId).pipe(
-			Effect.flatMap((work) => qualifyDependencies(work.dependsOn, records, state.board.get).pipe(Effect.as(work.approved))),
-			Effect.orElseSucceed(() => false),
+			Effect.flatMap((work) =>
+				qualifyDependencies(work.dependsOn, records, state.board.get).pipe(
+					Effect.as(work.approved),
+					Effect.catchTag("Forbidden", () => Effect.succeed(false)),
+				),
+			),
 		),
 	).pipe(Effect.map((entries) => entries.map((entry) => entry.workId)));
 });

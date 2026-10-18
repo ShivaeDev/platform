@@ -20,13 +20,17 @@ export const fleetStory = storyKit({
 	runIf: postgresEnabled,
 	stages: ["board"],
 	verbs: ({ fixture, fleet }, story) => ({
+		attemptDispatch: (id: string) => {
+			story.tell(`Fleet attempts to dispatch ${id}`);
+			return fleet.dispatch(id).pipe(Effect.flip);
+		},
 		dependencies: (id: string, targets: readonly string[]) => {
 			story.tell(`${id} now depends on ${targets.join(", ") || "no other work"}`);
 			fixture.dependencies(id, targets);
 		},
 		dispatch: (id: string) => {
-			story.tell(`Fleet tries to dispatch ${id}`);
-			return fleet.dispatch(id).pipe(Effect.result);
+			story.tell(`Fleet dispatches ${id}`);
+			return fleet.dispatch(id);
 		},
 		finishWorkers: () => {
 			story.tell("the provider reports that the active turns completed");
@@ -44,6 +48,10 @@ export const fleetStory = storyKit({
 		schedule: () => {
 			story.tell("Fleet runs a scheduler pass");
 			return cycle.pipe(Effect.provideService(Fleet, fleet));
+		},
+		unavailableWork: (id: string, unavailable: boolean) => {
+			story.tell(`Board reads for ${id} are ${unavailable ? "unavailable" : "available"}`);
+			fixture.unavailableWork(id, unavailable);
 		},
 	}),
 });
