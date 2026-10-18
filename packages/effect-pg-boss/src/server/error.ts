@@ -37,6 +37,12 @@ export class PgBossPayloadError extends Data.TaggedError("PgBossPayloadError")<{
 	readonly original: Redacted.Redacted<unknown>;
 }> {}
 
+export class PgBossTestingError extends Data.TaggedError("PgBossTestingError")<{
+	readonly operation: string;
+	readonly original: Redacted.Redacted<unknown>;
+	readonly queue?: string | undefined;
+}> {}
+
 export const toPgBossError = (operation: PgBossOperation, error: unknown, queue?: string): PgBossError =>
 	new PgBossError({
 		operation,

@@ -43,7 +43,6 @@ application.it(
 		}
 		for (const path of [
 			".railway/railway.ts",
-			".railway/railway.test.ts",
 			".env.example",
 			"src/setup.ts",
 			"src/server/migrate.ts",

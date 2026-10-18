@@ -99,9 +99,9 @@ export const makeChannel = <A, R = never, THookError = never>(options: ChannelOp
 			const context = yield* Effect.context<R>();
 			return makeFrame({
 				beforeCommit: (changes) =>
-					Effect.provideContext(
+					Effect.updateContext<void, THookError, R, never>(
 						Effect.flatMap(Effect.service(BeforeCommit), (hook) => hook(changes)),
-						context,
+						(current: Context.Context<never>) => Context.merge(context, current),
 					),
 				buffer,
 				discard: (changes) => Effect.provideContext(observe({ _tag: "Discarded", changes }), context),

@@ -1,5 +1,11 @@
 import assert from "node:assert/strict"
-import { Schema } from "effect"
+import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { NodeServices } from "@effect/platform-node"
+import { Layer, Schema } from "effect"
+import { HttpRouter } from "effect/http"
+import { boardLayer } from "@shivaedev/work-board/board.ts"
 import { browserClient } from "@shivaedev/work-board/browser/client.ts"
 import { DocumentView } from "@shivaedev/work-board/browser/document/View.ts"
 import { Document } from "@shivaedev/work-board/browser/document/schema.ts"
@@ -19,8 +25,20 @@ const removedRpcPath = "@shivaedev/work-board/rpc/server.ts"
 await assert.rejects(import(removedRpcPath), { code: "ERR_MODULE_NOT_FOUND" })
 for (const schema of [Document, Navigation, HandoffInput, DraftInput]) assert(Schema.isSchema(schema))
 assert(workContract)
-for (const route of ["/_board/native.js", "/_board/react.js", "/_board/react.css"]) {
-  assert(ASSET_HANDLERS.some(([path]) => path === route), `${route} must remain served`)
+const root = await mkdtemp(join(tmpdir(), "board-browser-"))
+await writeFile(join(root, "plan.md"), "# Plan\n")
+const board = HttpRouter.toWebHandler(Layer.provide(boardLayer({ root }), NodeServices.layer))
+try {
+  for (const [route, content] of [["/", "data-board-react-root"], ["/_board/react.js", "data-board-react-root"], ["/_board/react.css", "--background:"]] as const) {
+    const response = await board.handler(new Request(`http://localhost${route}`, { headers: { host: "localhost" } }))
+    assert.equal(response.status, 200)
+    assert((await response.text()).includes(content))
+  }
+  const retired = await board.handler(new Request("http://localhost/_board/native.js", { headers: { host: "localhost" } }))
+  assert.equal(retired.status, 404)
+} finally {
+  await board.dispose()
+  await rm(root, { recursive: true, force: true })
 }
 
 for (const path of ["./diagnostics/script.ts", "./history/script.ts", "./page/sidebarScript.ts", "./page/searchResultsScript.ts", "./page/swap.ts", "./page/visualViewport.ts", "./page/stateScript.ts", "./page/searchScript.ts", "./page/visualScript.ts", "./page/itemContextScript.ts", "./page/libraryScript.ts", "./page/ageScript.ts", "./page/navigationScript.ts", "./page/readingStateScript.ts", "./page/formReadingScript.ts", "./page/diagrams.ts", "./page/client.ts", "./views/savedScript.ts"]) {

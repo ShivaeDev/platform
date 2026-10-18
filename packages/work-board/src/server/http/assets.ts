@@ -35,7 +35,6 @@ export function mermaidFile(root: string) {
 
 export const MERMAID_ROUTE: HttpRouter.PathInput = `${MERMAID}*`;
 
-export const NATIVE_ROUTE: HttpRouter.PathInput = "/_board/native.js";
 function missingBundle(file: string) {
 	return `Work Board browser bundle assets/${file} is missing. Run pnpm --filter @shivaedev/work-board build:browser from the repository root to build it.`;
 }
@@ -57,16 +56,11 @@ const checkAssets = Effect.fn("WorkBoard.checkAssets")(function* (files: readonl
 	}
 });
 
-export function checkNativeAsset() {
-	return checkAssets(["native.js"]);
-}
 export function checkBrowserAssets() {
-	return checkAssets(["native.js", "react.js", "react.css"]);
+	return checkAssets(["react.js", "react.css"]);
 }
-export const nativeAsset = bundledAsset("native.js", "text/javascript");
 
 const BUNDLED_ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, ReturnType<typeof bundledAsset>]> = [
-	[NATIVE_ROUTE, nativeAsset],
 	["/_board/react.js", bundledAsset("react.js", "text/javascript")],
 	["/_board/react.css", bundledAsset("react.css", "text/css")],
 ];

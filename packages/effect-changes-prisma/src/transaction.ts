@@ -1,5 +1,5 @@
 import { type Context, Effect, Exit } from "effect";
-import type { Frame } from "@shivaedev/effect-changes/frame.ts";
+import type { CommitFrame, Frame } from "@shivaedev/effect-changes/frame.ts";
 import { PrismaError, TransactionExpired } from "./error.ts";
 import { type Expire, expiring, isTransactionClosed } from "./expiry.ts";
 import type { Transactional, TransactionOptions } from "./model.ts";
@@ -49,7 +49,8 @@ function commit<TTx extends Transactional<TTx>, TX, E, R>(
 
 export function runTransaction<TTx extends Transactional<TTx>, TX, E, R, TOpenRequirements>(options: {
 	readonly client: TTx;
-	readonly open: Effect.Effect<Frame, never, TOpenRequirements>;
+	readonly Client?: Context.Reference<TTx>;
+	readonly open: Effect.Effect<Frame & Partial<CommitFrame>, never, TOpenRequirements>;
 	readonly body: (tx: TTx) => Effect.Effect<TX, E, R>;
 	readonly transaction: TransactionOptions | undefined;
 	readonly savepoint: boolean;
@@ -63,7 +64,8 @@ export function runTransaction<TTx extends Transactional<TTx>, TX, E, R, TOpenRe
 			const context = yield* Effect.context<R>();
 			const abort = new AbortController();
 			function guarded(tx: TTx) {
-				return expiring(frame.provide(body(tx)), deadline, Expiry);
+				const work = frame.provide(Effect.tap(body(tx), () => frame.beforeCommit ?? Effect.void));
+				return expiring(options.Client === undefined ? work : Effect.provideService(work, options.Client, tx), deadline, Expiry);
 			}
 			const outcome = commit(client, options.transaction, savepoint, guarded, context, abort.signal);
 			const expire = yield* Expiry;

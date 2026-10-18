@@ -2,13 +2,9 @@
 	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "idle-auth-client-debug.md",
-			"text": "### Fixed\n\n- Generated apps log terminated idle Better Auth database connections at debug and continue serving queries on a fresh connection.\n"
-		},
-		{
-			"name": "nested-template-files.md",
-			"text": "### Fixed\n\n- Keep nested README.md, AGENTS.md, CLAUDE.md and published-versions.json files in generated apps while excluding the starter's root maintenance files.\n"
+			"name": "release-oct18b-dependencies.md",
+			"text": "### Fixed\n\n- Align published framework dependencies with the current releases.\n"
 		}
 	],
-	"version": "0.6.9"
+	"version": "0.6.10"
 }
