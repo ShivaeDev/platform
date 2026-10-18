@@ -15,7 +15,13 @@ function probeKit<TProbe extends object>(name: string, build: (root: Rendered) =
 		name,
 		(): State => ({}),
 		(state, screen) => ({
-			close: () => screen.act("unmount the session probe", () => state.root?.unmount()),
+			close: () =>
+				screen.act("unmount the session probe", () => {
+					if (!state.root) {
+						throw new Error("Missing session probe root");
+					}
+					return state.root.unmount();
+				}),
 			probe: () => {
 				if (!(state.probe && state.root)) {
 					throw new Error("No session probe");

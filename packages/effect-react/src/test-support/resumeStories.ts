@@ -19,7 +19,13 @@ export const resumes = screenKit(
 	(state, screen) => ({
 		browserEvent: (type: "online" | "visibilitychange", visibility = "visible") =>
 			screen.act(`browser ${type} while ${visibility}`, () => state.browser.fire(type, visibility)),
-		close: () => screen.act("unmount the resume screen", () => state.root?.unmount()),
+		close: () =>
+			screen.act("unmount the resume screen", () => {
+				if (!state.root) {
+					throw new Error("Missing resume screen root");
+				}
+				return state.root.unmount();
+			}),
 		nativeEvent: () => screen.act("native resume", () => state.native.resume()),
 		resume: () => state,
 		windowEvent: () => screen.act("the browser reconnects", () => window.dispatchEvent(new Event("online"))),
