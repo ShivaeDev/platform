@@ -4,15 +4,15 @@ import { Conflict, InternalServerError, ServiceUnavailable } from "#errors/taxon
 import { boundaryPolicy, boundaryStory } from "#test/rpc/boundaryStory.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError, ServiceUnavailable]);
-boundaryStory.it("passes declared errors through with their identity and keeps success values", [], function* ({ succeed, reject }) {
+boundaryStory.it("passes declared errors through with their identity and keeps success values", [], function* ({ succeed, fail }) {
 	const conflict = new Conflict({ field: "name", message: "Name is taken" });
-	expect(yield* reject(conflict)).toBe(conflict);
+	expect(yield* fail(conflict)).toBe(conflict);
 	expect(yield* succeed("saved")).toBe("saved");
 });
-boundaryStory.it("normalizes unexpected failures and defects while retaining their original cause off the wire", [], function* ({ fail }) {
+boundaryStory.it("normalizes unexpected failures and defects while retaining their original cause off the wire", [], function* ({ fail, die }) {
 	const original = new Error("database password=private-value");
-	for (const defect of [false, true]) {
-		const rejection = yield* fail(original, defect);
+	for (const operation of [fail, die]) {
+		const rejection = yield* operation(original);
 		expect(rejection).toBeInstanceOf(InternalServerError);
 		expect(rejection.message).toBe("Internal server error");
 		expect(Cause.isCause(rejection.cause)).toBe(true);

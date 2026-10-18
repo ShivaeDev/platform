@@ -2,7 +2,13 @@ import type { Where } from "better-auth";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { filterCases } from "#test/auth/filterCases.ts";
-import { auth, configuredAdapter, filterUsers, usersNamed } from "#test/auth/native.ts";
+import { auth, configuredAdapter, filterUsers, usersNamed, usersWith } from "#test/auth/native.ts";
+
+const sharedEmail = `${crypto.randomUUID()}@example.test`;
+const sharedUsers = [
+	{ email: sharedEmail, id: crypto.randomUUID(), name: "Shared" },
+	{ email: sharedEmail.toUpperCase(), id: crypto.randomUUID(), name: "Shared" },
+] as const;
 
 auth.it("preserves PostgreSQL null, membership, comparison and literal pattern semantics", [filterUsers], function* ({ findMany }) {
 	for (const { expected, label, where } of filterCases) {
@@ -24,27 +30,22 @@ auth.it("orders, pages and projects Better Auth rows without losing the filter",
 });
 auth.it(
 	"updates and deletes nonunique and OR filters and returns null for missing matches",
-	[],
-	function* ({ seedUser, update, count, delete: remove, userExists, findOne }) {
-		const ids = [crypto.randomUUID(), crypto.randomUUID()];
-		const email = `${crypto.randomUUID()}@example.test`;
-		for (const [index, id] of ids.entries()) {
-			yield* seedUser({ email: index === 0 ? email : email.toUpperCase(), id, name: "Shared" });
-		}
+	[usersWith(...sharedUsers)],
+	function* ({ update, count, delete: remove, userExists, findOne }) {
 		const shared: Where[] = [{ field: "name", operator: "eq", value: "Shared" }];
 		expect(yield* update(shared, { name: "Changed" })).toMatchObject({ name: "Changed" });
 		expect(yield* count([{ field: "name", value: "Changed" }])).toBe(2);
 		expect(yield* update(shared, { name: "Missing" })).toBeNull();
-		yield* update([{ field: "email", mode: "insensitive", value: email }], { name: "Insensitive" });
+		yield* update([{ field: "email", mode: "insensitive", value: sharedEmail }], { name: "Insensitive" });
 		expect(yield* count([{ field: "name", value: "Insensitive" }])).toBe(2);
-		const alternatives: Where[] = ids.map((id) => ({ connector: "OR", field: "id", operator: "eq", value: id }));
+		const alternatives: Where[] = sharedUsers.map(({ id }) => ({ connector: "OR", field: "id", operator: "eq", value: id }));
 		yield* update(alternatives, { name: "Alternatives" });
 		expect(yield* count([{ field: "name", value: "Alternatives" }])).toBe(2);
 		yield* remove(alternatives);
-		for (const id of ids) {
+		for (const { id } of sharedUsers) {
 			expect(yield* userExists(id)).toBe(false);
 		}
-		expect(yield* findOne({ where: [{ field: "id", value: ids[0] ?? "" }] })).toBeNull();
+		expect(yield* findOne({ where: [{ field: "id", value: sharedUsers[0].id }] })).toBeNull();
 	},
 );
 auth.it("rejects nonstring pattern filters with an actionable error", [], function* ({ count }) {

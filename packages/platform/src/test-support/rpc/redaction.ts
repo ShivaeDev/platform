@@ -14,7 +14,7 @@ export const redaction = storyKit({
 		return { ...recorder(), reported };
 	},
 	name: "RPC redaction",
-	stages: ["configured"],
+	stages: [],
 	verbs: (state, story) => ({
 		crash: (kind: string) =>
 			Effect.gen(function* () {

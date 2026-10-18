@@ -76,7 +76,7 @@ export const trpc = storyKit({
 		return client;
 	},
 	name: "tRPC rejection",
-	stages: ["configured"],
+	stages: [],
 	verbs: (client, story) => ({
 		rename: (name: string) =>
 			Effect.promise(async (): Promise<unknown> => {

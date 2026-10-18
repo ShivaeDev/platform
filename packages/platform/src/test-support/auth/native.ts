@@ -6,7 +6,7 @@ import type { EffectPrismaAdapterOptions } from "#better-auth/adapter.ts";
 import { Database, DatabaseLive, databaseUrl } from "./database.ts";
 import { authEngine } from "./engine.ts";
 import { filterRows } from "./filterCases.ts";
-import { authVerbs } from "./verbs.ts";
+import { authVerbs, type User } from "./verbs.ts";
 export const auth = storyKit({
 	around: (effect) =>
 		withTestTransaction(
@@ -28,9 +28,12 @@ export function configuredAdapter(options: BetterAuthOptions, adapterOptions?: E
 	});
 }
 export function usersNamed(...names: string[]) {
-	return auth.trait("rows", `PostgreSQL contains users named ${names.join(", ")}`, function* ({ db }) {
-		for (const name of names) {
-			yield* db.AuthUser.create({ email: `${crypto.randomUUID()}@example.test`, id: crypto.randomUUID(), name });
+	return usersWith(...names.map((name) => ({ email: `${crypto.randomUUID()}@example.test`, id: crypto.randomUUID(), name })));
+}
+export function usersWith(...users: User[]) {
+	return auth.trait("rows", `PostgreSQL contains users named ${users.map(({ name }) => name).join(", ")}`, function* ({ db }) {
+		for (const user of users) {
+			yield* db.AuthUser.create(user);
 		}
 	});
 }

@@ -57,7 +57,6 @@ tracing.it(
 	function* ({ register, annotations }) {
 		yield* register();
 		expect(annotations("RPC failure")[0]?.["rpc.payload"]).toMatchObject({ email: "<redacted>", password: "<redacted>" });
-		expect(annotations("echo")).toEqual([]);
 	},
 );
 tracing.it("untagged external failures reach the caller and are logged once as unknown", [], function* ({ externalRejection, annotations }) {

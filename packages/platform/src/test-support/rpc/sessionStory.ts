@@ -3,6 +3,7 @@ import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { type OriginPolicy, trustedOrigins } from "#rpc-server/origin.ts";
 import { makeApp } from "./api.ts";
 import { annotationsOf, createProvider, ORIGIN, signup } from "./harness.ts";
+import { expireSession, signOut } from "./sessionLifecycle.ts";
 import { whoamiOverWebSocket } from "./whoamiOverWebSocket.ts";
 
 export const browser = trustedOrigins({ allow: [ORIGIN, "capacitor://localhost"], missing: "reject" });
@@ -57,13 +58,10 @@ export const sessions = storyKit({
 					story.tell("the session database closes");
 					state.close();
 				}),
-			expire: (name: string) =>
-				Effect.sync(() => {
-					story.tell(`${name}'s persisted session expires`);
-					return state.provider.database
-						.prepare('UPDATE "session" SET "expiresAt" = ? WHERE token = ?')
-						.run(Date.UTC(2000, 0, 1), account(name).token).changes;
-				}),
+			expire: (name: string) => {
+				story.tell(`${name}'s persisted session expires`);
+				return expireSession(state.provider, account(name).token);
+			},
 			greeting: (name?: string, transport: Record<string, string> = headers(name), policy = "browser") =>
 				Effect.promise(() => app(policy).call(transport, (client) => client.Greeting())),
 			identity: (transport: Record<string, string>, policy = "browser") =>
@@ -84,20 +82,14 @@ export const sessions = storyKit({
 				}),
 			readOwn: (name: string, owner: string) =>
 				Effect.promise(() => app().call(headers(name), (client) => client.ReadOwn({ userId: account(owner).userId }))),
-			signout: (name: string) =>
-				Effect.promise(() =>
-					state.provider.auth.handler(
-						new Request(`${ORIGIN}/api/auth/sign-out`, {
-							body: "{}",
-							headers: { ...headers(name), "content-type": "application/json" },
-							method: "POST",
-						}),
-					),
-				),
+			signout: (name: string) => {
+				story.tell(`${name} signs out through Better Auth`);
+				return signOut(state.provider, headers(name));
+			},
 			spans: () => app().spans,
 			websocket: (message: ReadonlyArray<readonly [string, string]>, transport = state.upgrade) => {
 				story.tell("a caller sends RPC message headers over the WebSocket upgrade");
-				return Effect.promise(() => whoamiOverWebSocket(state.provider, transport, message));
+				return whoamiOverWebSocket(state.provider, app().origin, transport, message);
 			},
 			whoami: (name?: string, extra: Record<string, string> = {}, policy = "browser") => {
 				story.tell(`${name ?? "an anonymous caller"} asks who they are over HTTP`);

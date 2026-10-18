@@ -17,7 +17,7 @@ export const transport = storyKit({
 	name: "RPC transport",
 	stages: ["configured"],
 	verbs: (state, story) => ({
-		guarded: (address: string | undefined, trust = state.trust, headers: Readonly<Record<string, string>> = forwarded) =>
+		guarded: (address: string | undefined, headers: Readonly<Record<string, string>> = forwarded) =>
 			Effect.gen(function* () {
 				story.tell(`a request from ${address ?? "an unknown peer"} reaches the RPC guard`);
 				let calls = 0;
@@ -29,7 +29,7 @@ export const transport = storyKit({
 						calls += 1;
 						return HttpServerResponse.empty();
 					}),
-					trust,
+					state.trust,
 				).pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request), Effect.provide(RpcSerialization.layerNdjson));
 				return { calls, status: response.status };
 			}),

@@ -4,6 +4,7 @@ import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { AuthUnavailable } from "#errors/taxonomy.ts";
 import { Identity, SessionUser } from "#rpc/identity.ts";
 import { AuthenticatedUser } from "#rpc/middleware.ts";
+import type { OriginPolicy } from "#rpc-server/origin.ts";
 import { authenticatedUserLayer, type SessionPolicy, type UserSessionShape } from "#rpc-server/session.ts";
 
 const Api = RpcGroup.make(
@@ -30,40 +31,56 @@ const handlers = Api.toLayer({
 		}),
 });
 
+const openProfile = Effect.fnUntraced(function* (policy: SessionPolicy<UserSessionShape>) {
+	const services = yield* Layer.build(handlers.pipe(Layer.provideMerge(authenticatedUserLayer(policy))));
+	const client = yield* RpcTest.makeClient(Api).pipe(Effect.provide(services));
+	return { client, services };
+});
+
 export const profile = storyKit({
-	create: () => ({ lookups: 0 }),
+	after: {
+		*policy(state) {
+			state.connection.current = yield* openProfile({
+				origin: state.origin,
+				provider: {
+					get: () =>
+						Effect.suspend(() => {
+							state.lookups += 1;
+							return state.session;
+						}),
+				},
+			});
+		},
+	},
+	create: () => {
+		const connection: { current?: Effect.Success<ReturnType<typeof openProfile>> } = {};
+		const origin: OriginPolicy = () => true;
+		const session: Effect.Effect<Option.Option<UserSessionShape>, AuthUnavailable> = Effect.succeed(Option.none());
+		return { connection, lookups: 0, origin, session };
+	},
 	name: "RPC profile",
-	stages: ["configured"],
+	stages: ["policy"],
 	verbs: (state, story) => ({
 		lookups: () => state.lookups,
-		whoami: (user?: UserSessionShape["user"], allowed = true, outage = false) =>
-			Effect.gen(function* () {
-				story.tell("the caller requests their session profile");
-				const policy = sessionPolicy(state, user, allowed, outage);
-				return yield* Effect.gen(function* () {
-					const client = yield* RpcTest.makeClient(Api);
-					return yield* client.Whoami().pipe(Effect.result);
-				}).pipe(Effect.provide(handlers.pipe(Layer.provideMerge(authenticatedUserLayer(policy)))), Effect.scoped);
-			}),
+		whoami: () => {
+			story.tell("the caller requests their session profile");
+			const connection = state.connection.current;
+			if (connection === undefined) {
+				throw new Error("The profile client has not been started");
+			}
+			return connection.client.Whoami().pipe(Effect.result, Effect.provide(connection.services));
+		},
 	}),
 });
 
-function sessionPolicy(
-	state: { lookups: number },
-	user: UserSessionShape["user"] | undefined,
-	allowed: boolean,
-	outage: boolean,
-): SessionPolicy<UserSessionShape> {
-	return {
-		origin: () => allowed,
-		provider: {
-			get: () =>
-				Effect.suspend(() => {
-					state.lookups += 1;
-					return outage
-						? Effect.fail(new AuthUnavailable({ message: "Unavailable" }))
-						: Effect.succeed(user === undefined ? Option.none() : Option.some({ user }));
-				}),
-		},
-	};
+export function sessionUser(user: UserSessionShape["user"]) {
+	return profile.trait("policy", "the provider has a signed-in session user", (state) => {
+		state.session = Effect.succeed(Option.some({ user }));
+	});
 }
+export const forbiddenOrigin = profile.trait("policy", "the origin policy forbids the request", (state) => {
+	state.origin = () => false;
+});
+export const providerOutage = profile.trait("policy", "the session provider is unavailable", (state) => {
+	state.session = Effect.fail(new AuthUnavailable({ message: "Unavailable" }));
+});

@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { Headers } from "effect/http";
-import { Rpc, RpcMessage, RpcTest } from "effect/rpc";
+import { Rpc, type RpcClient, RpcMessage, RpcTest } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
 import { type RequestTracingOptions, requestTracingLayer } from "#rpc-server/tracing.ts";
@@ -42,7 +42,7 @@ export const tracing = storyKit({
 	name: "RPC tracing",
 	stages: ["configured"],
 	verbs: (state, story) => {
-		function call<A, E, R>(run: (client: import("effect/rpc").RpcClient.FromGroup<typeof Accounts>) => Effect.Effect<A, E, R>) {
+		function call<A, E, R>(run: (client: RpcClient.FromGroup<typeof Accounts>) => Effect.Effect<A, E, R>) {
 			const connection = state.connection.current;
 			if (connection === undefined) {
 				throw new Error("RPC tracing has not been configured");

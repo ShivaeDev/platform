@@ -19,7 +19,7 @@ export const rejections = storyKit({
 		return { client, ...recorded };
 	},
 	name: "RPC rejection",
-	stages: ["configured"],
+	stages: [],
 	verbs: (state, story) => ({
 		rename: (name: string) => {
 			story.tell(`an anonymous caller renames a profile to ${JSON.stringify(name)} over HTTP`);

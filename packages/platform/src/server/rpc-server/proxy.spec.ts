@@ -5,9 +5,11 @@ import { forwarded, transport, trustedProxy } from "#test/rpc/transportStory.ts"
 transport.it("trusts forwarded authority only from the configured transport peer", [trustedProxy("10.0.0.2")], function* ({ guarded }) {
 	expect(yield* guarded("10.0.0.2")).toEqual({ calls: 1, status: 204 });
 	expect(yield* guarded("::ffff:10.0.0.2")).toEqual({ calls: 1, status: 204 });
-	expect(yield* guarded("10.0.0.2", "")).toEqual({ calls: 0, status: 403 });
 	expect(yield* guarded("10.0.0.3")).toEqual({ calls: 0, status: 403 });
 	expect(yield* guarded(undefined)).toEqual({ calls: 0, status: 403 });
+});
+transport.it("refuses forwarded authority when the application trusts no proxy", [trustedProxy("")], function* ({ guarded }) {
+	expect(yield* guarded("10.0.0.2")).toEqual({ calls: 0, status: 403 });
 });
 for (const [address, trust, accepted] of [
 	["100.64.0.0", "100.64.0.0/10", true],
@@ -58,12 +60,12 @@ for (const headers of [
 	{ "content-type": "application/json" },
 ]) {
 	transport.it(`refuses invalid forwarded request ${JSON.stringify(headers)}`, [trustedProxy("10.0.0.0/24")], function* ({ guarded }) {
-		expect(yield* guarded("10.0.0.2", undefined, { ...forwarded, ...headers })).toEqual({ calls: 0, status: 403 });
+		expect(yield* guarded("10.0.0.2", { ...forwarded, ...headers })).toEqual({ calls: 0, status: 403 });
 	});
 }
 transport.it("accepts HTTP forwarding, explicit ports and absent Origin", [trustedProxy("10.0.0.2")], function* ({ guarded }) {
 	expect(
-		yield* guarded("10.0.0.2", undefined, {
+		yield* guarded("10.0.0.2", {
 			...forwarded,
 			origin: "http://app.example:8080",
 			"x-forwarded-host": "app.example:8080",
@@ -71,5 +73,5 @@ transport.it("accepts HTTP forwarding, explicit ports and absent Origin", [trust
 		}),
 	).toEqual({ calls: 1, status: 204 });
 	const { origin: _, ...headers } = forwarded;
-	expect(yield* guarded("10.0.0.2", undefined, headers)).toEqual({ calls: 1, status: 204 });
+	expect(yield* guarded("10.0.0.2", headers)).toEqual({ calls: 1, status: 204 });
 });

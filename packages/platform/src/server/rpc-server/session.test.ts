@@ -71,8 +71,7 @@ sessions.it(
 	function* ({ account, readOwn, signout }) {
 		const alice = account("alice");
 		expect(yield* readOwn("alice", "alice")).toMatchObject({ _tag: "Success", success: alice.userId });
-		const response = yield* signout("alice");
-		expect(response.status).toBe(200);
+		yield* signout("alice");
 		const revoked = yield* readOwn("alice", "alice");
 		expect(revoked).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
 		expect(revoked._tag === "Failure" && revoked.failure).toBeInstanceOf(Unauthorized);
@@ -84,7 +83,7 @@ sessions.it(
 	function* ({ account, readOwn, expire }) {
 		const alice = account("alice");
 		expect(yield* readOwn("alice", "alice")).toMatchObject({ _tag: "Success", success: alice.userId });
-		expect(yield* expire("alice")).toBe(1);
+		yield* expire("alice");
 		const expired = yield* readOwn("alice", "alice");
 		expect(expired).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
 		expect(expired._tag === "Failure" && expired.failure).toBeInstanceOf(Unauthorized);

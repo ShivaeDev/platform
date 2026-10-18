@@ -4,7 +4,7 @@ import { Database } from "./database.ts";
 import type { authEngine } from "./engine.ts";
 
 type State = Effect.Success<ReturnType<typeof authEngine>>;
-interface User {
+export interface User {
 	email: string;
 	id: string;
 	name: string;
@@ -32,7 +32,6 @@ export function authVerbs(state: State, tell: (line: string) => void) {
 			invoke(() => state.authDatabase.findOne<User>({ ...input, model: "user" })),
 		persistedUserExists: (id: string) =>
 			Effect.promise(() => state.runtime.runPromise(Effect.flatMap(Database, (db) => db.AuthUser.where({ id }).exists()))),
-		seedUser: (data: User) => state.db.AuthUser.create(data),
 		transaction: <A>(action: (transaction: DBTransactionAdapter) => Promise<A>, context: "story" | "runtime" = "story") => {
 			tell(`the adapter runs a transaction with ${context} services`);
 			return invoke(() => state.authDatabase.transaction(action), context);
