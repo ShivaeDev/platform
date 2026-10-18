@@ -39,14 +39,13 @@ routes.it(
 routes.it(
 	"navigation keeps previous contract data during pending state until the new query settles",
 	[noteRoute()],
-	function* ({ route, succeed, navigate, observe, waitForPending }) {
+	function* ({ route, succeed, navigate, observe }) {
 		const { client, root } = route();
 		yield* succeed("first", "First note");
 		yield* observe("the first note is rendered", () => expect(root.container.querySelector("h1")?.textContent).toBe("First note"));
 		yield* navigate();
 		yield* observe("the second note is requested", () => expect(client.calls).toEqual(["first", "second"]));
-		yield* waitForPending();
-		expect(root.container.querySelector("[data-pending]")?.textContent).toBe("true");
+		yield* observe("navigation is pending", () => expect(root.container.querySelector("[data-pending]")?.textContent).toBe("true"));
 		expect(root.container.querySelector("h1")?.textContent).toBe("First note");
 		expect(root.container.querySelector("[data-query]")?.textContent).toBe("First note");
 		yield* succeed("second", "Second note");

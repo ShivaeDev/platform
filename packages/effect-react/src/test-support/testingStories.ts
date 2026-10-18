@@ -1,9 +1,12 @@
 import { useAtomValue } from "@effect/atom-react";
 import * as Atom from "effect/reactivity/Atom";
 import { createElement } from "react";
+import { vi } from "vitest";
+import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import type { Rendered } from "#testing.ts";
 import { NotesView } from "./NotesView.ts";
-import { clickButton, screenKit } from "./screenKit.ts";
+import { clickButton } from "./Screen.ts";
+import { screenKit } from "./screenKit.ts";
 
 interface State {
 	acquired: number;
@@ -27,23 +30,27 @@ function second(state: State) {
 function Probe({ label, value }: { readonly label: string; readonly value: Atom.Atom<number> }) {
 	return createElement("output", null, label, useAtomValue(value));
 }
-export const testing = screenKit(
-	"render helper screen",
-	(): State => ({ acquired: 0, released: 0 }),
-	(state, screen) => ({
-		click: () => screen.act("add Morning walk", () => clickButton(first(state).container, "Add")),
-		closeFirst: () => screen.act("unmount the first screen", () => first(state).unmount()),
-		closeSecond: () => screen.act("unmount the second screen", () => second(state).unmount()),
-		first: () => first(state),
-		relabel: () =>
-			screen.act("rerender the first mount", () => {
-				if (!state.value) {
-					throw new Error("No tracked atom");
-				}
-				return first(state).render(createElement(Probe, { label: "updated:", value: state.value }));
-			}),
-		second: () => second(state),
-	}),
+export const testing = storyKit(
+	screenKit(
+		"render helper screen",
+		(): State => ({ acquired: 0, released: 0 }),
+		(state, screen) => ({
+			click: () => screen.act("add Morning walk", () => clickButton(first(state).container, "Add")),
+			closeFirst: () => screen.act("unmount the first screen", () => first(state).unmount()),
+			closeSecond: () => screen.act("unmount the second screen", () => second(state).unmount()),
+			first: () => first(state),
+			relabel: () =>
+				screen.act("rerender the first mount", () => {
+					if (!state.value) {
+						throw new Error("No tracked atom");
+					}
+					return first(state).render(createElement(Probe, { label: "updated:", value: state.value }));
+				}),
+			resources: () => ({ acquired: state.acquired, released: state.released }),
+			second: () => second(state),
+			warn: () => screen.act("React logs a warning", () => vi.mocked(console.error)("Expected warning for the helper regression")),
+		}),
+	),
 );
 export function notesScreen() {
 	return testing.trait("screen", "a query and command through a native RPC test layer", function* ({ screen, state }) {

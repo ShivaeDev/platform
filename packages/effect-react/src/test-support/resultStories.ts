@@ -1,4 +1,5 @@
 import { Cause, Data, Effect } from "effect";
+import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { resultSession } from "./resultSession.ts";
 import { screenKit } from "./screenKit.ts";
 
@@ -15,18 +16,20 @@ function current(state: State) {
 	}
 	return state.view;
 }
-export const results = screenKit(
-	"result session screen",
-	(): State => ({ denied: new Unauthorized({ message: "Session expired" }), fail: false }),
-	(state, screen) => ({
-		execute: () => screen.act("execute the result hook", () => current(state).execute()),
-		rejectNext: () => {
-			state.fail = true;
-			screen.tell("the session's next request is Unauthorized");
-		},
-		rerender: () => screen.act("rerender the same session", () => current(state).rerender()),
-		result: () => ({ ...current(state), denied: state.denied, expectedCause: state.cause }),
-	}),
+export const results = storyKit(
+	screenKit(
+		"result session screen",
+		(): State => ({ denied: new Unauthorized({ message: "Session expired" }), fail: false }),
+		(state, screen) => ({
+			execute: () => screen.act("execute the result hook", () => current(state).execute()),
+			rejectNext: () => {
+				state.fail = true;
+				screen.tell("the session's next request is Unauthorized");
+			},
+			rerender: () => screen.act("rerender the same session", () => current(state).rerender()),
+			result: () => ({ ...current(state), denied: state.denied, expectedCause: state.cause }),
+		}),
+	),
 );
 export function resultProbe(kind: "query" | "action", mode: "undefined" | "defect" | "interruption" | "unauthorized") {
 	return results.trait("screen", `a ${kind} session probe with ${mode} results`, function* ({ screen, state }) {

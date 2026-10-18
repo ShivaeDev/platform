@@ -4,7 +4,7 @@ import { suspended, suspendedDraft } from "#test/suspendedStories.ts";
 suspended.it(
 	"a canceled suspended transition preserves the visible draft and future persistence",
 	[suspendedDraft()],
-	function* ({ draft, type, show }) {
+	function* ({ draft, type, show, staleEdit }) {
 		const form = draft().editor().form;
 		yield* type("Visible draft");
 		const saved = window.localStorage.getItem("transition-draft");
@@ -23,7 +23,7 @@ suspended.it(
 		expect(window.localStorage.getItem("transition-draft")).toBeNull();
 		yield* type("New session");
 		expect(window.localStorage.getItem("transition-draft")).toContain("New session");
-		form.change("name", "Late old edit");
+		yield* staleEdit(form, "Late old edit");
 		expect(window.localStorage.getItem("transition-draft")).toContain("New session");
 	},
 );

@@ -36,29 +36,33 @@ drafts.it("clears a successful submission and does not restore it", [persistedDr
 	expect(draft().container.querySelector("input")?.value).toBe("Paper");
 });
 
-drafts.it("session replacement drops visited drafts and prevents old forms writing again", [persistedDraft()], function* ({ type, draft, show }) {
-	yield* type("name", "First session");
-	const old = draft().editor().form;
-	yield* show("first", false);
-	expect(window.localStorage.getItem("order-draft")).toContain("First session");
-	yield* show("second", false);
-	expect(window.localStorage.getItem("order-draft")).toBeNull();
-	yield* show("second");
-	expect(draft().container.querySelector("input")?.value).toBe("Paper");
-	yield* type("name", "Second session");
-	old.change("name", "Late first session edit");
-	expect(window.localStorage.getItem("order-draft")).toContain("Second session");
-	yield* show(undefined);
-	expect(window.localStorage.getItem("order-draft")).toBeNull();
-	expect(draft().container.textContent).toBe("Signed out");
-});
+drafts.it(
+	"session replacement drops visited drafts and prevents old forms writing again",
+	[persistedDraft()],
+	function* ({ type, draft, show, staleEdit }) {
+		yield* type("name", "First session");
+		const old = draft().editor().form;
+		yield* show("first", false);
+		expect(window.localStorage.getItem("order-draft")).toContain("First session");
+		yield* show("second", false);
+		expect(window.localStorage.getItem("order-draft")).toBeNull();
+		yield* show("second");
+		expect(draft().container.querySelector("input")?.value).toBe("Paper");
+		yield* type("name", "Second session");
+		yield* staleEdit(old, "Late first session edit");
+		expect(window.localStorage.getItem("order-draft")).toContain("Second session");
+		yield* show(undefined);
+		expect(window.localStorage.getItem("order-draft")).toBeNull();
+		expect(draft().container.textContent).toBe("Signed out");
+	},
+);
 
 for (const failure of ["getter", "read", "write", "remove"]) {
 	drafts.it(
 		`unavailable storage (${failure}) permits editing, refreshing and saving`,
 		[unavailableDraft(failure)],
-		function* ({ type, refresh, draft, submit, observe, show, state }) {
-			expect(state.storage).toHaveBeenCalled();
+		function* ({ type, refresh, draft, submit, observe, show, storage }) {
+			expect(storage()).toHaveBeenCalled();
 			yield* type("name", "Local");
 			yield* refresh({ name: "Remote", quantity: "350" });
 			expect(draft().editor().form.values.value).toEqual({ name: "Local", quantity: "350" });

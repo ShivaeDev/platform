@@ -4,7 +4,7 @@ import { SessionBoundary } from "#session-boundary.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import { makeInvoiceLineViews } from "#test/invoice-line-editor/frontend.ts";
 import type { Rendered } from "#testing.ts";
-import { clickButton, typeInput } from "./screenKit.ts";
+import { clickButton, typeInput } from "./Screen.ts";
 import { RegistryProbe } from "./sessionProbes.ts";
 export const stapler = new InvoiceLine({ id: 1, name: "Stapler", quantity: 150 });
 const notebook = new InvoiceLine({ id: 2, name: "Notebook", quantity: 180 });

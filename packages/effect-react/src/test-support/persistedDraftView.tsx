@@ -7,7 +7,7 @@ import { SessionBoundary } from "#session-boundary.ts";
 import type { Rendered } from "#testing.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
 import { draftInitial, type Held, type Row, type Save } from "./draftFields.ts";
-import { submitForm, typeInput } from "./screenKit.ts";
+import { submitForm, typeInput } from "./Screen.ts";
 
 export async function persistedDraftView(
 	view: Rendered,
@@ -44,7 +44,10 @@ export async function persistedDraftView(
 		editor,
 		refresh: (row: Row) =>
 			act(() => {
-				held.registry?.set(query, AsyncResult.success(row));
+				if (!held.registry) {
+					throw new Error("Expected a captured draft registry");
+				}
+				held.registry.set(query, AsyncResult.success(row));
 			}),
 		save: () =>
 			act(() => {

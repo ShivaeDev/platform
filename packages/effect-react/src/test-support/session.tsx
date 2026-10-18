@@ -3,7 +3,7 @@ import { act } from "react";
 import { SessionBoundary } from "#session-boundary.ts";
 import { makeOrderEditor } from "#test/order-example/frontend.tsx";
 import type { Rendered } from "#testing.ts";
-import { clickButton, typeInput } from "./screenKit.ts";
+import { clickButton, typeInput } from "./Screen.ts";
 import { RegistryProbe } from "./sessionProbes.ts";
 
 interface Session {

@@ -30,7 +30,6 @@ export function queryRequests() {
 		Atom.make(Effect.suspend(() => Deferred.await(gate)).pipe(Effect.onInterrupt(() => Effect.sync(() => interrupted.push(payload))))).pipe(
 			Atom.setIdleTTL(0),
 			Atom.withReactivity(["reports"]),
-			Atom.setIdleTTL(0),
 		),
 	);
 	const runtime = Atom.runtime(Layer.empty);

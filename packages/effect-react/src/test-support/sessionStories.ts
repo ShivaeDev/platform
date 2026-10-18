@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { startOrderServer } from "#test/order-example/http-test.ts";
 import { screenKit } from "./screenKit.ts";
 import { sessions, shell } from "./session.tsx";
@@ -13,25 +14,27 @@ function current(state: State) {
 	}
 	return state.view;
 }
-export const sessionScreens = screenKit(
-	"session screen",
-	(): State => ({ active: sessions() }),
-	(state, screen) => ({
-		close: () => screen.act("unmount the session screen", () => current(state).close()),
-		expire: () => {
-			screen.tell("Alice's session expires");
-			state.active.delete("alice-token");
-		},
-		refresh: () => screen.act("refresh the session's order", () => current(state).refresh()),
-		restore: () => {
-			screen.tell("Alice's session is valid again");
-			state.active.set("alice-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" });
-		},
-		session: () => current(state),
-		show: (session: Parameters<ReturnType<typeof shell>["show"]>[0], id: number) =>
-			screen.act(`show session ${session?.id ?? "signed out"}, order ${id}`, () => current(state).show(session, id)),
-		type: (value: string) => screen.act(`type name: ${value}`, () => current(state).edit(value)),
-	}),
+export const sessionScreens = storyKit(
+	screenKit(
+		"session screen",
+		(): State => ({ active: sessions() }),
+		(state, screen) => ({
+			close: () => screen.act("unmount the session screen", () => current(state).close()),
+			expire: () => {
+				screen.tell("Alice's session expires");
+				state.active.delete("alice-token");
+			},
+			refresh: () => screen.act("refresh the session's order", () => current(state).refresh()),
+			restore: () => {
+				screen.tell("Alice's session is valid again");
+				state.active.set("alice-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" });
+			},
+			session: () => current(state),
+			show: (session: Parameters<ReturnType<typeof shell>["show"]>[0], id: number) =>
+				screen.act(`show session ${session?.id ?? "signed out"}, order ${id}`, () => current(state).show(session, id)),
+			type: (value: string) => screen.act(`type name: ${value}`, () => current(state).edit(value)),
+		}),
+	),
 );
 export function orderSessions() {
 	return sessionScreens.trait("screen", "order sessions over loopback HTTP", function* ({ screen, state }) {

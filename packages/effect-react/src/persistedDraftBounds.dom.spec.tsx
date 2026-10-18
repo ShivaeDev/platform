@@ -53,14 +53,18 @@ for (const raw of [
 	});
 }
 
-drafts.it("drops oversized records on read and drafts from another session", [persistedDraft()], function* ({ type, reload, show, draft }) {
-	yield* type("name", "First session");
-	const raw = window.localStorage.getItem("order-draft");
-	yield* reload({ key: "order-draft", maxBytes: 10 });
-	expect(window.localStorage.getItem("order-draft")).toBeNull();
-	window.localStorage.setItem("order-draft", raw ?? "");
-	yield* reload();
-	yield* show("second");
-	expect(draft().editor().form.values.value.name).toBe("Paper");
-	expect(window.localStorage.getItem("order-draft")).toBeNull();
-});
+drafts.it(
+	"drops oversized records on read and drafts from another session",
+	[persistedDraft()],
+	function* ({ type, reload, show, draft, storeDraft }) {
+		yield* type("name", "First session");
+		const raw = window.localStorage.getItem("order-draft");
+		yield* reload({ key: "order-draft", maxBytes: 10 });
+		expect(window.localStorage.getItem("order-draft")).toBeNull();
+		storeDraft(raw ?? "");
+		yield* reload();
+		yield* show("second");
+		expect(draft().editor().form.values.value.name).toBe("Paper");
+		expect(window.localStorage.getItem("order-draft")).toBeNull();
+	},
+);

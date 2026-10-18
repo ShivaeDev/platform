@@ -4,7 +4,7 @@ import { SessionBoundary } from "#session-boundary.ts";
 import type { Rendered } from "#testing.ts";
 import { CreateDraftProbe, DirectDraftProbe } from "./CreateDraftProbe.tsx";
 import type { CreateEffect, CreateHeld } from "./createDraftFields.ts";
-import { submitForm, typeInput } from "./screenKit.ts";
+import { submitForm, typeInput } from "./Screen.ts";
 
 export async function persistedCreateView(view: Rendered, create: CreateEffect = Effect.succeed, direct = false) {
 	const held: CreateHeld = {};

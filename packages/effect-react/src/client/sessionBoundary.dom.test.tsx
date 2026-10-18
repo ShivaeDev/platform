@@ -1,6 +1,17 @@
 import { Cause, Option } from "effect";
-import { expect, vi } from "vitest";
-import { activity, registryActivity, replay, rotation, tracked } from "#test/lifecycleStories.ts";
+import { expect } from "vitest";
+import {
+	activity,
+	activityMounted,
+	registryActivity,
+	registryActivityMounted,
+	replay,
+	replayMounted,
+	rotation,
+	rotationMounted,
+	tracked,
+	trackedMounted,
+} from "#test/lifecycleStories.ts";
 import { resultProbe, results } from "#test/resultStories.ts";
 import { orderSessions, sessionScreens } from "#test/sessionStories.ts";
 
@@ -93,87 +104,90 @@ sessionScreens.it(
 	},
 );
 
-replay.it("StrictMode replay keeps the registry alive until real unmount", [replay.mounted()], function* ({ probe, act }) {
-	const { root, held, show } = probe();
-	yield* act("sign in", () => show("s1"));
+replay.it("StrictMode replay keeps the registry alive until real unmount", [replayMounted()], function* ({ probe, signIn, signOut }) {
+	const { root, held } = probe();
+	yield* signIn("s1");
 	expect(root.container.textContent).toBe("42");
 	expect(held.registry?.getNodes().size).toBeGreaterThan(0);
 	const first = held.registry;
-	yield* act("sign out", () => show(undefined));
+	yield* signOut();
 	expect(root.container.textContent).toBe("");
 	expect(first?.getNodes().size).toBe(0);
 });
 for (const hoisted of [false, true]) {
-	const stories = activity(hoisted);
-	stories.it(`Activity preserves the draft and live registry (hoisted ${hoisted})`, [stories.mounted()], function* ({ probe, act, close }) {
-		const { root, show, errors, registries } = probe();
-		yield* act("show the generation", () => show("visible"));
-		expect(errors).toEqual([]);
-		expect(root.container.textContent).toBe("draft-1:42");
-		yield* act("hide the generation", () => show("hidden"));
-		yield* act("reveal the generation", () => show("visible"));
-		expect(errors).toEqual([]);
-		expect(root.container.textContent).toBe("draft-1:42");
-		expect(registries.at(-1)?.getNodes().size).toBeGreaterThan(0);
-		yield* close();
-		expect(registries.map((registry) => registry.getNodes().size)).toEqual(registries.map(() => 0));
-	});
+	activity.it(
+		`Activity preserves the draft and live registry (hoisted ${hoisted})`,
+		[activityMounted(hoisted)],
+		function* ({ probe, reveal, hide, close }) {
+			const { root, errors, registries } = probe();
+			yield* reveal();
+			expect(errors).toEqual([]);
+			expect(root.container.textContent).toBe("draft-1:42");
+			yield* hide();
+			yield* reveal();
+			expect(errors).toEqual([]);
+			expect(root.container.textContent).toBe("draft-1:42");
+			expect(registries.at(-1)?.getNodes().size).toBeGreaterThan(0);
+			yield* close();
+			expect(registries.map((registry) => registry.getNodes().size)).toEqual(registries.map(() => 0));
+		},
+	);
 }
 tracked.it(
 	"unmounting a generation rerendered while hidden disposes hidden-render resources",
-	[tracked.mounted()],
-	function* ({ probe, act, close, observe }) {
-		const { show, rendered, built, finalized } = probe();
-		yield* act("show the first generation", () => show("visible", 1));
-		yield* act("hide the first generation", () => show("hidden", 1));
-		yield* act("rerender while hidden", () => show("hidden", 2));
+	[trackedMounted()],
+	function* ({ probe, reveal, hide, close, observe }) {
+		const { rendered, built, finalized } = probe();
+		yield* reveal(1);
+		yield* hide(1);
+		yield* hide(2);
 		expect(rendered).toContain(2);
 		expect(built.length).toBeGreaterThan(1);
 		yield* close();
 		yield* observe("all resources are finalized", () => expect(finalized).toHaveLength(built.length));
 	},
 );
-rotation.it("credentials rotate only when identify includes their generation", [rotation.mounted()], function* ({ probe, act }) {
-	const { show, root, connected } = probe();
+rotation.it("credentials rotate only when identify includes their generation", [rotationMounted()], function* ({ probe, signIn }) {
+	const { root, connected } = probe();
 	function byId(session: { readonly id: string }) {
 		return session.id;
 	}
 	function byCredential(session: { readonly id: string; readonly credential: number }) {
 		return `${session.id}:${session.credential}`;
 	}
-	yield* act("connect with the first credential", () => show({ credential: 1, id: "a1", token: "t1" }, byId));
-	yield* act("rotate without changing identity", () => show({ credential: 2, id: "a1", token: "t2" }, byId));
+	yield* signIn({ credential: 1, id: "a1", token: "t1" }, byId);
+	yield* signIn({ credential: 2, id: "a1", token: "t2" }, byId);
 	expect(root.container.textContent).toBe("t1");
-	yield* act("include credential generation in identity", () => show({ credential: 2, id: "a1", token: "t2" }, byCredential));
-	yield* act("rotate with a new identity", () => show({ credential: 3, id: "a1", token: "t3" }, byCredential));
+	yield* signIn({ credential: 2, id: "a1", token: "t2" }, byCredential);
+	yield* signIn({ credential: 3, id: "a1", token: "t3" }, byCredential);
 	expect(root.container.textContent).toBe("t3");
 	expect(connected).toEqual(["t1", "t2", "t3"]);
 });
 registryActivity.it(
 	"revealing before hidden cleanup preserves the registry and newly added atoms",
-	[registryActivity.mounted()],
-	function* ({ probe, act, close }) {
-		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+	[registryActivityMounted()],
+	function* ({ probe, reveal, hide, pauseCleanup, runCleanup, resumeCleanup, close }) {
+		pauseCleanup();
 		const view = probe();
-		yield* act("show the first atom", () => view.render("visible", 1));
+		yield* reveal(1);
 		const outgoing = view.registry();
-		yield* act("hide the first atom", () => view.render("hidden", 1));
-		yield* act("add a second atom while hidden", () => view.render("hidden", 2));
+		yield* hide(1);
+		yield* hide(2);
 		const revealed = view.registry();
 		expect(revealed).not.toBe(outgoing);
 		expect(view.built).toEqual(["first", "first", "second"]);
 		expect(view.finalized).toEqual(["first"]);
-		yield* act("reveal both atoms", () => view.render("visible", 2));
-		yield* act("run hidden cleanup", () => vi.runOnlyPendingTimers());
+		yield* reveal(2);
+		yield* runCleanup();
 		expect(view.registry()).toBe(revealed);
 		expect(view.finalized).toEqual(["first"]);
-		yield* act("add a third atom after reveal", () => view.render("visible", 3));
-		yield* act("run pending cleanup", () => vi.runOnlyPendingTimers());
+		yield* reveal(3);
+		yield* runCleanup();
 		expect(view.container.textContent).toBe("retained draftfirstsecondthird");
 		expect(view.built).toEqual(["first", "first", "second", "third"]);
 		expect(view.finalized).toEqual(["first"]);
 		yield* close();
-		vi.useRealTimers();
+		resumeCleanup();
 		expect(view.finalized).toHaveLength(view.built.length);
 	},
 );

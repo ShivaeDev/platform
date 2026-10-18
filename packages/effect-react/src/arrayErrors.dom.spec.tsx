@@ -1,12 +1,9 @@
 import { expect } from "vitest";
 import { answerList, answers } from "#test/answerStories.ts";
 
-answers.it("Schema and server messages follow their answer through array edits", [answerList()], function* ({ click, type, list, observe }) {
-	const container = list();
+answers.it("Schema and server messages follow their answer through array edits", [answerList()], function* ({ click, type, messages, observe }) {
 	yield* observe("the initial answers have no messages", () => {
-		expect(
-			[...container.querySelectorAll("li")].map((item) => [item.getAttribute("data-answer"), item.querySelector('[role="alert"]')?.textContent]),
-		).toEqual([
+		expect(messages()).toEqual([
 			["first", undefined],
 			["second", undefined],
 			["third", undefined],
@@ -14,9 +11,7 @@ answers.it("Schema and server messages follow their answer through array edits",
 	});
 	yield* click("Save");
 	yield* observe("the required answer has a Schema message", () => {
-		expect(
-			[...container.querySelectorAll("li")].map((item) => [item.getAttribute("data-answer"), item.querySelector('[role="alert"]')?.textContent]),
-		).toEqual([
+		expect(messages()).toEqual([
 			["first", undefined],
 			["second", undefined],
 			["third", "Required"],
@@ -25,9 +20,7 @@ answers.it("Schema and server messages follow their answer through array edits",
 	yield* click("Remove first");
 	yield* click("Move third first");
 	yield* observe("the Schema message follows reordering", () => {
-		expect(
-			[...container.querySelectorAll("li")].map((item) => [item.getAttribute("data-answer"), item.querySelector('[role="alert"]')?.textContent]),
-		).toEqual([
+		expect(messages()).toEqual([
 			["third", "Required"],
 			["second", undefined],
 		]);
@@ -35,9 +28,7 @@ answers.it("Schema and server messages follow their answer through array edits",
 	yield* type("third", "Valid");
 	yield* click("Save");
 	yield* observe("the server rejection attaches to its answer", () => {
-		expect(
-			[...container.querySelectorAll("li")].map((item) => [item.getAttribute("data-answer"), item.querySelector('[role="alert"]')?.textContent]),
-		).toEqual([
+		expect(messages()).toEqual([
 			["third", "Answer is closed"],
 			["second", undefined],
 		]);
@@ -46,9 +37,7 @@ answers.it("Schema and server messages follow their answer through array edits",
 	yield* click("Move second first");
 	yield* click("Move first first");
 	yield* observe("the server message survives restoring and reordering", () => {
-		expect(
-			[...container.querySelectorAll("li")].map((item) => [item.getAttribute("data-answer"), item.querySelector('[role="alert"]')?.textContent]),
-		).toEqual([
+		expect(messages()).toEqual([
 			["first", undefined],
 			["second", undefined],
 			["third", "Answer is closed"],
@@ -56,26 +45,20 @@ answers.it("Schema and server messages follow their answer through array edits",
 	});
 	yield* click("Remove first");
 	yield* observe("the server message survives removal", () => {
-		expect(
-			[...container.querySelectorAll("li")].map((item) => [item.getAttribute("data-answer"), item.querySelector('[role="alert"]')?.textContent]),
-		).toEqual([
+		expect(messages()).toEqual([
 			["second", undefined],
 			["third", "Answer is closed"],
 		]);
 	});
 	yield* click("Move third first");
 	yield* observe("the server message follows its moved answer", () => {
-		expect(
-			[...container.querySelectorAll("li")].map((item) => [item.getAttribute("data-answer"), item.querySelector('[role="alert"]')?.textContent]),
-		).toEqual([
+		expect(messages()).toEqual([
 			["third", "Answer is closed"],
 			["second", undefined],
 		]);
 	});
 	yield* click("Remove third");
 	yield* observe("removing the rejected answer removes its message", () => {
-		expect(
-			[...container.querySelectorAll("li")].map((item) => [item.getAttribute("data-answer"), item.querySelector('[role="alert"]')?.textContent]),
-		).toEqual([["second", undefined]]);
+		expect(messages()).toEqual([["second", undefined]]);
 	});
 });
