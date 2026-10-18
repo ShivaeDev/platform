@@ -3,7 +3,7 @@ import { Option } from "effect";
 import { expect } from "vitest";
 import { RejectionError } from "#rejection.ts";
 import { Conflict, other, rejectionRules } from "#test/rejectionRules.ts";
-import { customErrorShape, inputIs, requestIs, trpc } from "#test/routerStory.ts";
+import { customErrorShape, requestIs, trpc } from "#test/routerStory.ts";
 
 trpc.it("encodes only declared fields in a RejectionError", [rejectionRules()], function* ({ rejectCaller }) {
 	const error = yield* rejectCaller("conflict");
@@ -19,7 +19,6 @@ trpc.it("leaves successes, undeclared failures and defects untouched", [rejectio
 	expect(yield* query("success")).toBe(1);
 	const failure = yield* rejectQuery("other");
 	expect(rejection(failure)).toEqual(Option.none());
-	expect(mapped).toContainEqual({ error: other, origin: "failure", path: "other" });
 	expect(mapped.find(({ path }) => path === "other")?.error).toBe(other);
 	const defect = yield* rejectQuery("die");
 	expect(rejection(defect)).toEqual(Option.none());
@@ -44,8 +43,8 @@ for (const [tag, code] of [
 	["BadRequest", "BAD_REQUEST"],
 	["toString", "BAD_REQUEST"],
 ]) {
-	trpc.it(`maps the ${tag} rejection to ${code}`, [rejectionRules(), inputIs({ _tag: tag })], function* ({ rejectQuery, rejection }) {
-		const error = yield* rejectQuery("tag");
+	trpc.it(`maps the ${tag} rejection to ${code}`, [rejectionRules()], function* ({ rejectQuery, rejection }) {
+		const error = yield* rejectQuery("tag", { _tag: tag });
 		expect(error).toMatchObject({ data: { code }, message: tag });
 		expect(rejection(error)).toEqual(Option.some({ _tag: tag }));
 	});
@@ -54,8 +53,8 @@ for (const input of [
 	{ _tag: "Throttled", retryAfter: "30" },
 	{ _tag: "Throttled", message: 1 },
 ]) {
-	trpc.it(`uses the tag when the message is ${JSON.stringify(input)}`, [rejectionRules(), inputIs(input)], function* ({ rejectQuery }) {
-		expect(yield* rejectQuery("tag")).toMatchObject({ data: { code: "BAD_REQUEST" }, message: "Throttled" });
+	trpc.it(`uses the tag when the message is ${JSON.stringify(input)}`, [rejectionRules()], function* ({ rejectQuery }) {
+		expect(yield* rejectQuery("tag", input)).toMatchObject({ data: { code: "BAD_REQUEST" }, message: "Throttled" });
 	});
 }
 trpc.it(

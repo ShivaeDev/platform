@@ -2,7 +2,7 @@ import { Context, Effect, Fiber } from "effect";
 import { expect } from "vitest";
 import { adapterServices } from "#test/adapterRouter.ts";
 import { RuntimeValue } from "#test/adapterServices.ts";
-import { inputIs, requestIs, trpc } from "#test/routerStory.ts";
+import { requestIs, trpc } from "#test/routerStory.ts";
 
 trpc.it("uses middleware context to build request services", [adapterServices(), requestIs("secured")], function* ({ query }) {
 	expect(yield* query("authenticated")).toBe("actor:secured");
@@ -16,12 +16,12 @@ trpc.it(
 		expect(instrumentedRequests).toContain("request-1");
 	},
 );
-trpc.it("decodes input and output schemas", [adapterServices(), inputIs({ value: "4" })], function* ({ query }) {
-	expect(yield* query("decodedInput")).toBe(5);
+trpc.it("decodes input and output schemas", [adapterServices()], function* ({ query }) {
+	expect(yield* query("decodedInput", { value: "4" })).toBe(5);
 	expect(yield* query("transformedOutput")).toBe(42);
 });
-trpc.it("builds mutations", [adapterServices(), inputIs("changed")], function* ({ mutate }) {
-	expect(yield* mutate("mutation")).toBe("CHANGED");
+trpc.it("builds mutations", [adapterServices()], function* ({ mutate }) {
+	expect(yield* mutate("mutation", "changed")).toBe("CHANGED");
 });
 trpc.it(
 	"runs subscriptions as scoped Effect streams",
@@ -35,15 +35,21 @@ trpc.it(
 trpc.it("decodes subscription output schemas", [adapterServices()], function* ({ consume }) {
 	expect(yield* consume("transformedStream")).toEqual([42, 43]);
 });
-trpc.it("interrupts subscriptions and runs finalizers on caller abort", [adapterServices()], function* ({ subscribe, next, started, finalized }) {
-	const controller = new AbortController();
-	const iterator = yield* subscribe("interruptible", controller.signal);
-	const pending = yield* Effect.forkChild(next(iterator));
-	yield* started();
-	controller.abort();
-	expect(yield* Fiber.join(pending)).toEqual({ done: true, value: undefined });
-	expect(finalized).toContain("interruptible");
-});
+trpc.it(
+	"interrupts subscriptions and runs finalizers on caller abort",
+	[adapterServices()],
+	function* ({ subscribe, next, started, finalized, story }) {
+		const controller = new AbortController();
+		const iterator = yield* subscribe("interruptible", undefined, controller.signal);
+		const pending = yield* Effect.forkChild(next(iterator));
+		yield* started(iterator);
+		controller.abort();
+		expect(yield* Fiber.join(pending)).toEqual({ done: true, value: undefined });
+		expect(finalized).toContain("interruptible");
+		expect(story.lines).toContain("read the next value from interruptible");
+		expect(story.lines).toContain("wait for interruptible to start");
+	},
+);
 trpc.it("passes explicit transport errors through", [adapterServices()], function* ({ rejectQuery }) {
 	expect(yield* rejectQuery("explicitFailure")).toMatchObject({ data: { code: "NOT_FOUND" }, message: "missing" });
 });

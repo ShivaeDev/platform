@@ -3,6 +3,7 @@ import { Effect, Layer, Schema, SchemaGetter } from "effect";
 import { RejectionError, rejectWith } from "#rejection.ts";
 import { adapterHost } from "./adapterHost.ts";
 import type { RouterEngine } from "./routerEngine.ts";
+import { selectRouter } from "./routerSetup.ts";
 import { trpc } from "./routerStory.ts";
 
 export class Conflict extends Schema.TaggedError<Conflict>()("Conflict", { field: Schema.String, message: Schema.String }) {}
@@ -46,6 +47,6 @@ function* build(engine: RouterEngine) {
 
 export function rejectionRules() {
 	return trpc.trait("router", "procedures declare Conflict and encode only declared failures", (engine) => {
-		engine.build = (state) => Effect.gen(() => build(state));
+		selectRouter(engine, "rejectionRules", (state) => Effect.gen(() => build(state)));
 	});
 }

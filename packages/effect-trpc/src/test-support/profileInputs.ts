@@ -3,6 +3,7 @@ import { RejectionError, rejectWith } from "#rejection.ts";
 import { adapterHost } from "./adapterHost.ts";
 import { BadRequest, Mark, Profile, Range, rejectSpoofed, Spoofed } from "./inputSchemas.ts";
 import type { RouterEngine } from "./routerEngine.ts";
+import { selectRouter } from "./routerSetup.ts";
 import { trpc } from "./routerStory.ts";
 
 function* build(engine: RouterEngine) {
@@ -30,6 +31,6 @@ function* build(engine: RouterEngine) {
 }
 export function profileInputs() {
 	return trpc.trait("router", "profile inputs validate fields and distinguish declared rejections", (engine) => {
-		engine.build = (state) => Effect.gen(() => build(state));
+		selectRouter(engine, "profileInputs", (state) => Effect.gen(() => build(state)));
 	});
 }

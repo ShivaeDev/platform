@@ -2,28 +2,14 @@ import { Effect, Layer, Schema, Stream } from "effect";
 import { notFound } from "#errors.ts";
 import { extendRequestServices, makeRequestServices } from "#request-services.ts";
 import { adapterHost } from "./adapterHost.ts";
-import {
-	AuthenticatedActor,
-	Dependency,
-	DomainFailure,
-	ExtendedRequestValue,
-	RequestValue,
-	RuntimeOnlyValue,
-	RuntimeValue,
-} from "./adapterServices.ts";
+import { AuthenticatedActor, DomainFailure, ExtendedRequestValue, RequestValue, RuntimeOnlyValue, RuntimeValue } from "./adapterServices.ts";
 import { adapterSubscriptions } from "./adapterSubscriptions.ts";
 import type { RouterEngine } from "./routerEngine.ts";
+import { selectMode, selectRouter } from "./routerSetup.ts";
 import { trpc } from "./routerStory.ts";
 
 function* build(engine: RouterEngine) {
-	const layer = Layer.mergeAll(
-		Layer.succeed(RuntimeValue, "runtime"),
-		Layer.succeed(RuntimeOnlyValue, "runtime-only"),
-		Layer.effect(
-			Dependency,
-			engine.mode === "runtime-failure" ? Effect.fail(new Error("private runtime acquisition detail")) : Effect.succeed("ready"),
-		),
-	);
+	const layer = Layer.mergeAll(Layer.succeed(RuntimeValue, "runtime"), Layer.succeed(RuntimeOnlyValue, "runtime-only"));
 	const { adapter, t } = yield* adapterHost(engine, layer);
 	const services = makeRequestServices((context: { readonly requestId: string }) => Layer.succeed(RequestValue, context.requestId));
 	const procedure = adapter.procedure(t.procedure, services);
@@ -90,27 +76,27 @@ function* build(engine: RouterEngine) {
 			return yield* Effect.die(new Error("private detail"));
 		}),
 	});
-	return { router, runWithServices: adapter.runWithServices };
+	return { router, runWithServices: adapter.runWithServices, starts: new Map([["interruptible", engine.streamStarted.promise]]) };
 }
 
 export function adapterServices() {
 	return trpc.trait("router", "runtime, request services and subscriptions are available", (engine) => {
-		engine.build = (state) => Effect.gen(() => build(state));
+		selectRouter(engine, "adapterServices", (state) => Effect.gen(() => build(state)));
 	});
 }
 
 export function consumerInstrumentationThrows() {
 	return trpc.trait("router", "consumer instrumentation throws", (engine) => {
-		engine.mode = "instrument-defect";
+		selectMode(engine, "consumerInstrumentationThrows", "instrument-defect");
 	});
 }
 export function consumerMapperThrows() {
 	return trpc.trait("router", "the consumer error mapper throws", (engine) => {
-		engine.mode = "mapper-defect";
+		selectMode(engine, "consumerMapperThrows", "mapper-defect");
 	});
 }
 export function runtimeAcquisitionFails() {
 	return trpc.trait("router", "the application runtime cannot acquire its dependency", (engine) => {
-		engine.mode = "runtime-failure";
+		selectMode(engine, "runtimeAcquisitionFails", "runtime-failure");
 	});
 }

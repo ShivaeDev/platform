@@ -2,10 +2,9 @@ import { Option } from "effect";
 import { describe, expect } from "vitest";
 import { BadRequest } from "#test/inputSchemas.ts";
 import { profileInputs } from "#test/profileInputs.ts";
+import { trpc } from "#test/routerStory.ts";
 
 const valid = { address: { city: "London" }, name: "Ada", tags: ["admin"] };
-
-import { trpc } from "#test/routerStory.ts";
 
 describe("input validation failures cross as BadRequest field rejections", () => {
 	trpc.it(

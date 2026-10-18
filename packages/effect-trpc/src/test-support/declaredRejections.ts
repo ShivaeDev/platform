@@ -4,6 +4,7 @@ import { rejectWith } from "#rejection.ts";
 import { adapterHost } from "./adapterHost.ts";
 import { Rejection, rename, Throttled } from "./rejectionSchemas.ts";
 import type { RouterEngine } from "./routerEngine.ts";
+import { selectRouter } from "./routerSetup.ts";
 import { trpc } from "./routerStory.ts";
 
 function* build(engine: RouterEngine) {
@@ -27,6 +28,6 @@ function* build(engine: RouterEngine) {
 }
 export function declaredRejections() {
 	return trpc.trait("router", "rename declares its public rejection schema", (engine) => {
-		engine.build = (state) => Effect.gen(() => build(state));
+		selectRouter(engine, "declaredRejections", (state) => Effect.gen(() => build(state)));
 	});
 }

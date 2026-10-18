@@ -8,7 +8,7 @@ import { trpc } from "#test/routerStory.ts";
 trpc.it("maps pure interruption to CLIENT_CLOSED_REQUEST", [adapterServices()], function* ({ rejectCaller }) {
 	const controller = new AbortController();
 	controller.abort();
-	const error = yield* rejectCaller("cancelled", controller.signal);
+	const error = yield* rejectCaller("cancelled", undefined, controller.signal);
 	expect(error).toBeInstanceOf(TRPCError);
 	expect(error).toMatchObject({ code: "CLIENT_CLOSED_REQUEST", message: "Request cancelled" });
 });
@@ -21,13 +21,14 @@ trpc.it("redacts defects thrown by the consumer error mapper", [adapterServices(
 trpc.it("ends a subscription aborted before iteration", [adapterServices()], function* ({ subscribe, next }) {
 	const controller = new AbortController();
 	controller.abort();
-	const iterator = yield* subscribe("neverStream", controller.signal);
+	const iterator = yield* subscribe("neverStream", undefined, controller.signal);
 	expect(yield* next(iterator)).toEqual({ done: true, value: undefined });
 });
-trpc.it("maps subscription failures to the consumer error", [adapterServices()], function* ({ subscribe, rejectNext, mapped }) {
+trpc.it("maps subscription failures to the consumer error", [adapterServices()], function* ({ subscribe, rejectNext, mapped, story }) {
 	const iterator = yield* subscribe("failedStream");
 	expect(yield* rejectNext(iterator)).toMatchObject({ code: "SERVICE_UNAVAILABLE", message: "Updates temporarily unavailable" });
 	expect(mapped).toEqual([{ error: "subscription unavailable", origin: "failure", path: "failedStream" }]);
+	expect(story.lines).toContain("read the next rejection from failedStream");
 });
 trpc.it("keeps ambient subscription services after caller context returns", [adapterServices()], function* ({ subscribeWith, next }) {
 	const iterator = yield* subscribeWith("ambientStream", Context.make(RuntimeValue, "test override"));

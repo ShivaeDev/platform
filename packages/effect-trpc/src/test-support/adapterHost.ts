@@ -4,14 +4,18 @@ import superjson from "superjson";
 import { makeEffectTRPC } from "#adapter.ts";
 import { rejectionFormatter, withRejection } from "#rejection-formatter.ts";
 import { makeRequestServices } from "#request-services.ts";
-import { DomainFailure, RequestValue } from "./adapterServices.ts";
+import { Dependency, DomainFailure, RequestValue } from "./adapterServices.ts";
 import { type RouterEngine, recordMapping, scopedRuntime } from "./routerEngine.ts";
 
 export function* adapterHost<R, E>(engine: RouterEngine, layer: Layer.Layer<R, E>) {
-	const runtime = yield* scopedRuntime(layer);
+	const dependency = Layer.effect(
+		Dependency,
+		engine.mode?.value === "runtime-failure" ? Effect.fail(new Error("private runtime acquisition detail")) : Effect.succeed("ready"),
+	);
+	const runtime = yield* scopedRuntime(Layer.merge(layer, dependency));
 	const adapter = makeEffectTRPC({
 		instrument: (effect, info) => {
-			if (engine.mode === "instrument-defect") {
+			if (engine.mode?.value === "instrument-defect") {
 				throw new Error("private instrumentation detail");
 			}
 			return Effect.gen(function* () {
@@ -29,7 +33,7 @@ export function* adapterHost<R, E>(engine: RouterEngine, layer: Layer.Layer<R, E
 		},
 		mapError: (error, context) => {
 			recordMapping(engine, error, context);
-			if (engine.mode === "mapper-defect") {
+			if (engine.mode?.value === "mapper-defect") {
 				throw new Error("private mapper detail");
 			}
 			if (error instanceof DomainFailure) {

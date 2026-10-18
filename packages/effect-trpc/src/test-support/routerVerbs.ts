@@ -5,23 +5,26 @@ import { type RouterEngine, running } from "./routerEngine.ts";
 
 export function routerVerbs(engine: RouterEngine, tell: (line: string) => void) {
 	const host = running(engine);
-	function query(path: string, input = engine.input) {
+	const subscriptions = new WeakMap<AsyncIterator<unknown>, string>();
+	function query(path: string, input?: unknown) {
 		tell(`query ${path}`);
 		return host.client.query(path, input);
 	}
-	function mutate(path: string, input = engine.input) {
+	function mutate(path: string, input?: unknown) {
 		tell(`mutate ${path}`);
 		return host.client.mutation(path, input);
 	}
-	function subscribe<R>(path: string, services?: Context.Context<R>, signal?: AbortSignal) {
+	function subscribe<R>(path: string, input: unknown, services?: Context.Context<R>, signal?: AbortSignal) {
 		return Effect.acquireRelease(
 			Effect.promise(async () => {
 				tell(`subscribe to ${path}`);
 				function start() {
-					return host.subscribe(path, engine.input, signal);
+					return host.subscribe(path, input, signal);
 				}
 				const stream = await (services === undefined ? start() : host.runWithServices(services, start));
-				return stream[Symbol.asyncIterator]();
+				const iterator = stream[Symbol.asyncIterator]();
+				subscriptions.set(iterator, path);
+				return iterator;
 			}),
 			(iterator) =>
 				Effect.promise(async () => {
@@ -34,15 +37,15 @@ export function routerVerbs(engine: RouterEngine, tell: (line: string) => void) 
 			tell(`send a batch of ${calls.length} mutations`);
 			return Effect.promise(() => Promise.allSettled(calls.map(({ path, input }) => mutate(path, input))));
 		},
-		callerQuery: <R>(path: string, services: Context.Context<R>, signal?: AbortSignal) => {
+		callerQuery: <R>(path: string, services: Context.Context<R>, input?: unknown, signal?: AbortSignal) => {
 			tell(`call ${path} with ambient services`);
-			return Effect.promise(() => host.runWithServices(services, () => host.call(path, engine.input, signal)));
+			return Effect.promise(() => host.runWithServices(services, () => host.call(path, input, signal)));
 		},
-		consume: (path: string) =>
+		consume: (path: string, input?: unknown) =>
 			Effect.promise(async () => {
 				tell(`consume the ${path} subscription`);
 				const values: unknown[] = [];
-				for await (const value of await host.subscribe(path, engine.input)) {
+				for await (const value of await host.subscribe(path, input)) {
 					values.push(value);
 				}
 				return values;
@@ -58,26 +61,41 @@ export function routerVerbs(engine: RouterEngine, tell: (line: string) => void) 
 		instrumentedRequests: engine.instrumentedRequests,
 		instrumentedStreams: engine.instrumentedStreams,
 		mapped: engine.mapped,
-		mutate: (path: string, input = engine.input) => Effect.promise(() => mutate(path, input)),
-		next: (iterator: AsyncIterator<unknown>) => Effect.promise(() => iterator.next()),
-		query: (path: string, input = engine.input) => Effect.promise(() => query(path, input)),
-		rejectCaller: (path: string, signal?: AbortSignal) => {
+		mutate: (path: string, input?: unknown) => Effect.promise(() => mutate(path, input)),
+		next: (iterator: AsyncIterator<unknown>) => {
+			tell(`read the next value from ${subscriptions.get(iterator) ?? "the subscription"}`);
+			return Effect.promise(() => iterator.next());
+		},
+		query: (path: string, input?: unknown) => Effect.promise(() => query(path, input)),
+		rejectCaller: (path: string, input?: unknown, signal?: AbortSignal) => {
 			tell(`call ${path}`);
-			return Effect.promise(() => failureOf(host.call(path, engine.input, signal)));
+			return Effect.promise(() => failureOf(host.call(path, input, signal)));
 		},
 		rejection: (error: unknown) => {
 			tell("read the formatted rejection");
 			return rejectionOf(error);
 		},
-		rejectMutation: (path: string, input = engine.input) => Effect.promise(() => failureOf(mutate(path, input))),
-		rejectNext: (iterator: AsyncIterator<unknown>) => Effect.promise(() => failureOf(iterator.next())),
-		rejectQuery: (path: string, input = engine.input) => Effect.promise(() => failureOf(query(path, input))),
-		rejectSubscription: (path: string) => {
-			tell(`subscribe to ${path}`);
-			return Effect.promise(() => failureOf(host.subscribe(path, engine.input)));
+		rejectMutation: (path: string, input?: unknown) => Effect.promise(() => failureOf(mutate(path, input))),
+		rejectNext: (iterator: AsyncIterator<unknown>) => {
+			tell(`read the next rejection from ${subscriptions.get(iterator) ?? "the subscription"}`);
+			return Effect.promise(() => failureOf(iterator.next()));
 		},
-		started: () => Effect.promise(() => engine.streamStarted.promise),
-		subscribe: (path: string, signal?: AbortSignal) => subscribe(path, undefined, signal),
-		subscribeWith: <R>(path: string, services: Context.Context<R>) => subscribe(path, services),
+		rejectQuery: (path: string, input?: unknown) => Effect.promise(() => failureOf(query(path, input))),
+		rejectSubscription: (path: string, input?: unknown) => {
+			tell(`subscribe to ${path}`);
+			return Effect.promise(() => failureOf(host.subscribe(path, input)));
+		},
+		started: (iterator: AsyncIterator<unknown>) =>
+			Effect.suspend(() => {
+				const path = subscriptions.get(iterator);
+				tell(`wait for ${path ?? "the subscription"} to start`);
+				const start = path === undefined ? undefined : host.starts?.get(path);
+				if (start === undefined) {
+					throw new Error(`Subscription ${path ?? "from an unknown iterator"} cannot report a start`);
+				}
+				return Effect.promise(() => start);
+			}),
+		subscribe: (path: string, input?: unknown, signal?: AbortSignal) => subscribe(path, input, undefined, signal),
+		subscribeWith: <R>(path: string, services: Context.Context<R>, input?: unknown) => subscribe(path, input, services),
 	};
 }

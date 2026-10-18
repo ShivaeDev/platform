@@ -8,22 +8,16 @@ export const trpc = storyKit({
 			if (engine.build === undefined) {
 				throw new Error("Choose the router's contracts before serving it");
 			}
-			engine.host = serve(yield* engine.build(engine), engine);
+			engine.host = serve(yield* engine.build.run(engine), engine);
 		},
 	},
 	clock: "live",
 	create: emptyEngine,
 	inspect: ({ finalized, host, instrumented, mapped }) => ({ exchanges: host?.http.exchanges, finalized, instrumented, mapped }),
 	name: "tRPC adapter",
-	stages: ["router", "input"],
+	stages: ["router"],
 	verbs: (engine, story) => routerVerbs(engine, story.tell),
 });
-
-export function inputIs(input: unknown) {
-	return trpc.trait("input", `the caller sends ${JSON.stringify(input)}`, (engine) => {
-		engine.input = input;
-	});
-}
 
 export function requestIs(requestId: string) {
 	return trpc.trait("router", `the request is ${requestId}`, (engine) => {
