@@ -33,10 +33,10 @@ for (const sort of ["title", "owner", "status"] as const) {
 			const card = findElement('[aria-label="Executing"] [data-item="task-1"]');
 			expect(readText("h3", card)).toBe("Work 5");
 			expect(readText("[data-status-token]", card)).toBe("executing");
-			expect(card?.textContent).toContain("Holder: Fleet");
-			expect(card?.textContent).toContain("In executing for");
+			expect(readText(".work-owner", card)).toBe("Fleet is working on this");
+			expect(readText(".work-stage", card)).toMatch(/^Executing for /u);
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', card)).not.toBeNull();
-			expect(readText('[aria-label="Waiting on a person"]')).toContain("Holder: maintainer");
+			expect(readText('[aria-label="Waiting on a person"] .work-owner')).toBe("Needs you");
 			expect(findElement('[data-item="task-5"]')).toBeNull();
 			const button = findElement<HTMLButtonElement>('[aria-expanded="false"]');
 			click(button);

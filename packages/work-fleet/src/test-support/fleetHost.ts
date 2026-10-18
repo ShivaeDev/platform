@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer, Redacted } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
@@ -9,13 +9,10 @@ import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostParts } from "#host/commands.ts";
 import { type FleetHost, type HostConfig, resolveHost } from "#host/config.ts";
-import { loadHost } from "#host/configFile.ts";
 import { CONFIG_FILE } from "#host/defaults.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
-import type { CliRun } from "#test/fleetCli.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
 import { fixedMainSource } from "#test/mainSource.ts";
-import { daemonCli } from "#test/readDaemon.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
 export function task(id: string, fleet?: string, body = "Do the work.") {
@@ -50,10 +47,14 @@ function hostParts(boardDir: string, provider: EngineProvider["transport"]): Hos
 	};
 }
 
-const makeHost = Effect.fn("FleetFixture.makeHost")(function* (files: Readonly<Record<string, string>>, config: Partial<HostConfig>) {
+const makeHost = Effect.fn("FleetFixture.makeHost")(function* (
+	files: Readonly<Record<string, string>>,
+	config: Partial<HostConfig>,
+	directoryPrefix = "fleet-host-",
+) {
 	const database = yield* PostgresTestDatabase;
 	return yield* Effect.sync(() => {
-		const boardDir = mkdtempSync(join(tmpdir(), "fleet-host-"));
+		const boardDir = mkdtempSync(join(tmpdir(), directoryPrefix));
 		const settings: HostConfig = {
 			intervalSeconds: 1,
 			namespace: STORAGE_NAMESPACE,
@@ -82,8 +83,8 @@ function closeHost(fixture: HostFixture) {
 	return Effect.sync(() => rmSync(fixture.host.boardDir, { force: true, recursive: true }));
 }
 
-export function hostFixture(files: Readonly<Record<string, string>>, config: Partial<HostConfig>) {
-	return Effect.acquireRelease(makeHost(files, config), closeHost);
+export function hostFixture(files: Readonly<Record<string, string>> = {}, config: Partial<HostConfig> = {}, directoryPrefix = "fleet-host-") {
+	return Effect.acquireRelease(makeHost(files, config, directoryPrefix), closeHost);
 }
 
 export function withHost<A, E, R>(
@@ -92,17 +93,4 @@ export function withHost<A, E, R>(
 	use: (fixture: HostFixture) => Effect.Effect<A, E, R>,
 ) {
 	return withIsolatedDatabase(Effect.acquireUseRelease(makeHost(files, config), use, closeHost));
-}
-
-export function waitProcess(
-	configFile: string,
-	workId: string,
-	{ intervalSeconds = 0.1, timeoutSeconds = 20 }: { readonly intervalSeconds?: number; readonly timeoutSeconds?: number } = {},
-): Promise<CliRun> {
-	return Effect.runPromise(
-		loadHost(dirname(configFile), configFile).pipe(
-			Effect.flatMap((host) => daemonCli(host, ["wait", workId, "--interval", String(intervalSeconds), "--timeout", String(timeoutSeconds)])),
-			Effect.provide(NodeServices.layer),
-		),
-	);
 }

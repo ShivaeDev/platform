@@ -7,7 +7,13 @@ import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { githubLimited } from "./githubLimited.ts";
 import { SystemFleetLane } from "./SystemFleetLane.tsx";
 import { SystemHealth } from "./SystemHealth.tsx";
-export function SystemPage({ data: { sources: data, now } }: { readonly data: DiagnosticsProjection }) {
+export function SystemPage({
+	data: { sources: data, now },
+	needsYou,
+}: {
+	readonly data: DiagnosticsProjection;
+	readonly needsYou?: number | null | undefined;
+}) {
 	const items = useContext(FleetItemsContext);
 	const fleet = data.fleet.state === "ready" ? { ...data.fleet, observedAt: data.fleet.value.observedAt } : data.fleet;
 	return (
@@ -38,7 +44,7 @@ export function SystemPage({ data: { sources: data, now } }: { readonly data: Di
 							|| now < fleet.value.observedAt)
 					}
 					name="Fleet"
-					render={(value) => <SystemHealth now={now} value={value} />}
+					render={(value) => <SystemHealth needsYou={needsYou} now={now} value={value} />}
 					source={fleet}
 					stale={fleet.state === "ready" && now - fleet.value.observedAt > fleet.value.staleAfterMs}
 				/>
