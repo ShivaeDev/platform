@@ -19,8 +19,8 @@ export function WorkCard({
 	readonly state: State;
 	readonly fleet: FleetWork | undefined;
 }) {
-	const holder = holderOf(item.metadata, fleet);
 	const fleetItems = useContext(FleetItemsContext);
+	const holder = holderOf(item.metadata, fleet, item.answered !== undefined);
 	const status = cardStatus(item.metadata, fleet, item.waiting, item.answered !== undefined);
 	const answered = status === "waiting-on-agents" && item.answered ? answeredCopy(item.answered, fleetItems) : undefined;
 	const kind = item.metadata.kind === "task" ? undefined : item.metadata.kind;

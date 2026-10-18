@@ -12,12 +12,13 @@ function prompts(entry: AttentionEntry) {
 }
 
 export function answerSummary(entry: AttentionEntry, maintainer = "maintainer"): AnswerSummary | undefined {
-	const answer = entry.answer?.response;
+	const answer = entry.answer;
 	return (
 		answer && {
-			author: answer.author,
-			choice: chosenLabels(prompts(entry), answer.answers, entry.document.parsed.fields.options),
-			yours: answer.author === maintainer,
+			author: answer.response.author,
+			choice: chosenLabels(prompts(entry), answer.response.answers, entry.document.parsed.fields.options),
+			response: answer.id,
+			yours: answer.response.author === maintainer,
 		}
 	);
 }

@@ -82,7 +82,7 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 	const failure = Option.getOrUndefined(Option.flatMap(action.cause, Cause.findErrorOption));
 	const saved = Option.getOrUndefined(action.data);
 	let status = saved
-		? `Saved: your answer “${chosenLabels(request.prompts ?? [], saved.answers)}” is recorded. The agent reads it the next time it checks.`
+		? `Saved: your answer “${chosenLabels(request.prompts ?? [], saved.answers, request.options)}” is recorded. The agent reads it the next time it checks.`
 		: "";
 	if (failure) {
 		status = typeof failure === "string" ? failure : saveFailure(failure, "response").text;

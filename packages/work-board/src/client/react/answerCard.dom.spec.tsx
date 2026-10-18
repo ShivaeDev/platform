@@ -89,7 +89,7 @@ screenStory.it(
 		yield* Effect.promise(async () => responseClick("submit"));
 		yield* Effect.promise(() =>
 			eventually(() =>
-				expect(readText("[data-answered]")).toBe("Reviewer answered: Publish now. Fleet is unavailable, so it picks this up once it runs again."),
+				expect(readText("[data-answered]")).toBe("Answered by Reviewer: Publish now. Fleet isn't running. It picks this up when it starts again."),
 			),
 		);
 		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));

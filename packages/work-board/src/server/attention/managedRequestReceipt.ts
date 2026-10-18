@@ -124,7 +124,7 @@ export function managedRequestState(document: MetadataDocument, request: Request
 	if (receipt) {
 		return { _tag: "Settled", receipt };
 	}
-	if (receipts.length > 0) {
+	if (saved.length > 0) {
 		return { _tag: "Conflicting", receipts: saved.map((candidate) => candidate.file) };
 	}
 	const answer = currentAnswer(question.question, model);

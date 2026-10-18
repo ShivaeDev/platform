@@ -10,14 +10,16 @@ import { type DraftInteraction, formStatus, responseSaved } from "#client/formSt
 import { answerRecovery, recoveryText } from "#client/responses/answerRecovery.ts";
 import { authorLabel } from "#client/responses/authorLabel.ts";
 import { type ResponseInput, responseFormSchema } from "#client/responses/formSchema.ts";
+import { initialResponse } from "#client/responses/initial.ts";
 import { responsePreview } from "#client/responses/preview.ts";
 import { retainContext } from "#client/responses/retainContext.ts";
 import { responseFeedback, responseSummary } from "#client/responses/summary.ts";
 import { sourceChanged } from "#client/sourceChanged.ts";
+import type { Metadata } from "#metadata/schema.ts";
 import { createResponse } from "./createResponse.ts";
 import { useFormClient } from "./FormContext.ts";
 
-export function useResponseForm(source: QuestionPreview, prompts: readonly Prompt[]) {
+export function useResponseForm(source: QuestionPreview, prompts: readonly Prompt[], options?: Metadata["options"], supersedes?: string) {
 	const client = useFormClient();
 	const schema = responseFormSchema(prompts.length > 0);
 	const [preview, setPreview] = useState<ResponseInput>();
@@ -26,18 +28,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const [label] = useState(() =>
 		authorLabel(() => window.localStorage, typeof document === "undefined" ? undefined : document.documentElement.dataset.workspace),
 	);
-	const [initial] = useState<ResponseInput>(() => ({
-		answerContext: undefined,
-		answers: prompts.length > 0 ? prompts.map((prompt) => ({ prompt: prompt.id, selected: [], text: "" })) : undefined,
-		author: label.read("") || "maintainer",
-		body: "",
-		id: "",
-		question: "",
-		recovery: undefined,
-		revision: "",
-		supersedes: undefined,
-		type: "answer",
-	}));
+	const [initial] = useState(() => initialResponse(prompts, label.read("") || "maintainer", supersedes));
 	const draft = formDraft("response", source.item, source.request);
 	const created = useCreate({
 		create: (submission) => createResponse(client, source, submission),
@@ -118,7 +109,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	}
 	const previewed = preview !== undefined && same && Equal.equals(preview, values);
 	const { outcome, text: status } = formStatus(created, interaction, "response", (saved) =>
-		responseSaved(saved.id, created.dirty, chosenLabels(prompts, saved.answers)),
+		responseSaved(saved.id, created.dirty, chosenLabels(prompts, saved.answers, options)),
 	);
 	const summary = responseSummary(values, prompts, answers(values), attempted);
 	return {

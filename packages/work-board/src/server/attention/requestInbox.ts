@@ -10,7 +10,14 @@ function activeKey(entry: AttentionEntry, ids: readonly string[], maintainer = "
 	return JSON.stringify([audience, audience === "agents" ? [...entry.request.responseFrom].sort() : [], ids]);
 }
 
-type RequestInbox = ReturnType<typeof collectInbox>;
+type InboxRow = Readonly<ReturnType<typeof collectInbox>["items"][number]>;
+interface RequestInbox {
+	readonly answered: readonly InboxRow[];
+	readonly files: ReadonlySet<string>;
+	readonly items: readonly InboxRow[];
+	readonly parked: readonly InboxRow[];
+	readonly resolved: readonly InboxRow[];
+}
 const cached = new WeakMap<Snapshot, RequestInbox>();
 
 export function requestInbox(snapshot: Snapshot): RequestInbox {
@@ -35,7 +42,7 @@ function collectInbox(snapshot: Snapshot) {
 		const ids = targets(entry);
 		const target = ids.length === 1 ? snapshot.model.ids.get(ids[0] ?? "")?.[0] : undefined;
 		return {
-			answered: entry.request.managed ? answerSummary(entry, maintainer) : undefined,
+			answered: entry.request.managed && isMaintainerRequest(entry.request, maintainer) ? answerSummary(entry, maintainer) : undefined,
 			document: entry.document,
 			earlierAsks: 0,
 			href: entry.problem === undefined ? responseUrl(entry.itemId, entry.request.id) : entry.href,
@@ -68,7 +75,7 @@ function collectInbox(snapshot: Snapshot) {
 			resolved.push(item);
 		} else if (entry.request.managed && documents.length === ids.length && documents.every(deferredItem)) {
 			parked.push(item);
-		} else if (item.answered && isMaintainerRequest(entry.request, maintainer)) {
+		} else if (item.answered) {
 			answered.push(item);
 		} else {
 			const key = activeKey(entry, ids, maintainer);

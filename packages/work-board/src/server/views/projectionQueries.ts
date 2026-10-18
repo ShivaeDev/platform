@@ -32,7 +32,7 @@ export const projectionQueries = Effect.gen(function* () {
 				const answered = new Map(requestInbox(snapshot).answered.map((entry) => [entry.id, entry.answered]));
 				function toItem({ document: source, id, title }: Item) {
 					return {
-						answered: answered.get(id),
+						answered: waiting.has(id) ? undefined : answered.get(id),
 						file: source.file,
 						fleetApproved: fleetApproval(source.parsed),
 						id,

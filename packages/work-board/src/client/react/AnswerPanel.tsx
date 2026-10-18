@@ -1,5 +1,5 @@
 import { Hourglass, MessageCircleQuestion } from "lucide-react";
-import { useContext } from "react";
+import { useContext, useEffect, useRef } from "react";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
 import { answeredCopy } from "#client/responses/answeredCopy.ts";
@@ -33,6 +33,14 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 	const unavailable = request.unavailable ?? request.promptUnavailable;
 	const closed = request.sourceOpen === false;
 	const answered = request.open ? request.answered : undefined;
+	const statusRef = useRef<HTMLParagraphElement>(null);
+	const shownRef = useRef(answered?.response);
+	useEffect(() => {
+		if (answered !== undefined && answered.response !== shownRef.current) {
+			statusRef.current?.focus();
+		}
+		shownRef.current = answered?.response;
+	}, [answered]);
 	return (
 		<section
 			aria-labelledby={`answer-title-${request.id}`}
@@ -46,7 +54,13 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 				{cardTitle(request, closed)}
 			</h2>
 			{answered !== undefined && (
-				<p className="rounded-md border border-waiting-on-agents/40 bg-waiting-on-agents/10 px-3 py-2 text-sm" data-answered="" role="status">
+				<p
+					className="rounded-md border border-waiting-on-agents/40 bg-waiting-on-agents/10 px-3 py-2 text-sm"
+					data-answered=""
+					ref={statusRef}
+					role="status"
+					tabIndex={-1}
+				>
 					{answeredCopy(answered, fleet)}
 				</p>
 			)}

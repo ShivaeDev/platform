@@ -33,7 +33,11 @@ for (const url of ["/guide.md", "/_board/item/task.guide/"]) {
 			answerPrompt("fleet-action", "Please tighten the release instructions.");
 			yield* Effect.promise(async () => responseClick("submit"));
 			yield* Effect.promise(() =>
-				eventually(() => expect(readText("[data-answered]")).toBe("You answered. Fleet is unavailable, so it picks this up once it runs again.")),
+				eventually(() =>
+					expect(readText(".answer-cards .response-panel [data-answered]")).toBe(
+						"You answered. Fleet isn't running. It picks this up when it starts again.",
+					),
+				),
 			);
 			const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
 			expect(saved.responses).toHaveLength(1);

@@ -22,9 +22,16 @@ export function isWork(metadata: Metadata): boolean {
 	return !(metadata.requestReceipt || ["board", "decision", "question", "response", "result"].includes(metadata.kind ?? ""));
 }
 
-export function laneOf(metadata: Metadata, fleet: FleetWork | undefined, approved = false): NowLane | undefined {
+export function waitsForFleet(fleet: FleetWork | undefined, answered: boolean): boolean {
+	return answered && (fleet === undefined || fleet.stage === "needs-human");
+}
+
+export function laneOf(metadata: Metadata, fleet: FleetWork | undefined, approved = false, answered = false): NowLane | undefined {
 	if (metadata.kind !== "task" || metadata.requestReceipt) {
 		return undefined;
+	}
+	if (waitsForFleet(fleet, answered)) {
+		return "Queued";
 	}
 	if (fleet) {
 		return stages[fleet.stage];
@@ -71,7 +78,10 @@ export function fleetHolder(fleet: FleetWork): string {
 	return fleet.attentionOwner === "orchestrator" ? "Waiting on the orchestrator" : fleetHolders[fleet.stage];
 }
 
-export function holderOf(metadata: Metadata, fleet: FleetWork | undefined): string | undefined {
+export function holderOf(metadata: Metadata, fleet: FleetWork | undefined, answered = false): string | undefined {
+	if (waitsForFleet(fleet, answered)) {
+		return "Waiting for Fleet";
+	}
 	if (fleet) {
 		return fleetHolder(fleet);
 	}
@@ -99,11 +109,11 @@ export function stageTime(stage: FleetWork["stage"]): { readonly ended: boolean;
 }
 
 export function cardStatus(metadata: Metadata, fleet: FleetWork | undefined, waiting: string | undefined, answered = false): string | undefined {
+	if (waitsForFleet(fleet, answered && waiting === undefined)) {
+		return "waiting-on-agents";
+	}
 	if (fleet && fleet.stage !== "needs-human") {
 		return fleet.stage === "completed" ? "done" : fleet.stage;
-	}
-	if (answered) {
-		return "waiting-on-agents";
 	}
 	return fleet || waiting ? "needs-you" : metadata.status;
 }
