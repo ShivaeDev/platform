@@ -57,7 +57,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 					"daemon.follow": ({ workIds, follow: continuous }) => follow(workIds, continuous),
 					"daemon.name-threads": () => exposeFailure(nameStoredThreads(host)),
 					"daemon.release": ({ workIds }) =>
-						exposeFailure(settle(withResponses(releaseItems(host, workIds))).pipe(Effect.map((records) => records.map(({ value }) => value)))),
+						exposeFailure(settle(withResponses(releaseItems(host, workIds, true))).pipe(Effect.map((records) => records.map(({ value }) => value)))),
 					"daemon.status": ({ workId }) => exposeFailure(workId === undefined ? status : read(fleetStatus(host, workId))),
 				}),
 			),

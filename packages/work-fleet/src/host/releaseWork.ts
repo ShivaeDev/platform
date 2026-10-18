@@ -16,8 +16,8 @@ export function releaseWork(host: FleetHost, workIds: readonly string[], parts: 
 	return withDecisionResponses(host, releaseItems(host, workIds)).pipe(Effect.provide(hostLayer(host, parts)));
 }
 
-export function releaseItems(host: FleetHost, workIds: readonly string[]) {
-	return Effect.forEach(workIds, releaseItem(host.boardDir));
+export function releaseItems(host: FleetHost, workIds: readonly string[], background = false) {
+	return Effect.forEach(workIds, releaseItem(host.boardDir, background));
 }
 
 // Indexing a large Board takes seconds, so the watched index starts warming at once and later responses read only changed files.
@@ -39,12 +39,12 @@ export function withDecisionResponses<A, E, R>(host: FleetHost, effect: Effect.E
 	return effect.pipe(Effect.provide(decisionResponses(host)));
 }
 
-function releaseItem(root: string) {
+function releaseItem(root: string, background: boolean) {
 	return Effect.fn("FleetHost.releaseItem")(function* (workId: string) {
 		const fleet = yield* Fleet;
 		let stored = yield* fleet.get(workId);
 		if (stored.value.stage === "released") {
-			return yield* fleet.reconcile(workId);
+			return yield* background ? Effect.succeed(stored) : fleet.reconcile(workId);
 		}
 		if (stored.value.stage !== "needs-human" || executing(stored.value)) {
 			return yield* Effect.fail(new Forbidden({ message: "Only terminal needs-human work can be released" }));
@@ -57,6 +57,6 @@ function releaseItem(root: string) {
 			return yield* Effect.fail(new Conflict({ message: "Publish the waiting decision before release" }));
 		}
 		const responseId = yield* recordDecisionResponse(root, { ...decision, published: decision.published }, "release");
-		return yield* fleet.resolve(workId, decision.id, responseId);
+		return yield* background ? fleet.recordResponse(workId, decision.id, responseId) : fleet.resolve(workId, decision.id, responseId);
 	});
 }
