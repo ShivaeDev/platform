@@ -1,9 +1,8 @@
 import { expect } from "vitest";
 import { acceleratedTesting, failingWorker, pausedWorker, pendingExpiryRules } from "#test/acceleratedTesting.ts";
-import { boss, realPostgres } from "#test/boss.ts";
-import { postgresConfigured } from "#test/postgresLayer.ts";
+import { postgresIt, realPostgres } from "#test/boss.ts";
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"wakes on terminal native timeout when the interrupted batch stays pending",
 	[realPostgres, acceleratedTesting, pausedWorker],
 	function* ({ attempts, send, settle, workerStarted }) {
@@ -16,7 +15,7 @@ boss.it.runIf(postgresConfigured)(
 	},
 );
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"applies expiry only to subsequent sends and preserves earlier rules",
 	[realPostgres, acceleratedTesting, failingWorker, pendingExpiryRules],
 	function* ({ attempts, settle }) {

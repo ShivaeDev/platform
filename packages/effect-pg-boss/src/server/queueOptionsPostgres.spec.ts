@@ -1,10 +1,9 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
-import { boss, realPostgres } from "#test/boss.ts";
-import { postgresConfigured } from "#test/postgresLayer.ts";
+import { postgresIt, realPostgres } from "#test/boss.ts";
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"reconciles an existing queue on restart and rejects immutable changes before updating it",
 	[realPostgres],
 	function* ({ register, admin }) {

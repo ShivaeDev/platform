@@ -1,12 +1,11 @@
 import { Effect, Option, Schema } from "effect";
 import { expect } from "vitest";
+import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { defineQueue } from "#definition.ts";
-import { boss, realPostgres } from "#test/boss.ts";
-import { eventually } from "#test/eventually.ts";
-import { postgresConfigured } from "#test/postgresLayer.ts";
+import { postgresIt, realPostgres } from "#test/boss.ts";
 
 for (const state of ["failed", "retry"] as const) {
-	boss.it.runIf(postgresConfigured)(`looks up and retries a ${state} job under its original ID`, [realPostgres], function* ({ boot }) {
+	postgresIt(`looks up and retries a ${state} job under its original ID`, [realPostgres], function* ({ boot }) {
 		const Queue = defineQueue({
 			name: "control",
 			queue: { retryBackoff: false, retryDelay: 3600, retryLimit: state === "failed" ? 0 : 1 },
@@ -26,7 +25,9 @@ for (const state of ["failed", "retry"] as const) {
 		expect(Option.isNone(yield* jobs.getJob(Queue, id))).toBe(true);
 		expect(Option.getOrThrow(yield* jobs.enqueue(Queue, { id: 42 }, { id }))).toBe(id);
 		const lookup = jobs.getJob(Queue, id).pipe(Effect.map(Option.getOrUndefined));
-		const failed = yield* eventually(lookup, (found) => found?.state === state);
+		const failed = yield* eventually(lookup.pipe(Effect.filterOrFail((found) => found?.state === state)), { interval: 50 }).pipe(
+			Effect.timeout(15_000),
+		);
 		expect(failed).toMatchObject({ data: { id: 42 }, id, state });
 		expect(Option.isNone(yield* jobs.enqueue(Queue, { id: 42 }, { id }))).toBe(true);
 		expect(yield* jobs.counts(Queue)).toMatchObject({
@@ -35,7 +36,9 @@ for (const state of ["failed", "retry"] as const) {
 			queuedCount: state === "retry" ? 1 : 0,
 		});
 		yield* jobs.retry(Queue, id);
-		expect(yield* eventually(lookup, (found) => found?.state === "completed")).toMatchObject({ data: { id: 42 }, id, state: "completed" });
+		expect(
+			yield* eventually(lookup.pipe(Effect.filterOrFail((found) => found?.state === "completed")), { interval: 50 }).pipe(Effect.timeout(15_000)),
+		).toMatchObject({ data: { id: 42 }, id, state: "completed" });
 		expect(handled).toEqual([42, 42]);
 	});
 }

@@ -5,7 +5,7 @@ import { batchBudget } from "#test/batchBudget.ts";
 import { budgetVerbs } from "#test/budgetVerbs.ts";
 import { clientEngine } from "#test/clientEngine.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
-import { postgresLayer } from "#test/postgresLayer.ts";
+import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
 import { testingEngine } from "#test/testingEngine.ts";
 import { testingProducer, testingVerbs, testingWorker } from "#test/testingProducer.ts";
 import { tracingEngine } from "#test/tracingEngine.ts";
@@ -55,6 +55,8 @@ export const boss = storyKit({
 		};
 	},
 });
+
+export const postgresIt = boss.it.runIf(postgresConfigured);
 
 export const realPostgres = boss.trait("database", "an isolated real PostgreSQL database", function* (state) {
 	const services = yield* Layer.build(postgresLayer);

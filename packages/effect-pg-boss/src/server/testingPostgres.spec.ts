@@ -3,10 +3,9 @@ import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { deadLetterQueueName } from "#health.ts";
 import { acceleratedTesting, failingWorker, pausedWorker, productionRetries } from "#test/acceleratedTesting.ts";
-import { boss, realPostgres } from "#test/boss.ts";
-import { postgresConfigured } from "#test/postgresLayer.ts";
+import { postgresIt, realPostgres } from "#test/boss.ts";
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"reads decoded jobs sent through the queue, including traced sends",
 	[realPostgres, acceleratedTesting],
 	function* ({ queue, send, testing }) {
@@ -17,7 +16,7 @@ boss.it.runIf(postgresConfigured)(
 	},
 );
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"preserves the native client's prototype members",
 	[realPostgres, acceleratedTesting],
 	function* ({ testingClient, queue, send, testing }) {
@@ -28,7 +27,7 @@ boss.it.runIf(postgresConfigured)(
 	},
 );
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"fails exactly the next send for the selected queue with the typed enqueue error",
 	[realPostgres, acceleratedTesting],
 	function* ({ queue, send, testing }) {
@@ -43,7 +42,7 @@ boss.it.runIf(postgresConfigured)(
 	},
 );
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"expires the final claim after the requested attempts through PostgreSQL supervision",
 	[realPostgres, acceleratedTesting, failingWorker],
 	function* ({ attempts, queue, send, settle, testing }) {
@@ -57,7 +56,7 @@ boss.it.runIf(postgresConfigured)(
 	},
 );
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"overrides production and send retry delays through the test policy",
 	[realPostgres, acceleratedTesting, failingWorker],
 	function* ({ attempts, queue, send, settle, testing }) {
@@ -69,7 +68,7 @@ boss.it.runIf(postgresConfigured)(
 	},
 );
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"wakes a waiting kit and remembers changes that happened before it waited",
 	[realPostgres, acceleratedTesting],
 	function* ({ send, testing }) {
@@ -81,7 +80,7 @@ boss.it.runIf(postgresConfigured)(
 	},
 );
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"wakes on worker settlement and allows success before the expiry attempt",
 	[realPostgres, acceleratedTesting, pausedWorker],
 	function* ({ attempts, queue, releaseWorker, send, settle, testing, workerStarted }) {
@@ -97,7 +96,7 @@ boss.it.runIf(postgresConfigured)(
 	},
 );
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"keeps production retries unless the kit selects the test policy",
 	[realPostgres, acceleratedTesting, productionRetries],
 	function* ({ queue, send, testing }) {
@@ -106,7 +105,7 @@ boss.it.runIf(postgresConfigured)(
 	},
 );
 
-boss.it.runIf(postgresConfigured)(
+postgresIt(
 	"checks installed schema versions and sequential batch budgets without application SQL",
 	[realPostgres, acceleratedTesting],
 	function* ({ queue, testing }) {
@@ -122,12 +121,8 @@ boss.it.runIf(postgresConfigured)(
 	},
 );
 
-boss.it.runIf(postgresConfigured)(
-	"rejects durable data that the readout schema cannot decode",
-	[realPostgres, acceleratedTesting],
-	function* ({ queue, send, testing }) {
-		yield* send(42);
-		const incompatible = defineQueue({ name: queue.name, schema: Schema.Struct({ id: Schema.Number }) });
-		expect(yield* testing.jobs(incompatible).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossPayloadError", direction: "decode", queue: queue.name });
-	},
-);
+postgresIt("rejects durable data that the readout schema cannot decode", [realPostgres, acceleratedTesting], function* ({ queue, send, testing }) {
+	yield* send(42);
+	const incompatible = defineQueue({ name: queue.name, schema: Schema.Struct({ id: Schema.Number }) });
+	expect(yield* testing.jobs(incompatible).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossPayloadError", direction: "decode", queue: queue.name });
+});

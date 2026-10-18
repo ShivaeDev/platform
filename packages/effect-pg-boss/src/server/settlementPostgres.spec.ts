@@ -1,12 +1,11 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
+import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { defineQueue } from "#definition.ts";
-import { boss, realPostgres } from "#test/boss.ts";
-import { eventually } from "#test/eventually.ts";
-import { postgresConfigured } from "#test/postgresLayer.ts";
+import { postgresIt, realPostgres } from "#test/boss.ts";
 
 for (const outcome of ["failure", "defect", "primitive failure"] as const) {
-	boss.it.runIf(postgresConfigured)(`isolates one ${outcome} in a batch of ten`, [realPostgres], function* ({ boot, admin }) {
+	postgresIt(`isolates one ${outcome} in a batch of ten`, [realPostgres], function* ({ boot, admin }) {
 		const Queue = defineQueue({
 			name: "settlement",
 			queue: { retryBackoff: false, retryDelay: 0, retryLimit: 1 },
@@ -33,9 +32,11 @@ for (const outcome of ["failure", "defect", "primitive failure"] as const) {
 			),
 		]);
 		const stored = yield* eventually(
-			Effect.promise(() => client.findJobs<{ id: number }>(Queue.name)),
-			(jobs) => jobs.length === 10 && jobs.every((job) => job.state === "completed" || job.state === "failed"),
-		);
+			Effect.promise(() => client.findJobs<{ id: number }>(Queue.name)).pipe(
+				Effect.filterOrFail((jobs) => jobs.length === 10 && jobs.every((job) => job.state === "completed" || job.state === "failed")),
+			),
+			{ interval: 50 },
+		).pipe(Effect.timeout(15_000));
 		expect(stored.filter((job) => job.state === "completed")).toHaveLength(9);
 		expect(stored.filter((job) => job.state === "failed")).toMatchObject([{ data: { id: 4 }, output: { message: failure.message }, retryCount: 1 }]);
 		for (const job of stored) {
