@@ -468,7 +468,23 @@ it("renders a query and refetches it after a command through a test RPC layer", 
 });
 ```
 
-`render(node)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` retries the assertion for up to three seconds, allowing pending responses to settle inside `act` between attempts; it throws the last assertion failure on timeout. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
+`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` retries the assertion for up to three seconds, allowing pending responses to settle inside `act` between attempts; it throws the last assertion failure on timeout. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
+
+For a boundary fallback test, keep the warnings guard and declare the caught error inside the test. `expectCaughtError(predicate)` returns an `onCaughtError` handler that accepts matching errors without logging them. The guard fails if the handler receives any other error or the expected error never arrives. Other console errors and React warnings still fail the guard.
+
+```tsx
+const warnings = expectNoReactWarnings();
+
+screenStories.it("shows the route failure", [], async () => {
+  const onCaughtError = warnings.expectCaughtError((error) => error instanceof RouteFailure);
+  const view = await render(<RouteFailureScreen />, { onCaughtError });
+  try {
+    expect(view.container.querySelector('[role="alert"]')?.textContent).toBe("Route unavailable");
+  } finally {
+    await view.unmount();
+  }
+});
+```
 
 The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs.
 
