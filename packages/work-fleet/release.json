@@ -6,6 +6,10 @@
 			"text": "### Fixed\n\n- The daemon records and applies an answer or release even when the CLI stops waiting for it. Before, a client timeout interrupted the request and the answer was lost.\n- Daemon answers and releases share one watched Board response index instead of reindexing the whole Board for every request.\n- `work-fleet answer --release` without text no longer waits for stdin.\n- Scheduler passes no longer rewrite prepared work whose wait reason is unchanged, and Fleet record lists reuse decoded records that have not changed. A pass over many waiting items stays cheap enough for the daemon to keep answering requests.\n\n### Breaking\n\n- `answerWork` and `releaseItems` require the Board `Responses` service. Provide it with `decisionResponses(host)` or `withDecisionResponses(host, effect)`.\n"
 		},
 		{
+			"name": "cloud-recovery-grace.md",
+			"text": "### Added\n\n- `cloud.recoveryGraceMs` in the host configuration sets how long Fleet polls an acknowledged, empty Cloud thread for a late-accepted turn before it starts the saved turn on that thread. The default stays five seconds.\n"
+		},
+		{
 			"name": "config-hot-reload.md",
 			"text": "### Added\n\n- The Fleet daemon watches its config file and applies valid edits to `concurrency`, `backlog`, `intervalSeconds`, `quota`, `launch`, `openPullRequests`, `stallMinutes`, `areaMergeWaitMs` and worker or reviewer guidance on the next scheduler pass or launch, without a restart. Running turns keep their launch settings.\n- Edits to restart-only settings such as `provider`, `database`, `namespace` or `cloud` keep their running values and are reported as needing a restart. An invalid or partly written file keeps the last good config and logs a `HostConfigRejected` warning naming the failing field.\n- `work-fleet status` shows the config the daemon applies, when it was loaded, the settings waiting for a restart and the last rejected edit; `daemon.status` returns it as `config`.\n"
 		},
