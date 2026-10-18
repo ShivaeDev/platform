@@ -1,6 +1,10 @@
+import { Effect } from "effect";
 import type { PgBoss } from "pg-boss";
-import { until } from "#test/until.ts";
+import { eventually } from "#test/eventually.ts";
 
 export function untilWorker(client: PgBoss, name: string) {
-	return until(() => Promise.resolve(client.getWipData().find((worker) => worker.name === name && worker.lastFetchedOn !== null)));
+	return eventually(
+		Effect.sync(() => client.getWipData().find((worker) => worker.name === name && worker.lastFetchedOn !== null)),
+		(worker) => worker !== undefined,
+	);
 }

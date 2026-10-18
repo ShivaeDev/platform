@@ -1,73 +1,61 @@
 import { Effect, Schema } from "effect";
-import { PgBoss, type WorkOptions } from "pg-boss";
-import { describe, expect, it } from "vitest";
+import type { WorkOptions } from "pg-boss";
+import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
-import { makePgBoss } from "#service.ts";
-import { environmentVariable } from "#test/environment.ts";
-import { until } from "#test/until.ts";
-import { withPostgresDatabase } from "#test/withPostgresDatabase.ts";
-
-const databaseUrl = environmentVariable("PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL") ?? "";
-const integration = databaseUrl === "" ? describe.skip : describe;
+import { boss, realPostgres } from "#test/boss.ts";
+import { eventually } from "#test/eventually.ts";
+import { postgresConfigured } from "#test/postgresLayer.ts";
 
 const cases: readonly { name: string; worker: WorkOptions; duration: number; concurrency: number }[] = [
 	{ concurrency: 1, duration: 20, name: "defaults", worker: {} },
 	{ concurrency: 5, duration: 100, name: "configured batches and local concurrency", worker: { batchSize: 2, localConcurrency: 5 } },
 ];
 
-integration("PostgreSQL backlog throughput", () => {
-	it.each(cases)("drains 30 notification jobs with $name without waiting for polling", ({ worker, duration, concurrency }) =>
-		withPostgresDatabase(databaseUrl, async (connectionString) => {
+for (const { worker, duration, concurrency, name } of cases) {
+	boss.it.runIf(postgresConfigured)(
+		`drains 30 notification jobs with ${name} without waiting for polling`,
+		[realPostgres],
+		function* ({ boot, native }) {
 			const Queue = defineQueue({
-				name: `backlog-${crypto.randomUUID()}`,
+				name: "backlog",
 				queue: { notify: true },
 				schema: Schema.Struct({ id: Schema.Number }),
 				worker: { pollingIntervalSeconds: 10, ...worker },
 			});
-			const client = new PgBoss({ connectionString, schema: "platform_effect_pg_boss", useListenNotify: true });
-			const Jobs = makePgBoss("@test/BacklogJobs");
+			const client = native({ useListenNotify: true });
+			yield* Effect.acquireRelease(
+				Effect.promise(() => client.start()),
+				() => Effect.promise(() => client.stop()),
+			);
 			const handled: number[] = [];
 			let active = 0;
 			let peak = 0;
-			const live = Jobs.layer({
-				clientFactory: () => client,
-				jobs: [
-					Queue.handle(({ id }) =>
-						Effect.gen(function* () {
-							active += 1;
-							peak = Math.max(peak, active);
-							yield* Effect.sleep(duration);
-							handled.push(id);
-							active -= 1;
-						}),
-					),
-				],
-			});
-			function drained() {
-				return until(async () => {
-					const completed = (await client.findJobs(Queue.name)).filter((job) => job.state === "completed");
-					return completed.length === 30 ? true : undefined;
-				}, 2500);
-			}
-			await client.start();
-			try {
+			const handler = Queue.handle(({ id }) =>
+				Effect.gen(function* () {
+					active += 1;
+					peak = Math.max(peak, active);
+					yield* Effect.sleep(duration);
+					handled.push(id);
+					active -= 1;
+				}),
+			);
+			yield* Effect.promise(async () => {
 				await client.createQueue(Queue.name, { notify: true });
 				await client.insert(
 					Queue.name,
 					Array.from({ length: 30 }, (_, id) => ({ data: { id } })),
 				);
-				const started = performance.now();
-				const verify = Effect.gen(function* () {
-					yield* Jobs;
-					yield* Effect.promise(drained);
-					expect(performance.now() - started).toBeLessThan(2500);
-					expect(new Set(handled).size).toBe(30);
-					expect(peak).toBe(concurrency);
-				});
-				await Effect.runPromise(Effect.scoped(verify.pipe(Effect.provide(live))));
-			} finally {
-				await client.stop();
-			}
-		}),
+			});
+			const started = performance.now();
+			yield* boot([handler], { clientFactory: () => client });
+			yield* eventually(
+				Effect.promise(() => client.findJobs(Queue.name)),
+				(jobs) => jobs.filter((job) => job.state === "completed").length === 30,
+				2500,
+			);
+			expect(performance.now() - started).toBeLessThan(2500);
+			expect([...handled].sort((left, right) => left - right)).toEqual(Array.from({ length: 30 }, (_, id) => id));
+			expect(peak).toBe(concurrency);
+		},
 	);
-});
+}

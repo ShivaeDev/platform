@@ -1,9 +1,11 @@
 import { expect } from "vitest";
-import { failingWorker, pausedWorker, pendingExpiryRules, queues } from "#test/testingStory.ts";
+import { acceleratedTesting, failingWorker, pausedWorker, pendingExpiryRules } from "#test/acceleratedTesting.ts";
+import { boss, realPostgres } from "#test/boss.ts";
+import { postgresConfigured } from "#test/postgresLayer.ts";
 
-queues.it(
+boss.it.runIf(postgresConfigured)(
 	"wakes on terminal native timeout when the interrupted batch stays pending",
-	[pausedWorker],
+	[realPostgres, acceleratedTesting, pausedWorker],
 	function* ({ attempts, send, settle, workerStarted }) {
 		yield* send(14, { expireInSeconds: 1, retryLimit: 0 });
 		yield* workerStarted;
@@ -14,9 +16,9 @@ queues.it(
 	},
 );
 
-queues.it(
+boss.it.runIf(postgresConfigured)(
 	"applies expiry only to subsequent sends and preserves earlier rules",
-	[failingWorker, pendingExpiryRules],
+	[realPostgres, acceleratedTesting, failingWorker, pendingExpiryRules],
 	function* ({ attempts, settle }) {
 		const jobs = yield* settle();
 		expect(attempts.filter((id) => id === 11)).toHaveLength(1);
