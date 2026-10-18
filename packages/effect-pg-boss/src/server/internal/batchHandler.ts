@@ -2,10 +2,38 @@ import { Cause, Clock, Effect, Exit } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { deadlineOf } from "#internal/deadlineOf.ts";
+import { deferralOf, deferredAttempt } from "#internal/deferral.ts";
 
-function failureOutput(cause: Cause.Cause<unknown>): object {
+function failureOutput(cause: Cause.Cause<unknown>, job: Job<unknown>): object {
 	const error = Cause.squash(cause);
-	return typeof error === "object" && error !== null ? error : { message: String(error) };
+	const output = typeof error === "object" && error !== null ? error : { message: String(error) };
+	const deferral = deferralOf(job);
+	if (deferral === undefined) {
+		return output;
+	}
+	return {
+		...output,
+		...(error instanceof Error ? { message: error.message, name: error.name, stack: error.stack } : {}),
+		jobDeferral: deferral,
+	};
+}
+
+async function settleAttempt(
+	complete: NonNullable<PgBossClient["complete"]>,
+	fail: NonNullable<PgBossClient["fail"]>,
+	name: string,
+	job: Job<unknown>,
+	exit: Exit.Exit<unknown, unknown>,
+	afterFailure?: (job: Job<unknown>) => Promise<void>,
+) {
+	if (Exit.isSuccess(exit)) {
+		if (exit.value !== deferredAttempt) {
+			await complete(name, job);
+		}
+	} else {
+		await fail(name, job, failureOutput(exit.cause, job));
+		await afterFailure?.(job);
+	}
 }
 
 export function batchHandler(
@@ -19,6 +47,7 @@ export function batchHandler(
 	if (complete === undefined || fail === undefined) {
 		throw new TypeError("This pg-boss client does not support complete and fail");
 	}
+
 	return async (jobs: readonly Job<unknown>[]): Promise<void> => {
 		let expired = false;
 		for (const job of jobs) {
@@ -38,12 +67,7 @@ export function batchHandler(
 				// Returning would let pg-boss complete the unprocessed jobs; its expiry owns them instead.
 				return new Promise<never>(() => undefined);
 			}
-			if (Exit.isSuccess(exit)) {
-				await complete(name, job);
-			} else {
-				await fail(name, job, failureOutput(exit.cause));
-				await afterFailure?.(job);
-			}
+			await settleAttempt(complete, fail, name, job, exit, afterFailure);
 		}
 		if (expired) {
 			return new Promise<never>(() => undefined);

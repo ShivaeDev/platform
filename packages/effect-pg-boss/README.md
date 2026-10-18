@@ -130,6 +130,24 @@ This worker runs up to five handlers at once. `worker` accepts pg-boss 12's `Wor
 
 Apps do not need to shorten the polling backstop to drain a backlog. With `notify: true` and an active LISTEN/NOTIFY listener, pg-boss wakes workers on notifications and defaults to a 30-second backstop (`notifyPollingIntervalSeconds`). Without active notifications its base poll defaults to two seconds (`pollingIntervalSeconds`). Bursting takes precedence over both intervals. After an adapter worker fails a job, it reads pg-boss's stored retry time and schedules a wake for every native worker in its registration at that time, so an idle sibling can retry while another worker is busy. The wake belongs to the worker Layer's scope and is canceled when that scope closes. Override the backstop when the application needs a different bound for other work that becomes runnable without a notification, such as delayed jobs or retries initiated outside the adapter worker.
 
+### Defer until a provider is ready
+
+Fail a queue handler or scheduled Effect with `RetryAt` when a provider gives a time to try again:
+
+```ts
+import { DateTime, Effect } from "effect";
+import { RetryAt } from "@shivaedev/effect-pg-boss/definition.ts";
+
+const waitForQuota = Effect.fail(new RetryAt({
+  at: DateTime.makeUnsafe("2030-01-01T00:01:00Z"),
+  reason: "Provider quota resets",
+}));
+```
+
+The same job returns to waiting with `startAfter` set to `at`; its ID, singleton key, payload and retry count stay unchanged. A past or current `at` is eligible on the next fetch. Deferral does not dead-letter the job or call `onError`. Its job span ends OK with a `job.deferred` event whose `at` is an ISO UTC string and whose `reason` is the supplied string. Deferred jobs rely on polling, including queues using `notify: true`.
+
+Set `queue: { maxDeferrals: 20 }` on a queue or schedule to change the default limit of ten deferrals per job. The limit must be a nonnegative safe integer; zero disables deferral. Once the limit is reached, `RetryAt` follows the normal failure and retry path. The adapter stores deferral metadata in the job's existing `output`, preserving it across worker restarts and adapter-handled failures; native operations that replace `output`, such as expiry, replace that metadata too.
+
 ### Size batches against expiry
 
 pg-boss marks every job in a fetched batch active together. Each job's expiry window starts at its stored `startedOn`, including time waiting for earlier handlers. Size each queue's batch so its sequential work fits within that window; use a small batch for long-running work and keep the default for short work:
@@ -275,7 +293,7 @@ export const inspectEmail = (id: string) => Effect.gen(function* () {
 
 ### Queue settings on startup
 
-`queue` accepts pg-boss `Queue` options except `name` and `deadLetter`, which the definition and adapter own. For prompt delivery, set `queue: { notify: true }` and enable `useListenNotify: true` in the worker Layer's constructor options.
+`queue` accepts pg-boss `Queue` options except `name` and `deadLetter`, which the definition and adapter own, plus the adapter’s `maxDeferrals` limit. For prompt delivery, set `queue: { notify: true }` and enable `useListenNotify: true` in the worker Layer's constructor options.
 
 Startup creates missing queues and reconciles declared settings on existing queues through `updateQueue`. Unspecified settings keep their stored values; the adapter always supplies its default retry settings and dead-letter destination. Changing an explicitly declared `policy` or `partition` on an existing queue fails startup with `PgBossQueueOptionsError`; its `queue`, `options` and message identify the conflict. Queue setting changes apply to subsequently enqueued jobs. Schedule queues follow the same registration path.
 
@@ -381,6 +399,8 @@ Set `retryPolicy: testRetryPolicy` through the controller to override queue and 
 
 `failNextSend(queue)` arms one send failure for that queue. The next valid `enqueue` fails with the usual typed `PgBossError` (`operation: "enqueue"`); the following send proceeds normally. `expireAfter(queue, n)` takes a positive attempt count: configure it before enqueueing to limit subsequent jobs to `n` attempts. Each successful send keeps its own expiry rule; later changes and duplicate-ID sends do not alter pending jobs. Earlier attempts run the handler normally; on attempt `n`, the controller expires the claimed job instead of invoking its handler. PostgreSQL supervision performs the terminal failure and dead lettering. A job that succeeds earlier completes normally. This expiry hook supports pg-boss schema version 45.
 
+`deferred(queue)` returns waiting deferrals as `{ at: DateTime.Utc, reason: string }[]`. `runDeferredNow(queue)` pulls those jobs forward to the database’s current time and wakes local workers without waiting for their original due time. Read `revision` before reading deferrals and use `waitForChange(revision)` as with other controls.
+
 `checkBatchWindow(queue, millisecondsPerJob)` checks that the declared sequential batch fits strictly inside the stored queue expiry window. `schemaVersion` reads the installed version, and `checkSchemaVersion(expected)` fails when it differs. Test control, read and check failures use `PgBossTestingError` with `operation`, optional `queue` and a redacted `original`.
 
 A kit can capture `revision` before reading jobs and yield `waitForChange(revision)` when its condition is unmet. The wait resumes after a local send, settlement, worker fetch or return to idle, including terminal native worker timeouts whose handler promises remain pending. It also resumes immediately if a change occurred between the read and the wait. This signal observes the controller's client; external clients, future scheduled work and external database writes need their own wake source. Stories should retain a bounded test timeout.
@@ -391,7 +411,7 @@ Import the module that defines the name; the package has no root entry.
 
 | Module | Public names |
 | --- | --- |
-| `@shivaedev/effect-pg-boss/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
+| `@shivaedev/effect-pg-boss/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
 | `@shivaedev/effect-pg-boss/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
 | `@shivaedev/effect-pg-boss/schema.ts` | `installPgBossSchema`; `PgBossSchemaOptions` |
 | `@shivaedev/effect-pg-boss/health.ts` | `deadLetterQueueName`; `JobsHealth`, `QueueCounts`, `QueueHealth` |
@@ -399,9 +419,9 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/effect-pg-boss/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
 | `@shivaedev/effect-pg-boss/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions` |
 
-The definition options keep the pg-boss names: `queue` uses `Queue` except `name` and `deadLetter`, `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
+The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, plus `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 
-`Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus the adapter's own options. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Producer-only clients do not need them. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent.
+`Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus the adapter's own options. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Producer-only clients do not need them. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts, deferral and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent.
 
 `onError` handles pg-boss client `error` events using the services captured by the Layer. Only the owning jobs service is supplied automatically; a handler using another jobs definition still requires that definition's Layer.
 
