@@ -177,17 +177,9 @@
 {"path":"packages/platform/src/server/better-auth/adapter.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/better-auth/filterBoundaries.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/redactOtlpUrl.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/server/rpc-server/boundary.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/server/rpc-server/local.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/proxy.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/redaction.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/server/rpc-server/session.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/server/rpc-server/sessionUser.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/server/rpc-server/tracing.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/server/rpc-server/transportHeaders.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/trustedProxyRanges.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/server/rpc-server/unauthenticatedRejections.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/server/rpc-server/websocketHeaders.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/testing/makePlatformIt.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/pr-watch/src/arguments.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/pr-watch/src/quota.test.ts","rule":"tests/story-specs","count":1}

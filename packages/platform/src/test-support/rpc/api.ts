@@ -66,5 +66,5 @@ export function makeApp(provider: Provider, origin: OriginPolicy) {
 			}).pipe(Effect.provide(httpClient(app, headers)), Effect.scoped),
 		);
 	}
-	return { app, call, ...recorded };
+	return { app, call, origin, ...recorded };
 }
