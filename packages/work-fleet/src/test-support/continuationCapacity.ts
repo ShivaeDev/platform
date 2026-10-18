@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Effect, Option, Semaphore } from "effect";
 import { fleetStory } from "#test/fleetStory.ts";
 
 export const continuationCapacity = fleetStory.trait("configuration", "two execution slots", (engine) => {
@@ -29,4 +29,11 @@ export const observedQuota = fleetStory.trait("configuration", "the provider rep
 		...engine.options,
 		refreshQuota: () => Effect.succeed({ available: engine.options.quota ?? 100, expiresAt: Number.MAX_SAFE_INTEGER, observedAt: 0 }),
 	};
+});
+
+export const serialReconciliation = fleetStory.trait("board", "reconciliation completes in scheduler invocation order", function* (engine) {
+	const runtime = Option.getOrThrow(engine.runtime);
+	const lock = yield* Semaphore.make(1);
+	const { reconcile } = runtime.fleet;
+	runtime.fleet = { ...runtime.fleet, reconcile: (id) => lock.withPermits(1)(reconcile(id)) };
 });

@@ -1,5 +1,12 @@
 import { expect } from "vitest";
-import { completedContinuation, continuationCapacity, fourApproved, needsHumanContinuation, observedQuota } from "#test/continuationCapacity.ts";
+import {
+	completedContinuation,
+	continuationCapacity,
+	fourApproved,
+	needsHumanContinuation,
+	observedQuota,
+	serialReconciliation,
+} from "#test/continuationCapacity.ts";
 import { fleetStory } from "#test/fleetStory.ts";
 
 for (const stage of ["needs-human", "completed"] as const) {
@@ -61,6 +68,36 @@ fleetStory.it(
 		expect(resumed.stage).toBe("executing");
 		expect(resumed.pendingContinuation).toBeUndefined();
 		expect(resumed.attempts[0]?.receipt?.sessionId).toBe(first.attempts[0]?.receipt?.sessionId);
+		expect((yield* fleet.get("four")).value.stage).toBe("prepared");
+	},
+);
+
+fleetStory.it(
+	"a pass resumes a queued continuation after observing the turn that frees its slot",
+	[continuationCapacity, completedContinuation, fourApproved, serialReconciliation],
+	function* (fleet) {
+		for (const id of ["one", "two", "three", "four"]) {
+			yield* fleet.prepare(id);
+		}
+		const first = (yield* fleet.dispatch("one")).value;
+		fleet.finishWorkers();
+		yield* fleet.reconcile("one");
+		yield* fleet.dispatch("two");
+		yield* fleet.dispatch("three");
+		yield* fleet.continue("one", "Finish the queued change");
+		yield* fleet.finishWorker("two");
+		yield* fleet.schedule();
+		const resumed = (yield* fleet.get("one")).value;
+		expect(resumed.stage).toBe("executing");
+		expect(resumed.pendingContinuation).toBeUndefined();
+		expect(resumed.attempts).toHaveLength(1);
+		expect(resumed.attempts[0]).toMatchObject({
+			prompt: "Finish the queued change",
+			receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
+			role: "repair",
+		});
+		expect((yield* fleet.get("two")).value.stage).toBe("completed");
+		expect((yield* fleet.get("three")).value.stage).toBe("executing");
 		expect((yield* fleet.get("four")).value.stage).toBe("prepared");
 	},
 );

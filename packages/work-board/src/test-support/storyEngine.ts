@@ -1,21 +1,26 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Deferred, Effect } from "effect";
-import { browserClient } from "#client/client.ts";
+import type { browserClient } from "#client/client.ts";
 import type { Sources } from "#diagnostics/source.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { responseFrom } from "#server/responses/records.ts";
-import { type FileSystemWrapper, type Folder, folder, type RunningBoard, startBoard } from "./board.ts";
+import { type FileSystemWrapper, type Folder, folder, type RunningBoard } from "./board.ts";
 import { type OpenPage, openPage } from "./browser.ts";
+import { startProject } from "./servingEngine.ts";
 
 export interface BoardEngine {
 	activeDiagnosticsPolls?: () => number;
 	beforeScripts?: Parameters<typeof openPage>[2];
+	changeDelivery?: { dropped: boolean; loseNext: boolean; omitPath?: string };
 	fleetPort?: number | undefined;
 	home?: string | undefined;
 	lastView?: ReturnType<typeof readerView>;
+	linked?: import("./linkedProject.ts").LinkedProject;
 	live?: { board: RunningBoard; client: ReturnType<typeof browserClient>; page: OpenPage };
-	readonly notes: Folder;
+	manualServing?: boolean;
+	notes: Folder;
+	outside?: Folder;
 	path: string;
 	pollDiagnostics?: () => void;
 	readAt?: number;
@@ -63,17 +68,10 @@ export function* createBoard() {
 }
 
 export function* serveProject(engine: BoardEngine) {
-	const board = yield* startBoard(engine.notes.root, engine.home, engine.wrap, engine.responses, engine.sources, undefined, engine.fleetPort);
-	let client: ReturnType<typeof browserClient> | undefined;
-	yield* Effect.addFinalizer(() => Effect.sync(() => client?.registry.dispose()));
-	// A client starts reading the workspace, so server-only stories create it when a verb first uses it.
-	engine.server = {
-		board,
-		get client() {
-			client ??= browserClient(board.url);
-			return client;
-		},
-	};
+	if (engine.manualServing) {
+		return;
+	}
+	yield* startProject(engine);
 }
 
 export function* openReader(engine: BoardEngine) {

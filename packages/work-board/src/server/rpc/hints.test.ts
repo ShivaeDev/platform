@@ -1,58 +1,20 @@
-import { NodeServices } from "@effect/platform-node";
-import { Effect, Layer, PubSub, Ref, Stream } from "effect";
+import "#test/liveDeliveryBoundary.ts";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import type { Change, Changes } from "#server/files/changes.ts";
-import { metadataModel } from "#server/metadata/model.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
-import type { Snapshot } from "#server/search/snapshot.ts";
-import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
-import { hints } from "./hints.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { interruptedDelivery } from "#test/interruptedDelivery.ts";
 
-it.live(
-	"sends an initial reconciliation, targeted contiguous hints, and a full reconciliation after server-local delivery loss or watcher uncertainty",
-	function* () {
-		const seen = yield* Effect.scoped(
-			Effect.gen(function* () {
-				const events = yield* PubSub.unbounded<Change>();
-				const watching = yield* Ref.make(true);
-				const document = { file: "note.md", parsed: metadataParse("Note") };
-				const model = metadataModel([document]);
-				const snapshot: Snapshot = { documents: [document], entries: [], model, modified: new Map(), revision: 0, unavailable: [] };
-				const changes: Changes = {
-					events,
-					files: Effect.succeed([]),
-					realRoot: "/notes",
-					revision: Effect.succeed(0),
-					sequence: Effect.succeed(0),
-					watching,
-				};
-				const output: string[] = [];
-				const record = Effect.fn("Test.record")(function* (hint: { readonly _tag: string }) {
-					output.push(hint._tag);
-					if (output.length === 1) {
-						yield* PubSub.publish(events, { _tag: "Changed", paths: ["note.md"], sequence: 1 });
-					}
-					if (output.length === 2) {
-						yield* PubSub.publish(events, { _tag: "Changed", paths: ["note.md"], sequence: 3 });
-					}
-					if (output.length === 3) {
-						yield* PubSub.publish(events, { _tag: "Watching", sequence: 4, watching: false });
-					}
-				});
-				yield* hints().pipe(
-					Stream.take(4),
-					Stream.runForEach(record),
-					Effect.provide(
-						Workspace.layer.pipe(
-							Layer.provide(Layer.succeed(WorkspaceConfig, { changes, index: Effect.succeed(snapshot), root: "/notes", writable: false })),
-							Layer.provide(NodeServices.layer),
-						),
-					),
-				);
-				return output;
-			}),
-		);
-		expect(seen).toEqual(["Resync", "Changed", "Resync", "Resync"]);
+boardStory.it(
+	"reconciles initially, targets contiguous edits and reconciles after server-local delivery loss",
+	[projectFiles({ "note.md": "# Note", "other.md": "# Other" }), interruptedDelivery],
+	function* ({ watchProject, editFile, loseNextChange, changeWasDropped, waitUntil }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		editFile("note.md", "# First edit");
+		expect(yield* events.changed("note.md")).toMatchObject({ _tag: "Changed" });
+		loseNextChange();
+		editFile("note.md", "# Lost notification");
+		yield* waitUntil(() => expect(changeWasDropped()).toBe(true));
+		editFile("other.md", "# Next notification");
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
 	},
 );

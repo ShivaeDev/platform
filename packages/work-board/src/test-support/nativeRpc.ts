@@ -21,25 +21,25 @@ function makeClient() {
 
 type Client = Effect.Success<ReturnType<typeof makeClient>>;
 
-function call<A, E>(board: Pick<RunningBoard, "url">, read: (client: Client) => Effect.Effect<A, E>, native = false) {
+export function rpcCall<A, E>(board: Pick<RunningBoard, "url">, read: (client: Client) => Effect.Effect<A, E>, native = false) {
 	return Effect.scoped(Effect.flatMap(makeClient(), read)).pipe(Effect.provide(protocol(board, native)));
 }
 
 export function rpcLibrary(board: RunningBoard) {
-	return call(board, (client) => client("work-board.library", {}));
+	return rpcCall(board, (client) => client("work-board.library", {}));
 }
 export function rpcPaths(board: RunningBoard) {
 	return Effect.map(rpcLibrary(board), (data) => data.files.map((file) => file.href));
 }
 export function rpcNavigation(board: RunningBoard) {
-	return call(board, (client) => client("work-board.navigation", { current: "" }));
+	return rpcCall(board, (client) => client("work-board.navigation", { current: "" }));
 }
 export function rpcSearch(board: RunningBoard, query: string) {
-	return call(board, (client) => client("work-board.search", { query }));
+	return rpcCall(board, (client) => client("work-board.search", { query }));
 }
 
 export function rpcWatcher(board: RunningBoard) {
-	return call(board, (client) => client("work-board.watcher", undefined));
+	return rpcCall(board, (client) => client("work-board.watcher", undefined));
 }
 
 export interface EventStream {
@@ -96,7 +96,7 @@ export const changesUntilShown = Effect.fn("Test.changesUntilShown")(function* <
 export function waitForLibraryCount(board: RunningBoard, count: number) {
 	return eventually(
 		Effect.flatMap(
-			call(board, (client) => client("work-board.navigation", { current: "" }), true),
+			rpcCall(board, (client) => client("work-board.navigation", { current: "" }), true),
 			(data) => Effect.try(() => expect(data.counts.library).toBe(count)),
 		),
 		{ interval: "10 millis", times: 100 },
@@ -104,5 +104,5 @@ export function waitForLibraryCount(board: RunningBoard, count: number) {
 }
 
 export function rpcDocument(board: Pick<RunningBoard, "url">, url: string) {
-	return call(board, (client) => client("work-board.document", { url }));
+	return rpcCall(board, (client) => client("work-board.document", { url }));
 }
