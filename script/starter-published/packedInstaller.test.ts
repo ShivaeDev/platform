@@ -19,3 +19,7 @@ it("replacing a tarball preserves other overrides and the same package's catalog
 		'packages: []\n\noverrides:\n  "@shivaedev/platform": "file:/tmp/new.tgz"\n  effect: 4.0.4\n\ncatalog:\n  "@shivaedev/platform": 0.9.0\n',
 	);
 });
+
+it("a workspace without tarballs stays unchanged", () => {
+	assert.equal(withTarballOverrides("packages: []\n", {}), "packages: []\n");
+});
