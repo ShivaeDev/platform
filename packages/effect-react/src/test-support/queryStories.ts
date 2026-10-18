@@ -3,7 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import type { QueryOptions } from "#result-state.ts";
+import type { QueryOptions } from "#client/resultState.ts";
 import { finishQuery, queryRequests, queryView, type Unavailable } from "./queryView.ts";
 import { screenKit } from "./screenKit.ts";
 

@@ -6,7 +6,7 @@ import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
-import { useAction, useQuery } from "#result-state.ts";
+import { useAction, useQuery } from "#client/resultState.ts";
 
 const notes = collection("notes", Schema.Number);
 const List = query("list", { reads: () => [notes.list], success: Schema.Array(Schema.String) });

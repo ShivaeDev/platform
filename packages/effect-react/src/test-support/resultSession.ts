@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
-import { type ActionState, type QueryState, useAction, useQuery } from "#result-state.ts";
-import { SessionBoundary } from "#session-boundary.ts";
-import type { Rendered } from "#testing.ts";
+import { type ActionState, type QueryState, useAction, useQuery } from "#client/resultState.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
+import type { Rendered } from "#client/testing.ts";
 
 interface Held<A, E> {
 	current?: QueryState<A, E> | ActionState<void, A, E>;

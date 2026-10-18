@@ -3,7 +3,7 @@ import { makeDatabase } from "#database.ts";
 import { type Contract, contractJson } from "#test/contract.ts";
 import { missingTableContract } from "#test/missingTableContract.ts";
 import { multipleNamespaceContract } from "#test/multipleNamespaceContract.ts";
-import { databaseUrl } from "#test/postgres-database.ts";
+import { databaseUrl } from "#test/postgresDatabase.ts";
 import { unavailablePostgresUrl } from "#test/unavailablePostgresUrl.ts";
 
 export function postgresFailures() {

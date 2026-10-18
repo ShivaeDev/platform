@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { createHighlighter } from "shiki";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { codeBlocks, THEMES } from "#render/code.ts";
 import { RenderFailed } from "#render/Failed.ts";
 

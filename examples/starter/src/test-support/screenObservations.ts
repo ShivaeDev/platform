@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/testing.ts";
+import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { screenInput } from "#test-support/screenActions.ts";
 import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
 

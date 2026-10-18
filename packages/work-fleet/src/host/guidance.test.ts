@@ -102,7 +102,7 @@ for (const role of ["worker", "reviewer"] as const) {
 				expect(prompt).not.toContain(`Repository ${role} guidance:`);
 				expect(prompt).not.toContain("pnpm db:setup");
 				expect(prompt).not.toContain("PLATFORM_EFFECT_");
-				expect(prompt).not.toContain("script/lib/postgres-test-environment.ts");
+				expect(prompt).not.toContain("script/lib/postgresTestEnvironment.ts");
 			}).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
 		);
 		it.effect("an unreadable guidance file fails host policy creation", () =>

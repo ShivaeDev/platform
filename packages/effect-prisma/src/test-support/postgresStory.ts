@@ -8,7 +8,7 @@ import { runDatabaseTesting } from "#test/runDatabaseTesting.ts";
 import { runDisconnectedBegin } from "#test/runDisconnectedBegin.ts";
 import { installRuntimeControls } from "#test/runtimeControls.ts";
 import { withTestTransaction } from "#testing/transaction.ts";
-import { Database, DatabaseLive, databaseUrl } from "./postgres-database.ts";
+import { Database, DatabaseLive, databaseUrl } from "./postgresDatabase.ts";
 
 const testing = runDatabaseTesting("src/test-support/postgresTesting.ts");
 

@@ -1,6 +1,6 @@
 import { act } from "react";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/testing.ts";
+import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { renderRouter } from "./renderRouter.tsx";
 
 export async function chrome(files: Record<string, string>, url = "/notes/plan.md") {

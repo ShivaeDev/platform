@@ -1,9 +1,9 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
-import { SessionBoundary } from "#session-boundary.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
+import type { Rendered } from "#client/testing.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import { makeInvoiceLineViews } from "#test/invoice-line-editor/frontend.ts";
-import type { Rendered } from "#testing.ts";
 import { clickButton, typeInput } from "./Screen.ts";
 import { RegistryProbe } from "./sessionProbes.ts";
 export const stapler = new InvoiceLine({ id: 1, name: "Stapler", quantity: 150 });

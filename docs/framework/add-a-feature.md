@@ -24,7 +24,7 @@ Use `insert({ ownerId, title })` for creation. For the list, use `findMany` with
 
 ## 4. Declare the service
 
-Create `src/server/BookmarksService.ts` with `defineService` from `@shivaedev/effect-service/define-service.ts`. Follow [`NotesService.ts`](../../examples/starter/src/server/NotesService.ts): initialize the repository, declare `SqlClient.SqlClient` and `Reactivity.Reactivity` dependencies, and expose `list(ownerId)` and `create(input, ownerId)`.
+Create `src/server/BookmarksService.ts` with `defineService` from `@shivaedev/effect-service/defineService.ts`. Follow [`NotesService.ts`](../../examples/starter/src/server/NotesService.ts): initialize the repository, declare `SqlClient.SqlClient` and `Reactivity.Reactivity` dependencies, and expose `list(ownerId)` and `create(input, ownerId)`.
 
 Trim the title, reject a whitespace-only title with the command's field rejection, and map database failures to a declared `ServiceUnavailable`. Wrap the write in `transact` from `@shivaedev/effect-sql/transact.ts`. Keep ownership explicit in both methods. The notes service also enqueues a job after its write transaction and logs queue failures; omit that part for bookmarks. This service refers to the command declaration you add next, so complete both steps before typechecking.
 
@@ -48,13 +48,13 @@ Create `src/client/makeBookmarks.ts` by following [`makeNotes.ts`](../../example
 
 In [`SessionApp.tsx`](../../examples/starter/src/client/SessionApp.tsx), extend `connect` to create both clients for the same `/rpc` URL and return `{ notes, bookmarks }`. Pass both through `RoutedApp` to the router, keeping them inside the existing session boundary. [`App.tsx`](../../examples/starter/src/client/App.tsx) supplies the session id and recheck callback.
 
-Add a `/bookmarks` route in [`appRouter.tsx`](../../examples/starter/src/client/appRouter.tsx) whose loader calls `loadQuery(context.context.registry, client.api.list.query(), context)` for the bookmark client. Import `loadQuery` from `@shivaedev/effect-react/router.ts`. Pass that client to the route's screen, and reuse the session's registry and `RouteFailure` error component.
+Add a `/bookmarks` route in [`appRouter.tsx`](../../examples/starter/src/client/appRouter.tsx) whose loader calls `loadQuery(context.context.registry, client.api.list.query(), context)` for the bookmark client. Import `loadQuery` from `@shivaedev/effect-react/loadQuery.ts`. Pass that client to the route's screen, and reuse the session's registry and `RouteFailure` error component.
 
 ## 8. Build the form and screen
 
-Follow [`NoteCreate.tsx`](../../examples/starter/src/client/NoteCreate.tsx). Import `useCreate` from `@shivaedev/effect-react/create.ts` and `useField` from `@shivaedev/effect-form/react.ts`. Supply `BookmarkFields`, `{ title: "" }`, the client runtime and `client.api.create.run`. Bind the title input to the field's value, change and blur handlers, and submit with `create.save()`.
+Follow [`NoteCreate.tsx`](../../examples/starter/src/client/NoteCreate.tsx). Import `useCreate` from `@shivaedev/effect-react/client/create.ts` and `useField` from `@shivaedev/effect-form/client/react.ts`. Supply `BookmarkFields`, `{ title: "" }`, the client runtime and `client.api.create.run`. Bind the title input to the field's value, change and blur handlers, and submit with `create.save()`.
 
-Keep a label, field error, save failure and pending button state. Follow [`NotesScreen.tsx`](../../examples/starter/src/client/NotesScreen.tsx) to render `useQuery` from `@shivaedev/effect-react/result-state.ts` with the same query atom the loader reads. Omit the word-count output and `useAtomMount(client.connection)` from the bookmark screen, since this client has no job or live subscription. The create command's invalidation refreshes that list. Applications own the wording and layout; the form owns encoded input and submission state.
+Keep a label, field error, save failure and pending button state. Follow [`NotesScreen.tsx`](../../examples/starter/src/client/NotesScreen.tsx) to render `useQuery` from `@shivaedev/effect-react/client/resultState.ts` with the same query atom the loader reads. Omit the word-count output and `useAtomMount(client.connection)` from the bookmark screen, since this client has no job or live subscription. The create command's invalidation refreshes that list. Applications own the wording and layout; the form owns encoded input and submission state.
 
 ## 9. Prove the PostgreSQL host path
 

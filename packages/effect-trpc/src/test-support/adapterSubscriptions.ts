@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema, Stream } from "effect";
-import type { EffectTRPCAdapter } from "#adapter.ts";
-import { makeRequestServices } from "#request-services.ts";
-import { RequestSignal } from "#request-signal.ts";
+import type { EffectTRPCAdapter } from "#server/adapter.ts";
+import { RequestSignal } from "#server/RequestSignal.ts";
+import { makeRequestServices } from "#server/requestServices.ts";
 import type { serverTrpc } from "./adapterHost.ts";
 import { type Dependency, RequestValue, type RuntimeOnlyValue, RuntimeValue } from "./adapterServices.ts";
 import type { RouterEngine } from "./routerEngine.ts";

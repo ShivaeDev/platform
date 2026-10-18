@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { RejectionError, rejectWith } from "#rejection.ts";
+import { RejectionError, rejectWith } from "#server/rejection.ts";
 import { adapterHost } from "./adapterHost.ts";
 import { BadRequest, Mark, Profile, Range, rejectSpoofed, Spoofed } from "./inputSchemas.ts";
 import type { RouterEngine } from "./routerEngine.ts";

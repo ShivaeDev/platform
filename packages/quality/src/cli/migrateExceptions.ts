@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
 import { loadConfig } from "#config/load.ts";
 import { validOrFail } from "#decoded.ts";
-import { readInput } from "#engine/baseline-file.ts";
+import { readInput } from "#engine/baselineFile.ts";
 import { decodeExceptions, type ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { migrateBiome } from "#exceptions/migrateBiome.ts";
 import { migrateConfig } from "#exceptions/migrateConfig.ts";

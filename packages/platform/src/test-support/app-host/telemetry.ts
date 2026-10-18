@@ -1,5 +1,5 @@
 import { Layer } from "effect";
-import { otlpTracing } from "#otlpTracing.ts";
+import { otlpTracing } from "#server/otlpTracing.ts";
 import { otlpReceiver } from "#test/otlpReceiver.ts";
 import { io } from "./state.ts";
 import { host } from "./story.ts";

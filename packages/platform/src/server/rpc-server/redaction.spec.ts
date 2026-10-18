@@ -4,10 +4,10 @@ import { Headers } from "effect/http";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expect, it } from "vitest";
 import { RequestTracing } from "#rpc/middleware.ts";
-import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";
-import { redact } from "#rpc-server/redact.ts";
-import { redactDefect, redactingErrorReporter } from "#rpc-server/redact-cause.ts";
-import { requestTracingLayer } from "#rpc-server/tracing.ts";
+import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
+import { redact } from "#server/rpc-server/redact.ts";
+import { redactDefect, redactingErrorReporter } from "#server/rpc-server/redactCause.ts";
+import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { recorder } from "#test/rpc/harness.ts";
 
 function leaks(value: unknown, secrets: readonly string[]) {

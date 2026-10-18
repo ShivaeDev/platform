@@ -4,8 +4,8 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { act, createElement } from "react";
-import { type QueryOptions, useQuery } from "#result-state.ts";
-import type { Rendered } from "#testing.ts";
+import { type QueryOptions, useQuery } from "#client/resultState.ts";
+import type { Rendered } from "#client/testing.ts";
 
 export interface Unavailable {
 	readonly _tag: "Unavailable";

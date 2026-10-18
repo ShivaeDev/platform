@@ -2,9 +2,9 @@ import { RegistryContext } from "@effect/atom-react";
 import { Effect, Layer, Option, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext } from "react";
-import { useField, useSubmit } from "@shivaedev/effect-form/react.ts";
-import { useCreate } from "#create.ts";
-import { type Editor, useEditor } from "#editor.ts";
+import { useField, useSubmit } from "@shivaedev/effect-form/client/react.ts";
+import { useCreate } from "#client/create.ts";
+import { type Editor, useEditor } from "#client/editor.ts";
 
 const Name = Schema.Struct({ name: Schema.String });
 const runtime = Atom.runtime(Layer.empty);

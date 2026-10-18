@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { inProgressItems } from "./inProgressItems.ts";

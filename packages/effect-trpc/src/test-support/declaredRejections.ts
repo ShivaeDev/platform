@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema } from "effect";
-import { notFound } from "#errors.ts";
-import { rejectWith } from "#rejection.ts";
+import { notFound } from "#server/errors.ts";
+import { rejectWith } from "#server/rejection.ts";
 import { adapterHost } from "./adapterHost.ts";
 import { Rejection, rename, Throttled } from "./rejectionSchemas.ts";
 import type { RouterEngine } from "./routerEngine.ts";

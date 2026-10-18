@@ -2,8 +2,8 @@ import { Effect, Option } from "effect";
 import type { Headers } from "effect/http";
 import { AuthUnavailable } from "#errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#rpc/identity.ts";
-import { redact } from "#rpc-server/redact.ts";
-import type { SessionProvider, SessionShape } from "#rpc-server/session.ts";
+import { redact } from "#server/rpc-server/redact.ts";
+import type { SessionProvider, SessionShape } from "#server/rpc-server/session.ts";
 export type GetSession<TSession extends SessionShape> = (headers: globalThis.Headers) => Promise<TSession | null>;
 export type GetProviderAccounts = (headers: globalThis.Headers) => Promise<readonly ProviderAccountValue[]>;
 export type SessionWithProviderAccounts<TSession extends SessionShape> = TSession & {
