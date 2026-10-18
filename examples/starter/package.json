@@ -4,8 +4,7 @@
 	"private": true,
 	"type": "module",
 	"imports": {
-		"#*": "./src/*",
-		"#railway": "./.railway/railway.ts"
+		"#*": "./src/*"
 	},
 	"scripts": {
 		"build": "vite build",
