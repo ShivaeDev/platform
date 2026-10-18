@@ -1,6 +1,6 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { StatusChip } from "#client/react/StatusChip.tsx";
 import { useVirtualRows } from "./useVirtualRows.ts";
 import { WorkItemTitle } from "./WorkItemTitle.tsx";
 export function WorkTable({ data }: { readonly data: WorkProjection }) {

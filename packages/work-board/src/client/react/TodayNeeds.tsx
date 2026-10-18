@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { StatusChip } from "#client/react/StatusChip.tsx";
 import { answeredCopy } from "#client/responses/answeredCopy.ts";
 import { Age } from "./Age.tsx";
 import type { ShellApi } from "./ShellApi.ts";

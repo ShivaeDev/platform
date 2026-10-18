@@ -1,10 +1,14 @@
 {
-	"date": "2026-10-13",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "effect-4-stable.md",
-			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/atom-react` 4.0.4 alongside it.\n"
+			"name": "declaration-aliases.md",
+			"text": "### Fixed\n\n- Keep form and React hook type inference consistent when TypeScript enables the `source` condition by resolving private type aliases to the same declarations as public imports.\n"
+		},
+		{
+			"name": "file-path-exports.md",
+			"text": "### Breaking\n\n- Every module's import path is now its path under `src/`. The React entry moves from `react.ts` to `client/react.ts`.\n"
 		}
 	],
-	"version": "0.4.0"
+	"version": "0.5.0"
 }

@@ -68,7 +68,3 @@ The state file records discovered open PR numbers and the last successfully comp
 Transitions that reverse between observations, including while the watcher is down, are not recovered. For example, leaving and rejoining the merge queue before the next observation produces no `dequeued` event. Stdout delivery is at-least-once across a crash: a crash after output but before the state replacement can repeat a line. There is no event history or acknowledged output protocol.
 
 The exported `StateFile.layer` requires Effect `FileSystem`, and `GitHubHttp.layer` requires Effect `HttpClient`. The CLI supplies `NodeFileSystem.layer` and a `FetchHttpClient` layer that refuses redirects. HTTP and file failures remain typed `WatchError` values.
-
-### Evidence
-
-Synthetic HTTP tests cover conditional 304 responses, all eight events, already-stuck PRs at startup, terminal pruning across restarts, queue entry with a cleared auto-merge request, confirmed queue drops and rebuilds, manual auto-merge disablement, native IO injection and typed failures, checks independent of PR ETags, fleet discovery and pagination, quota slowdown, failed requests, and clean restart comparison. A CLI subprocess test verifies that pending mergeability diagnostics stay on stderr while stdout contains JSON event lines. The packed consumer runs the installed executable against a synthetic server. These tests establish the REST and GraphQL handling and installed package behavior; they do not establish live GitHub or Monitor adoption.

@@ -1,8 +1,8 @@
+import { cn } from "cn";
 import { CheckCircle2 } from "lucide-react";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
-import { Button } from "#client/react/components/ui/Button.tsx";
-import { cn } from "#client/react/lib/cn.ts";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { AnswerMore } from "./AnswerMore.tsx";
 import { AnswerPrompts } from "./AnswerPrompts.tsx";
 import { FormField } from "./FormField.tsx";
