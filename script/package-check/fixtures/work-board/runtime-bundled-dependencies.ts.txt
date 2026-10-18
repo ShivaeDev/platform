@@ -9,9 +9,9 @@ for (const name of [
   "@shivaedev/effect-react",
   "@tanstack/react-router",
   "class-variance-authority",
-  "clsx",
+  "cn",
   "lucide-react",
-  "tailwind-merge",
+  "radix-ui",
 ]) {
   assert(!(name in manifest.dependencies), `${name} must not be a runtime dependency`)
   assert(name in manifest.devDependencies, `${name} must be a build dependency`)
