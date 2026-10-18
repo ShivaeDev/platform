@@ -143,43 +143,6 @@ Import the module that defines each name; there is no root entry.
 | `@shivaedev/heavy-lock/HeldLock.ts` | `HeldLock`, `HeldLockShape` |
 | `@shivaedev/heavy-lock/error.ts` | `HeavyLockError`, `failWith` |
 
-The acquisition declarations use these types:
-
-```ts
-import type { HeavyLockError } from "@shivaedev/heavy-lock/error.ts";
-import type { HeldLock } from "@shivaedev/heavy-lock/HeldLock.ts";
-import type { Duration, Effect, FileSystem, Layer, Path, Scope } from "effect";
-import type { ChildProcessSpawner } from "effect/process";
-
-export interface HeavyLockOptions {
-  readonly command?: string | undefined;
-  readonly lockPath?: string | undefined;
-  readonly pollInterval?: Duration.Input | undefined;
-}
-
-export type HeavyLockServices =
-  | FileSystem.FileSystem
-  | Path.Path
-  | ChildProcessSpawner.ChildProcessSpawner;
-
-export interface HeldLockShape {
-  readonly env: Readonly<Record<string, string>>;
-}
-
-export declare const withHeavyLock: <A, E, R>(
-  effect: Effect.Effect<A, E, R>,
-  options?: HeavyLockOptions,
-) => Effect.Effect<A, E | HeavyLockError, Exclude<R, HeldLock> | HeavyLockServices>;
-
-export declare const acquireHeavyLock: (
-  options?: HeavyLockOptions,
-) => Effect.Effect<HeldLockShape, HeavyLockError, Scope.Scope | HeavyLockServices>;
-
-export declare const heavyLockLayer: (
-  options?: HeavyLockOptions,
-) => Layer.Layer<HeldLock, HeavyLockError, HeavyLockServices>;
-```
-
 `HeldLock` is an Effect service whose value is `HeldLockShape`. Its `env` contains the hold ID for children, and is empty when CI skips acquisition. `HeavyLockError` has the tag `HeavyLockError`, a `message` and an optional `cause`; caller failures remain separate from acquisition failures. `failWith(message)` constructs an error mapper that keeps the cause.
 
 | Option | Meaning | Default |
@@ -188,24 +151,7 @@ export declare const heavyLockLayer: (
 | `lockPath` | File every participating caller shares. | `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`. |
 | `pollInterval` | Delay between waiting attempts. | One second. |
 
-The package also exposes the modules that implement its shared protocol:
-
-| Module | Exports |
-| --- | --- |
-| `holder.ts` | `HOLDER_ID_ENV`, `Holder` schema and type, `encodeHolder(holder)`, `decodeHolder(raw)` |
-| `lockFile.ts` | `readHolder(lock)`, `tryAcquire(lock, holder)`, `release(lock, id)`, `reclaim(lock, dead)` |
-| `processStart.ts` | `processStartTime(pid)`, `isHolderAlive(holder)` |
-| `settings.ts` | `Settings`, `readSettings(lockPath)` |
-| `status.ts` | `elapsed(fromMs, toMs)`, `waitingLine(holder, nowMs)`, `acquiredLine(waitStartedMs, nowMs)` |
-| `wait.ts` | `Claim`, `WaitOptions`, `waitForLock(lock, claim, options)` |
-| `cli/args.ts` | `CommandLine`, `USAGE`, `parseCommandLine(args)` |
-| `cli/program.ts` | `program(args)` |
-| `cli/runCommand.ts` | `runCommand(commandLine, env, signals)` |
-| `cli/signals.ts` | `ForwardedSignal`, `signalExitCode(signal)`, `receiveSignals` |
-
-Each path has the prefix `@shivaedev/heavy-lock/`. `Holder` holds `id`, `pid`, `processStartedAt`, `command`, `cwd` and `startedAtMs`; `Claim` omits the acquisition time. `WaitOptions` names `pollInterval` as `Duration.Input` and `remindEvery` as `Duration.Duration`. `Settings` holds `ci`, the optional inherited ID and the resolved `lock` path. The [protocol reference](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md) describes the holder and acquisition rules. Use the scoped acquisition API for ordinary command wrapping.
-
-`tryAcquire` returns `Option.none()` after acquiring or `Option.some(holder)` when another live holder blocks it. It does not require `Scope` or register a release finalizer; its caller must release an acquired hold. `waitForLock` owns that scoped waiting and release lifecycle.
+The package also exposes the modules that implement the shared protocol, such as `@shivaedev/heavy-lock/lockFile.ts`; the [protocol reference](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md) describes the holder and acquisition rules. Use the scoped acquisition API for ordinary command wrapping: the lower-level `tryAcquire` registers no release finalizer, so its caller must release an acquired hold.
 
 ### Install and environment
 
@@ -213,7 +159,7 @@ Each path has the prefix `@shivaedev/heavy-lock/`. `Holder` holds `id`, `pid`, `
 pnpm add --save-dev @shivaedev/heavy-lock @effect/platform-node@4.0.4 @effect/platform-node-shared@4.0.4 effect@4.0.4
 ```
 
-The Effect packages are peers. Use the versions required by this package's `peerDependencies` together. The package requires Node 24 or later.
+The Effect packages are peers. The package requires Node 24 or later.
 
 | Variable | Meaning |
 | --- | --- |

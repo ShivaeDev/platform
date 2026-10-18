@@ -1,15 +1,16 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { headerScreen } from "#test/headerScreen.tsx";
 import { screenStory } from "#test/screenStory.ts";
 
 screenStory.it(
 	"changes saved theme and density and pauses native updates from the header settings",
 	[headerScreen(0, true)],
-	({ click, choose, control, keyboard, readFocus, readRootAttribute, readPaused }) => {
-		expect(control('[role="dialog"][aria-label="Settings"]', HTMLElement).hidden).toBe(true);
+	function* ({ click, choose, control, findElement, keyboard, readFocus, readRootAttribute, readPaused }) {
+		expect(findElement('[role="dialog"][aria-label="Settings"]', document)).toBeNull();
 		click("#settings-open");
-		expect(readFocus()?.id).toBe("theme");
-		expect(control('[role="dialog"][aria-label="Settings"]', HTMLElement).hidden).toBe(false);
+		yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("theme")));
 		choose("#theme", "dark");
 		choose("#density", "compact");
 		expect(readRootAttribute("class")?.split(" ").includes("dark") ?? false).toBe(true);
@@ -21,7 +22,7 @@ screenStory.it(
 		choose("#theme", "light");
 		expect(readRootAttribute("class")?.split(" ").includes("dark") ?? false).toBe(false);
 		keyboard("Escape", { bubbles: true }, document);
-		expect(control('[role="dialog"][aria-label="Settings"]', HTMLElement).hidden).toBe(true);
-		expect(readFocus()?.id).toBe("settings-open");
+		yield* Effect.promise(() => eventually(() => expect(findElement('[role="dialog"][aria-label="Settings"]', document)).toBeNull()));
+		yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("settings-open")));
 	},
 );

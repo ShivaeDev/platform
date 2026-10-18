@@ -272,7 +272,7 @@ The mapper receives the procedure path and an `origin` of `failure` or `defect`.
 
 `instrument(effect, procedure)` wraps resolver work and can read request services. `instrumentStream(stream, procedure)` wraps subscription streams. Both receive the procedure path and kind; an Effect-instrumentation defect is redacted.
 
-Each query, mutation and subscription creates one procedure span named after its full procedure path, such as `orders.read`. Its attributes are `rpc.method` set to that path, `rpc.system: "trpc"` and `trpc.type` set to `"query"`, `"mutation"` or `"subscription"`. A span opened by the resolver is a child of that procedure span. Subscriptions also provide the caller's exact `AbortSignal` through `RequestSignal`; the resolver can observe its aborted state. The [procedure evidence tests](src/server/procedureEvidence.spec.ts) record these spans and observe signal identity and abort through `router.createCaller` in process.
+Each query, mutation and subscription creates one procedure span named after its full procedure path, such as `orders.read`. Its attributes are `rpc.method` set to that path, `rpc.system: "trpc"` and `trpc.type` set to `"query"`, `"mutation"` or `"subscription"`. A span opened by the resolver is a child of that procedure span. Subscriptions also provide the caller's exact `AbortSignal` through `RequestSignal`; the resolver can observe its aborted state.
 
 ### Once per test suite: the real router caller
 
@@ -345,11 +345,9 @@ Import each name from its defining `@shivaedev/effect-trpc/<module>.ts`; there i
 | `server/errors.ts` | `fail`, `badRequest`, `unauthorized`, `forbidden`, `notFound`, `conflict`, `preconditionFailed`, `internalServerError` |
 | `server/rejection.ts` | `rejectWith`, `rejectionCode`, `RejectionError`, `DeclaredRejection`, `RejectWithOptions` |
 | `server/rejectionFormatter.ts` | `rejectionFormatter`, `withRejection`, `RejectionData`, `RejectionErrorShape` |
-| `rejectionDecoding.ts`, `rejectionDecoding.ts` | `rejectionOf`, `decodeRejection`, `EncodedRejection` |
+| `rejectionDecoding.ts` | `rejectionOf`, `decodeRejection`, `EncodedRejection` |
 | `server/testing/caller.ts` | `makeEffectCaller`, `makeEffectCallerFactory`, `EffectCaller`, `EffectCallerFactory` |
 | `server/testing/vitest.ts` | `makeTrpcIt`, `makeTrpcHarnessIt` |
-| `server/testing/types.ts` | `CallerOptions`, `CallerResult`, `MakeTrpcItOptions`, `MakeTrpcHarnessItOptions`, `TrpcIt`, `TrpcTest`, `TrpcTester`, `TrpcHarnessIt`, `TrpcHarnessTest`, `TrpcHarnessTester` |
-| `server/testing/AnyTestLayer.ts` | `AnyTestLayer` |
 
 `rejectWith` removes the declared schema types from the Effect's error channel and adds `RejectionError`.
 
@@ -372,6 +370,4 @@ The Vitest dependency is optional unless you import the testing modules. The app
 await runtime.dispose();
 ```
 
-Choose an application server and tRPC transport separately. The rejection tests exercise tRPC's fetch handler and client in process; the cancellation test exercises a caller signal and Stream iterator. Those checks do not establish deployed HTTP or WebSocket disconnect behavior through a host or proxy. Test that boundary in the consuming application.
-
-For the package's design priorities, read [north star](https://github.com/ShivaeDev/platform/blob/main/packages/effect-trpc/docs/north-star.md). Implementation status, next work and maintainer questions live in the [roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-trpc/docs/roadmap.md).
+Choose an application server and tRPC transport separately. The adapter's cancellation path starts from the caller's abort signal; test deployed HTTP or WebSocket disconnect behavior through your host or proxy in the consuming application.
