@@ -5,16 +5,14 @@ import { HandoffPage } from "#client/react/HandoffPage.tsx";
 import { ResultPage } from "#client/react/ResultPage.tsx";
 import { StartPage } from "#client/react/StartPage.tsx";
 import { SystemPage } from "#client/react/SystemPage.tsx";
-import type { DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
-export function renderDiagnostics(data: DiagnosticsSnapshot, now: number) {
-	return renderToStaticMarkup(<SystemPage data={{ now, sources: data }} />);
-}
-export async function renderRemaining(origin: string, url: string) {
+export async function renderRemaining(origin: string, url: string, now?: number) {
 	const client = browserClient(origin);
 	try {
 		switch (new URL(url, origin).pathname) {
 			case "/_board/system":
-				return renderToStaticMarkup(<SystemPage data={await client.run(client.api.diagnostics.run(undefined))} />);
+				return renderToStaticMarkup(
+					<SystemPage data={{ ...(await client.run(client.api.diagnostics.run(undefined))), ...(now === undefined ? {} : { now }) }} />,
+				);
 			case "/_board/start":
 				return renderToStaticMarkup(<StartPage data={await client.run(client.api.start.run(undefined))} />);
 			case "/_board/handoff":

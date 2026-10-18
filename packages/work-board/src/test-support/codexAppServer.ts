@@ -34,7 +34,15 @@ function reply(message: ReturnType<typeof JSON.parse>) {
 			if (message.error?.code !== -32_601) {
 				process.exit(1);
 			}
-			send({ id: "limits", result: { synthetic: "limits" } });
+			send({
+				id: "limits",
+				result: {
+					rateLimits: {
+						primary: { resetsAt: 1_800_000_000, usedPercent: 24, windowDurationMins: 300 },
+						secondary: { resetsAt: 1_800_086_400, usedPercent: 63, windowDurationMins: 10_080 },
+					},
+				},
+			});
 	}
 }
 lines.on("line", (line) => {

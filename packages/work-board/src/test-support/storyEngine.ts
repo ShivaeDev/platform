@@ -2,12 +2,14 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { browserClient } from "#client/client.ts";
+import type { Sources } from "#diagnostics/source.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { responseFrom } from "#server/responses/records.ts";
 import { type FileSystemWrapper, type Folder, folder, type RunningBoard, startBoard } from "./board.ts";
 import { type OpenPage, openPage } from "./browser.ts";
 
 export interface BoardEngine {
+	activeDiagnosticsPolls?: () => number;
 	beforeScripts?: Parameters<typeof openPage>[2];
 	fleetPort?: number | undefined;
 	home?: string | undefined;
@@ -15,7 +17,12 @@ export interface BoardEngine {
 	live?: { board: RunningBoard; client: ReturnType<typeof browserClient>; page: OpenPage };
 	readonly notes: Folder;
 	path: string;
+	pollDiagnostics?: () => void;
+	readAt?: number;
+	readingOnly?: boolean;
 	responses: boolean;
+	server?: { board: RunningBoard; client: ReturnType<typeof browserClient> };
+	sources?: Sources;
 	wrap?: FileSystemWrapper | undefined;
 }
 
@@ -24,6 +31,10 @@ export function connected(engine: BoardEngine) {
 		throw new Error("The story's board has not started");
 	}
 	return engine.live;
+}
+
+export function served(engine: BoardEngine) {
+	return engine.server ?? connected(engine);
 }
 
 export function* createBoard() {
@@ -36,11 +47,15 @@ export function* createBoard() {
 }
 
 export function* serveProject(engine: BoardEngine) {
-	const board = yield* startBoard(engine.notes.root, engine.home, engine.wrap, engine.responses, undefined, undefined, engine.fleetPort);
+	const board = yield* startBoard(engine.notes.root, engine.home, engine.wrap, engine.responses, engine.sources, undefined, engine.fleetPort);
 	const client = yield* Effect.acquireRelease(
 		Effect.sync(() => browserClient(board.url)),
 		(acquired) => Effect.sync(() => acquired.registry.dispose()),
 	);
+	engine.server = { board, client };
+	if (engine.readingOnly) {
+		return;
+	}
 	const page = yield* openPage(board, engine.path, engine.beforeScripts);
 	engine.live = { board, client, page };
 	yield* rememberReader(engine);
