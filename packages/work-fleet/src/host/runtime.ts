@@ -51,6 +51,7 @@ export function hostPolicy(host: FleetHost) {
 					operationId: () => crypto.randomUUID(),
 					quota: { expiresAt: 0, observedAt: 0 },
 					readGuidance: (role) => guidance[role].pipe(Effect.mapError((error) => new ServiceUnavailable({ message: error.message }))),
+					readRetryMs: applied.readRetryMs,
 					refreshQuota: refreshQuota(applied),
 					stallMinutes: applied.stallMinutes,
 					...(applied.worker === undefined ? {} : { sharedEnvironment: applied.worker.sharedEnvironment }),

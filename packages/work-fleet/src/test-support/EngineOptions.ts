@@ -41,6 +41,7 @@ export interface EngineOptions {
 	readonly publishFailure?: boolean;
 	readonly publishGate?: Effect.Effect<void>;
 	readonly quota?: number;
+	readonly readRetryMs?: number;
 	readonly refreshQuota?: FleetConfiguration["refreshQuota"];
 	readonly rejectTurn?: boolean;
 	readonly repairs?: boolean;
