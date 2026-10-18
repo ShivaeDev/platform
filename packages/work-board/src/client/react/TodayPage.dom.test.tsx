@@ -3,7 +3,7 @@ import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
-import { todayAnswerFixture } from "#test/todayFixture.ts";
+import { todayFixture } from "#test/todayFixture.ts";
 
 expectNoReactWarnings();
 const ASK = "[data-attention-id='question.storage']";
@@ -11,7 +11,7 @@ const trigger = `${ASK} button[aria-haspopup='dialog']`;
 const dialog = `${ASK} [role='dialog']`;
 screenStory.it(
 	"opens compact answer controls, records an option and removes its ask on query refresh",
-	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
+	[routedScreen(todayFixture(), "/", { home: "home.md", writable: true })],
 	function* ({ readText, readAttribute, readFocus, findElement, click, keyboard, readResponses, activate }) {
 		yield* Effect.promise(() =>
 			eventually(() => expect(readText("[aria-label='Options for question.storage'] button")).toContain("Keep local files · Recommended")),
