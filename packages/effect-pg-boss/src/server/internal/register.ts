@@ -1,4 +1,4 @@
-import { type Context, Effect, Redacted, Schema } from "effect";
+import { type Context, Effect, Redacted, Schema, type Scope } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import {
@@ -10,8 +10,8 @@ import {
 	type ScheduledWorker,
 } from "#definition.ts";
 import { PgBossError, PgBossPayloadError, PgBossQueueOptionsError, toPgBossError } from "#error.ts";
-import { batchHandler } from "#internal/batchHandler.ts";
 import { ensureQueue } from "#internal/ensureQueue.ts";
+import { registerWorker } from "#internal/registerWorker.ts";
 import { payloadOf, traceJob } from "#internal/tracing.ts";
 
 function isQueueWorker(registration: JobRegistration): registration is QueueWorker {
@@ -81,25 +81,28 @@ function runQueueWorker(worker: QueueWorker, job: Job<unknown>, context: Context
 	);
 }
 
-async function registerQueue(client: PgBossClient, registration: QueueWorker | QueueDefinition, context: Context.Context<unknown>): Promise<void> {
+async function registerQueue(
+	client: PgBossClient,
+	registration: QueueWorker | QueueDefinition,
+	context: Context.Context<unknown>,
+	scope: Scope.Scope,
+): Promise<void> {
 	const queue = registration._tag === "QueueWorker" ? registration.queue : registration;
 	const name = queue.name;
 	if (registration._tag === "QueueDefinition") {
 		return;
 	}
-	await client.work(
-		name,
-		{ ...queue.workerOptions, includeMetadata: true },
-		batchHandler(client, name, (job) => runQueueWorker(registration, job, context)),
-	);
+	await registerWorker(client, name, queue.workerOptions, (job) => runQueueWorker(registration, job, context), scope);
 }
 
-async function registerSchedule(client: PgBossClient, worker: ScheduledWorker, context: Context.Context<unknown>): Promise<void> {
+async function registerSchedule(client: PgBossClient, worker: ScheduledWorker, context: Context.Context<unknown>, scope: Scope.Scope): Promise<void> {
 	const { schedule } = worker;
-	await client.work(
+	await registerWorker(
+		client,
 		schedule.name,
-		{ ...schedule.workerOptions, includeMetadata: true },
-		batchHandler(client, schedule.name, (job) => Effect.provide(traceJob(worker.effect, job, schedule.name), context)),
+		schedule.workerOptions,
+		(job) => Effect.provide(traceJob(worker.effect, job, schedule.name), context),
+		scope,
 	);
 	await client.schedule(schedule.name, schedule.cron, null, schedule.scheduleOptions);
 }
@@ -117,19 +120,21 @@ export const registerJobs = <R>(
 	registrations: readonly JobRegistration[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
-): Effect.Effect<void, PgBossError | PgBossQueueOptionsError> =>
-	Effect.tryPromise({
-		catch: (error) => (error instanceof PgBossQueueOptionsError || error instanceof PgBossError ? error : toPgBossError("register", error)),
-		try: async () => {
-			registrationNames(registrations);
-			await prepareQueues(client, registrations, replaceWorkers);
-			const provided = workerContext(context);
-			for (const registration of registrations) {
-				if (isQueueWorker(registration) || isQueueDefinition(registration)) {
-					await registerQueue(client, registration, provided);
-				} else if (isScheduledWorker(registration)) {
-					await registerSchedule(client, registration, provided);
+): Effect.Effect<void, PgBossError | PgBossQueueOptionsError, Scope.Scope> =>
+	Effect.flatMap(Effect.scope, (scope) =>
+		Effect.tryPromise({
+			catch: (error) => (error instanceof PgBossQueueOptionsError || error instanceof PgBossError ? error : toPgBossError("register", error)),
+			try: async () => {
+				registrationNames(registrations);
+				await prepareQueues(client, registrations, replaceWorkers);
+				const provided = workerContext(context);
+				for (const registration of registrations) {
+					if (isQueueWorker(registration) || isQueueDefinition(registration)) {
+						await registerQueue(client, registration, provided, scope);
+					} else if (isScheduledWorker(registration)) {
+						await registerSchedule(client, registration, provided, scope);
+					}
 				}
-			}
-		},
-	});
+			},
+		}),
+	);
