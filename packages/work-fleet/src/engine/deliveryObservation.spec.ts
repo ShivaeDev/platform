@@ -25,14 +25,22 @@ for (const owner of ["orchestrator", "automation"] as const) {
 					),
 			}),
 		],
-		function* ({ fleet, prepareWork, finishWorkers, restart, exhaustReadRetries }) {
+		function* ({ fleet, prepareWork, finishWorkers, restart }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const retrying = yield* fleet.reconcile("one");
 			expect(retrying.value.attentionOwner).toBe("automation");
 			expect(retrying.value.decision).toBeUndefined();
-			const waiting = yield* exhaustReadRetries();
+			for (let count = 0; count < 4; count += 1) {
+				const current = yield* fleet.get("one");
+				const retry = current.value.integrationRetry ?? current.value.attempts.at(-1)?.readRetry;
+				if (retry === undefined) {
+					break;
+				}
+				yield* restart(fleet.reconcile("one"), (policy) => ({ ...policy, now: () => retry.retryAt }));
+			}
+			const waiting = yield* fleet.get("one");
 			expect(waiting.value.attentionOwner).toBe(owner);
 			expect(waiting.value.decision?.attentionOwner).toBe(owner);
 			yield* restart(

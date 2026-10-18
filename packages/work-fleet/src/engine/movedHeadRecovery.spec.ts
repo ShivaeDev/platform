@@ -2,7 +2,7 @@ import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber } from "effect";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { githubPullRequest } from "#test/engineTraits.ts";
-import { BASE, HEAD, MOVED, PR } from "#test/githubResult.ts";
+import { BASE, HEAD, MOVED, PR, REPORT } from "#test/githubResult.ts";
 import { movedHeadWriteIsInterrupted } from "#test/movedHeadWriteIsInterrupted.ts";
 
 {
@@ -10,10 +10,15 @@ import { movedHeadWriteIsInterrupted } from "#test/movedHeadWriteIsInterrupted.t
 	isolatedEngine.it(
 		"restart after persisting the moved head launches one fresh reviewer before delivery",
 		[githubPullRequest({}), setup.given],
-		function* ({ fixture, fleet, finishWorkers, restart, pullRequest, startReview }) {
+		function* ({ fixture, fleet, finishWorkers, restart, pullRequest, prepareWork, workerReports }) {
 			const context = setup.context();
 			const github = pullRequest();
-			yield* startReview();
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			workerReports(REPORT);
+			const reviewing = yield* fleet.reconcile("one");
+			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 			finishWorkers();
 			const approved = yield* fleet.reconcile("one");
 			github.state.head = MOVED;

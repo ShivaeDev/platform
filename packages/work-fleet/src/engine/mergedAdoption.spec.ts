@@ -3,15 +3,17 @@ import { Effect } from "effect";
 import { backlog } from "#model.ts";
 import { engine } from "#test/engineStory.ts";
 import { githubPullRequest, reviewerStillRunning } from "#test/engineTraits.ts";
-import { HEAD, PR } from "#test/githubResult.ts";
+import { HEAD, PR, REPORT } from "#test/githubResult.ts";
 
 for (const retry of [false, true]) {
 	engine.it(
 		`a PR merged before adoption ${retry ? "retries the stored decision" : "adopts the report"} then releases without starting review`,
 		[githubPullRequest({ legacyResult: retry, status: "MERGED" }), reviewerStillRunning()],
-		function* ({ fixture, fleet, respond, restart, pullRequest, reportWorker }) {
+		function* ({ fixture, fleet, respond, restart, pullRequest, prepareWork, workerReports }) {
 			const github = pullRequest();
-			yield* reportWorker();
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			workerReports(REPORT);
 			let reviewing = yield* fleet.reconcile("one");
 			const worker = reviewing.value.attempts[0];
 			if (retry) {

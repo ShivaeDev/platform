@@ -6,7 +6,7 @@ import type { FleetRecord } from "#model.ts";
 import type { FleetConfiguration } from "#policy.ts";
 import type { EngineFixture } from "#test/engine.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
-import { engineReviewVerbs } from "#test/engineReviewVerbs.ts";
+import { engineProviderVerbs } from "#test/engineProviderVerbs.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 
 export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect.Effect<void, unknown>>) {
@@ -95,7 +95,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 	};
 	return {
 		...verbs,
-		...engineReviewVerbs(running(state).fixture, use, story.tell),
+		...engineProviderVerbs(running(state).fixture, story.tell),
 		fleet: {
 			continue: verbs.continueWork,
 			dispatch: verbs.dispatch,

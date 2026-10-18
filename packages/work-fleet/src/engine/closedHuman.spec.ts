@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { executing } from "#model.ts";
 import { engine } from "#test/engineStory.ts";
+import { QUESTION } from "#test/workerQuestion.ts";
 import { workerTurnDisappears } from "#test/workerTurnDisappears.ts";
 
 for (const status of ["done", "superseded", "deferred"]) {
@@ -48,10 +49,12 @@ for (const status of ["done", "superseded", "deferred"]) {
 engine.it(
 	"a closed Board item retains ownership while its turn runs and releases once terminal",
 	[],
-	function* ({ fixture, fleet, prepareWork, finishWorkers, askWorker }) {
+	function* ({ fixture, fleet, prepareWork, finishWorkers, turnReports }) {
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
-		const waiting = (yield* askWorker()).stopped;
+		yield* turnReports(yield* fleet.get("one"), `FLEET_QUESTION: ${QUESTION}`);
+		const waiting = yield* fleet.reconcile("one");
+		expect(waiting.value.decision?.published).toBeDefined();
 		yield* fixture.replaceRecord({ ...waiting.value, attempts: waiting.value.attempts.map((attempt) => ({ ...attempt, status: "running" })) });
 		const receipt = waiting.value.attempts[0]?.receipt ?? (yield* Effect.die("Missing worker receipt"));
 		fixture.observations.set(receipt.turnId, { execution: "running", output: "", provisioning: "ready", receipt });

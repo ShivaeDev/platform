@@ -13,12 +13,12 @@ describe("reviewer evidence and verdict follow-up", () => {
 	engine.it(
 		"accepts approval citing unavailable logs and passing exact-head checks",
 		[reviewerStillRunning()],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, reviewerReply }) {
+		function* ({ fixture, fleet, prepareWork, finishWorkers, turnReports }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const reviewing = yield* fleet.reconcile("one");
-			const receipt = yield* reviewerReply(reviewing, approval);
+			const receipt = yield* turnReports(reviewing, approval);
 			const completed = yield* fleet.reconcile("one");
 			expect(completed.value.stage).toBe("completed");
 			expect(completed.value.review).toMatchObject({ receipt, verdict: "approved" });
@@ -34,12 +34,12 @@ describe("reviewer evidence and verdict follow-up", () => {
 				reviewerStillRunning(),
 				configured({ launch: { effort: "high", model: "host-model" }, reviewerGuidance: "Inspect synthetic database checks." }),
 			],
-			function* ({ fixture, fleet, prepareWork, finishWorkers, restart, reviewerReply }) {
+			function* ({ fixture, fleet, prepareWork, finishWorkers, restart, turnReports }) {
 				yield* prepareWork("one");
 				yield* fleet.dispatch("one");
 				finishWorkers();
 				const reviewing = yield* fleet.reconcile("one");
-				const original = yield* reviewerReply(reviewing, malformed);
+				const original = yield* turnReports(reviewing, malformed);
 				const followUp = yield* fleet.reconcile("one");
 				const attempt = followUp.value.attempts.at(-1);
 				expect(followUp.value.stage).toBe("reviewing");
@@ -52,7 +52,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 				expect(attempt?.prompt).toContain('"verdict":"approve"');
 				expect(attempt?.settings).toEqual({ effort: "high", model: "host-model" });
 				expect(followUp.value.attempts.at(-2)?.output).toBe(malformed);
-				const receipt = yield* reviewerReply(followUp, approval);
+				const receipt = yield* turnReports(followUp, approval);
 				const completed = yield* restart(fleet.reconcile("one"));
 				expect(completed.value.stage).toBe("completed");
 				expect(completed.value.review).toMatchObject({ receipt, verdict: "approved" });
@@ -64,19 +64,19 @@ describe("reviewer evidence and verdict follow-up", () => {
 	engine.it(
 		"reconciles a lost follow-up acknowledgement on the same thread after restart",
 		[reviewerStillRunning(), configured({ lostReviewContinuationAcknowledgement: true })],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, restart, reviewerReply }) {
+		function* ({ fixture, fleet, prepareWork, finishWorkers, restart, turnReports }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const reviewing = yield* fleet.reconcile("one");
-			const original = yield* reviewerReply(reviewing, "No verdict");
+			const original = yield* turnReports(reviewing, "No verdict");
 			const lost = yield* fleet.reconcile("one");
 			const intent = lost.value.attempts.at(-1);
 			expect(intent).toMatchObject({ sessionId: original.sessionId, status: "submitting" });
 			expect(intent?.receipt).toBeUndefined();
 			const recovered = yield* restart(fleet.reconcile("one"));
 			expect(recovered.value.attempts.at(-1)).toMatchObject({ operationId: intent?.operationId, status: "running" });
-			const receipt = yield* reviewerReply(recovered, approval);
+			const receipt = yield* turnReports(recovered, approval);
 			expect(receipt.sessionId).toBe(original.sessionId);
 			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
 			expect(fixture.launched).toHaveLength(2);
@@ -86,14 +86,14 @@ describe("reviewer evidence and verdict follow-up", () => {
 	engine.it(
 		"a second malformed reply waits on the orchestrator after restart without another follow-up",
 		[reviewerStillRunning()],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, restart, reviewerReply }) {
+		function* ({ fixture, fleet, prepareWork, finishWorkers, restart, turnReports }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const reviewing = yield* fleet.reconcile("one");
-			const original = yield* reviewerReply(reviewing, "No verdict");
+			const original = yield* turnReports(reviewing, "No verdict");
 			const followUp = yield* fleet.reconcile("one");
-			const receipt = yield* reviewerReply(followUp, "FLEET_REVIEW: invalid");
+			const receipt = yield* turnReports(followUp, "FLEET_REVIEW: invalid");
 			expect(receipt.sessionId).toBe(original.sessionId);
 			const invalid = yield* restart(fleet.reconcile("one"));
 			expect(invalid.value.stage).toBe("needs-human");

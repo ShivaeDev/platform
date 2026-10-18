@@ -1,15 +1,20 @@
 import { expect } from "@effect/vitest";
 import { engine } from "#test/engineStory.ts";
 import { githubPullRequest, reviewerStillRunning } from "#test/engineTraits.ts";
-import { HEAD, MOVED } from "#test/githubResult.ts";
+import { HEAD, MOVED, PR, REPORT } from "#test/githubResult.ts";
 
 for (const contextChanged of [false, true]) {
 	engine.it(
 		`a moved head with ${contextChanged ? "changed Board context" : "paths outside the reserved scope"} requires a decision before another review`,
 		[githubPullRequest({}), reviewerStillRunning()],
-		function* ({ fixture, fleet, finishWorkers, editWork, pullRequest, startReview }) {
+		function* ({ fixture, fleet, finishWorkers, editWork, pullRequest, prepareWork, workerReports }) {
 			const github = pullRequest();
-			yield* startReview();
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			workerReports(REPORT);
+			const reviewing = yield* fleet.reconcile("one");
+			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 			finishWorkers();
 			const approved = yield* fleet.reconcile("one");
 			github.state.head = MOVED;

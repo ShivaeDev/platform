@@ -6,18 +6,21 @@ import { boardEditRacesCompletion } from "#test/boardEditRacesCompletion.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { engine } from "#test/engineStory.ts";
 import { checksWithoutRepair, githubPullRequest, markdownWork, noChangeReported } from "#test/engineTraits.ts";
+import { REPORT } from "#test/githubResult.ts";
 
 for (const released of [false, true]) {
 	engine.it(
 		`a synthetic merge marks ${released ? "released" : "completed"} Board work done without changing other bytes or its cycle`,
 		[githubPullRequest({ failed: released }), checksWithoutRepair(), markdownWork()],
-		function* ({ fixture, fleet, schedule, root, source, pullRequest, reportWorker }) {
+		function* ({ fixture, fleet, schedule, root, source, pullRequest, prepareWork, workerReports }) {
 			const github = pullRequest();
 			const file = join(root, "one.md");
 			const files = boardHttpFiles(root);
 			const original = source.replace("kind: task", "kind: task\nstatus: planned # keep this comment\nnext_action: Implement the work.");
 			files.write("one.md", original);
-			yield* reportWorker();
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			workerReports(REPORT);
 			yield* schedule();
 			const waiting = yield* fleet.get("one");
 			expect(waiting.value.stage).toBe("needs-human");
@@ -45,12 +48,14 @@ for (const released of [false, true]) {
 	engine.it(
 		"a Board edit between the scheduler read and completion write survives and is marked done on a later pass",
 		[githubPullRequest({}), setup.given, markdownWork()],
-		function* ({ fixture, fleet, restart, schedule, root, source, pullRequest, reportWorker }) {
+		function* ({ fixture, fleet, restart, schedule, root, source, pullRequest, prepareWork, workerReports }) {
 			const context = setup.context();
 			const github = pullRequest();
 			const file = join(root, "one.md");
 			const files = boardHttpFiles(root);
-			yield* reportWorker();
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			workerReports(REPORT);
 			yield* schedule();
 			const waiting = yield* fleet.get("one");
 			const changed = `${source}\nA human added this note.\n`;
@@ -75,12 +80,14 @@ for (const released of [false, true]) {
 engine.it(
 	"a report completion marks only Board bookkeeping fields and preserves its recorded report and cycle",
 	[markdownWork()],
-	function* ({ fleet, schedule, root, source, reportWorker }) {
+	function* ({ fleet, schedule, root, source, prepareWork, workerReports }) {
 		const file = join(root, "one.md");
 		const files = boardHttpFiles(root);
 		const original = source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report");
 		files.write("one.md", original);
-		yield* reportWorker();
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		workerReports(REPORT);
 		yield* schedule();
 		const done = yield* fleet.get("one");
 		expect(done.value.stage).toBe("completed");
@@ -97,8 +104,10 @@ engine.it(
 engine.it(
 	"no-change completion marks Board work done without a new cycle",
 	[noChangeReported(), markdownWork()],
-	function* ({ fleet, schedule, root, source, reportWorker }) {
-		yield* reportWorker();
+	function* ({ fleet, schedule, root, source, prepareWork, workerReports }) {
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		workerReports(REPORT);
 		yield* schedule();
 		const done = yield* fleet.get("one");
 		expect(done.value.stage).toBe("completed");

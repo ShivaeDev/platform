@@ -3,15 +3,17 @@ import { Effect } from "effect";
 import { executing } from "#model.ts";
 import { engine } from "#test/engineStory.ts";
 import { githubPullRequest } from "#test/engineTraits.ts";
-import { BASE, HEAD, MOVED, PR } from "#test/githubResult.ts";
+import { BASE, HEAD, MOVED, PR, REPORT } from "#test/githubResult.ts";
 
 for (const scenario of ["conflicting", "moved"] as const) {
 	engine.it(
 		`closed Board work releases before recovering an open ${scenario} PR`,
 		[githubPullRequest({})],
-		function* ({ fixture, fleet, pullRequest, reportWorker }) {
+		function* ({ fixture, fleet, pullRequest, prepareWork, workerReports }) {
 			const github = pullRequest();
-			yield* reportWorker();
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			workerReports(REPORT);
 			const ready = yield* fleet.reconcile("one");
 			expect(ready.value.stage).toBe("needs-human");
 			expect(ready.value.review).toMatchObject({ head: HEAD, verdict: "approved" });
@@ -43,9 +45,11 @@ for (const head of [HEAD, MOVED]) {
 	engine.it(
 		`closed Board work settles its ${head === HEAD ? "approved" : "unreviewed"} human merge before releasing for Board status`,
 		[githubPullRequest({})],
-		function* ({ fixture, fleet, pullRequest, reportWorker }) {
+		function* ({ fixture, fleet, pullRequest, prepareWork, workerReports }) {
 			const github = pullRequest();
-			yield* reportWorker();
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			workerReports(REPORT);
 			yield* fleet.reconcile("one");
 			const settings = fixture.settings.length;
 			fixture.boardStatus("one", "done");

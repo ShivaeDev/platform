@@ -4,15 +4,20 @@ import { MOVED_PR_HEAD_REASON } from "#engine/deliveryFailure.ts";
 import { Fleet } from "#fleet.ts";
 import { engine } from "#test/engineStory.ts";
 import { githubPullRequest, reviewerStillRunning } from "#test/engineTraits.ts";
-import { BASE, HEAD, MOVED, PR } from "#test/githubResult.ts";
+import { BASE, HEAD, MOVED, PR, REPORT } from "#test/githubResult.ts";
 
 for (const legacy of [false, true]) {
 	engine.it(
 		`${legacy ? "retry of a legacy moved-head decision" : "another pusher moving an approved PR"} starts an independent review and accepts delivery`,
 		[githubPullRequest({}), reviewerStillRunning()],
-		function* ({ fixture, fleet, finishWorkers, restart, respond, pullRequest, startReview }) {
+		function* ({ fixture, fleet, finishWorkers, restart, respond, pullRequest, prepareWork, workerReports }) {
 			const github = pullRequest();
-			yield* startReview();
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			workerReports(REPORT);
+			const reviewing = yield* fleet.reconcile("one");
+			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 			finishWorkers();
 			const approved = yield* fleet.reconcile("one");
 			expect(approved.value.decision?.reason).toBe("Reviewed PR is ready to merge");

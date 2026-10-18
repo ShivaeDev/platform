@@ -3,16 +3,18 @@ import { Effect } from "effect";
 import { backlog, executing } from "#model.ts";
 import { engine } from "#test/engineStory.ts";
 import { githubPullRequest, reviewRequestsRepairs } from "#test/engineTraits.ts";
-import { HEAD } from "#test/githubResult.ts";
+import { HEAD, REPORT } from "#test/githubResult.ts";
 
 for (const failedChecks of [false, true]) {
 	for (const execution of ["completed", "failed", "interrupted"] as const) {
 		engine.it(
 			`a merged PR with ${failedChecks ? "failing checks" : "changes requested"} and queued guidance releases after its repair turn is ${execution}`,
 			[githubPullRequest({ failed: failedChecks }), reviewRequestsRepairs(!failedChecks)],
-			function* ({ fixture, fleet, pullRequest, reportWorker }) {
+			function* ({ fixture, fleet, pullRequest, prepareWork, workerReports }) {
 				const github = pullRequest();
-				yield* reportWorker();
+				yield* prepareWork("one");
+				yield* fleet.dispatch("one");
+				workerReports(REPORT);
 				const repairing = yield* fleet.reconcile("one");
 				expect(repairing.value.stage).toBe("executing");
 				expect(repairing.value.review?.verdict).toBe(failedChecks ? "approved" : "changes");

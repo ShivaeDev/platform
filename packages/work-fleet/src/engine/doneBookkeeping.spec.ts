@@ -1,20 +1,39 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork, noChangeReported, reviewerStillRunning } from "#test/engineTraits.ts";
+import { QUESTION } from "#test/workerQuestion.ts";
 
 for (const wholeFileRevision of [false, true]) {
 	for (const phase of ["preparation", "execution", "review", "decision", "completed"]) {
 		engine.it(
 			`${wholeFileRevision ? "saved whole-file" : "authored brief"} ${phase} work survives status done and ${["preparation", "decision"].includes(phase) ? "releases without launching" : "completes normally"}`,
 			[noChangeReported(phase !== "review"), reviewerStillRunning(phase === "review"), markdownWork()],
-			function* ({ fixture, fleet, finishWorkers, restart, root, source, prepareBookkeepingPhase }) {
+			function* ({ fixture, fleet, prepareWork, finishWorkers, restart, root, source, turnReports }) {
 				const files = boardHttpFiles(root);
 				const original = source.replace("kind: task", "kind: task\nstatus: planned\nnext_action: Implement the work.");
 				files.write("one.md", original);
-				const active = yield* prepareBookkeepingPhase(phase, wholeFileRevision);
+				yield* prepareWork("one");
+				if (wholeFileRevision) {
+					const prepared = (yield* fleet.get("one")).value;
+					const context = prepared.boardContext ?? (yield* Effect.die("Missing saved Board source"));
+					yield* fixture.replaceRecord({ ...prepared, boardRevision: revisionOf(context) });
+				}
+				if (phase !== "preparation") {
+					yield* fleet.dispatch("one");
+					yield* fleet.reconcile("one");
+				}
+				if (["review", "completed"].includes(phase)) {
+					finishWorkers();
+					yield* fleet.reconcile("one");
+				} else if (phase === "decision") {
+					yield* turnReports(yield* fleet.get("one"), `FLEET_QUESTION: ${QUESTION}`);
+					expect((yield* fleet.reconcile("one")).value.decision?.published).toBeDefined();
+				}
+				const active = yield* fleet.get("one");
 				const turns = fixture.settings.filter((call) => call.call === "turn").length;
 				files.write("one.md", original.replace("status: planned", "status: done").replace("Implement the work.", "Work completed."));
 				const preserved = yield* restart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("one"))));

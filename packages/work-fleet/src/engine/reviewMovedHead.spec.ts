@@ -1,14 +1,19 @@
 import { expect } from "@effect/vitest";
 import { engine } from "#test/engineStory.ts";
 import { githubPullRequest, reviewerStillRunning } from "#test/engineTraits.ts";
-import { HEAD, MOVED } from "#test/githubResult.ts";
+import { HEAD, MOVED, PR, REPORT } from "#test/githubResult.ts";
 
 engine.it(
 	"a push after review starts gets a fresh review without a recovery decision",
 	[githubPullRequest({}), reviewerStillRunning()],
-	function* ({ fixture, fleet, finishWorkers, restart, pullRequest, startReview }) {
+	function* ({ fixture, fleet, finishWorkers, restart, pullRequest, prepareWork, workerReports }) {
 		const github = pullRequest();
-		yield* startReview();
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		workerReports(REPORT);
+		const reviewing = yield* fleet.reconcile("one");
+		expect(reviewing.value.stage).toBe("reviewing");
+		expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 		github.state.head = MOVED;
 		yield* fleet.reconcile("one");
 		expect(fixture.launched).toHaveLength(2);

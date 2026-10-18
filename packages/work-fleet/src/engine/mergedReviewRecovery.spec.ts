@@ -2,14 +2,19 @@ import { expect } from "@effect/vitest";
 import { backlog } from "#model.ts";
 import { engine } from "#test/engineStory.ts";
 import { githubPullRequest, reviewerStillRunning } from "#test/engineTraits.ts";
-import { HEAD } from "#test/githubResult.ts";
+import { HEAD, PR, REPORT } from "#test/githubResult.ts";
 
 engine.it(
 	"a merged PR releases after terminal review even when result refresh would reject merged PRs",
 	[githubPullRequest({}), reviewerStillRunning()],
-	function* ({ fixture, fleet, finishWorkers, restart, pullRequest, startReview }) {
+	function* ({ fixture, fleet, finishWorkers, restart, pullRequest, prepareWork, workerReports }) {
 		const github = pullRequest();
-		const reviewing = yield* startReview();
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		workerReports(REPORT);
+		const reviewing = yield* fleet.reconcile("one");
+		expect(reviewing.value.stage).toBe("reviewing");
+		expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 		github.state.status = "MERGED";
 		github.state.legacyResult = true;
 		finishWorkers();

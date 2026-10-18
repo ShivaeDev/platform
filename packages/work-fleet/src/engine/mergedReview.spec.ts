@@ -2,16 +2,21 @@ import { expect } from "@effect/vitest";
 import { backlog } from "#model.ts";
 import { engine } from "#test/engineStory.ts";
 import { githubPullRequest, reviewerStillRunning } from "#test/engineTraits.ts";
-import { HEAD, MOVED } from "#test/githubResult.ts";
+import { HEAD, MOVED, PR, REPORT } from "#test/githubResult.ts";
 
 for (const head of [HEAD, MOVED]) {
 	for (const pending of [false, true]) {
 		engine.it(
 			`a human merge at ${head} during review releases once the reviewer is terminal with ${pending ? "pending" : "green"} checks`,
 			[githubPullRequest({}), reviewerStillRunning()],
-			function* ({ fixture, fleet, finishWorkers, pullRequest, startReview }) {
+			function* ({ fixture, fleet, finishWorkers, pullRequest, prepareWork, workerReports }) {
 				const github = pullRequest();
-				const reviewing = yield* startReview();
+				yield* prepareWork("one");
+				yield* fleet.dispatch("one");
+				workerReports(REPORT);
+				const reviewing = yield* fleet.reconcile("one");
+				expect(reviewing.value.stage).toBe("reviewing");
+				expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 				github.state.status = "MERGED";
 				github.state.head = head;
 				github.state.pending = pending;
@@ -46,9 +51,14 @@ for (const scenario of [
 	engine.it(
 		`${scenario.name} during review retains ownership and waits on the orchestrator`,
 		[githubPullRequest({}), reviewerStillRunning()],
-		function* ({ fixture, fleet, finishWorkers, pullRequest, startReview }) {
+		function* ({ fixture, fleet, finishWorkers, pullRequest, prepareWork, workerReports }) {
 			const github = pullRequest();
-			const reviewing = yield* startReview();
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			workerReports(REPORT);
+			const reviewing = yield* fleet.reconcile("one");
+			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 			github.state.status = scenario.status;
 			github.state.head = scenario.head;
 			finishWorkers();
