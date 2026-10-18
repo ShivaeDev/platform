@@ -1,7 +1,7 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import type { RemainingRoute } from "./remainingRoute.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 export function loadRemaining(
 	registry: AtomRegistry.AtomRegistry,
@@ -22,8 +22,6 @@ export function loadRemaining(
 				loadQuery(registry, api.diagnostics.query(undefined, routeQueryOptions), { abortController }),
 				loadQuery(registry, api.fleetItems.query(undefined, routeQueryOptions), { abortController }),
 			]);
-		case "respond":
-			return loadQuery(registry, api.respond.query({ url }, routeQueryOptions), { abortController });
 		case "handoff":
 			return loadQuery(registry, api.handoff.query({ url }, routeQueryOptions), { abortController });
 		case "result":

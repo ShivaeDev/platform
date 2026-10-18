@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { BeforeCommit } from "@shivaedev/effect-changes/channel.ts";
 import type { Observation } from "@shivaedev/effect-changes/observe.ts";
 import { makePrismaChanges } from "#changes.ts";
 import type { ChangeMap } from "#model.ts";
@@ -25,11 +26,17 @@ export function label(change: Change) {
 	return `${change.subject}:${change.domain}`;
 }
 
-export function makeChanges(client: PrismaClient, publish?: (changes: readonly Change[]) => Effect.Effect<void>, mappingError?: Error) {
+export function makeChanges(
+	client: PrismaClient,
+	publish?: (changes: readonly Change[]) => Effect.Effect<void>,
+	mappingError?: Error,
+	beforeCommit: BeforeCommit<Change> = () => Effect.void,
+) {
 	const published: (readonly string[])[] = [];
 	const observations: Observation<Change>[] = [];
 	const unnamed: UnnamedWrite[] = [];
 	const changes = makePrismaChanges({
+		beforeCommit,
 		client,
 		key: label,
 		models: mappingError === undefined ? models : { Order: nonnegativeOrderChanges(mappingError) },

@@ -14,7 +14,7 @@ boardStory.it("keeps only the latest ask for open work and the authored question
 	expect(rows.map((row) => row.id)).toEqual(["question.storage", "task.planned"]);
 	expect(rows[1]?.reason).toBe("Managed decision: planned ask 2");
 	expect(rows[1]?.earlierAsks).toBe(1);
-	expect(rows[1]?.href).toContain("item=decision.planned.2&request=approval");
+	expect(rows[1]?.href).toBe("/_board/item/decision.planned.2/#answer-card-approval");
 	expect(inboxCount(snapshot)).toBe(2);
 	const groups = requestInbox(snapshot);
 	expect(groups.resolved).toHaveLength(4);
@@ -62,7 +62,7 @@ boardStory.it("counts separate requests in one source and groups criterion refer
 	expect(items).toHaveLength(2);
 	expect(items[1]?.reason).toBe("Managed decision: Later request in the same source");
 	expect(items[1]?.earlierAsks).toBe(1);
-	expect(items[1]?.href).toContain("request=later");
+	expect(items[1]?.href).toBe("/_board/item/decision.planned.1/#answer-card-later");
 });
 
 boardStory.it("groups registered asks on ordinary attention sources with other asks for the same item", [anInbox()], function* ({ readAttention }) {

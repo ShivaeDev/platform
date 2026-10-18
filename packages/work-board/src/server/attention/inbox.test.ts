@@ -108,3 +108,13 @@ boardStory.it(
 		expect([...fleetRecords(fleet.model)]).toEqual(["responses/decision.md", "responses/fleet-question.md", "responses/fleet-answer.md"]);
 	},
 );
+
+boardStory.it(
+	"links authored questions and managed requests directly to their source item's answer card",
+	[anInbox()],
+	function* ({ readAttention }) {
+		const items = inboxItems(yield* readAttention());
+		expect(items.find((item) => item.id === "question.storage")?.href).toBe("/_board/item/question.storage/#answer-card-answer");
+		expect(items.find((item) => item.id === "task.fleet")?.href).toBe("/_board/item/decision.delivery/#answer-card-delivery");
+	},
+);

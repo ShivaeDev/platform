@@ -35,23 +35,27 @@ const NESTED = /(?:^|\/)biome\.jsonc?$/u;
 
 const RELATIVE = /^\.\.?(?:\/|$)/u;
 
-const directoryOf = (path: string): string => (posix.dirname(path) === "." ? "" : posix.dirname(path));
+function directoryOf(path: string): string {
+	return posix.dirname(path) === "." ? "" : posix.dirname(path);
+}
 
-const read = async (readText: ReadText, path: string): Promise<Parsed> => {
+async function read(readText: ReadText, path: string): Promise<Parsed> {
 	const text = await readText(path);
 	return text === undefined ? { _tag: "Unreadable", reason: "the file does not exist" } : parseJsonc(path, text);
-};
+}
 
-const problem = (file: string, message: string, line?: number): Loaded => ({ layers: [], problems: [{ file, line, message }] });
+function problem(file: string, message: string, line?: number): Loaded {
+	return { layers: [], problems: [{ file, line, message }] };
+}
 
-const local = async (readText: ReadText, path: string): Promise<Loaded> => {
+async function local(readText: ReadText, path: string): Promise<Loaded> {
 	const parsed = await read(readText, path);
 	return parsed._tag === "Parsed"
 		? { layers: [{ json: parsed.json, path, preset: undefined }], problems: [] }
 		: problem(path, `Cannot read this Biome config: ${parsed.reason}.`);
-};
+}
 
-const fromPackage = async (readText: ReadText, from: string, entry: Json, specifier: string): Promise<Loaded> => {
+async function fromPackage(readText: ReadText, from: string, entry: Json, specifier: string): Promise<Loaded> {
 	const target = await resolvePackage(readText, specifier);
 	if (target === undefined) {
 		return problem(from, `Cannot resolve the Biome config "${specifier}" from node_modules.`, entry.line);
@@ -67,9 +71,9 @@ const fromPackage = async (readText: ReadText, from: string, entry: Json, specif
 	}
 	const preset = { declared: declared.value, file: from, line: entry.line, specifier };
 	return { layers: [{ json: parsed.json, path: target, preset }], problems: [] };
-};
+}
 
-const extended = async (readText: ReadText, from: string, entry: Json): Promise<Loaded> => {
+async function extended(readText: ReadText, from: string, entry: Json): Promise<Loaded> {
 	const specifier = textOf(entry);
 	if (specifier === undefined || specifier === "//") {
 		return { layers: [], problems: [] };
@@ -79,11 +83,13 @@ const extended = async (readText: ReadText, from: string, entry: Json): Promise<
 	}
 	const relative = posix.normalize(specifier);
 	return (await readText(relative)) === undefined ? fromPackage(readText, from, entry, specifier) : local(readText, relative);
-};
+}
 
-const extendsOf = (json: Json): readonly Json[] => itemsOf(member(json, "extends"));
+function extendsOf(json: Json): readonly Json[] {
+	return itemsOf(member(json, "extends"));
+}
 
-const chainOf = async (readText: ReadText, path: string): Promise<Loaded> => {
+async function chainOf(readText: ReadText, path: string): Promise<Loaded> {
 	const own = await local(readText, path);
 	const [layer] = own.layers;
 	if (layer === undefined) {
@@ -91,12 +97,12 @@ const chainOf = async (readText: ReadText, path: string): Promise<Loaded> => {
 	}
 	const parents = await Promise.all(extendsOf(layer.json).map((entry) => extended(readText, path, entry)));
 	return { layers: [...parents.flatMap((parent) => parent.layers), layer], problems: parents.flatMap((parent) => parent.problems) };
-};
+}
 
-const rootConfig = async (readText: ReadText): Promise<string | undefined> => {
+async function rootConfig(readText: ReadText): Promise<string | undefined> {
 	const present = await Promise.all(ROOT_CONFIGS.map(async (path) => ((await readText(path)) === undefined ? [] : [path])));
 	return present.flat()[0];
-};
+}
 
 export interface BiomeConfigs {
 	readonly chains: readonly Chain[];
@@ -104,7 +110,7 @@ export interface BiomeConfigs {
 	readonly root: string;
 }
 
-export const biomeConfigs = async ({ files, readText }: RuleInputs): Promise<BiomeConfigs> => {
+export async function biomeConfigs({ files, readText }: RuleInputs): Promise<BiomeConfigs> {
 	const root = await rootConfig(readText);
 	const rootChain = root === undefined ? { layers: [], problems: [] } : await chainOf(readText, root);
 	const loaded = new Set(rootChain.layers.map((layer) => layer.path));
@@ -116,4 +122,4 @@ export const biomeConfigs = async ({ files, readText }: RuleInputs): Promise<Bio
 		problems: all.flatMap((chain) => chain.problems),
 		root: root ?? "biome.json",
 	};
-};
+}

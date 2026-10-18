@@ -3,7 +3,7 @@ import { Effect, Path, PlatformError, Schema } from "effect";
 import { expect, vi } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
-import { MermaidMissing, mermaidRoot, nativeAsset } from "./assets.ts";
+import { checkBrowserAssets, MermaidMissing, mermaidRoot } from "./assets.ts";
 
 vi.mock("node:module", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("node:module")>();
@@ -26,7 +26,7 @@ it.live("reports Mermaid resolution failures as a Schema error with reinstall in
 
 it.live("reports an invalid bundle location as a failure instead of a host defect", function* () {
 	const path = yield* Path.Path.pipe(Effect.provide(NodeServices.layer));
-	const failure = yield* nativeAsset().pipe(
+	const failure = yield* checkBrowserAssets().pipe(
 		Effect.provideService(Path.Path, {
 			...path,
 			fromFileUrl: () => Effect.fail(new PlatformError.BadArgument({ description: "Invalid module URL", method: "fromFileUrl", module: "Path" })),

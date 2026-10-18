@@ -1,5 +1,6 @@
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { fileUrl } from "#files/url.ts";
+import { responseUrl } from "#responses/url.ts";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
@@ -14,8 +15,7 @@ export function ResultPage({ data }: { readonly data: ResultProjection }) {
 	);
 	const links = actions.map((entry) => (
 		<li key={entry.id}>
-			<a href={`/_board/respond?item=${encodeURIComponent(document.identity ?? "")}&request=${encodeURIComponent(entry.id)}`}>Review {entry.id}</a> —{" "}
-			{entry.reason}
+			<a href={responseUrl(document.identity ?? "", entry.id)}>Review {entry.id}</a> — {entry.reason}
 		</li>
 	));
 	return (

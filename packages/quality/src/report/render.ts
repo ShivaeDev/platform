@@ -16,18 +16,21 @@ export interface ReportContext {
 
 const LISTED_FILES = 5;
 
-const locate = (violation: Violation): string => (violation.line === undefined ? violation.file : `${violation.file}:${violation.line}`);
+function locate(violation: Violation): string {
+	return violation.line === undefined ? violation.file : `${violation.file}:${violation.line}`;
+}
 
-const regressionNote = (regression: Regression): string =>
-	`  ${regression.entry.file} is over its baseline: ${regression.count} against ${regression.entry.count} baselined.`;
+function regressionNote(regression: Regression): string {
+	return `  ${regression.entry.file} is over its baseline: ${regression.count} against ${regression.entry.count} baselined.`;
+}
 
-const heading = (label: string, rule: string, violations: readonly Violation[], context: ReportContext): readonly string[] => {
+function heading(label: string, rule: string, violations: readonly Violation[], context: ReportContext): readonly string[] {
 	const description = context.descriptions.get(rule);
 	return [`${label} ${rule} (${violations.length})`, ...(description === undefined ? [] : [`  ${description}`])];
-};
+}
 
-const detailed = (violations: readonly Violation[], regressions: ReadonlyMap<string, Regression>): readonly string[] =>
-	[...groupBy(violations, (violation) => violation.file).values()].flatMap((inFile) => {
+function detailed(violations: readonly Violation[], regressions: ReadonlyMap<string, Regression>): readonly string[] {
+	return [...groupBy(violations, (violation) => violation.file).values()].flatMap((inFile) => {
 		const first = inFile[0];
 		const regression = first === undefined ? undefined : regressions.get(keyOf(first.rule, first.file));
 		return [
@@ -35,33 +38,35 @@ const detailed = (violations: readonly Violation[], regressions: ReadonlyMap<str
 			...(regression === undefined ? [] : [regressionNote(regression)]),
 		];
 	});
+}
 
-const summarized = (violations: readonly Violation[]): readonly string[] => {
+function summarized(violations: readonly Violation[]): readonly string[] {
 	const files = [...groupBy(violations, (violation) => violation.file).entries()].sort(([, left], [, right]) => right.length - left.length);
 	const listed = files.slice(0, LISTED_FILES).map(([file, inFile]) => `${file} (${inFile.length})`);
 	const rest = files.length - listed.length;
 	return [`  ${listed.join(", ")}${rest > 0 ? `, and ${plural(rest, "more file", "more files")}` : ""}. --warnings all lists each one.`];
-};
+}
 
-const ruleSections = (
+function ruleSections(
 	label: string,
 	violations: readonly Violation[],
 	context: ReportContext,
 	body: (inRule: readonly Violation[]) => readonly string[],
-): readonly string[] =>
-	[...groupBy(violations, (violation) => violation.rule).entries()].map(([rule, inRule]) =>
+): readonly string[] {
+	return [...groupBy(violations, (violation) => violation.rule).entries()].map(([rule, inRule]) =>
 		[...heading(label, rule, inRule, context), ...body(inRule)].join("\n"),
 	);
+}
 
-const failures = (outcome: Outcome): string => {
+function failures(outcome: Outcome): string {
 	const stale = outcome.staleBaseline.length + outcome.staleRegistry.length;
 	return [
 		...(outcome.errors.length > 0 ? [plural(outcome.errors.length, "error")] : []),
 		...(stale > 0 ? [plural(stale, "stale entry", "stale entries")] : []),
 	].join(" and ");
-};
+}
 
-const summary = (outcome: Outcome, context: ReportContext): string => {
+function summary(outcome: Outcome, context: ReportContext): string {
 	const verdict = passes(outcome) ? "quality: passed" : `quality: failed with ${failures(outcome)}`;
 	const warnings = outcome.warnings.length > 0 ? `; ${plural(outcome.warnings.length, "warning")} from rules still at warn` : "";
 	const hidden = [
@@ -71,7 +76,7 @@ const summary = (outcome: Outcome, context: ReportContext): string => {
 	const suppressed =
 		hidden.length === 0 ? "" : `; ${hidden.join(" and ")} ${outcome.baselined + outcome.registered === 1 ? "violation" : "violations"} not shown`;
 	return `${verdict}${warnings}. ${plural(context.checked, "source file")} checked${suppressed}.`;
-};
+}
 
 function rerecord(outcome: Outcome): readonly string[] {
 	const rules = [...new Set(outcome.errors.map((violation) => violation.rule))].sort((left, right) => left.localeCompare(right));
@@ -84,7 +89,7 @@ function rerecord(outcome: Outcome): readonly string[] {
 	];
 }
 
-export const render = (outcome: Outcome, context: ReportContext): string => {
+export function render(outcome: Outcome, context: ReportContext): string {
 	const regressions = new Map(outcome.regressions.map((regression) => [keyOf(regression.entry.rule, regression.entry.file), regression]));
 	const warningBody = context.warnings === "all" ? (inRule: readonly Violation[]) => detailed(inRule, regressions) : summarized;
 	return [
@@ -94,4 +99,4 @@ export const render = (outcome: Outcome, context: ReportContext): string => {
 		summary(outcome, context),
 		...rerecord(outcome),
 	].join("\n\n");
-};
+}

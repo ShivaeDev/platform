@@ -15,11 +15,13 @@ const manifestSchema = Schema.toStandardSchemaV1(Schema.fromJsonString(Manifest)
 
 const CONDITIONS: ReadonlySet<string> = new Set(["biome", "default"]);
 
-const SPECIFIER = /^((?:@[^/]+\/)?[^/]+)(?:\/(.+))?$/u;
+const SPECIFIER = /^(?<name>(?:@[^/]+\/)?[^/]+)(?:\/(?<subpath>.+))?$/u;
 
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === "object" && value !== null && !Array.isArray(value);
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
-const targetOf = (value: unknown, star: string | undefined): string | undefined => {
+function targetOf(value: unknown, star: string | undefined): string | undefined {
 	if (typeof value === "string") {
 		return star === undefined ? value : value.replaceAll("*", star);
 	}
@@ -28,11 +30,13 @@ const targetOf = (value: unknown, star: string | undefined): string | undefined 
 	}
 	const condition = isRecord(value) ? Object.keys(value).find((key) => CONDITIONS.has(key)) : undefined;
 	return isRecord(value) && condition !== undefined ? targetOf(value[condition], star) : undefined;
-};
+}
 
-const bySpecificity = (left: string, right: string): number => right.indexOf("*") - left.indexOf("*") || right.length - left.length;
+function bySpecificity(left: string, right: string): number {
+	return right.indexOf("*") - left.indexOf("*") || right.length - left.length;
+}
 
-const patternTarget = (exports: Readonly<Record<string, unknown>>, key: string): string | undefined => {
+function patternTarget(exports: Readonly<Record<string, unknown>>, key: string): string | undefined {
 	const pattern = Object.keys(exports)
 		.filter((candidate) => candidate.split("*").length === 2)
 		.sort(bySpecificity)
@@ -42,26 +46,27 @@ const patternTarget = (exports: Readonly<Record<string, unknown>>, key: string):
 		});
 	const [prefix = "", suffix = ""] = pattern?.split("*") ?? [];
 	return pattern === undefined ? undefined : targetOf(exports[pattern], key.slice(prefix.length, key.length - suffix.length));
-};
+}
 
-const exported = (exports: unknown, subpath: string): string | undefined => {
+function exported(exports: unknown, subpath: string): string | undefined {
 	const key = subpath === "" ? "." : `./${subpath}`;
 	if (!isRecord(exports)) {
 		return targetOf(exports, undefined);
 	}
 	return Object.hasOwn(exports, key) ? targetOf(exports[key], undefined) : (patternTarget(exports, key) ?? targetOf(exports, undefined));
-};
+}
 
-const inPackage = (directory: string, target: string | undefined): string | undefined =>
-	target?.startsWith("./") === true ? posix.join(directory, target) : undefined;
+function inPackage(directory: string, target: string | undefined): string | undefined {
+	return target?.startsWith("./") === true ? posix.join(directory, target) : undefined;
+}
 
-const manifestAt = async (readText: RuleInputs["readText"], path: string): Promise<Manifest | undefined> => {
+async function manifestAt(readText: RuleInputs["readText"], path: string): Promise<Manifest | undefined> {
 	const text = await readText(path);
 	const decoded = text === undefined ? undefined : await decodeWith(manifestSchema, text);
 	return decoded?._tag === "Valid" ? decoded.value : undefined;
-};
+}
 
-const fromDependency = (directory: string, manifest: Manifest, subpath: string): string | undefined => {
+function fromDependency(directory: string, manifest: Manifest, subpath: string): string | undefined {
 	if (manifest.exports !== undefined) {
 		return inPackage(directory, exported(manifest.exports, subpath));
 	}
@@ -69,10 +74,10 @@ const fromDependency = (directory: string, manifest: Manifest, subpath: string):
 		return posix.join(directory, manifest.main);
 	}
 	return subpath === "" ? undefined : posix.join(directory, subpath);
-};
+}
 
-export const resolvePackage = async (readText: RuleInputs["readText"], specifier: string): Promise<string | undefined> => {
-	const [, name, subpath = ""] = SPECIFIER.exec(specifier) ?? [];
+export async function resolvePackage(readText: RuleInputs["readText"], specifier: string): Promise<string | undefined> {
+	const { name, subpath = "" } = SPECIFIER.exec(specifier)?.groups ?? {};
 	if (name === undefined) {
 		return undefined;
 	}
@@ -83,4 +88,4 @@ export const resolvePackage = async (readText: RuleInputs["readText"], specifier
 	const directory = posix.join("node_modules", name);
 	const manifest = await manifestAt(readText, posix.join(directory, "package.json"));
 	return manifest === undefined ? undefined : fromDependency(directory, manifest, subpath);
-};
+}

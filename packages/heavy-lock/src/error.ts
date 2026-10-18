@@ -5,7 +5,6 @@ export class HeavyLockError extends Data.TaggedError("HeavyLockError")<{
 	readonly cause?: unknown;
 }> {}
 
-export const failWith =
-	(message: string) =>
-	(cause: unknown): HeavyLockError =>
-		new HeavyLockError({ cause, message });
+export function failWith(message: string) {
+	return (cause: unknown): HeavyLockError => new HeavyLockError({ cause, message });
+}

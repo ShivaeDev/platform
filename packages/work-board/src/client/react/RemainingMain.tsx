@@ -1,12 +1,11 @@
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { GoalsPage } from "./GoalsPage.tsx";
 import { HandoffPage } from "./HandoffPage.tsx";
 import { LibraryMain } from "./LibraryMain.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
-import { RespondPage } from "./RespondPage.tsx";
 import { ResultPage } from "./ResultPage.tsx";
 import type { RemainingRoute } from "./remainingRoute.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { StartPage } from "./StartPage.tsx";
 import { SystemMain } from "./SystemMain.tsx";
@@ -45,15 +44,6 @@ export function RemainingMain({
 			);
 		case "system":
 			return <SystemMain api={api} onPage={onPage} url={url} />;
-		case "respond":
-			return (
-				<ProjectionFrame
-					{...options}
-					atom={api.respond.query({ url }, routeQueryOptions)}
-					location={() => ({ file: "Respond", status: 200, view: "response" })}
-					render={(data) => <RespondPage data={data} />}
-				/>
-			);
 		case "handoff":
 			return (
 				<ProjectionFrame

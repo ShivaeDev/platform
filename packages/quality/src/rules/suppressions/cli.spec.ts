@@ -5,27 +5,29 @@ import { quality } from "#test/cli.ts";
 import { formatTree, qualityTree } from "#test/qualityTree.ts";
 import { config, removeSeededTrees } from "#test/tree.ts";
 
-const cliTimeout = 60_000;
+const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
 
-const reason = "Vitest reads the fixture's first parameter and needs an object pattern.";
+const REASON = "Vitest reads the fixture's first parameter and needs an object pattern.";
 
 const declared = JSON.stringify({
-	declared: [{ includes: ["src/vitest.ts"], reason, rule: "lint/correctness/noEmptyPattern" }],
+	declared: [{ includes: ["src/vitest.ts"], reason: REASON, rule: "lint/correctness/noEmptyPattern" }],
 });
 
-const biome = (rules: unknown) => ({
-	content: JSON.stringify({ extends: ["@shivaedev/quality/biome"], overrides: [{ includes: ["src/vitest.ts"], linter: { rules } }] }),
-	path: "biome.json",
-});
+function biome(rules: unknown) {
+	return {
+		content: JSON.stringify({ extends: ["@shivaedev/quality/biome"], overrides: [{ includes: ["src/vitest.ts"], linter: { rules } }] }),
+		path: "biome.json",
+	};
+}
 
 const source = {
 	content: "declare const raw: string;\n// @ts-expect-error The types reject it.\nexport const a: number = raw as unknown as number;\n",
 	path: "src/a.ts",
 };
 
-describe("quality lint with the suppression rules", { timeout: cliTimeout }, () => {
+describe("quality lint with the suppression rules", { timeout: CLI_TIMEOUT }, () => {
 	it("reports inline suppressions, double casts and undeclared Biome overrides by default", () => {
 		const root = qualityTree([config('{ sources: ["src"] }'), biome({ correctness: { noEmptyPattern: "off" } }), source]);
 		const result = quality(root, "lint");

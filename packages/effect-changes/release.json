@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-13",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "effect-4-stable.md",
-			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`.\n"
+			"name": "commit-hook-context.md",
+			"text": "### Fixed\n\n- `beforeCommit` preserves services scoped by the committing transaction when supplying its captured dependencies.\n"
 		}
 	],
-	"version": "0.3.0"
+	"version": "0.3.1"
 }

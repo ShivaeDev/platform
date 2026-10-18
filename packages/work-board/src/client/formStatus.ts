@@ -30,6 +30,6 @@ export function formStatus<A>(
 	};
 }
 
-export function responseSaved(id: string, dirty: boolean) {
-	return `Saved: responses/${id}.md. This records feedback, not acceptance.${dirty ? " Your current draft remains unsaved." : ""}`;
+export function responseSaved(id: string, dirty: boolean, choice = "") {
+	return `Saved: your answer${choice ? ` “${choice}”` : ""} is recorded. The agent reads it from responses/${id}.md the next time it checks. This records your answer, not acceptance of the work.${dirty ? " Your current draft remains unsaved." : ""}`;
 }

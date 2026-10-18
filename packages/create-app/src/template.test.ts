@@ -88,7 +88,7 @@ it("packages the real starter with registry dependencies, standalone configurati
 	for (const path of ["railway.json", "railway.worker.json", "railway.toml", "railway.worker.toml"]) {
 		expect(files[path]).toBeUndefined();
 	}
-	for (const path of [".railway/railway.ts", ".railway/railway.test.ts"]) {
+	for (const path of [".railway/railway.ts"]) {
 		expect(files[path]).toBeDefined();
 		expect(files[path]).toBe(readFileSync(join(starter, path), "utf8"));
 	}
@@ -127,7 +127,7 @@ it("packages the real starter with registry dependencies, standalone configurati
 		"src/server/migrate.ts",
 		"src/server/migrateDatabase.ts",
 		"src/server/setup-database.ts",
-		"src/server/notesHost.test.ts",
+		"src/server/noteLifecycle.spec.ts",
 		"src/server/appDeploy.spec.ts",
 		"src/test-support/application.ts",
 		"src/test-support/requests.ts",

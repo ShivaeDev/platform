@@ -13,7 +13,7 @@ type Trait =
 	| "duplicate-question"
 	| "duplicate-response"
 	| "duplicate-receipt"
-	| "competing-receipt"
+	| "agreeing-receipt"
 	| "competing-answer";
 
 export function requestReceiptStory(trait: Trait) {
@@ -83,9 +83,9 @@ export function requestReceiptStory(trait: Trait) {
 	if (trait === "duplicate-receipt") {
 		documents.push({ ...receipt, file: "responses/duplicate-receipt.md" });
 	}
-	if (trait === "competing-receipt") {
+	if (trait === "agreeing-receipt") {
 		documents.push({
-			file: "responses/competing-receipt.md",
+			file: "responses/agreeing-receipt.md",
 			parsed: metadataParse((receipt.parsed.raw ?? "").replace("receipt.one", "receipt.two") + receipt.parsed.body),
 		});
 	}

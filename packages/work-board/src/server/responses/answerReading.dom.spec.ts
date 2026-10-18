@@ -31,7 +31,9 @@ boardStory.it(
 	({ page }) => {
 		expect(page.document.querySelectorAll("#answer-card-direction fieldset")).toHaveLength(2);
 		expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
-		expect(page.document.getElementById("response-status")?.textContent).toBe("Read-only. Restart with --responses to enable answers.");
+		expect(page.document.getElementById("response-status")?.textContent).toBe(
+			"This Board is read-only. Start it with --responses to record answers.",
+		);
 	},
 );
 
@@ -73,7 +75,7 @@ for (const mode of ["managed", "registered", "needs-human"]) {
 		({ page }) => {
 			const links = [...page.document.querySelectorAll("[data-attention-row] a[title]")];
 			expect(links).toHaveLength(1);
-			expect(links[0]?.getAttribute("href")).toBe("/_board/respond?item=investigation.choices&request=direction");
+			expect(links[0]?.getAttribute("href")).toBe("/_board/item/investigation.choices/#answer-card-direction");
 		},
 	);
 }

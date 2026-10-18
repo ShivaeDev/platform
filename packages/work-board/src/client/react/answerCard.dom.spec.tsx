@@ -2,7 +2,6 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { documentQuery } from "#client/page/routeQuery.ts";
 import {
 	answerCardFixture,
 	DECISION_REASON,
@@ -17,6 +16,7 @@ import { renderBoard } from "#test/react.tsx";
 import { renderRouter } from "#test/renderRouter.tsx";
 import { responseCommands } from "#test/responseCommands.ts";
 import { boardRouter } from "./boardRouter.ts";
+import { documentQuery } from "./routeQuery.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -64,7 +64,7 @@ it.each(["fenced", "nested", "paragraphs"])(
 				expect(view.container.querySelectorAll(".answer-reason p")).toHaveLength(2);
 			}
 			expect([...view.container.querySelectorAll(".question-choice")].map((button) => button.textContent)).toEqual([
-				"Publish now · RecommendedShip the reviewed guide with this release.",
+				"Publish nowRecommendedShip the reviewed guide with this release.",
 				"Wait for reviewKeep the work blocked until another review.",
 			]);
 			expect(view.container.querySelector(".item-summary")?.textContent).not.toContain(decisionId);
@@ -119,9 +119,13 @@ it("retains an option and free text through a document query refresh and records
 	}
 });
 
-it("redirects the separate respond route to the item and focuses its answer card", async () => {
-	const view = await renderRouter(answerCardFixture, `/_board/respond?item=${decisionId}&request=direction`);
+it("opens a Today ask directly on the item and focuses its answer card", async () => {
+	const view = await renderRouter(answerCardFixture, "/");
 	try {
+		await eventually(() => expect(view.container.querySelector("[data-attention-row] a[title]")).not.toBeNull());
+		const link = view.container.querySelector<HTMLAnchorElement>("[data-attention-row] a[title]");
+		expect(link?.getAttribute("href")).toBe(`${url}#answer-card-direction`);
+		await act(async () => link?.click());
 		await eventually(() => expect(view.router.state.location.pathname).toBe(url));
 		expect(view.router.state.location.hash).toBe("answer-card-direction");
 		await eventually(() => expect(document.activeElement?.id).toBe("answer-card-direction"));

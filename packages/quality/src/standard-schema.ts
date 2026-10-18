@@ -1,15 +1,15 @@
 // The Standard Schema V1 contract (standardschema.dev), copied as the specification recommends. Rule options accept any
 // conforming schema, so a consumer's own Effect version, or another schema library, validates them.
-export interface StandardSchemaV1<Input = unknown, Output = Input> {
+export interface StandardSchemaV1<TInput = unknown, TOutput = TInput> {
 	readonly "~standard": {
 		readonly version: 1;
 		readonly vendor: string;
-		readonly validate: (value: unknown) => StandardResult<Output> | Promise<StandardResult<Output>>;
-		readonly types?: { readonly input: Input; readonly output: Output } | undefined;
+		readonly validate: (value: unknown) => StandardResult<TOutput> | Promise<StandardResult<TOutput>>;
+		readonly types?: { readonly input: TInput; readonly output: TOutput } | undefined;
 	};
 }
 
-export type StandardResult<Output> = { readonly value: Output; readonly issues?: undefined } | { readonly issues: readonly StandardIssue[] };
+export type StandardResult<TOutput> = { readonly value: TOutput; readonly issues?: undefined } | { readonly issues: readonly StandardIssue[] };
 
 export interface StandardIssue {
 	readonly message: string;

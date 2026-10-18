@@ -4,10 +4,10 @@ import { act } from "react";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderBoard } from "#test/react.tsx";
 import { boardRouter } from "./boardRouter.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -29,15 +29,12 @@ const files = {
 const routes = [
 	{ kind: "system", selector: "[data-source=codex]", text: "Source missing", url: "/_board/system" },
 	{ kind: "start", selector: ".start-template textarea", text: "example.project", url: "/_board/start" },
-	{ kind: "respond", selector: ".response-panel", text: "Choose a direction", url: "/_board/respond?item=task.fixture&request=direction" },
 	{ kind: "handoff", selector: "#handoff-form", text: "Recipient", url: "/_board/handoff?item=task.fixture" },
 	{ kind: "result", selector: "#result-criteria", text: "Show the result", url: "/_board/result?item=result.fixture" },
 ];
-it.live.each(routes)("renders $kind from typed queries without an HTML page request", function* ({ kind, url, selector, text }) {
-	let page: unknown;
+it.live.each(routes)("renders $kind from typed queries", function* ({ kind, url, selector, text }) {
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api, registry) => {
-			page = vi.spyOn(api.page, "query");
 			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
@@ -45,20 +42,16 @@ it.live.each(routes)("renders $kind from typed queries without an HTML page requ
 	);
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(selector)?.textContent).toContain(text)));
-		expect(view.container.querySelector("main")?.dataset.projection).toBe(kind === "respond" ? undefined : kind);
-		expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
-		expect(view.container.textContent).not.toContain("Legacy HTML must not be shown");
-		expect(page).not.toHaveBeenCalled();
+		expect(view.container.querySelector("main")?.dataset.projection).toBe(kind);
 		if (kind === "result") {
 			expect(view.container.querySelector("#result-report")?.textContent).toContain("Report limitations");
 			expect(view.container.querySelector("#result-criteria h2")?.getAttribute("title")).toContain("authored records");
 		}
 	} finally {
 		yield* Effect.promise(() => view.unmount());
-		vi.restoreAllMocks();
 	}
 });
-it.live("updates Respond context while retaining answer text, node and caret", function* () {
+it.live("updates answer card context while retaining answer text, node and caret", function* () {
 	const url = "/_board/item/task.fixture/";
 	let refresh: (() => void) | undefined;
 	const sources = { ...files };
@@ -95,11 +88,9 @@ it.live("updates Respond context while retaining answer text, node and caret", f
 		yield* Effect.promise(() => view.unmount());
 	}
 });
-it.live("shows Today and getting-started guidance for an empty workspace", function* () {
-	let page: unknown;
+it.live("shows Today for an empty workspace", function* () {
 	const view = yield* Effect.promise(() =>
 		renderBoard({}, (api, registry) => {
-			page = vi.spyOn(api.page, "query");
 			const router = boardRouter({ api, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/"] }) });
 			return <RouterProvider router={router} />;
@@ -107,9 +98,7 @@ it.live("shows Today and getting-started guidance for an empty workspace", funct
 	);
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("h1")?.textContent).toBe("Today")));
-		expect(page).not.toHaveBeenCalled();
 	} finally {
 		yield* Effect.promise(() => view.unmount());
-		vi.restoreAllMocks();
 	}
 });

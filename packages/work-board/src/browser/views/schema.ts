@@ -40,6 +40,7 @@ export const InboxProjection = Schema.Struct({
 	complete: Schema.Boolean,
 	issues: Schema.Array(Schema.Struct({ file: Schema.String, line: Schema.Number, message: Schema.String })),
 	items: Schema.Array(InboxItem),
+	later: Schema.Array(InboxItem),
 	parked: Schema.Array(InboxItem),
 	resolved: Schema.Array(InboxItem),
 	sourceIssues: Schema.Boolean,

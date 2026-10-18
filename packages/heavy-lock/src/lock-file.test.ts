@@ -1,110 +1,52 @@
-import { existsSync } from "node:fs";
-import process from "node:process";
-import { expect, it } from "@effect/vitest";
-import { Effect, Option } from "effect";
-import { afterEach } from "vitest";
-import { readHolder, reclaim, release, tryAcquire } from "#lock-file.ts";
-import { deadPid, holder, lockDirectory, removeTemporaryDirectories, services, temporaryLock, writeLock } from "#test/lock.ts";
+import { Option } from "effect";
+import { expect } from "vitest";
+import { heldBy, invalidHolder, lockStory } from "#test/kit.ts";
 
-afterEach(removeTemporaryDirectories);
-
-const reclaimedBy = Effect.fn("HeavyLockTest.reclaimedBy")(function* (lock: string, expectedId: string) {
-	expect(yield* tryAcquire(lock, holder(expectedId))).toEqual(Option.none());
-	expect(Option.map(yield* readHolder(lock), ({ id }) => id)).toEqual(Option.some(expectedId));
-	expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
+lockStory.it("a free lock names its holder and only that holder releases it", [], function* ({ lock }) {
+	expect(yield* lock.acquire("typecheck")).toEqual(Option.none());
+	expect(yield* lock.read()).toEqual(Option.some(lock.holder("typecheck")));
+	expect(lock.files()).toEqual(["heavy-process.lock"]);
+	yield* lock.release("someone-else");
+	expect(yield* lock.read()).toEqual(Option.some(lock.holder("typecheck")));
+	yield* lock.release("typecheck");
+	expect(lock.contents()).toBeUndefined();
 });
 
-it.effect("a free lock is taken, names its holder, and only that holder releases it", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		const typecheck = holder("typecheck");
+lockStory.it("a live process with a matching start time cannot be preempted", [heldBy("build")], function* ({ lock }) {
+	expect(yield* lock.acquire("test")).toEqual(Option.some(lock.holder("build")));
+	expect(yield* lock.read()).toEqual(Option.some(lock.holder("build")));
+	expect(lock.files()).toEqual(["heavy-process.lock"]);
+});
 
-		expect(yield* tryAcquire(lock, typecheck)).toEqual(Option.none());
-		expect(yield* readHolder(lock)).toEqual(Option.some(typecheck));
-		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
+for (const kind of ["stale", "reused"] as const) {
+	lockStory.it(`a ${kind} process's lock is reclaimed`, [heldBy("crashed", kind)], function* ({ lock }) {
+		expect(yield* lock.acquire("test")).toEqual(Option.none());
+		expect(yield* lock.read()).toEqual(Option.some(lock.holder("test")));
+		expect(lock.files()).toEqual(["heavy-process.lock"]);
+	});
+}
 
-		yield* release(lock, "someone-else");
-		expect(yield* readHolder(lock)).toEqual(Option.some(typecheck));
-		yield* release(lock, typecheck.id);
-		expect(existsSync(lock)).toBe(false);
-	}).pipe(Effect.provide(services())),
-);
+for (const kind of ["unversioned", "malformed"] as const) {
+	lockStory.it(`a ${kind} holder is reclaimed`, [invalidHolder(kind)], function* ({ lock }) {
+		expect(yield* lock.acquire("test")).toEqual(Option.none());
+		expect(yield* lock.read()).toEqual(Option.some(lock.holder("test")));
+		expect(lock.files()).toEqual(["heavy-process.lock"]);
+	});
+}
 
-it.effect("a live holder whose process start time matches blocks the lock and is never preempted", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		const build = holder("build");
-		yield* tryAcquire(lock, build);
+lockStory.it("reclamation restores a live holder that raced in first and drops the dead one", [heldBy("crashed", "stale")], function* ({ lock }) {
+	expect(yield* lock.acquire("raced")).toEqual(Option.none());
+	yield* lock.reclaim("crashed");
+	expect(yield* lock.read()).toEqual(Option.some(lock.holder("raced")));
+	expect(lock.files()).toEqual(["heavy-process.lock"]);
+	yield* lock.reclaim("raced");
+	expect(lock.contents()).toBeUndefined();
+	expect(lock.files()).toEqual([]);
+});
 
-		expect(yield* tryAcquire(lock, holder("test"))).toEqual(Option.some(build));
-		expect(yield* readHolder(lock)).toEqual(Option.some(build));
-		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
-	}).pipe(Effect.provide(services())),
-);
-
-it.effect("a dead holder's lock is reclaimed", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		yield* tryAcquire(lock, holder("crashed", deadPid()));
-
-		yield* reclaimedBy(lock, "test");
-	}).pipe(Effect.provide(services())),
-);
-
-it.effect("a lock whose pid now belongs to a different process is reclaimed", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		yield* tryAcquire(lock, { ...holder("killed"), processStartedAt: "Thu Jan  1 00:00:00 1970" });
-
-		yield* reclaimedBy(lock, "test");
-	}).pipe(Effect.provide(services())),
-);
-
-it.effect("a lock written without the holder's process start time is reclaimed, even while its pid runs", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		writeLock(lock, JSON.stringify({ command: "pnpm ready", cwd: "/repo", id: "unversioned", pid: process.pid, startedAtMs: 0 }));
-
-		yield* reclaimedBy(lock, "test");
-	}).pipe(Effect.provide(services())),
-);
-
-it.effect("a lock that names no holder is reclaimed", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		writeLock(lock, "not a holder");
-
-		yield* reclaimedBy(lock, "test");
-	}).pipe(Effect.provide(services())),
-);
-
-it.effect("reclaiming a dead holder puts back a live holder that raced in first, and drops the dead one", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		const dead = holder("crashed", deadPid());
-		const raced = holder("raced");
-		yield* tryAcquire(lock, raced);
-
-		yield* reclaim(lock, Option.some(dead));
-		expect(yield* readHolder(lock)).toEqual(Option.some(raced));
-		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
-
-		yield* reclaim(lock, Option.some(raced));
-		expect(existsSync(lock)).toBe(false);
-		expect(lockDirectory(lock)).toEqual([]);
-	}).pipe(Effect.provide(services())),
-);
-
-it.effect("reclaiming a lock already removed by another waiter leaves no stale file", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		const dead = holder("crashed", deadPid());
-		yield* tryAcquire(lock, dead);
-		yield* reclaim(lock, Option.some(dead));
-
-		yield* reclaim(lock, Option.some(dead));
-
-		expect(existsSync(lock)).toBe(false);
-		expect(lockDirectory(lock)).toEqual([]);
-	}).pipe(Effect.provide(services())),
-);
+lockStory.it("reclaiming an already removed lock leaves no stale file", [heldBy("crashed", "stale")], function* ({ lock }) {
+	yield* lock.reclaim("crashed");
+	yield* lock.reclaim("crashed");
+	expect(lock.contents()).toBeUndefined();
+	expect(lock.files()).toEqual([]);
+});

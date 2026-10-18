@@ -1,6 +1,6 @@
 import type { InboxProjection } from "#browser/views/schema.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
-import { inboxItems } from "./inbox.ts";
+import { inboxItems, laterItems } from "./inbox.ts";
 import { requestInbox } from "./requestInbox.ts";
 import { attentionRequests } from "./requests.ts";
 
@@ -12,7 +12,9 @@ export function attentionProjection(snapshot: Snapshot): InboxProjection {
 		return cached;
 	}
 	const requests = requestInbox(snapshot);
-	function project({ document, unblocks: _unblocks, ...item }: ReturnType<typeof inboxItems>[number]) {
+	function project<
+		TRow extends { readonly document: { readonly file: string }; readonly request: string | undefined; readonly unblocks: readonly string[] },
+	>({ document, request: _request, unblocks: _unblocks, ...item }: TRow) {
 		return { ...item, file: document.file };
 	}
 	const you = inboxItems(snapshot).map(project);
@@ -22,6 +24,7 @@ export function attentionProjection(snapshot: Snapshot): InboxProjection {
 		complete: snapshot.unavailable.length === 0,
 		issues,
 		items: you,
+		later: laterItems(snapshot).map(project),
 		parked: requests.parked.map(project),
 		resolved: requests.resolved.map(project),
 		sourceIssues: issues.length > 0,

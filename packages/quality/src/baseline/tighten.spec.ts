@@ -6,7 +6,7 @@ import { branchOff, commitAll, git } from "#test/git.ts";
 import { qualityTree } from "#test/qualityTree.ts";
 import { removeSeededTrees } from "#test/tree.ts";
 
-const cliTimeout = 60_000;
+const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
 
@@ -23,7 +23,7 @@ async function shrunkTwice(): Promise<string> {
 	return root;
 }
 
-describe("quality baseline tighten", { timeout: cliTimeout }, () => {
+describe("quality baseline tighten", { timeout: CLI_TIMEOUT }, () => {
 	it("with --staged, lowers and removes only the entries of staged files", async () => {
 		const root = await shrunkTwice();
 		git(root, "add", "src/long.ts");
@@ -56,7 +56,7 @@ describe("quality baseline tighten", { timeout: cliTimeout }, () => {
 	});
 });
 
-describe("quality baseline prune", { timeout: cliTimeout }, () => {
+describe("quality baseline prune", { timeout: CLI_TIMEOUT }, () => {
 	it("carries the entry of a file moved since the merge base", async () => {
 		const root = qualityTree(trees.dirty);
 		await runQuality(root, "baseline", "write");

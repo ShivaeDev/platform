@@ -22,7 +22,7 @@ boardStory.it(
 		yield* formEvent(page, () => enterField(page, "author", ""));
 		expect(status?.textContent).not.toContain("Add your local author label.");
 		yield* reader.submit("response-form");
-		expect(status?.textContent).toContain("Question 1 · display; Question 2 · checks");
+		expect(status?.textContent).toContain("“How should replies appear?”, “Which checks matter?”");
 		expect(page.document.querySelector('[name="author"]')?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 		const display = reader.answer("display", "Retain the complete history.");
 		const checks = reader.answer("checks", "Test reload and keyboard use.");
@@ -38,9 +38,9 @@ boardStory.it(
 		expect(status?.textContent).not.toContain("Add your local author");
 		yield* formEvent(page, () => reader.answer("checks", ""));
 		yield* reader.preview();
-		expect(status?.textContent).toContain("Unanswered prompts: Question 2 · checks.");
+		expect(status?.textContent).toContain("Unanswered: “Which checks matter?”.");
 		expect(status?.textContent).not.toContain("Question 1 · display");
-		expect(page.document.querySelector('[data-prompt="checks"] .response-field-error')?.textContent).toContain("Unanswered: Question 2 · checks");
+		expect(page.document.querySelector('[data-prompt="checks"] .response-field-error')?.textContent).toContain("Unanswered: “Which checks matter?”");
 		yield* formEvent(page, () => reader.answer("checks", "Test reload and keyboard use."));
 		expect(status?.textContent).not.toContain("Unanswered");
 		yield* reader.preview();

@@ -29,13 +29,14 @@ it.effect("opens an answerable linked Board decision over real HTTP and records 
 		expect(receipt.workSourcePath).toBe("task.md");
 		expect(preview.source).toBe(receipt.sourcePath);
 		expect(preview.reviewedRevision).toBe(revisionOf(readFileSync(join(root, receipt.sourcePath), "utf8")));
-		const page = yield* Effect.tryPromise(() => fetch(`${url}/_board/respond?item=${receipt.itemId}&request=${receipt.request}`));
-		expect(page.status).toBe(200);
-		expect(yield* Effect.tryPromise(() => page.text())).toContain("/_board/react.js");
-		const data = yield* Effect.tryPromise(() =>
-			client.run(client.api.respond.run({ url: `/_board/respond?item=${receipt.itemId}&request=${receipt.request}` })),
+		const page = yield* Effect.tryPromise(() =>
+			fetch(`${url}/_board/respond?item=${receipt.itemId}&request=${receipt.request}`, { redirect: "manual" }),
 		);
-		expect(data.request.prompts).toEqual(expect.arrayContaining([expect.objectContaining({ id: "fleet-action" })]));
+		expect(page.status).toBe(302);
+		expect(page.headers.get("location")).toBe(
+			`/_board/item/${encodeURIComponent(receipt.itemId)}/#answer-card-${encodeURIComponent(receipt.request)}`,
+		);
+
 		const saved = yield* Effect.tryPromise(() =>
 			client.mutate(
 				client.responses.recordResponse.run({

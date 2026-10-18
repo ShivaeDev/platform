@@ -3,7 +3,7 @@ import { Effect, Schema } from "effect";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
-import { renderStatus } from "#host/status.ts";
+import { renderStatus } from "#host/renderStatus.ts";
 import { codexServer, type WireRequest } from "#test/codex.ts";
 import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { daemonClient } from "#test/daemonClient.ts";
@@ -64,7 +64,7 @@ postgresTests("live")(
 
 function daemonStory(fixture: HostFixture, requests: readonly WireRequest[], current: string, markCompleted: () => void) {
 	return Effect.gen(function* () {
-		const first = yield* hostProcess(fixture.configFile, true);
+		const first = yield* hostProcess(fixture.configFile);
 		yield* first.until(() => Effect.succeed(first.url !== undefined));
 		const client = yield* daemonClient(first.url ?? "missing");
 		yield* first.until(() =>
@@ -93,7 +93,7 @@ function daemonStory(fixture: HostFixture, requests: readonly WireRequest[], cur
 		expect(JSON.stringify(steers()[0]?.params)).toContain("Criterion behavior: Original behavior. -> Changed behavior.");
 		expect(renderStatus(yield* client("daemon.status", {}))).toContain("brief edit steered");
 		yield* first.kill;
-		const restarted = yield* hostProcess(fixture.configFile, true);
+		const restarted = yield* hostProcess(fixture.configFile);
 		yield* restarted.until(() => Effect.succeed(restarted.url !== undefined));
 		const peer = yield* daemonClient(restarted.url ?? "missing");
 		const resumed = yield* peer("fleet.reconcile", { workId: "synthetic-work" });

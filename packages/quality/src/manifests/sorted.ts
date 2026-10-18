@@ -26,21 +26,21 @@ export function sortingOf(text: string): Sorting {
 	return sorted === text ? { _tag: "Sorted" } : { _tag: "Unsorted", sorted };
 }
 
-export function sortManifests(root: string): Effect.Effect<number, FilesystemFailure, FileSystem.FileSystem> {
-	return Effect.gen(function* () {
-		const fs = yield* FileSystem.FileSystem;
-		const manifests = yield* manifestsIn(root);
-		const written = yield* Effect.forEach(manifests, (path) =>
-			Effect.gen(function* () {
-				const absolute = join(root, path);
-				const sorting = sortingOf(yield* fs.readFileString(absolute));
-				if (sorting._tag !== "Unsorted") {
-					return false;
-				}
-				yield* fs.writeFileString(absolute, sorting.sorted);
-				return true;
-			}).pipe(Effect.mapError((error) => new FilesystemFailure({ message: `cannot sort ${path}: ${error.message}`, path }))),
-		);
-		return written.filter(Boolean).length;
-	});
-}
+export const sortManifests = Effect.fn("Manifests.sortManifests")(function* (
+	root: string,
+): Effect.fn.Return<number, FilesystemFailure, FileSystem.FileSystem> {
+	const fs = yield* FileSystem.FileSystem;
+	const manifests = yield* manifestsIn(root);
+	const written = yield* Effect.forEach(manifests, (path) =>
+		Effect.gen(function* () {
+			const absolute = join(root, path);
+			const sorting = sortingOf(yield* fs.readFileString(absolute));
+			if (sorting._tag !== "Unsorted") {
+				return false;
+			}
+			yield* fs.writeFileString(absolute, sorting.sorted);
+			return true;
+		}).pipe(Effect.mapError((error) => new FilesystemFailure({ message: `cannot sort ${path}: ${error.message}`, path }))),
+	);
+	return written.filter(Boolean).length;
+});

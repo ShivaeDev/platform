@@ -26,13 +26,14 @@ test("Board HTTP answer resumes the real SQL work through native RPC and restart
 				return yield* Effect.die(new Error("Expected a published Board decision"));
 			}
 			const { client: board, url } = yield* boardHttp(root);
-			const page = yield* Effect.tryPromise(() => fetch(`${url}/_board/respond?item=${published.itemId}&request=${published.request}`));
-			expect(page.status).toBe(200);
-			expect(yield* Effect.tryPromise(() => page.text())).toContain("/_board/react.js");
-			const data = yield* Effect.tryPromise(() =>
-				board.run(board.api.respond.run({ url: `/_board/respond?item=${published.itemId}&request=${published.request}` })),
+			const page = yield* Effect.tryPromise(() =>
+				fetch(`${url}/_board/respond?item=${published.itemId}&request=${published.request}`, { redirect: "manual" }),
 			);
-			expect(data.request.prompts).toEqual(expect.arrayContaining([expect.objectContaining({ id: "fleet-action" })]));
+			expect(page.status).toBe(302);
+			expect(page.headers.get("location")).toBe(
+				`/_board/item/${encodeURIComponent(published.itemId)}/#answer-card-${encodeURIComponent(published.request)}`,
+			);
+
 			const answer = yield* Effect.tryPromise(() =>
 				board.mutate(
 					board.responses.recordResponse.run({

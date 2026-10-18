@@ -2,13 +2,13 @@ import { isRedirect, type LoaderFnContext, redirect } from "@tanstack/react-rout
 import { Predicate } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
-import { documentQuery, navigationQuery } from "#client/page/routeQuery.ts";
 import type { ShellOptions } from "./BoardShell.tsx";
 import { documentRoute } from "./documentRoute.ts";
 import { loadProjection } from "./loadProjection.ts";
 import { loadRemaining } from "./loadRemaining.ts";
 import { projectionRoute } from "./projectionRoute.ts";
 import { remainingRoute } from "./remainingRoute.ts";
+import { documentQuery, navigationQuery } from "./routeQuery.ts";
 
 export type RouterShell = ShellOptions & { readonly registry: AtomRegistry.AtomRegistry };
 
@@ -17,7 +17,7 @@ export async function loadBoardPage({
 	location,
 	abortController,
 }: Pick<LoaderFnContext, "location" | "abortController"> & { readonly context: { readonly shell?: RouterShell } }) {
-	redirectRetired(location.pathname);
+	redirectLegacy(location.pathname, location.searchStr);
 	if (!shell) {
 		return undefined;
 	}
@@ -25,7 +25,6 @@ export async function loadBoardPage({
 	const url = location.pathname + location.searchStr;
 	try {
 		const navigation = await loadQuery(registry, navigationQuery(api), { abortController });
-		await redirectResponse(shell, url, location.pathname, abortController);
 		const projection = projectionRoute(location.pathname, navigation.home);
 		if (projection) {
 			await loadProjection(registry, api, projection, url, abortController);
@@ -55,22 +54,14 @@ export async function loadBoardPage({
 	}
 }
 
-async function redirectResponse({ api, registry }: RouterShell, url: string, pathname: string, abortController: AbortController) {
-	if (pathname !== "/_board/respond") {
-		return;
-	}
-	const response = await loadRemaining(registry, api, "respond", url, abortController);
-	if (response && "request" in response) {
-		const item = response.document.identity ?? response.request.preview?.item ?? "";
-		throw redirect({ href: `/_board/item/${encodeURIComponent(item)}/#answer-card-${encodeURIComponent(response.request.id)}`, replace: true });
-	}
-}
-
 function mustRethrow(controller: AbortController, error: unknown) {
 	return controller.signal.aborted || isRedirect(error);
 }
 
-function redirectRetired(pathname: string) {
+function redirectLegacy(pathname: string, search: string) {
+	if (pathname === "/_board/respond") {
+		throw redirect({ href: pathname + search, reloadDocument: true });
+	}
 	const retired: Readonly<Record<string, string>> = {
 		"/_board/changes": "/_board/library?view=recently-changed",
 		"/_board/diagnostics": "/_board/system",

@@ -1,8 +1,10 @@
 import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, ManagedRuntime } from "effect";
 import { expectTypeOf } from "vitest";
+import type { AnyTestLayer as EffectTestLayer } from "@shivaedev/effect-test/any-test-layer.ts";
 import { makeEffectTRPC } from "#adapter.ts";
 import { makeRequestServices } from "#request-services.ts";
+import type { AnyTestLayer } from "#testing/any-test-layer.ts";
 import { makeTrpcHarnessIt, makeTrpcIt } from "#testing/vitest.ts";
 
 class RuntimeService extends Context.Service<RuntimeService, number>()("@testing-types/RuntimeService") {}
@@ -20,6 +22,37 @@ const router = t.router({
 	read: procedure.query(function* () {
 		return yield* RuntimeService;
 	}),
+});
+expectTypeOf<AnyTestLayer>().toEqualTypeOf<EffectTestLayer>();
+const emptyIt = makeTrpcIt({
+	adapter,
+	createCaller: () => router.createCaller({ actor: "empty" }),
+	layer: Layer.empty,
+});
+emptyIt.effectTRPC("retains caller types with an empty test Layer", function* (trpc) {
+	expectTypeOf(yield* trpc.read()).toEqualTypeOf<number>();
+});
+const emptyHarnessIt = makeTrpcHarnessIt({
+	adapter,
+	createCaller: () => router.createCaller({ actor: "empty" }),
+	layer: Layer.empty,
+	makeHarness: (trpc) => Effect.succeed({ trpc }),
+});
+emptyHarnessIt.effectTRPC("retains harness types with an empty test Layer", function* (harness) {
+	expectTypeOf(yield* harness.trpc.read()).toEqualTypeOf<number>();
+});
+makeTrpcIt({
+	adapter,
+	createCaller: () => router.createCaller({ actor: "unmet" }),
+	// @ts-expect-error Test Layers must have no unmet requirements.
+	layer: Layer.effect(RuntimeService, RuntimeService),
+});
+makeTrpcHarnessIt({
+	adapter,
+	createCaller: () => router.createCaller({ actor: "unmet" }),
+	// @ts-expect-error Harness test Layers must have no unmet requirements.
+	layer: Layer.effect(RuntimeService, RuntimeService),
+	makeHarness: (trpc) => Effect.succeed({ trpc }),
 });
 const it = makeTrpcIt({
 	adapter,

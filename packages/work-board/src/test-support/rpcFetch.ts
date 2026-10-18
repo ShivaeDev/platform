@@ -31,7 +31,7 @@ function pageRead(call: RpcRequest | undefined, path: string) {
 		return path === "/_board/inbox" || path === "/";
 	}
 	return (
-		["work-board.document", "work-board.board", "work-board.work", "work-board.respond", "work-board.handoff", "work-board.result"].includes(call.tag)
+		["work-board.document", "work-board.board", "work-board.work", "work-board.handoff", "work-board.result"].includes(call.tag)
 		&& JSON.stringify(call.payload).includes(JSON.stringify(path))
 	);
 }
@@ -46,17 +46,7 @@ async function answer(pageRequests: PageRequests, window: BrowserWindow) {
 	}
 	return undefined;
 }
-export async function rpcBefore(
-	request: Request,
-	window: BrowserWindow,
-	path: string,
-	pageRequests: PageRequests,
-	streams: RpcStream[],
-	legacy = false,
-) {
-	if (legacy) {
-		return answer(pageRequests, window);
-	}
+export async function rpcBefore(request: Request, window: BrowserWindow, path: string, pageRequests: PageRequests, streams: RpcStream[]) {
 	if (!nativeRequest(request)) {
 		return undefined;
 	}

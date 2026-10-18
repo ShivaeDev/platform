@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import { noInline } from "#rules/suppressions/no-inline.ts";
 import { checkRule, issuesOf, type Seed } from "#test/inputs.ts";
 
-const found = async (seed: Seed) =>
-	(await checkRule(noInline, undefined, seed)).map((finding) => `${finding.file}:${finding.line} ${finding.subject}`);
+async function found(seed: Seed) {
+	return (await checkRule(noInline, undefined, seed)).map((finding) => `${finding.file}:${finding.line} ${finding.subject}`);
+}
 
-const inSource = (content: string, path = "src/a.ts") => found({ sources: [{ content, path }] });
+function inSource(content: string, path = "src/a.ts") {
+	return found({ sources: [{ content, path }] });
+}
 
 describe("suppressions/no-inline fires", () => {
 	it.each([
@@ -98,8 +101,9 @@ describe("suppressions/no-inline stays quiet", () => {
 });
 
 describe("suppressions/no-inline in type tests", () => {
-	const findings = async (sources: ReadonlyArray<{ readonly content: string; readonly path: string }>) =>
-		(await checkRule(noInline, undefined, { sources })).map((finding) => `${finding.file}:${finding.line ?? "-"} ${finding.message}`);
+	async function findings(sources: ReadonlyArray<{ readonly content: string; readonly path: string }>) {
+		return (await checkRule(noInline, undefined, { sources })).map((finding) => `${finding.file}:${finding.line ?? "-"} ${finding.message}`);
+	}
 	const expectError = "// @ts-expect-error The types reject it.\n";
 
 	it("allows @ts-expect-error only in files named typecheck.test or typecheck.spec", async () => {

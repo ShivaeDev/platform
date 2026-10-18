@@ -17,10 +17,13 @@ const HolderJson = Schema.fromJsonString(Holder);
 
 const PROTOCOL_KEYS = ["id", "pid", "processStartedAt", "command", "cwd", "startedAtMs"];
 
-export const encodeHolder = (holder: Holder): Effect.Effect<string> =>
-	Schema.encodeEffect(Holder)(holder).pipe(
+export function encodeHolder(holder: Holder): Effect.Effect<string> {
+	return Schema.encodeEffect(Holder)(holder).pipe(
 		Effect.map((encoded) => JSON.stringify(encoded, PROTOCOL_KEYS)),
 		Effect.orDie,
 	);
+}
 
-export const decodeHolder = (raw: string): Option.Option<Holder> => Schema.decodeUnknownOption(HolderJson)(raw);
+export function decodeHolder(raw: string): Option.Option<Holder> {
+	return Schema.decodeUnknownOption(HolderJson)(raw);
+}

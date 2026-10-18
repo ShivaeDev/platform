@@ -1,7 +1,22 @@
-import { Effect } from "effect";
+import { Context, Effect } from "effect";
 import { expect } from "vitest";
-import { change } from "#test/fake-database.ts";
+import { Current, change } from "#test/fake-database.ts";
 import { beforeCommitWrites, changes, configured, countsHooks } from "#test/kit.ts";
+
+const HookValue = Context.Reference<string>("BeforeCommitTest/HookValue", { defaultValue: () => "default" });
+
+changes.it(
+	"the hook preserves transaction-scoped services while supplying captured dependencies",
+	[configured({ beforeCommit: () => Effect.flatMap(HookValue, (value) => Effect.flatMap(Current, (owner) => owner.write(value))) })],
+	function* ({ database, open, record, published }) {
+		const frame = yield* open().pipe(Effect.provideService(HookValue, "outer"));
+		yield* frame.provide(record([change("body")]));
+		yield* frame.beforeCommit.pipe(Effect.provideService(HookValue, "transaction"));
+		yield* frame.settle("committed");
+		expect(database.committed).toEqual(["transaction"]);
+		expect(published).toEqual([["body:orders"]]);
+	},
+);
 
 changes.it(
 	"the root hook sees deduplicated committed children inside the native transaction",

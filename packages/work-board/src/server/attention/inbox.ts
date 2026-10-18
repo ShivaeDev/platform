@@ -6,7 +6,7 @@ import type { Snapshot } from "#server/search/snapshot.ts";
 import { answeredQuestion } from "./questionState.ts";
 import { requestInbox } from "./requestInbox.ts";
 import { isMaintainerRequest } from "./requests.ts";
-import { closedItem } from "./status.ts";
+import { closedItem, deferredItem } from "./status.ts";
 
 const automation = /^(?:codex|claude|fleet|orchestrator|agent|automation|bot|copilot)(?:$|[-_. /])/iu;
 
@@ -24,6 +24,10 @@ function addressedElsewhere(document: MetadataDocument, maintainer: string): boo
 }
 
 export function waitingReason(document: MetadataDocument, model: MetadataModel, maintainer = "maintainer"): string | undefined {
+	return deferredItem(document) ? undefined : attentionReason(document, model, maintainer);
+}
+
+function attentionReason(document: MetadataDocument, model: MetadataModel, maintainer: string): string | undefined {
 	const fields = document.parsed.fields;
 	if (!openItem(document) || fields.kind === "response" || fields.kind === "handoff" || fields.question) {
 		return undefined;
@@ -64,38 +68,59 @@ function inboxTarget(document: MetadataDocument, problem: string | undefined): s
 	return answer ? responseUrl(item, answer) : identityUrl(item);
 }
 
-export function inboxItems(snapshot: Snapshot) {
-	if (snapshot.unavailable.length > 0) {
-		return [];
-	}
+function directItems(snapshot: Snapshot, skipped: ReadonlySet<string>, reasonOf: (document: MetadataDocument) => string | undefined) {
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
-	const requests = requestInbox(snapshot);
-	const you = requests.items.filter((item) => item.responseFrom.includes(snapshot.maintainer ?? "maintainer"));
-	const direct = snapshot.documents.flatMap((document) => {
-		if (requests.files.has(document.file)) {
+	return snapshot.documents.flatMap((document) => {
+		const reason = skipped.has(document.file) ? undefined : reasonOf(document);
+		if (!reason) {
 			return [];
 		}
 		const id = document.parsed.fields.id;
 		const problem = identityProblem(document, snapshot.model);
-		const reason = waitingReason(document, snapshot.model, snapshot.maintainer);
-		return reason
-			? [
-					{
-						document,
-						href: inboxTarget(document, problem),
-						id: id ?? document.file,
-						problem,
-						reason,
-						title: titles.get(document.file) ?? document.file,
-						unblocks: [id ?? ""],
-					},
-				]
-			: [];
+		return [
+			{
+				document,
+				href: inboxTarget(document, problem),
+				id: id ?? document.file,
+				modified: snapshot.modified.get(document.file),
+				problem,
+				reason,
+				request: undefined,
+				title: titles.get(document.file) ?? document.file,
+				unblocks: [id ?? ""],
+			},
+		];
 	});
-	const ordinary = direct
+}
+
+function byAge(
+	left: { readonly id: string; readonly modified: number | undefined },
+	right: { readonly id: string; readonly modified: number | undefined },
+) {
+	return (left.modified ?? 0) - (right.modified ?? 0) || left.id.localeCompare(right.id);
+}
+
+export function inboxItems(snapshot: Snapshot) {
+	if (snapshot.unavailable.length > 0) {
+		return [];
+	}
+	const requests = requestInbox(snapshot);
+	const you = requests.items.filter((item) => item.responseFrom.includes(snapshot.maintainer ?? "maintainer"));
+	const ordinary = directItems(snapshot, requests.files, (document) => waitingReason(document, snapshot.model, snapshot.maintainer))
 		.filter((item) => item.problem || !you.some((ask) => ask.id === item.id))
-		.map((item) => ({ ...item, earlierAsks: 0, modified: snapshot.modified.get(item.document.file) }));
-	return [...ordinary, ...you].sort((left, right) => (left.modified ?? 0) - (right.modified ?? 0) || left.id.localeCompare(right.id));
+		.map((item) => ({ ...item, earlierAsks: 0 }));
+	return [...ordinary, ...you].sort(byAge);
+}
+
+export function laterItems(snapshot: Snapshot) {
+	if (snapshot.unavailable.length > 0) {
+		return [];
+	}
+	function parked(document: MetadataDocument) {
+		const reason = deferredItem(document) ? attentionReason(document, snapshot.model, snapshot.maintainer ?? "maintainer") : undefined;
+		return reason && (document.parsed.fields.nextAction ?? reason);
+	}
+	return directItems(snapshot, requestInbox(snapshot).files, parked).sort(byAge);
 }
 
 export function fleetRecords(model: MetadataModel): ReadonlySet<string> {

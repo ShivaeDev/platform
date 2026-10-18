@@ -30,9 +30,9 @@ export function exitCode(exit: Exit.Exit<unknown, unknown>): number {
 	return Cause.hasInterruptsOnly(exit.cause) ? INTERRUPTED : exitCodeOf(Cause.squash(exit.cause));
 }
 
-const teardown: Runtime.Teardown = (exit, onExit) => {
+function teardown(exit: Parameters<Runtime.Teardown>[0], onExit: Parameters<Runtime.Teardown>[1]): void {
 	process.stdout.write("", () => process.stderr.write("", () => onExit(exitCode(exit))));
-};
+}
 
 function isClosedPipe(error: unknown): boolean {
 	return error instanceof Error && "code" in error && error.code === "EPIPE";

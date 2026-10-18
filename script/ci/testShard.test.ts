@@ -27,6 +27,7 @@ it("recovers module state in a fresh process without rerunning passing tests, an
 		const combined = final.testResults.find((file: { name: string }) => file.name.endsWith("fresh.spec.ts"));
 		assert.equal(combined.durationMs, original.durationMs + rerun.testResults[0].durationMs);
 		assert.match(fixture.read(".ci/tests.junit.xml"), /tests="3" failures="0"/u);
+		assert.match(fixture.read(".ci/tests.junit.xml"), /<testcase [^>]*file="fresh\.spec\.ts"/u);
 		assert.match(fixture.read(".ci/summary.md"), /Flaky:.*recovers only in a fresh process/u);
 		const coverage = fixture.read(".ci/coverage/lcov.info");
 		for (const file of ["passing.ts", "recovered.ts"]) {
@@ -46,6 +47,7 @@ for (const event of ["pull_request", "push"]) {
 			assert.equal(result.status, 1, result.stdout + result.stderr);
 			assert.equal(fixture.read("attempts.txt"), "attempt\n");
 			assert.equal(existsSync(join(fixture.root, ".ci/tests.rerun.json")), false);
+			assert.match(fixture.read(".ci/tests.junit.xml"), /<testcase [^>]*file="fresh\.spec\.ts"[^>]*>\s*<failure/u);
 		} finally {
 			fixture.close();
 		}

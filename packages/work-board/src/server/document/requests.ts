@@ -1,6 +1,5 @@
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { DocumentRequest } from "#browser/document/schema.ts";
-import { responseUrl } from "#responses/url.ts";
 import { authoredQuestion, openItem } from "#server/attention/inbox.ts";
 import { requestInbox } from "#server/attention/requestInbox.ts";
 import { attentionRequests } from "#server/attention/requests.ts";
@@ -84,6 +83,6 @@ function requestOpenInSource(document: MetadataDocument, id: string): boolean {
 
 function activeSource(document: MetadataDocument, snapshot: Snapshot, item: string, id: string) {
 	const managed = document.parsed.fields.attention?.find((entry) => entry.id === id)?.managed;
-	const eligible = !managed || requestInbox(snapshot).items.some((entry) => entry.href === responseUrl(item, id));
+	const eligible = !managed || requestInbox(snapshot).items.some((entry) => entry.document.file === document.file && entry.request === id);
 	return eligible ? requestSource(snapshot, item, id) : undefined;
 }
