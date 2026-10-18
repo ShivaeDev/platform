@@ -4,6 +4,8 @@ import { attentionVerbs } from "./attentionVerbs.ts";
 import type { FileSystemWrapper } from "./board.ts";
 import { questionnaireSource } from "./questionnaire.ts";
 import { readerVerbs } from "./readerVerbs.ts";
+import { readingVerbs } from "./readingVerbs.ts";
+import { responseFeedVerbs } from "./responseFeedVerbs.ts";
 import { responseServiceVerbs } from "./responseServiceVerbs.ts";
 import { serverVerbs } from "./serverVerbs.ts";
 import { connected, createBoard, inspectBoard, serveProject } from "./storyEngine.ts";
@@ -17,7 +19,9 @@ export const boardStory = storyKit({
 	name: "board",
 	stages: ["project", "reader"],
 	verbs: (engine, story) => ({
+		...readingVerbs(engine, story.tell),
 		...responseServiceVerbs(engine, story.tell),
+		...responseFeedVerbs(engine, story.tell),
 		...attentionVerbs(engine, story.tell),
 		...serverVerbs(engine, story.tell),
 		get board() {
@@ -89,6 +93,12 @@ export function projectFiles(files: Readonly<Record<string, string>>, line = "th
 	});
 }
 
+export function serverReading() {
+	return boardStory.trait("project", "the reader uses the board's server APIs", (engine) => {
+		engine.readingOnly = true;
+	});
+}
+
 export function responsesEnabled(enabled = true) {
 	return boardStory.trait("project", enabled ? "responses are enabled" : "responses are read-only", (engine) => {
 		engine.responses = enabled;
@@ -112,7 +122,7 @@ export function aQuestionnaire(source = questionnaireSource, wrap?: FileSystemWr
 
 export function boardHome(home: string) {
 	return boardStory.trait("project", home ? `the home board is ${home}` : "the workspace has no configured home board", (engine) => {
-		engine.home = home;
+		engine.home = home || undefined;
 	});
 }
 

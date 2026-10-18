@@ -1,119 +1,124 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
-import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { postgresTests } from "#test/postgres.ts";
+import { engine } from "#test/engineStory.ts";
+import {
+	evidenceHasWrongHead,
+	humanMergeRequired,
+	noChangeReported,
+	reviewerSharesWorker,
+	reviewerStillRunning,
+	reviewRequestsRepairs,
+} from "#test/engineTraits.ts";
 
 describe("Fleet completion path", () => {
-	const test = postgresTests("test");
-	test("independently reviews, checks and delivers the exact adopted head", () =>
-		withEngine({}, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.stage).toBe("completed");
-				expect(completed.value.review?.receipt.sessionId).not.toBe(completed.value.attempts[0]?.receipt?.sessionId);
-				expect(completed.value.checks?.head).toBe(completed.value.review?.head);
-				expect(fixture.merged).toEqual([completed.value.review?.head]);
-			}),
-		));
-	test("repairs continue the original conversation and require fresh head review and checks", () =>
-		withEngine({ repairs: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const repair = yield* fleet.reconcile("one");
-				expect(repair.value.attempts.at(-1)?.role).toBe("repair");
-				expect(repair.value.review).toMatchObject({ findings: ["Repair the implementation to meet the task criteria"], verdict: "changes" });
-				expect(repair.value.attempts.at(-1)?.receipt?.sessionId).toBe(repair.value.attempts[0]?.receipt?.sessionId);
-				finishWorkers(fixture);
-				const complete = yield* fleet.reconcile("one");
-				expect(complete.value.stage).toBe("completed");
-				expect(fixture.reviews).toEqual(["head-one-0", "head-one-1"]);
-				expect(complete.value.checks?.head).toBe("head-one-1");
-			}),
-		));
-	test("reviewed green work waits for a human merge and retains its PR through requested changes", () =>
-		withEngine({ denyDelivery: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const denied = yield* fleet.reconcile("one");
-				expect(denied.value.stage).toBe("needs-human");
-				expect(denied.value.decision?.reason).toContain("ready to merge");
-				expect(fixture.merged).toHaveLength(0);
-				const decisionId = denied.value.decision?.id ?? "missing";
-				const requested = yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "retry"));
-				expect(requested.value.stage).toBe("repairing");
-				expect(requested.value.result).toEqual(denied.value.result);
-				const repairing = yield* fleet.reconcile("one");
-				expect(repairing.value.stage).toBe("executing");
-				expect(repairing.value.attempts.at(-1)?.prompt).toContain("Human context");
-				expect(fixture.launched).toHaveLength(2);
-				expect(fixture.merged).toHaveLength(0);
-			}),
-		));
-	test("accepts no-change at its actual head after independent review and required checks", () =>
-		withEngine({ noChange: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.stage).toBe("completed");
-				expect(completed.value.checks?.head).toBe("current-main");
-				expect(completed.value.outcome).toMatchObject({ evidence: [expect.any(String)] });
-				expect(fixture.merged).toHaveLength(0);
-			}),
-		));
+	engine.it(
+		"independently reviews, checks and delivers the exact adopted head",
+		[],
+		function* ({ fleet, prepareWork, finishWorkers, waitForStage, mergedHeads }) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			yield* waitForStage("completed");
+			const completed = yield* fleet.get("one");
+			expect(completed.value.stage).toBe("completed");
+			expect(completed.value.review?.receipt.sessionId).not.toBe(completed.value.attempts[0]?.receipt?.sessionId);
+			expect(completed.value.checks?.head).toBe(completed.value.review?.head);
+			expect(mergedHeads()).toEqual([completed.value.review?.head]);
+		},
+	);
+	engine.it(
+		"repairs continue the original conversation and require fresh head review and checks",
+		[reviewRequestsRepairs()],
+		function* ({ fleet, prepareWork, finishWorkers, reviewedHeads }) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			const repair = yield* fleet.reconcile("one");
+			expect(repair.value.attempts.at(-1)?.role).toBe("repair");
+			expect(repair.value.review).toMatchObject({ findings: ["Repair the implementation to meet the task criteria"], verdict: "changes" });
+			expect(repair.value.attempts.at(-1)?.receipt?.sessionId).toBe(repair.value.attempts[0]?.receipt?.sessionId);
+			finishWorkers();
+			const complete = yield* fleet.reconcile("one");
+			expect(complete.value.stage).toBe("completed");
+			expect(reviewedHeads()).toEqual(["head-one-0", "head-one-1"]);
+			expect(complete.value.checks?.head).toBe("head-one-1");
+		},
+	);
+	engine.it(
+		"reviewed green work waits for a human merge and retains its PR through requested changes",
+		[humanMergeRequired()],
+		function* ({ fleet, prepareWork, finishWorkers, respond, mergedHeads, launches }) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			const denied = yield* fleet.reconcile("one");
+			expect(denied.value.stage).toBe("needs-human");
+			expect(denied.value.decision?.reason).toContain("ready to merge");
+			expect(mergedHeads()).toHaveLength(0);
+			const decisionId = denied.value.decision?.id ?? "missing";
+			const requested = yield* fleet.resolve("one", decisionId, respond(decisionId, "retry"));
+			expect(requested.value.stage).toBe("repairing");
+			expect(requested.value.result).toEqual(denied.value.result);
+			const repairing = yield* fleet.reconcile("one");
+			expect(repairing.value.stage).toBe("executing");
+			expect(repairing.value.attempts.at(-1)?.prompt).toContain("Human context");
+			expect(launches()).toHaveLength(2);
+			expect(mergedHeads()).toHaveLength(0);
+		},
+	);
+	engine.it(
+		"accepts no-change at its actual head after independent review and required checks",
+		[noChangeReported()],
+		function* ({ fleet, prepareWork, finishWorkers, mergedHeads }) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			const completed = yield* fleet.reconcile("one");
+			expect(completed.value.stage).toBe("completed");
+			expect(completed.value.checks?.head).toBe("current-main");
+			expect(completed.value.outcome).toMatchObject({ evidence: [expect.any(String)] });
+			expect(mergedHeads()).toHaveLength(0);
+		},
+	);
 	for (const wrongHead of ["review", "checks"] as const) {
-		test(`rejects ${wrongHead} evidence for a different head`, () =>
-			withEngine({ wrongHead }, (fixture) =>
-				Effect.gen(function* () {
-					yield* prepareWork("one");
-					const fleet = yield* Fleet;
-					yield* fleet.dispatch("one");
-					finishWorkers(fixture);
-					expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
-					expect(fixture.merged).toHaveLength(0);
-				}),
-			));
+		engine.it(
+			`rejects ${wrongHead} evidence for a different head`,
+			[evidenceHasWrongHead(wrongHead)],
+			function* ({ fleet, prepareWork, finishWorkers, mergedHeads }) {
+				yield* prepareWork("one");
+				yield* fleet.dispatch("one");
+				finishWorkers();
+				expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+				expect(mergedHeads()).toHaveLength(0);
+			},
+		);
 	}
-	test("rejects review by the original worker conversation", () =>
-		withEngine({ sameReviewer: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const rejected = yield* fleet.reconcile("one");
-				expect(rejected.value.decision?.reason).toContain("Independent review");
-				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
-				expect(fixture.merged).toHaveLength(0);
-			}),
-		));
-	test("a reviewer verdict cannot free its slot until the exact turn is terminal", () =>
-		withEngine({ reviewRunning: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const reviewing = yield* fleet.reconcile("one");
-				expect(reviewing.value.stage).toBe("reviewing");
-				expect(reviewing.value.attempts.at(-1)?.status).toBe("running");
-				expect(fixture.merged).toHaveLength(0);
-				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-				expect(fixture.reviews).toHaveLength(1);
-			}),
-		));
+	engine.it(
+		"rejects review by the original worker conversation",
+		[reviewerSharesWorker()],
+		function* ({ fleet, prepareWork, finishWorkers, providerCalls, mergedHeads }) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			const rejected = yield* fleet.reconcile("one");
+			expect(rejected.value.decision?.reason).toContain("Independent review");
+			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+			expect(mergedHeads()).toHaveLength(0);
+		},
+	);
+	engine.it(
+		"a reviewer verdict cannot free its slot until the exact turn is terminal",
+		[reviewerStillRunning()],
+		function* ({ fleet, prepareWork, finishWorkers, mergedHeads, reviewedHeads }) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			const reviewing = yield* fleet.reconcile("one");
+			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.attempts.at(-1)?.status).toBe("running");
+			expect(mergedHeads()).toHaveLength(0);
+			finishWorkers();
+			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect(reviewedHeads()).toHaveLength(1);
+		},
+	);
 });

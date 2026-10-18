@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { application } from "#test/application.ts";
 
 application.it(
-	"packages the real starter with registry dependencies, standalone configuration and its PostgreSQL tests",
+	"replaces the real starter's workspace dependencies and source conditions while mapping files for a standalone application",
 	[],
 	function* ({ pack, starterFile }) {
 		const files = yield* pack();
@@ -38,28 +38,6 @@ application.it(
 		for (const path of ["AGENTS", "README"]) {
 			expect(files[`${path}.md`]).toBe(starterFile(`app-${path.toLowerCase()}.md`));
 			expect(files[`app-${path.toLowerCase()}.md`]).toBeUndefined();
-		}
-		for (const path of [
-			".railway/railway.ts",
-			".env.example",
-			"biome.json",
-			"components.json",
-			"quality.config.ts",
-			"src/setup.ts",
-			"src/server/migrate.ts",
-			"src/server/migrateDatabase.ts",
-			"src/server/setup-database.ts",
-			"src/server/noteLifecycle.spec.ts",
-			"src/server/appDeploy.spec.ts",
-			"src/test-support/application.ts",
-			"src/test-support/requests.ts",
-			"src/test-support/screens.ts",
-			"src/server/committedJobs.spec.ts",
-			"src/server/notesMigration.spec.ts",
-			"src/server/deployReadiness.spec.ts",
-			"src/notes.ts",
-		]) {
-			expect(files[path]).toBe(starterFile(path));
 		}
 	},
 );

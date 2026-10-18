@@ -1,31 +1,27 @@
-import { join } from "node:path";
 import { Effect, Schema } from "effect";
-import { afterEach, expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { HomeMissing, homeIn } from "#server/files/home.ts";
-import { listMarkdown } from "#server/files/list.ts";
-import { type Folder, folder } from "#test/board.ts";
-import { unlinkBeforeStat } from "#test/fileRaces.ts";
+import { expect } from "vitest";
+import { HomeMissing } from "#server/files/home.ts";
+import { disappearsBeforeStat, fileReadingStory, readableFiles } from "#test/fileReadingStory.ts";
 
-let notes: Folder;
-
-afterEach(() => notes?.remove());
-
-it.live("reports the selected home disappearing between path resolution and stat", function* () {
-	notes = folder({ "home.md": "# Home" });
-	const result = yield* homeIn(notes.root, "home.md").pipe(Effect.provide(unlinkBeforeStat(join(notes.root, "home.md"))), Effect.result);
-	expect(result._tag === "Failure" && Schema.is(HomeMissing)(result.failure)).toBe(true);
-	expect(result).toMatchObject({
-		_tag: "Failure",
-		failure: {
-			_tag: "HomeMissing",
-			message: `The home file home.md is not a markdown file in ${notes.root}. Choose an existing Markdown file with --home.`,
-		},
-	});
-});
-
-it.live("continues listing readable files when another file disappears before stat", function* () {
-	notes = folder({ "gone.md": "# Removed", "kept.md": "# Readable" });
-	const files = yield* listMarkdown(notes.root, notes.root).pipe(Effect.provide(unlinkBeforeStat(join(notes.root, "gone.md"))));
-	expect(files.map((file) => file.path)).toEqual(["kept.md"]);
-});
+fileReadingStory.it(
+	"reports the selected home disappearing between resolution and stat",
+	[readableFiles({ "home.md": "# Home" }), disappearsBeforeStat("home.md")],
+	function* ({ selectHome, root }) {
+		const result = yield* selectHome("home.md").pipe(Effect.result);
+		expect(result._tag === "Failure" && Schema.is(HomeMissing)(result.failure)).toBe(true);
+		expect(result).toMatchObject({
+			_tag: "Failure",
+			failure: {
+				_tag: "HomeMissing",
+				message: `The home file home.md is not a markdown file in ${root}. Choose an existing Markdown file with --home.`,
+			},
+		});
+	},
+);
+fileReadingStory.it(
+	"lists readable files when another disappears before stat",
+	[readableFiles({ "gone.md": "# Removed", "kept.md": "# Readable" }), disappearsBeforeStat("gone.md")],
+	function* ({ listFiles }) {
+		expect((yield* listFiles()).map((file) => file.path)).toEqual(["kept.md"]);
+	},
+);

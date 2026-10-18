@@ -31,6 +31,31 @@
 			"source": "./src/client/react/components/ui/button.tsx",
 			"types": "./dist/client/react/components/ui/button.d.ts",
 			"default": "./dist/client/react/components/ui/button.js"
+		},
+		"#client/react/components/ui/dialog": {
+			"source": "./src/client/react/components/ui/dialog.tsx",
+			"types": "./dist/client/react/components/ui/dialog.d.ts",
+			"default": "./dist/client/react/components/ui/dialog.js"
+		},
+		"#client/react/components/ui/input": {
+			"source": "./src/client/react/components/ui/input.tsx",
+			"types": "./dist/client/react/components/ui/input.d.ts",
+			"default": "./dist/client/react/components/ui/input.js"
+		},
+		"#client/react/components/ui/input-group": {
+			"source": "./src/client/react/components/ui/input-group.tsx",
+			"types": "./dist/client/react/components/ui/input-group.d.ts",
+			"default": "./dist/client/react/components/ui/input-group.js"
+		},
+		"#client/react/components/ui/textarea": {
+			"source": "./src/client/react/components/ui/textarea.tsx",
+			"types": "./dist/client/react/components/ui/textarea.d.ts",
+			"default": "./dist/client/react/components/ui/textarea.js"
+		},
+		"#client/react/components/ui/toggle": {
+			"source": "./src/client/react/components/ui/toggle.tsx",
+			"types": "./dist/client/react/components/ui/toggle.d.ts",
+			"default": "./dist/client/react/components/ui/toggle.js"
 		}
 	},
 	"exports": {
@@ -70,7 +95,7 @@
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json && pnpm build:browser",
-		"build:browser": "esbuild src/server/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --outfile=assets/agent.js && vite build",
+		"build:browser": "esbuild src/server/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --external:yaml --outfile=assets/agent.js && vite build",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "pnpm test:prepare && vitest run",
 		"test:prepare": "pnpm build:browser",
@@ -117,6 +142,7 @@
 		"@typescript/native": "catalog:",
 		"@vitejs/plugin-react": "catalog:",
 		"class-variance-authority": "catalog:",
+		"cmdk": "catalog:",
 		"cn": "catalog:",
 		"effect": "catalog:",
 		"esbuild": "catalog:",
@@ -124,7 +150,7 @@
 		"lucide-react": "catalog:",
 		"tailwindcss": "catalog:",
 		"tw-animate-css": "catalog:",
-		"typescript": "catalog:",
+		"typescript": "catalog:compiler-api",
 		"vite": "catalog:",
 		"vitest": "catalog:"
 	},

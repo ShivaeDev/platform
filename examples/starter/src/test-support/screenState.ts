@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { expect, vi } from "vitest";
+import { vi } from "vitest";
 import { type Rendered, render } from "@shivaedev/effect-react/client/testing.ts";
 import type { appRouter } from "#client/appRouter.tsx";
 import type { Credentials } from "#client/auth.ts";
@@ -9,7 +9,7 @@ import { notesClient } from "#test-support/notesClient.ts";
 export interface Screen {
 	auth: ReturnType<typeof appAuth> | undefined;
 	client: ReturnType<typeof notesClient>;
-	expectedErrors: readonly (readonly unknown[])[];
+	consoleErrors: () => readonly (readonly unknown[])[];
 	login: {
 		authenticated: number;
 		calls: { credentials: Credentials; mode: string }[];
@@ -27,22 +27,21 @@ export const createScreen = Effect.fn("ScreenStory.createScreen")(function* () {
 	const engine: Screen = {
 		auth: undefined,
 		client: notesClient(),
-		expectedErrors: [],
+		consoleErrors: () => [],
 		login: { authenticated: 0, calls: [], outcome: undefined, unavailable: false },
 		router: undefined,
 		signOutCalls: 0,
 		switchSession: undefined,
 		view: undefined,
 	};
-	yield* Effect.acquireRelease(
+	const errors = yield* Effect.acquireRelease(
 		Effect.sync(() => vi.spyOn(console, "error")),
-		(errors) =>
+		(spy) =>
 			Effect.sync(() => {
-				const calls = [...errors.mock.calls];
-				errors.mockRestore();
-				expect(calls).toEqual(engine.expectedErrors);
+				spy.mockRestore();
 			}),
 	);
+	engine.consoleErrors = () => errors.mock.calls;
 	return engine;
 });
 

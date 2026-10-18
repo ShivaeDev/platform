@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { Result } from "effect";
-import { ADOPT_REMOVED, USAGE as COMMAND_USAGE } from "./messages.ts";
+import { USAGE as COMMAND_USAGE, SUBCOMMANDS } from "./messages.ts";
 
 export type Command =
 	| { readonly _tag: "Lint"; readonly config: string | undefined }
@@ -32,12 +32,6 @@ const OPTIONS = {
 function usage(problem: string): Parsed {
 	return { _tag: "Usage", problem };
 }
-
-const SUBCOMMANDS: Readonly<Record<string, string>> = {
-	baseline: "baseline takes write, prune, tighten or migrate.",
-	exceptions: "exceptions takes migrate.",
-	hooks: "hooks takes install, uninstall or pre-commit.",
-};
 
 function parsed(command: Command): Parsed {
 	return { _tag: "Parsed", command };
@@ -112,9 +106,6 @@ export function parseCommand(args: readonly string[]): Parsed {
 		return parsed({ _tag: "Help" });
 	}
 	const name = [command, ...rest].join(" ");
-	if (command === "adopt") {
-		return usage(ADOPT_REMOVED);
-	}
 	if (ACCEPTS[name] === undefined) {
 		const subcommands = SUBCOMMANDS[command];
 		return usage(subcommands !== undefined && rest.length < 2 ? subcommands : `unknown command: ${name}`);

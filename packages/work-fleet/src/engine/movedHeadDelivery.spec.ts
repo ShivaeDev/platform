@@ -1,28 +1,42 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { MOVED_PR_HEAD_REASON } from "#engine/deliveryFailure.ts";
-import { Fleet } from "#fleet.ts";
-import { finishWorkers, withEngine } from "#test/engine.ts";
-import { BASE, HEAD, MOVED, PR } from "#test/githubResult.ts";
-import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { startReview } from "#test/startReview.ts";
+import { engine } from "#test/engineStory.ts";
+import { githubPullRequest, reviewerStillRunning } from "#test/engineTraits.ts";
+import { BASE, HEAD, MOVED, PR, REPORT } from "#test/githubResult.ts";
 
-const test = postgresTests("test");
-
-const movedDelivery = Effect.fn("Test.movedDelivery")(function* (legacy: boolean) {
-	const github = yield* mergedReviewGithub();
-	yield* withEngine({ ...github, reviewRunning: true }, (fixture) =>
-		Effect.gen(function* () {
-			yield* startReview(fixture);
-			const fleet = yield* Fleet;
-			finishWorkers(fixture);
+for (const legacy of [false, true]) {
+	engine.it(
+		`${legacy ? "retry of a legacy moved-head decision" : "another pusher moving an approved PR"} starts an independent review and accepts delivery`,
+		[githubPullRequest({}), reviewerStillRunning()],
+		function* ({
+			fleet,
+			finishWorkers,
+			restart,
+			respond,
+			prepareWork,
+			workerReports,
+			replaceStoredRecord,
+			upgradeDecisionCodes,
+			movePullRequestHead,
+			acknowledgements,
+			mergePullRequest,
+			reviewedHeads,
+			launches,
+			mergedHeads,
+		}) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			workerReports(REPORT);
+			const reviewing = yield* fleet.reconcile("one");
+			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
+			finishWorkers();
 			const approved = yield* fleet.reconcile("one");
 			expect(approved.value.decision?.reason).toBe("Reviewed PR is ready to merge");
 			const original = approved.value.review;
 			const decisionId = approved.value.decision?.id ?? "missing";
 			if (legacy) {
-				yield* fixture.replaceRecord({
+				yield* replaceStoredRecord({
 					...approved.value,
 					attempts: approved.value.attempts.map((attempt) =>
 						attempt.role === "worker" ? { ...attempt, output: "" } : { ...attempt, reviewHead: undefined },
@@ -36,17 +50,14 @@ const movedDelivery = Effect.fn("Test.movedDelivery")(function* (legacy: boolean
 						recommendation: "Retry",
 					},
 				});
-				yield* fixture.upgradeDecisionCodes;
+				yield* upgradeDecisionCodes();
 				expect((yield* fleet.get("one")).value.decision?.code).toBe("pr-head-moved");
-				const responseId = fixture.respond(decisionId, "retry");
-				yield* fixture.restart(
-					Effect.gen(function* () {
-						const resolved = yield* (yield* Fleet).resolve("one", decisionId, responseId);
-						expect(resolved.value.stage).toBe("delivering");
-					}),
-				);
+				const responseId = respond(decisionId, "retry");
+				yield* restart();
+				const resolved = yield* fleet.resolve("one", decisionId, responseId);
+				expect(resolved.value.stage).toBe("delivering");
 			}
-			github.state.head = MOVED;
+			movePullRequestHead(MOVED);
 			let fresh = yield* fleet.reconcile("one");
 			if (legacy) {
 				fresh = yield* fleet.reconcile("one");
@@ -61,24 +72,20 @@ const movedDelivery = Effect.fn("Test.movedDelivery")(function* (legacy: boolean
 			expect(fresh.value.outcome).toBeUndefined();
 			expect(fresh.value.attempts.at(-1)).toMatchObject({ reviewHead: MOVED, role: "reviewer", status: "running" });
 			expect(fresh.value.attempts.at(-1)?.receipt?.sessionId).not.toBe(original?.receipt.sessionId);
-			expect(fixture.acknowledgements).toContainEqual(expect.objectContaining({ disposition: legacy ? "applied" : "superseded" }));
-			finishWorkers(fixture);
+			expect(acknowledgements()).toContainEqual(expect.objectContaining({ disposition: legacy ? "applied" : "superseded" }));
+			finishWorkers();
 			const green = yield* fleet.reconcile("one");
 			expect(green.value.review).toMatchObject({ head: MOVED, verdict: "approved" });
 			expect(green.value.checks).toMatchObject({ head: MOVED, passed: true });
 			expect(green.value.decision?.reason).toBe("Reviewed PR is ready to merge");
-			github.state.status = "MERGED";
-			const delivered = yield* fixture.restart(fleet.reconcile("one"));
+			mergePullRequest();
+			yield* restart();
+			const delivered = yield* fleet.reconcile("one");
 			expect(delivered.value.stage).toBe("completed");
 			expect(delivered.value.outcome).toEqual({ head: MOVED, revision: BASE, url: PR });
-			expect(fixture.reviews).toEqual([HEAD, MOVED]);
-			expect(fixture.launched).toHaveLength(3);
-			expect(fixture.merged).toEqual([]);
-		}),
+			expect(reviewedHeads()).toEqual([HEAD, MOVED]);
+			expect(launches()).toHaveLength(3);
+			expect(mergedHeads()).toEqual([]);
+		},
 	);
-});
-
-for (const legacy of [false, true]) {
-	test(`${legacy ? "retry of a legacy moved-head decision" : "another pusher moving an approved PR"} starts an independent review and accepts delivery`, () =>
-		Effect.scoped(movedDelivery(legacy)));
 }

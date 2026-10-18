@@ -13,10 +13,10 @@ screenStory.it(
 	[searchScreen(files, { home: undefined, modified })],
 	function* ({ findElements, findElement, readText, typeText }) {
 		function rows() {
-			return [...findElements<HTMLAnchorElement>('[role="option"]')];
+			return [...findElements<HTMLAnchorElement>('#search-dialog [role="option"] a', document)];
 		}
 		function type(query: string) {
-			const field = findElement("input");
+			const field = findElement<HTMLInputElement>('#search-dialog [role="combobox"]', document);
 			if (!field) {
 				throw new Error("Missing palette input");
 			}
@@ -49,7 +49,7 @@ screenStory.it(
 				expect(recordRows).toEqual([]);
 				expect(rows().some((row) => readText("code", row)?.startsWith("decision."))).toBe(false);
 			}
-			expect(readText()).not.toContain("Not recorded");
+			expect(readText("#search-dialog", document)).not.toContain("Not recorded");
 			for (const row of rows()) {
 				expect(readText("p", row) ?? "").not.toMatch(/^(?:\{|---)|(?:id|kind|status):/u);
 			}

@@ -1,89 +1,74 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { cycle } from "#engine/scheduler.ts";
 import { views } from "#engine/views.ts";
-import { Fleet } from "#fleet.ts";
-import { boardHttpFiles } from "#test/boardHttp.ts";
-import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { mainObservation } from "#test/preparation.ts";
-import { withFleetBoard } from "#test/withFleetBoard.ts";
+import { workClosesDuringAssessment } from "#test/engineBoardTraits.ts";
+import { engine } from "#test/engineStory.ts";
+import { markdownWork, noChangeReported } from "#test/engineTraits.ts";
 
-const test = postgresTests("test");
-
-test("an area waiter closed as superseded is released without starting a worker", () =>
-	withFleetBoard({ noChange: true }, (fixture, root, source) =>
-		Effect.gen(function* () {
-			const files = boardHttpFiles(root);
-			const planned = source.replace("kind: task", "kind: task\nstatus: planned\nareas: [shared]");
-			files.write("one.md", planned);
-			files.write("two.md", planned.replace("id: one", "id: two"));
+engine.it(
+	"an area waiter closed as superseded is released without starting a worker",
+	[noChangeReported(), markdownWork()],
+	function* ({ fleet, prepareWork, finishWorkers, restart, schedule, boardBrief, writeBoardWork, providerStarts }) {
+		const planned = boardBrief().replace("kind: task", "kind: task\nstatus: planned\nareas: [shared]");
+		writeBoardWork("one.md", planned);
+		writeBoardWork("two.md", planned.replace("id: one", "id: two"));
+		yield* prepareWork("one");
+		yield* prepareWork("two");
+		yield* fleet.dispatch("one");
+		yield* schedule();
+		expect((yield* fleet.get("two")).value.blocker).toBe("waiting for area shared held by one");
+		writeBoardWork("two.md", planned.replace("id: one", "id: two").replace("status: planned", "status: superseded"));
+		finishWorkers();
+		expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+		const starts = providerStarts().length;
+		yield* schedule();
+		expect(providerStarts()).toHaveLength(starts);
+		expect((yield* fleet.get("two")).value).toMatchObject({
+			attempts: [],
+			releaseReason: "Not launched because current Board status is superseded",
+			stage: "released",
+		});
+		const waiting = views((yield* fleet.list()).map(({ value }) => value)).waiting;
+		expect(Object.values(waiting).flat()).toEqual([]);
+		yield* restart();
+		expect((yield* schedule()).dispatched).toEqual([]);
+		expect(providerStarts()).toHaveLength(starts);
+	},
+);
+engine.it(
+	"a dependency waiter closed as deferred is dropped when its dependency completes",
+	[noChangeReported()],
+	function* ({ fleet, prepareWork, finishWorkers, restart, schedule, setBoardStatus, providerStarts }) {
+		yield* prepareWork("one");
+		yield* prepareWork("dependent");
+		yield* schedule();
+		expect((yield* fleet.get("dependent")).value.blocker).toContain("waiting for dependency one");
+		setBoardStatus("dependent", "deferred");
+		finishWorkers();
+		yield* fleet.reconcile("one");
+		const starts = providerStarts().length;
+		yield* restart();
+		yield* schedule();
+		expect((yield* fleet.get("dependent")).value.stage).toBe("released");
+		expect(providerStarts()).toHaveLength(starts);
+	},
+);
+for (const status of ["done", "superseded", "deferred"]) {
+	engine.it(
+		`launch bypasses the scheduler snapshot when Markdown status becomes ${status} during assessment`,
+		[workClosesDuringAssessment(), markdownWork()],
+		function* ({ fleet, prepareWork, schedule, boardBrief, writeBoardWork, editBoardDuringAssessment, providerStarts, providerCalls }) {
+			const planned = boardBrief().replace("kind: task", "kind: task\nstatus: planned");
+			writeBoardWork("one.md", planned);
 			yield* prepareWork("one");
-			yield* prepareWork("two");
-			const fleet = yield* Fleet;
-			yield* fleet.dispatch("one");
-			yield* cycle;
-			expect((yield* fleet.get("two")).value.blocker).toBe("waiting for area shared held by one");
-			files.write("two.md", planned.replace("id: one", "id: two").replace("status: planned", "status: superseded"));
-			finishWorkers(fixture);
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-			const starts = fixture.starts.length;
-			yield* cycle;
-			expect(fixture.starts).toHaveLength(starts);
-			expect((yield* fleet.get("two")).value).toMatchObject({
+			editBoardDuringAssessment(planned.replace("status: planned", `status: ${status}`));
+			yield* schedule();
+			expect((yield* fleet.get("one")).value).toMatchObject({
 				attempts: [],
-				releaseReason: "Not launched because current Board status is superseded",
+				releaseReason: `Not launched because current Board status is ${status}`,
 				stage: "released",
 			});
-			const waiting = views((yield* fleet.list()).map(({ value }) => value)).waiting;
-			expect(Object.values(waiting).flat()).toEqual([]);
-			expect((yield* fixture.restart(cycle)).dispatched).toEqual([]);
-			expect(fixture.starts).toHaveLength(starts);
-		}),
-	));
-
-test("a dependency waiter closed as deferred is dropped when its dependency completes", () =>
-	withEngine({ noChange: true }, (fixture) =>
-		Effect.gen(function* () {
-			yield* prepareWork("one");
-			yield* prepareWork("dependent");
-			const fleet = yield* Fleet;
-			yield* cycle;
-			expect((yield* fleet.get("dependent")).value.blocker).toContain("waiting for dependency one");
-			fixture.boardStatus("dependent", "deferred");
-			finishWorkers(fixture);
-			yield* fleet.reconcile("one");
-			const starts = fixture.starts.length;
-			yield* fixture.restart(cycle);
-			expect((yield* fleet.get("dependent")).value.stage).toBe("released");
-			expect(fixture.starts).toHaveLength(starts);
-		}),
-	));
-
-for (const status of ["done", "superseded", "deferred"]) {
-	test(`launch bypasses the scheduler snapshot when Markdown status becomes ${status} during assessment`, () => {
-		let closeWork: (() => void) | undefined;
-		return withFleetBoard(
-			{
-				mainQuery: (preparation) => Effect.sync(() => closeWork?.()).pipe(Effect.as(mainObservation({ fromRevision: preparation.baseRevision }))),
-			},
-			(fixture, root, source) =>
-				Effect.gen(function* () {
-					const files = boardHttpFiles(root);
-					const planned = source.replace("kind: task", "kind: task\nstatus: planned");
-					files.write("one.md", planned);
-					yield* prepareWork("one");
-					closeWork = () => files.write("one.md", planned.replace("status: planned", `status: ${status}`));
-					const fleet = yield* Fleet;
-					yield* cycle;
-					expect((yield* fleet.get("one")).value).toMatchObject({
-						attempts: [],
-						releaseReason: `Not launched because current Board status is ${status}`,
-						stage: "released",
-					});
-					expect(fixture.starts).toEqual([]);
-					expect(fixture.settings.filter((call) => call.call === "turn")).toEqual([]);
-				}),
-		);
-	});
+			expect(providerStarts()).toEqual([]);
+			expect(providerCalls().filter((call) => call.call === "turn")).toEqual([]);
+		},
+	);
 }

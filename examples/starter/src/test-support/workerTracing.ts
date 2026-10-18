@@ -1,5 +1,4 @@
 import { Effect, Exit, Scope } from "effect";
-import { expect, vi } from "vitest";
 import { otlpReceiver } from "@shivaedev/test-story/otlpReceiver.ts";
 
 export function workerTracing<E, R>(
@@ -17,20 +16,6 @@ export function workerTracing<E, R>(
 			}
 			return {
 				...receiver,
-				exportsCountWords: () =>
-					Effect.sync(() => {
-						tell("check the worker exported its CountWords span before shutdown completed");
-						assertWorkerExport(receiver);
-					}),
-				omitsSecrets: Effect.fn("AppStory.omitsSecrets")(function* (secrets: readonly string[]) {
-					tell("check that exported spans contain no application or collector secrets");
-					yield* Effect.sync(() => {
-						for (const secret of secrets) {
-							expect(receiver.requests.every(({ body }) => !body.includes(Buffer.from(secret)))).toBe(true);
-						}
-					});
-				}),
-				receivesRequests: () => Effect.promise(() => vi.waitFor(() => expect(receiver.requests.length).toBeGreaterThan(0), { timeout: 8000 })),
 				startWorker: (protocol?: string) => startWorker(tracingEnvironment(receiver.url, protocol)),
 			};
 		}),
@@ -38,26 +23,16 @@ export function workerTracing<E, R>(
 }
 
 function tracingEnvironment(url: string, protocol?: string) {
-	return protocol === undefined
-		? { "OTEL_EXPORTER_OTLP_ENDPOINT": url }
-		: {
-				"OTEL_EXPORTER_OTLP_HEADERS": "x-collector-token=worker%20collector%20secret",
-				"OTEL_EXPORTER_OTLP_PROTOCOL": protocol,
-				"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": `${url}/v1/traces`,
-				"OTEL_RESOURCE_ATTRIBUTES": "deployment.environment=worker-test",
-				"OTEL_SERVICE_NAME": "worker-test",
-			};
-}
-
-function assertWorkerExport(receiver: Effect.Success<ReturnType<typeof otlpReceiver>>) {
-	expect(receiver.spans.some((span) => span.name === "CountWords")).toBe(true);
-	expect(receiver.requests).toContainEqual(
-		expect.objectContaining({ headers: expect.objectContaining({ "x-collector-token": "worker collector secret" }), path: "/v1/traces" }),
-	);
-	expect(receiver.spans.find((span) => span.name === "CountWords")?.resourceAttributes).toEqual(
-		expect.arrayContaining([
-			{ key: "service.name", value: { stringValue: "worker-test" } },
-			{ key: "deployment.environment", value: { stringValue: "worker-test" } },
-		]),
-	);
+	return {
+		...(protocol === undefined ? { "OTEL_EXPORTER_OTLP_ENDPOINT": url } : { "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": `${url}/v1/traces` }),
+		"OTEL_BSP_SCHEDULE_DELAY": "100",
+		...(protocol === undefined
+			? {}
+			: {
+					"OTEL_EXPORTER_OTLP_HEADERS": "x-collector-token=worker%20collector%20secret",
+					"OTEL_EXPORTER_OTLP_PROTOCOL": protocol,
+					"OTEL_RESOURCE_ATTRIBUTES": "deployment.environment=worker-test",
+					"OTEL_SERVICE_NAME": "worker-test",
+				}),
+	};
 }

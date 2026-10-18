@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { expect, vi } from "vitest";
+import { vi } from "vitest";
 import { makeNotesClient } from "#client/makeNotes.ts";
 import type { RunningHost } from "./host.ts";
 
@@ -17,12 +17,12 @@ export const liveNotes = Effect.fn("AppStory.liveNotes")(function* (host: Runnin
 	const list = client.api.list.query();
 	registry.mount(list);
 	registry.mount(client.connection);
-	yield* Effect.promise(() => vi.waitFor(() => expect(registry.get(client.status).connection).toBe("live")));
-	return {
-		client,
-		list,
-		registry,
-		shows: (expected: readonly unknown[]) =>
-			Effect.promise(() => vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual(expected), { timeout: 5000 })),
-	};
+	yield* Effect.promise(() =>
+		vi.waitFor(() => {
+			if (registry.get(client.status).connection !== "live") {
+				throw new Error("The notes subscription has not connected");
+			}
+		}),
+	);
+	return { notes: () => AsyncResult.getOrElse(registry.get(list), () => undefined) };
 });
