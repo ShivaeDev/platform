@@ -102,28 +102,9 @@ cp node_modules/@shivaedev/skills/templates/sync-skills.yml .github/workflows/sy
 
 The template installs dependencies with pnpm and runs `check` on pull requests whose branch belongs to the same repository. After a failed check, its next step runs `sync`, stages both agent directories, commits and pushes to the pull request branch. Its `contents: write` permission requests repository write access for that push. A repository can instead run only `check` in CI and have the contributor commit the sync locally.
 
-### Command and module API
+### Effect API
 
-| Command | Work |
-| --- | --- |
-| `shivaedev-skills sync` | Copy selected instructions, replace owned copies and links, remove deselected owned skills, and record the manifest. |
-| `shivaedev-skills check` | Check the installed version, selected names and copied files against the manifest. |
-
-The executable is the adoption path. For an Effect program that needs these operations, import a module by its `.ts` subpath, such as `@shivaedev/skills/syncSkills.ts`; there is no root entry point. The exported module inventory is:
-
-| Module | Exports |
-| --- | --- |
-| `syncSkills.ts` | `syncSkills(repo, installed)` |
-| `checkSkills.ts` | `checkSkills(repo, installed)` |
-| `installed.ts` | `Installed`, with `root`, `skills` and `version`; `readInstalled(root)` |
-| `readSelection.ts` | `readSelection(repo)` |
-| `manifest.ts` | `Manifest` schema and type; `readManifest(repo)`; `writeManifest(repo, manifest)` |
-| `hashSkill.ts` | `hashSkill(folder)` |
-| `layout.ts` | `BIN`, `PACKAGE`, `SELECTION_FIELD`, `AGENTS_SKILLS`, `CLAUDE_SKILLS`, `MANIFEST`; `SkillPaths`; `skillPaths(path, repo, name)` |
-| `SkillsError.ts` | `SkillsError`, the tagged error with a `message` |
-| `cli.ts` | Executable entry point with no named exports; importing it runs the CLI |
-
-`syncSkills` and `checkSkills` return Effects. Their `repo` argument is the consumer directory; `installed` describes the package directory, shipped names and version. Prefer the two complete operations when integrating a check or sync:
+The executable is the adoption path. For an Effect program that needs these operations, import a module by its `.ts` subpath, such as `@shivaedev/skills/syncSkills.ts`; there is no root entry point. `syncSkills` and `checkSkills` return Effects. Their `repo` argument is the consumer directory; `installed` describes the package directory, shipped names and version. Prefer the two complete operations when integrating a check or sync:
 
 ```ts
 import { fileURLToPath } from "node:url";
@@ -142,7 +123,7 @@ const check = Effect.gen(function* () {
 check.pipe(Effect.provide(NodeServices.layer), NodeRuntime.runMain);
 ```
 
-This program checks the current repository using the installed package. `NodeServices.layer` supplies the filesystem and path services; `NodeRuntime.runMain` runs the Effect. The smaller modules expose the pieces that sync and check use.
+This program checks the current repository using the installed package. `NodeServices.layer` supplies the filesystem and path services.
 
 ### Install, setup and limits
 
@@ -153,8 +134,5 @@ pnpm add --save-dev @shivaedev/skills @effect/platform-node@4.0.4 @effect/platfo
 The Effect and Node platform packages are peers, and the package requires Node.js 24 or newer. Run the CLI from the repository directory that contains the selection's `package.json`.
 
 - Sync requires filesystem support for the Claude compatibility symlink. If that creation fails, sync fails; copying and manifest writing do not have an established rollback guarantee. The committed `.agents/skills/` content is directly readable, but successful sync on a host without symlink support is not a package promise.
-- Commit the shared files, relative links and manifest. The dependency supplies the next version; syncing makes that version's instructions a reviewable repository change.
-- Keep local instructions outside folders owned by the manifest. A later sync replaces managed copies, including added files.
 - The manifest is a record of a sync, not a security boundary. `check` compares copied files with recorded hashes; it does not re-hash the installed skill source or verify Claude links. A passing check is evidence about the recorded copies, not about an agent discovering or following them.
-- Name-collision refusal happens before files change. It does not establish rollback after a filesystem failure during copying.
-- The workflow template belongs to repository setup. Review its action pins and write permission before enabling it. Hosted repository permissions and follow-up CI runs need validation in that repository; the template alone does not establish them.
+- Review the workflow template's action pins and write permission before enabling it.

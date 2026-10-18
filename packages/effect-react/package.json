@@ -32,7 +32,6 @@
 	},
 	"files": [
 		"dist",
-		"docs",
 		"src",
 		"!src/**/*.test.ts",
 		"!src/**/*.test.tsx",

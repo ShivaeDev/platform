@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
-import { Button } from "#client/react/components/ui/Button.tsx";
+import { Button } from "#client/react/components/ui/button.tsx";
+import { Label } from "#client/react/components/ui/label.tsx";
+import { Textarea } from "#client/react/components/ui/textarea.tsx";
 export function HandoffPrompt({ id, prompt, prepared = false }: { readonly id: string; readonly prompt: string; readonly prepared?: boolean }) {
 	const ref = useRef<HTMLTextAreaElement>(null);
 	const [status, setStatus] = useState(
@@ -19,17 +21,10 @@ export function HandoffPrompt({ id, prompt, prepared = false }: { readonly id: s
 	}
 	return (
 		<div className="handoff-copy">
-			<label>
+			<Label className="mb-2 font-normal" htmlFor={`handoff-prompt-${id}`}>
 				Prompt for your existing agent session
-				<textarea
-					className="mt-2 w-full rounded-md border bg-background p-3 font-mono text-sm"
-					id={`handoff-prompt-${id}`}
-					readOnly
-					ref={ref}
-					rows={3}
-					value={prompt}
-				/>
-			</label>
+			</Label>
+			<Textarea className="mb-2 font-mono" id={`handoff-prompt-${id}`} readOnly ref={ref} rows={3} value={prompt} />
 			<Button data-handoff-copy={`handoff-prompt-${id}`} onClick={handleCopy} type="button">
 				Copy tiny prompt
 			</Button>

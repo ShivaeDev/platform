@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import type { HandoffPreview } from "#browser/handoffs/schema.ts";
 import type { HandoffProjection } from "#browser/views/remaining.ts";
-import { Button } from "#client/react/components/ui/Button.tsx";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { FormField } from "./FormField.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
 import { shellIds } from "./shellIds.ts";
