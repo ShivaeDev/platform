@@ -1,8 +1,8 @@
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
-import type { FleetRecord } from "#model.ts";
+import type { FleetCycleSnapshot, FleetRecord } from "#model.ts";
 import type { BoardFailure, BoardWork } from "#policy.ts";
 
 export const qualifyDependencies = Effect.fn("Fleet.qualifyDependencies")(function* (
@@ -10,45 +10,53 @@ export const qualifyDependencies = Effect.fn("Fleet.qualifyDependencies")(functi
 	records: readonly FleetRecord[],
 	get: (workId: string) => Effect.Effect<BoardWork, BoardFailure>,
 ) {
-	yield* Effect.forEach(references, (reference) =>
+	const unmet = yield* Effect.forEach(references, (reference) =>
 		Effect.gen(function* () {
 			const [workId, criterion] = reference.split("#");
 			if (!workId) {
-				return yield* Effect.fail(new Forbidden({ message: `Dependency reference is invalid: ${reference}` }));
+				return `Dependency reference is invalid: ${reference}`;
 			}
-			const current = yield* get(workId).pipe(
-				Effect.mapError((error) => new Forbidden({ message: `Dependency ${reference} is unavailable or ambiguous: ${error.message}` })),
-			);
-			if (current.workId !== workId) {
-				return yield* Effect.fail(new Forbidden({ message: `Dependency identity is ambiguous: ${reference}` }));
+			const current = yield* get(workId).pipe(Effect.result);
+			if (Result.isFailure(current)) {
+				return `Dependency ${reference} is unavailable or ambiguous: ${current.failure.message}`;
+			}
+			if (current.success.workId !== workId) {
+				return `Dependency identity is ambiguous: ${reference}`;
 			}
 			if (criterion !== undefined) {
-				return yield* Effect.fail(
-					new Forbidden({ message: `Dependency ${reference} needs criterion-specific accepted evidence; a whole-work outcome cannot satisfy it` }),
-				);
+				return `Dependency ${reference} needs criterion-specific accepted evidence; a whole-work outcome cannot satisfy it`;
 			}
-			const hasFleetWork = records.some((record) => record.workId === workId);
-			const accepted = dependencyAccepted(workId, current, records);
-			const fallback = hasFleetWork ? "" : " or Board status done without Fleet work";
-			if (!accepted) {
-				return yield* Effect.fail(
-					withFailureContext(
-						new Forbidden({
-							message: `waiting for dependency ${reference}: needs an accepted outcome for current Board revision ${current.revision}${fallback}`,
-						}),
-						{ attentionOwner: "automation" },
-					),
-				);
-			}
+			const record = records.find((entry) => entry.workId === workId);
+			const missing = dependencyMissing(current.success, record);
+			return missing === undefined ? undefined : `waiting for dependency ${reference}: ${missing}`;
 		}),
 	);
+	const blockers = unmet.filter((message) => message !== undefined);
+	if (blockers.length > 0) {
+		return yield* Effect.fail(withFailureContext(new Forbidden({ message: blockers.join("; ") }), { attentionOwner: "automation" }));
+	}
 });
 
-function dependencyAccepted(workId: string, current: BoardWork, records: readonly FleetRecord[]): boolean {
-	const record = records.find((entry) => entry.workId === workId);
-	return record === undefined
-		? current.status === "done"
-		: record.stage === "completed"
-				&& record.outcome !== undefined
-				&& workRevision(record.boardRevision, record.boardContext) === workRevision(current.revision, current.context);
+function merged(cycle: FleetRecord | FleetCycleSnapshot): boolean {
+	return cycle.mergedDelivery !== undefined || (cycle.stage === "completed" && cycle.outcome !== undefined && "url" in cycle.outcome);
+}
+
+function dependencyMissing(current: BoardWork, record: FleetRecord | undefined): string | undefined {
+	if (record !== undefined && [record, ...(record.history ?? [])].some(merged)) {
+		return;
+	}
+	const active = record !== undefined && record.stage !== "completed" && record.stage !== "released";
+	if (current.status === "done" && !active) {
+		return;
+	}
+	if (record?.stage === "completed" && record.outcome !== undefined) {
+		if (workRevision(record.boardRevision, record.boardContext) === workRevision(current.revision, current.context)) {
+			return;
+		}
+		return `accepted outcome covers an earlier Board revision; current revision is ${current.revision} and not done on the Board`;
+	}
+	if (active) {
+		return `Fleet work is still active (${record.stage}); no merged delivery or accepted outcome`;
+	}
+	return record?.stage === "released" ? "released without a merged delivery and not done on the Board" : "not done on the Board; no accepted outcome";
 }

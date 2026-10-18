@@ -4,6 +4,7 @@ import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import type { EngineFixture } from "#test/engine.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
+import { upgradeMergedDeliveries } from "#test/upgradeMergedDeliveries.ts";
 
 export function engineBoardVerbs(state: EngineStory, tell: (line: string) => void) {
 	function files() {
@@ -65,6 +66,10 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 		upgradeDecisionCodes: () => {
 			tell("upgrade persisted decision codes");
 			return running(state).fixture.upgradeDecisionCodes;
+		},
+		upgradeMergedDeliveries: () => {
+			tell("migrate released deliveries from the previous PostgreSQL schema");
+			return upgradeMergedDeliveries;
 		},
 		writeBoardWork: (path: string, text: string) => {
 			write(path, text);
