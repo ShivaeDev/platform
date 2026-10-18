@@ -155,8 +155,6 @@
 {"path":"packages/local-postgres/src/server/local-container.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/local-postgres/src/server/local-docker.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/local-postgres/src/server/localPostgres.ts","rule":"biome/plugin","count":1}
-{"path":"packages/platform/src/test-support/auth/contract.ts","rule":"biome/lint/style/noExportedImports","count":1}
-{"path":"packages/platform/src/test-support/auth/contract.ts","rule":"biome/plugin","count":1}
 {"path":"packages/platform/src/test-support/auth/prisma-next.config.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/baseline/growth.spec.ts","rule":"tests/story-setup","count":4}
 {"path":"packages/quality/src/baseline/tighten.spec.ts","rule":"tests/story-setup","count":3}
