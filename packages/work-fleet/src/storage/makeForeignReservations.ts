@@ -14,16 +14,27 @@ export const makeForeignReservations = Effect.fn("FleetStore.makeForeignReservat
 		tableName: `${namespace}_foreign_reservations`,
 	});
 	const lock = sql`select pg_advisory_xact_lock(hashtextextended(${`work_fleet_admission:${namespace}`}, 0))`;
+	function exists(owner: string) {
+		return reservations.findMany({ where: { owner } }).pipe(Effect.map((rows) => rows.length > 0));
+	}
 	return {
 		foreignReservations: () => reservations.findMany({ orderBy: { direction: "asc", field: "owner" } }),
-		releaseForeign: (owner: string) =>
-			commit(
-				[fleetRecords.list],
+		releaseForeign: Effect.fn("FleetStore.releaseForeign")(function* (owner: string) {
+			if (!(yield* exists(owner))) {
+				return;
+			}
+			yield* commit(
+				(deleted) => (deleted ? [fleetRecords.list] : []),
 				Effect.gen(function* () {
 					yield* lock;
+					if (!(yield* exists(owner))) {
+						return false;
+					}
 					yield* reservations.delete(owner);
+					return true;
 				}),
-			),
+			);
+		}),
 		reserveForeign: (owner: string, occupancy: { readonly executing: boolean; readonly backlog: boolean } = { backlog: true, executing: true }) =>
 			commit(
 				[fleetRecords.list],
