@@ -1,7 +1,7 @@
 import { AlertCircle, Inbox, PanelLeft, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "#client/react/components/ui/badge.tsx";
-import { Button } from "#client/react/components/ui/button.tsx";
+import { Button, buttonVariants } from "#client/react/components/ui/button.tsx";
 import { destinationName } from "#client/react/destinationName.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 import type { MainLocation } from "./mainLocation.ts";
@@ -55,24 +55,18 @@ export function Header({
 			</Button>
 			<span className="min-w-0 flex-1 truncate font-medium md:hidden">{main.title ?? main.file}</span>
 			<Breadcrumbs file={main.title ?? main.file} />
-			<Button
-				className="hidden md:inline-flex"
-				nativeButton={false}
-				render={
-					<a
-						aria-current={main.view === "today" ? "page" : undefined}
-						aria-label={destinationName("Today", count, "need you")}
-						href="/"
-						id={shellIds.inboxTopbar}
-					/>
-				}
-				size="sm"
-				variant="ghost"
+			<a
+				aria-current={main.view === "today" ? "page" : undefined}
+				aria-label={destinationName("Today", count, "need you")}
+				className={buttonVariants({ className: "hidden md:inline-flex", size: "sm", variant: "ghost" })}
+				data-slot="link-button"
+				href="/"
+				id={shellIds.inboxTopbar}
 			>
 				<Inbox aria-hidden="true" />
 				<span className="hidden sm:inline">Today</span>
 				<InboxCount count={count} id={shellIds.inboxTopbarCount} />
-			</Button>
+			</a>
 			<Button
 				aria-haspopup="dialog"
 				aria-label="Search"

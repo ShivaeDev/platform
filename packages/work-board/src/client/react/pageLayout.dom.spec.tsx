@@ -36,14 +36,20 @@ screenStory.it(
 	},
 );
 
+const ACTION_CONTROLS = '#doc [data-slot="button"], #doc [data-slot="link-button"]';
+
+function roleOf(element: Element) {
+	return element.getAttribute("role") ?? (element.tagName === "A" && element.hasAttribute("href") ? "link" : element.tagName.toLowerCase());
+}
+
 for (const { name, files, url, open, actions } of [
 	{
 		actions: [
 			["button", "Save favorite"],
-			["a", "Prepare an agent handoff"],
-			["a", "Review returned result"],
-			["a", "Respond to this request"],
-			["a", "Reviewed item"],
+			["link", "Prepare an agent handoff"],
+			["link", "Review returned result"],
+			["link", "Respond to this request"],
+			["link", "Reviewed item"],
 		],
 		files: attentionFixture(),
 		name: "a returned result",
@@ -53,7 +59,7 @@ for (const { name, files, url, open, actions } of [
 	{
 		actions: [
 			["button", "Save favorite"],
-			["summary", "Change your answer"],
+			["button", "Change your answer"],
 			["button", "Clear selections"],
 		],
 		files: answeredDecisionFixture(),
@@ -63,21 +69,17 @@ for (const { name, files, url, open, actions } of [
 	},
 ] as const) {
 	screenStory.it(
-		`shows the actions on ${name} as buttons with their names`,
+		`shows the actions on ${name} as links that navigate and buttons that act in place`,
 		[routedScreen(files, url)],
 		function* ({ click, findElement, findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
 			click(open);
-			const buttons = findElements('#doc [data-slot="button"]').map((element) => [element.tagName.toLowerCase(), element.textContent?.trim()]);
+			const controls = findElements(ACTION_CONTROLS).map((element) => [roleOf(element), element.textContent?.trim()]);
 			for (const action of actions) {
-				expect(buttons).toContainEqual(action);
+				expect(controls).toContainEqual(action);
 			}
-			for (const [tag, label] of actions) {
-				const element = findElements(`#doc ${tag}[data-slot="button"]`).find((candidate) => candidate.textContent?.trim() === label);
-				expect(element?.getAttribute("role") ?? element?.tagName.toLowerCase()).toBe("button");
-				if (tag === "a") {
-					expect(element?.getAttribute("href")).toMatch(/^\//u);
-				}
+			for (const element of findElements(ACTION_CONTROLS).filter((candidate) => roleOf(candidate) === "link")) {
+				expect(element.getAttribute("href")).toMatch(/^\//u);
 			}
 		},
 	);
