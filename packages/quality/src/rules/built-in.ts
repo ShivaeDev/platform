@@ -17,6 +17,7 @@ import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { storySetup } from "#rules/stories/setup.ts";
+import { storySpecs } from "#rules/stories/specs.ts";
 import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
 import { biomeRecommended } from "#rules/suppressions/biomeRecommended.ts";
 import { noDoubleCast } from "#rules/suppressions/no-double-cast.ts";
@@ -62,4 +63,5 @@ export const builtInRules = [
 	testsFollow,
 	testsColocated,
 	storySetup,
+	storySpecs,
 ] as const;
