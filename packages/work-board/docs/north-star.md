@@ -20,8 +20,6 @@ A handoff preserves reviewed direction in another readable file. A copied pointe
 
 Returned work needs the same discipline. An authored result and its evidence are claims to inspect. Human direction belongs to the exact report bytes and source path that prompted it; a later edit must not inherit an earlier acceptance. A report iteration can receive human acceptance while a criterion still lacks evidence. The board must keep those facts visible rather than compute a convenient overall success state.
 
-Goal progress counts linked work; lifecycle completion never establishes criterion acceptance, and progress is never a computed overall success state or completion percentage.
-
 ## What good looks like
 
 - **Readable source.** A folder and one command are enough to begin. Plain Markdown remains useful; metadata is optional; no hidden database holds the only meaningful copy of work.
@@ -52,9 +50,7 @@ Shared Effect and Platform primitives win over a second RPC, client state or liv
 
 ## How to judge progress
 
-The intended payoff is less effort to regain context and direct work. Useful questions are whether a returning reader can find the actual blocker, reach its source rationale and evidence, distinguish changes from churn, and respond without reassembling the context. A representative workspace should include dozens of documents and a hundred items, as well as empty, malformed and unavailable states.
-
-Tests and browser fixtures establish the behavior they exercise; neither proves representative-reader orientation time, physical device behavior or adoption.
+The intended payoff is less effort to regain context and direct work. Useful questions are whether a returning reader can find the actual blocker, reach its source rationale and evidence, distinguish changes from churn, and respond without reassembling the context.
 
 ## What it leaves out
 
