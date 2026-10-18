@@ -2,6 +2,7 @@ import { Effect, Result } from "effect";
 import { validateChecks, validateReview } from "#completion.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { failureCode } from "#engine/failureCode.ts";
+import { failureOwner } from "#engine/failureOwner.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas } from "#engine/mergeReadiness.ts";
 import { observeDeliveryFailure } from "#engine/observeDeliveryFailure.ts";
@@ -54,7 +55,7 @@ function deniedDelivery(state: EngineState, stored: Versioned<FleetRecord>, work
 						error.message,
 						"Restore approval for work that is still needed, or release it",
 						undefined,
-						"maintainer",
+						failureOwner(error),
 					)
 				: state.save(stored, { ...stored.value, blocker: error.message, mergeReadyAt: undefined, mergeReadyHead: undefined }),
 		),
@@ -72,6 +73,9 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 ) {
 	const record = stored.value;
 	const observed = yield* state.integrations.delivery(result).pipe(Effect.result);
+	if (Result.isFailure(observed) && failureCode(observed.failure) === "pr-closed") {
+		yield* state.store.releaseForeign(result.pr);
+	}
 	if (Result.isSuccess(observed) && observed.success !== undefined && !executing(record)) {
 		return yield* settleMergedDelivery(state, stored, result, observed.success, deliveryPending(record));
 	}

@@ -1,6 +1,5 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { makePgBossTesting } from "@shivaedev/effect-pg-boss/testing.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { type HostOptions, startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
@@ -9,6 +8,7 @@ import { storyDatabase } from "#test-support/storyDatabase.ts";
 import type { Engine } from "./applicationState.ts";
 import { applicationVerbs } from "./applicationVerbs.ts";
 import { DatabaseLifetime } from "./DatabaseLifetime.ts";
+import { workerQueue } from "./workerQueue.ts";
 
 export const app = storyKit({
 	after: {
@@ -28,7 +28,7 @@ export const app = storyKit({
 				host: undefined,
 				hostOptions: {},
 				tell: () => undefined,
-				workerTesting: makePgBossTesting(),
+				workerQueue: workerQueue(),
 			};
 		}),
 	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),
@@ -92,6 +92,8 @@ export function notesPredatingMigration(migration: 4 | 5, title: string) {
 			yield* sql`alter table notes drop column "wordCount"`;
 		}
 		yield* sql`alter table notes drop column version`;
+		yield* sql`alter table "user" drop column role, drop column banned, drop column "banReason", drop column "banExpires"`;
+		yield* sql`alter table "session" drop column "impersonatedBy"`;
 		yield* sql`delete from app_migrations where migration_id >= ${migration}`;
 	});
 }

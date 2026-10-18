@@ -14,7 +14,9 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 				expect.poll(() => Effect.runPromise(actor().notes.get({ id: note.id })), { timeout: 8000 }).toEqual({ ...note, version: 1, wordCount: 3 }),
 			);
 			yield* stopWorker;
-			expect(yield* wordCountCompletions()).toEqual([{ id: expect.any(String), retryCount: 0 }]);
+			expect(yield* wordCountCompletions()).toMatchObject([
+				{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
+			]);
 			expect(receiver.spans.some((span) => span.name === "CountWords")).toBe(true);
 			expect(receiver.requests).toContainEqual(
 				expect.objectContaining({ headers: expect.objectContaining({ "x-collector-token": "worker collector secret" }), path: "/v1/traces" }),
@@ -45,10 +47,14 @@ for (const status of ["down", 500] as const) {
 				expect.poll(() => Effect.runPromise(actor().notes.get({ id: note.id })), { timeout: 8000 }).toEqual({ ...note, version: 1, wordCount: 3 }),
 			);
 			yield* Effect.promise(() =>
-				expect.poll(() => Effect.runPromise(wordCountCompletions()), { timeout: 8000 }).toEqual([{ id: expect.any(String), retryCount: 0 }]),
+				expect
+					.poll(() => Effect.runPromise(wordCountCompletions()), { timeout: 8000 })
+					.toMatchObject([{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" }]),
 			);
 			yield* stopWorker;
-			expect(yield* wordCountCompletions()).toEqual([{ id: expect.any(String), retryCount: 0 }]);
+			expect(yield* wordCountCompletions()).toMatchObject([
+				{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
+			]);
 			if (status !== "down") {
 				expect(receiver.requests.length).toBeGreaterThan(0);
 			}

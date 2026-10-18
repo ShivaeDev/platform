@@ -8,9 +8,9 @@ export const makeFleetTransaction = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const current = yield* Effect.serviceOption(Reactivity.Reactivity);
 	const reactivity = current._tag === "Some" ? current.value : yield* Reactivity.make;
-	return <A, E, R>(keys: readonly Key[], body: Effect.Effect<A, E, R>) =>
+	return <A, E, R>(keys: readonly Key[] | ((value: A) => readonly Key[]), body: Effect.Effect<A, E, R>) =>
 		transact(
-			Effect.tap(body, () => invalidateOnCommit(invalidationKeys(keys))),
+			Effect.tap(body, (value) => invalidateOnCommit(invalidationKeys(typeof keys === "function" ? keys(value) : keys))),
 			{ onSqlError: (error) => error },
 		).pipe(Effect.provideService(SqlClient.SqlClient, sql), Effect.provideService(Reactivity.Reactivity, reactivity));
 });

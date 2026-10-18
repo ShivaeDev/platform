@@ -2,7 +2,7 @@ import { Effect, Fiber, Option, Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { deadLetterQueueName } from "#health.ts";
-import { failingWorker, pausedWorker, productionRetries, queues, recoveringWorker } from "#test/testingStory.ts";
+import { failingWorker, pausedWorker, productionRetries, queues } from "#test/testingStory.ts";
 
 queues.it("reads decoded jobs sent through the queue, including traced sends", [], function* ({ queue, send, testing }) {
 	const id = Option.getOrThrow(yield* send(42).pipe(Effect.withSpan("sender")));
@@ -37,7 +37,6 @@ queues.it(
 		const id = Option.getOrThrow(yield* send(7));
 		const jobs = yield* settle();
 		expect(attempts).toEqual([7, 7]);
-		expect(yield* testing.completions(queue)).toEqual([]);
 		expect(jobs).toMatchObject([{ id, output: { value: { message: "job timed out" } }, retryCount: 2, retryLimit: 2, state: "failed" }]);
 		const deadLetter = defineQueue({ name: deadLetterQueueName(queue.name), schema: queue.schema });
 		expect(yield* testing.jobs(deadLetter)).toMatchObject([{ data: { id: 7 }, sourceId: id, sourceRetryCount: 2 }]);
@@ -69,30 +68,16 @@ queues.it(
 	[pausedWorker],
 	function* ({ attempts, queue, releaseWorker, send, settle, testing, workerStarted }) {
 		yield* testing.expireAfter(queue, 3);
-		const id = Option.getOrThrow(yield* send(9));
+		yield* send(9);
 		yield* workerStarted;
-		expect(yield* testing.completions(queue)).toEqual([]);
 		const revision = yield* testing.revision;
 		const waiter = yield* testing.waitForChange(revision).pipe(Effect.forkChild);
 		yield* releaseWorker;
 		expect(yield* Fiber.join(waiter)).toBeGreaterThan(revision);
 		expect(yield* settle()).toMatchObject([{ retryCount: 0, state: "completed" }]);
-		expect(yield* testing.completions(queue)).toEqual([{ id, retryCount: 0 }]);
 		expect(attempts).toEqual([9]);
 	},
 );
-
-queues.it("reports acknowledged completion after a retry with its fetched attempt", [recoveringWorker], function* ({ queue, send, settle, testing }) {
-	const id = Option.getOrThrow(yield* send(16));
-	yield* settle();
-	expect(yield* testing.completions(queue)).toEqual([{ id, retryCount: 1 }]);
-});
-
-queues.it("excludes completion attempts that did not settle a claimed job", [], function* ({ complete, queue, send, testing }) {
-	const id = Option.getOrThrow(yield* send(17));
-	yield* complete({ id, retryCount: 0 });
-	expect(yield* testing.completions(queue)).toEqual([]);
-});
 
 queues.it("keeps production retries unless the kit selects the test policy", [productionRetries], function* ({ queue, send, testing }) {
 	yield* send(10);

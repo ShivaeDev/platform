@@ -73,8 +73,8 @@ Use `withHeavyLock` when one Effect owns the heavy work. Read `HeldLock.env` and
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
-import { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts";
-import { withHeavyLock } from "@shivaedev/heavy-lock/with-heavy-lock.ts";
+import { HeldLock } from "@shivaedev/heavy-lock/HeldLock.ts";
+import { withHeavyLock } from "@shivaedev/heavy-lock/withHeavyLock.ts";
 import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
@@ -101,8 +101,8 @@ For a service that owns the hold through a Layer, use `heavyLockLayer`:
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
-import { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts";
-import { heavyLockLayer } from "@shivaedev/heavy-lock/with-heavy-lock.ts";
+import { HeldLock } from "@shivaedev/heavy-lock/HeldLock.ts";
+import { heavyLockLayer } from "@shivaedev/heavy-lock/withHeavyLock.ts";
 import { Effect, Layer } from "effect";
 
 const lockLayer = heavyLockLayer({ command: "asset pipeline" }).pipe(
@@ -139,15 +139,15 @@ Import the module that defines each name; there is no root entry.
 | Module | Exports |
 | --- | --- |
 | `@shivaedev/heavy-lock/acquire.ts` | `acquireHeavyLock`, `HeavyLockOptions`, `HeavyLockServices` |
-| `@shivaedev/heavy-lock/with-heavy-lock.ts` | `withHeavyLock`, `heavyLockLayer` |
-| `@shivaedev/heavy-lock/held-lock.ts` | `HeldLock`, `HeldLockShape` |
+| `@shivaedev/heavy-lock/withHeavyLock.ts` | `withHeavyLock`, `heavyLockLayer` |
+| `@shivaedev/heavy-lock/HeldLock.ts` | `HeldLock`, `HeldLockShape` |
 | `@shivaedev/heavy-lock/error.ts` | `HeavyLockError`, `failWith` |
 
 The acquisition declarations use these types:
 
 ```ts
 import type { HeavyLockError } from "@shivaedev/heavy-lock/error.ts";
-import type { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts";
+import type { HeldLock } from "@shivaedev/heavy-lock/HeldLock.ts";
 import type { Duration, Effect, FileSystem, Layer, Path, Scope } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 
@@ -193,14 +193,14 @@ The package also exposes the modules that implement its shared protocol:
 | Module | Exports |
 | --- | --- |
 | `holder.ts` | `HOLDER_ID_ENV`, `Holder` schema and type, `encodeHolder(holder)`, `decodeHolder(raw)` |
-| `lock-file.ts` | `readHolder(lock)`, `tryAcquire(lock, holder)`, `release(lock, id)`, `reclaim(lock, dead)` |
-| `process-start.ts` | `processStartTime(pid)`, `isHolderAlive(holder)` |
+| `lockFile.ts` | `readHolder(lock)`, `tryAcquire(lock, holder)`, `release(lock, id)`, `reclaim(lock, dead)` |
+| `processStart.ts` | `processStartTime(pid)`, `isHolderAlive(holder)` |
 | `settings.ts` | `Settings`, `readSettings(lockPath)` |
 | `status.ts` | `elapsed(fromMs, toMs)`, `waitingLine(holder, nowMs)`, `acquiredLine(waitStartedMs, nowMs)` |
 | `wait.ts` | `Claim`, `WaitOptions`, `waitForLock(lock, claim, options)` |
 | `cli/args.ts` | `CommandLine`, `USAGE`, `parseCommandLine(args)` |
 | `cli/program.ts` | `program(args)` |
-| `cli/run-command.ts` | `runCommand(commandLine, env, signals)` |
+| `cli/runCommand.ts` | `runCommand(commandLine, env, signals)` |
 | `cli/signals.ts` | `ForwardedSignal`, `signalExitCode(signal)`, `receiveSignals` |
 
 Each path has the prefix `@shivaedev/heavy-lock/`. `Holder` holds `id`, `pid`, `processStartedAt`, `command`, `cwd` and `startedAtMs`; `Claim` omits the acquisition time. `WaitOptions` names `pollInterval` as `Duration.Input` and `remindEvery` as `Duration.Duration`. `Settings` holds `ci`, the optional inherited ID and the resolved `lock` path. The [protocol reference](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md) describes the holder and acquisition rules. Use the scoped acquisition API for ordinary command wrapping.

@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import { Effect, Layer, Logger, References } from "effect";
 import { expect, it } from "vitest";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions } from "#test/fake-client.ts";
+import { constructorOptions } from "#test/fakeClient.ts";
 import { scriptedClient } from "#test/scriptedClient.ts";
 
 it.each(["failed stop", "pool kept open", "failed startup cleanup"])("still observes idle errors after %s", async (phase) => {

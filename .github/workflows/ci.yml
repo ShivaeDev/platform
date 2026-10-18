@@ -64,6 +64,29 @@ jobs:
           retention-days: 30 # GitHub allows re-runs for 30 days, and a re-run of failed jobs reuses these archives
           compression-level: 0
 
+  macos-smoke:
+    name: macOS smoke
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Test real filesystem delivery to live clients
+        env:
+          NODE_OPTIONS: --conditions=source
+        run: >-
+          pnpm --filter @shivaedev/work-board test
+          src/server/liveDelivery.spec.ts
+          src/server/files
+          src/test-support/filesystemBoundaries.spec.ts
+          src/server/liveUpdates.spec.ts
+          src/server/http/home.spec.ts
+          src/server/http/server.spec.ts
+          src/server/http/symlinks.spec.ts
+          src/server/rpc/rootRemoval.spec.ts
+
   typecheck:
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
@@ -96,7 +119,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 26.11.1
+          node-version-file: .node-version
           package-manager-cache: false
       - name: Pin main snapshots and independent shard counts
         id: timings
@@ -170,6 +193,9 @@ jobs:
       - name: Record the measured commits for Tally
         if: ${{ !cancelled() }}
         run: mkdir -p .ci/coverage && git rev-parse HEAD HEAD^1 > .ci/coverage/measured-commits.txt
+      - name: Record the job that produced the test reports
+        if: ${{ !cancelled() }}
+        run: echo "${{ job.check_run_id }}" > .ci/job.txt
       - name: Upload coverage for Tally
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ !cancelled() }}
@@ -179,6 +205,8 @@ jobs:
           path: |
             .ci/coverage/lcov.info
             .ci/coverage/measured-commits.txt
+            .ci/flaky-tests.json
+            .ci/job.txt
             .ci/tests.junit.xml
           include-hidden-files: true
           if-no-files-found: error
@@ -300,7 +328,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter]
+    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke]
     permissions:
       contents: read
       actions: read
@@ -325,7 +353,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          node-version: 26.11.1
+          node-version-file: .node-version
           package-manager-cache: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

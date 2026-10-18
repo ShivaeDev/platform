@@ -1,7 +1,7 @@
 {
 	"effect-react": [
 		{
-			"entries": ["./client/resultState.ts", "./resume-signal.ts", "./client/sessionBoundary.ts"],
+			"entries": ["./client/resultState.ts", "./resumeSignal.ts", "./client/sessionBoundary.ts"],
 			"fixtures": ["hooks-types.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": []
@@ -67,6 +67,14 @@
 			"omitOptionalPeers": false,
 			"run": ["dist/emit-main.js"],
 			"tsconfig": "@shivaedev/quality/tsconfig/package.json"
+		}
+	],
+	"vitest-rerun": [
+		{
+			"entries": ["./error.ts", "./flakyTests.ts", "./options.ts", "./rerun.ts"],
+			"fixtures": [],
+			"omitOptionalPeers": false,
+			"run": []
 		}
 	],
 	"work-fleet": [

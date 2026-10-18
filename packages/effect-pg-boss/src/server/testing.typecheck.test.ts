@@ -1,5 +1,5 @@
 import { Context, Effect, Schema, SchemaGetter } from "effect";
-import type { JobAttempt, JobWithMetadata } from "pg-boss";
+import type { JobWithMetadata } from "pg-boss";
 import { expectTypeOf } from "vitest";
 import { defineQueue } from "#definition.ts";
 import type { PgBossPayloadError, PgBossTestingError } from "#error.ts";
@@ -23,8 +23,3 @@ const readout = makePgBossTesting().jobs(queue);
 expectTypeOf<Effect.Services<typeof readout>>().toEqualTypeOf<DecodeDependency>();
 expectTypeOf<Effect.Error<typeof readout>>().toEqualTypeOf<PgBossTestingError | PgBossPayloadError>();
 expectTypeOf<Effect.Success<typeof readout>>().toEqualTypeOf<JobWithMetadata<{ readonly id: number; readonly label: string }>[]>();
-
-const completions = makePgBossTesting().completions(queue);
-expectTypeOf<Effect.Services<typeof completions>>().toEqualTypeOf<never>();
-expectTypeOf<Effect.Error<typeof completions>>().toEqualTypeOf<never>();
-expectTypeOf<Effect.Success<typeof completions>>().toEqualTypeOf<readonly JobAttempt[]>();

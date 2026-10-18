@@ -94,6 +94,19 @@
 		},
 		"output": "Synced pr-description from @shivaedev/skills"
 	},
+	"vitest-rerun": {
+		"args": [],
+		"expectedFiles": {
+			"attempts.txt": "attempt\nattempt\n",
+			"test-results/flaky-tests.json": "\"messages\":[\"First attempt fails\"]",
+			"test-results/tests.junit.xml": "classname=\"sample.spec.mjs\""
+		},
+		"files": {
+			"sample.spec.mjs": "import { appendFileSync, readFileSync } from \"node:fs\";\nimport { it } from \"vitest\";\n\nit(\"fails once\", () => {\n\tappendFileSync(\"attempts.txt\", \"attempt\\n\");\n\tif (readFileSync(\"attempts.txt\", \"utf8\") === \"attempt\\n\") {\n\t\tthrow new Error(\"First attempt fails\");\n\t}\n});\n",
+			"vitest.config.mjs": "export default { test: { include: [\"*.spec.mjs\"] } };\n"
+		},
+		"output": "- Flaky: sample.spec.mjs — fails once"
+	},
 	"work-board": {
 		"args": ["board", "--port", "0", "--home", "plan.md"],
 		"checkVersion": true,

@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Context, Effect, Layer } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { reportContent } from "#board/reportContent.ts";

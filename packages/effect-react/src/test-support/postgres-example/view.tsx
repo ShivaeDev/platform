@@ -7,7 +7,7 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect } from "vitest";
 import { eventually } from "#client/testing.ts";
-import type { AtomServices } from "#field-rejection.ts";
+import type { AtomServices } from "#fieldRejection.ts";
 import { makeClient } from "./makeClient.ts";
 import { OrderEditor } from "./OrderEditor.tsx";
 

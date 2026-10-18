@@ -1,10 +1,9 @@
 import { Effect, Redacted } from "effect";
 import { PgBoss } from "pg-boss";
 import type { PgBossClientFactory } from "#client.ts";
-import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
+import type { QueueDefinition } from "#definition.ts";
 import { PgBossTestingError } from "#error.ts";
 import { testingClient } from "#internal/testingClient.ts";
-import { testingCompletions } from "#internal/testingCompletions.ts";
 import { testingOperation, testingReadout } from "#internal/testingReadout.ts";
 import { testingSignal } from "#internal/testingSignal.ts";
 
@@ -19,7 +18,6 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 	const signal = testingSignal();
 	const controls = {
 		changed: signal.changed,
-		completions: testingCompletions(),
 		expirations: new Map<string, number>(),
 		failures: new Set<string>(),
 		retryPolicy: options.retryPolicy ?? {},
@@ -66,7 +64,6 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 				}
 			}),
 		clientFactory,
-		completions: controls.completions.read,
 		expireAfter: (queue: QueueDefinition, attempts: number) =>
 			Effect.try({
 				catch: (original) => new PgBossTestingError({ operation: "expireAfter", original: Redacted.make(original), queue: queue.name }),
@@ -77,8 +74,7 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 					controls.expirations.set(queue.name, attempts);
 				},
 			}),
-		failNextSend: <TName extends string, TPayload extends JobPayloadSchema>(queue: QueueDefinition<TName, TPayload>) =>
-			Effect.sync(() => controls.failures.add(queue.name)).pipe(Effect.asVoid),
+		failNextSend: (queue: QueueDefinition) => Effect.sync(() => controls.failures.add(queue.name)).pipe(Effect.asVoid),
 		jobs: testingReadout(client),
 		revision: signal.revision,
 		schemaVersion: testingOperation("schemaVersion", () => client().schemaVersion()),

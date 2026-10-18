@@ -29,7 +29,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 	const startWorker = Effect.fn("AppStory.startWorker")(function* (env?: Record<string, string>) {
 		story.tell("start the word-count worker");
 		const database = yield* PostgresTestDatabase;
-		const worker = noteWorker({ clientFactory: engine.workerTesting.clientFactory, databaseUrl: database.url });
+		const worker = noteWorker({ clientFactory: engine.workerQueue.clientFactory, databaseUrl: database.url });
 		const scope = yield* Scope.fork(yield* Scope.Scope);
 		yield* Layer.buildWithScope(
 			env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),
@@ -95,6 +95,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		}),
 		runningHost: host,
 		startWorker,
-		wordCountCompletions: () => engine.workerTesting.completions(CountWords),
+		wordCountCompletions: engine.workerQueue.completions,
 	};
 }

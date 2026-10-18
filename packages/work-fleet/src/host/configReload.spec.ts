@@ -69,6 +69,7 @@ test("an invalid or partly written edit keeps the last good config, logs a typed
 		withReloadDaemon(fixture, (daemon) =>
 			Effect.gen(function* () {
 				const one = yield* daemon.launched("one");
+				yield* daemon.client("fleet.reconcile", { workId: "one" });
 				const initial = yield* daemon.config(() => true);
 				yield* daemon.editText('{ "provider": "lo');
 				const partial = yield* daemon.config((config) => config.rejected !== undefined);

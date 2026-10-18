@@ -26,6 +26,7 @@ export function noteWorker(config?: { readonly databaseUrl?: Redacted.Redacted<s
 		Effect.gen(function* () {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const pool = yield* authDatabase(databaseUrl);
+			yield* Effect.logInfo("Worker waiting for schema");
 			return NoteJobs.layer({
 				...(config?.clientFactory === undefined ? {} : { clientFactory: config.clientFactory }),
 				connectionString: Redacted.value(databaseUrl),
@@ -33,7 +34,7 @@ export function noteWorker(config?: { readonly databaseUrl?: Redacted.Redacted<s
 				migrate: false,
 			}).pipe(
 				Layer.tap(() => Effect.logInfo("Worker ready to take jobs")),
-				Layer.provideMerge(appDatabase(databaseOptions(pool, databaseUrl)).pipe(Layer.tap(() => Effect.logInfo("Worker migrations applied")))),
+				Layer.provideMerge(appDatabase(databaseOptions(pool, databaseUrl, "wait")).pipe(Layer.tap(() => Effect.logInfo("Worker schema current")))),
 			);
 		}),
 	).pipe(Layer.provide(otlpTracing));

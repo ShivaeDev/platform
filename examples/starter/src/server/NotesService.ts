@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Create, type Delete, notes, Update } from "#notes.ts";
