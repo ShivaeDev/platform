@@ -13,7 +13,7 @@ if (url === undefined && ci !== "") {
 	throw new Error("CI requires PLATFORM_EFFECT_SQL_TEST_DATABASE_URL; skipped PostgreSQL tests prove nothing.");
 }
 
-const postgresOptions = {
+export const postgresOptions = {
 	migrations: {
 		loader: Migrator.fromRecord({
 			"1_fleet": migrateFleet(STORAGE_NAMESPACE),

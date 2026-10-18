@@ -1,76 +1,97 @@
 import { expect } from "@effect/vitest";
-import { Clock, Effect, Fiber } from "effect";
+import { Effect, Fiber } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { type CodexRequest, codexTurns } from "#providers/codexTurns.ts";
-import { startCodexTurn } from "#providers/startCodexTurn.ts";
-import { SessionFailure } from "#session/schema.ts";
+import { WireRejection } from "#test/codex.ts";
+import { localRequestTimeout, timedProviderStory } from "#test/providerStory.ts";
 
+const input = { operationId: "operation", prompt: "Continue", sessionId: "thread" };
 for (const observationDelay of [0, 299_000]) {
-	it.effect(`idle busy rejections respect the resubmission limit and original deadline: observationDelay=${observationDelay}`, function* () {
-		const times: number[] = [];
-		const submissions: unknown[] = [];
-		const rpc: CodexRequest = (method, requestParams) =>
-			Effect.gen(function* () {
-				if (method === "turn/start") {
-					times.push(yield* Clock.currentTimeMillis);
-					submissions.push(requestParams);
-					return yield* new SessionFailure({ code: "session-rejected", message: "turn already active for thread", reason: "rejected" });
+	timedProviderStory.it(
+		`idle busy rejections respect the resubmission limit and original deadline: observationDelay=${observationDelay}`,
+		[localRequestTimeout(600_000)],
+		function* ({ provider, replyWith, requests, awaitSleep, replyAfter }) {
+			yield* replyWith((request) => {
+				if (request.method === "turn/start") {
+					return new WireRejection("turn already active for thread");
 				}
-				yield* Effect.sleep(observationDelay);
+				if (request.method === "thread/turns/list" && observationDelay > 0) {
+					return replyAfter(observationDelay, { data: [], nextCursor: null });
+				}
 				return { data: [], nextCursor: null };
 			});
-		const params = { clientUserMessageId: "operation", input: [{ text: "Continue", type: "text" }], threadId: "thread" };
-		const submitting = yield* startCodexTurn(rpc, codexTurns(rpc).waitUntilIdle)("thread", params).pipe(Effect.flip, Effect.forkChild);
-		yield* TestClock.adjust(observationDelay === 0 ? "35 seconds" : "5 minutes");
-		const error = yield* Fiber.join(submitting);
-		expect(error.reason).toBe("rejected");
-		if (observationDelay === 0) {
-			expect(error.code).toBe("session-active-turn-exhausted");
-			expect(times).toEqual([0, 5000, 15_000, 35_000]);
-			expect(submissions).toEqual([params, params, params, params]);
-		} else {
-			expect(error.message).toContain("active-turn wait deadline reached");
-			expect(times).toEqual([0]);
-		}
-	});
+			const submitting = yield* provider.startTurn(input).pipe(Effect.flip, Effect.forkChild);
+			if (observationDelay > 0) {
+				yield* awaitSleep(observationDelay);
+				yield* TestClock.adjust(observationDelay);
+				yield* awaitSleep(1000);
+				yield* TestClock.adjust(1000);
+			} else {
+				yield* awaitSleep(5000);
+			}
+			if (observationDelay === 0) {
+				yield* TestClock.adjust(5000);
+				yield* awaitSleep(10_000);
+				yield* TestClock.adjust(10_000);
+				yield* awaitSleep(20_000);
+				yield* TestClock.adjust(20_000);
+			}
+			const error = yield* Fiber.join(submitting);
+			expect(error.reason).toBe("rejected");
+			const submissions = requests().filter((request) => request.method === "turn/start");
+			if (observationDelay === 0) {
+				expect(error.code).toBe("session-active-turn-exhausted");
+				expect(submissions).toHaveLength(4);
+				expect(submissions.map((request) => request.params)).toEqual(
+					Array.from({ length: 4 }, () => ({
+						clientUserMessageId: input.operationId,
+						input: [{ text: input.prompt, "text_elements": [], type: "text" }],
+						threadId: input.sessionId,
+					})),
+				);
+			} else {
+				expect(error.message).toContain("active-turn wait deadline reached");
+				expect(submissions).toHaveLength(1);
+			}
+		},
+	);
 }
 
-it.effect("idle busy rejections back off before the same turn starts", function* () {
-	const methods: string[] = [];
-	const times: number[] = [];
-	const submissions: unknown[] = [];
-	const rpc: CodexRequest = (method, requestParams) =>
-		Effect.gen(function* () {
-			methods.push(method);
-			if (method !== "turn/start") {
-				return { data: [], nextCursor: null };
-			}
-			times.push(yield* Clock.currentTimeMillis);
-			submissions.push(requestParams);
-			return submissions.length < 3
-				? yield* new SessionFailure({ code: "session-rejected", message: "turn already active for thread", reason: "rejected" })
-				: { turn: { id: "followup" } };
-		});
-	const params = { clientUserMessageId: "operation", input: [{ text: "Continue", type: "text" }], threadId: "thread" };
-	const submitting = yield* startCodexTurn(rpc, codexTurns(rpc).waitUntilIdle)("thread", params).pipe(Effect.forkChild);
-	yield* TestClock.adjust("15 seconds");
-	expect(yield* Fiber.join(submitting)).toEqual({ turn: { id: "followup" } });
-	expect(times).toEqual([0, 5000, 15_000]);
-	expect(submissions).toEqual([params, params, params]);
-	expect(new Set(methods)).toEqual(new Set(["thread/turns/list", "turn/start"]));
+timedProviderStory.it("idle busy rejections back off before the same turn starts", [], function* ({ provider, replyWith, requests, awaitSleep }) {
+	let attempts = 0;
+	yield* replyWith((request) => {
+		if (request.method !== "turn/start") {
+			return { data: [], nextCursor: null };
+		}
+		attempts += 1;
+		return attempts < 3 ? new WireRejection("turn already active for thread") : { turn: { id: "followup" } };
+	});
+	const submitting = yield* provider.startTurn(input).pipe(Effect.forkChild);
+	yield* awaitSleep(5000);
+	expect(requests().filter((request) => request.method === "turn/start")).toHaveLength(1);
+	yield* TestClock.adjust(4999);
+	expect(requests().filter((request) => request.method === "turn/start")).toHaveLength(1);
+	yield* TestClock.adjust(1);
+	yield* awaitSleep(10_000);
+	expect(requests().filter((request) => request.method === "turn/start")).toHaveLength(2);
+	yield* TestClock.adjust(10_000);
+	expect(yield* Fiber.join(submitting)).toEqual({ sessionId: "thread", turnId: "followup" });
+	const submissions = requests().filter((request) => request.method === "turn/start");
+	expect(submissions.map((request) => request.params)).toEqual(
+		Array.from({ length: 3 }, () => ({
+			clientUserMessageId: input.operationId,
+			input: [{ text: input.prompt, "text_elements": [], type: "text" }],
+			threadId: input.sessionId,
+		})),
+	);
 });
 
-it.effect("an invalid request does not check contention or resubmit", function* () {
-	const methods: string[] = [];
-	const rpc: CodexRequest = (method) =>
-		Effect.suspend(() => {
-			methods.push(method);
-			return method === "turn/start"
-				? Effect.fail(new SessionFailure({ code: "session-rejected", message: "Invalid request", reason: "rejected" }))
-				: Effect.succeed({ data: [], nextCursor: null });
-		});
-	const error = yield* startCodexTurn(rpc, codexTurns(rpc).waitUntilIdle)("thread", { threadId: "thread" }).pipe(Effect.flip);
+timedProviderStory.it("an invalid request does not check contention or resubmit", [], function* ({ provider, replyWith, requests }) {
+	yield* replyWith((request) => (request.method === "turn/start" ? new WireRejection("Invalid request") : {}));
+	const error = yield* provider.startTurn(input).pipe(Effect.flip);
 	expect(error.code).toBe("session-rejected");
-	expect(methods).toEqual(["turn/start"]);
+	expect(
+		requests()
+			.filter((request) => request.method.startsWith("turn/") || request.method === "thread/turns/list")
+			.map((request) => request.method),
+	).toEqual(["turn/start"]);
 });
