@@ -1,182 +1,147 @@
-import { rmSync } from "node:fs";
-import process from "node:process";
-import { expect, it } from "@effect/vitest";
-import { Clock, Effect, Fiber, Layer, Option } from "effect";
-import { TestConsole } from "effect/testing";
-import { afterEach } from "vitest";
-import { HeldLock } from "#held-lock.ts";
-import { encodeHolder, HOLDER_ID_ENV } from "#holder.ts";
-import { readHolder, tryAcquire } from "#lock-file.ts";
-import { scriptedClock } from "#test/clock.ts";
-import { holder, lockDirectory, readLock, removeTemporaryDirectories, services, temporaryLock, writeLock } from "#test/lock.ts";
-import { heavyLockLayer, withHeavyLock } from "#with-heavy-lock.ts";
+import { Cause, Effect, Exit, Option } from "effect";
+import { assert, expect } from "vitest";
+import { HOLDER_ID_ENV } from "#holder.ts";
+import { environment, heldBy, lockStory, pollingEvery } from "#test/kit.ts";
 
-afterEach(removeTemporaryDirectories);
-
-const holding = Effect.fn("HeavyLockTest.holding")(function* (lock: string) {
-	const held = yield* HeldLock;
-	return { env: held.env, holder: yield* readHolder(lock) };
+lockStory.it("a waiter names its holder, reminds every minute, then acquires and releases", [heldBy("e2e")], function* ({ clock, lock }) {
+	const waiter = yield* clock.wait(30_000);
+	expect(waiter.lines()).toHaveLength(1);
+	expect(waiter.lines()[0]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(30s\)$/u);
+	yield* waiter.advance(55_000);
+	expect(waiter.lines()).toHaveLength(1);
+	yield* waiter.advance(5000);
+	expect(waiter.lines()).toHaveLength(2);
+	expect(waiter.lines()[1]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(1m 30s\)$/u);
+	yield* lock.release("e2e");
+	yield* waiter.advance(10_000);
+	const held = yield* waiter.finish();
+	expect(Option.map(held.holder, ({ command, startedAtMs }) => ({ command, startedAtMs }))).toEqual(
+		Option.some({ command: "pnpm ready", startedAtMs: 100_000 }),
+	);
+	expect(held.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(held.holder).id });
+	expect(waiter.lines()).toHaveLength(3);
+	expect(waiter.lines()[2]).toBe("heavy-process lock: acquired after 1m 10s");
+	expect(lock.contents()).toBeUndefined();
 });
 
-it.effect("a waiter names the holder, reminds every minute, and takes the lock once it is released", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		const startedAtMs = yield* Clock.currentTimeMillis;
-		yield* tryAcquire(lock, holder("e2e", process.pid, startedAtMs));
-		const scripted = yield* scriptedClock(startedAtMs + 30_000, (_line, lines) => {
-			if (lines.length === 2) {
-				rmSync(lock);
-			}
-			return 60_000;
-		});
+lockStory.it("a waiter polls at its configured interval across partial advances", [heldBy("build"), pollingEvery(7000)], function* ({ clock, lock }) {
+	const waiter = yield* clock.wait();
+	yield* lock.release("build");
+	yield* waiter.advance(6000);
+	expect(lock.contents()).toBeUndefined();
+	expect(waiter.lines()).toHaveLength(1);
+	yield* waiter.advance(1000);
+	const held = yield* waiter.finish();
+	expect(Option.map(held.holder, ({ startedAtMs }) => startedAtMs)).toEqual(Option.some(7000));
+	expect(waiter.lines()[1]).toBe("heavy-process lock: acquired after 7s");
+	expect(lock.contents()).toBeUndefined();
+});
 
-		const held = yield* scripted.provide(withHeavyLock(holding(lock), { command: "pnpm ready", lockPath: lock, pollInterval: "1 millis" }));
+lockStory.it("CI skips a lock held by another run", [heldBy("typecheck"), environment({ "CI": "true" })], function* ({ run, lock }) {
+	const command = yield* run.start();
+	expect(yield* run.environment(command)).toEqual({});
+	expect(yield* lock.read()).toEqual(Option.some(lock.holder("typecheck")));
+	yield* run.complete(command);
+	yield* run.join(command);
+	expect(yield* lock.read()).toEqual(Option.some(lock.holder("typecheck")));
+});
 
-		expect(Option.map(held.holder, ({ command, startedAtMs: acquiredAtMs }) => ({ command, startedAtMs: acquiredAtMs }))).toEqual(
-			Option.some({ command: "pnpm ready", startedAtMs: startedAtMs + 150_000 }),
-		);
-		expect(held.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(held.holder).id });
-		expect(scripted.lines).toHaveLength(3);
-		expect(scripted.lines[0]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(30s\)$/u);
-		expect(scripted.lines[1]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(1m 30s\)$/u);
-		expect(scripted.lines[2]).toBe("heavy-process lock: acquired after 2m 0s");
-		expect(readLock(lock)).toBeUndefined();
-	}).pipe(Effect.provide(services())),
+lockStory.it("an empty CI still acquires the lock", [environment({ "CI": "" })], function* ({ run, lock }) {
+	const command = yield* run.start();
+	const env = yield* run.environment(command);
+	expect(env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(yield* lock.read()).id });
+	yield* run.complete(command);
+	yield* run.join(command);
+	expect(lock.contents()).toBeUndefined();
+});
+
+lockStory.it("a waiter stays quiet between reminders and immediately names a replacement", [heldBy("build")], function* ({ clock, lock }) {
+	const waiter = yield* clock.wait();
+	yield* waiter.advance(10_000);
+	expect(waiter.lines()).toHaveLength(1);
+	yield* lock.replace("typecheck", 20_000);
+	yield* waiter.advance(10_000);
+	expect(waiter.lines()).toHaveLength(2);
+	expect(waiter.lines()[0]).toContain("running `pnpm build`");
+	expect(waiter.lines()[1]).toContain("running `pnpm typecheck`");
+	yield* lock.release("typecheck");
+	yield* waiter.advance(10_000);
+	yield* waiter.finish();
+	expect(waiter.lines()).toHaveLength(3);
+	expect(waiter.lines()[2]).toBe("heavy-process lock: acquired after 30s");
+	expect(lock.contents()).toBeUndefined();
+});
+
+lockStory.it(
+	"descendants join a holder's lock and a finished holder's id acquires a fresh one",
+	[heldBy("ready"), environment({ [HOLDER_ID_ENV]: "ready" })],
+	function* ({ run, lock }) {
+		const descendant = yield* run.start();
+		expect(yield* run.environment(descendant)).toEqual({ [HOLDER_ID_ENV]: "ready" });
+		expect(yield* lock.read()).toEqual(Option.some(lock.holder("ready")));
+		yield* run.complete(descendant);
+		yield* run.join(descendant);
+		expect(yield* lock.read()).toEqual(Option.some(lock.holder("ready")));
+		yield* lock.release("ready");
+		const fresh = yield* run.start();
+		const env = yield* run.environment(fresh);
+		const holder = Option.getOrThrow(yield* lock.read());
+		expect(holder.id).not.toBe("ready");
+		expect(env).toEqual({ [HOLDER_ID_ENV]: holder.id });
+		yield* run.complete(fresh);
+		yield* run.join(fresh);
+		expect(lock.contents()).toBeUndefined();
+	},
 );
 
-it.effect("CI skips the lock, even while another run holds it; an empty CI does not", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		const typecheck = holder("typecheck");
-		yield* tryAcquire(lock, typecheck);
+lockStory.it("acquisition inside a held lock joins the hold", [], function* ({ run, lock }) {
+	const outer = yield* run.start();
+	const env = yield* run.environment(outer);
+	const before = lock.contents();
+	const inner = yield* run.startNested(outer);
+	expect(yield* run.environment(inner)).toEqual(env);
+	expect(lock.contents()).toBe(before);
+	yield* run.complete(inner);
+	yield* run.join(inner);
+	expect(lock.contents()).toBe(before);
+	yield* run.complete(outer);
+	yield* run.join(outer);
+	expect(lock.contents()).toBeUndefined();
+});
 
-		const skipped = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ "CI": "true" })));
-		expect(skipped).toEqual({ env: {}, holder: Option.some(typecheck) });
+lockStory.it("a failing command releases the lock and keeps its error", [], function* ({ run, lock }) {
+	const command = yield* run.start();
+	yield* run.environment(command);
+	expect(lock.contents()).toBeDefined();
+	yield* run.fail(command, "build failed");
+	const result = yield* run.exit(command);
+	assert(Exit.isFailure(result));
+	expect(Cause.findErrorOption(result.cause)).toEqual(Option.some("build failed"));
+	expect(lock.contents()).toBeUndefined();
+});
 
-		rmSync(lock);
-		const taken = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ "CI": "" })));
-		expect(taken.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(taken.holder).id });
-	}).pipe(Effect.provide(services())),
-);
+lockStory.it("a layer holds the lock for its scope", [], function* ({ run, lock }) {
+	const layer = yield* run.buildLayer();
+	expect(lock.contents()).toMatch(/"command":"/u);
+	yield* run.closeLayer(layer);
+	expect(lock.contents()).toBeUndefined();
+});
 
-it.effect("a waiter stays quiet between reminders but immediately names a replacement holder", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		const startedAtMs = yield* Clock.currentTimeMillis;
-		const first = holder("build", process.pid, startedAtMs);
-		const replacement = holder("typecheck", process.pid, startedAtMs + 20_000);
-		yield* tryAcquire(lock, first);
-		let polls = 0;
-		const scripted = yield* scriptedClock(
-			startedAtMs,
-			(_line, lines) => {
-				if (lines.length === 2) {
-					rmSync(lock);
-				}
-				return 0;
-			},
-			() => {
-				polls += 1;
-				if (polls === 2) {
-					writeLock(lock, JSON.stringify(replacement));
-				}
-				if (polls > 3) {
-					throw new Error("Waiter did not announce the replacement holder.");
-				}
-				return 10_000;
-			},
-		);
+lockStory.it("an interrupted waiter leaves its holder's lock alone and no temporary files", [heldBy("build")], function* ({ clock, lock }) {
+	const before = lock.contents();
+	const waiter = yield* clock.wait();
+	expect(waiter.lines()[0]).toContain("running `pnpm build`");
+	yield* waiter.interrupt();
+	expect(Exit.hasInterrupts(yield* Effect.exit(waiter.advance(10_000)))).toBe(true);
+	expect(yield* lock.read()).toEqual(Option.some(lock.holder("build")));
+	expect(lock.contents()).toBe(before);
+	expect(lock.files()).toEqual(["heavy-process.lock"]);
+});
 
-		yield* scripted.provide(withHeavyLock(Effect.void, { lockPath: lock, pollInterval: "10 seconds" }));
-
-		expect(scripted.lines).toHaveLength(3);
-		expect(scripted.lines[0]).toContain("running `pnpm build`");
-		expect(scripted.lines[1]).toContain("running `pnpm typecheck`");
-		expect(scripted.lines[2]).toBe("heavy-process lock: acquired after 30s");
-		expect(polls).toBe(3);
-		expect(readLock(lock)).toBeUndefined();
-	}).pipe(Effect.provide(services())),
-);
-
-it.effect("the holder's own descendants run under its lock; a finished holder's id takes a new lock", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		const ready = holder("ready");
-		yield* tryAcquire(lock, ready);
-
-		const nested = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ [HOLDER_ID_ENV]: ready.id })));
-		expect(nested).toEqual({ env: { [HOLDER_ID_ENV]: ready.id }, holder: Option.some(ready) });
-
-		rmSync(lock);
-		const fresh = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ [HOLDER_ID_ENV]: ready.id })));
-		expect(Option.map(fresh.holder, ({ id }) => id)).not.toEqual(Option.some(ready.id));
-		expect(fresh.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(fresh.holder).id });
-	}).pipe(Effect.provide(services())),
-);
-
-it.effect("a lock taken inside a held lock joins the hold instead of waiting for itself", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-
-		const [outer, inner] = yield* withHeavyLock(Effect.zip(holding(lock), withHeavyLock(holding(lock), { lockPath: lock })), { lockPath: lock }).pipe(
-			Effect.timeout("5 seconds"),
-		);
-
-		expect(inner).toEqual(outer);
-		expect(readLock(lock)).toBeUndefined();
-	}).pipe(Effect.provide(services())),
-);
-
-it.effect("a failing effect releases the lock and keeps its own error", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-
-		const error = yield* withHeavyLock(Effect.fail("build failed"), { lockPath: lock }).pipe(Effect.flip);
-
-		expect(error).toBe("build failed");
-		expect(readLock(lock)).toBeUndefined();
-	}).pipe(Effect.provide(services())),
-);
-
-it.effect("a layer holds the lock for as long as it is in use", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-
-		const inside = yield* Effect.scoped(Effect.flatMap(Layer.build(heavyLockLayer({ lockPath: lock })), () => Effect.sync(() => readLock(lock))));
-
-		expect(inside).toMatch(/"command":"/u);
-		expect(readLock(lock)).toBeUndefined();
-	}).pipe(Effect.provide(services())),
-);
-
-it.live("an interrupted waiter leaves the holder's lock alone and nothing behind", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-		const build = holder("build");
-		yield* tryAcquire(lock, build);
-
-		const waiter = yield* Effect.forkChild(withHeavyLock(Effect.void, { lockPath: lock, pollInterval: "5 millis" }));
-		while ((yield* TestConsole.errorLines).length === 0) {
-			yield* Effect.sleep("5 millis");
-		}
-		yield* Fiber.interrupt(waiter);
-
-		expect(yield* readHolder(lock)).toEqual(Option.some(build));
-		expect(readLock(lock)).toBe(yield* encodeHolder(build));
-		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
-	}).pipe(Effect.provide(Layer.merge(services(), TestConsole.layer))),
-);
-
-it.live("interrupting the effect under the lock releases it", () =>
-	Effect.gen(function* () {
-		const lock = temporaryLock();
-
-		const running = yield* Effect.forkChild(withHeavyLock(Effect.never, { lockPath: lock }));
-		while (readLock(lock) === undefined) {
-			yield* Effect.sleep("5 millis");
-		}
-		yield* Fiber.interrupt(running);
-
-		expect(readLock(lock)).toBeUndefined();
-	}).pipe(Effect.provide(services())),
-);
+lockStory.it("interrupting the running command releases its lock", [], function* ({ run, lock }) {
+	const command = yield* run.start();
+	yield* run.environment(command);
+	expect(lock.contents()).toBeDefined();
+	yield* run.interrupt(command);
+	expect(lock.contents()).toBeUndefined();
+});
