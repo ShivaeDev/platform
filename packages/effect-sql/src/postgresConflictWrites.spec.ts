@@ -3,7 +3,7 @@ import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { makeRepository } from "#repository.ts";
-import { integration, runPostgres } from "#test/postgres-transact.ts";
+import { integration, runPostgres } from "#test/postgresTransact.ts";
 
 class Prefix extends Context.Service<Prefix, string>()("ingest/Prefix") {}
 const ExternalKey = Schema.String.pipe(

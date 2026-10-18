@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test as it } from "node:test";
-import { withTarballOverrides } from "#packed-workspace.ts";
+import { withTarballOverrides } from "#withTarballOverrides.ts";
 
 it("nested setup, install and hook commands keep one tarball override per package", () => {
 	const tarballs = { "@shivaedev/platform": "/tmp/platform.tgz" };

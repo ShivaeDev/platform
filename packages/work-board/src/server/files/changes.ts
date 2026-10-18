@@ -76,6 +76,7 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 		setWatching,
 		(paths) => Effect.andThen(invalidate(paths), Effect.andThen(finishPending, publish({ _tag: "Changed", paths }))),
 		observed,
+		finishPending,
 	);
 	yield* attempt.pipe(
 		Effect.sandbox,

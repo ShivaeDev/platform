@@ -96,7 +96,7 @@ const profile = Atom.swr(api.query("Profile", undefined), {
 
 `makeRefreshOnSignal` refetches on every signal; a visibility change and a
 reconnect arriving together refetch twice. `swr` skips fresh or in-flight
-results. [Synthetic-signal tests](../../packages/effect-react/src/resume-signal.dom.test.ts)
+results. [Synthetic-signal tests](../../packages/effect-react/src/resumeSignal.dom.test.ts)
 cover hidden/visible events, native resume, staleness and listener removal. They do
 not validate a real Capacitor lifecycle or suspended network requests.
 

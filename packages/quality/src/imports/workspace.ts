@@ -4,7 +4,7 @@ import { Effect } from "effect";
 import { manifestsIn } from "#manifests/sorted.ts";
 import type { RuleInputs } from "#rule.ts";
 import { globMatcher } from "./glob.ts";
-import { pnpmWorkspacePatterns } from "./pnpm-workspace.ts";
+import { pnpmWorkspacePatterns } from "./pnpmWorkspacePatterns.ts";
 
 export interface WorkspacePackage {
 	readonly directory: string;

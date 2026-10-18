@@ -9,6 +9,7 @@ import { type OpenPage, openPage } from "./browser.ts";
 
 export interface BoardEngine {
 	beforeScripts?: Parameters<typeof openPage>[2];
+	fleetPort?: number | undefined;
 	lastView?: ReturnType<typeof readerView>;
 	live?: { board: RunningBoard; client: ReturnType<typeof browserClient>; page: OpenPage };
 	readonly notes: Folder;
@@ -34,7 +35,7 @@ export function* createBoard() {
 }
 
 export function* serveProject(engine: BoardEngine) {
-	const board = yield* startBoard(engine.notes.root, undefined, engine.wrap, engine.responses);
+	const board = yield* startBoard(engine.notes.root, undefined, engine.wrap, engine.responses, undefined, undefined, engine.fleetPort);
 	const client = yield* Effect.acquireRelease(
 		Effect.sync(() => browserClient(board.url)),
 		(acquired) => Effect.sync(() => acquired.registry.dispose()),
