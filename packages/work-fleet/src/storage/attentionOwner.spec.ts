@@ -44,7 +44,7 @@ test("migration persists owners on existing waits and preserves assigned owners 
 				{ decisionOwner: "maintainer", owner: "maintainer", version: 2, workId: "published" },
 				{ decisionOwner: null, owner: "orchestrator", version: 2, workId: "question" },
 				{ decisionOwner: null, owner: "automation", version: 2, workId: "quota" },
-				{ decisionOwner: null, owner: "orchestrator", version: 2, workId: "ready" },
+				{ decisionOwner: "maintainer", owner: "maintainer", version: 2, workId: "ready" },
 				{ decisionOwner: null, owner: "automation", version: 2, workId: "retry" },
 			]);
 			yield* migrateFleet(namespace, "attention_owner");

@@ -18,6 +18,7 @@ export const upgradeDecisionClosure = Effect.fn("FleetBoard.upgradeDecisionClosu
 		return;
 	}
 	if (snapshot.problems.size > 0) {
+		yield* Effect.logWarning("Fleet decision closure upgrade deferred because the Board has problems", { problems: snapshot.problems.size });
 		return;
 	}
 	const documents = snapshot.documents;

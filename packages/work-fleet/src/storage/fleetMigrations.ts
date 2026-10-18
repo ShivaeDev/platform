@@ -24,8 +24,7 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 		"4_attention_owner": sql`update ${sql(`${namespace}_records`)} set version = version + 1,
 				payload = case
 					when payload->>'stage' = 'needs-human' and payload->'decision' is not null
-						and payload->'decision'->>'reason' is distinct from 'Reviewed PR is ready to merge'
-						and (payload->'decision'->>'attentionOwner' is null or payload->'decision'->'published' is not null)
+						and (payload->'decision'->>'attentionOwner' is null or payload->'decision'->'published' is not null or payload->'decision'->>'reason' = 'Reviewed PR is ready to merge')
 					then jsonb_set(jsonb_set(payload, '{attentionOwner}', '"maintainer"'::jsonb), '{decision,attentionOwner}', '"maintainer"'::jsonb)
 					else jsonb_set(payload, '{attentionOwner}',
 						case when (payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true')
