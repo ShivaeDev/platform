@@ -84,7 +84,7 @@ const followScheduler = Effect.fn("WatchSchedulerTest.followScheduler")(function
 	yield* until(() => client("fleet.get", { workId: "one" }).pipe(Effect.map((record) => record.decision?.code === "reviewed-pr-ready")));
 	expect((yield* client("fleet.get", { workId: "one" })).stage).toBe("needs-human");
 	expect((yield* watch.readClient("fleet.get", { workId: "one" })).decision?.code).toBe("reviewed-pr-ready");
-	yield* untilEveryOutput(followers, "one needs-human (waiting on maintainer): Reviewed PR is ready to merge\n").pipe(Effect.timeout("5 seconds"));
+	yield* untilEveryOutput(followers, "one needs-human (waiting on orchestrator): Reviewed PR is ready to merge\n").pipe(Effect.timeout("5 seconds"));
 	expect(followers.map((follower) => follower.isRunning())).toEqual([true, true]);
 	expect(watch.reviews).toEqual(["head-one-0"]);
 	expect((yield* client("fleet.get", { workId: "one" })).review).toMatchObject({ head: "head-one-0", verdict: "approved" });
