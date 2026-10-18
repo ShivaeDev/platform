@@ -352,7 +352,7 @@ The application's service has these operations:
 
 `JobContext` has `id`, `name`, `signal`, `expireInSeconds`, `heartbeatSeconds` and `remainingBudget`. Worker registration always requests `includeMetadata: true`, including when `worker` supplies `includeMetadata: false`; custom clients must return pg-boss's `startedOn` metadata. When calling `jobContext` directly, reading `remainingBudget` requires that same metadata. `QueueHealth` has `name`, `activeCount`, `deadLetteredCount`, `failedCount`, `queuedCount` and `readyCount`. `JobsHealth` has `jobs` and the corresponding `activeTotal`, `deadLetteredTotal`, `failedTotal`, `queuedTotal` and `readyTotal` fields.
 
-`PgBossError` has `operation`, optional `queue` and a `Redacted` `original`. `PgBossPayloadError` has `direction`, `queue` and a `Redacted` `original`. Those fields distinguish the pg-boss operation from the payload boundary.
+`PgBossError` has `operation`, optional `queue` and a `Redacted` `original`. Its message names the operation, the queue and the original error's class and `code`, such as a PostgreSQL SQLSTATE, but never the original message, which can quote payloads or connection strings. A registration failure names the queue it was preparing. `PgBossPayloadError` has `direction`, `queue` and a `Redacted` `original`. Those fields distinguish the pg-boss operation from the payload boundary.
 
 ### Install, setup and limits
 
