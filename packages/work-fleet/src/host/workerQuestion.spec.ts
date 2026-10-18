@@ -1,63 +1,57 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
-import { hostLayer } from "#host/commands.ts";
 import { WAIT_EXIT } from "#host/wait.ts";
-import { boardHttp } from "#test/boardHttp.ts";
-import { dispatchWork } from "#test/dispatchWork.ts";
-import { waitProcess } from "#test/fleetCli.ts";
-import { task, withHost } from "#test/fleetHost.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { withReadDaemon } from "#test/readDaemon.ts";
-import { answerWorker, askWorker, QUESTION } from "#test/workerQuestion.ts";
+import { approvedWork, host } from "#test/hostStory.ts";
 
-const test = postgresTests("live");
-
-test("worker questions appear on Board, wait exits needs-human, and an answer continues the thread once across restart", function* () {
-	yield* withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-		Effect.gen(function* () {
-			yield* dispatchWork(fixture.host, "one", fixture.parts);
-			const { decision, published, stopped } = yield* askWorker(fixture.provider).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-			expect(stopped.value.stage).toBe("needs-human");
-			expect(stopped.value.result).toBeUndefined();
-			const { client, url } = yield* boardHttp(fixture.host.boardDir);
-			const page = yield* Effect.tryPromise(() =>
-				fetch(`${url}/_board/respond?item=${published.itemId}&request=${published.request}`, { redirect: "manual" }),
-			);
-			expect(page.status).toBe(302);
-			expect(page.headers.get("location")).toBe(
-				`/_board/item/${encodeURIComponent(published.itemId)}/#answer-card-${encodeURIComponent(published.request)}`,
-			);
-			const preview = yield* Effect.tryPromise(() =>
-				client.run(client.responses.question.run({ item: published.itemId, request: published.request })),
-			);
-			expect(preview.reason).toContain("Which storage should I use?");
-			expect(preview.context).toContain("Which storage should I use?");
-			const asks = yield* Effect.tryPromise(() => client.run(client.api.inbox.run(undefined)));
-			expect(asks.agents).toEqual(expect.arrayContaining([expect.objectContaining({ file: published.sourcePath })]));
-			expect(yield* withReadDaemon(fixture.host, () => Effect.promise(() => waitProcess(fixture.host.boardDir, "one")))).toEqual({
-				code: WAIT_EXIT.waitingDecision,
-				stdout: `one needs-human (waiting on orchestrator): ${QUESTION}`,
-			});
-			const answer = yield* answerWorker(fixture.host.boardDir, decision);
-			const resumed = yield* Effect.gen(function* () {
-				const fleet = yield* Fleet;
-				return yield* fleet.reconcile("one");
-			}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-			expect(resumed.value.stage).toBe("executing");
-			expect(resumed.value.attempts).toHaveLength(2);
-			expect(resumed.value.responses).toMatchObject([{ action: "continue", boardAcknowledged: true, responseId: answer.id }]);
-			const continuation = resumed.value.attempts.at(-1);
-			expect(continuation?.receipt?.sessionId).toBe(decision.worker?.sessionId);
-			expect(continuation?.prompt).toBe(answer.body);
-			expect(fixture.provider.observations.get(continuation?.receipt?.turnId ?? "")?.output).toBe(answer.body);
-			yield* Effect.gen(function* () {
-				const restarted = yield* Fleet;
-				yield* restarted.resolve("one", decision.id, answer.id);
-				yield* restarted.reconcile("one");
-			}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-			expect(fixture.provider.launched).toHaveLength(1);
-			expect(fixture.provider.settings.filter((call) => call.call === "turn")).toHaveLength(2);
-		}),
-	);
-});
+host.it(
+	"worker questions appear on Board, wait exits needs-human, and an answer continues the thread once across restart",
+	[approvedWork(["one"])],
+	function* (daemon) {
+		const started = yield* daemon.dispatch("one");
+		const question = "Which storage should I use?\n\nChoose PostgreSQL or SQLite.";
+		daemon.finishTurn(started, `FLEET_QUESTION: ${question}`);
+		const stopped = yield* daemon.reconcile("one");
+		expect(stopped.stage).toBe("needs-human");
+		expect(stopped.result).toBeUndefined();
+		const decision = stopped.decision;
+		const published = decision?.published;
+		if (decision === undefined || published === undefined) {
+			throw new Error("Expected a published worker question");
+		}
+		const board = yield* daemon.boardHttp();
+		const page = yield* daemon.respondRedirect(board, published.itemId, published.request);
+		expect(page.status).toBe(302);
+		expect(page.headers.get("location")).toBe(
+			`/_board/item/${encodeURIComponent(published.itemId)}/#answer-card-${encodeURIComponent(published.request)}`,
+		);
+		const preview = yield* daemon.question(board, published.itemId, published.request);
+		expect(preview.reason).toContain("Which storage should I use?");
+		expect(preview.context).toContain("Which storage should I use?");
+		expect((yield* daemon.inbox(board)).agents).toEqual(expect.arrayContaining([expect.objectContaining({ file: published.sourcePath })]));
+		expect(yield* daemon.cli(["wait", "one", "--interval", "0.1", "--timeout", "20"])).toEqual({
+			code: WAIT_EXIT.waitingDecision,
+			stderr: "",
+			stdout: `one needs-human (waiting on orchestrator): ${question}`,
+		});
+		const body = "Use **PostgreSQL**. Preserve the transaction boundary.";
+		const answer = yield* daemon.publishAnswer(board, {
+			author: "maintainer",
+			body,
+			id: "response.worker.answer",
+			question: published.questionId,
+			type: "answer",
+		});
+		const resumed = yield* daemon.reconcile("one");
+		expect(resumed.stage).toBe("executing");
+		expect(resumed.attempts).toHaveLength(2);
+		expect(resumed.responses).toMatchObject([{ action: "continue", boardAcknowledged: true, responseId: answer.id }]);
+		expect(resumed.attempts.at(-1)?.receipt?.sessionId).toBe(decision.worker?.sessionId);
+		expect(resumed.attempts.at(-1)?.prompt).toBe(body);
+		yield* daemon.stop();
+		yield* daemon.start();
+		yield* daemon.resolve("one", decision.id, answer.id);
+		const replayed = yield* daemon.reconcile("one");
+		expect(replayed.attempts).toEqual(resumed.attempts);
+		expect(daemon.providerStarts()).toHaveLength(1);
+		expect(daemon.providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+	},
+);

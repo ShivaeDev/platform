@@ -353,19 +353,13 @@
 {"path":"packages/work-fleet/src/engine/workerQuestion.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/workerReportRecovery.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/exposeFailure.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/answerPublication.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/answerPublicationRace.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/answerQueue.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/answerRecovery.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/answerReplacement.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/answerStatus.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/answerTimeout.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/answerValidation.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/answerWorker.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/applyReportPatch.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/approveBrief.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/approvedConflict.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/approvedRevision.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/approvedRework.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/attachmentSize.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/attentionOwner.spec.ts","rule":"tests/story-specs","count":1}
@@ -386,9 +380,6 @@
 {"path":"packages/work-fleet/src/host/continue.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/continueReport.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/daemon.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/daemonClients.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/daemonCommands.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/daemonCommit.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/daemonDiagnostics.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/daemonFollow.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/daemonRequest.spec.ts","rule":"tests/story-specs","count":1}
@@ -415,8 +406,6 @@
 {"path":"packages/work-fleet/src/host/missingTables.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/missingTurnRelease.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/modelMigration.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/preparedAdmission.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/preparedRefresh.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/providerHealth.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/queuedBrief.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/quota.test.ts","rule":"tests/story-specs","count":1}
@@ -436,7 +425,6 @@
 {"path":"packages/work-fleet/src/host/snapshotStream.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/staleAcknowledgement.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/statusLayer.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/statusProcess.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/streamErrors.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/wait.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/watch.test.ts","rule":"tests/story-specs","count":1}
@@ -445,7 +433,6 @@
 {"path":"packages/work-fleet/src/host/watchReview.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/watchScheduler.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/watchSkew.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/workerQuestion.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/preparation/compatibility.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/prompt/briefEdit.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/prompt/cloudStartup.spec.ts","rule":"tests/story-specs","count":1}
