@@ -279,11 +279,6 @@
 {"path":"packages/effect-changes-prisma/src/tables.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-changes-prisma/src/timeout.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-contract/src/live.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-contract/src/liveConsumer.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-contract/src/makeLiveServer.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-contract/src/resume.dom.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-contract/src/stream.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-form/src/arrayErrors.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-form/src/arrayRejectionRaces.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-form/src/draft.test.ts","rule":"tests/story-specs","count":1}

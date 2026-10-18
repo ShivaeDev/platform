@@ -49,7 +49,7 @@ function uncoveredRegistration(call: ts.CallExpression, originOf: OriginOf): boo
 	if (origin === "story" || origin === "suite") {
 		return false;
 	}
-	return origin === "plain" || namesTest(call.expression) || (testShaped(call, originOf) && declarationScope(call, originOf));
+	return origin === "plain" || ((namesTest(call.expression) || testShaped(call, originOf)) && declarationScope(call, originOf));
 }
 
 export const storySpecs = defineRule({

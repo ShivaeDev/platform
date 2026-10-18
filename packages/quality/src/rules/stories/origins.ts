@@ -104,7 +104,8 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 		if (node.text === "describe" || node.text === "suite") {
 			return symbol(checker.getSymbolAtLocation(node)) ?? "suite";
 		}
-		return symbol(checker.getSymbolAtLocation(node)) ?? (node.text === "it" || node.text === "test" ? "plain" : undefined);
+		const value = checker.getSymbolAtLocation(node);
+		return symbol(value) ?? (value === undefined && (node.text === "it" || node.text === "test") ? "plain" : undefined);
 	}
 
 	function origin(node: ts.Node): Origin {

@@ -113,6 +113,23 @@ it("does not accept an unrelated object's it as a story kit", async () => {
 	expect(await findingsIn(storySpecs, undefined, root)).toHaveLength(1);
 });
 
+it("leaves test-result inspection inside a story alone while reporting imported Vitest registrations", async () => {
+	const inspection = [
+		'import { orders } from "#test/orders.ts";',
+		'orders.it("workers", [], ({ results }) => {',
+		"  results.flatMap((test) => test.annotations());",
+		"  for (const test of results) { test.result(); }",
+		"});",
+	].join("\n");
+	const root = seedTree([
+		...kitFiles,
+		spec(inspection, "src/inspection.spec.ts"),
+		spec(`${inspection}\nimport { test } from "vitest";\norders.it("nested", [], () => { test("plain", () => {}); });`, "src/plain.spec.ts"),
+	]);
+
+	expect(await findingsIn(storySpecs, undefined, root)).toEqual([expect.objectContaining({ file: "src/plain.spec.ts", line: 7 })]);
+});
+
 it("leaves test-named files with no test declarations alone", async () => {
 	const root = seedTree([spec("String(0); String(1); const example = 'it()'; /a/.test(example);")]);
 	expect(await findingsIn(storySpecs, undefined, root)).toEqual([]);
