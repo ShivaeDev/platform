@@ -22,22 +22,11 @@ const Setting = Schema.Union([Level, Schema.Struct({ level: Schema.optionalKey(L
 
 const LocalRule = Schema.declare(isRule, { expected: "a rule made with defineRule" });
 
-const AdoptRemoved = Schema.Never.annotate({
-	message: "removed in quality 0.7.0. Delete the key, and record a rule's existing findings with `quality baseline write --rule <id>`.",
-});
-
-const PreCommitRemoved = Schema.Never.annotate({
-	message:
-		"removed. Put repository checks in the package.json quality:commit script; the hook also runs typecheck when present. Use `quality baseline tighten --staged` explicitly to lower staged debt.",
-});
-
 const ConfigInput = Schema.Struct({
-	adopt: Schema.optionalKey(AdoptRemoved),
 	baseline: Schema.optionalKey(Schema.String),
 	exceptions: Schema.optionalKey(Schema.Array(ExceptionDeclaration)),
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),
 	local: Schema.optionalKey(Schema.Array(LocalRule)),
-	preCommit: Schema.optionalKey(PreCommitRemoved),
 	registry: Schema.optionalKey(Schema.String),
 	rules: Schema.optionalKey(Schema.Record(Schema.String, Setting)),
 	sources: Schema.optionalKey(Schema.Array(Schema.String)),
