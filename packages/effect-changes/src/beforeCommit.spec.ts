@@ -1,6 +1,6 @@
 import { Context, Effect } from "effect";
 import { expect } from "vitest";
-import { Current, change } from "#test/fake-database.ts";
+import { Current, change } from "#test/fakeDatabase.ts";
 import { beforeCommitWrites, changes, configured, countsHooks } from "#test/kit.ts";
 
 const HookValue = Context.Reference<string>("BeforeCommitTest/HookValue", { defaultValue: () => "default" });

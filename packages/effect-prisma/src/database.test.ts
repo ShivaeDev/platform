@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Option } from "effect";
 import { expect } from "vitest";
-import { Database, uniqueEmail } from "#test/postgres-database.ts";
+import { Database, uniqueEmail } from "#test/postgresDatabase.ts";
 import { postgresStory, rollbackWrites } from "#test/postgresStory.ts";
 
 postgresStory.it("owns the client and commits successful transactions", [], function* ({ db }) {

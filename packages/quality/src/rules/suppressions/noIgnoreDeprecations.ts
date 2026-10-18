@@ -1,7 +1,7 @@
 import { relative } from "node:path";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect } from "effect";
-import { posix } from "#inventory/ignore-scope.ts";
+import { posix } from "#inventory/ignoreScope.ts";
 import { walk } from "#inventory/walk.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { member, parseJsonc } from "#rules/suppressions/biome/json.ts";
