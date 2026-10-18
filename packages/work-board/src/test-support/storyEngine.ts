@@ -34,7 +34,7 @@ export function connected(engine: BoardEngine) {
 }
 
 export function served(engine: BoardEngine) {
-	return engine.server ?? connected(engine);
+	return engine.live ?? engine.server ?? connected(engine);
 }
 
 export function* createBoard() {

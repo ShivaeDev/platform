@@ -22,7 +22,7 @@ describe("visual document directives", () => {
 
 	for (const attributes of ['{completed="unknown" total="8"}', '{total="8"}', '{completed="0" total="0"}', "{}"]) {
 		boardStory.it(
-			`keeps incomplete or zero-total tallies explicit (%s) (${JSON.stringify(attributes)})`,
+			`keeps incomplete or zero-total tallies explicit (${JSON.stringify(attributes)})`,
 			[serverReading(), projectFiles({ "nested/home.md": progress(attributes) })],
 			function* ({ renderDocument }) {
 				const html = yield* renderDocument("nested/home.md");
@@ -45,7 +45,7 @@ describe("visual document directives", () => {
 		'{completed="3" total="8" execute="true"}',
 	]) {
 		boardStory.it(
-			`shows the original source for invalid progress (%s) (${JSON.stringify(attributes)})`,
+			`shows the original source for invalid progress (${JSON.stringify(attributes)})`,
 			[serverReading(), projectFiles({ "nested/home.md": `${progress(attributes)}\nAfter the component.\n` })],
 			function* ({ renderDocument }) {
 				const html = yield* renderDocument("nested/home.md");
@@ -171,7 +171,7 @@ describe("visual document directives", () => {
 
 	for (const kind of ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"]) {
 		boardStory.it(
-			`renders the standard %s callout while preserving its Markdown links (${JSON.stringify(kind)})`,
+			`renders a standard callout while preserving its Markdown links (${JSON.stringify(kind)})`,
 			[serverReading(), projectFiles({ "nested/home.md": `> [!${kind}]\n> See [evidence](../checks.md).` })],
 			function* ({ renderDocument }) {
 				const html = yield* renderDocument("nested/home.md");

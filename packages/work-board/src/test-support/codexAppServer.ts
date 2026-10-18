@@ -3,6 +3,7 @@ import { createInterface } from "node:readline";
 
 const mode = process.argv[2];
 const lines = createInterface({ input: process.stdin });
+let expected = "initialize";
 function send(value: unknown) {
 	process.stdout.write(`${JSON.stringify(value)}\n`);
 }
@@ -13,17 +14,30 @@ function accountReply(message: ReturnType<typeof JSON.parse>) {
 	send({ id: message.id, result: { account: mode === "missing" ? null : { type: mode === "api-key" ? "apiKey" : "chatgpt" } } });
 }
 function reply(message: ReturnType<typeof JSON.parse>) {
+	if ((message.id ?? message.method) !== expected) {
+		process.exit(1);
+	}
+	if (message.method === "initialized") {
+		expected = "account";
+		return;
+	}
 	switch (message.id) {
 		case "initialize":
+			if (message.method !== "initialize") {
+				process.exit(1);
+			}
+			expected = "initialized";
 			send(mode === "initialize-error" ? { error: { message: "Initialize refused" }, id: message.id } : { id: message.id, result: {} });
 			return;
 		case "account":
+			expected = "limits";
 			accountReply(message);
 			return;
 		case "limits":
 			if (message.method !== "account/rateLimits/read") {
 				process.exit(1);
 			}
+			expected = "approval";
 			send(
 				mode === "refusal"
 					? { error: { message: "Account forbidden" }, id: message.id }
@@ -34,6 +48,7 @@ function reply(message: ReturnType<typeof JSON.parse>) {
 			if (message.error?.code !== -32_601) {
 				process.exit(1);
 			}
+			expected = "finished";
 			send({
 				id: "limits",
 				result: {
