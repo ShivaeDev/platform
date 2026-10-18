@@ -1,3 +1,7 @@
+---
+"@shivaedev/work-board": patch
+---
+
 ### Changed
 
 - Answer cards lead with what happened and the recommendation, show each option as a selectable card with what it does, and confirm the recorded choice by name.
