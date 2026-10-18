@@ -82,3 +82,24 @@ it("deferred construction preserves its requirements and typed failures while su
 	expectTypeOf<Layer.Services<typeof deferred>>().toEqualTypeOf<Required>();
 	expectTypeOf<Extract<Layer.Error<typeof deferred>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
 });
+
+class PreflightInput extends Context.Service<PreflightInput, string>()("host-test/PreflightInput") {}
+const preflight = Layer.effect(Required, PreflightInput.pipe(Effect.flatMap(() => Effect.fail(new BuildFailure()))));
+const preflightHttp = appHost({ group: Api, handlers, policy: "loopback", preflight });
+const preflightDatabase = appHost({ ...options, migrations: { loader: Required.pipe(Effect.as([])) }, preflight });
+const preflightDeferred = appHost({
+	application: Required.pipe(Effect.as({ group: Api, handlers, policy: "loopback" as const })),
+	migrations: { loader: Required.pipe(Effect.as([])) },
+	preflight,
+});
+it("preflight supplies host requirements and exposes its services, typed errors and external requirements", () => {
+	expectTypeOf<Layer.Services<typeof preflightHttp>>().toEqualTypeOf<PreflightInput>();
+	expectTypeOf<Layer.Services<typeof preflightDatabase>>().toEqualTypeOf<PreflightInput>();
+	expectTypeOf<Layer.Services<typeof preflightDeferred>>().toEqualTypeOf<PreflightInput>();
+	expectTypeOf<Extract<Layer.Success<typeof preflightHttp>, Required>>().toEqualTypeOf<Required>();
+	expectTypeOf<Extract<Layer.Success<typeof preflightDatabase>, Required>>().toEqualTypeOf<Required>();
+	expectTypeOf<Extract<Layer.Success<typeof preflightDeferred>, Required>>().toEqualTypeOf<Required>();
+	expectTypeOf<Extract<Layer.Error<typeof preflightHttp>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
+	expectTypeOf<Extract<Layer.Error<typeof preflightDatabase>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
+	expectTypeOf<Extract<Layer.Error<typeof preflightDeferred>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
+});
