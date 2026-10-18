@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { WAIT_EXIT, waitFor } from "#host/wait.ts";
@@ -119,7 +120,9 @@ test("CLI reassignment publishes a new maintainer question and refreshes the gen
 				return yield* Effect.die("Missing reassigned source");
 			}
 			expect(readFileSync(join(fixture.host.boardDir, sourcePath), "utf8")).toContain('"response_from":["maintainer"]');
-			expect(readFileSync(join(fixture.host.boardDir, old.published.sourcePath), "utf8")).toBe(oldSource);
+			const closed = board.metadataParse(readFileSync(join(fixture.host.boardDir, old.published.sourcePath), "utf8"));
+			expect(closed.fields.attention).toMatchObject([{ state: "closed" }]);
+			expect(closed.body).toBe(board.metadataParse(oldSource).body);
 			expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("## Waiting on maintainer\n\n### one");
 			expect(calls).toEqual([]);
 			expect(fixture.provider.launched).toHaveLength(1);

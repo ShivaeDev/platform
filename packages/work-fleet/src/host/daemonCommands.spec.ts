@@ -30,7 +30,7 @@ const decisionStory = Effect.fn("DaemonCommandsTest.decisionStory")(function* (
 	if (published === undefined) {
 		return yield* Effect.die("Expected a published decision");
 	}
-	const args = ["answer", "one", ...(action === "release" ? ["--release"] : []), "--port", String(port), "--config", "unused.json"];
+	const args = ["answer", "one", ...(action === "release" ? ["--release"] : []), "--board", fixture.host.boardDir, "--config", "unused.json"];
 	expect(yield* Effect.promise(() => cliProcess(args))).toEqual({
 		code: 0,
 		stdout: "one needs-human: Answer recorded; applying in the background",

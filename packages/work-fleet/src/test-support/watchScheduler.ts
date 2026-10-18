@@ -9,7 +9,8 @@ import { finishWorkers } from "#test/engine.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
 import { engineProvider } from "#test/engineProvider.ts";
 import { type HostFixture, task } from "#test/fleetHost.ts";
-import { type Follower, untilEveryOutput, withFollower } from "#test/follower.ts";
+import { untilEveryOutput, withFollower } from "#test/follower.ts";
+import type { Follower } from "#test/followerProcess.ts";
 import { mainObservation } from "#test/preparation.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
 import { answerReport } from "#test/report.ts";
@@ -85,7 +86,7 @@ const followScheduler = Effect.fn("WatchSchedulerTest.followScheduler")(function
 	yield* until(() => client("fleet.get", { workId: "one" }).pipe(Effect.map((record) => record.decision?.code === "reviewed-pr-ready")));
 	expect((yield* client("fleet.get", { workId: "one" })).stage).toBe("needs-human");
 	expect((yield* watch.readClient("fleet.get", { workId: "one" })).decision?.code).toBe("reviewed-pr-ready");
-	yield* untilEveryOutput(followers, "one needs-human (waiting on maintainer): Reviewed PR is ready to merge\n").pipe(Effect.timeout("5 seconds"));
+	yield* untilEveryOutput(followers, "one needs-human (waiting on orchestrator): Reviewed PR is ready to merge\n").pipe(Effect.timeout("5 seconds"));
 	expect(followers.map((follower) => follower.isRunning())).toEqual([true, true]);
 	expect(watch.reviews).toEqual(["head-one-0"]);
 	expect((yield* client("fleet.get", { workId: "one" })).review).toMatchObject({ head: "head-one-0", verdict: "approved" });

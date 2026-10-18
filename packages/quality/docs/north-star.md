@@ -18,7 +18,6 @@ Every finding should tell an agent that has never used the package what to chang
 
 ## What good looks like
 
-- Adoption is a small setup task. A repository uses the shared defaults instead of maintaining its own catalogue of rules and levels.
 - Quality's rules, tool configuration and internal exceptions express one policy. A new shared convention belongs here, with a reason and accepted and rejected examples.
 - Repository-specific inputs describe code and architecture. A generated path or import fence does not become permission to choose a weaker standard.
 - The config, inventory, rule evaluation, exceptions, baseline and report form one path. Checks use that path instead of inventing their own debt handling.
@@ -31,8 +30,6 @@ Every finding should tell an agent that has never used the package what to chang
 ### Shared defaults and repository facts
 
 A new setting creates a decision every consuming repository must make and maintain. Prefer improving the shared default. Add an input when the check needs a fact about the repository, not merely because another repository prefers a different rule or threshold. Quality can disable a tool rule internally when another tool owns the check or the rule cannot make a reliable judgement. That reason belongs with the shared configuration.
-
-The public configuration surface and its gaps are recorded in the [roadmap](./roadmap.md). Usage documentation must describe what the code actually accepts without turning an implementation gap into recommended policy.
 
 ### Strictness and adoption
 

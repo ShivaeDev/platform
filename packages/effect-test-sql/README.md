@@ -61,7 +61,7 @@ export const { effectApp } = makeEffectIt({
 });
 ```
 
-Use the application's migration loader in place of the example. `migrations` takes the existing `PostgresMigrationOptions`: `loader`, `lockTimeout`, and an optional ledger `table`. Fixtures are an Effect with access to the native PostgreSQL services. Additional migration or fixture dependencies remain requirements of the Layer and must be supplied before passing it to the runner. Setup failures remain failures; acquired databases are dropped when the acquisition scope closes.
+Use the application's migration loader in place of the example. `migrations` takes effect-sql's `PostgresMigrationOptions`. Fixtures are an Effect with access to the native PostgreSQL services. Additional migration or fixture dependencies remain requirements of the Layer and must be supplied before passing it to the runner. Setup failures remain failures; acquired databases are dropped when the acquisition scope closes.
 
 ### Budget PostgreSQL connections
 
@@ -173,8 +173,6 @@ Use `prepare: false` when preparing the test Layer, and `withIsolatedDatabase` f
 
 The assertion uses the SQL `Model`'s selected database fields, including generated ids and excluding JSON-only fields. Supply an exact PostgreSQL type for every field: schemas such as `Schema.Number` do not determine whether storage is `integer`, `numeric` or `double precision`. It fails with a typed `ModelColumnMismatch` containing all detected missing, extra and wrongly typed column problems. The type map is checked against the model both by TypeScript and at runtime. This check covers names and types; it does not check defaults, nullability, constraints or application data transformations.
 
-The starter's notes migration test uses this path with its repository model, so applications generated with `pnpm create @shivaedev/app` include an upgrade check.
-
 ### API
 
 Import each name from the module that defines it. The package has no root entry.
@@ -191,12 +189,10 @@ Import each name from the module that defines it. The package has no root entry.
 
 `url` is a redacted PostgreSQL URL for an existing administrative database. `PostgresTestDatabase` supplies the current database's redacted `url` and a scoped `isolated` Effect that acquires another clone's service Context. Prefer `withIsolatedDatabase` to acquire and release that Context around a test. Wrappers retain the body's result, failures and unmet service requirements, with native `SqlError` added for acquisition or transaction failures. Cleanup failures are defects rather than successful cleanup.
 
-### Install, setup and evidence
+### Install and setup
 
 ```sh
 pnpm add --save-dev @shivaedev/effect-test-sql @shivaedev/effect-test @effect/sql-pg @effect/vitest effect vitest
 ```
 
 Use versions compatible with the package's peer dependencies. The package requires Node.js 24 or later. The PostgreSQL role must be able to create and drop databases; use a dedicated test server. PostgreSQL 13 or later supports the forced database drops used for cleanup. The migrations and fixtures must complete their work during preparation; their scoped resources are closed before cloning.
-
-The package tests use `PLATFORM_EFFECT_TEST_SQL_TEST_DATABASE_URL`. Repository setup and CI prepare that database on real PostgreSQL. Local tests skip when that variable is absent; CI rejects its absence. The PostgreSQL tests prove overlapping same-row visibility, shared-key lock contention and release, rollback, nested savepoints, runner/harness scope composition, one-time template preparation, commits visible through another connection, and database cleanup. They also measure twelve concurrent clones through `pg_stat_activity` at both the default and overridden pool limits, verify administrative connection release, and exercise connection-limit diagnostics using restricted PostgreSQL roles. Compiler and packed-consumer tests prove the exercised public type and export contracts. These are library checks, not evidence for an application's servers or notification delivery.

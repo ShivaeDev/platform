@@ -4,7 +4,12 @@ import { Effect } from "effect";
 import { type ReportDirectory, validateReportDirectory, withReportDirectory } from "#reportFileDirectory.ts";
 import { hasFileCode, ReportFileFailure, reportFileIo, withReportFile } from "#reportFileFailure.ts";
 
-function unchanged(folder: string, name: "status.md" | "health.json", content: string, owns: (source: string) => boolean) {
+function unchanged(
+	folder: string,
+	name: "status.md" | "health.json" | ".fleet-decision-closure-v1.json",
+	content: string,
+	owns: (source: string) => boolean,
+) {
 	const label = `fleet/${name}`;
 	return withReportFile(
 		label,
@@ -27,7 +32,7 @@ function unchanged(folder: string, name: "status.md" | "health.json", content: s
 const publish = Effect.fnUntraced(function* (
 	directory: ReportDirectory,
 	target: ReportDirectory,
-	name: "status.md" | "health.json",
+	name: "status.md" | "health.json" | ".fleet-decision-closure-v1.json",
 	content: string,
 	owns: (source: string) => boolean,
 ) {
@@ -54,13 +59,17 @@ const publish = Effect.fnUntraced(function* (
 export const writePublished = Effect.fn("Fleet.writePublished")(function* (
 	root: string,
 	realRoot: string,
-	name: "status.md" | "health.json",
+	name: "status.md" | "health.json" | ".fleet-decision-closure-v1.json",
 	content: string,
 	owns: (source: string) => boolean,
 ) {
-	const label = `fleet/${name}`;
+	const upgrade = name === ".fleet-decision-closure-v1.json";
+	const label = upgrade ? name : `fleet/${name}`;
 	return yield* withReportDirectory(label, root, realRoot, (directory) =>
 		Effect.gen(function* () {
+			if (upgrade) {
+				return yield* publish(directory, directory, name, content, owns);
+			}
 			yield* reportFileIo(label, () => mkdir(`${directory.folder}/fleet`)).pipe(
 				Effect.catchTag("ReportFileFailure", (error) => (hasFileCode(error.cause, "EEXIST") ? Effect.void : Effect.fail(error))),
 			);

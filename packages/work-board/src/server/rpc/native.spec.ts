@@ -48,6 +48,14 @@ it.live("reads typed documents, stable item URLs, navigation, search through nat
 		expect(response.headers.get("content-type")).toBe(type);
 		expect(yield* Effect.promise(() => response.text())).not.toBe("");
 	}
+	const css = yield* Effect.promise(() => fetch(`${boardUrl}/_board/react.css`).then((response) => response.text()));
+	const fonts = [...css.matchAll(/url\((?<font>\/_board\/react-assets\/[^)]+\.woff2)\)/gu)].map((match) => match.groups?.font);
+	expect(fonts.some((font) => font?.includes("geist-latin-wght")) && fonts.some((font) => font?.includes("geist-mono-latin-wght"))).toBe(true);
+	for (const font of new Set(fonts)) {
+		const response = yield* Effect.promise(() => fetch(`${boardUrl}${font}`));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("content-type")).toBe("font/woff2");
+	}
 });
 
 it.live("retains unrelated mounted reads while reconciling dependent pages and navigation after source changes", function* () {
