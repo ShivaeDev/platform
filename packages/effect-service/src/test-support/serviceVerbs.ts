@@ -1,39 +1,43 @@
-import { Effect, Layer } from "effect";
+import { Effect, Exit, Scope } from "effect";
 import { Caller, Declared, type ServiceEngine } from "./serviceEngine.ts";
 
 export function serviceVerbs(engine: ServiceEngine, tell: (line: string) => void) {
 	return {
-		callerResources: () =>
+		close: () => {
+			tell("the service Layer's lifetime ends");
+			return Scope.close(engine.scope, Exit.void);
+		},
+		greet: ({ callerPrefix }: { readonly callerPrefix?: string } = {}) =>
 			Effect.gen(function* () {
-				tell("two caller scopes open resources while the service remains live");
+				tell(callerPrefix === undefined ? "the service greets the caller" : `the caller greets with an overridden prefix ${callerPrefix}`);
+				const declaration = engine.declaration;
+				if (declaration.kind !== "required") {
+					return yield* Effect.die("Declare a requirement before greeting");
+				}
+				const service = yield* declaration.read;
+				const greet = service.greet();
+				return yield* callerPrefix === undefined ? greet : greet.pipe(Effect.provideService(Declared, { identity: {}, prefix: callerPrefix }));
+			}),
+		identity: () =>
+			Effect.gen(function* () {
+				tell("a caller reads the service's private identity");
 				const declaration = engine.declaration;
 				if (declaration.kind !== "scoped") {
-					return yield* Effect.die("Declare a scoped service before opening resources");
+					return yield* Effect.die("Declare a scoped service before reading its identity");
 				}
-				const Service = declaration.service;
-				return yield* Effect.gen(function* () {
-					const service = yield* Service;
-					const first = yield* Effect.scoped(service.open());
-					const afterFirst = engine.counts.released;
-					const second = yield* Effect.scoped(service.open());
-					return { afterFirst, afterSecond: engine.counts.released, finalizations: engine.counts.finalizations, resources: [first, second] };
-				}).pipe(Effect.provide(Service.layer, { local: true }));
+				const service = yield* declaration.read;
+				return yield* service.identity();
 			}),
-		identities: () =>
+		open: () =>
 			Effect.gen(function* () {
-				tell("two callers read private identities from one service Layer");
+				tell("a caller opens a resource in its own scope");
 				const declaration = engine.declaration;
 				if (declaration.kind !== "scoped") {
-					return yield* Effect.die("Declare a scoped service before reading identities");
+					return yield* Effect.die("Declare a scoped service before opening a resource");
 				}
-				const Service = declaration.service;
-				return yield* Effect.gen(function* () {
-					const first = yield* Service;
-					const second = yield* Service;
-					return yield* Effect.all([first.identity(), second.identity()]);
-				}).pipe(Effect.provide(Service.layer, { local: true }));
+				const service = yield* declaration.read;
+				return yield* Effect.scoped(service.open());
 			}),
-		lifetime: () => ({ ...engine.counts }),
 		preserveCaller: (value: number) =>
 			Effect.gen(function* () {
 				tell(`the generic method preserves a caller service with value ${value}`);
@@ -41,34 +45,28 @@ export function serviceVerbs(engine: ServiceEngine, tell: (line: string) => void
 				if (declaration.kind !== "generic") {
 					return yield* Effect.die("Declare a generic method before preserving a caller");
 				}
-				const Service = declaration.service;
-				return yield* Service.pipe(
-					Effect.flatMap((service) => service.preserve(Effect.map(Caller, (caller) => caller.value))),
-					Effect.provide(Service.layer, { local: true }),
-					Effect.provideService(Caller, { value }),
-				);
+				const service = yield* declaration.read;
+				return yield* service.preserve(Effect.map(Caller, (caller) => caller.value)).pipe(Effect.provideService(Caller, { value }));
 			}),
-		requirement: (callerPrefix?: string) =>
+		released: () =>
 			Effect.gen(function* () {
-				tell(
-					callerPrefix === undefined
-						? "initialization and a method read the declared requirement"
-						: `the caller overrides the prefix with ${callerPrefix}`,
-				);
+				tell("the service reports its released resources");
+				const declaration = engine.declaration;
+				if (declaration.kind !== "scoped") {
+					return yield* Effect.die("Declare a scoped service before reading released resources");
+				}
+				const service = yield* declaration.read;
+				return yield* service.released();
+			}),
+		sameIdentity: () =>
+			Effect.gen(function* () {
+				tell("the method compares its declared requirement with the initialized identity");
 				const declaration = engine.declaration;
 				if (declaration.kind !== "required") {
-					return yield* Effect.die("Declare a requirement before calling its methods");
+					return yield* Effect.die("Declare a requirement before comparing identities");
 				}
-				const Service = declaration.service;
-				const layer = Service.layer.pipe(Layer.provide(Layer.succeed(Declared, { identity: {}, prefix: declaration.prefix })));
-				return yield* Effect.gen(function* () {
-					const service = yield* Service;
-					const greet = service.greet();
-					return {
-						prefix: yield* callerPrefix === undefined ? greet : greet.pipe(Effect.provideService(Declared, { identity: {}, prefix: callerPrefix })),
-						sameIdentity: yield* service.sameIdentity(),
-					};
-				}).pipe(Effect.provide(layer, { local: true }));
+				const service = yield* declaration.read;
+				return yield* service.sameIdentity();
 			}),
 	};
 }

@@ -1,4 +1,4 @@
-import { Context, Effect, type Scope } from "effect";
+import { Context, Effect, Scope } from "effect";
 import { defineService } from "#define-service.ts";
 import { genericMethod } from "#generic-method.ts";
 import type { ServiceRequirements } from "#service-requirements.ts";
@@ -6,15 +6,15 @@ import type { ServiceRequirements } from "#service-requirements.ts";
 export class Declared extends Context.Service<Declared, { readonly identity: object; readonly prefix: string }>()("story/Declared") {}
 export class Caller extends Context.Service<Caller, { readonly value: number }>()("story/Caller") {}
 
-export function lifetime() {
+export function serviceCounts() {
 	return { factoryCalls: 0, finalizations: 0, initializations: 0, released: 0 };
 }
 
-type Lifetime = ReturnType<typeof lifetime>;
+type ServiceCounts = ReturnType<typeof serviceCounts>;
 const noRequirements = [] as const;
 type NoRequirements<A, E = never, R extends Scope.Scope = never> = ServiceRequirements<typeof noRequirements, A, E, R>;
 
-function initialize(counts: Lifetime) {
+function initialize(counts: ServiceCounts) {
 	return Effect.fn("StoryService.initialize")(function* (): NoRequirements<{ readonly identity: object }, never, Scope.Scope> {
 		counts.initializations += 1;
 		yield* Effect.addFinalizer(() =>
@@ -26,7 +26,7 @@ function initialize(counts: Lifetime) {
 	})();
 }
 
-export function scopedService(counts: Lifetime) {
+export function scopedService(counts: ServiceCounts) {
 	return defineService({
 		id: "story/ScopedService",
 		initialize: initialize(counts),
@@ -40,6 +40,7 @@ export function scopedService(counts: Lifetime) {
 							counts.released += 1;
 						}),
 					),
+				released: () => Effect.sync(() => counts.released),
 			};
 		},
 		requires: noRequirements,
@@ -77,15 +78,21 @@ export function genericService() {
 	});
 }
 
-export type Declaration =
-	| { readonly kind: "scoped"; readonly service: ReturnType<typeof scopedService> }
-	| { readonly kind: "required"; readonly service: ReturnType<typeof requiredService>; readonly prefix: string }
-	| { readonly kind: "generic"; readonly service: ReturnType<typeof genericService> };
+type Acquired<TService> = Effect.Effect<Context.Service.Shape<TService>>;
 
-export function serviceEngine(): { counts: Lifetime; declaration: Declaration } {
-	const counts = lifetime();
-	const declaration: Declaration = { kind: "scoped", service: scopedService(counts) };
-	return { counts, declaration };
+export type Declaration =
+	| { readonly kind: "undeclared" }
+	| { readonly kind: "scoped"; readonly read: Acquired<ReturnType<typeof scopedService>> }
+	| { readonly kind: "required"; readonly read: Acquired<ReturnType<typeof requiredService>> }
+	| { readonly kind: "generic"; readonly read: Acquired<ReturnType<typeof genericService>> };
+
+export interface ServiceEngine {
+	readonly counts: ServiceCounts;
+	declaration: Declaration;
+	readonly scope: Scope.Closeable;
 }
 
-export type ServiceEngine = ReturnType<typeof serviceEngine>;
+export function* serviceEngine(): Effect.fn.Return<ServiceEngine, never, Scope.Scope> {
+	const scope = yield* Scope.fork(yield* Effect.scope);
+	return { counts: serviceCounts(), declaration: { kind: "undeclared" }, scope };
+}
