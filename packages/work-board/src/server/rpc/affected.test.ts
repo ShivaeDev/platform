@@ -1,97 +1,140 @@
-import { expect, it } from "vitest";
-import { documents, identities, index, navigation } from "#rpc/keys.ts";
-import { type MetadataDocument, metadataModel } from "#server/metadata/model.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
-import { affected } from "./affected.ts";
+import "#test/liveDeliveryBoundary.ts";
+import { Effect, PlatformError } from "effect";
+import { expect } from "vitest";
+import { boardFilesystem, boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
+import { interruptedDelivery } from "#test/interruptedDelivery.ts";
 
-function document(file: string, source: string, links: readonly string[] = []): MetadataDocument {
-	return { file, links, parsed: metadataParse(source) };
-}
-function task(id: string, fields = "", body = "Task") {
-	return `---\nid: ${id}\n${fields}---\n${body}`;
-}
-
-it("invalidates former and current dependencies, root aliases and stable identities while leaving unrelated documents alone", () => {
-	const home = document("nested/home.md", task("home", "relationships:\n - kind: informs\n   target: old\n"));
-	const old = document("old.md", task("old"));
-	const next = document("new.md", task("new"));
-	const unrelated = document("other.md", "Unrelated");
-	const before = metadataModel([home, old, next, unrelated], [], home.file);
-	const after = metadataModel(
-		[document(home.file, task("renamed", "relationships:\n - kind: informs\n   target: new\n")), old, next, unrelated],
-		[],
-		home.file,
-	);
-	const keys = affected(before, after, [home.file]);
-	expect(keys).toEqual(
-		expect.arrayContaining([
-			index.list,
-			navigation.list,
-			documents.item(""),
-			documents.item(home.file),
-			documents.item(old.file),
-			documents.item(next.file),
-			identities.item("home"),
-			identities.item("renamed"),
-		]),
-	);
-	expect(keys).not.toContainEqual(documents.item(unrelated.file));
+const graph = projectFiles({
+	"nested/home.md": "---\nid: home\nrelationships:\n - kind: informs\n   target: old\n---\n# Home",
+	"new.md": "---\nid: new\n---\n# New",
+	"old.md": "---\nid: old\n---\n# Old",
+	"other.md": "# Unrelated",
 });
+boardStory.it(
+	"invalidates former and current dependencies, home aliases and both stable identities",
+	[graph, boardHome("nested/home.md")],
+	function* ({ watchProject, editFile }) {
+		const events = yield* watchProject();
+		yield* events.next();
+		editFile("nested/home.md", "---\nid: renamed\nrelationships:\n - kind: informs\n   target: new\n---\n# Changed home");
+		const hint = yield* events.changed("nested/home.md");
+		expect(hint).toMatchObject({
+			_tag: "Changed",
+			keys: expect.arrayContaining([
+				{ _tag: "List", collection: "work-board/index" },
+				{ _tag: "Item", collection: "work-board/documents", id: "" },
+				{ _tag: "Item", collection: "work-board/documents", id: "nested/home.md" },
+				{ _tag: "Item", collection: "work-board/documents", id: "old.md" },
+				{ _tag: "Item", collection: "work-board/documents", id: "new.md" },
+				{ _tag: "Item", collection: "work-board/identities", id: "home" },
+				{ _tag: "Item", collection: "work-board/identities", id: "renamed" },
+			]),
+		});
+		expect(JSON.stringify(hint)).not.toContain("other.md");
+	},
+);
+boardStory.it(
+	"follows board membership, evidence, attention targets and Markdown links",
+	[
+		projectFiles({
+			"board.md": "---\nid: board\nitems: [task]\n---\n# Board",
+			"note.md": "# Note\n\n[Read source](source.md)",
+			"request.md":
+				"---\nid: request\nattention:\n - id: review\n   kind: review\n   state: open\n   response_from: [maintainer]\n   reason: Read this\n   unblocks: [task#done]\n---\n# Request",
+			"result.md": "---\nid: result\nevidence:\n - source: source.md\n   criterion: task#done\n---\n# Result",
+			"source.md": "# Source",
+			"task.md": "---\nid: task\ncriteria:\n - id: done\n   text: Complete\n---\n# Task",
+		}),
+	],
+	function* ({ watchProject, editFile }) {
+		const events = yield* watchProject();
+		yield* events.next();
+		editFile("source.md", "# Updated source");
+		const hint = yield* events.changed("source.md");
+		for (const file of ["board.md", "task.md", "result.md", "source.md", "request.md", "note.md"]) {
+			expect(hint).toMatchObject({ _tag: "Changed", keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: file }]) });
+		}
+	},
+);
+boardStory.it(
+	"refreshes every conflicting identity when a duplicate arrives and leaves",
+	[projectFiles({ "first.md": "---\nid: same\n---\n# First" })],
+	function* ({ watchProject, editFile, removeFile }) {
+		const events = yield* watchProject();
+		yield* events.next();
+		editFile("duplicate.md", "---\nid: same\n---\n# Duplicate");
+		for (const removing of [false, true]) {
+			if (removing) {
+				removeFile("duplicate.md");
+			}
+			expect(yield* events.changed("duplicate.md")).toMatchObject({
+				_tag: "Changed",
+				keys: expect.arrayContaining([
+					{ _tag: "Item", collection: "work-board/identities", id: "same" },
+					{ _tag: "Item", collection: "work-board/documents", id: "first.md" },
+				]),
+			});
+		}
+	},
+);
+boardStory.it(
+	"invalidates managed sources when receipts or malformed history change",
+	[
+		projectFiles({
+			"request.md":
+				"---\nid: request\nkind: decision\nattention:\n - id: review\n   kind: decision\n   managed: true\n   state: open\n   response_from: [maintainer]\n   reason: Review\n   unblocks: [request]\n---\n# Request",
+		}),
+	],
+	function* ({ watchProject, editFile }) {
+		const events = yield* watchProject();
+		yield* events.next();
+		for (const [file, source] of [
+			[
+				"receipt.md",
+				`---\nid: receipt\nkind: result\nrequest_receipt:\n question: request\n disposition: superseded\n recordedAt: 0\n reviewedRevision: ${"a".repeat(64)}\n---\n# Receipt`,
+			],
+			["responses/invalid.md", "---\nkind: response\n---\n# Invalid"],
+		]) {
+			if (!(file && source)) {
+				throw new Error("Missing source");
+			}
+			editFile(file, source);
+			expect(yield* events.changed(file)).toMatchObject({
+				_tag: "Changed",
+				keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "request.md" }]),
+			});
+		}
+	},
+);
 
-it("follows board membership, criterion evidence, attention targets and ordinary Markdown links", () => {
-	const docs = [
-		document("board.md", task("board", "items: [task]\n")),
-		document("task.md", task("task", "criteria:\n - id: done\n   text: Complete\n")),
-		document("result.md", task("result", "evidence:\n - source: source.md\n   criterion: task#done\n")),
-		document("source.md", "Source"),
-		document(
-			"request.md",
-			task(
-				"request",
-				"attention:\n - id: review\n   kind: review\n   state: open\n   response_from: [maintainer]\n   reason: Read this\n   unblocks: [task#done]\n",
-			),
-		),
-		document("note.md", "Read source", ["source.md"]),
-	];
-	const model = metadataModel(docs);
-	expect(affected(model, model, ["source.md"])).toEqual(expect.arrayContaining(docs.map((doc) => documents.item(doc.file))));
-});
+boardStory.it(
+	"reconciles fully when the workspace index is incomplete",
+	[
+		projectFiles({ "a.md": "# A", "b.md": "# B" }),
+		boardFilesystem((fs) => ({
+			...fs,
+			readFileString: (file, options) =>
+				file.endsWith("b.md")
+					? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
+					: fs.readFileString(file, options),
+		})),
+	],
+	function* ({ watchProject, editFile }) {
+		const events = yield* watchProject();
+		yield* events.next();
+		editFile("a.md", "# Changed A");
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+	},
+);
 
-it("reconciles fully for incomplete indexes, unknown paths or edits observed outside the announced change", () => {
-	const a = document("a.md", "A");
-	const b = document("b.md", "B");
-	const before = metadataModel([a, b]);
-	expect(affected(before, metadataModel([a, b], ["failed.md"]), [a.file])).toBeUndefined();
-	expect(affected(before, before, ["unknown.md"])).toBeUndefined();
-	expect(affected(before, metadataModel([a, document(b.file, "Changed during index read")]), [a.file])).toBeUndefined();
-});
-
-it("updates every conflicting stable-ID projection when a duplicate is added or removed", () => {
-	const first = document("first.md", task("same"));
-	const duplicate = document("duplicate.md", task("same"));
-	const before = metadataModel([first]);
-	const after = metadataModel([first, duplicate]);
-	expect(affected(before, after, [duplicate.file])).toEqual(expect.arrayContaining([identities.item("same"), documents.item(first.file)]));
-	expect(affected(after, before, [duplicate.file])).toEqual(expect.arrayContaining([identities.item("same"), documents.item(first.file)]));
-});
-
-it("invalidates managed request sources when receipts or globally malformed response history change", () => {
-	const request = document(
-		"request.md",
-		task(
-			"request",
-			"kind: decision\nattention:\n - id: review\n   kind: decision\n   managed: true\n   state: open\n   response_from: [maintainer]\n   reason: Review\n   unblocks: [request]\n",
-		),
-	);
-	const receipt = document(
-		"receipt.md",
-		task(
-			"receipt",
-			`kind: result\nrequest_receipt:\n question: request\n disposition: superseded\n recordedAt: 0\n reviewedRevision: ${"a".repeat(64)}\n`,
-		),
-	);
-	const invalid = document("responses/invalid.md", "---\nkind: response\n---\n# Invalid");
-	const before = metadataModel([request]);
-	expect(affected(before, metadataModel([request, receipt]), [receipt.file])).toContainEqual(documents.item(request.file));
-	expect(affected(before, metadataModel([request, invalid]), [invalid.file])).toContainEqual(documents.item(request.file));
-});
+boardStory.it(
+	"reconciles when an edit is observed outside the announced paths",
+	[projectFiles({ "note.md": "# Before" }), interruptedDelivery],
+	function* ({ watchProject, omitNextPath, editFile }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		omitNextPath("note.md");
+		editFile("note.md", "# Changed outside the announced paths");
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+	},
+);

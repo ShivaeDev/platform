@@ -6,7 +6,7 @@ import { isolatedStorage } from "#test/storageStory.ts";
 
 const test = isolatedStorage;
 
-test.it("record and foreign occupancy writes announce their transaction commits", [], function* ({ store }) {
+test.it("record and foreign occupancy writes announce their transaction commits", [], function* ({ namespace, store }) {
 	const hints: (readonly unknown[])[] = [];
 	yield* Effect.gen(function* () {
 		const saved = yield* store.insert(record("one"));
@@ -15,7 +15,15 @@ test.it("record and foreign occupancy writes announce their transaction commits"
 		yield* store.reserveForeign("external", { backlog: true, executing: false });
 		yield* store.releaseForeign("external");
 	}).pipe(Effect.provideService(CommittedSink, (changes) => Effect.sync(() => hints.push(changes))));
-	expect(hints).toEqual([["fleet:one", "fleet"], ["fleet:one", "fleet"], ["fleet"], ["fleet"], ["fleet"]]);
+	const records = `${namespace}_records`;
+	const reservations = `${namespace}_foreign_reservations`;
+	expect(hints).toEqual([
+		[records, `${records}:one`, "fleet:one", "fleet"],
+		[records, `${records}:one`, "fleet:one", "fleet"],
+		[reservations, `${reservations}:external`, "fleet"],
+		[reservations, `${reservations}:external`, "fleet"],
+		[reservations, `${reservations}:external`, "fleet"],
+	]);
 });
 
 test.it("a rolled-back record write announces no contract keys", [], function* ({ store }) {

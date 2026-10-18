@@ -3,6 +3,7 @@ import type { Model } from "effect/schema";
 import type { SqlClient, SqlModel } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { OptimisticConcurrencyError } from "#repository.ts";
+import type { RepositoryChanges } from "./repositoryChanges.ts";
 
 export type IdColumn<TModel extends Model.Any> = keyof TModel["Type"] & keyof TModel["update"]["Type"] & keyof TModel["fields"];
 export type VersionColumn<TModel extends Model.Any, TId extends IdColumn<TModel>> = {
@@ -42,6 +43,7 @@ export function makeVersionedWrites<TModel extends Model.Any, TId extends IdColu
 	model: TModel,
 	sql: SqlClient.SqlClient,
 	options: {
+		readonly changes: RepositoryChanges;
 		readonly tableName: string;
 		readonly idColumn: TId;
 		readonly spanPrefix: string;
@@ -71,10 +73,13 @@ export function makeVersionedWrites<TModel extends Model.Any, TId extends IdColu
 		Effect.gen(function* () {
 			const statement = yield* insertStatement(input);
 			const rows = yield* sql`${statement} returning *`;
+			yield* options.changes.record(rows);
 			return yield* decodeRow(rows[0]);
-		}).pipe(Effect.withSpan(`${spanPrefix}.insert`));
+		}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.insert`));
 	const insertVoid: VersionedWrites<TModel, TId>["insertVoid"] = (input) =>
-		Effect.flatMap(insertStatement(input), (statement) => Effect.asVoid(statement)).pipe(Effect.withSpan(`${spanPrefix}.insertVoid`));
+		Effect.flatMap(insertStatement(input), (statement) =>
+			sql`${statement} returning ${sql(idColumn)}`.pipe(Effect.flatMap(options.changes.record)),
+		).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.insertVoid`));
 	function updateStatement(input: TModel["update"]["Type"]) {
 		return Effect.gen(function* () {
 			const encoded = yield* record(yield* encodeUpdate(input));
@@ -97,8 +102,9 @@ export function makeVersionedWrites<TModel extends Model.Any, TId extends IdColu
 			if (rows.length === 0) {
 				return yield* Effect.fail(conflict(input[options.idColumn], expectedVersion));
 			}
+			yield* options.changes.record(rows);
 			return yield* decodeRow(rows[0]);
-		}).pipe(Effect.withSpan(`${spanPrefix}.update`));
+		}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.update`));
 	const updateVoid: VersionedWrites<TModel, TId>["updateVoid"] = (input) =>
 		Effect.gen(function* () {
 			const { expectedVersion, statement } = yield* updateStatement(input);
@@ -106,7 +112,8 @@ export function makeVersionedWrites<TModel extends Model.Any, TId extends IdColu
 			if (rows.length === 0) {
 				return yield* Effect.fail(conflict(input[options.idColumn], expectedVersion));
 			}
-		}).pipe(Effect.withSpan(`${spanPrefix}.updateVoid`));
+			yield* options.changes.record(rows);
+		}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.updateVoid`));
 	const delete_: VersionedWrites<TModel, TId>["delete"] = (id, expected) =>
 		Effect.gen(function* () {
 			const expectedVersion = yield* validateVersion(expected);
@@ -116,6 +123,7 @@ export function makeVersionedWrites<TModel extends Model.Any, TId extends IdColu
 			if (rows.length === 0) {
 				return yield* Effect.fail(conflict(id, expectedVersion));
 			}
-		}).pipe(Effect.withSpan(`${spanPrefix}.delete`));
+			yield* options.changes.record(rows);
+		}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.delete`));
 	return { delete: delete_, insert, insertVoid, update, updateVoid };
 }

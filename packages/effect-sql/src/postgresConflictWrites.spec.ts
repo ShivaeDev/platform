@@ -3,13 +3,14 @@ import { expect } from "vitest";
 import { Account, Prefix } from "#test/conflictAccounts.ts";
 import { hasConflictAccounts } from "#test/repositoryTraits.ts";
 import { postgres } from "#test/sqlStory.ts";
+import { transaction } from "#test/transaction.ts";
 
 postgres.it(
 	"PostgreSQL conflict writes use declared unique keys, generated fields and codec services",
 	[hasConflictAccounts()],
 	function* ({ sql, makeRepository, conflictAccounts }) {
 		yield* Effect.gen(function* () {
-			yield* sql.withTransaction(
+			yield* transaction(
 				Effect.gen(function* () {
 					const { accounts, tableName } = conflictAccounts();
 					const input = { amount: 52, email: "one@example.test", externalKey: "one", origin: "import" };
@@ -22,11 +23,9 @@ postgres.it(
 					expect(updated).toEqual({ ...original, amount: 60 });
 					expect(yield* accounts.findById(original.id)).toEqual(updated);
 					expect(yield* sql`select "externalKey", amount from ${sql(tableName)}`).toEqual([{ amount: "60", externalKey: "prefix:one" }]);
-					const unique = yield* sql.withTransaction(accounts.insertOrIgnore({ ...input, externalKey: "two" })).pipe(Effect.flip);
+					const unique = yield* transaction(accounts.insertOrIgnore({ ...input, externalKey: "two" })).pipe(Effect.flip);
 					expect(unique).toMatchObject({ _tag: "SqlError", reason: { _tag: "UniqueViolation" } });
-					const upsertUnique = yield* sql
-						.withTransaction(accounts.upsert({ ...input, externalKey: "two" }, { updateColumns: ["amount"] }))
-						.pipe(Effect.flip);
+					const upsertUnique = yield* transaction(accounts.upsert({ ...input, externalKey: "two" }, { updateColumns: ["amount"] })).pipe(Effect.flip);
 					expect(upsertUnique).toMatchObject({ _tag: "SqlError", reason: { _tag: "UniqueViolation" } });
 					const badInput: typeof Account.insert.Type = JSON.parse(
 						'{"externalKey":"two","email":"two@example.test","amount":"bad","origin":"import"}',

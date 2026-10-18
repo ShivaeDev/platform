@@ -7,6 +7,7 @@ import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc, RpcSchema } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
+import { automaticLive, type LiveBound, LiveConnection } from "./automaticLive.ts";
 import type { Contract, Declared, Tag } from "./contract.ts";
 import { invalidationKeys, type Key, readKeys } from "./keys.ts";
 import type { CommandShape, QueryShape, StreamShape } from "./operation.ts";
@@ -73,12 +74,15 @@ const invalidateAfter = Effect.fn("EffectContract.invalidateAfter")(function* (k
 	yield* Reactivity.invalidate(invalidationKeys(keys));
 });
 
-function boundQuery(service: ErasedClient, tag: string, query: QueryShape) {
+function boundQuery(service: ErasedClient, tag: string, query: QueryShape, track: (keys: readonly Key[]) => void) {
 	function reads(payload: unknown) {
 		return readKeys(query.reads(payload));
 	}
 	return {
-		query: (payload: unknown, options: QueryOptions = {}) => service.query(tag, payload, { ...options, reactivityKeys: reads(payload) }),
+		query: (payload: unknown, options: QueryOptions = {}) => {
+			track(query.reads(payload));
+			return service.query(tag, payload, { ...options, reactivityKeys: reads(payload) });
+		},
 		run: (payload: unknown) => service.use((client) => client(tag, payload)),
 	};
 }
@@ -108,15 +112,19 @@ export function bind<
 >(
 	contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams>,
 	service: AtomRpc.AtomRpcClient<TSelf, TId, TClientRpcs> & MatchingClient<NoInfer<TRpcs>, TClientRpcs>,
-): Bound<TName, TQueries, TCommands, TRpcs, TSelf, TStreams>;
+): Bound<TName, TQueries, TCommands, TRpcs, TSelf, TStreams> & LiveBound;
 export function bind(
 	contract: { readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[]> },
 	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
 ): unknown {
 	const { name, queries, commands, streams } = contract.declaration;
-	return Object.fromEntries([
-		...queries.map((query) => [query.name, boundQuery(service, `${name}.${query.name}`, query)] as const),
-		...commands.map((command) => [command.name, boundCommand(service, `${name}.${command.name}`, command)] as const),
-		...streams.map((stream) => [stream.name, boundStream(service, `${name}.${stream.name}`)] as const),
-	]);
+	const automatic = automaticLive(service, name);
+	return Object.assign(
+		Object.fromEntries([
+			...queries.map((query) => [query.name, boundQuery(service, `${name}.${query.name}`, query, automatic.track)] as const),
+			...commands.map((command) => [command.name, boundCommand(service, `${name}.${command.name}`, command)] as const),
+			...streams.map((stream) => [stream.name, boundStream(service, `${name}.${stream.name}`)] as const),
+		]),
+		{ [LiveConnection]: automatic.subscription },
+	);
 }

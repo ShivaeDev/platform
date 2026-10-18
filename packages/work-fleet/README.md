@@ -115,6 +115,18 @@ The worker brief is the authored content in the item's own Markdown source. Edit
 
 Cloud hosts compute the Board directory's repository-relative path only when that directory is inside the repository and git-ignored. Before launching, Fleet checks each criterion's text for that path. A match publishes an orchestrator decision naming the criteria and explaining that Cloud workers cannot read local-only Board data, without starting a session. Edit the criteria to use data available to the worker, then dispatch again. Local workers, Board directories outside the repository, directories that are not ignored, and paths mentioned only in the body do not trigger this guard.
 
+### Sweeps
+
+A task that migrates a shared catalog, release-note format or repository-wide name can declare `sweep` as a nonempty list of repository-relative path globs:
+
+```yaml
+sweep: ["packages/*/changes/**", "pnpm-workspace.yaml", "**/package.json"]
+```
+
+Use `sweep: ['*']` to cover every path. Board validates the list; absolute paths, parent-directory segments, empty lists and non-string entries are invalid. From launch until its PR merges or closes, a sweep blocks every new implementer, including urgent dispatch. Running work, reviews and repairs continue. Reviewed, green PRs touching a sweep path wait on automation as `Held behind sweep <id>`; unrelated PRs become ready as usual. The sweep's own readiness decision identifies it as a sweep, and its repairs run before other work, bypassing execution, backlog and area limits while retaining approval and provider-quota requirements.
+
+After the sweep merges, each held PR receives one repair turn on its existing branch and PR to merge main and migrate its changes, with the sweep's saved task brief as context. Fleet then independently reviews and validates the new result before declaring it ready. Holds and migration handoffs survive restart. Closing the sweep without merging releases its holds without a migration turn.
+
 ### Schedule areas and dependencies
 
 Use `areas` to name the code areas a task changes. Two areas overlap when they are equal or one is a `/`-prefix of the other: `work-fleet` and `work-fleet/host` block each other, while `work-fleet/host` and `work-fleet/cli` stay independent. The area `*` overlaps every area. Areas are labels, not filesystem paths. Fleet serializes overlapping claims; disjoint areas and tasks without areas can run concurrently within capacity and quota limits.

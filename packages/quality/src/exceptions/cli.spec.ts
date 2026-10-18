@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { quality, runQuality } from "#test/cli.ts";
+import { CLI_EXIT, quality, runQuality } from "#test/cli.ts";
 import { qualityTree } from "#test/qualityTree.ts";
 import { config, removeSeededTrees } from "#test/tree.ts";
 
@@ -47,7 +47,7 @@ describe("quality exceptions", { timeout: 60_000 }, () => {
 	it("shows the selected config and declaration shape for both kinds of finding", async () => {
 		const root = qualityTree([{ content: 'export default { sources: ["src"] };\n', path: "custom.config.ts" }, parser]);
 		const result = await runQuality(root, "lint", "--config", "custom.config.ts");
-		expect(result.status).toBe(1);
+		expect(result.status).toBe(CLI_EXIT.rejected);
 		for (const rule of declaration.rules) {
 			expect(result.stdout).toContain(
 				`add to exceptions in custom.config.ts: ${JSON.stringify({ files: [parser.path], reason: "Explain why this exception is permanent.", rules: [rule] })}`,
@@ -69,7 +69,7 @@ describe("quality exceptions", { timeout: 60_000 }, () => {
 		expect(migrated).toContain("exceptions:");
 		expect(migrated).toContain('sources: ["src"]');
 		expect(migrated).not.toContain("suppressions/biome-overrides");
-		expect(migrated.match(/This parser documents/gu)).toHaveLength(1);
+		expect(migrated.match(/This parser documents/gu)).toEqual(["This parser documents"]);
 		expect(readFileSync(join(root, "biome.json"), "utf8")).not.toContain("overrides");
 		// The rewritten config is a new module under the same path, which only a fresh process imports.
 		expect(quality(root, "fix")).toMatchObject({ status: 0 });

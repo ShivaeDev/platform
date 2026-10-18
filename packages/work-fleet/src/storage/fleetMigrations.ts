@@ -10,6 +10,7 @@ import { recordTimeColumns } from "#storage/recordTimes.ts";
 import { shapeV12 } from "#storage/shapeV12.ts";
 import { shapeV14 } from "#storage/shapeV14.ts";
 import { shapeV17 } from "#storage/shapeV17.ts";
+import { sweeps } from "#storage/sweeps.ts";
 import { typedTables } from "#storage/typedTables.ts";
 
 const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
@@ -77,5 +78,6 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 		)`,
 		"20_merged_deliveries": mergedDeliveries(namespace),
 		"21_foreign_areas": sql`alter table ${sql(`${namespace}_foreign_reservations`)} add column areas text[] not null default '{}'`,
+		"22_sweeps": sweeps(namespace),
 	});
 });

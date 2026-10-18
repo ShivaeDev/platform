@@ -4,12 +4,24 @@ import { Effect } from "effect";
 import { browserClient } from "#client/client.ts";
 import { folder, type RunningBoard } from "./board.ts";
 import { embeddedBoard } from "./embeddedBoard.ts";
-import { subscribe } from "./nativeRpc.ts";
+import { changesUntil, type EventStream, rpcWatcher, subscribe } from "./nativeRpc.ts";
 import { type SocketExchange, socketExchange } from "./socketRpc.ts";
 import { type BoardEngine, served } from "./storyEngine.ts";
 
 export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	const boards: RunningBoard[] = [];
+	function watchState(events: EventStream, watching: boolean) {
+		return Effect.gen(function* () {
+			tell(`the reader waits for watching=${watching}`);
+			for (;;) {
+				yield* events.next();
+				const observed = (yield* rpcWatcher(served(engine).board)).watching;
+				if (observed === watching) {
+					return observed;
+				}
+			}
+		});
+	}
 	return {
 		anotherFolder: (files: Readonly<Record<string, string>>) =>
 			Effect.acquireRelease(
@@ -70,9 +82,17 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				yield* board.stop();
 			}
 		}),
-		watchProject: () => {
+		watchProject: Effect.fn("Story.watchProject")(function* () {
 			tell("a live RPC client subscribes to project changes");
-			return subscribe(served(engine).board);
-		},
+			const events = yield* subscribe(served(engine).board);
+			return {
+				...events,
+				changed: (path: string) => {
+					tell(`the reader waits for a live change naming ${path}`);
+					return changesUntil(events, path);
+				},
+				watching: (watching: boolean) => watchState(events, watching),
+			};
+		}),
 	};
 }

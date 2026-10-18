@@ -1,5 +1,6 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
+import { LiveConnection } from "@shivaedev/effect-contract/automaticLive.ts";
 import { authAction } from "@shivaedev/effect-react/client/authAction.ts";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
@@ -20,6 +21,19 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 	engine.client.session.signedIn = signedIn;
 
 	const view = yield* acquireScreen(engine);
+	if (signedIn) {
+		if (route === "/") {
+			engine.client.api.list.query();
+		} else {
+			engine.client.api.get.query({ id: 1 });
+		}
+		view.registry.mount(engine.client.api[LiveConnection].connection);
+		yield* Effect.promise(() =>
+			eventually(() =>
+				requireSetup(view.registry.get(engine.client.api[LiveConnection].status).connection === "live", "The fixture live connection did not open"),
+			),
+		);
+	}
 	const router = appRouter(view.registry, engine.client, screenAuth(), createMemoryHistory({ initialEntries: [route] }));
 	engine.router = router;
 	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
@@ -75,6 +89,13 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 					engine.signOutCalls += 1;
 					return Promise.resolve({ data: null, error: { message: signOutFailure, status: 400, statusText: "Bad Request" } });
 				});
+	engine.client.api.list.query();
+	view.registry.mount(engine.client.api[LiveConnection].connection);
+	yield* Effect.promise(() =>
+		eventually(() =>
+			requireSetup(view.registry.get(engine.client.api[LiveConnection].status).connection === "live", "The fixture live connection did not open"),
+		),
+	);
 	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
 	yield* Effect.promise(() => view.render(<NotesScreen client={engine.client} loaded={loaded} {...(signOut === undefined ? {} : { signOut })} />));
 	yield* Effect.promise(() => eventually(() => requireSetup(engine.client.calls.includes("list"), "The notes list did not load")));

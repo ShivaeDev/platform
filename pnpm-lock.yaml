@@ -910,6 +910,9 @@ importers:
       '@shivaedev/effect-test':
         specifier: workspace:*
         version: link:../effect-test
+      '@shivaedev/effect-test-sql':
+        specifier: workspace:*
+        version: link:../effect-test-sql
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:../local-postgres

@@ -1,4 +1,5 @@
-import type { Effect } from "effect";
+import type { Deferred, Effect } from "effect";
+import type { BoardDecision } from "#board/schema.ts";
 import type { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
 import type { createEngine } from "#test/createEngine.ts";
@@ -6,14 +7,24 @@ import type { EngineOptions } from "#test/EngineOptions.ts";
 import { type EngineWorld, worldDefaults } from "#test/EngineWorld.ts";
 import type { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 
+export interface SweepPullRequest {
+	checksFailed?: boolean;
+	conflicting?: boolean;
+	paths: readonly string[];
+	state: "open" | "closed" | "merged";
+}
+
 export interface EngineStory extends EngineWorld {
 	github?: Effect.Success<ReturnType<typeof mergedReviewGithub>>;
 	lastRecord?: FleetRecord;
 	markdown: boolean;
 	options: EngineOptions;
+	readinessPublications?: BoardDecision[];
 	root: string;
 	runtime?: Effect.Success<ReturnType<typeof createEngine<unknown>>> & { fleet: typeof Fleet.Service };
 	source: string;
+	sweepReadiness?: { readonly entered: Deferred.Deferred<void>; readonly resume: Deferred.Deferred<void> };
+	sweepRequests?: Map<string, SweepPullRequest>;
 	workId: string;
 }
 
