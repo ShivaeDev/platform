@@ -1,9 +1,8 @@
-import { Clock, Console, Deferred, Effect, Fiber } from "effect";
+import { Clock, Console, Deferred, Duration, Effect, Fiber, Queue } from "effect";
 import { TestClock } from "effect/testing";
 import { HeldLock } from "#held-lock.ts";
 import { readHolder } from "#lock-file.ts";
 import { withHeavyLock } from "#with-heavy-lock.ts";
-import { waitFor } from "./cliProcess.ts";
 import { configured, type Lock } from "./lock.ts";
 
 const startWaiting = Effect.fn("LockStory.startWaiting")(function* (engine: Lock, tell: (line: string) => void, startMs: number) {
@@ -12,14 +11,11 @@ const startWaiting = Effect.fn("LockStory.startWaiting")(function* (engine: Lock
 	const testClock = yield* Clock.Clock;
 	const output = yield* Console.Console;
 	const lines: string[] = [];
-	let polls = 0;
-	let holding = false;
+	const wakeups = yield* Queue.unbounded<number>();
 	const observedClock: Clock.Clock = {
 		...testClock,
 		sleep: (duration) =>
-			Effect.sync(() => {
-				polls += 1;
-			}).pipe(Effect.andThen(testClock.sleep(duration))),
+			Queue.offer(wakeups, testClock.currentTimeMillisUnsafe() + Duration.toMillis(duration)).pipe(Effect.andThen(testClock.sleep(duration))),
 	};
 	const observedConsole: Console.Console = {
 		...output,
@@ -32,8 +28,8 @@ const startWaiting = Effect.fn("LockStory.startWaiting")(function* (engine: Lock
 	const finish = yield* Deferred.make<void>();
 	const command = Effect.gen(function* () {
 		const { env } = yield* HeldLock;
-		holding = true;
 		yield* Deferred.succeed(acquired, { env, holder: yield* readHolder(engine.lock) });
+		yield* Queue.offer(wakeups, Number.POSITIVE_INFINITY);
 		yield* Deferred.await(finish);
 	});
 	const worker = yield* Effect.forkChild(
@@ -42,19 +38,17 @@ const startWaiting = Effect.fn("LockStory.startWaiting")(function* (engine: Lock
 			Effect.provideService(Console.Console, observedConsole),
 		),
 	);
-	yield* Effect.promise(() => waitFor(() => polls > 0));
-	function pollFinished(before: number) {
-		return Effect.promise(() => waitFor(() => polls > before || holding));
-	}
+	let nextWakeup = yield* Queue.take(wakeups);
 	return {
 		advance: (milliseconds: number) =>
 			Effect.gen(function* () {
 				tell(`time advances ${milliseconds}ms`);
-				for (let elapsed = 0; elapsed < milliseconds; elapsed += 10_000) {
-					const before = polls;
-					yield* TestClock.adjust(Math.min(10_000, milliseconds - elapsed));
-					yield* pollFinished(before);
+				const target = testClock.currentTimeMillisUnsafe() + milliseconds;
+				while (nextWakeup <= target) {
+					yield* TestClock.setTime(nextWakeup);
+					nextWakeup = yield* Queue.take(wakeups);
 				}
+				yield* TestClock.setTime(target);
 			}),
 		finish: () =>
 			Effect.gen(function* () {

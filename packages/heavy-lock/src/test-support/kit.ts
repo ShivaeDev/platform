@@ -5,9 +5,12 @@ import { NodeServices } from "@effect/platform-node";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { acquisition } from "./acquisition.ts";
 import { cli } from "./cli.ts";
+import { TEST_TIMEOUT_MS } from "./cliProcess.ts";
 import { clock } from "./clock.ts";
 import { breakConfiguration, createLock, lockDirectory, lockVerbs, readLock, seedHolder, writeLock } from "./lock.ts";
 import { protocolVerbs, referenceContent } from "./protocol.ts";
+
+export const liveCli = { clock: "live", timeout: TEST_TIMEOUT_MS } as const;
 
 export const lockStory = storyKit({
 	create: () => createLock,
@@ -31,6 +34,12 @@ export function heldBy(id: string, kind: "live" | "stale" | "reused" = "live", s
 export function environment(env: Record<string, string>) {
 	return lockStory.trait("configuration", `the environment is ${JSON.stringify(env)}`, (engine) => {
 		Object.assign(engine.env, env);
+	});
+}
+
+export function pollingEvery(milliseconds: number) {
+	return lockStory.trait("configuration", `the lock polls every ${milliseconds}ms`, (engine) => {
+		engine.options = { ...engine.options, pollInterval: `${milliseconds} millis` };
 	});
 }
 

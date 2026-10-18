@@ -26,17 +26,17 @@ export function acquisition(engine: Lock, tell: (line: string) => void) {
 			return Deferred.succeed(command.completion, undefined);
 		},
 		environment: (command: RunningCommand) => Effect.map(Deferred.await(command.acquired), (context) => Context.get(context, HeldLock).env),
+		exit: (command: RunningCommand) => Fiber.await(command.fiber),
 		fail: (command: RunningCommand, error: string) => {
 			tell(`the command fails: ${error}`);
 			return Deferred.fail(command.completion, error);
 		},
-		failure: (command: RunningCommand) => Fiber.join(command.fiber).pipe(Effect.flip),
 		interrupt: (command: RunningCommand) => {
 			tell("the command is interrupted");
 			return Fiber.interrupt(command.fiber);
 		},
 		join: (command: RunningCommand) => Fiber.join(command.fiber),
-		settingsError: () => configured(engine, readSettings(undefined)).pipe(Effect.flip),
+		readSettings: () => Effect.exit(configured(engine, readSettings(undefined))),
 		start: () => {
 			tell("a command starts acquiring the lock");
 			return startCommand(engine);

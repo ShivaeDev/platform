@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import process from "node:process";
 import { ConfigProvider, Effect, FileSystem, Option } from "effect";
 import type { HeavyLockOptions } from "#acquire.ts";
-import type { Holder } from "#holder.ts";
+import { encodeHolder, type Holder } from "#holder.ts";
 import { readHolder, reclaim, release, tryAcquire } from "#lock-file.ts";
 import { startTime } from "./startTime.ts";
 
@@ -15,13 +15,14 @@ export const createLock = Effect.gen(function* () {
 	const env: Record<string, string> = {};
 	const cliOptions: { cwd?: string } = {};
 	const holders: Record<string, Holder> = {};
+	const options: HeavyLockOptions = { command: "pnpm ready", lockPath: lock, pollInterval: "10 seconds" };
 	return {
 		cliOptions,
 		directory,
 		env,
 		holders,
 		lock,
-		options: { command: "pnpm ready", lockPath: lock, pollInterval: "10 seconds" } satisfies HeavyLockOptions,
+		options,
 		unreadable: false,
 	};
 });
@@ -67,8 +68,11 @@ export const seedHolder = Effect.fn("LockStory.seedHolder")(function* (
 	startedAtMs: number,
 ) {
 	const holder = yield* makeHolder(id, kind, startedAtMs);
+	const blocker = yield* tryAcquire(engine.lock, holder);
+	if (Option.isSome(blocker)) {
+		return yield* Effect.die(new Error(`Cannot seed holder ${id}: ${blocker.value.id} already holds the lock.`));
+	}
 	engine.holders[id] = holder;
-	yield* tryAcquire(engine.lock, holder);
 });
 
 export function breakConfiguration(engine: Lock): void {
@@ -98,6 +102,12 @@ export function lockVerbs(engine: Lock, tell: (line: string) => void) {
 			return release(engine.lock, id);
 		},
 		replace: (id: string, startedAtMs: number) =>
-			seedHolder(engine, id, "live", startedAtMs).pipe(Effect.andThen(Effect.sync(() => writeLock(engine.lock, JSON.stringify(engine.holders[id]))))),
+			Effect.gen(function* () {
+				tell(`${id} replaces the holder`);
+				const holder = yield* makeHolder(id, "live", startedAtMs);
+				const encoded = yield* encodeHolder(holder);
+				writeLock(engine.lock, encoded);
+				engine.holders[id] = holder;
+			}),
 	};
 }

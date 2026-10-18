@@ -1,9 +1,7 @@
 import process from "node:process";
 import { expect } from "vitest";
 import { HOLDER_ID_ENV } from "#holder.ts";
-import { environment, heldBy, lockStory, workingDirectory } from "#test/kit.ts";
-
-const live = { clock: "live", timeout: 20_000 } as const;
+import { environment, heldBy, liveCli, lockStory, workingDirectory } from "#test/kit.ts";
 
 lockStory.it(
 	"commands inherit their holder's id, keep their exit code, and release",
@@ -15,7 +13,7 @@ lockStory.it(
 		});
 		expect(lock.contents()).toBeUndefined();
 	},
-	live,
+	liveCli,
 );
 
 lockStory.it(
@@ -28,7 +26,7 @@ lockStory.it(
 		});
 		expect(lock.contents()).toBeUndefined();
 	},
-	live,
+	liveCli,
 );
 
 lockStory.it(
@@ -47,7 +45,7 @@ lockStory.it(
 		expect(waited.stderr).toMatch(/acquired after \d+s/u);
 		expect(lock.contents()).toBeUndefined();
 	},
-	live,
+	liveCli,
 );
 
 lockStory.it(
@@ -65,7 +63,7 @@ lockStory.it(
 		yield* cli.release();
 		expect((yield* cli.exit(child)).status).toBe(0);
 	},
-	live,
+	liveCli,
 );
 
 lockStory.it(
@@ -76,7 +74,7 @@ lockStory.it(
 		expect(yield* cli.command(["/bin/sh", "-c", `test -z "$${HOLDER_ID_ENV}"`])).toEqual({ status: 0, stderr: "" });
 		expect(lock.contents()).toBe(before);
 	},
-	live,
+	liveCli,
 );
 
 for (const args of [[], ["sleep", "1"], ["--"]]) {
@@ -87,7 +85,7 @@ for (const args of [[], ["sleep", "1"], ["--"]]) {
 			expect(yield* cli.raw(args)).toEqual({ status: 2, stderr: "Usage: heavy-lock -- <command> [args...]\n" });
 			expect(lock.contents()).toBeUndefined();
 		},
-		live,
+		liveCli,
 	);
 }
 
@@ -100,5 +98,5 @@ lockStory.it(
 		expect(result.stderr).toMatch(/^no-such-command-anywhere: /u);
 		expect(lock.contents()).toBeUndefined();
 	},
-	live,
+	liveCli,
 );

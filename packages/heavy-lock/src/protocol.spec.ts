@@ -3,8 +3,13 @@ import { expect } from "vitest";
 import { lockStory, referenceLock } from "#test/kit.ts";
 
 lockStory.it("a holder's field order does not change the published protocol bytes", [], function* ({ protocol, lock }) {
-	yield* protocol.publishReference();
-	expect(lock.contents()).toBe(protocol.reference);
+	expect(yield* protocol.publishReference()).toEqual(Option.none());
+	const first = lock.contents();
+	expect(first).toBe(protocol.reference);
+	yield* lock.release(protocol.referenceHolder.id);
+	const { startedAtMs, ...otherFields } = protocol.referenceHolder;
+	expect(yield* protocol.publishReference({ startedAtMs, ...otherFields })).toEqual(Option.none());
+	expect(lock.contents()).toBe(first);
 	expect(yield* lock.read()).toEqual(Option.some(protocol.referenceHolder));
 });
 

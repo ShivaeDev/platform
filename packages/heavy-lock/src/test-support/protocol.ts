@@ -23,7 +23,7 @@ export function referenceContent(engine: Lock) {
 export function protocolVerbs(engine: Lock) {
 	return {
 		processIdentity: () => ({ cwd: process.cwd(), pid: process.pid, processStartedAt: startTime(process.pid) }),
-		publishReference: () => tryAcquire(engine.lock, referenceHolder),
+		publishReference: (holder: Holder = referenceHolder) => tryAcquire(engine.lock, holder),
 		reference,
 		referenceHolder,
 	};

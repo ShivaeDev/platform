@@ -1,15 +1,15 @@
-import { Option } from "effect";
-import { expect } from "vitest";
+import { Cause, Exit, Option } from "effect";
+import { assert, expect } from "vitest";
 import { HOLDER_ID_ENV } from "#holder.ts";
-import { environment, heldBy, lockStory } from "#test/kit.ts";
+import { environment, heldBy, lockStory, pollingEvery } from "#test/kit.ts";
 
 lockStory.it("a waiter names its holder, reminds every minute, then acquires and releases", [heldBy("e2e")], function* ({ clock, lock }) {
 	const waiter = yield* clock.wait(30_000);
 	expect(waiter.lines()).toHaveLength(1);
 	expect(waiter.lines()[0]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(30s\)$/u);
-	yield* waiter.advance(50_000);
+	yield* waiter.advance(55_000);
 	expect(waiter.lines()).toHaveLength(1);
-	yield* waiter.advance(10_000);
+	yield* waiter.advance(5000);
 	expect(waiter.lines()).toHaveLength(2);
 	expect(waiter.lines()[1]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(1m 30s\)$/u);
 	yield* lock.release("e2e");
@@ -21,6 +21,19 @@ lockStory.it("a waiter names its holder, reminds every minute, then acquires and
 	expect(held.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(held.holder).id });
 	expect(waiter.lines()).toHaveLength(3);
 	expect(waiter.lines()[2]).toBe("heavy-process lock: acquired after 1m 10s");
+	expect(lock.contents()).toBeUndefined();
+});
+
+lockStory.it("a waiter polls at its configured interval across partial advances", [heldBy("build"), pollingEvery(7000)], function* ({ clock, lock }) {
+	const waiter = yield* clock.wait();
+	yield* lock.release("build");
+	yield* waiter.advance(6000);
+	expect(lock.contents()).toBeUndefined();
+	expect(waiter.lines()).toHaveLength(1);
+	yield* waiter.advance(1000);
+	const held = yield* waiter.finish();
+	expect(Option.map(held.holder, ({ startedAtMs }) => startedAtMs)).toEqual(Option.some(7000));
+	expect(waiter.lines()[1]).toBe("heavy-process lock: acquired after 7s");
 	expect(lock.contents()).toBeUndefined();
 });
 
@@ -101,7 +114,9 @@ lockStory.it("a failing command releases the lock and keeps its error", [], func
 	yield* run.environment(command);
 	expect(lock.contents()).toBeDefined();
 	yield* run.fail(command, "build failed");
-	expect(yield* run.failure(command)).toBe("build failed");
+	const result = yield* run.exit(command);
+	assert(Exit.isFailure(result));
+	expect(Cause.findErrorOption(result.cause)).toEqual(Option.some("build failed"));
 	expect(lock.contents()).toBeUndefined();
 });
 

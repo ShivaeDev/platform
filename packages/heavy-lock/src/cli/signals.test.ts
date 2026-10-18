@@ -1,7 +1,5 @@
 import { expect } from "vitest";
-import { heldBy, lockStory, processLookupFails } from "#test/kit.ts";
-
-const live = { clock: "live", timeout: 20_000 } as const;
+import { heldBy, liveCli, lockStory, processLookupFails } from "#test/kit.ts";
 
 for (const [signal, code] of [
 	["SIGINT", 10],
@@ -18,7 +16,7 @@ for (const [signal, code] of [
 			expect((yield* cli.exit(child)).status).toBe(code);
 			expect(lock.contents()).toBeUndefined();
 		},
-		live,
+		liveCli,
 	);
 }
 
@@ -28,7 +26,7 @@ lockStory.it(
 	function* ({ cli }) {
 		expect(yield* cli.command(["/bin/sh", "-c", 'test "$(ps -o pgid= -p $$ | tr -d " ")" = "$$"'])).toEqual({ status: 0, stderr: "" });
 	},
-	live,
+	liveCli,
 );
 
 lockStory.it(
@@ -42,7 +40,7 @@ lockStory.it(
 		expect((yield* cli.command(["/bin/sh", "-c", "kill -KILL $$"])).status).toBe(137);
 		expect(lock.contents()).toBeUndefined();
 	},
-	live,
+	liveCli,
 );
 
 lockStory.it(
@@ -57,7 +55,7 @@ lockStory.it(
 		expect(lock.contents()).toBe(before);
 		expect(lock.files()).toEqual(["heavy-process.lock"]);
 	},
-	live,
+	liveCli,
 );
 
 for (const [description, mode, message] of [
@@ -72,6 +70,6 @@ for (const [description, mode, message] of [
 			expect(cli.markerExists()).toBe(false);
 			expect(lock.contents()).toBeUndefined();
 		},
-		live,
+		liveCli,
 	);
 }
