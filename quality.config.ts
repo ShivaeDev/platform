@@ -9,26 +9,8 @@ import { workspaceSection } from "#quality/workspaceSection.ts";
 export default defineConfig({
 	exceptions: [
 		{
-			files: [
-				"examples/starter/src/client/ui/chart.tsx",
-				"packages/work-board/src/client/react/components/ui/command.tsx",
-				"packages/work-board/src/client/react/components/ui/dialog.tsx",
-				"packages/work-board/src/client/react/components/ui/input-group.tsx",
-				"packages/work-board/src/client/react/components/ui/select.tsx",
-			],
-			reason: "The shadcn CLI owns these stock chart, command, dialog, input group and select modules, including their size.",
-			rules: ["structure/max-lines"],
-		},
-		{
-			"files": [
-				"**",
-				"!**/test-support/generated",
-				"!**/test-support/*/generated",
-				"!examples/starter",
-				"!packages/work-board/src/client/react/components/ui",
-			],
-			"reason":
-				"Generated test clients are not source. The starter has a nested Biome config and runs its own Quality gate, preserving stock shadcn output there. components.json assigns the Board's components/ui folder to the shadcn CLI; preserve its stock output, which TypeScript still checks.",
+			"files": ["**", "!**/test-support/generated", "!**/test-support/*/generated", "!examples/starter"],
+			"reason": "Generated test clients are not source. The starter has a nested Biome config and runs its own Quality gate.",
 			"rules": ["biome/files/includes"],
 		},
 		{
@@ -81,21 +63,6 @@ export default defineConfig({
 	],
 	local: [catalogOnly, catalogOverrides, codecovComponents, exactCatalogVersion, unreadable, workspaceSection],
 	rules: {
-		"files/named-after-export": {
-			options: {
-				toolOwned: [
-					"*.config.*",
-					"*.d.ts",
-					"*.d.mts",
-					"*.d.cts",
-					"**/.railway/railway.ts",
-					"**/.railway/railway.py",
-					"**/.railway/railway.go",
-					"examples/starter/src/client/ui/",
-					"packages/work-board/src/client/react/components/ui/",
-				],
-			},
-		},
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },
 	},
 	sources: ["packages", "examples", "script"],
