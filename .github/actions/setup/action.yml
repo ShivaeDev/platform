@@ -9,13 +9,13 @@ runs:
   steps:
     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
       with:
-        node-version: 26.11.1
+        node-version-file: .node-version
         package-manager-cache: false
     - name: Pull PostgreSQL in the background
       if: inputs.postgres == 'true'
       shell: bash
       run: |
-        image=$(node --input-type=module -e "import { POSTGRES_IMAGE } from './packages/local-postgres/src/server/local-container.ts'; console.log(POSTGRES_IMAGE)")
+        image=$(node --input-type=module -e "import { POSTGRES_IMAGE } from './packages/local-postgres/src/server/localContainer.ts'; console.log(POSTGRES_IMAGE)")
         nohup docker pull --quiet "$image" > "$RUNNER_TEMP/postgres-pull.log" 2>&1 &
     - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
       with:

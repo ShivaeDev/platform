@@ -1,7 +1,7 @@
 import { useAtomRef } from "@effect/atom-react";
 import { Equal, Option, Schema } from "effect";
 import { useEffect, useState } from "react";
-import { useCreate } from "@shivaedev/effect-react/create.ts";
+import { useCreate } from "@shivaedev/effect-react/client/create.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { PromptAnswer, QuestionPreview } from "#browser/responses/schema.ts";
 import { formDraft } from "#client/formDraft.ts";

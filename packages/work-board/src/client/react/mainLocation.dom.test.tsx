@@ -1,83 +1,23 @@
-import { Effect, Option } from "effect";
-import * as Atom from "effect/reactivity/Atom";
-import { useState } from "react";
-import { expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { click, control } from "#test/chrome.ts";
-import { renderBoard } from "#test/react.tsx";
-import { LiveControls } from "./LiveControls.tsx";
-import { MainLocationContext, useMainLocation } from "./MainLocationContext.ts";
-import { emptyMainLocation } from "./mainLocation.ts";
-import { pageQueries } from "./pageQueries.ts";
-import { retryPage } from "./retryPage.ts";
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { hostedHealthScreen } from "#test/hostedHealthScreen.tsx";
+import { screenStory } from "#test/screenStory.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
-
-type LiveClient = Parameters<typeof LiveControls>[0]["client"];
-
-function Controls({ client }: { readonly client: LiveClient }) {
-	const page = useMainLocation();
-	return (
-		<>
-			<LiveControls client={client} navigationFailed={false} navigationPending={false} />
-			<button data-retry onClick={() => retryPage(client.api, client.registry, page)} type="button">
-				Retry
-			</button>
-		</>
-	);
-}
-
-function Page({ client }: { readonly client: LiveClient }) {
-	const [page, setPage] = useState({ ...emptyMainLocation, projection: "system", route: "/_board/system", status: 503 });
-	return (
-		<MainLocationContext.Provider value={page}>
-			<Controls client={client} />
-			<button data-document onClick={() => setPage({ ...emptyMainLocation, route: "/broken.md", status: 503 })} type="button">
-				Document
-			</button>
-		</MainLocationContext.Provider>
-	);
-}
-
-it("uses the supplied displayed location for live health and retry queries without a document element", async () => {
-	const paused = Atom.make(false);
-	const status = Atom.make<Atom.Type<LiveClient["updates"]["status"]>>({
-		connection: "live",
-		failure: Option.none(),
-		needsResync: false,
-		pending: 0,
-	});
-	let failed = true;
-	let systemQueries: readonly Atom.Atom<unknown>[] = [];
-	let documentQueries: readonly Atom.Atom<unknown>[] = [];
-	const view = await renderBoard(
-		{ "broken.md": "# Recovered" },
-		(api, registry) => {
-			systemQueries = pageQueries(api, "system", "/_board/system");
-			documentQueries = pageQueries(api, "document", "/broken.md");
-			const client = { api, registry, updates: { paused, status } };
-			return <Page client={client} />;
-		},
-		{ beforeRead: () => (failed ? Effect.die(new Error("Read unavailable")) : Effect.void), home: undefined },
-	);
-	try {
-		expect(document.getElementById("doc")).toBeNull();
-		await eventually(() => expect(control("#live", HTMLElement).title).toContain("reads settled"));
-		const refresh = vi.spyOn(view.registry, "refresh").mockImplementation(() => undefined);
+screenStory.it(
+	"uses the host's displayed location for live health and retries without a document element",
+	[hostedHealthScreen()],
+	function* ({ click, findElement, readText, readAttribute, recoverDocument }) {
+		expect(findElement("#doc")).toBeNull();
+		yield* Effect.promise(() => eventually(() => expect(readAttribute("#live", "title")).toContain("reads settled")));
 		click("[data-retry]");
-		expect(refresh.mock.calls.map(([query]) => query)).toEqual(systemQueries);
-		refresh.mockClear();
+		yield* Effect.promise(() => eventually(() => expect(readAttribute("#live", "title")).toContain("reads settled")));
 		click("[data-document]");
-		await eventually(() => expect(control("#live", HTMLElement).textContent).toBe("refresh failed"));
-		failed = false;
+		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("refresh failed")));
+		recoverDocument();
 		click("[data-retry]");
-		expect(refresh.mock.calls.map(([query]) => query)).toEqual(documentQueries);
-		refresh.mockRestore();
-		click("[data-retry]");
-		await eventually(() => expect(control("#live", HTMLElement).textContent).toBe("reconnecting"));
-		expect(control("#live", HTMLElement).title).toContain("reads settled");
-	} finally {
-		await view.unmount();
-	}
-});
+		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("reconnecting")));
+		expect(readAttribute("#live", "title")).toContain("reads settled");
+	},
+);

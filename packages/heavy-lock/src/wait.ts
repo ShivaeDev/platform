@@ -1,6 +1,6 @@
 import { Clock, Console, Duration, Effect, Option } from "effect";
 import type { Holder } from "./holder.ts";
-import { release, tryAcquire } from "./lock-file.ts";
+import { release, tryAcquire } from "./lockFile.ts";
 import { acquiredLine, waitingLine } from "./status.ts";
 
 export type Claim = Omit<Holder, "startedAtMs">;

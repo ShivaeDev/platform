@@ -23,47 +23,10 @@
 		}
 	},
 	"exports": {
-		"./applyRelease.ts": {
-			"types": "./dist/applyRelease.d.ts",
-			"source": "./src/applyRelease.ts",
-			"import": "./dist/applyRelease.js",
-			"default": "./dist/applyRelease.js"
-		},
-		"./check.ts": {
-			"types": "./dist/check.d.ts",
-			"source": "./src/check.ts",
-			"import": "./dist/check.js",
-			"default": "./dist/check.js"
-		},
-		"./planner.ts": {
-			"types": "./dist/planner.d.ts",
-			"source": "./src/planner.ts",
-			"import": "./dist/planner.js",
-			"default": "./dist/planner.js"
-		},
-		"./config.ts": {
-			"types": "./dist/config.d.ts",
-			"source": "./src/config.ts",
-			"import": "./dist/config.js",
-			"default": "./dist/config.js"
-		},
-		"./parser.ts": {
-			"types": "./dist/parser.d.ts",
-			"source": "./src/parser.ts",
-			"import": "./dist/parser.js",
-			"default": "./dist/parser.js"
-		},
-		"./error.ts": {
-			"types": "./dist/error.d.ts",
-			"source": "./src/error.ts",
-			"import": "./dist/error.js",
-			"default": "./dist/error.js"
-		},
-		"./model.ts": {
-			"types": "./dist/model.d.ts",
-			"source": "./src/model.ts",
-			"import": "./dist/model.js",
-			"default": "./dist/model.js"
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
 		},
 		"./package.json": "./package.json"
 	},

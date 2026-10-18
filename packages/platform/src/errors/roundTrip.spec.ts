@@ -1,7 +1,7 @@
 import { Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import { expect, it } from "vitest";
-import { rejectedField } from "#errors/rejected-field.ts";
+import { rejectedField } from "#errors/rejectedField.ts";
 import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests } from "#errors/taxonomy.ts";
 import { httpClient, rpcHttp, serve } from "#test/rpc/harness.ts";
 

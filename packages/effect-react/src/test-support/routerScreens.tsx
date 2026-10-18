@@ -1,6 +1,6 @@
-import { type ErrorComponentProps, getRouteApi, Outlet, useRouterState } from "@tanstack/react-router";
+import { type ErrorComponentProps, getRouteApi, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { Option, Predicate } from "effect";
-import { useQuery } from "#result-state.ts";
+import { useQuery } from "#client/resultState.ts";
 import type { routerApp } from "./routerApp.ts";
 
 type Router = ReturnType<typeof routerApp>;
@@ -10,6 +10,9 @@ export function RouterShell() {
 	const pending = useRouterState({ select: (state) => state.isLoading });
 	return (
 		<main>
+			<Link params={{ id: "second" }} to="/notes/$id">
+				Second note
+			</Link>
 			<output data-pending>{String(pending)}</output>
 			<Outlet />
 		</main>

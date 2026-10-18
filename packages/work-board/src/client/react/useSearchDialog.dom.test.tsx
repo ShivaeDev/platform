@@ -1,78 +1,61 @@
-import { act } from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { browserStorage } from "#test/browserStorage.ts";
-import { chrome, click, control, input } from "#test/chrome.ts";
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { selectionResetOnFocus } from "#test/browserMotion.ts";
+import { screenStory } from "#test/screenStory.ts";
+import { chromeScreen } from "#test/screenTraits.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
-beforeEach(() => {
-	browserStorage();
-	sessionStorage.clear();
-	window.history.replaceState({}, "", "/");
-});
-afterEach(() => {
-	vi.unstubAllGlobals();
-	vi.restoreAllMocks();
-});
 
-it("retains the search query and refreshed results after dismissal and reopening", async () => {
-	const files = { "notes/plan.md": "# Plan\n\nShared phrase.\n" };
-	const view = await chrome(files);
-	try {
+const files = { "notes/plan.md": "# Plan\n\nShared phrase.\n" };
+screenStory.it(
+	"retains the search query and refreshed results after dismissal and reopening",
+	[chromeScreen(files)],
+	function* ({ click, input, control, keyboard, refreshQuery, editFile }) {
 		click("#search-open");
 		input("#search-query", "Shared phrase");
-		await eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase."));
-		act(() =>
-			control("#search-query", HTMLInputElement).dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Escape" })),
-		);
-		await eventually(() => expect(control("#search-dialog", HTMLDialogElement).open).toBe(false));
+		yield* Effect.promise(() => eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase.")));
+		keyboard("Escape", { bubbles: true, cancelable: true }, control("#search-query", HTMLInputElement));
+		yield* Effect.promise(() => eventually(() => expect(control("#search-dialog", HTMLDialogElement).open).toBe(false)));
 		click("#search-open");
 		expect(control("#search-query", HTMLInputElement).value).toBe("Shared phrase");
-		await eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase."));
-		files["notes/plan.md"] = "# Plan\n\nShared phrase changed.\n";
-		await act(async () => view.registry.refresh(view.api.search.query({ query: "Shared phrase" })));
-		await eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase changed."));
+		yield* Effect.promise(() => eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase.")));
+		editFile("notes/plan.md", "# Plan\n\nShared phrase changed.\n");
+		yield* Effect.promise(() => refreshQuery("search", { query: "Shared phrase" }));
+		yield* Effect.promise(() => eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase changed.")));
 		click("#search-close");
-		await eventually(() => expect(control("#search-dialog", HTMLDialogElement).open).toBe(false));
+		yield* Effect.promise(() => eventually(() => expect(control("#search-dialog", HTMLDialogElement).open).toBe(false)));
 		click("#search-open");
 		expect(control("#search-query", HTMLInputElement).value).toBe("Shared phrase");
-		await eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase changed."));
-	} finally {
-		await view.unmount();
-	}
-});
+		yield* Effect.promise(() => eventually(() => expect(control("#search-results p", HTMLElement).textContent).toBe("Shared phrase changed.")));
+	},
+);
 
-it.each(["ctrlKey", "metaKey"] as const)("restores textarea focus and selection after %s+K and Escape", async (modifier) => {
-	const view = await chrome(
-		{ "question.md": "---\nid: question.fixture\nkind: question\nstatus: open\n---\n# A choice\n\nChoose a direction.\n" },
-		"/question.md",
+for (const modifier of ["ctrlKey", "metaKey"] as const) {
+	screenStory.it(
+		`restores textarea focus and selection after ${modifier}+K and Escape`,
+		[
+			chromeScreen(
+				{ "question.md": "---\nid: question.fixture\nkind: question\nstatus: open\n---\n# A choice\n\nChoose a direction.\n" },
+				"/question.md",
+			),
+			selectionResetOnFocus(),
+		],
+		function* ({ control, keyboard, findElement, readFocus, typeText }) {
+			yield* Effect.promise(() => eventually(() => expect(findElement("#response-form textarea")).not.toBeNull()));
+			const textarea = control("#response-form textarea", HTMLTextAreaElement);
+			typeText(textarea, "Work in progress");
+			textarea.focus();
+			textarea.setSelectionRange(4, 8, "backward");
+			keyboard("k", { bubbles: true, cancelable: true, [modifier]: true }, textarea);
+			expect(control("#search-dialog", HTMLDialogElement).open).toBe(true);
+			expect(readFocus()).toBe(control("#search-query", HTMLInputElement));
+
+			keyboard("Escape", { bubbles: true, cancelable: true }, control("#search-query", HTMLInputElement));
+			yield* Effect.promise(() => eventually(() => expect(control("#search-dialog", HTMLDialogElement).open).toBe(false)));
+			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(textarea)));
+			expect(textarea.value).toBe("Work in progress");
+			expect([textarea.selectionStart, textarea.selectionEnd, textarea.selectionDirection]).toEqual([4, 8, "backward"]);
+		},
 	);
-	try {
-		await eventually(() => expect(document.querySelector("#response-form textarea")).not.toBeNull());
-		const textarea = control("#response-form textarea", HTMLTextAreaElement);
-		act(() => {
-			textarea.value = "Work in progress";
-			textarea.dispatchEvent(new Event("input", { bubbles: true }));
-		});
-		textarea.focus();
-		textarea.setSelectionRange(4, 8, "backward");
-		act(() => textarea.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "k", [modifier]: true })));
-		expect(control("#search-dialog", HTMLDialogElement).open).toBe(true);
-		expect(document.activeElement).toBe(control("#search-query", HTMLInputElement));
-		const focus = textarea.focus.bind(textarea);
-		vi.spyOn(textarea, "focus").mockImplementation((options) => {
-			focus(options);
-			textarea.setSelectionRange(0, 0);
-		});
-		act(() =>
-			control("#search-query", HTMLInputElement).dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Escape" })),
-		);
-		await eventually(() => expect(control("#search-dialog", HTMLDialogElement).open).toBe(false));
-		await eventually(() => expect(document.activeElement).toBe(textarea));
-		expect(textarea.value).toBe("Work in progress");
-		expect([textarea.selectionStart, textarea.selectionEnd, textarea.selectionDirection]).toEqual([4, 8, "backward"]);
-	} finally {
-		await view.unmount();
-	}
-});
+}

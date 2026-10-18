@@ -1,7 +1,7 @@
 import { Context, Deferred, Effect, Layer, Path } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { appHost } from "@shivaedev/platform/appHost.ts";
+import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import type { Server } from "#rpc/Server.ts";
 import { boardRuntime } from "#server/boardRuntime.ts";

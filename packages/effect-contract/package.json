@@ -23,55 +23,12 @@
 		}
 	},
 	"exports": {
-		"./package.json": "./package.json",
-		"./bind.ts": {
-			"types": "./dist/bind.d.ts",
-			"source": "./src/bind.ts",
-			"import": "./dist/bind.js",
-			"default": "./dist/bind.js"
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
 		},
-		"./contract.ts": {
-			"types": "./dist/contract.d.ts",
-			"source": "./src/contract.ts",
-			"import": "./dist/contract.js",
-			"default": "./dist/contract.js"
-		},
-		"./keys.ts": {
-			"types": "./dist/keys.d.ts",
-			"source": "./src/keys.ts",
-			"import": "./dist/keys.js",
-			"default": "./dist/keys.js"
-		},
-		"./live.ts": {
-			"types": "./dist/live.d.ts",
-			"source": "./src/live.ts",
-			"import": "./dist/live.js",
-			"default": "./dist/live.js"
-		},
-		"./makeLiveServer.ts": {
-			"types": "./dist/makeLiveServer.d.ts",
-			"source": "./src/makeLiveServer.ts",
-			"import": "./dist/makeLiveServer.js",
-			"default": "./dist/makeLiveServer.js"
-		},
-		"./operation.ts": {
-			"types": "./dist/operation.d.ts",
-			"source": "./src/operation.ts",
-			"import": "./dist/operation.js",
-			"default": "./dist/operation.js"
-		},
-		"./rejection.ts": {
-			"types": "./dist/rejection.d.ts",
-			"source": "./src/rejection.ts",
-			"import": "./dist/rejection.js",
-			"default": "./dist/rejection.js"
-		},
-		"./resume.ts": {
-			"types": "./dist/resume.d.ts",
-			"source": "./src/resume.ts",
-			"import": "./dist/resume.js",
-			"default": "./dist/resume.js"
-		}
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",

@@ -1,5 +1,5 @@
 export const USAGE = `Usage:
-  quality lint [--config <file>] [--warnings summary|all]
+  quality lint [--config <file>]
   quality fix [--config <file>]
   quality exceptions migrate [--config <file>] [--from <registry>]
   quality baseline write [--config <file>] [--rule <id>]...
@@ -11,7 +11,7 @@ export const USAGE = `Usage:
   quality hooks pre-commit [--config <file>]
 
 lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
-                  or a baseline entry for a rule that is off or unknown.
+                  or a baseline entry for an unknown rule.
 fix               Sort every package.json, apply Biome's lint fixes, unsafe ones included, its assist actions and formatting, then format again.
 exceptions migrate Move legacy registry entries and Biome declarations into quality.config.ts exceptions and remove matching root overrides.
 baseline write    Record current error-level violations. Creates the baseline, or records the named rules again, replacing their entries.

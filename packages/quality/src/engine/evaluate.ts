@@ -11,7 +11,6 @@ export interface Outcome {
 	readonly regressions: readonly Regression[];
 	readonly staleBaseline: readonly StaleBaselineEntry[];
 	readonly staleRegistry: readonly StaleRegistryEntry[];
-	readonly warnings: readonly Violation[];
 }
 
 export function evaluate(
@@ -25,13 +24,12 @@ export function evaluate(
 	const kept = [...baselined.kept].sort(byLocation);
 	return {
 		baselined: baselined.baselined,
-		errors: kept.filter((violation) => violation.level === "error"),
+		errors: kept,
 		looseBaseline: baselined.loose,
 		registered: registered.registered,
 		regressions: baselined.regressions,
 		staleBaseline: baselined.stale,
 		staleRegistry: registered.stale,
-		warnings: kept.filter((violation) => violation.level === "warn"),
 	};
 }
 

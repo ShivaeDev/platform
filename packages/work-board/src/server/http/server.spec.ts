@@ -4,7 +4,7 @@ import { Effect, Layer, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import { afterEach, describe, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
-import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
+import { loopbackOnly } from "@shivaedev/platform/server/rpc-server/local.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { countingPaths, silentWatch } from "#test/faults.ts";
 import { changesUntil, rpcPaths, subscribe } from "#test/nativeRpc.ts";
@@ -122,8 +122,12 @@ describe("pages", () => {
 		yield* Effect.promise(() => get("/notes/log.md"));
 		expect(listings()).toBe(once);
 		const events = yield* subscribe(board);
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
 		notes.write("notes/new.md", "# New\n");
-		yield* changesUntil(events, "notes/new.md");
+		expect(yield* changesUntil(events, "notes/new.md")).toMatchObject({
+			_tag: "Changed",
+			keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/new.md" }]),
+		});
 		yield* events.close();
 		expect(yield* rpcPaths(board)).toContain("/notes/new.md");
 		expect(listings()).toBe(once);

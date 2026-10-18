@@ -1,11 +1,11 @@
 import postgres, { type PostgresClient, type PostgresOptionsBase } from "@prisma-next/postgres/runtime";
 import { type Layer, Redacted } from "effect";
 import type { DatabaseIdentifier, DatabaseIdentifierLiteral, DatabaseServiceHolder, DefaultModels } from "#databaseTypes.ts";
-import { acquireConnectedClient } from "#internal/client-lifecycle.ts";
-import { namespaceModels } from "#internal/database-facade.ts";
-import { makeSqlDatabase } from "#internal/database-factory.ts";
+import { acquireConnectedClient } from "#internal/clientLifecycle.ts";
+import { namespaceModels } from "#internal/databaseFacade.ts";
 import type { AnySqlContract } from "#internal/executor.ts";
 import { makePostgresPool } from "#internal/makePostgresPool.ts";
+import { makeSqlDatabase } from "#internal/makeSqlDatabase.ts";
 import { fromPrismaPromise } from "#internal/promise.ts";
 import type { PrismaError } from "./error.ts";
 

@@ -4,17 +4,12 @@ import { groupBy, keyOf, type Violation } from "#engine/violation.ts";
 import { plural } from "./plural.ts";
 import { staleSections } from "./stale.ts";
 
-export type WarningDetail = "summary" | "all";
-
 export interface ReportContext {
 	readonly baseline: string;
 	readonly checked: number;
 	readonly descriptions: ReadonlyMap<string, string>;
 	readonly registry: string;
-	readonly warnings: WarningDetail;
 }
-
-const LISTED_FILES = 5;
 
 function locate(violation: Violation): string {
 	return violation.line === undefined ? violation.file : `${violation.file}:${violation.line}`;
@@ -24,9 +19,9 @@ function regressionNote(regression: Regression): string {
 	return `  ${regression.entry.file} is over its baseline: ${regression.count} against ${regression.entry.count} baselined.`;
 }
 
-function heading(label: string, rule: string, violations: readonly Violation[], context: ReportContext): readonly string[] {
+function heading(rule: string, violations: readonly Violation[], context: ReportContext): readonly string[] {
 	const description = context.descriptions.get(rule);
-	return [`${label} ${rule} (${violations.length})`, ...(description === undefined ? [] : [`  ${description}`])];
+	return [`error ${rule} (${violations.length})`, ...(description === undefined ? [] : [`  ${description}`])];
 }
 
 function detailed(violations: readonly Violation[], regressions: ReadonlyMap<string, Regression>): readonly string[] {
@@ -40,21 +35,9 @@ function detailed(violations: readonly Violation[], regressions: ReadonlyMap<str
 	});
 }
 
-function summarized(violations: readonly Violation[]): readonly string[] {
-	const files = [...groupBy(violations, (violation) => violation.file).entries()].sort(([, left], [, right]) => right.length - left.length);
-	const listed = files.slice(0, LISTED_FILES).map(([file, inFile]) => `${file} (${inFile.length})`);
-	const rest = files.length - listed.length;
-	return [`  ${listed.join(", ")}${rest > 0 ? `, and ${plural(rest, "more file", "more files")}` : ""}. --warnings all lists each one.`];
-}
-
-function ruleSections(
-	label: string,
-	violations: readonly Violation[],
-	context: ReportContext,
-	body: (inRule: readonly Violation[]) => readonly string[],
-): readonly string[] {
+function ruleSections(violations: readonly Violation[], context: ReportContext, regressions: ReadonlyMap<string, Regression>): readonly string[] {
 	return [...groupBy(violations, (violation) => violation.rule).entries()].map(([rule, inRule]) =>
-		[...heading(label, rule, inRule, context), ...body(inRule)].join("\n"),
+		[...heading(rule, inRule, context), ...detailed(inRule, regressions)].join("\n"),
 	);
 }
 
@@ -68,14 +51,13 @@ function failures(outcome: Outcome): string {
 
 function summary(outcome: Outcome, context: ReportContext): string {
 	const verdict = passes(outcome) ? "quality: passed" : `quality: failed with ${failures(outcome)}`;
-	const warnings = outcome.warnings.length > 0 ? `; ${plural(outcome.warnings.length, "warning")} from rules still at warn` : "";
 	const hidden = [
 		...(outcome.baselined > 0 ? [`${outcome.baselined} baselined`] : []),
 		...(outcome.registered > 0 ? [`${outcome.registered} registered`] : []),
 	];
 	const suppressed =
 		hidden.length === 0 ? "" : `; ${hidden.join(" and ")} ${outcome.baselined + outcome.registered === 1 ? "violation" : "violations"} not shown`;
-	return `${verdict}${warnings}. ${plural(context.checked, "source file")} checked${suppressed}.`;
+	return `${verdict}. ${plural(context.checked, "source file")} checked${suppressed}.`;
 }
 
 function rerecord(outcome: Outcome): readonly string[] {
@@ -91,10 +73,8 @@ function rerecord(outcome: Outcome): readonly string[] {
 
 export function render(outcome: Outcome, context: ReportContext): string {
 	const regressions = new Map(outcome.regressions.map((regression) => [keyOf(regression.entry.rule, regression.entry.file), regression]));
-	const warningBody = context.warnings === "all" ? (inRule: readonly Violation[]) => detailed(inRule, regressions) : summarized;
 	return [
-		...ruleSections("error", outcome.errors, context, (inRule) => detailed(inRule, regressions)),
-		...ruleSections("warn", outcome.warnings, context, warningBody),
+		...ruleSections(outcome.errors, context, regressions),
 		...staleSections(outcome, context),
 		summary(outcome, context),
 		...rerecord(outcome),

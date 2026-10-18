@@ -28,6 +28,7 @@ interface SchedulerWatch {
 }
 
 export const watchScheduler = Effect.fn("WatchSchedulerTest.watchScheduler")(function* (fixture: HostFixture, paused: boolean) {
+	fixture.write("connected.md", task("connected", "approved"));
 	yield* storeState(fixture.host, "connected", {
 		...statusRecord("connected", "needs-human"),
 		decision: { attentionOwner: "orchestrator", id: "connected", links: [], reason: "Watch connected", recommendation: "retry" },
@@ -84,7 +85,7 @@ const followScheduler = Effect.fn("WatchSchedulerTest.followScheduler")(function
 	yield* until(() => client("fleet.get", { workId: "one" }).pipe(Effect.map((record) => record.decision?.code === "reviewed-pr-ready")));
 	expect((yield* client("fleet.get", { workId: "one" })).stage).toBe("needs-human");
 	expect((yield* watch.readClient("fleet.get", { workId: "one" })).decision?.code).toBe("reviewed-pr-ready");
-	yield* untilEveryOutput(followers, "one needs-human (waiting on maintainer): Reviewed PR is ready to merge\n").pipe(Effect.timeout("5 seconds"));
+	yield* untilEveryOutput(followers, "one needs-human (waiting on orchestrator): Reviewed PR is ready to merge\n").pipe(Effect.timeout("5 seconds"));
 	expect(followers.map((follower) => follower.isRunning())).toEqual([true, true]);
 	expect(watch.reviews).toEqual(["head-one-0"]);
 	expect((yield* client("fleet.get", { workId: "one" })).review).toMatchObject({ head: "head-one-0", verdict: "approved" });

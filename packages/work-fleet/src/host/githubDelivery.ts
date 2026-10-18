@@ -90,7 +90,9 @@ const validateDelivery = Effect.fn("FleetHost.validateDelivery")(function* (pr: 
 		return yield* failure("Delivery observation differs from the adopted PR");
 	}
 	if (pr.state === "CLOSED" && pr.mergedAt === null && pr.mergeCommit === null) {
-		return yield* failure("PR was closed without merging; inspect the closed PR before retrying or releasing this work");
+		return yield* withFailureContext(failure("PR was closed without merging; inspect the closed PR before retrying or releasing this work"), {
+			code: "pr-closed",
+		});
 	}
 	const merged = pr.state === "MERGED" && pr.mergedAt !== null && pr.mergeCommit !== null;
 	if (!merged && (pr.state !== "OPEN" || pr.mergedAt !== null || pr.mergeCommit !== null)) {

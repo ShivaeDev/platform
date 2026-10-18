@@ -20,101 +20,15 @@
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
-		},
-		"#create.ts": {
-			"source": "./src/client/create.ts",
-			"types": "./dist/client/create.d.ts",
-			"default": "./dist/client/create.js"
-		},
-		"#editor.ts": {
-			"source": "./src/client/editor.ts",
-			"types": "./dist/client/editor.d.ts",
-			"default": "./dist/client/editor.js"
-		},
-		"#result-state.ts": {
-			"source": "./src/client/resultState.ts",
-			"types": "./dist/client/resultState.d.ts",
-			"default": "./dist/client/resultState.js"
-		},
-		"#save-state.ts": {
-			"source": "./src/client/saveState.ts",
-			"types": "./dist/client/saveState.d.ts",
-			"default": "./dist/client/saveState.js"
-		},
-		"#session-boundary.ts": {
-			"source": "./src/client/sessionBoundary.ts",
-			"types": "./dist/client/sessionBoundary.d.ts",
-			"default": "./dist/client/sessionBoundary.js"
-		},
-		"#testing.ts": {
-			"source": "./src/client/testing.ts",
-			"types": "./dist/client/testing.d.ts",
-			"default": "./dist/client/testing.js"
 		}
 	},
 	"exports": {
-		"./package.json": "./package.json",
-		"./router.ts": {
-			"types": "./dist/loadQuery.d.ts",
-			"source": "./src/loadQuery.ts",
-			"import": "./dist/loadQuery.js",
-			"default": "./dist/loadQuery.js"
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
 		},
-		"./loadQuery.ts": null,
-		"./create.ts": {
-			"types": "./dist/client/create.d.ts",
-			"source": "./src/client/create.ts",
-			"import": "./dist/client/create.js",
-			"default": "./dist/client/create.js"
-		},
-		"./editor.ts": {
-			"types": "./dist/client/editor.d.ts",
-			"source": "./src/client/editor.ts",
-			"import": "./dist/client/editor.js",
-			"default": "./dist/client/editor.js"
-		},
-		"./field-rejection.ts": {
-			"types": "./dist/field-rejection.d.ts",
-			"source": "./src/field-rejection.ts",
-			"import": "./dist/field-rejection.js",
-			"default": "./dist/field-rejection.js"
-		},
-		"./result-state.ts": {
-			"types": "./dist/client/resultState.d.ts",
-			"source": "./src/client/resultState.ts",
-			"import": "./dist/client/resultState.js",
-			"default": "./dist/client/resultState.js"
-		},
-		"./resume-signal.ts": {
-			"types": "./dist/resume-signal.d.ts",
-			"source": "./src/resume-signal.ts",
-			"import": "./dist/resume-signal.js",
-			"default": "./dist/resume-signal.js"
-		},
-		"./save-state.ts": {
-			"types": "./dist/client/saveState.d.ts",
-			"source": "./src/client/saveState.ts",
-			"import": "./dist/client/saveState.js",
-			"default": "./dist/client/saveState.js"
-		},
-		"./session-boundary.ts": {
-			"types": "./dist/client/sessionBoundary.d.ts",
-			"source": "./src/client/sessionBoundary.ts",
-			"import": "./dist/client/sessionBoundary.js",
-			"default": "./dist/client/sessionBoundary.js"
-		},
-		"./submission.ts": {
-			"types": "./dist/submission.d.ts",
-			"source": "./src/submission.ts",
-			"import": "./dist/submission.js",
-			"default": "./dist/submission.js"
-		},
-		"./testing.ts": {
-			"types": "./dist/client/testing.d.ts",
-			"source": "./src/client/testing.ts",
-			"import": "./dist/client/testing.js",
-			"default": "./dist/client/testing.js"
-		}
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",

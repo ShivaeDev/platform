@@ -1,13 +1,13 @@
 import sqlite, { type SqliteClient, type SqliteOptionsBase } from "@prisma-next/sqlite/runtime";
 import { type Layer, Semaphore } from "effect";
 import type { DatabaseIdentifier, DatabaseIdentifierLiteral, DatabaseServiceHolder, DefaultModels } from "#databaseTypes.ts";
-import { acquireConnectedClient, assertAvailableModelNames } from "#internal/client-lifecycle.ts";
-import { contractModels } from "#internal/database-facade.ts";
-import { makeSqlDatabase } from "#internal/database-factory.ts";
+import { acquireConnectedClient, assertAvailableModelNames } from "#internal/clientLifecycle.ts";
+import { contractModels } from "#internal/databaseFacade.ts";
 import type { AnySqlContract } from "#internal/executor.ts";
+import { makeSqlDatabase } from "#internal/makeSqlDatabase.ts";
 import { fromPrismaPromise } from "#internal/promise.ts";
-import { decodeSqliteDatetimesAsUtc } from "#internal/sqlite-datetime.ts";
-import { applySqlitePragmas, assertFileBackedPath } from "#internal/sqlite-pragmas.ts";
+import { decodeSqliteDatetimesAsUtc } from "#internal/sqliteDatetime.ts";
+import { applySqlitePragmas, assertFileBackedPath } from "#internal/sqlitePragmas.ts";
 import type { PrismaError } from "./error.ts";
 
 export const defaultSqlitePragmas: readonly string[] = ["journal_mode=WAL"];

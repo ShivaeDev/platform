@@ -1,0 +1,28 @@
+{
+	"name": "@shivaedev/work-board-plugin",
+	"version": "0.0.0",
+	"private": true,
+	"description": "The Work Board inside Claude Code: a pane, a band above the prompt, decision toasts and read-only board tools",
+	"license": "MIT",
+	"type": "module",
+	"imports": {
+		"#*.ts": "./src/*.ts",
+		"#types/*": "./types/*"
+	},
+	"exports": {
+		"./*.ts": "./src/*.ts"
+	},
+	"scripts": {
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@shivaedev/quality": "workspace:*",
+		"@typescript/native": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	}
+}

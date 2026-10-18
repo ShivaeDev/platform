@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { expect, it } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions, FakeClient, job } from "#test/fake-client.ts";
+import { constructorOptions, FakeClient, job } from "#test/fakeClient.ts";
 
 it("provides the owning service to a worker during startup after preparing every target queue", async () => {
 	const client = new FakeClient();

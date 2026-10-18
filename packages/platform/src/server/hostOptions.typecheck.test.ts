@@ -3,7 +3,7 @@ import { Context, Data, Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#server/appHost.ts";
 
 class Queue extends Context.Service<Queue, { readonly size: number }>()("host-inference/Queue") {}
 class QueueError extends Data.TaggedError("QueueError") {}
