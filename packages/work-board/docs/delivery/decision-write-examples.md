@@ -80,4 +80,4 @@ An optional `supersedes` identity explicitly links a new response to an existing
 
 Rich context, option descriptions and saved history on the response surface use the existing Markdown/highlighting/Mermaid pipeline with raw HTML disabled. Source HTML cannot manufacture controls or initiate writes. Mermaid remains local and strict, with its source fallback when JavaScript is unavailable. The ordinary trusted-folder reader keeps its existing compatibility; browser recording still requires JavaScript and explicit server write opt-in.
 
-The Linux/macOS no-replace publisher, revision/path checks and explicit rejected/ uncertain outcomes preserve the independent source records. The [ownership boundary](./source-editing-examples.md) keeps normal project editing with agents. Handoff and direct-editing decisions belong in the roadmap.
+The Linux/macOS no-replace publisher, revision/path checks and explicit rejected/ uncertain outcomes preserve the independent source records. The [ownership boundary](./source-editing-examples.md) keeps normal project editing with agents.

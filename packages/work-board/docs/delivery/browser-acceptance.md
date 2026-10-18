@@ -88,7 +88,7 @@ Add `reasoningFixture()` from `src/test-support/reasoningFixture.ts` to the larg
 
 ## Explicit attention acceptance — step 07
 
-Use `attentionFixture()` with the workspace fixture. Open Today and inspect the human asks, then follow their source answer cards, criteria and evidence. Repeat at 1440px and 390px with dark theme and reduced motion. Close a request in its source and verify it leaves Today. Source problems must not create asks or imply acceptance. Representative-reader orientation remains a separate exercise recorded in the roadmap.
+Use `attentionFixture()` with the workspace fixture. Open Today and inspect the human asks, then follow their source answer cards, criteria and evidence. Repeat at 1440px and 390px with dark theme and reduced motion. Close a request in its source and verify it leaves Today. Source problems must not create asks or imply acceptance. Representative-reader orientation remains a separate exercise.
 
 ## Linked reference directory acceptance
 
@@ -116,4 +116,4 @@ Physical tab transitions and Capacitor remain separate evidence. Fixtures do not
 
 Reference a source-relative PNG/JPEG/GIF/WebP in a nested home and an evidence record. Inspect embedded images and local image links by keyboard; choose gallery images and return focus with Escape. Replace an image while paused, then resume; check the image reloads and open reading details survive. An earlier preview must disclose source updates and require reopening before saving. Try a missing image, malformed path, escaping link and oversized attachment.
 
-Inspect a large Mermaid diagram, choose Actual size and zoom, scroll on a narrow screen, enter desktop fullscreen and return to the source. Save the current SVG locally; also test an invalid diagram and an unavailable fullscreen environment. Record actual results and limits in the [roadmap](../roadmap.md). Physical mobile fullscreen and representative-reader timing require their own evidence.
+Inspect a large Mermaid diagram, choose Actual size and zoom, scroll on a narrow screen, enter desktop fullscreen and return to the source. Save the current SVG locally; also test an invalid diagram and an unavailable fullscreen environment. Record actual results and limits in the PR. Physical mobile fullscreen and representative-reader timing require their own evidence.

@@ -9,7 +9,7 @@ Agents use their normal file-editing tools. Work Board adapts to those edits and
 - Agents do not have to use a special mutation command, cooperative lock, acknowledgment command, or editor protocol to edit files.
 - A ready-for-review question is normally answered while the agent is waiting, rather than deliberately editing that question at the same time.
 
-The current publisher creates independent question/context, response and handoff Markdown files. Agents edit handoff receipt through ordinary tools. This ownership rule preserves that implementation; it does not introduce an inline-response syntax or silently rewrite an agent's project document. If an inline response area is introduced later, the same ownership rule applies within the shared file.
+The publisher creates independent question/context, response and handoff Markdown files. Agents edit handoff receipt through ordinary tools. This ownership rule preserves that implementation; it does not introduce an inline-response syntax or silently rewrite an agent's project document. If an inline response area is introduced later, the same ownership rule applies within the shared file.
 
 ## Concrete example
 
@@ -27,6 +27,6 @@ If future response editing shares a file, re-read the current content and change
 
 Keep practical revision checks, drafts, ordinary filesystem failures and the local workspace boundary. Do not require a universal transaction with every outside editor, a native exchange/backup engine, or a special agent workflow as prerequisites for progress. Rare racing saves and possible text loss are accepted limitations of ordinary file editing. Detect obvious conflicts when inexpensive; avoid making every response a concurrency-management interaction.
 
-These are ownership priorities. They do not define an inline-response serialization or universal filesystem guarantees. Implementation and direct-editing/handoff decisions belong in the [roadmap](../roadmap.md). A handoff must let the chosen agent read and edit ordinary files; a required command for every acknowledgment would contradict this boundary.
+These are ownership priorities. They do not define an inline-response serialization or universal filesystem guarantees. A handoff must let the chosen agent read and edit ordinary files; a required command for every acknowledgment would contradict this boundary.
 
 The [file/copy handoff contract](handoff-examples.md) carries reviewed direction without replacing the project item. An optional harness delivery or execution integration must preserve ordinary receipt edits and separate execution facts; it cannot acquire authority to accept work from a receipt state.

@@ -1,6 +1,6 @@
 # Review returned work through ordinary Markdown records
 
-A result is an ordinary file with `kind: result`, stable identity, explicit relationships, reported evidence and prose limitations. Review brings those sources together with human direction pinned to the exact report. The [roadmap](../roadmap.md) owns implementation status and acceptance; this file teaches the source and response contract.
+A result is an ordinary file with `kind: result`, stable identity, explicit relationships, reported evidence and prose limitations. Review brings those sources together with human direction pinned to the exact report. This file teaches the source and response contract.
 
 ## Author the task and report
 
@@ -73,7 +73,7 @@ The open `review` attention request explicitly asks for judgment. Its two `verdi
 
 ## Review beside the source
 
-Open **Review returned result** on the report, or `/_board/result?item=result.keyboard`. A uniquely identified readable result uses the ordinary GET route and the typed native `result` query. The report status is shown separately from its linked task's status. Neither report status nor a handoff receipt verifies execution or authorizes a merge. [Result tests](../../src/server/results/result.spec.ts) cover HTTP reads, typed result queries, missing evidence, ambiguous identities and feedback pinned to exact report bytes and paths.
+Open **Review returned result** on the report, or `/_board/result?item=result.keyboard`. A uniquely identified readable result uses the ordinary GET route and the typed native `result` query. The report status is shown separately from its linked task's status. Neither report status nor a handoff receipt verifies execution or authorizes a merge.
 
 The page lists explicitly linked criteria, this result's claims, missing provenance, report/limitations and recorded human feedback. An unresolved or duplicate identity does not choose a convenient source. A missing local Markdown evidence source remains disclosed. Report and feedback context use the safe Markdown reader; exact reviewed source remains available separately.
 
@@ -105,4 +105,4 @@ After an agent records a revision, the next response can explicitly supersede th
 
 Work Board owns source identity, reviewed context, relationships and human feedback. An optional execution integration may attach session/turn receipts and stages to the same work ID. It does not acquire authority to change criterion acceptance from a report status or chosen option. The existing metadata, question packets and independent response publisher carry result review; a second task ledger or acceptance writer would create a competing source of truth.
 
-The [handoff contract](handoff-examples.md#optional-execution-integration-boundary) and [ordinary editing ownership](source-editing-examples.md) define that boundary. The roadmap owns optional adapter admission and the complete coordination-loop acceptance. Regression fixtures establish their asserted behavior, rather than representative-reader timing, independent model execution or adoption.
+The [handoff contract](handoff-examples.md#optional-execution-integration-boundary) and [ordinary editing ownership](source-editing-examples.md) define that boundary.

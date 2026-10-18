@@ -1,6 +1,6 @@
 # Explicit attention requests
 
-Work Board reads an optional `attention` list from richer item frontmatter. Each record names one request independently of the item's arbitrary status, owner or next action. A request ID is unique within that item and uses the existing case-sensitive ASCII ID syntax. Its identity is the pair (item ID, request ID). The overview at `/_board/overview` links each request to its exact source context.
+Work Board reads an optional `attention` list from richer item frontmatter. Each record names one request independently of the item's arbitrary status, owner or next action. A request ID is unique within that item and uses the existing case-sensitive ASCII ID syntax. Its identity is the pair (item ID, request ID). Today links each request to its exact source context.
 
 ```yaml
 id: result.search
@@ -20,7 +20,7 @@ attention:
     unblocks: [decision.search-matching]
 ```
 
-The ordinary Markdown body holds the options, rationale and evidence links. The overview shows two independent requests from the same item. Opening either leads to the existing source context and its explicit target links.
+The ordinary Markdown body holds the options, rationale and evidence links. Today shows two independent requests from the same item. Opening either leads to the existing source context and its explicit target links.
 
 A blocker is also an explicit request, not a deduction from a dependency edge:
 
@@ -57,7 +57,7 @@ A closed request remains readable and searchable but leaves the open queue. Clos
 
 For a generated decision marked `managed: true`, a separate qualified `request_receipt` can remove the request from the open queue without changing its source state. The receipt must match the registered question's exact source path and bytes. Applying it requires the unique current answer; superseding it does not invent an answer. Ordinary authored requests keep the rules above. See the [managed acknowledgement rules](../../README.md#record-a-human-response).
 
-The overview groups decisions, reviews and blockers with visible counts, then orders each group by source title, item ID and request ID. Each entry shows the recorded reason, recipients, target links and origin file/line. Request text and recipients are searchable; source targets contribute backlinks. An incomplete workspace returns an explicit unavailable state and withholds queue counts and classification. Source issues are disclosed separately from a genuine quiet state. Files and requests remain local; the UI never writes their contents.
+Request text and recipients are searchable; source targets contribute backlinks. An incomplete workspace returns an explicit unavailable state and withholds queue counts and classification. Source issues are disclosed separately from a genuine quiet state. Files and requests remain local; the UI never writes their contents.
 
 ## Ambiguity and quiet examples
 
@@ -67,5 +67,5 @@ The overview groups decisions, reviews and blockers with visible counts, then or
 - Two items with the same ID: do not assign either item's requests.
 - `unblocks: [missing.id]`: show a source issue outside the actionable queue; keep the request readable in its original file.
 - `state: closed`: no open queue entry, with no acceptance claim.
-- A complete workspace with only valid closed requests: quiet overview.
+- A complete workspace with only valid closed requests: a quiet Today.
 - Malformed YAML: retain readable prose and disclose the source issue; do not present it as a confirmed quiet workspace.

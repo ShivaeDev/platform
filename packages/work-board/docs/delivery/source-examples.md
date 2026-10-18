@@ -1,6 +1,6 @@
 # Optional source structure
 
-Work Board reads optional YAML frontmatter at the beginning of a Markdown file. The file remains authoritative; the in-memory identity/search index is rebuilt from readable files and invalidated by the watcher. No database, generated source files, cloud service, or migration is required. Parsing uses `yaml` 2.9.0 and Effect Schema. The UI reads this structure and never rewrites it.
+Work Board reads optional YAML frontmatter at the beginning of a Markdown file. The file remains authoritative; the in-memory identity/search index is rebuilt from readable files and invalidated by the watcher. No database, generated source files, cloud service, or migration is required. Parsing uses `yaml` and Effect Schema. The UI reads this structure and never rewrites it.
 
 ## Existing heading boards
 
@@ -20,7 +20,7 @@ Find document titles, headings, and passages.
 Evidence: [navigation PR](https://github.com/ShivaeDev/platform/pull/77).
 ```
 
-Existing heading boards render as before. Section names are presentation, never inferred workflow transitions. An unannotated card has no durable identity, owner, acceptance decision, or machine-readable status. Its passage URL can change when its heading changes. Richer identity uses one file per item.
+Heading boards need no metadata. Section names are presentation, never inferred workflow transitions. An unannotated card has no durable identity, owner, acceptance decision, or machine-readable status. Its passage URL can change when its heading changes. Richer identity uses one file per item.
 
 ## A richer item
 
@@ -119,11 +119,10 @@ Records are labeled **Source claims — not independently verified**. A recorded
 
 ## Reading the reasoning and recorded claims
 
-Decision options, comparison tables, and rationale remain body Markdown. A result can declare `kind: implements` with `target: plan.search` in a relationship record; that plan can declare an `implements` relationship to `decision.search`. The reader reaches its rationale in two links without adding decision-specific frontmatter fields. `reasoningFixture()` in `src/test-support/reasoningFixture.ts` supplies the executable example with a plan, decision, result, ordinary evidence file, and shared board.
+Decision options, comparison tables, and rationale remain body Markdown. A result can declare `kind: implements` with `target: plan.search` in a relationship record; that plan can declare an `implements` relationship to `decision.search`. The reader reaches its rationale in two links without adding decision-specific frontmatter fields.
 
 Criteria list claims from all readable files that explicitly name their unique item/criterion reference. Claim counts are not acceptance counts. Records expose origin file/line and supplied provenance; old checked revisions remain visible without a comparison to current Git state. Missing/ambiguous criteria or an incomplete index prevent association rather than selecting a winner. Record anchors use their array position and can change on insertion/reordering.
 
 Source backlinks also include explicit Markdown hyperlinks and evidence-source paths, resolved relative to each source file, with `/` mapped to the configured home or first file. Code examples, external URLs, and self references are excluded. Plain files can show incoming links without acquiring an ID or inferred work kind. Evidence associations retain source links; image inspection follows the local attachment boundary described in the README.
 
-
-Questionnaire responses may additionally record `response.answers` entries with `prompt`, `selected` option IDs and human `text`, plus an optional `response.supersedes` identity. These fields are optional; older plain responses remain valid. See the [packet contract and complete source example](./decision-write-examples.md) for validation, reviewed-context binding and human selection semantics.
+Questionnaire responses may additionally record `response.answers` entries with `prompt`, `selected` option IDs and human `text`, plus an optional `response.supersedes` identity. These fields are optional; plain responses remain valid. See the [packet contract and complete source example](./decision-write-examples.md) for validation, reviewed-context binding and human selection semantics.

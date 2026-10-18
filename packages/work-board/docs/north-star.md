@@ -2,9 +2,7 @@
 
 Work Board is a local, file-backed workspace for a person and their agents to understand work and exchange direction. Open it to know what is happening, what changed, what needs judgment, and where the evidence lives. Close it without losing the work: the meaningful content remains readable in project files.
 
-The [roadmap](roadmap.md) owns implementation status, acceptance gaps and open maintainer decisions. The [README](../README.md) teaches current use. The [delivery requirements](delivery/README.md) define bounded steps and how to verify them, without keeping a second status list.
-
-Today is the first screen. It puts the human’s live asks and answers beside compact goal progress. In progress names the work Fleet holds, its stage and its recorded PR; the preview stays short and links to Now for the full view. Goal cards show the next action in at most two lines and done work against all linked work, with criteria and evidence behind a closed disclosure. Goals shows active goals, Now shows current work, Library finds documents and recently changed files, and System shows provider limits and names the running or waiting Fleet work with stage and PR. Configured home Markdown remains reachable as Workspace notes. Narrow screens read summary, human asks, in-progress work and goals in order; wide screens put goals beside the asks and in-progress work.
+The [README](../README.md) teaches current use.
 
 ## The problem
 
@@ -22,7 +20,7 @@ A handoff preserves reviewed direction in another readable file. A copied pointe
 
 Returned work needs the same discipline. An authored result and its evidence are claims to inspect. Human direction belongs to the exact report bytes and source path that prompted it; a later edit must not inherit an earlier acceptance. A report iteration can receive human acceptance while a criterion still lacks evidence. The board must keep those facts visible rather than compute a convenient overall success state.
 
-Goal progress shows the goals query's done, in progress and planned counts and its goal-specific open-ask count, including zero. Fleet-held stages override authored status for both goal and criterion counts; released stages fall back to authored status. Deferred and unrecorded work contribute to planned progress. Open asks use the attention projection's eligible active rows, including its grouping and resolved or parked exclusions. Criteria show their progress split with linked work and recorded evidence. Untargeted criteria keep their text without an extra label, and missing evidence stays quiet. Closed projects retain the same goal and criterion counts while staying outside active-goal navigation. Lifecycle completion never establishes criterion acceptance. The goal page puts progress immediately below the item header, before open answer cards. Criteria, linked work and authored prose follow, with an outline rail for reading. Each implementing item appears once under a nonempty In progress, Planned, Done (collapsed) or Deferred group with one state chip and its recorded PR. The chip shows the held Fleet stage or the authored status; missing status and PR stay blank. Progress is never a computed overall success state or completion percentage.
+Goal progress counts linked work; lifecycle completion never establishes criterion acceptance, and progress is never a computed overall success state or completion percentage.
 
 ## What good looks like
 
@@ -56,7 +54,7 @@ Shared Effect and Platform primitives win over a second RPC, client state or liv
 
 The intended payoff is less effort to regain context and direct work. Useful questions are whether a returning reader can find the actual blocker, reach its source rationale and evidence, distinguish changes from churn, and respond without reassembling the context. A representative workspace should include dozens of documents and a hundred items, as well as empty, malformed and unavailable states.
 
-Tests establish specific behavior. A browser fixture establishes the interactions it exercises. Neither proves representative-reader orientation time, physical device behavior or adoption. Proposed targets and their acceptance remain in the roadmap until the maintainer accepts the evidence.
+Tests and browser fixtures establish the behavior they exercise; neither proves representative-reader orientation time, physical device behavior or adoption.
 
 ## What it leaves out
 
