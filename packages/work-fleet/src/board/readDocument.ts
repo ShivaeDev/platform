@@ -1,5 +1,5 @@
 import { Effect, FileSystem } from "effect";
-import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { STATUS_MARKER } from "#board/statusMarkdown.ts";
 import { BoardFailure } from "#policy.ts";
 

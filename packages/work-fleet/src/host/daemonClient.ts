@@ -3,7 +3,7 @@ import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { RpcClientError } from "effect/rpc/RpcClientError";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { isFleetError } from "#errors.ts";
 import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";
 

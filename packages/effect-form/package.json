@@ -32,73 +32,61 @@
 		"./draft.ts": {
 			"types": "./dist/draft.d.ts",
 			"source": "./src/draft.ts",
-			"import": "./dist/draft.js",
 			"default": "./dist/draft.js"
 		},
 		"./form.ts": {
 			"types": "./dist/form.d.ts",
 			"source": "./src/form.ts",
-			"import": "./dist/form.js",
 			"default": "./dist/form.js"
 		},
 		"./messages.ts": {
 			"types": "./dist/messages.d.ts",
 			"source": "./src/messages.ts",
-			"import": "./dist/messages.js",
 			"default": "./dist/messages.js"
 		},
 		"./optional.ts": {
 			"types": "./dist/optional.d.ts",
 			"source": "./src/optional.ts",
-			"import": "./dist/optional.js",
 			"default": "./dist/optional.js"
 		},
 		"./paths.ts": {
 			"types": "./dist/paths.d.ts",
 			"source": "./src/paths.ts",
-			"import": "./dist/paths.js",
 			"default": "./dist/paths.js"
 		},
 		"./react.ts": {
 			"types": "./dist/client/react.d.ts",
 			"source": "./src/client/react.ts",
-			"import": "./dist/client/react.js",
 			"default": "./dist/client/react.js"
 		},
 		"./refs.ts": {
 			"types": "./dist/refs.d.ts",
 			"source": "./src/refs.ts",
-			"import": "./dist/refs.js",
 			"default": "./dist/refs.js"
 		},
 		"./shape.ts": {
 			"types": "./dist/shape.d.ts",
 			"source": "./src/shape.ts",
-			"import": "./dist/shape.js",
 			"default": "./dist/shape.js"
 		},
 		"./status.ts": {
 			"types": "./dist/status.d.ts",
 			"source": "./src/status.ts",
-			"import": "./dist/status.js",
 			"default": "./dist/status.js"
 		},
 		"./trackRejections.ts": {
 			"types": "./dist/trackRejections.d.ts",
 			"source": "./src/trackRejections.ts",
-			"import": "./dist/trackRejections.js",
 			"default": "./dist/trackRejections.js"
 		},
 		"./persistence.ts": {
 			"types": "./dist/persistence.d.ts",
 			"source": "./src/persistence.ts",
-			"import": "./dist/persistence.js",
 			"default": "./dist/persistence.js"
 		},
 		"./draftSession.ts": {
 			"types": "./dist/draftSession.d.ts",
 			"source": "./src/draftSession.ts",
-			"import": "./dist/draftSession.js",
 			"default": "./dist/draftSession.js"
 		}
 	},

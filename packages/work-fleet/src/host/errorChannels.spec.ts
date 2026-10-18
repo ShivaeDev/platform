@@ -4,7 +4,7 @@ import { Context, Effect, Layer } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
+import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { daemonLayer } from "#host/daemon.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";

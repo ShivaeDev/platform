@@ -5,7 +5,7 @@ import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { appHost } from "@shivaedev/platform/appHost.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { diagnostics } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { HealthSnapshot } from "#engine/health.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import { daemonDiagnostics } from "#host/daemonDiagnostics.ts";

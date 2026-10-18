@@ -1,6 +1,6 @@
 import { Context, Effect, Fiber, Layer } from "effect";
 import { appHost } from "@shivaedev/platform/appHost.ts";
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { type HostParts, hostLayer, hostScheduler, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";

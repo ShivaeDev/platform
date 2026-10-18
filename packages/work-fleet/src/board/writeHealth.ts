@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
-import type { FleetHealth as BoardFleetHealth } from "@shivaedev/work-board/integration/diagnostics.ts";
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import type { FleetHealth as BoardFleetHealth } from "@shivaedev/work-board/server/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { writePublished } from "#board/writePublished.ts";
 import { BoardFailure } from "#policy.ts";
 
