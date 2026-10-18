@@ -5,7 +5,7 @@ import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { DecisionCode } from "#DecisionCode.ts";
 import { fleetRecords } from "#fleetRecords.ts";
-import type { Decision } from "#policy.ts";
+import type { Decision, DecisionResponse } from "#policy.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 
 class AnswerRow extends Model.Class<AnswerRow>("FleetAnswer")({
@@ -17,6 +17,8 @@ class AnswerRow extends Model.Class<AnswerRow>("FleetAnswer")({
 	position: Model.GeneratedByDb(Schema.Number),
 	release: Schema.Boolean,
 	"request_id": Schema.String,
+	"response_decision_id": Schema.NullOr(Schema.String),
+	"response_id": Schema.NullOr(Schema.String),
 	text: Schema.String,
 	"work_id": Schema.String,
 }) {}
@@ -65,10 +67,21 @@ export const answerStore = Effect.fn("FleetAnswer.answerStore")(function* (names
 					if (current === undefined) {
 						return;
 					}
-					yield* error === undefined ? repository.delete(request.request_id) : repository.updateVoid({ ...request, error });
+					yield* error === undefined ? repository.delete(request.request_id) : repository.updateVoid({ ...current, error });
 				}),
 			),
 		list,
+		recordResponse: (request: AnswerRow, response: Pick<DecisionResponse, "decisionId" | "responseId">) =>
+			locked(
+				request.work_id,
+				Effect.gen(function* () {
+					const current = (yield* list(request.work_id)).find((row) => row.request_id === request.request_id);
+					if (current === undefined) {
+						return yield* new Conflict({ message: "The recorded answer request changed before application" });
+					}
+					yield* repository.updateVoid({ ...current, "response_decision_id": response.decisionId, "response_id": response.responseId });
+				}),
+			),
 	};
 });
 
@@ -83,6 +96,8 @@ const answerInput = Effect.fn("FleetAnswer.answerInput")(function* (workId: stri
 		error: null,
 		release,
 		"request_id": crypto.randomUUID(),
+		"response_decision_id": null,
+		"response_id": null,
 		text,
 		"work_id": workId,
 	};

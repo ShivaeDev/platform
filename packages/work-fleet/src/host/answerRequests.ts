@@ -7,7 +7,7 @@ import { Fleet } from "#fleet.ts";
 import { answerRecords } from "#host/answerRecords.ts";
 import type { FleetHost } from "#host/config.ts";
 import type { FleetRecord } from "#model.ts";
-import type { Decision } from "#policy.ts";
+import type { Decision, DecisionResponse } from "#policy.ts";
 import { type AnswerRequest, answerStore } from "#storage/answerStore.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 
@@ -17,7 +17,8 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		workId: string,
 		text: string,
 		release: boolean,
-		original?: Pick<Decision, "code" | "reason">,
+		original: Pick<Decision, "code" | "reason">,
+		onPublished: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, unknown>,
 	) => Effect.Effect<{ readonly value: FleetRecord }, unknown, R>,
 ) {
 	const scope = yield* Effect.scope;
@@ -40,11 +41,14 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		}
 		const current = (yield* fleet.get(request.work_id)).value;
 		const receipts = [...(current.history ?? []).flatMap((cycle) => cycle.responses ?? []), ...(current.responses ?? [])];
-		if (!receipts.some((receipt) => receipt.decisionId === request.decision_id)) {
-			yield* apply(request.work_id, request.text, request.release, {
-				code: request.decision_code ?? undefined,
-				reason: request.decision_reason,
-			});
+		if (!receipts.some((receipt) => receipt.decisionId === request.response_decision_id && receipt.responseId === request.response_id)) {
+			yield* apply(
+				request.work_id,
+				request.text,
+				request.release,
+				{ code: request.decision_code ?? undefined, reason: request.decision_reason },
+				(response) => store.recordResponse(request, response),
+			);
 		}
 		yield* store.finish(request);
 	});

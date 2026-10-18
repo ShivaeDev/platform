@@ -1,18 +1,19 @@
-import { Effect } from "effect";
+import { Effect, Predicate } from "effect";
 import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import type { FleetRecord } from "#model.ts";
-import type { Decision } from "#policy.ts";
+import type { Decision, DecisionResponse } from "#policy.ts";
 
-export const answerWork = Effect.fn("FleetHost.answerWork")(function* (
+export const answerWork = Effect.fn("FleetHost.answerWork")(function* <E = never, R = never>(
 	host: FleetHost,
 	workId: string,
 	text = "",
 	release = false,
 	background = false,
 	originalDecision?: Pick<Decision, "code" | "reason">,
+	onPublished?: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, E, R>,
 ) {
 	const fleet = yield* Fleet;
 	const resolve = background ? fleet.recordResponse : fleet.resolve;
@@ -28,12 +29,15 @@ export const answerWork = Effect.fn("FleetHost.answerWork")(function* (
 		}
 		yield* checkDecision(current, original);
 		const response = yield* publishAnswer(host, workId, original, text, release);
+		yield* onPublished?.(response) ?? Effect.void;
 		recorded = response;
 		return yield* resolve(workId, response.decisionId, response.responseId).pipe(
 			Effect.catchTag("Conflict", (error) => decisionConflict(fleet, workId, response.decisionId, error)),
 		);
 	}).pipe(
-		Effect.retry({ while: (error) => error._tag === "StorageConflict" || (error._tag === "Conflict" && error.message === "Decision changed") }),
+		Effect.retry({
+			while: (error) => Predicate.isTagged(error, "StorageConflict") || (error instanceof Conflict && error.message === "Decision changed"),
+		}),
 	);
 });
 

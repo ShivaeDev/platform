@@ -25,8 +25,8 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	function withResponses<A, E, R>(effect: Effect.Effect<A, E, R>) {
 		return Fiber.join(responses).pipe(Effect.flatMap((context) => effect.pipe(Effect.provide(context))));
 	}
-	const answers = yield* answerRequests(host, (workId, text, release, original) =>
-		withResponses(answerWork(host, workId, text, release, true, original)),
+	const answers = yield* answerRequests(host, (workId, text, release, original, onPublished) =>
+		withResponses(answerWork(host, workId, text, release, true, original, onPublished)),
 	);
 	// A client that stops waiting closes its request; the answer it asked for must still be recorded and applied.
 	function settle<A, E, R>(effect: Effect.Effect<A, E, R>) {
