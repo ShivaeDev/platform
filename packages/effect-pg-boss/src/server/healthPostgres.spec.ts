@@ -1,10 +1,9 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { defineQueue } from "#definition.ts";
 import { postgresIt, realPostgres } from "#test/boss.ts";
 
-postgresIt("reports both populated queues and their totals after the monitor refreshes", [realPostgres], function* ({ boot, admin, native }) {
+postgresIt("reports both populated queues and their totals after the monitor refreshes", [realPostgres], function* ({ boot, admin, native, until }) {
 	const queues = [1, 2].map((count) => ({
 		activeCount: count,
 		deadLetteredCount: count,
@@ -35,12 +34,10 @@ postgresIt("reports both populated queues and their totals after the monitor ref
 			}
 		});
 	}
-	const health = yield* eventually(
-		jobs.health.pipe(
-			Effect.filterOrFail((value) => value.failedTotal === 3 && value.activeTotal === 3 && value.deadLetteredTotal === 3 && value.queuedTotal === 6),
-		),
-		{ interval: 50 },
-	).pipe(Effect.timeout(15_000));
+	const health = yield* until(
+		jobs.health,
+		(value) => value.failedTotal === 3 && value.activeTotal === 3 && value.deadLetteredTotal === 3 && value.queuedTotal === 6,
+	);
 	expect(health).toEqual({
 		activeTotal: 3,
 		deadLetteredTotal: 3,

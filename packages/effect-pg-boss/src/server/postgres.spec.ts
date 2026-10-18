@@ -1,26 +1,20 @@
-import { Effect, Redacted, Schema } from "effect";
+import { Effect, Option, Redacted, Schema } from "effect";
 import { expect, vi } from "vitest";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { defineQueue } from "#definition.ts";
 import { PgBossError } from "#error.ts";
 import { deadLetterQueueName } from "#health.ts";
 import { postgresIt, realPostgres } from "#test/boss.ts";
 
-postgresIt("round-trips transformed payloads and rejects malformed durable data", [realPostgres], function* ({ boot, admin }) {
+postgresIt("round-trips transformed payloads and rejects malformed durable data", [realPostgres], function* ({ boot, admin, untilJob, untilJobs }) {
 	const Queue = defineQueue({ name: "round-trip", queue: { retryLimit: 0 }, schema: Schema.Struct({ id: Schema.NumberFromString }) });
 	const client = yield* admin();
 	const handled = vi.fn<(id: number) => void>();
 	const { jobs } = yield* boot([Queue.handle(({ id }) => Effect.sync(() => handled(id)))]);
-	yield* jobs.enqueue(Queue, { id: 42 });
-	yield* eventually(Effect.sync(() => handled.mock.calls).pipe(Effect.filterOrFail((calls) => calls.length === 1)), { interval: 50 }).pipe(
-		Effect.timeout(15_000),
-	);
+	const jobId = Option.getOrThrow(yield* jobs.enqueue(Queue, { id: 42 }));
+	yield* untilJob(jobs, Queue, jobId, "completed");
 	expect(handled).toHaveBeenCalledWith(42);
 	yield* Effect.promise(() => client.send(Queue.name, { id: null }));
-	const deadLetter = yield* eventually(
-		Effect.promise(() => client.findJobs(deadLetterQueueName(Queue.name))).pipe(Effect.filterOrFail((entries) => entries.length > 0)),
-		{ interval: 50 },
-	).pipe(Effect.timeout(15_000));
+	const deadLetter = yield* untilJobs(client, deadLetterQueueName(Queue.name), (entries) => entries.length > 0);
 	expect(deadLetter[0]?.sourceName).toBe(Queue.name);
 	expect(handled).toHaveBeenCalledTimes(1);
 });

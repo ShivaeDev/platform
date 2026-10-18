@@ -1,18 +1,17 @@
 import { setImmediate } from "node:timers/promises";
-import { Clock, Effect } from "effect";
+import { Clock, Effect, Schema } from "effect";
 import { expect, vi } from "vitest";
+import { defineQueue } from "#definition.ts";
 import { batchHandler } from "#internal/batchHandler.ts";
 import { postgresIt, realPostgres } from "#test/boss.ts";
 
-postgresIt("does not start or settle a fetched job whose window passed before the callback", [realPostgres], function* ({ admin }) {
-	const name = "already-expired";
-	const client = yield* admin({ supervise: false });
+postgresIt("does not start or settle a fetched job whose window passed before the callback", [realPostgres], function* ({ native, seed }) {
+	const Queue = defineQueue({ name: "already-expired", queue: { expireInSeconds: 1, retryLimit: 0 }, schema: Schema.Struct({}) });
+	const name = Queue.name;
+	const client = native({ supervise: false });
 	const handled = vi.fn();
 	const returned = vi.fn();
-	yield* Effect.promise(async () => {
-		await client.createQueue(name, { expireInSeconds: 1, retryLimit: 0 });
-		await client.send(name, {});
-	});
+	yield* seed(Queue, [{ data: {} }], client);
 	const fetched = yield* Effect.promise(() => client.fetch(name, { includeMetadata: true }));
 	const first = fetched[0];
 	expect(first).toBeDefined();

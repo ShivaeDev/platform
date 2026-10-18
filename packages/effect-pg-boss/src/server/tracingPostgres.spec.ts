@@ -1,46 +1,46 @@
 import { Cause, Effect, Exit, Option } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { postgresIt, realPostgres, retryTracedJob } from "#test/boss.ts";
 
-postgresIt("runs every top-level Effect.fn step under one job root, independent of worker startup", [realPostgres], function* ({ traces, admin }) {
-	const client = yield* admin();
-	const producer = yield* traces.producer();
-	const jobId = Option.getOrThrow(yield* traces.send(producer.jobs, { id: 42 }));
-	const stored = (yield* Effect.promise(() => client.findJobs(traces.queue.name, { id: jobId })))[0]?.data;
-	yield* producer.stop;
-	const worker = yield* traces.worker();
-	yield* eventually(
-		worker.jobs.getJob(traces.queue, jobId).pipe(Effect.filterOrFail((found) => Option.getOrUndefined(found)?.state === "completed")),
-		{ interval: 50 },
-	).pipe(Effect.timeout(15_000));
+postgresIt(
+	"runs every top-level Effect.fn step under one job root, independent of worker startup",
+	[realPostgres],
+	function* ({ traces, admin, untilJob }) {
+		const client = yield* admin();
+		const producer = yield* traces.producer();
+		const jobId = Option.getOrThrow(yield* traces.send(producer.jobs, { id: 42 }));
+		const stored = (yield* Effect.promise(() => client.findJobs(traces.queue.name, { id: jobId })))[0]?.data;
+		yield* producer.stop;
+		const worker = yield* traces.worker();
+		yield* untilJob(worker.jobs, traces.queue, jobId, "completed");
 
-	const job = traces.spans.find((span) => span.name === traces.queue.name);
-	expect(job).toBeDefined();
-	expect(job?.parent).toEqual(Option.none());
-	expect(job?.kind).toBe("consumer");
-	expect(job?.links).toEqual([]);
-	expect(Object.fromEntries(job?.attributes ?? [])).toMatchObject({
-		"job.attempt": 1,
-		"job.id": jobId,
-		"job.name": traces.queue.name,
-		"job.queue": traces.queue.name,
-		"job.retry_count": 0,
-	});
-	const trace = traces.spans.filter((span) => span.traceId === job?.traceId);
-	expect(trace.map((span) => span.name)).toEqual([traces.queue.name, "Tracing.stepOne", "Tracing.stepTwo"]);
-	for (const step of trace.slice(1)) {
-		expect(Option.getOrThrow(step.parent).spanId).toBe(job?.spanId);
-	}
-	expect(trace.every((span) => span.status._tag === "Ended" && Exit.isSuccess(span.status.exit))).toBe(true);
-	expect(traces.handled).toEqual([{ id: 42 }]);
-	expect(stored).toEqual({ id: "42" });
-});
+		const job = traces.spans.find((span) => span.name === traces.queue.name);
+		expect(job).toBeDefined();
+		expect(job?.parent).toEqual(Option.none());
+		expect(job?.kind).toBe("consumer");
+		expect(job?.links).toEqual([]);
+		expect(Object.fromEntries(job?.attributes ?? [])).toMatchObject({
+			"job.attempt": 1,
+			"job.id": jobId,
+			"job.name": traces.queue.name,
+			"job.queue": traces.queue.name,
+			"job.retry_count": 0,
+		});
+		const trace = traces.spans.filter((span) => span.traceId === job?.traceId);
+		expect(trace.map((span) => span.name)).toEqual([traces.queue.name, "Tracing.stepOne", "Tracing.stepTwo"]);
+		for (const step of trace.slice(1)) {
+			expect(Option.getOrThrow(step.parent).spanId).toBe(job?.spanId);
+		}
+		expect(trace.every((span) => span.status._tag === "Ended" && Exit.isSuccess(span.status.exit))).toBe(true);
+		expect(traces.handled).toEqual([{ id: 42 }]);
+		expect(stored).toEqual({ id: "42" });
+	},
+);
 
 postgresIt(
 	"persists a link to the sending request across producer shutdown without changing the typed payload",
 	[realPostgres],
-	function* ({ traces, admin }) {
+	function* ({ traces, admin, untilJob }) {
 		const client = yield* admin();
 		const producer = yield* traces.producer();
 		const jobId = Option.getOrThrow(yield* traces.send(producer.jobs, { id: 42 }, true));
@@ -48,10 +48,7 @@ postgresIt(
 		const stored = (yield* Effect.promise(() => client.findJobs(traces.queue.name, { id: jobId })))[0]?.data;
 		yield* producer.stop;
 		const worker = yield* traces.worker();
-		yield* eventually(
-			worker.jobs.getJob(traces.queue, jobId).pipe(Effect.filterOrFail((found) => Option.getOrUndefined(found)?.state === "completed")),
-			{ interval: 50 },
-		).pipe(Effect.timeout(15_000));
+		yield* untilJob(worker.jobs, traces.queue, jobId, "completed");
 		const sender = traces.spans.find((span) => span.name === "request");
 		const job = traces.spans.find((span) => span.name === traces.queue.name);
 		expect(sender).toBeDefined();
@@ -68,15 +65,12 @@ postgresIt(
 postgresIt(
 	"records the failure on the first job span and reports attempt two on a real retry",
 	[realPostgres, retryTracedJob],
-	function* ({ traces }) {
+	function* ({ traces, untilJob }) {
 		const producer = yield* traces.producer();
 		const jobId = Option.getOrThrow(yield* traces.send(producer.jobs, { id: 42 }, true));
 		yield* producer.stop;
 		const worker = yield* traces.worker();
-		yield* eventually(
-			worker.jobs.getJob(traces.queue, jobId).pipe(Effect.filterOrFail((found) => Option.getOrUndefined(found)?.state === "completed")),
-			{ interval: 50 },
-		).pipe(Effect.timeout(15_000));
+		yield* untilJob(worker.jobs, traces.queue, jobId, "completed");
 		const jobs = traces.spans.filter((span) => span.name === traces.queue.name);
 		expect(jobs).toHaveLength(2);
 		expect(jobs.map((span) => span.attributes.get("job.attempt"))).toEqual([1, 2]);

@@ -10,6 +10,7 @@ import { testingEngine } from "#test/testingEngine.ts";
 import { testingProducer, testingVerbs, testingWorker } from "#test/testingProducer.ts";
 import { tracingEngine } from "#test/tracingEngine.ts";
 import { tracingVerbs } from "#test/tracingVerbs.ts";
+import { waitingVerbs } from "#test/waitingVerbs.ts";
 
 export const boss = storyKit({
 	after: { producer: testingProducer, runtime: testingWorker },
@@ -41,6 +42,7 @@ export const boss = storyKit({
 		const runtime = pgBossRuntime(state, story.tell);
 		return {
 			...runtime,
+			...waitingVerbs(),
 			budgets: budgetVerbs(state.budget, runtime),
 			traces: tracingVerbs(state.trace, runtime),
 			...testingVerbs(state.testingState),
