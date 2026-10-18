@@ -10,6 +10,13 @@ import {
 } from "#test/engineTraits.ts";
 
 describe("Fleet completion path", () => {
+	engine.it("requires a dispatched turn before workers can finish", [noChangeReported()], function* ({ fleet, prepareWork, finishWorkers }) {
+		expect(() => finishWorkers()).toThrow("No worker turn is available to finish");
+		yield* prepareWork("one");
+		expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+		finishWorkers();
+		expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+	});
 	engine.it(
 		"independently reviews, checks and delivers the exact adopted head",
 		[],

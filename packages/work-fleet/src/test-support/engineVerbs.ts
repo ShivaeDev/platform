@@ -41,7 +41,11 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 			running(state).fixture.editWork(workId, revision);
 		},
 		finishWorkers: () => {
-			finishWorkers(running(state).fixture);
+			const fixture = running(state).fixture;
+			if (fixture.observations.size === 0) {
+				throw new Error("No worker turn is available to finish");
+			}
+			finishWorkers(fixture);
 			story.tell("workers finish their turns");
 		},
 		fixture: running(state).fixture,
