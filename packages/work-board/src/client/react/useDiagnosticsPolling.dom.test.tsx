@@ -1,11 +1,11 @@
+import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { act, useState } from "react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, vi } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { renderBoard } from "#test/react.tsx";
+import { screenStory } from "#test/screenStory.ts";
 import { useDiagnosticsPolling } from "./useDiagnosticsPolling.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 afterEach(() => vi.restoreAllMocks());
 
@@ -26,23 +26,26 @@ function Mounted({ client }: { readonly client: Parameters<typeof useDiagnostics
 		</>
 	);
 }
-it("refreshes diagnostics and fleet when the supplied client's pause atom resumes, then unsubscribes", async () => {
-	const paused = Atom.make(true);
-	const refresh = vi.fn();
-	const view = await renderBoard({}, (_, registry) => {
-		vi.spyOn(registry, "refresh").mockImplementation(refresh);
-		return <Mounted client={{ registry, updates: { paused } }} />;
-	});
-	try {
+screenStory.it(
+	"refreshes diagnostics and fleet when the supplied client's pause atom resumes, then unsubscribes",
+	[],
+	function* ({ renderBoard, click }) {
+		const paused = Atom.make(true);
+		const refresh = vi.fn();
+		const view = yield* Effect.promise(() =>
+			renderBoard({}, (_, registry) => {
+				vi.spyOn(registry, "refresh").mockImplementation(refresh);
+				return <Mounted client={{ registry, updates: { paused } }} />;
+			}),
+		);
+
 		expect(refresh).not.toHaveBeenCalled();
-		await act(async () => view.registry.set(paused, false));
+		yield* Effect.promise(() => act(async () => view.registry.set(paused, false)));
 		expect(refresh.mock.calls).toEqual([[diagnostics], [fleet]]);
-		await act(async () => view.registry.set(paused, true));
+		yield* Effect.promise(() => act(async () => view.registry.set(paused, true)));
 		expect(refresh).toHaveBeenCalledTimes(2);
-		act(() => view.container.querySelector("button")?.click());
-		await act(async () => view.registry.set(paused, false));
+		click(view.container.querySelector("button"));
+		yield* Effect.promise(() => act(async () => view.registry.set(paused, false)));
 		expect(refresh).toHaveBeenCalledTimes(2);
-	} finally {
-		await view.unmount();
-	}
-});
+	},
+);

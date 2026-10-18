@@ -2,54 +2,54 @@ import { Effect } from "effect";
 import type { Window } from "happy-dom";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/testing.ts";
-import { it } from "@shivaedev/effect-test/it.ts";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { goalFleetFixture, goalPageFixture } from "#test/goalPageFixture.ts";
-import { renderBoard } from "#test/react.tsx";
+import { screenStory } from "#test/screenStory.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 
 declare const window: Window;
 
-it.live.each(["executing", "reviewing", "needs-human"] as const)("renders Fleet-aware goals-query counts and a single %s state", function* (stage) {
-	const files = { ...goalPageFixture() };
-	const fleet = goalFleetFixture(stage);
-	const missing = { cause: "Not configured for fixture", observedAt: 0, state: "not-configured" as const };
-	const daemon = yield* diagnosticsDaemon(
-		() => ({ codex: missing, fleet: missing, github: missing }),
-		0,
-		() => fleet,
-	);
-	const dom = window;
-	const originalUrl = dom.location.href;
-	dom.happyDOM.setURL(`http://127.0.0.1:${daemon.port}/`);
-	yield* Effect.addFinalizer(() => Effect.sync(() => dom.happyDOM.setURL(originalUrl)));
-	files["goal.md"] = (files["goal.md"] ?? "").replace(
-		"owner: agent",
-		"owner: agent\nattention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Review the goal\n   unblocks: [project.example]",
-	);
-	let readProgress: () => GoalsProjection | undefined = () => undefined;
-	const view = yield* Effect.promise(() =>
-		renderBoard(
-			files,
-			(api, registry) => {
-				const query = api.goals.query(undefined, routeQueryOptions);
-				readProgress = () => {
-					const result = registry.get(query);
-					return result._tag === "Success" ? result.value : undefined;
-				};
-				return (
-					<FleetItemsContext.Provider value={fleet}>
-						<DocumentMain api={api} onPage={() => undefined} url="/goal.md" />
-					</FleetItemsContext.Provider>
-				);
-			},
-			{ fleetPort: daemon.port, home: undefined },
-		),
-	);
-	try {
+for (const stage of ["executing", "reviewing", "needs-human"] as const) {
+	screenStory.it(`renders Fleet-aware goals-query counts and a single ${stage} state`, [], function* ({ renderBoard }) {
+		const files = { ...goalPageFixture() };
+		const fleet = goalFleetFixture(stage);
+		const missing = { cause: "Not configured for fixture", observedAt: 0, state: "not-configured" as const };
+		const daemon = yield* diagnosticsDaemon(
+			() => ({ codex: missing, fleet: missing, github: missing }),
+			0,
+			() => fleet,
+		);
+		const dom = window;
+		const originalUrl = dom.location.href;
+		dom.happyDOM.setURL(`http://127.0.0.1:${daemon.port}/`);
+		yield* Effect.addFinalizer(() => Effect.sync(() => dom.happyDOM.setURL(originalUrl)));
+		files["goal.md"] = (files["goal.md"] ?? "").replace(
+			"owner: agent",
+			"owner: agent\nattention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Review the goal\n   unblocks: [project.example]",
+		);
+		let readProgress: () => GoalsProjection | undefined = () => undefined;
+		const view = yield* Effect.promise(() =>
+			renderBoard(
+				files,
+				(api, registry) => {
+					const query = api.goals.query(undefined, routeQueryOptions);
+					readProgress = () => {
+						const result = registry.get(query);
+						return result._tag === "Success" ? result.value : undefined;
+					};
+					return (
+						<FleetItemsContext.Provider value={fleet}>
+							<DocumentMain api={api} onPage={() => undefined} url="/goal.md" />
+						</FleetItemsContext.Provider>
+					);
+				},
+				{ fleetPort: daemon.port, home: undefined },
+			),
+		);
+
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelectorAll("[data-goal-item]")).toHaveLength(5)));
 		const header = view.container.querySelector(".item-introduction");
 		const progress = view.container.querySelector('[data-goal-section="progress"]');
@@ -124,7 +124,5 @@ it.live.each(["executing", "reviewing", "needs-human"] as const)("renders Fleet-
 				expect(view.container.querySelector(`.document-outline a[href="#${progress?.querySelector("h2")?.id}"]`)).not.toBeNull();
 			}),
 		);
-	} finally {
-		yield* Effect.promise(() => view.unmount());
-	}
-});
+	});
+}

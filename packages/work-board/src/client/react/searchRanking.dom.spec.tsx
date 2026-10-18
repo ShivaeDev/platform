@@ -1,21 +1,21 @@
+import { Effect } from "effect";
 import { act } from "react";
-import { expect, it, vi } from "vitest";
+import { expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { renderBoard } from "#test/react.tsx";
+import { screenStory } from "#test/screenStory.ts";
 import { identityRankingFixture, searchRankingFixture } from "#test/searchRankingFixture.ts";
 import { SearchDialog } from "./SearchDialog.tsx";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
-it.each([
+for (const { fixture, first, id, queries, status } of [
 	{ first: "A running watch sees reviews finish", fixture: searchRankingFixture(), id: "", queries: ["watch"], status: "planned" },
-	...["active", "done", "deferred"].map((status) => ({
+	...["active", "done", "deferred"].map((itemStatus) => ({
 		first: "Inbox triage",
-		fixture: identityRankingFixture(status, status),
+		fixture: identityRankingFixture(itemStatus, itemStatus),
 		id: "task.inbox",
 		queries: ["inbox", "task.inbox"],
-		status,
+		status: itemStatus,
 	})),
 	...["planned", "active"].flatMap((passageStatus) =>
 		["done", "deferred"].map((titleStatus) => ({
@@ -26,22 +26,25 @@ it.each([
 			status: passageStatus,
 		})),
 	),
-])("ranks status first, then title/ID relevance and recency ($status, $id)", async ({ fixture, first, id, queries, status }) => {
-	const { files, modified } = fixture;
-	const view = await renderBoard(
-		files,
-		(api) => (
-			<SearchDialog
-				api={api}
-				appearance={{ change: vi.fn(), closed: false, density: "comfortable", notice: "", theme: "light" }}
-				close={vi.fn()}
-				open
-				toggleSidebar={vi.fn()}
-			/>
-		),
-		{ home: undefined, modified },
-	);
-	try {
+]) {
+	screenStory.it(`ranks status first, then title/ID relevance and recency (${status}, ${id})`, [], function* ({ renderBoard }) {
+		const { files, modified } = fixture;
+		const view = yield* Effect.promise(() =>
+			renderBoard(
+				files,
+				(api) => (
+					<SearchDialog
+						api={api}
+						appearance={{ change: vi.fn(), closed: false, density: "comfortable", notice: "", theme: "light" }}
+						close={vi.fn()}
+						open
+						toggleSidebar={vi.fn()}
+					/>
+				),
+				{ home: undefined, modified },
+			),
+		);
+
 		const field = view.container.querySelector("input");
 		if (!field) {
 			throw new Error("Missing palette input");
@@ -51,7 +54,7 @@ it.each([
 				field.value = query;
 				field.dispatchEvent(new Event("input", { bubbles: true }));
 			});
-			await eventually(() => expect(view.container.querySelector('[role="option"] strong')?.textContent).toBe(first));
+			yield* Effect.promise(() => eventually(() => expect(view.container.querySelector('[role="option"] strong')?.textContent).toBe(first)));
 			const rows = [...view.container.querySelectorAll('[role="option"]')];
 			expect(rows[0]?.querySelector("[data-status-token]")?.textContent).toBe(status);
 			if (query === "watch") {
@@ -73,7 +76,5 @@ it.each([
 				expect(rows.some((row) => row.querySelector("strong")?.textContent === "Captured notes")).toBe(true);
 			}
 		}
-	} finally {
-		await view.unmount();
-	}
-});
+	});
+}

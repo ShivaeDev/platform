@@ -1,20 +1,11 @@
 import { Clock, Effect } from "effect";
 import { act, createElement } from "react";
-import { createRoot } from "react-dom/client";
-import { afterEach, expect, vi } from "vitest";
+import { render } from "@shivaedev/effect-react/testing.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { DocumentView } from "#client/document/View.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-const cleanups: Array<() => Promise<void>> = [];
-afterEach(async () => {
-	for (const close of cleanups.splice(0).reverse()) {
-		await close();
-	}
-	vi.restoreAllMocks();
-});
-
 export function documentData(source: string): Document {
 	const parsed = metadataParse(source);
 	return {
@@ -32,20 +23,8 @@ export function documentData(source: string): Document {
 	};
 }
 export async function mountDocument(document: Document, idPrefix = "") {
-	const errors = vi.spyOn(console, "error");
-	const container = window.document.createElement("div");
-	window.document.body.append(container);
-	const root = createRoot(container);
-	cleanups.push(async () => {
-		await act(async () => root.unmount());
-		container.remove();
-		expect(errors.mock.calls).toEqual([]);
-	});
-	async function render(next: Document) {
-		await act(async () => root.render(createElement(DocumentView, { document: next, idPrefix })));
-	}
-	await render(document);
-	return { container, render };
+	const view = await render(createElement(DocumentView, { document, idPrefix }));
+	return { ...view, render: (next: Document) => view.render(createElement(DocumentView, { document: next, idPrefix })) };
 }
 export async function settledDocument(check: () => void) {
 	const deadline = Effect.runSync(Clock.currentTimeMillis) + 10_000;

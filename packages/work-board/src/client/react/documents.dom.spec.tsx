@@ -2,11 +2,10 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { renderBoard } from "#test/react.tsx";
+import { screenStory } from "#test/screenStory.ts";
+import { boardScreen } from "#test/screenTraits.ts";
 import { boardRouter } from "./boardRouter.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 const files = {
 	"home.md": "# Home",
@@ -16,17 +15,13 @@ const files = {
 		"---\nid: result.fixture\nkind: result\nevidence:\n  - criterion: task.fixture#proof\n    source: notes/task.md\n    outcome: observed\n---\n# Result\n",
 };
 
-it.live.each(["/notes/task.md", "/_board/item/task.fixture/"])(
-	"renders typed document data and context at %s without querying page HTML",
-	function* (url) {
+for (const url of ["/notes/task.md", "/_board/item/task.fixture/"]) {
+	screenStory.it(`renders typed document data and context at ${url} without querying page HTML`, [], function* ({ renderRouter }) {
 		const queries: unknown[] = [];
 		const view = yield* Effect.promise(() =>
-			renderBoard(files, (api, registry) => {
+			renderRouter(files, url, undefined, (api) => {
 				const page = vi.spyOn(api.page, "query");
 				queries.push(page);
-				const router = boardRouter({ api, registry });
-				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
-				return <RouterProvider router={router} />;
 			}),
 		);
 		try {
@@ -50,65 +45,52 @@ it.live.each(["/notes/task.md", "/_board/item/task.fixture/"])(
 			yield* Effect.promise(() => view.unmount());
 			vi.restoreAllMocks();
 		}
-	},
-);
+	});
+}
 
-it.live.each(["/missing.md", "/_board/item/missing/"])("shows a failed initial document read at %s in React", function* (url) {
-	const view = yield* Effect.promise(() =>
-		renderBoard(files, (api, registry) => {
-			const router = boardRouter({ api, registry });
-			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
-			return <RouterProvider router={router} />;
-		}),
-	);
-	try {
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(view.container.querySelector("main [role=status]")?.textContent).toContain(
-					url.endsWith(".md") ? "No markdown file at missing.md." : "No item with this id",
+for (const url of ["/missing.md", "/_board/item/missing/"]) {
+	screenStory.it(
+		`shows a failed initial document read at ${url} in React`,
+		[
+			boardScreen(files, (api, registry) => {
+				const router = boardRouter({ api, registry });
+				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
+				return <RouterProvider router={router} />;
+			}),
+		],
+		function* ({ boardView }) {
+			const view = boardView();
+
+			yield* Effect.promise(() =>
+				eventually(() =>
+					expect(view.container.querySelector("main [role=status]")?.textContent).toContain(
+						url.endsWith(".md") ? "No markdown file at missing.md." : "No item with this id",
+					),
 				),
-			),
-		);
-		expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
-	} finally {
-		yield* Effect.promise(() => view.unmount());
-	}
-});
+			);
+			expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
+		},
+	);
+}
 
-it.live("keeps response history readable when a question's prompt template is invalid", function* () {
+screenStory.it("keeps response history readable when a question's prompt template is invalid", [], function* ({ renderRouter }) {
 	const question =
 		'---\nid: question.invalid\nkind: question\n---\n# Invalid controls\n\n> ::::question{id="next" select="text"}\n> What next?\n> ::::\n';
-	const view = yield* Effect.promise(() =>
-		renderBoard({ ...files, "question.md": question }, (api, registry) => {
-			const router = boardRouter({ api, registry });
-			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/question.md"] }) });
-			return <RouterProvider router={router} />;
-		}),
+	const view = yield* Effect.promise(() => renderRouter({ ...files, "question.md": question }, "/question.md", undefined));
+
+	yield* Effect.promise(() =>
+		eventually(() => expect(view.container.querySelector(".response-panel")?.textContent).toContain("Use top-level question containers")),
 	);
-	try {
-		yield* Effect.promise(() =>
-			eventually(() => expect(view.container.querySelector(".response-panel")?.textContent).toContain("Use top-level question containers")),
-		);
-		expect(view.container.querySelector("#response-history")?.textContent).toContain("No response is recorded");
-		expect(view.container.querySelector("#response-form")).toBeNull();
-	} finally {
-		yield* Effect.promise(() => view.unmount());
-	}
+	expect(view.container.querySelector("#response-history")?.textContent).toContain("No response is recorded");
+	expect(view.container.querySelector("#response-form")).toBeNull();
 });
 
-it.live("renders a document at its file URL when no home board is configured", function* () {
+screenStory.it("renders a document at its file URL when no home board is configured", [], function* ({ renderRouter }) {
 	let pageQuery: unknown;
 	const view = yield* Effect.promise(() =>
-		renderBoard(
-			files,
-			(api, registry) => {
-				pageQuery = vi.spyOn(api.page, "query");
-				const router = boardRouter({ api, registry });
-				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/home.md"] }) });
-				return <RouterProvider router={router} />;
-			},
-			{ home: undefined },
-		),
+		renderRouter(files, "/home.md", { home: undefined }, (api) => {
+			pageQuery = vi.spyOn(api.page, "query");
+		}),
 	);
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(".item-introduction h1")?.textContent).toBe("Home")));

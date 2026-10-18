@@ -1,14 +1,10 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { act } from "react";
 import { expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
-import { renderBoard } from "#test/react.tsx";
-import { boardRouter } from "./boardRouter.ts";
+import { screenStory } from "#test/screenStory.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 const files = {
 	"home.md":
@@ -24,55 +20,51 @@ const routes = [
 	{ kind: "work", selector: ".work-card[data-item='task.fixture']", text: "A task", url: "/_board/work?view=board" },
 	{ kind: "work", selector: ".work-table", text: "A task", url: "/_board/work?view=table&owner=value%3Areader&q=task&item=task.fixture" },
 ];
-it.live.each(routes)("renders $url from its typed projection without requesting HTML", function* ({ url, selector, text, kind }) {
-	let page: unknown;
-	const view = yield* Effect.promise(() =>
-		renderBoard(files, (api, registry) => {
-			page = vi.spyOn(api.page, "query");
-			const router = boardRouter({ api, registry });
-			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
-			return <RouterProvider router={router} />;
-		}),
-	);
-	try {
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(selector)?.textContent).toContain(text)));
-		expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
-		expect(view.container.querySelector("main")?.dataset.projection).toBe(kind);
-		expect(page).not.toHaveBeenCalled();
-		if (kind === "board") {
-			expect(view.container.querySelector(".item-introduction h1")?.textContent).toBe("Project board");
-			expect(view.container.querySelector(".item-introduction")?.classList.contains("sticky")).toBe(true);
-			expect(view.container.querySelector('.document-outline a[href="#heading-plans"]')).not.toBeNull();
-			expect(view.container.querySelector(".board .notes")?.textContent).toContain("Section note");
-			expect(view.container.querySelector(".counts")?.textContent).toBe("1 plans · 1 waiting");
-			expect(view.container.querySelector("footer")?.textContent).toContain("Footer");
-			expect(view.container.querySelector("#heading-task-2")).not.toBeNull();
-			expect(view.container.querySelector(".item a[href='/task.md']")).not.toBeNull();
+for (const { url, selector, text, kind } of routes) {
+	screenStory.it(`renders ${url} from its typed projection without requesting HTML`, [], function* ({ renderRouter }) {
+		let page: unknown;
+		const view = yield* Effect.promise(() =>
+			renderRouter(files, url, undefined, (api) => {
+				page = vi.spyOn(api.page, "query");
+			}),
+		);
+		try {
+			yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(selector)?.textContent).toContain(text)));
+			expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
+			expect(view.container.querySelector("main")?.dataset.projection).toBe(kind);
+			expect(page).not.toHaveBeenCalled();
+			if (kind === "board") {
+				expect(view.container.querySelector(".item-introduction h1")?.textContent).toBe("Project board");
+				expect(view.container.querySelector(".item-introduction")?.classList.contains("sticky")).toBe(true);
+				expect(view.container.querySelector('.document-outline a[href="#heading-plans"]')).not.toBeNull();
+				expect(view.container.querySelector(".board .notes")?.textContent).toContain("Section note");
+				expect(view.container.querySelector(".counts")?.textContent).toBe("1 plans · 1 waiting");
+				expect(view.container.querySelector("footer")?.textContent).toContain("Footer");
+				expect(view.container.querySelector("#heading-task-2")).not.toBeNull();
+				expect(view.container.querySelector(".item a[href='/task.md']")).not.toBeNull();
+			}
+			if (url.includes("item=task.fixture")) {
+				expect(view.container.querySelectorAll(".work-table tbody tr")).toHaveLength(1);
+				yield* Effect.promise(() =>
+					eventually(() => expect(view.container.querySelector("#work-detail article.doc")?.textContent).toContain("Task details")),
+				);
+				expect(view.container.querySelector("#work-detail .item-summary")?.textContent).toContain("Read evidence");
+			}
+		} finally {
+			yield* Effect.promise(() => view.unmount());
+			vi.restoreAllMocks();
 		}
-		if (url.includes("item=task.fixture")) {
-			expect(view.container.querySelectorAll(".work-table tbody tr")).toHaveLength(1);
-			yield* Effect.promise(() =>
-				eventually(() => expect(view.container.querySelector("#work-detail article.doc")?.textContent).toContain("Task details")),
-			);
-			expect(view.container.querySelector("#work-detail .item-summary")?.textContent).toContain("Read evidence");
-		}
-	} finally {
-		yield* Effect.promise(() => view.unmount());
-		vi.restoreAllMocks();
-	}
-});
+	});
+}
 
-it.live("retains inline answer edits and selected detail through a Work projection refresh", function* () {
+screenStory.it("retains inline answer edits and selected detail through a Work projection refresh", [], function* ({ renderRouter }) {
 	let refresh: (() => void) | undefined;
 	let page: unknown;
 	const url = "/_board/work?view=board&item=question.fixture&q=task";
 	const view = yield* Effect.promise(() =>
-		renderBoard(files, (api, registry) => {
+		renderRouter(files, url, undefined, (api, registry) => {
 			page = vi.spyOn(api.page, "query");
 			refresh = () => registry.refresh(api.work.query({ url }, routeQueryOptions));
-			const router = boardRouter({ api, registry });
-			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
-			return <RouterProvider router={router} />;
 		}),
 	);
 	try {

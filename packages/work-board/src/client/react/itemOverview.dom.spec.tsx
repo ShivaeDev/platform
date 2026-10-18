@@ -1,19 +1,20 @@
 import { Effect, Option } from "effect";
-import { act } from "react";
 import { expect } from "vitest";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import { eventually } from "@shivaedev/effect-react/testing.ts";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { type BoardTestApi, renderBoard } from "#test/react.tsx";
+import type { BoardTestApi } from "#test/react.tsx";
+import { screenStory } from "#test/screenStory.ts";
+import { boardScreen } from "#test/screenTraits.ts";
 import { DocumentPage } from "./DocumentPage.tsx";
 
 function Page({ api }: { readonly api: BoardTestApi }) {
 	const query = useQuery(api.document.query({ url: "/task.md" }));
 	return Option.match(query.data, { onNone: () => null, onSome: (data) => <DocumentPage document={data} /> });
 }
-it.live("shows criteria on load, resolved target status and backlinks counted by kind, with source in its own tab", function* () {
-	const view = yield* Effect.promise(() =>
-		renderBoard(
+screenStory.it(
+	"shows criteria on load, resolved target status and backlinks counted by kind, with source in its own tab",
+	[
+		boardScreen(
 			{
 				"board.md": "---\nid: board.fixture\nkind: board\nitems: [task.fixture]\n---\n# Board",
 				"goal.md": "---\nid: goal.fixture\nkind: goal\nstatus: blocked\ncriteria:\n  - id: design\n    text: Design\n---\n# Ship the feature",
@@ -25,8 +26,10 @@ it.live("shows criteria on load, resolved target status and backlinks counted by
 			},
 			(api) => <Page api={api} />,
 		),
-	);
-	try {
+	],
+	function* ({ click, boardView }) {
+		const view = boardView();
+
 		yield* Effect.promise(() =>
 			eventually(() => expect(view.container.querySelector("#criterion-proof")?.textContent).toContain("Visible without a click")),
 		);
@@ -52,11 +55,9 @@ it.live("shows criteria on load, resolved target status and backlinks counted by
 		expect(view.container.textContent).not.toContain("Recorded work ·");
 		const source = view.container.querySelector('[aria-label="Document source"]');
 		expect(source?.closest("[hidden]")).not.toBeNull();
-		yield* Effect.promise(() => act(async () => view.container.querySelector<HTMLButtonElement>('[role="tab"]:nth-child(2)')?.click()));
+		click(view.container.querySelector<HTMLButtonElement>('[role="tab"]:nth-child(2)'));
 		expect(source?.closest("[hidden]")).toBeNull();
 		expect(source?.querySelector("code")?.textContent).toContain("task.md:");
 		expect(source?.querySelector("pre")?.textContent).toContain("id: task.fixture");
-	} finally {
-		yield* Effect.promise(() => view.unmount());
-	}
-});
+	},
+);

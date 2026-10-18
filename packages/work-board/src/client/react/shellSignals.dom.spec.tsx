@@ -1,15 +1,13 @@
+import { Effect } from "effect";
 import { act } from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { documentQuery, navigationQuery } from "#client/page/routeQuery.ts";
-import { browserStorage } from "#test/browserStorage.ts";
-import { chrome, click, control } from "#test/chrome.ts";
-import { renderRouter } from "#test/renderRouter.tsx";
+import { screenStory } from "#test/screenStory.ts";
+import { chromeScreen, routedScreen } from "#test/screenTraits.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 beforeEach(() => {
-	browserStorage();
 	vi.stubGlobal("matchMedia", (query: string) => ({
 		addEventListener: () => undefined,
 		matches: query.includes("max-width"),
@@ -18,57 +16,62 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-it.each(["Files", "More"])("dismisses %s when its current destination is selected without a router transition", async (panel) => {
-	const view = await chrome({ "home.md": "# Home" }, "/_board/library");
-	try {
-		const location = view.router.state.location;
-		if (panel === "Files") {
-			click("#sidebar-toggle");
-			expect(control("#sidebar", HTMLElement).hidden).toBe(false);
-			click("#sidebar #documents-open");
-			await eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true));
-		} else {
-			click('[aria-controls="phone-more"]');
-			expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
-			click('#phone-more a[href="/_board/library"]');
-			await eventually(() => expect(control("#phone-more", HTMLDialogElement).open).toBe(false));
-		}
-		expect(view.router.state.location).toBe(location);
-	} finally {
-		await view.unmount();
-	}
-});
+for (const panel of ["Files", "More"]) {
+	screenStory.it(
+		`dismisses ${panel} when its current destination is selected without a router transition`,
+		[chromeScreen({ "home.md": "# Home" }, "/_board/library")],
+		function* ({ click, control, routed }) {
+			const view = routed();
 
-it("closes Files and More on direct router navigation and retains the new recent title", async () => {
-	const files = { "home.md": "# Home", "notes/plan.md": "# Plan", "other.md": "# Other" };
-	const view = await chrome(files);
-	try {
+			const location = view.router.state.location;
+			if (panel === "Files") {
+				click("#sidebar-toggle");
+				expect(control("#sidebar", HTMLElement).hidden).toBe(false);
+				click("#sidebar #documents-open");
+				yield* Effect.promise(() => eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true)));
+			} else {
+				click('[aria-controls="phone-more"]');
+				expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
+				click('#phone-more a[href="/_board/library"]');
+				yield* Effect.promise(() => eventually(() => expect(control("#phone-more", HTMLDialogElement).open).toBe(false)));
+			}
+			expect(view.router.state.location).toBe(location);
+		},
+	);
+}
+
+screenStory.it(
+	"closes Files and More on direct router navigation and retains the new recent title",
+	[],
+	function* ({ chrome, click, control, navigate }) {
+		const files = { "home.md": "# Home", "notes/plan.md": "# Plan", "other.md": "# Other" };
+		const view = yield* Effect.promise(() => chrome(files));
+
 		click("#sidebar-toggle");
 		expect(control("#sidebar", HTMLElement).hidden).toBe(false);
-		await act(async () => view.router.navigate({ to: "/other.md" }));
-		await eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true));
+		yield* Effect.promise(() => navigate("/other.md"));
+		yield* Effect.promise(() => eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true)));
 		click('[aria-controls="phone-more"]');
 		expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
-		await act(async () => view.router.navigate({ to: "/notes/plan.md" }));
-		await eventually(() => expect(control("#phone-more", HTMLDialogElement).open).toBe(false));
+		yield* Effect.promise(() => navigate("/notes/plan.md"));
+		yield* Effect.promise(() => eventually(() => expect(control("#phone-more", HTMLDialogElement).open).toBe(false)));
 		files["notes/plan.md"] = "# Revised plan";
 		act(() => {
 			view.registry.refresh(navigationQuery(view.api));
 			view.registry.refresh(documentQuery(view.api, "/notes/plan.md"));
 		});
-		await eventually(() => expect(document.querySelector('section[aria-label="Recent"] a[aria-current="page"]')?.textContent).toBe("Revised plan"));
+		yield* Effect.promise(() =>
+			eventually(() => expect(document.querySelector('section[aria-label="Recent"] a[aria-current="page"]')?.textContent).toBe("Revised plan")),
+		);
 		expect(document.title).toBe("Revised plan · Work Board");
-	} finally {
-		await view.unmount();
-	}
-});
+	},
+);
 
-it("restores the passage after DocumentContext reports its outline ready", async () => {
-	const view = await renderRouter({ "notes/plan.md": "# Plan\n\n## Evidence\n\nRead this passage." }, "/notes/plan.md#heading-evidence");
-	try {
-		await eventually(() => expect(document.querySelector('.document-outline a[href="#heading-evidence"]')).not.toBeNull());
-		await eventually(() => expect(document.activeElement?.id).toBe("heading-evidence"));
-	} finally {
-		await view.unmount();
-	}
-});
+screenStory.it(
+	"restores the passage after DocumentContext reports its outline ready",
+	[routedScreen({ "notes/plan.md": "# Plan\n\n## Evidence\n\nRead this passage." }, "/notes/plan.md#heading-evidence")],
+	function* () {
+		yield* Effect.promise(() => eventually(() => expect(document.querySelector('.document-outline a[href="#heading-evidence"]')).not.toBeNull()));
+		yield* Effect.promise(() => eventually(() => expect(document.activeElement?.id).toBe("heading-evidence")));
+	},
+);

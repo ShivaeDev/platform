@@ -1,46 +1,53 @@
+import { Effect } from "effect";
 import { act } from "react";
-import { expect, it, vi } from "vitest";
+import { expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { renderBoard } from "#test/react.tsx";
+import { screenStory } from "#test/screenStory.ts";
 import { fleetItemRankingFixture } from "#test/searchRankingFixture.ts";
 import { SearchDialog } from "./SearchDialog.tsx";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
-it("puts open body matches and done items before headings, includes Fleet status and reports only with records:, and keeps anchors unique", async () => {
-	const { files, modified } = fleetItemRankingFixture();
-	const view = await renderBoard(
-		files,
-		(api) => (
-			<SearchDialog
-				api={api}
-				appearance={{ change: vi.fn(), closed: false, density: "comfortable", notice: "", theme: "light" }}
-				close={vi.fn()}
-				open
-				toggleSidebar={vi.fn()}
-			/>
-		),
-		{ home: undefined, modified },
-	);
-	function rows() {
-		return [...view.container.querySelectorAll<HTMLAnchorElement>('[role="option"]')];
-	}
-	function type(query: string) {
-		const field = view.container.querySelector("input");
-		if (!field) {
-			throw new Error("Missing palette input");
+screenStory.it(
+	"puts open body matches and done items before headings, includes Fleet status and reports only with records:, and keeps anchors unique",
+	[],
+	function* ({ renderBoard }) {
+		const { files, modified } = fleetItemRankingFixture();
+		const view = yield* Effect.promise(() =>
+			renderBoard(
+				files,
+				(api) => (
+					<SearchDialog
+						api={api}
+						appearance={{ change: vi.fn(), closed: false, density: "comfortable", notice: "", theme: "light" }}
+						close={vi.fn()}
+						open
+						toggleSidebar={vi.fn()}
+					/>
+				),
+				{ home: undefined, modified },
+			),
+		);
+		function rows() {
+			return [...view.container.querySelectorAll<HTMLAnchorElement>('[role="option"]')];
 		}
-		act(() => {
-			field.value = query;
-			field.dispatchEvent(new Event("input", { bubbles: true }));
-		});
-	}
-	try {
+		function type(query: string) {
+			const field = view.container.querySelector("input");
+			if (!field) {
+				throw new Error("Missing palette input");
+			}
+			act(() => {
+				field.value = query;
+				field.dispatchEvent(new Event("input", { bubbles: true }));
+			});
+		}
+
 		for (const query of ["watch", "records: watch"]) {
 			type(query);
 			const records = query.startsWith("records:");
-			await eventually(() => expect(rows()[0]?.querySelector("code")?.textContent).toBe(records ? "decision.watch" : "task.review"));
+			yield* Effect.promise(() =>
+				eventually(() => expect(rows()[0]?.querySelector("code")?.textContent).toBe(records ? "decision.watch" : "task.review")),
+			);
 			const work = rows().filter((row) => row.querySelector("code")?.textContent?.startsWith("task."));
 			expect(work.slice(0, 2).map((row) => row.querySelector("strong")?.textContent)).toEqual(["Keep reviews visible", "Done watch"]);
 			expect(work.slice(0, 2).map((row) => row.querySelector("[data-status-token]")?.textContent)).toEqual(["active", "done"]);
@@ -68,7 +75,5 @@ it("puts open body matches and done items before headings, includes Fleet status
 				expect(row.querySelector("p")?.textContent ?? "").not.toMatch(/^(?:\{|---)|(?:id|kind|status):/u);
 			}
 		}
-	} finally {
-		await view.unmount();
-	}
-});
+	},
+);

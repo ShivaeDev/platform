@@ -1,16 +1,12 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
+import { Effect } from "effect";
 import { act } from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
-import { browserStorage } from "#test/browserStorage.ts";
-import { renderBoard } from "#test/react.tsx";
-import { boardRouter } from "./boardRouter.ts";
+import { screenStory } from "#test/screenStory.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 beforeEach(() => {
-	browserStorage();
 	document.documentElement.dataset.workspace = "forms-fixture";
 });
 afterEach(() => {
@@ -39,20 +35,16 @@ const cases = [
 	},
 	{ field: '[name="goal"]', kind: "handoff", query: "handoff" as const, source: SOURCE, url: "/_board/handoff?item=task.fixture" },
 ];
-it.each(cases)(
-	"retains $query $field draft, source notice and caret through query refresh and reload",
-	async ({ kind, query, field, url, source: content }) => {
+for (const { kind, query, field, url, source: content } of cases) {
+	screenStory.it(`retains ${query} ${field} draft, source notice and caret through query refresh and reload`, [], function* ({ renderRouter }) {
 		const files = { "home.md": "# Home", "task.md": content };
 		let refresh: (() => void) | undefined;
 		function open() {
-			return renderBoard(files, (api, registry) => {
+			return renderRouter(files, url, undefined, (api, registry) => {
 				refresh = () =>
 					query === "document"
 						? registry.refresh(api.document.query({ url }, routeQueryOptions))
 						: registry.refresh(api.handoff.query({ url }, routeQueryOptions));
-				const router = boardRouter({ api, registry });
-				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
-				return <RouterProvider router={router} />;
 			});
 		}
 		function control() {
@@ -65,9 +57,9 @@ it.each(cases)(
 		function notice() {
 			return document.getElementById(`${kind}-status`)?.textContent;
 		}
-		const first = await open();
+		const first = yield* Effect.promise(() => open());
 		try {
-			await eventually(() => expect(document.getElementById(`${kind}-form`)).not.toBeNull());
+			yield* Effect.promise(() => eventually(() => expect(document.getElementById(`${kind}-form`)).not.toBeNull()));
 			const input = control();
 			act(() => {
 				input.value = "Direction in progress";
@@ -82,8 +74,8 @@ it.each(cases)(
 				input.setSelectionRange(4, 9, "backward");
 			});
 			files["task.md"] += "\nChanged source context.\n";
-			await act(async () => refresh?.());
-			await eventually(() => expect(notice()).toContain("Source changed"));
+			yield* Effect.promise(() => act(async () => refresh?.()));
+			yield* Effect.promise(() => eventually(() => expect(notice()).toContain("Source changed")));
 			expect(control()).toBe(input);
 			expect(input.value).toBe("Direction in progress");
 			const details = input.closest("details");
@@ -94,22 +86,19 @@ it.each(cases)(
 			expect([input.selectionStart, input.selectionEnd, input.selectionDirection]).toEqual([4, 9, "backward"]);
 			act(() => window.dispatchEvent(new Event("pagehide")));
 		} finally {
-			await first.unmount();
+			yield* Effect.promise(() => first.unmount());
 		}
-		const reloaded = await open();
-		try {
-			await eventually(() => expect(notice()).toContain("Source changed"));
-			const input = control();
-			expect(input.value).toBe("Direction in progress");
-			const details = input.closest("details");
-			if (details) {
-				expect(details.open).toBe(true);
-			}
-			expect(document.activeElement).toBe(input);
-			expect([input.selectionStart, input.selectionEnd, input.selectionDirection]).toEqual([4, 9, "backward"]);
-			expect(document.getElementById(`${kind}-submit`)).toHaveProperty("disabled", true);
-		} finally {
-			await reloaded.unmount();
+		yield* Effect.promise(() => open());
+
+		yield* Effect.promise(() => eventually(() => expect(notice()).toContain("Source changed")));
+		const input = control();
+		expect(input.value).toBe("Direction in progress");
+		const details = input.closest("details");
+		if (details) {
+			expect(details.open).toBe(true);
 		}
-	},
-);
+		expect(document.activeElement).toBe(input);
+		expect([input.selectionStart, input.selectionEnd, input.selectionDirection]).toEqual([4, 9, "backward"]);
+		expect(document.getElementById(`${kind}-submit`)).toHaveProperty("disabled", true);
+	});
+}

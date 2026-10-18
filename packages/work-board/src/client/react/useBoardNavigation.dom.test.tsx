@@ -1,31 +1,28 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { documentQuery } from "#client/page/routeQuery.ts";
-import { browserStorage } from "#test/browserStorage.ts";
-import { control } from "#test/chrome.ts";
-import { renderRouter } from "#test/renderRouter.tsx";
+import { screenStory } from "#test/screenStory.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 beforeEach(() => {
-	browserStorage();
 	sessionStorage.clear();
 	window.history.replaceState({}, "", "/");
 });
 afterEach(() => vi.unstubAllGlobals());
 
-it("clears a recovered current-document refresh failure without restoring reading position", async () => {
+screenStory.it("clears a recovered current-document refresh failure without restoring reading position", [], function* ({ renderRouter, control }) {
 	let failed = false;
-	const view = await renderRouter(
-		{ "home.md": "# Home", "notes/plan.md": "# Plan\n\n## Evidence\n\nRead this passage.\n" },
-		"/notes/plan.md#heading-evidence",
-		{ beforeRead: () => (failed ? Effect.die(new Error("Read unavailable")) : Effect.void), home: "home.md" },
+	const view = yield* Effect.promise(() =>
+		renderRouter({ "home.md": "# Home", "notes/plan.md": "# Plan\n\n## Evidence\n\nRead this passage.\n" }, "/notes/plan.md#heading-evidence", {
+			beforeRead: () => (failed ? Effect.die(new Error("Read unavailable")) : Effect.void),
+			home: "home.md",
+		}),
 	);
 	try {
-		await eventually(() => expect(control("#doc", HTMLElement).dataset.status).toBe("200"));
-		await eventually(() => expect(document.activeElement?.id).toBe("heading-evidence"));
+		yield* Effect.promise(() => eventually(() => expect(control("#doc", HTMLElement).dataset.status).toBe("200")));
+		yield* Effect.promise(() => eventually(() => expect(document.activeElement?.id).toBe("heading-evidence")));
 		const api = view.router.options.context?.shell?.api;
 		if (!api) {
 			throw new Error("Missing shell API");
@@ -42,15 +39,17 @@ it("clears a recovered current-document refresh failure without restoring readin
 		const scroll = vi.spyOn(window, "scrollTo");
 		const passage = vi.spyOn(control("#heading-evidence", HTMLElement), "scrollIntoView");
 		failed = true;
-		await act(async () => refresh());
-		await eventually(() => expect(control("#navigation-status", HTMLElement).textContent).toContain("Could not open this document"));
+		yield* Effect.promise(() => act(async () => refresh()));
+		yield* Effect.promise(() =>
+			eventually(() => expect(control("#navigation-status", HTMLElement).textContent).toContain("Could not open this document")),
+		);
 		expect(doc.dataset.status).toBe("503");
 		expect(doc.textContent).toContain("Read this passage.");
 		failed = false;
-		await act(async () => refresh());
-		await eventually(() => expect(doc.dataset.status).toBe("200"));
-		await eventually(() => expect(control("#navigation-status", HTMLElement).textContent).toBe(""));
-		await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+		yield* Effect.promise(() => act(async () => refresh()));
+		yield* Effect.promise(() => eventually(() => expect(doc.dataset.status).toBe("200")));
+		yield* Effect.promise(() => eventually(() => expect(control("#navigation-status", HTMLElement).textContent).toBe("")));
+		yield* Effect.promise(() => act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))));
 		expect(view.router.state.location).toBe(location);
 		expect(control("#doc", HTMLElement)).toBe(doc);
 		expect(document.activeElement).toBe(focused);
@@ -58,7 +57,7 @@ it("clears a recovered current-document refresh failure without restoring readin
 		expect(scroll).not.toHaveBeenCalled();
 		expect(passage).not.toHaveBeenCalled();
 	} finally {
-		await view.unmount();
+		yield* Effect.promise(() => view.unmount());
 		vi.restoreAllMocks();
 	}
 });

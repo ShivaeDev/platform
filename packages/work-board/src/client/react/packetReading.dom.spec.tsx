@@ -3,13 +3,13 @@ import { Effect, Option } from "effect";
 import { expect } from "vitest";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { DocumentView } from "#client/document/View.ts";
-import { type BoardTestApi, renderBoard } from "#test/react.tsx";
+import type { BoardTestApi } from "#test/react.tsx";
 import { DECISION_PATH, packetFiles, questionPath } from "#test/responsePacket.ts";
+import { screenStory } from "#test/screenStory.ts";
+import { boardScreen } from "#test/screenTraits.ts";
 import { boardRouter } from "./boardRouter.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
 function PacketDocument({ api }: { readonly api: BoardTestApi }) {
@@ -24,28 +24,34 @@ function expectProse(container: HTMLElement) {
 	expect(container.querySelector("article.doc")?.textContent).not.toContain('"attention"');
 }
 
-it.live.each([DECISION_PATH, questionPath])("reads packet prose in the React shell at %s", function* (path) {
-	const view = yield* Effect.promise(() =>
-		renderBoard(packetFiles, (api, registry) => {
-			const router = boardRouter({ api, registry });
-			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [`/${path}`] }) });
-			return <RouterProvider router={router} />;
-		}),
-	);
-	try {
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("article.doc p")?.textContent).toContain("Read the evidence")));
-		expectProse(view.container);
-	} finally {
-		yield* Effect.promise(() => view.unmount());
-	}
-});
+for (const path of [DECISION_PATH, questionPath]) {
+	screenStory.it(
+		`reads packet prose in the React shell at ${path}`,
+		[
+			boardScreen(packetFiles, (api, registry) => {
+				const router = boardRouter({ api, registry });
+				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [`/${path}`] }) });
+				return <RouterProvider router={router} />;
+			}),
+		],
+		function* ({ boardView }) {
+			const view = boardView();
 
-it.live("reads captured document prose through the native document query and React Markdown view", function* () {
-	const view = yield* Effect.promise(() => renderBoard(packetFiles, (api) => <PacketDocument api={api} />));
-	try {
+			yield* Effect.promise(() =>
+				eventually(() => expect(view.container.querySelector("article.doc p")?.textContent).toContain("Read the evidence")),
+			);
+			expectProse(view.container);
+		},
+	);
+}
+
+screenStory.it(
+	"reads captured document prose through the native document query and React Markdown view",
+	[boardScreen(packetFiles, (api) => <PacketDocument api={api} />)],
+	function* ({ boardView }) {
+		const view = boardView();
+
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("article.doc p")?.textContent).toContain("Read the evidence")));
 		expectProse(view.container);
-	} finally {
-		yield* Effect.promise(() => view.unmount());
-	}
-});
+	},
+);

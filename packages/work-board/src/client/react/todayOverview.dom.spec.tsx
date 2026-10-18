@@ -1,47 +1,34 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
-import * as Atom from "effect/reactivity/Atom";
+import { Effect } from "effect";
 import { act } from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, vi } from "vitest";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
-import { browserStorage } from "#test/browserStorage.ts";
-import { type BoardTestApi, renderBoard } from "#test/react.tsx";
-import { todayFixture } from "#test/todayFixture.ts";
+import { screenStory } from "#test/screenStory.ts";
+import { openScreen, screenFleet, todayScreen } from "#test/screenTraits.ts";
 import { todayFleetFixture } from "#test/todayFleetFixture.ts";
-import { boardRouter } from "./boardRouter.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
-beforeEach(() => browserStorage());
 afterEach(() => {
 	window.dispatchEvent(new Event("pagehide"));
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
 });
 
-it("opens Today with the exact human lane and one honest card per goal, retaining Workspace notes", async () => {
-	let api: BoardTestApi | undefined;
-	const view = await renderBoard(
-		todayFixture(),
-		(client, registry) => {
-			api = client;
-			vi.spyOn(client.fleetItems, "query").mockReturnValue(Atom.make(AsyncResult.success(todayFleetFixture())));
-			const router = boardRouter({ api: client, registry });
-			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/"] }) });
-			return <RouterProvider router={router} />;
-		},
-		{ home: "home.md" },
-	);
-	try {
-		await eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Today"));
+screenStory.it(
+	"opens Today with the exact human lane and one honest card per goal, retaining Workspace notes",
+	[todayScreen(), screenFleet(todayFleetFixture()), openScreen()],
+	function* ({ routed }) {
+		const view = routed();
+
+		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Today")));
 		expect(view.container.querySelector('#primary-navigation [aria-current="page"]')?.getAttribute("href")).toBe("/");
-		if (!api) {
-			throw new Error("Missing fixture API");
-		}
-		const inbox = await loadQuery(view.registry, api.inbox.query(undefined, routeQueryOptions), { abortController: new AbortController() });
-		const goals = await loadQuery(view.registry, api.goals.query(undefined, routeQueryOptions), { abortController: new AbortController() });
+		const inbox = yield* Effect.promise(() =>
+			loadQuery(view.registry, view.api.inbox.query(undefined, routeQueryOptions), { abortController: new AbortController() }),
+		);
+		const goals = yield* Effect.promise(() =>
+			loadQuery(view.registry, view.api.goals.query(undefined, routeQueryOptions), { abortController: new AbortController() }),
+		);
 		expect([...view.container.querySelectorAll("[data-attention-id]")].map((row) => row.getAttribute("data-attention-id"))).toEqual(
 			inbox.you.map((item) => item.id),
 		);
@@ -88,7 +75,5 @@ it("opens Today with the exact human lane and one honest card per goal, retainin
 		expect(view.container.querySelector("#needs-you")?.nextElementSibling?.id).toBe("in-progress");
 		expect(view.container.querySelector("#needs-you")?.parentElement).not.toBe(view.container.querySelector("#today-goals")?.parentElement);
 		expect(view.container.querySelector(".today-page a[href='/home.md']")?.textContent).toBe("Workspace notes");
-	} finally {
-		await view.unmount();
-	}
-});
+	},
+);

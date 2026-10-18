@@ -111,3 +111,14 @@ export function aQuestionnaire(source = questionnaireSource, wrap?: FileSystemWr
 		}),
 	);
 }
+
+export function boardHome(home?: string) {
+	return boardStory.trait("project", home ? `the home board is ${home}` : "the workspace has no configured home board", (engine) => {
+		engine.home = home;
+	});
+}
+export function boardFilesystem(wrap?: FileSystemWrapper) {
+	return boardStory.trait("project", "the workspace uses the specified filesystem boundary", (engine) => {
+		engine.wrap = wrap;
+	});
+}

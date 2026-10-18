@@ -1,14 +1,12 @@
-import { act } from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { Effect } from "effect";
+import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { browserStorage } from "#test/browserStorage.ts";
-import { chrome, click, control } from "#test/chrome.ts";
+import { screenStory } from "#test/screenStory.ts";
+import { chromeScreen } from "#test/screenTraits.ts";
 import { todayFixture } from "#test/todayFixture.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 beforeEach(() => {
-	browserStorage();
 	const match = window.matchMedia.bind(window);
 	vi.stubGlobal("matchMedia", (query: string) => {
 		const media = match(query);
@@ -22,12 +20,13 @@ afterEach(() => {
 });
 
 const PHONE = 'nav[aria-label="Phone navigation"]';
-it("keeps primary destinations and Search available from Today, Now, goals and documents", async () => {
-	const view = await chrome(todayFixture(), "/");
-	try {
+screenStory.it(
+	"keeps primary destinations and Search available from Today, Now, goals and documents",
+	[chromeScreen(todayFixture(), "/")],
+	function* ({ click, control, navigate }) {
 		for (const url of ["/", "/_board/work", "/_board/item/project.alpha/", "/home.md"]) {
-			await act(async () => view.router.navigate({ to: url }));
-			await eventually(() => expect(document.querySelector("#doc")?.getAttribute("data-route")).toBe(url));
+			yield* Effect.promise(() => navigate(url));
+			yield* Effect.promise(() => eventually(() => expect(document.querySelector("#doc")?.getAttribute("data-route")).toBe(url)));
 			expect([...document.querySelectorAll(`${PHONE} a`)].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
 				["Today", "/"],
 				["Goals", "/_board/goals"],
@@ -45,23 +44,24 @@ it("keeps primary destinations and Search available from Today, Now, goals and d
 			["/", "Today"],
 		]) {
 			click(`${PHONE} a[href="${href}"]`);
-			await eventually(() => expect(document.querySelector("#doc h1")?.textContent).toBe(title));
+			yield* Effect.promise(() => eventually(() => expect(document.querySelector("#doc h1")?.textContent).toBe(title)));
 			expect(document.querySelector(`${PHONE} a[aria-current="page"]`)?.getAttribute("href")).toBe(href);
 		}
-	} finally {
-		await view.unmount();
-	}
-});
+	},
+);
 
-it("opens Library and System through More and closes the sheet on navigation or dismissal", async () => {
-	const view = await chrome(todayFixture(), "/");
-	try {
+screenStory.it(
+	"opens Library and System through More and closes the sheet on navigation or dismissal",
+	[chromeScreen(todayFixture(), "/")],
+	function* ({ click, control, routed }) {
+		const view = routed();
+
 		for (const href of ["/_board/library", "/_board/system"]) {
 			click(`${PHONE} button[aria-controls="phone-more"]`);
 			expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
 			expect([...document.querySelectorAll("#phone-more a")].map((link) => link.textContent)).toEqual(["Library", "System"]);
 			click(`#phone-more a[href="${href}"]`);
-			await eventually(() => expect(view.router.state.location.pathname).toBe(href));
+			yield* Effect.promise(() => eventually(() => expect(view.router.state.location.pathname).toBe(href)));
 			expect(control("#phone-more", HTMLDialogElement).open).toBe(false);
 		}
 		click(`${PHONE} button[aria-controls="phone-more"]`);
@@ -73,7 +73,5 @@ it("opens Library and System through More and closes the sheet on navigation or 
 		expect(control("#sidebar", HTMLElement).hidden).toBe(true);
 		click("#settings-open");
 		expect(control("#theme", HTMLSelectElement).closest('[role="dialog"]')).toHaveProperty("hidden", false);
-	} finally {
-		await view.unmount();
-	}
-});
+	},
+);

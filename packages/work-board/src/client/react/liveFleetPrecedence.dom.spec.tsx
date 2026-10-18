@@ -1,10 +1,11 @@
-import { expect, it } from "vitest";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { Effect } from "effect";
+import { expect } from "vitest";
 import { nowWork } from "#test/nowWork.ts";
+import { screenStory } from "#test/screenStory.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
-it.each([
+for (const [stage, lane] of [
 	["prepared", "Queued"],
 	["needs-human", "Waiting on a person"],
 	["adopting", "Executing"],
@@ -13,17 +14,20 @@ it.each([
 	["repairing", "Reviewing"],
 	["validating", "Reviewing"],
 	["delivering", "Delivering"],
-] as const)("keeps Fleet %s visible in %s despite inactive authored statuses", async (stage, lane) => {
-	const data = nowWork();
-	const statuses = ["done", "completed", "superseded", "deferred", "cancelled", "canceled"];
-	const rows = data.rows.map((item, index) => ({ ...item, metadata: { ...item.metadata, status: statuses[index] } }));
-	const items = rows.map((item) => ({ document: null, stage, stageEnteredAt: null, updatedAt: null, workId: item.id }));
-	const view = await render(
-		<FleetItemsContext.Provider value={{ completed: [], items, state: "ready" }}>
-			<WorkNow data={{ ...data, rows }} />
-		</FleetItemsContext.Provider>,
-	);
-	try {
+] as const) {
+	screenStory.it(`keeps Fleet ${stage} visible in ${lane} despite inactive authored statuses`, [], function* ({ render }) {
+		const data = nowWork();
+		const statuses = ["done", "completed", "superseded", "deferred", "cancelled", "canceled"];
+		const rows = data.rows.map((item, index) => ({ ...item, metadata: { ...item.metadata, status: statuses[index] } }));
+		const items = rows.map((item) => ({ document: null, stage, stageEnteredAt: null, updatedAt: null, workId: item.id }));
+		const view = yield* Effect.promise(() =>
+			render(
+				<FleetItemsContext.Provider value={{ completed: [], items, state: "ready" }}>
+					<WorkNow data={{ ...data, rows }} />
+				</FleetItemsContext.Provider>,
+			),
+		);
+
 		const column = view.container.querySelector(`[aria-label="${lane}"]`);
 		expect(column?.querySelectorAll(".work-card")).toHaveLength(statuses.length);
 		for (const row of rows) {
@@ -33,7 +37,5 @@ it.each([
 			expect(card?.querySelector("[data-status-token]")?.textContent).toBe(stage === "needs-human" ? "needs-you" : stage);
 		}
 		expect(view.container.querySelector(".work-total")).toBeNull();
-	} finally {
-		await view.unmount();
-	}
-});
+	});
+}
