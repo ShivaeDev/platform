@@ -5,8 +5,8 @@ import { Effect } from "effect";
 import cases from "./bin-cases.json" with { type: "json" };
 import { checkServer } from "./server.ts";
 
-it("the packed Board check rejects unrelated JavaScript with a session export", async () => {
-	const path = "/_board/native.js";
+it("the packed Board check rejects unrelated JavaScript in place of the browser client", async () => {
+	const path = "/_board/react.js";
 	const expected = cases["work-board"].pages[path];
 	const body = "const unrelated = true; export { unrelated as session };";
 	const server = `
@@ -19,6 +19,6 @@ server.listen(0, "127.0.0.1", () => console.log("http://127.0.0.1:" + server.add
 `;
 	await assert.rejects(
 		Effect.runPromise(checkServer(process.cwd(), process.execPath, ["--input-type=module", "--eval", server], { [path]: expected })),
-		/Packed server request failed: \/_board\/native\.js/u,
+		/Packed server request failed: \/_board\/react\.js/u,
 	);
 });
