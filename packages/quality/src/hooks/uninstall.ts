@@ -1,5 +1,7 @@
+import { dirname } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
 import { SetupFailure } from "#failure.ts";
+import { git, gitOrFail } from "#git/command.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
 import { hookLocation } from "./location.ts";
 import { isHookShim } from "./shim.ts";
@@ -15,5 +17,9 @@ export const uninstallHook = Effect.fn("Hooks.uninstallHook")(function* (cwd: st
 		return yield* Console.error(`quality: kept ${file}: it is not quality's pre-commit hook.`);
 	}
 	yield* Effect.mapError(fs.remove(file), (error) => new SetupFailure({ message: `cannot remove ${file}: ${error.message}` }));
+	const local = yield* git(cwd, ["config", "--local", "--get", "core.hooksPath"]);
+	if (local.stdout.trim() === dirname(file)) {
+		yield* gitOrFail(cwd, ["config", "--local", "--unset-all", "core.hooksPath"]);
+	}
 	yield* Console.log(`quality: removed the pre-commit hook at ${file}.`);
 });

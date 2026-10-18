@@ -227,6 +227,7 @@ quality baseline tighten [--config <file>] [--staged]
 quality baseline migrate [--config <file>] [--from <file>]
 quality hooks install [--config <file>] [--force]
 quality hooks uninstall
+quality hooks status
 quality hooks pre-commit [--config <file>]
 ```
 
@@ -318,5 +319,5 @@ export default defineConfig({
 Quality merges the Biome settings at lint and fix time; do not add or mirror an override in `biome.json`. Files are explicit repository paths. Biome exceptions cover individual lint rules or assist actions; whole checks, rule groups and globs are rejected. `biome/files/includes` is the directory exclusion form: keep `**` and list negative patterns naming directories, such as `!**/test-support/generated`. Quality's shipped exceptions remain part of its internal policy. [Exceptions and upgrades](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/debt-and-hooks.md#exceptions) describes subjects, stale entries and the upgrade command.
 
 - The source inventory and Biome have their own scopes. `quality fix` runs Biome from the config's folder; it is not restricted to the source-rule inventory.
-- The installed hook checks files on disk, not only what is staged, and uses each committing worktree's config and dependencies. A pre-existing `core.hooksPath` decides which hook git runs.
+- The installed hook checks files on disk, not only what is staged, and uses each committing worktree's config and dependencies. Installation sets repository-local `core.hooksPath`; the hook chains an executable global pre-commit hook without changing global configuration. Either hook's failure blocks the commit. `quality hooks status` reports when git's effective hooks path does not run Quality.
 - Workspace imports require a declaration in the importing package’s `dependencies`, `peerDependencies` or `optionalDependencies`. Tests, `test-support`, package-root tooling folders (`script`, `scripts`, `tooling`) and package-root config files may also use `devDependencies`. Explicitly export-blocked bundle inputs may use them when no runtime module reaches those inputs in the scanned import graph; an executable or another public export keeps its imports in the runtime boundary.

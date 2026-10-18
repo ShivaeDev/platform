@@ -45,7 +45,7 @@ describe("the pre-commit checks", { timeout: CLI_TIMEOUT }, () => {
 		const repository = hookRepository({ configless: true, scripts: { typecheck: logs("typechecked") } });
 		expect(hookText(repository)).toBeUndefined();
 		expect((await runQuality(repository.root, "hooks", "install")).status).toBe(0);
-		expect(hookText(repository)).toContain('exec "$quality" hooks pre-commit');
+		expect(hookText(repository)).toContain('"$quality" hooks pre-commit || status=$?');
 		expect((await preCommit(repository.root)).status).toBe(0);
 		expect(checksLog(repository.root)).toBe("typechecked\n");
 	});

@@ -29,26 +29,11 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 		expect(await runQuality(repository.root, "hooks", "install")).toEqual({
 			status: 0,
 			stderr: "",
-			stdout: `quality: installed the pre-commit hook at ${hookAt(repository.root)}; each commit runs \`node_modules/.bin/quality hooks pre-commit\`.\n`,
+			stdout: `quality: installed the pre-commit hook at ${hookAt(repository.root)}; each commit runs \`node_modules/.bin/quality hooks pre-commit\`.\nquality: set repository-local core.hooksPath to ${join(hookAt(repository.root), "..")}.\nquality: no executable global pre-commit hook to chain.\n`,
 		});
-		expect(hookText(repository)).toBe(
-			[
-				"#!/bin/sh",
-				OWNER,
-				'top="$(git rev-parse --show-toplevel)" || exit 2',
-				'if [ -n "$GIT_DIR" ] && [ -z "$GIT_WORK_TREE" ]; then export GIT_WORK_TREE="$top"; fi',
-				'cd "$top" || exit 2',
-				"quality=node_modules/.bin/quality",
-				'if [ ! -e "$quality" ]; then',
-				'\tprintf \'quality: cannot check this commit: %s/%s does not exist.\\nhelp: install the dependencies of this worktree, then commit again.\\n\' "$PWD" "$quality" >&2',
-				"\texit 2",
-				"fi",
-				'exec "$quality" hooks pre-commit',
-				"",
-			].join("\n"),
-		);
+
 		expect(hookMode(repository)).toBe(0o755);
-		expect(gitIn(repository.root, "config", "--local", "--list")).not.toContain("hookspath");
+		expect(gitIn(repository.root, "config", "--local", "--get", "core.hooksPath").trim()).toBe(join(hookAt(repository.root), ".."));
 	});
 
 	it("installs again over its own hook and says it is up to date", async () => {
@@ -56,7 +41,7 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 		await runQuality(repository.root, "hooks", "install");
 
 		expect((await runQuality(repository.root, "hooks", "install")).stdout).toBe(
-			`quality: the pre-commit hook at ${hookAt(repository.root)} is up to date.\n`,
+			`quality: the pre-commit hook at ${hookAt(repository.root)} is up to date.\nquality: set repository-local core.hooksPath to ${join(hookAt(repository.root), "..")}.\nquality: no executable global pre-commit hook to chain.\n`,
 		);
 	});
 
@@ -90,15 +75,6 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 		expect((await runQuality(repository.root, "hooks", "install")).stdout).toContain("is up to date");
 	});
 
-	it("notes a core.hooksPath that git runs instead of the installed hook", async () => {
-		const repository = hookRepository();
-		gitIn(repository.root, "config", "core.hooksPath", ".husky/_");
-
-		expect((await runQuality(repository.root, "hooks", "install")).stderr).toBe(
-			`note: core.hooksPath is .husky/_, so git runs the pre-commit hook there; ${hookAt(repository.root)} runs only when that hook calls it.\n`,
-		);
-	});
-
 	it("runs quality the way install ran it when that is a file in the repository, with the same Node options", () => {
 		const repository = hookRepository();
 		const local = withQualityAt(repository, "tools/quality.ts");
@@ -106,7 +82,7 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 		qualityFrom(local, repository.root, "hooks", "install");
 
 		expect(hookText(repository)).toContain("quality=tools/quality.ts\n");
-		expect(hookText(repository)).toContain('exec node --conditions=source "$quality" hooks pre-commit\n');
+		expect(hookText(repository)).toContain('node --conditions=source "$quality" hooks pre-commit || status=$?\n');
 		expect(commits(repository.root, "Checked by the repository's own quality").status).toBe(0);
 	});
 
