@@ -12,6 +12,7 @@ import type { SessionReceipt } from "#session/schema.ts";
 import { SessionService } from "#session/service.ts";
 import type { AdmissionLimits, Versioned } from "#storage/model.ts";
 export interface LaunchAdmission {
+	readonly areaWaiters?: readonly string[];
 	readonly ignoreAreas?: boolean;
 	readonly implementer?: boolean;
 	readonly overLimit?: boolean;
@@ -82,7 +83,15 @@ export type EngineState = Effect.Success<typeof makeState>;
 function launchLimits(policy: FleetConfiguration, admission: LaunchAdmission): AdmissionLimits {
 	const concurrency = admission.overLimit ? undefined : policy.executionConcurrency;
 	return {
-		...(admission.ignoreAreas ? {} : { scheduling: { areaMergeWaitMs: policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS, now: policy.now() } }),
+		...(admission.ignoreAreas
+			? {}
+			: {
+					scheduling: {
+						areaMergeWaitMs: policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS,
+						now: policy.now(),
+						...(admission.areaWaiters === undefined ? {} : { waiters: admission.areaWaiters }),
+					},
+				}),
 		...(admission.quota.available === undefined ? {} : { quota: { available: admission.quota.available, observedAt: admission.quota.observedAt } }),
 		...(concurrency === undefined ? {} : { maxExecuting: concurrency }),
 		...(admission.role !== "worker" || admission.overLimit || policy.deliveryBacklog === undefined ? {} : { maxBacklog: policy.deliveryBacklog }),

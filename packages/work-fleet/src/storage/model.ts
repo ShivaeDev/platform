@@ -20,7 +20,7 @@ export interface AdmissionLimits {
 	readonly maxBacklog?: number;
 	readonly maxExecuting?: number;
 	readonly quota?: { readonly observedAt: number; readonly available: number };
-	readonly scheduling?: { readonly now: number; readonly areaMergeWaitMs: number };
+	readonly scheduling?: { readonly now: number; readonly areaMergeWaitMs: number; readonly waiters?: readonly string[] };
 }
 
 export function recordColumns(schema: Schema.Top = FleetRecord) {
