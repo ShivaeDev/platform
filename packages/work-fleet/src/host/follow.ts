@@ -1,4 +1,4 @@
-import { Effect, Stream } from "effect";
+import { Effect, Option, Sink, Stream } from "effect";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { type FleetError, isFleetError } from "#errors.ts";
 import { daemonClient, daemonError } from "#host/daemonClient.ts";
@@ -19,7 +19,16 @@ export function follow(options: FollowOptions, workIds: readonly string[]) {
 	let connected = false;
 	let failures = 0;
 	function connect(): Stream.Stream<readonly FollowState[], FleetError> {
-		return Stream.unwrap(daemonClient(port).pipe(Effect.map((client) => client("daemon.follow", { follow: options.follow, workIds: ids })))).pipe(
+		return Stream.unwrap(
+			Effect.gen(function* () {
+				const client = yield* daemonClient(port);
+				const [first, rest] = yield* client("daemon.follow", { follow: options.follow, workIds: ids }).pipe(
+					Stream.peel(Sink.head<readonly unknown[]>()),
+					Effect.timeout("5 seconds"),
+				);
+				return Stream.concat(Stream.fromIterable(Option.toArray(first)), rest);
+			}),
+		).pipe(
 			Stream.scoped,
 			Stream.map((states) => states.map(decodeFollowState)),
 			Stream.map((states) => {

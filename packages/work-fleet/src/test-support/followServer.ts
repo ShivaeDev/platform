@@ -5,6 +5,7 @@ export const followServer = Effect.fn("FollowTest.followServer")(function* () {
 	const subscribed = Promise.withResolvers<void>();
 	let response: ServerResponse | undefined;
 	let requestId: string | number = "";
+	let subscriptions = 0;
 	const server = createServer((request, reply) => {
 		let body = "";
 		request.on("data", (chunk: Buffer) => {
@@ -12,6 +13,7 @@ export const followServer = Effect.fn("FollowTest.followServer")(function* () {
 		});
 		request.on("end", () => {
 			const message = Schema.decodeUnknownSync(Schema.Struct({ id: Schema.Union([Schema.String, Schema.Number]) }))(JSON.parse(body.trim()));
+			subscriptions += 1;
 			requestId = message.id;
 			response = reply;
 			reply.setHeader("Content-Type", "application/x-ndjson");
@@ -34,9 +36,11 @@ export const followServer = Effect.fn("FollowTest.followServer")(function* () {
 		return yield* Effect.die("Expected a TCP server");
 	}
 	return {
+		disconnect: () => response?.destroy(),
 		fail: (message: string) => response?.end(`${JSON.stringify({ _tag: "Defect", defect: { message, name: "Error" } })}\n`),
 		port: address.port,
 		send: (states: readonly unknown[]) => response?.write(`${JSON.stringify({ _tag: "Chunk", requestId, values: [states] })}\n`),
 		subscribed: subscribed.promise,
+		subscriptions: () => subscriptions,
 	};
 });
