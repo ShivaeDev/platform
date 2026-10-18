@@ -33,6 +33,10 @@ export function followOutcome(state: FollowState): WaitOutcome | undefined {
 	if (code !== undefined && !Schema.is(DecisionCode)(code)) {
 		return { code: outcome?.code ?? WAIT_EXIT.error, summary: `${outcome?.summary ?? `${state.workId} ${state.stage}`}: ${code}` };
 	}
+	const recovery = state.recovery;
+	if (outcome === undefined && recovery !== undefined && knownStage(state.stage)) {
+		return { code: WAIT_EXIT.timeout, summary: `${state.workId} ${state.stage}: ${recovery}` };
+	}
 	return outcome ?? (knownStage(state.stage) ? undefined : { code: WAIT_EXIT.error, summary: `${state.workId} ${state.stage}` });
 }
 
