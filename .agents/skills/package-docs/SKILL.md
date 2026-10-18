@@ -54,9 +54,9 @@ Name the two H2 sections in words that fit the package; the split is what matter
 
 `north-star.md`, when a package has one, is the long form of the `AGENTS.md` north star: the problem in full, the ideals, the trade-offs, and what the package deliberately leaves out. It does not repeat `AGENTS.md`. Docs state the current truth. Leave out status, "built" or "done" lists, inventories of files, modules or tests, narrated history and counts: they drift, and every parallel pull request edits the same lines.
 
-## Change fragments and releases
+## Changesets and releases
 
-For a consumer-visible change, add one new `packages/<name>/changes/<short-name>.md` file per pull request, using `### Added`, `### Changed`, `### Fixed` or `### Breaking` headings with Markdown bullet entries. Choose a short filename unique to the PR; do not edit `CHANGELOG.md` or add an Unreleased section. Internal docs, tests, tooling and refactors need no fragment. For an approved release, follow [the release steps](../../../docs/releases.md): bump the version, run `pnpm run changelog:release <name>`, and commit the generated changelog and deleted fragments.
+For a consumer-visible change, add one `.changeset/<short-name>.md` per PR, naming each affected package and its bump in YAML frontmatter (`"@shivaedev/example": minor`). Use minor for Added or Breaking behavior before 1.0 and patch for Changed or Fixed only, with `### Added`, `### Changed`, `### Fixed` or `### Breaking` headings and Markdown bullets. Choose a unique short filename; do not edit versions, `CHANGELOG.md` or release manifests outside a release PR. Internal docs, tests, tooling and refactors need no changeset. For a release PR, follow [the release steps](../../../docs/releases.md): review `pnpm changesets plan`, run `pnpm changesets apply`, and commit the generated versions, changelogs, `.changeset/release.json`, hook changes and deleted changesets.
 
 ## Checklist
 

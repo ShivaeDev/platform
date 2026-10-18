@@ -1,3 +1,7 @@
+---
+"@shivaedev/work-fleet": minor
+---
+
 ### Fixed
 
 - Fleet client commands discover the daemon's bound port from the Board folder's `.fleet-port` file unless `--port` overrides it. The daemon writes the file after binding, including when serving on an automatically assigned port.
