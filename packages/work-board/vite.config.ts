@@ -12,7 +12,7 @@ export default defineConfig({
 			external: ["mermaid"],
 			input: "src/client/react/entry.tsx",
 			output: {
-				assetFileNames: "react.[ext]",
+				assetFileNames: (asset) => (asset.names.some((name) => name.endsWith(".css")) ? "react.[ext]" : "react-assets/[name]-[hash][extname]"),
 				chunkFileNames: "react-assets/[name]-[hash].js",
 				entryFileNames: "react.js",
 				paths: { mermaid: "/_board/mermaid/mermaid.esm.min.mjs" },

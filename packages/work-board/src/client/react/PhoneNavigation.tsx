@@ -9,7 +9,7 @@ import { workspaceDestinations } from "./workspaceDestinations.ts";
 
 const icons = [CalendarDays, Flag, Zap];
 const TAB_CLASS =
-	"flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md border-0 bg-transparent p-0 text-foreground text-xs no-underline aria-[current=page]:bg-accent aria-[current=page]:text-primary";
+	"flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md border-0 bg-transparent p-0 text-foreground text-xs no-underline aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground";
 
 export function PhoneNavigation({
 	main,
@@ -67,11 +67,8 @@ export function PhoneNavigation({
 				<SheetContent
 					aria-describedby={undefined}
 					className="max-h-[80dvh] overflow-y-auto rounded-t-2xl pb-[max(1rem,env(safe-area-inset-bottom))]"
+					finalFocus={openerRef}
 					id={shellIds.phoneMore}
-					onCloseAutoFocus={(event) => {
-						event.preventDefault();
-						openerRef.current?.focus();
-					}}
 					side="bottom"
 				>
 					<SheetHeader>

@@ -48,7 +48,7 @@ it("changes saved theme and density and pauses native updates from the header se
 	try {
 		expect(document.querySelector('[role="dialog"][aria-label="Settings"]')).toBeNull();
 		click("#settings-open");
-		expect(document.activeElement?.id).toBe("theme");
+		await eventually(() => expect(document.activeElement?.id).toBe("theme"));
 		choose("#theme", "dark");
 		choose("#density", "compact");
 		expect(document.documentElement.classList.contains("dark")).toBe(true);
@@ -60,7 +60,7 @@ it("changes saved theme and density and pauses native updates from the header se
 		choose("#theme", "light");
 		expect(document.documentElement.classList.contains("dark")).toBe(false);
 		act(() => document.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" })));
-		expect(document.querySelector('[role="dialog"][aria-label="Settings"]')).toBeNull();
+		await eventually(() => expect(document.querySelector('[role="dialog"][aria-label="Settings"]')).toBeNull());
 		await eventually(() => expect(document.activeElement?.id).toBe("settings-open"));
 	} finally {
 		await view.unmount();

@@ -54,12 +54,16 @@ export function Header({
 			</Button>
 			<span className="min-w-0 flex-1 truncate font-medium md:hidden">{main.title ?? main.file}</span>
 			<Breadcrumbs file={main.title ?? main.file} />
-			<Button asChild className="hidden md:inline-flex" size="sm" variant="ghost">
-				<a aria-current={main.view === "today" ? "page" : undefined} aria-label="Today" href="/" id={shellIds.inboxTopbar}>
-					<Inbox aria-hidden="true" />
-					<span className="hidden sm:inline">Today</span>
-					<InboxCount count={count} id={shellIds.inboxTopbarCount} />
-				</a>
+			<Button
+				className="hidden md:inline-flex"
+				nativeButton={false}
+				render={<a aria-current={main.view === "today" ? "page" : undefined} aria-label="Today" href="/" id={shellIds.inboxTopbar} />}
+				size="sm"
+				variant="ghost"
+			>
+				<Inbox aria-hidden="true" />
+				<span className="hidden sm:inline">Today</span>
+				<InboxCount count={count} id={shellIds.inboxTopbarCount} />
 			</Button>
 			<Button
 				aria-controls="search-dialog"

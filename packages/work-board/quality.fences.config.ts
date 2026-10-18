@@ -38,7 +38,7 @@ export default [
 					"@effect/atom-react",
 					"@tanstack/react-router",
 					"cn",
-					"radix-ui",
+					"@base-ui/react",
 					"class-variance-authority",
 					"lucide-react",
 				),

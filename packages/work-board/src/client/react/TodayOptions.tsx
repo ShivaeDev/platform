@@ -34,10 +34,10 @@ export function TodayOptions({ api, item }: { readonly api: ShellApi; readonly i
 		&& request.prompts?.length === 1
 		&& request.prompts[0]?.mode === "one" ? (
 		<Popover>
-			<PopoverTrigger asChild>
-				<Button aria-label={`Answer ${item.title}`} className="shrink-0 px-1 text-xs" size="sm" type="button" variant="ghost">
-					Answer
-				</Button>
+			<PopoverTrigger
+				render={<Button aria-label={`Answer ${item.title}`} className="shrink-0 px-1 text-xs" size="sm" type="button" variant="ghost" />}
+			>
+				Answer
 			</PopoverTrigger>
 			<PopoverContent align="end" aria-label={`Answer ${item.title}`} className="w-80 max-w-[calc(100vw-2rem)] text-sm">
 				<InlineOptions api={api} document={data} key={request.preview.reviewedRevision} request={request} />

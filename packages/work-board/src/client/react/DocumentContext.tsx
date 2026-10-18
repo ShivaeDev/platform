@@ -63,10 +63,10 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 						Source
 					</TabsTrigger>
 				</TabsList>
-				<TabsContent className="pt-2" forceMount hidden={tab !== "details"} value="details">
+				<TabsContent className="pt-2" hidden={tab !== "details"} keepMounted value="details">
 					<Outline headings={headings} />
 				</TabsContent>
-				<TabsContent className="pt-2" forceMount hidden={tab !== "source"} value="source">
+				<TabsContent className="pt-2" hidden={tab !== "source"} keepMounted value="source">
 					<SourcePanel document={data} />
 				</TabsContent>
 			</Tabs>

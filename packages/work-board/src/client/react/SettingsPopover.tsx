@@ -8,10 +8,10 @@ import type { AppearanceControls } from "./useAppearance.ts";
 export function SettingsPopover({ appearance, updates }: { readonly appearance: AppearanceControls; readonly updates: ReactNode }) {
 	return (
 		<Popover>
-			<PopoverTrigger asChild>
-				<Button aria-label="Settings" className="shrink-0" id={shellIds.settingsOpen} size="icon" type="button" variant="ghost">
-					<Settings aria-hidden="true" />
-				</Button>
+			<PopoverTrigger
+				render={<Button aria-label="Settings" className="shrink-0" id={shellIds.settingsOpen} size="icon" type="button" variant="ghost" />}
+			>
+				<Settings aria-hidden="true" />
 			</PopoverTrigger>
 			<PopoverContent align="end" aria-label="Settings" className="max-w-[calc(100vw-2rem)] text-sm">
 				<fieldset aria-label="Reading preferences" className="m-0 grid gap-4 border-0 p-0">

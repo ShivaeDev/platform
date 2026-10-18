@@ -74,7 +74,7 @@ it("opens compact answer controls, records an option and removes its ask on quer
 		);
 		expect(document.activeElement?.textContent).toContain("Keep local files · Recommended");
 		act(() => document.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" })));
-		expect(document.querySelector('[role="dialog"]')).toBeNull();
+		await eventually(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
 		await eventually(() => expect(document.activeElement).toBe(trigger));
 		act(() => trigger?.click());
 		expect(document.querySelector('[role="dialog"]')).not.toBeNull();

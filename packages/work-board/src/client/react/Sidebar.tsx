@@ -56,25 +56,24 @@ export function Sidebar({
 		>
 			<a
 				aria-current={home ? "page" : undefined}
-				className="flex items-center gap-2 px-2 py-3 font-semibold text-lg text-primary no-underline"
+				className="flex items-center gap-2 px-2 py-3 font-semibold text-foreground text-lg no-underline"
 				href="/"
 			>
-				<PanelsTopLeft aria-hidden="true" className="size-5" />
+				<PanelsTopLeft aria-hidden="true" className="size-5 text-primary" />
 				work board
 			</a>
 			<nav aria-label="Workspace" className="grid shrink-0 gap-1" data-inbox-count={String(data?.inboxCount ?? "?")} id={shellIds.primaryNavigation}>
 				{workspaceDestinations.map(({ label, href, view, id }) => (
 					<Button
-						asChild
 						className={cn("justify-between no-underline", (view === "today" ? home : main.view === view) && "bg-accent")}
 						key={view}
+						nativeButton={false}
+						render={<a aria-current={(view === "today" ? home : main.view === view) ? "page" : undefined} href={href} id={id} />}
 						variant="ghost"
 					>
-						<a aria-current={(view === "today" ? home : main.view === view) ? "page" : undefined} href={href} id={id}>
-							<span>{label}</span>
-							{view === "today" && <InboxCount count={counts.today ?? null} id={shellIds.inboxCount} />}
-							{view === "work" && <Badge variant="secondary">{counts.work ?? "?"}</Badge>}
-						</a>
+						<span>{label}</span>
+						{view === "today" && <InboxCount count={counts.today ?? null} id={shellIds.inboxCount} />}
+						{view === "work" && <Badge variant="secondary">{counts.work ?? "?"}</Badge>}
 					</Button>
 				))}
 			</nav>

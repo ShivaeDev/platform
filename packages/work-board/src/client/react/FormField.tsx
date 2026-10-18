@@ -53,7 +53,13 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	let control: ReactNode;
 	if (options) {
 		control = (
-			<Select name={name} onValueChange={(next) => change(next === UNSET ? "" : next)} required={Boolean(required)} value={value || UNSET}>
+			<Select
+				items={options.map((option) => ({ label: option.label, value: option.value || UNSET }))}
+				name={name}
+				onValueChange={(next) => change(next === null || next === UNSET ? "" : next)}
+				required={Boolean(required)}
+				value={value || UNSET}
+			>
 				<SelectTrigger {...props} className="w-full">
 					<SelectValue />
 				</SelectTrigger>

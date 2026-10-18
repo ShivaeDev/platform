@@ -8,8 +8,12 @@
 		"utils": "cn"
 	},
 	"iconLibrary": "lucide",
+	"menuAccent": "subtle",
+	"menuColor": "default",
+	"registries": {},
 	"rsc": false,
-	"style": "new-york",
+	"rtl": false,
+	"style": "base-mira",
 	"tailwind": {
 		"baseColor": "neutral",
 		"config": "",

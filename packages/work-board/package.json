@@ -31,6 +31,11 @@
 			"types": "./dist/client/react/Age.d.ts",
 			"source": "./src/client/react/Age.tsx",
 			"default": "./dist/client/react/Age.js"
+		},
+		"#client/react/components/ui/button": {
+			"types": "./dist/client/react/components/ui/button.d.ts",
+			"source": "./src/client/react/components/ui/button.tsx",
+			"default": "./dist/client/react/components/ui/button.js"
 		}
 	},
 	"exports": {
@@ -435,9 +440,12 @@
 		"yaml": "catalog:"
 	},
 	"devDependencies": {
+		"@base-ui/react": "catalog:",
 		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
+		"@fontsource-variable/geist": "catalog:",
+		"@fontsource-variable/geist-mono": "catalog:",
 		"@shivaedev/effect-form": "workspace:*",
 		"@shivaedev/effect-react": "workspace:*",
 		"@shivaedev/effect-test": "workspace:*",
@@ -458,8 +466,8 @@
 		"esbuild": "catalog:",
 		"happy-dom": "catalog:",
 		"lucide-react": "catalog:",
-		"radix-ui": "catalog:",
 		"tailwindcss": "catalog:",
+		"tw-animate-css": "catalog:",
 		"typescript": "catalog:",
 		"vite": "catalog:",
 		"vitest": "catalog:"

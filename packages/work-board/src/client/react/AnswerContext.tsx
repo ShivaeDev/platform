@@ -27,11 +27,9 @@ export function AnswerContext({ preview }: { readonly preview: QuestionPreview }
 
 function AnswerLink({ link }: { readonly link: ReturnType<typeof cardContext>["links"][number] }) {
 	return (
-		<Button asChild className="answer-link" size="sm" variant={link.primary ? "default" : "outline"}>
-			<a href={link.url}>
-				{link.label}
-				<ExternalLink aria-hidden="true" />
-			</a>
+		<Button className="answer-link" nativeButton={false} render={<a href={link.url} />} size="sm" variant={link.primary ? "default" : "outline"}>
+			{link.label}
+			<ExternalLink aria-hidden="true" />
 		</Button>
 	);
 }
