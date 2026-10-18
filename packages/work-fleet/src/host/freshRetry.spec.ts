@@ -4,11 +4,12 @@ import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
 import { hostLayer } from "#host/commands.ts";
-import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
+import type { MainSnapshot } from "#host/mainSource.ts";
 import { FleetPolicy } from "#policy.ts";
 import { enginePolicy } from "#test/enginePolicy.ts";
 import { engineProvider } from "#test/engineProvider.ts";
 import { task, withHost } from "#test/fleetHost.ts";
+import { movingMainSource } from "#test/mainSource.ts";
 import { parkStalled, stalledTransport } from "#test/parkStalled.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { answerReport } from "#test/report.ts";
@@ -18,20 +19,7 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 		let now = 100;
 		let main: MainSnapshot = { observedAt: 1, revision: "main-0" };
 		const provider = engineProvider({ decorateTransport: stalledTransport }, []);
-		const source = Layer.succeed(MainSource)({
-			current: Effect.sync(() => main),
-			observe: (preparation) =>
-				Effect.sync(() => ({
-					...main,
-					ancestor: true,
-					changedPaths: preparation.baseRevision === main.revision ? [] : ["src/changed.ts"],
-					complete: true,
-					configurationChanges: [],
-					fromRevision: preparation.baseRevision,
-				})),
-			refresh: Effect.sync(() => main),
-			repositoryRoot: "/synthetic-repository",
-		});
+		const source = movingMainSource(() => main);
 		return withHost({ "one.md": task("one", "approved") }, {}, (fixture) => {
 			const runtime = hostLayer(fixture.host, {
 				...fixture.parts,

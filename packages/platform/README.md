@@ -90,7 +90,7 @@ Omit `migrations` to host an app without a database. This form creates no SQL po
 
 `appHost` serves unauthenticated `GET /health`. It queries its SQL client on each request and returns `200` only when the query succeeds within two seconds; a missing SQL client, query failure or timeout returns `503`. Both responses have an empty body and `Cache-Control: no-store`. This route also works when the SQL client comes from the application’s `services` Layer. Use it for database readiness checks.
 
-Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` when a separate pre-deploy command owns migrations. Startup reads the ledger and fails with native `MigrationError` (`kind: "BadState"`) if any required migration ID or name is missing; it does not run migrations or create a ledger. Later ledger entries are allowed for rolling deployments. With `mode` omitted or `"migrate"`, startup applies pending migrations with a five-second lock timeout unless `migrations.lockTimeout` overrides it.
+Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` when a separate pre-deploy command owns migrations. Startup reads the ledger and fails with native `MigrationError` (`kind: "BadState"`) if any required migration ID or name is missing; it does not run migrations or create a ledger. Later ledger entries are allowed for rolling deployments. Use `migrations.mode: "wait"` for services that can start before that pre-deploy command finishes. It re-reads the ledger every second until current, then starts the application. Set `migrations.pollInterval` and `migrations.waitTimeout` with Effect duration inputs to change the interval and five-minute timeout. Timeout fails with the same `MigrationError` as `"check"`; interruption stops polling and closes the pool. SQL failures fail immediately. With `mode` omitted or `"migrate"`, startup applies pending migrations with a five-second lock timeout unless `migrations.lockTimeout` overrides it.
 
 When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `AppChanges` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
 
@@ -217,9 +217,9 @@ export const AccountHandlers = Account.toLayer({
 export const AccountServer = Layer.merge(AccountHandlers, authenticatedUserLayer(sessions));
 ```
 
-Here `sessions` is the application's policy from the previous example, with a Better Auth lookup that returns all three user fields. Merge `authenticatedUserLayer(sessions)` alongside the handler Layer when using `appHost`; the host continues to supply its id-only and optional middleware. A missing session fails with typed `Unauthorized`; rejected origins fail with `Forbidden`, and provider failures remain `AuthUnavailable`. By default, the profile contains only id, name and email, without exposing the rest of the provider's user record. Handlers do not query the provider's user table.
+Here `sessions` is the application's policy from the previous example, with a Better Auth lookup that returns all three user fields. Merge `authenticatedUserLayer(sessions)` alongside the handler Layer when using `appHost`; the host continues to supply its id-only and optional middleware. A missing session fails with typed `Unauthorized`; rejected origins fail with `Forbidden`, and provider failures remain `AuthUnavailable`. The profile contains id, name and email, plus an optional role when the provider supplies it, without exposing the rest of the provider's user record. Handlers do not query the provider's user table.
 
-The starter's `notes.whoami` query returns this profile, and its note handlers use `SessionUser.id` for ownership. Its PostgreSQL/HTTP test checks concurrent users, anonymous requests and sign-out revocation.
+The starter's `notes.whoami` query returns id, name and email, and its note handlers use `SessionUser.id` for ownership. Its PostgreSQL/HTTP test checks concurrent users, anonymous requests and sign-out revocation.
 
 #### Reading provider account IDs
 
@@ -242,6 +242,40 @@ const githubAccount = Effect.map(SessionUser, (user) =>
 Use `authenticatedUserLayer(sessions)` as above. `SessionUserValue.providerAccounts` is an optional readonly array of `ProviderAccountValue`, each containing only `{ providerId: string, accountId: string }`. GitHub's numeric user ID is represented as a string, for example `{ providerId: "github", accountId: "123" }`; it is not Better Auth's account-row id. A user without a GitHub account has no matching entry. Without the second lookup, the profile omits `providerAccounts`. No application SQL against Better Auth's `account` table is needed.
 
 An account lookup failure follows the same `AuthUnavailable` path as a session lookup failure. The starter's social-session story uses real PostgreSQL, GitHub OAuth responses from a local provider fixture, and Platform's HTTP host: GitHub sign-in exposes its account ID through native RPC, email sign-up has no GitHub entry, sign-out rejects access, and an account lookup failure stays distinct from a missing session.
+
+### Requiring an admin
+
+Enable Better Auth's `admin()` plugin in the application's auth options and migrate its schema. `authenticatedUserLayer(sessions)` carries the provider's optional `user.role` into the request-local `SessionUser`. The `requireAdmin` Effect from `@shivaedev/platform/rpc/requireAdmin.ts` returns that user when the comma-separated role list includes `admin`. It fails in the error channel with `Unauthorized` when no request user is available and `Forbidden` when the user has no admin role.
+
+```ts
+import { Effect } from "effect";
+import { requireAdmin } from "@shivaedev/platform/rpc/requireAdmin.ts";
+
+const adminTools = Effect.map(requireAdmin, (user) => `Admin tools for ${user.email}`);
+```
+
+An RPC handler uses this Effect with `AuthenticatedUser` and declares `Forbidden` and `Unauthorized` in its error schema. For an HTTP route, use the same request identity boundary:
+
+```ts
+import { HttpRouter, HttpServerResponse } from "effect/http";
+import { withSessionUser } from "@shivaedev/platform/server/rpc-server/session.ts";
+
+const routes = HttpRouter.use((router) =>
+  router.add("GET", "/admin-tools", (request) =>
+    adminTools.pipe(
+      withSessionUser(sessions, request.headers, "admin-tools"),
+      Effect.map(HttpServerResponse.text),
+      Effect.catchTags({
+        Unauthorized: () => Effect.succeed(HttpServerResponse.empty({ status: 401 })),
+        Forbidden: () => Effect.succeed(HttpServerResponse.empty({ status: 403 })),
+        AuthUnavailable: () => Effect.succeed(HttpServerResponse.empty({ status: 503 })),
+      }),
+    ),
+  ),
+);
+```
+
+`withSessionUser(policy, headers, operation)` resolves the session through the existing transport-header and Origin policy path and provides `Identity` and `SessionUser` only around the supplied Effect. It is also the boundary used by `authenticatedUserLayer`. Both the guard and identity boundary use public provider data, without reading Better Auth's tables or internal services. Keep Better Auth's cookie cache disabled for database-backed role removal to take effect on the next request, as in the starter. The auth story kit proves admin access, HTTP 401/403 and typed RPC refusals, and role removal with a retained session against PostgreSQL and a loopback host.
 
 ### Transport headers and request ids
 

@@ -27,6 +27,7 @@ import { testsColocated } from "#rules/test-names/colocated.ts";
 import { testsFollow } from "#rules/test-names/follow.ts";
 import { biome } from "./biome.ts";
 import { manifestsSorted } from "./manifestsSorted.ts";
+import { manifestsSourceFirst } from "./manifestsSourceFirst.ts";
 import { maxDepth } from "./maxDepth.ts";
 import { maxLines } from "./maxLines.ts";
 import { noBarrel } from "./noBarrel.ts";
@@ -56,6 +57,7 @@ export const builtInRules = [
 	importsAliased,
 	noTestCode,
 	manifestsSorted,
+	manifestsSourceFirst,
 	namedAfterExport,
 	folderNames,
 	distinctCase,

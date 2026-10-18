@@ -11,22 +11,31 @@ export function* memoryFiles(files: Readonly<Record<string, string>>, writable: 
 		Effect.sync(() => folder({ ...seeded, ...files })),
 		(value) => Effect.sync(value.remove),
 	);
+	const written = new Map(Object.entries(files));
 	return {
 		files: () => {
-			const saved: Record<string, string> = {};
-			for (const namespace of ["responses", "handoffs"]) {
-				const directory = join(notes.root, namespace);
-				for (const name of existsSync(directory) ? readdirSync(directory) : []) {
-					if (name.endsWith(".md")) {
-						saved[`${namespace}/${name}`] = readFileSync(join(directory, name), "utf8");
-					}
-				}
-			}
+			const saved = savedRecords(notes.root);
 			for (const [path, source] of Object.entries(files)) {
-				notes.write(path, source);
+				if (written.get(path) !== source) {
+					notes.write(path, source);
+					written.set(path, source);
+				}
 			}
 			return { ...seeded, ...files, ...saved };
 		},
 		root: notes.root,
 	};
+}
+
+function savedRecords(root: string) {
+	const saved: Record<string, string> = {};
+	for (const namespace of ["responses", "handoffs"]) {
+		const directory = join(root, namespace);
+		for (const name of existsSync(directory) ? readdirSync(directory) : []) {
+			if (name.endsWith(".md")) {
+				saved[`${namespace}/${name}`] = readFileSync(join(directory, name), "utf8");
+			}
+		}
+	}
+	return saved;
 }
