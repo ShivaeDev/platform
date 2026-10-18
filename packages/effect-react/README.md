@@ -166,6 +166,38 @@ function SignInButton({ email, password }: { email: string; password: string }) 
 
 The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Returned auth errors keep their fields in the typed failure channel. Rejected promises become `AuthActionUnavailable` with the original rejection in `cause`. The application chooses error text and what happens after success.
 
+### Commands with a pending display value
+
+Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive refetches:
+
+```tsx
+import * as Atom from "effect/reactivity/Atom";
+import { usePendingCommand } from "@shivaedev/effect-react/client/pendingCommand.ts";
+
+const toggle = Atom.family((id: number) =>
+  ItemsClient.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })),
+);
+const list = api.list.query();
+
+function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly enabled: boolean } }) {
+  const command = usePendingCommand(toggle(row.id), {
+    queries: [list],
+    value: row.enabled,
+    wanted: (input) => input.enabled,
+  });
+  return <button aria-pressed={command.value} disabled={command.pending}
+    onClick={() => command.dispatch({ enabled: !command.value })} type="button">
+    Enabled
+  </button>;
+}
+```
+
+Each row needs its own action atom because the native atom owns its current result, including failures. `Atom.family` keeps an independent action atom stable for each row ID. This lets one row fail while another keeps its requested display through the shared list refetch. Do not share one action atom across independently controlled rows.
+
+The example assumes a bound `api.toggle.run` accepting `{ id, enabled }`, a bound list query and their native `ItemsClient`. `queries` lists the query atoms whose refetches the display waits for; it does not add invalidations. Include every relevant query and keep the action and query atom identities stable. `value` is the current server value; `wanted(input)` computes the requested display value.
+
+`command.value` changes on dispatch and stays at the requested value while the command or any watched query is waiting. `pending` covers that whole interval. After the queries settle, `value` follows the server again, even if it differs from the requested value. A command failure immediately returns to the server value and remains typed in `result` and `cause`, just as with `useAction`. The other action fields describe the native command result, so `result` can already be successful while `pending` still waits for refetches. This binding holds a display value; it does not write to the query cache.
+
 ### Route loaders with TanStack Router
 
 TanStack Router owns routes, navigation, loader data and error components. `@shivaedev/effect-react/loadQuery.ts` supplies `loadQuery(registry, atom, loaderContext)` to read a contract query atom in the same registry as React. The atom runs through its native RPC runtime; the loader does not create another runtime or query cache.
