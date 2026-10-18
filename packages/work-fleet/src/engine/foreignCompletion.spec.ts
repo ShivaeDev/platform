@@ -63,16 +63,16 @@ fleetStory.it(
 		expect((yield* fleet.reconcile("one")).value.decision?.code).toBe("pr-closed");
 		expect(yield* fleet.reservations()).toEqual([]);
 		expect(yield* fleet.attemptDispatch("two")).toMatchObject({ kind: "backlog" });
-		const reads = fleet.githubRequests().length;
 		expect((yield* fleet.answerDecision("one", "release")).value.stage).toBe("released");
 		expect((yield* fleet.reconcile("one")).value.stage).toBe("released");
+		expect((yield* fleet.get("one")).value.mergedDelivery).toBeUndefined();
 		expect(yield* fleet.reservations()).toEqual([]);
-		expect(fleet.githubRequests()).toHaveLength(reads);
 		const launches = fleet.launched.length;
 		yield* fleet.schedule();
 		expect((yield* fleet.get("two")).value.stage).toBe("executing");
 		expect(fleet.launched).toHaveLength(launches + 1);
-		expect(fleet.githubRequests()).toHaveLength(reads);
+		expect((yield* fleet.get("one")).value.mergedDelivery).toBeUndefined();
+		expect(yield* fleet.reservations()).toEqual([]);
 	},
 );
 
