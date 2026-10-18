@@ -65,7 +65,7 @@ Follow [Add a resource to the starter](./add-a-feature.md) to build a feature in
 
 The [starter quickstart](./quickstart.md) begins with a runnable app. The [PostgreSQL order feature](./composed-example.md) is the larger reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. Use each package's README for its mental model and API.
 
-- [Native RPC](./native-rpc.md) explains handlers, middleware and transport.
+- [Native RPC](./native-rpc.md) explains handlers, middleware and transport, including the [one path for public client configuration](./native-rpc.md#public-client-configuration): a shared Schema, startup-loaded public fields and an effect-react query without an application-written RPC.
 - [Request context](./request-context.md) explains errors, session resolution, Origin policy and redacted request diagnostics; [BetterAuth at the RPC boundary](./auth-boundary.md) shows the session provider.
 - [Commit-bound changes](./changes.md) connects transaction bindings to application change vocabularies.
 - [Live updates](./live-updates.md) composes optional hint streams with native query invalidation.
