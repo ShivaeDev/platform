@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import { useContext } from "react";
-import { useField } from "@shivaedev/effect-form/react.ts";
-import { useEditor } from "#editor.ts";
+import { useField } from "@shivaedev/effect-form/client/react.ts";
+import { useEditor } from "#client/editor.ts";
 import { DraftFields, draftRuntime, type ScreenProps, type ViewEditor } from "./draftFields.ts";
 
 export function DraftScreen({ held, persistedDraft, query, save }: ScreenProps) {

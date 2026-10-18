@@ -1,7 +1,7 @@
 import { isRedirect, type LoaderFnContext, redirect } from "@tanstack/react-router";
 import { Predicate } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { loadQuery } from "@shivaedev/effect-react/router.ts";
+import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
 import type { ShellOptions } from "./BoardShell.tsx";
 import { documentRoute } from "./documentRoute.ts";
 import { loadProjection } from "./loadProjection.ts";

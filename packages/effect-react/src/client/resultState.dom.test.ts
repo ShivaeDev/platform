@@ -1,6 +1,6 @@
 import { Exit, Option } from "effect";
 import { expect } from "vitest";
-import { isUnauthorized } from "#result-state.ts";
+import { isUnauthorized } from "#client/resultState.ts";
 import { resultHook, resultHooks } from "#test/resultHookStories.ts";
 import { resultProbe, results } from "#test/resultStories.ts";
 

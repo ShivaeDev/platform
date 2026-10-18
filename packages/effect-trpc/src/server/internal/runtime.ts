@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { Cause, Context, Effect, Exit, Option, Result, Stream } from "effect";
-import type { EffectTRPCRuntime } from "#adapter.ts";
-import type { EffectTRPCErrorMapper, EffectTRPCInstrument, EffectTRPCStreamInstrument, ProcedureInfo } from "#types.ts";
+import type { EffectTRPCRuntime } from "#server/adapter.ts";
+import type { EffectTRPCErrorMapper, EffectTRPCInstrument, EffectTRPCStreamInstrument, ProcedureInfo } from "#server/types.ts";
 import type { ContextBridge } from "./contextBridge.ts";
 
 interface RunEffectOptions {

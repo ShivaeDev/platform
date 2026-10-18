@@ -1,8 +1,8 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
-import { SessionBoundary } from "#session-boundary.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
+import type { Rendered } from "#client/testing.ts";
 import { makeOrderEditor } from "#test/order-example/frontend.tsx";
-import type { Rendered } from "#testing.ts";
 import { clickButton, typeInput } from "./Screen.ts";
 import { RegistryProbe } from "./sessionProbes.ts";
 

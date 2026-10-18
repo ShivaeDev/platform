@@ -1,7 +1,7 @@
 import { Clock, Effect } from "effect";
 import { act } from "react";
 import { expect, it, vi } from "vitest";
-import { expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings, render } from "@shivaedev/effect-react/client/testing.ts";
 import { Age, AgeTicker } from "./Age.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });

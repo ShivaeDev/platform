@@ -2,7 +2,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, ConfigProvider, Effect, Layer, Redacted, Tracer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { expect, it } from "vitest";
-import { AppChanges } from "#appHost.ts";
+import { AppChanges } from "#server/appHost.ts";
 import { databaseLayer } from "./databaseLayer.ts";
 
 const database = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));

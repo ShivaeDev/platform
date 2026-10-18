@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { Window } from "happy-dom";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/testing.ts";
+import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";

@@ -1,6 +1,6 @@
+import { expectNoReactWarnings } from "#client/testing.ts";
 import { app, realPostgres } from "#test/order-example/application.ts";
 import { aliceHasOrder, editorIsOpen, editorsAreOpen, hasOrder, orderEditorIsOpen, saveIsHeld } from "#test/order-example/traits.ts";
-import { expectNoReactWarnings } from "#testing.ts";
 
 expectNoReactWarnings();
 

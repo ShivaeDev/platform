@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act, type ReactNode } from "react";
 import { beforeEach, vi } from "vitest";
-import { eventually, expectNoReactWarnings, type Rendered, render } from "#testing.ts";
+import { eventually, expectNoReactWarnings, type Rendered, render } from "#client/testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

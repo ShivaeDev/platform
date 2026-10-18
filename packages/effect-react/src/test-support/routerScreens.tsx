@@ -1,6 +1,6 @@
 import { type ErrorComponentProps, getRouteApi, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { Option, Predicate } from "effect";
-import { useQuery } from "#result-state.ts";
+import { useQuery } from "#client/resultState.ts";
 import type { routerApp } from "./routerApp.ts";
 
 type Router = ReturnType<typeof routerApp>;

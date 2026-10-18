@@ -2,7 +2,7 @@ import { Deferred, Effect, Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useState } from "react";
-import { useAction, useQuery } from "#result-state.ts";
+import { useAction, useQuery } from "#client/resultState.ts";
 import type { ResultEngine } from "./resultEngine.ts";
 
 export function QueryValue({ atom }: { readonly atom: Atom.Atom<AsyncResult.AsyncResult<string>> }) {

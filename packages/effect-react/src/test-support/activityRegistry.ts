@@ -2,8 +2,8 @@ import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { Activity, act, createElement, useContext, useState } from "react";
-import { SessionBoundary } from "#session-boundary.ts";
-import type { Rendered } from "#testing.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
+import type { Rendered } from "#client/testing.ts";
 
 interface Held {
 	registry?: AtomRegistry.AtomRegistry;

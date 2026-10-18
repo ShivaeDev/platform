@@ -1,5 +1,5 @@
 import { type Effect, Schema } from "effect";
-import { type RejectionError, rejectWith } from "#rejection.ts";
+import { type RejectionError, rejectWith } from "#server/rejection.ts";
 export class BadRequest extends Schema.TaggedError<BadRequest>()("BadRequest", {
 	field: Schema.optionalKey(Schema.String),
 	message: Schema.String,

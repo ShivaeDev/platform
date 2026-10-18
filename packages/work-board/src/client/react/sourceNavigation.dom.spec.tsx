@@ -1,6 +1,6 @@
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { attentionFixture } from "#test/attentionFixture.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { click, control, input } from "#test/chrome.ts";

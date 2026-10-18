@@ -2,11 +2,11 @@ import { Data, Effect, Layer, Schema } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
-import { useField } from "@shivaedev/effect-form/react.ts";
-import { type Create, useCreate } from "#create.ts";
-import { type Editor, useEditor } from "#editor.ts";
-import { SessionBoundary } from "#session-boundary.ts";
-import type { Rendered } from "#testing.ts";
+import { useField } from "@shivaedev/effect-form/client/react.ts";
+import { type Create, useCreate } from "#client/create.ts";
+import { type Editor, useEditor } from "#client/editor.ts";
+import { SessionBoundary } from "#client/sessionBoundary.ts";
+import type { Rendered } from "#client/testing.ts";
 
 export class Unauthorized extends Data.TaggedError("Unauthorized")<{ readonly message: string }> {}
 

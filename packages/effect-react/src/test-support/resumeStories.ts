@@ -2,8 +2,8 @@ import { useAtomValue } from "@effect/atom-react";
 import * as Atom from "effect/reactivity/Atom";
 import { createElement } from "react";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import type { Rendered } from "#client/testing.ts";
 import { resumeSignal } from "#resume-signal.ts";
-import type { Rendered } from "#testing.ts";
 import { counted, syntheticNative, syntheticWindow } from "./resumeSources.ts";
 import { screenKit } from "./screenKit.ts";
 
