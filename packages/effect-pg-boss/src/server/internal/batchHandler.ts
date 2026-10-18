@@ -8,7 +8,12 @@ function failureOutput(cause: Cause.Cause<unknown>): object {
 	return typeof error === "object" && error !== null ? error : { message: String(error) };
 }
 
-export function batchHandler(client: PgBossClient, name: string, run: (job: Job<unknown>) => Effect.Effect<unknown, unknown>) {
+export function batchHandler(
+	client: PgBossClient,
+	name: string,
+	run: (job: Job<unknown>) => Effect.Effect<unknown, unknown>,
+	afterFailure?: (job: Job<unknown>) => Promise<void>,
+) {
 	const complete = client.complete?.bind(client);
 	const fail = client.fail?.bind(client);
 	if (complete === undefined || fail === undefined) {
@@ -37,6 +42,7 @@ export function batchHandler(client: PgBossClient, name: string, run: (job: Job<
 				await complete(name, job);
 			} else {
 				await fail(name, job, failureOutput(exit.cause));
+				await afterFailure?.(job);
 			}
 		}
 		if (expired) {
