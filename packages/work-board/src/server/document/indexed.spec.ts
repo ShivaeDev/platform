@@ -1,33 +1,27 @@
 import { Effect } from "effect";
 import { expect, vi } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { browserClient } from "#client/client.ts";
 import * as metadata from "#server/metadata/model.ts";
 import * as parsing from "#server/metadata/parse.ts";
 import * as updates from "#server/metadata/updateModel.ts";
-import { folder, startBoard } from "#test/board.ts";
+import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { documentWorkspace } from "#test/documentWorkspace.ts";
 
-it.live(
+boardStory.it(
 	"opens indexed documents through HTTP and RPC without parsing or rebuilding the workspace, while still reading each selected file",
-	function* () {
-		const notes = yield* Effect.acquireRelease(
-			Effect.sync(() => folder(documentWorkspace(160))),
-			(value) => Effect.sync(value.remove),
-		);
+	[projectFiles(documentWorkspace(160)), deferredServing],
+	function* ({ notes, start, connectClient }) {
 		const reads: string[] = [];
-		const board = yield* startBoard(notes.root, undefined, (fs) => ({
-			...fs,
-			readFileString: (path, encoding) =>
-				Effect.suspend(() => {
-					reads.push(path);
-					return fs.readFileString(path, encoding);
-				}),
-		}));
-		const client = yield* Effect.acquireRelease(
-			Effect.sync(() => browserClient(board.url)),
-			(value) => Effect.sync(() => value.registry.dispose()),
-		);
+		const board = yield* start({
+			wrap: (fs) => ({
+				...fs,
+				readFileString: (path, encoding) =>
+					Effect.suspend(() => {
+						reads.push(path);
+						return fs.readFileString(path, encoding);
+					}),
+			}),
+		});
+		const client = connectClient();
 		yield* Effect.promise(() => client.run(client.api.document.run({ url: "/document-0.md" })));
 		const parsed = vi.spyOn(parsing, "metadataParse");
 		const built = vi.spyOn(metadata, "metadataModel");

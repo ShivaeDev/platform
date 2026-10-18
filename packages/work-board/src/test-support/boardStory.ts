@@ -2,6 +2,9 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { attentionVerbs } from "./attentionVerbs.ts";
 import type { FileSystemWrapper } from "./board.ts";
+import { fileVerbs } from "./fileVerbs.ts";
+import { livePageVerbs } from "./livePageVerbs.ts";
+import { nativeVerbs } from "./nativeVerbs.ts";
 import { questionnaireSource } from "./questionnaire.ts";
 import { readerVerbs } from "./readerVerbs.ts";
 import { readingVerbs } from "./readingVerbs.ts";
@@ -9,8 +12,10 @@ import { readVerbs } from "./readVerbs.ts";
 import { responseFeedVerbs } from "./responseFeedVerbs.ts";
 import { responseServiceVerbs } from "./responseServiceVerbs.ts";
 import { serverVerbs } from "./serverVerbs.ts";
+import { servingVerbs } from "./servingVerbs.ts";
 import { connected, createBoard, inspectBoard, openReader, served, serveProject, wrapFilesystem } from "./storyEngine.ts";
 import { handoffInput, resultHtml, reviewReport, saveInboxAnswer } from "./storyResponses.ts";
+import { workspaceAccess } from "./workspaceAccess.ts";
 
 export const boardStory = storyKit({
 	after: { project: serveProject },
@@ -25,6 +30,10 @@ export const boardStory = storyKit({
 		...responseFeedVerbs(engine, story.tell),
 		...attentionVerbs(engine, story.tell),
 		...serverVerbs(engine, story.tell),
+		...servingVerbs(engine, story.tell),
+		...nativeVerbs(engine, story.tell),
+		...fileVerbs(engine, story.tell),
+		...livePageVerbs(engine, story.tell),
 		...readVerbs(engine, story.tell),
 		get board() {
 			return served(engine).board;
@@ -40,7 +49,19 @@ export const boardStory = storyKit({
 			story.tell("the reader prepares handoff direction against the reviewed task");
 			return handoffInput(served(engine).client);
 		},
+		get linked() {
+			if (!engine.linked) {
+				throw new Error("No linked project was prepared");
+			}
+			return engine.linked;
+		},
 		notes: engine.notes,
+		get outside() {
+			if (!engine.outside) {
+				throw new Error("No outside folder was prepared");
+			}
+			return engine.outside;
+		},
 		get page() {
 			return connected(engine).page;
 		},
@@ -61,29 +82,7 @@ export const boardStory = storyKit({
 			return reviewReport(served(engine).client, id, choice, supersedes);
 		},
 		saveAnswer: () => saveInboxAnswer({ notes: engine.notes, page: connected(engine).page }, readerVerbs(engine, story.tell)),
-		workspace: {
-			get board() {
-				return served(engine).board;
-			},
-			get client() {
-				return served(engine).client;
-			},
-			notes: {
-				...engine.notes,
-				write: (path: string, source: string) => {
-					story.tell(`an outside editor writes ${path}`);
-					engine.notes.write(path, source);
-				},
-			},
-			register: async () => {
-				story.tell("the reader registers the questionnaire against its reviewed source");
-				const client = served(engine).client;
-				const preview = await client.run(client.responses.question.run({ item: "investigation.choices", request: "direction" }));
-				return client.mutate(
-					client.responses.registerQuestion.run({ item: preview.item, request: preview.request, revision: preview.reviewedRevision }),
-				);
-			},
-		},
+		workspace: workspaceAccess(engine, story.tell),
 	}),
 });
 
@@ -128,3 +127,7 @@ export function boardFilesystem(wrap: FileSystemWrapper) {
 		wrapFilesystem(engine, wrap);
 	});
 }
+
+export const deferredServing = boardStory.trait("project", "the board waits for an explicit startup", (engine) => {
+	engine.manualServing = true;
+});

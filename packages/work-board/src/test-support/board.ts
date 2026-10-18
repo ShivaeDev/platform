@@ -3,7 +3,7 @@ import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Context, Effect, Exit, FileSystem, Layer, Scope, Tracer } from "effect";
+import { Context, Effect, Exit, FileSystem, Layer, Path, Scope, Tracer } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { DiagnosticsSources, type Sources } from "#diagnostics/source.ts";
@@ -49,10 +49,16 @@ export const startBoard = Effect.fn("Test.startBoard")(function* (
 	maintainer?: string,
 	fleetPort?: number | null,
 	tracer?: Tracer.Tracer,
+	path?: Path.Path,
 ) {
 	const board = Layer.provide(
 		serveBoard({ ...(fleetPort === undefined ? {} : { fleetPort }), home, maintainer, port: 0, responses, root }),
-		Layer.mergeAll(NodeServices.layer, wrapped(wrap), sources === undefined ? Layer.empty : Layer.succeed(DiagnosticsSources)(sources)),
+		Layer.mergeAll(
+			NodeServices.layer,
+			wrapped(wrap),
+			path ? Layer.succeed(Path.Path, path) : Layer.empty,
+			sources === undefined ? Layer.empty : Layer.succeed(DiagnosticsSources)(sources),
+		),
 	);
 	const scope = yield* Scope.fork(yield* Scope.Scope);
 	const context = yield* Layer.buildWithScope(board.pipe(Layer.provideMerge(tracer ? Layer.succeed(Tracer.Tracer, tracer) : Layer.empty)), scope);
