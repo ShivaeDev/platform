@@ -1,3 +1,7 @@
+---
+"@shivaedev/work-board": patch
+---
+
 ### Changed
 
 - Now cards say who holds the work in plain words, such as "Fleet is working on this", "Needs you" or "Assigned to you", and how long it has been in its stage, such as "Executing for 4h". Task cards no longer repeat the word "task".
