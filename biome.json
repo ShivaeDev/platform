@@ -4,7 +4,7 @@
 	"plugins": [
 		{
 			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
-			"path": "./script/lint/plugins/imports.grit"
+			"path": "./script/quality/imports.grit"
 		}
 	]
 }

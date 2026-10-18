@@ -1,5 +1,6 @@
+import { useRouter } from "@tanstack/react-router";
 import { CalendarDays, Ellipsis, Flag, Search, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Button } from "#client/react/components/ui/Button.tsx";
 import { Modal } from "./Modal.tsx";
 import type { MainLocation } from "./mainLocation.ts";
@@ -11,21 +12,25 @@ const icons = [CalendarDays, Flag, Zap];
 const TAB_CLASS =
 	"flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md border-0 bg-transparent p-0 text-foreground text-xs no-underline aria-[current=page]:bg-accent aria-[current=page]:text-primary";
 
-export function PhoneNavigation({ main, openSearch }: { readonly main: MainLocation; readonly openSearch: () => void }) {
-	const [more, setMore] = useState(false);
+export function PhoneNavigation({
+	main,
+	more,
+	onMoreChange,
+	openSearch,
+}: {
+	readonly main: MainLocation;
+	readonly more: boolean;
+	readonly onMoreChange: (open: boolean) => void;
+	readonly openSearch: () => void;
+}) {
+	const router = useRouter();
 	const narrow = useMedia("(max-width: 767px)");
 	useEffect(() => {
 		if (!narrow) {
-			setMore(false);
+			onMoreChange(false);
 		}
-	}, [narrow]);
-	useEffect(() => {
-		function close() {
-			setMore(false);
-		}
-		document.addEventListener("board-navigate", close);
-		return () => document.removeEventListener("board-navigate", close);
-	}, []);
+	}, [narrow, onMoreChange]);
+	useEffect(() => router.subscribe("onBeforeNavigate", () => onMoreChange(false)), [router, onMoreChange]);
 	return (
 		<>
 			<nav
@@ -50,19 +55,19 @@ export function PhoneNavigation({ main, openSearch }: { readonly main: MainLocat
 					aria-expanded={more}
 					aria-haspopup="dialog"
 					className={TAB_CLASS}
-					onClick={() => setMore(true)}
+					onClick={() => onMoreChange(true)}
 					type="button"
 				>
 					<Ellipsis aria-hidden="true" className="size-5" />
 					More
 				</button>
 			</nav>
-			<Modal className="phone-more" close={() => setMore(false)} id={shellIds.phoneMore} open={more} title={shellIds.phoneMoreTitle}>
+			<Modal className="phone-more" close={() => onMoreChange(false)} id={shellIds.phoneMore} open={more} title={shellIds.phoneMoreTitle}>
 				<div className="mb-3 flex items-center justify-between">
 					<h2 className="font-semibold" id={shellIds.phoneMoreTitle}>
 						More
 					</h2>
-					<Button onClick={() => setMore(false)} variant="ghost">
+					<Button onClick={() => onMoreChange(false)} variant="ghost">
 						Close
 					</Button>
 				</div>

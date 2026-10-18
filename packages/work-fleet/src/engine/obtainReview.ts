@@ -13,7 +13,7 @@ import { readReviewerVerdict, reviewerPrompt } from "#prompt/reviewer.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function obtainReview(state: EngineState) {
-	const { store, policy, sessions, save, board } = state;
+	const { store, sessions, save, board } = state;
 	return Effect.fn("Fleet.obtainReview")(function* (
 		stored: Versioned<FleetRecord>,
 		work: BoardWork,
@@ -25,6 +25,7 @@ export function obtainReview(state: EngineState) {
 			readonly observationRetries?: number;
 		},
 	) {
+		const policy = yield* state.current;
 		if (stored.value.review?.head === result.head) {
 			return stored.value.review.receipt;
 		}

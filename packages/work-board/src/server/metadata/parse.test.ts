@@ -3,10 +3,11 @@ import { metadataParse } from "./parse.ts";
 
 describe("optional metadata", () => {
 	it("recognizes addon-owned fields without interpreting them or hiding unowned fields", () => {
-		const source = "---\nid: item.fixture\nfleet: approved\nfleet-launch: { effort: low }\nfleet-deliverable: report\nflavor: sweet\n---\n# Work";
+		const source =
+			"---\nid: item.fixture\nfleet: approved\nfleet-launch: { effort: low }\nfleet-deliverable: report\nfleet-priority: urgent\nflavor: sweet\n---\n# Work";
 		const parsed = metadataParse(source);
 		expect(parsed.fields).toEqual({ id: "item.fixture" });
-		expect(parsed.diagnostics).toEqual([{ field: "flavor", line: 6, message: "Unknown field flavor; kept in the original frontmatter." }]);
+		expect(parsed.diagnostics).toEqual([{ field: "flavor", line: 7, message: "Unknown field flavor; kept in the original frontmatter." }]);
 		expect(parsed.raw + parsed.body).toBe(source);
 	});
 	it.each(["goal", "report"])("reads the %s item kind without losing its source meaning", (kind) => {

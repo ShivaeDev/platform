@@ -19,7 +19,7 @@ const test = postgresTests("live");
 test("bulk CLI release closes changed done and deferred decisions and records one response per question", function* () {
 	const server = yield* codexServer(() => ({}));
 	yield* withHost({ "one.md": task("one", "approved"), "two.md": task("two", "approved") }, { local: { endpoint: server.endpoint } }, (fixture) =>
-		withReadDaemon(fixture.host, (port) => bulkReleaseStory(fixture, port), fixture.parts),
+		withReadDaemon(fixture.host, (port) => bulkReleaseStory(fixture, port), { parts: fixture.parts }),
 	);
 });
 

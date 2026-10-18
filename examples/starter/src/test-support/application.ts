@@ -1,7 +1,6 @@
-import { ConfigProvider, Effect, Layer } from "effect";
+import { ConfigProvider, Effect, Exit, Layer, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { makeAuth } from "#client/auth.ts";
 import { noteWorker } from "#server/noteWorker.ts";
@@ -10,6 +9,7 @@ import { type HostOptions, type RunningHost, startHost } from "#test-support/hos
 import { liveNotes } from "#test-support/liveNotes.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { requests } from "#test-support/requests.ts";
+import { storyDatabase } from "#test-support/storyDatabase.ts";
 
 interface Actor {
 	readonly cookie: string;
@@ -29,7 +29,7 @@ export const app = storyKit({
 			engine.host = yield* startHost(engine.hostOptions);
 		},
 	},
-	around: withIsolatedDatabase,
+	around: storyDatabase,
 	clock: "live",
 	create: (): Engine => ({ actors: new Map(), host: undefined, hostOptions: {}, tell: () => undefined }),
 	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),
@@ -82,7 +82,15 @@ export const app = storyKit({
 				story.tell("start the word-count worker");
 				const database = yield* PostgresTestDatabase;
 				const worker = noteWorker({ databaseUrl: database.url });
-				yield* Layer.build(env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))));
+				const scope = yield* Scope.fork(yield* Scope.Scope);
+				yield* Layer.buildWithScope(
+					env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),
+					scope,
+				);
+				return Effect.suspend(() => {
+					story.tell("stop the word-count worker");
+					return Scope.close(scope, Exit.void);
+				});
 			}),
 		};
 	},

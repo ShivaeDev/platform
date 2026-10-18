@@ -1,6 +1,8 @@
+import { useContext } from "react";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
+import { SessionContext } from "./SessionContext.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { SystemPage } from "./SystemPage.tsx";
 import { useDiagnosticsPolling } from "./useDiagnosticsPolling.ts";
@@ -15,7 +17,7 @@ export function SystemMain({
 	readonly url: string;
 }) {
 	const atom = api.diagnostics.query(undefined, routeQueryOptions);
-	useDiagnosticsPolling(atom, api.fleetItems.query(undefined, routeQueryOptions));
+	useDiagnosticsPolling(useContext(SessionContext), atom, api.fleetItems.query(undefined, routeQueryOptions));
 	return (
 		<ProjectionFrame
 			atom={atom}

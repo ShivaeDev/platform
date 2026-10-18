@@ -4,6 +4,7 @@ import type { ParsedMetadata } from "@shivaedev/work-board/integration/board.ts"
 const APPROVAL = "fleet";
 const LAUNCH = "fleet-launch";
 const DELIVERABLE = "fleet-deliverable";
+const PRIORITY = "fleet-priority";
 const parsedFields = new WeakMap<ParsedMetadata, ReadonlyMap<string, unknown>>();
 
 function fleetField(parsed: ParsedMetadata, field: string): unknown {
@@ -32,4 +33,8 @@ export function fleetLaunch(parsed: ParsedMetadata): unknown {
 
 export function fleetDeliverable(parsed: ParsedMetadata): unknown {
 	return fleetField(parsed, DELIVERABLE);
+}
+
+export function fleetPriority(parsed: ParsedMetadata): unknown {
+	return fleetField(parsed, PRIORITY);
 }

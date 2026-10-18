@@ -102,6 +102,8 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 	expect(backend.requests.filter((request) => request.method === "thread/start")).toHaveLength(1);
 	expect(backend.requests.filter((request) => request.method === "turn/start")).toHaveLength(expected[boundary].turnRequests);
 	expect(backend.requests.some((request) => request.method === "thread/turns/list")).toBe(before.attempts[0]?.sessionId !== undefined);
+	// The configured 1 s recovery grace allows about five empty-thread scans at the 250 ms poll; the 5 s default would allow about twenty.
+	expect(backend.requests.filter((request) => request.method === "thread/turns/list").length).toBeLessThanOrEqual(10);
 });
 
 function restartStory(boundary: Boundary) {
@@ -113,7 +115,14 @@ function restartStory(boundary: Boundary) {
 			return yield* withHost(
 				{ "work.md": task("synthetic-work", "approved") },
 				{
-					cloud: { authFile, cwd: SYNTHETIC_WORKSPACE, endpoint: server.endpoint, environmentId: SYNTHETIC_ENVIRONMENT, requestTimeoutMs: 60_000 },
+					cloud: {
+						authFile,
+						cwd: SYNTHETIC_WORKSPACE,
+						endpoint: server.endpoint,
+						environmentId: SYNTHETIC_ENVIRONMENT,
+						recoveryGraceMs: 1000,
+						requestTimeoutMs: 60_000,
+					},
 					provider: "cloud",
 					worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" },
 				},

@@ -9,18 +9,10 @@ export function scheduleReading(
 	setStatus: (status: string) => void,
 	focus: boolean,
 ) {
-	let restored = false;
 	function restore() {
-		if (restored || !active()) {
-			document.removeEventListener("board-reading-ready", restore);
+		if (!active()) {
 			return;
 		}
-		const context = doc.querySelector<HTMLElement>(".item-context");
-		if (context && context.dataset.readingReady !== "true") {
-			return;
-		}
-		restored = true;
-		document.removeEventListener("board-reading-ready", restore);
 		if (focus && !document.activeElement?.closest("[data-response-form], #response-form, #handoff-form")) {
 			doc.focus({ preventScroll: true });
 		}
@@ -41,6 +33,5 @@ export function scheduleReading(
 			}
 		});
 	}
-	document.addEventListener("board-reading-ready", restore);
 	requestAnimationFrame(restore);
 }

@@ -63,7 +63,7 @@ automatic relationship loading are outside the default path.
 
 Follow [Add a resource to the starter](./add-a-feature.md) to build a feature in order, from a migration and Model through the service, contract, host, route and form to PostgreSQL and DOM tests. Each step points to the starter's notes implementation.
 
-The [starter quickstart](./quickstart.md) begins with a runnable app. The [PostgreSQL order feature](./composed-example.md) is the larger reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. Its test also proves that a rolled-back write publishes nothing. Use each package's README for its mental model and API. The [SQLite order fixture](./order-example.md) adds session and save-race scenarios with its own evidence limits.
+The [starter quickstart](./quickstart.md) begins with a runnable app. The [PostgreSQL order feature](./composed-example.md) is the larger reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. Its test also proves that a rolled-back write publishes nothing. Use each package's README for its mental model and API. The [order-editing fixture](./order-example.md) adds session and save-race scenarios with its own evidence limits.
 
 - [Native RPC](./native-rpc.md) explains handlers, middleware and transport.
 - [Request context](./request-context.md) explains session resolution, Origin

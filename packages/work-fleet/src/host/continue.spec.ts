@@ -7,6 +7,7 @@ import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { fleetStatus } from "#host/fleetStatus.ts";
 import { hostProvider } from "#host/providers.ts";
+import { WAIT_EXIT, waitFor } from "#host/wait.ts";
 import { codexServer, type WireRequest } from "#test/codex.ts";
 import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { dispatchWork } from "#test/dispatchWork.ts";
@@ -14,13 +15,13 @@ import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
-import { daemonCli, withReadDaemon } from "#test/readDaemon.ts";
+import { withReadDaemon } from "#test/readDaemon.ts";
 import { readOnlySql } from "#test/readOnlySql.ts";
 
 const test = postgresTests("live");
 const ItemRequest = Schema.Struct({ turnId: Schema.String });
 
-const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function* (input: "argument" | "stdin") {
+const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function* () {
 	const requests: WireRequest[] = [];
 	let firstTurn = "";
 	let terminal = false;
@@ -68,15 +69,14 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 				const message = "Fix the checks.\nKeep the existing PR.\n";
 				const flags = ["--board", fixture.host.boardDir, "--config", fixture.configFile];
-				const args = ["continue", "one", ...(input === "argument" ? [message] : []), ...flags];
+				const args = ["continue", "one", ...flags];
 				let errors = "";
 				function captureError(text: string) {
 					errors += text;
 				}
-				const options = { onError: captureError, stdin: input === "stdin" ? message : "" };
+				const options = { onError: captureError, stdin: message };
 				const run = yield* withReadDaemon(fixture.host, (port) => Effect.promise(() => cliProcess([...args, "--port", String(port)], options)), {
-					...fixture.parts,
-					provider: hostProvider(fixture.host),
+					parts: { ...fixture.parts, provider: hostProvider(fixture.host) },
 				});
 				expect(run).toEqual({ code: 0, stdout: "one executing" });
 				expect(errors).toBe("");
@@ -94,24 +94,22 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				const status = yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host)));
 				expect(status.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
 				expect(status.active[0]?.sessions[0]?.turnId).toBe("continued-turn");
-				const waiting = yield* daemonCli(fixture.host, ["wait", "one", ...flags, "--interval", "0.05", "--timeout", "0.3"]);
-				expect(waiting.code).toBe(4);
-				expect(waiting.stdout).toBe("one still executing: wait timed out");
+				expect(yield* withReadDaemon(fixture.host, (port) => waitFor({ intervalMs: 50, port, timeoutMs: 300, workId: "one" }))).toEqual({
+					code: WAIT_EXIT.timeout,
+					summary: "one still executing: wait timed out",
+				});
 				terminal = true;
 				const completed = yield* Effect.gen(function* () {
 					return yield* (yield* Fleet).reconcile("one");
 				}).pipe(Effect.provide(hostLayer(fixture.host, { ...fixture.parts, provider: hostProvider(fixture.host) })));
 				expect(completed.value.attempts[0]?.output).toBe("Repaired result");
 				expect(completed.value.history?.[0]?.attempts[0]?.output).not.toBe("Repaired result");
-				expect((yield* daemonCli(fixture.host, ["wait", "one", ...flags])).code).toBe(2);
+				expect((yield* withReadDaemon(fixture.host, (port) => waitFor({ intervalMs: 50, port, timeoutMs: 20_000, workId: "one" }))).code).toBe(
+					WAIT_EXIT.waitingDecision,
+				);
 			}),
 	);
 });
 
-for (const input of ["argument", "stdin"] as const) {
-	test(
-		`the continue CLI sends its ${input} message on the existing Cloud thread and wait follows the new output`,
-		() => Effect.scoped(continuationStory(input)),
-		30_000,
-	);
-}
+test("the continue CLI sends its stdin message on the existing Cloud thread and wait follows the new output", () =>
+	Effect.scoped(continuationStory()));

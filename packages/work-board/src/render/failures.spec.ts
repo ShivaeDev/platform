@@ -4,7 +4,7 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import { renderMarkdown } from "#server/render/markdown.ts";
-import { RenderFailed } from "./failed.ts";
+import { RenderFailed } from "./Failed.ts";
 
 vi.mock("shiki", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("shiki")>();

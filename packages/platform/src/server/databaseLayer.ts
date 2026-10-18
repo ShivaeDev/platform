@@ -6,6 +6,7 @@ import { assertPostgresMigrations } from "@shivaedev/effect-sql/assertPostgresMi
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
 import type { AppChanges, AppDatabaseOptions } from "#server/appHost.ts";
+import { databaseAddress } from "./databaseAddress.ts";
 
 export interface DatabaseConfig {
 	readonly applicationName?: string;
@@ -20,6 +21,7 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 			const url = options.config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			return PgClient.layer({
 				url,
+				...databaseAddress(url),
 				...(options.config?.maxConnections === undefined ? {} : { maxConnections: options.config.maxConnections }),
 				...(options.config?.applicationName === undefined ? {} : { applicationName: options.config.applicationName }),
 			});

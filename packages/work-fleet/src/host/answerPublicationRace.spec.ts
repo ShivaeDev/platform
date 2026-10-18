@@ -4,6 +4,7 @@ import { Fleet } from "#fleet.ts";
 import { dispatchApproved } from "#host/admission.ts";
 import { answerWork } from "#host/answerWork.ts";
 import { hostLayer } from "#host/commands.ts";
+import { withDecisionResponses } from "#host/releaseWork.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -41,10 +42,10 @@ const publicationStory = Effect.fn("AnswerPublicationRaceTest.publicationStory")
 				return yield* fleet.publishDecision(workId);
 			}),
 	};
-	const result = yield* answerWork(fixture.host, "one", input === "empty" ? "  " : TEXT, input === "release").pipe(
-		Effect.provideService(Fleet, racing),
-		Effect.result,
-	);
+	const result = yield* withDecisionResponses(
+		fixture.host,
+		answerWork(fixture.host, "one", input === "empty" ? "  " : TEXT, input === "release"),
+	).pipe(Effect.provideService(Fleet, racing), Effect.result);
 	expect(publications).toBe(1);
 	const current = yield* fleet.get("one");
 	if (input !== "text") {
