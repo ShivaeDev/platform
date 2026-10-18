@@ -1,21 +1,71 @@
 import { RegistryContext } from "@effect/atom-react";
-import { Clock, Effect } from "effect";
+import { Clock, Effect, Exit, Scope } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode } from "react";
 import { createRoot, type RootOptions } from "react-dom/client";
 import { beforeEach, expect, vi } from "vitest";
+
+type CaughtErrorHandler = NonNullable<RootOptions["onCaughtError"]>;
+
+export interface ReactWarningsReadout {
+	readonly caughtErrors: readonly unknown[];
+	readonly consoleErrors: readonly (readonly unknown[])[];
+}
+
+export interface ReactWarnings {
+	readonly expectCaughtError: (matches: (error: unknown) => boolean) => CaughtErrorHandler;
+	readonly onCaughtError: CaughtErrorHandler;
+	readonly read: () => ReactWarningsReadout;
+}
+
+const acquireReactWarnings = Effect.acquireRelease(
+	Effect.sync(() => {
+		const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+		let consoleErrors: readonly (readonly unknown[])[] | undefined;
+		const caughtErrors: unknown[] = [];
+		const expectations: { caught: boolean }[] = [];
+		const capture: ReactWarnings = {
+			expectCaughtError: (matches) => {
+				const expectation = { caught: false };
+				expectations.push(expectation);
+				return (error) => {
+					if (matches(error)) {
+						expectation.caught = true;
+					} else {
+						caughtErrors.push(error);
+					}
+				};
+			},
+			onCaughtError: (error) => {
+				caughtErrors.push(error);
+			},
+			read: () => ({ caughtErrors: [...caughtErrors], consoleErrors: consoleErrors ?? errors.mock.calls.map((args) => [...args]) }),
+		};
+		return {
+			capture,
+			expectations,
+			restore: () => {
+				consoleErrors = capture.read().consoleErrors;
+				errors.mockRestore();
+			},
+		};
+	}),
+	({ restore }) => Effect.sync(restore),
+);
+
+export const captureReactWarnings = Effect.map(acquireReactWarnings, ({ capture }) => capture);
+
 export function expectNoReactWarnings() {
-	let expectations: { caught: boolean }[] = [];
-	let unexpected: unknown[] = [];
+	let current: Effect.Success<typeof acquireReactWarnings>;
 	beforeEach(({ onTestFinished }) => {
-		expectations = [];
-		unexpected = [];
-		const errors = vi.spyOn(console, "error");
+		const scope = Effect.runSync(Scope.make());
+		current = Effect.runSync(Effect.provideService(acquireReactWarnings, Scope.Scope, scope));
+		const { capture, expectations } = current;
 		onTestFinished(() => {
-			const calls = errors.mock.calls;
-			errors.mockRestore();
-			expect(calls).toEqual([]);
-			expect(unexpected, "Unexpected caught React errors").toEqual([]);
+			Effect.runSync(Scope.close(scope, Exit.void));
+			const { consoleErrors, caughtErrors } = capture.read();
+			expect(consoleErrors).toEqual([]);
+			expect(caughtErrors, "Unexpected caught React errors").toEqual([]);
 			expect(
 				expectations.every(({ caught }) => caught),
 				"Expected caught React error did not occur",
@@ -24,15 +74,7 @@ export function expectNoReactWarnings() {
 	});
 	return {
 		expectCaughtError(matches: (error: unknown) => boolean): NonNullable<RootOptions["onCaughtError"]> {
-			const expectation = { caught: false };
-			expectations.push(expectation);
-			return (error) => {
-				if (matches(error)) {
-					expectation.caught = true;
-				} else {
-					unexpected.push(error);
-				}
-			};
+			return current.capture.expectCaughtError(matches);
 		},
 	};
 }
