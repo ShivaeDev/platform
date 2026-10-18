@@ -1,6 +1,8 @@
+import type { BetterAuthOptions } from "better-auth";
 import { Effect } from "effect";
 import { withTestTransaction } from "@shivaedev/effect-prisma/testing/transaction.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import type { EffectPrismaAdapterOptions } from "#better-auth/adapter.ts";
 import { Database, DatabaseLive, databaseUrl } from "./database.ts";
 import { authEngine } from "./engine.ts";
 import { filterRows } from "./filterCases.ts";
@@ -17,9 +19,14 @@ export const auth = storyKit({
 	layer: DatabaseLive,
 	name: "Better Auth PostgreSQL",
 	runIf: databaseUrl !== undefined,
-	stages: ["rows"],
+	stages: ["configured", "rows"],
 	verbs: (state, story) => authVerbs(state, story.tell),
 });
+export function configuredAdapter(options: BetterAuthOptions, adapterOptions?: EffectPrismaAdapterOptions) {
+	return auth.trait("configured", "the application configures the Better Auth adapter", (state) => {
+		state.authDatabase = state.configure(options, adapterOptions);
+	});
+}
 export function usersNamed(...names: string[]) {
 	return auth.trait("rows", `PostgreSQL contains users named ${names.join(", ")}`, function* ({ db }) {
 		for (const name of names) {

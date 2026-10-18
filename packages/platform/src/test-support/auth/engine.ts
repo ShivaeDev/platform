@@ -1,6 +1,7 @@
+import type { BetterAuthOptions } from "better-auth";
 import { Effect } from "effect";
 import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts";
-import { effectPrismaAdapter } from "#better-auth/adapter.ts";
+import { type EffectPrismaAdapterOptions, effectPrismaAdapter } from "#better-auth/adapter.ts";
 import { makePlatformRuntime } from "#runtime/make.ts";
 import { Database, DatabaseLive } from "./database.ts";
 export const authEngine = Effect.fnUntraced(function* () {
@@ -9,9 +10,11 @@ export const authEngine = Effect.fnUntraced(function* () {
 	const runtime = makePlatformRuntime(DatabaseLive);
 	yield* Effect.addFinalizer(() => Effect.promise(() => runtime.dispose()));
 	const adapter = makeEffectTRPC({ runtime });
-	const factory = effectPrismaAdapter(Database, runtime, {
+	const defaultOptions: EffectPrismaAdapterOptions = {
 		modelName: (model) => `Auth${model.length === 0 ? model : `${model[0]?.toUpperCase()}${model.slice(1)}`}`,
-	});
-	const authDatabase = factory({});
-	return { adapter, authDatabase, db, runtime, services };
+	};
+	function configure(options: BetterAuthOptions, adapterOptions = defaultOptions) {
+		return effectPrismaAdapter(Database, runtime, adapterOptions)(options);
+	}
+	return { adapter, authDatabase: configure({}), configure, db, runtime, services };
 });

@@ -2,7 +2,7 @@ import type { Where } from "better-auth";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { filterCases } from "#test/auth/filterCases.ts";
-import { auth, filterUsers, usersNamed } from "#test/auth/native.ts";
+import { auth, configuredAdapter, filterUsers, usersNamed } from "#test/auth/native.ts";
 
 auth.it("preserves PostgreSQL null, membership, comparison and literal pattern semantics", [filterUsers], function* ({ findMany }) {
 	for (const { expected, label, where } of filterCases) {
@@ -44,7 +44,7 @@ auth.it(
 		for (const id of ids) {
 			expect(yield* userExists(id)).toBe(false);
 		}
-		expect(yield* findOne([{ field: "id", value: ids[0] ?? "" }])).toBeNull();
+		expect(yield* findOne({ where: [{ field: "id", value: ids[0] ?? "" }] })).toBeNull();
 	},
 );
 auth.it("rejects nonstring pattern filters with an actionable error", [], function* ({ count }) {
@@ -52,16 +52,25 @@ auth.it("rejects nonstring pattern filters with an actionable error", [], functi
 		message: "contains requires a string value",
 	});
 });
-auth.it("rejects native joins for both single and collection reads", [], function* ({ joinedRead }) {
-	for (const many of [false, true]) {
-		expect(yield* joinedRead(many)).toMatchObject({ message: "The Effect Prisma Better Auth adapter does not support native joins" });
-	}
+auth.it(
+	"rejects native joins for both single and collection reads",
+	[configuredAdapter({ advanced: { database: { joins: true } } })],
+	function* ({ findOne, findMany }) {
+		const input = { join: { session: true }, where: [{ field: "id", value: crypto.randomUUID() }] };
+		expect(yield* Effect.flip(findOne(input))).toMatchObject({ message: "The Effect Prisma Better Auth adapter does not support native joins" });
+		expect(yield* Effect.flip(findMany(input))).toMatchObject({ message: "The Effect Prisma Better Auth adapter does not support native joins" });
+	},
+);
+auth.it("maps configured model names by default", [configuredAdapter({ user: { modelName: "authUser" } }, {})], function* ({ count }) {
+	expect(yield* count([])).toBe(0);
 });
-auth.it("maps configured model names by default", [], function* ({ configuredCount }) {
-	expect(yield* configuredCount()).toBe(0);
-});
-auth.it("reports a configured Better Auth field missing from the generated database schema", [], function* ({ mismatchedField }) {
-	for (const sort of [false, true]) {
-		expect(yield* mismatchedField(sort)).toMatchObject({ message: "Unknown database field: missing_column" });
-	}
-});
+auth.it(
+	"reports a configured Better Auth field missing from the generated database schema",
+	[configuredAdapter({ user: { fields: { name: "missing_column" } } })],
+	function* ({ count, findMany }) {
+		expect(yield* Effect.flip(count([{ field: "name", value: "Ada" }]))).toMatchObject({ message: "Unknown database field: missing_column" });
+		expect(yield* Effect.flip(findMany({ sortBy: { direction: "asc", field: "missing_column" } }))).toMatchObject({
+			message: "Unknown database field: missing_column",
+		});
+	},
+);

@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
 import { auth } from "#test/auth/native.ts";
 
@@ -6,13 +7,20 @@ function user(name: string, id = crypto.randomUUID()) {
 	return { email: `${id}@example.test`, id, name };
 }
 
-auth.it("rolls back a failed Better Auth transaction outside the test harness", [], function* ({ failedTransaction, persistedUserExists }) {
+auth.it("rolls back a failed Better Auth transaction outside the test harness", [], function* ({ transaction, persistedUserExists }) {
 	const data = user("Rollback");
-	expect(yield* failedTransaction(data)).toMatchObject({ message: "rollback" });
+	const failure = yield* Effect.flip(
+		transaction(async (adapter) => {
+			await adapter.create({ data, forceAllowId: true, model: "user" });
+			throw new Error("rollback");
+		}, "runtime"),
+	);
+	expect(failure).toMatchObject({ message: "rollback" });
 	expect(yield* persistedUserExists(data.id)).toBe(false);
 });
-auth.it("shares the test rollback transaction with Better Auth adapter calls", [], function* ({ transactionCreate, userExists }) {
-	const created = yield* transactionCreate(user("Auth", rolledBackId));
+auth.it("shares the test rollback transaction with Better Auth adapter calls", [], function* ({ transaction, userExists }) {
+	const data = user("Auth", rolledBackId);
+	const created = yield* transaction((adapter) => adapter.create<typeof data>({ data, forceAllowId: true, model: "user" }));
 	expect(created.id).toBe(rolledBackId);
 	expect(yield* userExists(rolledBackId)).toBe(true);
 });
@@ -25,7 +33,7 @@ auth.it(
 	function* ({ createUser, findOne, update, count, delete: remove, userExists }) {
 		const data = user("Before");
 		yield* createUser(data);
-		const found = yield* findOne([{ field: "email", mode: "insensitive", operator: "eq", value: data.email.toUpperCase() }]);
+		const found = yield* findOne({ where: [{ field: "email", mode: "insensitive", operator: "eq", value: data.email.toUpperCase() }] });
 		expect(found?.id).toBe(data.id);
 		const updated = yield* update([{ field: "id", operator: "eq", value: data.id }], { name: "After" });
 		expect(updated?.name).toBe("After");

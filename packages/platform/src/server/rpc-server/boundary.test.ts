@@ -1,7 +1,7 @@
 import { Cause, Exit, Schema } from "effect";
 import { expect } from "vitest";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#errors/taxonomy.ts";
-import { boundaryStory } from "#test/rpc/boundaryStory.ts";
+import { boundaryPolicy, boundaryStory } from "#test/rpc/boundaryStory.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError, ServiceUnavailable]);
 boundaryStory.it("passes declared errors through with their identity and keeps success values", [], function* ({ succeed, reject }) {
@@ -23,11 +23,20 @@ boundaryStory.it("normalizes unexpected failures and defects while retaining the
 		expect(Schema.encodeSync(Rejection)(rejection)).toEqual({ _tag: "InternalServerError", message: "Internal server error" });
 	}
 });
-boundaryStory.it("redacts a supplied public message and can use another declared fallback", [], function* ({ unavailable }) {
-	const rejection = yield* unavailable();
-	expect(rejection).toBeInstanceOf(ServiceUnavailable);
-	expect(rejection.message).toBe("Upstream failed with token=<redacted>");
-});
+boundaryStory.it(
+	"redacts a supplied public message and can use another declared fallback",
+	[
+		boundaryPolicy(ServiceUnavailable, {
+			message: "Upstream failed with token=private-value",
+			unexpected: (message) => new ServiceUnavailable({ message }),
+		}),
+	],
+	function* ({ fail }) {
+		const rejection = yield* fail("private failure");
+		expect(rejection).toBeInstanceOf(ServiceUnavailable);
+		expect(rejection.message).toBe("Upstream failed with token=<redacted>");
+	},
+);
 boundaryStory.it("keeps interruption in the cause instead of turning it into a rejection", [], function* ({ interrupt }) {
 	const exit = yield* interrupt();
 	expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
