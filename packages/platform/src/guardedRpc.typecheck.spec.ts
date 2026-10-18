@@ -4,10 +4,10 @@ import { expectTypeOf } from "vitest";
 import { AuthUnavailable, BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests, Unauthorized } from "#errors/taxonomy.ts";
 import { Identity, OptionalIdentity, RequestId } from "#rpc/identity.ts";
 import { Authenticated, RequestTracing } from "#rpc/middleware.ts";
-import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";
-import { trustedOrigins } from "#rpc-server/origin.ts";
-import { authenticatedLayer } from "#rpc-server/session.ts";
-import { requestTracingLayer } from "#rpc-server/tracing.ts";
+import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
+import { trustedOrigins } from "#server/rpc-server/origin.ts";
+import { authenticatedLayer } from "#server/rpc-server/session.ts";
+import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
 
 const Guarded = RpcGroup.make(Rpc.make("Mine", { error: NotFound, success: Schema.String }))
 	.middleware(Authenticated)

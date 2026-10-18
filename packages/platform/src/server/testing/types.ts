@@ -2,9 +2,9 @@ import type { TestContext, Vitest } from "@effect/vitest";
 import type { Effect, Layer } from "effect";
 import type { AnyDatabase } from "@shivaedev/effect-prisma/databaseTypes.ts";
 import type { DatabaseService } from "@shivaedev/effect-prisma/testing/types.ts";
-import type { EffectTRPCAdapter } from "@shivaedev/effect-trpc/adapter.ts";
-import type { EffectCallerFactory } from "@shivaedev/effect-trpc/testing/caller.ts";
-import type { CallerOptions, CallerResult, TrpcHarnessTest, TrpcHarnessTester } from "@shivaedev/effect-trpc/testing/types.ts";
+import type { EffectTRPCAdapter } from "@shivaedev/effect-trpc/server/adapter.ts";
+import type { EffectCallerFactory } from "@shivaedev/effect-trpc/server/testing/caller.ts";
+import type { CallerOptions, CallerResult, TrpcHarnessTest, TrpcHarnessTester } from "@shivaedev/effect-trpc/server/testing/types.ts";
 export type PlatformHarness<TDatabase extends AnyDatabase, TOptions, TCaller, TExtension> = Readonly<{
 	db: DatabaseService<TDatabase>;
 	trpc: EffectCallerFactory<TOptions, TCaller>;

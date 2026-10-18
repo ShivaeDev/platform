@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/testing.ts";
+import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { aliceAccount, notesApp, signInScreen } from "#test-support/notesApp.tsx";
 
 notesApp.it(

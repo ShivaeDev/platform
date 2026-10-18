@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema, Stream } from "effect";
-import { notFound } from "#errors.ts";
-import { extendRequestServices, makeRequestServices } from "#request-services.ts";
+import { notFound } from "#server/errors.ts";
+import { extendRequestServices, makeRequestServices } from "#server/requestServices.ts";
 import { adapterHost } from "./adapterHost.ts";
 import { AuthenticatedActor, DomainFailure, ExtendedRequestValue, RequestValue, RuntimeOnlyValue, RuntimeValue } from "./adapterServices.ts";
 import { adapterSubscriptions } from "./adapterSubscriptions.ts";

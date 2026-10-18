@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { Option } from "effect";
 import { expect } from "vitest";
-import { RejectionError } from "#rejection.ts";
+import { RejectionError } from "#server/rejection.ts";
 import { Conflict, other, rejectionRules } from "#test/rejectionRules.ts";
 import { customErrorShape, requestIs, trpc } from "#test/routerStory.ts";
 

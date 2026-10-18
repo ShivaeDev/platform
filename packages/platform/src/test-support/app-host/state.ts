@@ -1,7 +1,7 @@
 import type { Agent } from "node:http";
 import { Effect, Layer } from "effect";
 import type { HttpRouter, HttpServer } from "effect/http";
-import type { PlatformRuntime } from "#runtime/types.ts";
+import type { PlatformRuntime } from "#server/runtime/types.ts";
 import { otlpHost } from "#test/otlpHost.ts";
 import type { otlpReceiver } from "#test/otlpReceiver.ts";
 import type { databaseProxy } from "./databaseProxy.ts";

@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import { Cause, Effect, Option } from "effect";
 import { useContext, useMemo, useState } from "react";
-import { useAction, useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { answerBody } from "#browser/responses/answerBody.ts";
 import { promptHeading } from "#browser/responses/cardContext.ts";

@@ -1,5 +1,5 @@
 import { Cause, Context, Effect, Equal, Exit, Layer } from "effect";
-import { makePlatformRuntime } from "#runtime/make.ts";
+import { makePlatformRuntime } from "#server/runtime/makePlatform.ts";
 import { RuntimeOther, RuntimeValue } from "./runtimeLayer.ts";
 import { type HostState, runtimeOf } from "./state.ts";
 

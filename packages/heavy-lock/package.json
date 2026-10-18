@@ -26,7 +26,6 @@
 		"./*.ts": {
 			"types": "./dist/*.d.ts",
 			"source": "./src/*.ts",
-			"import": "./dist/*.js",
 			"default": "./dist/*.js"
 		},
 		"./package.json": "./package.json"
