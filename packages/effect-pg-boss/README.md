@@ -148,6 +148,33 @@ The same job returns to waiting with `startAfter` set to `at`; its ID, singleton
 
 Set `queue: { maxDeferrals: 20 }` on a queue or schedule to change the default limit of ten deferrals per job. The limit must be a nonnegative safe integer; zero disables deferral. Once the limit is reached, `RetryAt` follows the normal failure and retry path. The adapter stores the count in its own table in the pg-boss schema, preserving it across worker restarts, ordinary failures, expiry and heartbeat timeouts. Automatic migrations and `installPgBossSchema` create this table and the stately claim trigger; use `installPgBossSchema` before starting workers with `migrate: false`.
 
+### One active job per entity
+
+Put related job kinds in one tagged-union queue and choose the entity key in the definition:
+
+```ts
+const PullRequestJobs = defineQueue({
+  name: "pull-request",
+  schema: Schema.Union([
+    Schema.TaggedStruct("Refresh", { pullRequestId: Schema.NumberFromString }),
+    Schema.TaggedStruct("Reconcile", { pullRequestId: Schema.NumberFromString }),
+  ]),
+  queue: { policy: "singleton" },
+  key: ({ pullRequestId }) => `pr:${pullRequestId.toFixed(0)}`,
+  worker: { batchSize: 1, localConcurrency: 3 },
+});
+
+const refresh = Effect.flatMap(Jobs, (jobs) =>
+  jobs.enqueue(PullRequestJobs, { _tag: "Refresh", pullRequestId: 42 }),
+);
+```
+
+`queue.policy` accepts pg-boss's policy literals and rejects typos. The `singleton` policy requires `key: (payload) => string`. The callback sees the decoded payload, so `pullRequestId` is a number. `enqueue` supplies pg-boss's `singletonKey` automatically; callers cannot supply a conflicting key in send options.
+
+PostgreSQL guarantees one active job per key across workers, including different job kinds in this queue. Different keys can run in parallel when workers have capacity. A job waiting to retry frees its key for another job; exhausting retries sends it to the dead-letter queue and leaves the key available.
+
+Singleton guarantees one active job per key, not order. Ordering stays the application's job. Keep handlers idempotent and write state only when the source is newer than what is stored, so an older event or retry cannot overwrite newer state.
+
 ### Size batches against expiry
 
 pg-boss marks every job in a fetched batch active together. Each job's expiry window starts at its stored `startedOn`, including time waiting for earlier handlers. Size each queue's batch so its sequential work fits within that window; use a small batch for long-running work and keep the default for short work:
@@ -411,7 +438,7 @@ Import the module that defines the name; the package has no root entry.
 
 | Module | Public names |
 | --- | --- |
-| `@shivaedev/effect-pg-boss/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
+| `@shivaedev/effect-pg-boss/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
 | `@shivaedev/effect-pg-boss/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
 | `@shivaedev/effect-pg-boss/schema.ts` | `installPgBossSchema`; `PgBossSchemaOptions` |
 | `@shivaedev/effect-pg-boss/health.ts` | `deadLetterQueueName`; `JobsHealth`, `QueueCounts`, `QueueHealth` |
@@ -419,7 +446,7 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/effect-pg-boss/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
 | `@shivaedev/effect-pg-boss/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions` |
 
-The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, plus `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
+The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, with literal `QueuePolicy` values and `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 
 `Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus the adapter's own options. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Producer-only clients do not need them. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts, deferral and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent.
 

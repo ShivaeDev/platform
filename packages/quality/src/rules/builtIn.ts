@@ -16,8 +16,16 @@ import { importsManifest } from "#rules/imports/manifest.ts";
 import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
+import { authSql } from "#rules/stories/authSql.ts";
+import { httpStatus } from "#rules/stories/httpStatus.ts";
+import { namedValues } from "#rules/stories/namedValues.ts";
+import { noExpect } from "#rules/stories/noExpect.ts";
+import { noLimitImports } from "#rules/stories/noLimitImports.ts";
+import { queueSql } from "#rules/stories/queueSql.ts";
 import { storySetup } from "#rules/stories/setup.ts";
+import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
+import { supportImports } from "#rules/stories/supportImports.ts";
 import { biomeOverrides } from "#rules/suppressions/biomeOverrides.ts";
 import { biomeRecommended } from "#rules/suppressions/biomeRecommended.ts";
 import { noDoubleCast } from "#rules/suppressions/noDoubleCast.ts";
@@ -66,4 +74,12 @@ export const builtInRules = [
 	testsColocated,
 	storySetup,
 	storySpecs,
+	queueSql,
+	authSql,
+	noExpect,
+	specHelpers,
+	supportImports,
+	httpStatus,
+	namedValues,
+	noLimitImports,
 ] as const;

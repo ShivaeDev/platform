@@ -1,0 +1,4 @@
+{
+	"authInterpolation": "sql`select n.id from notes n join public.\"user\" u on u.id = n.owner`; sql`delete from ${sql(\"session\")}`;",
+	"queueInterpolation": "sql`delete from pgboss.${sql(\"job\")}`; const query = `SELECT *\nFROM pgboss.job`; query(\"delete from \" + \"pgboss.job\");"
+}

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { quality, trees } from "#test/cli.ts";
+import { CLI_EXIT, quality, trees } from "#test/cli.ts";
 import { removeSeededTrees, seedTree } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
@@ -28,7 +28,7 @@ describe("baseline migration boundaries", { timeout: 60_000 }, () => {
 	it("refuses an invalid legacy baseline without hiding its invalid count", () => {
 		const root = seedTree(trees.clean, [{ content: '{"structure/max-lines":{"src/full.ts":{"count":-1}}}', path: "quality/baseline.json" }]);
 		const result = quality(root, "baseline", "migrate");
-		expect(result.status).toBe(2);
+		expect(result.status).toBe(CLI_EXIT.invalid);
 		expect(result.stdout).toBe("");
 		expect(result.stderr).toContain("quality/baseline.json is invalid");
 		expect(result.stderr).toContain("structure/max-lines.src/full.ts.count");

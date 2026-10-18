@@ -1,7 +1,8 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runQuality, trees } from "#test/cli.ts";
+import { baseline, shrunkTwice } from "#test/baselineTightening.ts";
+import { CLI_EXIT, runQuality, trees } from "#test/cli.ts";
 import { branchOff, commitAll, git } from "#test/git.ts";
 import { qualityTree } from "#test/qualityTree.ts";
 import { removeSeededTrees } from "#test/tree.ts";
@@ -9,19 +10,6 @@ import { removeSeededTrees } from "#test/tree.ts";
 const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
-
-function baseline(root: string): string {
-	return readFileSync(join(root, "quality/baseline.jsonl"), "utf8");
-}
-
-async function shrunkTwice(): Promise<string> {
-	const root = qualityTree(trees.dirty);
-	await runQuality(root, "baseline", "write");
-	branchOff(root);
-	writeFileSync(join(root, "src/long.ts"), "String(1);\n");
-	writeFileSync(join(root, "src/longer.ts"), "String(1);\nString(2);\nString(3);\nString(4);\nString(5);\n");
-	return root;
-}
 
 describe("quality baseline tighten", { timeout: CLI_TIMEOUT }, () => {
 	it("with --staged, lowers and removes only the entries of staged files", async () => {
@@ -31,7 +19,7 @@ describe("quality baseline tighten", { timeout: CLI_TIMEOUT }, () => {
 			"quality: removed 1 entry and lowered 0 entries in quality/baseline.jsonl.\n",
 		);
 		expect(baseline(root)).toBe('{"path":"src/longer.ts","rule":"structure/max-lines","count":3}\n');
-		expect((await runQuality(root, "lint")).status).toBe(0);
+		expect((await runQuality(root, "lint")).status).toBe(CLI_EXIT.passed);
 	});
 
 	it("without --staged, covers every file changed since HEAD", async () => {

@@ -134,3 +134,5 @@ export function interruptedQuality(root: string): Promise<Run> {
 		});
 	});
 }
+
+export const CLI_EXIT = { invalid: 2, passed: 0, rejected: 1 } as const;

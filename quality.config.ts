@@ -64,7 +64,33 @@ export default defineConfig({
 	],
 	local: [catalogOnly, catalogOverrides, codecovComponents, exactCatalogVersion, migrationConvention, unreadable, workspaceSection],
 	rules: {
+		"boundaries/auth-sql": { options: { owners: ["packages/platform/src/server/better-auth/**"] } },
+		"boundaries/http-status": { options: { edge: ["packages/platform/src/server/rpc-server/**", "packages/platform/src/server/node-http/**"] } },
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },
+		"tests/support-imports": {
+			options: {
+				modules: [
+					"packages/quality/src/biome/report.ts",
+					"packages/quality/src/cli/program.ts",
+					"packages/quality/src/cli/runMain.ts",
+					"packages/quality/src/config.ts",
+					"packages/quality/src/engine/violation.ts",
+					"packages/quality/src/imports/fences/dsl.ts",
+					"packages/quality/src/imports/fences/selectors.ts",
+					"packages/quality/src/inventory/collect.ts",
+					"packages/quality/src/rule.ts",
+					"packages/quality/src/rules/suppressions/biomeOverrides.ts",
+					"packages/test-story/src/server/storyKit.ts",
+					"packages/platform/src/server/appHost.ts",
+					"packages/platform/src/errors/taxonomy.ts",
+					"packages/work-fleet/src/policy.ts",
+					"packages/work-fleet/src/session/schema.ts",
+					"examples/starter/src/server/notesHost.ts",
+					"examples/starter/src/notes.ts",
+					"examples/starter/src/server/noteJobs.ts",
+				],
+			},
+		},
 	},
 	sources: ["packages", "examples", "script"],
 });
