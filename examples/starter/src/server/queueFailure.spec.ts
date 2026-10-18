@@ -1,10 +1,23 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { app, rejectedNoteCommits, rejectedNoteJobs, signedIn } from "#test-support/application.ts";
+import { app, rejectedNoteCommits, signedIn } from "#test-support/application.ts";
 
-app.it("saves and edits notes when PostgreSQL rejects enqueueing", [signedIn(), rejectedNoteJobs()], function* ({ actor, storedNotes, logs }) {
+app.it("saves and edits notes when the queue client rejects enqueueing", [signedIn()], function* ({ actor, storedNotes, logs, failNextNoteJob }) {
 	const { notes } = actor();
+	yield* failNextNoteJob();
 	const created = yield* notes.create({ title: "Still saved" });
+	expect(logs()).toContainEqual(
+		expect.objectContaining({
+			message: expect.arrayContaining([
+				expect.objectContaining({
+					error: expect.objectContaining({ operation: "enqueue", queue: "count-note-words" }),
+					event: "note_enqueue_failed",
+					noteId: created.id,
+				}),
+			]),
+		}),
+	);
+	yield* failNextNoteJob();
 	const edited = yield* notes.update({ ...created, title: "Still edited" });
 	expect(yield* notes.get({ id: created.id })).toEqual(edited);
 	expect(yield* storedNotes()).toEqual(

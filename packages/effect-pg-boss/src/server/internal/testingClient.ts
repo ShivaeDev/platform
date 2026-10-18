@@ -2,10 +2,12 @@ import type { Job, PgBoss, SendOptions, UpdateOptions, UpdateRequest, UpdateResp
 import type { PgBossClient } from "#client.ts";
 import { expireAttempt } from "#internal/expireAttempt.ts";
 import { observeTestingSettlements } from "#internal/observeTestingSettlements.ts";
+import type { testingCompletions } from "#internal/testingCompletions.ts";
 import { testingExpirations } from "#internal/testingExpirations.ts";
 
 export interface TestingControls {
 	readonly changed: () => void;
+	readonly completions: ReturnType<typeof testingCompletions>;
 	readonly expirations: Map<string, number>;
 	readonly failures: Set<string>;
 	readonly retryPolicy: Pick<SendOptions, "retryBackoff" | "retryDelay">;
@@ -24,6 +26,7 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 	const overrides: Partial<PgBossClient> = {
 		complete: async (...args) => {
 			const result = await client.complete(...args);
+			controls.completions.acknowledge(args[0], args[1], result);
 			controls.changed();
 			return result;
 		},

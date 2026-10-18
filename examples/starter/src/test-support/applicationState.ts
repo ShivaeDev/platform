@@ -1,4 +1,5 @@
 import type { Effect } from "effect";
+import type { PgBossTesting } from "@shivaedev/effect-pg-boss/testing.ts";
 import type { Note } from "#notes.ts";
 import type { DatabaseLifetimeReadout } from "./DatabaseLifetime.ts";
 import type { HostOptions, RunningHost } from "./host.ts";
@@ -16,4 +17,5 @@ export interface Engine {
 	host: RunningHost | undefined;
 	hostOptions: HostOptions;
 	tell: (line: string) => void;
+	readonly workerTesting: PgBossTesting;
 }

@@ -1,5 +1,6 @@
 import { Config, Effect, Layer, Redacted } from "effect";
 import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
+import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/client.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
 import { otlpTracing } from "@shivaedev/platform/server/otlpTracing.ts";
@@ -20,12 +21,17 @@ const countWords = CountWords.handle(({ noteId }) =>
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.withSpan("CountWords", { kind: "consumer" })),
 );
 
-export function noteWorker(config?: { readonly databaseUrl?: Redacted.Redacted<string> }) {
+export function noteWorker(config?: { readonly databaseUrl?: Redacted.Redacted<string>; readonly clientFactory?: PgBossClientFactory }) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const pool = yield* authDatabase(databaseUrl);
-			return NoteJobs.layer({ connectionString: Redacted.value(databaseUrl), jobs: [countWords], migrate: false }).pipe(
+			return NoteJobs.layer({
+				...(config?.clientFactory === undefined ? {} : { clientFactory: config.clientFactory }),
+				connectionString: Redacted.value(databaseUrl),
+				jobs: [countWords],
+				migrate: false,
+			}).pipe(
 				Layer.tap(() => Effect.logInfo("Worker ready to take jobs")),
 				Layer.provideMerge(appDatabase(databaseOptions(pool, databaseUrl)).pipe(Layer.tap(() => Effect.logInfo("Worker migrations applied")))),
 			);

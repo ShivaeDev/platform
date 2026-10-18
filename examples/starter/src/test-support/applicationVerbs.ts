@@ -2,6 +2,7 @@ import { ConfigProvider, Effect, Exit, Layer, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { makeAuth } from "#client/auth.ts";
+import { CountWords } from "#server/noteJobs.ts";
 import { noteWorker } from "#server/noteWorker.ts";
 import type { Engine } from "./applicationState.ts";
 import { authPost, credentials } from "./authHttp.ts";
@@ -28,7 +29,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 	const startWorker = Effect.fn("AppStory.startWorker")(function* (env?: Record<string, string>) {
 		story.tell("start the word-count worker");
 		const database = yield* PostgresTestDatabase;
-		const worker = noteWorker({ databaseUrl: database.url });
+		const worker = noteWorker({ clientFactory: engine.workerTesting.clientFactory, databaseUrl: database.url });
 		const scope = yield* Scope.fork(yield* Scope.Scope);
 		yield* Layer.buildWithScope(
 			env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),
@@ -73,6 +74,10 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		authenticateResponse: (name: string, path: string) => authPost(host().baseUrl, path, credentials(name), "", host().origin),
 		authRateLimits: () => authRateLimits(host(), story.tell),
 		createInRolledBackTransaction: () => createInRolledBackTransaction(host(), story.tell),
+		failNextNoteJob: Effect.fn("AppStory.failNextNoteJob")(function* () {
+			story.tell("the queue client rejects the next word-count send");
+			yield* host().jobsTesting.failNextSend(CountWords);
+		}),
 		foreignRequest: (cookie: string) => http().foreignRequest(cookie),
 		liveNotes: (name = "alice") => {
 			story.tell(`${name} watches the live notes list`);
@@ -90,5 +95,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		}),
 		runningHost: host,
 		startWorker,
+		wordCountCompletions: () => engine.workerTesting.completions(CountWords),
 	};
 }

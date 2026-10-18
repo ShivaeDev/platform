@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
+import { makePgBossTesting } from "@shivaedev/effect-pg-boss/testing.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { type HostOptions, startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
@@ -20,7 +21,15 @@ export const app = storyKit({
 	create: (): Effect.Effect<Engine> =>
 		Effect.gen(function* () {
 			const databaseLifetime = yield* DatabaseLifetime;
-			return { actors: new Map(), databaseLifetime, existingNotes: new Map(), host: undefined, hostOptions: {}, tell: () => undefined };
+			return {
+				actors: new Map(),
+				databaseLifetime,
+				existingNotes: new Map(),
+				host: undefined,
+				hostOptions: {},
+				tell: () => undefined,
+				workerTesting: makePgBossTesting(),
+			};
 		}),
 	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),
 	layer: postgres,
@@ -56,13 +65,6 @@ export function legacyNote(title: string) {
 	return app.trait("notes", `PostgreSQL contains the unowned note ${JSON.stringify(title)}`, function* () {
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`insert into notes (title) values (${title})`;
-	});
-}
-
-export function rejectedNoteJobs() {
-	return app.trait("notes", "PostgreSQL rejects word-count jobs", function* () {
-		const sql = yield* SqlClient.SqlClient;
-		yield* sql`alter table pgboss.job add constraint reject_note_jobs check (name <> 'count-note-words')`;
 	});
 }
 

@@ -1,6 +1,6 @@
 import { Context, Deferred, Effect, Layer, Option, Redacted, Schema } from "effect";
 import { Migrator } from "effect/sql";
-import type { JobWithMetadata, SendOptions } from "pg-boss";
+import type { JobAttempt, JobWithMetadata, SendOptions } from "pg-boss";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
@@ -36,6 +36,7 @@ function* create() {
 			worker: { batchSize: 2, pollingIntervalSeconds: 0.5 },
 		}),
 		readout,
+		recoverAfter: Number.POSITIVE_INFINITY,
 		release: yield* Deferred.make<void>(),
 		revision: 0,
 		testing: makePgBossTesting({ retryPolicy: testRetryPolicy }),
@@ -70,9 +71,10 @@ export const queues = storyKit({
 			const database = yield* PostgresTestDatabase;
 			const worker = state.queue.handle(({ id }) => {
 				state.attempts.push(id);
-				return state.paused
-					? Deferred.succeed(state.entered, undefined).pipe(Effect.andThen(Deferred.await(state.release)))
-					: Effect.fail(new Error("The worker fails this attempt"));
+				if (state.paused) {
+					return Deferred.succeed(state.entered, undefined).pipe(Effect.andThen(Deferred.await(state.release)));
+				}
+				return state.attempts.length > state.recoverAfter ? Effect.void : Effect.fail(new Error("The worker fails this attempt"));
 			});
 			const context = yield* Layer.build(
 				Jobs.layer({
@@ -107,6 +109,14 @@ export const queues = storyKit({
 	verbs: (state, story) => ({
 		attempts: state.attempts,
 		client: Option.getOrThrow(state.client),
+		complete: (attempt: JobAttempt) =>
+			Effect.promise(() => {
+				const client = Option.getOrThrow(state.client);
+				if (client.complete === undefined) {
+					throw new Error("The testing client must support completion");
+				}
+				return client.complete(state.queue.name, attempt);
+			}),
 		queue: state.queue,
 		releaseWorker: Deferred.succeed(state.release, undefined),
 		send: (id: number, options?: SendOptions) => Option.getOrThrow(state.jobs).enqueue(state.queue, { id }, options),
@@ -126,6 +136,11 @@ export const failingWorker = queues.trait("configuration", "a real worker fails 
 export const pausedWorker = queues.trait("configuration", "a real worker waits before completing", (state) => {
 	state.worker = true;
 	state.paused = true;
+});
+
+export const recoveringWorker = queues.trait("configuration", "a real worker succeeds after one failed attempt", (state) => {
+	state.worker = true;
+	state.recoverAfter = 1;
 });
 
 export const productionRetries = queues.trait("configuration", "retry settings keep their production policy", (state) => {
