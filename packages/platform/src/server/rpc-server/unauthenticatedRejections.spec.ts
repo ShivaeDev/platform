@@ -4,8 +4,8 @@ import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { expect, it } from "vitest";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#errors/taxonomy.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
-import { rpcBoundary } from "#rpc-server/boundary.ts";
-import { requestTracingLayer } from "#rpc-server/tracing.ts";
+import { rpcBoundary } from "#server/rpc-server/boundary.ts";
+import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { httpClient, recorder, rpcHttp } from "#test/rpc/harness.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError, ServiceUnavailable]);

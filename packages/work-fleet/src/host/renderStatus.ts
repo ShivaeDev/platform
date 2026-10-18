@@ -1,4 +1,4 @@
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { sessionStatus } from "#engine/sessionStatus.ts";
 import { type DaemonStatus, renderConfig } from "#host/configSettings.ts";
 import type { FleetViews } from "#model.ts";

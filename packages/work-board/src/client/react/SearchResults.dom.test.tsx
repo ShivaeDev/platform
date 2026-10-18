@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings, render } from "@shivaedev/effect-react/client/testing.ts";
 import { SearchResults } from "./SearchResults.tsx";
 import type { SearchItem } from "./searchCommands.ts";
 

@@ -2,7 +2,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { BrowserClient } from "#client/client.ts";
 import { AgeTicker } from "./Age.tsx";
 import { FleetMain } from "./FleetMain.tsx";

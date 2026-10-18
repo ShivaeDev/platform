@@ -1,5 +1,13 @@
 import { recoveryFleet } from "#test/recoveryFleet.ts";
 
+export const runningReview = recoveryFleet.trait("configuration", "the reviewer stays active until the provider completes it", (state) => {
+	state.options = { ...state.options, reviewRunning: true };
+});
+
+export const requestedRepair = recoveryFleet.trait("configuration", "the first independent review requests a repair", (state) => {
+	state.options = { ...state.options, repairs: true };
+});
+
 export function lostAcknowledgement() {
 	return recoveryFleet.trait("configuration", "the accepted turn acknowledgement is lost", (state) => {
 		state.options = { ...state.options, lostAcknowledgement: true };

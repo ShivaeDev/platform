@@ -2,7 +2,7 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Deferred, Effect } from "effect";
 import { act } from "react";
 import { expect, type MockInstance, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type BoardTestApi, renderBoard } from "#test/react.tsx";
 import { renderRouter } from "#test/renderRouter.tsx";

@@ -12,11 +12,9 @@ export function workPublication() {
 	const github = syntheticGithub();
 	const refs = `repos/example/repository/git/matching-refs/heads/${encodeURIComponent(WORK_BRANCH)}`;
 	const pulls = `repos/example/repository/pulls?state=all&head=${encodeURIComponent(`example:${WORK_BRANCH}`)}&per_page=100`;
-	const openPulls = pulls.replace("state=all", "state=open");
 	const host = resolveHost("/synthetic", { provider: "cloud", worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" } });
 	github.reply(refs, []);
 	github.reply(pulls, []);
-	github.reply(openPulls, []);
 	return {
 		branch: () => github.reply(refs, [{ ref: `refs/heads/${WORK_BRANCH}` }]),
 		neighbour: () => github.reply(refs, [{ ref: `refs/heads/${WORK_BRANCH}-other` }]),
@@ -27,11 +25,9 @@ export function workPublication() {
 				state: state === "open" ? "open" : "closed",
 			};
 			github.reply(pulls, [pr]);
-			github.reply(openPulls, state === "open" ? [pr] : []);
 		},
 		pullsUnavailable: () => {
 			github.reply(pulls, {}, { status: 503 });
-			github.reply(openPulls, {}, { status: 503 });
 		},
 		query: (work: BoardWork) =>
 			Effect.gen(function* () {

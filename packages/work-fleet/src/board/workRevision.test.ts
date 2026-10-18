@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
+import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { dependencySource } from "#test/dependencyBoard.ts";

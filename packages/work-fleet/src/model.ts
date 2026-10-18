@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { diagnostics } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { AttentionOwner } from "#attention.ts";
 import { BoardReport } from "#board/schema.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";

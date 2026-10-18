@@ -3,10 +3,9 @@ import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { recoverMissingTurn } from "#engine/recoverMissingTurn.ts";
 import { resumeAttempt } from "#engine/resumeAttempt.ts";
+import { VISIBILITY_GRACE_MS } from "#engine/visibility.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
-
-const VISIBILITY_GRACE_MS = 5 * 60_000;
 
 export const recoverUnobservable = Effect.fn("Fleet.recoverUnobservable")(function* (
 	state: EngineState,

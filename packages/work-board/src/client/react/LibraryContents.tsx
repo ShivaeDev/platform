@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Library, LibraryFile } from "#browser/navigation/library.ts";
 import { Age } from "./Age.tsx";
 import type { ShellApi } from "./ShellApi.ts";

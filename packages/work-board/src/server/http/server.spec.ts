@@ -4,7 +4,7 @@ import { Effect, Layer, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import { afterEach, describe, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
-import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
+import { loopbackOnly } from "@shivaedev/platform/server/rpc-server/local.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { countingPaths, silentWatch } from "#test/faults.ts";
 import { changesUntil, rpcPaths, subscribe } from "#test/nativeRpc.ts";

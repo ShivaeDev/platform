@@ -4,13 +4,15 @@ import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
+import { readWaitStates } from "#host/readWaitStates.ts";
 import { renderStatus } from "#host/renderStatus.ts";
 import { SessionFailure } from "#session/schema.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
-import { createEngine, prepareWork } from "#test/engine.ts";
+import { createEngine, finishWorkers, prepareWork } from "#test/engine.ts";
 import { lostTurnProvider } from "#test/lostTurnProvider.ts";
 import { postgresLayer, postgresUrl } from "#test/postgres.ts";
-import { watchRecovery } from "#test/watchRecovery.ts";
+import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
+import { type RecoverySnapshots, watchRecovery } from "#test/watchRecovery.ts";
 import { workPublication } from "#test/workPublication.ts";
 
 interface RecoveryFleetState {
@@ -91,6 +93,10 @@ export const recoveryFleet = storyKit({
 				story.tell("the lost thread has another active turn");
 				state.provider.active(sessionId);
 			},
+			finish: () => {
+				story.tell("the provider reports that active turns completed");
+				finishWorkers(running(state).fixture);
+			},
 			idle: (sessionId: string) => {
 				story.tell("the lost thread becomes idle");
 				state.provider.idle(sessionId);
@@ -129,9 +135,10 @@ export const recoveryFleet = storyKit({
 		status: Effect.fnUntraced(function* () {
 			return renderStatus(views((yield* running(state).fleet.list()).map(({ value }) => value)));
 		}),
-		watch: (follow = true) => {
+		storedSnapshot: () => readWaitStates({ namespace: STORAGE_NAMESPACE }),
+		watch: (follow = true, recorded?: RecoverySnapshots) => {
 			story.tell(`run watch${follow ? " --follow" : ""} against the persisted Fleet snapshots over HTTP`);
-			return watchRecovery(follow);
+			return watchRecovery(follow, recorded);
 		},
 	}),
 });

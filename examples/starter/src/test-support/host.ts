@@ -1,4 +1,4 @@
-import { ConfigProvider, Effect, Layer, Redacted } from "effect";
+import { ConfigProvider, Effect, Layer, Logger, Redacted, References } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { vi } from "vitest";
@@ -36,7 +36,15 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	const host = notesHost({ databaseUrl: database.url, secret, ...(deployed ? {} : { port: 0 }) }).pipe(
 		Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))),
 	);
-	const context = yield* Layer.build(host);
+	const logs: { level: string; message: unknown; annotations: Record<string, unknown> }[] = [];
+	const logger = Logger.make((entry) => {
+		logs.push({
+			annotations: entry.fiber.getRef(References.CurrentLogAnnotations),
+			level: entry.logLevel,
+			message: entry.message,
+		});
+	});
+	const context = yield* Layer.build(host.pipe(Layer.provideMerge(Logger.layer([logger]))));
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected a TCP server");
@@ -49,7 +57,7 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 			)
 		: undefined;
 	const baseUrl = proxy?.url ?? upstream;
-	return { baseUrl, context, origin: deployed ? PUBLIC_URL : baseUrl };
+	return { baseUrl, context, logs, origin: deployed ? PUBLIC_URL : baseUrl };
 });
 
 export type RunningHost = Effect.Success<ReturnType<typeof startHost>>;

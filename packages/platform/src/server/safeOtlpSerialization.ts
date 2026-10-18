@@ -1,8 +1,8 @@
 import { Effect, Layer } from "effect";
 import type { OtlpResource } from "effect/observability";
 import { OtlpSerialization } from "effect/observability";
-import { redactOtlpUrl } from "#redactOtlpUrl.ts";
-import { isSensitiveKey, REDACTED, redactText } from "#rpc-server/sensitive.ts";
+import { redactOtlpUrl } from "#server/redactOtlpUrl.ts";
+import { isSensitiveKey, REDACTED, redactText } from "#server/rpc-server/sensitive.ts";
 
 function sensitive(key: string) {
 	return isSensitiveKey(key) || ["db.user", "db.user.name", "db.connection_string"].includes(key.toLowerCase());

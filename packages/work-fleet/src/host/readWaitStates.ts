@@ -32,7 +32,7 @@ export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* 
 	const selected = rows.filter((row) => ids === undefined || ids.includes(row.work_id));
 	const states = yield* Schema.decodeUnknownEffect(Schema.Array(Snapshot))(yield* recordValues(selected, shape, options.namespace));
 	return states.map(({ attempts, ...state }) => {
-		const recovery = recoveryStatus(attempts);
+		const recovery = recoveryStatus(attempts, state.stage);
 		return { ...state, ...(recovery === undefined ? {} : { recovery }), outcome: state.outcome ?? {} };
 	});
 });
