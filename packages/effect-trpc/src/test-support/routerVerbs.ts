@@ -85,6 +85,7 @@ export function routerVerbs(engine: RouterEngine, tell: (line: string) => void) 
 			tell(`subscribe to ${path}`);
 			return Effect.promise(() => failureOf(host.subscribe(path, input)));
 		},
+		resolverCauses: engine.resolverCauses,
 		started: (iterator: AsyncIterator<unknown>) =>
 			Effect.suspend(() => {
 				const path = subscriptions.get(iterator);

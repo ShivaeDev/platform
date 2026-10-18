@@ -24,7 +24,7 @@ export function* adapterHost<R, E>(engine: RouterEngine, layer: Layer.Layer<R, E
 				if (Option.isSome(request)) {
 					engine.instrumentedRequests.push(request.value);
 				}
-				return yield* effect;
+				return yield* effect.pipe(Effect.tapCause((cause) => Effect.sync(() => engine.resolverCauses.push({ cause, path: info.path }))));
 			});
 		},
 		instrumentStream: (stream, info) => {

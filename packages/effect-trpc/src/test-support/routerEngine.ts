@@ -1,6 +1,6 @@
 import { createTRPCUntypedClient, httpBatchLink } from "@trpc/client";
 import type { AnyTRPCRouter, TRPCDefaultErrorShape } from "@trpc/server";
-import { Effect, type Layer, ManagedRuntime, type Scope } from "effect";
+import { type Cause, Effect, type Layer, ManagedRuntime, type Scope } from "effect";
 import type { EffectTRPCAdapter } from "#adapter.ts";
 import type { EffectTRPCErrorContext } from "#types.ts";
 import { inProcess } from "./http.ts";
@@ -30,6 +30,7 @@ export interface RouterEngine {
 	mapped: { error: unknown; origin: string; path: string }[];
 	mode: { trait: string; value: "instrument-defect" | "mapper-defect" | "runtime-failure" } | undefined;
 	requestId: string;
+	resolverCauses: { cause: Cause.Cause<unknown>; path: string }[];
 	streamStarted: ReturnType<typeof Promise.withResolvers<void>>;
 }
 
@@ -46,6 +47,7 @@ export function emptyEngine(): RouterEngine {
 		mapped: [],
 		mode: undefined,
 		requestId: "request-1",
+		resolverCauses: [],
 		streamStarted: Promise.withResolvers<void>(),
 	};
 }

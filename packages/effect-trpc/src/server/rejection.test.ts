@@ -5,8 +5,11 @@ import { RejectionError } from "#rejection.ts";
 import { Conflict, other, rejectionRules } from "#test/rejectionRules.ts";
 import { customErrorShape, requestIs, trpc } from "#test/routerStory.ts";
 
-trpc.it("encodes only declared fields in a RejectionError", [rejectionRules()], function* ({ rejectCaller }) {
+trpc.it("encodes only declared fields in a typed RejectionError failure", [rejectionRules()], function* ({ rejectCaller, resolverCauses }) {
 	const error = yield* rejectCaller("conflict");
+	expect(resolverCauses).toHaveLength(1);
+	expect(resolverCauses[0]?.path).toBe("conflict");
+	expect(resolverCauses[0]?.cause.reasons).toEqual([expect.objectContaining({ _tag: "Fail", error })]);
 	expect(error).toBeInstanceOf(TRPCError);
 	expect(error).toBeInstanceOf(RejectionError);
 	expect(error).toMatchObject({ cause: undefined, code: "CONFLICT", message: "Name is taken" });
@@ -19,6 +22,7 @@ trpc.it("leaves successes, undeclared failures and defects untouched", [rejectio
 	expect(yield* query("success")).toBe(1);
 	const failure = yield* rejectQuery("other");
 	expect(rejection(failure)).toEqual(Option.none());
+	expect(mapped).toContainEqual({ error: other, origin: "failure", path: "other" });
 	expect(mapped.find(({ path }) => path === "other")?.error).toBe(other);
 	const defect = yield* rejectQuery("die");
 	expect(rejection(defect)).toEqual(Option.none());
