@@ -59,6 +59,7 @@ export const checkRecordAdmission = Effect.fn("FleetStore.checkRecordAdmission")
 		previous,
 		entries.map(({ value }) => value),
 		limits,
+		external,
 	) ?? Effect.void;
 	const others = entries.filter(({ value }) => value.workId !== record.workId);
 	const acquiringExecution = acquires(options.executing, record, previous);

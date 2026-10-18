@@ -11,7 +11,7 @@ test("concurrent foreign transfers of one PR occupy a single backlog slot", () =
 				[store.reserveForeign("pr-one", { backlog: true, executing: false }), store.reserveForeign("pr-one", { backlog: true, executing: false })],
 				{ concurrency: 2 },
 			);
-			expect(yield* store.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "pr-one" }]);
+			expect(yield* store.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "pr-one" }]);
 			expect(Exit.isFailure(yield* store.insert({ ...record("board-a"), stage: "terminal" }, { maxBacklog: 1 }).pipe(Effect.exit))).toBe(true);
 			yield* store.insert({ ...record("board-a"), stage: "terminal" }, { maxBacklog: 2 });
 		}),

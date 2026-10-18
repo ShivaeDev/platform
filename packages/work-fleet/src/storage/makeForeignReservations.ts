@@ -36,16 +36,20 @@ export const makeForeignReservations = Effect.fn("FleetStore.makeForeignReservat
 				}),
 			);
 		}),
-		reserveForeign: (owner: string, occupancy: { readonly executing: boolean; readonly backlog: boolean } = { backlog: true, executing: true }) =>
+		reserveForeign: (
+			owner: string,
+			occupancy: { readonly executing: boolean; readonly backlog: boolean } = { backlog: true, executing: true },
+			areas: readonly string[] = [],
+		) =>
 			commit(
 				[fleetRecords.list],
 				Effect.gen(function* () {
 					yield* lock;
 					const existing = yield* reservations.findMany({ where: { owner } });
 					if (existing.length === 0) {
-						yield* reservations.insertVoid({ owner, ...occupancy });
+						yield* reservations.insertVoid({ areas, owner, ...occupancy });
 					} else {
-						yield* reservations.updateVoid({ owner, ...occupancy });
+						yield* reservations.updateVoid({ areas, owner, ...occupancy });
 					}
 				}),
 			),

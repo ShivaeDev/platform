@@ -19,5 +19,6 @@ export const legacyStore = Effect.fn("FleetFixture.legacyStore")(function* (name
 	for (const [index, row] of rows.entries()) {
 		yield* sql`insert into ${sql(table)} (work_id, version, payload) values (${row.work_id}, ${Number(row.version) + 1}, ${payloads[index]}::jsonb)`;
 	}
+	yield* sql`alter table ${sql(`${namespace}_foreign_reservations`)} drop column areas`;
 	yield* sql`delete from ${sql(`${namespace}_migrations`)} where migration_id >= 4`;
 });

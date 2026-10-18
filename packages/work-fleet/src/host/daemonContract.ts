@@ -13,6 +13,12 @@ const { DAEMON_RPC_PATH, DiagnosticsContract } = diagnosticsApi;
 
 export const ClientContract = contract("daemon", {
 	commands: [
+		command("reserve-pr", {
+			invalidates: () => [fleetRecords.list],
+			payload: { areas: Schema.Array(Schema.String), pr: Schema.String },
+			rejections: fleetRejections,
+			success: Schema.Void,
+		}),
 		command("release", {
 			invalidates: ({ workIds }) => [fleetRecords.list, ...workIds.map(fleetRecords.item)],
 			payload: { workIds: Schema.Array(Schema.String) },

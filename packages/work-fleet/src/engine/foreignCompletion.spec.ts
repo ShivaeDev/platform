@@ -12,7 +12,7 @@ fleetStory.it("a closed PR releases its foreign backlog once and waiting work la
 	expect(yield* fleet.attemptDispatch("two")).toMatchObject({ kind: "backlog" });
 	expect((yield* fleet.get("two")).value.stage).toBe("prepared");
 	yield* fleet.reconcile("one");
-	expect(yield* fleet.reservations()).toEqual([{ backlog: true, executing: false, owner: PR }]);
+	expect(yield* fleet.reservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: PR }]);
 	fleet.closePrOnGithub();
 	const closed = yield* fleet.reconcile("one");
 	expect(closed.value).toMatchObject({ decision: { code: "pr-closed" }, stage: "needs-human" });
@@ -38,7 +38,7 @@ fleetStory.it("a merged PR releases its foreign backlog and waiting work launche
 	expect(yield* fleet.attemptDispatch("two")).toMatchObject({ kind: "backlog" });
 	expect((yield* fleet.get("two")).value.stage).toBe("prepared");
 	yield* fleet.reconcile("one");
-	expect(yield* fleet.reservations()).toEqual([{ backlog: true, executing: false, owner: PR }]);
+	expect(yield* fleet.reservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: PR }]);
 	fleet.mergePrOnGithub();
 	expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
 	expect(yield* fleet.reservations()).toEqual([]);
@@ -84,5 +84,5 @@ fleetStory.it("releasing work whose PR is still open retains its foreign backlog
 	expect(yield* fleet.reservations()).toEqual([]);
 	expect((yield* fleet.answerDecision("one", "release")).value.stage).toBe("released");
 	yield* fleet.reconcile("one");
-	expect(yield* fleet.reservations()).toEqual([{ backlog: true, executing: false, owner: PR }]);
+	expect(yield* fleet.reservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: PR }]);
 });

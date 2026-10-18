@@ -6,6 +6,7 @@ import { inBoardReadPass, workMetadata } from "#board/readPass.ts";
 import { briefChanged } from "#engine/boardBrief.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
+import { refreshForeignReservations } from "#host/foreignReservations.ts";
 import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
 import { workerCwd } from "#host/providers.ts";
 import type { DispatchNow, FleetRecord } from "#model.ts";
@@ -103,7 +104,7 @@ export const admitApproved = Effect.fn("FleetHost.admitApproved")(function* (hos
 	const records = new Map((yield* fleet.list()).map(({ value }) => [value.workId, value]));
 	const fs = yield* FileSystem.FileSystem;
 	const snapshot = yield* boardSnapshot(host.boardDir, yield* fs.realPath(host.boardDir));
-	const failures = Array.from(snapshot.problems.values(), (problem) => problem.message);
+	const failures = [...Array.from(snapshot.problems.values(), (problem) => problem.message), ...(yield* refreshForeignReservations())];
 	for (const workId of yield* approvedWorkIds(host)) {
 		const admitted = yield* board.get(workId).pipe(
 			Effect.flatMap((work) => prepareApproved(host, work, records.get(workId), "board")),
