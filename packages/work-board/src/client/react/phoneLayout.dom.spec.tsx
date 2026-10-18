@@ -21,10 +21,10 @@ screenStory.it(
 				["Goals", "/_board/goals"],
 				["Now", "/_board/work"],
 			]);
-			click(`${PHONE} button[aria-controls="search-dialog"]`);
+			click([...findElements(`${PHONE} button`)].find((button) => button.textContent === "Search"));
 			expect(findElement("#search-dialog", document)).not.toBeNull();
 			expect(findElement("#search-dialog kbd", document)).toBeNull();
-			expect(findElement("#search-dialog .search-help", document)).toBeNull();
+			expect(readText("#search-dialog", document)).not.toContain("Enter to open");
 			click("#search-close");
 			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 		}

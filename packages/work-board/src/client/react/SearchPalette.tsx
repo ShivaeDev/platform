@@ -1,7 +1,7 @@
-import { useCommandState } from "cmdk";
 import { Option } from "effect";
-import { type KeyboardEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type KeyboardEvent, type RefObject, useEffect, useRef, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { ActiveDescendant } from "#client/react/ActiveDescendant.tsx";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { Command, CommandInput } from "#client/react/components/ui/command.tsx";
 import { SearchResults } from "#client/react/SearchResults.tsx";
@@ -71,6 +71,16 @@ export function SearchPalette({
 			formRef.current?.requestSubmit();
 		}
 	}
+	function handleSearchButtonKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+		if (event.key === "Enter") {
+			event.stopPropagation();
+		}
+	}
+	function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+		if (event.key === "Home" || event.key === "End") {
+			event.stopPropagation();
+		}
+	}
 	const status = searchStatus(text, query.pending || editing, Option.isSome(query.cause), data);
 	return (
 		<Command
@@ -92,15 +102,23 @@ export function SearchPalette({
 				ref={formRef}
 			>
 				<div className="min-w-0 flex-1">
-					<CommandInput maxLength={200} onValueChange={setInput} placeholder="Search work or go to a view" ref={inputRef} value={input} />
+					<CommandInput
+						enterKeyHint="search"
+						maxLength={200}
+						onKeyDown={handleInputKeyDown}
+						onValueChange={setInput}
+						placeholder="Search work or go to a view"
+						ref={inputRef}
+						value={input}
+					/>
 				</div>
-				<Button className="mt-1" type="submit" variant="outline">
+				<Button className="mt-1" onKeyDown={handleSearchButtonKeyDown} type="submit" variant="outline">
 					Search
 				</Button>
 			</form>
 			<div className="space-y-1 p-2 text-muted-foreground text-xs">
 				<KeyboardHints>
-					<p className="search-help">↑/↓ to choose · Enter to open · Escape to close</p>
+					<p>↑/↓ to choose · Enter to open · Escape to close</p>
 				</KeyboardHints>
 				<p>Use records: to include Fleet records.</p>
 				<p className="text-foreground" id={shellIds.searchStatus} role="status">
@@ -111,26 +129,6 @@ export function SearchPalette({
 			<ActiveDescendant inputRef={inputRef} listRef={listRef} />
 		</Command>
 	);
-}
-
-function ActiveDescendant({
-	inputRef,
-	listRef,
-}: {
-	readonly inputRef: RefObject<HTMLInputElement | null>;
-	readonly listRef: RefObject<HTMLDivElement | null>;
-}) {
-	const value = useCommandState((state) => state.value);
-	// cmdk 1.1.1 leaves aria-activedescendant empty when it selects an item on its own.
-	useLayoutEffect(() => {
-		const selected = [...(listRef.current?.querySelectorAll("[cmdk-item]") ?? [])].find((item) => item.getAttribute("data-value") === value);
-		if (selected?.id) {
-			inputRef.current?.setAttribute("aria-activedescendant", selected.id);
-		} else {
-			inputRef.current?.removeAttribute("aria-activedescendant");
-		}
-	}, [value, inputRef, listRef]);
-	return null;
 }
 
 function activateAppearance(command: string | undefined, appearance: AppearanceControls, toggleSidebar: () => void) {

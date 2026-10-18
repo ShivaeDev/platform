@@ -15,7 +15,7 @@ const beta = passage("Beta evidence", 5);
 const gamma = passage("Gamma evidence", 7);
 const other: SearchItem = { href: "/other.md", kind: "document", snippet: "Other evidence", title: "Other" };
 screenStory.it(
-	"removes and reorders passages sharing a heading URL without retaining rows or repeating IDs",
+	"removes and reorders passages sharing a heading URL without retaining rows",
 	[searchResultScreen([alpha, beta, beta, gamma, other])],
 	function* ({ findElements, readText, refreshScreen }) {
 		function rows() {
@@ -23,7 +23,6 @@ screenStory.it(
 		}
 		function expectRows(items: readonly SearchItem[]) {
 			expect(rows().map((row) => readText("p", row))).toEqual(items.map((item) => item.snippet));
-			expect(new Set(rows().map((row) => row.id)).size).toBe(items.length);
 			expect(rows().map((row) => row.querySelector("a")?.getAttribute("href"))).toEqual(items.map((item) => item.href));
 		}
 

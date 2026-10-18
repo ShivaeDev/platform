@@ -22,11 +22,12 @@ for (const [route, target, title] of [
 				return <RouterProvider router={router} />;
 			}),
 		],
-		function* ({ readText }) {
+		function* ({ readText, findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(readText("h1")).toBe(title)));
 			expect(router?.state.location.href).toBe(target);
 			if (route === "changes") {
-				expect(readText('[data-slot="toggle-group-item"][aria-pressed="true"]')).toBe("Recently changed");
+				const recent = [...findElements("button")].find((button) => button.textContent === "Recently changed");
+				expect(recent?.getAttribute("aria-pressed")).toBe("true");
 			}
 		},
 	);

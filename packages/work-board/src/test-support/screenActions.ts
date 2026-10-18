@@ -1,6 +1,7 @@
 import { act } from "react";
 import { answerInput, answerPrompt, responseClick } from "./answerDraft.tsx";
 import { control } from "./chrome.ts";
+import { setNativeValue } from "./setNativeValue.ts";
 
 export function screenActions(tell: (line: string) => void) {
 	function input(target: string | HTMLInputElement | HTMLTextAreaElement | null | undefined, value: string) {
@@ -10,7 +11,7 @@ export function screenActions(tell: (line: string) => void) {
 			throw new Error(`Missing text field ${target}`);
 		}
 		act(() => {
-			Object.getOwnPropertyDescriptor(Object.getPrototypeOf(field), "value")?.set?.call(field, value);
+			setNativeValue(field, value);
 			field.dispatchEvent(new Event("input", { bubbles: true }));
 		});
 		return field;
@@ -45,11 +46,12 @@ export function screenActions(tell: (line: string) => void) {
 			});
 		},
 		chooseOption: async (trigger: string | Element | null | undefined, label: string) => {
-			tell(`the reader chooses ${JSON.stringify(label)} in ${typeof trigger === "string" ? trigger : trigger?.id}`);
 			const combobox = typeof trigger === "string" ? document.querySelector(trigger) : trigger;
 			if (!(combobox instanceof HTMLElement && combobox.getAttribute("role") === "combobox")) {
 				throw new Error(`Missing select trigger ${trigger}`);
 			}
+			const name = document.querySelector(`label[for="${CSS.escape(combobox.id)}"]`)?.textContent ?? combobox.id;
+			tell(`the reader chooses ${JSON.stringify(label)} in ${name}`);
 			await act(() => combobox.click());
 			const option = [...document.querySelectorAll<HTMLElement>(`#${CSS.escape(combobox.getAttribute("aria-controls") ?? "")} [role="option"]`)].find(
 				(candidate) => candidate.textContent === label,

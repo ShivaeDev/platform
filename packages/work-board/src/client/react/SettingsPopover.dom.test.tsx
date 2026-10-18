@@ -21,7 +21,7 @@ screenStory.it(
 		expect(control("#updates-toggle", HTMLButtonElement).textContent).toBe("Resume updates");
 		choose("#theme", "light");
 		expect(readRootAttribute("class")?.split(" ").includes("dark") ?? false).toBe(false);
-		keyboard("Escape", { bubbles: true }, document);
+		keyboard("Escape", {}, document);
 		yield* Effect.promise(() => eventually(() => expect(findElement('[role="dialog"][aria-label="Settings"]', document)).toBeNull()));
 		yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("settings-open")));
 	},

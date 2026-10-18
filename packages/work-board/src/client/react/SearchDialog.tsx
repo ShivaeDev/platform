@@ -4,6 +4,7 @@ import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "#
 import { SearchPalette } from "#client/react/SearchPalette.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
+import { textControl, textSelection } from "#client/react/textSelection.ts";
 import type { AppearanceControls } from "#client/react/useAppearance.ts";
 
 export function SearchDialog({
@@ -76,24 +77,9 @@ export function SearchDialog({
 }
 
 function restoreFocus(target: HTMLElement | undefined, selection: ReturnType<typeof textSelection>) {
-	if (!target?.isConnected) {
-		return;
-	}
-	target.focus({ preventScroll: true });
+	target?.focus({ preventScroll: true });
 	const control = textControl(target);
 	if (selection && control) {
 		control.setSelectionRange(selection.start, selection.end, selection.direction);
 	}
-}
-
-function textControl(element: Element | undefined) {
-	return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement ? element : undefined;
-}
-
-function textSelection(element: Element | undefined) {
-	const control = textControl(element);
-	if (!control || control.selectionStart === null || control.selectionEnd === null) {
-		return undefined;
-	}
-	return { direction: control.selectionDirection ?? "none", end: control.selectionEnd, start: control.selectionStart };
 }

@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef } from "react";
+import { textControl, textSelection } from "#client/react/textSelection.ts";
 
 export function Modal({
 	id,
@@ -7,18 +8,14 @@ export function Modal({
 	close,
 	children,
 	opener,
-	focus,
 	returnFocus,
-	className,
 }: {
-	readonly className?: string;
 	readonly id: string;
 	readonly title: string;
 	readonly open: boolean;
 	readonly close: () => void;
 	readonly children: ReactNode;
 	readonly opener?: string;
-	readonly focus?: string;
 	readonly returnFocus?: HTMLElement | undefined;
 }) {
 	const ref = useRef<HTMLDialogElement>(null);
@@ -35,17 +32,13 @@ export function Modal({
 			selectionRef.current = textSelection(previous);
 			dialog.returnValue = "";
 			dialog.showModal();
-			if (focus) {
-				document.getElementById(focus)?.focus();
-			}
 		} else if (!open && dialog.open) {
 			dialog.close();
 		}
-	}, [open, opener, focus, returnFocus]);
+	}, [open, opener, returnFocus]);
 	return (
 		<dialog
 			aria-labelledby={title}
-			className={className}
 			id={id}
 			onCancel={() => close()}
 			onClick={(event) => {
@@ -80,16 +73,4 @@ export function Modal({
 			{children}
 		</dialog>
 	);
-}
-
-function textControl(element: Element | null) {
-	return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement ? element : undefined;
-}
-
-function textSelection(element: Element | null) {
-	const control = textControl(element);
-	if (!control || control.selectionStart === null || control.selectionEnd === null) {
-		return undefined;
-	}
-	return { direction: control.selectionDirection ?? "none", end: control.selectionEnd, start: control.selectionStart };
 }

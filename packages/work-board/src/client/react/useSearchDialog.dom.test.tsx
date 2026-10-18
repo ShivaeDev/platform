@@ -17,7 +17,7 @@ screenStory.it(
 		click("#search-open");
 		input(QUERY, "Shared phrase");
 		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase.")));
-		keyboard("Escape", { bubbles: true, cancelable: true }, control(QUERY, HTMLInputElement));
+		keyboard("Escape", { cancelable: true }, control(QUERY, HTMLInputElement));
 		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 		click("#search-open");
 		expect(control(QUERY, HTMLInputElement).value).toBe("Shared phrase");
@@ -49,11 +49,11 @@ for (const modifier of ["ctrlKey", "metaKey"] as const) {
 			typeText(textarea, "Work in progress");
 			textarea.focus();
 			textarea.setSelectionRange(4, 8, "backward");
-			keyboard("k", { bubbles: true, cancelable: true, [modifier]: true }, textarea);
+			keyboard("k", { cancelable: true, [modifier]: true }, textarea);
 			expect(findElement("#search-dialog", document)).not.toBeNull();
 			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(control(QUERY, HTMLInputElement))));
 
-			keyboard("Escape", { bubbles: true, cancelable: true }, control(QUERY, HTMLInputElement));
+			keyboard("Escape", { cancelable: true }, control(QUERY, HTMLInputElement));
 			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(textarea)));
 			expect(textarea.value).toBe("Work in progress");

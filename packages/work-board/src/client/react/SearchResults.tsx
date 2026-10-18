@@ -20,7 +20,7 @@ export function SearchResults({
 		return `${identity}:${occurrence}`;
 	}
 	return (
-		<CommandList className="max-h-[min(420px,calc(100dvh-280px))] px-1 pb-1" label="Search results" ref={listRef}>
+		<CommandList className="max-h-[min(420px,calc(100dvh-280px))] px-1 pb-1 [scrollbar-width:thin]!" label="Search results" ref={listRef}>
 			{items.map((item) => {
 				const key = resultKey(item);
 				return <SearchResult activate={activate} item={item} key={key} value={key} />;

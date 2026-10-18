@@ -32,7 +32,7 @@ function fixtures() {
 			yield* Effect.promise(() =>
 				eventually(() => expect(control('#search-dialog [role="option"] p', HTMLElement).textContent).toBe("Second phrase changed.")),
 			);
-			keyboard("Enter", { bubbles: true }, control('#search-dialog [role="combobox"]', HTMLInputElement));
+			keyboard("Enter", {}, control('#search-dialog [role="combobox"]', HTMLInputElement));
 			yield* Effect.promise(() => eventually(() => expect(location()?.pathname).toBe("/notes/deep/proof.md")));
 			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 			yield* Effect.promise(() => closeScreen());

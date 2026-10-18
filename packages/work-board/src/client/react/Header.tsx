@@ -74,7 +74,6 @@ export function Header({
 				<InboxCount count={count} id={shellIds.inboxTopbarCount} />
 			</Button>
 			<Button
-				aria-controls="search-dialog"
 				aria-haspopup="dialog"
 				aria-label="Search"
 				className="hidden md:inline-flex"

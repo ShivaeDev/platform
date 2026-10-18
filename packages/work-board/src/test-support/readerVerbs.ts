@@ -6,6 +6,7 @@ import { followLink } from "./followLink.ts";
 import { formEvent } from "./formEvent.ts";
 import { waitFor } from "./live.ts";
 import { pageActions } from "./pageActions.ts";
+import { setNativeValue } from "./setNativeValue.ts";
 import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "./storyEngine.ts";
 import { currentReplies } from "./storyReplies.ts";
 
@@ -19,7 +20,7 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		if (!(field instanceof page().window.HTMLInputElement || field instanceof page().window.HTMLTextAreaElement)) {
 			throw new Error(`Missing ${selector}`);
 		}
-		Object.getOwnPropertyDescriptor(Object.getPrototypeOf(field), "value")?.set?.call(field, value);
+		setNativeValue(field, value);
 		field.dispatchEvent(new (page().window.Event)("input", { bubbles: true }));
 		return field;
 	}

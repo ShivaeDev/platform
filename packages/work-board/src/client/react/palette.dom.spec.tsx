@@ -67,7 +67,9 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(rows()[0]?.querySelector("a")?.getAttribute("href")).toBe("/_board/library")));
 		input(QUERY, "theme");
 		yield* Effect.promise(() => eventually(() => expect(rows()[0]?.dataset.command).toBe("theme")));
-		click(rows()[0]);
+		const address = window.location.href;
+		click(rows()[0]?.querySelector("a"));
 		expect(readRootAttribute("data-theme")).toBe("dark");
+		expect(window.location.href).toBe(address);
 	},
 );
