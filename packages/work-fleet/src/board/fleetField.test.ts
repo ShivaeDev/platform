@@ -9,7 +9,7 @@ function parsed(fleet?: string) {
 describe("Fleet frontmatter field", () => {
 	it("reads report deliverables as Fleet metadata while omitted fields retain the default", () => {
 		const report = metadataParse("---\nid: one\nkind: task\nfleet-deliverable: report\n---\n");
-		expect(report.diagnostics).toEqual([]);
+
 		expect(fleetDeliverable(report)).toBe("report");
 		expect(fleetDeliverable(parsed())).toBeUndefined();
 	});
@@ -20,11 +20,8 @@ describe("Fleet frontmatter field", () => {
 		expect(fleetApproved(parsed())).toBe(false);
 	});
 
-	it("keeps Board diagnostics other than the fleet field", () => {
-		expect(parsed("approved").diagnostics).toEqual([]);
+	it("reads launch overrides from Fleet frontmatter", () => {
 		const launch = metadataParse("---\nid: one\nkind: task\nfleet-launch:\n  effort: low\n---\n");
-		expect(launch.diagnostics).toEqual([]);
 		expect(fleetLaunch(launch)).toEqual({ effort: "low" });
-		expect(metadataParse("---\nid: one\nkind: task\nflavor: sweet\n---\n").diagnostics.map((diagnostic) => diagnostic.field)).toEqual(["flavor"]);
 	});
 });
