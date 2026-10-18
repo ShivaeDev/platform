@@ -86,7 +86,6 @@ export const answerCommand = Command.make(
 			(client) => client("daemon.answer", { release: input.release, text, workId: input.args[0] }),
 			`answer ${input.args[0]}`,
 		);
-		const detail = (value.pendingAnswers?.length ?? 0) > 0 ? "queued for the next turn" : value.blocker;
-		yield* Console.log(`${value.workId} ${value.stage}${detail === undefined ? "" : `: ${detail}`}`);
+		yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
 	}),
 ).pipe(Command.withDescription("Answer the waiting worker question or Fleet decision; read text from stdin if omitted, or use --release"));

@@ -11,9 +11,10 @@ import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 class AnswerRow extends Model.Class<AnswerRow>("FleetAnswer")({
 	"accepted_at": Schema.Number,
 	"decision_code": Schema.NullOr(DecisionCode),
-	"decision_id": Schema.String,
+	"decision_id": Schema.NullOr(Schema.String),
 	"decision_reason": Schema.String,
 	error: Schema.NullOr(Schema.String),
+	position: Model.GeneratedByDb(Schema.Number),
 	release: Schema.Boolean,
 	"request_id": Schema.String,
 	text: Schema.String,
@@ -24,12 +25,12 @@ export const answerStore = Effect.fn("FleetAnswer.answerStore")(function* (names
 	const sql = yield* SqlClient.SqlClient;
 	const commit = yield* makeFleetTransaction;
 	const repository = yield* makeRepository(AnswerRow, {
-		idColumn: "work_id",
+		idColumn: "request_id",
 		spanPrefix: "FleetAnswer",
 		tableName: `${namespace}_answers`,
 	});
 	function list(workId?: string) {
-		return repository.findMany({ where: { "work_id": workId } });
+		return repository.findMany({ orderBy: { direction: "asc", field: "position" }, where: { "work_id": workId } });
 	}
 	function locked<A, E, R>(workId: string, effect: Effect.Effect<A, E, R>) {
 		return commit(
@@ -38,31 +39,21 @@ export const answerStore = Effect.fn("FleetAnswer.answerStore")(function* (names
 		);
 	}
 	return {
-		accept: Effect.fn("FleetAnswer.accept")(function* (workId: string, decision: Decision, text: string, release: boolean) {
+		accept: Effect.fn("FleetAnswer.accept")(function* (workId: string, decision: Decision | undefined, text: string, release: boolean) {
 			return yield* locked(
 				workId,
 				Effect.gen(function* () {
 					const current = (yield* list(workId))[0];
-					if (current !== undefined && current.error === null) {
-						if (current.decision_id !== decision.id || current.text !== text || current.release !== release) {
+					if (current !== undefined && current.error === null && (decision !== undefined || current.decision_id !== null)) {
+						if (current.decision_id !== decision?.id || current.text !== text || current.release !== release) {
 							return yield* new Conflict({ message: "An answer is already recorded; check status before answering again" });
 						}
 						return current;
 					}
-					if (current !== undefined) {
-						yield* repository.delete(workId);
+					if (current !== undefined && current.error !== null) {
+						yield* repository.delete(current.request_id);
 					}
-					return yield* repository.insert({
-						"accepted_at": yield* Clock.currentTimeMillis,
-						"decision_code": decision.code ?? null,
-						"decision_id": decision.id,
-						"decision_reason": decision.reason,
-						error: null,
-						release,
-						"request_id": crypto.randomUUID(),
-						text,
-						"work_id": workId,
-					});
+					return yield* repository.insert(yield* answerInput(workId, decision, text, release));
 				}),
 			);
 		}),
@@ -70,11 +61,11 @@ export const answerStore = Effect.fn("FleetAnswer.answerStore")(function* (names
 			locked(
 				request.work_id,
 				Effect.gen(function* () {
-					const current = (yield* list(request.work_id))[0];
-					if (current?.request_id !== request.request_id) {
+					const current = (yield* list(request.work_id)).find((row) => row.request_id === request.request_id);
+					if (current === undefined) {
 						return;
 					}
-					yield* error === undefined ? repository.delete(request.work_id) : repository.updateVoid({ ...request, error });
+					yield* error === undefined ? repository.delete(request.request_id) : repository.updateVoid({ ...request, error });
 				}),
 			),
 		list,
@@ -82,3 +73,17 @@ export const answerStore = Effect.fn("FleetAnswer.answerStore")(function* (names
 });
 
 export type AnswerRequest = AnswerRow;
+
+const answerInput = Effect.fn("FleetAnswer.answerInput")(function* (workId: string, decision: Decision | undefined, text: string, release: boolean) {
+	return {
+		"accepted_at": yield* Clock.currentTimeMillis,
+		"decision_code": decision?.code ?? null,
+		"decision_id": decision?.id ?? null,
+		"decision_reason": decision?.reason ?? "",
+		error: null,
+		release,
+		"request_id": crypto.randomUUID(),
+		text,
+		"work_id": workId,
+	};
+});

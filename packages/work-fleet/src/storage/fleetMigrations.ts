@@ -60,5 +60,8 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			work_id text primary key, request_id text not null, decision_id text not null, accepted_at double precision not null,
 			decision_code text, decision_reason text not null, text text not null, release boolean not null, error text
 		)`,
+		"16_queued_answer_requests": sql`alter table ${sql(`${namespace}_answers`)}
+			drop constraint ${sql(`${namespace}_answers_pkey`)}, add primary key (request_id),
+			alter column decision_id drop not null, add column position integer generated always as identity`,
 	});
 });

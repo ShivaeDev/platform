@@ -103,7 +103,7 @@ function approvedPrFixture(fixture: HostFixture, github: Effect.Success<ReturnTy
 		);
 		return { decisionId: decision.id, responseId, workId: "one" };
 	}
-	return { answer, configFile: fixture.configFile, finishWorker, github, PR, provider: fixture.provider, ready, serve, started };
+	return { answer, configFile: fixture.configFile, finishWorker, github, host: fixture.host, PR, provider: fixture.provider, ready, serve, started };
 }
 
 export type ApprovedPrFixture = ReturnType<typeof approvedPrFixture>;

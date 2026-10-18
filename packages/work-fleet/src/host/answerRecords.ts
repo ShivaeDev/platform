@@ -20,7 +20,7 @@ export const answerRecords = Effect.fn("FleetHost.answerRecords")(function* (nam
 });
 
 export function withAnswerRequests<A extends { readonly workId: string }>(records: readonly A[], requests: readonly AnswerRequest[]) {
-	const byWork = new Map(requests.map((request) => [request.work_id, request]));
+	const byWork = new Map(requests.toReversed().map((request) => [request.work_id, request]));
 	return records.map((record) => {
 		const request = byWork.get(record.workId);
 		return request === undefined
