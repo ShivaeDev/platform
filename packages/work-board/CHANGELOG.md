@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.0 - 2026-10-18
+
+### Breaking
+
+- Rename `@shivaedev/work-board/render/failed.ts` to `@shivaedev/work-board/render/Failed.ts` and `@shivaedev/work-board/render/footnotes.ts` to `@shivaedev/work-board/render/footnoteIds.ts`. Import `RenderFailed` and `footnoteIds` from their new module paths.
+
 ## 0.15.0 - 2026-10-17
 
 ### Added
