@@ -2,13 +2,13 @@ import { isRedirect, type LoaderFnContext, redirect } from "@tanstack/react-rout
 import { Predicate } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
-import { documentQuery, navigationQuery } from "#client/page/routeQuery.ts";
 import type { ShellOptions } from "./BoardShell.tsx";
 import { documentRoute } from "./documentRoute.ts";
 import { loadProjection } from "./loadProjection.ts";
 import { loadRemaining } from "./loadRemaining.ts";
 import { projectionRoute } from "./projectionRoute.ts";
 import { remainingRoute } from "./remainingRoute.ts";
+import { documentQuery, navigationQuery } from "./routeQuery.ts";
 
 export type RouterShell = ShellOptions & { readonly registry: AtomRegistry.AtomRegistry };
 

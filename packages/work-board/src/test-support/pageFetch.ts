@@ -39,9 +39,6 @@ export function pageFetch({
 			if (native !== undefined) {
 				return native;
 			}
-			if (new URL(request.url).pathname === path) {
-				pageRequests.answered += 1;
-			}
 			return undefined;
 		},
 		beforeAsyncRequest: async ({ request, window }) => {
@@ -49,9 +46,6 @@ export function pageFetch({
 			const native = await rpcBefore(request, window, path, pageRequests, streams);
 			if (native !== undefined) {
 				return native;
-			}
-			if (requested === path) {
-				return rpcBefore(request, window, path, pageRequests, streams, true);
 			}
 			if (!requested.startsWith("/_board/mermaid/")) {
 				return undefined;

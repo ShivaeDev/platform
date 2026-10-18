@@ -1,9 +1,9 @@
 import { Option } from "effect";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
-import { navigationQuery, routeQueryOptions } from "#client/page/routeQuery.ts";
 import { fileUrl } from "#files/url.ts";
 import { inProgressItems } from "./inProgressItems.ts";
+import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { TodayGoals } from "./TodayGoals.tsx";
 import { TodayNeeds } from "./TodayNeeds.tsx";

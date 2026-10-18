@@ -49,13 +49,12 @@ it.live.each(routes.flatMap((route) => [false, true].map((failed) => ({ ...route
 			}),
 		);
 		const before = reads.filter((call) => call.tag === tag).length;
+		expect(before).toBeGreaterThan(0);
 		fail = false;
 		click();
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-status")).toBe("200")));
 		yield* Effect.promise(() => settle());
 		expect(page.window.location.pathname + page.window.location.search).toBe(url);
-		expect(page.document.querySelector("[data-legacy-main]")).toBeNull();
-		expect(reads.map((call) => call.tag)).not.toContain("work-board.page");
 		const projections = reads.filter((call) => call.tag === tag);
 		expect(projections.length).toBe(failed ? before + 1 : before);
 		for (const call of projections) {

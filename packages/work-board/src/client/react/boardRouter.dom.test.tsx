@@ -4,10 +4,10 @@ import { act } from "react";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { documentQuery } from "#client/page/routeQuery.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderBoard } from "#test/react.tsx";
 import { boardRouter } from "./boardRouter.ts";
+import { documentQuery } from "./routeQuery.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
