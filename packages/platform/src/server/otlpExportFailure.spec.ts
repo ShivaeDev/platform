@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Logger, ManagedRuntime, Option, References } from "effect";
-import { HttpClient } from "effect/http";
+import { HttpBody, HttpClient } from "effect/http";
 import { OtlpExporter } from "effect/observability";
 import { expect, it } from "vitest";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
@@ -68,11 +68,15 @@ it("warns again after the collector recovers", async () => {
 			warnings += 1;
 		}
 	});
-	const runtime = ManagedRuntime.make(otlpHttpClient.pipe(Layer.provideMerge(Logger.layer([logger]))));
+	const runtime = ManagedRuntime.make(otlpHttpClient().pipe(Layer.provideMerge(Logger.layer([logger]))));
 	try {
 		const counts: number[] = [];
 		for (const status of statuses) {
-			const response = await runtime.runPromise(Effect.flatMap(HttpClient.HttpClient, (client) => client.get(receiver.url)));
+			const response = await runtime.runPromise(
+				Effect.flatMap(HttpClient.HttpClient, (client) =>
+					client.post(`${receiver.url}/v1/traces`, { body: HttpBody.jsonUnsafe({ resourceSpans: [] }) }),
+				),
+			);
 			expect(response.status).toBe(status);
 			counts.push(warnings);
 		}

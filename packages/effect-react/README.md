@@ -76,7 +76,7 @@ export function App({ session, recheck }: {
 
 `makeOrderClient` and `OrderScreens` belong to the application. A changed generation creates a new client and registry, remounts the screens and disposes the outgoing registry. `undefined` renders `signedOut`. Updating the session object with the same generation keeps the existing client: `connect` does not receive a rotated token until the identity changes. Include the credential generation when the client captures its token, as above.
 
-A query that fails with a tagged `Unauthorized` asks `recheck` to run and keeps its retained data. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
+A query that fails with a tagged `Unauthorized` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
 
 ### 2. Once per feature: native queries and actions
 
@@ -120,6 +120,8 @@ export function App() {
   return <RegistryProvider><Report /></RegistryProvider>;
 }
 ```
+
+For both queries and actions, a successful `undefined` is `Option.some(undefined)` in `data`, with `pending` and `refreshing` false. A defect or interruption is available as `Option.some(cause)` in `cause`; `isUnauthorized` returns false for those causes and they do not request a session recheck, even when the defect has an `Unauthorized` tag.
 
 The example's action returns a value; it does not persist the report or invalidate its query. In an application, use the native RPC query and mutation atoms instead:
 
@@ -377,7 +379,7 @@ Use `@shivaedev/effect-react/testing.ts` with Vitest's `happy-dom` environment. 
 
 ```sh
 pnpm add @shivaedev/effect-contract
-pnpm add -D vitest happy-dom react-dom@19.2.8 @types/react-dom
+pnpm add -D vitest happy-dom react-dom@19.3.0 @types/react-dom
 ```
 
 Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
@@ -462,10 +464,12 @@ The RPC layer stays application-owned: replace these in-memory handlers with the
 
 The [order feature’s application-owned kit](https://github.com/ShivaeDev/platform/tree/main/packages/effect-react/src/test-support/order-example) uses `test-story` above `effect-test` to compose real PostgreSQL, HTTP RPC and the actual React components. Its screen traits mount fresh native atom registries and scoped roots; its verbs dispatch DOM events and wait for rendered output. The [stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/orderStory.dom.spec.tsx) verify list refresh through `useAction` and rejected-input retention and retry through `useEditor`, with persistence read from a separate PostgreSQL pool. These tests require `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`; DOM and loopback HTTP establish no physical browser, SSR or mobile behavior.
 
+The [reference PostgreSQL feature](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses the same leased database infrastructure and a scoped story verb for its real server and rendered clients. Its stories verify commit visibility, live refresh of a second editor, retained local edits and rollback without publication. To start an application, use the [copyable starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) with `pnpm create @shivaedev/app my-app`.
+
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-react @effect/atom-react@4.0.4 effect@4.0.4 react@19.2.8
+pnpm add @shivaedev/effect-react @effect/atom-react@4.0.4 effect@4.0.4 react@19.3.0
 ```
 
 For editor, create or lower-level form modules, also install the optional form peer:
@@ -474,7 +478,7 @@ For editor, create or lower-level form modules, also install the optional form p
 pnpm add @shivaedev/effect-form
 ```
 
-Query, action, session and resume modules do not require effect-form. The package declares Node 24 or newer and peers on Effect, atom-react and React; this repository checks Effect and atom-react `4.0.4` with React `19.2.8`.
+Query, action, session and resume modules do not require effect-form. The package declares Node 24 or newer and peers on Effect, atom-react and React; this repository checks Effect and atom-react `4.0.4` with React `19.3.0`.
 
 - Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - Action state describes the atom's latest result. A `dispatch` is not a Promise or a separate result handle.
@@ -483,5 +487,3 @@ Query, action, session and resume modules do not require effect-form. The packag
 - DOM tests and an injected resume source do not prove real-browser or mobile lifecycle behavior. The real HTTP order fixture proves its local composition, not a deployed host's auth, cancellation or rendering policy.
 
 The full design is in [the north star](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/north-star.md). Implementation status and unresolved choices are in [the roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/roadmap.md).
-
-The [reference PostgreSQL feature](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses the same leased database infrastructure and a scoped story verb for its real server and rendered clients. It is a test fixture, not a copyable app; an app template is still needed. Its stories verify commit visibility, live refresh of a second editor, retained local edits and rollback without publication.

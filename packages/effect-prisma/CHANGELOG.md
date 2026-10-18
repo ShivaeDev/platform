@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.2 - 2026-10-17
+
+### Fixed
+
+- A PostgreSQL connection lost while sending `BEGIN` fails the transaction with its original typed connection failure without crashing the process.
+
 ## 0.9.1 - 2026-10-17
 
 ### Fixed

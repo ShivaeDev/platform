@@ -4,10 +4,21 @@ import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { operationRecord } from "#engine/operationRecord.ts";
 import { threadName } from "#engine/threadNames.ts";
 import { type Attempt, allAttempts, backlog, executing, FleetRecord } from "#model.ts";
-import { checkAreas, needsAreaRecords, requeue } from "#scheduling/areas.ts";
+import { checkLaunchAdmission, needsLaunchRecords } from "#scheduling/admission.ts";
+import { requeue } from "#scheduling/areas.ts";
 import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
 import { SessionJournal } from "#session/service.ts";
+import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
+
+const fleetStoreOptions = {
+	admission: checkLaunchAdmission,
+	admissionNeedsRecords: needsLaunchRecords,
+	backlog,
+	executing,
+	requeue,
+	submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
+} satisfies FleetStoreOptions<FleetRecord>;
 
 type Store = Effect.Success<ReturnType<typeof makePostgresFleetStore<typeof FleetRecord>>>;
 export class FleetRepository extends Context.Service<FleetRepository, Omit<Store, "operationEntries"> & Partial<Pick<Store, "operationEntries">>>()(
@@ -18,16 +29,7 @@ const PostgresFleetRepository = defineService({
 	id: "Fleet/PostgresFleetRepository",
 	initialize: Effect.gen(function* () {
 		const namespace = yield* RepositoryNamespace;
-		const store = yield* makePostgresFleetStore(FleetRecord, {
-			admission: checkAreas,
-			admissionNeedsRecords: needsAreaRecords,
-			backlog,
-			executing,
-			requeue,
-			submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
-			...(namespace === undefined ? {} : { namespace }),
-		});
-		return store;
+		return yield* makePostgresFleetStore(FleetRecord, { ...fleetStoreOptions, ...(namespace === undefined ? {} : { namespace }) });
 	}),
 	methods: (store) => store,
 	requires: [SqlClient.SqlClient, RepositoryNamespace],

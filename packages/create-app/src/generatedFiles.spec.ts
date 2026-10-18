@@ -1,20 +1,8 @@
 import { lstatSync, readdirSync, readFileSync, readlinkSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { NodeServices } from "@effect/platform-node";
-import { Effect } from "effect";
-import { afterEach, beforeAll, expect, it } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { appFolder, cleanup } from "#test/cli.ts";
-import { packTemplate } from "./packTemplate.ts";
 
-beforeAll(() =>
-	Effect.runPromise(
-		packTemplate(
-			fileURLToPath(new URL("../../../examples/starter", import.meta.url)),
-			fileURLToPath(new URL("../template.json", import.meta.url)),
-		).pipe(Effect.provide(NodeServices.layer)),
-	),
-);
 afterEach(cleanup);
 
 it("gives a generated app its own guidance, documentation, names and normal file permissions", () => {

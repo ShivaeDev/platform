@@ -5,45 +5,48 @@ import { daemonClient } from "#host/daemonClient.ts";
 import type { HostFixture } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
 import { postgresTests } from "#test/postgres.ts";
-import { type SnapshotReads, untilReads, withSnapshotDaemon } from "#test/snapshotReads.ts";
+import { type SnapshotDaemon, untilReads, withSnapshotDaemon } from "#test/snapshotReads.ts";
 import { storeState } from "#test/storeState.ts";
 
 const test = postgresTests("live");
 
 function transientStory(command: "wait" | "watch") {
-	return Effect.fn("DaemonFollowTest.transientStory")(function* (fixture: HostFixture, port: number, reads: SnapshotReads) {
+	return Effect.fn("DaemonFollowTest.transientStory")(function* (fixture: HostFixture, { advancing, port, reads }: SnapshotDaemon) {
 		const client = yield* daemonClient(port);
 		yield* reads.breakReads;
 		return yield* withFollower(fixture.configFile, command, ["one"], { port }, (follower) =>
 			Effect.gen(function* () {
-				yield* untilReads(reads, 11);
+				yield* advancing(untilReads(reads, 11));
 				yield* reads.restoreReads;
-				const recovered = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
+				const recovered = yield* advancing(client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect));
 				expect(recovered).toEqual([[{ outcome: {}, stage: "executing", workId: "one" }]]);
 				yield* reads.breakReads;
 				const before = reads.count();
 				yield* invalidateOnCommit([`${fixture.host.namespace}_records`]);
-				yield* untilReads(reads, before + 11);
+				yield* advancing(untilReads(reads, before + 11));
 				const cached = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
 				expect(cached).toEqual([[{ outcome: {}, stage: "executing", workId: "one" }]]);
 				yield* reads.restoreReads;
 				yield* storeState(fixture.host, "one", { stage: "completed" });
-				expect(yield* Effect.promise(() => follower.done)).toEqual({ code: 0, stderr: "", stdout: "one completed" });
+				expect(yield* advancing(Effect.promise(() => follower.done))).toEqual({ code: 0, stderr: "", stdout: "one completed" });
 			}),
 		);
 	});
 }
 
-const persistentStory = Effect.fn("DaemonFollowTest.persistentStory")(function* (fixture: HostFixture, port: number, reads: SnapshotReads) {
+const persistentStory = Effect.fn("DaemonFollowTest.persistentStory")(function* (
+	fixture: HostFixture,
+	{ advancing, delivered, port, reads }: SnapshotDaemon,
+) {
 	return yield* withFollower(fixture.configFile, "wait", ["one"], { port }, (waiter) =>
 		withFollower(fixture.configFile, "watch", ["marker", "one"], { port }, (watcher) =>
 			Effect.gen(function* () {
 				yield* untilOutput(watcher, "marker released\n");
-				yield* Effect.sleep("1 second");
+				yield* untilReads({ count: delivered }, 2);
 				const before = reads.failedCount();
 				yield* reads.breakReads;
 				yield* invalidateOnCommit([`${fixture.host.namespace}_records`]);
-				const results = yield* Effect.promise(() => Promise.all([waiter.done, watcher.done]));
+				const results = yield* advancing(Effect.promise(() => Promise.all([waiter.done, watcher.done])));
 				for (const result of results) {
 					expect(result.code).toBe(1);
 					expect(result.stderr).toContain("Fleet daemon could not read work states after 20 consecutive attempts");
@@ -54,8 +57,9 @@ const persistentStory = Effect.fn("DaemonFollowTest.persistentStory")(function* 
 	);
 });
 
-const idleStory = Effect.fn("DaemonFollowTest.idleStory")(function* (fixture: HostFixture, port: number, reads: SnapshotReads) {
-	yield* Effect.sleep("1 second");
+const idleStory = Effect.fn("DaemonFollowTest.idleStory")(function* (fixture: HostFixture, { clock, port, reads }: SnapshotDaemon) {
+	const settle = clock.adjust("1 hour").pipe(Effect.andThen(Effect.sleep("100 millis")));
+	yield* settle;
 	expect(reads.count()).toBe(0);
 	const client = yield* daemonClient(port);
 	const first = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.runDrain, Effect.forkScoped);
@@ -70,12 +74,12 @@ const idleStory = Effect.fn("DaemonFollowTest.idleStory")(function* (fixture: Ho
 	yield* Deferred.await(ready);
 	yield* Fiber.interrupt(first);
 	const remaining = reads.count();
-	yield* Effect.sleep("1200 millis");
+	yield* settle;
 	expect(reads.count()).toBe(remaining);
 	yield* Fiber.interrupt(second);
-	yield* Effect.sleep("1 second");
+	yield* settle;
 	const stopped = reads.count();
-	yield* Effect.sleep("1 second");
+	yield* settle;
 	expect(reads.count()).toBe(stopped);
 	yield* storeState(fixture.host, "one", { stage: "completed" });
 	const restarted = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
@@ -84,16 +88,9 @@ const idleStory = Effect.fn("DaemonFollowTest.idleStory")(function* (fixture: Ho
 });
 
 for (const command of ["wait", "watch"] as const) {
-	test(
-		`${command} survives transient PostgreSQL read failures before and after its first snapshot`,
-		() => withSnapshotDaemon(transientStory(command)),
-		30_000,
-	);
+	test(`${command} survives transient PostgreSQL read failures before and after its first snapshot`, () =>
+		withSnapshotDaemon(transientStory(command)));
 }
 
-test("a persistent PostgreSQL failure ends every wait and watch after 20 shared attempts", () => withSnapshotDaemon(persistentStory), 30_000);
-test(
-	"the shared commit subscription never polls, stops after the last follower and restarts with fresh state",
-	() => withSnapshotDaemon(idleStory),
-	30_000,
-);
+test("a persistent PostgreSQL failure ends every wait and watch after 20 shared attempts", () => withSnapshotDaemon(persistentStory));
+test("the shared commit subscription never polls, stops after the last follower and restarts with fresh state", () => withSnapshotDaemon(idleStory));

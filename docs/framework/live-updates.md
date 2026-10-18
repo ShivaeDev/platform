@@ -69,10 +69,7 @@ The live helper initializes derived resume atoms before observing them, so
 source listeners attach even without a separate UI subscriber. Their finalizers
 release on registry teardown.
 
-The existing `effect-react/resume-signal.ts` import delegates to this shared
-implementation. Effect-react installs effect-contract as a regular runtime
-dependency, preserving existing consumers without requiring an extra optional
-peer installation. Effect-contract has no React dependency.
+`effect-react/resume-signal.ts` delegates to the shared implementation. Use the [synthetic-signal tests](../../packages/effect-react/src/resume-signal.dom.test.ts) for its visibility, native-source and cleanup evidence.
 
 An ended or failed stream enters `reconnecting` and retries after one second by
 default. `retryDelay` lets the consumer choose a positive native Duration for its
@@ -89,16 +86,6 @@ The real HTTP regressions cover precise item/list invalidation, paused overflow,
 read failure and retry, a typed stream outage with missed changes, stale HTTP
 responses, initial/reconnected scope reconciliation, and server-side subscription
 release. Compiler checks preserve valid contract bindings and reject incomplete
-clients, changed payloads and widened errors. Chromium 151 runs the bundled DOM fixture over that same server and
-exercises desktop, mobile, dark preference, reduced motion and page teardown.
-Actual browser offline/online transitions recover a missed edit and emit one
-shared resume notification. Synthetic DOM tests separately cover visible and
-hidden visibility events, injected native sources and listener cleanup.
-The minified fixture bundle is about 522 kB before compression; this is a
-consumer measurement, not Work Board's eventual bundle budget.
+clients, changed payloads and widened errors. The synthetic-signal tests linked above cover visible and hidden visibility events, injected native sources and listener cleanup.
 
-This fixture establishes a local HTTP/browser composition. Work Board adoption,
-real filesystem dependency discovery, physical tab visibility transitions,
-Capacitor, authenticated sessions, SSR hydration, proxies and multi-process
-delivery each require their own evidence. There is no replay cursor, event
-journal, offline mutation or deployment delivery guarantee.
+This fixture establishes local HTTP composition. The [PostgreSQL composition](./composed-example.md#what-the-test-proves) separately checks authenticated writes and live editor refresh, and its [process test](./composed-example.md#delivery-between-processes) checks delivery between two servers and a worker. Work Board adoption is tracked in [its roadmap](../../packages/work-board/docs/roadmap.md); physical tab visibility, Capacitor, SSR hydration and deployment proxies need application-specific verification. There is no replay cursor, event journal, offline mutation or deployment delivery guarantee.

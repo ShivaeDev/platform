@@ -3,7 +3,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { loadHost } from "#host/config.ts";
+import { loadHost } from "#host/configFile.ts";
 import { hostSql } from "#host/runtime.ts";
 import { hostBoard } from "#test/fleetHost.ts";
 
@@ -17,6 +17,7 @@ describe("work-fleet host configuration", () => {
 			launch: {},
 			namespace: "work_fleet",
 			quota: "codex",
+			readRetryMs: 30_000,
 			stallMinutes: 30,
 		});
 	});
@@ -28,6 +29,7 @@ describe("work-fleet host configuration", () => {
 			database: { url: "<postgresql-url>" },
 			launch: { effort: "<reasoning-effort>", model: "<model>", serviceTier: "<service-tier>" },
 			provider: "cloud",
+			readRetryMs: 1000,
 			stallMinutes: 10,
 			worker: { branchPrefix: "<branch-prefix>", sharedEnvironment: "<environment-script-path>" },
 		};
@@ -38,6 +40,7 @@ describe("work-fleet host configuration", () => {
 			databaseUrl: config.database.url,
 			launch: config.launch,
 			provider: "cloud",
+			readRetryMs: 1000,
 			stallMinutes: 10,
 			worker: config.worker,
 		});

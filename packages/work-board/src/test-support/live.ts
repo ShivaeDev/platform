@@ -25,11 +25,13 @@ export const DIAGRAM = "```mermaid\ngraph TD; A-->B\n```";
 
 export const WITH_DIAGRAM = `# Flow\n\nBefore.\n\n${DIAGRAM}\n\nAfter.\n`;
 
-export const STEPS = (text: string) => `<details>\n<summary>Steps</summary>\n\n${text}\n\n</details>`;
+export function steps(text: string) {
+	return `<details>\n<summary>Steps</summary>\n\n${text}\n\n</details>`;
+}
 
-export const MIXED = `# Mixed\n\nBefore.\n\n${STEPS("Inside.")}\n\n${DIAGRAM}\n\nAfter.\n`;
+export const MIXED = `# Mixed\n\nBefore.\n\n${steps("Inside.")}\n\n${DIAGRAM}\n\nAfter.\n`;
 
-export const TWINS = `# Twins\n\n${STEPS("First.")}\n\n${STEPS("Second.")}\n`;
+export const TWINS = `# Twins\n\n${steps("First.")}\n\n${steps("Second.")}\n`;
 
 export const FILES = { "board.md": BOARD, "flow.md": WITH_DIAGRAM, "mixed.md": MIXED, "plan.md": PLAN, "twins.md": TWINS };
 

@@ -60,7 +60,9 @@ for (const action of ["retry", "release"] as const) {
 
 const decisionResources = Effect.fn("DaemonCommandsTest.decisionResources")(function* (fixture: HostFixture, action: "retry" | "release") {
 	const resources = yield* daemonResources(fixture.parts.provider);
-	yield* withReadDaemon(fixture.host, (port) => decisionStory(fixture, port, action, resources), { ...fixture.parts, provider: resources.provider });
+	yield* withReadDaemon(fixture.host, (port) => decisionStory(fixture, port, action, resources), {
+		parts: { ...fixture.parts, provider: resources.provider },
+	});
 	expect(resources.releases).toBe(1);
 });
 
@@ -68,7 +70,7 @@ test(
 	"answer rejects an active item without recording a response",
 	() =>
 		withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-			withReadDaemon(fixture.host, (port) => activeStory(fixture, port), fixture.parts),
+			withReadDaemon(fixture.host, (port) => activeStory(fixture, port), { parts: fixture.parts }),
 		),
 	30_000,
 );

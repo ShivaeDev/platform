@@ -12,6 +12,7 @@ export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 			decision: record.stage === "completed" ? undefined : record.decision,
 			links: [...(record.report === undefined ? [] : [record.report.sourcePath]), ...(record.result?.kind === "change" ? [record.result.pr] : [])],
 			outcome: record.outcome,
+			...(launchedOverLimit(record) ? { overLimit: true } : {}),
 			sessions: record.attempts.flatMap(sessionView),
 			stage: record.stage,
 			workId: record.workId,
@@ -40,4 +41,8 @@ function sessionView(attempt: Attempt) {
 					steeredAt: attempt.stallRecovery?.steeredAt,
 				},
 			];
+}
+
+function launchedOverLimit(record: FleetRecord) {
+	return record.attempts.some((attempt) => attempt.overLimit === true && ["submitting", "accepted", "running"].includes(attempt.status));
 }

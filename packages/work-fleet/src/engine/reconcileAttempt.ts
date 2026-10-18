@@ -5,9 +5,10 @@ import type { Attempt, FleetRecord } from "#model.ts";
 import { reportPrompt } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 
-export function reconcileAttempt({ sessions, policy, board }: EngineState) {
+export function reconcileAttempt({ sessions, current, board }: EngineState) {
 	return Effect.fn("Fleet.reconcileAttempt")(function* (stored: Versioned<FleetRecord>, attempt: Attempt) {
 		const work = yield* board.get(stored.value.workId);
+		const policy = yield* current;
 		const authorized = briefApproved(work) && !briefChanged(stored.value, work);
 		const preparedPrompt = stored.value.deliverable === "report" ? reportPrompt(stored.value.prompt) : stored.value.prompt;
 		const prompt = attempt.prompt ?? (attempt.role === "worker" ? preparedPrompt : undefined);

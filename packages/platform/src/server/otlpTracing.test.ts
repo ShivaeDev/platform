@@ -6,7 +6,7 @@ import { otlpConfig, otlpHost, pingHost } from "#test/otlpHost.ts";
 import { otlpReceiver } from "#test/otlpReceiver.ts";
 
 it.each(["OTEL_EXPORTER_OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"])("exports host spans when %s is configured", async (key) => {
-	const receiver = await otlpReceiver();
+	const receiver = await otlpReceiver(200, "{}", key.endsWith("TRACES_ENDPOINT") ? "/custom" : "/base/v1/traces");
 	const runtime = otlpHost({
 		...(key.endsWith("TRACES_ENDPOINT") ? { "OTEL_EXPORTER_OTLP_ENDPOINT": `${receiver.url}/ignored` } : {}),
 		[key]: key.endsWith("TRACES_ENDPOINT") ? `${receiver.url}/custom` : `${receiver.url}/base/`,

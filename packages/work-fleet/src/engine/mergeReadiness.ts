@@ -36,9 +36,10 @@ export const awaitHumanMerge = Effect.fn("Fleet.awaitHumanMerge")(function* (
 	);
 });
 
-export function expireMergeAreas({ save, policy }: EngineState, stored: Versioned<FleetRecord>) {
-	return stored.value.mergeAreasReleased !== true
-		&& mergeWaitExpired(stored.value, policy.now(), policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS)
-		? save(stored, { ...stored.value, mergeAreasReleased: true })
-		: Effect.succeed(stored);
+export function expireMergeAreas({ save, current }: EngineState, stored: Versioned<FleetRecord>) {
+	return Effect.flatMap(current, (policy) =>
+		stored.value.mergeAreasReleased !== true && mergeWaitExpired(stored.value, policy.now(), policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS)
+			? save(stored, { ...stored.value, mergeAreasReleased: true })
+			: Effect.succeed(stored),
+	);
 }

@@ -1,5 +1,6 @@
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { LibraryContext, restoreLibrary } from "#client/react/LibraryContext.ts";
+import { useMainLocation } from "./MainLocationContext.ts";
 import { Modal } from "./Modal.tsx";
 import { ReadingHistory } from "./ReadingHistory.tsx";
 import type { ShellApi } from "./ShellApi.ts";
@@ -16,6 +17,7 @@ export function ReadingLibrary({
 	readonly close: () => void;
 	readonly children: ReactNode;
 }) {
+	const page = useMainLocation();
 	const key = `work-board:library:${document.documentElement.dataset.workspace}`;
 	const [saved, setSaved] = useState(() => restoreLibrary(key));
 	const [current, setCurrent] = useState("");
@@ -34,18 +36,17 @@ export function ReadingLibrary({
 		},
 		[key],
 	);
-	useEffect(() => {
+	useLayoutEffect(() => {
 		function sync() {
-			const doc = document.getElementById("doc");
-			if (!doc?.dataset.route) {
+			if (!page.route) {
 				return;
 			}
-			const file = doc.dataset.file ?? "";
-			const title = doc.querySelector("h1")?.textContent?.trim() || file;
+			const file = page.file;
+			const title = page.title || file;
 			document.title = title ? `${title} · Work Board` : "Work Board";
 
 			setCurrent(file);
-			if (file && doc.querySelector("#favorite-toggle") && visitedRef.current !== `${file}:${title}`) {
+			if (file && page.view === "" && visitedRef.current !== `${file}:${title}`) {
 				visitedRef.current = `${file}:${title}`;
 				save({
 					favorites: savedRef.current.favorites,
@@ -54,13 +55,7 @@ export function ReadingLibrary({
 			}
 		}
 		sync();
-		document.addEventListener("board-page", sync);
-		document.addEventListener("board-index-change", sync);
-		return () => {
-			document.removeEventListener("board-page", sync);
-			document.removeEventListener("board-index-change", sync);
-		};
-	}, [save]);
+	}, [save, page]);
 
 	return (
 		<LibraryContext.Provider

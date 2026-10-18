@@ -76,12 +76,13 @@ test("CLI dispatch launches an edited criterion after a local-only criterion blo
 					expect(fixture.provider.launched).toHaveLength(1);
 					expect([...fixture.provider.observations.values()][0]?.output).toContain("Measure repository fixtures.");
 				}),
-			local.parts,
+			{ parts: local.parts },
 		);
 	}));
 
 for (const scenario of [
 	{ name: "criterion without the local-only path", text: "Measure repository fixtures." },
+	{ name: "criterion naming a longer path that starts with the local-only path", text: "Exclude private/boardroom and xprivate/board copies." },
 	{ body: "Read private/board/notes for context.", name: "path mentioned only in the body", text: "Build passes." },
 	{ ignored: false, name: "Board directory is not ignored" },
 	{ inside: false, name: "Board directory is outside the repository" },

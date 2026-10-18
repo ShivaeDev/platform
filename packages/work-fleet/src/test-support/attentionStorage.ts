@@ -1,15 +1,13 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
+import type { FleetRepository } from "#engine/repository.ts";
 import type { FleetRecord } from "#model.ts";
-import type { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { legacyStore } from "#test/legacyStore.ts";
 import { migrateFleet } from "#test/migrateFleet.ts";
 
-type Store = Effect.Success<ReturnType<typeof makePostgresFleetStore<typeof FleetRecord>>>;
-
 export const attentionStorage = Effect.fn("FleetFixture.attentionStorage")(function* (
-	original: Store,
+	original: typeof FleetRepository.Service,
 	namespace: string,
 	writeGate: EngineOptions["writeGate"],
 	writeFailure?: EngineOptions["writeFailure"],
