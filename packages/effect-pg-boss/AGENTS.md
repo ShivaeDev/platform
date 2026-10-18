@@ -1,6 +1,6 @@
 # @shivaedev/effect-pg-boss
 
-You are changing the jobs boundary between native Effect applications and pg-boss. Producers and workers must agree on durable payloads, workers must reach the application's services, and a running queue client needs an owner that closes it. Keep one object Schema for the payload boundary and one scoped Layer for the client and its registrations. Usage is in [README.md](./README.md), the full intent in [docs/north-star.md](./docs/north-star.md), and package work and open choices in [docs/roadmap.md](./docs/roadmap.md).
+You are changing the jobs boundary between native Effect applications and pg-boss. Producers and workers must agree on durable payloads, workers must reach the application's services, and a running queue client needs an owner that closes it. Keep one object Schema for the payload boundary and one scoped Layer for the client and its registrations. Usage is in [README.md](./README.md).
 
 ## Which way to lean
 
