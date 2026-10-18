@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { cardStatus, type FleetWork, holderOf } from "#browser/views/now.ts";
+import { cardStatus, type FleetWork, holderOf, stageTime } from "#browser/views/now.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
 import { Card } from "#client/react/components/ui/Card.tsx";
@@ -23,9 +23,10 @@ export function WorkCard({
 	const fleetItems = useContext(FleetItemsContext);
 	const status = cardStatus(item.metadata, fleet, item.waiting, item.answered !== undefined);
 	const answered = status === "waiting-on-agents" && item.answered ? answeredCopy(item.answered, fleetItems) : undefined;
+	const kind = item.metadata.kind === "task" ? undefined : item.metadata.kind;
 	return (
 		<Card className="work-card" data-item={item.id} data-selected={item.id === state.item ? "true" : undefined}>
-			<p className="work-kind">{item.metadata.kind ?? ""}</p>
+			{kind !== undefined && <p className="work-kind">{kind}</p>}
 			<h3>
 				<WorkItemTitle item={item} state={state} />
 			</h3>
@@ -34,12 +35,19 @@ export function WorkCard({
 				<PrChip url={fleet?.prUrl} />
 			</div>
 			{answered !== undefined && <p className="work-answer">{answered}</p>}
-			{holder && <p className="work-owner">Holder: {holder}</p>}
-			{fleet?.stageEnteredAt !== undefined && fleet.stageEnteredAt !== null && (
-				<p className="work-stage">
-					In {fleet.stage} for <Age modified={fleet.stageEnteredAt} short />
-				</p>
-			)}
+			{holder && <p className="work-owner">{holder}</p>}
+			{fleet?.stageEnteredAt !== undefined && fleet.stageEnteredAt !== null && <StageTime entered={fleet.stageEnteredAt} stage={fleet.stage} />}
 		</Card>
+	);
+}
+
+function StageTime({ stage, entered }: { readonly stage: FleetWork["stage"]; readonly entered: number }) {
+	const { ended, label } = stageTime(stage);
+	return (
+		<p className="work-stage">
+			{label} {ended ? "" : "for "}
+			<Age modified={entered} short />
+			{ended ? " ago" : ""}
+		</p>
 	);
 }

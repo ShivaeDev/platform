@@ -31,11 +31,11 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 				)}
 			</header>
 			<nav aria-label="Today summary" className="today-strip flex items-center gap-1 whitespace-nowrap text-xs tabular-nums sm:gap-2 sm:text-sm">
-				<a href={`#${todayIds.needs}`}>{data.complete ? data.you.length : "?"} need you</a>
+				<a href={`#${todayIds.needs}`}>{data.complete ? `${data.you.length} need you` : "Needs you unavailable"}</a>
 				<span aria-hidden="true">·</span>
-				<a href={`#${todayIds.progress}`}>{progress?.length ?? "?"} in progress</a>
+				<a href={`#${todayIds.progress}`}>{progressSummary(progress?.length, fleet?.state === "unavailable" || Option.isSome(fleetQuery.cause))}</a>
 				<span aria-hidden="true">·</span>
-				<a href={`#${todayIds.goals}`}>{goals?.goals.length ?? "?"} active goals</a>
+				<a href={`#${todayIds.goals}`}>{goalsSummary(goals?.goals.length, Option.isSome(query.cause))}</a>
 			</nav>
 			<div className="today-grid grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<div className="min-w-0 space-y-6">
@@ -92,4 +92,18 @@ function Later({ items }: { readonly items: InboxProjection["later"] }) {
 			</details>
 		</section>
 	);
+}
+
+function progressSummary(count: number | undefined, unavailable: boolean) {
+	if (count !== undefined) {
+		return `${count} in progress`;
+	}
+	return unavailable ? "Fleet unavailable" : "Loading Fleet…";
+}
+
+function goalsSummary(count: number | undefined, failed: boolean) {
+	if (count !== undefined) {
+		return `${count} active goals`;
+	}
+	return failed ? "Goals unavailable" : "Loading goals…";
 }
