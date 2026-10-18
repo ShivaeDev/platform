@@ -13,10 +13,7 @@ function excluding(...patterns: readonly string[]): string[] {
 	return [...defaultExclude, named("typecheck"), TYPECHECK_ALONE, ...patterns];
 }
 
-export function testProjects(...options: readonly never[]): TestUserConfig {
-	if (options.length > 0) {
-		throw new Error("testProjects takes no options. Remove suite exclusions; every test belongs in its named project.");
-	}
+export function testProjects(): TestUserConfig {
 	return {
 		project: ["unit", "dom"],
 		projects: [

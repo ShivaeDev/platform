@@ -46,7 +46,7 @@ A module link opens its source. Type and value declarations with the same name a
 | [cli/baseline.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/baseline.ts) | `writeBaseline`, `shrinkBaseline` |
 | [cli/fix.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/fix.ts) | `MAX_FIX_ROUNDS`, `snapshotOf`, `Pass`, `Settling`, `settle`, `fix` |
 | [cli/lint.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/lint.ts) | `lint` |
-| [cli/messages.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/messages.ts) | `USAGE`, `ADOPT_REMOVED` |
+| [cli/messages.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/messages.ts) | `USAGE`, `SUBCOMMANDS` |
 | [cli/migrate.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/migrate.ts) | `migrateBaseline` |
 | [cli/migrateExceptions.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/migrateExceptions.ts) | `migrateExceptions` |
 | [cli/program.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli/program.ts) | `Invocation`, `program` |

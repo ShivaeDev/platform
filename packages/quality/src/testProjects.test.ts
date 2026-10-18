@@ -23,17 +23,17 @@ function linkVitest(root: string): string {
 	return root;
 }
 
-function config(options = ""): SeedFile {
+function config(): SeedFile {
 	return {
-		content: `import { defineConfig } from "vitest/config";\nimport { testProjects } from "${helper}";\n\nexport default defineConfig({ test: testProjects(${options}) });\n`,
+		content: `import { defineConfig } from "vitest/config";\nimport { testProjects } from "${helper}";\n\nexport default defineConfig({ test: testProjects() });\n`,
 		path: "vitest.config.ts",
 	};
 }
 
-function repository(options = ""): string {
+function repository(): string {
 	return linkVitest(
 		seedTree([
-			config(options),
+			config(),
 			testFile("src/a.test.ts", 'it("runs in Node", () => {\n\texpect(typeof document).toBe("undefined");\n});'),
 			testFile("src/b.dom.test.tsx", 'it("runs in a DOM", () => {\n\texpect(typeof document).toBe("object");\n});'),
 			testFile("src/c.slow.test.ts", 'it("runs only when asked for", () => {\n\texpect(typeof document).toBe("undefined");\n});'),
