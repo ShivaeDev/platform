@@ -11,7 +11,7 @@ import { authorLabel } from "#client/responses/authorLabel.ts";
 import { type ResponseInput, responseFormSchema } from "#client/responses/formSchema.ts";
 import { responsePreview } from "#client/responses/preview.ts";
 import { retainContext } from "#client/responses/retainContext.ts";
-import { responseFeedback, responseSummary } from "#client/responses/summary.ts";
+import { chosenLabels, responseFeedback, responseSummary } from "#client/responses/summary.ts";
 import { sourceChanged } from "#client/sourceChanged.ts";
 import { createResponse } from "./createResponse.ts";
 import { useFormClient } from "./FormContext.ts";
@@ -116,7 +116,9 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		setInteraction("cleared");
 	}
 	const previewed = preview !== undefined && same && Equal.equals(preview, values);
-	const { outcome, text: status } = formStatus(created, interaction, "response", (saved) => responseSaved(saved.id, created.dirty));
+	const { outcome, text: status } = formStatus(created, interaction, "response", (saved) =>
+		responseSaved(saved.id, created.dirty, chosenLabels(prompts, saved.answers)),
+	);
 	const summary = responseSummary(values, prompts, answers(values), attempted);
 	return {
 		answers: answers(values),

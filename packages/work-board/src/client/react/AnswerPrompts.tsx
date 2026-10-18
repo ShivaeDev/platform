@@ -1,10 +1,11 @@
 import { useAtomValue } from "@effect/atom-react";
 import { useId, useLayoutEffect, useRef } from "react";
 import type { Document } from "#browser/document/schema.ts";
+import { promptHeading } from "#browser/responses/cardContext.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { PromptAnswer } from "#browser/responses/schema.ts";
+import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { PromptOption } from "./PromptOption.tsx";
-import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 import type { useResponseForm } from "./useResponseForm.ts";
 
 type Model = ReturnType<typeof useResponseForm>["form"];
@@ -36,12 +37,9 @@ function PromptField({
 	useLayoutEffect(() => ref.current?.setCustomValidity(error ?? ""), [error]);
 	const choices = document.metadata.options;
 
-	let guidance = "Answer in your own words.";
-	if (choices) {
-		guidance = "Choose an option or write another answer.";
-	} else if (prompt.mode !== "text") {
-		guidance = `${prompt.mode === "one" ? "Choose one option" : "Choose any combination"}, or answer in your own words.`;
-	}
+	const guidance = promptGuidance(prompt.mode, choices !== undefined);
+	const heading = promptHeading(prompt.source);
+	const title = heading.title ?? `Question ${index + 1}`;
 	function change(next: PromptAnswer) {
 		onEdit(index, next);
 	}
@@ -57,14 +55,14 @@ function PromptField({
 	}
 	let message = error;
 	if (error && answer.selected.length === 0 && !answer.text.trim()) {
-		message = `Unanswered: Question ${index + 1} · ${prompt.id}. Choose an option or answer in your own words.`;
+		message = `Unanswered: “${title}”. Choose an option or answer in your own words.`;
 	}
 	return (
-		<fieldset data-mode={prompt.mode} data-prompt={prompt.id} data-source={prompt.source}>
-			<legend>{choices ? "Your answer" : `Question ${index + 1} · ${prompt.id}`}</legend>
-			{choices === undefined && <ResponseMarkdown file={document.file} source={prompt.source} />}
-			<p>{guidance} Nothing is selected for you.</p>
-			<div className={choices ? "question-choices" : undefined}>
+		<fieldset className="m-0 min-w-0 space-y-3 border-0 p-0" data-mode={prompt.mode} data-prompt={prompt.id} data-source={prompt.source}>
+			<legend className="mb-1 p-0 font-semibold text-base">{choices === undefined ? title : "Your answer"}</legend>
+			{choices === undefined && heading.rest ? <AnswerMarkdown className="text-sm" file={document.file} source={heading.rest} /> : null}
+			<p className="text-muted-foreground text-sm">{guidance}</p>
+			<div className={`grid gap-2 ${choices ? "question-choices" : ""}`}>
 				{prompt.options.map((option, choice) => (
 					<PromptOption
 						checked={answer.selected.includes(option.id)}
@@ -78,26 +76,43 @@ function PromptField({
 				))}
 			</div>
 			{prompt.mode !== "text" && (
-				<button data-clear-choices onClick={() => change({ ...answer, selected: [] })} type="button">
+				<button
+					className="text-muted-foreground text-xs underline-offset-4 hover:underline disabled:opacity-50"
+					data-clear-choices
+					disabled={answer.selected.length === 0}
+					onClick={() => change({ ...answer, selected: [] })}
+					type="button"
+				>
 					Clear selections
 				</button>
 			)}
-			<label>
-				{choices ? "Another answer / additional text" : "Additional text / another answer"}
+			<label className="grid gap-2 text-sm">
+				<span>{prompt.mode === "text" ? "Your answer" : "Add a note or answer in your own words (optional)"}</span>
 				<textarea
 					aria-describedby={`${errorId}-error`}
 					aria-invalid={Boolean(error)}
+					className="w-full rounded-md border bg-background px-3 py-2 text-sm aria-invalid:border-destructive"
 					data-answer-text
 					maxLength={8192}
 					onInput={(event) => change({ ...answer, text: event.currentTarget.value })}
 					ref={ref}
-					rows={choices ? 4 : 3}
+					rows={choices || prompt.mode === "text" ? 4 : 2}
 					value={answer.text}
 				/>
-				<span className="response-field-error" hidden={!error} id={`${errorId}-error`}>
+				<span className="response-field-error text-destructive text-xs" hidden={!error} id={`${errorId}-error`}>
 					{message}
 				</span>
 			</label>
 		</fieldset>
 	);
+}
+
+function promptGuidance(mode: Prompt["mode"], authored: boolean) {
+	if (authored) {
+		return "Choose an option or write another answer. Nothing is selected for you.";
+	}
+	if (mode === "text") {
+		return "Answer in your own words.";
+	}
+	return `${mode === "one" ? "Choose one option" : "Choose any combination"}, or answer in your own words. Nothing is selected for you.`;
 }
