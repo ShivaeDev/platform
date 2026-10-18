@@ -6,7 +6,7 @@ import { importTree, linkWorkspace } from "#test/imports.ts";
 import { formatTree, qualityTree } from "#test/qualityTree.ts";
 import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
 
-const cliTimeout = 60_000;
+const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
 
@@ -40,7 +40,7 @@ function register(root: string, entries: readonly object[]): void {
 	writeFileSync(join(root, "quality", "registry.json"), JSON.stringify(entries));
 }
 
-describe("the imports rules on the command line", { timeout: cliTimeout }, () => {
+describe("the imports rules on the command line", { timeout: CLI_TIMEOUT }, () => {
 	it("exit 2 when the import graph covers no modules, so a misdirected config cannot pass", () => {
 		const root = importTree("empty");
 		writeFileSync(join(root, "quality.config.ts"), 'export default { sources: ["docs"] };\n');
