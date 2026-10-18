@@ -29,13 +29,30 @@ for (const host of ["ssh://example.com", "tcp://example.com:2376"]) {
 	);
 }
 
-postgres.it("rejects remote preparation and query targets before connecting", [], function* ({ start, prepare, query, stop }) {
-	const remote = "postgresql://postgres:postgres@example.com:55432/example_test";
-	expect(() => start(remote)).toThrow("Use a local database");
-	expect(() => prepare([remote])).toThrow("Use a local database");
-	expect(() => query("SELECT 1", remote)).toThrow("Use a local database");
-	yield* stop();
-});
+for (const target of [
+	{ host: "example.com", name: "a remote host", port: "55432", suffix: "" },
+	{ host: "127.0.0.1", name: "the wrong port", port: "5432", suffix: "" },
+	...["host", "hostaddr", "port", "dbname", "service"].map((key) => ({
+		host: "127.0.0.1",
+		name: `the ${key} redirecting parameter`,
+		port: "55432",
+		suffix: `?${key}=redirected`,
+	})),
+]) {
+	postgres.it(
+		`rejects ${target.name} in preparation and queries before connecting`,
+		[],
+		function* ({ start, prepare, query, databaseUrl, subprocessCalls, stop }) {
+			const value = `postgresql://postgres:postgres@${target.host}:${target.port}/example_test${target.suffix}`;
+			expect(() => prepare([value])).toThrow("Use a local database");
+			expect(() => prepare([databaseUrl("example_dev"), value])).toThrow("Use a local database");
+			expect(() => start(value)).toThrow("Use a local database");
+			expect(() => query("SELECT 1", value)).toThrow("Use a local database");
+			expect(subprocessCalls()).toEqual([]);
+			yield* stop();
+		},
+	);
+}
 
 postgres.it("rejects malformed database identifiers before preparing PostgreSQL", [], function* ({ prepare, databaseUrl, stop }) {
 	for (const name of ["", "1starts_with_number", "has-hyphens", "Uppercase", "a".repeat(64), "name%27%3Bselect"]) {
