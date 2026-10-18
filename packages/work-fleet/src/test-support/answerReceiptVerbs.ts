@@ -5,7 +5,7 @@ import { withDecisionResponses } from "#host/releaseWork.ts";
 import type { Decision, DecisionResponse } from "#policy.ts";
 import { type AnswerRequest, answerStore } from "#storage/answerStore.ts";
 import type { AnswerHostEngine } from "#test/AnswerHostEngine.ts";
-import { answerRecordingFailure } from "#test/answerRecordingFailure.ts";
+import { answerQueueFailure, answerRecordingFailure } from "#test/answerRecordingFailure.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { pauseAnswerCompletion } from "#test/busyAdmission.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
@@ -14,6 +14,7 @@ export function answerReceiptVerbs(engine: AnswerHostEngine, tell: (line: string
 	return {
 		boardReceipts: () => boardHttpFiles(engine.host.host.boardDir).receipts(),
 		defer: (decision: Decision, type: "clarify" | "not_now") => answerWorker(engine.host.host.boardDir, decision, `response.worker.${type}`, type),
+		failQueue: () => answerQueueFailure(engine.host.host),
 		failRecording: (fail: boolean) => answerRecordingFailure(engine.host.host, fail),
 		pauseCompletion: (workId = "one") => {
 			tell(`pause answer completion for ${workId}`);

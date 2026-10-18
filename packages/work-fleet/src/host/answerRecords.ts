@@ -19,16 +19,21 @@ export const answerRecords = Effect.fn("FleetHost.answerRecords")(function* (nam
 	);
 });
 
-export function withAnswerRequests<A extends { readonly workId: string }>(records: readonly A[], requests: readonly AnswerRequest[]) {
+export function withAnswerRequests<A extends { readonly workId: string; readonly launchRetry?: unknown }>(
+	records: readonly A[],
+	requests: readonly AnswerRequest[],
+) {
 	const byWork = new Map(requests.toReversed().map((request) => [request.work_id, request]));
 	return records.map((record) => {
 		const request = byWork.get(record.workId);
-		return request === undefined
-			? record
-			: {
-					...record,
-					attentionOwner: request.error === null ? ("automation" as const) : ("orchestrator" as const),
-					blocker: request.error === null ? ANSWER_RECORDED : `Answer failed: ${request.error}`,
-				};
+		if (request === undefined) {
+			return record;
+		}
+		const { launchRetry: _launchRetry, ...current } = record;
+		return {
+			...current,
+			attentionOwner: request.error === null ? ("automation" as const) : ("orchestrator" as const),
+			blocker: request.error === null ? ANSWER_RECORDED : `Answer failed: ${request.error}`,
+		};
 	});
 }
