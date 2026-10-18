@@ -38,6 +38,11 @@ const callerIt = makeTrpcIt({
 	createCaller: (options = { requestId: "default" }) => router.createCaller(options),
 	layer: Layer.succeed(RuntimeValue, "test-override"),
 });
+const emptyIt = makeTrpcIt({
+	adapter,
+	createCaller: (options = { requestId: "default" }) => router.createCaller(options),
+	layer: Layer.empty,
+});
 const harnessIt = makeTrpcHarnessIt({
 	adapter,
 	createCaller: (options = { requestId: "default" }) => router.createCaller(options),
@@ -52,6 +57,14 @@ const harnessIt = makeTrpcHarnessIt({
 		}),
 });
 afterAll(() => runtime.dispose());
+emptyIt.effectTRPC("uses runtime services when the test Layer provides nothing", function* (trpc) {
+	expect(yield* trpc.read("empty")).toEqual({
+		input: "empty",
+		request: "default",
+		runtime: "runtime",
+		runtimeOnly: "runtime-only",
+	});
+});
 callerIt.effectTRPC("provides an Effect-shaped default caller and preserves runtime services", function* (trpc, context) {
 	expect(context.task.name).toContain("Effect-shaped default caller");
 	const result = yield* trpc.read("value");
