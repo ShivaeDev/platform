@@ -81,6 +81,7 @@ export default defineConfig({
 					"packages/quality/src/rule.ts",
 					"packages/quality/src/rules/suppressions/biomeOverrides.ts",
 					"packages/test-story/src/server/fakeHttpService.ts",
+					"packages/test-story/src/server/forwardingProxy.ts",
 					"packages/test-story/src/server/storyKit.ts",
 					"packages/platform/src/server/appHost.ts",
 					"examples/starter/src/server/notesHost.ts",
