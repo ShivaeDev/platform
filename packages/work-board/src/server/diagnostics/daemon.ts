@@ -1,11 +1,15 @@
-import { Clock, Effect, Layer } from "effect";
+import { Clock, Effect, Layer, Predicate, Schema } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { RpcClient, RpcSerialization } from "effect/rpc";
+import { Rpc, RpcClient, RpcSerialization } from "effect/rpc";
 import { RpcClientError } from "effect/rpc/RpcClientError";
-import { DAEMON_PORT, DAEMON_RPC_PATH, DiagnosticsContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
+import { DAEMON_PORT, DAEMON_RPC_PATH, DiagnosticsContract, DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
+
+const DaemonReadContract = DiagnosticsContract.omit("daemon.diagnostics").add(
+	Rpc.make("daemon.diagnostics", { payload: {}, success: Schema.Unknown }),
+);
 
 function makeDaemonClient() {
-	return RpcClient.make(DiagnosticsContract, { flatten: true });
+	return RpcClient.make(DaemonReadContract, { flatten: true });
 }
 type DaemonClient = Effect.Success<ReturnType<typeof makeDaemonClient>>;
 
@@ -44,6 +48,7 @@ export function daemonDiagnostics(port: number | null = DAEMON_PORT) {
 		});
 	}
 	return readDaemon(port, (client) => client("daemon.diagnostics", {})).pipe(
+		Effect.flatMap(decodeSnapshot),
 		Effect.catch((error) =>
 			Effect.gen(function* () {
 				const observation = { cause: daemonUnavailableReason(error, port), observedAt: yield* Clock.currentTimeMillis, state: "error" as const };
@@ -51,4 +56,28 @@ export function daemonDiagnostics(port: number | null = DAEMON_PORT) {
 			}),
 		),
 	);
+}
+
+function decodeSource<A>(name: string, schema: Schema.ConstraintDecoder<A, never>, value: unknown) {
+	return Schema.decodeUnknownEffect(schema)(value).pipe(
+		Effect.catch((error) =>
+			Effect.gen(function* () {
+				return {
+					cause: `${name} diagnostics decode failed: ${error.message}`,
+					observedAt: yield* Clock.currentTimeMillis,
+					state: "error" as const,
+				};
+			}),
+		),
+	);
+}
+
+function decodeSnapshot(value: unknown) {
+	const fields = DiagnosticsSnapshot.fields;
+	const sources = Predicate.isObject(value) ? value : {};
+	return Effect.all({
+		codex: decodeSource("Codex", fields.codex, sources.codex),
+		fleet: decodeSource("Fleet", fields.fleet, sources.fleet),
+		github: decodeSource("GitHub", fields.github, sources.github),
+	});
 }
