@@ -1,8 +1,10 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import type { RecordedResponse } from "#browser/responses/schema.ts";
+import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { responseMarkdown } from "#server/responses/records.ts";
 import { boardStory, projectFiles, responsesEnabled } from "./boardStory.ts";
+import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
 import { enterField } from "./enterField.ts";
 import { inboxFixture, inboxQuestion } from "./inboxFixture.ts";
 import { waitFor } from "./live.ts";
@@ -63,3 +65,15 @@ export function clipboardUnavailable() {
 
 import { chmodSync } from "node:fs";
 import { join } from "node:path";
+
+export function fleetReports(items: FleetItems) {
+	return boardStory.trait("project", `Fleet reports ${items.items.map((item) => `${item.workId} ${item.stage}`).join(", ")}`, function* (engine) {
+		const missing = { cause: "Not configured for the story", observedAt: 0, state: "not-configured" as const };
+		const daemon = yield* diagnosticsDaemon(
+			() => ({ codex: missing, fleet: missing, github: missing }),
+			0,
+			() => items,
+		);
+		engine.fleetPort = daemon.port;
+	});
+}

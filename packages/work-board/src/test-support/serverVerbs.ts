@@ -1,7 +1,9 @@
+import { join } from "node:path";
 import { Effect } from "effect";
 import { browserClient } from "#client/client.ts";
 import { folder, type RunningBoard } from "./board.ts";
 import { embeddedBoard } from "./embeddedBoard.ts";
+import { type SocketExchange, socketExchange } from "./socketRpc.ts";
 import { type BoardEngine, connected } from "./storyEngine.ts";
 
 export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
@@ -24,6 +26,11 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				(client) => Effect.sync(() => client.registry.dispose()),
 			);
 		}),
+		postToSocket: (exchange: SocketExchange) =>
+			Effect.promise(() => {
+				tell("a local client posts an RPC batch to the board's socket");
+				return socketExchange(join(engine.notes.root, "board.sock"), exchange);
+			}),
 		restart: Effect.fn("Story.restart")(function* (responses = engine.responses) {
 			tell("the board restarts from its project files");
 			yield* Effect.promise(() => connected(engine).page.close());
