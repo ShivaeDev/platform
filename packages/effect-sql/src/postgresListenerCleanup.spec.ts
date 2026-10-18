@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { integration, onSqlError } from "#test/postgres-transact.ts";
 import { runNotify, waitFor } from "#test/postgresNotify.ts";
+import { integration, onSqlError } from "#test/postgresTransact.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
 integration("stalled listener cleanup cannot delay resync, a new listener or scope release", async () => {

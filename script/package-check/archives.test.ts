@@ -57,6 +57,22 @@ it("private addons remain covered by packed consumers before a release is author
 	}
 });
 
+it("leaves Claude Code plugin folders out of the npm archives", async () => {
+	const fixture = privateFixture();
+	try {
+		fixture.plugin("plugin");
+		const packages = await Effect.runPromise(
+			workspaceArchives(fixture.root, join(fixture.root, "archives")).pipe(Effect.provide(NodeFileSystem.layer)),
+		);
+		assert.deepEqual(
+			packages.map((pkg) => pkg.manifest.name),
+			["@example/addon"],
+		);
+	} finally {
+		fixture.remove();
+	}
+});
+
 it("checks mapped executables as packed targets without importing them as library entries", () => {
 	const manifest: Manifest = {
 		bin: { board: "./dist/server/cli.js" },

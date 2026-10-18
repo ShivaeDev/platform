@@ -4,7 +4,7 @@
 - On shutdown, the daemon removes `.fleet-port` only if it still holds that daemon's port.
 - `watch --follow` prints an error on stderr for each failed connection attempt and keeps retrying, rereading the port file after a daemon restart.
 - An explicit `watch --follow --timeout` also bounds initial connection retries, reporting the timeout and exiting with code 4 even when no daemon is reachable.
-- Watch fails with a file-specific error when the Board daemon port file cannot be read.
+- Fleet clients fail with a file-specific error when the Board daemon port file cannot be read.
 - Status answer hints preserve the selected `--board` and any explicit `--port` override, so the printed command answers the same daemon.
 
 ### Added

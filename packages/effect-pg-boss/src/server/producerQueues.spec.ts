@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { deadLetterQueueName } from "#health.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions, FakeClient } from "#test/fake-client.ts";
+import { constructorOptions, FakeClient } from "#test/fakeClient.ts";
 
 it("registers a producer queue with health and enqueueing but no worker", async () => {
 	const client = new FakeClient();

@@ -31,7 +31,7 @@ describe("reviewer prompt and verdict", () => {
 		expect(prompt).toContain("Include the passing checks and the access limitation in your evidence list");
 		expect(prompt).not.toContain("pnpm db:setup");
 		expect(prompt).not.toContain("PLATFORM_EFFECT_");
-		expect(prompt).not.toContain("script/lib/postgres-test-environment.ts");
+		expect(prompt).not.toContain("script/lib/postgresTestEnvironment.ts");
 		expect(prompt).not.toContain(".github/workflows/ci.yml");
 		expect(prompt).not.toContain("end without a verdict");
 		expect(prompt).not.toContain("Request escalation (require_escalated)");

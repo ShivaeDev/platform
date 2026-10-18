@@ -43,7 +43,7 @@ The work has three parts:
 
 ```ts
 import { Context, Effect, Layer } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 
 class Prefix extends Context.Service<Prefix, string>()("app/Prefix") {}
 
@@ -80,8 +80,8 @@ For an explicitly annotated `Effect.fn` generator, `ServiceRequirements` express
 
 ```ts
 import { Context, Effect, type Scope } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
-import type { ServiceRequirements } from "@shivaedev/effect-service/service-requirements.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import type { ServiceRequirements } from "@shivaedev/effect-service/ServiceRequirements.ts";
 
 class Declared extends Context.Service<Declared, { readonly identity: object }>()(
   "app/Declared",
@@ -114,7 +114,7 @@ The alias is `Effect.fn.Return<Success, Failure, declared services | CallerScope
 
 ```ts
 import { Effect, Ref } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 
 const Resources = defineService({
   id: "app/Resources",
@@ -158,8 +158,8 @@ Ordinary methods have one concrete signature. For a service with an empty `requi
 
 ```ts
 import { Context, Effect } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
-import { genericMethod } from "@shivaedev/effect-service/generic-method.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { genericMethod } from "@shivaedev/effect-service/genericMethod.ts";
 
 class Caller extends Context.Service<Caller, { readonly value: number }>()(
   "app/Caller",
@@ -200,9 +200,9 @@ Import the module that defines the name:
 
 | Module | Name | Use |
 | --- | --- | --- |
-| `@shivaedev/effect-service/define-service.ts` | `defineService(definition)` | Create a native service with its `.layer`. |
-| `@shivaedev/effect-service/generic-method.ts` | `genericMethod(method)` | Mark a generic Effect-returning function in a service with no declared dependencies. |
-| `@shivaedev/effect-service/service-requirements.ts` | `ServiceRequirements<Requirements, Success, Failure = never, CallerScope = never>` | Annotate an `Effect.fn` generator with declared dependencies and optional caller scope. |
+| `@shivaedev/effect-service/defineService.ts` | `defineService(definition)` | Create a native service with its `.layer`. |
+| `@shivaedev/effect-service/genericMethod.ts` | `genericMethod(method)` | Mark a generic Effect-returning function in a service with no declared dependencies. |
+| `@shivaedev/effect-service/ServiceRequirements.ts` | `ServiceRequirements<Requirements, Success, Failure = never, CallerScope = never>` | Annotate an `Effect.fn` generator with declared dependencies and optional caller scope. |
 
 The definition's fields are:
 
@@ -217,11 +217,11 @@ The exported supporting types are listed here for readers of generated declarati
 
 | Module | Supporting type exports |
 | --- | --- |
-| `generic-method.ts` | `AnyMethod`, `GenericMethodDescriptor`, `HasDistinctCallSignatures`, `GenericOrStructurallyOverloadedMethodsAreUnsupported` |
-| `service-requirements.ts` | `RequirementRecord`, `RequirementsOf` |
-| `initializer-proof.ts` | `InitializerProof` |
-| `method-proof.ts` | `MethodEntry`, `MethodRecord`, `MethodInventory`, `RuntimeMethodInventory`, `MethodProof` |
-| `requirement-proof.ts` | `RequirementProof` |
+| `genericMethod.ts` | `AnyMethod`, `GenericMethodDescriptor`, `HasDistinctCallSignatures`, `GenericOrStructurallyOverloadedMethodsAreUnsupported` |
+| `ServiceRequirements.ts` | `RequirementRecord`, `RequirementsOf` |
+| `InitializerProof.ts` | `InitializerProof` |
+| `MethodProof.ts` | `MethodEntry`, `MethodRecord`, `MethodInventory`, `RuntimeMethodInventory`, `MethodProof` |
+| `RequirementProof.ts` | `RequirementProof` |
 
 ### Install and limits
 

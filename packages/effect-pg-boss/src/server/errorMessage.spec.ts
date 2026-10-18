@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { PgBossError } from "#error.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions } from "#test/fake-client.ts";
+import { constructorOptions } from "#test/fakeClient.ts";
 import { scriptedClient } from "#test/scriptedClient.ts";
 
 it("names the queue and the PostgreSQL code of a failed registration without its original message", async () => {

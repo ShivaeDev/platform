@@ -5,7 +5,7 @@ import { makeDatabase } from "#database.ts";
 import type { DatabaseServiceOf } from "#databaseTypes.ts";
 import type { PrismaError } from "#error.ts";
 import { type Contract, contractJson } from "#test/contract.ts";
-import { AuditDatabase, Database, type User } from "#test/typed-database.ts";
+import { AuditDatabase, Database, type User } from "#test/typedDatabase.ts";
 import { makeDatabaseIt } from "#testing/vitest.ts";
 
 type ContractEmail = ExtractFieldOutputTypes<Contract>["public"]["User"]["email"];

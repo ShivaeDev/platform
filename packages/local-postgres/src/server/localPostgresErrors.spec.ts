@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { inspect } from "node:util";
 import { expect, it } from "vitest";
-import { sqlInContainer } from "#local-container.ts";
-import { docker } from "#local-docker.ts";
+import { sqlInContainer } from "#localContainer.ts";
+import { docker } from "#localDocker.ts";
 import { localPostgres, localServer } from "#localPostgres.ts";
 
 const PASSWORD = "query-failure-%+:@/password";

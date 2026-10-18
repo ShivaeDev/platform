@@ -64,7 +64,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 			sites: ['engine/mergeReadiness.ts: "reviewed-pr-ready"'],
 		},
 		{
-			code: "fleet-invalid" as const,
+			code: "pr-closed" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* finishRecoveryReview(ctx);
 				ctx.github.state.status = "CLOSED";

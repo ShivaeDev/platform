@@ -4,7 +4,7 @@ import { decodeConfig } from "#config/decode.ts";
 import { resolveRules } from "#config/resolve.ts";
 import { defineConfig } from "#config.ts";
 import { defineRule } from "#rule.ts";
-import { builtInRules } from "#rules/built-in.ts";
+import { builtInRules } from "#rules/builtIn.ts";
 
 const todo = defineRule({ check: () => [], description: "Resolve TODOs.", id: "local/no-todo" });
 

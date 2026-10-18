@@ -1,7 +1,7 @@
 import { Context, Data, Effect, Layer, type PubSub, type Scope } from "effect";
-import { defineService } from "#define-service.ts";
-import { genericMethod } from "#generic-method.ts";
-import type { ServiceRequirements } from "#service-requirements.ts";
+import { defineService } from "#defineService.ts";
+import { genericMethod } from "#genericMethod.ts";
+import type { ServiceRequirements } from "#ServiceRequirements.ts";
 
 class Declared extends Context.Service<Declared, { readonly value: string }>()("fixture/Declared") {}
 

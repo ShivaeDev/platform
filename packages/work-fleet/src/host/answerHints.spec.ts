@@ -8,6 +8,7 @@ for (const mode of ["board", "port", "board and port"] as const) {
 		function* (daemon) {
 			yield* daemon.dispatch();
 			yield* daemon.question("Which storage should I use?");
+			yield* daemon.reconcile();
 			const selection = {
 				...(mode === "port" ? {} : { board: daemon.board() }),
 				...(mode === "board" ? {} : { port: daemon.port() }),

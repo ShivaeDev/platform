@@ -6,6 +6,7 @@ import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import type { FleetRecord } from "#model.ts";
 import { discoveryDaemon } from "#test/discoveryDaemon.ts";
+import { cliProcess } from "#test/fleetCli.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import { untilError, untilOutput } from "#test/follower.ts";
 import { type Follower, followerProcess } from "#test/followerProcess.ts";
@@ -43,6 +44,17 @@ export const fleetDaemon = storyKit({
 		awaitError: (text: string) => untilError(follower(engine), text),
 		awaitOutput: (text: string) => untilOutput(follower(engine), text),
 		awaitSnapshot: () => Effect.promise(() => engine.daemon.subscribed).pipe(Effect.timeout("5 seconds")),
+		client: (args: readonly [string, ...string[]]) =>
+			Effect.promise(async () => {
+				story.tell(`run ${args[0]} against the fixture Board`);
+				let stderr = "";
+				const result = await cliProcess([...args, "--board", engine.fixture.host.boardDir], {
+					onError: (text) => {
+						stderr += text;
+					},
+				});
+				return { ...result, stderr };
+			}),
 		errors: () => follower(engine).errors(),
 		exit: () => Effect.promise(() => follower(engine).done).pipe(Effect.timeout("5 seconds")),
 		isRunning: () => follower(engine).isRunning(),

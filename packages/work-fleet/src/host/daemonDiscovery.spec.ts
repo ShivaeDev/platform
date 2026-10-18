@@ -84,3 +84,23 @@ fleetDaemon.it("watch reports an unreadable port file without inventing a daemon
 	expect(result.stderr).not.toContain("127.0.0.1:0");
 	expect(result.stderr).not.toContain("retrying");
 });
+
+for (const args of [
+	["status"],
+	["dispatch", "one"],
+	["answer", "one", "Use PostgreSQL"],
+	["continue", "one", "Proceed"],
+	["release", "one"],
+	["wait", "one"],
+	["reassign", "one", "decision", "maintainer"],
+	["name-threads"],
+] as const) {
+	fleetDaemon.it(`${args[0]} reports the unreadable Board port file`, [unreadablePortFile()], function* (daemon) {
+		const result = yield* daemon.client(args);
+		expect(result.code).toBe(1);
+		expect(result.stdout).toBe("");
+		expect(result.stderr).toContain("Cannot read Fleet daemon port from ");
+		expect(result.stderr).toContain(".fleet-port");
+		expect(result.stderr).not.toContain("127.0.0.1:0");
+	});
+}

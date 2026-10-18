@@ -52,6 +52,7 @@ export const fleetAnswerHint = storyKit({
 		port: () => engine.daemon.port,
 		question: (text: string) =>
 			Effect.gen(function* () {
+				story.tell("complete the worker output with a question");
 				const client = yield* daemonClient(engine.daemon.port);
 				const record = yield* client("fleet.get", { workId: "one" });
 				const turnId = record.attempts.at(-1)?.receipt?.turnId;
@@ -60,9 +61,11 @@ export const fleetAnswerHint = storyKit({
 					return yield* Effect.die("Dispatch a worker before asking a question");
 				}
 				engine.fixture.provider.observations.set(turnId, { ...observation, execution: "completed", output: `FLEET_QUESTION: ${text}` });
-				return yield* client("fleet.reconcile", { workId: "one" });
 			}),
-		reconcile: () => Effect.flatMap(daemonClient(engine.daemon.port), (client) => client("fleet.reconcile", { workId: "one" })),
+		reconcile: () => {
+			story.tell("reconcile the worker");
+			return Effect.flatMap(daemonClient(engine.daemon.port), (client) => client("fleet.reconcile", { workId: "one" }));
+		},
 		status: (selection: Selection) =>
 			run([
 				"status",
