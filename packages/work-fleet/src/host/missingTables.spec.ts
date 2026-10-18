@@ -21,6 +21,7 @@ for (const table of ["records", "dispatches"]) {
 						expect(yield* client("daemon.status", {})).toEqual({
 							active: [],
 							completed: [],
+							config: expect.objectContaining({ file: fixture.configFile, restartRequired: [] }),
 							waiting: { automation: [], maintainer: [], orchestrator: [] },
 						});
 						expect(yield* client("daemon.dispatch-status", { workId: "one" })).toBeNull();
@@ -36,7 +37,7 @@ for (const table of ["records", "dispatches"]) {
 							expect(summary._tag).toBe("SqlError");
 						}
 					}),
-				fixture.parts,
+				{ parts: fixture.parts },
 			),
 		));
 }

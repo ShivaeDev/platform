@@ -60,7 +60,7 @@ for (const release of [false, true]) {
 						},
 						() => attempts,
 					),
-				parts,
+				{ parts },
 			);
 		}));
 }

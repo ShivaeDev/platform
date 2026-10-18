@@ -9,7 +9,14 @@ export interface Versioned<A> {
 	readonly version: number;
 }
 
+export interface OpenPullRequestCurve {
+	readonly ease: number;
+	readonly floor: number;
+	readonly max: number;
+}
+
 export interface AdmissionLimits {
+	readonly implementers?: { readonly concurrency: number; readonly openPullRequests?: OpenPullRequestCurve };
 	readonly maxBacklog?: number;
 	readonly maxExecuting?: number;
 	readonly quota?: { readonly observedAt: number; readonly available: number };

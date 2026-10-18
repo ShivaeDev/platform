@@ -1,13 +1,49 @@
-import { Deferred, Effect, Exit, Option } from "effect";
+import { Cause, Deferred, Effect, Exit, Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
 import { afterEach, expect, it } from "vitest";
-import { useAction, useQuery } from "#result-state.ts";
+import { isUnauthorized, useAction, useQuery } from "#result-state.ts";
+import { resultSession } from "#test/resultSession.ts";
 import { expectNoReactWarnings, render } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
+it.each(["query", "action"] as const)("%s preserves a successful undefined as Some with settled flags", async (kind) => {
+	const view = await resultSession(kind, () => Effect.succeed(undefined));
+	try {
+		if (kind === "action") {
+			await view.execute();
+		}
+		expect(view.current().data).toEqual(Option.some(undefined));
+		expect(view.current().pending).toBe(false);
+		expect(view.current().refreshing).toBe(false);
+		expect(view.current().cause).toEqual(Option.none());
+	} finally {
+		await view.close();
+	}
+});
+it.each([
+	["query", "defect"],
+	["query", "interruption"],
+	["action", "defect"],
+	["action", "interruption"],
+] as const)("%s exposes a %s cause without requesting a session recheck", async (kind, failure) => {
+	const cause = failure === "defect" ? Cause.die({ _tag: "Unauthorized" }) : Cause.interrupt();
+	const view = await resultSession(kind, () => Effect.failCause(cause));
+	try {
+		if (kind === "action") {
+			await view.execute();
+		}
+		expect(view.current().cause).toEqual(Option.some(cause));
+		expect(isUnauthorized(Option.getOrThrow(view.current().cause))).toBe(false);
+		expect(view.rechecks).toEqual([]);
+		await view.rerender();
+		expect(view.rechecks).toEqual([]);
+	} finally {
+		await view.close();
+	}
+});
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const cleanup of cleanups.splice(0).reverse()) {

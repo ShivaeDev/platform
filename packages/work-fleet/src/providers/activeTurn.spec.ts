@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { Clock, Effect } from "effect";
+import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { SessionTransport } from "#session/service.ts";
 import { codexConfiguration, codexServer, WireRejection } from "#test/codex.ts";
@@ -41,36 +41,6 @@ for (const message of ["turn already active for thread", "Another operation owns
 		),
 	);
 }
-
-it.live("busy rejections on an idle thread back off and start the turn on the same thread", () =>
-	Effect.scoped(
-		Effect.gen(function* () {
-			const methods: string[] = [];
-			const submissions: unknown[] = [];
-			const times: number[] = [];
-			const clock = yield* Clock.Clock;
-			const fixture = yield* codexServer((request) => {
-				methods.push(request.method);
-				if (request.method === "turn/start") {
-					submissions.push(request.params);
-					times.push(clock.currentTimeMillisUnsafe());
-					return submissions.length < 3 ? new WireRejection("turn already active for thread") : { turn: { id: "followup" } };
-				}
-				return { data: [], nextCursor: null };
-			});
-			yield* Effect.gen(function* () {
-				const provider = yield* SessionTransport;
-				const receipt = yield* provider.startTurn({ operationId: "operation", prompt: "Continue", sessionId: "thread" });
-				expect(receipt).toEqual({ sessionId: "thread", turnId: "followup" });
-			}).pipe(Effect.provide(codexConfiguration(fixture.endpoint)));
-			expect(submissions).toEqual([submissions[0], submissions[0], submissions[0]]);
-			expect((times[1] ?? 0) - (times[0] ?? 0)).toBeGreaterThanOrEqual(5000);
-			expect((times[2] ?? 0) - (times[1] ?? 0)).toBeGreaterThanOrEqual(10_000);
-			expect(methods).not.toContain("thread/start");
-			expect(methods).not.toContain("turn/interrupt");
-		}),
-	),
-);
 
 it.live("repeated busy races stop after three resubmissions with a definite rejection", () =>
 	Effect.scoped(

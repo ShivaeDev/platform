@@ -56,7 +56,7 @@ describe("typed result adoption failures", () => {
 		expect(yield* fixture.adopt(work, completed(REPORT.replace("example/repository", "other/repository"))).pipe(Effect.flip)).toMatchObject({
 			_tag: "BadRequest",
 		});
-		expect(fixture.requests).toHaveLength(1);
+		expect(fixture.requests).toEqual([]);
 	});
 	for (const files of [[[{ filename: "src/one.ts" }]], [[{ filename: "src/one.ts" }, { filename: "src/one.ts" }]]]) {
 		it.effect("rejects incomplete or duplicate file pages", function* () {

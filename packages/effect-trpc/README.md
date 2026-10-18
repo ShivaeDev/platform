@@ -272,6 +272,8 @@ The mapper receives the procedure path and an `origin` of `failure` or `defect`.
 
 `instrument(effect, procedure)` wraps resolver work and can read request services. `instrumentStream(stream, procedure)` wraps subscription streams. Both receive the procedure path and kind; an Effect-instrumentation defect is redacted.
 
+Each query, mutation and subscription creates one procedure span named after its full procedure path, such as `orders.read`. Its attributes are `rpc.method` set to that path, `rpc.system: "trpc"` and `trpc.type` set to `"query"`, `"mutation"` or `"subscription"`. A span opened by the resolver is a child of that procedure span. Subscriptions also provide the caller's exact `AbortSignal` through `RequestSignal`; the resolver can observe its aborted state. The [procedure evidence tests](src/server/procedureEvidence.spec.ts) record these spans and observe signal identity and abort through `router.createCaller` in process.
+
 ### Once per test suite: the real router caller
 
 Create the test helper in the application's test support. These definitions continue the first complete example:
@@ -354,13 +356,13 @@ Import each name from its defining `@shivaedev/effect-trpc/<module>.ts`; there i
 ### Install, runtime ownership and limits
 
 ```sh
-pnpm add @shivaedev/effect-trpc @trpc/server@11.18.0 effect@4.0.4
+pnpm add @shivaedev/effect-trpc @trpc/server@11.19.0 effect@4.0.4
 ```
 
 Use the exact peer versions in this package's `package.json`. Node.js 24 or later is required. The rejection example also uses `superjson`; configure the same transformer on the tRPC client.
 
 ```sh
-pnpm add @trpc/client@11.18.0 superjson@2.2.6
+pnpm add @trpc/client@11.19.0 superjson@2.2.6
 pnpm add --save-dev @effect/vitest@4.0.4 vitest@5.0.3
 ```
 

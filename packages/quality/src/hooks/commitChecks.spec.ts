@@ -1,11 +1,13 @@
 import { realpathSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
+import { runQuality } from "#test/cli.ts";
 import {
+	checksLog,
 	commits,
 	gitIn,
 	hookRepository,
 	hookText,
-	quality,
+	logs,
 	stages,
 	withBareWorktree,
 	withoutManifest,
@@ -18,61 +20,91 @@ import { removeSeededTrees } from "#test/tree.ts";
 const CLI_TIMEOUT = 60_000;
 const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";
+const TOO_LONG = "export const a = 1;\nexport const b = 2;\nexport const c = 3;\nexport const d = 4;\n";
 
 afterEach(removeSeededTrees);
 
-function installedIn(root: string): string {
-	quality(root, "hooks", "install");
+async function installedIn(root: string): Promise<string> {
+	await runQuality(root, "hooks", "install");
 	return root;
 }
 
-describe("the pre-commit hook", { timeout: CLI_TIMEOUT }, () => {
-	it("runs lint alone without a manifest", () => {
-		const root = installedIn(withoutManifest(hookRepository().root));
-		const result = commits(root, "Lint alone");
+function preCommit(root: string) {
+	return runQuality(root, "hooks", "pre-commit");
+}
+
+describe("the pre-commit checks", { timeout: CLI_TIMEOUT }, () => {
+	it("run lint alone without a manifest", async () => {
+		const result = await preCommit(withoutManifest(hookRepository().root));
 		expect(result.status).toBe(0);
-		expect(result.stderr).toContain("quality: passed.");
-		expect(result.stderr).not.toContain("quality: running");
+		expect(result.stdout).toContain("quality: passed.");
+		expect(result.stdout).not.toContain("quality: running");
 	});
 
-	it("requires explicit installation and checks a repository without a config", () => {
-		const repository = hookRepository({ configless: true, scripts: { typecheck: "echo typechecked" } });
+	it("check a repository without a config, whose hook needs explicit installation", async () => {
+		const repository = hookRepository({ configless: true, scripts: { typecheck: logs("typechecked") } });
 		expect(hookText(repository)).toBeUndefined();
-		installedIn(repository.root);
-		const result = commits(repository.root, "Clean defaults");
-		expect(result.status).toBe(0);
-		expect(result.stderr).toContain("typechecked");
-		expect(result.stderr).not.toContain("run quality:commit");
+		expect((await runQuality(repository.root, "hooks", "install")).status).toBe(0);
+		expect(hookText(repository)).toContain('exec "$quality" hooks pre-commit');
+		expect((await preCommit(repository.root)).status).toBe(0);
+		expect(checksLog(repository.root)).toBe("typechecked\n");
 	});
 
-	it("runs quality:commit without requiring a typecheck script", () => {
-		const root = installedIn(hookRepository({ scripts: { "quality:commit": "echo repository checked" } }).root);
-		const result = commits(root, "Repository checks");
+	it("run quality:commit without requiring a typecheck script", async () => {
+		const { root } = hookRepository({ scripts: { "quality:commit": logs("repository checked") } });
+		const result = await preCommit(root);
 		expect(result.status).toBe(0);
-		expect(result.stderr).toContain("repository checked");
-		expect(result.stderr).not.toContain("run typecheck");
+		expect(result.stdout).not.toContain("run typecheck");
+		expect(checksLog(root)).toBe("repository checked\n");
 	});
 
-	it("uses the declared package manager", () => {
-		const root = installedIn(hookRepository().root);
-		withScripts(root, { typecheck: "echo declared manager checked" }, "npm@11.0.0");
-		const result = commits(root, "Package manager");
+	it("use the declared package manager", async () => {
+		const root = withScripts(hookRepository().root, { typecheck: logs("typechecked") }, "npm@11.0.0");
+		const result = await preCommit(root);
 		expect(result.status).toBe(0);
-		expect(result.stderr).toContain("quality: running `npm run typecheck`");
-		expect(result.stderr).toContain("declared manager checked");
+		expect(result.stdout).toContain("quality: running `npm run typecheck`");
+		expect(checksLog(root)).toBe("typechecked\n");
 	});
 
-	it("reports a broken manifest instead of omitting repository checks", () => {
-		const root = installedIn(hookRepository().root);
+	it("report a broken manifest instead of omitting repository checks", async () => {
+		const { root } = hookRepository();
 		writes(root, "package.json", '{ "scripts": { "typecheck": 3 } }');
-		const result = commits(root, "Broken scripts");
-		expect(result.status).toBe(1);
+		const result = await preCommit(root);
+		expect(result.status).toBe(2);
 		expect(result.stderr).toContain("package.json is invalid");
 	});
 
-	it("rejects a commit that breaks a rule, says what failed and how to go on", () => {
-		const root = installedIn(hookRepository().root);
-		writes(root, "src/full.ts", "export const a = 1;\nexport const b = 2;\nexport const c = 3;\nexport const d = 4;\n");
+	it("run typecheck and quality:commit after lint, from the config's folder", async () => {
+		const { root } = hookRepository({
+			scripts: { "quality:commit": logs("repository checked"), typecheck: `test -f quality.config.ts && ${logs("typechecked")}` },
+		});
+
+		const result = await preCommit(root);
+
+		expect(result.status).toBe(0);
+		expect(result.stdout).toContain("quality: passed.");
+		expect(result.stdout).toContain("quality: running `npm run typecheck`");
+		expect(result.stdout).toContain("quality: running `npm run quality:commit`");
+		expect(checksLog(root)).toBe("typechecked\nrepository checked\n");
+	});
+
+	it("run every check after one fails, and name each that failed", async () => {
+		const { root } = hookRepository({ scripts: { "quality:commit": `${logs("still ran")}; exit 4`, typecheck: "exit 3" } });
+		writes(root, "src/full.ts", TOO_LONG);
+
+		const result = await preCommit(root);
+
+		expect(checksLog(root)).toBe("still ran\n");
+		expect(result.stderr).toBe(
+			`quality: pre-commit failed: quality lint, \`npm run typecheck\` (exit code 3), \`npm run quality:commit\` (exit code 4).\n${COMMIT_AGAIN}\n`,
+		);
+	});
+});
+
+describe("the pre-commit hook", { timeout: CLI_TIMEOUT }, () => {
+	it("rejects a commit that breaks a rule, says what failed and how to go on", async () => {
+		const root = await installedIn(hookRepository().root);
+		writes(root, "src/full.ts", TOO_LONG);
 		stages(root, "src/full.ts");
 
 		const result = commits(root, "Too long");
@@ -83,47 +115,18 @@ describe("the pre-commit hook", { timeout: CLI_TIMEOUT }, () => {
 		expect(gitIn(root, "log", "--format=%s")).toBe("Base\n");
 	});
 
-	it("runs typecheck and quality:commit after lint, from the config's folder", () => {
-		const root = installedIn(
-			hookRepository({ scripts: { "quality:commit": "echo repository checked", typecheck: "test -f quality.config.ts && echo typechecked" } }).root,
-		);
-
-		const result = commits(root, "Clean");
-
-		expect(result.status).toBe(0);
-		expect(result.stderr).toContain("quality: passed.");
-		expect(result.stderr).toContain("quality: running `npm run typecheck`");
-		expect(result.stderr).toContain("quality: running `npm run quality:commit`");
-		expect(result.stderr.indexOf("typechecked\n")).toBeLessThan(result.stderr.indexOf("repository checked\n"));
-	});
-
-	it("runs every check after one fails, and names each that failed", () => {
-		const root = installedIn(hookRepository({ scripts: { "quality:commit": "echo still ran; exit 4", typecheck: "exit 3" } }).root);
-		writes(root, "src/full.ts", "export const a = 1;\nexport const b = 2;\nexport const c = 3;\nexport const d = 4;\n");
-		stages(root, "src/full.ts");
-
-		const result = commits(root, "Too long");
-
-		expect(result.stderr).toContain("still ran\n");
-		expect(
-			result.stderr.endsWith(
-				`quality: pre-commit failed: quality lint, \`npm run typecheck\` (exit code 3), \`npm run quality:commit\` (exit code 4).\n${COMMIT_AGAIN}\n`,
-			),
-		).toBe(true);
-	});
-
-	it("checks each worktree's commits under that worktree's own config", () => {
+	it("checks each worktree's commits under that worktree's own config", async () => {
 		const repository = hookRepository();
-		installedIn(repository.root);
+		await installedIn(repository.root);
 		const worktree = withScripts(withWorktree(repository, "stricter"), { "quality:commit": "exit 4" });
 
 		expect(commits(worktree, "Stricter").stderr).toContain("quality: pre-commit failed: `npm run quality:commit` (exit code 4).");
 		expect(commits(repository.root, "Unchanged").status).toBe(0);
 	});
 
-	it("rejects a commit from a worktree without its dependencies and says how to go on", () => {
+	it("rejects a commit from a worktree without its dependencies and says how to go on", async () => {
 		const repository = hookRepository();
-		installedIn(repository.root);
+		await installedIn(repository.root);
 		const worktree = withBareWorktree(repository, "fresh");
 
 		const result = commits(worktree, "Unchecked");

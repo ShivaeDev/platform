@@ -50,10 +50,8 @@ async function renderedCode(highlighter: Shiki, pre: Element, diagrams: boolean)
 	return language === undefined ? undefined : await highlighted(highlighter, source, language);
 }
 
-export const codeBlocks =
-	(highlighter: Shiki, { diagrams = true }: { readonly diagrams?: boolean } = {}) =>
-	() =>
-	async (tree: Root) => {
+export function codeBlocks(highlighter: Shiki, { diagrams = true }: { readonly diagrams?: boolean } = {}) {
+	return () => async (tree: Root) => {
 		const work: Promise<void>[] = [];
 		visitElements(tree, "element", (pre, index, parent) => {
 			if (pre.tagName !== "pre" || index === undefined || parent === undefined) {
@@ -69,3 +67,4 @@ export const codeBlocks =
 		});
 		await Promise.all(work);
 	};
+}

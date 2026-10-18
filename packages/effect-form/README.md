@@ -258,10 +258,12 @@ Import the module that defines a name; there is no root entry.
 | Module | Application-facing exports |
 | --- | --- |
 | `@shivaedev/effect-form/form.ts` | `make(schema, config)` |
-| `@shivaedev/effect-form/shape.ts` | `Fields`, `Name`, `Encoded`, `Decoded`, `Services`, `Checks`, `Config`, `Form`, `Submitter`, `FieldFailure`, `Invalid` |
+| `@shivaedev/effect-form/shape.ts` | `Fields`, `Name`, `ArrayKeys`, `Path`, `Encoded`, `Decoded`, `Services`, `Checks`, `Config`, `Form`, `Submitter`, `FieldFailure`, `Invalid` |
 | `@shivaedev/effect-form/react.ts` | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`, `BrowserDraftConfig`, `Field`, `Submit` |
 | `@shivaedev/effect-form/persistence.ts` | `PersistedDraftConfig`, `DraftStorage`; `persistence` and `Persistence` for composing storage machinery |
 | `@shivaedev/effect-form/draftSession.ts` | `draftSession(id)`, `DraftSession` |
+| `@shivaedev/effect-form/paths.ts` | `KeySelectors`, `PathMessage`, `keySelector`, `asPath`, `retainedPath`, `pathMessageAt` |
+| `@shivaedev/effect-form/trackRejections.ts` | `trackRejections(values, selectors, status)`, composing submitted-path rejection tracking with value changes |
 | `@shivaedev/effect-form/optional.ts` | `emptyAsNull` |
 | `@shivaedev/effect-form/messages.ts` | `FieldMessages`, `messagesByField`, `messageAt`, `messageAtPath`, `schemaFeedback`, `withoutField`, `literalChoices`, `noMessages` |
 
@@ -273,6 +275,7 @@ Import the module that defines a name; there is no root entry.
 | `runtime` | Atom runtime for the handler/check services and schema decoding services |
 | `onSubmit` | `(values, submitter, submitted) => Effect<A, E, R>`; the three arguments are decoded values, field failure helper and encoded snapshot |
 | `checks` | Optional functions keyed by field, from encoded input to an Effect of `string \| undefined` |
+| `arrayKeys` | Optional `ArrayKeys<F>` selectors keyed by top-level array field, from encoded element to stable `PropertyKey`; retains nested feedback across reordering |
 | `debounce` | Optional Effect `Duration.Input` for checks |
 | `persistedDraft` | Optional `{ key, storage, maxBytes?, maxAgeMs?, session? }`; React's `usePersistedDraft` supplies storage and session ownership |
 
@@ -308,10 +311,10 @@ pnpm add @shivaedev/effect-form effect@4.0.4
 For React bindings:
 
 ```sh
-pnpm add @effect/atom-react@4.0.4 react@19.2.8
+pnpm add @effect/atom-react@4.0.4 react@19.3.0
 ```
 
-The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The manifest requires Node 24 or newer. The repository's peer catalog uses Effect and atom-react `4.0.4` and React `19.2.8`.
+The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The manifest requires Node 24 or newer. The repository's peer catalog uses Effect and atom-react `4.0.4` and React `19.3.0`.
 
 - Field names are top-level schema keys. There is no path-addressed field-array API.
 - Replace encoded values rather than mutating objects in place; use `change` for ordinary UI edits.

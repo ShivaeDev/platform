@@ -23,7 +23,7 @@ function exitCodeOf(error: unknown): number {
 	return typeof error === "object" && error !== null && Runtime.errorExitCode in error ? Runtime.getErrorExitCode(error) : COULD_NOT_RUN;
 }
 
-function exitCode(exit: Exit.Exit<unknown, unknown>): number {
+export function exitCode(exit: Exit.Exit<unknown, unknown>): number {
 	if (Exit.isSuccess(exit)) {
 		return 0;
 	}
@@ -46,11 +46,16 @@ export function quietOnClosedPipe(stream: EventEmitter): void {
 	});
 }
 
-const services = NodeChildProcessSpawner.layer.pipe(Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)));
+export const services = NodeChildProcessSpawner.layer.pipe(Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)));
+
+export function explained<TValue, TError, TRequirements>(
+	program: Effect.Effect<TValue, TError, TRequirements>,
+): Effect.Effect<TValue, TError, TRequirements> {
+	return Effect.tapCause(program, (cause) => (Cause.hasInterruptsOnly(cause) ? Effect.void : explain(cause)));
+}
 
 export function runMain<TValue, TError>(program: Effect.Effect<TValue, TError, FileSystem.FileSystem | Git>): void {
 	quietOnClosedPipe(process.stdout);
 	quietOnClosedPipe(process.stderr);
-	const explained = Effect.tapCause(program, (cause) => (Cause.hasInterruptsOnly(cause) ? Effect.void : explain(cause)));
-	NodeRuntime.runMain(Effect.provide(explained, services), { disableErrorReporting: true, teardown });
+	NodeRuntime.runMain(Effect.provide(explained(program), services), { disableErrorReporting: true, teardown });
 }

@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";
+import { githubFailure } from "#host/githubRateLimit.ts";
 
 const RulePages = Schema.Array(Schema.Array(Schema.Struct({ parameters: Schema.optional(Schema.Unknown), type: Schema.String })));
 const RequiredParameters = Schema.Struct({ requiredStatusChecks: Schema.Array(Schema.Struct({ context: Schema.String })) }).pipe(
@@ -15,5 +15,5 @@ export function githubRequiredChecks<R>(read: (endpoint: string) => Effect.Effec
 		const rules = pages.flat().filter((rule) => rule.type === "required_status_checks");
 		const parameters = yield* Effect.forEach(rules, (rule) => Schema.decodeUnknownEffect(RequiredParameters)(rule.parameters));
 		return [...new Set(parameters.flatMap((rule) => rule.requiredStatusChecks.map((check) => check.context)))];
-	}).pipe(Effect.mapError(() => new ServiceUnavailable({ message: "GitHub required status checks are unavailable or invalid" })));
+	}).pipe(Effect.mapError(githubFailure("GitHub required status checks are unavailable or invalid")));
 }

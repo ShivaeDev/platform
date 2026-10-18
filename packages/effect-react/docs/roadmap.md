@@ -9,6 +9,9 @@ This roadmap owns the package's hooks, form coordination and session-registry im
 - [x] Native query and action hooks with inferred input/success/failure types, retained data, pending/refresh state and explicit refresh/dispatch methods. DOM tests cover query identity changes, shared query execution and latest-dispatch interruption; compiler fixtures cover types.
 - [x] A session generation owning its client, registry and subtree, with replacement/sign-out cleanup, query Unauthorized rechecking and retained screens until the auth owner changes the session.
 - [x] Unauthorized saves in `useCreate` and `useEditor` invoke the session callback exactly once and retain the draft and typed failure, including after rerendering and further edits. [Rendered save evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/client/saveState.dom.test.tsx).
+- [x] Unauthorized action failures invoke the session callback once per failed result and retain successful data and the typed cause, including after rerendering. [Rendered action evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/client/sessionBoundary.dom.test.tsx).
+- [x] Queries and actions preserve a successful `undefined` as `Option.some(undefined)` with settled pending/refreshing flags. Defect and interruption causes remain available, are not Unauthorized and do not request a session recheck. [Rendered result-state evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/client/resultState.dom.test.ts).
+- [x] `eventually` rethrows the last assertion failure after its three-second deadline; `expectNoReactWarnings` fails a test that logs to `console.error` and restores the spy even after that assertion fails. [Testing-helper evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/client/testing.dom.test.tsx).
 - [x] Session cleanup across StrictMode effect replay and Activity hiding, reveal and hidden unmount, with credential rotation tested against the chosen identity key.
 - [x] `useEditor` composing query, fields and save Effect, with initial loading, per-query forms, per-field refresh/saved-result merges, normalized results and in-flight edits covered by rendered tests.
 - [x] `useCreate` starting a fresh form after success while retaining fields edited during schema decoding or the request; submissions through the form API settle the hooks too.
@@ -18,8 +21,6 @@ This roadmap owns the package's hooks, form coordination and session-registry im
 
 ## Next
 
-- [ ] Add direct rendered regressions for Unauthorized action failures invoking the session callback.
-- [ ] Add explicit result-state regressions for a successful `undefined` value and causes containing defects or interruption before making stronger README guarantees about those cases.
 - [ ] Verify changing hook configuration during one form lifetime before documenting any supported reconfiguration policy. Creation currently captures its initial configuration, and an editor holds submission functions per query identity.
 
 ## Open questions

@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { Effect } from "effect";
 import { BadRequest, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
-import { githubDelivery } from "#host/githubDelivery.ts";
+import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
 import { githubResult } from "#host/githubResult.ts";
 import { BASE, HEAD, PR, resultFixture } from "#test/githubResult.ts";
 
@@ -24,7 +24,6 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 	return {
 		"/repos/example/repository/pulls/7/files?per_page=100": [state.paths.map((filename) => ({ filename }))],
 		"/repos/example/repository/rules/branches/main": [[]],
-		"/repository": { nameWithOwner: "example/repository" },
 		[`/repos/example/repository/commits/${state.head}/check-runs?per_page=100&filter=latest`]: [
 			{
 				"check_runs": [
@@ -40,21 +39,15 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 			},
 		],
 		[`/repos/example/repository/commits/${state.head}/status?per_page=100`]: [{ sha: state.head, statuses: [] }],
-		"/delivery": {
-			baseRefOid: state.base,
-			headRefOid: state.head,
-			mergeable: state.mergeable,
-			mergeCommit: merged ? { oid: BASE } : null,
-			mergedAt: merged ? "2026-01-01T00:00:00Z" : null,
-			state: state.status,
-			url: PR,
-		},
 		"/repos/example/repository/pulls/7": {
-			base: { ref: "main", sha: BASE },
+			base: { ref: "main", sha: state.base },
 			"changed_files": state.paths.length,
 			head: { sha: state.head },
 			"html_url": PR,
-			merged: state.status === "MERGED",
+			"merge_commit_sha": merged ? BASE : null,
+			mergeable: state.mergeable === "UNKNOWN" ? null : state.mergeable === "MERGEABLE",
+			merged,
+			"merged_at": merged ? "2026-01-01T00:00:00Z" : null,
 			number: 7,
 			state: state.status === "OPEN" ? "open" : "closed",
 		},
@@ -105,11 +98,12 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 			},
 		});
 	}
-	const { host, main } = resultFixture();
-	const adopt = githubResult(host, main, (args) => read(args[0] === "repo" ? "/repository" : `/${args[1]}`));
+	const { host } = resultFixture();
+	const github = { get: (endpoint: string) => read(`/${endpoint}`), pages: (endpoint: string) => read(`/${endpoint}`) };
+	const adopt = githubResult(host, github, Effect.succeed("example/repository"));
 	return {
-		checksQuery: makeGithubChecks((endpoint) => read(`/${endpoint}`)),
-		deliveryQuery: githubDelivery("/synthetic", () => read("/delivery").pipe(Effect.map((value): unknown => JSON.parse(value)))),
+		checksQuery: makeGithubChecks(github.pages),
+		deliveryQuery: githubDelivery(readPullRequest(github.get)),
 		requests,
 		resultQuery: (...args: Parameters<typeof adopt>) =>
 			adopt(...args).pipe(

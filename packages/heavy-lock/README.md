@@ -206,9 +206,7 @@ The package also exposes the modules that implement its shared protocol:
 Each path has the prefix `@shivaedev/heavy-lock/`. `Holder` holds `id`, `pid`, `processStartedAt`, `command`, `cwd` and `startedAtMs`; `Claim` omits the acquisition time. `WaitOptions` names `pollInterval` as `Duration.Input` and `remindEvery` as `Duration.Duration`. `Settings` holds `ci`, the optional inherited ID and the resolved `lock` path. The [protocol reference](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md) describes the holder and acquisition rules. Use the scoped acquisition API for ordinary command wrapping.
 
 `tryAcquire` returns `Option.none()` after acquiring or `Option.some(holder)`
-when another live holder blocks it. It does not require `Scope` or register a
-release finalizer; its caller must release an acquired hold. `waitForLock` owns
-that scoped waiting and release lifecycle.
+when another live holder blocks it. It does not require `Scope` or register a release finalizer; its caller must release an acquired hold. `waitForLock` owns that scoped waiting and release lifecycle.
 
 ### Install and environment
 

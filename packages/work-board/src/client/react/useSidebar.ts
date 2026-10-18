@@ -1,8 +1,10 @@
+import { useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AppearanceControls } from "./useAppearance.ts";
 import { useMedia } from "./useMedia.ts";
 
 export function useSidebar(appearance: AppearanceControls) {
+	const router = useRouter();
 	const narrow = useMedia("(max-width: 767px)");
 	const [drawer, setDrawer] = useState(false);
 	const open = narrow ? drawer : !appearance.closed;
@@ -55,12 +57,12 @@ export function useSidebar(appearance: AppearanceControls) {
 			trapTab(event);
 		}
 		document.addEventListener("keydown", key);
-		document.addEventListener("board-navigate", close);
+		const unsubscribe = router.subscribe("onBeforeNavigate", close);
 		return () => {
 			document.removeEventListener("keydown", key);
-			document.removeEventListener("board-navigate", close);
+			unsubscribe();
 		};
-	}, [narrow, open, close]);
+	}, [narrow, open, close, router]);
 	return { close, narrow, open, toggle };
 }
 export type SidebarControls = ReturnType<typeof useSidebar>;

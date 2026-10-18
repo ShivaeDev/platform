@@ -1,77 +1,15 @@
 import { Cause, Effect, Exit, Option, Stream } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { acquireConnectedClient, assertAvailableModelNames } from "#internal/client-lifecycle.ts";
-import type { DatabaseExecutor } from "#internal/executor.ts";
-import { fromPrismaPromise } from "#internal/promise.ts";
-import { makeModelRelation } from "#internal/relation-runtime.ts";
-import { FakeResult } from "#test/controlled-collection.ts";
-import { unusedClient } from "#test/unused-client.ts";
+import { branchingUsers, branchingRows as rows } from "#test/sqlite/branchingUsers.ts";
+import { failsInitialization, hasUsers, sqliteStory } from "#test/sqlite/story.ts";
 
-interface User {
-	readonly active: boolean;
-	readonly id: number;
-}
-
-class FakeCollection<TRow extends object> {
-	private readonly rows: readonly TRow[];
-	private readonly limit: number | undefined;
-
-	constructor(rows: readonly TRow[], limit?: number) {
-		this.rows = rows;
-		this.limit = limit;
-	}
-
-	where(filter: Partial<TRow>): FakeCollection<TRow> {
-		return new FakeCollection(
-			this.rows.filter((row) => Object.entries(filter).every(([key, value]) => Reflect.get(row, key) === value)),
-			this.limit,
-		);
-	}
-
-	take(limit: number): FakeCollection<TRow> {
-		return new FakeCollection(this.rows, limit);
-	}
-
-	all(): FakeResult<TRow> {
-		return new FakeResult(this.limit === undefined ? this.rows : this.rows.slice(0, this.limit));
-	}
-
-	async first(): Promise<TRow | null> {
-		return (this.limit === undefined ? this.rows[0] : this.rows.slice(0, this.limit)[0]) ?? null;
-	}
-}
-
-interface Models {
-	readonly User: FakeCollection<User>;
-}
-
-const rows: readonly User[] = [
-	{ active: true, id: 1 },
-	{ active: false, id: 2 },
-	{ active: true, id: 3 },
-];
-
-const executor: DatabaseExecutor<Models> = {
-	client: unusedClient(),
-	identity: {},
-	liveness: { closedCode: "RUNTIME.DATABASE_CLOSED", open: true },
-	mode: "root",
-	models: {
-		User: new FakeCollection(rows),
-	},
-	querySemaphore: undefined,
-	transactionIdentity: undefined,
-	transactionSemaphore: undefined,
-};
-
-it.effect("adapts a Prisma-shaped thenable", function* () {
-	const result = yield* fromPrismaPromise(() => new FakeResult([{ active: true, id: 1 }]));
+sqliteStory.it("adapts a Prisma-shaped thenable", [], function* ({ relationProbes }) {
+	const result = yield* relationProbes.adaptThenable();
 	expect(result).toEqual([{ active: true, id: 1 }]);
 });
 
-it.effect("keeps unknown Promise rejections in the defect channel", function* () {
-	const exit = yield* Effect.exit(fromPrismaPromise(() => Promise.reject(new Error("unknown"))));
+sqliteStory.it("keeps unknown Promise rejections in the defect channel", [], function* ({ relationProbes }) {
+	const exit = yield* relationProbes.rejectUnknownPromise();
 
 	expect(Exit.isFailure(exit)).toBe(true);
 	if (Exit.isFailure(exit)) {
@@ -79,39 +17,26 @@ it.effect("keeps unknown Promise rejections in the defect channel", function* ()
 	}
 });
 
-it.effect("closes a connected client when initialization fails", function* () {
-	let closed = false;
-	const failure = new Error("model discovery failed");
-
-	const exit = yield* Effect.exit(
-		Effect.promise(() =>
-			acquireConnectedClient(
-				{
-					close: () => {
-						closed = true;
-						return Promise.resolve();
-					},
-					connect: () => Promise.resolve(),
-				},
-				() => {
-					throw failure;
-				},
-			),
-		),
-	);
+sqliteStory.it("closes a connected client when initialization fails", [failsInitialization()], function* ({ initializationFailure }) {
+	const { closeCalls, closed, connected, discoveryAttempts, exit, usersBeforeFailure } = yield* initializationFailure();
 
 	expect(Exit.isFailure(exit)).toBe(true);
+	expect(exit).toEqual(Exit.die(new Error("model discovery failed")));
 	expect(closed).toBe(true);
+	expect(connected).toBe(true);
+	expect(discoveryAttempts).toBe(1);
+	expect(closeCalls).toBe(1);
+	expect(usersBeforeFailure).toBe(0);
 });
 
-it("only reserves names that cannot be represented by the facade", () => {
-	expect(() => assertAvailableModelNames(["transaction"])).toThrow("Prisma model name conflicts with the database facade: transaction");
-	expect(() => assertAvailableModelNames(["constructor", "toString"])).not.toThrow();
+sqliteStory.it("only reserves names that cannot be represented by the facade", [], ({ relationProbes }) => {
+	expect(() => relationProbes.assertModelNames(["transaction"])).toThrow("Prisma model name conflicts with the database facade: transaction");
+	expect(() => relationProbes.assertModelNames(["constructor", "toString"])).not.toThrow();
 });
 
-it.effect("keeps a base Relation and its branches independent", function* () {
-	const base = makeModelRelation<FakeCollection<User>, Models>(executor, "User");
-	const active = base.where({ active: true });
+sqliteStory.it("keeps a base Relation and its branches independent", [hasUsers(branchingUsers)], function* ({ db }) {
+	const base = db.User.select("id", "name");
+	const active = base.where({ name: "active" });
 	const firstActive = active.take(1);
 
 	expect(yield* base).toEqual(rows);
@@ -120,8 +45,8 @@ it.effect("keeps a base Relation and its branches independent", function* () {
 	expect(yield* base).toEqual(rows);
 });
 
-it.effect("can execute multiple terminals against one Relation", function* () {
-	const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
+sqliteStory.it("can execute multiple terminals against one Relation", [hasUsers(branchingUsers)], function* ({ db }) {
+	const relation = db.User.select("id", "name").where({ name: "active" });
 
 	expect(yield* relation.exists()).toBe(true);
 	expect(yield* relation).toEqual([rows[0], rows[2]]);
@@ -130,8 +55,8 @@ it.effect("can execute multiple terminals against one Relation", function* () {
 	expect(Option.getOrThrow(first)).toEqual(rows[0]);
 });
 
-it.effect("replays one Relation independently under concurrency", function* () {
-	const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
+sqliteStory.it("replays one Relation independently under concurrency", [hasUsers(branchingUsers)], function* ({ db }) {
+	const relation = db.User.select("id", "name").where({ name: "active" });
 
 	const results = yield* Effect.all([relation, relation], {
 		concurrency: "unbounded",
@@ -143,8 +68,8 @@ it.effect("replays one Relation independently under concurrency", function* () {
 	]);
 });
 
-it.effect("exposes a cold independently consumable Stream", function* () {
-	const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
+sqliteStory.it("exposes a cold independently consumable Stream", [hasUsers(branchingUsers)], function* ({ db }) {
+	const relation = db.User.select("id", "name").where({ name: "active" });
 
 	const first = yield* Stream.runCollect(relation.stream);
 	const second = yield* Stream.runCollect(relation.stream);

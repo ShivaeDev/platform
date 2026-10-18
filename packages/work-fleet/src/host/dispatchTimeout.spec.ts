@@ -67,12 +67,10 @@ const refreshRequest = Effect.fn("DispatchTimeoutTest.refreshRequest")(function*
 const refreshStory = Effect.fn("DispatchTimeoutTest.refreshStory")(function* (fixture: HostFixture, fail: boolean) {
 	const delay = yield* refreshDelay(fixture, fail);
 	const snapshot = Promise.withResolvers<void>();
-	return yield* withReadDaemon(
-		fixture.host,
-		(port) => refreshRequest(fixture, port, delay, fail, snapshot.promise),
-		delay.parts,
-		() => snapshot.resolve(),
-	);
+	return yield* withReadDaemon(fixture.host, (port) => refreshRequest(fixture, port, delay, fail, snapshot.promise), {
+		onSnapshot: () => snapshot.resolve(),
+		parts: delay.parts,
+	});
 });
 
 for (const fail of [false, true]) {

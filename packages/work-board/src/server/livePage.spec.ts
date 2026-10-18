@@ -6,7 +6,7 @@ import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { held, type OpenPage } from "#test/browser.ts";
 import { faultyWatch } from "#test/faults.ts";
-import { BOARD, FILES, openLive, PLAN, paragraphOf, STEPS, settle, TWINS, waitFor } from "#test/live.ts";
+import { BOARD, FILES, openLive, PLAN, paragraphOf, settle, steps, TWINS, waitFor } from "#test/live.ts";
 import { changesUntil, rpcNavigation, subscribe, waitForLibraryCount } from "#test/nativeRpc.ts";
 
 let notes: Folder;
@@ -157,7 +157,7 @@ describe("live page", () => {
 		yield* open("/twins.md");
 		const [, second] = page.document.querySelectorAll("#doc article details");
 		second?.setAttribute("open", "");
-		notes.write("twins.md", TWINS.replace("# Twins\n\n", `# Twins\n\n${STEPS("Zero.")}\n\n`));
+		notes.write("twins.md", TWINS.replace("# Twins\n\n", `# Twins\n\n${steps("Zero.")}\n\n`));
 		yield* Effect.promise(() => waitFor(() => expect(paragraph("Zero.")).toBeDefined()));
 		const state = [...page.document.querySelectorAll("#doc article details")].map((details) => [
 			details.querySelector("p")?.textContent,

@@ -17,7 +17,7 @@ for (const worker of [false, true]) {
 	for (const release of [false, true]) {
 		test(`oversized text leaves no response and permits a later valid answer with worker=${worker}, release=${release}`, () =>
 			withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-				withReadDaemon(fixture.host, (port) => answerValidationStory(fixture, port, worker, release), fixture.parts),
+				withReadDaemon(fixture.host, (port) => answerValidationStory(fixture, port, worker, release), { parts: fixture.parts }),
 			));
 	}
 }

@@ -1,5 +1,8 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { vi } from "vitest";
+import { board as metadata } from "@shivaedev/work-board/integration/board.ts";
+import { withBoardReadPass } from "#board/readPass.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
@@ -73,3 +76,34 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 		);
 	});
 }
+
+test("scheduler passes leave an unchanged area wait unwritten", function* () {
+	const one = task("one", "approved").replace("kind: task", "kind: task\nareas: [shared]");
+	yield* withHost({ "one.md": one, "two.md": one.replaceAll("one", "two") }, {}, (fixture) =>
+		Effect.gen(function* () {
+			const fleet = yield* Fleet;
+			yield* dispatchApproved(fixture.host, "one");
+			yield* admitApproved(fixture.host);
+			yield* cycle;
+			const waiting = yield* fleet.get("two");
+			expect(waiting.value).toMatchObject({ blocker: "waiting for area shared held by one", stage: "prepared" });
+			yield* cycle;
+			yield* cycle;
+			expect(yield* fleet.get("two")).toEqual(waiting);
+		}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts))),
+	);
+});
+
+test("one scheduler pass parses each approved brief once to admit it and once to launch it", function* () {
+	const ids = ["one", "two", "three"];
+	yield* withHost(Object.fromEntries(ids.map((id) => [`${id}.md`, task(id, "approved")])), { concurrency: ids.length }, (fixture) =>
+		Effect.gen(function* () {
+			const parse = vi.spyOn(metadata, "metadataParse");
+			yield* Effect.addFinalizer(() => Effect.sync(() => parse.mockRestore()));
+			const result = yield* withBoardReadPass(admitApproved(fixture.host).pipe(Effect.andThen(cycle)));
+			expect(result.dispatched.map((dispatch) => dispatch._tag)).toEqual(ids.map(() => "Success"));
+			expect(fixture.provider.launched).toHaveLength(ids.length);
+			expect(parse).toHaveBeenCalledTimes(ids.length * 2);
+		}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts))),
+	);
+});
