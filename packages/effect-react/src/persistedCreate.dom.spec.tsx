@@ -1,59 +1,45 @@
-import { Deferred, Effect } from "effect";
-import { act } from "react";
-import { expect, it } from "vitest";
-import { eventually, expectNoReactWarnings } from "#client/testing.ts";
-import { draftStorage } from "#test/draftStorage.ts";
-import { persistedCreateView } from "#test/persistedCreateView.tsx";
+import { expect } from "vitest";
+import { creates, persistedCreate } from "#test/createStories.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-expectNoReactWarnings();
-draftStorage();
-
-it("useCreate restores a draft, clears it on success and resets to the initial input", async () => {
-	const first = await persistedCreateView();
-	await first.change("New order");
-	await first.unmount();
-	const reloaded = await persistedCreateView();
-	try {
-		expect(reloaded.container.querySelector("input")?.value).toBe("New order");
-		await reloaded.save();
-		await eventually(() => expect(reloaded.container.querySelector("input")?.value).toBe("Paper"));
+creates.it(
+	"restores a draft, clears it on success and resets to initial input",
+	[persistedCreate()],
+	function* ({ type, reload, create, submit, observe }) {
+		yield* type("New order");
+		yield* reload();
+		expect(create().container.querySelector("input")?.value).toBe("New order");
+		yield* submit();
+		yield* observe("the initial input returns", () => expect(create().container.querySelector("input")?.value).toBe("Paper"));
 		expect(window.localStorage.getItem("create-draft")).toBeNull();
-	} finally {
-		await reloaded.unmount();
-	}
-});
+	},
+);
 
-it("useCreate carries edits made during a save into the reset form and its persisted draft", async () => {
-	const complete = Effect.runSync(Deferred.make<void>());
-	const view = await persistedCreateView((values) => Deferred.await(complete).pipe(Effect.as(values)));
-	await view.change("Submitted");
-	await view.save();
-	await eventually(() => expect(view.saving()).toBe(true));
-	await view.change("Later edit");
-	await act(async () => {
-		await Effect.runPromise(Deferred.succeed(complete, undefined));
-	});
-	await eventually(() => expect(window.localStorage.getItem("create-draft")).toContain("Later edit"));
-	await view.unmount();
-	const reloaded = await persistedCreateView();
-	try {
-		expect(reloaded.form().values.value.name).toBe("Later edit");
-	} finally {
-		await reloaded.unmount();
-	}
-});
+creates.it(
+	"edits made during a save survive the reset and reload",
+	[persistedCreate(true)],
+	function* ({ type, submit, observe, create, finishSave, reload }) {
+		yield* type("Submitted");
+		yield* submit();
+		yield* observe("saving", () => expect(create().saving()).toBe(true));
+		yield* type("Later edit");
+		yield* finishSave();
+		yield* observe("later input persists", () => expect(window.localStorage.getItem("create-draft")).toContain("Later edit"));
+		yield* reload();
+		expect(create().form().values.value.name).toBe("Later edit");
+	},
+);
 
-it.each([false, true])("the create adapter and direct usePersistedDraft hook attach session ownership (%s)", async (direct) => {
-	const view = await persistedCreateView(undefined, direct);
-	const key = direct ? "direct-draft" : "create-draft";
-	try {
-		await view.change("First session");
-		expect(window.localStorage.getItem(key)).toContain("First session");
-		await view.show("second");
-		expect(window.localStorage.getItem(key)).toBeNull();
-		expect(view.form().values.value.name).toBe("Paper");
-	} finally {
-		await view.unmount();
-	}
-});
+for (const direct of [false, true]) {
+	creates.it(
+		`the ${direct ? "direct hook" : "create adapter"} attaches session ownership`,
+		[persistedCreate(false, direct)],
+		function* ({ type, show, create }) {
+			const key = direct ? "direct-draft" : "create-draft";
+			yield* type("First session");
+			expect(window.localStorage.getItem(key)).toContain("First session");
+			yield* show("second");
+			expect(window.localStorage.getItem(key)).toBeNull();
+			expect(create().form().values.value.name).toBe("Paper");
+		},
+	);
+}

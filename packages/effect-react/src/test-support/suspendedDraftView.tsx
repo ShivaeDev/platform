@@ -2,20 +2,18 @@ import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { Activity, act, StrictMode, Suspense, startTransition } from "react";
-import { createRoot } from "react-dom/client";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
+import type { Rendered } from "#client/testing.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
 import { DraftSuspender } from "./DraftSuspender.tsx";
 import { draftInitial, type Held, type Row } from "./draftFields.ts";
 
-export async function suspendedDraftView() {
+export async function suspendedDraftView(view: Rendered) {
 	const query = Atom.make<AsyncResult.AsyncResult<Row>>(AsyncResult.success(draftInitial));
 	const held = new Map<string, Held>();
 	const pending = Promise.withResolvers<void>();
 	const attempts: string[] = [];
-	const container = document.createElement("div");
-	document.body.append(container);
-	const root = createRoot(container);
+	const { container } = view;
 	function editor(session = "first") {
 		const current = held.get(session)?.current;
 		if (!current?.form) {
@@ -51,9 +49,9 @@ export async function suspendedDraftView() {
 		);
 		await act(async () => {
 			if (transition) {
-				startTransition(() => root.render(node));
+				startTransition(() => void view.render(node));
 			} else {
-				root.render(node);
+				void view.render(node);
 			}
 			await Promise.resolve();
 		});
@@ -64,9 +62,6 @@ export async function suspendedDraftView() {
 		container,
 		editor,
 		show,
-		unmount: async () => {
-			await act(async () => root.unmount());
-			container.remove();
-		},
+		unmount: view.unmount,
 	};
 }

@@ -1,74 +1,64 @@
-import { act, createElement } from "react";
-import { expect, it } from "vitest";
-import { eventually, expectNoReactWarnings, render } from "#client/testing.ts";
-import { AnswerList } from "#test/AnswerList.tsx";
-import { answerValues, makeAnswerForm } from "#test/answerForm.ts";
+import { expect } from "vitest";
+import { answerList, answers } from "#test/answerStories.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-expectNoReactWarnings();
-
-it("React renders Schema and server messages next to their answer after array edits", async () => {
-	const { first, second, third } = answerValues;
-	const form = makeAnswerForm();
-	const { container, unmount } = await render(createElement(AnswerList, { form }));
-	function messages() {
-		return [...container.querySelectorAll("li")].map((item) => [item.getAttribute("data-answer"), item.querySelector('[role="alert"]')?.textContent]);
-	}
-	try {
+answers.it("Schema and server messages follow their answer through array edits", [answerList()], function* ({ click, type, messages, observe }) {
+	yield* observe("the initial answers have no messages", () => {
 		expect(messages()).toEqual([
 			["first", undefined],
 			["second", undefined],
 			["third", undefined],
 		]);
-		await act(async () => container.querySelector("button")?.click());
-		await eventually(() =>
-			expect(messages()).toEqual([
-				["first", undefined],
-				["second", undefined],
-				["third", "Required"],
-			]),
-		);
-		await act(async () => form.change("answers", [third, second]));
-		await eventually(() =>
-			expect(messages()).toEqual([
-				["third", "Required"],
-				["second", undefined],
-			]),
-		);
-		const rejected = { ...third, text: "Valid" };
-		await act(async () => form.change("answers", [rejected, second]));
-		await act(async () => container.querySelector("button")?.click());
-		await eventually(() =>
-			expect(messages()).toEqual([
-				["third", "Answer is closed"],
-				["second", undefined],
-			]),
-		);
-		await act(async () => form.change("answers", [first, second, { ...rejected }]));
-		await eventually(() =>
-			expect(messages()).toEqual([
-				["first", undefined],
-				["second", undefined],
-				["third", "Answer is closed"],
-			]),
-		);
-		await act(async () => form.change("answers", [second, rejected]));
-		await eventually(() =>
-			expect(messages()).toEqual([
-				["second", undefined],
-				["third", "Answer is closed"],
-			]),
-		);
-		await act(async () => form.change("answers", [rejected, second]));
-		await eventually(() =>
-			expect(messages()).toEqual([
-				["third", "Answer is closed"],
-				["second", undefined],
-			]),
-		);
-		await act(async () => form.change("answers", [second]));
-		await eventually(() => expect(messages()).toEqual([["second", undefined]]));
-	} finally {
-		await unmount();
-	}
+	});
+	yield* click("Save");
+	yield* observe("the required answer has a Schema message", () => {
+		expect(messages()).toEqual([
+			["first", undefined],
+			["second", undefined],
+			["third", "Required"],
+		]);
+	});
+	yield* click("Remove first");
+	yield* click("Move third first");
+	yield* observe("the Schema message follows reordering", () => {
+		expect(messages()).toEqual([
+			["third", "Required"],
+			["second", undefined],
+		]);
+	});
+	yield* type("third", "Valid");
+	yield* click("Save");
+	yield* observe("the server rejection attaches to its answer", () => {
+		expect(messages()).toEqual([
+			["third", "Answer is closed"],
+			["second", undefined],
+		]);
+	});
+	yield* click("Restore first");
+	yield* click("Move second first");
+	yield* click("Move first first");
+	yield* observe("the server message survives restoring and reordering", () => {
+		expect(messages()).toEqual([
+			["first", undefined],
+			["second", undefined],
+			["third", "Answer is closed"],
+		]);
+	});
+	yield* click("Remove first");
+	yield* observe("the server message survives removal", () => {
+		expect(messages()).toEqual([
+			["second", undefined],
+			["third", "Answer is closed"],
+		]);
+	});
+	yield* click("Move third first");
+	yield* observe("the server message follows its moved answer", () => {
+		expect(messages()).toEqual([
+			["third", "Answer is closed"],
+			["second", undefined],
+		]);
+	});
+	yield* click("Remove third");
+	yield* observe("removing the rejected answer removes its message", () => {
+		expect(messages()).toEqual([["second", undefined]]);
+	});
 });

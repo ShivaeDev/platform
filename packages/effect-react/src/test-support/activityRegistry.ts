@@ -2,8 +2,8 @@ import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { Activity, act, createElement, useContext, useState } from "react";
-import { createRoot } from "react-dom/client";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
+import type { Rendered } from "#client/testing.ts";
 
 interface Held {
 	registry?: AtomRegistry.AtomRegistry;
@@ -23,9 +23,8 @@ function ActivityProbe({ count, atoms, held }: { readonly count: number; readonl
 	return createElement("output", null, draft, ...atoms.slice(0, count).map(({ atom, name }) => createElement(Value, { atom, key: name })));
 }
 
-export function activityRegistry() {
-	const container = document.createElement("div");
-	const root = createRoot(container);
+export function activityRegistry(view: Rendered) {
+	const { container } = view;
 	const built: string[] = [];
 	const finalized: string[] = [];
 	const atoms = ["first", "second", "third"].map((name) => ({
@@ -41,7 +40,7 @@ export function activityRegistry() {
 	const held: Held = {};
 	return {
 		built,
-		close: () => act(async () => root.unmount()),
+		close: view.unmount,
 		container,
 		finalized,
 		registry: () => {
@@ -62,7 +61,7 @@ export function activityRegistry() {
 					session: "active-session",
 				};
 				const activity = { children: createElement(SessionBoundary<string, undefined>, boundary), mode };
-				root.render(createElement(Activity, activity));
+				await view.render(createElement(Activity, activity));
 				await Promise.resolve();
 			}),
 	};

@@ -25,14 +25,17 @@ export function DraftInputs({ editor }: { readonly editor: ViewEditor }) {
 		>
 			<label>
 				Name
-				<input onChange={(event) => name.onChange(event.target.value)} value={name.value} />
+				<input name="name" onChange={(event) => name.onChange(event.target.value)} value={name.value} />
 			</label>
 			<label>
 				Quantity
-				<input onChange={(event) => quantity.onChange(event.target.value)} value={quantity.value} />
+				<input name="quantity" onChange={(event) => quantity.onChange(event.target.value)} value={quantity.value} />
 			</label>
 			<button disabled={editor.saving} type="submit">
 				Save
+			</button>
+			<button onClick={() => editor.form?.revert()} type="button">
+				Revert
 			</button>
 			<output>{editor.dirty ? "Unsaved" : "Saved"}</output>
 		</form>

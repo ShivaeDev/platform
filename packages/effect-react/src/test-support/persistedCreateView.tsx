@@ -1,11 +1,12 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { render } from "#client/testing.ts";
+import type { Rendered } from "#client/testing.ts";
 import { CreateDraftProbe, DirectDraftProbe } from "./CreateDraftProbe.tsx";
 import type { CreateEffect, CreateHeld } from "./createDraftFields.ts";
+import { submitForm, typeInput } from "./Screen.ts";
 
-export async function persistedCreateView(create: CreateEffect = Effect.succeed, direct = false) {
+export async function persistedCreateView(view: Rendered, create: CreateEffect = Effect.succeed, direct = false) {
 	const held: CreateHeld = {};
 	function node(session = "first") {
 		return (
@@ -14,7 +15,7 @@ export async function persistedCreateView(create: CreateEffect = Effect.succeed,
 			</SessionBoundary>
 		);
 	}
-	const view = await render(node());
+	await view.render(node());
 	function form() {
 		if (!held.form) {
 			throw new Error("Expected a form");
@@ -25,12 +26,12 @@ export async function persistedCreateView(create: CreateEffect = Effect.succeed,
 		...view,
 		change: (value: string) =>
 			act(() => {
-				form().change("name", value);
+				typeInput(view.container, "name", value);
 			}),
 		form,
 		save: () =>
 			act(() => {
-				held.created?.save();
+				submitForm(view.container);
 			}),
 		saving: () => held.created?.saving ?? false,
 		show: (session: string) => view.render(node(session)),

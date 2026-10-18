@@ -4,11 +4,13 @@ import * as Atom from "effect/reactivity/Atom";
 import { Activity, act, StrictMode } from "react";
 import type { BrowserDraftConfig } from "@shivaedev/effect-form/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { render } from "#client/testing.ts";
+import type { Rendered } from "#client/testing.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
 import { draftInitial, type Held, type Row, type Save } from "./draftFields.ts";
+import { submitForm, typeInput } from "./Screen.ts";
 
 export async function persistedDraftView(
+	view: Rendered,
 	persistedDraft: BrowserDraftConfig = { key: "order-draft" },
 	save: Save = (values) => Effect.succeed({ ...values, quantity: String(values.quantity) }),
 ) {
@@ -25,7 +27,7 @@ export async function persistedDraftView(
 			</StrictMode>
 		);
 	}
-	const view = await render(node("first"));
+	await view.render(node("first"));
 	function editor() {
 		if (!held.current?.form) {
 			throw new Error("Expected an editor form");
@@ -37,16 +39,19 @@ export async function persistedDraftView(
 		activity: (mode: "visible" | "hidden") => view.render(node("first", true, mode)),
 		change: (name: "name" | "quantity", value: string) =>
 			act(() => {
-				editor().form.change(name, value);
+				typeInput(view.container, name, value);
 			}),
 		editor,
 		refresh: (row: Row) =>
 			act(() => {
-				held.registry?.set(query, AsyncResult.success(row));
+				if (!held.registry) {
+					throw new Error("Expected a captured draft registry");
+				}
+				held.registry.set(query, AsyncResult.success(row));
 			}),
 		save: () =>
 			act(() => {
-				editor().save();
+				submitForm(view.container);
 			}),
 		show: (session: string | undefined, visible = true) => view.render(node(session, visible)),
 	};
