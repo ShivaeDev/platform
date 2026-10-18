@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { attention } from "@shivaedev/work-board/server/integration/attention.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
+import { closePublishedDecision } from "#board/closePublishedDecision.ts";
 import { type BoardSnapshot, recordBoardSource } from "#board/readPass.ts";
 import { BoardAcknowledgementStale, type BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
@@ -49,5 +50,8 @@ export function acknowledgeDecision(root: string, realRoot: string, snapshot: Ef
 			Effect.mapError(() => new BoardFailure({ message: "The managed request acknowledgement could not be recorded on Board." })),
 		);
 		yield* recordBoardSource(realRoot, file, content, receiptDocument.parsed);
+		if (input.disposition === "superseded") {
+			yield* closePublishedDecision(root, realRoot, source);
+		}
 	});
 }

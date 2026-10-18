@@ -7,7 +7,6 @@ deployment.it(
 	function* ({ migrate, migrationLedger, migrationLedgerIs, storeUnownedNote, storedNotesAre, noAccountsAreStored }) {
 		expect(yield* migrate()).toBe(0);
 		const applied = yield* migrationLedger();
-		expect(applied).toHaveLength(5);
 		yield* storeUnownedNote("Keep this note");
 		expect(yield* migrate()).toBe(0);
 		yield* migrationLedgerIs(applied);

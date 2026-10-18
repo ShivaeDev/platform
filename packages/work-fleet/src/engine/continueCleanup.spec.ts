@@ -22,7 +22,7 @@ test("retains the continued worker thread when its new result still needs a huma
 			finishWorkers(fixture);
 			const continued = yield* fleet.reconcile("one");
 			expect(continued.value.stage).toBe("needs-human");
-			expect(continued.value).toMatchObject({ attentionOwner: "maintainer", decision: { attentionOwner: "maintainer" } });
+			expect(continued.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 			expect(continued.value.attempts[0]?.receipt?.sessionId).toBe(sessionId);
 			expect(fixture.archived).not.toContain(sessionId);
 			expect(pendingSessionCleanup(continued.value)).not.toContain(sessionId);

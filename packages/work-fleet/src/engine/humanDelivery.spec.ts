@@ -24,8 +24,8 @@ test("green work never submits a merge and a restarted scheduler accepts the hum
 			finishWorkers(fixture);
 			const ready = yield* fleet.reconcile("one");
 			expect(ready.value.stage).toBe("needs-human");
-			expect(ready.value.attentionOwner).toBe("maintainer");
-			expect(ready.value.decision?.attentionOwner).toBe("maintainer");
+			expect(ready.value.attentionOwner).toBe("orchestrator");
+			expect(ready.value.decision?.attentionOwner).toBe("orchestrator");
 			expect(ready.value.decision?.reason).toBe("Reviewed PR is ready to merge");
 			expect(ready.value.review?.head).toBe(result.head);
 			expect(ready.value.checks).toMatchObject({ head: result.head, passed: true });

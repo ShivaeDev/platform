@@ -13,5 +13,6 @@ export interface SessionUserValue extends IdentityValue {
 	readonly email: string;
 	readonly name: string;
 	readonly providerAccounts?: readonly ProviderAccountValue[];
+	readonly role?: string | null | undefined;
 }
 export class SessionUser extends Context.Service<SessionUser, SessionUserValue>()("@shivaedev/platform/rpc/SessionUser") {}

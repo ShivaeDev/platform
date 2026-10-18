@@ -85,6 +85,8 @@ export function notesPredatingMigration(migration: 4 | 5, title: string) {
 			yield* sql`alter table notes drop column "wordCount"`;
 		}
 		yield* sql`alter table notes drop column version`;
+		yield* sql`alter table "user" drop column role, drop column banned, drop column "banReason", drop column "banExpires"`;
+		yield* sql`alter table "session" drop column "impersonatedBy"`;
 		yield* sql`delete from app_migrations where migration_id >= ${migration}`;
 	});
 }
