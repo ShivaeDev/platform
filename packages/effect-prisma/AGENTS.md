@@ -14,4 +14,4 @@ When goals conflict, they win in this order:
 
 Applications own contract generation, schema changes and domain repositories. This package owns the small adaptation from those generated models into Effect; do not grow another database framework around it.
 
-The package is in maintenance mode: keep the generated-contract adaptation, transaction ownership and rollback test path working with minimal fixes, without expanding its feature scope or making native SQL applications depend on Prisma Next.
+The package is in maintenance mode: keep the generated-contract adaptation, transaction ownership and rollback test path working with minimal fixes, without expanding its feature scope or making native SQL applications depend on Prisma Next. Quality clean-ups, such as burning down its share of the quality baseline, are welcome.

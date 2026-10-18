@@ -267,7 +267,7 @@ SQLite datetime text without a zone is decoded as UTC, including the `datetime('
 - Use one exported definition and one live Layer per identifier. Duplicate identifiers or multiple simultaneous Layers for one definition are outside the supported composition.
 - Keep Database values inside their Layer and transaction lifetimes. Return rows from a transaction rather than its facade or queries.
 - PostgreSQL contracts must have one domain namespace. A model named `transaction` conflicts with the facade's transaction method.
-- SQLite needs a file-backed database; `:memory:` and an empty path are rejected. Its driver uses synchronous database calls. Treat it as a local database path and avoid coordinating separate Layers against the same file.
+- SQLite support is experimental and needs a file-backed database; `:memory:` and an empty path are rejected. Its driver uses synchronous database calls. Treat it as a local database path and avoid coordinating separate Layers against the same file.
 - One SQLite Layer serializes finite root query Effects with the entire explicit transaction lifetime. Transaction queries have a separate permit. Root Streams remain incremental; do not treat them as holding that lifetime permit.
 - Transaction Streams buffer the full result. Refine large queries before collecting them in a transaction.
 - The API excludes model variants and direct scalar aggregate shortcuts; use the typed `aggregate` callback. Prisma Next features are not automatically package guarantees.

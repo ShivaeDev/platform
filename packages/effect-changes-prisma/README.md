@@ -178,7 +178,7 @@ const save = changes.transaction(
 );
 ```
 
-Pass transaction options as the second argument. Without `timeout`, the binding uses the current client's configured transaction timeout; the tested Prisma default is 5,000 milliseconds. The configuration reader also handles an extended client. If that configuration cannot be read, it supplies no deadline of its own; a query finding the transaction closed still stops the body.
+Pass transaction options as the second argument. Without `timeout`, the binding uses the current client's configured transaction timeout; Prisma's default is 5,000 milliseconds. The configuration reader also handles an extended client. If that configuration cannot be read, it supplies no deadline of its own; a query finding the transaction closed still stops the body.
 
 The deadline follows the wall clock, so moving Effect's `TestClock` does not expire the transaction. An outer transaction's expiry interrupts a nested body too. A separate transaction started on the base client, or another binding's transaction, has independent expiry; handling its failure can leave the original body's transaction running.
 

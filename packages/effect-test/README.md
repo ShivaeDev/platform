@@ -153,9 +153,9 @@ effectApp("reads live time", function* () {
 }, { clock: "live" });
 ```
 
-The override changes the per-test environment used by the wrapper, harness and body. TestConsole is installed for both clock choices.
+The override changes the per-test environment used by the wrapper, harness and body.
 
-Worker acquisition is separate: a Layer that reads the default Clock while it is being built sees live time, even when its tests use TestClock. A fiber started during that acquisition retains its worker environment, so advancing a test's clock does not advance that fiber's timers. A Layer that supplies its own Clock also supplies that service through its Context; the test's clock option chooses the outer environment and does not replace services explicitly supplied by the fixture.
+Worker acquisition is separate: a Layer that reads the default Clock while it is being built sees live time, even when its tests use TestClock.
 
 ### Waiting for a typed readiness condition
 
