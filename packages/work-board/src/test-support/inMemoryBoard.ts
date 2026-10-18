@@ -1,6 +1,7 @@
 import { ByteSize, Effect, FileSystem, Layer, Option, Path, type PlatformError, PubSub, Ref } from "effect";
 import { stringify } from "yaml";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import type { FleetHealth } from "#diagnostics/health.ts";
 import { DiagnosticsConfig, SourceFailure } from "#diagnostics/source.ts";
 import { boardServices } from "#server/boardServices.ts";
 import type { Change, Changes } from "#server/files/changes.ts";
@@ -16,6 +17,7 @@ export interface BoardFixtureOptions {
 	readonly beforeIndex?: () => Effect.Effect<void, PlatformError.PlatformError>;
 	readonly beforeRead?: (kind: "document", url: string) => Effect.Effect<void>;
 	readonly fleet?: FleetItemsProjection;
+	readonly fleetHealth?: FleetHealth;
 	readonly fleetPort?: number;
 	readonly home: string | undefined;
 	readonly index?: Effect.Effect<Snapshot, PlatformError.PlatformError>;
@@ -77,7 +79,10 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 						root: memory.root,
 						writable: configuration?.writable === true,
 					}),
-					Layer.succeed(DiagnosticsConfig, { _tag: "Sources", sources: { codex: missing, fleet: missing, github: missing } }),
+					Layer.succeed(DiagnosticsConfig, {
+						_tag: "Sources",
+						sources: { codex: missing, fleet: configuration?.fleetHealth ? Effect.succeed(configuration.fleetHealth) : missing, github: missing },
+					}),
 				]),
 				Layer.provide([fixtureFileSystem(memory), Path.layer, Highlighter.layer]),
 			);

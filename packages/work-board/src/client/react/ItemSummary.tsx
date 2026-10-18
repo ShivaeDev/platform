@@ -1,8 +1,8 @@
 import { ClipboardList, FileText, Flag, MessageCircle, PanelsTopLeft } from "lucide-react";
 import { useContext } from "react";
 import type { Document } from "#browser/document/schema.ts";
-import { Badge } from "#client/react/components/ui/Badge.tsx";
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { Badge } from "#client/react/components/ui/badge.tsx";
+import { StatusChip } from "#client/react/StatusChip.tsx";
 import { Favorite } from "./Favorite.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { PrChip } from "./PrChip.tsx";
