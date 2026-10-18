@@ -8,7 +8,6 @@ import { AgeTicker } from "./Age.tsx";
 import { FleetMain } from "./FleetMain.tsx";
 import { FormContext } from "./FormContext.ts";
 import { Header } from "./Header.tsx";
-import { LiveControls } from "./LiveControls.tsx";
 import { MainLocationContext, useMainLocation } from "./MainLocationContext.ts";
 import { emptyMainLocation, type MainLocation } from "./mainLocation.ts";
 import { OpeningView } from "./OpeningView.tsx";
@@ -19,6 +18,7 @@ import { navigationQuery } from "./routeQuery.ts";
 import { SearchDialog } from "./SearchDialog.tsx";
 import { SessionContext } from "./SessionContext.ts";
 import type { ShellApi } from "./ShellApi.ts";
+import { ShellLiveStatus } from "./ShellLiveStatus.tsx";
 import { Sidebar } from "./Sidebar.tsx";
 import { shellIds } from "./shellIds.ts";
 import { ThemeContext } from "./ThemeContext.ts";
@@ -86,13 +86,7 @@ function BoardWorkspace(
 			ready?.();
 		}
 	}, [ready, data, main, element]);
-	const live = client ? (
-		<LiveControls client={client} navigationFailed={Option.isSome(query.cause)} navigationPending={query.pending} />
-	) : (
-		<span className="font-mono text-muted-foreground text-xs" id={shellIds.live} role="status">
-			connecting
-		</span>
-	);
+	const live = <ShellLiveStatus client={client} failed={Option.isSome(query.cause)} pending={query.pending} />;
 	const content = (
 		<AgeTicker>
 			<ReadingLibrary api={api} close={() => setLibraryOpen(false)} open={libraryOpen}>
@@ -104,7 +98,15 @@ function BoardWorkspace(
 					data-board-workspace
 					data-sidebar={sidebar.open ? "open" : "closed"}
 				>
-					<Sidebar api={api} controls={sidebar} data={data} home={location.pathname === "/"} main={main} openLibrary={() => setLibraryOpen(true)} />
+					<Sidebar
+						api={api}
+						controls={sidebar}
+						data={data}
+						home={location.pathname === "/"}
+						main={main}
+						navigated={data !== undefined || Option.isSome(query.cause)}
+						openLibrary={() => setLibraryOpen(true)}
+					/>
 					<button
 						aria-label="Close files"
 						className="fixed inset-0 z-30 hidden border-0 bg-black/45 p-0 data-[open=true]:block md:hidden"

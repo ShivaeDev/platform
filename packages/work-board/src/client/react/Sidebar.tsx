@@ -21,6 +21,7 @@ export function Sidebar({
 	main,
 	home,
 	controls,
+	navigated,
 	openLibrary,
 }: {
 	readonly api: ShellApi;
@@ -28,6 +29,7 @@ export function Sidebar({
 	readonly main: MainLocation;
 	readonly home: boolean;
 	readonly controls: SidebarControls;
+	readonly navigated: boolean;
 	readonly openLibrary: () => void;
 }) {
 	const reading = useContext(LibraryContext);
@@ -83,7 +85,7 @@ export function Sidebar({
 			<ReadingSection current={main.file} items={reading.favorites} title="Pinned" />
 			<section aria-label="Active goals">
 				<h2 className="mb-2 px-2 font-semibold text-muted-foreground text-xs">Active goals</h2>
-				{data ? <ActiveGoals api={api} /> : null}
+				{navigated ? <ActiveGoals api={api} /> : null}
 			</section>
 			<ReadingSection current={main.file} items={reading.recents.slice(0, 5)} title="Recent" />
 			<button className="mt-auto text-left text-muted-foreground text-xs" id={shellIds.libraryOpen} onClick={() => openLibrary()} type="button">
