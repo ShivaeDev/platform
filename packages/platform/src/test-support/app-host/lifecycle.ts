@@ -1,7 +1,7 @@
 import { ConfigProvider, Context, Effect, Exit, Layer, Logger, References } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { makePlatformRuntime } from "#runtime/make.ts";
+import { makePlatformRuntime } from "#server/runtime/makePlatform.ts";
 import { forwardingProxy } from "./forwardingProxy.ts";
 import { runtimeLayer } from "./runtimeLayer.ts";
 import { type HostState, io, runtimeOf } from "./state.ts";

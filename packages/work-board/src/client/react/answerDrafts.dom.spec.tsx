@@ -1,6 +1,6 @@
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/client/testing.ts";
 import { formDraft } from "#client/formDraft.ts";
 import { answerClient, answerDraft, answerInput, answerPreview, answerPrompt, responseClick } from "#test/answerDraft.tsx";
 import { browserStorage } from "#test/browserStorage.ts";

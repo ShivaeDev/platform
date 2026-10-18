@@ -1,7 +1,7 @@
 import { createMemoryHistory, RouterContextProvider } from "@tanstack/react-router";
 import { act, useCallback, useRef, useState } from "react";
 import { expect, it } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { DocumentView } from "#client/document/View.ts";
 import { documentData } from "#test/documentRendering.ts";
 import { renderBoard } from "#test/react.tsx";

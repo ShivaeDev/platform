@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.0 - 2026-10-18
+
+### Added
+
+- Opt in to provider account IDs on `SessionUser.providerAccounts` by passing a `GetProviderAccounts` lookup to `betterAuthSessions`. Export `ProviderAccountValue` (`providerId`, `accountId`) and `SessionWithProviderAccounts` for typed access without querying Better Auth’s account table.
+
 ## 0.14.4 - 2026-10-18
 
 ### Fixed

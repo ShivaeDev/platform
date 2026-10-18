@@ -9,7 +9,7 @@ import { shapeV12 } from "#storage/shapeV12.ts";
 import { migrateFleet } from "#test/migrateFleet.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { textRecordTables } from "#test/textRecordTables.ts";
-import { typedMigrationRecords } from "#test/typedMigrationRecords.ts";
+import { legacyTypedMigrationRecords, typedMigrationRecords } from "#test/typedMigrationRecords.ts";
 
 const test = postgresTests("live", "isolated");
 
@@ -37,8 +37,9 @@ test("text records migrate every current and archived field, preserving empty an
 	const sql = yield* SqlClient.SqlClient;
 	const namespace = "typed_upgrade";
 	const values = typedMigrationRecords();
-	assertEveryField(shapeV12, values);
-	yield* textRecordTables(namespace, values);
+	const legacy = legacyTypedMigrationRecords();
+	assertEveryField(shapeV12, legacy);
+	yield* textRecordTables(namespace, legacy);
 	yield* sql`insert into ${sql(`${namespace}_foreign_reservations`)} (owner, executing, backlog) values ('external', false, true)`;
 	const before = yield* sql`select work_id, admission_order, version from ${sql(`${namespace}_records`)} order by admission_order`;
 	const store = yield* makePostgresFleetStore(FleetRecord, { namespace });

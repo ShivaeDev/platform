@@ -2,12 +2,12 @@ import { Cause, Effect, Exit, Layer, Option, Redacted, Schema } from "effect";
 import { Headers } from "effect/http";
 import { Rpc, type RpcClient, RpcGroup, RpcMessage, RpcTest } from "effect/rpc";
 import { expect, it } from "vitest";
-import { rejectedField } from "#errors/rejected-field.ts";
+import { rejectedField } from "#errors/rejectedField.ts";
 import { Conflict } from "#errors/taxonomy.ts";
 import { RequestId } from "#rpc/identity.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
-import { isSensitiveKey } from "#rpc-server/sensitive.ts";
-import { type RequestTracingOptions, requestTracingLayer } from "#rpc-server/tracing.ts";
+import { isSensitiveKey } from "#server/rpc-server/sensitive.ts";
+import { type RequestTracingOptions, requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { annotationsOf, recorder } from "#test/rpc/harness.ts";
 
 const Registration = Schema.Struct({

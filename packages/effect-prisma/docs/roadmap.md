@@ -14,7 +14,7 @@ This file owns effect-prisma's implementation status and backend questions. The 
 | Reusable Streams, incremental root reads and buffered transaction reads | `src/internal/relation.spec.ts`, `src/internal/transactionConcurrency.spec.ts`, database transaction suites |
 | Typed query failures and preservation of unknown rejections as defects | `src/database.test.ts`, `src/sqlite.test.ts`, `src/internal/relation.spec.ts` |
 | PostgreSQL timestamp declarations normalized to Date without overwriting unsupported forms | `src/bin/normalize-contract.test.ts`, `src/database.test.ts`, compiler tests |
-| File-backed SQLite facade, WAL setup, UTC datetime decoding and coordinated query/transaction access | `src/sqlite.test.ts`, `src/sqliteIsolation.spec.ts`, `src/internal/sqlite-datetime.test.ts` |
+| File-backed SQLite facade, WAL setup, UTC datetime decoding and coordinated query/transaction access | `src/sqlite.test.ts`, `src/sqliteIsolation.spec.ts`, `src/internal/sqliteDatetime.test.ts` |
 | Rollback-only transaction primitive and Vitest facade built on effect-test | `src/databaseTesting.spec.ts`, `src/sqliteTesting.spec.ts`, `src/sqliteIsolation.spec.ts` |
 
 SQLite remains experimental. PostgreSQL tests require `PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL`; a skipped PostgreSQL suite establishes no PostgreSQL behavior. Compiler tests cover cursor/distinct/distinct-on and single-row mutation types without establishing their runtime result semantics.

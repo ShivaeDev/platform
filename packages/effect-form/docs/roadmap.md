@@ -22,5 +22,5 @@ Cross-package validation, host lifecycle and application adoption planning live 
 ## Open questions
 
 - Is accepting encoded input while leaving normalized row receipt to the caller the enduring division between this package and `effect-react`? The form retains submitted input; the higher-level editor receives the saved row.
-- The explicit export map exposes draft, message, path, status and rejection helpers as well as the application entry points. Which of those helpers should be treated as supported application API?
+- The export map exposes draft, message, path, status and rejection helpers as well as the application entry points. Which of those helpers should be treated as supported application API?
 - Should independently editable nested fields or keys for arrays nested inside elements extend the present top-level editing model?

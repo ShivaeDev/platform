@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { Fleet } from "#fleet.ts";
 import { acceptDependency } from "#test/acceptDependency.ts";
 import { dependencySource, withDependencyBoard } from "#test/dependencyBoard.ts";

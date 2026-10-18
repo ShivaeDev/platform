@@ -2,7 +2,7 @@ import { Effect, Schedule } from "effect";
 import { Client } from "pg";
 import { makeDatabase } from "#database.ts";
 import { type Contract, contractJson } from "#test/contract.ts";
-import { databaseUrl } from "#test/postgres-database.ts";
+import { databaseUrl } from "#test/postgresDatabase.ts";
 
 export function postgresPoolLifetime(fail: boolean) {
 	return Effect.acquireUseRelease(

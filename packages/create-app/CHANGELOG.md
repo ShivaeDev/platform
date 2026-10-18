@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.11 - 2026-10-18
+
+### Changed
+
+- New apps include stock shadcn components, a sortable notes data table, Recharts chart primitives, a code preview for added, removed and context lines, and a `quality.config.ts` that preserves CLI-owned components while checking application code.
+- Generated applications point to the shared `story-testing` skill for writing and reviewing stories and their test kits.
+
 ## 0.6.10 - 2026-10-18
 
 ### Fixed

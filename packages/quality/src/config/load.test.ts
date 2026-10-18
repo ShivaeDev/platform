@@ -3,7 +3,7 @@ import { NodeFileSystem } from "@effect/platform-node";
 import { Cause, Effect, Exit } from "effect";
 import { afterEach, expect } from "vitest";
 import { loadConfig } from "#config/load.ts";
-import { builtInRules } from "#rules/built-in.ts";
+import { builtInRules } from "#rules/builtIn.ts";
 import { it as effectIt } from "#test/it.ts";
 import { config, linkMissingFile, removeSeededTrees, seedTree } from "#test/tree.ts";
 

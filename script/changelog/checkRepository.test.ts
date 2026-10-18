@@ -159,3 +159,14 @@ it("resolves the default base as origin/main, then main, and names the fetch com
 		fixture.remove();
 	}
 });
+
+it("leaves a Claude Code plugin folder, which keeps no changelog, out of the package notes check", async () => {
+	const fixture = repository();
+	try {
+		fixture.plugin("plugin");
+		const base = fixture.commit();
+		await check(fixture.root, base);
+	} finally {
+		fixture.remove();
+	}
+});

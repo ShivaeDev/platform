@@ -1,6 +1,6 @@
 import { Context, Effect, FileSystem, Layer, Path, Schema } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
-import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";

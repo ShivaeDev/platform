@@ -1,7 +1,7 @@
 import { Clock, Effect } from "effect";
 import { act } from "react";
 import { expect, it } from "vitest";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { render } from "@shivaedev/effect-react/client/testing.ts";
 import { compareStatuses, nowLanes } from "#browser/views/now.ts";
 import { stateOf } from "#browser/views/state.ts";
 import { nowFleet, nowWork } from "#test/nowWork.ts";

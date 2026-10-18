@@ -4,7 +4,7 @@ import { biomeReport, type Report } from "#biome/report.ts";
 import { loadConfig } from "#config/load.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { SetupFailure } from "#failure.ts";
-import { posix } from "#inventory/ignore-scope.ts";
+import { posix } from "#inventory/ignoreScope.ts";
 import { walk } from "#inventory/walk.ts";
 import { sortManifests } from "#manifests/sorted.ts";
 import { plural } from "#report/plural.ts";

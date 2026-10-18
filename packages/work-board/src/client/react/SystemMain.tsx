@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { useContext } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
 import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";

@@ -9,7 +9,7 @@ import { type OpenPage, openPage } from "./browser.ts";
 
 export interface BoardEngine {
 	beforeScripts?: Parameters<typeof openPage>[2];
-	fleetPort?: number;
+	fleetPort?: number | undefined;
 	lastView?: ReturnType<typeof readerView>;
 	live?: { board: RunningBoard; client: ReturnType<typeof browserClient>; page: OpenPage };
 	readonly notes: Folder;

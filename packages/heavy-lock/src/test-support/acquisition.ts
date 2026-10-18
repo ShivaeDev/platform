@@ -1,7 +1,7 @@
 import { Context, Deferred, Effect, Exit, Fiber, Layer, Scope } from "effect";
-import { HeldLock } from "#held-lock.ts";
+import { HeldLock } from "#HeldLock.ts";
 import { readSettings } from "#settings.ts";
-import { heavyLockLayer } from "#with-heavy-lock.ts";
+import { heavyLockLayer } from "#withHeavyLock.ts";
 import { configured, type Lock } from "./lock.ts";
 import { type RunningCommand, startCommand } from "./runningCommand.ts";
 

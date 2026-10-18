@@ -1,13 +1,15 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { managedRequestReceipt } from "@shivaedev/work-board/attention/managedRequestReceipt.ts";
+import { managedRequestReceipt } from "@shivaedev/work-board/server/attention/managedRequestReceipt.ts";
 import { requestReceiptStory } from "#test/requestReceiptStory.ts";
 
-it.effect("qualifies one exact managed decision and rejects authored, ambiguous and invalid receipt evidence", () =>
+it.effect("qualifies exact managed decisions and rejects authored, ambiguous and invalid receipt evidence", () =>
 	Effect.sync(() => {
-		const accepted = requestReceiptStory("managed");
-		expect(managedRequestReceipt(accepted.document, accepted.request, accepted.model)?.disposition).toBe("applied");
+		for (const trait of ["managed", "agreeing-receipt"] as const) {
+			const accepted = requestReceiptStory(trait);
+			expect(managedRequestReceipt(accepted.document, accepted.request, accepted.model)?.disposition, trait).toBe("applied");
+		}
 		for (const trait of [
 			"authored",
 			"task",
@@ -18,7 +20,6 @@ it.effect("qualifies one exact managed decision and rejects authored, ambiguous 
 			"duplicate-question",
 			"duplicate-response",
 			"duplicate-receipt",
-			"competing-receipt",
 			"competing-answer",
 		] as const) {
 			const story = requestReceiptStory(trait);
