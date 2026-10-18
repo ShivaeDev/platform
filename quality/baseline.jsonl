@@ -1,4 +1,3 @@
-{"path":"examples/starter/src/server/parallelPoolTeardown.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/changesets/src/parser.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/create-app/src/appFiles.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-changes-prisma/src/transaction.ts","rule":"files/named-after-export","count":1}
