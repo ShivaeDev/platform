@@ -2,11 +2,12 @@ import { Effect } from "effect";
 import { NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { type AttentionOwner, waitingOwner } from "#attention.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
+import { closeDecisions } from "#engine/closeDecisions.ts";
 import { originalWork } from "#engine/originalWork.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
-import { BoardGateway, type BoardWork, type Decision, type FleetConfiguration, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { type BoardFailure, BoardGateway, type BoardWork, type Decision, type FleetConfiguration, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { DEFAULT_AREA_MERGE_WAIT_MS } from "#scheduling/areas.ts";
 import type { SessionReceipt } from "#session/schema.ts";
 import { SessionService } from "#session/service.ts";
@@ -53,7 +54,7 @@ export const makeState = Effect.gen(function* () {
 		worker?: SessionReceipt,
 		attentionOwner: AttentionOwner = "orchestrator",
 		publicationWork?: BoardWork,
-	) {
+	): Effect.fn.Return<Versioned<FleetRecord>, Effect.Error<ReturnType<typeof save>> | BoardFailure> {
 		const value: Decision = {
 			attentionOwner,
 			code,
@@ -64,6 +65,8 @@ export const makeState = Effect.gen(function* () {
 			recommendation,
 			...(worker === undefined ? {} : { worker }),
 		};
+		const previous = stored.value.decision?.published;
+		const superseded = stored.value.supersededDecisions ?? [];
 		const updated = yield* save(stored, {
 			...stored.value,
 			attentionOwner,
@@ -72,11 +75,18 @@ export const makeState = Effect.gen(function* () {
 			decisionPublished: false,
 			launchRetry: undefined,
 			stage: "needs-human",
+			supersededDecisions:
+				previous === undefined || superseded.some((receipt) => receipt.published.questionId === previous.questionId)
+					? stored.value.supersededDecisions
+					: [...superseded, { published: previous, supersededAt: policy.now() }],
 		});
 		const published = yield* board.decision(stored.value.workId, value, publicationWork ?? originalWork(stored.value));
-		return yield* save(updated, { ...updated.value, decision: { ...value, published }, decisionPublished: true });
+		return yield* save(updated, { ...updated.value, decision: { ...value, published }, decisionPublished: true }).pipe(
+			Effect.flatMap(closeDecisions(state)),
+		);
 	});
-	return { board, current, decision, integrations, launching, launchScope, load, policy, reportInspection, save, sessions, store };
+	const state = { board, current, decision, integrations, launching, launchScope, load, policy, reportInspection, save, sessions, store };
+	return state;
 });
 export type EngineState = Effect.Success<typeof makeState>;
 

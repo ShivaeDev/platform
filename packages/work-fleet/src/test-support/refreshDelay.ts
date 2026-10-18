@@ -1,7 +1,7 @@
-import { Deferred, Effect, Layer } from "effect";
+import { Deferred, Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { MainSource, unchanged } from "#host/mainSource.ts";
-import { type HostFixture, MAIN } from "#test/fleetHost.ts";
+import type { HostFixture } from "#test/fleetHost.ts";
+import { fixedMainSource, MAIN } from "#test/mainSource.ts";
 
 export const refreshDelay = Effect.fn("DaemonTest.refreshDelay")(function* (fixture: HostFixture, fail = false) {
 	const entered = yield* Deferred.make<void>();
@@ -15,12 +15,7 @@ export const refreshDelay = Effect.fn("DaemonTest.refreshDelay")(function* (fixt
 		entered: Deferred.await(entered),
 		parts: {
 			...fixture.parts,
-			main: Layer.succeed(MainSource)({
-				current: refresh,
-				observe: (preparation) => Effect.succeed(unchanged(preparation.baseRevision, MAIN)),
-				refresh,
-				repositoryRoot: "/synthetic-repository",
-			}),
+			main: fixedMainSource({ current: refresh, refresh }),
 		},
 		release: Deferred.succeed(release, undefined),
 	};

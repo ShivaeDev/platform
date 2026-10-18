@@ -31,7 +31,7 @@ const followReview = Effect.fn("WatchReviewTest.followReview")(function* (
 	if (!initialReady) {
 		yield* fixture.ready(client);
 	}
-	const line = "one needs-human (waiting on maintainer): Reviewed PR is ready to merge\n";
+	const line = "one needs-human (waiting on orchestrator): Reviewed PR is ready to merge\n";
 	yield* untilEveryOutput(followers, line);
 	expect((yield* answerAndWait(client, { text: "Keep the loading indicator visible.", workId: "one" })).stage).toBe("repairing");
 	yield* client("fleet.reconcile", { workId: "one" });

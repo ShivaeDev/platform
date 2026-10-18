@@ -60,14 +60,14 @@ export function maybeAuthenticatedLayer<TSession extends SessionShape>(policy: S
 export interface UserSessionShape extends SessionShape {
 	readonly user: SessionUserValue;
 }
-export function authenticatedUserLayer<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<AuthenticatedUser> {
-	return Layer.succeed(AuthenticatedUser, (effect, { headers, rpc }) =>
+export function withSessionUser<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>, headers: Headers.Headers, operation: string) {
+	return <A, E, R>(effect: Effect.Effect<A, E, R>) =>
 		Effect.gen(function* () {
-			const session = yield* resolveSession(policy, headers, rpc._tag);
+			const session = yield* resolveSession(policy, headers, operation);
 			if (Option.isNone(session)) {
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
-			const { name, email, providerAccounts } = session.value.user;
+			const { name, email, role, providerAccounts } = session.value.user;
 			const id = yield* identified(session.value.user.id);
 			return yield* effect.pipe(
 				Effect.provideService(Identity, { id }),
@@ -75,12 +75,15 @@ export function authenticatedUserLayer<TSession extends UserSessionShape>(policy
 					email,
 					id,
 					name,
+					...(role === undefined ? {} : { role }),
 					...(providerAccounts === undefined
 						? {}
 						: { providerAccounts: providerAccounts.map(({ accountId, providerId }) => ({ accountId, providerId })) }),
 				}),
 				Effect.annotateLogs({ userId: id }),
 			);
-		}),
-	);
+		});
+}
+export function authenticatedUserLayer<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<AuthenticatedUser> {
+	return Layer.succeed(AuthenticatedUser, (effect, { headers, rpc }) => effect.pipe(withSessionUser(policy, headers, rpc._tag)));
 }

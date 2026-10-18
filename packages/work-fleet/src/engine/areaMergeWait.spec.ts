@@ -21,8 +21,8 @@ test("the default merge wait frees areas after thirty minutes and continues obse
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				expect((yield* fleet.reconcile("one")).value).toMatchObject({
-					attentionOwner: "maintainer",
-					decision: { attentionOwner: "maintainer" },
+					attentionOwner: "orchestrator",
+					decision: { attentionOwner: "orchestrator" },
 					mergeReadyAt: 100,
 					mergeReadyHead: "head-one-0",
 					stage: "needs-human",
@@ -38,8 +38,8 @@ test("the default merge wait frees areas after thirty minutes and continues obse
 						const restarted = yield* Fleet;
 						expect((yield* restarted.dispatch("two")).value.stage).toBe("executing");
 						expect((yield* restarted.get("one")).value).toMatchObject({
-							attentionOwner: "maintainer",
-							decision: { attentionOwner: "maintainer" },
+							attentionOwner: "orchestrator",
+							decision: { attentionOwner: "orchestrator" },
 							stage: "needs-human",
 						});
 						merged = true;
