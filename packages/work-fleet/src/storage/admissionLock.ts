@@ -1,7 +1,13 @@
-import { Data, Effect } from "effect";
+import { Clock, Data, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 
 export class AdmissionBusy extends Data.TaggedError("FleetAdmissionBusy") {}
+
+// PostgreSQL contention progresses independently of the application's clock.
+const admissionPause = Effect.sleep("25 millis").pipe(
+	Effect.provideService(Clock.Clock, Clock.Clock.defaultValue()),
+	Effect.withSpan("FleetStore.waitAdmission"),
+);
 
 export const admissionLock = Effect.fn("FleetStore.admissionLock")(function* (namespace: string, shared?: boolean) {
 	const sql = yield* SqlClient.SqlClient;
@@ -20,11 +26,7 @@ export function retryAdmission<A, E, R>(effect: Effect.Effect<A, E | AdmissionBu
 	return Effect.catchIf(
 		effect,
 		(error): error is AdmissionBusy => error instanceof AdmissionBusy,
-		() =>
-			Effect.sleep("25 millis").pipe(
-				Effect.withSpan("FleetStore.waitAdmission"),
-				Effect.andThen(() => retryAdmission(effect)),
-			),
+		() => admissionPause.pipe(Effect.andThen(() => retryAdmission(effect))),
 		(error) => Effect.fail(error),
 	);
 }
