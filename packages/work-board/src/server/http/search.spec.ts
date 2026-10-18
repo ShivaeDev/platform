@@ -1,77 +1,62 @@
-import { rmSync } from "node:fs";
-import { join } from "node:path";
 import { Effect, PlatformError } from "effect";
-import { afterEach, expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { type Folder, folder, type RunningBoard, rawPost, startBoard } from "#test/board.ts";
-import { changesUntil, changesUntilShown, rpcSearch, subscribe } from "#test/nativeRpc.ts";
-import { searchPrivacyFixture } from "#test/searchPrivacyFixture.ts";
+import { expect } from "vitest";
+import { boardFilesystem, boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
+import { escapingLink, outsideFiles } from "#test/servingTraits.ts";
 import { workspaceFixture } from "#test/workspaceFixture.ts";
 
-let notes: Folder;
-let board: RunningBoard;
-
-afterEach(() => {
-	notes?.remove();
-});
-
-function search(query: string) {
-	return rpcSearch(board, query);
-}
-
-it.live("finds fixture phrases, encoded paths, duplicate headings, and reports bounded/empty results", function* () {
-	notes = folder({ ...workspaceFixture(), "plans/home & more.md": "# Board\n\n## Evidence\n\nFirst.\n\n## Evidence\n\nUnique second phrase." });
-	board = yield* startBoard(notes.root, "plans/home & more.md");
-	const found = yield* search("unique second phrase");
-	expect(found.results[0]?.href).toBe("/plans/home%20%26%20more.md#heading-evidence-2");
-	expect((yield* search("project note")).results.length).toBeGreaterThan(0);
-	expect((yield* search("project note")).results.length).toBeLessThanOrEqual(40);
-	expect((yield* search("impossible-asdf")).total).toBe(0);
-	expect(found.unavailable).toEqual([]);
-	const blocked = yield* rawPost(board, "/_board/rpc", { host: "evil.example" });
-	expect(blocked.status).toBe(403);
-});
-
-it.live("invalidates cached text after edits, additions, and deletions", function* () {
-	notes = folder({ "note.md": "# Note\n\nOld phrase." });
-	board = yield* startBoard(notes.root);
-	const events = yield* subscribe(board);
-	try {
+boardStory.it(
+	"finds encoded paths and duplicate headings and bounds results",
+	[
+		projectFiles({ ...workspaceFixture(), "plans/home & more.md": "# Board\n\n## Evidence\n\nFirst.\n\n## Evidence\n\nUnique second phrase." }),
+		boardHome("plans/home & more.md"),
+	],
+	function* ({ search, post }) {
+		const found = yield* search("unique second phrase");
+		expect(found.results[0]?.href).toBe("/plans/home%20%26%20more.md#heading-evidence-2");
+		const common = yield* search("project note");
+		expect(common.results.length).toBeGreaterThan(0);
+		expect(common.results.length).toBeLessThanOrEqual(40);
+		expect((yield* search("impossible-asdf")).total).toBe(0);
+		expect(found.unavailable).toEqual([]);
+		expect((yield* post("/_board/rpc", { host: "evil.example" })).status).toBe(403);
+	},
+);
+boardStory.it(
+	"invalidates cached text after edits, additions and deletions",
+	[projectFiles({ "note.md": "# Note\n\nOld phrase." })],
+	function* ({ search, editFile, removeFile, watchProject, waitUntil }) {
+		const events = yield* watchProject();
 		yield* events.next();
 		expect((yield* search("old phrase")).total).toBe(1);
-		notes.write("note.md", "# Note\n\nFresh phrase.");
-		yield* changesUntilShown(
-			events,
-			"note.md",
-			Effect.map(search("fresh phrase"), (found) => found.total === 1),
-		);
+		editFile("note.md", "# Note\n\nFresh phrase.");
+		yield* events.changed("note.md");
+		yield* waitUntil(async () => expect((await Effect.runPromise(search("fresh phrase"))).total).toBe(1));
 		expect((yield* search("old phrase")).total).toBe(0);
-		notes.write("new.md", "# New\n\nAdded phrase.");
-		yield* changesUntil(events, "new.md");
+		editFile("new.md", "# New\n\nAdded phrase.");
+		yield* events.changed("new.md");
 		expect((yield* search("added phrase")).total).toBe(1);
-		rmSync(join(notes.root, "new.md"));
-		yield* changesUntil(events, "new.md");
+		removeFile("new.md");
+		yield* events.changed("new.md");
 		expect((yield* search("added phrase")).total).toBe(0);
-	} finally {
-		yield* events.close();
-	}
-});
-
-it.live("excludes hidden files and root-escaping symlinks and discloses unreadable files", function* () {
-	const privacy = searchPrivacyFixture();
-	notes = privacy.notes;
-	try {
-		board = yield* startBoard(notes.root, undefined, (fs) => ({
+	},
+);
+boardStory.it(
+	"excludes hidden and escaping sources and discloses unreadable files",
+	[
+		projectFiles({ ".hidden.md": "# Hidden secret", "note.md": "# Visible", "unreadable.md": "# Unreadable secret" }),
+		outsideFiles({ "outside.md": "# Outside secret" }),
+		escapingLink,
+		boardFilesystem((fs) => ({
 			...fs,
 			readFileString: (file, options) =>
 				file.endsWith("unreadable.md")
 					? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
 					: fs.readFileString(file, options),
-		}));
+		})),
+	],
+	function* ({ search }) {
 		const found = yield* search("secret");
 		expect(found.total).toBe(0);
 		expect(found.unavailable).toEqual(["unreadable.md"]);
-	} finally {
-		privacy.outside.remove();
-	}
-});
+	},
+);

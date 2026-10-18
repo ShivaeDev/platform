@@ -22,12 +22,15 @@ export class RpcStream {
 	}
 	emit(name: string) {
 		if (name !== "change") {
-			return;
+			throw new Error(`Unsupported live event ${name}`);
+		}
+		if (!this.#controller) {
+			throw new Error("The RPC stream has no connected reader");
 		}
 		const message: FromServerEncoded = { _tag: "Chunk", requestId: this.#id, values: [{ _tag: "Resync" }] };
 		const encoded = RpcSerialization.ndjson.makeUnsafe().encode(message);
 		if (encoded !== undefined) {
-			this.#controller?.enqueue(typeof encoded === "string" ? new TextEncoder().encode(encoded) : encoded);
+			this.#controller.enqueue(typeof encoded === "string" ? new TextEncoder().encode(encoded) : encoded);
 		}
 	}
 	response(window: BrowserWindow, response: InstanceType<BrowserWindow["Response"]>, id: string | number) {

@@ -34,7 +34,15 @@ export function pageFetch({
 	readonly theme: RawResponse;
 }): IFetchInterceptor {
 	return {
-		afterAsyncResponse: ({ request, response, window }) => rpcAfter(request, response, window, path, pageRequests, streams),
+		afterAsyncResponse: ({ request, response, window }) => {
+			if (new URL(request.url).pathname === "/_board/react.js") {
+				pageRequests.beforeReact = {
+					dark: window.document.documentElement.classList.contains("dark"),
+					scheme: window.document.documentElement.dataset.scheme,
+				};
+			}
+			return rpcAfter(request, response, window, path, pageRequests, streams);
+		},
 		beforeAsyncRequest: async ({ request, window }) => {
 			const requested = new URL(request.url).pathname;
 			const native = await rpcBefore(request, window, path, pageRequests, streams);

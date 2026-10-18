@@ -1,64 +1,60 @@
-import { Effect } from "effect";
-import { afterEach, expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { MAX_BYTES } from "#server/http/rpcPolicy.ts";
-import { type Folder, folder, type RunningBoard, rawGet, rawPost, startBoard } from "#test/board.ts";
+import { expect } from "vitest";
+import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { growBeforeRead } from "#test/fileRaces.ts";
 import { imageNamedDirectory, screenshotFile } from "#test/imageFixtures.ts";
 
-let notes: Folder;
-let board: RunningBoard;
+boardStory.it(
+	"rejects a malformed Host header over real HTTP with the loopback policy message",
+	[projectFiles({ "note.md": "# Reading context" })],
+	function* ({ get }) {
+		expect(yield* get("/", "[")).toEqual({ body: "Only loopback hosts are served", status: 403 });
+	},
+);
 
-afterEach(() => {
-	notes?.remove();
-});
-
-const open = Effect.fn("Test.open")(function* () {
-	notes = folder({ "note.md": "# Reading context" });
-	board = yield* startBoard(notes.root);
-});
-
-it.live("rejects a malformed Host header over real HTTP with the loopback policy message", function* () {
-	yield* open();
-	expect(yield* rawGet(board, "/", "[")).toEqual({ body: "Only loopback hosts are served", status: 403 });
-});
-
-it.live("rejects a malformed Origin at the real RPC boundary", function* () {
-	yield* open();
-	const response = yield* rawPost(board, "/_board/rpc", { "content-type": "application/json", host: `127.0.0.1:${board.port}`, origin: ":invalid:" });
+boardStory.it("rejects a malformed Origin at the real RPC boundary", [projectFiles({ "note.md": "# Reading context" })], function* ({ post, board }) {
+	const response = yield* post("/_board/rpc", { "content-type": "application/json", host: `127.0.0.1:${board.port}`, origin: ":invalid:" });
 	expect(response.status).toBe(403);
 	expect(response.body).toBe("Local same-origin requests only");
 });
 
-it.live("keeps the Board's larger RPC allowance while rejecting bodies beyond it", function* () {
-	yield* open();
-	function message(padding: number) {
-		return `${JSON.stringify({ _tag: "Request", headers: [["x-padding", "x".repeat(padding)]], id: "1", payload: null, tag: "work-board.watcher" })}\n`;
-	}
-	const headers = { "content-type": "application/ndjson" };
-	const accepted = yield* rawPost(board, "/_board/rpc", headers, message(1024 * 1024));
-	expect(accepted.status).toBe(200);
-	expect(accepted.body).toContain('"_tag":"Success"');
-	const refused = yield* rawPost(board, "/_board/rpc", headers, message(4 * MAX_BYTES + 4096));
-	expect(refused.status).toBeGreaterThanOrEqual(400);
-	expect(refused.status).toBeLessThan(500);
-});
+boardStory.it(
+	"keeps the Board's larger RPC allowance while rejecting bodies beyond it",
+	[projectFiles({ "note.md": "# Reading context" })],
+	function* ({ post }) {
+		function message(padding: number) {
+			return `${JSON.stringify({ _tag: "Request", headers: [["x-padding", "x".repeat(padding)]], id: "1", payload: null, tag: "work-board.watcher" })}\n`;
+		}
+		const headers = { "content-type": "application/ndjson" };
+		const accepted = yield* post("/_board/rpc", headers, message(1024 * 1024));
+		expect(accepted.status).toBe(200);
+		expect(accepted.body).toContain('"_tag":"Success"');
+		const refused = yield* post("/_board/rpc", headers, message(8 * 1024 * 1024 + 4096));
+		expect(refused.status).toBeGreaterThanOrEqual(400);
+		expect(refused.status).toBeLessThan(500);
+	},
+);
 
-it.live("reports an image-named directory as unavailable rather than attempting a file read", function* () {
-	yield* open();
-	imageNamedDirectory(notes.root);
-	expect(yield* rawGet(board, "/_board/attachment/screenshot.png")).toEqual({
-		body: "Local image unavailable: unsupported type, missing file or workspace boundary.",
-		status: 404,
-	});
-});
+boardStory.it(
+	"reports an image-named directory as unavailable rather than attempting a file read",
+	[projectFiles({ "note.md": "# Reading context" })],
+	function* ({ notes, get }) {
+		imageNamedDirectory(notes.root);
+		expect(yield* get("/_board/attachment/screenshot.png")).toEqual({
+			body: "Local image unavailable: unsupported type, missing file or workspace boundary.",
+			status: 404,
+		});
+	},
+);
 
-it.live("rejects a real image growing beyond the byte limit between stat and read", function* () {
-	notes = folder({ "note.md": "# Reading context" });
-	const image = screenshotFile(notes.root);
-	board = yield* startBoard(notes.root, undefined, growBeforeRead(image, 16 * 1024 * 1024 + 1));
-	expect(yield* rawGet(board, "/_board/attachment/screenshot.png")).toEqual({
-		body: "Local image exceeds the 16 MiB limit.",
-		status: 413,
-	});
-});
+boardStory.it(
+	"rejects a real image growing beyond the byte limit between stat and read",
+	[projectFiles({ "note.md": "# Reading context" }), deferredServing],
+	function* ({ notes, start, get }) {
+		const image = screenshotFile(notes.root);
+		yield* start({ wrap: growBeforeRead(image, 16 * 1024 * 1024 + 1) });
+		expect(yield* get("/_board/attachment/screenshot.png")).toEqual({
+			body: "Local image exceeds the 16 MiB limit.",
+			status: 413,
+		});
+	},
+);
