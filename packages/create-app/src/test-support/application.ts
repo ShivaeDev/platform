@@ -43,7 +43,7 @@ export const application = storyKit({
 				if (args[0] !== undefined && !args[0].startsWith("--")) {
 					app = args[0];
 				}
-				return runCli(engine.root, engine.cli, engine.options.gitAvailable ?? true, args, [...engine.environment, ...environment]);
+				return yield* runCli(engine.root, engine.cli, engine.options.gitAvailable ?? true, args, [...engine.environment, ...environment]);
 			},
 			destinationContents: () =>
 				statSync(target()).isFile()
@@ -71,6 +71,7 @@ export const application = storyKit({
 				return appScript(target(), "db:setup");
 			},
 			read: (path: string) => readFileSync(join(target(), path), "utf8"),
+			readPacked: (path: string) => engine.source.readPacked(path),
 			runTests: () => {
 				story.tell("the app runs its tests");
 				testEnvironment(target());

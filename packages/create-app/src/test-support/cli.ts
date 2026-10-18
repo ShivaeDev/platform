@@ -1,9 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Config, Effect } from "effect";
+import { Config, Effect, Stream } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { setupInstaller } from "./setupInstaller.ts";
 
 export function appFolder(
@@ -12,12 +13,14 @@ export function appFolder(
 		installationExit = 0,
 		gitAvailable = true,
 		realSetup = false,
+		installer,
 		typecheckExit,
 		destination = "absent",
 	}: {
 		readonly installationExit?: number;
 		readonly gitAvailable?: boolean;
 		readonly realSetup?: boolean;
+		readonly installer?: string;
 		readonly typecheckExit?: number;
 		readonly destination?: "absent" | "empty" | "file" | "nonempty" | "environment";
 	} = {},
@@ -35,6 +38,10 @@ export function appFolder(
 		const modules = fileURLToPath(new URL("../../../../examples/starter/node_modules", import.meta.url));
 		const quality = fileURLToPath(new URL("../../../quality/src/cli.ts", import.meta.url));
 		writeFileSync(join(bin, "pnpm"), setupInstaller(pnpm, modules, quality, typecheckExit), { mode: 0o755 });
+	}
+	if (installer !== undefined) {
+		rmSync(join(bin, "pnpm"));
+		symlinkSync(installer, join(bin, "pnpm"));
 	}
 	const target = join(root, "my-app");
 	if (["empty", "nonempty", "environment"].includes(destination)) {
@@ -57,30 +64,39 @@ export function appFolder(
 export function runCli(root: string, cli: string, gitAvailable: boolean, args: readonly string[], environment: readonly string[] = []) {
 	const bin = join(root, "bin");
 	const path = Effect.runSync(Config.String("PATH"));
-	return spawnSync(
-		"env",
-		[
-			"-u",
-			"GIT_AUTHOR_NAME",
-			"-u",
-			"GIT_AUTHOR_EMAIL",
-			"-u",
-			"GIT_COMMITTER_NAME",
-			"-u",
-			"GIT_COMMITTER_EMAIL",
-			`PATH=${gitAvailable ? `${bin}:${path}` : bin}`,
-			"NODE_OPTIONS=",
-			"GIT_CONFIG_NOSYSTEM=1",
-			"GIT_CONFIG_GLOBAL=/dev/null",
-			...environment,
-			process.execPath,
-			"--conditions=source",
-			cli,
-			...args,
-		],
-		{
-			cwd: root,
-			encoding: "utf8",
-		},
+	return Effect.scoped(
+		Effect.gen(function* () {
+			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+			const child = yield* spawner.spawn(
+				ChildProcess.make(
+					"env",
+					[
+						"-u",
+						"GIT_AUTHOR_NAME",
+						"-u",
+						"GIT_AUTHOR_EMAIL",
+						"-u",
+						"GIT_COMMITTER_NAME",
+						"-u",
+						"GIT_COMMITTER_EMAIL",
+						`PATH=${gitAvailable ? `${bin}:${path}` : bin}`,
+						"NODE_OPTIONS=",
+						"GIT_CONFIG_NOSYSTEM=1",
+						"GIT_CONFIG_GLOBAL=/dev/null",
+						...environment,
+						process.execPath,
+						"--conditions=source",
+						cli,
+						...args,
+					],
+					{ cwd: root },
+				),
+			);
+			const [stdout, stderr, status] = yield* Effect.all(
+				[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
+				{ concurrency: "unbounded" },
+			);
+			return { status: Number(status), stderr, stdout };
+		}),
 	);
 }

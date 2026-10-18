@@ -26,7 +26,7 @@ export function templateSource(root: string, { realStarter = false, localArtifac
 	}
 	return {
 		changeApp: (content: string) => writeFileSync(join(starter, "app.ts"), content),
-		files: (files: Readonly<Record<string, string>>) => {
+		files: (files: Readonly<Record<string, string | Uint8Array>>) => {
 			for (const [path, content] of Object.entries(files)) {
 				mkdirSync(dirname(join(starter, path)), { recursive: true });
 				writeFileSync(join(starter, path), content);
@@ -42,6 +42,13 @@ export function templateSource(root: string, { realStarter = false, localArtifac
 					),
 				),
 			),
+		readPacked: (path: string) => {
+			const entry = decodeTemplate(readFileSync(output, "utf8")).find((file) => file.path === path);
+			if (entry === undefined) {
+				throw new Error(`No packed file: ${path}`);
+			}
+			return Buffer.from(entry.content, "base64");
+		},
 		starter,
 	};
 }

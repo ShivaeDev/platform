@@ -1,5 +1,8 @@
+import { Buffer } from "node:buffer";
+import { Effect } from "effect";
 import { expect } from "vitest";
 import { application } from "#test/application.ts";
+import { templateManifest } from "#test/templateManifest.ts";
 import { customTemplate } from "#test/traits.ts";
 
 application.it(
@@ -45,3 +48,42 @@ application.it("copies the starter CI workflow with every Action pinned to a com
 		expect(action).toMatch(/@[a-f0-9]{40}$/u);
 	}
 });
+
+application.it(
+	"preserves binary bytes in the packed template",
+	[customTemplate({ "image.png": Buffer.from([0, 0xff, 0x80, 0x41]) })],
+	function* ({ pack, readPacked }) {
+		yield* pack();
+		expect(readPacked("image.png")).toEqual(Buffer.from([0, 0xff, 0x80, 0x41]));
+	},
+);
+
+application.it(
+	"replaces workspace dependencies with exact published versions while preserving registry dependencies",
+	[
+		customTemplate({
+			"package.json": templateManifest({ "@shivaedev/platform": "workspace:*", effect: "catalog:" }),
+			"published-versions.json": JSON.stringify({ "@shivaedev/platform": "0.6.1" }),
+		}),
+	],
+	function* ({ pack }) {
+		const files = yield* pack();
+		expect(JSON.parse(files["package.json"] ?? "{}").dependencies).toEqual({ "@shivaedev/platform": "0.6.1", effect: "catalog:" });
+	},
+);
+
+for (const versions of [{}, { "@shivaedev/platform": "latest" }, { "@shivaedev/platform": "^0.6.1" }]) {
+	application.it(
+		`rejects a template without an exact workspace replacement: ${JSON.stringify(versions)}`,
+		[
+			customTemplate({
+				"package.json": templateManifest({ "@shivaedev/platform": "workspace:*" }),
+				"published-versions.json": JSON.stringify(versions),
+			}),
+		],
+		function* ({ pack }) {
+			const failure = yield* Effect.flip(pack());
+			expect(failure.message).toContain("@shivaedev/platform: name an exact published version");
+		},
+	);
+}

@@ -43,7 +43,7 @@ export function destination(kind: "empty" | "file" | "nonempty" | "environment")
 	});
 }
 
-export function customTemplate(files: Readonly<Record<string, string>> = {}, localArtifacts = false) {
+export function customTemplate(files: Readonly<Record<string, string | Uint8Array>> = {}, localArtifacts = false) {
 	return application.trait("template", "the template has custom source files", (engine) => {
 		engine.source = templateSource(dirname(dirname(engine.cli)), { localArtifacts });
 		engine.source.files(files);
