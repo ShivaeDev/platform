@@ -695,6 +695,9 @@ importers:
 
   packages/effect-pg-boss:
     devDependencies:
+      '@shivaedev/effect-test-sql':
+        specifier: workspace:*
+        version: link:../effect-test-sql
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
