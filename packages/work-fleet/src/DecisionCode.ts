@@ -20,6 +20,7 @@ export const DecisionCode = Schema.Literals([
 	"integration-failure",
 	"no-change-checks-unconfigured",
 	"not-ancestor",
+	"pr-closed",
 	"pr-conflicting",
 	"pr-head-moved",
 	"provider-quota-unavailable",
