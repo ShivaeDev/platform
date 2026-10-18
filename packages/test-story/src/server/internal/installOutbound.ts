@@ -1,5 +1,4 @@
 import { isIP } from "node:net";
-import { Effect } from "effect";
 import { unrouted } from "#internal/errors.ts";
 
 interface DispatchOptions {
@@ -62,11 +61,4 @@ export async function installOutbound(routes: Readonly<Record<string, string>>, 
 			throw refused;
 		}
 	};
-}
-
-export function routeOutbound(routes: Readonly<Record<string, string>>) {
-	return Effect.acquireRelease(
-		Effect.promise(() => installOutbound(routes, Reflect.get(globalThis, Symbol.for("test-story.dom")) === true)),
-		(restore) => Effect.sync(restore),
-	).pipe(Effect.asVoid);
 }

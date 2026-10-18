@@ -150,7 +150,7 @@
 		"lucide-react": "catalog:",
 		"tailwindcss": "catalog:",
 		"tw-animate-css": "catalog:",
-		"typescript": "catalog:",
+		"typescript": "catalog:compiler-api",
 		"vite": "catalog:",
 		"vitest": "catalog:"
 	},

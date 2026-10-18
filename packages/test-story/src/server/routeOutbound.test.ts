@@ -1,6 +1,6 @@
 import { Effect, Exit } from "effect";
 import { expect, it } from "vitest";
-import { routeOutbound } from "#internal/routeOutbound.ts";
+import { routeOutbound } from "#routeOutbound.ts";
 import { withRecordingDispatchers } from "#test/outbound.ts";
 
 it.each([false, true])("routes and restores both installed dispatcher slots when the scope fails: %s", async (fail) => {
