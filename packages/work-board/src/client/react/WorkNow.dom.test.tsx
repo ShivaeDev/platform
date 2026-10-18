@@ -30,10 +30,10 @@ it.each(["title", "owner", "status"] as const)("keeps stage lanes fixed under %s
 		const card = view.container.querySelector('[aria-label="Executing"] [data-item="task-1"]');
 		expect(card?.querySelector("h3")?.textContent).toBe("Work 5");
 		expect(card?.querySelector("[data-status-token]")?.textContent).toBe("executing");
-		expect(card?.textContent).toContain("Holder: Fleet");
-		expect(card?.textContent).toContain("In executing for");
+		expect(card?.querySelector(".work-owner")?.textContent).toBe("Fleet is working on this");
+		expect(card?.querySelector(".work-stage")?.textContent).toMatch(/^Executing for /u);
 		expect(card?.querySelector('a[href="https://github.com/example/project/pull/1"]')).not.toBeNull();
-		expect(view.container.querySelector('[aria-label="Waiting on a person"]')?.textContent).toContain("Holder: maintainer");
+		expect(view.container.querySelector('[aria-label="Waiting on a person"] .work-owner')?.textContent).toBe("Needs you");
 		expect(view.container.querySelector('[data-item="task-5"]')).toBeNull();
 		const button = view.container.querySelector<HTMLButtonElement>('[aria-expanded="false"]');
 		await act(async () => button?.click());

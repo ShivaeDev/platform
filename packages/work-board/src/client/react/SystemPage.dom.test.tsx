@@ -36,7 +36,7 @@ it("shows every running and waiting item by source title, stage and PR independe
 		for (const stage of ["prepared", "executing", "adopting", "reviewing", "repairing", "validating", "delivering", "needs-human"]) {
 			expect(view.container.querySelector('[aria-label="Fleet work"]')?.textContent).toContain(stage);
 		}
-		expect(view.container.querySelector('[data-fleet-id="task.needs-human"]')?.textContent).toContain("Waiting on maintainer");
+		expect(view.container.querySelector('[data-fleet-id="task.needs-human"]')?.textContent).toContain("Needs you");
 		expect(view.container.querySelector('[data-fleet-id="task.released"]')).toBeNull();
 	} finally {
 		await view.unmount();

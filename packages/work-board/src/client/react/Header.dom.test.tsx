@@ -43,8 +43,12 @@ it.each([0, 4, null])("names the Files and Today controls independently of respo
 	));
 	try {
 		expect(control(`#${shellIds.sidebarToggle}`, HTMLButtonElement).getAttribute("aria-label")).toBe("Files");
-		expect(control(`#${shellIds.inboxTopbar}`, HTMLAnchorElement).getAttribute("aria-label")).toBe("Today");
-		expect(control(`#${shellIds.inboxTopbarCount}`, HTMLElement).getAttribute("aria-label")).toBe(`${count ?? "?"} waiting`);
+		expect(control(`#${shellIds.inboxTopbar}`, HTMLAnchorElement).getAttribute("aria-label")).toBe(
+			count === null ? "Today" : `Today, ${count} need you`,
+		);
+		expect(control(`#${shellIds.inboxTopbarCount}`, HTMLElement).getAttribute("aria-label")).toBe(
+			count === null ? "Needs you unavailable" : `${count} need you`,
+		);
 	} finally {
 		await view.unmount();
 	}

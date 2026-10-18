@@ -96,7 +96,7 @@ it("opens Today without a configured home and preserves empty-workspace guidance
 	const view = await renderRouter({}, "/", { home: undefined });
 	try {
 		await eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Today"));
-		expect(view.container.querySelector(".today-strip")?.textContent).toBe("0 need you·? in progress·0 active goals");
+		expect(view.container.querySelector(".today-strip")?.textContent).toBe("0 need you·Fleet unavailable·0 active goals");
 		expect(view.container.querySelector(".today-page a[href='/_board/start']")?.textContent).toBe("Getting started");
 	} finally {
 		await view.unmount();

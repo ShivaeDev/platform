@@ -19,7 +19,7 @@ it("shows the orchestrator holder and hides missing PR and stage time", async ()
 	};
 	const view = await render(<WorkCard fleet={fleet} item={item} state={data.state} />);
 	try {
-		expect(view.container.textContent).toContain("Holder: orchestrator");
+		expect(view.container.querySelector(".work-owner")?.textContent).toBe("Waiting on the orchestrator");
 		expect(view.container.textContent).not.toContain("PR not recorded");
 		expect(view.container.querySelectorAll("[data-status-token]")).toHaveLength(1);
 		expect(view.container.querySelector("[data-status-token]")?.textContent).toBe("executing");

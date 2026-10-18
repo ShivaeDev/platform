@@ -5,6 +5,7 @@ import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { Navigation } from "#browser/Navigation.ts";
 import { Badge } from "#client/react/components/ui/Badge.tsx";
 import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
+import { destinationName } from "#client/react/destinationName.ts";
 import { GoalProgress } from "#client/react/GoalProgress.tsx";
 import { InboxCount } from "#client/react/Header.tsx";
 import { type Item, LibraryContext } from "#client/react/LibraryContext.ts";
@@ -38,6 +39,12 @@ export function Sidebar({
 		today: data?.inboxCount,
 		work: data?.counts.now,
 	};
+	function name(view: (typeof workspaceDestinations)[number]["view"], label: string) {
+		if (view === "today") {
+			return destinationName(label, counts.today, "need you");
+		}
+		return view === "work" ? destinationName(label, counts.work, "open tasks") : label;
+	}
 	useEffect(() => {
 		const sidebar = document.getElementById(shellIds.sidebar);
 		if (controls.narrow && controls.open) {
@@ -66,6 +73,7 @@ export function Sidebar({
 				{workspaceDestinations.map(({ label, href, view, id }) => (
 					<a
 						aria-current={(view === "today" ? home : main.view === view) ? "page" : undefined}
+						aria-label={name(view, label)}
 						className={cn(
 							buttonVariants({ variant: "ghost" }),
 							"justify-between no-underline",
@@ -77,7 +85,7 @@ export function Sidebar({
 					>
 						<span>{label}</span>
 						{view === "today" && <InboxCount count={counts.today ?? null} id={shellIds.inboxCount} />}
-						{view === "work" && <Badge>{counts.work ?? "?"}</Badge>}
+						{view === "work" && counts.work !== undefined && <Badge aria-hidden="true">{counts.work}</Badge>}
 					</a>
 				))}
 			</nav>

@@ -1,6 +1,17 @@
 import type { FleetHealth } from "#diagnostics/health.ts";
 import { ObservedTime } from "./diagnosticsValues.tsx";
-export function SystemHealth({ value, now }: { readonly value: FleetHealth; readonly now: number }) {
+
+const waitingOn = { automation: "Waiting on Fleet agents", orchestrator: "Waiting on the orchestrator" } as const;
+
+export function SystemHealth({
+	value,
+	now,
+	needsYou,
+}: {
+	readonly value: FleetHealth;
+	readonly now: number;
+	readonly needsYou?: number | null | undefined;
+}) {
 	let freshness = "Current snapshot";
 	if (now < value.observedAt) {
 		freshness = "Publisher clock is ahead";
@@ -26,11 +37,20 @@ export function SystemHealth({ value, now }: { readonly value: FleetHealth; read
 						<strong>{value.queued}</strong>
 					</dd>
 				</div>
-				{Object.entries(value.waiting).map(([owner, count]) => (
+				<div data-needs-you>
+					<dt>Needs you</dt>
+					<dd className="flex flex-wrap items-baseline gap-2">
+						<strong>{needsYouCount(needsYou)}</strong>
+						<a className="text-xs" href="/#needs-you">
+							Open Today
+						</a>
+					</dd>
+				</div>
+				{(["orchestrator", "automation"] as const).map((owner) => (
 					<div key={owner}>
-						<dt>Waiting on {owner}</dt>
+						<dt>{waitingOn[owner]}</dt>
 						<dd>
-							<strong>{count}</strong>
+							<strong>{value.waiting[owner]}</strong>
 						</dd>
 					</div>
 				))}
@@ -61,4 +81,11 @@ function CapacityRejection({ value }: { readonly value: FleetHealth["lastCapacit
 			<ObservedTime at={value.at} />
 		</>
 	);
+}
+
+function needsYouCount(count: number | null | undefined) {
+	if (count === undefined) {
+		return "Loading…";
+	}
+	return count === null ? "Unavailable" : count;
 }
