@@ -323,14 +323,6 @@
 {"path":"packages/effect-sql/src/transactKeys.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-sql/src/transactSink.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-test-sql/src/server/vitest.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-trpc/src/server/adapter.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-trpc/src/server/contractRejections.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-trpc/src/server/httpRejections.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-trpc/src/server/inputRejections.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-trpc/src/server/internal/makeSubscriptionHandler.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-trpc/src/server/internal/runtime.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-trpc/src/server/rejection.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-trpc/src/server/rejectionFormatter.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-trpc/src/server/testing/vitest.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/errors/roundTrip.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/errors/trpcRejections.spec.ts","rule":"tests/story-specs","count":1}
