@@ -3,6 +3,7 @@ import { Effect, Schema } from "effect";
 import ignore from "ignore";
 import { exportFits } from "#naming/exportFits.ts";
 import { mainExport } from "#naming/mainExport.ts";
+import { isMigrationFile } from "#naming/migrationFile.ts";
 import { ownExports } from "#naming/ownExports.ts";
 import { type PackageLayout, packageLayout } from "#naming/packageLayout.ts";
 import { CAMEL, KEBAB, sameWord, wordsOf } from "#naming/words.ts";
@@ -86,7 +87,9 @@ export const namedAfterExport = defineRule({
 	check: async ({ files, options, readText, sources }) => {
 		const layout = await packageLayout({ files, readText });
 		const toolOwned = ignore().add([...options.toolOwned]);
-		return sources.filter((file) => !(TEST.test(file.path) || toolOwned.ignores(file.path))).flatMap((file) => findingsOf(file, layout));
+		return sources
+			.filter((file) => !(TEST.test(file.path) || isMigrationFile(file.path) || toolOwned.ignores(file.path)))
+			.flatMap((file) => findingsOf(file, layout));
 	},
 	description:
 		"A file is named after its main export, with its folders as the prefix; a file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",

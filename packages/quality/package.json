@@ -36,7 +36,8 @@
 		"./imports/isTooling.ts": null,
 		"./rules/imports/bundleInputs.ts": null,
 		"./inventory/shadcnFolders.ts": null,
-		"./inventory/shadcnAlias.ts": null
+		"./inventory/shadcnAlias.ts": null,
+		"./naming/migrationFile.ts": null
 	},
 	"bin": {
 		"quality": "./dist/cli.js"
