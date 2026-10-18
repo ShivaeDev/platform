@@ -1,4 +1,5 @@
 import type { RequestReceipt } from "#attention/RequestReceipt.ts";
+import type { Question, RecordedResponse } from "#browser/responses/schema.ts";
 import type { Metadata } from "#metadata/schema.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { responseIndex } from "#server/responseIndex.ts";
@@ -8,6 +9,7 @@ type Request = NonNullable<Metadata["attention"]>[number];
 
 export type ManagedRequestState =
 	| { readonly _tag: "Open" }
+	| { readonly _tag: "Answered"; readonly response: RecordedResponse }
 	| { readonly _tag: "Settled"; readonly receipt: RequestReceipt }
 	| { readonly _tag: "Conflicting"; readonly receipts: readonly string[] };
 
@@ -76,7 +78,14 @@ function registeredQuestion(document: MetadataDocument, request: Request, model:
 	) {
 		return undefined;
 	}
-	return { id, revision };
+	return { id, question, revision };
+}
+
+function currentAnswer(question: Question, model: MetadataModel): RecordedResponse | undefined {
+	const index = responseIndex(model);
+	const group = index.responsesFor(question);
+	const [current] = group.current;
+	return !(index.malformed || group.ambiguous) && group.current.length === 1 && current?.response.type === "answer" ? current : undefined;
 }
 
 function qualified(saved: MetadataDocument, question: string, revision: string, model: MetadataModel): RequestReceipt | undefined {
@@ -115,7 +124,11 @@ export function managedRequestState(document: MetadataDocument, request: Request
 	if (receipt) {
 		return { _tag: "Settled", receipt };
 	}
-	return receipts.length > 0 ? { _tag: "Conflicting", receipts: saved.map((candidate) => candidate.file) } : open;
+	if (receipts.length > 0) {
+		return { _tag: "Conflicting", receipts: saved.map((candidate) => candidate.file) };
+	}
+	const answer = currentAnswer(question.question, model);
+	return answer ? { _tag: "Answered", response: answer } : open;
 }
 
 export function managedRequestReceipt(document: MetadataDocument, request: Request, model: MetadataModel): RequestReceipt | undefined {

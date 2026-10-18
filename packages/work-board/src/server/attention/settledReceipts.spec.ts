@@ -10,8 +10,9 @@ boardStory.it(
 	[anInbox()],
 	function* ({ readAttention, readInbox }) {
 		const waiting = yield* readInbox(yield* readAttention(managedReceiptsFixture()));
-		expect(waiting.you.map((item) => [item.id, item.reason, item.problem])).toEqual([
-			["task.context", "Managed decision: Board context changed", undefined],
+		expect(waiting.you).toEqual([]);
+		expect(waiting.answered.map((item) => [item.id, item.answered, item.problem])).toEqual([
+			["task.context", { author: "orchestrator", choice: "", yours: false }, undefined],
 		]);
 		const settled = yield* readInbox(
 			yield* readAttention({
@@ -21,6 +22,7 @@ boardStory.it(
 			}),
 		);
 		expect(settled.you).toEqual([]);
+		expect(settled.answered).toEqual([]);
 	},
 );
 
@@ -41,7 +43,11 @@ boardStory.it("shows receipts that disagree about the reviewed decision as a pro
 	]);
 });
 
-boardStory.it("keeps a decision waiting when its only receipt names another revision", [anInbox()], function* ({ readAttention, readInbox }) {
-	const inbox = yield* readInbox(yield* readAttention({ ...managedReceiptsFixture(), ...managedReceipt("stale", "superseded", 4000, other) }));
-	expect(inbox.you.map((item) => [item.id, item.problem])).toEqual([["task.context", undefined]]);
-});
+boardStory.it(
+	"keeps an answered decision waiting for Fleet when its only receipt names another revision",
+	[anInbox()],
+	function* ({ readAttention, readInbox }) {
+		const inbox = yield* readInbox(yield* readAttention({ ...managedReceiptsFixture(), ...managedReceipt("stale", "superseded", 4000, other) }));
+		expect(inbox.answered.map((item) => [item.id, item.problem])).toEqual([["task.context", undefined]]);
+	},
+);

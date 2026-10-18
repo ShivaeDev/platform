@@ -1,3 +1,4 @@
+import type { RequestReceipt } from "#attention/RequestReceipt.ts";
 import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "#server/responses/records.ts";
 
 const ITEM = "decision.context";
@@ -54,15 +55,12 @@ export function managedReceiptsFixture(): Record<string, string> {
 	};
 }
 
-export function managedReceipt(name: string, disposition: "applied" | "superseded", recordedAt: number, reviewedRevision = revision) {
-	const receipt = {
-		disposition,
-		question,
-		recordedAt,
-		...(disposition === "applied" ? { response: ANSWER } : {}),
-		reviewedRevision,
-	};
+export function requestReceipt(name: string, receipt: RequestReceipt) {
 	return {
 		[`responses/request-receipt.${name}.md`]: `---\n${JSON.stringify({ id: `request-receipt.${name}`, kind: "result", "request_receipt": receipt })}\n---\n# Managed request acknowledgement\n`,
 	};
+}
+
+export function managedReceipt(name: string, disposition: "applied" | "superseded", recordedAt: number, reviewedRevision = revision) {
+	return requestReceipt(name, { disposition, question, recordedAt, ...(disposition === "applied" ? { response: ANSWER } : {}), reviewedRevision });
 }

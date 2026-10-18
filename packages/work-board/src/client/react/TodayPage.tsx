@@ -1,15 +1,16 @@
 import { Option } from "effect";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { inProgressItems } from "./inProgressItems.ts";
 import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { TodayGoals } from "./TodayGoals.tsx";
-import { TodayLater, TodayNeeds } from "./TodayNeeds.tsx";
+import { TodayAnswered, TodayLater, TodayNeeds } from "./TodayNeeds.tsx";
 import { TodayProgress } from "./TodayProgress.tsx";
 
-const todayIds = { goals: "today-goals", later: "later", needs: "needs-you", progress: "in-progress" };
+const todayIds = { answered: "answered", goals: "today-goals", later: "later", needs: "needs-you", progress: "in-progress" };
 
 export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data: InboxProjection }) {
 	const query = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
@@ -39,6 +40,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 			<div className="today-grid grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<div className="min-w-0 space-y-6">
 					<NeedsYou api={api} data={data} />
+					{data.complete && data.answered.length > 0 && <Answered fleet={fleet} items={data.answered} />}
 					<section className="min-w-0" id={todayIds.progress}>
 						<h2 className="mt-0 mb-3 font-semibold text-lg">In progress</h2>
 						<TodayProgress data={fleet} failed={Option.isSome(fleetQuery.cause)} />
@@ -65,6 +67,15 @@ function NeedsYou({ api, data }: { readonly api: ShellApi; readonly data: InboxP
 					Getting started
 				</a>
 			)}
+		</section>
+	);
+}
+
+function Answered({ fleet, items }: { readonly fleet: FleetItemsProjection | undefined; readonly items: InboxProjection["answered"] }) {
+	return (
+		<section className="min-w-0" id={todayIds.answered}>
+			<h2 className="mt-0 mb-3 font-semibold text-lg">Answered, waiting for Fleet</h2>
+			<TodayAnswered fleet={fleet} items={items} />
 		</section>
 	);
 }

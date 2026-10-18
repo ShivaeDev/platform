@@ -1,9 +1,12 @@
-import { MessageCircleQuestion } from "lucide-react";
+import { Hourglass, MessageCircleQuestion } from "lucide-react";
+import { useContext } from "react";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
+import { answeredCopy } from "#client/responses/answeredCopy.ts";
 import { AnswerContext } from "./AnswerContext.tsx";
 import { AnswerForm } from "./AnswerForm.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
+import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { ResponseHistory } from "./ResponseHistory.tsx";
 
 export function AnswerPanel({ document: data }: { readonly document: Document }) {
@@ -26,8 +29,10 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 		file: preview?.source ?? data.file,
 		metadata: { ...data.metadata, options: request.options, recommended: request.recommended },
 	};
+	const fleet = useContext(FleetItemsContext);
 	const unavailable = request.unavailable ?? request.promptUnavailable;
 	const closed = request.sourceOpen === false;
+	const answered = request.open ? request.answered : undefined;
 	return (
 		<section
 			aria-labelledby={`answer-title-${request.id}`}
@@ -36,9 +41,15 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 			tabIndex={-1}
 		>
 			<h2 className="flex items-center gap-2 font-medium text-muted-foreground text-sm" id={`answer-title-${request.id}`}>
-				{request.open ? <MessageCircleQuestion aria-hidden="true" className="size-4 text-needs-you" /> : null}
+				{answered !== undefined && <Hourglass aria-hidden="true" className="size-4 text-waiting-on-agents" />}
+				{request.open && answered === undefined && <MessageCircleQuestion aria-hidden="true" className="size-4 text-needs-you" />}
 				{cardTitle(request, closed)}
 			</h2>
+			{answered !== undefined && (
+				<p className="rounded-md border border-waiting-on-agents/40 bg-waiting-on-agents/10 px-3 py-2 text-sm" data-answered="" role="status">
+					{answeredCopy(answered, fleet)}
+				</p>
+			)}
 			{!(request.open || unavailable) && (
 				<p className="text-muted-foreground text-sm" role="status">
 					{closed ? "This question is closed. Recorded answers remain below." : "Answer unavailable. Check the source diagnostics."}
@@ -55,7 +66,13 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 					<AnswerContext preview={preview} />
 				</>
 			)}
-			{request.open && preview && !unavailable && <AnswerForm document={source} preview={preview} request={request} />}
+			{request.open && preview && !unavailable && answered === undefined && <AnswerForm document={source} preview={preview} request={request} />}
+			{preview && !unavailable && answered !== undefined && (
+				<details className="space-y-4" data-key="change-answer">
+					<summary className="cursor-pointer select-none font-medium text-sm">Change your answer</summary>
+					<AnswerForm document={source} preview={preview} request={request} />
+				</details>
+			)}
 			{!request.unavailable && (
 				<ResponseHistory
 					id={data.requests.filter((entry) => entry.open).length > 1 ? `response-history-${request.id}` : undefined}
@@ -68,7 +85,7 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 
 function cardTitle(request: DocumentRequest, closed: boolean) {
 	if (request.open) {
-		return `Answer: ${request.title ?? "this question"}`;
+		return `${request.answered ? "Answered" : "Answer"}: ${request.title ?? "this question"}`;
 	}
 	return closed ? "Question closed" : "Answer unavailable";
 }

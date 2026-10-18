@@ -58,14 +58,14 @@ export function holderOf(metadata: Metadata, fleet: FleetWork | undefined): stri
 	return ["maintainer", "orchestrator"].includes(metadata.owner ?? "") ? metadata.owner : undefined;
 }
 
-export function cardStatus(metadata: Metadata, fleet: FleetWork | undefined, waiting: string | undefined): string | undefined {
-	if (fleet) {
-		if (fleet.stage === "needs-human") {
-			return "needs-you";
-		}
+export function cardStatus(metadata: Metadata, fleet: FleetWork | undefined, waiting: string | undefined, answered = false): string | undefined {
+	if (fleet && fleet.stage !== "needs-human") {
 		return fleet.stage === "completed" ? "done" : fleet.stage;
 	}
-	return waiting ? "needs-you" : metadata.status;
+	if (answered) {
+		return "waiting-on-agents";
+	}
+	return fleet || waiting ? "needs-you" : metadata.status;
 }
 
 const statusOrder = [

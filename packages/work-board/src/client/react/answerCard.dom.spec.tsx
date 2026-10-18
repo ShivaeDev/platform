@@ -87,7 +87,11 @@ screenStory.it(
 		expect(readFocus()).toBe(input);
 		expect([input.selectionStart, input.selectionEnd]).toEqual([4, 7]);
 		yield* Effect.promise(async () => responseClick("submit"));
-		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Saved:")));
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(readText("[data-answered]")).toBe("Reviewer answered: Publish now. Fleet is unavailable, so it picks this up once it runs again."),
+			),
+		);
 		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
 		expect(saved.responses).toHaveLength(1);
 		expect(saved.responses[0]?.response).toMatchObject({
