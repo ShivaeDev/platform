@@ -22,16 +22,15 @@ sessions.it(
 	},
 );
 transport.it("returns RPC headers when there is no HTTP request service", [], function* ({ resolveHeaders }) {
-	const { resolved, message } = yield* resolveHeaders({ authorization: "Bearer rpc", origin: "https://rpc.example" });
-	expect(resolved).toBe(message);
+	const headers = yield* resolveHeaders({ authorization: "Bearer rpc", origin: "https://rpc.example" });
+	expect(headers).toEqual({ authorization: "Bearer rpc", origin: "https://rpc.example" });
 });
 
 transport.it("uses only the HTTP request headers when a request service is available", [], function* ({ resolveHeaders }) {
-	const { resolved: headers, request } = yield* resolveHeaders(
+	const headers = yield* resolveHeaders(
 		{ authorization: "Bearer rpc", origin: "https://rpc.example", "x-rpc-only": "ignored" },
 		{ origin: "https://http.example" },
 	);
-	expect(headers).toBe(request?.headers);
 	expect(headers.origin).toBe("https://http.example");
 	expect(headers.authorization).toBeUndefined();
 	expect(headers["x-rpc-only"]).toBeUndefined();

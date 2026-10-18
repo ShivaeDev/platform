@@ -19,8 +19,14 @@ export const boundaryStory = storyKit({
 			story.tell("the operation fails");
 			return Effect.flip(state.wrap(Effect.fail(error)));
 		},
-		failCause: (cause: Cause.Cause<string>) => Effect.exit(state.wrap(Effect.failCause(cause))),
-		interrupt: () => Effect.exit(state.wrap(Effect.interrupt)),
+		failCause: (cause: Cause.Cause<string>) => {
+			story.tell("the operation fails with a cause");
+			return Effect.exit(state.wrap(Effect.failCause(cause)));
+		},
+		interrupt: () => {
+			story.tell("the caller interrupts the operation");
+			return Effect.exit(state.wrap(Effect.interrupt));
+		},
 		succeed: (value: string) => {
 			story.tell("the operation succeeds");
 			return state.wrap(Effect.succeed(value));

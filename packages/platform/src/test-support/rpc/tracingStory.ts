@@ -63,7 +63,10 @@ export const tracing = storyKit({
 				story.tell("the caller echoes a request id");
 				return call((client) => client.Echo(undefined, { headers }));
 			},
-			externalRejection: () => call((client) => Effect.flip(client.ExternalRejection())),
+			externalRejection: () => {
+				story.tell("the caller invokes an operation that rejects with an external error");
+				return call((client) => Effect.flip(client.ExternalRejection()));
+			},
 			logs: () => state.logs,
 			register: () => {
 				story.tell("the caller registers an account");

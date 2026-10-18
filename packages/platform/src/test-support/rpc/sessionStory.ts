@@ -26,7 +26,7 @@ export const sessions = storyKit({
 				close();
 			}),
 		);
-		const upgrade: Record<string, string> = { origin: ORIGIN };
+		const upgrade: { headers?: Record<string, string> } = {};
 		return { accounts, apps, close, provider, upgrade };
 	},
 	inspect: ({ provider, accounts }) => ({ accounts: [...accounts.keys()], lookups: provider.lookups() }),
@@ -64,8 +64,10 @@ export const sessions = storyKit({
 			},
 			greeting: (name?: string, transport: Record<string, string> = headers(name), policy = "browser") =>
 				Effect.promise(() => app(policy).call(transport, (client) => client.Greeting())),
-			identity: (transport: Record<string, string>, policy = "browser") =>
-				Effect.promise(() => app(policy).call(transport, (client) => Effect.map(client.Whoami(), (value) => value.split(" ")[0]))),
+			identity: (transport: Record<string, string>, policy = "browser") => {
+				story.tell("the caller requests their identity over HTTP");
+				return Effect.promise(() => app(policy).call(transport, (client) => client.Whoami()));
+			},
 			logs: () => app().logs,
 			lookups: () => state.provider.lookups(),
 			post: (transport: Record<string, string>, message: ReadonlyArray<readonly [string, string]>) =>
@@ -87,8 +89,12 @@ export const sessions = storyKit({
 				return signOut(state.provider, headers(name));
 			},
 			spans: () => app().spans,
-			websocket: (message: ReadonlyArray<readonly [string, string]>, transport = state.upgrade) => {
+			websocket: (message: ReadonlyArray<readonly [string, string]>) => {
 				story.tell("a caller sends RPC message headers over the WebSocket upgrade");
+				const transport = state.upgrade.headers;
+				if (transport === undefined) {
+					throw new Error("No WebSocket upgrade headers have been configured");
+				}
 				return whoamiOverWebSocket(state.provider, app().origin, transport, message);
 			},
 			whoami: (name?: string, extra: Record<string, string> = {}, policy = "browser") => {
@@ -126,6 +132,6 @@ export function websocketHeaders(caller?: string, headers: Record<string, string
 		if (caller !== undefined && account === undefined) {
 			throw new Error(`No account named ${caller}`);
 		}
-		state.upgrade = { ...headers, ...(account === undefined ? {} : { cookie: account.cookie }) };
+		state.upgrade.headers = { ...headers, ...(account === undefined ? {} : { cookie: account.cookie }) };
 	});
 }

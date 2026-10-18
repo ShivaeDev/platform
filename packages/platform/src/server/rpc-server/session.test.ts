@@ -97,7 +97,7 @@ sessions.it(
 		function ask(policy: string, headers: Record<string, string>) {
 			return identity({ cookie: alice.cookie, ...headers }, policy);
 		}
-		const success = { _tag: "Success", success: alice.userId };
+		const success = { _tag: "Success", success: expect.stringContaining(`${alice.userId} `) };
 		const forbidden = { _tag: "Failure", failure: { _tag: "Forbidden", message: "Origin not allowed" } };
 		expect(yield* ask("browser", { origin: ORIGIN })).toMatchObject(success);
 		expect(yield* ask("browser", { origin: "capacitor://localhost" })).toMatchObject(success);

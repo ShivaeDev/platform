@@ -4,14 +4,27 @@ import { ORIGIN } from "#test/rpc/harness.ts";
 import { originPolicy, sessions, signedUp, websocketHeaders } from "#test/rpc/sessionStory.ts";
 
 sessions.it(
-	"WebSocket RPC decides origin and session from the upgrade request, not message headers",
+	"WebSocket RPC authenticates the session from the upgrade request",
 	[originPolicy(), signedUp("alice"), websocketHeaders("alice")],
 	function* ({ account, websocket }) {
 		const alice = account("alice");
 		expect(yield* websocket([])).toContain(alice.userId);
-		const hijack = yield* websocket([["origin", ORIGIN]], { cookie: alice.cookie, origin: "https://attacker.example" });
-		expect(hijack).toMatch(/"_tag":"Forbidden".*"Origin not allowed"/u);
-		expect(yield* websocket([["cookie", alice.cookie]], { origin: ORIGIN })).toContain('"_tag":"Unauthorized"');
+	},
+);
+
+sessions.it(
+	"WebSocket RPC rejects an untrusted upgrade origin despite forged message headers",
+	[originPolicy(), signedUp("alice"), websocketHeaders("alice", { origin: "https://attacker.example" })],
+	function* ({ websocket }) {
+		expect(yield* websocket([["origin", ORIGIN]])).toMatch(/"_tag":"Forbidden".*"Origin not allowed"/u);
+	},
+);
+
+sessions.it(
+	"WebSocket RPC ignores a message cookie when the upgrade is anonymous",
+	[originPolicy(), signedUp("alice"), websocketHeaders()],
+	function* ({ account, websocket }) {
+		expect(yield* websocket([["cookie", account("alice").cookie]])).toContain('"_tag":"Unauthorized"');
 	},
 );
 
@@ -25,6 +38,17 @@ sessions.it(
 	function* ({ account, websocket }) {
 		const alice = account("alice");
 		expect(yield* websocket([])).toContain(alice.userId);
-		expect(yield* websocket([], { cookie: alice.cookie, origin: ORIGIN })).toContain('"_tag":"Forbidden"');
+	},
+);
+
+sessions.it(
+	"WebSocket RPC rejects an upgrade origin excluded by the application's configured policy",
+	[
+		originPolicy("browser", trustedOrigins({ allow: ["https://desktop.example"], missing: "reject" })),
+		signedUp("alice"),
+		websocketHeaders("alice", { origin: ORIGIN }),
+	],
+	function* ({ websocket }) {
+		expect(yield* websocket([])).toContain('"_tag":"Forbidden"');
 	},
 );

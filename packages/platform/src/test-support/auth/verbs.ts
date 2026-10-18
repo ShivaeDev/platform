@@ -1,5 +1,6 @@
 import type { DBTransactionAdapter, Where } from "better-auth";
 import { Effect } from "effect";
+import { withTestTransaction } from "@shivaedev/effect-prisma/testing/transaction.ts";
 import { Database } from "./database.ts";
 import type { authEngine } from "./engine.ts";
 
@@ -32,6 +33,18 @@ export function authVerbs(state: State, tell: (line: string) => void) {
 			invoke(() => state.authDatabase.findOne<User>({ ...input, model: "user" })),
 		persistedUserExists: (id: string) =>
 			Effect.promise(() => state.runtime.runPromise(Effect.flatMap(Database, (db) => db.AuthUser.where({ id }).exists()))),
+		rollbackTransaction: <A>(action: (transaction: DBTransactionAdapter) => Promise<A>) => {
+			tell("the adapter runs inside a forced-rollback test transaction");
+			const program = Effect.gen(function* () {
+				yield* Database;
+				const services = yield* Effect.context<Effect.Services<typeof Database>>();
+				return yield* Effect.tryPromise({
+					catch: (error) => error,
+					try: () => state.adapter.runWithServices(services, () => state.authDatabase.transaction(action)),
+				});
+			});
+			return Effect.promise(() => state.runtime.runPromise(withTestTransaction(Database, program)));
+		},
 		transaction: <A>(action: (transaction: DBTransactionAdapter) => Promise<A>, context: "story" | "runtime" = "story") => {
 			tell(`the adapter runs a transaction with ${context} services`);
 			return invoke(() => state.authDatabase.transaction(action), context);

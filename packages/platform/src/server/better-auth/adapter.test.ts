@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { auth } from "#test/auth/native.ts";
 
-const rolledBackId = crypto.randomUUID();
-function user(name: string, id = crypto.randomUUID()) {
+function user(name: string) {
+	const id = crypto.randomUUID();
 	return { email: `${id}@example.test`, id, name };
 }
 
@@ -19,13 +19,20 @@ auth.it("rolls back a failed Better Auth transaction outside the test harness", 
 	expect(yield* persistedUserExists(data.id)).toBe(false);
 });
 auth.it("shares the test rollback transaction with Better Auth adapter calls", [], function* ({ transaction, userExists }) {
-	const data = user("Auth", rolledBackId);
+	const data = user("Auth");
 	const created = yield* transaction((adapter) => adapter.create<typeof data>({ data, forceAllowId: true, model: "user" }));
-	expect(created.id).toBe(rolledBackId);
-	expect(yield* userExists(rolledBackId)).toBe(true);
+	expect(created.id).toBe(data.id);
+	expect(yield* userExists(data.id)).toBe(true);
 });
-auth.it("rolls back Better Auth adapter calls", [], function* ({ userExists }) {
-	expect(yield* userExists(rolledBackId)).toBe(false);
+auth.it("rolls back Better Auth adapter calls", [], function* ({ rollbackTransaction, persistedUserExists }) {
+	const data = user("Rolled back");
+	const created = yield* rollbackTransaction(async (adapter) => {
+		const row = await adapter.create<typeof data>({ data, forceAllowId: true, model: "user" });
+		expect(await adapter.findOne<typeof data>({ model: "user", where: [{ field: "id", value: data.id }] })).toMatchObject(data);
+		return row;
+	});
+	expect(created.id).toBe(data.id);
+	expect(yield* persistedUserExists(data.id)).toBe(false);
 });
 auth.it(
 	"maps Better Auth reads, filters, updates, and deletes to Effect Prisma",

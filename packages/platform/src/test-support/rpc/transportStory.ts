@@ -45,10 +45,9 @@ export const transport = storyKit({
 				story.tell("the boundary resolves transport headers");
 				const message = Headers.fromInput(rpc);
 				const request = http === undefined ? undefined : HttpServerRequest.fromWeb(new Request("https://http.example/rpc", { headers: http }));
-				const resolved = yield* request === undefined
+				return yield* request === undefined
 					? transportHeaders(message)
 					: transportHeaders(message).pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request));
-				return { message, request, resolved };
 			}),
 	}),
 });
