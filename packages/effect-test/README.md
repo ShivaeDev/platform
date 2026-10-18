@@ -153,7 +153,7 @@ effectApp("reads live time", function* () {
 }, { clock: "live" });
 ```
 
-The override changes the per-test environment used by the wrapper, harness and body.
+The override changes the per-test environment used by the wrapper, harness and body. A UTC `DateTime` also works as `clock`: it selects native TestClock and sets its initial instant before the wrapper or harness runs. `TestClock.adjust` advances that clock explicitly. For example, `{ clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z") }` pins time to that UTC instant; import `DateTime` from `effect`. The same option is available on a fixture's factory.
 
 Worker acquisition is separate: a Layer that reads the default Clock while it is being built sees live time, even when its tests use TestClock.
 
