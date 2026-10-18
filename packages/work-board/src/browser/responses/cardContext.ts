@@ -45,3 +45,8 @@ function section(source: string, title: string) {
 function nextFence(current: string | undefined, marker: string) {
 	return current?.startsWith(marker.charAt(0)) && marker.length >= current.length ? undefined : marker;
 }
+
+export function promptHeading(source: string) {
+	const heading = /^#{1,6}\s+(?<title>.+)$/mu.exec(source);
+	return { rest: heading ? source.replace(heading[0], "").trim() : source.trim(), title: heading?.groups?.title?.trim() };
+}

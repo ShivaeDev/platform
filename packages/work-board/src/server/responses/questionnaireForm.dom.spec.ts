@@ -65,6 +65,6 @@ boardStory.it(
 		expect(page.document.getElementById("response-draft-recovery")?.textContent).toContain("history");
 		expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 		yield* reader.submit("response-form");
-		expect(page.document.getElementById("response-status")?.textContent).toContain("Unanswered prompts: Question 2 · checks.");
+		expect(page.document.getElementById("response-status")?.textContent).toContain("Unanswered: “Which checks matter?”.");
 	},
 );

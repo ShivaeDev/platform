@@ -1,8 +1,10 @@
 import { useId } from "react";
 import type { Document } from "#browser/document/schema.ts";
-import { optionLabel } from "#browser/responses/cardContext.ts";
+import { optionLabel, promptHeading } from "#browser/responses/cardContext.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
-import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
+import { Badge } from "#client/react/components/ui/Badge.tsx";
+import { cn } from "#client/react/lib/cn.ts";
+
 export function PromptOption({
 	document,
 	prompt,
@@ -20,37 +22,49 @@ export function PromptOption({
 }) {
 	const source = document.metadata.options?.[choice];
 	const id = useId();
-	const control = (
-		<input
-			checked={checked}
-			data-option-source={option.source}
-			hidden
-			id={id}
-			name={`choice-${prompt.id}`}
-			onChange={(event) => choose(option.id, event.currentTarget.checked)}
-			onInput={(event) => choose(option.id, event.currentTarget.checked)}
-			type={prompt.mode === "one" ? "radio" : "checkbox"}
-			value={option.id}
-		/>
-	);
 	const label = source?.label ?? optionLabel(option.id, option.source);
+	const description = source?.description ?? promptHeading(option.source).rest;
 	return (
 		<div>
-			{control}
+			<input
+				checked={checked}
+				data-option-source={option.source}
+				hidden
+				id={id}
+				name={`choice-${prompt.id}`}
+				onChange={(event) => choose(option.id, event.currentTarget.checked)}
+				onInput={(event) => choose(option.id, event.currentTarget.checked)}
+				type={prompt.mode === "one" ? "radio" : "checkbox"}
+				value={option.id}
+			/>
 			<button
 				aria-pressed={checked}
-				className="question-choice"
+				className={cn(
+					"question-choice flex w-full items-start gap-3 rounded-lg border bg-background px-4 py-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+					checked && "border-primary bg-accent",
+				)}
 				data-choice={option.id}
 				onClick={() => choose(option.id, prompt.mode !== "many" || !checked)}
 				type="button"
 			>
-				<strong>
-					{label}
-					{label === document.metadata.recommended && " · Recommended"}
-				</strong>
-				{source !== undefined && <small>{source.description}</small>}
+				<span
+					aria-hidden="true"
+					className={cn(
+						"mt-0.5 grid size-4 shrink-0 place-items-center border border-muted-foreground",
+						prompt.mode === "many" ? "rounded-sm" : "rounded-full",
+						checked && "border-primary",
+					)}
+				>
+					{checked ? <span className={cn("size-2 bg-primary", prompt.mode === "many" ? "rounded-[1px]" : "rounded-full")} /> : null}
+				</span>
+				<span className="grid gap-1">
+					<strong className="flex flex-wrap items-center gap-2 font-medium text-sm">
+						{label}
+						{label === document.metadata.recommended && <Badge variant="outline">Recommended</Badge>}
+					</strong>
+					{Boolean(description) && <small className="text-muted-foreground text-sm">{description}</small>}
+				</span>
 			</button>
-			{source === undefined && <ResponseMarkdown file={document.file} source={option.source.replace(/^#{1,6}\s+.+$/mu, "")} />}
 		</div>
 	);
 }
