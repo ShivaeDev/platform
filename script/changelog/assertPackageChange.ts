@@ -24,8 +24,14 @@ function assertRelease(name: string, before: PackageNotes, after: PackageNotes):
 	if (after.release !== undefined && (after.release.version !== after.version || after.release.date !== date)) {
 		throw new Error(`${name}: release.json must match the released version and date.`);
 	}
-	if (new Set(fragments.map((fragment) => fragment.name)).size !== fragments.length || !preservedFragments(before, { ...after, fragments })) {
-		throw new Error(`${name}: collect every existing fragment unchanged, with unique fragment names.`);
+	if (new Set(fragments.map((fragment) => fragment.name)).size !== fragments.length) {
+		throw new Error(`${name}: collect fragments with unique fragment names.`);
+	}
+	if (fragments.some((collected) => after.fragments.some((pending) => pending.name === collected.name))) {
+		throw new Error(`${name}: a release must collect and delete its named fragments.`);
+	}
+	if (!preservedFragments(before, { ...after, fragments: [...after.fragments, ...fragments] })) {
+		throw new Error(`${name}: keep existing fragments unchanged, either pending or collected.`);
 	}
 	if (collectFragments(before.changelog, after.version, date, fragments) !== after.changelog) {
 		throw new Error(`${name}: release notes must match pnpm run changelog:release ${name}; released history cannot be edited.`);
@@ -43,15 +49,12 @@ export function assertPackageChange(name: string, before: PackageNotes | undefin
 	if (before.version === after.version && JSON.stringify(before.release) !== JSON.stringify(after.release)) {
 		throw new Error(`${name}: release.json changes only in a release.`);
 	}
-	if (before.version !== after.version && after.fragments.length > 0) {
-		throw new Error(`${name}: a release must collect and delete its pending fragments.`);
-	}
 	if (before.version === after.version && !preservedFragments(before, after)) {
 		throw new Error(`${name}: keep existing fragments intact; add a new changes/<short-name>.md file for this PR.`);
 	}
 	if (before.changelog === after.changelog) {
-		if (before.version !== after.version && before.fragments.length > 0) {
-			throw new Error(`${name}: collect the release fragments with pnpm run changelog:release ${name}.`);
+		if (before.version !== after.version && (before.fragments.length > 0 || after.fragments.length > 0)) {
+			throw new Error(`${name}: a release must collect and delete its named fragments with pnpm run changelog:release ${name}.`);
 		}
 		return;
 	}

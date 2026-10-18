@@ -55,7 +55,7 @@ it("rejects edited or omitted base fragments in a same-PR release manifest", asy
 			fixture.commit();
 			fixture.version("1.1.0");
 			await Effect.runPromise(releasePackage(fixture.directory, "2026-10-13").pipe(Effect.provide(NodeFileSystem.layer)));
-			await assert.rejects(() => check(fixture.root, base), /collect every existing fragment unchanged/u);
+			await assert.rejects(() => check(fixture.root, base), /keep existing fragments unchanged/u);
 		} finally {
 			fixture.remove();
 		}

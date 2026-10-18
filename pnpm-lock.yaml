@@ -389,6 +389,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:packages/quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:packages/test-story
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
