@@ -40,7 +40,7 @@ const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixt
 	}
 	yield* storeState(fixture.host, "a", { stage: "executing" });
 	yield* storeState(fixture.host, "b", { stage: "executing" });
-	yield* withFollower(fixture.configFile, "watch", [], { follow: continuous, interval: 0.1, port: address.port }, (follower) =>
+	yield* withFollower(fixture.configFile, "watch", [], { follow: continuous, interval: 0.5, port: address.port }, (follower) =>
 		Effect.gen(function* () {
 			yield* Effect.promise(() => snapshot.promise);
 			yield* storeState(fixture.host, "a", { stage: "released" }).pipe(

@@ -49,7 +49,7 @@ export const watchReconnect = Effect.fn("WatchReconnectTest.watchReconnect")(fun
 		});
 	}
 	const first = yield* start(0);
-	yield* withFollower(fixture.configFile, "watch", ids, { follow: true, interval: 0.1, port: first.port }, (follower) =>
+	yield* withFollower(fixture.configFile, "watch", ids, { follow: true, interval: 0.5, port: first.port }, (follower) =>
 		Effect.gen(function* () {
 			yield* observed(first.snapshot, follower.done, "initial");
 			yield* untilOutput(follower, initial);

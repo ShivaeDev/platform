@@ -105,6 +105,13 @@ export const untilOutput = Effect.fn("FollowerTest.untilOutput")(function* (foll
 		if (follower.output().includes(text)) {
 			return;
 		}
+		if (!follower.isRunning()) {
+			const result = yield* Effect.promise(() => follower.done);
+			if (result.stdout.includes(text)) {
+				return;
+			}
+			return yield* Effect.die(new Error(`Follower exited before printing ${JSON.stringify(text)}: ${JSON.stringify(result)}`));
+		}
 		yield* Effect.sleep("10 millis");
 	}
 	return yield* Effect.die(new Error(`Follower did not print ${text}`));
