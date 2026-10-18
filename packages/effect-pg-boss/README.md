@@ -146,7 +146,7 @@ const waitForQuota = Effect.fail(new RetryAt({
 
 The same job returns to waiting with `startAfter` set to `at`; its ID, singleton key, payload and retry count stay unchanged. A past or current `at` is eligible on the next fetch. Deferral does not dead-letter the job or call `onError`. Its job span ends OK with a `job.deferred` event whose `at` is an ISO UTC string and whose `reason` is the supplied string. Deferred jobs rely on polling, including queues using `notify: true`.
 
-Set `queue: { maxDeferrals: 20 }` on a queue or schedule to change the default limit of ten deferrals per job. The limit must be a nonnegative safe integer; zero disables deferral. Once the limit is reached, `RetryAt` follows the normal failure and retry path. The adapter stores deferral metadata in the job's existing `output`, preserving it across worker restarts and adapter-handled failures; native operations that replace `output`, such as expiry, replace that metadata too.
+Set `queue: { maxDeferrals: 20 }` on a queue or schedule to change the default limit of ten deferrals per job. The limit must be a nonnegative safe integer; zero disables deferral. Once the limit is reached, `RetryAt` follows the normal failure and retry path. The adapter stores the count in its own table in the pg-boss schema, preserving it across worker restarts, ordinary failures, expiry and heartbeat timeouts. Automatic migrations and `installPgBossSchema` create this table; use `installPgBossSchema` before starting workers with `migrate: false`.
 
 ### Size batches against expiry
 

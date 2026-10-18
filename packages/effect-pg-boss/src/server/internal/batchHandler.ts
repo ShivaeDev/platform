@@ -2,20 +2,11 @@ import { Cause, Clock, Effect, Exit } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { deadlineOf } from "#internal/deadlineOf.ts";
-import { deferralOf, deferredAttempt } from "#internal/deferral.ts";
+import { deferredAttempt } from "#internal/deferral.ts";
 
-function failureOutput(cause: Cause.Cause<unknown>, job: Job<unknown>): object {
+function failureOutput(cause: Cause.Cause<unknown>): object {
 	const error = Cause.squash(cause);
-	const output = typeof error === "object" && error !== null ? error : { message: String(error) };
-	const deferral = deferralOf(job);
-	if (deferral === undefined) {
-		return output;
-	}
-	return {
-		...output,
-		...(error instanceof Error ? { message: error.message, name: error.name, stack: error.stack } : {}),
-		jobDeferral: deferral,
-	};
+	return typeof error === "object" && error !== null ? error : { message: String(error) };
 }
 
 async function settleAttempt(
@@ -31,7 +22,7 @@ async function settleAttempt(
 			await complete(name, job);
 		}
 	} else {
-		await fail(name, job, failureOutput(exit.cause, job));
+		await fail(name, job, failureOutput(exit.cause));
 		await afterFailure?.(job);
 	}
 }

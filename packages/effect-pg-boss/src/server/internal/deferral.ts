@@ -7,7 +7,6 @@ export const deferralObservers = new WeakMap<PgBossClient, () => void>();
 
 export const Deferral = Schema.Struct({
 	at: Schema.String,
-	count: Schema.Number,
 	reason: Schema.String,
 });
 
