@@ -1,9 +1,19 @@
 import { attentionLanesFixture } from "./attentionLanesFixture.ts";
 import { goalsFixture } from "./goalsFixture.ts";
+import { inboxQuestion } from "./inboxFixture.ts";
+
+const WORKSPACE_NOTES = "# Workspace notes\n\n## Plan\n\n### Keep the source readable\n";
+
+export function todayAnswerFixture(): Record<string, string> {
+	return {
+		"home.md": WORKSPACE_NOTES,
+		"unaddressed.md": inboxQuestion,
+	};
+}
 
 export function todayFixture(): Record<string, string> {
 	return {
-		"home.md": "# Workspace notes\n\n## Plan\n\n### Keep the source readable\n",
+		"home.md": WORKSPACE_NOTES,
 		...attentionLanesFixture(),
 		...goalsFixture(),
 		...Object.fromEntries(
