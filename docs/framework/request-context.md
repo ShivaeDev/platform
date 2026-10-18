@@ -47,14 +47,14 @@ encoded JSON. Other fields are ignored. An untagged `{ field, message }`, a
 non-string `field` and non-objects are not field rejections, so a defect or an
 arbitrary thrown object with those keys is never shown as a field message. Code
 that maps rejections to form fields should start from this check and then keep
-only fields the form has. effect-react's default mapping also requires a string `_tag` and a field belonging to the form, as its [field-rejection test](../../packages/effect-react/src/field-rejection.test.ts) checks.
+only fields the form has. effect-react's default mapping also requires a string `_tag` and a field belonging to the form, as its [field-rejection test](../../packages/effect-react/src/fieldRejection.test.ts) checks.
 
 Unexpected failures stay defects rather than declared errors carrying a server-written message. Native RPC sends them as defects, and request tracing redacts and logs them. `AuthUnavailable` distinguishes a provider outage from a signed-out user. The [redaction tests](../../packages/platform/src/server/rpc-server/redaction.spec.ts) check the defect seen by the client, reporter and span; the session tests below check provider failure.
 
 The message is for diagnostics and a fallback display. Applications can still
 choose their own wording per tag.
 
-On tRPC, `rejectWith` from `@shivaedev/effect-trpc/rejection.ts` sends these classes as
+On tRPC, `rejectWith` from `@shivaedev/effect-trpc/server/rejection.ts` sends these classes as
 declared rejections. `NotFound`, `Unauthorized`, `Forbidden`, `Conflict`,
 `PreconditionFailed` and `TooManyRequests` get the tRPC codes `NOT_FOUND`,
 `UNAUTHORIZED`, `FORBIDDEN`, `CONFLICT`, `PRECONDITION_FAILED` and
@@ -169,7 +169,7 @@ server, the RPC headers are used, because there are no transport headers to
 prefer and no browser attaches ambient credentials.
 
 An application-owned middleware that reads any header for a security decision
-should call `transportHeaders(headers)` from `@shivaedev/platform/rpc-server/transport.ts`
+should call `transportHeaders(headers)` from `@shivaedev/platform/server/rpc-server/transportHeaders.ts`
 instead of using `headers` directly. The request id is still read from the RPC
 headers, so a client can set it per call; it is for correlation only.
 

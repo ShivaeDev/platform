@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "#testing.ts";
+import { eventually } from "#client/testing.ts";
 import { app } from "./integration.ts";
 
 export function commitIsHeld(rejected = false) {

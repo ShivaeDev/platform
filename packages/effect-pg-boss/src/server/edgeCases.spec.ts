@@ -4,7 +4,7 @@ import { defineQueue, defineSchedule } from "#definition.ts";
 import { PgBossError, PgBossPayloadError } from "#error.ts";
 import { makeService } from "#internal/service.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions } from "#test/fake-client.ts";
+import { constructorOptions } from "#test/fakeClient.ts";
 import { scriptedClient } from "#test/scriptedClient.ts";
 
 class ErrorReporter extends Context.Service<ErrorReporter, (error: Error) => void>()("@test/PgBossErrorReporter") {}

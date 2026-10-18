@@ -1,9 +1,9 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { Effect, Layer, Option } from "effect";
 import superjson from "superjson";
-import { makeEffectTRPC } from "#adapter.ts";
-import { rejectionFormatter, withRejection } from "#rejection-formatter.ts";
-import { makeRequestServices } from "#request-services.ts";
+import { makeEffectTRPC } from "#server/adapter.ts";
+import { rejectionFormatter, withRejection } from "#server/rejectionFormatter.ts";
+import { makeRequestServices } from "#server/requestServices.ts";
 import { Dependency, DomainFailure, RequestValue } from "./adapterServices.ts";
 import { type RouterEngine, recordMapping, scopedRuntime } from "./routerEngine.ts";
 

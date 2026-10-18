@@ -4,7 +4,7 @@ import { Context, Effect, Exit, Layer, Schema, Scope } from "effect";
 import { HttpRouter, HttpServer, HttpServerRequest } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
-import { localRpcGuard } from "@shivaedev/platform/rpc-server/local.ts";
+import { localRpcGuard } from "@shivaedev/platform/server/rpc-server/local.ts";
 
 const LocalRpcs = RpcGroup.make(Rpc.make("ping", { success: Schema.String }));
 

@@ -2,7 +2,7 @@ import { Effect, type Layer, Option, Schema } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expectTypeOf } from "vitest";
 import type { AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
-import { authenticatedUserLayer } from "#rpc-server/session.ts";
+import { authenticatedUserLayer } from "#server/rpc-server/session.ts";
 import { Identity, SessionUser } from "./identity.ts";
 import { Authenticated, AuthenticatedUser } from "./middleware.ts";
 

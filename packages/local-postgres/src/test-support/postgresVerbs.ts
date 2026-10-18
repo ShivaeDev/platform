@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { sqlInContainer, startContainer } from "#local-container.ts";
-import { docker } from "#local-docker.ts";
+import { sqlInContainer, startContainer } from "#localContainer.ts";
+import { docker } from "#localDocker.ts";
 import { assertLocalDatabase, localServer } from "#localPostgres.ts";
 import type { PostgresEngine } from "#test/postgresEngine.ts";
 import { containerQuery, prepareTwice, queryAsNewRole } from "#test/realPostgres.ts";

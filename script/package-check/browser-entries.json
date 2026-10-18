@@ -1,4 +1,4 @@
 {
-	"effect-trpc": ["./client/rejection.ts"],
-	"platform": ["./errors/rejected-field.ts", "./errors/taxonomy.ts", "./rpc/identity.ts", "./rpc/middleware.ts"]
+	"effect-trpc": ["./rejectionDecoding.ts"],
+	"platform": ["./errors/rejectedField.ts", "./errors/taxonomy.ts", "./rpc/identity.ts", "./rpc/middleware.ts"]
 }

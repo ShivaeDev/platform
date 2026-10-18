@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { AppChanges } from "@shivaedev/platform/appHost.ts";
+import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import { until } from "#test/cloudRestart.ts";
 import type { HostFixture } from "#test/fleetHost.ts";

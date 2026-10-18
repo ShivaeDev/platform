@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import type { ComponentProps } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { BoardMain } from "./BoardMain.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 export function FleetMain(props: ComponentProps<typeof BoardMain>) {

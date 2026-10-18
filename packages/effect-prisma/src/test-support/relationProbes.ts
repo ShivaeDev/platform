@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { assertAvailableModelNames } from "#internal/client-lifecycle.ts";
+import { assertAvailableModelNames } from "#internal/clientLifecycle.ts";
 import { fromPrismaPromise } from "#internal/promise.ts";
-import { FakeResult } from "#test/controlled-collection.ts";
+import { FakeResult } from "#test/FakeResult.ts";
 
 export function relationProbes() {
 	return {

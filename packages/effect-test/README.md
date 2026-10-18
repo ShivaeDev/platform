@@ -223,7 +223,7 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/effect-test/vitest.ts` | `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`. |
 | `@shivaedev/effect-test/eventually.ts` | `eventually(effect, options?)` and `EventuallyOptions`. |
 | `@shivaedev/effect-test/withLive.ts` | `withLive(effect)`, a live-time region under either clock. |
-| `@shivaedev/effect-test/any-test-layer.ts` | `AnyTestLayer` and `buildTestLayer(layer, scope)`, an Effect that builds the Layer's service Context in the supplied scope. |
+| `@shivaedev/effect-test/anyTestLayer.ts` | `AnyTestLayer` and `buildTestLayer(layer, scope)`, an Effect that builds the Layer's service Context in the supplied scope. |
 | `@shivaedev/effect-test/types.ts` | `EffectClock`, `EffectTestOptions`, `EffectTestBody`, `EffectTest`, `EffectTester`, `MakeEffectItOptions`, `MakeEffectItResult`, `EffectItTest`, `EffectItTester` and `EffectIt`. |
 
 `effectApp(name, body, options?)` takes a generator or Effect-returning body with `(harness, context)`. Its `each(cases)` takes `(item, harness, context)`. Options are a timeout in milliseconds or Vitest test options with an optional `clock`.

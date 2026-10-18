@@ -1,13 +1,13 @@
 {
 	"effect-react": [
 		{
-			"entries": ["./result-state.ts", "./resume-signal.ts", "./session-boundary.ts"],
+			"entries": ["./client/resultState.ts", "./resumeSignal.ts", "./client/sessionBoundary.ts"],
 			"fixtures": ["hooks-types.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": []
 		},
 		{
-			"entries": ["./router.ts"],
+			"entries": ["./loadQuery.ts"],
 			"fixtures": ["router-types.ts.txt"],
 			"omitOptionalPeers": false,
 			"run": []
@@ -16,30 +16,30 @@
 	"platform": [
 		{
 			"entries": [
-				"./errors/rejected-field.ts",
+				"./errors/rejectedField.ts",
 				"./errors/taxonomy.ts",
-				"./node-http/subscription-signal.ts",
+				"./server/node-http/subscriptionSignal.ts",
 				"./rpc/identity.ts",
 				"./rpc/middleware.ts",
-				"./rpc-server/adapters/better-auth-sessions.ts",
-				"./rpc-server/boundary.ts",
-				"./rpc-server/local.ts",
-				"./rpc-server/origin.ts",
-				"./rpc-server/redact-cause.ts",
-				"./rpc-server/redact.ts",
-				"./rpc-server/sensitive.ts",
-				"./rpc-server/session.ts",
-				"./rpc-server/tracing.ts",
-				"./rpc-server/transport.ts",
-				"./runtime/make.ts",
-				"./runtime/types.ts"
+				"./server/rpc-server/adapters/betterAuthSessions.ts",
+				"./server/rpc-server/boundary.ts",
+				"./server/rpc-server/local.ts",
+				"./server/rpc-server/origin.ts",
+				"./server/rpc-server/redactCause.ts",
+				"./server/rpc-server/redact.ts",
+				"./server/rpc-server/sensitive.ts",
+				"./server/rpc-server/session.ts",
+				"./server/rpc-server/tracing.ts",
+				"./server/rpc-server/transportHeaders.ts",
+				"./server/runtime/makePlatform.ts",
+				"./server/runtime/types.ts"
 			],
 			"fixtures": ["runtime-minimal.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": ["runtime-minimal.ts"]
 		},
 		{
-			"entries": ["./appHost.ts"],
+			"entries": ["./server/appHost.ts"],
 			"fixtures": ["host.ts.txt"],
 			"omitOptionalPeers": false,
 			"run": ["host.ts"]

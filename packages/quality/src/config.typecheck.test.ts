@@ -95,16 +95,6 @@ export const offRemoved = defineConfig({
 	rules: { "structure/max-lines": { level: "off" } },
 });
 
-export const exclusionsRemoved = defineConfig({
-	// @ts-expect-error Source exclusions cannot weaken the inventory.
-	exclude: ["src/legacy/**"],
-});
-
-export const testPatternsRemoved = defineConfig({
-	// @ts-expect-error Source files cannot be reclassified to use the test limit.
-	rules: { "structure/max-lines": { options: { testFiles: ["src/**"] } } },
-});
-
 export const sharedException = defineConfig({
 	exceptions: [
 		{

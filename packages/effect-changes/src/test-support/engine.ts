@@ -3,7 +3,7 @@ import { type Channel, type ChannelOptions, makeChannel } from "#channel.ts";
 import type { CommitFrame } from "#frame.ts";
 import type { Observer } from "#observe.ts";
 import type { Publish } from "#publish.ts";
-import { type Change, Current, captureLogs, type FakeDatabase, makeDatabase } from "./fake-database.ts";
+import { type Change, Current, captureLogs, type FakeDatabase, makeDatabase } from "./fakeDatabase.ts";
 
 export type Options = Partial<ChannelOptions<Change, Current, string>>;
 

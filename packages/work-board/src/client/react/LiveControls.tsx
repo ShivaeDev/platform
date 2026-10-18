@@ -2,7 +2,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useMemo } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { BrowserClient } from "#client/client.ts";
 import { activeRead } from "./activeRead.ts";
 import { liveStatus } from "./liveStatus.ts";

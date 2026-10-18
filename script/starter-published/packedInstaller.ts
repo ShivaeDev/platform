@@ -19,7 +19,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
-import { withTarballOverrides } from ${JSON.stringify(join(root, "script/packed-workspace.ts"))};
+import { withTarballOverrides } from ${JSON.stringify(join(root, "script/withTarballOverrides.ts"))};
 const workspace = join(process.cwd(), "pnpm-workspace.yaml");
 writeFileSync(workspace, withTarballOverrides(readFileSync(workspace, "utf8"), ${JSON.stringify(tarballs)}));
 const result = spawnSync(${JSON.stringify(pnpm)}, process.argv.slice(2), { stdio: "inherit" });

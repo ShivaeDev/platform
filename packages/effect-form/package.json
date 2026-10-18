@@ -20,75 +20,15 @@
 			"types": "./dist/*.d.ts",
 			"source": "./src/*.ts",
 			"default": "./dist/*.js"
-		},
-		"#react.ts": {
-			"types": "./dist/client/react.d.ts",
-			"source": "./src/client/react.ts",
-			"default": "./dist/client/react.js"
 		}
 	},
 	"exports": {
-		"./package.json": "./package.json",
-		"./draft.ts": {
-			"types": "./dist/draft.d.ts",
-			"source": "./src/draft.ts",
-			"default": "./dist/draft.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"default": "./dist/*.js"
 		},
-		"./form.ts": {
-			"types": "./dist/form.d.ts",
-			"source": "./src/form.ts",
-			"default": "./dist/form.js"
-		},
-		"./messages.ts": {
-			"types": "./dist/messages.d.ts",
-			"source": "./src/messages.ts",
-			"default": "./dist/messages.js"
-		},
-		"./optional.ts": {
-			"types": "./dist/optional.d.ts",
-			"source": "./src/optional.ts",
-			"default": "./dist/optional.js"
-		},
-		"./paths.ts": {
-			"types": "./dist/paths.d.ts",
-			"source": "./src/paths.ts",
-			"default": "./dist/paths.js"
-		},
-		"./react.ts": {
-			"types": "./dist/client/react.d.ts",
-			"source": "./src/client/react.ts",
-			"default": "./dist/client/react.js"
-		},
-		"./refs.ts": {
-			"types": "./dist/refs.d.ts",
-			"source": "./src/refs.ts",
-			"default": "./dist/refs.js"
-		},
-		"./shape.ts": {
-			"types": "./dist/shape.d.ts",
-			"source": "./src/shape.ts",
-			"default": "./dist/shape.js"
-		},
-		"./status.ts": {
-			"types": "./dist/status.d.ts",
-			"source": "./src/status.ts",
-			"default": "./dist/status.js"
-		},
-		"./trackRejections.ts": {
-			"types": "./dist/trackRejections.d.ts",
-			"source": "./src/trackRejections.ts",
-			"default": "./dist/trackRejections.js"
-		},
-		"./persistence.ts": {
-			"types": "./dist/persistence.d.ts",
-			"source": "./src/persistence.ts",
-			"default": "./dist/persistence.js"
-		},
-		"./draftSession.ts": {
-			"types": "./dist/draftSession.d.ts",
-			"source": "./src/draftSession.ts",
-			"default": "./dist/draftSession.js"
-		}
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",

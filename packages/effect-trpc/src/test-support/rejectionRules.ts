@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { Effect, Layer, Schema, SchemaGetter } from "effect";
-import { RejectionError, rejectWith } from "#rejection.ts";
+import { RejectionError, rejectWith } from "#server/rejection.ts";
 import { adapterHost } from "./adapterHost.ts";
 import type { RouterEngine } from "./routerEngine.ts";
 import { selectRouter } from "./routerSetup.ts";

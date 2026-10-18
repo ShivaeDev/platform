@@ -1,8 +1,8 @@
 import { createTRPCUntypedClient, httpBatchLink } from "@trpc/client";
 import type { AnyTRPCRouter, TRPCDefaultErrorShape } from "@trpc/server";
 import { type Cause, Effect, type Layer, ManagedRuntime, type Scope } from "effect";
-import type { EffectTRPCAdapter } from "#adapter.ts";
-import type { EffectTRPCErrorContext } from "#types.ts";
+import type { EffectTRPCAdapter } from "#server/adapter.ts";
+import type { EffectTRPCErrorContext } from "#server/types.ts";
 import { inProcess } from "./http.ts";
 
 export interface Host {

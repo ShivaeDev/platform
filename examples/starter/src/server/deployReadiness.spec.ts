@@ -4,14 +4,14 @@ import { conflictingNotesTable, deployment } from "#test-support/deployment.ts";
 deployment.it(
 	"applies migrations without an auth secret and preserves saved notes and the ledger on rerun",
 	[],
-	function* ({ migrate, migrationLedger, migrationLedgerIs, storeUnownedNote, storedNotesAre, noAccountsAreStored }) {
+	function* ({ migrate, migrationLedger, migrationLedgerIs, storeUnownedNote, storedNotes, noAccountsAreStored }) {
 		expect(yield* migrate()).toBe(0);
 		const applied = yield* migrationLedger();
 		expect(applied).toHaveLength(5);
 		yield* storeUnownedNote("Keep this note");
 		expect(yield* migrate()).toBe(0);
 		yield* migrationLedgerIs(applied);
-		yield* storedNotesAre([{ title: "Keep this note" }]);
+		expect(yield* storedNotes()).toEqual([expect.objectContaining({ title: "Keep this note" })]);
 		yield* noAccountsAreStored;
 	},
 );

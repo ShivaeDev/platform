@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { render } from "@shivaedev/effect-react/client/testing.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { DiagnosticsProjection } from "#browser/views/remaining.ts";
 import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";

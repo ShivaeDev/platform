@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientError, type HttpClientRequest } from "effect/http";
-import { redactOtlpText } from "#safeOtlpSerialization.ts";
+import { redactOtlpText } from "#server/safeOtlpSerialization.ts";
 
 function timeoutError(request: HttpClientRequest.HttpClientRequest) {
 	return new HttpClientError.HttpClientError({
