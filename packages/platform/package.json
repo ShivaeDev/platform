@@ -200,6 +200,11 @@
 			"source": "./src/server/redactOtlpUrl.ts",
 			"types": "./dist/server/redactOtlpUrl.d.ts",
 			"default": "./dist/server/redactOtlpUrl.js"
+		},
+		"#rpc/require-admin.ts": {
+			"source": "./src/rpc/requireAdmin.ts",
+			"types": "./dist/rpc/requireAdmin.d.ts",
+			"default": "./dist/rpc/requireAdmin.js"
 		}
 	},
 	"exports": {
@@ -359,6 +364,12 @@
 			"source": "./src/server/otlpTracing.ts",
 			"import": "./dist/server/otlpTracing.js",
 			"default": "./dist/server/otlpTracing.js"
+		},
+		"./rpc/require-admin.ts": {
+			"types": "./dist/rpc/requireAdmin.d.ts",
+			"source": "./src/rpc/requireAdmin.ts",
+			"import": "./dist/rpc/requireAdmin.js",
+			"default": "./dist/rpc/requireAdmin.js"
 		}
 	},
 	"files": [
@@ -393,15 +404,18 @@
 		"@prisma-next/sql-orm-client": "catalog:",
 		"@prisma-next/target-postgres": "catalog:",
 		"@shivaedev/effect-prisma": "workspace:*",
+		"@shivaedev/effect-test-sql": "workspace:*",
 		"@shivaedev/effect-trpc": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",
+		"@types/pg": "catalog:",
 		"@typescript/native": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
+		"pg": "catalog:",
 		"superjson": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"

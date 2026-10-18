@@ -30,6 +30,14 @@ A generated app runs `pnpm run setup` before its first commit: dependencies and 
 
 The starter's numbered migration path creates Better Auth's tables with `getMigrations(authOptions(database))` followed by `runMigrations()`. The auth instance shares these schema options; migrations construct no auth instance and need no secret. No separate auth migration command is needed. Protected operations declare `AuthenticatedUser`; `authenticatedUserLayer(sessions)` supplies `SessionUser` from the `betterAuthSessions` provider. Note handlers use its id for ownership, and `notes.whoami` returns id, name and email without querying auth tables; signed-out calls return typed `Unauthorized` failures. The UI shows a sign-in prompt, and `SessionBoundary` replaces cached queries and drafts when the session changes.
 
+Better Auth's `admin()` plugin owns the admin role. The numbered auth migrations create its columns on new databases and add them when upgrading an existing app. After `pnpm migrate`, create the first admin with a new email address:
+
+```sh
+ADMIN_EMAIL=operator@example.com ADMIN_PASSWORD='a-long-unique-password' pnpm admin:create
+```
+
+The command reads `DATABASE_URL` and `BETTER_AUTH_SECRET` from the same environment as the server and calls Better Auth's public server-side `createUser` API. `ADMIN_NAME` defaults to `Administrator`. The command fails if the email is already registered. Sign in with those credentials; a PostgreSQL upgrade story runs the command and checks the resulting admin session. There is no admin-only page in the starter. Protect future HTTP routes and RPC handlers with Platform's [`requireAdmin` guard](https://github.com/ShivaeDev/platform/tree/main/packages/platform#requiring-an-admin); the guard uses the request's `SessionUser.role` and returns typed `Unauthorized` or `Forbidden` failures. Cookie caching stays disabled so the next request sees role changes.
+
 The worker logs `Worker migrations applied` after its schema check and `Worker ready to take jobs` after registering handlers, through Effect’s logger.
 
 The browser entry point creates `makeAuth({ baseUrl })` and supplies it to `App`. Session checking and auth actions use that instance. Stories can create an auth client for their own HTTP host with the application kit’s `authClient()` verb.
