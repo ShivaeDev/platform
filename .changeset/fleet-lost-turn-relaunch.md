@@ -1,3 +1,7 @@
+---
+"@shivaedev/work-fleet": minor
+---
+
 ### Fixed
 - Lost accepted Codex turns check thread idleness, remote branches and all PR states before recovery. Active threads wait up to five minutes before asking; merged or closed PRs prevent relaunch. Unpublished work releases its lost execution and relaunches automatically; published work starts a repair turn on the existing branch or PR. Every loss rechecks current thread and publication state, so idle replacements and repairs with conclusive publication evidence recover automatically again. Answers to lost-turn decisions recheck safety and reach the replacement turn. Relaunch prompts keep one copy of the original brief and leave the saved brief unchanged. Status and watch display the recovery reason for the replacement turn and clear it when work advances to review.
 - Publication-backed repairs retain recovery eligibility when a replacement turn is rejected by provider capacity, so scheduled retries resume without human intervention.
