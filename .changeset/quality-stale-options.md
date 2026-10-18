@@ -1,3 +1,7 @@
+---
+"@shivaedev/quality": minor
+---
+
 ### Added
 
 - `cli/messages.ts` exports `SUBCOMMANDS: Readonly<Record<string, string>>`, the usage hints for commands with subcommands.
