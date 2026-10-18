@@ -13,9 +13,11 @@ export function withFollower<A, E, R>(
 	use: (follower: Follower) => Effect.Effect<A, E, R>,
 ) {
 	const ready = Promise.withResolvers<void>();
-	function run() {
+	function run(port: number) {
 		return Effect.scoped(
-			followerProcess(configFile, command, ids, options, options.port === undefined ? ready.promise : Promise.resolve()).pipe(Effect.flatMap(use)),
+			followerProcess(configFile, command, ids, { ...options, port }, options.port === undefined ? ready.promise : Promise.resolve()).pipe(
+				Effect.flatMap(use),
+			),
 		);
 	}
 	return options.port === undefined
@@ -23,15 +25,15 @@ export function withFollower<A, E, R>(
 				Effect.flatMap((host) => withReadDaemon(host, run, { onSnapshot: () => ready.resolve() })),
 				Effect.provide(NodeServices.layer),
 			)
-		: run();
+		: run(options.port);
 }
 
 export const untilOutput = Effect.fn("FollowerTest.untilOutput")(function* (follower: Follower, text: string) {
 	yield* untilText(follower.output, text);
 });
 
-export const untilError = Effect.fn("FollowerTest.untilError")(function* (follower: Follower, text: string) {
-	yield* untilText(follower.errors, text);
+export const untilError = Effect.fn("FollowerTest.untilError")(function* (follower: Follower, text: string, offset = 0) {
+	yield* untilText(() => follower.errors().slice(offset), text);
 });
 
 const untilText = Effect.fn("FollowerTest.untilText")(function* (output: () => string, text: string) {
