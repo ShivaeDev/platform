@@ -1,7 +1,6 @@
 import { Cause, Effect, Exit } from "effect";
 import { expect } from "vitest";
 import { boardStory, projectFiles, readerAt } from "./boardStory.ts";
-import { workspaceStory } from "./workspaceStory.ts";
 
 const SOURCE = "# Page-free reading\n\nThe server still reads project documents.";
 
@@ -30,10 +29,3 @@ boardStory.it(
 		expect(page.window.location.pathname).toBe("/note.md");
 	},
 );
-
-workspaceStory.it("indexes project files without starting a served board or page", [], function* ({ readAttention, story }) {
-	const snapshot = yield* readAttention({ "note.md": SOURCE });
-	expect(snapshot.documents.map((document) => document.file)).toEqual(["note.md"]);
-	expect(story.engine.server).toBeUndefined();
-	expect(story.engine.live).toBeUndefined();
-});

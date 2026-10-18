@@ -1,25 +1,31 @@
 import { expect } from "vitest";
-import { reply } from "#test/reply.ts";
-import { responseFunctionStory } from "#test/responseFunctionStory.ts";
+import { responseMarkdown } from "#server/responses/records.ts";
+import { boardStory } from "#test/boardStory.ts";
+import { reply } from "#test/storyReplies.ts";
+import { recordedReplies } from "#test/storyTraits.ts";
 
-responseFunctionStory.it(
+boardStory.it(
 	"selects the newest response per author regardless of input order and orders equal timestamps by identity",
-	[],
-	({ currentResponses }) => {
-		expect(currentResponses([reply("tie", "orchestrator", 2), reply("first", "orchestrator", 1), reply("newest", "orchestrator", 2)])).toEqual([
-			reply("tie", "orchestrator", 2),
-		]);
+	[recordedReplies(reply("tie", "orchestrator", 2), reply("first", "orchestrator", 1), reply("newest", "orchestrator", 2))],
+	({ reader }) => {
+		expect(reader.currentReplies()).toEqual([reply("tie", "orchestrator", 2)]);
 	},
 );
 
-responseFunctionStory.it("keeps different authors competing until explicitly superseded", [], ({ currentResponses }) => {
-	const replies = [reply("first", "orchestrator", 1), reply("second", "maintainer", 2)];
-	expect(currentResponses(replies)).toEqual(replies);
-	expect(currentResponses([...replies, reply("resolved", "maintainer", 3, "first")])).toEqual([reply("resolved", "maintainer", 3, "first")]);
-});
+boardStory.it(
+	"keeps different authors competing until explicitly superseded",
+	[recordedReplies(reply("first", "orchestrator", 1), reply("second", "maintainer", 2))],
+	({ reader, editFile }) => {
+		expect(reader.currentReplies()).toEqual([reply("first", "orchestrator", 1), reply("second", "maintainer", 2)]);
+		editFile("responses/resolved.md", responseMarkdown(reply("resolved", "maintainer", 3, "first")));
+		expect(reader.currentReplies()).toEqual([reply("resolved", "maintainer", 3, "first")]);
+	},
+);
 
-responseFunctionStory.it("does not resurrect an older answer after another author supersedes the newest", [], ({ currentResponses }) => {
-	expect(
-		currentResponses([reply("first", "orchestrator", 1), reply("second", "orchestrator", 2), reply("resolved", "maintainer", 3, "second")]),
-	).toEqual([reply("resolved", "maintainer", 3, "second")]);
-});
+boardStory.it(
+	"does not resurrect an older answer after another author supersedes the newest",
+	[recordedReplies(reply("first", "orchestrator", 1), reply("second", "orchestrator", 2), reply("resolved", "maintainer", 3, "second"))],
+	({ reader }) => {
+		expect(reader.currentReplies()).toEqual([reply("resolved", "maintainer", 3, "second")]);
+	},
+);

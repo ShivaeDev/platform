@@ -1,22 +1,23 @@
 import { expect } from "vitest";
 import { libraryData } from "#server/navigation/libraryData.ts";
 import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "#server/responses/records.ts";
+import { boardStory } from "#test/boardStory.ts";
 import { inboxFixture, inboxQuestion } from "#test/inboxFixture.ts";
-import { workspaceStory } from "#test/workspaceStory.ts";
+import { anInbox } from "#test/storyTraits.ts";
 import { fleetRecords, inboxItems } from "./inbox.ts";
 
-workspaceStory.it(
+boardStory.it(
 	"collects human-owned next actions, open questions, needs-human work and managed Fleet requests once",
-	[],
+	[anInbox()],
 	function* ({ readAttention }) {
 		const snapshot = yield* readAttention();
 		expect(inboxItems(snapshot).map((item) => item.id)).toEqual(["task.review", "question.storage", "task.fleet"]);
 	},
 );
 
-workspaceStory.it(
+boardStory.it(
 	"excludes closed questions, automation labels and missing actions while disclosing ambiguous identities",
-	[],
+	[anInbox()],
 	function* ({ readAttention }) {
 		const files: Record<string, string> = { ...inboxFixture(), "question.md": inboxQuestion.replace("status: open", "status: closed") };
 		for (const owner of ["claude", "agent-navigation", "Fleet", "bot", "copilot", "orchestrator", "automation"]) {
@@ -32,9 +33,9 @@ workspaceStory.it(
 	},
 );
 
-workspaceStory.it(
+boardStory.it(
 	"removes only a uniquely recorded answer to the current question and groups the full Fleet record chain",
-	[],
+	[anInbox()],
 	function* ({ readAttention }) {
 		const revision = revisionOf(inboxQuestion);
 		const id = questionId("question.storage", "answer", revision, "question.md");
@@ -108,8 +109,12 @@ workspaceStory.it(
 	},
 );
 
-workspaceStory.it("links authored questions and managed requests directly to their source item's answer card", [], function* ({ readAttention }) {
-	const items = inboxItems(yield* readAttention());
-	expect(items.find((item) => item.id === "question.storage")?.href).toBe("/_board/item/question.storage/#answer-card-answer");
-	expect(items.find((item) => item.id === "task.fleet")?.href).toBe("/_board/item/decision.delivery/#answer-card-delivery");
-});
+boardStory.it(
+	"links authored questions and managed requests directly to their source item's answer card",
+	[anInbox()],
+	function* ({ readAttention }) {
+		const items = inboxItems(yield* readAttention());
+		expect(items.find((item) => item.id === "question.storage")?.href).toBe("/_board/item/question.storage/#answer-card-answer");
+		expect(items.find((item) => item.id === "task.fleet")?.href).toBe("/_board/item/decision.delivery/#answer-card-delivery");
+	},
+);

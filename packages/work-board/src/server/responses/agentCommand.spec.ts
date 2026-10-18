@@ -1,7 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
-import { responseFunctionStory } from "#test/responseFunctionStory.ts";
+import { boardStory } from "#test/boardStory.ts";
+import { runAgent } from "./agent-cli.ts";
 
 const cases: readonly [readonly string[], string][] = [
 	[[], "Usage: work-board question"],
@@ -20,7 +21,7 @@ const cases: readonly [readonly string[], string][] = [
 	[["question", "item/request", "--url", "not a URL"], "Use a loopback Work Board URL"],
 ];
 for (const [args, message] of cases) {
-	responseFunctionStory.it(`delivers command input ${JSON.stringify(args)} as a typed failure with a correction`, [], function* ({ runAgent }) {
+	boardStory.it(`delivers command input ${JSON.stringify(args)} as a typed failure with a correction`, [], function* () {
 		const error = yield* Effect.promise(() => runAgent(args).catch((cause: unknown) => cause));
 		expect(error).toBeInstanceOf(BadRequest);
 		expect(error).toMatchObject({ message: expect.stringContaining(message) });

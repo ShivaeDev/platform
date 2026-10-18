@@ -4,13 +4,13 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { workspaceFiles, workspaceStory } from "#test/workspaceStory.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { publish } from "./publish.ts";
 
 for (const phase of ["temporary", "published"]) {
-	workspaceStory.it(
+	boardStory.it(
 		`recovers after killing a writer with a ${phase} file on the real filesystem`,
-		[workspaceFiles({}, "the project has the stated publication files")],
+		[projectFiles({}, "the project has the stated publication files")],
 		function* ({ notes }) {
 			const child = fork(new URL("../../test-support/publicationChild.ts", import.meta.url), [notes.root, phase], {
 				execArgv: ["--conditions=source"],
