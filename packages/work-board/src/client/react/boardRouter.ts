@@ -4,12 +4,21 @@ import { BoardShell } from "./BoardShell.tsx";
 import { type BoardLoaderContext, loadBoardPage, openBoardPage, type RouterShell } from "./loadBoardPage.ts";
 export function boardRouter(options?: RouterShell, history?: RouterHistory) {
 	let opening: Promise<void> | undefined;
+	let navigated: () => void = () => undefined;
 	function loader(context: BoardLoaderContext): ReturnType<typeof loadBoardPage> | undefined {
 		if (router.state.resolvedLocation === undefined && !context.preload) {
-			opening = openBoardPage(context);
+			// The router never aborts a loader that has returned, so a navigation that loads first must end the opening view too.
+			const next = new Promise<void>((resolve) => {
+				navigated = () => resolve();
+			});
+			opening = Promise.race([openBoardPage(context), next]);
 			return undefined;
 		}
-		return loadBoardPage(context);
+		const loading = loadBoardPage(context);
+		if (!context.preload) {
+			void loading.then(navigated, navigated);
+		}
+		return loading;
 	}
 	const root = createRootRouteWithContext<{ readonly shell?: RouterShell }>()({
 		component: () => {
