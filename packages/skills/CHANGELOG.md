@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-10-18
+
+### Added
+
+- Ship the `story-testing` skill through the existing selection, sync and check path to guide Platform application stories and test kits.
+
 ## 0.2.0 - 2026-10-13
 
 ### Changed

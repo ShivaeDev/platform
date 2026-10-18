@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 - 2026-10-18
+
+### Added
+
+- `fakeHttpService` serves a scoped loopback API for story kits, with named path-param routes, an auth guard, JSON pages, one-shot replies, request holds and an ordered request log. Bind `narrate(story.tell)` to tell requests and controls in the story.
+
+### Changed
+
+- Point application story authors to the shared `story-testing` skill and align README guidance with observable results, explicit assertions and database isolation.
+
 ## 0.6.0 - 2026-10-18
 
 ### Added

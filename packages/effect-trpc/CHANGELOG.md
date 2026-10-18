@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.2 - 2026-10-18
+
+### Fixed
+
+- The tRPC test helpers accept test Layers that provide nothing, such as `Layer.empty`.
+
 ## 0.7.1 - 2026-10-17
 
 ### Fixed

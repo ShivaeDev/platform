@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { board } from "@shivaedev/work-board/integration/board.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { WAIT_EXIT, waitFor } from "#host/wait.ts";

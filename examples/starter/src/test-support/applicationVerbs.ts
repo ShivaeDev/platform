@@ -74,6 +74,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			}
 			return liveNotes(host(), actor.cookie);
 		},
+		logs: () => host().logs,
 		notes: (cookie: string) => http().notes(cookie),
 		rejectsWith,
 		rerunMigrations: Effect.fn("AppStory.rerunMigrations")(function* () {

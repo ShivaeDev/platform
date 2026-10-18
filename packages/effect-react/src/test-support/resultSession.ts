@@ -4,20 +4,24 @@ import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
 import { type ActionState, type QueryState, useAction, useQuery } from "#result-state.ts";
 import { SessionBoundary } from "#session-boundary.ts";
-import { render } from "#testing.ts";
+import type { Rendered } from "#testing.ts";
 
 interface Held<A, E> {
 	current?: QueryState<A, E> | ActionState<void, A, E>;
 }
 function Query<A, E>({ atom, held }: { readonly atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>; readonly held: Held<A, E> }) {
 	held.current = useQuery(atom);
-	return null;
+	return createElement("output", null, JSON.stringify(held.current));
 }
 function Action<A, E>({ atom, held }: { readonly atom: Atom.AtomResultFn<void, A, E>; readonly held: Held<A, E> }) {
 	held.current = useAction(atom);
-	return null;
+	return createElement(
+		"button",
+		{ onClick: () => held.current && "dispatch" in held.current && held.current.dispatch(), type: "button" },
+		JSON.stringify(held.current),
+	);
 }
-export async function resultSession<A, E>(kind: "query" | "action", run: () => Effect.Effect<A, E>) {
+export async function resultSession<A, E>(view: Rendered, kind: "query" | "action", run: () => Effect.Effect<A, E>) {
 	const query = Atom.make(Effect.suspend(run));
 	const action = Atom.fn<void>()(run);
 	const rechecks: string[] = [];
@@ -29,7 +33,7 @@ export async function resultSession<A, E>(kind: "query" | "action", run: () => E
 		recheck: () => rechecks.push("session"),
 		session: "session",
 	};
-	const view = await render(createElement(SessionBoundary<string, undefined>, boundary));
+	await view.render(createElement(SessionBoundary<string, undefined>, boundary));
 	function current() {
 		if (held.current === undefined) {
 			throw new Error("Result hook did not render");
@@ -43,7 +47,11 @@ export async function resultSession<A, E>(kind: "query" | "action", run: () => E
 			act(async () => {
 				const state = current();
 				if ("dispatch" in state) {
-					state.dispatch();
+					const button = view.container.querySelector("button");
+					if (!button) {
+						throw new Error("Missing result session execute button");
+					}
+					button.click();
 				} else {
 					state.refresh();
 				}

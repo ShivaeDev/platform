@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { vi } from "vitest";
-import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
+import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import * as status from "#board/writeStatus.ts";
 import { capacityRejected, HealthSnapshot } from "#engine/health.ts";

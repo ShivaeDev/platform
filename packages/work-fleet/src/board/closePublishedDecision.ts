@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { parseDocument } from "yaml";
-import { board } from "@shivaedev/work-board/integration/board.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { recordBoardSource } from "#board/readPass.ts";
 import { writeCompletion } from "#board/writeCompletion.ts";

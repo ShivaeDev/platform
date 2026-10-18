@@ -1,5 +1,5 @@
 import { Effect, type FileSystem } from "effect";
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { closePublishedDecision, publishedDecision } from "#board/closePublishedDecision.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import type { BoardSnapshot } from "#board/readPass.ts";
