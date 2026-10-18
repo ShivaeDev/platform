@@ -62,7 +62,7 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			yield* sql`alter table ${sql(childTable(namespace, ["history"]))} drop column ${sql("admissionReady")}`;
 		}),
 		"16_answer_requests": sql`create table ${sql(`${namespace}_answers`)} (
-			request_id text primary key, work_id text not null, decision_id text, accepted_at double precision not null,
+			request_id text primary key, work_id text not null, decision_id text,
 			position integer generated always as identity, decision_code text, decision_reason text not null,
 			text text not null, release boolean not null, error text, response_decision_id text, response_id text
 		)`,

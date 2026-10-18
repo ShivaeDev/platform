@@ -1,28 +1,22 @@
-import { Cause, Effect, Semaphore } from "effect";
+import { Cause, Effect, Schedule, Semaphore } from "effect";
 import { SqlClient } from "effect/sql";
 import { BadRequest, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { Fleet } from "#fleet.ts";
 import { answerRecords } from "#host/answerRecords.ts";
+import type { AnswerOptions } from "#host/answerWork.ts";
 import type { FleetHost } from "#host/config.ts";
 import type { FleetRecord } from "#model.ts";
-import type { Decision, DecisionResponse } from "#policy.ts";
 import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { type AnswerRequest, answerStore } from "#storage/answerStore.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
-import type { Versioned } from "#storage/model.ts";
+
+const RETRY = Schedule.min([Schedule.exponential("100 millis"), Schedule.spaced("5 seconds")]);
 
 export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* <R>(
 	host: FleetHost,
-	apply: (
-		workId: string,
-		text: string,
-		release: boolean,
-		original: Pick<Decision, "code" | "reason">,
-		beforePublish: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, unknown>,
-		queue: () => Effect.Effect<Versioned<FleetRecord>, unknown>,
-	) => Effect.Effect<{ readonly value: FleetRecord }, unknown, R>,
+	apply: (workId: string, options: AnswerOptions<unknown>) => Effect.Effect<{ readonly value: FleetRecord }, unknown, R>,
 	recordingSql?: SqlClient.SqlClient,
 ) {
 	const scope = yield* Effect.scope;
@@ -32,7 +26,7 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 	const recordingClient = recordingSql ?? sql;
 	const recordingStore = yield* answerStore(host.namespace).pipe(Effect.provideService(SqlClient.SqlClient, recordingClient));
 	const commit = yield* makeFleetTransaction;
-	const locks = new Map<string, Semaphore.Semaphore>();
+	const locks = new Map<string, { readonly lock: Semaphore.Semaphore; users: number }>();
 	function queue(request: AnswerRequest) {
 		return commit(
 			[],
@@ -52,14 +46,13 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		const current = (yield* fleet.get(request.work_id)).value;
 		const receipts = [...(current.history ?? []).flatMap((cycle) => cycle.responses ?? []), ...(current.responses ?? [])];
 		if (!receipts.some((receipt) => receipt.decisionId === request.response_decision_id && receipt.responseId === request.response_id)) {
-			yield* apply(
-				request.work_id,
-				request.text,
-				request.release,
-				{ code: request.decision_code ?? undefined, reason: request.decision_reason },
-				(response) => store.recordResponse(request, response),
-				() => queue(request),
-			);
+			yield* apply(request.work_id, {
+				beforePublish: (response) => store.recordResponse(request, response),
+				originalDecision: { code: request.decision_code ?? undefined, reason: request.decision_reason },
+				queue: () => queue(request),
+				release: request.release,
+				text: request.text,
+			});
 		}
 		yield* store.finish(request);
 	});
@@ -77,10 +70,19 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		}
 	});
 	const start = Effect.fn("FleetAnswer.start")(function* (workId: string) {
-		const lock = locks.get(workId) ?? Semaphore.makeUnsafe(1);
-		locks.set(workId, lock);
-		yield* lock.withPermit(drain(workId)).pipe(
+		const entry = locks.get(workId) ?? { lock: Semaphore.makeUnsafe(1), users: 0 };
+		entry.users += 1;
+		locks.set(workId, entry);
+		yield* entry.lock.withPermit(drain(workId).pipe(Effect.tapError(Effect.logError), Effect.retry(RETRY))).pipe(
 			Effect.catchCause((cause) => (Cause.hasInterrupts(cause) ? Effect.void : Effect.logError(cause))),
+			Effect.ensuring(
+				Effect.sync(() => {
+					entry.users -= 1;
+					if (entry.users === 0) {
+						locks.delete(workId);
+					}
+				}),
+			),
 			Effect.forkIn(scope),
 		);
 	});

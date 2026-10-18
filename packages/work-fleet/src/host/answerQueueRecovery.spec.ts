@@ -8,7 +8,7 @@ answers.it("recorded guidance survives shutdown before admission frees and queue
 	const current = yield* host.dispatch();
 	yield* host.stop();
 	yield* host.start();
-	const free = yield* host.holdAdmission();
+	const { release: free } = yield* host.holdAdmission();
 	for (const text of messages) {
 		const recorded = yield* host.answer(text);
 		expect(recorded.blocker).toBe(ANSWER_RECORDED);

@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { Effect, Fiber, Schedule, Stream } from "effect";
+import { Effect, Fiber, Stream } from "effect";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { answers, answerWork } from "#test/answerHost.ts";
 
@@ -16,14 +16,11 @@ for (const mode of ["answer", "release", "guidance"] as const) {
 				decisions.set(workId, (yield* host.question(workId)).decision.id);
 			}
 		}
-		const free = yield* host.holdAdmission();
+		const { release: free, blocked } = yield* host.holdAdmission();
 		for (const workId of workIds.slice(0, 2)) {
 			expect((yield* host.answer(TEXT, mode === "release", workId)).blocker).toBe(ANSWER_RECORDED);
 		}
-		yield* Effect.sync(host.drainCount).pipe(
-			Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (count) => count >= 2 }),
-			Effect.timeout("5 seconds"),
-		);
+		yield* blocked;
 		const reconciliations = yield* Effect.forEach(workIds, (workId) => host.reconcile(workId).pipe(Effect.forkScoped));
 		const result = yield* host.cliAnswer("three", TEXT, mode === "release").pipe(Effect.timeout("5 seconds"));
 		expect(result).toEqual({ code: 0, stderr: "", stdout: `three ${mode === "guidance" ? "executing" : "needs-human"}: ${ANSWER_RECORDED}` });

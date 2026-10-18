@@ -21,8 +21,8 @@ answers.it("an interrupted response identity commit cannot publish an answer tha
 	expect(current.stage).toBe("executing");
 	expect(current.pendingAnswers).toBeUndefined();
 	expect(current.responses).toHaveLength(1);
-	expect(host.provider.launched).toHaveLength(1);
-	expect(host.provider.observations.size).toBe(2);
+	expect(host.providerSessions()).toBe(1);
+	expect(host.providerTurns()).toBe(2);
 	expect(yield* host.storedRequests()).toEqual([]);
 	expect(receiptsBeforeCommit).toEqual([]);
 });

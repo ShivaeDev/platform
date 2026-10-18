@@ -5,11 +5,11 @@ import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
 
 export function busyAdmission(host: FleetHost) {
-	return holdLock(host, admissionLockKey(host.namespace)).pipe(Effect.map(({ release }) => release));
+	return pauseAdmission(host).pipe(Effect.map(({ release }) => release));
 }
 
-export function busyAnswerRecording(host: FleetHost, workId: string) {
-	return pauseAnswerCompletion(host, workId).pipe(Effect.map(({ release }) => release));
+export function pauseAdmission(host: FleetHost) {
+	return holdLock(host, admissionLockKey(host.namespace));
 }
 
 export function pauseAnswerCompletion(host: FleetHost, workId: string) {
@@ -45,6 +45,6 @@ const holdLock = Effect.fn("FleetFixture.holdLock")(function* (host: FleetHost, 
 			}
 			yield* Effect.sleep("10 millis");
 		}
-	}).pipe(Effect.provide(hostDatabase(host, "work-fleet-lock-observer", 1)), Effect.timeout("5 seconds"));
+	}).pipe(Effect.timeout("5 seconds"));
 	return { blocked, release: Deferred.succeed(release, undefined) };
 });

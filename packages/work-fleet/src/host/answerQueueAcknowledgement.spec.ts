@@ -20,7 +20,7 @@ for (const stage of ["executing", "repairing"] as const) {
 		}
 		expect(current.stage).toBe(stage);
 		yield* host.answerAndWait(SEED);
-		const free = yield* host.holdAdmission();
+		const { release: free } = yield* host.holdAdmission();
 		for (const text of messages) {
 			const result = yield* host.cliAnswer("one", text).pipe(Effect.timeout("5 seconds"));
 			expect(result).toEqual({ code: 0, stderr: "", stdout: `one ${stage}: ${ANSWER_RECORDED}` });

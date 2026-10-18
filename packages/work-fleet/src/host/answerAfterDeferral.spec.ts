@@ -22,8 +22,8 @@ for (const type of ["clarify", "not_now"] as const) {
 				{ action: release ? "release" : "continue", boardAcknowledged: true, decisionId: decision.id, type: "answer" },
 			]);
 			expect(applied.responses?.at(-1)?.responseId).not.toBe(deferred.id);
-			expect(host.provider.launched).toHaveLength(1);
-			expect(host.provider.observations.size).toBe(release ? 1 : 2);
+			expect(host.providerSessions()).toBe(1);
+			expect(host.providerTurns()).toBe(release ? 1 : 2);
 			if (!release) {
 				expect(applied.attempts.at(-1)?.prompt).toBe(TEXT);
 			}

@@ -1,6 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Fiber, Layer, Redacted } from "effect";
+import { Context, Effect, Fiber, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
+import { databaseAddress } from "@shivaedev/platform/server/databaseAddress.ts";
 import { exposeFailure } from "#exposeFailure.ts";
 import { answerRequests } from "#host/answerRequests.ts";
 import { answerWork } from "#host/answerWork.ts";
@@ -17,7 +18,12 @@ import { decisionResponses, releaseItems } from "#host/releaseWork.ts";
 
 export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* (host: FleetHost) {
 	const scope = yield* Effect.scope;
-	const receipts = yield* PgClient.make({ applicationName: "work-fleet-receipts", maxConnections: 1, url: Redacted.make(host.databaseUrl) });
+	const url = Redacted.make(host.databaseUrl);
+	const receiptContext = yield* Layer.buildWithScope(
+		PgClient.layer({ applicationName: "work-fleet-receipts", maxConnections: 1, url, ...databaseAddress(url) }),
+		scope,
+	);
+	const receipts = Context.get(receiptContext, SqlClient.SqlClient);
 	function read<A, E, R>(effect: Effect.Effect<A, E, R>) {
 		return effect.pipe(Effect.provideService(SqlClient.SqlClient, receipts));
 	}
@@ -33,8 +39,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	}
 	const answers = yield* answerRequests(
 		host,
-		(workId, text, release, original, beforePublish, queue) =>
-			withResponses(answerWork(host, workId, text, release, true, original, beforePublish, queue)),
+		(workId, options) => withResponses(answerWork(host, workId, { ...options, background: true })),
 		receipts,
 	);
 	// A client that stops waiting closes its request; the answer it asked for must still be recorded and applied.

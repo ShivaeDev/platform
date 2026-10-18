@@ -1,4 +1,4 @@
-import { Clock, Effect, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
@@ -9,7 +9,6 @@ import type { Decision, DecisionResponse } from "#policy.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 
 class AnswerRow extends Model.Class<AnswerRow>("FleetAnswer")({
-	"accepted_at": Schema.Number,
 	"decision_code": Schema.NullOr(DecisionCode),
 	"decision_id": Schema.NullOr(Schema.String),
 	"decision_reason": Schema.String,
@@ -55,7 +54,7 @@ export const answerStore = Effect.fn("FleetAnswer.answerStore")(function* (names
 					if (current !== undefined && current.error !== null) {
 						yield* repository.delete(current.request_id);
 					}
-					return yield* repository.insert(yield* answerInput(workId, decision, text, release));
+					return yield* repository.insert(answerInput(workId, decision, text, release));
 				}),
 			);
 		}),
@@ -87,9 +86,8 @@ export const answerStore = Effect.fn("FleetAnswer.answerStore")(function* (names
 
 export type AnswerRequest = AnswerRow;
 
-const answerInput = Effect.fn("FleetAnswer.answerInput")(function* (workId: string, decision: Decision | undefined, text: string, release: boolean) {
+function answerInput(workId: string, decision: Decision | undefined, text: string, release: boolean) {
 	return {
-		"accepted_at": yield* Clock.currentTimeMillis,
 		"decision_code": decision?.code ?? null,
 		"decision_id": decision?.id ?? null,
 		"decision_reason": decision?.reason ?? "",
@@ -101,4 +99,4 @@ const answerInput = Effect.fn("FleetAnswer.answerInput")(function* (workId: stri
 		text,
 		"work_id": workId,
 	};
-});
+}

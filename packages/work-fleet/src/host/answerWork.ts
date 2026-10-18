@@ -7,16 +7,21 @@ import type { FleetRecord } from "#model.ts";
 import type { Decision, DecisionResponse } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
+export interface AnswerOptions<E = never, R = never> {
+	readonly background?: boolean;
+	readonly beforePublish?: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, E, R>;
+	readonly originalDecision?: Pick<Decision, "code" | "reason">;
+	readonly queue?: () => Effect.Effect<Versioned<FleetRecord>, E, R>;
+	readonly release?: boolean;
+	readonly text?: string;
+}
+
 export const answerWork = Effect.fn("FleetHost.answerWork")(function* <E = never, R = never>(
 	host: FleetHost,
 	workId: string,
-	text = "",
-	release = false,
-	background = false,
-	originalDecision?: Pick<Decision, "code" | "reason">,
-	beforePublish?: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, E, R>,
-	queue?: () => Effect.Effect<Versioned<FleetRecord>, E, R>,
+	options: AnswerOptions<E, R> = {},
 ) {
+	const { text = "", release = false, background = false, originalDecision, beforePublish, queue } = options;
 	const fleet = yield* Fleet;
 	const resolve = background ? fleet.recordResponse : fleet.resolve;
 	const original = originalDecision ?? (yield* fleet.get(workId)).value.decision;

@@ -8,7 +8,7 @@ for (const release of [false, true]) {
 		const { decision } = yield* host.question();
 		yield* host.stop();
 		yield* host.start();
-		const free = yield* host.holdAdmission();
+		const { release: free } = yield* host.holdAdmission();
 		const receipt = yield* host.answer("Use PostgreSQL.", release);
 		expect(receipt.blocker).toBe(ANSWER_RECORDED);
 		expect(yield* host.storedRequests()).toMatchObject([{ "decision_id": decision.id, release, text: "Use PostgreSQL." }]);

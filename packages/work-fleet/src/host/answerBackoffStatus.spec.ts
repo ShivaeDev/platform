@@ -8,7 +8,7 @@ import { answers, approvedPullRequest } from "#test/answerHost.ts";
 for (const failed of [false, true]) {
 	answers.it(`${failed ? "failed" : "pending"} guidance takes precedence over repair provider backoff`, [approvedPullRequest], function* (host) {
 		const ready = yield* host.readyPullRequest();
-		host.provider.rejectNextTurn(new SessionFailure({ code: "session-queue-full", message: "Provider queue is full", reason: "rejected" }));
+		host.rejectNextTurn(new SessionFailure({ code: "session-queue-full", message: "Provider queue is full", reason: "rejected" }));
 		yield* host.answerPullRequest(ready, "Retain the existing layout.");
 		const repairing = yield* host.reconcile();
 		expect(repairing.stage).toBe("repairing");
@@ -17,7 +17,7 @@ for (const failed of [false, true]) {
 		if (failed) {
 			yield* host.failQueue();
 		}
-		const free = yield* host.holdAdmission();
+		const { release: free } = yield* host.holdAdmission();
 		yield* host.answer("Preserve the empty state.");
 		if (failed) {
 			yield* free;

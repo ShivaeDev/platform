@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { daemonRequest } from "#host/daemonClient.ts";
 import type { FleetRecord } from "#model.ts";
 import type { AnswerHostEngine } from "#test/AnswerHostEngine.ts";
-import { busyAdmission } from "#test/busyAdmission.ts";
+import { pauseAdmission } from "#test/busyAdmission.ts";
 import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 
@@ -31,18 +31,18 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 			tell(`dispatch ${workId}`);
 			return dispatchAndWait(engine.running.client, workId);
 		},
-		drainCount: () => engine.spans.count("FleetAnswer.drain"),
 		follow: (workIds: readonly string[]) => engine.running.client("daemon.follow", { workIds }),
 		get: (workId = "one") => engine.running.client("fleet.get", { workId }),
 		holdAdmission: () =>
 			Effect.gen(function* () {
 				tell("hold admission");
-				const free = yield* busyAdmission(engine.host.host);
-				yield* Effect.addFinalizer(() => free);
-				return free;
+				const admission = yield* pauseAdmission(engine.host.host);
+				yield* Effect.addFinalizer(() => admission.release);
+				return admission;
 			}),
 		reconcile: (workId = "one") => engine.running.client("fleet.reconcile", { workId }),
 		resolve: (decisionId: string, responseId: string, workId = "one") => engine.running.client("fleet.resolve", { decisionId, responseId, workId }),
+		responseIndexBuilds: () => engine.spans.count("WorkBoard.searchSnapshot"),
 		start: () => {
 			tell("start the daemon");
 			return engine.start();

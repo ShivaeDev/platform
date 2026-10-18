@@ -44,7 +44,7 @@ const publicationStory = Effect.fn("AnswerPublicationRaceTest.publicationStory")
 	};
 	const result = yield* withDecisionResponses(
 		fixture.host,
-		answerWork(fixture.host, "one", input === "empty" ? "  " : TEXT, input === "release"),
+		answerWork(fixture.host, "one", { release: input === "release", text: input === "empty" ? "  " : TEXT }),
 	).pipe(Effect.provideService(Fleet, racing), Effect.result);
 	expect(publications).toBe(1);
 	const current = yield* fleet.get("one");

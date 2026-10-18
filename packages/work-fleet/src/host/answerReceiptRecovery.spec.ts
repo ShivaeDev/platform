@@ -24,8 +24,8 @@ for (const release of [false, true]) {
 			expect(current.stage).toBe(release ? "released" : "executing");
 			expect(current.responses).toHaveLength(2);
 			expect(current.pendingAnswers).toBeUndefined();
-			expect(host.provider.launched).toHaveLength(1);
-			expect(host.provider.observations.size).toBe(release ? 1 : 2);
+			expect(host.providerSessions()).toBe(1);
+			expect(host.providerTurns()).toBe(release ? 1 : 2);
 			if (applied) {
 				expect(current.attempts).toEqual(previous.attempts);
 				expect(current.responses).toEqual(previous.responses);
