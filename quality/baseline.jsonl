@@ -291,10 +291,7 @@
 {"path":"packages/work-fleet/src/engine/continueGuards.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/continueOwnership.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/dependencies.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/dependencyBookkeeping.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/dependencyDecisionBookkeeping.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/dependencySavedRevision.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/dependencyScheduling.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/failedFollowup.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/genericRejection.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/integrationReadRetry.spec.ts","rule":"tests/story-specs","count":1}

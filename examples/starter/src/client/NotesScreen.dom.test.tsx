@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
-import { heldNotesList, notesRoute, notesScreen, screens } from "#test-support/screens.ts";
+import { heldNotesList, notesRoute, screens } from "#test-support/screens.ts";
 
 screens.it(
 	"shares the route query, validates the form, retains a rejected title and refreshes after creation",
@@ -49,7 +49,7 @@ screens.it(
 
 screens.it(
 	"shows loading before the first result and keeps the empty message during a refresh",
-	[heldNotesList(), notesScreen()],
+	[heldNotesList(), notesRoute()],
 	function* ({
 		closeScreen,
 		consoleErrors,
@@ -62,15 +62,15 @@ screens.it(
 		queryCount,
 		screenContent,
 	}) {
-		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(true)));
-		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe("Loading notes…")));
+		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe("Loading…")));
 		yield* Effect.promise(() => eventually(() => expect(screenText()).not.toContain("No notes yet")));
 		const content = yield* screenContent();
 		expect(content.querySelector("table")).toBeNull();
-		expect(content.querySelector('section[aria-label="Add a note"] form')).not.toBeNull();
+		expect(content.querySelector('section[aria-label="Add a note"] form')).toBeNull();
 		yield* releaseNotesList();
 		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(false)));
 		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
+		expect(content.querySelector('section[aria-label="Add a note"] form')).not.toBeNull();
 		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe(undefined)));
 		expect(content.querySelector("table")).toBeNull();
 		yield* Effect.promise(() => eventually(() => expect(screenText()).not.toContain("No results.")));

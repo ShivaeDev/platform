@@ -174,17 +174,17 @@ This example assumes an application-owned `api.get.query({ id })` returning `{ i
 
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
-import { createRootRouteWithContext, createRoute, createRouter, Outlet, RouterProvider, useRouterState } from "@tanstack/react-router";
+import { createRootRouteWithContext, createRoute, createRouter, RouterProvider, useRouterState } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Predicate } from "effect";
+import type { ReactNode } from "react";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
+import { useLoaderQuery } from "@shivaedev/effect-react/client/useLoaderQuery.ts";
 import { api } from "./notes-client.ts";
 
 const registry = AtomRegistry.make();
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()({
-  component: Shell,
-});
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()();
 const note = createRoute({
   getParentRoute: () => root,
   path: "/notes/$id",
@@ -196,6 +196,7 @@ const router = createRouter({
   context: { registry },
   routeTree: root.addChildren([note]),
   defaultPendingMs: Infinity,
+  InnerWrap: Shell,
 });
 
 declare module "@tanstack/react-router" {
@@ -204,13 +205,13 @@ declare module "@tanstack/react-router" {
   }
 }
 
-function Shell() {
+function Shell({ children }: { readonly children: ReactNode }) {
   const pending = useRouterState({ select: (state) => state.isLoading });
-  return <main>{pending && <p>Loading…</p>}<Outlet /></main>;
+  return <main>{pending && <p>Loading…</p>}{children}</main>;
 }
 function Note() {
-  const row = note.useLoaderData();
-  return <h1>{row.title}</h1>;
+  const query = useLoaderQuery(api.get.query(note.useParams()), note.useLoaderData());
+  return <h1>{query.data.title}</h1>;
 }
 function Failure({ error }: ErrorComponentProps) {
   return <p role="alert">{Predicate.isTagged(error, "NoteMissing") ? "Note missing" : "Could not load"}</p>;
@@ -220,7 +221,11 @@ export function App() {
 }
 ```
 
-`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution.
+`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution even when the route delays mounting for 650 ms, beyond the registry’s idle window. A DOM screen story proves the first render has the loaded value and the loopback RPC handler runs once.
+
+`useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. For a loader-backed editor, pass the loader value as `useEditor({ ...config, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
+
+`SessionBoundary` gives idle atoms the default 400 ms window used by atom-react’s default registry. `loadQuery` also mounts its atom until a component commits its `useQuery` or `useLoaderQuery` subscription, or the loader’s abort signal ends its route ownership. No per-query `timeToLive` is needed. Leaving an unread route releases that mount; a DOM story verifies the atom is gone after the idle window.
 
 `loadQuery` waits through a native query refresh instead of returning its retained success. Typed failures are thrown directly, so the route can inspect `_tag` rather than an Effect fiber wrapper. Defects remain failed Promises. TanStack's loader `abortController` cancels the waiting subscription and rejects with `name: "AbortError"`; other readers of the same query can still complete. The application owns the registry's lifetime and disposes it when its client or session ends. Use the same registry for router context and `RegistryContext.Provider`.
 

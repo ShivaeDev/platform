@@ -212,7 +212,7 @@ import { Effect, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
-import { Authenticated, RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
+import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
 
 export const Account = RpcGroup.make(
   Rpc.make("ReadOwn", {
@@ -220,7 +220,7 @@ export const Account = RpcGroup.make(
     payload: { userId: Schema.String },
     success: Schema.String,
   }),
-).middleware(Authenticated).middleware(RequestTracing);
+).middleware(Authenticated);
 
 export const Handlers = Account.toLayer({
   ReadOwn: ({ userId }) =>
@@ -638,7 +638,7 @@ Install the optional peers for the selected integration:
 - The package needs Node 24 or newer.
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.
 - Without an `HttpServerRequest`, `transportHeaders` falls back to the supplied RPC headers. An application using another transport must decide what headers it can trust.
-- `appHost` adds tracing last on its server-side copy of the group. When composing a native RPC server directly, add `RequestTracing` last on the group, as in the example, so it wraps authentication too. Middleware outside that tracing boundary is responsible for its own diagnostics.
+- `appHost` adds tracing last on its server-side copy of the group. When composing a native RPC server directly, add `RequestTracing` last on the group so it wraps authentication too; see the [native-server example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/request-context.md#request-id-identity-and-logging). Middleware outside that tracing boundary is responsible for its own diagnostics.
 - Redaction recognizes common shapes. Keep secrets out of messages and extend the key predicate for application-specific sensitive fields.
 - A development cache key is ignored when `NODE_ENV` is `production`. The application owns runtime disposal.
 - The Better Auth storage adapter's default model mapping capitalizes the model name. Supply `modelName` for a generated schema with another naming convention. Native Better Auth joins (`advanced.database.joins`) are rejected; leave that option off so Better Auth reads related rows with separate queries.

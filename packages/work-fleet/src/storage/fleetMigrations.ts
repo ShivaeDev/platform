@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { addShapeColumns } from "#storage/addShapeColumns.ts";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
+import { mergedDeliveries } from "#storage/mergedDeliveries.ts";
 import { modelTables } from "#storage/modelTables.ts";
 import { pruneEmptyCycles } from "#storage/pruneEmptyCycles.ts";
 import { childTable } from "#storage/recordChildren.ts";
@@ -74,5 +75,6 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			position integer generated always as identity, decision_code text, decision_reason text not null,
 			text text not null, release boolean not null, error text, response_decision_id text, response_id text
 		)`,
+		"20_merged_deliveries": mergedDeliveries(namespace),
 	});
 });
