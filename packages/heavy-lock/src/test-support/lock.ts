@@ -12,6 +12,12 @@ export const createLock = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem;
 	const directory = yield* fs.makeTempDirectoryScoped({ prefix: "heavy-lock-" });
 	const lock = join(directory, "nested", "heavy-process.lock");
+	const home = join(directory, "home");
+	const paths = {
+		environment: join(directory, "environment", "heavy-process.lock"),
+		explicit: lock,
+		home: join(home, ".cache", "heavy-process.lock"),
+	};
 	const env: Record<string, string> = {};
 	const cliOptions: { cwd?: string } = {};
 	const holders: Record<string, Holder> = {};
@@ -21,8 +27,10 @@ export const createLock = Effect.gen(function* () {
 		directory,
 		env,
 		holders,
+		home,
 		lock,
 		options,
+		paths,
 		unreadable: false,
 	};
 });
@@ -89,10 +97,11 @@ export function lockVerbs(engine: Lock, tell: (line: string) => void) {
 				engine.holders[id] = holder;
 				return yield* tryAcquire(engine.lock, holder);
 			}),
-		contents: () => readLock(engine.lock),
+		contents: (path = engine.lock) => readLock(path),
 		files: () => lockDirectory(engine.lock),
 		holder: (id: string) => engine.holders[id],
-		read: () => readHolder(engine.lock),
+		paths: engine.paths,
+		read: (path = engine.lock) => readHolder(path),
 		reclaim: (id: string) => {
 			tell(`a waiter reclaims ${id}'s lock`);
 			return reclaim(engine.lock, Option.fromUndefinedOr(engine.holders[id]));

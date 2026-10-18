@@ -54,7 +54,11 @@ for (const ready of [true, false]) {
 	);
 }
 
-for (const stage of [undefined, "needs-human", "reviewing"] as const) {
+for (const [stage, owner] of [
+	[undefined, undefined],
+	["needs-human", "Waiting on a person"],
+	["reviewing", "Fleet is working on this"],
+] as const) {
 	const data = nowWork(1);
 	const item = data.rows[0];
 	if (!item) {
@@ -72,8 +76,7 @@ for (const stage of [undefined, "needs-human", "reviewing"] as const) {
 			expect(findElements("[data-status-token]")).toHaveLength(1);
 			expect(readText("[data-status-token]")).toBe(stage === "reviewing" ? "reviewing" : "needs-you");
 			expect(readText()).not.toContain("PR not recorded");
-			expect(readText()).not.toContain("Holder: Not recorded");
-			expect(findElement(".work-owner") === null).toBe(stage === undefined);
+			expect(readText(".work-owner")).toBe(owner);
 			expect(findElement(".work-stage")).toBeNull();
 			expect(findElement("svg.lucide-git-pull-request")).toBeNull();
 		},

@@ -2,13 +2,13 @@
 	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "stock-starter-components.md",
-			"text": "### Changed\n\n- New apps include stock shadcn components, a sortable notes data table, Recharts chart primitives, a code preview for added, removed and context lines, and a `quality.config.ts` that preserves CLI-owned components while checking application code.\n"
+			"name": "admin-bootstrap.md",
+			"text": "### Added\n\n- Generated apps enable Better Auth's admin plugin, migrate its schema on new and existing databases, and provide `pnpm admin:create` to create the first administrator through Better Auth's server API.\n"
 		},
 		{
-			"name": "story-testing.md",
-			"text": "### Changed\n\n- Generated applications point to the shared `story-testing` skill for writing and reviewing stories and their test kits.\n"
+			"name": "framework-pins-oct18.md",
+			"text": "### Fixed\n\n- A generated app pins the current published framework versions, including `platform` 0.16.0, `effect-form` 0.5.0, `effect-react` 0.5.0, `effect-service` 0.4.0, `effect-test` 0.6.0, `effect-trpc` 0.8.0, `effect-prisma` 0.10.0, `local-postgres` 0.4.0, `quality` 0.25.0 and `test-story` 0.7.1.\n"
 		}
 	],
-	"version": "0.6.11"
+	"version": "0.7.0"
 }

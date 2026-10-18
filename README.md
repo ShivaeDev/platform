@@ -53,6 +53,7 @@ Every package has a README for people and agents using it and a short `AGENTS.md
   cooperating heavy commands one at a time across repositories.
 - [`@shivaedev/local-postgres`](./packages/local-postgres): Shared local PostgreSQL
   service preparation that preserves existing databases and data.
+- [`@shivaedev/vitest-rerun`](./packages/vitest-rerun): Reruns failed Vitest tests in a fresh process and lists the tests that only passed on a rerun in `flaky-tests.json` beside the JUnit report.
 - [`@shivaedev/skills`](./packages/skills): ShivaeDev's shared agent skills, distributed as committed repository files with simple updates and drift checks.
 - [`@shivaedev/work-board`](./packages/work-board): A local workspace for reading
   Markdown work, following its evidence, recording human responses and preparing
@@ -97,9 +98,9 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup 
 
 `pnpm test` and CI select the package variables through the shared PostgreSQL test-environment module in `script/lib`, using these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage. Prisma generation runs explicitly in the package build/typecheck/test paths.
 
-CI runs each workspace test shard once with Vitest retries disabled. Pull requests and pushes have no reruns. In the merge queue, a test failure selects only the failed files from the Vitest JSON report and runs them once more in a new Vitest process, without sharding that subset. Tests that already passed are excluded by their Vitest test IDs, including passing tests in a failed file. Unhandled process errors cannot be recovered by a test rerun. The shard fails if the fresh rerun fails, and recovered tests appear as flaky in the job summary.
+CI runs each workspace test shard through [`@shivaedev/vitest-rerun`](./packages/vitest-rerun) with Vitest retries disabled. Pull requests and pushes allow no reruns, so a flaky test fails them. In the merge queue, the failed tests run once more in a fresh Vitest process; the shard fails if that rerun fails, and recovered tests appear in the job summary and in `.ci/flaky-tests.json`. The final reports in `.ci` keep the whole shard, and the raw report of each attempt stays in the timing artifact.
 
-The final JSON and JUnit reports retain the whole shard, with each test's final result and the sum of its attempt durations. Raw first-attempt and rerun reports remain in the timing artifact. The timing summary adds both file execution durations; it excludes process startup between attempts. The rerun uses a separate Vitest cache so the original shard's timing cache stays intact. Vitest merges coverage from both attempts into the full shard's LCOV report, so passing files keep their coverage and rerun coverage contributes without replacing them. The orchestration tests include a fixture whose first failure poisons module state, verify that only a fresh process recovers it, and check that passing tests run once and reports retain the full shard.
+Each shard's `coverage-tests-<shard>` artifact holds the LCOV report, `measured-commits.txt`, the final JUnit report, `flaky-tests.json` when a test recovered, and `job.txt` with the shard job's check run ID.
 
 ### Heavy runs
 
