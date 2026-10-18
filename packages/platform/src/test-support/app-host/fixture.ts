@@ -9,7 +9,7 @@ import { Migrator, SqlClient } from "effect/sql";
 import { AuthUnavailable, Conflict } from "#errors/taxonomy.ts";
 import { Identity } from "#rpc/identity.ts";
 import { Authenticated, RequestTracing } from "#rpc/middleware.ts";
-import type { SessionPolicy, SessionShape } from "#rpc-server/session.ts";
+import type { SessionPolicy, SessionShape } from "#server/rpc-server/session.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("host-test/Greeting") {}
 export const Api = RpcGroup.make(Rpc.make("greet", { error: Conflict, payload: { reject: Schema.Boolean }, success: Schema.String }))

@@ -1,6 +1,6 @@
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/client/testing.ts";
 import { ThemeContext } from "#client/react/ThemeContext.ts";
 import { useAppearance } from "#client/react/useAppearance.ts";
 import { browserStorage } from "#test/browserStorage.ts";

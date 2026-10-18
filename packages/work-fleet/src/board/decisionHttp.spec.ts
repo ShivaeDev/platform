@@ -4,7 +4,7 @@ import { NodeServices } from "@effect/platform-node";
 import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardFolder } from "#test/boardFolder.ts";

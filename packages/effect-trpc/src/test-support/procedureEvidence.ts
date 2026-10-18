@@ -1,9 +1,9 @@
 import { initTRPC } from "@trpc/server";
 import { Effect, Layer, ManagedRuntime, Stream, Tracer } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { makeEffectTRPC } from "#adapter.ts";
-import { makeRequestServices } from "#request-services.ts";
-import { RequestSignal } from "#request-signal.ts";
+import { makeEffectTRPC } from "#server/adapter.ts";
+import { RequestSignal } from "#server/RequestSignal.ts";
+import { makeRequestServices } from "#server/requestServices.ts";
 
 function* create() {
 	const spans: Tracer.NativeSpan[] = [];

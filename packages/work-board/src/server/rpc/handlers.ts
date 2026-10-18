@@ -1,7 +1,7 @@
 import { Effect, Layer, Ref, Stream } from "effect";
 import { InternalServerError, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
-import { requestTracingLayer } from "@shivaedev/platform/rpc-server/tracing.ts";
+import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
+import { requestTracingLayer } from "@shivaedev/platform/server/rpc-server/tracing.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { DocumentRejection, ResponseRejection } from "#rpc/rejections.ts";
 import { HandoffsService } from "#server/handoffs/Service.ts";
