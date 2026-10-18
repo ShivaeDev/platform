@@ -66,6 +66,6 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 				and ("decision__code" = 'reviewed-pr-ready' or ("decision__code" = 'fleet-stale' and "decision__reason" = 'Board context changed'))
 				and not exists (select 1 from ${sql(childTable(namespace, ["supersededDecisions"]))} as superseded
 					where superseded.work_id = records.work_id and superseded."reassignedTo__decisionId" = records."decision__id")`,
-		"17_pending_continuation": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("pendingContinuation")} text`,
+		"18_pending_continuation": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("pendingContinuation")} text`,
 	});
 });
