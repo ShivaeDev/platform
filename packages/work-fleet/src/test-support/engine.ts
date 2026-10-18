@@ -49,6 +49,14 @@ export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, 
 	use: (fixture: EngineFixture<TBoardError>) => Effect.Effect<A, E, typeof Fleet.Identifier>,
 	boardOverride?: Layer.Layer<BoardGateway, TBoardError>,
 ) {
+	const { fixture, fleetLayer } = yield* createEngine(options, boardOverride);
+	return yield* use(fixture).pipe(Effect.provide(fleetLayer));
+});
+
+export const createEngine = Effect.fn("FleetFixture.createEngine")(function* <TBoardError = never>(
+	options: EngineOptions,
+	boardOverride?: Layer.Layer<BoardGateway, TBoardError>,
+) {
 	const namespace = STORAGE_NAMESPACE;
 	const originalStore = yield* FleetRepository.pipe(Effect.provide(postgresFleetRepository(namespace)));
 	const { replaceRecord, store, upgradeAttention, upgradeDecisionCodes } = yield* attentionStorage(
@@ -135,7 +143,7 @@ export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, 
 		vacate: store.releaseForeign,
 		work: (id: string) => boardWork(id, approved, revisions, dependencies, areas, statuses, priorities),
 	};
-	return yield* use(fixture).pipe(Effect.provide(fleetLayer()));
+	return { fixture, fleetLayer: fleetLayer() };
 });
 
 export const prepareWork = Effect.fn("Fleet.prepareWork")(function* (workId: string) {

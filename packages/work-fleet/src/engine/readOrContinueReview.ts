@@ -66,7 +66,7 @@ function continueReview(state: EngineState) {
 			{ ...policy, quota },
 			board.get,
 		);
-		yield* save(stored, { ...stored.value, attempts: [...stored.value.attempts, attempt] }, { quota, role: "reviewer" });
+		yield* save(stored, { ...stored.value, attempts: [...stored.value.attempts, attempt] }, { areaWaiters: [], quota, role: "reviewer" });
 		yield* sessions
 			.continue({ access: "read-only", operationId: attempt.operationId, prompt, sessionId: receipt.sessionId, settings })
 			.pipe(
