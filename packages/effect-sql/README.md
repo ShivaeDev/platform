@@ -399,3 +399,5 @@ For the native PostgreSQL driver's default representations, use precise numeric 
 JSON and JSONB columns are not supported. A repository write of a plain object to one fails with `SqlError` and writes nothing. Give structured data its own columns, or its own table when it repeats, so PostgreSQL constraints and the model both describe it.
 
 `timestamptz` preserves an instant at millisecond precision; `timestamp without time zone` holds UTC wall time, whatever the Node process time zone. A model cannot recover microseconds the driver has discarded. See [PostgreSQL codec cases and limits](https://github.com/ShivaeDev/platform/blob/main/docs/framework/postgres-codecs.md) before choosing a storage representation.
+
+The package's PostgreSQL tests use a disposable database through `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`. Without the URL they skip locally; under `CI`, collection fails at the shared gate.
