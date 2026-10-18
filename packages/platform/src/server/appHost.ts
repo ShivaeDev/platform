@@ -1,21 +1,16 @@
-import { Context, type Duration, type Effect } from "effect";
+import { Context, type Effect } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { Migrator } from "effect/sql";
 import type { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import type { SessionPolicy, SessionShape } from "#rpc-server/session.ts";
 import { appHostHttp, deferredHost, migratedHost } from "#server/appHostHttp.ts";
 import { type DatabaseConfig, databaseLayer } from "#server/databaseLayer.ts";
 import type { HostOptions, HostPolicy } from "#server/hostOptions.ts";
+import type { MigrationOptions } from "./MigrationOptions.ts";
 
 export class AppChanges extends Context.Service<AppChanges, Effect.Success<typeof makeLiveServer>>()("@shivaedev/platform/AppChanges") {}
 export interface AppDatabaseOptions<R = never> {
 	readonly config?: DatabaseConfig;
-	readonly migrations: {
-		readonly loader: Migrator.Loader<R>;
-		readonly mode?: "migrate" | "check";
-		readonly table?: string;
-		readonly lockTimeout?: Duration.Input;
-	};
+	readonly migrations: MigrationOptions<R>;
 }
 
 export function appDatabase<R>(options: AppDatabaseOptions<R>) {

@@ -1,5 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Layer, type Redacted } from "effect";
+import { Clock, Config, Duration, Effect, Layer, type Redacted, Result } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { assertPostgresMigrations } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
@@ -27,11 +27,7 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 			});
 		}),
 	);
-	const prepared = Layer.effectDiscard(
-		options.migrations.mode === "check"
-			? assertPostgresMigrations(options.migrations)
-			: migratePostgres({ ...options.migrations, lockTimeout: options.migrations.lockTimeout ?? "5 seconds" }),
-	).pipe(Layer.provideMerge(pool));
+	const prepared = Layer.effectDiscard(prepareMigrations(options.migrations)).pipe(Layer.provideMerge(pool));
 	const live = Layer.effect(changesService, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer));
 	const base = Layer.merge(prepared, live);
 	const changes = options.config?.changes;
@@ -46,3 +42,31 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 		}),
 	).pipe(Layer.provideMerge(base));
 }
+
+function prepareMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
+	switch (migrations.mode) {
+		case "check":
+			return assertPostgresMigrations(migrations);
+		case "wait":
+			return waitForMigrations(migrations);
+		default:
+			return migratePostgres({ ...migrations, lockTimeout: migrations.lockTimeout ?? "5 seconds" });
+	}
+}
+
+const waitForMigrations = Effect.fn("Platform.waitForMigrations")(function* <R>(migrations: AppDatabaseOptions<R>["migrations"]) {
+	const deadline = (yield* Clock.currentTimeMillis) + Duration.toMillis(Duration.fromInputUnsafe(migrations.waitTimeout ?? "5 minutes"));
+	const interval = Duration.toMillis(Duration.fromInputUnsafe(migrations.pollInterval ?? "1 second"));
+	while (true) {
+		const result = yield* Effect.result(assertPostgresMigrations(migrations));
+		if (Result.isSuccess(result)) {
+			return;
+		}
+		const error = result.failure;
+		const remaining = deadline - (yield* Clock.currentTimeMillis);
+		if (error._tag !== "MigrationError" || error.kind !== "BadState" || remaining <= 0) {
+			return yield* Effect.fail(error);
+		}
+		yield* Effect.sleep(Math.min(interval, remaining));
+	}
+});

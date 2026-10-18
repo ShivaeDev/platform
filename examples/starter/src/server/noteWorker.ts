@@ -27,7 +27,7 @@ export function noteWorker(config?: { readonly databaseUrl?: Redacted.Redacted<s
 			const pool = yield* authDatabase(databaseUrl);
 			return NoteJobs.layer({ connectionString: Redacted.value(databaseUrl), jobs: [countWords], migrate: false }).pipe(
 				Layer.tap(() => Effect.logInfo("Worker ready to take jobs")),
-				Layer.provideMerge(appDatabase(databaseOptions(pool, databaseUrl)).pipe(Layer.tap(() => Effect.logInfo("Worker migrations applied")))),
+				Layer.provideMerge(appDatabase(databaseOptions(pool, databaseUrl, "wait")).pipe(Layer.tap(() => Effect.logInfo("Worker schema current")))),
 			);
 		}),
 	).pipe(Layer.provide(otlpTracing));
