@@ -75,3 +75,10 @@ export function hiddenScreen(style: string, ancestor: boolean) {
 export const inertForm = screenApp.trait("screen", "the sign-in form has an inert ancestor", ({ root }) => {
 	root.inert = true;
 });
+
+export const labelledControl = screenApp.trait("screen", "a control has a visible label and a conflicting aria-label", ({ root }) => {
+	root.insertAdjacentHTML(
+		"beforeend",
+		'<span id="delivery-label">Email notifications</span><button id="delivery" role="switch" aria-labelledby="delivery-label" aria-label="Off" aria-checked="false">Off</button>',
+	);
+});

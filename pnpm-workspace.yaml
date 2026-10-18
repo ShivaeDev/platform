@@ -52,6 +52,7 @@ catalog:
   unist-util-visit: 5.1.0
   unified: 11.0.5
   happy-dom: 20.14.6
+  dom-accessibility-api: 0.7.1
   mermaid: 12.1.0
   ignore: 7.0.12
   sort-package-json: 4.0.0

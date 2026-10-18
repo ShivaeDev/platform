@@ -24,6 +24,7 @@
 		"worker": "node --conditions=source --env-file-if-exists=.env.local src/server/worker.ts"
 	},
 	"dependencies": {
+		"@base-ui/react": "catalog:",
 		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
