@@ -8,6 +8,7 @@ export type QueryState = "failed" | "pending";
 export interface HeldQueries {
 	readonly fleetItems?: QueryState;
 	readonly goals?: QueryState;
+	readonly watcher?: QueryState;
 }
 
 function queryIn<A>(state: QueryState) {
@@ -20,5 +21,8 @@ export function holdQueries(api: BoardTestApi, queries: HeldQueries = {}) {
 	}
 	if (queries.goals) {
 		vi.spyOn(api.goals, "query").mockReturnValue(queryIn(queries.goals));
+	}
+	if (queries.watcher) {
+		vi.spyOn(api.watcher, "query").mockReturnValue(queryIn(queries.watcher));
 	}
 }

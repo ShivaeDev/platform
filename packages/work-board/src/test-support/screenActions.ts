@@ -77,6 +77,16 @@ export function screenActions(tell: (line: string) => void) {
 			act(() => (typeof target === "string" ? control(target, HTMLElement) : target).dispatchEvent(event));
 			return event;
 		},
+		press: async (key: string) => {
+			tell(`the reader presses and releases ${JSON.stringify(key)}`);
+			for (const type of ["keydown", "keyup"]) {
+				await act(() => {
+					(document.activeElement ?? document).dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, key }));
+					// Base UI moves focus between radios in a microtask; resolving keeps that move inside act.
+					return Promise.resolve();
+				});
+			}
+		},
 		responseClick: (id: string) => {
 			tell(`the reader clicks response ${id}`);
 			responseClick(id);

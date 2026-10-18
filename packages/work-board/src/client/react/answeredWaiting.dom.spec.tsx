@@ -126,7 +126,7 @@ screenStory.it(
 		expect(readText(".response-panel h2")).toBe("Answer: Publish the install guide");
 		expect(findElement("[data-answered]")).toBeNull();
 		answerInput("author", "maintainer");
-		click(findElement<HTMLButtonElement>("[data-choice='retry']"));
+		click("[data-choice='retry']");
 		yield* Effect.promise(async () => responseClick("submit"));
 		yield* Effect.promise(() => eventually(() => expect(readText("[data-answered]")).toBe(NEXT_PASS)));
 		expect(readFocus()).toBe(findElement("[data-answered]"));
@@ -148,11 +148,15 @@ screenStory.it(
 screenStory.it(
 	"replaces the answer when the reader or someone else changes it",
 	[screenWorkspace("changed-answer"), screenFleet(guideFleet), routedScreen(answeredDecisionFixture(), url, { home: "home.md", writable: true })],
-	function* ({ answerInput, click, findElement, readFocus, readResponses, readText, responseClick }) {
+	function* ({ answerInput, click, findElement, findElements, readAttribute, readFocus, readResponses, readText, responseClick }) {
 		function* change(author: string, choice: string, copy: string, replaces: string) {
 			click("details[data-key='change-answer'] summary");
+			expect(findElement<HTMLInputElement>("details[data-key='change-answer'] [name='supersedes']")?.value).toBe(replaces);
+			expect(findElements("details[data-key='change-answer'] [role='radio']")).toHaveLength(2);
+			expect(findElements("details[data-key='change-answer'] [role='radio'][aria-checked='true']")).toHaveLength(0);
 			answerInput("author", author);
-			click(findElement<HTMLButtonElement>(`[data-choice='${choice}']`));
+			click(`[data-choice='${choice}']`);
+			expect(readAttribute(`[data-choice='${choice}']`, "aria-checked")).toBe("true");
 			yield* Effect.promise(async () => responseClick("submit"));
 			yield* Effect.promise(() => eventually(() => expect(readText("[data-answered]")).toBe(copy)));
 			expect(readFocus()).toBe(findElement("[data-answered]"));

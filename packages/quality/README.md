@@ -258,7 +258,7 @@ The TypeScript base leaves `types`, `jsx`, `paths`, `include` and output directo
 }
 ```
 
-For Vitest, install `vitest` and `happy-dom` when the repository has DOM tests, then use:
+For Vitest, install `vitest`, and add `@shivaedev/test-story` and `happy-dom` when the repository has DOM tests, then use:
 
 ```ts
 import { testProjects } from "@shivaedev/quality/testProjects.ts";
@@ -267,7 +267,9 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({ test: testProjects() });
 ```
 
-`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in happy-dom by default. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. The helper takes no options.
+`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in test-story's DOM environment by default. The DOM environment keeps Node's host constructors separate from the happy-dom window, so DOM specs need no project remap. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input.
+
+Coverage is opt-in: `testProjects({ coverage: true })` enables Vitest's V8 provider across the selected projects. Install `@vitest/coverage-v8` at the same version as Vitest. The report includes unvisited `src/**/*.ts` and `src/**/*.tsx` files and excludes declarations, tests, specs and `test-support`. To customize it, pass native Vitest coverage options, for example `testProjects({ coverage: { reporter: ["lcov", "text-summary"] } })`. No separate coverage config is needed.
 
 Outside CI, `testProjects` sets `silent: "passed-only"` so local runs show logs only from failing tests. When `CI` is set to a nonempty value, it sets `silent: false` so CI keeps all test logs. It leaves `reporters` unset so Vitest can auto-detect its agent reporter. If a repository adds a reporter, spread `configDefaults.reporters` instead of replacing the defaults:
 

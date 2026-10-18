@@ -22,12 +22,14 @@ export function SystemMain({
 	useDiagnosticsPolling(useContext(SessionContext), atom, api.fleetItems.query(undefined, routeQueryOptions));
 	const navigation = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const needsYou = Option.getOrUndefined(navigation.data)?.inboxCount;
+	const inbox = useQuery(api.inbox.query(undefined, routeQueryOptions), { keepPreviousData: true });
+	const sourceProblems = { failed: Option.isSome(inbox.cause), issues: Option.getOrUndefined(inbox.data)?.issues };
 	return (
 		<ProjectionFrame
 			atom={atom}
 			location={() => ({ file: "System", status: 200, view: "system" })}
 			onPage={onPage}
-			render={(data) => <SystemPage data={data} needsYou={needsYou} />}
+			render={(data) => <SystemPage data={data} needsYou={needsYou} sourceProblems={sourceProblems} />}
 			route="system"
 			url={url}
 		/>

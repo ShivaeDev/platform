@@ -294,6 +294,9 @@ catalogs:
     cn:
       specifier: 0.4.0
       version: 0.4.0
+    dom-accessibility-api:
+      specifier: 0.7.1
+      version: 0.7.1
     effect:
       specifier: 4.0.4
       version: 4.0.4
@@ -436,6 +439,9 @@ importers:
 
   examples/starter:
     dependencies:
+      '@base-ui/react':
+        specifier: 'catalog:'
+        version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@effect/atom-react':
         specifier: 'catalog:'
         version: 4.0.4(effect@4.0.4)(react@19.3.0)(scheduler@0.28.0)
@@ -1347,6 +1353,9 @@ importers:
       '@shivaedev/effect-test':
         specifier: workspace:*
         version: link:../effect-test
+      dom-accessibility-api:
+        specifier: 'catalog:'
+        version: 0.7.1
     devDependencies:
       '@effect/vitest':
         specifier: 'catalog:'
@@ -4502,6 +4511,9 @@ packages:
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
+
+  dom-accessibility-api@0.7.1:
+    resolution: {integrity: sha512-vdnCeZD+3wZ+8h8xXL/ZtBlvvoobOFyPzSiIfO6sGOZDqjFx4aLMAjZhl4rawj5xYz3UwP6Tgvyh0iH4IOCVnQ==}
 
   dompurify@3.4.15:
     resolution: {integrity: sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw==}
@@ -8750,6 +8762,8 @@ snapshots:
   devlop@1.1.0:
     dependencies:
       dequal: 2.0.3
+
+  dom-accessibility-api@0.7.1: {}
 
   dompurify@3.4.15:
     optionalDependencies:

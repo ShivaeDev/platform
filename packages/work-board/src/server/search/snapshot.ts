@@ -8,6 +8,8 @@ import type { Entry } from "./entries.ts";
 import { type IndexedDocument, readDocument } from "./readDocument.ts";
 import { updateEntries } from "./updateEntries.ts";
 
+const READ_CONCURRENCY = 16;
+
 export interface Snapshot {
 	readonly documents: readonly MetadataDocument[];
 	readonly entries: readonly Entry[];
@@ -65,8 +67,9 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 		const next = new Map<string, IndexedDocument>();
 		const documents: MetadataDocument[] = [];
 		const unavailable: string[] = [];
-		for (const file of files) {
-			const found = yield* find(file, dirty);
+		const indexed = yield* Effect.forEach(files, (file) => find(file, dirty), { concurrency: READ_CONCURRENCY });
+		for (const [position, file] of files.entries()) {
+			const found = indexed[position];
 			if (found) {
 				documents.push(found.document);
 				next.set(file.path, found);

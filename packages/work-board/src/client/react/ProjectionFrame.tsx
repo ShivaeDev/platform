@@ -10,6 +10,7 @@ import type { ProjectionRoute } from "./projectionRoute.ts";
 import type { RemainingRoute } from "./remainingRoute.ts";
 import { shellIds } from "./shellIds.ts";
 import { useProjectionData } from "./useProjectionData.ts";
+import { ViewStatus } from "./ViewStatus.tsx";
 
 export function ProjectionFrame<A, E>({
 	atom,
@@ -102,11 +103,7 @@ export function ProjectionFrame<A, E>({
 				ref={hostRef}
 				tabIndex={-1}
 			>
-				{data === undefined && (
-					<p className="empty" role="status">
-						{loadingMessage(query.pending, missing, failure)}
-					</p>
-				)}
+				{data === undefined && <ViewStatus>{loadingMessage(query.pending, missing, failure)}</ViewStatus>}
 				<div className={data === undefined ? "hidden" : "contents"} hidden={data === undefined}>
 					{content === undefined ? null : render(content)}
 				</div>
