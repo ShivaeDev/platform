@@ -5,13 +5,15 @@ import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.t
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { inProgressItems } from "./inProgressItems.ts";
+import { LinkButton } from "./LinkButton.tsx";
+import { PageHeader } from "./PageHeader.tsx";
 import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { TodayGoals } from "./TodayGoals.tsx";
 import { TodayAnswered, TodayLater, TodayNeeds } from "./TodayNeeds.tsx";
 import { TodayProgress } from "./TodayProgress.tsx";
-
-const todayIds = { answered: "answered", goals: "today-goals", later: "later", needs: "needs-you", progress: "in-progress" };
+import { TodaySummary } from "./TodaySummary.tsx";
+import { todayIds } from "./todayIds.ts";
 
 export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data: InboxProjection }) {
 	const query = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
@@ -24,21 +26,20 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 	useArrivalFocus(data.answered);
 	return (
 		<div className="today-page min-w-0 space-y-3 md:space-y-6">
-			<header className="flex items-center justify-between gap-3">
-				<h1 className="m-0 font-semibold text-2xl">Today</h1>
-				{home !== undefined && (
-					<a className="text-sm" href={fileUrl(home.file)}>
-						Workspace notes
-					</a>
-				)}
-			</header>
-			<nav aria-label="Today summary" className="today-strip flex items-center gap-1 whitespace-nowrap text-xs tabular-nums sm:gap-2 sm:text-sm">
-				<a href={`#${todayIds.needs}`}>{data.complete ? `${data.you.length} need you` : "Needs you unavailable"}</a>
-				<span aria-hidden="true">·</span>
-				<a href={`#${todayIds.progress}`}>{progressSummary(progress?.length, fleet?.state === "unavailable" || Option.isSome(fleetQuery.cause))}</a>
-				<span aria-hidden="true">·</span>
-				<a href={`#${todayIds.goals}`}>{goalsSummary(goals?.goals.length, Option.isSome(query.cause))}</a>
-			</nav>
+			<PageHeader
+				actions={home !== undefined && <LinkButton href={fileUrl(home.file)}>Workspace notes</LinkButton>}
+				summary={
+					<TodaySummary
+						goals={goals?.goals.length}
+						goalsFailed={Option.isSome(query.cause)}
+						issues={data.issues}
+						needs={data.complete ? data.you.length : undefined}
+						progress={progress?.length}
+						progressUnavailable={fleet?.state === "unavailable" || Option.isSome(fleetQuery.cause)}
+					/>
+				}
+				title="Today"
+			/>
 			<div className="today-grid grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<div className="min-w-0 space-y-6">
 					<NeedsYou api={api} data={data} />
@@ -108,18 +109,4 @@ function Later({ items }: { readonly items: InboxProjection["later"] }) {
 			</details>
 		</section>
 	);
-}
-
-function progressSummary(count: number | undefined, unavailable: boolean) {
-	if (count !== undefined) {
-		return `${count} in progress`;
-	}
-	return unavailable ? "Fleet unavailable" : "Loading Fleet…";
-}
-
-function goalsSummary(count: number | undefined, failed: boolean) {
-	if (count !== undefined) {
-		return `${count} active goals`;
-	}
-	return failed ? "Goals unavailable" : "Loading goals…";
 }

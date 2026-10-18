@@ -1,3 +1,4 @@
+import { MIGRATIONS_DIRECTORY } from "@shivaedev/effect-sql/migrationConvention.ts";
 import { defineConfig } from "@shivaedev/quality/config.ts";
 import { catalogOnly } from "#quality/catalogOnly.ts";
 import { catalogOverrides } from "#quality/catalogOverrides.ts";
@@ -9,8 +10,14 @@ import { workspaceSection } from "#quality/workspaceSection.ts";
 export default defineConfig({
 	exceptions: [
 		{
-			files: ["examples/starter/src/client/ui/chart.tsx", "packages/work-board/src/client/react/components/ui/select.tsx"],
-			reason: "The shadcn CLI owns these stock chart and select modules, including their size.",
+			files: [
+				"examples/starter/src/client/ui/chart.tsx",
+				"packages/work-board/src/client/react/components/ui/command.tsx",
+				"packages/work-board/src/client/react/components/ui/dialog.tsx",
+				"packages/work-board/src/client/react/components/ui/input-group.tsx",
+				"packages/work-board/src/client/react/components/ui/select.tsx",
+			],
+			reason: "The shadcn CLI owns these stock chart, command, dialog, input group and select modules, including their size.",
 			rules: ["structure/max-lines"],
 		},
 		{
@@ -78,6 +85,7 @@ export default defineConfig({
 		"files/named-after-export": {
 			options: {
 				toolOwned: [
+					`**/${MIGRATIONS_DIRECTORY}/`,
 					"*.config.*",
 					"*.d.ts",
 					"*.d.mts",

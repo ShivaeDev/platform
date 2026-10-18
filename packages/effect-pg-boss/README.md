@@ -37,6 +37,20 @@ Use a distinct literal identifier for each jobs service. The service and its Lay
 
 The work separates naturally: declare the application services once, define a queue and its worker for each feature, provide the complete registration list at the runtime boundary, and enqueue from ordinary application Effects.
 
+### Once per database: install the schema
+
+`installPgBossSchema` installs or upgrades pg-boss through the provided Effect SQL client without starting workers or schedules. Run it outside an application transaction, in a release step or the `fixtures` Effect of `makePostgresTestLayer`, so stories inherit the schema from the migrated template:
+
+```ts
+import { installPgBossSchema } from "@shivaedev/effect-pg-boss/schema.ts";
+
+const jobsFixture = installPgBossSchema({ schema: "app_jobs" });
+```
+
+The Effect requires `SqlClient` and fails with `PgBossError` whose `operation` is `"install"`. The schema defaults to `"pgboss"`. Repeating installation preserves existing jobs. Upgrades apply pg-boss's migration SQL and concurrent index builds, including partition indexes, before returning. Pending index commands are recorded in pg-boss's BAM table in the same transaction as the schema version. A retry resumes unfinished commands and repairs invalid indexes left by failed builds, even when the schema version has already committed.
+
+After installation, pass the same schema and `migrate: false` to `Jobs.layer` to start producers and workers without schema installation or migration. Startup fails if the schema is missing. Ordinary Layer startup retains pg-boss's default migration behavior when `migrate` is omitted.
+
 ### Once per application: the jobs service
 
 Define the application's jobs service and worker dependencies in `services.ts`:
@@ -114,7 +128,7 @@ const Compare = defineQueue({
 
 This worker runs up to five handlers at once. `worker` accepts pg-boss 12's `WorkOptions`, including `batchSize`, `localConcurrency`, `pollingIntervalSeconds`, `notifyPollingIntervalSeconds` and the burst options. Explicit options override the adapter defaults. pg-boss ignores `burstWhenBatchFull` at `batchSize: 1`; keep a batch size of at least two for immediate backlog draining. Each job is settled separately through pg-boss: success completes that job, and a typed failure, payload decoding failure or defect fails only that job with its own error. A failed job does not spend the retries of other jobs in its batch or rerun their successful handlers. Interruption stops the batch and leaves the interrupted and remaining jobs to pg-boss expiry; handlers must still tolerate repeated side effects across retries and interrupted attempts.
 
-Apps do not need to shorten the polling backstop to drain a backlog. With `notify: true` and an active LISTEN/NOTIFY listener, pg-boss wakes workers on notifications and defaults to a 30-second backstop (`notifyPollingIntervalSeconds`). Without active notifications its base poll defaults to two seconds (`pollingIntervalSeconds`). Bursting takes precedence over both intervals. Override the backstop only when the application needs a different bound for work that becomes runnable without a notification, such as delayed jobs or retries.
+Apps do not need to shorten the polling backstop to drain a backlog. With `notify: true` and an active LISTEN/NOTIFY listener, pg-boss wakes workers on notifications and defaults to a 30-second backstop (`notifyPollingIntervalSeconds`). Without active notifications its base poll defaults to two seconds (`pollingIntervalSeconds`). Bursting takes precedence over both intervals. After an adapter worker fails a job, it reads pg-boss's stored retry time and schedules a wake for every native worker in its registration at that time, so an idle sibling can retry while another worker is busy. The wake belongs to the worker Layer's scope and is canceled when that scope closes. Override the backstop when the application needs a different bound for other work that becomes runnable without a notification, such as delayed jobs or retries initiated outside the adapter worker.
 
 ### Size batches against expiry
 
@@ -379,6 +393,7 @@ Import the module that defines the name; the package has no root entry.
 | --- | --- |
 | `@shivaedev/effect-pg-boss/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
 | `@shivaedev/effect-pg-boss/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
+| `@shivaedev/effect-pg-boss/schema.ts` | `installPgBossSchema`; `PgBossSchemaOptions` |
 | `@shivaedev/effect-pg-boss/health.ts` | `deadLetterQueueName`; `JobsHealth`, `QueueCounts`, `QueueHealth` |
 | `@shivaedev/effect-pg-boss/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
 | `@shivaedev/effect-pg-boss/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |

@@ -47,46 +47,50 @@ function hostParts(boardDir: string, provider: EngineProvider["transport"]): Hos
 	};
 }
 
-export const hostFixture = Effect.fn("FleetFixture.hostFixture")(function* (
-	files: Readonly<Record<string, string>> = {},
-	config: Partial<HostConfig> = {},
+const makeHost = Effect.fn("FleetFixture.makeHost")(function* (
+	files: Readonly<Record<string, string>>,
+	config: Partial<HostConfig>,
 	directoryPrefix = "fleet-host-",
 ) {
 	const database = yield* PostgresTestDatabase;
-	const fixture = yield* Effect.acquireRelease(
-		Effect.sync(() => {
-			const boardDir = mkdtempSync(join(tmpdir(), directoryPrefix));
-			const settings: HostConfig = {
-				intervalSeconds: 1,
-				namespace: STORAGE_NAMESPACE,
-				provider: "local",
-				quota: "unlimited",
-				...config,
-				database: { ...config.database, url: Redacted.value(database.url) },
-			};
-			const configFile = join(boardDir, CONFIG_FILE);
-			writeFileSync(configFile, JSON.stringify(settings));
-			for (const [file, source] of Object.entries(files)) {
-				writeFileSync(join(boardDir, file), source);
-			}
-			return { boardDir, configFile, host: resolveHost(boardDir, settings, configFile) };
-		}),
-		({ boardDir: folder }) => Effect.sync(() => rmSync(folder, { force: true, recursive: true })),
-	);
-	const provider = engineProvider({}, []);
-	return {
-		configFile: fixture.configFile,
-		host: fixture.host,
-		parts: hostParts(fixture.boardDir, provider.transport),
-		provider,
-		write: (file: string, source: string) => writeFileSync(join(fixture.boardDir, file), source),
-	} satisfies HostFixture;
+	return yield* Effect.sync(() => {
+		const boardDir = mkdtempSync(join(tmpdir(), directoryPrefix));
+		const settings: HostConfig = {
+			intervalSeconds: 1,
+			namespace: STORAGE_NAMESPACE,
+			provider: "local",
+			quota: "unlimited",
+			...config,
+			database: { ...config.database, url: Redacted.value(database.url) },
+		};
+		const configFile = join(boardDir, CONFIG_FILE);
+		writeFileSync(configFile, JSON.stringify(settings));
+		for (const [file, source] of Object.entries(files)) {
+			writeFileSync(join(boardDir, file), source);
+		}
+		const provider = engineProvider({}, []);
+		return {
+			configFile,
+			host: resolveHost(boardDir, settings, configFile),
+			parts: hostParts(boardDir, provider.transport),
+			provider,
+			write: (file: string, source: string) => writeFileSync(join(boardDir, file), source),
+		};
+	});
 });
+
+function closeHost(fixture: HostFixture) {
+	return Effect.sync(() => rmSync(fixture.host.boardDir, { force: true, recursive: true }));
+}
+
+export function hostFixture(files: Readonly<Record<string, string>> = {}, config: Partial<HostConfig> = {}, directoryPrefix = "fleet-host-") {
+	return Effect.acquireRelease(makeHost(files, config, directoryPrefix), closeHost);
+}
 
 export function withHost<A, E, R>(
 	files: Readonly<Record<string, string>>,
 	config: Partial<HostConfig>,
 	use: (fixture: HostFixture) => Effect.Effect<A, E, R>,
 ) {
-	return withIsolatedDatabase(hostFixture(files, config).pipe(Effect.flatMap(use)));
+	return withIsolatedDatabase(Effect.acquireUseRelease(makeHost(files, config), use, closeHost));
 }

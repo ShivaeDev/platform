@@ -61,7 +61,7 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 }
 
 export function prepareFile(path: string, content: Buffer, versions: Readonly<Record<string, string>>) {
-	if (["src/server/dev.ts", "src/test-support/deployChild.ts"].includes(path)) {
+	if (["src/server/dev.ts", "src/test-support/adminCommand.ts", "src/test-support/deployChild.ts"].includes(path)) {
 		return Buffer.from(content.toString().replaceAll('"--conditions=source", ', ""));
 	}
 	if (path === "package.json") {

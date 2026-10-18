@@ -79,6 +79,20 @@ export const changesUntil = Effect.fn("Test.changesUntil")(function* (events: Ev
 	}
 });
 
+// macOS replays FSEvents for files created just before the watch starts, so a change naming the path can predate the write under test.
+export const changesUntilShown = Effect.fn("Test.changesUntilShown")(function* <E>(
+	events: EventStream,
+	path: string,
+	shown: Effect.Effect<boolean, E>,
+) {
+	for (;;) {
+		const hint = yield* changesUntil(events, path);
+		if (yield* shown) {
+			return hint;
+		}
+	}
+});
+
 export function waitForLibraryCount(board: RunningBoard, count: number) {
 	return eventually(
 		Effect.flatMap(

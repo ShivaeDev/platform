@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.9.0 - 2026-10-18
+
+### Added
+
+- Generated apps include light and dark shadcn tokens that meet WCAG AA for text and focus, follow the system color scheme, and offer a saved System, Light or Dark theme choice. A contrast story checks the stylesheet's text and focus pairs.
+- Generated apps include a PostgreSQL story that applies every numbered migration and checks Better Auth's configured plugins need no additional columns or tables.
+
+## 0.8.0 - 2026-10-18
+
+### Added
+
+- Generated apps serve the official pg-boss dashboard at `/admin/jobs`, with admin-only access on pages, data and assets, enforced read-only operation, and the app's existing database configuration. The generated README explains creating an admin and inspecting jobs. Startup checks that the dashboard's bundled pg-boss matches the app's installed version.
+- Generated apps include a stock shadcn Base UI Switch and a `LabelledSwitch` pattern that keeps its setting label as its accessible name while displaying On/Off separately.
+
+### Changed
+
+- Generated apps read local database setup configuration inside Effect, use the database names in `DATABASE_URL` and `TEST_DATABASE_URL`, and fail with a typed configuration error when either URL is missing.
+- New apps build their sortable notes table on TanStack Table 9: `DataTable` registers row sorting through `tableFeatures`, renders with `FlexRender` and exports `DataTableFeatures` for typed column helpers.
+- Generated apps typecheck with TypeScript 7 instead of TypeScript 6, while Quality keeps its own compiler API dependency.
+
 ## 0.7.0 - 2026-10-18
 
 ### Added

@@ -28,6 +28,7 @@ export function sessionNaming(count: number) {
 				lists += 1;
 				return [...records.values()];
 			}),
+		listSnapshot: () => Effect.sync(() => [...records.values()]),
 		load: (workId) =>
 			Effect.sync(() => {
 				loads.push(workId);

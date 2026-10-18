@@ -1,13 +1,13 @@
 import { Effect, type Scope } from "effect";
 import { SqlClient } from "effect/sql";
-import { expect } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
+import { DatabaseLifetime, type DatabaseLifetimeReadout } from "./DatabaseLifetime.ts";
 
 export const storyDatabase = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
 	const database = yield* PostgresTestDatabase;
 	const admin = yield* SqlClient.SqlClient;
-	let name = "";
+	const lifetime: DatabaseLifetimeReadout = { connectionAtAppClose: [], name: "", remainingDatabases: undefined, scopeAtAppClose: undefined };
 	let databaseScope: Scope.Scope | undefined;
 	const isolated = Effect.gen(function* () {
 		databaseScope = yield* Effect.scope;
@@ -17,17 +17,19 @@ export const storyDatabase = Effect.fnUntraced(function* <A, E, R>(effect: Effec
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const [row] = yield* sql<{ readonly name: string }>`select current_database() as name`;
-			name = row?.name ?? "";
+			if (row === undefined) {
+				return yield* Effect.die("PostgreSQL returned no story database name");
+			}
+			lifetime.name = row.name;
 			yield* Effect.addFinalizer(() =>
 				Effect.gen(function* () {
-					expect(databaseScope?.state._tag).toBe("Open");
-					expect(yield* sql`select 1 as available`.pipe(Effect.orDie)).toEqual([{ available: 1 }]);
+					lifetime.scopeAtAppClose = databaseScope?.state._tag;
+					lifetime.connectionAtAppClose = yield* sql<{ readonly available: number }>`select 1 as available`.pipe(Effect.orDie);
 				}),
 			);
-			return yield* effect;
+			return yield* effect.pipe(Effect.provideService(DatabaseLifetime, lifetime));
 		}),
 	).pipe(Effect.provideService(PostgresTestDatabase, { ...database, isolated }));
-	expect(name).toMatch(/^effect_test_/u);
-	expect(yield* admin`select datname from pg_database where datname = ${name}`).toEqual([]);
+	lifetime.remainingDatabases = yield* admin<{ readonly datname: string }>`select datname from pg_database where datname = ${lifetime.name}`;
 	return result;
 });

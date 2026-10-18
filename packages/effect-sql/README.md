@@ -275,30 +275,42 @@ PostgreSQL commit visibility decides publication even when a caller is interrupt
 
 For the generic ownership mechanism, read [commit-bound changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md). Reactivity keys are local reader invalidation; an application's cross-process or browser delivery belongs at its delivery boundary.
 
-### PostgreSQL migrations: numbered SQL Effects
+### PostgreSQL migrations: one discovered folder
+
+Application migrations live in `src/server/migrations/`. Name each file with a four-digit zero-padded sequential number, an underscore and a snake_case name, such as `0007_add_note_tags.ts`. Export the migration's SQL Effect as the default export:
 
 ```ts
-import { Migrator, SqlClient } from "effect/sql";
-import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
+import { Effect } from "effect";
+import { SqlClient } from "effect/sql";
 
-const migrateOrders = Effect.gen(function* () {
+export default Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
-  return yield* migratePostgres({
-    table: "app_migrations",
-    lockTimeout: "5 seconds",
-    loader: Migrator.fromRecord({
-      "1_create_orders": sql`create table orders (name text primary key)`.pipe(
-        Effect.asVoid,
-      ),
-      "2_seed_orders": sql`insert into orders (name) values ('Printer paper')`.pipe(
-        Effect.asVoid,
-      ),
-    }),
-  });
+  yield* sql`create table orders (name text primary key)`;
 });
 ```
 
-The first run returns `[[1, "create_orders"], [2, "seed_orders"]]`. Repeating the loader returns `[]`; adding a higher numbered migration applies the new work. Treat applied migrations as immutable and append increasing IDs.
+Run the discovered files from the application root:
+
+```ts
+import { NodeServices } from "@effect/platform-node";
+import { Effect } from "effect";
+import { migrationsFromDirectory } from "@shivaedev/effect-sql/migrationsFromDirectory.ts";
+import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
+
+const migrateOrders = migratePostgres({
+  table: "app_migrations",
+  lockTimeout: "5 seconds",
+  loader: migrationsFromDirectory(process.cwd()).pipe(Effect.provide(NodeServices.layer)),
+});
+```
+
+`migrationsFromDirectory(root)` delegates discovery to Effect's `Migrator.fromFileSystem` and requires native `FileSystem` and `Path` services. Keep the folder beside the server source when deploying it, or include it in your server build. Adding a migration means adding one file; there is no import list. The first run of `0001_create_orders.ts` returns `[[1, "create_orders"]]`; repeating it returns `[]`, and adding a higher numbered file applies the new work. Treat applied migrations as immutable.
+
+Use sequential numbers, not timestamps. Effect's Migrator skips any migration whose ID is not greater than the latest applied ID. A timestamped migration from a branch that merges late could therefore be silently skipped by native Migrator on an already-migrated database. Two branches that choose the same sequential number instead fail loudly with Effect's duplicate-ID `MigrationError` (`kind: "Duplicates"`), forcing the second branch to renumber and re-check. This package also rejects gaps below the latest applied ID, as described below.
+
+`migrationConvention.ts` exports `MIGRATIONS_DIRECTORY` and `MIGRATION_FILE_PATTERN` so template packaging and repository quality configuration share the folder and filename convention.
+
+`migratePostgres` rejects loaded migration IDs at or below the latest applied ID that are missing from the ledger with a typed native `MigrationError` (`kind: "BadState"`) naming those IDs.
 
 `migratePostgres` takes a transaction-scoped advisory lock before creating the ledger and running native Migrator. Concurrent runners on a fresh or existing ledger wait, then see the committed ledger and avoid repeating the migrations. Every runner of that ledger must use this helper and the same ledger name. The required `lockTimeout` bounds PostgreSQL lock waits; `Duration.infinity` sets the transaction's lock timeout to zero. Choose deployment and execution timeouts in the application.
 
@@ -334,6 +346,8 @@ Import the module that defines the name; there is no root entry.
 | `@shivaedev/effect-sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`. |
 | `@shivaedev/effect-sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |
 | `@shivaedev/effect-sql/transact.ts` | `invalidateOnCommit(keys)` | Records keys for its client, or invalidates immediately outside a transaction. |
+| `@shivaedev/effect-sql/migrationConvention.ts` | `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` | Application folder and four-digit sequential snake_case TypeScript filename pattern. |
+| `@shivaedev/effect-sql/migrationsFromDirectory.ts` | `migrationsFromDirectory(root)` | Discover migrations under the application root with native `FileSystem` and `Path`. |
 | `@shivaedev/effect-sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional ledger `table`, default `effect_sql_migrations`. |
 | `@shivaedev/effect-sql/assertPostgresMigrations.ts` | `assertPostgresMigrations({ loader, table? })` | Read-only readiness check of required migration IDs and names in the native ledger. |
 | `@shivaedev/effect-sql/postgresChanges.ts` | `postgresChanges(options)` | Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation. |

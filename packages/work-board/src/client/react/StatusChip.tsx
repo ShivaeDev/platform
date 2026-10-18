@@ -25,7 +25,7 @@ export function StatusChip({ status, className, ...props }: ComponentProps<"span
 	return (
 		<Badge className={cn(colors({ status: value.token }), className)} data-status-token={value.token} variant="outline" {...props}>
 			<Icon aria-hidden="true" />
-			{status}
+			{value.label}
 		</Badge>
 	);
 }

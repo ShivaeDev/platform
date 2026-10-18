@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import { diagnostics } from "@shivaedev/work-board/server/integration/diagnostics.ts";
+import { AttemptProgress } from "#AttemptProgress.ts";
 import { AttentionOwner } from "#attention.ts";
 import { BoardReport } from "#board/schema.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";
@@ -7,6 +8,7 @@ import { Checks, Decision, DecisionResponse, Delivery, Review, SupersededDecisio
 import { Preparation } from "#preparation/schema.ts";
 import { LaunchSettings, SessionObservation, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
+	...AttemptProgress.fields,
 	abandoned: Schema.optional(
 		Schema.Struct({
 			at: Schema.Number,
@@ -15,25 +17,15 @@ export const Attempt = Schema.Struct({
 			observationError: Schema.optional(Schema.String),
 		}),
 	),
-	briefSteers: Schema.optional(
-		Schema.Array(
-			Schema.Struct({
-				error: Schema.optional(Schema.String),
-				requestedAt: Schema.Number,
-				revision: Schema.String,
-				steeredAt: Schema.optional(Schema.Number),
-			}),
-		),
-	),
 	checkFailures: Schema.optional(Schema.Array(Schema.String)),
 	missingSince: Schema.optional(Schema.Number),
 	observationRetries: Schema.optional(Schema.Number),
 	operationId: Schema.String,
 	output: Schema.optional(Schema.String),
 	overLimit: Schema.optional(Schema.Boolean),
-	progress: Schema.optional(Schema.Struct({ at: Schema.Number, signature: Schema.String })),
 	prompt: Schema.optional(Schema.String),
 	providerFailures: Schema.optional(Schema.Number),
+	publishedRecovery: Schema.optional(Schema.Boolean),
 	readRetry: Schema.optional(Schema.Struct({ error: Schema.String, failures: Schema.Number, retryAt: Schema.Number })),
 	receipt: Schema.optional(SessionReceipt),
 	reviewHead: Schema.optional(Schema.String),
@@ -43,15 +35,6 @@ export const Attempt = Schema.Struct({
 	sessionId: Schema.optional(Schema.String),
 	sessionUnusable: Schema.optional(Schema.Boolean),
 	settings: Schema.optional(LaunchSettings),
-	stallRecovery: Schema.optional(
-		Schema.Struct({
-			count: Schema.Number,
-			interruptedAt: Schema.optional(Schema.Number),
-			interruptRequestedAt: Schema.optional(Schema.Number),
-			lastActionAt: Schema.Number,
-			steeredAt: Schema.optional(Schema.Number),
-		}),
-	),
 	status: Schema.Literals(["submitting", "accepted", "running", "completed", "failed", "interrupted"]),
 	submissionTimedOut: Schema.optional(Schema.Boolean),
 	submissionUncertain: Schema.optional(Schema.Boolean),
@@ -101,7 +84,12 @@ const cycleFields = {
 };
 export const FleetCycleSnapshot = Schema.Struct({ ...cycleFields, archivedAt: Schema.Number });
 export type FleetCycleSnapshot = typeof FleetCycleSnapshot.Type;
-export const FleetRecord = Schema.Struct({ ...cycleFields, history: Schema.optional(Schema.Array(FleetCycleSnapshot)), workId: Schema.String });
+export const FleetRecord = Schema.Struct({
+	...cycleFields,
+	history: Schema.optional(Schema.Array(FleetCycleSnapshot)),
+	pendingContinuation: Schema.optional(Schema.String),
+	workId: Schema.String,
+});
 export type FleetRecord = typeof FleetRecord.Type;
 export type DispatchNow = NonNullable<FleetRecord["dispatchNow"]>;
 export function executing(record: FleetRecord): boolean {
@@ -118,6 +106,7 @@ export const FleetView = Schema.Struct({
 	links: Schema.Array(Schema.String),
 	outcome: FleetRecord.fields.outcome,
 	overLimit: Schema.optional(Schema.Boolean),
+	recovery: Schema.optional(Schema.String),
 	sessions: Schema.Array(
 		Schema.Struct({
 			...SessionReceipt.fields,

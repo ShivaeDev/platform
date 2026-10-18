@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import { expect } from "vitest";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { credentials } from "#test-support/authHttp.ts";
@@ -15,57 +14,31 @@ export const cookieApp = storyKit({
 	layer: postgres,
 	name: "cookie auth",
 	stages: ["account"],
-	verbs: ({ baseUrl, auth: { client }, fetch }, story) => {
-		function post(path: string, body: object) {
-			return Effect.promise(async () => {
-				const response = await fetch(
-					new Request(`${baseUrl}/api/auth/${path}`, {
-						body: JSON.stringify(body),
-						headers: { "content-type": "application/json" },
-						method: "POST",
-					}),
-				);
-				expect(response.status).toBe(200);
-				await response.text();
-			});
-		}
-		return {
-			sessionIs: (email: string | null) =>
-				Effect.promise(async () => {
-					story.tell(email === null ? "Alice has no session" : "Alice reads her cookie session");
-					const response = await fetch(new Request(`${baseUrl}/api/auth/get-session`, { cache: "no-store" }));
-					expect(response.ok).toBe(true);
-					expect(response.status).toBe(200);
-					expect(response.headers.get("content-type")).toContain("application/json");
-					expect(response.headers.get("set-cookie")).toBeNull();
-					const session: unknown = await response.json();
-					const result = await client.getSession();
-					expect(result.error).toBeNull();
-
-					if (email === null) {
-						expect(session).toBeNull();
-						expect(result.data).toBeNull();
-					} else {
-						expect(session).toMatchObject({ user: { email } });
-						expect(result.data).toMatchObject({ user: { email } });
-					}
-				}),
-			signIn: () => {
+	verbs: ({ baseUrl, auth: { client }, fetch }, story) => ({
+		session: () =>
+			Effect.promise(async () => {
+				story.tell("Alice reads her cookie session");
+				const response = await fetch(new Request(`${baseUrl}/api/auth/get-session`, { cache: "no-store" }));
+				return { response, result: await client.getSession(), session: await response.json() };
+			}),
+		signIn: () =>
+			Effect.promise(() => {
 				story.tell("Alice signs in");
-				return Effect.promise(async () => {
-					expect((await client.signIn.email(alice)).error).toBeNull();
-				});
-			},
-			signOut: () => {
+				return client.signIn.email(alice);
+			}),
+		signOut: () =>
+			Effect.promise(async () => {
 				story.tell("Alice signs out");
-				return post("sign-out", {});
-			},
-			signUp: () => {
+				const response = await fetch(
+					new Request(`${baseUrl}/api/auth/sign-out`, { body: "{}", headers: { "content-type": "application/json" }, method: "POST" }),
+				);
+				await response.text();
+				return response.status;
+			}),
+		signUp: () =>
+			Effect.promise(() => {
 				story.tell("Alice signs up");
-				return Effect.promise(async () => {
-					expect((await client.signUp.email(alice)).error).toBeNull();
-				});
-			},
-		};
-	},
+				return client.signUp.email(alice);
+			}),
+	}),
 });

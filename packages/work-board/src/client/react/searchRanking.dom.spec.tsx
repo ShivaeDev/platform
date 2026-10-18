@@ -7,6 +7,8 @@ import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
 
+const STATUS_LABELS: Readonly<Record<string, string>> = { active: "Active", deferred: "Deferred", done: "Done", planned: "Planned" };
+
 for (const { fixture, first, id, queries, status } of [
 	{ first: "A running watch sees reviews finish", fixture: searchRankingFixture(), id: "", queries: ["watch"], status: "planned" },
 	...["active", "done", "deferred"].map((itemStatus) => ({
@@ -31,15 +33,15 @@ for (const { fixture, first, id, queries, status } of [
 		`ranks status first, then title/ID relevance and recency (${status}, ${id})`,
 		[searchScreen(files, { home: undefined, modified })],
 		function* ({ findElement, readText, findElements, typeText }) {
-			const field = findElement("input");
+			const field = findElement<HTMLInputElement>('#search-dialog [role="combobox"]', document);
 			if (!field) {
 				throw new Error("Missing palette input");
 			}
 			for (const query of queries) {
 				typeText(field, query);
-				yield* Effect.promise(() => eventually(() => expect(readText('[role="option"] strong')).toBe(first)));
-				const rows = [...findElements('[role="option"]')];
-				expect(readText("[data-status-token]", rows[0])).toBe(status);
+				yield* Effect.promise(() => eventually(() => expect(readText('#search-dialog [role="option"] strong', document)).toBe(first)));
+				const rows = [...findElements('#search-dialog [role="option"]', document)];
+				expect(readText("[data-status-token]", rows[0])).toBe(STATUS_LABELS[status]);
 				if (query === "watch") {
 					const sources = [...new Set(rows.map((row) => readText("strong", row)))];
 					expect(sources).toEqual([

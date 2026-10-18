@@ -15,6 +15,7 @@ function launched(record: FleetRecord, attempt: Attempt): FleetRecord {
 		mergeReadyAt: undefined,
 		mergeReadyHead: undefined,
 		pendingAnswers: undefined,
+		pendingContinuation: undefined,
 		stage: "executing",
 	};
 }

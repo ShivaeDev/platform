@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0 - 2026-10-18
+
+### Added
+
+- `authAction` in `client/authAction.ts` binds Better Auth client promises to native action atoms for `useAction`, with pending state and typed returned failures. Rejected promises fail with the exported `AuthActionUnavailable` error; `AuthActionResult` describes the structural client result.
+
+## 0.5.1 - 2026-10-18
+
+### Fixed
+
+- Route loaders and `loadQuery` recheck the owning `SessionBoundary` session once when a query fails with `Unauthorized`, so sign-in redirects can see an ended session.
+
 ## 0.5.0 - 2026-10-18
 
 ### Breaking

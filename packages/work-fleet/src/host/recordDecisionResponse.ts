@@ -6,11 +6,12 @@ import { BoardGateway, type Decision } from "#policy.ts";
 
 const { DraftInput, makeResponse, publish, Responses, responseMarkdown } = responsesApi;
 
-export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionResponse")(function* (
+export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionResponse")(function* <E = never, R = never>(
 	root: string,
 	decision: Decision & { readonly published: BoardDecision },
 	action: "retry" | "release",
 	text?: string,
+	beforePublish?: (responseId: string) => Effect.Effect<void, E, R>,
 ) {
 	const responses = yield* Responses;
 	const board = yield* BoardGateway;
@@ -21,6 +22,7 @@ export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionRespons
 	}
 	const id = `response.fleet-${action}.${published.questionId}`;
 	if (reading._tag === "Response" && reading.response.id === id) {
+		yield* beforePublish?.(id) ?? Effect.void;
 		return id;
 	}
 	const input = yield* Schema.decodeUnknownEffect(DraftInput)({
@@ -32,6 +34,7 @@ export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionRespons
 		...(reading._tag === "Response" ? { supersedes: reading.response.id } : {}),
 		type: "answer",
 	}).pipe(Effect.mapError(() => new BadRequest({ message: "Invalid Board response; text must not exceed 32768 characters" })));
+	yield* beforePublish?.(id) ?? Effect.void;
 	if (decision.worker === undefined && text === undefined) {
 		return (yield* responses.record(input)).id;
 	}

@@ -8,12 +8,15 @@ import { readDaemonLayer } from "#test/readDaemon.ts";
 
 const { DAEMON_PORT } = diagnosticsApi;
 
-export const discoveryDaemon = Effect.fn("DaemonStory.discoveryDaemon")(function* (fixture: HostFixture) {
+export const discoveryDaemon = Effect.fn("DaemonStory.discoveryDaemon")(function* (fixture: HostFixture, port = 0) {
 	const scope = yield* Scope.make();
 	const close = Scope.close(scope, Exit.void);
 	yield* Effect.addFinalizer(() => close);
 	const subscribed = Promise.withResolvers<void>();
-	const context = yield* Layer.buildWithScope(readDaemonLayer(fixture.host, { onSnapshot: () => subscribed.resolve(), parts: fixture.parts }), scope);
+	const context = yield* Layer.buildWithScope(
+		readDaemonLayer(fixture.host, { onSnapshot: () => subscribed.resolve(), parts: fixture.parts, port }),
+		scope,
+	);
 	const address = Context.get(context, HttpServer.HttpServer).address;
 	if (!NetAddress.isInetAddress(address)) {
 		return yield* Effect.die("Expected a TCP Fleet daemon");

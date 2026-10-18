@@ -31,7 +31,7 @@ export function aResultAwaitingReview() {
 }
 
 export function aHandoffTask(source: string, file = "items/keyboard.md", enabled = true) {
-	return boardStory.traits(projectFiles({ [file]: source }, "a task awaits reviewed handoff direction"), responsesEnabled(enabled));
+	return boardStory.traits(projectFiles({ [file]: source }, "a task awaits reviewed handoff direction"), ...(enabled ? [responsesEnabled()] : []));
 }
 
 export function anUnreadableSource(file: string) {

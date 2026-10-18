@@ -4,11 +4,12 @@ import { ByteSize, Config, Effect, Layer, Option, Schema } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/http";
 import { type Rpc, RpcSerialization, RpcServer } from "effect/rpc";
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
-import type { AppHostOptions, AppHttpHostOptions, AppLocalHostOptions } from "#server/appHost.ts";
+import type { AppHttpHostOptions } from "#server/appHost.ts";
 import { boundedRpcRequest } from "#server/boundedRpcRequest.ts";
 import type { databaseLayer } from "#server/databaseLayer.ts";
 import { healthRoute } from "#server/healthRoute.ts";
 import type { HostOptions, HostPolicy } from "#server/hostOptions.ts";
+import type { MigrationOptions } from "#server/MigrationOptions.ts";
 import { otlpTracing } from "#server/otlpTracing.ts";
 import { RedactionPolicy } from "#server/RedactionPolicy.ts";
 import { redactingDiagnostics } from "#server/redactingDiagnostics.ts";
@@ -103,9 +104,8 @@ export function migratedHost<
 	TMigrations,
 	TSession extends SessionShape,
 >(
-	options:
-		| AppHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>
-		| AppLocalHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations>,
+	options: HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+		HostPolicy<TSession> & { readonly migrations: MigrationOptions<TMigrations> },
 	database: ReturnType<typeof databaseLayer<TMigrations>>,
 ) {
 	const services = Layer.mergeAll(options.services ?? Layer.empty);

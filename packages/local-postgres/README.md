@@ -7,14 +7,13 @@ Make development and integration tests share one persistent local PostgreSQL ser
 A setup command should make a machine ready to work without erasing the work already on it. Reimplementing PostgreSQL startup in every repository makes that promise harder to keep. This package gives a setup script one place to prepare the service and its databases:
 
 ```ts
-import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
+import { localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
 
-const development = `${localServer}/example_dev`;
-assertLocalDatabase(development, ["example_dev"]);
+const development = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
 localPostgres(process.env).prepareDatabases([development]);
 ```
 
-The application chooses `example_dev`. Preparation can run again without losing the data already in the database.
+The application supplies its configured database URL. Preparation checks that the target is local and can run again without losing the data already in the database.
 
 ## Using it
 
@@ -23,12 +22,29 @@ The application chooses `example_dev`. Preparation can run again without losing 
 There are three separate responsibilities:
 
 1. The **service** is PostgreSQL running on the local machine. This package prepares access to it.
-2. A **database** is an application-chosen name on that service. This package creates missing databases; the application explicitly permits their names.
+2. A **database** is an application-chosen name on that service. This package creates missing databases; the application chooses their names through configuration or a fixed allowlist.
 3. The **schema and data** belong to the application. Its setup script runs migrations, loads fixtures or seeds data after preparation.
 
 `localPostgres(environment)` returns three synchronous functions: `startPostgres`, `prepareDatabases` and `sql`. Use them in setup tooling. Use your application's database client and `@shivaedev/effect-sql` for persistence and migrations in an Effect application.
 
-### 1. Once per application: choose and validate the databases
+### 1. Once per application: choose the databases
+
+`prepareDatabases`, `startPostgres` and `sql` each reject remote hosts, ports other than 55432 and redirecting connection parameters: `host`, `hostaddr`, `port`, `dbname` and `service`. Setup scripts can rely on these local-target checks.
+
+When database names come from the application's configured URLs, pass those URLs directly to preparation:
+
+```ts
+import { localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
+
+const development = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
+const tests = process.env.TEST_DATABASE_URL ?? `${localServer}/example_test`;
+
+localPostgres(process.env).prepareDatabases([development, tests]);
+```
+
+Generated applications use this configuration-driven approach. An allowlist built from the same URLs adds no restriction; preparation's own local-target check is the guard.
+
+Use `assertLocalDatabase` when the setup script owns a fixed set of database names, as this repository's `script/setup-database.ts` does. Its allowlist restricts configuration to the names the script intends to touch:
 
 ```ts
 import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
@@ -43,9 +59,7 @@ const postgres = localPostgres(process.env);
 postgres.prepareDatabases([development, tests]);
 ```
 
-This is a complete preparation script for two application-owned databases. `assertLocalDatabase` checks the name against the list the caller supplies. It rejects a remote host, the wrong port, a different database name or any redirecting connection parameter: `host`, `hostaddr`, `port`, `dbname` or `service`. Preparation and SQL execution also reject remote database targets.
-
-Keep the explicit name checks even though the preparation functions check their destinations. The application's allowlist says which database it intends to touch; service preparation does not choose that policy for it.
+`assertLocalDatabase` applies the same local-target checks and also rejects a database name outside the caller's allowlist. The fixed names above provide an independent application policy.
 
 ### 2. Once per feature: prepare its schema in application tooling
 
@@ -54,10 +68,9 @@ After `prepareDatabases`, run the application's own schema or migration entry po
 ### 3. In daily setup: prepare again and inspect with SQL
 
 ```ts
-import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
+import { localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
 
-const database = `${localServer}/example_dev`;
-assertLocalDatabase(database, ["example_dev"]);
+const database = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
 
 const postgres = localPostgres(process.env);
 postgres.prepareDatabases([database]);
@@ -67,6 +80,8 @@ console.log(postgres.sql(database, "SHOW server_version"));
 The version query returns the string `18.6`. `sql` also accepts a `URL` and returns the command's trimmed text. URLs carrying the application's `schema` and `connection_limit` settings work for this query; those settings are removed before calling PostgreSQL's client.
 
 `startPostgres(connection)` prepares the service without choosing an application database to create. Its connection defaults to `localServer`. Prefer `prepareDatabases` when the setup script needs named databases as well.
+
+On each start, setup reads `SHOW max_connections`. When the shared container allows fewer than 500 connections, setup applies `ALTER SYSTEM SET max_connections = 500`, restarts that same container, waits for readiness and confirms the setting. Existing data stays in place. A limit of 500 or higher causes no setting change or restart. If the setting cannot be applied, setup throws `PostgresSettingError` from `localConnections.ts`, with `_tag`, `container`, `setting` and the original `cause`.
 
 ### API
 

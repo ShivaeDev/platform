@@ -16,10 +16,11 @@ import { memoryFiles } from "./memoryFiles.ts";
 export interface BoardFixtureOptions {
 	readonly beforeIndex?: () => Effect.Effect<void, PlatformError.PlatformError>;
 	readonly beforeRead?: (kind: "document", url: string) => Effect.Effect<void>;
+	readonly beforeStart?: Effect.Effect<void>;
 	readonly fleet?: FleetItemsProjection;
 	readonly fleetHealth?: FleetHealth;
 	readonly fleetPort?: number;
-	readonly home: string | undefined;
+	readonly home?: string | undefined;
 	readonly index?: Effect.Effect<Snapshot, PlatformError.PlatformError>;
 	readonly modified?: ReadonlyMap<string, number>;
 	readonly writable?: boolean;
@@ -30,6 +31,7 @@ const missing = Effect.fail(new SourceFailure({ kind: "not-configured", message:
 export function inMemoryBoard(files: Readonly<Record<string, string>>, configuration?: BoardFixtureOptions) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
+			yield* configuration?.beforeStart ?? Effect.void;
 			const seeded = fleetFiles(files, configuration?.fleet);
 			const memory = yield* memoryFiles(files, configuration?.writable === true, seeded);
 			let fleetPort = configuration?.fleetPort ?? null;
@@ -46,7 +48,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 				);
 				fleetPort = daemon.port;
 			}
-			const home = configuration ? configuration.home : Object.keys(files)[0];
+			const home = configuration && "home" in configuration ? configuration.home : Object.keys(files)[0];
 			let indexed: { readonly files: Readonly<Record<string, string>>; readonly snapshot: Effect.Effect<Snapshot> } | undefined;
 			const index = Effect.gen(function* () {
 				const current = memory.files();

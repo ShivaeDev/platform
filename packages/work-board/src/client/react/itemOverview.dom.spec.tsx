@@ -30,7 +30,7 @@ screenStory.it(
 		expect(findElement(".item-introduction")?.classList.contains("sticky")).toBe(true);
 		const relationships = findElement('[aria-label="Relationships"]');
 		expect(relationships?.textContent).toContain("Ship the feature");
-		expect(readText("[data-status-token]", relationships)).toBe("blocked");
+		expect(readText("[data-status-token]", relationships)).toBe("Blocked");
 		expect(readAttribute("a", "href", relationships)).toBe("/_board/item/goal.fixture/#criterion-design");
 		expect([...findElements(".work-context h4")].map((node) => node.textContent).sort((a, b) => (a ?? "").localeCompare(b ?? ""))).toEqual([
 			"Board membership (1)",
@@ -39,7 +39,7 @@ screenStory.it(
 		]);
 		const backlinks = findElement('[aria-label="Informs backlinks"]');
 		expect([...(findElements("a", backlinks) ?? [])].map((node) => node.textContent)).toEqual(["One", "Two"]);
-		expect([...(findElements("[data-status-token]", backlinks) ?? [])].map((node) => node.textContent)).toEqual(["done", "planned"]);
+		expect([...(findElements("[data-status-token]", backlinks) ?? [])].map((node) => node.textContent)).toEqual(["Done", "Planned"]);
 		expect(readAttribute("a", "title", backlinks)).toBe("one.md:6");
 		expect(readText('[aria-label="Markdown link backlinks"] a')).toBe("Notes");
 		expect(readText()).not.toContain("Context and tools");

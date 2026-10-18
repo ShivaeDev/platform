@@ -8,6 +8,7 @@ export const USAGE = `Usage:
   quality baseline migrate [--config <file>] [--from <file>]
   quality hooks install [--config <file>] [--force]
   quality hooks uninstall
+  quality hooks status
   quality hooks pre-commit [--config <file>]
 
 lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
@@ -21,6 +22,7 @@ baseline migrate  Move a baseline from the earlier JSON format (--from, quality/
 hooks install     Install the git pre-commit hook, shared by every worktree, that runs hooks pre-commit. Keeps a hook that is not quality's
                   unless --force replaces it.
 hooks uninstall   Remove quality's pre-commit hook. Keeps a hook that is not quality's.
+hooks status      Check that git's effective hooks path runs Quality's pre-commit hook and report global chaining.
 hooks pre-commit  What the hook runs: lint, then package.json scripts typecheck and quality:commit when present.
 
 --config <file>  Config file; its directory is the repository root. Without this option, uses ./quality.config.ts when present, otherwise defaults.
@@ -30,5 +32,5 @@ Exit codes: 0 passed, 1 failed the gate, 2 could not run.`;
 export const SUBCOMMANDS: Readonly<Record<string, string>> = {
 	baseline: "baseline takes write, prune, tighten or migrate.",
 	exceptions: "exceptions takes migrate.",
-	hooks: "hooks takes install, uninstall or pre-commit.",
+	hooks: "hooks takes install, uninstall, status or pre-commit.",
 };

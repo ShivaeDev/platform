@@ -8,15 +8,15 @@ app.it("targets its own host for auth actions and session checks", [], function*
 	const auth = authClient();
 	const account = credentials("client-user");
 	expect((yield* Effect.promise(() => auth.client.getSession())).data).toBeNull();
-	expect(yield* Effect.promise(() => auth.actions.submit("sign-up", account))).toBeUndefined();
-	expect(yield* Effect.promise(() => auth.actions.submit("sign-in", account))).toBeUndefined();
+	expect((yield* Effect.promise(() => auth.client.signUp.email(account))).error).toBeNull();
+	expect((yield* Effect.promise(() => auth.client.signIn.email(account))).error).toBeNull();
 	const cookie = yield* authenticate("client-user", "sign-in/email");
 	const signedIn = authClient(cookie);
 	const session = yield* Effect.promise(() => signedIn.client.getSession());
 	expect(session.data?.user).toMatchObject({ email: account.email, name: account.name });
 	const client = yield* notes(cookie);
 	expect(yield* client.whoami()).toEqual({ email: account.email, id: session.data?.user.id, name: account.name });
-	expect(yield* Effect.promise(() => signedIn.actions.signOut())).toBeUndefined();
+	expect((yield* Effect.promise(() => signedIn.client.signOut())).error).toBeNull();
 	expect((yield* Effect.promise(() => signedIn.client.getSession())).data).toBeNull();
 	const revoked = yield* client.whoami().pipe(Effect.result);
 	expect(Result.isFailure(revoked) && revoked.failure).toBeInstanceOf(Unauthorized);

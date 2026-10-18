@@ -42,3 +42,17 @@ for (const mounts of [1, 4]) {
 		);
 	}
 }
+
+for (const completion of [Exit.void, Exit.fail("the session failed")]) {
+	screenScopeStory.it(
+		`restores the browser transport when the session scope closes with ${completion._tag}`,
+		[],
+		function* ({ openSession, close, readTransport }) {
+			const original = readTransport();
+			yield* openSession();
+			expect(readTransport()).not.toBe(original);
+			yield* close(completion);
+			expect(readTransport()).toBe(original);
+		},
+	);
+}

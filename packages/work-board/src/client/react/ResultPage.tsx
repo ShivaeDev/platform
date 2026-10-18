@@ -2,6 +2,8 @@ import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { fileUrl } from "#files/url.ts";
 import { responseUrl } from "#responses/url.ts";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
+import { LinkButton } from "./LinkButton.tsx";
+import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 import { ResultCriteria } from "./ResultCriteria.tsx";
@@ -20,15 +22,20 @@ export function ResultPage({ data }: { readonly data: ResultProjection }) {
 	));
 	return (
 		<ReadingPanel className="response-panel">
-			<h1>Review returned result · {document.identity}</h1>
-			<p>
-				<span title="A supplied claim does not establish execution or work acceptance.">
-					Result status: <b>{document.metadata.status}</b>
-				</span>
-			</p>
-			<p>
-				Current report SHA-256: <code>{data.revision}</code> · <a href={fileUrl(document.file)}>Read source</a>
-			</p>
+			<PageHeader
+				actions={<LinkButton href={fileUrl(document.file)}>Read source</LinkButton>}
+				summary={
+					<>
+						<div title="A supplied claim does not establish execution or work acceptance.">
+							Result status: <b>{document.metadata.status}</b>
+						</div>
+						<div>
+							Current report SHA-256: <code>{data.revision}</code>
+						</div>
+					</>
+				}
+				title={`Review returned result · ${document.identity}`}
+			/>
 			<DocumentMetadata document={document} />
 			<section id={shellIds.resultActions}>
 				<h2>Respond to this report</h2>

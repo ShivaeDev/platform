@@ -141,6 +141,31 @@ create.dispatch({
 
 An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result. Disable duplicate submissions or give independent work distinct native action atoms. When one caller needs its own success or failure, run the actual RPC Effect through its runtime, as the editor's `save` does; shared atom state cannot identify one invocation's completion.
 
+### Better Auth actions
+
+`authAction` from `@shivaedev/effect-react/client/authAction.ts` turns a Better Auth client call into a native action atom. Create it with the client, then pass it to `useAction` for the same `pending`, `data`, `cause`, `result` and `dispatch` shape as commands:
+
+```tsx
+const signIn = authAction((credentials: { email: string; password: string }, signal) =>
+  authClient.signIn.email(credentials, { signal }),
+);
+
+function SignInButton({ email, password }: { email: string; password: string }) {
+  const action = useAction(signIn);
+  const failure = AsyncResult.error(action.result);
+  return (
+    <>
+      <button disabled={action.pending} onClick={() => action.dispatch({ email, password })}>
+        {action.pending ? "Signing in…" : "Sign in"}
+      </button>
+      {Option.isSome(failure) && <p role="alert">Sign-in failed</p>}
+    </>
+  );
+}
+```
+
+The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Returned auth errors keep their fields in the typed failure channel. Rejected promises become `AuthActionUnavailable` with the original rejection in `cause`. The application chooses error text and what happens after success.
+
 ### Route loaders with TanStack Router
 
 TanStack Router owns routes, navigation, loader data and error components. `@shivaedev/effect-react/loadQuery.ts` supplies `loadQuery(registry, atom, loaderContext)` to read a contract query atom in the same registry as React. The atom runs through its native RPC runtime; the loader does not create another runtime or query cache.
@@ -149,17 +174,17 @@ This example assumes an application-owned `api.get.query({ id })` returning `{ i
 
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
-import { createRootRouteWithContext, createRoute, createRouter, Outlet, RouterProvider, useRouterState } from "@tanstack/react-router";
+import { createRootRouteWithContext, createRoute, createRouter, RouterProvider, useRouterState } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Predicate } from "effect";
+import type { ReactNode } from "react";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
+import { useLoaderQuery } from "@shivaedev/effect-react/client/useLoaderQuery.ts";
 import { api } from "./notes-client.ts";
 
 const registry = AtomRegistry.make();
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()({
-  component: Shell,
-});
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()();
 const note = createRoute({
   getParentRoute: () => root,
   path: "/notes/$id",
@@ -171,6 +196,7 @@ const router = createRouter({
   context: { registry },
   routeTree: root.addChildren([note]),
   defaultPendingMs: Infinity,
+  InnerWrap: Shell,
 });
 
 declare module "@tanstack/react-router" {
@@ -179,13 +205,13 @@ declare module "@tanstack/react-router" {
   }
 }
 
-function Shell() {
+function Shell({ children }: { readonly children: ReactNode }) {
   const pending = useRouterState({ select: (state) => state.isLoading });
-  return <main>{pending && <p>Loading…</p>}<Outlet /></main>;
+  return <main>{pending && <p>Loading…</p>}{children}</main>;
 }
 function Note() {
-  const row = note.useLoaderData();
-  return <h1>{row.title}</h1>;
+  const query = useLoaderQuery(api.get.query(note.useParams()), note.useLoaderData());
+  return <h1>{query.data.title}</h1>;
 }
 function Failure({ error }: ErrorComponentProps) {
   return <p role="alert">{Predicate.isTagged(error, "NoteMissing") ? "Note missing" : "Could not load"}</p>;
@@ -195,7 +221,11 @@ export function App() {
 }
 ```
 
-`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution.
+`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution even when the route delays mounting for 650 ms, beyond the registry’s idle window. A DOM screen story proves the first render has the loaded value and the loopback RPC handler runs once.
+
+`useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. For a loader-backed editor, pass the loader value as `useEditor({ ...config, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
+
+`SessionBoundary` gives idle atoms the default 400 ms window used by atom-react’s default registry. `loadQuery` also mounts its atom until a component commits its `useQuery` or `useLoaderQuery` subscription, or the loader’s abort signal ends its route ownership. No per-query `timeToLive` is needed. Leaving an unread route releases that mount; a DOM story verifies the atom is gone after the idle window.
 
 `loadQuery` waits through a native query refresh instead of returning its retained success. Typed failures are thrown directly, so the route can inspect `_tag` rather than an Effect fiber wrapper. Defects remain failed Promises. TanStack's loader `abortController` cancels the waiting subscription and rejects with `name: "AbortError"`; other readers of the same query can still complete. The application owns the registry's lifetime and disposes it when its client or session ends. Use the same registry for router context and `RegistryContext.Provider`.
 
@@ -443,7 +473,23 @@ it("renders a query and refetches it after a command through a test RPC layer", 
 });
 ```
 
-`render(node)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` retries the assertion for up to three seconds, allowing pending responses to settle inside `act` between attempts; it throws the last assertion failure on timeout. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
+`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` retries the assertion for up to three seconds, allowing pending responses to settle inside `act` between attempts; it throws the last assertion failure on timeout. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
+
+For a boundary fallback test, keep the warnings guard and declare the caught error inside the test. `expectCaughtError(predicate)` returns an `onCaughtError` handler that accepts matching errors without logging them. The guard fails if the handler receives any other error or the expected error never arrives. Other console errors and React warnings still fail the guard.
+
+```tsx
+const warnings = expectNoReactWarnings();
+
+screenStories.it("shows the route failure", [], async () => {
+  const onCaughtError = warnings.expectCaughtError((error) => error instanceof RouteFailure);
+  const view = await render(<RouteFailureScreen />, { onCaughtError });
+  try {
+    expect(view.container.querySelector('[role="alert"]')?.textContent).toBe("Route unavailable");
+  } finally {
+    await view.unmount();
+  }
+});
+```
 
 The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs.
 

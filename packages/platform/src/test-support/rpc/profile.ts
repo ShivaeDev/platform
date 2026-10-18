@@ -4,8 +4,9 @@ import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { AuthUnavailable } from "#errors/taxonomy.ts";
 import { Identity, SessionUser } from "#rpc/identity.ts";
 import { AuthenticatedUser } from "#rpc/middleware.ts";
+import { betterAuthSessions, type GetProviderAccounts } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import type { OriginPolicy } from "#server/rpc-server/origin.ts";
-import { authenticatedUserLayer, type SessionPolicy, type UserSessionShape } from "#server/rpc-server/session.ts";
+import { authenticatedUserLayer, type SessionPolicy, type SessionProvider, type UserSessionShape } from "#server/rpc-server/session.ts";
 
 const Api = RpcGroup.make(
 	Rpc.make("Whoami", {
@@ -13,7 +14,12 @@ const Api = RpcGroup.make(
 			identity: Schema.Struct({ id: Schema.String }),
 			identityKeys: Schema.Array(Schema.String),
 			profileKeys: Schema.Array(Schema.String),
-			user: Schema.Struct({ email: Schema.String, id: Schema.String, name: Schema.String }),
+			user: Schema.Struct({
+				email: Schema.String,
+				id: Schema.String,
+				name: Schema.String,
+				providerAccounts: Schema.optional(Schema.Array(Schema.Unknown)),
+			}),
 		}),
 	}),
 ).middleware(AuthenticatedUser);
@@ -42,7 +48,7 @@ export const profile = storyKit({
 		*policy(state) {
 			state.connection.current = yield* openProfile({
 				origin: state.origin,
-				provider: {
+				provider: state.adapter.current ?? {
 					get: () =>
 						Effect.suspend(() => {
 							state.lookups += 1;
@@ -53,10 +59,11 @@ export const profile = storyKit({
 		},
 	},
 	create: () => {
+		const adapter: { current?: SessionProvider<UserSessionShape> } = {};
 		const connection: { current?: Effect.Success<ReturnType<typeof openProfile>> } = {};
 		const origin: OriginPolicy = () => true;
 		const session: Effect.Effect<Option.Option<UserSessionShape>, AuthUnavailable> = Effect.succeed(Option.none());
-		return { connection, lookups: 0, origin, session };
+		return { adapter, connection, lookups: 0, origin, session };
 	},
 	name: "RPC profile",
 	stages: ["policy"],
@@ -76,6 +83,11 @@ export const profile = storyKit({
 export function sessionUser(user: UserSessionShape["user"]) {
 	return profile.trait("policy", "the provider has a signed-in session user", (state) => {
 		state.session = Effect.succeed(Option.some({ user }));
+	});
+}
+export function betterAuthUser(user: UserSessionShape["user"], getAccounts: GetProviderAccounts) {
+	return profile.trait("policy", "Better Auth provides the signed-in user's linked accounts", (state) => {
+		state.adapter.current = betterAuthSessions(() => Promise.resolve({ user }), getAccounts);
 	});
 }
 export const forbiddenOrigin = profile.trait("policy", "the origin policy forbids the request", (state) => {

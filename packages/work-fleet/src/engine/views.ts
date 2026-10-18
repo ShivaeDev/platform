@@ -1,4 +1,5 @@
 import { waitingOwner } from "#attention.ts";
+import { recoveryStatus } from "#engine/recoveryStatus.ts";
 import type { Attempt, FleetRecord, FleetViews } from "#model.ts";
 export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 	const items = records
@@ -13,6 +14,7 @@ export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 			links: [...(record.report === undefined ? [] : [record.report.sourcePath]), ...(record.result?.kind === "change" ? [record.result.pr] : [])],
 			outcome: record.outcome,
 			...(launchedOverLimit(record) ? { overLimit: true } : {}),
+			recovery: recoveryStatus(record.attempts, record.stage),
 			sessions: record.attempts.flatMap(sessionView),
 			stage: record.stage,
 			workId: record.workId,

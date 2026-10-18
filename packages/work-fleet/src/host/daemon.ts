@@ -1,9 +1,9 @@
-import { Context, Effect, Fiber, Layer } from "effect";
+import { Context, Deferred, Effect, Fiber, Layer, Stream } from "effect";
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { type HostParts, hostLayer, hostScheduler, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
-import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";
+import { ClientContract, DaemonContract, RPC_PATH } from "#host/daemonContract.ts";
 import { daemonHandlers } from "#host/daemonHandlers.ts";
 import { publishDaemonPort } from "#host/daemonPort.ts";
 import { watchedConfig } from "#host/liveConfig.ts";
@@ -19,12 +19,12 @@ class Scheduler extends Context.Service<Scheduler, Fiber.Fiber<void, unknown>>()
 export function daemonHostOptions(host: FleetHost, parts: HostParts = productionParts(host), port: number = DAEMON_PORT) {
 	return {
 		boardDir: host.boardDir,
-		config: { disablePreemptiveShutdown: true, host: DAEMON_HOST, port },
+		config: { disablePreemptiveShutdown: false, host: DAEMON_HOST, port },
 		group: DaemonContract,
 		handlers: Layer.merge(fleetHandlers, Layer.unwrap(daemonHandlers(host))),
 		policy: "loopback" as const,
 		rpcPath: RPC_PATH,
-		services: hostLayer(host, parts, watchedConfig(host)),
+		services: hostLayer(host, parts, watchedConfig(host), true),
 	};
 }
 
@@ -36,8 +36,32 @@ export function daemonLayer(host: FleetHost, parts: HostParts = productionParts(
 
 export function daemonHttpLayer(options: ReturnType<typeof daemonHostOptions>) {
 	const { boardDir, ...http } = options;
-	const server = appHost({ ...http, services: Layer.empty }).pipe(Layer.provideMerge(options.services));
-	return Layer.effectDiscard(publishDaemonPort(boardDir)).pipe(Layer.provideMerge(server));
+	return Layer.unwrap(
+		Effect.gen(function* () {
+			const stopping = yield* Deferred.make<void>();
+			const follow = ClientContract.toLayerHandler(
+				"daemon.follow",
+				Effect.gen(function* () {
+					const handler = yield* ClientContract.accessHandler("daemon.follow");
+					return (payload, request) => {
+						const result = handler(payload, request);
+						const stream = Stream.isStream(result) ? result : Stream.unwrap(result.pipe(Effect.map(Stream.fromQueue)));
+						return stream.pipe(Stream.interruptWhen(Deferred.await(stopping)));
+					};
+				}),
+			);
+			const handlers = follow.pipe(Layer.provideMerge(http.handlers));
+			const prepared = yield* Layer.build(handlers);
+			const server = appHost({ ...http, handlers: Layer.succeedContext(prepared), services: Layer.empty });
+			return Layer.effectDiscard(
+				Effect.gen(function* () {
+					yield* publishDaemonPort(boardDir);
+					// End subscriptions before the HTTP server waits for its open responses to close.
+					yield* Effect.addFinalizer(() => Deferred.succeed(stopping, undefined));
+				}),
+			).pipe(Layer.provideMerge(server));
+		}),
+	).pipe(Layer.provideMerge(options.services));
 }
 
 export function serveFleet(host: FleetHost, parts: HostParts = productionParts(host), port: number = DAEMON_PORT) {

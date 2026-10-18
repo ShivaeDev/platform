@@ -3,6 +3,7 @@ import { SqlClient } from "effect/sql";
 import { makeRepository, OptimisticConcurrencyError } from "@shivaedev/effect-sql/repository.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import { checkRecordAdmission } from "#storage/admission.ts";
+import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { admissionReads } from "#storage/admissionReads.ts";
 import { StorageConflict } from "#storage/errors.ts";
 import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
@@ -12,7 +13,7 @@ import { makeForeignReservations } from "#storage/makeForeignReservations.ts";
 import { type AdmissionLimits, recordModel, type Versioned } from "#storage/model.ts";
 import { nextAdmissionOrder } from "#storage/nextAdmissionOrder.ts";
 import { operationEntries } from "#storage/operationEntries.ts";
-import { readRecords } from "#storage/readRecords.ts";
+import { readRecordSnapshot, readRecords } from "#storage/readRecords.ts";
 import { inputColumns, makeRecordChildren } from "#storage/recordChildren.ts";
 import { recordShape } from "#storage/recordShape.ts";
 import { withRecordTimes } from "#storage/recordTimes.ts";
@@ -59,7 +60,10 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 	function list() {
 		return readRecords(namespace, readList()).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 	}
-	const lock = sql`select pg_advisory_xact_lock(hashtextextended(${`work_fleet_admission:${namespace}`}, 0))`.pipe(Effect.asVoid);
+	function listSnapshot() {
+		return readRecordSnapshot(readList()).pipe(Effect.provideService(SqlClient.SqlClient, sql));
+	}
+	const lock = sql`select pg_advisory_xact_lock(hashtextextended(${admissionLockKey(namespace)}, 0))`.pipe(Effect.asVoid);
 	const persist = Effect.fn("FleetStore.persist")(function* (
 		workId: string,
 		expectedVersion: number | null,
@@ -122,6 +126,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		hasLaunchRetry: () => rows.findMany({ select: ["launchRetry"] }).pipe(Effect.map((entries) => entries.some((row) => row.launchRetry !== null))),
 		insert: (record: TSchema["Type"], limits?: AdmissionLimits) => write(record.workId, null, record, limits),
 		list,
+		listSnapshot,
 		load,
 		operationEntries: (operationId: string) => operationEntries(namespace, operationId).pipe(Effect.provideService(SqlClient.SqlClient, sql)),
 	};

@@ -1,4 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
+import { X } from "lucide-react";
 import { useId, useLayoutEffect, useRef } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import { promptHeading } from "#browser/responses/cardContext.ts";
@@ -8,7 +9,7 @@ import { Button } from "#client/react/components/ui/button.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Textarea } from "#client/react/components/ui/textarea.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
-import { PromptOption } from "./PromptOption.tsx";
+import { PromptChoices } from "./PromptChoices.tsx";
 import type { useResponseForm } from "./useResponseForm.ts";
 
 type Model = ReturnType<typeof useResponseForm>["form"];
@@ -62,32 +63,22 @@ function PromptField({
 	}
 	return (
 		<fieldset className="m-0 min-w-0 space-y-3 border-0 p-0" data-mode={prompt.mode} data-prompt={prompt.id} data-source={prompt.source}>
-			<legend className="mb-1 p-0 font-semibold text-base">{choices === undefined ? title : "Your answer"}</legend>
+			<legend className="mb-1 p-0 font-semibold text-base" id={`${fieldId}-legend`}>
+				{choices === undefined ? title : "Your answer"}
+			</legend>
 			{choices === undefined && heading.rest ? <AnswerMarkdown className="text-sm" file={document.file} source={heading.rest} /> : null}
 			<p className="text-muted-foreground text-sm">{guidance}</p>
-			<div className={`grid gap-2 ${choices ? "question-choices" : ""}`}>
-				{prompt.options.map((option, choice) => (
-					<PromptOption
-						checked={answer.selected.includes(option.id)}
-						choice={choice}
-						choose={choose}
-						document={document}
-						key={option.id}
-						option={option}
-						prompt={prompt}
-					/>
-				))}
-			</div>
+			<PromptChoices choose={choose} document={document} labelledBy={`${fieldId}-legend`} prompt={prompt} selected={answer.selected} />
 			{prompt.mode !== "text" && (
 				<Button
-					className="h-auto px-0 text-muted-foreground text-xs"
 					data-clear-choices
 					disabled={answer.selected.length === 0}
 					onClick={() => change({ ...answer, selected: [] })}
 					size="sm"
 					type="button"
-					variant="link"
+					variant="ghost"
 				>
+					<X aria-hidden="true" />
 					Clear selections
 				</Button>
 			)}

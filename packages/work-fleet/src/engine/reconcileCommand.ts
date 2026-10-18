@@ -23,23 +23,29 @@ function capacityFailure(error: unknown) {
 		|| failureCode(error) === "provider-quota-unavailable"
 	);
 }
+
+const recoverFailure = Effect.fn("Fleet.recoverFailure")(function* (state: EngineState, current: Versioned<FleetRecord>, error: unknown) {
+	if (failureCode(error) === "fleet-stale") {
+		const refreshed = yield* refreshBrief(state, current, yield* state.board.get(current.value.workId));
+		if (refreshed.version !== current.version) {
+			return refreshed;
+		}
+	}
+	return yield* readRetry(state, current, error);
+});
+
 export function reconcileCommand(state: EngineState, advance: ReturnType<typeof makeAdvance>) {
 	const { load, save, decision } = state;
 	const handleFailure = Effect.fn("Fleet.handleFailure")(function* (workId: string, error: unknown) {
 		let current = yield* load(workId);
-		if (error instanceof StorageConflict || ["completed", "released", "needs-human"].includes(current.value.stage)) {
+		const continuing = current.value.pendingContinuation !== undefined;
+		if (!continuing && (error instanceof StorageConflict || ["completed", "released", "needs-human"].includes(current.value.stage))) {
 			return current;
-		}
-		if (failureCode(error) === "fleet-stale") {
-			const refreshed = yield* refreshBrief(state, current, yield* state.board.get(workId));
-			if (refreshed.version !== current.version) {
-				return refreshed;
-			}
 		}
 		if (capacityFailure(error)) {
 			return yield* save(current, { ...current.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) });
 		}
-		const retrying = yield* readRetry(state, current, error);
+		const retrying = continuing ? undefined : yield* recoverFailure(state, current, error);
 		if (retrying !== undefined) {
 			return retrying;
 		}

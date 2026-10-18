@@ -5,12 +5,13 @@ import { DocumentContext } from "./DocumentContext.tsx";
 import { DocumentCriteria } from "./DocumentCriteria.tsx";
 import { GoalPage } from "./GoalPage.tsx";
 import { GoalProgressHeader } from "./GoalProgressHeader.tsx";
-import { ItemSummary } from "./ItemSummary.tsx";
+import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 export function DocumentPage({ document, api }: { readonly document: Document; readonly api?: ShellApi | undefined }) {
 	const projectContent = api ? <GoalPage api={api} document={document} /> : <DocumentCriteria document={document} />;
 	return (
 		<DocumentView
+			actions={<ItemActions document={document} />}
 			answer={<AnswerPanel document={document} />}
 			content={document.metadata.kind === "project" ? projectContent : undefined}
 			context={<DocumentContext document={document} />}

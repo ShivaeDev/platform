@@ -1,7 +1,8 @@
-import { Hourglass, MessageCircleQuestion } from "lucide-react";
+import { ChevronDown, Hourglass, MessageCircleQuestion, Pencil } from "lucide-react";
 import { useContext, useEffect, useRef } from "react";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { answeredCopy } from "#client/responses/answeredCopy.ts";
 import { AnswerContext } from "./AnswerContext.tsx";
 import { AnswerForm } from "./AnswerForm.tsx";
@@ -82,8 +83,18 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 			)}
 			{request.open && preview && !unavailable && answered === undefined && <AnswerForm document={source} preview={preview} request={request} />}
 			{preview && !unavailable && answered !== undefined && (
-				<details className="space-y-4" data-key="change-answer">
-					<summary className="cursor-pointer select-none font-medium text-sm">Change your answer</summary>
+				<details className="group/change space-y-4" data-key="change-answer">
+					<Button
+						className="w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+						nativeButton={false}
+						render={<summary />}
+						size="sm"
+						variant="outline"
+					>
+						<Pencil aria-hidden="true" />
+						Change your answer
+						<ChevronDown aria-hidden="true" className="transition-transform group-open/change:rotate-180" />
+					</Button>
 					<AnswerForm document={source} preview={preview} request={request} />
 				</details>
 			)}

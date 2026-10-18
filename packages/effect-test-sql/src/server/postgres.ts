@@ -1,12 +1,16 @@
-import { Context, Effect, Layer, type Redacted } from "effect";
+import { Context, Effect, Layer, type Redacted, type Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { migratePostgres, type PostgresMigrationOptions } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase, type PostgresTestDatabaseService, type PostgresTestServices } from "#database.ts";
 import { connectionLimitHint } from "#internal/connectionLimitHint.ts";
 import { connection, database } from "#internal/databases.ts";
 
+export type PostgresTestLoader<E = never, R = never> = (
+	url: Redacted.Redacted<string>,
+) => Effect.Effect<unknown, E, R | PostgresTestServices | Scope.Scope>;
+
 export interface PostgresTestOptions<E = never, R = never, TFixtures = never> {
-	readonly fixtures?: Effect.Effect<unknown, E, TFixtures | PostgresTestServices>;
+	readonly fixtures?: Effect.Effect<unknown, E, TFixtures | PostgresTestServices | Scope.Scope> | PostgresTestLoader<E, TFixtures>;
 	readonly maxConnections?: number;
 	readonly migrations: PostgresMigrationOptions<R>;
 	readonly prepare?: boolean;
@@ -17,26 +21,30 @@ export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(o
 	return Layer.effectContext(
 		Effect.gen(function* () {
 			const maxConnections = options.maxConnections ?? 2;
-			const template = yield* database(options.url);
+			const empty = yield* database(options.url);
+			const template = options.prepare === false ? empty : yield* database(options.url, empty.name);
 			if (options.prepare !== false) {
 				yield* Effect.scoped(
 					Effect.gen(function* () {
 						const services = yield* Layer.build(connection(template.url, maxConnections));
 						yield* migratePostgres(options.migrations).pipe(Effect.provideContext(services));
 						if (options.fixtures !== undefined) {
-							yield* options.fixtures.pipe(Effect.provideContext(services));
+							const fixtures = typeof options.fixtures === "function" ? options.fixtures(template.url) : options.fixtures;
+							yield* fixtures.pipe(Effect.provideContext(services));
 						}
 					}),
 				);
 			}
 			const shared = yield* database(options.url, template.name);
 			const services = yield* Layer.build(connection(shared.url, maxConnections));
-			const isolated: PostgresTestDatabaseService["isolated"] = Effect.gen(function* () {
-				const clone = yield* database(options.url, template.name);
-				const context = yield* Layer.build(connection(clone.url, maxConnections));
-				return Context.add(context, PostgresTestDatabase, { isolated, url: clone.url });
-			});
-			return Context.add(services, PostgresTestDatabase, { isolated, url: shared.url });
+			const clone: PostgresTestDatabaseService["clone"] = (source) =>
+				Effect.gen(function* () {
+					const target = yield* database(options.url, source === "empty" ? empty.name : template.name);
+					const context = yield* Layer.build(connection(target.url, maxConnections));
+					return Context.add(context, PostgresTestDatabase, { clone, isolated, url: target.url });
+				});
+			const isolated = clone("migrated");
+			return Context.add(services, PostgresTestDatabase, { clone, isolated, url: shared.url });
 		}).pipe(Effect.mapError(connectionLimitHint)),
 	).pipe(Layer.provide(Reactivity.layer));
 }

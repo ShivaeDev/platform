@@ -233,6 +233,24 @@ app.it("a request continues its supplied trace", [], function* ({ request, reque
 
 Detachment only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
 
+#### Forwarding requests to a host
+
+Use `forwardingProxy` from `@shivaedev/test-story/forwardingProxy.ts` in the kit's scoped `create` or `after` hook after starting the host under test:
+
+```ts
+import { forwardingProxy } from "@shivaedev/test-story/forwardingProxy.ts";
+
+const proxy = yield* forwardingProxy(upstream, {
+  headers: {
+    host: "internal.test",
+    "x-forwarded-host": "app.example",
+    "x-forwarded-proto": "https",
+  },
+});
+```
+
+Point story requests at `proxy.url`. The proxy listens on IPv4 and IPv6 loopback on the same allocated port, forwards the request's method, path, query, body and headers to `upstream`, and returns the host's status, headers and body. It appends the connecting caller's address to `x-forwarded-for`, preserving any existing chain. The optional `headers` map overrides incoming and generated headers, including `x-forwarded-for` when the story needs a fixed chain. The proxy returns 502 if it cannot connect to the host. Both listeners close with the story's Scope.
+
 #### Reading OTLP exports
 
 Use `otlpReceiver` from `@shivaedev/test-story/otlpReceiver.ts` in a kit's scoped `create` hook. It listens on an allocated loopback port and closes with the story scope. Point the application's real exporter at `${receiver.url}/v1/traces`, then flush the exporter before reading:
@@ -499,6 +517,8 @@ verbs: ({ view, requests }, story) => screenDriver({
 
 `text(selector?)` returns rendered text from the selected element or the whole root. `value(selector)` returns the current input or textarea value. Both narrate what they read through `tell` and leave assertions to the spec. Entry narration omits the supplied value.
 
+`accessible(selector)` returns `{ name, role }` computed by `dom-accessibility-api`, including native roles and label references that take precedence over `aria-label`. It narrates the readout and uses the same single rendered target checks as other readouts. Assert on this result when checking a control's accessible name; reading its raw attributes does not compute that name. This DOM computation does not inspect a browser's accessibility tree or prove speech from a screen reader.
+
 For React, pass `act: async (action) => { await act(action); }` using React's `act`. The adapter wraps each action and flushes renderer work before checking the pending signal, including while waiting for an asynchronous response. The [React driver stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/screenDriver.dom.spec.tsx) cover a native pending atom, a rendered response and a controlled field without React warnings. The driver itself has no renderer dependency.
 
 Settlement has a live-time limit of 3 seconds, configurable with the driver's `timeoutMs` or per call with `settle({ timeoutMs })`, and fails with the current screen text and advice when that limit expires. Use the existing DOM environment and scoped `routeOutbound` routing to reach `fakeHttpService`; the driver does not install another transport. The [screen stories](src/server/screenSignals.dom.spec.ts) hold a real HTTP response across repeated renders and sign in by filling and submitting a form against a fake identity provider. These fixtures prove DOM interactions and loopback HTTP, not a browser or a production authentication system.
@@ -517,6 +537,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
 | `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
 | `fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpHold`, `FakeHttpServiceOptions` |
+| `forwardingProxy.ts` | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions` |
 | `otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
 
 ### Install and limits

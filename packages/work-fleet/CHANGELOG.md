@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.9.0 - 2026-10-18
+
+### Added
+
+- Optional `FleetIntegrations.publication(work)` returns `WorkPublication` (`branch`, `remoteBranch`, optional `pullRequest` and `pullRequestState` (`open`, `closed` or `merged`)) so hosts can supply publication evidence for lost-turn recovery. Missing or inconclusive evidence still needs a decision.
+- Optional `Attempt.publishedRecovery` records replacement of a lost turn and whether work was published. Optional `SessionFailure.threadIdle` carries provider thread state for safe recovery; `FleetView.recovery` exposes the recovery reason. Follow snapshots include the recovery reason.
+- `AttemptProgress` groups the existing worker progress, brief-steering and stall-recovery schemas.
+
+### Fixed
+
+- Start the daemon listener after its handlers are ready so reconnecting watches cannot enter an unhandled request during startup.
+- End active daemon follow subscriptions before shutting down HTTP so watches reconnect after a restart without waiting on open streams.
+- Lost accepted Codex turns check thread idleness, remote branches and all PR states before recovery. Active threads wait up to five minutes before asking; merged or closed PRs prevent relaunch. Unpublished work releases its lost execution and relaunches automatically; published work starts a repair turn on the existing branch or PR. Every loss rechecks current thread and publication state, so idle replacements and repairs with conclusive publication evidence recover automatically again. Answers to lost-turn decisions recheck safety and reach the replacement turn. Relaunch prompts keep one copy of the original brief and leave the saved brief unchanged. Status and watch display the recovery reason for the replacement turn and clear it when work advances to review.
+- Publication-backed repairs retain recovery eligibility when a replacement turn is rejected by provider capacity, so scheduled retries resume without human intervention.
+- Continuing terminal work at full execution capacity records the request and resumes its existing worker thread ahead of new prepared work, including after a restart. Fleet records expose the queued message as the optional `pendingContinuation` string.
+- Queued continuations report admission waits and stop for a normal decision when their brief changes. Archived cycles retain their decision owner and exclude queue state.
+
+## 0.8.0 - 2026-10-18
+
+### Added
+
+- `host/daemonPort.ts` exports `readDaemonPort(board, override?)` and `publishDaemonPort(board)` Effects. `host/cliOptions.ts` exports `clientPort(input)`, and `FollowOptions` accepts an optional `board` folder for discovery.
+- `areaWaiters(state, record)` in `engine/areaWaiters.ts` computes earlier eligible area waiters for engine launch admission.
+
+### Fixed
+
+- Fleet client commands discover the daemon's bound port from the Board folder's `.fleet-port` file unless `--port` overrides it. The daemon writes the file after binding, including when serving on an automatically assigned port.
+- On shutdown, the daemon removes `.fleet-port` only if it still holds that daemon's port.
+- `watch --follow` prints an error on stderr for each failed connection attempt and keeps retrying, rereading the port file after a daemon restart.
+- An explicit `watch --follow --timeout` also bounds initial connection retries, reporting the timeout and exiting with code 4 even when no daemon is reachable.
+- Fleet clients fail with a file-specific error when the Board daemon port file cannot be read.
+- Status answer hints preserve the selected `--board` and any explicit `--port` override, so the printed command answers the same daemon.
+- Reviewers reacquiring a released area wait behind earlier eligible area waiters, including when a moved PR head needs a fresh review.
+
+### Breaking
+
+- The exported CLI `port` flag changes from a number to an optional number so an omitted flag allows daemon discovery.
+- `renderStatus(current, selection?)` accepts `{ board?: string, port?: number }` instead of a numeric port argument, preserving the caller's daemon selection in answer hints.
+
 ## 0.7.0 - 2026-10-18
 
 ### Added

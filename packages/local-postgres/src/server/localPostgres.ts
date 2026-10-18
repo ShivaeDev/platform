@@ -1,5 +1,6 @@
 import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:child_process";
 import { env } from "node:process";
+import { ensureConnections } from "./localConnections.ts";
 import { sqlInContainer, startContainer } from "./localContainer.ts";
 import { type DockerEnvironment, docker } from "./localDocker.ts";
 
@@ -67,23 +68,34 @@ export function localPostgres(environment: DockerEnvironment, { attempts = 30, d
 		const server = new URL(connection);
 		server.pathname = "/postgres";
 		assertLocalDatabase(server.toString(), ["postgres"]);
+		function waitForVersion() {
+			for (let attempt = 0; attempt < attempts; attempt += 1) {
+				try {
+					return sql(server, "SHOW server_version");
+				} catch {
+					Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMillis);
+				}
+			}
+			return undefined;
+		}
+		function confirmVersion(observed: string | undefined) {
+			if (observed !== "18.6") {
+				throw new Error("Expected local PostgreSQL 18.6. Check the existing service; setup never removes containers or data.");
+			}
+		}
 		let version: string | undefined;
 		try {
 			version = sql(server, "SHOW server_version");
 		} catch {
 			startContainer(localDocker);
-			for (let attempt = 0; attempt < attempts; attempt += 1) {
-				try {
-					version = sql(server, "SHOW server_version");
-					break;
-				} catch {
-					Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMillis);
-				}
-			}
+			version = waitForVersion();
 		}
-		if (version !== "18.6") {
-			throw new Error("Expected local PostgreSQL 18.6. Check the existing service; setup never removes containers or data.");
-		}
+		confirmVersion(version);
+		ensureConnections(
+			localDocker,
+			(query) => sql(server, query),
+			() => confirmVersion(waitForVersion()),
+		);
 	}
 
 	function prepareDatabases(values: readonly string[]) {

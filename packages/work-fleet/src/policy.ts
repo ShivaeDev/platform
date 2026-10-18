@@ -129,9 +129,16 @@ export interface FleetConfiguration {
 	readonly workerGuidance?: string;
 }
 export class FleetPolicy extends Context.Service<FleetPolicy, FleetConfiguration>()("@shivaedev/work-fleet/FleetPolicy") {}
+export interface WorkPublication {
+	readonly branch: string;
+	readonly pullRequest?: string | undefined;
+	readonly pullRequestState?: "open" | "closed" | "merged" | undefined;
+	readonly remoteBranch: boolean;
+}
 export class FleetIntegrations extends Context.Service<
 	FleetIntegrations,
 	{
+		readonly publication?: (work: BoardWork) => Effect.Effect<WorkPublication, FleetError>;
 		readonly main: (preparation: Preparation) => Effect.Effect<MainObservation, FleetError>;
 		readonly result: (work: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetError>;
 		readonly checks: (work: BoardWork, result: WorkResult) => Effect.Effect<Checks, FleetError>;

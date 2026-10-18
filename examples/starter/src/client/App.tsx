@@ -1,9 +1,19 @@
 import type { Auth } from "./auth.ts";
 import { SessionApp } from "./SessionApp.tsx";
+import { ThemeToggle } from "./ThemeToggle.tsx";
 
 type SessionProps = Parameters<typeof SessionApp>[0];
 
-export function App({ auth, connect, history }: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history">) {
+export function App(props: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history">) {
+	return (
+		<>
+			<ThemeToggle />
+			<SessionContent {...props} />
+		</>
+	);
+}
+
+function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history">) {
 	const session = auth.client.useSession();
 	if (session.isPending) {
 		return (

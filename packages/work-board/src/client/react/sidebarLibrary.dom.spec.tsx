@@ -62,21 +62,22 @@ screenStory.it(
 			"/notes/slug.md",
 		),
 	],
-	function* ({ openDetails, click, choose, navigate, readText, findElement, findElements }) {
+	function* ({ openDetails, click, chooseOption, navigate, readText, findElement, findElements }) {
 		yield* Effect.promise(() => navigate("/_board/library"));
 		yield* Effect.promise(() => eventually(() => expect(readText('#doc a[href="/notes/slug.md"]')).toBe("A readable title")));
 		expect(findElement('#doc a[href="/responses/decision.md"]')).toBeNull();
 		expect(readText("#doc")).toContain("Show Fleet records (1)");
-		choose("#doc label:has(select) select", "task");
+		const [kind, status] = findElements('#doc [role="combobox"]');
+		yield* Effect.promise(() => chooseOption(kind, "task"));
 		yield* Effect.promise(() => eventually(() => expect(findElement('#doc a[href="/question.md"]')).toBeNull()));
-		const selects = findElements<HTMLSelectElement>("#doc select");
-		choose(selects[1], "active");
+		yield* Effect.promise(() => chooseOption(status, "Active"));
 		yield* Effect.promise(() => eventually(() => expect(findElements("#doc li a")).toHaveLength(1)));
-		choose(selects[0], "");
-		choose(selects[1], "");
-		click('#doc input[type="checkbox"]');
+		yield* Effect.promise(() => chooseOption(kind, "All"));
+		yield* Effect.promise(() => chooseOption(status, "All"));
+		yield* Effect.promise(() => eventually(() => expect(findElement('#doc a[href="/question.md"]')).not.toBeNull()));
+		click('#doc [role="checkbox"]');
 		yield* Effect.promise(() => eventually(() => expect(readText('#doc a[href="/responses/decision.md"]')).toBe("Fleet delivery decision")));
-		choose(selects[2], "folders");
+		click([...findElements('#doc [role="group"] button')].find((button) => button.textContent === "Folders"));
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc summary")).toContain("notes")));
 		expect(findElement('#doc a[href="/notes/slug.md"]')).toBeNull();
 		openDetails("#doc details");

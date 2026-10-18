@@ -227,6 +227,7 @@ quality baseline tighten [--config <file>] [--staged]
 quality baseline migrate [--config <file>] [--from <file>]
 quality hooks install [--config <file>] [--force]
 quality hooks uninstall
+quality hooks status
 quality hooks pre-commit [--config <file>]
 ```
 
@@ -258,7 +259,7 @@ The TypeScript base leaves `types`, `jsx`, `paths`, `include` and output directo
 }
 ```
 
-For Vitest, install `vitest` and `happy-dom` when the repository has DOM tests, then use:
+For Vitest, install `vitest`, and add `@shivaedev/test-story` and `happy-dom` when the repository has DOM tests, then use:
 
 ```ts
 import { testProjects } from "@shivaedev/quality/testProjects.ts";
@@ -267,7 +268,9 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({ test: testProjects() });
 ```
 
-`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in happy-dom by default. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. The helper takes no options.
+`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in test-story's DOM environment by default. The DOM environment keeps Node's host constructors separate from the happy-dom window, so DOM specs need no project remap. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input.
+
+Coverage is opt-in: `testProjects({ coverage: true })` enables Vitest's V8 provider across the selected projects. Install `@vitest/coverage-v8` at the same version as Vitest. The report includes unvisited `src/**/*.ts` and `src/**/*.tsx` files and excludes declarations, tests, specs and `test-support`. To customize it, pass native Vitest coverage options, for example `testProjects({ coverage: { reporter: ["lcov", "text-summary"] } })`. No separate coverage config is needed.
 
 Outside CI, `testProjects` sets `silent: "passed-only"` so local runs show logs only from failing tests. When `CI` is set to a nonempty value, it sets `silent: false` so CI keeps all test logs. It leaves `reporters` unset so Vitest can auto-detect its agent reporter. If a repository adds a reporter, spread `configDefaults.reporters` instead of replacing the defaults:
 
@@ -316,5 +319,5 @@ export default defineConfig({
 Quality merges the Biome settings at lint and fix time; do not add or mirror an override in `biome.json`. Files are explicit repository paths. Biome exceptions cover individual lint rules or assist actions; whole checks, rule groups and globs are rejected. `biome/files/includes` is the directory exclusion form: keep `**` and list negative patterns naming directories, such as `!**/test-support/generated`. Quality's shipped exceptions remain part of its internal policy. [Exceptions and upgrades](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/debt-and-hooks.md#exceptions) describes subjects, stale entries and the upgrade command.
 
 - The source inventory and Biome have their own scopes. `quality fix` runs Biome from the config's folder; it is not restricted to the source-rule inventory.
-- The installed hook checks files on disk, not only what is staged, and uses each committing worktree's config and dependencies. A pre-existing `core.hooksPath` decides which hook git runs.
+- The installed hook checks files on disk, not only what is staged, and uses each committing worktree's config and dependencies. Installation sets repository-local `core.hooksPath`; the hook chains an executable global pre-commit hook without changing global configuration. Either hook's failure blocks the commit. `quality hooks status` reports when git's effective hooks path does not run Quality.
 - Workspace imports require a declaration in the importing package’s `dependencies`, `peerDependencies` or `optionalDependencies`. Tests, `test-support`, package-root tooling folders (`script`, `scripts`, `tooling`) and package-root config files may also use `devDependencies`. Explicitly export-blocked bundle inputs may use them when no runtime module reaches those inputs in the scanned import graph; an executable or another public export keeps its imports in the runtime boundary.

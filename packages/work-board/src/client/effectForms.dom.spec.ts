@@ -120,12 +120,7 @@ boardStory.it(
 		const page = yield* reader.open("/_board/respond?item=investigation.choices&request=direction");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false)));
 		yield* formEvent(page, () => enterField(page, "author", "reviewer"));
-		const choice = page.document.querySelector('input[value="history"]');
-		if (!(choice instanceof page.window.HTMLInputElement)) {
-			throw new Error("Missing choice");
-		}
-		choice.checked = true;
-		yield* formEvent(page, () => choice.dispatchEvent(new page.window.Event("input", { bubbles: true })));
+		yield* reader.chooseOption("history");
 		yield* formEvent(page, () => reader.click("response-preview"));
 		const texts = [...page.document.querySelectorAll("[data-answer-text]")];
 		const [first, second] = texts;

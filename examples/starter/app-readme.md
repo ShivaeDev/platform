@@ -38,6 +38,22 @@ pnpm start
 
 The built server serves the UI, authentication and RPC on port 3000 by default. Run `pnpm worker` as a separate process for background jobs. Set `DATABASE_URL` on both processes; the worker and `pnpm migrate` need only this variable. On web, also set a random `BETTER_AUTH_SECRET` of at least 32 characters and `PUBLIC_URL` to your public app URL. For web in a container, use `HOST=0.0.0.0` and the host's `PORT`; configure `TRUSTED_PROXY` for your proxy's peer addresses or CIDR ranges.
 
+## Inspect background jobs
+
+Open `/admin/jobs` on the app host (port 3000 locally, or through Vite on port 5173) for the official pg-boss dashboard. It shows queues, jobs, failed jobs and the `count-note-words-dlq` dead-letter queue using the app's `DATABASE_URL`. Every dashboard page, data endpoint and asset requires an admin session. The app forces read-only mode and refuses write requests; deployment settings cannot enable retry, cancel, delete or send.
+
+After `pnpm migrate`, create an admin with a new email address:
+
+```sh
+ADMIN_EMAIL=operator@example.com ADMIN_PASSWORD='a-long-unique-password' pnpm admin:create
+```
+
+The command uses the server's `DATABASE_URL` and `BETTER_AUTH_SECRET`; `ADMIN_NAME` defaults to `Administrator`. It fails if the email already exists. Sign in with those credentials, then visit `/admin/jobs`.
+
+The pinned dashboard bundles the same pg-boss release as `@shivaedev/effect-pg-boss`. Startup checks that version agreement and fails with an upgrade message if they differ. Upgrade the dashboard and pg-boss together.
+
+## Deployment services
+
 To export Effect spans from both services, set `OTEL_EXPORTER_OTLP_ENDPOINT` or the complete `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, plus `OTEL_SERVICE_NAME`. Configure collector authentication with `OTEL_EXPORTER_OTLP_HEADERS`, using comma-separated `key=value` pairs with URL-encoded values. Railway's tracing setting supplies the endpoint and metadata. With no endpoint, no exporter runs.
 
 For Railway, install its CLI, link an empty project and follow the [deployment guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy). Set the shared authentication secret and public URL for web before running `railway config plan` and `railway config apply`. The configuration in `.railway/railway.ts` defines PostgreSQL, web and worker services. Both services build. Web runs `pnpm migrate` in its pre-deploy container, then starts HTTP with `pnpm start`; Railway checks `/health`. Neither process migrates at boot. Web uses migration mode `"check"` after pre-deploy. The worker starts `pnpm worker` with migration mode `"wait"` until the schema is current. Every service without the pre-deploy migration command uses `"wait"`, because deploy platforms may start services in any order.

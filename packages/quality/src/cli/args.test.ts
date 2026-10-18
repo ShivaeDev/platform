@@ -37,8 +37,8 @@ describe("command line", () => {
 		[["baseline", "check"], "baseline takes write, prune, tighten or migrate"],
 		[["baseline", "write", "now"], "unknown command"],
 		[["check"], "unknown command"],
-		[["hooks"], "hooks takes install, uninstall or pre-commit"],
-		[["hooks", "commit-msg"], "hooks takes install, uninstall or pre-commit"],
+		[["hooks"], "hooks takes install, uninstall, status or pre-commit"],
+		[["hooks", "commit-msg"], "hooks takes install, uninstall, status or pre-commit"],
 		[["hooks", "pre-commit", "--force"], "--force applies only to hooks install"],
 	])("rejects %j", (args, problem) => {
 		expect(parseCommand(args)).toEqual({ _tag: "Usage", problem: expect.stringContaining(problem) });

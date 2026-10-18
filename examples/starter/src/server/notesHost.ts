@@ -1,12 +1,15 @@
-import { Config, Effect, Layer, Redacted } from "effect";
+import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
+import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/client.ts";
+import { authDatabase, betterAuthMount } from "@shivaedev/platform/better-auth.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AppChanges, appHost } from "@shivaedev/platform/server/appHost.ts";
+import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
 import { authenticatedUserLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
 import { Notes, Subscribe } from "#notes.ts";
-import { authDatabase } from "#server/authDatabase.ts";
+import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
-import { makeAuth } from "#server/makeAuth.ts";
+import { jobDashboard } from "#server/jobDashboard.ts";
 import { NotesService } from "#server/NotesService.ts";
 import { noteProducer } from "#server/noteProducer.ts";
 
@@ -27,6 +30,7 @@ const handlers = Notes.toLayer(
 );
 
 export function notesHost(config?: {
+	readonly jobsClientFactory?: PgBossClientFactory;
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly port?: number;
 	readonly secret?: Redacted.Redacted<string>;
@@ -39,12 +43,28 @@ export function notesHost(config?: {
 			return appHost({
 				...database,
 				application: Effect.gen(function* () {
-					const { routes, sessions } = yield* makeAuth({ database: pool, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
-					const producer = noteProducer(Redacted.value(databaseUrl));
+					const { auth, routes } = yield* betterAuthMount({
+						...authOptions(pool),
+						...(config?.secret === undefined ? {} : { secret: Redacted.value(config.secret) }),
+					});
+					const publicUrl = yield* Config.URL("PUBLIC_URL").pipe(Config.option);
+					const sessions = {
+						origin: ({ headers }: { readonly headers: Readonly<Record<string, string>> }) =>
+							headers.origin === undefined
+							|| headers.origin === Option.match(publicUrl, { onNone: () => `http://${headers.host}`, onSome: (url) => url.origin }),
+						provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
+					};
+					const producer = noteProducer(Redacted.value(databaseUrl), false, config?.jobsClientFactory);
 					return {
 						config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 						group: Notes,
-						handlers: Layer.mergeAll(handlers, authenticatedUserLayer(sessions), routes, HttpStaticServer.layer({ root: "dist", spa: true })),
+						handlers: Layer.mergeAll(
+							handlers,
+							authenticatedUserLayer(sessions),
+							routes,
+							jobDashboard(databaseUrl, sessions),
+							HttpStaticServer.layer({ root: "dist", spa: true }),
+						),
 						services: NotesService.layer.pipe(Layer.provideMerge(producer)),
 						sessions,
 					};

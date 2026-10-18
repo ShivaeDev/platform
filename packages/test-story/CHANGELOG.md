@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.9.0 - 2026-10-18
+
+### Added
+
+- `forwardingProxy(upstream, options?)` and `ForwardingProxyOptions` from `@shivaedev/test-story/forwardingProxy.ts` provide a scoped loopback proxy for host stories. It forwards requests and responses, appends the caller to `x-forwarded-for`, and applies the story's configured headers.
+
+## 0.8.0 - 2026-10-18
+
+### Added
+
+- `screenDriver(options).accessible(selector)` returns and narrates an element's computed accessible name and role, including label references that take precedence over `aria-label`.
+- Export `screenDriver(options)`, `ScreenDriverOptions` and `ScreenDriver` from `screenDriver.ts`: narrated DOM clicks, text entry, form submission and screen readouts, with settlement driven by the app's pending signal and an optional renderer `act` adapter. Screens use the existing DOM transport to reach fake HTTP services, including identity providers.
+- Screen drivers accept a root getter for document navigation and a per-call `settle({ timeoutMs })` limit.
+- Export `routeOutbound(routes)` from `routeOutbound.ts` to scope outbound routing alongside a story's fake HTTP service.
+- Screen actions and readouts reject hidden targets and targets inside hidden ancestors; form submission also refuses inert ancestors.
+- Accept `stages: []` in `storyKit` definitions for engines initialized entirely in `create`, preserving inferred engine and verb types with no available trait stages.
+
 ## 0.7.1 - 2026-10-18
 
 ### Fixed

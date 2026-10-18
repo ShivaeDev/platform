@@ -92,12 +92,15 @@ Omit `migrations` to host an app without a database. This form creates no SQL po
 
 Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` when a separate pre-deploy command owns migrations. Startup reads the ledger and fails with native `MigrationError` (`kind: "BadState"`) if any required migration ID or name is missing; it does not run migrations or create a ledger. Later ledger entries are allowed for rolling deployments. Use `migrations.mode: "wait"` for services that can start before that pre-deploy command finishes. It re-reads the ledger every second until current, then starts the application. Set `migrations.pollInterval` and `migrations.waitTimeout` with Effect duration inputs to change the interval and five-minute timeout. Timeout fails with the same `MigrationError` as `"check"`; interruption stops polling and closes the pool. SQL failures fail immediately. With `mode` omitted or `"migrate"`, startup applies pending migrations with a five-second lock timeout unless `migrations.lockTimeout` overrides it.
 
+Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before checking or applying migrations, or constructing the application. Use it to validate configuration such as app IDs, keys and invite lists. Its errors stay in the returned Layer's typed error channel, its requirements remain external requirements, and its services are available to migrations, application construction, services and RPC handlers as well as callers of the host Layer. Preflight resources close with the host scope. The option also works without migrations.
+
 When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `AppChanges` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
 
 ```ts
 const host = appHost({
   config: { databaseUrl },
   migrations: { loader: migrations, mode: "check" },
+  preflight: AppConfigLive,
   application: Effect.gen(function* () {
     const { routes, sessions } = yield* makeAuth();
     return { group: Api, handlers: Handlers, services: Services, routes, sessions };
@@ -141,6 +144,65 @@ For a deployment behind a proxy, set `HOST=0.0.0.0` and `TRUSTED_PROXY` to a com
 
 A subscription handler reads `AppChanges` and returns `changes.stream(keys)` after its authorization check. Writes use `transact` and `invalidateOnCommit` from effect-sql: local streams receive committed invalidations and rollback emits none. For delivery between processes, set `config.changes: { channel: "app_changes" }`; the host binds PostgreSQL LISTEN/NOTIFY to the same SQL pool and resyncs streams when its listener recovers. The native heartbeat and retry options may be supplied in `changes`. A worker can provide `appDatabase({ migrations, config })` to its service Layer to share this database and delivery composition without starting HTTP.
 
+### Public client configuration
+
+Use one `publicConfig` declaration per application as the one path for server configuration that a client needs. Declare only public fields in a shared Schema; the declaration creates a standard effect-contract query, so applications write no config RPC. Keep private configuration in server modules.
+
+```ts
+import { Schema } from "effect";
+import { publicConfig } from "@shivaedev/platform/rpc/publicConfig.ts";
+
+export const PublicConfig = publicConfig(
+  Schema.Struct({ installUrl: Schema.URL }).pipe(
+    Schema.encodeKeys({ installUrl: "INSTALL_URL" }),
+  ),
+);
+```
+
+On the server, merge the declaration into the application's group and its generated handler Layer into the handlers:
+
+```ts
+import { Layer } from "effect";
+import { appHost } from "@shivaedev/platform/server/appHost.ts";
+import { publicConfigLayer } from "@shivaedev/platform/server/rpc-server/publicConfigLayer.ts";
+import { Api, Handlers, sessions } from "./app.ts";
+import { PublicConfig } from "./public-config.ts";
+
+export const Server = appHost({
+  group: Api.merge(PublicConfig),
+  handlers: Layer.merge(Handlers, publicConfigLayer(PublicConfig)),
+  sessions,
+});
+```
+
+`publicConfigLayer` reads `Config.schema` from the host's native ConfigProvider when the handler Layer builds. Missing or invalid required fields fail startup with a typed `ConfigError`. An optional second argument supplies a native Config path: `publicConfigLayer(PublicConfig, "PUBLIC")` reads `PUBLIC_INSTALL_URL` with the default environment provider. Only schema-declared fields are loaded and serialized; other server values never enter this response. The generated query has no session middleware, so it can supply public configuration before sign-in. Merge it alongside authenticated contracts rather than applying authentication to the merged group.
+
+On the client, use the same native `AtomRpc.Service`, NDJSON HTTP protocol and effect-contract `bind` as other queries:
+
+```ts
+import { Layer } from "effect";
+import { FetchHttpClient } from "effect/http";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
+import { bind } from "@shivaedev/effect-contract/bind.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { PublicConfig } from "./public-config.ts";
+
+class ConfigClient extends AtomRpc.Service<ConfigClient>()("app/ConfigClient", {
+  group: PublicConfig,
+  protocol: RpcClient.layerProtocolHttp({ url: "/rpc" }).pipe(
+    Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
+  ),
+}) {}
+const config = bind(PublicConfig, ConfigClient);
+
+export function usePublicConfig() {
+  return useQuery(config.get.query());
+}
+```
+
+Render inside the application's native registry provider. The query's `data` is an `Option<{ readonly installUrl: URL }>`: the same codec validates server configuration and decodes the RPC response on the client. Public configuration uses the existing atom registry and query lifecycle.
+
 ### 1. Once per application: contracts and session policy
 
 Declare the RPC group in a shared module:
@@ -150,7 +212,7 @@ import { Effect, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
-import { Authenticated, RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
+import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
 
 export const Account = RpcGroup.make(
   Rpc.make("ReadOwn", {
@@ -158,7 +220,7 @@ export const Account = RpcGroup.make(
     payload: { userId: Schema.String },
     success: Schema.String,
   }),
-).middleware(Authenticated).middleware(RequestTracing);
+).middleware(Authenticated);
 
 export const Handlers = Account.toLayer({
   ReadOwn: ({ userId }) =>
@@ -449,6 +511,30 @@ export async function consumeSubscription(
 
 The signal aborts on an additional signal, socket close, incomplete request close or an already destroyed connection. Normal completion of a request does not abort a continuing response. Without an explicit `nodeRequest`, the helper can read one from an srvx Web request's `runtime.node.req`. `dispose()` removes Node listeners and can be called repeatedly.
 
+### Mount Better Auth
+
+`betterAuthMount(options)` returns the Better Auth instance and a native route Layer for `/api/auth/*`. It accepts Better Auth options, including application plugins and session policy. Merge `routes` into the HTTP host and use `auth.api.getSession` with `betterAuthSessions` for the application's RPC session provider.
+
+```ts
+import { Config, Effect } from "effect";
+import { authDatabase, betterAuthMount } from "@shivaedev/platform/better-auth.ts";
+
+const authentication = Effect.gen(function* () {
+  const database = yield* authDatabase(yield* Config.Redacted("DATABASE_URL"));
+  return yield* betterAuthMount({
+    database,
+    emailAndPassword: { enabled: true },
+    session: { cookieCache: { enabled: false } },
+  });
+});
+```
+
+Run this Effect in the host's scope. The pool logs idle-client errors at Debug and replaces failed connections on the next query; closing the scope disconnects its clients. A rejected auth handler returns HTTP 503 with `Authentication is temporarily unavailable`.
+
+The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL` supplies the default base URL, trusted origin and HTTPS secure-cookie setting; without it, the defaults accept loopback HTTP. Application options can override those defaults. RPC Origin policy remains an application choice.
+
+`AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`; other Better Auth rate-limit options pass through. `TRUSTED_PROXY` supplies the same address and CIDR policy used by the host. An untrusted transport peer loses `x-forwarded-for` and the configured client-IP header before Better Auth sees the request. `AUTH_CLIENT_IP_HEADER` defaults to `x-forwarded-for`. With no trusted proxy, Better Auth ignores forwarded IPs and shares a rate-limit bucket per path.
+
 ### Optional Better Auth storage on Effect Prisma
 
 When Better Auth's rows belong to an Effect Prisma database, give its adapter the same database service and runtime:
@@ -540,6 +626,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/redactingDiagnostics.ts`, `server/redactingTracer.ts`, `server/redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactRecord(values, sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
+| `better-auth.ts` | `betterAuthMount(options)`, `authDatabase(url)`: native auth routes and a scoped PostgreSQL pool. |
 | `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, options?)`: a Better Auth adapter over Effect Prisma; `modelName` maps model names. |
 | `server/testing/makePlatformIt.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |
 
@@ -557,13 +644,14 @@ Install the optional peers for the selected integration:
 | --- | --- |
 | `server/boundedBody.ts` | `@effect/platform-node` |
 | `server/appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
+| `better-auth.ts` | `better-auth`, `pg` |
 | `server/better-auth/adapter.ts` | `better-auth`, `@shivaedev/effect-prisma`, `@prisma-next/sql-orm-client` |
 | `server/testing/makePlatformIt.ts` | `@effect/vitest`, `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`, `@trpc/server` |
 
 - The package needs Node 24 or newer.
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.
 - Without an `HttpServerRequest`, `transportHeaders` falls back to the supplied RPC headers. An application using another transport must decide what headers it can trust.
-- `appHost` adds tracing last on its server-side copy of the group. When composing a native RPC server directly, add `RequestTracing` last on the group, as in the example, so it wraps authentication too. Middleware outside that tracing boundary is responsible for its own diagnostics.
+- `appHost` adds tracing last on its server-side copy of the group. When composing a native RPC server directly, add `RequestTracing` last on the group so it wraps authentication too; see the [native-server example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/request-context.md#request-id-identity-and-logging). Middleware outside that tracing boundary is responsible for its own diagnostics.
 - Redaction recognizes declared field names and common credential shapes. Mark sensitive fields in RPC schemas and configure extra names once with `config.sensitiveKeys`. Keep sensitive values out of ordinary prose.
 - A development cache key is ignored when `NODE_ENV` is `production`. The application owns runtime disposal.
 - The Better Auth storage adapter's default model mapping capitalizes the model name. Supply `modelName` for a generated schema with another naming convention. Native Better Auth joins (`advanced.database.joins`) are rejected; leave that option off so Better Auth reads related rows with separate queries.

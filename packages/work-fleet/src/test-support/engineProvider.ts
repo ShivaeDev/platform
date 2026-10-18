@@ -35,7 +35,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 	const steered: { readonly receipt: SessionReceipt; readonly prompt: string }[] = [];
 	let turns = 0;
 	let lost = options.lostAcknowledgement ?? false;
-	let rejectNext = false;
+	let rejectNext: SessionFailure | undefined;
 	function consumeLostAcknowledgement(readOnly: boolean) {
 		const reviewerLost = readOnly && reviewLost;
 		const missing =
@@ -99,8 +99,11 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 				turns += 1;
 				settings.push({ call: "turn", operationId: input.operationId, settings: input.settings });
 				const rejected = rejectNext;
-				rejectNext = false;
-				yield* acceptTurn({ ...options, rejectTurn: options.rejectTurn || rejected }, turns);
+				rejectNext = undefined;
+				if (rejected !== undefined) {
+					return yield* rejected;
+				}
+				yield* acceptTurn(options, turns);
 				const receipt = { sessionId: input.sessionId, turnId: `turn-${input.operationId}` };
 				operations.set(input.operationId, receipt);
 				if (input.access === "read-only") {
@@ -130,8 +133,8 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 		},
 		observations,
 		operations,
-		rejectNextTurn: () => {
-			rejectNext = true;
+		rejectNextTurn: (failure = new SessionFailure({ message: "Provider rejected turn before acceptance", reason: "rejected" })) => {
+			rejectNext = failure;
 		},
 		settings,
 		starts,

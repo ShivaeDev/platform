@@ -74,6 +74,7 @@ export const makeState = Effect.gen(function* () {
 			decision: value,
 			decisionPublished: false,
 			launchRetry: undefined,
+			pendingContinuation: undefined,
 			stage: "needs-human",
 			supersededDecisions:
 				previous === undefined || superseded.some((receipt) => receipt.published.questionId === previous.questionId)

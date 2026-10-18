@@ -6,6 +6,7 @@ import { followLink } from "./followLink.ts";
 import { formEvent } from "./formEvent.ts";
 import { waitFor } from "./live.ts";
 import { pageActions } from "./pageActions.ts";
+import { setNativeValue } from "./setNativeValue.ts";
 import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "./storyEngine.ts";
 import { currentReplies } from "./storyReplies.ts";
 
@@ -19,7 +20,7 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		if (!(field instanceof page().window.HTMLInputElement || field instanceof page().window.HTMLTextAreaElement)) {
 			throw new Error(`Missing ${selector}`);
 		}
-		field.value = value;
+		setNativeValue(field, value);
 		field.dispatchEvent(new (page().window.Event)("input", { bubbles: true }));
 		return field;
 	}
@@ -34,15 +35,6 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	return {
 		...pageActions(page, tell),
 		answer: (prompt: string, value: string) => text(`[data-prompt="${prompt}"] textarea`, value),
-		choice: (value: string) => {
-			tell(`the reader chooses ${value}`);
-			const field = page().document.querySelector(`input[value="${value}"]`);
-			if (!(field instanceof page().window.HTMLInputElement)) {
-				throw new Error(`Missing option ${value}`);
-			}
-			field.checked = true;
-			field.dispatchEvent(new (page().window.Event)("input", { bubbles: true }));
-		},
 		chooseOption: (value: string) =>
 			formEvent(page(), () => {
 				tell(`the reader chooses ${value}`);

@@ -29,22 +29,22 @@ screenStory.it(
 		holdWorkspace,
 		releaseWorkspace,
 		readText,
-		findElement,
+		readAttribute,
 		readFocus,
 		selectText,
 		refreshScreen,
 	}) {
 		answerInput("author", "reviewer");
-		check('[value="local"]');
+		check("local");
 		responseClick("preview");
 		holdWorkspace();
 		responseClick("submit");
 		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Pending")));
-		check('[value="export"]');
+		check("export");
 		answerPrompt("direction", "A newer rationale");
 		yield* Effect.promise(releaseWorkspace);
 		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Saved:")));
-		expect(findElement('[value="export"]')).toHaveProperty("checked", true);
+		expect(readAttribute('[data-choice="export"]', "aria-checked")).toBe("true");
 		expect(answerPrompt("direction").value).toBe("A newer rationale");
 		const revised = { ...answerPreview, id: "question.revised", reviewedRevision: "b".repeat(64) };
 		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 0, prompts)));

@@ -22,7 +22,7 @@ export function scrollToPassage(hash: string) {
 	}
 	if (target.matches('[id^="answer-card-"]')) {
 		const header = target.closest(".document-layout")?.querySelector(".item-introduction");
-		target.style.scrollMarginTop = `${(header?.getBoundingClientRect().height ?? 0) + 16}px`;
+		target.style.scrollMarginTop = `calc(var(--board-header-height, 0px) + ${(header?.getBoundingClientRect().height ?? 0) + 16}px)`;
 	}
 	target.scrollIntoView();
 	target.focus({ preventScroll: true });

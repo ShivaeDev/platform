@@ -1,7 +1,6 @@
 import { Schema } from "effect";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { command, query, stream } from "@shivaedev/effect-contract/operation.ts";
-import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";
 import { fleetRejections } from "#errors.ts";
@@ -68,5 +67,5 @@ export const Follow = (() => {
 	}
 	return rpc;
 })();
-export const DaemonContract = FleetContract.merge(ClientContract, DiagnosticsContract).middleware(RequestTracing);
+export const DaemonContract = FleetContract.merge(ClientContract, DiagnosticsContract);
 export const RPC_PATH = DAEMON_RPC_PATH;

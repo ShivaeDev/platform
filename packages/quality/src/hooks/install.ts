@@ -1,12 +1,14 @@
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
 import { CONFIG_FILE } from "#config/file.ts";
 import { loadConfig } from "#config/load.ts";
 import { SetupFailure } from "#failure.ts";
+import { gitOrFail } from "#git/command.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
 import { commandWords, hookCommand, type Launch, shellWords } from "./command.ts";
-import { type HookLocation, hookLocation } from "./location.ts";
+import { hookLocation } from "./location.ts";
 import { hookShim, isHookShim } from "./shim.ts";
+import { globalHookStatus } from "./status.ts";
 
 export interface HookInstall {
 	readonly config: string | undefined;
@@ -33,14 +35,6 @@ const write = Effect.fnUntraced(function* (file: string, text: string) {
 	);
 });
 
-function elsewhere(location: HookLocation): Effect.Effect<void> {
-	return location.hooksPath === undefined || resolve(location.toplevel, location.hooksPath) === dirname(location.file)
-		? Effect.void
-		: Console.error(
-				`note: core.hooksPath is ${location.hooksPath}, so git runs the pre-commit hook there; ${location.file} runs only when that hook calls it.`,
-			);
-}
-
 export const installHook = Effect.fn("Hooks.installHook")(function* (install: HookInstall) {
 	const config = yield* loadConfig(install.cwd, install.config);
 	const location = yield* hookLocation(config.root);
@@ -58,12 +52,17 @@ export const installHook = Effect.fn("Hooks.installHook")(function* (install: Ho
 		yield* Console.error(
 			`quality: kept ${location.file}: it is not quality's pre-commit hook, so quality does not check commits.\nhelp: call \`${call}\` from that hook, or replace it with \`quality hooks install --force\`.`,
 		);
-	} else if (existing === shim) {
+		return;
+	}
+	if (existing === shim) {
 		yield* Console.log(`quality: the pre-commit hook at ${location.file} is up to date.`);
 	} else {
 		yield* write(location.file, shim);
 		const done = foreign ? `replaced ${location.file}, which was not quality's hook` : `installed the pre-commit hook at ${location.file}`;
 		yield* Console.log(`quality: ${done}; each commit runs \`${words}\`.`);
 	}
-	yield* elsewhere(location);
+	const hooks = dirname(location.file);
+	yield* gitOrFail(config.root, ["config", "--local", "core.hooksPath", hooks]);
+	yield* Console.log(`quality: set repository-local core.hooksPath to ${hooks}.`);
+	yield* globalHookStatus(location);
 });

@@ -4,13 +4,14 @@ import { HostedHealth, type LiveClient } from "./HostedHealth.tsx";
 import { renderBoard } from "./react.tsx";
 import { trackScreen } from "./screenEngine.ts";
 import { screenClient } from "./screenFeatures.tsx";
+import { screenOptions } from "./screenReads.ts";
 import { screenStory } from "./screenStory.ts";
-export function hostedHealthScreen() {
-	return screenStory.trait("screen", "a host supplies its displayed location without a document element", function* (engine) {
+export function hostedHealthScreen(connection: "connecting" | "live" = "live") {
+	return screenStory.trait("screen", `a host supplies its displayed location without a document element while ${connection}`, function* (engine) {
 		engine.documentFailed = true;
 		const paused = Atom.make(false);
 		const status = Atom.make<Atom.Type<LiveClient["updates"]["status"]>>({
-			connection: "live",
+			connection,
 			failure: Option.none(),
 			needsResync: false,
 			pending: 0,
@@ -22,7 +23,7 @@ export function hostedHealthScreen() {
 					screenClient(engine, api);
 					return <HostedHealth client={{ api, registry, updates: { paused, status } }} />;
 				},
-				{ beforeRead: () => (engine.documentFailed ? Effect.die("Read unavailable") : Effect.void), home: undefined },
+				screenOptions(engine, { ...engine.options, home: undefined }),
 			),
 		);
 		trackScreen(engine, view, (line) => engine.tell?.(line));

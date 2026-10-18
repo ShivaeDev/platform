@@ -6,6 +6,7 @@ import { ageActions } from "./ageActions.tsx";
 import { chrome } from "./chrome.ts";
 import { motionActions } from "./motionActions.ts";
 import { renderBoard } from "./react.tsx";
+import { readingActions } from "./readingActions.ts";
 import { renderRouter } from "./renderRouter.tsx";
 import { screenActions } from "./screenActions.ts";
 import { availabilityActions } from "./screenAvailability.tsx";
@@ -42,6 +43,7 @@ export const screenStory = storyKit({
 				restoreReading(...args);
 			},
 			...screenActions(story.tell),
+			...readingActions(story.tell),
 			...ageActions(engine, story.tell),
 			...screenObservations(engine, story.tell),
 			...screenData(engine, story.tell),

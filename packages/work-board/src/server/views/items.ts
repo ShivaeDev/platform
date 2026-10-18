@@ -1,3 +1,4 @@
+import { sameStatus } from "#browser/views/statusLabel.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { fieldFilter, type State } from "./state.ts";
@@ -14,12 +15,15 @@ export function itemsOf(snapshot: Snapshot): readonly Item[] {
 		return document ? [{ document, id, title: titles.get(document.file) ?? document.file }] : [];
 	});
 }
+function statusMatches(filter: string, status: string | undefined) {
+	return filter.startsWith("value:") && status !== undefined ? sameStatus(filter.slice(6), status) : fieldFilter(status) === filter;
+}
 function matches(item: Item, state: State): boolean {
 	const fields = item.document.parsed.fields;
 	if (state.owner && fieldFilter(fields.owner) !== state.owner) {
 		return false;
 	}
-	if (state.status && fieldFilter(fields.status) !== state.status) {
+	if (state.status && !statusMatches(state.status, fields.status)) {
 		return false;
 	}
 	const text = [item.id, item.title, fields.kind, fields.status, fields.owner, fields.nextAction]

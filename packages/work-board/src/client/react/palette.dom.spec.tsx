@@ -6,13 +6,14 @@ import { screenStory } from "#test/screenStory.ts";
 import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
+const QUERY = '#search-dialog [role="combobox"]';
 
 screenStory.it(
 	"offers go-to views and open goals, ranks a matching command first and shows work metadata",
 	[searchScreen(paletteFixture())],
 	function* ({ readRootAttribute, input, click, findElements, readText }) {
 		function rows() {
-			return findElements<HTMLAnchorElement>('[role="option"]');
+			return findElements<HTMLElement>('#search-dialog [role="option"]', document);
 		}
 
 		yield* Effect.promise(() => eventually(() => expect(rows().map((row) => readText("strong", row))).toContain("Go to A calmer workspace")));
@@ -27,17 +28,18 @@ screenStory.it(
 			expect(
 				rows()
 					.find((row) => readText("strong", row) === title)
+					?.querySelector("a")
 					?.getAttribute("href"),
 			).toBe(href);
 		}
-		expect(readText()).not.toContain("Go to Finished workspace");
-		input("#search-query", "inbox");
+		expect(readText("#search-dialog", document)).not.toContain("Go to Finished workspace");
+		input(QUERY, "inbox");
 		yield* Effect.promise(() => eventually(() => expect(readText("strong", rows()[0])).toBe("Build the inbox")));
 		expect(readText("code", rows()[0])).toBe("task.triage");
 		expect(readText("small", rows()[0])).toContain("task");
-		expect(readText("[data-status-token]", rows()[0])).toBe("active");
-		expect(readText()).not.toContain("Inbox decision");
-		input("#search-query", "records: inbox");
+		expect(readText("[data-status-token]", rows()[0])).toBe("Active");
+		expect(readText("#search-dialog", document)).not.toContain("Inbox decision");
+		input(QUERY, "records: inbox");
 		yield* Effect.promise(() => eventually(() => expect(rows().some((row) => readText("strong", row) === "Inbox decision 9")).toBe(true)));
 		expect(readText("strong", rows()[0])).toBe("Build the inbox");
 		expect(
@@ -47,25 +49,27 @@ screenStory.it(
 					.filter((id) => id?.startsWith("decision.delivery.")),
 			).size,
 		).toBe(10);
-		expect(readText()).not.toContain("Not recorded");
+		expect(readText("#search-dialog", document)).not.toContain("Not recorded");
 		for (const row of rows()) {
 			expect(readText("p", row) ?? "").not.toMatch(/^(?:\{|---)|(?:id|kind|next_action):/u);
 		}
-		input("#search-query", "workspace");
+		input(QUERY, "workspace");
 		yield* Effect.promise(() => eventually(() => expect(readText("strong", rows()[0])).toBe("Go to A calmer workspace")));
 		expect(rows().findIndex((row) => readText("strong", row) === "A calmer workspace")).toBeGreaterThan(0);
 		for (const query of ["project.workspace", "calmer"]) {
-			input("#search-query", query);
+			input(QUERY, query);
 			yield* Effect.promise(() => eventually(() => expect(readText("strong", rows()[0])).toBe("Go to A calmer workspace")));
-			const destinations = rows().map((row) => row.getAttribute("href"));
+			const destinations = rows().map((row) => row.querySelector("a")?.getAttribute("href"));
 			expect(new Set(destinations).size).toBe(destinations.length);
 			expect(destinations.filter((href) => href === "/_board/item/project.workspace/")).toHaveLength(1);
 		}
-		input("#search-query", "Library");
-		yield* Effect.promise(() => eventually(() => expect(rows()[0]?.getAttribute("href")).toBe("/_board/library")));
-		input("#search-query", "theme");
+		input(QUERY, "Library");
+		yield* Effect.promise(() => eventually(() => expect(rows()[0]?.querySelector("a")?.getAttribute("href")).toBe("/_board/library")));
+		input(QUERY, "theme");
 		yield* Effect.promise(() => eventually(() => expect(rows()[0]?.dataset.command).toBe("theme")));
-		click(rows()[0]);
+		const address = window.location.href;
+		click(rows()[0]?.querySelector("a"));
 		expect(readRootAttribute("data-theme")).toBe("dark");
+		expect(window.location.href).toBe(address);
 	},
 );
