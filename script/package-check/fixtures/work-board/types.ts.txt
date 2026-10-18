@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node"
 import { Layer } from "effect"
 import { HttpRouter } from "effect/http"
-import { boardLayer } from "@shivaedev/work-board/board.ts"
+import { boardLayer } from "@shivaedev/work-board/server/board.ts"
 
 export const board = HttpRouter.toWebHandler(Layer.provide(boardLayer({ root: ".", home: "plan.md" }), NodeServices.layer))

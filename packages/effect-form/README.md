@@ -88,7 +88,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { make } from "@shivaedev/effect-form/form.ts";
-import { useDirty, useField, useSubmit } from "@shivaedev/effect-form/react.ts";
+import { useDirty, useField, useSubmit } from "@shivaedev/effect-form/client/react.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const fields = Schema.Struct({ name: Schema.NonEmptyString, quantity: Schema.NumberFromString });
@@ -171,7 +171,7 @@ For a React form, call `usePersistedDraft` before creating the form. It defaults
 
 ```tsx
 import { useState } from "react";
-import { usePersistedDraft } from "@shivaedev/effect-form/react.ts";
+import { usePersistedDraft } from "@shivaedev/effect-form/client/react.ts";
 
 function OrderEditor() {
   const persistedDraft = usePersistedDraft({ key: "order:123" });
@@ -259,7 +259,7 @@ Import the module that defines a name; there is no root entry.
 | --- | --- |
 | `@shivaedev/effect-form/form.ts` | `make(schema, config)` |
 | `@shivaedev/effect-form/shape.ts` | `Fields`, `Name`, `ArrayKeys`, `Path`, `Encoded`, `Decoded`, `Services`, `Checks`, `Config`, `Form`, `Submitter`, `FieldFailure`, `Invalid` |
-| `@shivaedev/effect-form/react.ts` | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`, `BrowserDraftConfig`, `Field`, `Submit` |
+| `@shivaedev/effect-form/client/react.ts` | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`, `BrowserDraftConfig`, `Field`, `Submit` |
 | `@shivaedev/effect-form/persistence.ts` | `PersistedDraftConfig`, `DraftStorage`; `persistence` and `Persistence` for composing storage machinery |
 | `@shivaedev/effect-form/draftSession.ts` | `draftSession(id)`, `DraftSession` |
 | `@shivaedev/effect-form/paths.ts` | `KeySelectors`, `PathMessage`, `keySelector`, `asPath`, `retainedPath`, `pathMessageAt` |
@@ -300,7 +300,7 @@ The returned form exposes:
 
 `useField(form, name)` returns `name`, `value`, `error`, `choices`, `onChange(value)` and `onBlur()`. `useSubmit(form)` returns `result`, `run()` and `submitting`. `useDirty(form)` returns a boolean.
 
-The explicit module exports also expose `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`), `status.ts` (`statusOf`), and the conversion helpers `Holder`, `holder`, `fieldOf`, `choicesOf` and `checkOf` in `shape.ts`. The examples use the form API instead of composing that machinery directly.
+The module exports also expose `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`), `status.ts` (`statusOf`), and the conversion helpers `Holder`, `holder`, `fieldOf`, `choicesOf` and `checkOf` in `shape.ts`. The examples use the form API instead of composing that machinery directly.
 
 ### Install and limits
 

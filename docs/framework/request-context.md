@@ -54,7 +54,7 @@ Unexpected failures stay defects rather than declared errors carrying a server-w
 The message is for diagnostics and a fallback display. Applications can still
 choose their own wording per tag.
 
-On tRPC, `rejectWith` from `@shivaedev/effect-trpc/rejection.ts` sends these classes as
+On tRPC, `rejectWith` from `@shivaedev/effect-trpc/server/rejection.ts` sends these classes as
 declared rejections. `NotFound`, `Unauthorized`, `Forbidden`, `Conflict`,
 `PreconditionFailed` and `TooManyRequests` get the tRPC codes `NOT_FOUND`,
 `UNAUTHORIZED`, `FORBIDDEN`, `CONFLICT`, `PRECONDITION_FAILED` and
@@ -68,6 +68,10 @@ the effect-trpc README.
 
 ## Request id, identity and logging
 
+`appHost` adds `RequestTracing` outermost on a server-side copy of every served group, including loopback RPC. Shared contracts do not need to declare `RequestTracing`. Existing tracing declarations run once at the outermost boundary, and the shared group stays unchanged.
+
+When building a native RPC server directly, declare and provide tracing yourself:
+
 ```ts
 const Account = RpcGroup.make(/* ... */)
   .middleware(Authenticated)
@@ -80,8 +84,7 @@ const policy = {
 const Middleware = Layer.mergeAll(authenticatedLayer(policy), requestTracingLayer())
 ```
 
-The middleware added last runs outermost. Add `RequestTracing` last so it also
-annotates logs written by the auth middleware.
+On a native RPC server built directly, the middleware added last runs outermost. Add `RequestTracing` last so it also annotates logs written by the auth middleware.
 
 - `RequestTracing` gives handlers a `RequestId`. It takes the id from the
   `x-request-id` header (the `header` option changes the name) when the value is
@@ -128,10 +131,7 @@ annotates logs written by the auth middleware.
   attributes hints (attributes redacted), so the client decodes it as before and
   reporters group it as before. Declared failures and interruptions pass through
   unchanged: the client needs the declared error intact, and it is already sent
-  to the caller. This covers defects raised by the handler and by middleware
-  added before `RequestTracing`; a defect raised by middleware added after it,
-  or by an RPC without `RequestTracing`, reaches the client, the span and the
-  reporters unredacted. For causes reported outside RPC, wrap the reporter:
+  to the caller. With `appHost`, tracing wraps the handler and all declared middleware. On a native RPC server built directly, this covers the handler and middleware added before `RequestTracing`; defects raised outside that boundary, including RPCs that omit tracing, reach the client, span and reporters unredacted. For causes reported outside RPC, wrap the reporter:
   `ErrorReporter.layer([redactingErrorReporter(sentryReporter)])` hands it
   `redactCause(cause)`. `redactCause` and `redactDefect` are exported for other
   sinks.
@@ -169,7 +169,7 @@ server, the RPC headers are used, because there are no transport headers to
 prefer and no browser attaches ambient credentials.
 
 An application-owned middleware that reads any header for a security decision
-should call `transportHeaders(headers)` from `@shivaedev/platform/rpc-server/transport.ts`
+should call `transportHeaders(headers)` from `@shivaedev/platform/server/rpc-server/transportHeaders.ts`
 instead of using `headers` directly. The request id is still read from the RPC
 headers, so a client can set it per call; it is for correlation only.
 

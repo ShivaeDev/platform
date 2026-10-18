@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
 import { useContext, useState } from "react";
-import { SessionBoundary } from "@shivaedev/effect-react/session-boundary.ts";
+import { SessionBoundary } from "@shivaedev/effect-react/client/sessionBoundary.ts";
 import { appRouter } from "./appRouter.tsx";
 import type { AuthActions } from "./auth.ts";
 import type { NotesClient } from "./makeNotes.ts";

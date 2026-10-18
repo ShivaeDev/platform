@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { Option } from "effect";
 import { PanelsTopLeft } from "lucide-react";
 import { useContext, useEffect } from "react";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Navigation } from "#browser/Navigation.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Button } from "#client/react/components/ui/button.tsx";

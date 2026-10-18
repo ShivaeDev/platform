@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { AppChanges } from "#appHost.ts";
+import { AppChanges } from "#server/appHost.ts";
 import { failedRoute, lifecycleServices, rpcPath } from "#test/app-host/options.ts";
 import { configuration, environment, host, sessionPolicy } from "#test/app-host/story.ts";
 

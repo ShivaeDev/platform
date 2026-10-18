@@ -2,7 +2,7 @@ import { RouterContextProvider } from "@tanstack/react-router";
 import * as Atom from "effect/reactivity/Atom";
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventually } from "@shivaedev/effect-react/testing.ts";
+import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { choose, click, control } from "#test/chrome.ts";
 import { renderBoard } from "#test/react.tsx";

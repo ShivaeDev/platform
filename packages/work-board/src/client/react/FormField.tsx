@@ -1,5 +1,5 @@
 import { type ReactNode, useId, useLayoutEffect, useRef } from "react";
-import { useField } from "@shivaedev/effect-form/react.ts";
+import { useField } from "@shivaedev/effect-form/client/react.ts";
 import type { Fields, Form, Name } from "@shivaedev/effect-form/shape.ts";
 import { Input } from "#client/react/components/ui/input.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";

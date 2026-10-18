@@ -22,26 +22,14 @@ for (const name of [
 }
 
 for (const path of [
-  "client/client.ts",
-  "client/entry.ts",
-  "server/board.ts",
-  "server/http/assets.ts",
-  "browser/views/now.ts",
-  "attention/requestInbox.ts",
-  "attention/status.ts",
-  "rpc/HandlerOptions.ts",
-  "http/boardRoutes.ts",
-  "http/rpcPolicy.ts",
-  "browser/document/layout.ts",
-  "browser/document/Details.ts",
-  "document/answerBody.ts",
-  "document/requestTitle.ts",
-  "browser/responses/reasonMarkdown.ts",
-  "browser/responses/cardContext.ts",
+  "client/formDraft.ts",
+  "client/formStatus.ts",
+  "client/react/loadBoardPage.ts",
+  "client/responses/retainContext.ts",
 ]) {
   assert.throws(
     () => import.meta.resolve(`@shivaedev/work-board/${path}`),
     { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" },
-    `${path} must stay internal to Work Board`,
+    `${path} imports build-only dependencies, so it stays a bundle input`,
   )
 }

@@ -1,6 +1,6 @@
 import { Effect, ManagedRuntime } from "effect";
 import { HttpBody, HttpClient } from "effect/http";
-import { otlpHttpClient } from "#otlpHttpClient.ts";
+import { otlpHttpClient } from "#server/otlpHttpClient.ts";
 import { requests } from "./requests.ts";
 import { type HostState, io } from "./state.ts";
 

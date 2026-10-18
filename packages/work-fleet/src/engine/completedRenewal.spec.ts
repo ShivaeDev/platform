@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
+import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { Fleet } from "#fleet.ts";
 import { acceptDependency } from "#test/acceptDependency.ts";
