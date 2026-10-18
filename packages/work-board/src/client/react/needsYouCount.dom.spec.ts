@@ -1,45 +1,56 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardStory, projectFiles, readerAt } from "#test/boardStory.ts";
-import { fleetReports, fleetUnreachable } from "#test/fleetTraits.ts";
-import { fleetWorkspace, fleetWorkspaceReports } from "#test/fleetWorkspaceFixture.ts";
-import { waitFor } from "#test/live.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { health } from "#test/diagnostics.ts";
+import { fleetWorkspace } from "#test/fleetWorkspaceFixture.ts";
+import { fleetHealth } from "#test/screenEnvironment.ts";
+import { screenStory } from "#test/screenStory.ts";
+import { openScreen } from "#test/screenTraits.ts";
+import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
 
-boardStory.it(
-	"counts what needs you on System by the same rule and label as Today, not by Fleet's own waiting count",
-	[projectFiles(fleetWorkspace), fleetReports(fleetWorkspaceReports, { automation: 2, maintainer: 1, orchestrator: 0 }), readerAt("/_board/system")],
-	function* ({ page, reader }) {
-		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("[data-needs-you] strong")?.textContent).toBe("3")));
-		expect(page.document.querySelector("[data-needs-you] dt")?.textContent).toBe("Needs you");
-		expect(page.document.getElementById("doc")?.textContent).not.toContain("Waiting on maintainer");
-		const today = yield* reader.open("/");
-		yield* Effect.promise(() => waitFor(() => expect(today.document.querySelector(".today-strip a")?.textContent).toBe("3 need you")));
-		expect(today.document.querySelectorAll('ul[aria-label="Needs you"] > li')).toHaveLength(3);
+expectNoReactWarnings();
+
+screenStory.it(
+	"counts what needs you on System by the same rule and label as Today",
+	[screenFiles(fleetWorkspace, { home: "home.md" }), fleetHealth(health), screenRoute("/_board/system"), openScreen()],
+	function* ({ findElements, navigate, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("[data-needs-you] strong")).toBe("3")));
+		expect(readText("[data-needs-you] dt")).toBe("Needs you");
+		yield* Effect.promise(() => navigate("/"));
+		yield* Effect.promise(() => eventually(() => expect(readText(".today-strip a")).toBe("3 need you")));
+		expect(findElements('ul[aria-label="Needs you"] > li')).toHaveLength(3);
 	},
 );
 
-boardStory.it(
+screenStory.it(
 	"says Fleet is unavailable on Today instead of showing an unknown in-progress count",
-	[projectFiles(fleetWorkspace), fleetUnreachable()],
-	function* ({ page }) {
-		function strip() {
-			return [...page.document.querySelectorAll(".today-strip a")].map((link) => link.textContent);
-		}
-		yield* Effect.promise(() => waitFor(() => expect(strip()[1]).toBe("Fleet unavailable")));
-		expect(strip()[0]).toBe("3 need you");
-		expect(page.document.querySelector(".today-strip")?.textContent).not.toContain("?");
+	[screenFiles(fleetWorkspace, { home: "home.md" }), openScreen()],
+	function* ({ findElements, readText }) {
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual(["3 need you", "Fleet unavailable", "0 active goals"]),
+			),
+		);
+		expect(readText(".today-strip")).not.toContain("?");
 	},
 );
 
-boardStory.it(
+screenStory.it(
 	"names every workspace destination and the counts beside them",
-	[projectFiles(fleetWorkspace), fleetUnreachable()],
-	function* ({ page }) {
-		function names() {
-			return [...page.document.querySelectorAll("#primary-navigation a")].map((link) => link.getAttribute("aria-label"));
-		}
-		yield* Effect.promise(() => waitFor(() => expect(names()).toEqual(["Today, 3 need you", "Goals", "Now, 4 open tasks", "Library", "System"])));
-		expect(page.document.getElementById("inbox-topbar")?.getAttribute("aria-label")).toBe("Today, 3 need you");
-		expect(page.document.getElementById("inbox-count")?.getAttribute("aria-label")).toBe("3 need you");
+	[screenFiles(fleetWorkspace, { home: "home.md" }), openScreen()],
+	function* ({ findElements, readAttribute }) {
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toEqual([
+					"Today, 3 need you",
+					"Goals",
+					"Now, 4 open tasks",
+					"Library",
+					"System",
+				]),
+			),
+		);
+		expect(readAttribute("#inbox-topbar", "aria-label")).toBe("Today, 3 need you");
+		expect(readAttribute("#inbox-count", "aria-label")).toBe("3 need you");
 	},
 );

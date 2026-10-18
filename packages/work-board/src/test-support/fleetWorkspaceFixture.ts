@@ -1,4 +1,4 @@
-import type { FleetReport } from "./fleetTraits.ts";
+import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 
 const HOURS_4 = 4 * 3_600_000;
 
@@ -19,14 +19,23 @@ export const fleetWorkspace = {
 	"tasks/upload.md": task("task.upload", "Fix the flaky upload test", "status: active\nowner: codex"),
 };
 
-export const fleetWorkspaceReports: readonly FleetReport[] = [
-	{ attentionOwner: "automation", enteredAgo: HOURS_4, stage: "prepared", workId: "task.guide" },
-	{
-		attentionOwner: "automation",
-		enteredAgo: HOURS_4,
-		prUrl: "https://github.com/example/project/pull/12",
-		stage: "executing",
-		workId: "task.upload",
-	},
-	{ attentionOwner: "maintainer", enteredAgo: HOURS_4, stage: "needs-human", workId: "task.email" },
-];
+export function fleetWorkspaceItems(now: number): FleetItemsProjection {
+	const entered = now - HOURS_4;
+	return {
+		completed: [],
+		items: [
+			{ attentionOwner: "automation", document: null, stage: "prepared", stageEnteredAt: entered, updatedAt: now, workId: "task.guide" },
+			{
+				attentionOwner: "automation",
+				document: null,
+				prUrl: "https://github.com/example/project/pull/12",
+				stage: "executing",
+				stageEnteredAt: entered,
+				updatedAt: now,
+				workId: "task.upload",
+			},
+			{ attentionOwner: "maintainer", document: null, stage: "needs-human", stageEnteredAt: entered, updatedAt: now, workId: "task.email" },
+		],
+		state: "ready",
+	};
+}
