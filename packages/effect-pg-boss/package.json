@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-pg-boss",
-	"version": "0.8.1",
+	"version": "0.9.0",
 	"description": "Effect-native jobs and lifecycle management for pg-boss",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-pg-boss#readme",
 	"bugs": {
@@ -51,6 +51,7 @@
 	"devDependencies": {
 		"@shivaedev/effect-test-sql": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",

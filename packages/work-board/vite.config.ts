@@ -9,13 +9,13 @@ export default defineConfig({
 		emptyOutDir: false,
 		outDir: "assets",
 		rolldownOptions: {
-			external: ["#client/entry.ts", "mermaid"],
+			external: ["mermaid"],
 			input: "src/client/react/entry.tsx",
 			output: {
 				assetFileNames: "react.[ext]",
 				chunkFileNames: "react-assets/[name]-[hash].js",
 				entryFileNames: "react.js",
-				paths: { "#client/entry.ts": "/_board/native.js", mermaid: "/_board/mermaid/mermaid.esm.min.mjs" },
+				paths: { mermaid: "/_board/mermaid/mermaid.esm.min.mjs" },
 			},
 		},
 	},

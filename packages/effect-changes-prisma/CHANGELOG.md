@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2 - 2026-10-18
+
+### Fixed
+
+- `beforeCommit` now runs for Prisma transactions with the transaction's scoped client. Hook reads see uncommitted body rows, and a hook failure rolls back body and hook writes and publishes nothing.
+
 ## 0.5.1 - 2026-10-17
 
 ### Fixed

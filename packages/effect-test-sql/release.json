@@ -2,9 +2,9 @@
 	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "app-scope-before-database.md",
-			"text": "### Fixed\n\n- Close the isolated test's application scope before closing its SQL services and dropping its database.\n"
+			"name": "release-oct18b-dependencies.md",
+			"text": "### Fixed\n\n- Align published framework dependencies with the current releases.\n"
 		}
 	],
-	"version": "0.5.3"
+	"version": "0.5.4"
 }

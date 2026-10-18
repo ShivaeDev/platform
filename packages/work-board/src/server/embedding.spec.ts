@@ -19,7 +19,8 @@ it.live("embeds reading routes beside an application's health route without rela
 	expect(yield* Effect.promise(async () => (await fetch(`${board.url}/evidence.md`)).text())).toContain("data-board-react-root");
 	expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/start"))).toContain("Project and report templates");
 	expect((yield* rawGet(board, "/plan.md", "untrusted.example")).status).toBe(403);
-	expect((yield* rawGet(board, "/_board/native.js", "untrusted.example")).status).toBe(403);
+	expect((yield* rawGet(board, "/_board/react.js", "untrusted.example")).status).toBe(403);
+	expect((yield* rawGet(board, "/_board/native.js")).status).toBe(404);
 	expect((yield* rawGet(board, "/health", "untrusted.example")).body).toBe("healthy");
 	const url = board.url;
 	yield* board.stop();

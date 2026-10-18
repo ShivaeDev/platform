@@ -37,7 +37,7 @@ it.live("reads typed documents, stable item URLs, navigation, search through nat
 		expect.arrayContaining([expect.objectContaining({ file: "note.md", kind: "passage" })]),
 	);
 	expect((yield* Effect.promise(() => fetch(`${board.url}/note.md`))).status).toBe(200);
-	expect((yield* Effect.promise(() => fetch(`${board.url}/_board/native.js`))).headers.get("content-type")).toContain("javascript");
+	expect((yield* Effect.promise(() => fetch(`${board.url}/_board/native.js`))).status).toBe(404);
 	const boardUrl = board.url;
 	for (const [asset, type] of [
 		["react.js", "text/javascript"],

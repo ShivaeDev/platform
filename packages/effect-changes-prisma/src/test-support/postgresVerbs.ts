@@ -33,6 +33,9 @@ export function postgresVerbs(
 		get changes() {
 			return changes();
 		},
+		get checked() {
+			return engine().checked;
+		},
 		get client() {
 			return engine().client;
 		},
