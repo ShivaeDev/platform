@@ -7,7 +7,14 @@ import { DatabaseLifetime, type DatabaseLifetimeReadout } from "./DatabaseLifeti
 export const storyDatabase = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
 	const database = yield* PostgresTestDatabase;
 	const admin = yield* SqlClient.SqlClient;
-	const lifetime: DatabaseLifetimeReadout = { connectionAtAppClose: [], name: "", remainingDatabases: undefined, scopeAtAppClose: undefined };
+	const lifetime: DatabaseLifetimeReadout = {
+		awaitCleanup: Effect.suspend(() =>
+			Effect.andThen(database.awaitCleanup, admin<{ readonly datname: string }>`select datname from pg_database where datname = ${lifetime.name}`),
+		),
+		connectionAtAppClose: [],
+		name: "",
+		scopeAtAppClose: undefined,
+	};
 	let databaseScope: Scope.Scope | undefined;
 	const isolated = Effect.gen(function* () {
 		databaseScope = yield* Effect.scope;
@@ -30,6 +37,5 @@ export const storyDatabase = Effect.fnUntraced(function* <A, E, R>(effect: Effec
 			return yield* effect.pipe(Effect.provideService(DatabaseLifetime, lifetime));
 		}),
 	).pipe(Effect.provideService(PostgresTestDatabase, { ...database, isolated }));
-	lifetime.remainingDatabases = yield* admin<{ readonly datname: string }>`select datname from pg_database where datname = ${lifetime.name}`;
 	return result;
 });

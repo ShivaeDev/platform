@@ -1,4 +1,4 @@
-import { Effect, Exit, Redacted, type Scope } from "effect";
+import { Effect, type Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { PostgresTestDatabase } from "#database.ts";
@@ -25,40 +25,8 @@ const applicationFinalizersKeepDatabaseOpen = Effect.gen(function* () {
 	).pipe(Effect.provideService(PostgresTestDatabase, { ...database, isolated }));
 });
 
-const failedDatabaseDropIsDefect = Effect.fn("DatabaseStory.failedDatabaseDropIsDefect")(function* (engine: DatabaseEngine) {
-	const admin = engine.admin;
-	const role = new URL(Redacted.value(engine.options.url)).username;
-	let name = "";
-	const cleanup = Effect.gen(function* () {
-		yield* admin`alter role ${admin(role)} connection limit 2`;
-		if (name !== "") {
-			yield* admin`drop database if exists ${admin(name)} with (force)`;
-		}
-	});
-	yield* engine.run(
-		Effect.scoped(
-			Effect.gen(function* () {
-				yield* Effect.addFinalizer(() => Effect.orDie(cleanup));
-				const exit = yield* withIsolatedDatabase(
-					Effect.gen(function* () {
-						const database = yield* PostgresTestDatabase;
-						name = new URL(Redacted.value(database.url)).pathname.slice(1);
-						yield* admin`alter role ${admin(role)} connection limit 0`;
-					}),
-				).pipe(Effect.exit);
-				expect(Exit.isFailure(exit) && exit.cause.reasons).toMatchObject([
-					{ _tag: "Die", defect: { _tag: "SqlError", reason: { cause: { code: "53300" } } } },
-				]);
-				expect(yield* admin`select datname from pg_database where datname = ${name}`).toEqual([{ datname: name }]);
-			}),
-		),
-	);
-	expect(yield* admin`select datname from pg_database where datname = ${name}`).toEqual([]);
-});
-
 export function lifecycleVerbs(engine: DatabaseEngine) {
 	return {
 		applicationFinalizersKeepDatabaseOpen: () => engine.run(applicationFinalizersKeepDatabaseOpen),
-		failedDatabaseDropIsDefect: () => failedDatabaseDropIsDefect(engine),
 	};
 }

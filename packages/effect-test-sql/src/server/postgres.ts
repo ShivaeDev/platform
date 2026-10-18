@@ -3,6 +3,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { migratePostgres, type PostgresMigrationOptions } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase, type PostgresTestDatabaseService, type PostgresTestServices } from "#database.ts";
 import { connectionLimitHint } from "#internal/connectionLimitHint.ts";
+import { databaseCleanup } from "#internal/databaseCleanup.ts";
 import { connection, database } from "#internal/databases.ts";
 
 export type PostgresTestLoader<E = never, R = never> = (
@@ -21,8 +22,9 @@ export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(o
 	return Layer.effectContext(
 		Effect.gen(function* () {
 			const maxConnections = options.maxConnections ?? 2;
-			const empty = yield* database(options.url);
-			const template = options.prepare === false ? empty : yield* database(options.url, empty.name);
+			const { awaitCleanup, release } = yield* databaseCleanup(options.url);
+			const empty = yield* database(options.url, release);
+			const template = options.prepare === false ? empty : yield* database(options.url, release, empty.name);
 			if (options.prepare !== false) {
 				yield* Effect.scoped(
 					Effect.gen(function* () {
@@ -35,16 +37,16 @@ export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(o
 					}),
 				);
 			}
-			const shared = yield* database(options.url, template.name);
+			const shared = yield* database(options.url, release, template.name);
 			const services = yield* Layer.build(connection(shared.url, maxConnections));
 			const clone: PostgresTestDatabaseService["clone"] = (source) =>
 				Effect.gen(function* () {
-					const target = yield* database(options.url, source === "empty" ? empty.name : template.name);
+					const target = yield* database(options.url, release, source === "empty" ? empty.name : template.name);
 					const context = yield* Layer.build(connection(target.url, maxConnections));
-					return Context.add(context, PostgresTestDatabase, { clone, isolated, url: target.url });
+					return Context.add(context, PostgresTestDatabase, { awaitCleanup, clone, isolated, url: target.url });
 				});
 			const isolated = clone("migrated");
-			return Context.add(services, PostgresTestDatabase, { clone, isolated, url: shared.url });
+			return Context.add(services, PostgresTestDatabase, { awaitCleanup, clone, isolated, url: shared.url });
 		}).pipe(Effect.mapError(connectionLimitHint)),
 	).pipe(Layer.provide(Reactivity.layer));
 }
