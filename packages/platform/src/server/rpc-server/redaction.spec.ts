@@ -1,14 +1,9 @@
 import { inspect } from "node:util";
-import { Cause, Effect, ErrorReporter, Exit, Layer, Schema } from "effect";
-import { Headers } from "effect/http";
-import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
+import { Cause, ErrorReporter, Exit } from "effect";
 import { expect, it } from "vitest";
-import { RequestTracing } from "#rpc/middleware.ts";
-import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";
 import { redact } from "#rpc-server/redact.ts";
-import { redactDefect, redactingErrorReporter } from "#rpc-server/redact-cause.ts";
-import { requestTracingLayer } from "#rpc-server/tracing.ts";
-import { recorder } from "#test/rpc/harness.ts";
+import { redactDefect } from "#rpc-server/redact-cause.ts";
+import { redaction } from "#test/rpc/redaction.ts";
 
 function leaks(value: unknown, secrets: readonly string[]) {
 	const rendered = inspect(value, { depth: 20 });
@@ -96,7 +91,7 @@ it("cyclic payloads stop at the depth limit while nearby secrets are redacted", 
 	}
 	expect(redact(payload)).toEqual(expected);
 });
-it("stackless ignored external errors keep their reporting policy after redaction", async () => {
+redaction.it("stackless ignored external errors keep their reporting policy after redaction", [], function* ({ report }) {
 	const original = new Error("password=ignored-secret");
 	Object.defineProperty(original, ErrorReporter.ignore, { value: true });
 	delete original.stack;
@@ -104,31 +99,13 @@ it("stackless ignored external errors keep their reporting policy after redactio
 	expect(copy).toBeInstanceOf(Error);
 	expect(copy).toMatchObject({ message: "password=<redacted>", stack: undefined });
 	expect(ErrorReporter.isIgnored(copy)).toBe(true);
-	const reported: unknown[] = [];
-	const reporter = redactingErrorReporter(ErrorReporter.make((options) => reported.push(options)));
-	await Effect.runPromise(Effect.withFiber((fiber) => Effect.sync(() => reporter.report({ cause: Cause.die(original), fiber, timestamp: 0n }))));
-	expect(reported).toEqual([]);
+	const reports = yield* report(original);
+	expect(reports).toEqual([]);
 });
-class LeakyDefect extends Error {
-	readonly apiKey = "key-plaintext";
-}
-const Crashes = RpcGroup.make(Rpc.make("Crash", { payload: { kind: Schema.String }, success: Schema.Void })).middleware(RequestTracing);
-const Handlers = Crashes.toLayer({
-	Crash: ({ kind }) =>
-		kind === "object"
-			? Effect.die({ detail: "object defect", password: "hunter2-plaintext" })
-			: Effect.die(new LeakyDefect("leaky defect", { cause: { reason: "nested", token: "token-plaintext" } })),
-});
-it("defect logs keep the error's shape but redact its fields and cause", async () => {
-	const recorded = recorder();
-	await Effect.runPromise(
-		Effect.gen(function* () {
-			const client = yield* RpcTest.makeClient(Crashes);
-			yield* Effect.exit(client.Crash({ kind: "object" }));
-			yield* Effect.exit(client.Crash({ kind: "error" }));
-		}).pipe(Effect.provide(Layer.mergeAll(Handlers, requestTracingLayer(), recorded.layer)), Effect.scoped),
-	);
-	const defects = recorded.logs.filter((log) => log.level === "Error");
+redaction.it("defect logs keep the error's shape but redact its fields and cause", [], function* ({ crash, logs }) {
+	yield* crash("object");
+	yield* crash("error");
+	const defects = logs().filter((log) => log.level === "Error");
 	expect(defects).toHaveLength(2);
 	expect(leaks(defects, ["hunter2-plaintext", "key-plaintext", "token-plaintext"])).toEqual([]);
 	expect(defects.map((log) => log.annotations["rpc.defect"])).toEqual([
@@ -136,35 +113,23 @@ it("defect logs keep the error's shape but redact its fields and cause", async (
 		[expect.objectContaining({ apiKey: "<redacted>", cause: { reason: "nested", token: "<redacted>" }, message: "leaky defect", name: "Error" })],
 	]);
 });
-it("provider failures are logged without credential fields", async () => {
-	const recorded = recorder();
-	const failing = betterAuthSessions(() => Promise.reject(Object.assign(new Error("database closed"), { cookie: "session=cookie-plaintext" })));
-	await Effect.runPromise(Effect.exit(failing.get(Headers.empty)).pipe(Effect.provide(recorded.layer)));
-	const [failure] = recorded.logs.filter((log) => log.level === "Error");
+redaction.it("provider failures are logged without credential fields", [], function* ({ providerFailure, logs }) {
+	yield* providerFailure();
+	const [failure] = logs().filter((log) => log.level === "Error");
 	expect(inspect(failure?.message, { depth: 20 })).toContain("database closed");
-	expect(leaks(recorded.logs, ["cookie-plaintext"])).toEqual([]);
+	expect(leaks(logs(), ["cookie-plaintext"])).toEqual([]);
 });
-it("the cause seen by the client, error reporters and the server span has redacted defects", async () => {
-	const recorded = recorder();
-	const reported: Cause.Cause<unknown>[] = [];
-	const reporter = ErrorReporter.make(({ cause }) => {
-		reported.push(cause);
-	});
-	const exits = await Effect.runPromise(
-		Effect.gen(function* () {
-			const client = yield* RpcTest.makeClient(Crashes);
-			return yield* Effect.all([Effect.exit(client.Crash({ kind: "object" })), Effect.exit(client.Crash({ kind: "error" }))]);
-		}).pipe(Effect.provide(Layer.mergeAll(Handlers, requestTracingLayer(), recorded.layer, ErrorReporter.layer([reporter]))), Effect.scoped),
-	);
+redaction.it("the cause seen by the client, error reporters and the server span has redacted defects", [], function* ({ crash, spans, reported }) {
+	const exits = [yield* crash("object"), yield* crash("error")];
 	const secrets = ["hunter2-plaintext", "key-plaintext", "token-plaintext"];
-	expect(reported).toHaveLength(2);
-	expect(leaks(reported, secrets)).toEqual([]);
+	expect(reported()).toHaveLength(2);
+	expect(leaks(reported(), secrets)).toEqual([]);
 	expect(leaks(exits, secrets)).toEqual([]);
-	const spans = recorded.spans.filter((span) => span.kind === "server" && span.name === "Crash");
-	expect(spans).toHaveLength(2);
+	const serverSpans = spans().filter((span) => span.kind === "server" && span.name === "Crash");
+	expect(serverSpans).toHaveLength(2);
 	expect(
 		leaks(
-			spans.map((span) => [span.status, span.events, span.attributes]),
+			serverSpans.map((span) => [span.status, span.events, span.attributes]),
 			secrets,
 		),
 	).toEqual([]);
@@ -177,24 +142,14 @@ it("the cause seen by the client, error reporters and the server span has redact
 	expect(defect).toBeInstanceOf(Error);
 	expect(defect).toMatchObject({ apiKey: "<redacted>", cause: { reason: "nested", token: "<redacted>" }, message: "leaky defect" });
 });
-it("a redacting error reporter hands the wrapped reporter a redacted cause with the same reporting hints", async () => {
-	const reported: Array<{
-		readonly error: Error;
-		readonly severity: string;
-		readonly attributes: unknown;
-	}> = [];
-	const inner = ErrorReporter.make(({ error, severity, attributes }) => {
-		reported.push({ attributes, error, severity });
-	});
+redaction.it("a redacting error reporter hands the wrapped reporter a redacted cause with the same reporting hints", [], function* ({ report }) {
 	const defect = Object.assign(new Error("login failed for password=hunter2-plaintext"), {
 		[ErrorReporter.severity]: "Error",
 		[ErrorReporter.attributes]: { apiKey: "key-plaintext", userId: "u1" },
 	});
-	await Effect.runPromise(
-		Effect.withFiber((fiber) => Effect.sync(() => redactingErrorReporter(inner).report({ cause: Cause.die(defect), fiber, timestamp: 0n }))),
-	);
-	expect(leaks(reported, ["hunter2-plaintext", "key-plaintext"])).toEqual([]);
-	expect(reported).toEqual([
+	const reports = yield* report(defect);
+	expect(leaks(reports, ["hunter2-plaintext", "key-plaintext"])).toEqual([]);
+	expect(reports).toEqual([
 		{
 			attributes: { apiKey: "<redacted>", userId: "u1" },
 			error: expect.objectContaining({ message: "login failed for password=<redacted>" }),

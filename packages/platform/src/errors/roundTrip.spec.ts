@@ -1,58 +1,23 @@
-import { Effect, Layer, Option, Schema } from "effect";
-import { Rpc, RpcClient, RpcGroup } from "effect/rpc";
+import { Option, Schema } from "effect";
 import { expect, it } from "vitest";
 import { rejectedField } from "#errors/rejected-field.ts";
 import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests } from "#errors/taxonomy.ts";
-import { httpClient, rpcHttp, serve } from "#test/rpc/harness.ts";
+import { rejections } from "#test/rpc/rejections.ts";
 
 const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests]);
-const Profiles = RpcGroup.make(Rpc.make("Rename", { error: Rejection, payload: { name: Schema.String }, success: Schema.String }));
-const Handlers = Profiles.toLayer({
-	Rename: ({ name }) => {
-		if (name === "") {
-			return Effect.fail(new BadRequest({ field: "name", message: "Name is required" }));
-		}
-		if (name === "taken") {
-			return Effect.fail(new Conflict({ field: "name", message: "Name is taken" }));
-		}
-		if (name === "stale") {
-			return Effect.fail(new PreconditionFailed({ message: "Profile changed" }));
-		}
-		if (name === "missing") {
-			return Effect.fail(new NotFound({ message: "No profile" }));
-		}
-		if (name === "busy") {
-			return Effect.fail(new TooManyRequests({ message: "Slow down" }));
-		}
-		return Effect.succeed(name);
-	},
-});
-it("taxonomy errors cross native RPC JSON as decoded instances with their field", async () => {
-	const app = serve(rpcHttp(Profiles).pipe(Layer.provide(Handlers)));
-	try {
-		function rename(name: string) {
-			return Effect.runPromise(
-				Effect.gen(function* () {
-					const client = yield* RpcClient.make(Profiles);
-					return yield* Effect.flip(client.Rename({ name }));
-				}).pipe(Effect.provide(httpClient(app, {})), Effect.scoped),
-			);
-		}
-		const taken = await rename("taken");
-		expect(taken).toBeInstanceOf(Conflict);
-		expect(rejectedField(taken)).toEqual(Option.some({ field: "name", message: "Name is taken" }));
-		expect(rejectedField(await rename(""))).toEqual(Option.some({ field: "name", message: "Name is required" }));
-		const stale = await rename("stale");
-		expect(stale).toBeInstanceOf(PreconditionFailed);
-		expect(rejectedField(stale)).toEqual(Option.none());
-		expect(await rename("missing")).toMatchObject({ _tag: "NotFound", message: "No profile" });
-		const busy = await rename("busy");
-		expect(busy).toBeInstanceOf(TooManyRequests);
-		expect(busy).toMatchObject({ message: "Slow down" });
-		expect(rejectedField(busy)).toEqual(Option.none());
-	} finally {
-		await app.dispose();
-	}
+rejections.it("taxonomy errors cross native RPC JSON as decoded instances with their field", [], function* ({ rename }) {
+	const taken = yield* rename("taken");
+	expect(taken).toBeInstanceOf(Conflict);
+	expect(rejectedField(taken)).toEqual(Option.some({ field: "name", message: "Name is taken" }));
+	expect(rejectedField(yield* rename(""))).toEqual(Option.some({ field: "name", message: "Name is required" }));
+	const stale = yield* rename("stale");
+	expect(stale).toBeInstanceOf(PreconditionFailed);
+	expect(rejectedField(stale)).toEqual(Option.none());
+	expect(yield* rename("missing")).toMatchObject({ _tag: "NotFound", message: "No profile" });
+	const busy = yield* rename("busy");
+	expect(busy).toBeInstanceOf(TooManyRequests);
+	expect(busy).toMatchObject({ message: "Slow down" });
+	expect(rejectedField(busy)).toEqual(Option.none());
 });
 class Invalid extends Schema.TaggedError<Invalid>()("Invalid", { field: Schema.Literals(["title"]), message: Schema.String }) {}
 it("taxonomy errors encode to tagged JSON and any tagged error with a field is a field rejection", () => {

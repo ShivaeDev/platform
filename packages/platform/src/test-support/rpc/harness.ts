@@ -4,7 +4,6 @@ import { getMigrations } from "better-auth/db/migration";
 import { Layer, Logger, References, Tracer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
-import { expect } from "vitest";
 
 export const ORIGIN = "http://localhost:3000";
 
@@ -64,14 +63,18 @@ export async function signup(provider: Provider, name: string) {
 			method: "POST",
 		}),
 	);
-	expect(response.status).toBe(200);
+	if (response.status !== 200) {
+		throw new Error(`Better Auth sign-up failed: HTTP ${response.status}`);
+	}
 	const cookie = response.headers
 		.getSetCookie()
 		.map((value) => value.split(";")[0])
 		.join("; ");
 	const session = await provider.auth.api.getSession({ headers: new Headers({ cookie }) });
-	expect(session).not.toBeNull();
-	return { cookie, token: session?.session.token ?? "", userId: session?.user.id ?? "" };
+	if (session === null) {
+		throw new Error("Better Auth sign-up did not create a session");
+	}
+	return { cookie, token: session.session.token, userId: session.user.id };
 }
 
 export function rpcHttp<TRpcs extends Rpc.Any>(group: RpcGroup.RpcGroup<TRpcs>) {

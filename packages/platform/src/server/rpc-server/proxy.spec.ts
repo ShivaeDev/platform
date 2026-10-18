@@ -1,41 +1,15 @@
-import { Effect, Option } from "effect";
-import { HttpServerRequest, HttpServerResponse } from "effect/http";
-import { RpcSerialization } from "effect/rpc";
 import { expect, it } from "vitest";
-import { localRpcGuard, trustedProxyPeer } from "./local.ts";
+import { trustedProxyPeer } from "#rpc-server/local.ts";
+import { forwarded, transport, trustedProxy } from "#test/rpc/transportStory.ts";
 
-const forwarded = {
-	"content-type": "application/ndjson",
-	host: "internal.test",
-	origin: "https://app.example",
-	"x-forwarded-host": "app.example",
-	"x-forwarded-proto": "https",
-};
-async function guarded(address: string | undefined, trustedProxy?: string, headers: Readonly<Record<string, string>> = forwarded) {
-	let calls = 0;
-	const request = HttpServerRequest.fromWeb(new Request("http://internal.test/rpc", { headers })).modify({
-		remoteAddress: Option.fromNullishOr(address),
-	});
-	const response = await Effect.runPromise(
-		localRpcGuard(
-			Effect.sync(() => {
-				calls += 1;
-				return HttpServerResponse.empty();
-			}),
-			trustedProxy,
-		).pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request), Effect.provide(RpcSerialization.layerNdjson)),
-	);
-	return { calls, status: response.status };
-}
-
-it("trusts forwarded authority only from the configured transport peer", async () => {
-	expect(await guarded("10.0.0.2", "10.0.0.2")).toEqual({ calls: 1, status: 204 });
-	expect(await guarded("::ffff:10.0.0.2", "10.0.0.2")).toEqual({ calls: 1, status: 204 });
-	expect(await guarded("10.0.0.2")).toEqual({ calls: 0, status: 403 });
-	expect(await guarded("10.0.0.3", "10.0.0.2")).toEqual({ calls: 0, status: 403 });
-	expect(await guarded(undefined, "10.0.0.2")).toEqual({ calls: 0, status: 403 });
+transport.it("trusts forwarded authority only from the configured transport peer", [trustedProxy("10.0.0.2")], function* ({ guarded }) {
+	expect(yield* guarded("10.0.0.2")).toEqual({ calls: 1, status: 204 });
+	expect(yield* guarded("::ffff:10.0.0.2")).toEqual({ calls: 1, status: 204 });
+	expect(yield* guarded("10.0.0.2", "")).toEqual({ calls: 0, status: 403 });
+	expect(yield* guarded("10.0.0.3")).toEqual({ calls: 0, status: 403 });
+	expect(yield* guarded(undefined)).toEqual({ calls: 0, status: 403 });
 });
-it.each([
+for (const [address, trust, accepted] of [
 	["100.64.0.0", "100.64.0.0/10", true],
 	["::ffff:100.127.255.255", "100.64.0.0/10", true],
 	["100.63.255.255", "100.64.0.0/10", false],
@@ -60,16 +34,18 @@ it.each([
 	["192.0.2.1", "192.0.2.1, 10.0.0.0/24, 2001:db8::/32", true],
 	["192.0.2.2", "192.0.2.1, 10.0.0.0/24, 2001:db8::/32", false],
 	[undefined, "100.64.0.0/10", false],
-])("matches transport peer %s against %s", async (address, trust, accepted) => {
-	expect(await guarded(address, trust)).toEqual({ calls: accepted ? 1 : 0, status: accepted ? 204 : 403 });
-	if (address !== undefined) {
-		expect(trustedProxyPeer(trust)(address)).toBe(accepted);
-	}
-});
+] as const) {
+	transport.it(`matches transport peer ${address} against ${trust}`, [trustedProxy(trust)], function* ({ guarded }) {
+		expect(yield* guarded(address)).toEqual({ calls: accepted ? 1 : 0, status: accepted ? 204 : 403 });
+		if (address !== undefined) {
+			expect(trustedProxyPeer(trust)(address)).toBe(accepted);
+		}
+	});
+}
 it.each([undefined, "", "not-an-address", "127.0.0.1/33", "127.0.0.1,invalid"])("matches no peer with absent or malformed trust: %s", (trust) => {
 	expect(trustedProxyPeer(trust)("127.0.0.1")).toBe(false);
 });
-it.each([
+for (const headers of [
 	{ origin: "https://elsewhere.example" },
 	{ origin: "http://app.example" },
 	{ "x-forwarded-host": "app.example, elsewhere.example" },
@@ -80,12 +56,14 @@ it.each([
 	{ "x-forwarded-proto": "ftp" },
 	{ "x-forwarded-proto": "" },
 	{ "content-type": "application/json" },
-])("refuses invalid forwarded requests before the handler: %j", async (headers) => {
-	expect(await guarded("10.0.0.2", "10.0.0.0/24", { ...forwarded, ...headers })).toEqual({ calls: 0, status: 403 });
-});
-it("accepts HTTP forwarding, explicit ports and absent Origin", async () => {
+]) {
+	transport.it(`refuses invalid forwarded request ${JSON.stringify(headers)}`, [trustedProxy("10.0.0.0/24")], function* ({ guarded }) {
+		expect(yield* guarded("10.0.0.2", undefined, { ...forwarded, ...headers })).toEqual({ calls: 0, status: 403 });
+	});
+}
+transport.it("accepts HTTP forwarding, explicit ports and absent Origin", [trustedProxy("10.0.0.2")], function* ({ guarded }) {
 	expect(
-		await guarded("10.0.0.2", "10.0.0.2", {
+		yield* guarded("10.0.0.2", undefined, {
 			...forwarded,
 			origin: "http://app.example:8080",
 			"x-forwarded-host": "app.example:8080",
@@ -93,5 +71,5 @@ it("accepts HTTP forwarding, explicit ports and absent Origin", async () => {
 		}),
 	).toEqual({ calls: 1, status: 204 });
 	const { origin: _, ...headers } = forwarded;
-	expect(await guarded("10.0.0.2", "10.0.0.2", headers)).toEqual({ calls: 1, status: 204 });
+	expect(yield* guarded("10.0.0.2", undefined, headers)).toEqual({ calls: 1, status: 204 });
 });

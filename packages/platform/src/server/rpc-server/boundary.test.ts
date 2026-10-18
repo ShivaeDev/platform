@@ -1,19 +1,18 @@
-import { Cause, Effect, Exit, Schema } from "effect";
-import { expect, it } from "vitest";
+import { Cause, Exit, Schema } from "effect";
+import { expect } from "vitest";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#errors/taxonomy.ts";
-import { rpcBoundary } from "./boundary.ts";
+import { boundaryStory } from "#test/rpc/boundaryStory.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError, ServiceUnavailable]);
-const boundary = rpcBoundary(Rejection, { unexpected: (message) => new InternalServerError({ message }) });
-it("passes declared errors through with their identity and keeps success values", async () => {
+boundaryStory.it("passes declared errors through with their identity and keeps success values", [], function* ({ succeed, reject }) {
 	const conflict = new Conflict({ field: "name", message: "Name is taken" });
-	expect(await Effect.runPromise(Effect.flip(boundary(Effect.fail(conflict))))).toBe(conflict);
-	expect(await Effect.runPromise(boundary(Effect.succeed("saved")))).toBe("saved");
+	expect(yield* reject(conflict)).toBe(conflict);
+	expect(yield* succeed("saved")).toBe("saved");
 });
-it("normalizes unexpected failures and defects while retaining their original cause off the wire", async () => {
+boundaryStory.it("normalizes unexpected failures and defects while retaining their original cause off the wire", [], function* ({ fail }) {
 	const original = new Error("database password=private-value");
-	for (const failed of [Effect.fail(original), Effect.die(original)]) {
-		const rejection = await Effect.runPromise(Effect.flip(boundary(failed)));
+	for (const defect of [false, true]) {
+		const rejection = yield* fail(original, defect);
 		expect(rejection).toBeInstanceOf(InternalServerError);
 		expect(rejection.message).toBe("Internal server error");
 		expect(Cause.isCause(rejection.cause)).toBe(true);
@@ -24,22 +23,18 @@ it("normalizes unexpected failures and defects while retaining their original ca
 		expect(Schema.encodeSync(Rejection)(rejection)).toEqual({ _tag: "InternalServerError", message: "Internal server error" });
 	}
 });
-it("redacts a supplied public message and can use another declared fallback", async () => {
-	const unavailable = rpcBoundary(ServiceUnavailable, {
-		message: "Upstream failed with token=private-value",
-		unexpected: (message) => new ServiceUnavailable({ message }),
-	});
-	const rejection = await Effect.runPromise(Effect.flip(unavailable(Effect.fail("private failure"))));
+boundaryStory.it("redacts a supplied public message and can use another declared fallback", [], function* ({ unavailable }) {
+	const rejection = yield* unavailable();
 	expect(rejection).toBeInstanceOf(ServiceUnavailable);
 	expect(rejection.message).toBe("Upstream failed with token=<redacted>");
 });
-it("keeps interruption in the cause instead of turning it into a rejection", async () => {
-	const exit = await Effect.runPromise(Effect.exit(boundary(Effect.interrupt)));
+boundaryStory.it("keeps interruption in the cause instead of turning it into a rejection", [], function* ({ interrupt }) {
+	const exit = yield* interrupt();
 	expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
 });
-it("keeps interruption when an unexpected failure accompanies cancellation", async () => {
+boundaryStory.it("keeps interruption when an unexpected failure accompanies cancellation", [], function* ({ failCause }) {
 	const original = Cause.fromReasons([...Cause.fail("cleanup failure").reasons, ...Cause.interrupt(42).reasons]);
-	const exit = await Effect.runPromise(Effect.exit(boundary(Effect.failCause(original))));
+	const exit = yield* failCause(original);
 	if (!Exit.isFailure(exit)) {
 		throw new Error("Expected an interrupted failure");
 	}
