@@ -30,6 +30,8 @@ const postgresOptions = {
 
 const postgresLayer = makePostgresTestLayer(postgresOptions);
 
+export const postgresStory = { around: withTestTransaction, layer: postgresLayer, runIf: url !== undefined };
+
 function makeTests(clock: "live" | "test", isolation: "rollback" | "isolated", options?: Pick<PostgresTestOptions, "maxConnections">) {
 	const { effectApp } = makeEffectIt({
 		around: isolation === "rollback" ? withTestTransaction : withIsolatedDatabase,

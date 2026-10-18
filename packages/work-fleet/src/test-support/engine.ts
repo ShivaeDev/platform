@@ -25,7 +25,7 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly decisions: readonly string[];
 	readonly dependencies: (workId: string, references: readonly string[]) => void;
 	readonly editWork: (workId: string, revision: string) => void;
-	readonly foreign: (owner: string) => Effect.Effect<void, unknown>;
+	readonly foreign: (owner: string, occupancy?: Omit<ForeignReservation, "owner">) => Effect.Effect<void, unknown>;
 	readonly foreignReservations: () => Effect.Effect<readonly ForeignReservation[], unknown>;
 	readonly merged: readonly string[];
 	readonly occupy: (owner: string) => Effect.Effect<void, unknown>;
@@ -44,9 +44,8 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly vacate: (owner: string) => Effect.Effect<void, unknown>;
 	readonly work: (id: string) => BoardWork;
 }
-export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, TBoardError = never>(
+export const makeEngine = Effect.fn("FleetFixture.makeEngine")(function* <TBoardError = never>(
 	options: EngineOptions,
-	use: (fixture: EngineFixture<TBoardError>) => Effect.Effect<A, E, typeof Fleet.Identifier>,
 	boardOverride?: Layer.Layer<BoardGateway, TBoardError>,
 ) {
 	const namespace = STORAGE_NAMESPACE;
@@ -80,8 +79,8 @@ export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, 
 	function fleetLayer(configuration = policy) {
 		return Fleet.layer.pipe(Layer.provide(Layer.mergeAll(base, session, integrations, Layer.succeed(FleetPolicy)(configuration))));
 	}
-	function foreign(owner: string) {
-		return store.reserveForeign(owner, { backlog: true, executing: false });
+	function foreign(owner: string, occupancy = { backlog: true, executing: false }) {
+		return store.reserveForeign(owner, occupancy);
 	}
 	if (options.foreignBacklog) {
 		yield* foreign("foreign-pr");
@@ -135,7 +134,16 @@ export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, 
 		vacate: store.releaseForeign,
 		work: (id: string) => boardWork(id, approved, revisions, dependencies, areas, statuses, priorities),
 	};
-	return yield* use(fixture).pipe(Effect.provide(fleetLayer()));
+	return { fixture, layer: fleetLayer() };
+});
+
+export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, TBoardError = never>(
+	options: EngineOptions,
+	use: (fixture: EngineFixture<TBoardError>) => Effect.Effect<A, E, typeof Fleet.Identifier>,
+	boardOverride?: Layer.Layer<BoardGateway, TBoardError>,
+) {
+	const { fixture, layer } = yield* makeEngine(options, boardOverride);
+	return yield* use(fixture).pipe(Effect.provide(layer));
 });
 
 export const prepareWork = Effect.fn("Fleet.prepareWork")(function* (workId: string) {
