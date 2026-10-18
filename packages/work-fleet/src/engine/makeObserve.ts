@@ -105,7 +105,9 @@ const advanceObservation = Effect.fn("Fleet.advanceObservation")(function* (
 	const attempt = stored.value.attempts.find(
 		(entry) => entry.receipt?.turnId === observation.receipt.turnId && entry.receipt.sessionId === observation.receipt.sessionId,
 	);
-	const recovered = (yield* recoverUnobservable(state, stored, attempt)) ?? (yield* recoverStall(state, stored, attempt));
+	const recovered =
+		(yield* recoverUnobservable(state, stored, attempt, observation.progress === undefined ? undefined : observation.progress.length === 0))
+		?? (yield* recoverStall(state, stored, attempt));
 	if (recovered !== undefined) {
 		return recovered;
 	}
