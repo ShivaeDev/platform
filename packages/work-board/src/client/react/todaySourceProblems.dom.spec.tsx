@@ -8,7 +8,7 @@ import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
 
-const LINE = ".today-source-problems a";
+const LINE = ".today-strip a[data-source-problems]";
 const brokenSources = {
 	"notes/extra.md": "---\nid: note.extra\nflavor: sweet\ncolour: red\n---\n# Extra fields\n",
 	"notes/missing.md": "---\nid: note.missing\nrelationships:\n  - kind: depends_on\n    target: absent.item\n---\n# Missing reference\n",
@@ -20,7 +20,7 @@ screenStory.it(
 	[screenFiles({ ...fleetWorkspace, ...brokenSources }, { home: "home.md" }), openScreen()],
 	function* ({ findElement, readAttribute, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(LINE)).not.toBeNull()));
-		expect(readText(LINE)).toBe("2 sources have problems");
+		expect(readText(".today-strip")).toBe("3 need you·Fleet unavailable·0 active goals·2 sources have problems");
 		expect(readAttribute(LINE, "href")).toBe("/_board/system#source-problems");
 	},
 );
@@ -32,8 +32,8 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readText(LINE)).toBe("1 source has problems")));
 		editFile("notes/extra.md", FIXED_SOURCE);
 		yield* Effect.promise(refreshInbox);
-		yield* Effect.promise(() => eventually(() => expect(findElement(".today-source-problems")).toBeNull()));
-		expect(readText(".today-strip")).toMatch(/^3 need you/u);
+		yield* Effect.promise(() => eventually(() => expect(findElement(LINE)).toBeNull()));
+		expect(readText(".today-strip")).toBe("3 need you·Fleet unavailable·0 active goals");
 	},
 );
 

@@ -4,4 +4,4 @@
 
 ### Added
 
-- Today shows how many workspace sources have problems and links to a new Source problems section on System, which lists each problem's file, line and reason.
+- The Today summary row ends with how many workspace sources have problems, linking to a new Source problems section on System, which lists each problem's file, line and reason.
