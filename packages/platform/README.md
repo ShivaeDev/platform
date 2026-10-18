@@ -144,6 +144,65 @@ For a deployment behind a proxy, set `HOST=0.0.0.0` and `TRUSTED_PROXY` to a com
 
 A subscription handler reads `AppChanges` and returns `changes.stream(keys)` after its authorization check. Writes use `transact` and `invalidateOnCommit` from effect-sql: local streams receive committed invalidations and rollback emits none. For delivery between processes, set `config.changes: { channel: "app_changes" }`; the host binds PostgreSQL LISTEN/NOTIFY to the same SQL pool and resyncs streams when its listener recovers. The native heartbeat and retry options may be supplied in `changes`. A worker can provide `appDatabase({ migrations, config })` to its service Layer to share this database and delivery composition without starting HTTP.
 
+### Public client configuration
+
+Use one `publicConfig` declaration per application as the one path for server configuration that a client needs. Declare only public fields in a shared Schema; the declaration creates a standard effect-contract query, so applications write no config RPC. Keep private configuration in server modules.
+
+```ts
+import { Schema } from "effect";
+import { publicConfig } from "@shivaedev/platform/rpc/publicConfig.ts";
+
+export const PublicConfig = publicConfig(
+  Schema.Struct({ installUrl: Schema.URL }).pipe(
+    Schema.encodeKeys({ installUrl: "INSTALL_URL" }),
+  ),
+);
+```
+
+On the server, merge the declaration into the application's group and its generated handler Layer into the handlers:
+
+```ts
+import { Layer } from "effect";
+import { appHost } from "@shivaedev/platform/server/appHost.ts";
+import { publicConfigLayer } from "@shivaedev/platform/server/rpc-server/publicConfigLayer.ts";
+import { Api, Handlers, sessions } from "./app.ts";
+import { PublicConfig } from "./public-config.ts";
+
+export const Server = appHost({
+  group: Api.merge(PublicConfig),
+  handlers: Layer.merge(Handlers, publicConfigLayer(PublicConfig)),
+  sessions,
+});
+```
+
+`publicConfigLayer` reads `Config.schema` from the host's native ConfigProvider when the handler Layer builds. Missing or invalid required fields fail startup with a typed `ConfigError`. An optional second argument supplies a native Config path: `publicConfigLayer(PublicConfig, "PUBLIC")` reads `PUBLIC_INSTALL_URL` with the default environment provider. Only schema-declared fields are loaded and serialized; other server values never enter this response. The generated query has no session middleware, so it can supply public configuration before sign-in. Merge it alongside authenticated contracts rather than applying authentication to the merged group.
+
+On the client, use the same native `AtomRpc.Service`, NDJSON HTTP protocol and effect-contract `bind` as other queries:
+
+```ts
+import { Layer } from "effect";
+import { FetchHttpClient } from "effect/http";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
+import { bind } from "@shivaedev/effect-contract/bind.ts";
+import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { PublicConfig } from "./public-config.ts";
+
+class ConfigClient extends AtomRpc.Service<ConfigClient>()("app/ConfigClient", {
+  group: PublicConfig,
+  protocol: RpcClient.layerProtocolHttp({ url: "/rpc" }).pipe(
+    Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
+  ),
+}) {}
+const config = bind(PublicConfig, ConfigClient);
+
+export function usePublicConfig() {
+  return useQuery(config.get.query());
+}
+```
+
+Render inside the application's native registry provider. The query's `data` is an `Option<{ readonly installUrl: URL }>`: the same codec validates server configuration and decodes the RPC response on the client. Public configuration uses the existing atom registry and query lifecycle.
+
 ### 1. Once per application: contracts and session policy
 
 Declare the RPC group in a shared module:
