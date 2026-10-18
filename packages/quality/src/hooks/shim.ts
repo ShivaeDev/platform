@@ -18,7 +18,7 @@ export function hookShim(directory: string, command: HookCommand): string {
 		'if [ -n "$GIT_DIR" ] && [ -z "$GIT_WORK_TREE" ]; then export GIT_WORK_TREE="$top"; fi',
 		'cd "$top" || exit 2',
 		"status=0",
-		'global_path="$(git config --global --type=path --get core.hooksPath)"',
+		'global_path="$(git config --global --includes --type=path --get core.hooksPath)"',
 		'if [ -n "$global_path" ]; then',
 		'\tglobal_hook="$global_path/pre-commit"',
 		'\tif [ -x "$global_hook" ] && ! [ "$global_hook" -ef "$0" ]; then',

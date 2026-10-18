@@ -1,8 +1,36 @@
 import { afterEach, expect } from "vitest";
-import { globalHook, hookStory, qualityFails } from "#quality/test-support/hookStory.ts";
+import { globalHook, hookStory, includedGlobalConfig, qualityFails } from "#quality/test-support/hookStory.ts";
 import { removeSeededTrees } from "#quality-fixtures/tree.ts";
 
 afterEach(removeSeededTrees);
+
+hookStory.it("blocks a commit when an included global guard fails", [globalHook(7), includedGlobalConfig("include")], ({ git, hooks, recorded }) => {
+	const before = recorded.globalConfig();
+	const installed = hooks.run("install");
+	expect(installed.status).toBe(0);
+	expect(git.commit().status).toBe(1);
+	expect(recorded.globalLog()).toBe("global\n");
+	expect(recorded.qualityLog()).toBe("quality\n");
+	expect(installed.stdout).toContain("chaining global pre-commit hook");
+	expect(hooks.run("status").stdout).toContain("chaining global pre-commit hook");
+	expect(recorded.globalConfig()).toBe(before);
+});
+
+hookStory.it(
+	"blocks a commit when a conditionally included global guard fails",
+	[globalHook(7), includedGlobalConfig("includeIf")],
+	({ git, hooks, recorded }) => {
+		const before = recorded.globalConfig();
+		const installed = hooks.run("install");
+		expect(installed.status).toBe(0);
+		expect(git.commit().status).toBe(1);
+		expect(recorded.globalLog()).toBe("global\n");
+		expect(recorded.qualityLog()).toBe("quality\n");
+		expect(installed.stdout).toContain("chaining global pre-commit hook");
+		expect(hooks.run("status").stdout).toContain("chaining global pre-commit hook");
+		expect(recorded.globalConfig()).toBe(before);
+	},
+);
 
 hookStory.it("blocks a commit when Quality fails alongside a passing global guard", [globalHook(), qualityFails()], ({ git, hooks, recorded }) => {
 	expect(hooks.run("install").status).toBe(0);

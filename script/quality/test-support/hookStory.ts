@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, readFileSync } from "node:fs";
+import { chmodSync, readFileSync, realpathSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { qualityArgs } from "#quality-fixtures/cli.ts";
@@ -47,6 +47,14 @@ export const hookStory = storyKit({
 export function qualityFails() {
 	return hookStory.trait("git", "Quality's typecheck fails", (repository) => {
 		withScripts(join(repository.root, repository.folder), { typecheck: `${logs("quality")}; exit 3` });
+	});
+}
+
+export function includedGlobalConfig(kind: "include" | "includeIf") {
+	return hookStory.trait("git", `the global hook configuration comes from ${kind}`, (repository) => {
+		renameSync(join(repository.global, "gitconfig"), join(repository.global, "guard.gitconfig"));
+		const section = kind === "include" ? "include" : `includeIf "gitdir:${realpathSync(repository.root)}/.git"`;
+		writes(repository.global, "gitconfig", `[${section}]\n\tpath = guard.gitconfig\n`);
 	});
 }
 

@@ -20,7 +20,7 @@ function executable(file: string) {
 }
 
 export const globalHookStatus = Effect.fn("Hooks.globalHookStatus")(function* (location: HookLocation) {
-	const global = yield* git(location.toplevel, ["config", "--global", "--type=path", "--get", "core.hooksPath"]);
+	const global = yield* git(location.toplevel, ["config", "--global", "--includes", "--type=path", "--get", "core.hooksPath"]);
 	if (global.code !== 0 && global.code !== 1) {
 		return yield* new SetupFailure({ message: `cannot read global core.hooksPath: ${global.stderr.trim()}` });
 	}
