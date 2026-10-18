@@ -23,7 +23,11 @@ export async function socialScreen(baseUrl: string, fetch: typeof globalThis.fet
 	return {
 		async click() {
 			await act(async () => {
-				container.querySelector("button")?.click();
+				const button = container.querySelector("button");
+				if (button === null) {
+					throw new Error("Missing GitHub sign-in button");
+				}
+				button.click();
 				const result = await pending;
 				if (result?.error !== null) {
 					throw new Error(`Social sign-in failed: ${JSON.stringify(result)}`);

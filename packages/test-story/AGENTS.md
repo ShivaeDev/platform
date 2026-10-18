@@ -6,7 +6,7 @@ You are changing the package that lets a test read like a short English story wh
 
 When goals conflict, they win in this order:
 
-1. **The spec reads as a story.** A spec names traits and verbs in domain words and holds nothing else. Any API that makes a spec longer or adds plumbing to it loses, even if it saves the kit author work.
+1. **The spec reads as a story.** A spec names traits and verbs in domain words and holds nothing else. Specs never write state by hand; setup belongs to kit traits and changes go through verbs. Readouts return values and specs state expectations. Any API that makes a spec longer or adds plumbing to it loses, even if it saves the kit author work.
 2. **The real engine runs.** The package never encourages a fake engine or a mocked step. Application stories follow the [story-testing skill](../skills/skills/story-testing/SKILL.md), including its distinction between faked preconditions and behaviour driven from outside. Keep that skill as the source of the story-writing rules; the README explains the package's API.
 3. **One definition per engine.** The kit owns the plumbing every engine shares, down to the test's `it` and the genre in its name; the engine's author fills in hooks and every type is inferred from them. There is one implementation, built on Effect, and an engine that needs no Effect plugs in with plain functions. Add a hook only when two real engines need it.
 4. **The failure fixes itself.** A failure carries everything an agent needs to find and fix the cause without rerunning anything.

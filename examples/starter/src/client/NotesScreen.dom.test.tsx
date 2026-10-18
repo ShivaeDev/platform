@@ -1,31 +1,49 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { eventually } from "@shivaedev/effect-react/testing.ts";
 import { heldNotesList, notesRoute, notesScreen, screens } from "#test-support/screens.ts";
 
 screens.it(
 	"shares the route query, validates the form, retains a rejected title and refreshes after creation",
 	[notesRoute()],
-	function* ({ screenSays, noteCallsAre, submit, alertSays, enter, draftIs, noteLinkIs, noAlert, wordCountIs, finishWordCount, queryRefreshed }) {
-		yield* screenSays("No notes yet");
-		yield* noteCallsAre("list");
+	function* ({
+		closeScreen,
+		consoleErrors,
+		screenText,
+		noteCalls,
+		submit,
+		alert,
+		enter,
+		draft,
+		noteLink,
+		wordCountText,
+		finishWordCount,
+		queryCount,
+	}) {
+		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
+		yield* Effect.promise(() => eventually(() => expect(noteCalls()).toEqual(["list"])));
 		yield* submit();
-		yield* alertSays("Required");
-		yield* noteCallsAre("list");
+		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Required")));
+		yield* Effect.promise(() => eventually(() => expect(noteCalls()).toEqual(["list"])));
 		yield* enter("reserved");
 		yield* submit();
-		yield* alertSays("Choose another title");
-		yield* draftIs("reserved");
+		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Choose another title")));
+		yield* Effect.promise(() => eventually(() => expect(draft()).toBe("reserved")));
 		yield* enter("First note");
 		yield* submit();
-		yield* noteLinkIs("First note");
-		yield* draftIs("");
-		yield* noAlert();
-		yield* noteCallsAre("list", "create", "list");
-		yield* wordCountIs(null);
+		yield* Effect.promise(() => eventually(() => expect(noteLink()).toBe("First note")));
+		yield* Effect.promise(() => eventually(() => expect(draft()).toBe("")));
+		yield* Effect.promise(() => eventually(() => expect(alert()).toBeUndefined()));
+		yield* Effect.promise(() => eventually(() => expect(noteCalls()).toEqual(["list", "create", "list"])));
+		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("Counting words…")));
 		yield* finishWordCount(2);
-		yield* wordCountIs(2);
-		yield* queryRefreshed("list", 2);
+		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("2 words")));
+		yield* Effect.promise(() => eventually(() => expect(queryCount("list")).toBeGreaterThan(2)));
 		yield* finishWordCount(1);
-		yield* wordCountIs(1);
+		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("1 word")));
+		expect(wordCountText()).not.toContain("1 words");
+		yield* closeScreen();
+		expect(consoleErrors()).toEqual([]);
 	},
 );
 
@@ -33,39 +51,41 @@ screens.it(
 	"shows loading before the first result and keeps the empty message during a refresh",
 	[heldNotesList(), notesScreen()],
 	function* ({
-		notesListIsPending,
-		notesListIsReady,
-		notesLoadingIs,
-		screenOmits,
+		closeScreen,
+		consoleErrors,
+		refreshDisabled,
+		loadingMessage,
+		screenText,
 		releaseNotesList,
-		screenSays,
 		holdNotesList,
 		click,
-		queryCountIs,
+		queryCount,
 		screenContent,
 	}) {
-		yield* notesListIsPending();
-		yield* notesLoadingIs(true);
-		yield* screenOmits("No notes yet");
+		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(true)));
+		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe("Loading notes…")));
+		yield* Effect.promise(() => eventually(() => expect(screenText()).not.toContain("No notes yet")));
 		const content = yield* screenContent();
 		expect(content.querySelector("table")).toBeNull();
 		expect(content.querySelector('section[aria-label="Add a note"] form')).not.toBeNull();
 		yield* releaseNotesList();
-		yield* notesListIsReady();
-		yield* screenSays("No notes yet");
-		yield* notesLoadingIs(false);
+		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(false)));
+		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
+		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe(undefined)));
 		expect(content.querySelector("table")).toBeNull();
-		yield* screenOmits("No results.");
+		yield* Effect.promise(() => eventually(() => expect(screenText()).not.toContain("No results.")));
 		yield* holdNotesList();
 		yield* click("Refresh");
-		yield* queryCountIs("list", 2);
-		yield* notesListIsPending();
-		yield* screenSays("No notes yet");
-		yield* notesLoadingIs(false);
+		yield* Effect.promise(() => eventually(() => expect(queryCount("list")).toBe(2)));
+		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(true)));
+		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
+		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe(undefined)));
 		expect(content.querySelector("table")).toBeNull();
 		yield* releaseNotesList();
-		yield* notesListIsReady();
-		yield* screenSays("No notes yet");
+		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(false)));
+		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
+		yield* closeScreen();
+		expect(consoleErrors()).toEqual([]);
 	},
 );
 
@@ -73,43 +93,45 @@ screens.it(
 	"keeps the listed note without a loading message during manual and live-hint refreshes",
 	[notesRoute()],
 	function* ({
-		screenSays,
+		closeScreen,
+		consoleErrors,
+		screenText,
 		enter,
 		submit,
-		noteLinkIs,
+		noteLink,
 		holdNotesList,
 		click,
-		queryCountIs,
-		notesListIsPending,
-		notesListIsReady,
-		notesLoadingIs,
+		queryCount,
+		refreshDisabled,
+		loadingMessage,
 		releaseNotesList,
 		finishWordCount,
-		wordCountIs,
-		queryRefreshed,
+		wordCountText,
 	}) {
-		yield* screenSays("No notes yet");
+		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
 		yield* enter("First note");
 		yield* submit();
-		yield* noteLinkIs("First note");
+		yield* Effect.promise(() => eventually(() => expect(noteLink()).toBe("First note")));
 		yield* holdNotesList();
 		yield* click("Refresh");
-		yield* queryCountIs("list", 3);
-		yield* notesListIsPending();
-		yield* noteLinkIs("First note");
-		yield* notesLoadingIs(false);
+		yield* Effect.promise(() => eventually(() => expect(queryCount("list")).toBe(3)));
+		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(true)));
+		yield* Effect.promise(() => eventually(() => expect(noteLink()).toBe("First note")));
+		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe(undefined)));
 		yield* releaseNotesList();
-		yield* notesListIsReady();
-		yield* wordCountIs(null);
+		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(false)));
+		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("Counting words…")));
 		yield* holdNotesList();
 		yield* finishWordCount(2);
-		yield* queryRefreshed("list", 3);
-		yield* notesListIsPending();
-		yield* noteLinkIs("First note");
-		yield* wordCountIs(null);
-		yield* notesLoadingIs(false);
+		yield* Effect.promise(() => eventually(() => expect(queryCount("list")).toBeGreaterThan(3)));
+		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(true)));
+		yield* Effect.promise(() => eventually(() => expect(noteLink()).toBe("First note")));
+		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("Counting words…")));
+		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe(undefined)));
 		yield* releaseNotesList();
-		yield* notesListIsReady();
-		yield* wordCountIs(2);
+		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(false)));
+		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("2 words")));
+		yield* closeScreen();
+		expect(consoleErrors()).toEqual([]);
 	},
 );

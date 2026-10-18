@@ -1,6 +1,5 @@
-import { Effect, Result } from "effect";
+import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { expect } from "vitest";
 import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { NotesService } from "#server/NotesService.ts";
 import type { RunningHost } from "./host.ts";
@@ -21,5 +20,5 @@ export const createInRolledBackTransaction = Effect.fn("AppStory.createInRolledB
 		yield* service.create({ title: "Rolled back" }, ownerId);
 		return yield* Effect.fail("rollback");
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.provide(host.context), Effect.result);
-	expect(Result.isFailure(result) && result.failure).toBe("rollback");
+	return result;
 });

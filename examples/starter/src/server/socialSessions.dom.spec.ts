@@ -2,13 +2,12 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { socialApp } from "#test-support/socialApp.ts";
 
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-
 socialApp.it(
 	"a social sign-in returns from the fake provider with a PostgreSQL cookie session",
 	[],
-	function* ({ signInWithGitHub, signedInPage, storedUsers, storedSessions, providerRequests }) {
-		const navigation = yield* signInWithGitHub();
+	function* ({ signInWithGitHub, socialNavigation, signedInPage, storedUsers, storedSessions, providerRequests }) {
+		yield* signInWithGitHub();
+		const navigation = socialNavigation();
 		expect(navigation).toMatchObject({ providerHostname: "github.com", redirected: true, status: 200 });
 		expect(navigation.body).toContain("Signed in as alice@social.test");
 		expect(navigation.location).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/signed-in$/u);
@@ -37,12 +36,12 @@ socialApp.it(
 		yield* signInWithGitHub();
 		expect(yield* providerAccounts()).toEqual([{ accountId: "123", providerId: "github" }]);
 		yield* signOut();
-		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+		expect(yield* providerAccounts().pipe(Effect.flip)).toMatchObject({ _tag: "Unauthorized" });
 		yield* signUpWithEmail();
 		const accounts = yield* providerAccounts();
 		expect(accounts.find(({ providerId }) => providerId === "github")).toBeUndefined();
 		expect(accounts).toEqual([{ accountId: expect.any(String), providerId: "credential" }]);
 		yield* failAccountLookup();
-		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "AuthUnavailable" } });
+		expect(yield* providerAccounts().pipe(Effect.flip)).toMatchObject({ _tag: "AuthUnavailable" });
 	},
 );

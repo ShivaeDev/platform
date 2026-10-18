@@ -7,6 +7,7 @@ import { requests } from "#test-support/requests.ts";
 import { storyDatabase } from "#test-support/storyDatabase.ts";
 import type { Engine } from "./applicationState.ts";
 import { applicationVerbs } from "./applicationVerbs.ts";
+import { DatabaseLifetime } from "./DatabaseLifetime.ts";
 
 export const app = storyKit({
 	after: {
@@ -16,7 +17,11 @@ export const app = storyKit({
 	},
 	around: storyDatabase,
 	clock: "live",
-	create: (): Engine => ({ actors: new Map(), existingNotes: new Map(), host: undefined, hostOptions: {}, tell: () => undefined }),
+	create: (): Effect.Effect<Engine> =>
+		Effect.gen(function* () {
+			const databaseLifetime = yield* DatabaseLifetime;
+			return { actors: new Map(), databaseLifetime, existingNotes: new Map(), host: undefined, hostOptions: {}, tell: () => undefined };
+		}),
 	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),
 	layer: postgres,
 	name: "app",

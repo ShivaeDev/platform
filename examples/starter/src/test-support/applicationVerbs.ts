@@ -1,13 +1,14 @@
 import { ConfigProvider, Effect, Exit, Layer, Scope } from "effect";
+import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { makeAuth } from "#client/auth.ts";
 import { noteWorker } from "#server/noteWorker.ts";
 import type { Engine } from "./applicationState.ts";
+import { authPost, credentials } from "./authHttp.ts";
 import { authRateLimits } from "./authRateLimits.ts";
 import { createInRolledBackTransaction } from "./createInRolledBackTransaction.ts";
 import { startHost } from "./host.ts";
 import { liveNotes } from "./liveNotes.ts";
-import { rejectsWith } from "./rejectsWith.ts";
 import { requests } from "./requests.ts";
 import { sessionVerbs } from "./sessionVerbs.ts";
 import { storedNotes } from "./storedNotes.ts";
@@ -40,6 +41,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 	});
 	return {
 		...storedNotes(story.tell),
+		databaseLifetime: () => engine.databaseLifetime,
 		existingNote: (title: string) => {
 			const note = engine.existingNotes.get(title);
 			if (note === undefined) {
@@ -49,6 +51,11 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		},
 		...sessionVerbs(engine, story.tell),
 		...workerTracing(story.tell, startWorker),
+		acceptNoteCommits: Effect.gen(function* () {
+			story.tell("PostgreSQL accepts note commits again");
+			const sql = yield* SqlClient.SqlClient;
+			yield* sql`drop trigger reject_note_commit on notes`;
+		}),
 		actor: (name = "alice") => {
 			const actor = engine.actors.get(name);
 			if (actor === undefined) {
@@ -63,6 +70,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			return makeAuth({ baseUrl, fetchOptions: { headers: { cookie, origin } } });
 		},
 		authenticate: (name: string, path?: string, cookie?: string) => http().authenticate(name, path, cookie),
+		authenticateResponse: (name: string, path: string) => authPost(host().baseUrl, path, credentials(name), "", host().origin),
 		authRateLimits: () => authRateLimits(host(), story.tell),
 		createInRolledBackTransaction: () => createInRolledBackTransaction(host(), story.tell),
 		foreignRequest: (cookie: string) => http().foreignRequest(cookie),
@@ -76,7 +84,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		},
 		logs: () => host().logs,
 		notes: (cookie: string) => http().notes(cookie),
-		rejectsWith,
 		rerunMigrations: Effect.fn("AppStory.rerunMigrations")(function* () {
 			story.tell("run the deployment migrations and open another app host");
 			engine.host = yield* startHost(engine.hostOptions);
