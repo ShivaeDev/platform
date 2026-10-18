@@ -10,7 +10,7 @@ export const discoveryDaemon = Effect.fn("DaemonStory.discoveryDaemon")(function
 	const close = Scope.close(scope, Exit.void);
 	yield* Effect.addFinalizer(() => close);
 	const subscribed = Promise.withResolvers<void>();
-	const context = yield* Layer.buildWithScope(readDaemonLayer(fixture.host, { onSnapshot: () => subscribed.resolve() }), scope);
+	const context = yield* Layer.buildWithScope(readDaemonLayer(fixture.host, { onSnapshot: () => subscribed.resolve(), parts: fixture.parts }), scope);
 	const address = Context.get(context, HttpServer.HttpServer).address;
 	if (!NetAddress.isInetAddress(address)) {
 		return yield* Effect.die("Expected a TCP Fleet daemon");

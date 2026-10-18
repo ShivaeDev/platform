@@ -4,15 +4,17 @@ import type { FleetViews } from "#model.ts";
 
 type View = (typeof FleetViews.Type)["active"][number];
 
-function line(view: View, waiting: boolean) {
+function line(view: View, waiting: boolean, selection: string) {
 	const reason = view.blocker ?? view.decision?.reason ?? (view.overLimit ? "launched over the limit" : undefined);
 	const detail = reason === undefined ? "" : `  ${reason}`;
 	const links = [...view.links, ...view.sessions.map(sessionStatus)];
-	const answer = waiting ? `\n    work-fleet answer ${view.workId}` : "";
+	const answer = waiting ? `\n    work-fleet answer ${view.workId}${selection}` : "";
 	return `  ${view.workId}  ${view.stage}${detail}${links.length === 0 ? "" : `  (${links.join(", ")})`}${answer}`;
 }
 
-export function renderStatus(current: typeof DaemonStatus.Type): string {
+export function renderStatus(current: typeof DaemonStatus.Type, selection: { readonly board?: string; readonly port?: number } = {}): string {
+	const board = selection.board === undefined || selection.board === ".work" ? "" : ` --board '${selection.board.replaceAll("'", "'\\''")}'`;
+	const endpoint = `${board}${selection.port === undefined ? "" : ` --port ${selection.port}`}`;
 	const sections: readonly [string, readonly View[]][] = [
 		["Active", current.active],
 		["Waiting on maintainer", current.waiting.maintainer],
@@ -24,7 +26,7 @@ export function renderStatus(current: typeof DaemonStatus.Type): string {
 		.map(([title, items]) =>
 			[
 				`${title} (${items.length})`,
-				...items.map((item) => line(item, title === "Waiting on maintainer" || title === "Waiting on orchestrator")),
+				...items.map((item) => line(item, title === "Waiting on maintainer" || title === "Waiting on orchestrator", endpoint)),
 			].join("\n"),
 		)
 		.join("\n");

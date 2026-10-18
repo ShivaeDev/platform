@@ -44,19 +44,6 @@ fleetDaemon.it("stopping a daemon preserves a port file replaced by another writ
 	expect(yield* daemon.portFile()).toBe(String(replacement));
 });
 
-fleetDaemon.it("status answer hints use Board discovery on a non-default daemon port", [], function* (daemon) {
-	yield* daemon.transition("one", "needs-human", {
-		attentionOwner: "orchestrator",
-		id: "choose-next-step",
-		links: [],
-		reason: "Choose the next step",
-		recommendation: "retry",
-	});
-	const result = yield* daemon.status();
-	expect(result).toMatchObject({ code: 0, stderr: "" });
-	expect(result.stdout.split("\n")).toContain("    work-fleet answer one");
-});
-
 fleetDaemon.it(
 	"watch without --port repeats an error on each unreachable retry and discovers a restarted daemon on a new port",
 	[daemonIsStopped()],

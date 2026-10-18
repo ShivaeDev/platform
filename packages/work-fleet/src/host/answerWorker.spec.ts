@@ -40,7 +40,7 @@ const workerQuestionStory = Effect.fn("DaemonCommandsTest.workerQuestionStory")(
 	if (source === "argument") {
 		const status = (yield* Effect.promise(() => cliProcess(["status", "--port", String(port)]))).stdout;
 		expect(status).toContain("Which storage should I use?");
-		expect(status.split("\n")).toContain("    work-fleet answer one");
+		expect(status.split("\n")).toContain(`    work-fleet answer one --port ${port}`);
 	}
 	expect(renderStatus(yield* client("daemon.status", {}))).toContain("work-fleet answer one");
 	expect(yield* client("daemon.answer", { text: "  ", workId: "one" }).pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });

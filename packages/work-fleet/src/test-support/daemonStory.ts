@@ -6,7 +6,6 @@ import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import type { FleetRecord } from "#model.ts";
 import { discoveryDaemon } from "#test/discoveryDaemon.ts";
-import { cliProcess } from "#test/fleetCli.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import { untilError, untilOutput } from "#test/follower.ts";
 import { type Follower, followerProcess } from "#test/followerProcess.ts";
@@ -67,16 +66,6 @@ export const fleetDaemon = storyKit({
 				if (engine.daemon.port === previousPort) {
 					return yield* Effect.die("Restart discovery stories require a different daemon port");
 				}
-			}),
-		status: () =>
-			Effect.promise(async () => {
-				let stderr = "";
-				const result = await cliProcess(["status", "--board", engine.fixture.host.boardDir], {
-					onError: (text) => {
-						stderr += text;
-					},
-				});
-				return { ...result, stderr };
 			}),
 		stop: () => {
 			story.tell("stop the daemon");

@@ -59,11 +59,12 @@ function hostParts(boardDir: string, provider: EngineProvider["transport"]): Hos
 export const hostFixture = Effect.fn("FleetFixture.hostFixture")(function* (
 	files: Readonly<Record<string, string>> = {},
 	config: Partial<HostConfig> = {},
+	directoryPrefix = "fleet-host-",
 ) {
 	const database = yield* PostgresTestDatabase;
 	const fixture = yield* Effect.acquireRelease(
 		Effect.sync(() => {
-			const boardDir = mkdtempSync(join(tmpdir(), "fleet-host-"));
+			const boardDir = mkdtempSync(join(tmpdir(), directoryPrefix));
 			const settings: HostConfig = {
 				intervalSeconds: 1,
 				namespace: STORAGE_NAMESPACE,
