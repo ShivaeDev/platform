@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0 - 2026-10-18
+
+### Added
+
+- Pass React's `RootOptions` to test `render(node, options)`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`.
+- Declare expected boundary errors with `expectNoReactWarnings().expectCaughtError(predicate)`, using its returned `onCaughtError` handler in `render`. Unexpected caught errors, console errors, React warnings and missing expected errors still fail the guard.
+- `useLoaderQuery(atom, routeLoaderData)` and `LoadedQueryState` expose loaded query data directly and retain the last value during refetches, without an Initial result or per-screen loading branch.
+- `useEditor({ ...config, loaded: routeLoaderData })` and `LoadedEditor` provide a defined form and direct query data for loader-backed editors.
+- `usePendingCommand`, `PendingCommandOptions` and `PendingCommandState` from `client/pendingCommand.ts` expose a command's wanted display value while it runs and its watched queries refetch, then adopt the server value. Typed command failures revert the display and remain in the native action result.
+- Bind independently controlled list rows to separate native action atoms with `Atom.family`, so a typed rejection on one row leaves another row's pending display intact.
+
+### Fixed
+
+- Keep loader queries mounted until a component subscribes or their route owner aborts, so delayed route mounts share the loader's execution. Give SessionBoundary registries the same idle window as atom-react's default registry; unread results are released when their route owner ends.
+
 ## 0.6.0 - 2026-10-18
 
 ### Added
