@@ -24,7 +24,8 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 		"4_attention_owner": sql`update ${sql(`${namespace}_records`)} set version = version + 1,
 				payload = case
 					when payload->>'stage' = 'needs-human' and payload->'decision' is not null
-						and (payload->'decision'->>'attentionOwner' is null or payload->'decision'->'published' is not null or payload->'decision'->>'reason' = 'Reviewed PR is ready to merge')
+						and payload->'decision'->>'reason' is distinct from 'Reviewed PR is ready to merge'
+						and (payload->'decision'->>'attentionOwner' is null or payload->'decision'->'published' is not null)
 					then jsonb_set(jsonb_set(payload, '{attentionOwner}', '"maintainer"'::jsonb), '{decision,attentionOwner}', '"maintainer"'::jsonb)
 					else jsonb_set(payload, '{attentionOwner}',
 						case when (payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true')
@@ -61,5 +62,10 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			yield* sql`alter table ${sql(`${namespace}_records`)} drop column ${sql("admissionReady")}`;
 			yield* sql`alter table ${sql(childTable(namespace, ["history"]))} drop column ${sql("admissionReady")}`;
 		}),
+		"16_orchestrator_decisions": sql`update ${sql(`${namespace}_records`)} as records set version = version + 1, "attentionOwner" = 'orchestrator'
+			where stage = 'needs-human' and "attentionOwner" = 'maintainer'
+				and ("decision__code" = 'reviewed-pr-ready' or ("decision__code" = 'fleet-stale' and "decision__reason" = 'Board context changed'))
+				and not exists (select 1 from ${sql(childTable(namespace, ["supersededDecisions"]))} as superseded
+					where superseded.work_id = records.work_id and superseded."reassignedTo__decisionId" = records."decision__id")`,
 	});
 });

@@ -5,11 +5,12 @@ import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
 import { decisionReading } from "#board/decisionReading.ts";
-import { boundDocuments, boundSnapshot, refreshSnapshotDocument, snapshotDocument } from "#board/documents.ts";
+import { boundSnapshot, refreshSnapshotDocument, snapshotDocument } from "#board/documents.ts";
 import { fleetApproved, fleetDeliverable, fleetPriority } from "#board/fleetField.ts";
 import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
 import { workMetadata } from "#board/readPass.ts";
+import { upgradeDecisionClosure } from "#board/upgradeDecisionClosure.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { writeCompletion } from "#board/writeCompletion.ts";
 import { BoardFailure, BoardGateway, Priority } from "#policy.ts";
@@ -24,8 +25,8 @@ const MarkdownBoard = defineService({
 		const fs = yield* FileSystem.FileSystem;
 		const path = yield* Path.Path;
 		const realRoot = yield* fs.realPath(root);
-		const documents = boundDocuments(root, realRoot, fs, path);
-		const snapshot = boundSnapshot(root, realRoot, fs, path);
+		const snapshot = boundSnapshot(root, realRoot, fs, path).pipe(Effect.tap((current) => upgradeDecisionClosure(root, realRoot, current, fs)));
+		const documents = snapshot.pipe(Effect.map((current) => current.documents.filter((document) => !current.problems.has(document.file))));
 		const get = Effect.fn("FleetBoard.get")(function* (workId: string, options?: { readonly fresh?: boolean }) {
 			const current = yield* snapshot;
 			const found = yield* options?.fresh

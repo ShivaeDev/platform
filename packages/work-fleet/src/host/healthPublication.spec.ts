@@ -58,9 +58,9 @@ test("publishes counts, configured cap, scheduler pass and provider rejection th
 			expect(running.lastSchedulerPass).toBeGreaterThan(0);
 			finishWorkers(fixture);
 			yield* cycle;
-			expect(yield* fleetHealth(root)).toMatchObject({ running: 0, waiting: { automation: 0, maintainer: 1, orchestrator: 0 } });
+			expect(yield* fleetHealth(root)).toMatchObject({ running: 0, waiting: { automation: 0, maintainer: 0, orchestrator: 1 } });
 			const fleet = yield* Fleet;
-			for (const owner of ["orchestrator", "automation"] as const) {
+			for (const owner of ["maintainer", "automation"] as const) {
 				const decision = (yield* fleet.get("one")).value.decision;
 				if (decision === undefined) {
 					return yield* Effect.die("Missing waiting decision");
@@ -68,8 +68,8 @@ test("publishes counts, configured cap, scheduler pass and provider rejection th
 				yield* fleet.reassign("one", decision.id, owner);
 				expect((yield* fleetHealth(root)).waiting).toEqual({
 					automation: Number(owner === "automation"),
-					maintainer: 0,
-					orchestrator: Number(owner === "orchestrator"),
+					maintainer: Number(owner === "maintainer"),
+					orchestrator: 0,
 				});
 			}
 		}).pipe(
