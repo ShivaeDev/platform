@@ -61,7 +61,7 @@
 		"@shivaedev/types": "workspace:*",
 		"ignore": "catalog:",
 		"sort-package-json": "catalog:",
-		"typescript": "catalog:"
+		"typescript": "catalog:compiler-api"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
