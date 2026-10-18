@@ -75,8 +75,9 @@ export function* serveProject(engine: BoardEngine) {
 	if (engine.readingOnly) {
 		return;
 	}
+	const reader = engine.server.client;
 	const page = yield* openPage(board, engine.path, engine.beforeScripts);
-	engine.live = { board, client: engine.server.client, page };
+	engine.live = { board, client: reader, page };
 	yield* rememberReader(engine);
 }
 
