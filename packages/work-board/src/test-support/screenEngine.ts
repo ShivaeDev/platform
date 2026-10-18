@@ -55,14 +55,15 @@ export function screenView(engine: ScreenEngine) {
 }
 
 export function trackScreen<T extends Awaited<ReturnType<typeof render>>>(engine: ScreenEngine, view: T, tell: (line: string) => void): T {
-	engine.view = view;
 	let closed = false;
 	const close = view.unmount;
 	async function unmount() {
 		if (closed) {
 			return;
 		}
-		engine.lastView = screenView(engine);
+		if (engine.view === tracked) {
+			engine.lastView = screenView(engine);
+		}
 		tell("the reader closes the screen");
 		closed = true;
 		await close();
