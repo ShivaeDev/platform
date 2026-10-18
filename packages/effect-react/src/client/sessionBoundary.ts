@@ -22,7 +22,7 @@ interface Owned<TClient> {
 	readonly registry: AtomRegistry.AtomRegistry;
 }
 function owning<TClient>(client: TClient): Owned<TClient> {
-	return { client, mounted: 0, registry: AtomRegistry.make() };
+	return { client, mounted: 0, registry: AtomRegistry.make({ "defaultIdleTTL": 400 }) };
 }
 // No cleanup runs when a hidden <Activity> subtree is unmounted, so nodes a hidden render creates must not outlive it.
 function hidden<TClient>(client: TClient): Owned<TClient> {

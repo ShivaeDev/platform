@@ -2,9 +2,11 @@ import { useAtomMount } from "@effect/atom-react";
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { useEffect } from "react";
-import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useAction } from "@shivaedev/effect-react/client/resultState.ts";
+import { useLoaderQuery } from "@shivaedev/effect-react/client/useLoaderQuery.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";
+import type { Note } from "#notes.ts";
 import type { AuthActions } from "./auth.ts";
 import type { NotesClient } from "./makeNotes.ts";
 import { NoteCreate } from "./NoteCreate.tsx";
@@ -12,17 +14,18 @@ import { NotesTable } from "./NotesTable.tsx";
 
 export function NotesScreen({
 	client,
+	loaded,
 	signOut,
 	onSignedOut,
 }: {
 	readonly client: NotesClient;
+	readonly loaded: readonly (typeof Note.Type)[];
 	readonly signOut?: AuthActions["signOut"];
 	readonly onSignedOut?: (() => void) | undefined;
 }) {
 	useAtomMount(client.connection);
-	const query = useQuery(client.api.list.query());
-	const rows = Option.getOrElse(query.data, () => []);
-	const loading = query.pending && !query.refreshing;
+	const query = useLoaderQuery(client.api.list.query(), loaded);
+	const rows = query.data;
 	return (
 		<main className="mx-auto w-full max-w-2xl space-y-8 px-4 py-12 sm:px-6">
 			<header className="space-y-2">
@@ -46,8 +49,7 @@ export function NotesScreen({
 					</Button>
 				</div>
 				{Option.isSome(query.cause) && <p role="alert">Could not load notes. Try refreshing.</p>}
-				{loading ? <p role="status">Loading notes…</p> : null}
-				{!loading && rows.length === 0 && <p className="text-muted-foreground text-sm">No notes yet. Add your first one above.</p>}
+				{rows.length === 0 && <p className="text-muted-foreground text-sm">No notes yet. Add your first one above.</p>}
 				{rows.length > 0 && <NotesTable notes={rows} />}
 			</section>
 		</main>

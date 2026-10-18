@@ -8,7 +8,7 @@ import { useEditor } from "@shivaedev/effect-react/client/editor.ts";
 import { fieldRejectionOf } from "@shivaedev/effect-react/fieldRejection.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
-import { NoteEditFields } from "#notes.ts";
+import { type Note, NoteEditFields } from "#notes.ts";
 import type { NotesClient } from "./makeNotes.ts";
 import { NoteDelete } from "./NoteDelete.tsx";
 
@@ -38,17 +38,27 @@ function Title<A, E, TRuntimeError>({ form }: { readonly form: Form<typeof NoteE
 	);
 }
 
-export function NoteEdit({ client, noteId, onDeleted }: { readonly client: NotesClient; readonly noteId: number; readonly onDeleted: () => void }) {
+export function NoteEdit({
+	client,
+	loaded,
+	onDeleted,
+}: {
+	readonly client: NotesClient;
+	readonly loaded: typeof Note.Type;
+	readonly onDeleted: () => void;
+}) {
+	const noteId = loaded.id;
 	useAtomMount(client.connection);
 	const editor = useEditor({
 		fields: NoteEditFields,
+		loaded,
 		query: client.api.get.query({ id: noteId }),
 		rejectField: fieldRejectionOf(NoteEditFields),
 		runtime: client.runtime,
 		save: (values) => client.api.update.run({ id: noteId, ...values }),
 		values: (row) => ({ title: row.title, version: row.version }),
 	});
-	const currentNote = Option.getOrUndefined(editor.query.data);
+	const currentNote = editor.query.data;
 	const failure = Option.map(editor.failure, (error) => {
 		if (Predicate.isTagged(error, "Conflict")) {
 			return error.message;
@@ -68,31 +78,28 @@ export function NoteEdit({ client, noteId, onDeleted }: { readonly client: Notes
 				Refresh
 			</Button>
 			{Option.isSome(editor.query.cause) && <p role="alert">Could not load this note. Try refreshing.</p>}
-			{editor.form === undefined ? (
-				<p role="status">Loading note…</p>
-			) : (
-				<form
-					className="space-y-4 rounded-lg border bg-card p-5 shadow-sm"
-					onSubmit={(event) => {
-						event.preventDefault();
-						editor.save();
-					}}
-				>
-					<Title form={editor.form} />
-					<Button disabled={editor.saving} type="submit">
-						{editor.saving ? "Saving…" : "Save note"}
-					</Button>
-					{Option.isSome(failure) && (
-						<p className="text-destructive text-sm" role="alert">
-							{failure.value}
-						</p>
-					)}
-					<p aria-live="polite" className="text-muted-foreground text-sm">
-						{editor.dirty ? "Unsaved changes" : "All changes saved"}
+
+			<form
+				className="space-y-4 rounded-lg border bg-card p-5 shadow-sm"
+				onSubmit={(event) => {
+					event.preventDefault();
+					editor.save();
+				}}
+			>
+				<Title form={editor.form} />
+				<Button disabled={editor.saving} type="submit">
+					{editor.saving ? "Saving…" : "Save note"}
+				</Button>
+				{Option.isSome(failure) && (
+					<p className="text-destructive text-sm" role="alert">
+						{failure.value}
 					</p>
-				</form>
-			)}
-			{currentNote !== undefined && <NoteDelete client={client} note={currentNote} onDeleted={onDeleted} saving={editor.saving} />}
+				)}
+				<p aria-live="polite" className="text-muted-foreground text-sm">
+					{editor.dirty ? "Unsaved changes" : "All changes saved"}
+				</p>
+			</form>
+			<NoteDelete client={client} note={currentNote} onDeleted={onDeleted} saving={editor.saving} />
 		</main>
 	);
 }
