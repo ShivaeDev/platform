@@ -38,3 +38,12 @@ documentApp.it("routes XMLHttpRequest through the document transport", [], funct
 documentApp.it("refuses synchronous document requests before they reach the network", [], ({ syncRequest }) => {
 	expect(syncRequest()).toContain("test-story refuses synchronous document requests to provider.test");
 });
+
+documentApp.it("releases its routed HTTP host when the story finishes", [], function* ({ hostUrl, loadPage }, context) {
+	const url = hostUrl();
+	const response = yield* loadPage();
+	expect(response.status).toBe(200);
+	context.onTestFinished(async () => {
+		await expect(globalThis.fetch(`${url}/page`)).rejects.toThrow();
+	});
+});
