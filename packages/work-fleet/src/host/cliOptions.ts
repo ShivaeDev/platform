@@ -1,6 +1,6 @@
 import * as Flag from "effect/cli/Flag";
 import * as Option from "effect/Option";
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { loadHost } from "#host/configFile.ts";
 
 const { DAEMON_PORT } = diagnosticsApi;
