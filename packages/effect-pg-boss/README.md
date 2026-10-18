@@ -170,7 +170,7 @@ export const jobsLayer = (databaseUrl: string) =>
   }).pipe(Layer.provide(MailLive));
 ```
 
-The constructor options belong to pg-boss. `jobs` is the complete list of registrations for this Layer. The Layer captures `MailLive` for both the queue handler and the scheduled Effect. A startup or registration failure fails Layer acquisition with `PgBossError` or `PgBossQueueOptionsError` and releases its acquired client reference. A shared client stays running while another scope still owns a reference.
+The constructor options belong to pg-boss. `jobs` is the complete list of registrations for this Layer. The Layer captures `MailLive` for both the queue handler and the scheduled Effect. A startup or registration failure fails Layer acquisition with `PgBossError` or `PgBossQueueOptionsError` and releases its acquired client reference. Registration creates a queue again, up to six times with a short backoff, when PostgreSQL rolls the creation back as a deadlock victim (SQLSTATE `40P01`), which a partitioned queue can meet when other queues in the schema have traffic. A shared client stays running while another scope still owns a reference.
 
 Keep the Layer in the application's worker runtime scope. A short scope is useful for an acquisition or health check; a worker process needs its scope to remain open while it handles jobs.
 
