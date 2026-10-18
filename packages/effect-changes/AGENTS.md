@@ -11,4 +11,4 @@ When goals conflict, they win in this order:
 3. **Keep recording explicit and behavior proven.** Write code names what needs refreshing. Do not infer application changes from arbitrary data, and test driver claims against the actual driver before documenting them.
 4. **Keep the channel small and independent of drivers.** SQL and Prisma bindings belong in their packages. Durable delivery, cache policy and the meaning of a change belong outside the core channel.
 
-The full purpose and trade-offs are in [docs/north-star.md](docs/north-star.md), package work and open questions in [docs/roadmap.md](docs/roadmap.md), and usage in [README.md](README.md). Follow the [repository guidance](../../AGENTS.md) for the shared engineering rules.
+Usage is in [README.md](README.md). Follow the [repository guidance](../../AGENTS.md) for the shared engineering rules.
