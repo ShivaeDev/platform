@@ -1,8 +1,8 @@
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
-import type { builtInRules } from "#rules/built-in.ts";
+import type { builtInRules } from "#rules/builtIn.ts";
 import type { Rule } from "./rule.ts";
 
-export type Level = "error" | "warn" | "off";
+export type Level = "error";
 
 export type RuleSetting<TInput> = "error" | { readonly level?: "error"; readonly options?: TInput };
 

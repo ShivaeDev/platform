@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { noJsdoc } from "#rules/comments/no-jsdoc.ts";
-import { noTodo } from "#rules/comments/no-todo.ts";
+import { noJsdoc } from "#rules/comments/noJsdoc.ts";
+import { noTodo } from "#rules/comments/noTodo.ts";
 import { checkRule } from "#test/inputs.ts";
 
 async function todos(path: string, ...content: readonly string[]) {

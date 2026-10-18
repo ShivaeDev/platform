@@ -1,7 +1,7 @@
 import { Effect, Result } from "effect";
 import { expect } from "vitest";
 import { OptimisticConcurrencyError } from "#repository.ts";
-import { integration, runPostgres } from "#test/postgres-transact.ts";
+import { integration, runPostgres } from "#test/postgresTransact.ts";
 import { Document, setupVersioned } from "#test/postgresVersioned.ts";
 
 integration("PostgreSQL inserts initialize versions and updates return the incremented model", async () => {

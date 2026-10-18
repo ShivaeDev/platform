@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Config, Effect, FileSystem } from "effect";
-import { postgresTestEnvironment } from "#lib/postgres-test-environment.ts";
+import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 import { verifyArchives, workspaceArchives } from "#package-check/archives.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import { decodeVersions } from "#package-check/model.ts";

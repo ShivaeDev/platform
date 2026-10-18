@@ -1,8 +1,9 @@
-import { expect, it } from "vitest";
-import { render } from "@shivaedev/effect-react/client/testing.ts";
+import { expect } from "vitest";
+import { screenStory } from "#test/screenStory.ts";
+import { componentScreen } from "#test/screenTraits.ts";
 import { StatusChip } from "./StatusChip.tsx";
 
-it.each([
+for (const [status, token, icon] of [
 	["planned", "deferred", "circle"],
 	["active", "agent-working", "loader-circle"],
 	["received", "deferred", "inbox"],
@@ -17,25 +18,23 @@ it.each([
 	["deferred", "deferred", "circle-pause"],
 	["superseded", "deferred", "clock"],
 	["unexpected", "deferred", "circle-help"],
-])("renders %s with its semantic token, icon and source word", async (status, token, icon) => {
-	const view = await render(<StatusChip status={status} />);
-	try {
-		const chip = view.container.querySelector("[data-status-token]");
-		expect(chip?.getAttribute("data-status-token")).toBe(token);
-		expect(chip?.classList.contains(`text-${token}`)).toBe(true);
-		expect(chip?.textContent).toBe(status);
-		expect(chip?.querySelector(`svg.lucide-${icon}`)?.getAttribute("aria-hidden")).toBe("true");
-	} finally {
-		await view.unmount();
-	}
-});
+]) {
+	screenStory.it(
+		`renders ${status} with its semantic token, icon and source word`,
+		[componentScreen(<StatusChip status={status} />)],
+		({ findElement, readAttribute }) => {
+			const chip = findElement("[data-status-token]");
+			expect(chip?.getAttribute("data-status-token")).toBe(token);
+			expect(chip?.classList.contains(`text-${token}`)).toBe(true);
+			expect(chip?.textContent).toBe(status);
+			expect(readAttribute(`svg.lucide-${icon}`, "aria-hidden", chip)).toBe("true");
+		},
+	);
+}
 
-it.each([undefined, ""])("omits absent status chips (%s)", async (status) => {
-	const view = await render(<StatusChip status={status} />);
-	try {
-		expect(view.container.textContent).toBe("");
-		expect(view.container.querySelector("[data-status-token]")).toBeNull();
-	} finally {
-		await view.unmount();
-	}
-});
+for (const status of [undefined, ""]) {
+	screenStory.it(`omits absent status chips (${status})`, [componentScreen(<StatusChip status={status} />)], ({ readText, findElement }) => {
+		expect(readText()).toBe("");
+		expect(findElement("[data-status-token]")).toBeNull();
+	});
+}

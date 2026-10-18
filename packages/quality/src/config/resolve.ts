@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import type { Decoded } from "#decoded.ts";
-import type { ActiveRule } from "#engine/run-rules.ts";
+import type { ActiveRule } from "#engine/runRules.ts";
 import type { RuleIndex } from "#engine/violation.ts";
 import type { Rule } from "#rule.ts";
-import { builtInRules } from "#rules/built-in.ts";
+import { builtInRules } from "#rules/builtIn.ts";
 import type { ConfigInput } from "./decode.ts";
 
 export interface ResolvedRules extends RuleIndex {

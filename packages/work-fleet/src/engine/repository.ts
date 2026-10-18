@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { SqlClient } from "effect/sql";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { operationRecord } from "#engine/operationRecord.ts";
 import { threadName } from "#engine/threadNames.ts";
 import { type Attempt, allAttempts, backlog, executing, FleetRecord } from "#model.ts";

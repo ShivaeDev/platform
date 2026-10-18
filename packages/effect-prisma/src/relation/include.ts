@@ -1,6 +1,6 @@
 import type { DefaultModelRow, Collection as PrismaCollection, RelationNames } from "@prisma-next/sql-orm-client";
 import type { Relation, RelationQuery } from "#relation.ts";
-import type { AnyPostgresContract, IncludedRelationValue, IsToManyRelation, RelatedModelNameOf } from "./include-metadata.ts";
+import type { AnyPostgresContract, IncludedRelationValue, IsToManyRelation, RelatedModelNameOf } from "./includeMetadata.ts";
 
 type Simplify<TValue> = { [TKey in keyof TValue]: TValue[TKey] };
 

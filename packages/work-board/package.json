@@ -106,6 +106,7 @@
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
+		"@shivaedev/work-board-plugin": "workspace:*",
 		"@tailwindcss/vite": "catalog:",
 		"@tanstack/react-router": "catalog:",
 		"@types/hast": "catalog:",

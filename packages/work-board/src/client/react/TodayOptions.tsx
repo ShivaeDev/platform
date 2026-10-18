@@ -1,6 +1,6 @@
 import { RegistryContext } from "@effect/atom-react";
 import { Cause, Effect, Option } from "effect";
-import { useContext, useId, useMemo, useState } from "react";
+import { useContext, useId, useMemo, useRef, useState } from "react";
 import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { answerBody } from "#browser/responses/answerBody.ts";
@@ -56,6 +56,8 @@ export function TodayOptions({ api, item }: { readonly api: ShellApi; readonly i
 function InlineOptions({ api, document: data, request }: { readonly api: ShellApi; readonly document: Document; readonly request: DocumentRequest }) {
 	const registry = useContext(RegistryContext);
 	const authorId = useId();
+	const requestRef = useRef(request);
+	requestRef.current = request;
 	const client = useFormClient();
 	const [label] = useState(() => authorLabel(() => localStorage, document.documentElement.dataset.workspace));
 	const [author, setAuthor] = useState(() => label.read("") || "maintainer");
@@ -63,8 +65,8 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 		() =>
 			client.runtime.fn(
 				Effect.fn("Board.answerOption")(function* (choice: string) {
-					const preview = request.preview;
-					const prompt = request.prompts?.[0];
+					const preview = requestRef.current.preview;
+					const prompt = requestRef.current.prompts?.[0];
 					if (!(preview && prompt && author.trim())) {
 						return yield* Effect.fail("Add your local author label.");
 					}
@@ -86,7 +88,7 @@ function InlineOptions({ api, document: data, request }: { readonly api: ShellAp
 					return saved;
 				}),
 			),
-		[client, api, registry, request, author, data.file, label.save],
+		[client, api, registry, author, data.file, label.save],
 	);
 	const action = useAction(actionAtom);
 	const failure = Option.getOrUndefined(Option.flatMap(action.cause, Cause.findErrorOption));

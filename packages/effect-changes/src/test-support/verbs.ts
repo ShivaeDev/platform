@@ -1,6 +1,6 @@
 import { Deferred, Effect, Fiber, Layer } from "effect";
 import { database, type Engine, label } from "./engine.ts";
-import { type Change, type FakeDatabase, on } from "./fake-database.ts";
+import { type Change, type FakeDatabase, on } from "./fakeDatabase.ts";
 import { frameVerbs } from "./frameVerbs.ts";
 
 export function verbs(engine: Engine, tell: (line: string) => void) {
