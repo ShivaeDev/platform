@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FakeHttpReply, FakeHttpRequest, FakeHttpRoute, FakeHttpServiceOptions } from "#fakeHttpService.ts";
 import type { fakeHttpControls } from "#internal/fakeHttpControls.ts";
+import { fakeHttpSend } from "#internal/fakeHttpSend.ts";
 
 function match(route: FakeHttpRoute, method: string, pathname: string) {
 	if ((route.method ?? "GET").toUpperCase() !== method) {
@@ -45,12 +46,6 @@ function pageReply(route: FakeHttpRoute, request: FakeHttpRequest): FakeHttpRepl
 	return { body: { items: route.pages[page - 1] ?? [], next: page < route.pages.length ? page + 1 : null } };
 }
 
-function send(response: ServerResponse, reply: FakeHttpReply) {
-	const body = reply.body === undefined ? undefined : JSON.stringify(reply.body);
-	response.writeHead(reply.status ?? 200, { "content-type": "application/json", ...reply.headers });
-	response.end(body);
-}
-
 export async function fakeHttpReceive(
 	incoming: IncomingMessage,
 	response: ServerResponse,
@@ -84,29 +79,32 @@ export async function fakeHttpReceive(
 		tell(`fake HTTP received ${method} ${path}`);
 		if (!decodeParams(params)) {
 			tell(`fake HTTP rejected ${method} ${path} with 400`);
-			send(response, { status: 400 });
+			await fakeHttpSend(response, { status: 400 });
 			return;
 		}
 		if (options.guard && !options.guard(request)) {
 			tell(`fake HTTP rejected ${method} ${path} with 401`);
-			send(response, { status: 401 });
+			await fakeHttpSend(response, { status: 401 });
 			return;
 		}
 		if (!found) {
 			tell(`fake HTTP answered ${method} ${path} with 404`);
-			send(response, { status: 404 });
+			await fakeHttpSend(response, { status: 404 });
 			return;
 		}
-		await controls.pause(found.name);
-		const reply = controls.takeFailure(found.name) ?? pageReply(found.route, request);
+		controls.arrive(found.name, response);
+		if (!(await controls.pause(found.name, response))) {
+			return;
+		}
+		const reply = controls.takeReply(found.name) ?? pageReply(found.route, request);
 		tell(`fake HTTP answered ${method} ${path} with ${reply.status ?? 200}`);
-		send(response, reply);
+		await fakeHttpSend(response, reply, controls.stallBody(found.name));
 	} catch (error) {
 		tell(`fake HTTP could not answer: ${String(error)}`);
 		if (response.headersSent) {
-			response.end();
+			response.destroy();
 		} else {
-			send(response, { status: 500 });
+			await fakeHttpSend(response, { status: 500 });
 		}
 	}
 }

@@ -1,51 +1,79 @@
-import { Deferred, Effect } from "effect";
-import type { FakeHttpHold, FakeHttpReply } from "#fakeHttpService.ts";
+import type { ServerResponse } from "node:http";
+import { Effect } from "effect";
+import type { FakeHttpFault, FakeHttpReply } from "#fakeHttpService.ts";
+import { fakeHttpGates } from "#internal/fakeHttpGates.ts";
+import { fakeHttpConnection, fakeHttpSend } from "#internal/fakeHttpSend.ts";
 
 export function fakeHttpControls(tell: (line: string) => void) {
-	const failures = new Map<string, FakeHttpReply[]>();
-	const holds = new Map<string, { readonly enter: () => Promise<void>; readonly release: () => void }>();
+	const replies = new Map<string, FakeHttpReply[]>();
+	const holds = fakeHttpGates(tell, "hold");
+	const stalls = fakeHttpGates(tell, "stall");
+	const arrivals = new Map<string, Set<() => void>>();
+	const active = new Map<ServerResponse, string>();
 	return {
-		close: () => {
-			for (const hold of holds.values()) {
-				hold.release();
+		arrive: (route: string, response: ServerResponse) => {
+			active.set(response, route);
+			response.once("close", () => active.delete(response));
+			for (const release of arrivals.get(route) ?? []) {
+				release();
 			}
+			arrivals.delete(route);
 		},
-		failOnce: (route: string, reply: FakeHttpReply) =>
+		close: () => {
+			for (const response of active.keys()) {
+				response.destroy();
+			}
+			holds.close();
+			stalls.close();
+			arrivals.clear();
+			replies.clear();
+		},
+		fault: (route: string, fault: FakeHttpFault) =>
+			Effect.promise(async () => {
+				const response = [...active].find(
+					([candidate, name]) =>
+						name === route && !(candidate.destroyed || candidate.writableEnded) && candidate.headersSent === (fault.kind === "reset"),
+				)?.[0];
+				if (!response) {
+					throw new Error(
+						`Fake HTTP route "${route}" has no request ready for a ${fault.kind} fault.\nhelp: Wait for a hold before a status or drop fault, or for response headers before a reset fault.`,
+					);
+				}
+				tell(`fake HTTP ${route} fault ${fault.kind}`);
+				if (fault.kind === "status") {
+					await fakeHttpSend(response, fault.reply);
+				} else {
+					response.destroy();
+				}
+			}),
+		hold: (route: string) => Effect.sync(() => holds.make(route)),
+		pause: async (route: string, response: ServerResponse) => {
+			await fakeHttpConnection(response).pause(holds.get(route)?.enter());
+			return !(response.destroyed || response.writableEnded || response.headersSent);
+		},
+		queue: (route: string, reply: FakeHttpReply) =>
 			Effect.sync(() => {
-				const queue = failures.get(route) ?? [];
+				const queue = replies.get(route) ?? [];
 				queue.push(reply);
-				failures.set(route, queue);
+				replies.set(route, queue);
 				tell(`fake HTTP ${route} will answer once with ${reply.status ?? 200}`);
 			}),
-		hold: (route: string): Effect.Effect<FakeHttpHold> =>
+		releaseOnArrival: (route: string, arrival: string) =>
 			Effect.sync(() => {
-				if (holds.has(route)) {
-					throw new Error(`Fake HTTP route "${route}" is already held.\nhelp: Release its current hold before holding the route again.`);
+				const hold = holds.get(route);
+				if (!hold) {
+					throw new Error(`Fake HTTP route "${route}" has no hold.\nhelp: Hold the route before scripting its release on arrival.`);
 				}
-				const waiting = Deferred.makeUnsafe<void>();
-				const released = Promise.withResolvers<void>();
-				const hold = {
-					enter: () => {
-						tell(`fake HTTP ${route} has a waiting request`);
-						Deferred.doneUnsafe(waiting, Effect.void);
-						return released.promise;
-					},
-					release: () => {
-						if (holds.get(route) !== hold) {
-							return;
-						}
-						holds.delete(route);
-						released.resolve();
-						tell(`fake HTTP ${route} released`);
-					},
-				};
-				holds.set(route, hold);
-				tell(`fake HTTP ${route} held`);
-				return { release: Effect.sync(hold.release), waiting: Deferred.await(waiting) };
+				const releases = arrivals.get(arrival) ?? new Set<() => void>();
+				releases.add(hold.release);
+				arrivals.set(arrival, releases);
+				tell(`fake HTTP ${route} will release when ${arrival} arrives`);
 			}),
-		pause: async (route: string) => {
-			await holds.get(route)?.enter();
+		stall: (route: string) => Effect.sync(() => stalls.make(route)),
+		stallBody: (route: string) => {
+			const stall = stalls.get(route);
+			return stall ? () => stall.enter() : undefined;
 		},
-		takeFailure: (route: string) => failures.get(route)?.shift(),
+		takeReply: (route: string) => replies.get(route)?.shift(),
 	};
 }
