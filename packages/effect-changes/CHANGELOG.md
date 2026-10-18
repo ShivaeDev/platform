@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 - 2026-10-18
+
+### Fixed
+
+- `beforeCommit` preserves services scoped by the committing transaction when supplying its captured dependencies.
+
 ## 0.3.0 - 2026-10-13
 
 ### Breaking

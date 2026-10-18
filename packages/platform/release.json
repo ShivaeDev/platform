@@ -2,13 +2,9 @@
 	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "otlp-timeout-credentials.md",
-			"text": "### Fixed\n\n- Bound OTLP HTTP export attempts to 10 seconds by default, honor standard general and traces-specific timeout variables, and read the batch interval, size and shutdown timeout through Effect Config.\n- Redact bare `sig` assignments, including short errors such as `error: sig=...`, and PEM private-key blocks from exported trace values in both JSON and protobuf.\n"
-		},
-		{
-			"name": "sql-span-address.md",
-			"text": "### Fixed\n\n- SQL spans from `appDatabase` and `appHost` report the host and port from `DATABASE_URL`, including address query parameters, while keeping the connection URL redacted.\n"
+			"name": "release-oct18b-dependencies.md",
+			"text": "### Fixed\n\n- Align published framework dependencies with the current releases.\n"
 		}
 	],
-	"version": "0.14.3"
+	"version": "0.14.4"
 }
