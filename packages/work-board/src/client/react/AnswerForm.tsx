@@ -18,14 +18,19 @@ interface AnswerProps {
 	readonly request: DocumentRequest;
 }
 export function AnswerForm(props: AnswerProps) {
-	return <AnswerSession key={JSON.stringify([props.preview.item, props.preview.request, Boolean(props.request.prompts?.length)])} {...props} />;
+	return (
+		<AnswerSession
+			key={JSON.stringify([props.preview.item, props.preview.request, Boolean(props.request.prompts?.length), props.request.answered?.response])}
+			{...props}
+		/>
+	);
 }
 function AnswerSession({ document: data, request, preview }: AnswerProps) {
 	function id(value: string) {
 		return data.requests.filter((entry) => entry.open).length > 1 ? `${value}-${request.id}` : value;
 	}
 	const prompts = request.prompts ?? [];
-	const state = useResponseForm(preview, prompts);
+	const state = useResponseForm(preview, prompts, request.options, request.answered?.response);
 	const focus = useFormFocus(state.draft.key);
 	const form = state.form;
 	const body = (

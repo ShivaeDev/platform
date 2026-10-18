@@ -1,3 +1,4 @@
+import type { RecordedResponse } from "#browser/responses/schema.ts";
 import type { Metadata } from "#metadata/schema.ts";
 import { managedRequestState } from "#server/attention/managedRequestReceipt.ts";
 import { identityUrl, referenceTarget } from "#server/metadata/links.ts";
@@ -6,6 +7,7 @@ import type { Snapshot } from "#server/search/snapshot.ts";
 
 export type Request = NonNullable<Metadata["attention"]>[number];
 export interface AttentionEntry {
+	readonly answer: RecordedResponse | undefined;
 	readonly document: MetadataDocument;
 	readonly href: string;
 	readonly itemId: string;
@@ -45,6 +47,7 @@ function requestsFor(document: MetadataDocument, snapshot: Snapshot, title: stri
 		}
 		return [
 			{
+				answer: receipts._tag === "Answered" ? receipts.response : undefined,
 				document,
 				href: `${identityUrl(itemId)}#attention-request-${encodeURIComponent(request.id)}`,
 				itemId,

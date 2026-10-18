@@ -48,7 +48,7 @@ export const boardAskFiles = Effect.fn("BoardStory.boardAskFiles")(function* (ro
 		Effect.gen(function* () {
 			const { client } = yield* boardHttp(root, undefined, maintainer);
 			const data = yield* Effect.tryPromise(() => client.run(client.api.inbox.run(undefined)));
-			return [...data.you, ...data.agents, ...data.resolved, ...data.parked].map((item) => item.file);
+			return [...data.you, ...data.answered, ...data.agents, ...data.resolved, ...data.parked].map((item) => item.file);
 		}),
 	);
 });
