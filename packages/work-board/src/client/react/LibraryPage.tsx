@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import { useId, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { statusLabel } from "#browser/views/statusLabel.ts";
 import { Checkbox } from "#client/react/components/ui/checkbox.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#client/react/components/ui/select.tsx";
@@ -8,7 +9,6 @@ import { ToggleGroup, ToggleGroupItem } from "#client/react/components/ui/toggle
 import { LibraryContents } from "./LibraryContents.tsx";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
-import { statusPresentation } from "./statusPresentation.ts";
 
 export function LibraryPage({ api, url = "/_board/library" }: { readonly api: ShellApi; readonly url?: string }) {
 	const [kind, setKind] = useState("");
@@ -27,13 +27,7 @@ export function LibraryPage({ api, url = "/_board/library" }: { readonly api: Sh
 			<p className="text-muted-foreground">Every document in your workspace.</p>
 			<div className="my-6 flex flex-wrap items-end gap-4">
 				<Filter label="Kind" onChange={setKind} options={data?.kinds ?? []} value={kind} />
-				<Filter
-					label="Status"
-					name={(option) => statusPresentation(option).label}
-					onChange={setStatus}
-					options={data?.statuses ?? []}
-					value={status}
-				/>
+				<Filter label="Status" name={statusLabel} onChange={setStatus} options={data?.statuses ?? []} value={status} />
 				<ViewToggle onChange={setView} view={view} />
 				<div className="flex h-7 items-center gap-2">
 					<Checkbox checked={showFleet} id={fleetId} onCheckedChange={setShowFleet} />

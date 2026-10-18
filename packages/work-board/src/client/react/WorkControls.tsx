@@ -1,36 +1,27 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { fieldFilter, viewUrl } from "#browser/views/state.ts";
+import { statusLabel, statusOptions } from "#browser/views/statusLabel.ts";
 import { shellIds } from "./shellIds.ts";
-import { statusPresentation } from "./statusPresentation.ts";
 export function WorkControls({ data }: { readonly data: WorkProjection }) {
 	const { state } = data;
 	function fields(field: "owner" | "status") {
 		function name(value: string) {
-			return field === "status" ? statusPresentation(value).label : value;
+			return field === "status" ? statusLabel(value) : value;
 		}
-		const values = new Map(
-			data.items.flatMap((item) => {
-				const value = item.metadata[field];
-				return value ? [[fieldFilter(value), name(value)]] : [];
-			}),
-		);
+		const recorded = data.items.flatMap((item) => (item.metadata[field] ? [item.metadata[field]] : []));
+		const values = new Map((field === "status" ? statusOptions(recorded) : recorded).map((value) => [fieldFilter(value), name(value)]));
 		const current = state[field];
-		if (current && !values.has(current)) {
-			values.set(current, `${name(current.startsWith("value:") ? current.slice(6) : current)} (no current matches)`);
+		const shown = current.startsWith("value:") ? name(current.slice(6)) : current;
+		const selected = values.has(current)
+			? current
+			: ([...values].find(([value, label]) => value.startsWith("value:") && label === shown)?.[0] ?? current);
+		if (current && !values.has(selected)) {
+			values.set(current, `${shown} (no current matches)`);
 		}
-		return (
-			<>
-				<option value="">All {field === "owner" ? "owners" : "statuses"}</option>
-				{[...values]
-					.sort((a, b) => a[1].localeCompare(b[1], "en"))
-					.map(([value, label]) => (
-						<option key={value} value={value}>
-							{label}
-						</option>
-					))}
-			</>
-		);
+		return { selected, values };
 	}
+	const status = fields("status");
+	const owner = fields("owner");
 	return (
 		<form action="/_board/work#work-results" className="work-filters" id={shellIds.workFilters} method="get">
 			<input name="view" type="hidden" value={state.view} />
@@ -49,14 +40,14 @@ export function WorkControls({ data }: { readonly data: WorkProjection }) {
 			</label>
 			<label>
 				<span>Status</span>
-				<select defaultValue={state.status} id={shellIds.workStatus} name="status">
-					{fields("status")}
+				<select defaultValue={status.selected} id={shellIds.workStatus} name="status">
+					<FilterOptions all="All statuses" values={status.values} />
 				</select>
 			</label>
 			<label>
 				<span>Owner</span>
-				<select defaultValue={state.owner} id={shellIds.workOwner} name="owner">
-					{fields("owner")}
+				<select defaultValue={owner.selected} id={shellIds.workOwner} name="owner">
+					<FilterOptions all="All owners" values={owner.values} />
 				</select>
 			</label>
 			<label>
@@ -76,5 +67,20 @@ export function WorkControls({ data }: { readonly data: WorkProjection }) {
 			<button type="submit">Apply</button>
 			<a href={viewUrl(state, { owner: "", query: "", status: "" }, "work-results")}>Clear filters</a>
 		</form>
+	);
+}
+
+function FilterOptions({ all, values }: { readonly all: string; readonly values: ReadonlyMap<string, string> }) {
+	return (
+		<>
+			<option value="">{all}</option>
+			{[...values]
+				.sort((a, b) => a[1].localeCompare(b[1], "en"))
+				.map(([value, label]) => (
+					<option key={value} value={value}>
+						{label}
+					</option>
+				))}
+		</>
 	);
 }

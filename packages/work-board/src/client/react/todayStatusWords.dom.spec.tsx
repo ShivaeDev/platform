@@ -72,3 +72,49 @@ screenStory.it(
 		]);
 	},
 );
+
+const BOTH_SPELLINGS = {
+	...fleetWorkspace,
+	"tasks/review.md":
+		"---\nid: task.review\nkind: task\nstatus: needs-you\nowner: maintainer\nnext_action: Review the copy.\n---\n# Review the landing copy\n",
+};
+
+screenStory.it(
+	"offers one Library status option for spellings that share a name and lists items of each",
+	[screenFiles(BOTH_SPELLINGS, { home: "home.md" }), screenRoute("/_board/library"), openScreen()],
+	function* ({ chooseOption, click, findElements, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("main")).toContain("Review the landing copy")));
+		const status = findElements("main [role='combobox']").find(
+			(trigger) => document.querySelector(`label[for="${trigger.id}"]`)?.textContent === "Status",
+		);
+		yield* Effect.promise(() => chooseOption(status, "Needs you"));
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements("main li a").map((link) => link.textContent)).toEqual(["Review the landing copy", "Ship the onboarding email"]),
+			),
+		);
+		click(status);
+		const options = findElements(`#${CSS.escape(status?.getAttribute("aria-controls") ?? "")} [role="option"]`, document).map(
+			(option) => option.textContent,
+		);
+		expect(options).toEqual(["All", "Active", "Needs you", "Planned"]);
+	},
+);
+
+screenStory.it(
+	"offers one All work status option for spellings that share a name and lists items of each",
+	[screenFiles(BOTH_SPELLINGS, { home: "home.md" }), screenRoute("/_board/work?view=board&status=value%3Aneeds-you"), openScreen()],
+	function* ({ findElement, findElements, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("select[name='status']")).not.toBeNull()));
+		expect(findElements<HTMLOptionElement>("select[name='status'] option").map((option) => option.textContent)).toEqual([
+			"All statuses",
+			"Active",
+			"Needs you",
+			"Planned",
+		]);
+		expect(findElement<HTMLSelectElement>("select[name='status']")?.selectedOptions[0]?.textContent).toBe("Needs you");
+		expect(readText("main")).toContain("Review the landing copy");
+		expect(readText("main")).toContain("Ship the onboarding email");
+		expect(readText("main")).not.toContain("Write the install guide");
+	},
+);
