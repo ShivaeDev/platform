@@ -1,4 +1,4 @@
-import { SegmentedBar } from "#client/react/components/ui/SegmentedBar.tsx";
+import { SegmentedBar } from "#client/react/SegmentedBar.tsx";
 
 export function GoalProgressSummary({ counts, bar = false }: { readonly counts: Readonly<Record<string, number>>; readonly bar?: boolean }) {
 	return bar ? (

@@ -5,13 +5,14 @@ import type { DocumentRequest } from "#browser/document/schema.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 import { documentBody } from "./body.ts";
+import { REVIEWED_WORK_HEADING, reviewedWork } from "./reviewedWork.ts";
 
 export function answerBody(document: MetadataDocument, requests: readonly DocumentRequest[]): string {
 	const source = documentBody(document);
 	const cards = requests.filter((request) => request.open && request.preview?.source === document.file);
 	const managed = document.parsed.fields.attention?.some((request) => request.managed);
 	const title = managed ? requests[0]?.title : undefined;
-	if (cards.length === 0 && !title) {
+	if (cards.length === 0 && !title && !managed) {
 		return source;
 	}
 	const tree = unified().use(remarkParse).use(remarkDirective).parse(source);
@@ -27,6 +28,10 @@ export function answerBody(document: MetadataDocument, requests: readonly Docume
 			}
 			if (index === 0 && node.type === "heading" && node.depth === 1 && title) {
 				return [`# ${title}`];
+			}
+			const reviewed = managed && node.type === "code" && underReviewedWork(tree.children[index - 1], source) ? reviewedWork(node.value) : undefined;
+			if (reviewed !== undefined) {
+				return [reviewed];
 			}
 			return [source.slice(node.position?.start.offset, node.position?.end.offset)];
 		})
@@ -93,4 +98,8 @@ function inCardSection(nodes: import("mdast").RootContent[], index: number, sour
 		}
 	}
 	return false;
+}
+
+function underReviewedWork(node: import("mdast").RootContent | undefined, source: string) {
+	return node?.type === "heading" && source.slice(node.position?.start.offset, node.position?.end.offset).trim() === REVIEWED_WORK_HEADING;
 }

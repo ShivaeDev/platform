@@ -1,6 +1,6 @@
 # @shivaedev/effect-prisma
 
-You are changing the bridge from Prisma Next's generated models to Effect. An application that owns a Prisma Next contract should use its model queries in ordinary Effect programs without rebuilding database ownership, error conversion or transaction plumbing. The contract remains the source of model types; Effect remains the source of dependency, scope and failure semantics. Read [README.md](README.md) for usage, [docs/north-star.md](docs/north-star.md) for the full intent and [docs/roadmap.md](docs/roadmap.md) for work and maintainer decisions.
+You are changing the bridge from Prisma Next's generated models to Effect. An application that owns a Prisma Next contract should use its model queries in ordinary Effect programs without rebuilding database ownership, error conversion or transaction plumbing. The contract remains the source of model types; Effect remains the source of dependency, scope and failure semantics. Read [README.md](README.md) for usage.
 
 ## Which way to lean
 
@@ -13,3 +13,5 @@ When goals conflict, they win in this order:
 5. **Proven behavior before convenience or speed.** Use real PostgreSQL tests for PostgreSQL claims. Prefer explicit limits to promises a synchronous SQLite driver or a single transaction connection cannot keep.
 
 Applications own contract generation, schema changes and domain repositories. This package owns the small adaptation from those generated models into Effect; do not grow another database framework around it.
+
+The package is in maintenance mode: keep the generated-contract adaptation, transaction ownership and rollback test path working with minimal fixes, without expanding its feature scope or making native SQL applications depend on Prisma Next. Quality clean-ups, such as burning down its share of the quality baseline, are welcome.

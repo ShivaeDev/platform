@@ -52,3 +52,7 @@ export const githubBacklog = fleetStory.trait("configuration", "GitHub PRs share
 export const singlePrBacklog = fleetStory.trait("configuration", "the delivery backlog only admits one PR at a time", (engine) => {
 	engine.options = { ...engine.options, backlog: 1 };
 });
+
+export const immediateAreaRelease = fleetStory.trait("configuration", "reviewed PRs release their areas without a merge wait", (engine) => {
+	engine.options = { ...engine.options, areaMergeWaitMs: 0 };
+});

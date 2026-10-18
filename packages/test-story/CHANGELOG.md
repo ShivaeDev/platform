@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 - 2026-10-18
+
+### Fixed
+
+- Publish against `@shivaedev/effect-test` 0.6.0 so framework consumers share the current test runner.
+
 ## 0.7.0 - 2026-10-18
 
 ### Added

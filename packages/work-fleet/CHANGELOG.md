@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.0 - 2026-10-18
+
+### Added
+
+- Board lookup failures use the `board-item-missing` error code and optional `BoardFailure.workId` to distinguish confirmed absence from unreadable or ambiguous Board sources.
+
+### Changed
+
+- Published Fleet decisions now state in plain words what happened, what Fleet needs and recommends, and what each option does. Option labels fit the situation, such as "Continue on the updated task" for an edited brief and "Request changes" next to a note that merging happens on the PR for merge-ready work. Option ids `retry` and `release` and the answer protocol are unchanged.
+
+### Fixed
+
+- Release foreign reservations when the existing delivery observation confirms their PR closed without merging, freeing open-PR backlog for waiting work. Repeated idle reconciliation emits no redundant reservation commit notifications. Releasing the closure decision keeps the reservation absent without another GitHub read. Closed delivery decisions use the `pr-closed` code.
+- Prepared work whose Board item was deleted is released and logged instead of blocking its area queue, including after restart. Scheduler dispatch failures refresh saved blocker text and are logged, so status no longer shows an obsolete area holder.
+- Merge-ready PRs and changed Board briefs ask the orchestrator for a decision. Superseded Fleet decision publications close on the Board, including older publications found during upgrade. Explicit maintainer reassignments survive the routing upgrade.
+- Fleet records completion of the one-time decision cleanup in `.fleet-decision-closure-v1.json` in the Board root.
+
 ## 0.6.0 - 2026-10-18
 
 ### Added
