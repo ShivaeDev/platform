@@ -16,6 +16,7 @@ import { memoryFiles } from "./memoryFiles.ts";
 export interface BoardFixtureOptions {
 	readonly beforeIndex?: () => Effect.Effect<void, PlatformError.PlatformError>;
 	readonly beforeRead?: (kind: "document", url: string) => Effect.Effect<void>;
+	readonly beforeStart?: Effect.Effect<void>;
 	readonly fleet?: FleetItemsProjection;
 	readonly fleetHealth?: FleetHealth;
 	readonly fleetPort?: number;
@@ -30,6 +31,7 @@ const missing = Effect.fail(new SourceFailure({ kind: "not-configured", message:
 export function inMemoryBoard(files: Readonly<Record<string, string>>, configuration?: BoardFixtureOptions) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
+			yield* configuration?.beforeStart ?? Effect.void;
 			const seeded = fleetFiles(files, configuration?.fleet);
 			const memory = yield* memoryFiles(files, configuration?.writable === true, seeded);
 			let fleetPort = configuration?.fleetPort ?? null;

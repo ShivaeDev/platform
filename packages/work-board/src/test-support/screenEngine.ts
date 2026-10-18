@@ -42,6 +42,7 @@ export interface ScreenEngine {
 	router?: Awaited<ReturnType<typeof renderRouter>>["router"];
 	scrollPosition?: number;
 	session?: Effect.Success<ReturnType<typeof mountSession>>;
+	startupGate?: Deferred.Deferred<void>;
 	tell?: (line: string) => void;
 	updatesPaused?: Atom.Writable<boolean>;
 	view?: Awaited<ReturnType<typeof render>>;
@@ -61,6 +62,9 @@ export function* createScreen() {
 			}
 			if (engine.indexGate) {
 				Effect.runSync(Deferred.succeed(engine.indexGate, undefined));
+			}
+			if (engine.startupGate) {
+				Effect.runSync(Deferred.succeed(engine.startupGate, undefined));
 			}
 			window.dispatchEvent(new Event("pagehide"));
 			vi.restoreAllMocks();

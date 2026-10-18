@@ -105,11 +105,19 @@ effectApp("rebuilds identities from files after a server restart without stored 
 });
 
 effectApp("selects .md identities over colliding Markdown paths with either trailing-slash form", function* () {
-	notes.write("_board/item/source.md", "# A regular file under the route prefix");
-	notes.write("named.md", "---\nid: source.md\n---\n# An explicitly identified item");
-	for (const url of ["/_board/item/source.md", "/_board/item/source.md/", "/_board/item/source%2Emd"]) {
-		const item = yield* rawGet(board, url);
-		expect(item.status).toBe(200);
+	const events = yield* subscribe(board);
+	yield* events.next();
+	try {
+		notes.write("_board/item/source.md", "# A regular file under the route prefix");
+		yield* changesUntil(events, "_board/item/source.md");
+		notes.write("named.md", "---\nid: source.md\n---\n# An explicitly identified item");
+		yield* changesUntil(events, "named.md");
+		for (const url of ["/_board/item/source.md", "/_board/item/source.md/", "/_board/item/source%2Emd"]) {
+			const item = yield* rawGet(board, url);
+			expect(item.status).toBe(200);
+		}
+	} finally {
+		yield* events.close();
 	}
 });
 

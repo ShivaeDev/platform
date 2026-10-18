@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Deferred, Effect } from "effect";
 import { vi } from "vitest";
 import type { FleetHealth } from "#diagnostics/health.ts";
 import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
@@ -73,5 +73,19 @@ export function pendingFleet() {
 		const missing = { cause: "Not configured", observedAt: 0, state: "not-configured" } as const;
 		const daemon = yield* diagnosticsDaemon(() => ({ codex: missing, fleet: missing, github: missing }), 0, Effect.never);
 		engine.options = { ...engine.options, fleetPort: daemon.port };
+	});
+}
+
+export function heldWorkspace() {
+	return screenStory.trait("workspace", "workspace indexing waits", (engine) => {
+		engine.indexGate = Deferred.makeUnsafe<void>();
+	});
+}
+
+export function startingBoard() {
+	return screenStory.trait("workspace", "the Board RPC services wait before starting", function* (engine) {
+		const gate = yield* Deferred.make<void>();
+		engine.startupGate = gate;
+		engine.options = { ...engine.options, beforeStart: Deferred.await(gate) };
 	});
 }

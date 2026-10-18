@@ -47,7 +47,8 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/effect-test": "workspace:*"
+		"@shivaedev/effect-test": "workspace:*",
+		"dom-accessibility-api": "catalog:"
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",

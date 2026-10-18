@@ -447,7 +447,6 @@
 {"path":"packages/work-fleet/src/host/watch.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/watchFailures.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/watchFollow.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/host/watchReconnect.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/watchReview.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/watchScheduler.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/watchSkew.spec.ts","rule":"tests/story-specs","count":1}

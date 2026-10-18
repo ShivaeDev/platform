@@ -5,10 +5,11 @@ import type { FileSystemWrapper } from "./board.ts";
 import { questionnaireSource } from "./questionnaire.ts";
 import { readerVerbs } from "./readerVerbs.ts";
 import { readingVerbs } from "./readingVerbs.ts";
+import { readVerbs } from "./readVerbs.ts";
 import { responseFeedVerbs } from "./responseFeedVerbs.ts";
 import { responseServiceVerbs } from "./responseServiceVerbs.ts";
 import { serverVerbs } from "./serverVerbs.ts";
-import { connected, createBoard, inspectBoard, serveProject } from "./storyEngine.ts";
+import { connected, createBoard, inspectBoard, serveProject, wrapFilesystem } from "./storyEngine.ts";
 import { handoffInput, resultHtml, reviewReport, saveInboxAnswer } from "./storyResponses.ts";
 
 export const boardStory = storyKit({
@@ -24,6 +25,7 @@ export const boardStory = storyKit({
 		...responseFeedVerbs(engine, story.tell),
 		...attentionVerbs(engine, story.tell),
 		...serverVerbs(engine, story.tell),
+		...readVerbs(engine, story.tell),
 		get board() {
 			return connected(engine).board;
 		},
@@ -128,10 +130,6 @@ export function boardHome(home: string) {
 
 export function boardFilesystem(wrap: FileSystemWrapper) {
 	return boardStory.trait("project", "the workspace uses the specified filesystem boundary", (engine) => {
-		const previous = engine.wrap;
-		engine.wrap = (fs) => {
-			const boundary = previous ? previous(fs) : fs;
-			return wrap(boundary);
-		};
+		wrapFilesystem(engine, wrap);
 	});
 }

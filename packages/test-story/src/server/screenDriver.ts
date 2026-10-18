@@ -1,3 +1,4 @@
+import { computeAccessibleName, getRole } from "dom-accessibility-api";
 import { Effect } from "effect";
 import { withLive } from "@shivaedev/effect-test/withLive.ts";
 import { screenElements } from "#internal/screenElements.ts";
@@ -44,6 +45,12 @@ export function screenDriver({ root, pending, tell, act = (action) => action(), 
 		return withLive(wait.pipe(Effect.timeoutOrElse({ duration: limit, orElse: timedOut })));
 	}
 	return {
+		accessible: (selector: string) => {
+			const element = elements.element(selector);
+			const accessible = { name: computeAccessibleName(element), role: getRole(element) };
+			tell(`read the accessibility of ${selector}: ${JSON.stringify(accessible)}`);
+			return accessible;
+		},
 		click: (selector: string) =>
 			perform(`click ${selector}`, () => {
 				const element = elements.element(selector);
