@@ -61,7 +61,12 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			yield* sql`alter table ${sql(`${namespace}_records`)} drop column ${sql("admissionReady")}`;
 			yield* sql`alter table ${sql(childTable(namespace, ["history"]))} drop column ${sql("admissionReady")}`;
 		}),
-		"16_answer_requests": sql`create table ${sql(`${namespace}_answers`)} (
+		"16_orchestrator_decisions": sql`update ${sql(`${namespace}_records`)} as records set version = version + 1, "attentionOwner" = 'orchestrator'
+			where stage = 'needs-human' and "attentionOwner" = 'maintainer'
+				and ("decision__code" = 'reviewed-pr-ready' or ("decision__code" = 'fleet-stale' and "decision__reason" = 'Board context changed'))
+				and not exists (select 1 from ${sql(childTable(namespace, ["supersededDecisions"]))} as superseded
+					where superseded.work_id = records.work_id and superseded."reassignedTo__decisionId" = records."decision__id")`,
+		"17_answer_requests": sql`create table ${sql(`${namespace}_answers`)} (
 			request_id text primary key, work_id text not null, decision_id text,
 			position integer generated always as identity, decision_code text, decision_reason text not null,
 			text text not null, release boolean not null, error text, response_decision_id text, response_id text

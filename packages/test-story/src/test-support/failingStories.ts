@@ -3,11 +3,13 @@ import { bakery, hasBowls, hasDough, hasOrders, ovenIsLit } from "#test/bakery.t
 import { mill, sailsAreTurning } from "#test/mill.ts";
 
 bakery.it("adds nothing when the story passes", [ovenIsLit(), hasDough(1)], function* ({ oven }) {
-	expect((yield* oven.bakesEverything()).loaves).toBe(1);
+	yield* oven.bakesEverything();
+	expect(oven.loaves()).toBe(1);
 });
 
 bakery.it("marks where an assertion stopped the story", [ovenIsLit(), hasDough(1)], function* ({ oven }) {
-	expect((yield* oven.bakesEverything()).loaves, "loaves").toBe(2);
+	yield* oven.bakesEverything();
+	expect(oven.loaves(), "loaves").toBe(2);
 });
 
 bakery.it("marks the trait that refused", [ovenIsLit(), hasDough(4), hasBowls(1)]);

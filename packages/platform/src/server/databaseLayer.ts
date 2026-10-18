@@ -1,5 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Layer, type Redacted } from "effect";
+import { Config, Effect, Layer, type Redacted, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { assertPostgresMigrations } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
@@ -27,11 +27,7 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 			});
 		}),
 	);
-	const prepared = Layer.effectDiscard(
-		options.migrations.mode === "check"
-			? assertPostgresMigrations(options.migrations)
-			: migratePostgres({ ...options.migrations, lockTimeout: options.migrations.lockTimeout ?? "5 seconds" }),
-	).pipe(Layer.provideMerge(pool));
+	const prepared = Layer.effectDiscard(prepareMigrations(options.migrations)).pipe(Layer.provideMerge(pool));
 	const live = Layer.effect(changesService, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer));
 	const base = Layer.merge(prepared, live);
 	const changes = options.config?.changes;
@@ -45,4 +41,24 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 			return postgresChanges({ ...changes, client, resync: hints.resync });
 		}),
 	).pipe(Layer.provideMerge(base));
+}
+
+function prepareMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
+	switch (migrations.mode) {
+		case "check":
+			return assertPostgresMigrations(migrations);
+		case "wait":
+			return waitForMigrations(migrations);
+		default:
+			return migratePostgres({ ...migrations, lockTimeout: migrations.lockTimeout ?? "5 seconds" });
+	}
+}
+
+function waitForMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
+	return assertPostgresMigrations(migrations).pipe(
+		Effect.retry({
+			schedule: Schedule.max([Schedule.spaced(migrations.pollInterval ?? "1 second"), Schedule.during(migrations.waitTimeout ?? "5 minutes")]),
+			while: (error) => error._tag === "MigrationError" && error.kind === "BadState",
+		}),
+	);
 }

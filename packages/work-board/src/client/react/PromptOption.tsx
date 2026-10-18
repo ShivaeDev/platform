@@ -22,7 +22,7 @@ export function PromptOption({
 }) {
 	const source = document.metadata.options?.[choice];
 	const id = useId();
-	const authored = optionText(option.id, option.source, document.requests.find((request) => request.open)?.preview?.reason ?? "");
+	const authored = optionText(option.id, option.source);
 	const label = source?.label ?? authored.label;
 	const description = source?.description ?? authored.description;
 	return (

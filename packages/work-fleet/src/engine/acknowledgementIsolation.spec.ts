@@ -18,7 +18,7 @@ test("unqualifiable replaced and archived decision acknowledgements close durabl
 			Effect.gen(function* () {
 				const decision = yield* deniedDecision(fixture);
 				const fleet = yield* Fleet;
-				const reassigned = yield* fleet.reassign("one", decision.id, "orchestrator");
+				const reassigned = yield* fleet.reassign("one", decision.id, "maintainer");
 				expect(reassigned.value.supersededDecisions).toMatchObject([
 					{ boardAcknowledgementDisposition: "superseded", published: decision.published },
 				]);

@@ -38,7 +38,7 @@ for (const field of ["criteria", "body"]) {
 					}
 					expect(stopped.value.stage).toBe("needs-human");
 					expect(stopped.value.blocker ?? stopped.value.decision?.reason).toContain("Board context changed");
-					expect(stopped.value.attentionOwner).toBe("maintainer");
+					expect(stopped.value.attentionOwner).toBe("orchestrator");
 					expect(stopped.value.boardContext).toBe(original);
 					expect(stopped.value.boardRevision).toBe(active.value.boardRevision);
 					expect(stopped.value.attempts).toEqual(active.value.attempts);
