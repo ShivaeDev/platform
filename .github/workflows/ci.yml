@@ -91,6 +91,8 @@ jobs:
       consumers-run-id: ${{ steps.timings.outputs.consumers-run-id }}
       consumers-artifact-id: ${{ steps.timings.outputs.consumers-artifact-id }}
       consumers-shards: ${{ steps.timings.outputs.consumers-shards }}
+      consumers-count: ${{ steps.timings.outputs.consumers-count }}
+      consumer-store-key: ${{ steps.timings.outputs.consumer-store-key }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -103,6 +105,7 @@ jobs:
         id: timings
         env:
           GH_TOKEN: ${{ github.token }}
+          CONSUMER_STORE_KEY: consumer-store-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'packages/*/package.json', 'script/package-check/**') }}
         run: |
           node --input-type=module <<'JS'
           import { execFileSync } from 'node:child_process';
@@ -110,7 +113,9 @@ jobs:
           import { mainShardPlan } from './script/ci/mainShardPlan.ts';
           const deadline = performance.now() + 15000;
           const main = process.env.GITHUB_EVENT_NAME === 'push' && process.env.GITHUB_REF === 'refs/heads/main';
-          const plan = mainShardPlan(process.env.GITHUB_REPOSITORY, main, args => {
+          const store = process.env.CONSUMER_STORE_KEY;
+          appendFileSync(process.env.GITHUB_OUTPUT, `consumer-store-key=${store}\n`);
+          const plan = mainShardPlan(process.env.GITHUB_REPOSITORY, main ? store : undefined, args => {
             const remaining = deadline - performance.now();
             if (remaining <= 0) throw new Error('Main snapshot lookup timed out');
             return execFileSync('gh', args, { encoding: 'utf8', timeout: Math.min(10000, Math.ceil(remaining)), stdio: ['ignore', 'pipe', 'pipe'] });
@@ -224,7 +229,7 @@ jobs:
       - uses: ./.github/actions/setup
         id: setup
         with:
-          consumer-cache: 'true'
+          consumer-store-key: ${{ needs.shard-plan.outputs.consumer-store-key }}
       - name: Download package archives
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -260,11 +265,11 @@ jobs:
           include-hidden-files: true
           retention-days: 14
       - name: Save complete consumer store on main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.setup.outputs.consumer-cache-hit != 'true'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && strategy.job-total == 1 && steps.setup.outputs.consumer-cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ steps.setup.outputs.store-path }}
-          key: ${{ steps.setup.outputs.consumer-cache-key }}
+          key: ${{ needs.shard-plan.outputs.consumer-store-key }}
 
   published-starter:
     name: Packed starter
@@ -351,11 +356,17 @@ jobs:
         with:
           pattern: '*-timings-*'
           path: .ci/main-timings
+      - name: Read main job wall times
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest&per_page=100" > .ci/main-jobs.json
       - name: Merge successful main consumer timings
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: >-
-          node script/ci/mergeConsumerTimings.ts --directory .ci/main-timings
-          --output .ci/consumer-durations.json --run-id=${{ github.run_id }} --sha=${{ github.sha }}
+          node --conditions=source script/ci/mergeConsumerTimings.ts --directory .ci/main-timings --jobs .ci/main-jobs.json
+          --target-seconds ${{ vars.PLATFORM_CI_SHARD_SECONDS || 240 }}
+          --output .ci/consumer-durations.json --count ${{ needs.shard-plan.outputs.consumers-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
@@ -366,15 +377,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Read test job wall times
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest&per_page=100" > .ci/test-jobs.json
       - name: Merge successful main test timings
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: >-
-          node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings --jobs .ci/test-jobs.json
+          node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings --jobs .ci/main-jobs.json
+          --target-seconds ${{ vars.PLATFORM_CI_SHARD_SECONDS || 240 }}
           --output .ci/test-durations.json --count ${{ needs.shard-plan.outputs.tests-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
