@@ -21,7 +21,7 @@ afterEach(async () => {
 	vi.unstubAllGlobals();
 });
 
-it("restores a valid saved passage once when readiness precedes the queued frame, without scrolling or focusing the heading", async () => {
+it("restores a valid saved passage once after readiness, on the queued frame, without scrolling or focusing the heading", async () => {
 	const passageId = "heading-evidence";
 	const view = await render(
 		<article id={shellIds.doc}>
@@ -38,8 +38,8 @@ it("restores a valid saved passage once when readiness precedes the queued frame
 		const status = vi.fn();
 		act(() => {
 			scheduleReading(control("#doc", HTMLElement), { scroll: [0, 480], selection: null }, passageId, () => true, status, false);
-			document.dispatchEvent(new Event("board-reading-ready"));
 		});
+		await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
 		expect(document.documentElement.style.overflowAnchor).toBe("none");
 		await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
 		expect(scroll.mock.calls).toEqual([[0, 480]]);

@@ -1,13 +1,15 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import { Tabs } from "#client/react/components/ui/Tabs.tsx";
 import { Age } from "./Age.tsx";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
 import { DocumentSource } from "./DocumentSource.tsx";
 import { useMainLocation } from "./MainLocationContext.ts";
+import { ReadingReadyContext } from "./ReadingReadyContext.ts";
 
 export function DocumentContext({ document: data }: { readonly document: Document }) {
 	const page = useMainLocation();
+	const { report } = useContext(ReadingReadyContext);
 	const [headings, setHeadings] = useState<readonly { readonly id: string; readonly title: string; readonly depth: number }[]>([]);
 	const contextRef = useRef<HTMLElement>(null);
 	const [tab, setTab] = useState("details");
@@ -42,9 +44,9 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 		if (count !== headings.length) {
 			return;
 		}
-		context.dataset.readingReady = "true";
-		document.dispatchEvent(new Event("board-reading-ready"));
-	}, [headings]);
+		report(context, true);
+		return () => report(context, false);
+	}, [headings, report]);
 	const tabs = [
 		{ content: <Outline headings={headings} />, label: "Details", value: "details" },
 		{ content: <SourcePanel document={data} />, label: "Source", value: "source" },
