@@ -1,4 +1,4 @@
-import { Context, Effect, Exit, Layer, Result, Scope } from "effect";
+import { Context, Effect, Exit, Layer, type Redacted, Result, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import * as TestClock from "effect/testing/TestClock";
 import type { PostgresTestDatabase, PostgresTestServices } from "#database.ts";
@@ -51,7 +51,14 @@ export class DatabaseEngine {
 				const [row] = yield* sql<{ name: string }>`select current_database() as name`;
 				engine.template = row?.name ?? "";
 			});
-			const options = { ...engine.options, ...(fixtures === undefined ? {} : { fixtures: Effect.andThen(recordTemplate, fixtures) }) };
+			const options = {
+				...engine.options,
+				...(fixtures === undefined
+					? {}
+					: {
+							fixtures: (url: Redacted.Redacted<string>) => Effect.andThen(recordTemplate, typeof fixtures === "function" ? fixtures(url) : fixtures),
+						}),
+			};
 			const layer = makePostgresTestLayer(options);
 			engine.acquired = yield* Layer.buildWithScope(engine.idleClock ? layer.pipe(Layer.provideMerge(TestClock.layer())) : layer, engine.scope).pipe(
 				Effect.result,

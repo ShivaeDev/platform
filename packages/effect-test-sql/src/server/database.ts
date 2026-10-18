@@ -5,8 +5,12 @@ import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 
 export type PostgresTestServices = PgClient.PgClient | SqlClient.SqlClient | Reactivity.Reactivity;
+export type PostgresTestTemplate = "empty" | "migrated";
 
 export interface PostgresTestDatabaseService {
+	readonly clone: (
+		template: PostgresTestTemplate,
+	) => Effect.Effect<Context.Context<PostgresTestServices | PostgresTestDatabase>, SqlError, Scope.Scope>;
 	readonly isolated: Effect.Effect<Context.Context<PostgresTestServices | PostgresTestDatabase>, SqlError, Scope.Scope>;
 	readonly url: Redacted.Redacted<string>;
 }
