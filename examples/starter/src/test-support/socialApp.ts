@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { afterAll, beforeAll, expect } from "vitest";
+import { afterAll, beforeAll } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { domFetch } from "@shivaedev/test-story/domFetch.ts";
@@ -49,33 +49,29 @@ export const socialApp = storyKit({
 			story.tell("the signed-in user reads provider account IDs through native RPC");
 			return readProviderAccounts(baseUrl, fetch);
 		},
-		signedInPageIs: (email: string) =>
+		providerRequests: () => provider.requests,
+		signedInPage: () =>
 			Effect.promise(async () => {
-				story.tell("Alice sees her signed-in page and reads her cookie session");
-				expect(document.querySelector("h1")?.textContent).toBe(`Signed in as ${email}`);
-				expect(document.cookie).not.toContain("session_token");
-				expect(await (await fetch("/api/auth/get-session")).json()).toMatchObject({ user: { email } });
-				expect((await pool.query('select "email" from "user"')).rows).toEqual([{ email }]);
-				expect((await pool.query('select count(*)::int as count from "session"')).rows).toEqual([{ count: 1 }]);
-				expect(provider.requests.map(({ method, path }) => `${method} ${path}`)).toEqual([
-					"GET /login/oauth/authorize",
-					"POST /login/oauth/access_token",
-					"GET /user",
-					"GET /user/emails",
-				]);
-				expect(provider.requests[1]?.body).toContain("code=story-code");
-				expect(provider.requests.every(({ cookie }) => cookie === undefined)).toBe(true);
+				story.tell("Alice reads her signed-in page and cookie session");
+				return {
+					cookie: document.cookie,
+					heading: document.querySelector("h1")?.textContent,
+					session: await (await fetch("/api/auth/get-session")).json(),
+				};
 			}),
 		signInWithGitHub: () =>
 			Effect.promise(async () => {
 				story.tell("Alice clicks Sign in with GitHub");
 				await screen.click();
-				expect(window.location.hostname).toBe("github.com");
+				const providerHostname = window.location.hostname;
 				const response = await domNavigate();
-				expect(response.status).toBe(200);
-				expect(response.redirected).toBe(true);
-				expect(await response.text()).toContain("Signed in as alice@social.test");
-				expect(window.location.href).toBe(`${baseUrl}/signed-in`);
+				return {
+					body: await response.text(),
+					location: window.location.href,
+					providerHostname,
+					redirected: response.redirected,
+					status: response.status,
+				};
 			}),
 		signOut: () =>
 			Effect.promise(async () => {
@@ -101,5 +97,7 @@ export const socialApp = storyKit({
 					throw new Error(`Sign-up failed: ${response.status}`);
 				}
 			}),
+		storedSessions: () => Effect.promise(async () => (await pool.query('select count(*)::int as count from "session"')).rows),
+		storedUsers: () => Effect.promise(async () => (await pool.query('select "email" from "user"')).rows),
 	}),
 });

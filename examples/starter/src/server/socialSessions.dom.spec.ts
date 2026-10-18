@@ -7,9 +7,26 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 socialApp.it(
 	"a social sign-in returns from the fake provider with a PostgreSQL cookie session",
 	[],
-	function* ({ signInWithGitHub, signedInPageIs }) {
-		yield* signInWithGitHub();
-		yield* signedInPageIs("alice@social.test");
+	function* ({ signInWithGitHub, signedInPage, storedUsers, storedSessions, providerRequests }) {
+		const navigation = yield* signInWithGitHub();
+		expect(navigation).toMatchObject({ providerHostname: "github.com", redirected: true, status: 200 });
+		expect(navigation.body).toContain("Signed in as alice@social.test");
+		expect(navigation.location).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/signed-in$/u);
+		const page = yield* signedInPage();
+		expect(page.heading).toBe("Signed in as alice@social.test");
+		expect(page.cookie).not.toContain("session_token");
+		expect(page.session).toMatchObject({ user: { email: "alice@social.test" } });
+		expect(yield* storedUsers()).toEqual([{ email: "alice@social.test" }]);
+		expect(yield* storedSessions()).toEqual([{ count: 1 }]);
+		const requests = providerRequests();
+		expect(requests.map(({ method, path }) => `${method} ${path}`)).toEqual([
+			"GET /login/oauth/authorize",
+			"POST /login/oauth/access_token",
+			"GET /user",
+			"GET /user/emails",
+		]);
+		expect(requests[1]?.body).toContain("code=story-code");
+		expect(requests.every(({ cookie }) => cookie === undefined)).toBe(true);
 	},
 );
 
