@@ -1,5 +1,6 @@
 import { Option } from "effect";
 import { expect } from "vitest";
+import { HOLDER_ID_ENV } from "#holder.ts";
 import { environment, heldBy, lockStory } from "#test/kit.ts";
 
 const live = { clock: "live", timeout: 20_000 } as const;
@@ -8,7 +9,10 @@ lockStory.it(
 	"commands inherit their holder's id, keep their exit code, and release",
 	[],
 	function* ({ cli, lock }) {
-		expect(yield* cli.checksInheritedId()).toEqual({ status: 3, stderr: "" });
+		expect(yield* cli.command(["/bin/sh", "-c", `grep -q "\\"id\\":\\"$${HOLDER_ID_ENV}\\"" "$HEAVY_PROCESS_LOCK" && exit 3`])).toEqual({
+			status: 3,
+			stderr: "",
+		});
 		expect(lock.contents()).toBeUndefined();
 	},
 	live,
@@ -62,7 +66,7 @@ lockStory.it(
 	[heldBy("typecheck"), environment({ "CI": "true" })],
 	function* ({ cli, lock }) {
 		const before = lock.contents();
-		expect(yield* cli.checksCi()).toEqual({ status: 0, stderr: "" });
+		expect(yield* cli.command(["/bin/sh", "-c", `test -z "$${HOLDER_ID_ENV}"`])).toEqual({ status: 0, stderr: "" });
 		expect(lock.contents()).toBe(before);
 	},
 	live,

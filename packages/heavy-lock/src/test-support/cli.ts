@@ -2,7 +2,6 @@ import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
-import { HOLDER_ID_ENV } from "#holder.ts";
 import { processStartTime } from "#process-start.ts";
 import { cliEnvironment, HEAVY_LOCK_CLI, holdUntilReleasedOrAbandoned, pollWhile, type Started, start, waitFor } from "./cliProcess.ts";
 import { type Lock, readLock } from "./lock.ts";
@@ -26,8 +25,6 @@ export function cli(engine: Lock, tell: (line: string) => void) {
 	const release = join(engine.directory, "release");
 	const ready = join(engine.directory, "ready");
 	return {
-		checksCi: () => run(["--", "/bin/sh", "-c", `test -z "$${HOLDER_ID_ENV}"`]),
-		checksInheritedId: () => run(["--", "/bin/sh", "-c", `grep -q "\\"id\\":\\"$${HOLDER_ID_ENV}\\"" "$HEAVY_PROCESS_LOCK" && exit 3`]),
 		command: (args: readonly string[]) => run(["--", ...args]),
 		exit: (child: Started) => Effect.promise(() => child.exited),
 		failsProcessLookup: (fakePs: string) =>
