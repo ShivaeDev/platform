@@ -4,6 +4,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { RpcTest } from "effect/rpc";
 import { workRpcs } from "#rpc/contract.ts";
+import { item } from "#server/mcp/queries.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { fullIndex } from "./fullIndex.ts";
 import { inboxFixture } from "./inboxFixture.ts";
@@ -44,5 +45,12 @@ export function attentionVerbs(engine: BoardEngine, tell: (line: string) => void
 					return yield* client("work-board.inbox", undefined);
 				}),
 			).pipe(Effect.provide(inMemoryBoard({}, { home: undefined, index: Effect.succeed(snapshot) }))),
+		readMcpItem: (files: Readonly<Record<string, string>>, id: string) =>
+			Effect.scoped(
+				Effect.gen(function* () {
+					tell(`an agent reads ${id} through the Board MCP item tool`);
+					return yield* item(yield* RpcTest.makeClient(workRpcs, { flatten: true }), id);
+				}),
+			).pipe(Effect.provide(inMemoryBoard(files, { home: undefined }))),
 	};
 }

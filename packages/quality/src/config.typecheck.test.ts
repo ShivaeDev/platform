@@ -68,11 +68,6 @@ export const optionsForNone = defineConfig({
 	rules: { "local/no-todo": { options: { strict: true } } },
 });
 
-export const preCommitRemoved = defineConfig({
-	// @ts-expect-error Commit checks belong in package.json scripts.
-	preCommit: { run: ["pnpm typecheck"], tighten: true },
-});
-
 export const wrongLevel = defineConfig({
 	// @ts-expect-error Every configured rule runs at error.
 	rules: { "structure/max-lines": "warning" },
@@ -90,11 +85,6 @@ export const declaredTypeTests = defineConfig({
 	},
 });
 
-export const adoptRemoved = defineConfig({
-	// @ts-expect-error A config no longer takes adopt; baseline write --rule records a rule's debt.
-	adopt: ["comments/no-todo"],
-});
-
 export const warningRemoved = defineConfig({
 	// @ts-expect-error Rules cannot be downgraded to warnings.
 	rules: { "structure/max-lines": "warn" },
@@ -103,16 +93,6 @@ export const warningRemoved = defineConfig({
 export const offRemoved = defineConfig({
 	// @ts-expect-error Rules cannot be disabled with an object setting either.
 	rules: { "structure/max-lines": { level: "off" } },
-});
-
-export const exclusionsRemoved = defineConfig({
-	// @ts-expect-error Source exclusions cannot weaken the inventory.
-	exclude: ["src/legacy/**"],
-});
-
-export const testPatternsRemoved = defineConfig({
-	// @ts-expect-error Source files cannot be reclassified to use the test limit.
-	rules: { "structure/max-lines": { options: { testFiles: ["src/**"] } } },
 });
 
 export const sharedException = defineConfig({

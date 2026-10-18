@@ -106,8 +106,9 @@ export function inboxItems(snapshot: Snapshot) {
 	}
 	const requests = requestInbox(snapshot);
 	const you = requests.items.filter((item) => item.responseFrom.includes(snapshot.maintainer ?? "maintainer"));
+	const asked = new Set([...you, ...requests.answered].map((ask) => ask.id));
 	const ordinary = directItems(snapshot, requests.files, (document) => waitingReason(document, snapshot.model, snapshot.maintainer))
-		.filter((item) => item.problem || !you.some((ask) => ask.id === item.id))
+		.filter((item) => item.problem || !asked.has(item.id))
 		.map((item) => ({ ...item, earlierAsks: 0 }));
 	return [...ordinary, ...you].sort(byAge);
 }

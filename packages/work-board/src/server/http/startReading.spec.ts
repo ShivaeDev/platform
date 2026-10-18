@@ -8,7 +8,7 @@ import { metadataParse } from "#server/metadata/parse.ts";
 import { startTemplates } from "#server/page/startTemplates.ts";
 import { folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { waitFor } from "#test/live.ts";
-import { renderRemaining } from "#test/remainingRendering.tsx";
+import { renderRemaining } from "#test/renderRemaining.tsx";
 
 let notes: ReturnType<typeof folder>;
 let board: RunningBoard;

@@ -3,7 +3,7 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, rawGet } from "#test/board.ts";
 import { embeddedBoard } from "#test/embeddedBoard.ts";
-import { renderRemaining } from "#test/remainingRendering.tsx";
+import { renderRemaining } from "#test/renderRemaining.tsx";
 
 let notes: Folder | undefined;
 

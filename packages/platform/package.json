@@ -69,7 +69,6 @@
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",
 		"@types/pg": "catalog:",
-		"@typescript/native": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
 		"pg": "catalog:",

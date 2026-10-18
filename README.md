@@ -98,6 +98,13 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup 
 
 `pnpm test` and CI select the package variables through the shared PostgreSQL test-environment module in `script/lib`, using these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage. Prisma generation runs explicitly in the package build/typecheck/test paths.
 
+Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. Add `--project slow` for `*.slow.test.ts` files. For example, after local setup:
+
+```sh
+PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_effect_sql pnpm --filter @shivaedev/work-fleet test src/engine/approvedBrief.spec.ts
+PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_effect_sql pnpm --filter @shivaedev/effect-sql test src/postgres.spec.ts
+```
+
 CI runs each workspace test shard through [`@shivaedev/vitest-rerun`](./packages/vitest-rerun) with Vitest retries disabled. Pull requests and pushes allow no reruns, so a flaky test fails them. In the merge queue, the failed tests run once more in a fresh Vitest process; the shard fails if that rerun fails, and recovered tests appear in the job summary and in `.ci/flaky-tests.json`. The final reports in `.ci` keep the whole shard, and the raw report of each attempt stays in the timing artifact.
 
 Each shard's `coverage-tests-<shard>` artifact holds the LCOV report, `measured-commits.txt`, the final JUnit report, `flaky-tests.json` when a test recovered, and `job.txt` with the shard job's check run ID.

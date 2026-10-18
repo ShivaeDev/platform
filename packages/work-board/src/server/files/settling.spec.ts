@@ -1,57 +1,19 @@
-import { join } from "node:path";
-import { NodeServices } from "@effect/platform-node";
-import { Deferred, Effect, Fiber, FileSystem, Layer, PubSub, Stream } from "effect";
+import { Effect, Fiber } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { searchSnapshot } from "#server/search/snapshot.ts";
-import { folder } from "#test/board.ts";
-import { watchChanges } from "./changes.ts";
+import { fileWatcherStory, watchedFiles } from "#test/fileWatcherStory.ts";
 
-it.live("waits for an observed edit to settle before returning a cached snapshot", function* () {
-	const notes = folder({ "note.md": "# Before" });
-	const events = yield* PubSub.unbounded<FileSystem.WatchEvent>();
-	const entered = yield* Deferred.make<void>();
-	const release = yield* Deferred.make<void>();
-	let held = false;
-	const services = Layer.effect(
-		FileSystem.FileSystem,
-		Effect.map(Effect.service(FileSystem.FileSystem), (fs) => ({
-			...fs,
-			stat: (path) =>
-				Effect.gen(function* () {
-					if (held && path === join(notes.root, "note.md")) {
-						yield* Deferred.succeed(entered, undefined);
-						yield* Deferred.await(release);
-					}
-					return yield* fs.stat(path);
-				}),
-			watch: () => Stream.fromPubSub(events),
-		})),
-	).pipe(Layer.provideMerge(NodeServices.layer));
-	try {
-		yield* Effect.scoped(
-			Effect.gen(function* () {
-				const changes = yield* watchChanges(notes.root);
-				const index = yield* searchSnapshot(notes.root, undefined, changes);
-				yield* index;
-				notes.write("note.md", "# After");
-				held = true;
-				const event: FileSystem.WatchEvent = { _tag: "Update", path: "note.md" };
-				yield* PubSub.publish(events, event);
-				yield* Deferred.await(entered);
-				const read = index.pipe(
-					Effect.tap((snapshot) => {
-						expect(snapshot.documents[0]?.parsed.body).toBe("# After");
-						return Effect.void;
-					}),
-				);
-				const fiber = yield* Effect.forkScoped(read);
-				yield* Effect.yieldNow;
-				yield* Deferred.succeed(release, undefined);
-				yield* Fiber.join(fiber);
-			}),
-		).pipe(Effect.provide(services));
-	} finally {
-		notes.remove();
-	}
-});
+fileWatcherStory.it(
+	"waits for an observed edit to settle before returning a cached snapshot",
+	[watchedFiles({ "note.md": "# Before" })],
+	function* ({ readIndex, writeFile, holdStat, notify, statEntered, releaseStat }) {
+		expect((yield* readIndex()).documents[0]?.parsed.body).toBe("# Before");
+		writeFile("note.md", "# After");
+		yield* holdStat("note.md");
+		yield* notify(["note.md"]);
+		yield* statEntered();
+		const pending = yield* Effect.forkScoped(readIndex());
+		yield* Effect.yieldNow;
+		yield* releaseStat();
+		expect((yield* Fiber.join(pending)).documents[0]?.parsed.body).toBe("# After");
+	},
+);

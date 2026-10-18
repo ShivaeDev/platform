@@ -15,9 +15,9 @@ it.each([
 	{ message: "Start with a Markdown label", source: ':::metric{value="1" unit="files"}\nSource: [Checks](checks.md)\n:::' },
 ])("returns a typed visual validation failure for $message", ({ source, message }) => {
 	const node = unified().use(remarkParse).use(remarkDirective).parse(source).children.at(0);
-	expect(node?.type).toBe("containerDirective");
-	if (node?.type === "containerDirective") {
-		expect(() => renderVisual(node)).toThrow(BadRequest);
-		expect(() => renderVisual(node)).toThrow(message);
+	if (node?.type !== "containerDirective") {
+		throw new Error("The visual source did not parse as a container directive");
 	}
+	expect(() => renderVisual(node)).toThrow(BadRequest);
+	expect(() => renderVisual(node)).toThrow(message);
 });
