@@ -13,6 +13,8 @@ if (url === undefined && ci !== "") {
 	throw new Error("CI requires PLATFORM_EFFECT_SQL_TEST_DATABASE_URL; skipped PostgreSQL tests prove nothing.");
 }
 
+export const postgresConfigured = url !== undefined;
+
 const postgresOptions = {
 	migrations: {
 		loader: Migrator.fromRecord({
@@ -28,7 +30,7 @@ const postgresOptions = {
 	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
 } satisfies PostgresTestOptions;
 
-const postgresLayer = makePostgresTestLayer(postgresOptions);
+export const postgresLayer = makePostgresTestLayer(postgresOptions);
 
 function makeTests(clock: "live" | "test", isolation: "rollback" | "isolated", options?: Pick<PostgresTestOptions, "maxConnections">) {
 	const { effectApp } = makeEffectIt({
