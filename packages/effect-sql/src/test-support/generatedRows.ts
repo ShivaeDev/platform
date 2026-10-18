@@ -9,7 +9,7 @@ export const generatedRows = Effect.gen(function* () {
 	yield* Effect.addFinalizer(() => sql`drop table if exists ${sql(tableName)}`.pipe(Effect.orDie));
 	yield* sql`create table ${sql(tableName)} (id integer generated always as identity primary key)`;
 	const generated = yield* makeRepository(Generated, { idColumn: "id", spanPrefix: "Generated", tableName });
-	return { generated };
+	return { generated, tableName };
 });
 
 class Generated extends Model.Class<Generated>("BatchGenerated")({

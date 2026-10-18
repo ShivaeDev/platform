@@ -3,6 +3,8 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { type SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
+import { type RepositoryChanges, repositoryChanges } from "#repositoryChanges.ts";
+import { repositoryWrites } from "#repositoryWrites.ts";
 import type { IdColumn, NativeRepository } from "#versionedRepository.ts";
 
 export type CompositeKey<TModel extends Model.Any> = readonly [IdColumn<TModel>, IdColumn<TModel>, ...IdColumn<TModel>[]];
@@ -32,53 +34,44 @@ export function makeCompositeCrud(
 		readonly tableName: string;
 		readonly spanPrefix: string;
 	},
+	supplied?: RepositoryChanges,
 ) {
 	const { columns, tableName, spanPrefix } = options;
-	const Key = Schema.Struct(
-		Object.fromEntries(
-			columns.map((column) => {
-				const field = model.fields[column];
-				if (field === undefined) {
-					throw new Error(`Unknown ID column: ${column}`);
-				}
-				return [column, field];
-			}),
-		),
+	const fields = Object.fromEntries(
+		columns.map((column) => {
+			const field = model.fields[column];
+			if (field === undefined) {
+				throw new Error(`Unknown ID column: ${column}`);
+			}
+			return [column, field];
+		}),
 	);
-	const Record = Schema.Record(Schema.String, Schema.Unknown);
+	const Key = columns.length === 1 ? model.fields[columns[0] ?? ""] : Schema.Struct(fields);
+	if (Key === undefined) {
+		throw new Error("Unknown repository ID column");
+	}
+	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	function predicate(input: Readonly<Record<string, unknown>>) {
 		return sql.and(columns.map((column) => sql`${sql(column)} = ${input[column]}`));
 	}
 	const find = SqlSchema.findOne({
-		execute: (input) => sql`select * from ${sql(tableName)} where ${predicate(input)}`,
+		execute: (input) =>
+			Effect.flatMap(
+				record(columns.length === 1 ? { [columns[0] ?? ""]: input } : input),
+				(key) => sql`select * from ${sql(tableName)} where ${predicate(key)}`,
+			),
 		Request: Key,
 		Result: model,
 	});
-	const remove = SqlSchema.void({
-		execute: (input) => sql`delete from ${sql(tableName)} where ${predicate(input)}`,
-		Request: Key,
-	});
-	const updateRows = SqlSchema.findOne({
-		execute: (input) =>
-			Effect.flatMap(
-				Schema.decodeUnknownEffect(Record)(input),
-				(encoded) => sql`update ${sql(tableName)} set ${sql.update(encoded, columns)} where ${predicate(encoded)} returning *`,
-			),
-		Request: model.update,
-		Result: model,
-	});
-	const updateVoidRows = SqlSchema.void({
-		execute: (input) =>
-			Effect.flatMap(
-				Schema.decodeUnknownEffect(Record)(input),
-				(encoded) => sql`update ${sql(tableName)} set ${sql.update(encoded, columns)} where ${predicate(encoded)}`,
-			),
-		Request: model.update,
-	});
+	const changes = supplied ?? {
+		record: (rows: readonly Readonly<Record<string, unknown>>[]) =>
+			Effect.flatMap(repositoryChanges(sql, tableName, columns), (boundary) => boundary.record(rows)),
+		write<A, E, R>(effect: Effect.Effect<A, E, R>) {
+			return Effect.flatMap(repositoryChanges(sql, tableName, columns), (boundary) => boundary.write(effect));
+		},
+	};
 	return {
-		delete: (id: Readonly<Record<string, unknown>>) => remove(id).pipe(Effect.withSpan(`${spanPrefix}.delete`)),
-		findById: (id: Readonly<Record<string, unknown>>) => find(id).pipe(Effect.withSpan(`${spanPrefix}.findById`)),
-		update: (input: unknown) => updateRows(input).pipe(Effect.catchTag("NoSuchElementError", Effect.die), Effect.withSpan(`${spanPrefix}.update`)),
-		updateVoid: (input: unknown) => updateVoidRows(input).pipe(Effect.withSpan(`${spanPrefix}.updateVoid`)),
+		...repositoryWrites(model, sql, { ...options, idColumns: columns }, changes),
+		findById: (id: unknown) => find(id).pipe(Effect.withSpan(`${spanPrefix}.findById`)),
 	};
 }

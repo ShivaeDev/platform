@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from "vitest";
-import { quality } from "#test/cli.ts";
+import { CLI_EXIT, quality } from "#test/cli.ts";
 import { manifestTree } from "#test/manifestTree.ts";
 import { config, removeSeededTrees } from "#test/tree.ts";
 
@@ -11,7 +11,7 @@ it("enables manifest boundaries by default on the CLI without import configurati
 		{ content: 'import "plain-kit";\nexport const app = 1;', path: "modules/app/src/app.ts" },
 	]);
 	const result = quality(root, "lint");
-	expect(result.status).toBe(1);
+	expect(result.status).toBe(CLI_EXIT.rejected);
 	expect(result.stdout).toContain("error imports/manifest (1)");
 	expect(result.stdout).toContain('Imports workspace package "plain-kit" without declaring it in modules/app/package.json');
 });
@@ -27,7 +27,7 @@ it("checks manifest dependencies and test-code boundaries on the same resolved i
 		{ declaration: "devDependencies", linked: true },
 	);
 	const result = quality(root, "lint");
-	expect(result.status).toBe(1);
+	expect(result.status).toBe(CLI_EXIT.rejected);
 	expect(result.stdout).toContain("error imports/manifest (1)");
 	expect(result.stdout).toContain("error imports/no-test-code (1)");
 	expect(result.stdout).toContain('modules/app/src/app.ts:1  Imports test code through "plain-kit/test-support/fixture.ts".');
@@ -46,7 +46,7 @@ it.each([
 			{ linked, workspace },
 		);
 		const result = quality(root, "lint");
-		expect(result.status).toBe(1);
+		expect(result.status).toBe(CLI_EXIT.rejected);
 		expect(result.stdout).toContain("error imports/manifest (1)");
 		expect(result.stdout).toContain('Imports workspace package "plain-kit" without declaring it in modules/app/package.json');
 	},
@@ -64,7 +64,7 @@ it("keeps each importing member's policy when only source folders are selected",
 		{ declaration: "dependencies" },
 	);
 	const result = quality(root, "lint");
-	expect(result.status).toBe(1);
+	expect(result.status).toBe(CLI_EXIT.rejected);
 	expect(result.stdout).toContain("error imports/manifest (1)");
 	expect(result.stdout).toContain('Imports workspace package "@acme/app" without declaring it in modules/kit/package.json');
 	expect(result.stdout).not.toContain('Imports workspace package "plain-kit" without declaring it');
@@ -81,7 +81,7 @@ it("keeps a member's development dependencies restricted to test code with an un
 		{ declaration: "devDependencies" },
 	);
 	const result = quality(root, "lint");
-	expect(result.status).toBe(1);
+	expect(result.status).toBe(CLI_EXIT.rejected);
 	expect(result.stdout).toContain("error imports/manifest (1)");
 	expect(result.stdout).toContain('Imports workspace package "plain-kit" without declaring it in modules/app/package.json');
 	expect(result.stdout).toContain(

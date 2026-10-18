@@ -1,57 +1,63 @@
-import { Effect, Layer } from "effect";
+import { join } from "node:path";
+import { Effect } from "effect";
 import { expect } from "vitest";
-import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
-import { rawGet } from "#test/board.ts";
-import { subscribe } from "#test/nativeRpc.ts";
-import { SCREENSHOT, visualWorkspace } from "#test/visuals.ts";
+import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
+import { localScreenshots, outsideFiles } from "#test/servingTraits.ts";
+import { SCREENSHOT } from "#test/visuals.ts";
 
-let workspace: Effect.Success<ReturnType<typeof visualWorkspace>>;
-
-const setupBoard = Effect.gen(function* () {
-	workspace = yield* visualWorkspace();
-});
-
-const { effectApp } = makeEffectIt({ clock: "live", layer: Layer.empty, makeHarness: () => setupBoard });
-
-effectApp("renders source-relative local images at a nested home alias and serves exact bytes with safe media headers", function* () {
-	const image = yield* Effect.promise(() => workspace.get("/_board/attachment/shots/first%20%26%20review.png"));
+const images = boardStory.traits(
+	projectFiles({
+		"nested/home.md": "# Visual review\n\n![First](../shots/first%20%26%20review.png)",
+		"nested/result.md": "# Result",
+		"shots/a.constructor": "private",
+		"shots/evil.svg": "<svg>private</svg>",
+		"shots/first & review.png": "",
+		"shots/second.png": "",
+	}),
+	boardHome("nested/home.md"),
+	localScreenshots,
+);
+boardStory.it("resolves a nested home image and serves exact bytes with media headers", [images], function* ({ request, readDocument }) {
+	expect((yield* readDocument("")).links["../shots/first%20%26%20review.png"]).toBe("/_board/attachment/shots/first%20%26%20review.png");
+	const image = yield* request("/_board/attachment/shots/first%20%26%20review.png");
 	expect(image.status).toBe(200);
 	expect(image.headers.get("content-type")).toBe("image/png");
 	expect(image.headers.get("cache-control")).toBe("no-store");
 	expect(image.headers.get("x-content-type-options")).toBe("nosniff");
 	expect(Buffer.from(yield* Effect.promise(() => image.arrayBuffer()))).toEqual(SCREENSHOT);
-	expect((yield* Effect.promise(() => workspace.get("/nested/result.md"))).status).toBe(200);
 });
-
-effectApp("refuses traversal, malformed paths, unsupported types and escaping file or directory links", function* () {
-	workspace.outsideLinks();
-	for (const path of [
-		"shots/leak.png",
-		"reference/outside.png",
-		"..%2fprivate.png",
-		"%2e%2e%5cprivate.png",
-		"%ZZ.png",
-		".hidden.png",
-		"nested/home.md",
-		"shots/evil.svg",
-		"node_modules/image.png",
-		"shots/a.constructor",
-	]) {
-		const response = yield* rawGet(workspace.board, `/_board/attachment/${path}`);
-		expect(response.status).toBe(404);
-		expect(response.body).not.toContain("private");
-	}
-	expect((yield* rawGet(workspace.board, "/_board/attachment/shots/second.png", "outside.example")).status).toBe(403);
-});
-
-effectApp("bounds image reads and reports image edits through the existing watcher", function* () {
-	const events = yield* subscribe(workspace.board);
+boardStory.it(
+	"refuses traversal, unsupported types and escaping file and directory links",
+	[images, outsideFiles({ "outside.png": "private" })],
+	function* ({ outside, linkFile, get }) {
+		linkFile("shots/leak.png", join(outside.root, "outside.png"));
+		linkFile("reference", outside.root);
+		for (const path of [
+			"shots/leak.png",
+			"reference/outside.png",
+			"..%2fprivate.png",
+			"%2e%2e%5cprivate.png",
+			"%ZZ.png",
+			".hidden.png",
+			"nested/home.md",
+			"shots/evil.svg",
+			"node_modules/image.png",
+			"shots/a.constructor",
+		]) {
+			const response = yield* get(`/_board/attachment/${path}`);
+			expect(response.status).toBe(404);
+			expect(response.body).not.toContain("private");
+		}
+		expect((yield* get("/_board/attachment/shots/second.png", "outside.example")).status).toBe(403);
+	},
+);
+boardStory.it("announces image edits and bounds image reads", [images], function* ({ watchProject, editBytes, resizeFile, get }) {
+	const events = yield* watchProject();
 	yield* events.next();
-	workspace.replaceImage();
+	editBytes("shots/second.png", Buffer.concat([SCREENSHOT, Buffer.from("Updated")]));
 	expect(yield* events.next()).toEqual({ _tag: "Resync" });
-	yield* events.close();
-	workspace.oversize();
-	const response = yield* Effect.promise(() => workspace.get("/_board/attachment/shots/second.png"));
+	resizeFile("shots/second.png", 16 * 1024 * 1024 + 1);
+	const response = yield* get("/_board/attachment/shots/second.png");
 	expect(response.status).toBe(413);
-	expect(yield* Effect.promise(() => response.text())).toContain("16 MiB");
+	expect(response.body).toContain("16 MiB");
 });

@@ -1,4 +1,3 @@
-import { useAtomMount } from "@effect/atom-react";
 import { Link } from "@tanstack/react-router";
 import { Option, Predicate } from "effect";
 import { useId } from "react";
@@ -48,7 +47,6 @@ export function NoteEdit({
 	readonly onDeleted: () => void;
 }) {
 	const noteId = loaded.id;
-	useAtomMount(client.connection);
 	const editor = useEditor({
 		fields: NoteEditFields,
 		loaded,

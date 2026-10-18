@@ -51,7 +51,7 @@ postgres.it("PostgreSQL batch upserts update only selected columns and insert ne
 });
 
 postgres.it(
-	"a later PostgreSQL batch failure rolls back earlier chunks in the native transaction",
+	"a later PostgreSQL batch failure rolls back earlier chunks without a caller transaction",
 	[hasBatchReadings()],
 	function* ({ batchFixture, sql }) {
 		const { readings, plain, count, statements, calls } = batchFixture();
@@ -61,7 +61,7 @@ postgres.it(
 			() => readings.insertManyOrIgnore(batch),
 			() => readings.upsertMany(batch, { updateColumns: ["amount"] }),
 		]) {
-			const failure = yield* sql.withTransaction(write()).pipe(Effect.flip);
+			const failure = yield* write().pipe(Effect.flip);
 			expect(failure).toBeInstanceOf(SqlError);
 			expect(yield* count).toBe(0);
 			expect(yield* statements).toEqual([]);

@@ -26,5 +26,11 @@ export const bundleBoard = Effect.fn("Test.bundleBoard")(function* (root: string
 	if (!NetAddress.isInetAddress(server.address)) {
 		throw new Error("the board did not listen on TCP");
 	}
-	return { logged, stop: () => Scope.close(scope, Exit.void), url: `http://${NetAddress.formatIp(server.address.address)}:${server.address.port}` };
+	return {
+		hostname: NetAddress.formatIp(server.address.address),
+		logged,
+		port: server.address.port,
+		stop: () => Scope.close(scope, Exit.void),
+		url: `http://${NetAddress.formatIp(server.address.address)}:${server.address.port}`,
+	};
 });

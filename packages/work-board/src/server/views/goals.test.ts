@@ -1,41 +1,50 @@
-import { expect, it } from "vitest";
-import { inboxCount, navigationData } from "#server/navigation/model.ts";
-import { closedInboxFixture } from "#test/closedInboxFixture.ts";
+import { Effect, PlatformError } from "effect";
+import { expect } from "vitest";
+import { boardFilesystem, boardStory, projectFiles } from "#test/boardStory.ts";
 import { closedGoalPageFixture, goalFleetFixture } from "#test/goalPageFixture.ts";
-import { inboxSnapshot } from "#test/inboxFixture.ts";
-import { goals } from "./goals.ts";
+import { linkedAsks } from "#test/linkedAsks.ts";
+import { fleetReports } from "#test/storyTraits.ts";
 
-it("counts only eligible active Inbox rows for linked work, never more than the Inbox", () => {
-	const files = closedInboxFixture();
-	files["goal.md"] = "---\nid: project.example\nkind: project\nstatus: planned\n---\n# Goal";
-	for (const status of ["done", "planned", "superseded", "deferred"]) {
-		files[`${status}.md`] =
-			files[`${status}.md`]?.replace("owner: codex", "owner: codex\nrelationships:\n - kind: implements\n   target: project.example") ?? "";
-	}
-	const source = files["asks/planned-2.md"] ?? "";
-	files["asks/agent.md"] = source.replace("decision.planned.2", "decision.agent").replace("[maintainer]", "[agent]");
-	files["asks/invalid.md"] = source.replace("decision.planned.2", "decision.invalid").replace("[task.planned]", "[missing]");
-	files["asks/duplicate.md"] = source.replace("decision.planned.2", "decision.invalid");
-	const snapshot = inboxSnapshot(files);
-	const goal = goals(snapshot).goals[0];
-	expect(goal?.openAsks).toBe(1);
-	expect(inboxCount(snapshot)).toBe(2);
-	expect(goal?.openAsks).toBeLessThanOrEqual(inboxCount(snapshot) ?? 0);
-	expect(goals({ ...snapshot, unavailable: ["missing.md"] }).goals[0]?.openAsks).toBe(0);
+boardStory.it("counts only eligible active Inbox rows for linked work", [linkedAsks], function* ({ rpc }) {
+	const data = yield* rpc((client) => client("work-board.goals", undefined));
+	const navigation = yield* rpc((client) => client("work-board.navigation", { current: "" }));
+	expect(data.goals[0]?.openAsks).toBe(1);
+	expect(navigation.inboxCount).toBe(2);
+	expect(data.goals[0]?.openAsks).toBeLessThanOrEqual(navigation.inboxCount ?? 0);
 });
+for (const status of ["closed", "done", "superseded", "completed", "cancelled", "canceled", "resolved", "released"]) {
+	boardStory.it(
+		`retains Fleet-aware progress for a ${status} project outside active navigation`,
+		[projectFiles(closedGoalPageFixture(status)), fleetReports(goalFleetFixture())],
+		function* ({ rpc }) {
+			const data = yield* rpc((client) => client("work-board.goals", undefined));
+			const goal = data.closedGoals.find((entry) => entry.id === "project.closed");
+			expect(goal?.counts).toEqual({ done: 3, "in progress": 1, planned: 2 });
+			expect(goal?.criteria[0]?.counts).toEqual({ done: 2, "in progress": 1, planned: 0 });
+			expect(goal?.criteria[1]?.counts).toEqual({ done: 0, "in progress": 0, planned: 0 });
+			expect(goal?.linked).toBe(6);
+			expect(data.goals.map((entry) => entry.id)).toEqual(["project.empty", "project.example"]);
+			expect((yield* rpc((client) => client("work-board.navigation", { current: "" }))).counts.goals).toBe(2);
+		},
+	);
+}
 
-it.each(["closed", "done", "superseded", "completed", "cancelled", "canceled", "resolved", "released"])(
-	"provides Fleet-aware progress for %s projects without adding them to active-goal navigation",
-	(status) => {
-		const snapshot = inboxSnapshot(closedGoalPageFixture(status));
-		const data = goals(snapshot, goalFleetFixture());
-		const goal = data.closedGoals.find((entry) => entry.id === "project.closed");
-		expect(goal?.status).toBe(status);
-		expect(goal?.counts).toEqual({ done: 3, "in progress": 1, planned: 2 });
-		expect(goal?.criteria[0]?.counts).toEqual({ done: 2, "in progress": 1, planned: 0 });
-		expect(goal?.criteria[1]?.counts).toEqual({ done: 0, "in progress": 0, planned: 0 });
-		expect(goal?.linked).toBe(6);
-		expect(data.goals.map((entry) => entry.id)).toEqual(["project.empty", "project.example"]);
-		expect(navigationData([], "", undefined, snapshot).counts.goals).toBe(2);
+boardStory.it(
+	"does not count goal asks while part of the workspace is unreadable",
+	[
+		linkedAsks,
+		projectFiles({ "unreadable.md": "# Unreadable source" }),
+		boardFilesystem((fs) => ({
+			...fs,
+			readFileString: (file, options) =>
+				file.endsWith("unreadable.md")
+					? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
+					: fs.readFileString(file, options),
+		})),
+	],
+	function* ({ rpc }) {
+		const data = yield* rpc((client) => client("work-board.goals", undefined));
+		expect(data.goals[0]?.openAsks).toBe(0);
+		expect((yield* rpc((client) => client("work-board.navigation", { current: "" }))).inboxCount).toBeNull();
 	},
 );

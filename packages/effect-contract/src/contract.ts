@@ -1,6 +1,7 @@
-import type { Schema } from "effect";
+import { Context, type Schema } from "effect";
 import { Rpc, RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/rpc";
 import type { CommandShape, OperationShape, QueryShape, StreamShape } from "./operation.ts";
+import { CommandInvalidation, changesRpc } from "./serverMetadata.ts";
 
 export type Tag<TContract extends string, TName extends string> = `${TContract}.${TName}`;
 
@@ -94,7 +95,7 @@ export function contract(
 			payload: operation.payload,
 			stream: operation.kind === "stream",
 			success: operation.success,
-		}),
+		}).annotateMerge(operation.kind === "command" ? Context.make(CommandInvalidation, operation.invalidates) : Context.empty()),
 	);
-	return withDeclaration(RpcGroup.make(...rpcs), { commands, name, queries, streams });
+	return withDeclaration(RpcGroup.make(...rpcs, changesRpc(name)), { commands, name, queries, streams });
 }

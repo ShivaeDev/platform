@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { fleetStory, githubBacklog, singlePrBacklog } from "#test/fleetStory.ts";
 import { PR } from "#test/githubResult.ts";
+import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
 fleetStory.it("a closed PR releases its foreign backlog once and waiting work launches", [githubBacklog], function* (fleet) {
 	yield* fleet.prepare("one");
@@ -13,12 +14,14 @@ fleetStory.it("a closed PR releases its foreign backlog once and waiting work la
 	expect((yield* fleet.get("two")).value.stage).toBe("prepared");
 	yield* fleet.reconcile("one");
 	expect(yield* fleet.reservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: PR }]);
+	const beforeClose = fleet.commits.length;
 	fleet.closePrOnGithub();
 	const closed = yield* fleet.reconcile("one");
 	expect(closed.value).toMatchObject({ decision: { code: "pr-closed" }, stage: "needs-human" });
 	expect(closed.value.outcome).toBeUndefined();
 	expect(yield* fleet.reservations()).toEqual([]);
-	expect(fleet.commits).toContainEqual(["fleet"]);
+	const reservations = `${STORAGE_NAMESPACE}_foreign_reservations`;
+	expect(fleet.commits[beforeClose]?.toSorted()).toEqual(["fleet", reservations, `${reservations}:${PR}`].toSorted());
 	const commits = fleet.commits.length;
 	expect((yield* fleet.reconcile("one")).version).toBe(closed.version);
 	expect(fleet.commits).toHaveLength(commits);

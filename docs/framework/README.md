@@ -18,10 +18,10 @@ user-facing text, layout and deployment choices.
 | --- | --- | --- |
 | Declare services | [effect-service](../../packages/effect-service/README.md) | Declare dependencies and initialization; native Context and Layer own composition. |
 | Persist data and run migrations | [effect-sql](../../packages/effect-sql/README.md) | Derive common operations from native models; use explicit SQL for unusual queries. |
-| Announce committed changes | [effect-changes](../../packages/effect-changes/README.md) | Record changes at a commit boundary; applications choose their meaning and delivery. |
+| Announce committed changes | [effect-changes](../../packages/effect-changes/README.md) | Repositories announce table and row keys at commit; command declarations name additional dependencies. |
 | Declare queries and commands | [effect-contract](../../packages/effect-contract/README.md) | Describe payloads, results, rejections and read keys; native RPC owns handlers and transport. |
 | Resolve identity and share errors | [platform](../../packages/platform/README.md) | Use its errors, RPC middleware and server modules; applications decide session and Origin policy. |
-| Render queries and invoke actions | [effect-react](../../packages/effect-react/README.md) | Bind native atoms to React; applications own registry and session lifetime. |
+| Render queries and invoke actions | [effect-react](../../packages/effect-react/README.md) | Bind native atoms to React; session boundaries own registries and live connections. |
 | Route React screens | [effect-react/router.ts](../../packages/effect-react/README.md#route-loaders-with-tanstack-router) | TanStack Router owns routing; loaders read contract query atoms in the shared registry and expose tagged failures to route error components. |
 | Edit and submit data | [effect-form](../../packages/effect-form/README.md) | Keep encoded field input and decode for submission; applications supply UI and save effects. |
 | Run durable jobs | [effect-pg-boss](../../packages/effect-pg-boss/README.md) | Integrate pg-boss with Effect services; applications choose queue and retry policy. |
@@ -49,9 +49,7 @@ SQL with composed schemas remains useful for joins, aggregates and other unusual
 queries; the framework does not require a second authored ORM model or a general
 database language.
 
-Return ordinary values from queries and commands. Request/response plus
-invalidation is the default. Optional live hints tell a client to query again;
-applications choose delivery across processes from their deployment needs.
+Return ordinary values from queries and commands. Database hosts deliver commit-bound change hints across processes, and React session boundaries connect bound queries automatically. Queries remain the source of current values; explicit live APIs support other transports and lifecycle owners.
 Reuse native migration execution and the durable job system. Keep application
 authorization, UI wording and layout, native device behavior and offline conflict
 policy in applications.
@@ -68,7 +66,7 @@ The [starter quickstart](./quickstart.md) begins with a runnable app. The [Postg
 - [Native RPC](./native-rpc.md) explains handlers, middleware and transport, including the [one path for public client configuration](./native-rpc.md#public-client-configuration): a shared Schema, startup-loaded public fields and an effect-react query without an application-written RPC.
 - [Request context](./request-context.md) explains errors, session resolution, Origin policy and redacted request diagnostics; [BetterAuth at the RPC boundary](./auth-boundary.md) shows the session provider.
 - [Commit-bound changes](./changes.md) connects transaction bindings to application change vocabularies.
-- [Live updates](./live-updates.md) composes optional hint streams with native query invalidation.
+- [Live updates](./live-updates.md) explains default query refresh and explicit hint-stream coordination.
 - [Editing](./editing.md) connects queries, forms and saves; [client lifetime](./client-lifecycle.md) ties the client registry to the authenticated session.
 - [Cancellation](./cancellation.md) covers interruption from React actions to Node requests.
 - [Migrations](./migrations.md) and [PostgreSQL migrations](./postgres-migrations.md) explain authoring and runner ownership.

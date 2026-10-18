@@ -40,3 +40,11 @@ liveNotesStory.it("resync belongs to its helper when independent helpers share R
 	yield* test.resync("second");
 	yield* eventually(() => expect(second).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]));
 });
+
+liveNotesStory.it("a subscription forwards only its keys that actually changed", [liveSession()], function* ({ watchKeys, invalidate }) {
+	const hints: unknown[] = [];
+	yield* watchKeys([notes.item(1), notes.item(2)], hints).pipe(Effect.forkScoped);
+	yield* eventually(() => expect(hints).toEqual([{ _tag: "Resync" }]));
+	yield* invalidate(["notes:1", "notes:3"]);
+	yield* eventually(() => expect(hints).toEqual([{ _tag: "Resync" }, { _tag: "Changed", keys: [notes.item(1)] }]));
+});
