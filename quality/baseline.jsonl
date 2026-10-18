@@ -134,7 +134,6 @@
 {"path":"packages/work-board/src/responses/url.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-board/src/server/http/respondRedirect.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-board/src/server/rpc/fleetItems.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-board/src/test-support/storyLifecycle.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/dispatchBackPressure.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/dispatchPriority.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/githubBudget.spec.ts","rule":"tests/story-specs","count":1}
