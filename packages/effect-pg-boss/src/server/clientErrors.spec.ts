@@ -5,7 +5,7 @@ import { makePgBoss } from "#service.ts";
 import { constructorOptions } from "#test/fake-client.ts";
 import { scriptedClient } from "#test/scriptedClient.ts";
 
-it.each(["start", "stop", "failed start"])("observes connection termination during %s and detaches after shutdown", async (phase) => {
+it.each(["start", "stop", "failed start"])("observes connection termination during %s and after shutdown", async (phase) => {
 	const events = new EventEmitter();
 	const failure = Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" });
 	const logs: unknown[] = [];
@@ -39,5 +39,5 @@ it.each(["start", "stop", "failed start"])("observes connection termination duri
 	);
 	expect(result._tag).toBe(phase === "failed start" ? "Failure" : "Success");
 	expect(logs).toContainEqual({ logLevel: "Debug", message: [{ event: "pg_boss_error", message: failure.message }] });
-	expect(events.listenerCount("error")).toBe(0);
+	expect(() => events.emit("error", failure)).not.toThrow();
 });

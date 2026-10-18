@@ -19,6 +19,7 @@ export function logClientError(error: Error): Effect.Effect<void> {
 }
 
 export function observeClientErrors(client: PgBossClient, fallback: Listener): void {
+	closeClientErrors(client);
 	const listeners = new Set<Listener>();
 	const listener: Listener = (error) => {
 		if (listeners.size === 0) {
@@ -29,6 +30,7 @@ export function observeClientErrors(client: PgBossClient, fallback: Listener): v
 			}
 		}
 	};
+	// Pool shutdown can resolve before its clients finish disconnecting.
 	client.on("error", listener);
 	observers.set(client, { dispose: () => client.off("error", listener), listeners });
 }
@@ -42,7 +44,7 @@ export function subscribeClientErrors(client: PgBossClient, listener: Listener):
 	return () => observer.listeners.delete(listener);
 }
 
-export function closeClientErrors(client: PgBossClient): void {
+function closeClientErrors(client: PgBossClient): void {
 	observerFor(client)?.dispose();
 	observers.delete(client);
 }
