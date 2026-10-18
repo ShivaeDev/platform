@@ -2,6 +2,24 @@ import { expect } from "@effect/vitest";
 import { CORE, HISTORY } from "#test/fixture.ts";
 import { pending, workspace } from "#test/workspace.ts";
 
+workspace.it(
+	"a public release leaves private packages without changelogs unchanged",
+	[pending()],
+	function* ({ remove, read, checkpoint, cli, exists }) {
+		yield* remove("packages/private/CHANGELOG.md");
+		const before = yield* read("packages/private/package.json");
+		yield* checkpoint();
+		const pendingCheck = yield* cli("check");
+		expect(pendingCheck.status, pendingCheck.stderr).toBe(0);
+		const applied = yield* cli("apply");
+		expect(applied.status, applied.stderr).toBe(0);
+		const releaseCheck = yield* cli("check");
+		expect(releaseCheck.status, releaseCheck.stderr).toBe(0);
+		expect(yield* exists("packages/private/CHANGELOG.md")).toBe(false);
+		expect(yield* read("packages/private/package.json")).toBe(before);
+	},
+);
+
 workspace.it("check accepts released history from main during a pending merge", [], function* ({ git, write, edit, cli }) {
 	yield* write("feature.md", "Feature branch work.\n");
 	yield* git("add", ".");

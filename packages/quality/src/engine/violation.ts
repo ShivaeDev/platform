@@ -1,7 +1,7 @@
 import type { Level } from "#config.ts";
 import type { Finding } from "#rule.ts";
 
-export type ActiveLevel = "error" | "warn";
+export type ActiveLevel = "error";
 
 export interface Violation extends Finding {
 	readonly level: ActiveLevel;
@@ -56,5 +56,5 @@ export function unusedEntryProblem(index: RuleIndex, rule: string, unused: strin
 	if (level === undefined) {
 		return "names no known rule";
 	}
-	return level === "off" ? "names a rule that is off" : unused;
+	return unused;
 }

@@ -1,0 +1,7 @@
+{
+	"author": { "name": "ShivaeDev" },
+	"description": "A live pane of the platform Work Board: what needs you, what is in flight, and goal progress",
+	"name": "workboard",
+	"types": "./types/index.d.ts",
+	"version": "0.1.0"
+}
