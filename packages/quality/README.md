@@ -232,6 +232,17 @@ export default defineConfig({ test: testProjects() });
 
 `testProjects` runs unit tests and specs in Node and `.dom` tests and specs in happy-dom by default. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. The helper takes no options and rejects suite exclusions.
 
+Outside CI, `testProjects` sets `silent: "passed-only"` so local runs show logs only from failing tests. When `CI` is set to a nonempty value, it sets `silent: false` so CI keeps all test logs. It leaves `reporters` unset so Vitest can auto-detect its agent reporter. If a repository adds a reporter, spread `configDefaults.reporters` instead of replacing the defaults:
+
+```ts
+import { testProjects } from "@shivaedev/quality/testProjects.ts";
+import { configDefaults, defineConfig } from "vitest/config";
+
+export default defineConfig({
+	test: { ...testProjects(), reporters: [...configDefaults.reporters, "junit"] },
+});
+```
+
 #### PostgreSQL URL gate
 
 A skipped test proves nothing. `noSkippedTests` reports unconditional skips as errors, and its automatic fix is disabled: repair the test or remove a claim it cannot prove. Slow tests belong in the slow project.
