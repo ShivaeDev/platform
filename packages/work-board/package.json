@@ -26,7 +26,12 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"#*.css": "./src/*.css"
+		"#*.css": "./src/*.css",
+		"#client/react/components/ui/button": {
+			"source": "./src/client/react/components/ui/button.tsx",
+			"types": "./dist/client/react/components/ui/button.d.ts",
+			"default": "./dist/client/react/components/ui/button.js"
+		}
 	},
 	"exports": {
 		"./*.ts": {
@@ -90,9 +95,12 @@
 		"yaml": "catalog:"
 	},
 	"devDependencies": {
+		"@base-ui/react": "catalog:",
 		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
+		"@fontsource-variable/geist": "catalog:",
+		"@fontsource-variable/geist-mono": "catalog:",
 		"@shivaedev/effect-form": "workspace:*",
 		"@shivaedev/effect-react": "workspace:*",
 		"@shivaedev/effect-test": "workspace:*",
@@ -109,13 +117,13 @@
 		"@typescript/native": "catalog:",
 		"@vitejs/plugin-react": "catalog:",
 		"class-variance-authority": "catalog:",
-		"clsx": "catalog:",
+		"cn": "catalog:",
 		"effect": "catalog:",
 		"esbuild": "catalog:",
 		"happy-dom": "catalog:",
 		"lucide-react": "catalog:",
-		"tailwind-merge": "catalog:",
 		"tailwindcss": "catalog:",
+		"tw-animate-css": "catalog:",
 		"typescript": "catalog:",
 		"vite": "catalog:",
 		"vitest": "catalog:"

@@ -25,7 +25,6 @@ export function expectTitleInFirstScreen(page: OpenPage): void {
 		element("[data-workspace-header]"),
 		main,
 		element('nav[aria-label="Phone navigation"]'),
-		element("#phone-more"),
 	]);
 	expect(main.firstElementChild).toBe(layout);
 	expect(layout.firstElementChild).toBe(introduction);
