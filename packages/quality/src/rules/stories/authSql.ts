@@ -12,6 +12,22 @@ const TABLE_START = new Set(["from", "join", "update", "into", "table", "truncat
 const TABLE_END = new Set(["where", "group", "order", "having", "limit", "returning", "set", "values", "on", ";"]);
 const SKIP = new Set(["if", "not", "exists", "only", "table"]);
 const AUTH_TABLES = new Set(["user", "account", "session", "verification"]);
+const NON_TABLE_TARGETS = new Set([
+	"all",
+	"database",
+	"domain",
+	"foreign",
+	"function",
+	"language",
+	"large",
+	"parameter",
+	"procedure",
+	"routine",
+	"schema",
+	"sequence",
+	"tablespace",
+	"type",
+]);
 
 function tableAt(tokens: readonly string[], index: number): string {
 	let next = index;
@@ -24,14 +40,29 @@ function tableAt(tokens: readonly string[], index: number): string {
 	return (tokens[next] ?? "").replaceAll('"', "").toLowerCase();
 }
 
+function tableBoundary(tokens: readonly string[], index: number, statementStart: number) {
+	const word = tokens[index]?.toLowerCase() ?? "";
+	const permissions = ["grant", "revoke"].includes(tokens[statementStart]?.toLowerCase() ?? "");
+	const roleTarget = permissions && (word === "to" || word === "from");
+	const permissionTarget = permissions && word === "on" && !NON_TABLE_TARGETS.has(tokens[index + 1]?.toLowerCase() ?? "");
+	const indexTarget = word === "on" && tokens.slice(statementStart, index).some((part) => part.toLowerCase() === "index");
+	return {
+		ends: TABLE_END.has(word) || roleTarget,
+		starts: !roleTarget && (TABLE_START.has(word) || indexTarget || permissionTarget),
+	};
+}
+
 function authTableIn(text: string): boolean {
 	const tokens = [...text.matchAll(TOKENS)]
 		.map(([token]) => token)
 		.filter((token) => !(token.startsWith("--") || token.startsWith("/*") || token.startsWith("'")));
 	const tablesAtDepth = new Set<number>();
 	let depth = 0;
+	let statementStart = 0;
 	return tokens.some((token, index) => {
-		const word = token.toLowerCase();
+		if (token === ";") {
+			statementStart = index + 1;
+		}
 		if (token === "(") {
 			depth += 1;
 		}
@@ -39,15 +70,14 @@ function authTableIn(text: string): boolean {
 			tablesAtDepth.delete(depth);
 			depth -= 1;
 		}
-		const indexTarget = word === "on" && tokens.slice(0, index).some((part) => part.toLowerCase() === "index");
-		const startsTable = TABLE_START.has(word) || indexTarget;
-		if (TABLE_END.has(word)) {
+		const boundary = tableBoundary(tokens, index, statementStart);
+		if (boundary.ends) {
 			tablesAtDepth.delete(depth);
 		}
-		if (startsTable) {
+		if (boundary.starts) {
 			tablesAtDepth.add(depth);
 		}
-		return (startsTable || (token === "," && tablesAtDepth.has(depth))) && AUTH_TABLES.has(tableAt(tokens, index + 1));
+		return (boundary.starts || (token === "," && tablesAtDepth.has(depth))) && AUTH_TABLES.has(tableAt(tokens, index + 1));
 	});
 }
 
