@@ -34,6 +34,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
+          install: false
           node-version-file: false
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --trust-lockfile=false
@@ -70,6 +71,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
+          install: false
           node-version-file: false
 
       - name: Install dependencies
