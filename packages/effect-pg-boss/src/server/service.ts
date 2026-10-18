@@ -10,18 +10,18 @@ import { registerJobs, registrationName } from "#internal/register.ts";
 import { makeService } from "#internal/service.ts";
 
 export interface PgBossService {
-	readonly counts: (queue: QueueDefinition) => Effect.Effect<QueueCounts, PgBossError>;
-	readonly enqueue: <const TName extends string, const TPayload extends JobPayloadSchema>(
-		queue: QueueDefinition<TName, TPayload>,
-		payload: Schema.Schema.Type<TPayload>,
-		options?: SendOptions,
+	readonly counts: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<QueueCounts, PgBossError>;
+	readonly enqueue: <const TName extends string, const TPayload extends JobPayloadSchema, const TQueue extends QueueDefinition<TName, TPayload>>(
+		queue: QueueDefinition<TName, TPayload> & TQueue,
+		payload: NoInfer<Schema.Schema.Type<TPayload>>,
+		options?: NoInfer<TQueue["key"] extends undefined ? SendOptions : Omit<SendOptions, "singletonKey"> & { readonly singletonKey?: never }>,
 	) => Effect.Effect<Option.Option<string>, PgBossError | PgBossPayloadError, TPayload["EncodingServices"]>;
 	readonly getJob: <const TName extends string, const TPayload extends JobPayloadSchema>(
 		queue: QueueDefinition<TName, TPayload>,
 		id: string,
 	) => Effect.Effect<Option.Option<JobWithMetadata<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
 	readonly health: Effect.Effect<JobsHealth, PgBossError>;
-	readonly retry: (queue: QueueDefinition, id: string) => Effect.Effect<void, PgBossError>;
+	readonly retry: (queue: Pick<QueueDefinition, "name">, id: string) => Effect.Effect<void, PgBossError>;
 }
 
 export type PgBossLayerOptions<TRegistrations extends readonly JobRegistration[], TErrorRequirements> = ConstructorOptions & {

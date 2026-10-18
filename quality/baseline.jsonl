@@ -171,8 +171,6 @@
 {"path":"packages/effect-pg-boss/src/server/batchExpiry.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/effect-pg-boss/src/server/batchExpiryPostgres.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/effect-pg-boss/src/server/clientErrorRetention.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/effect-pg-boss/src/server/definition.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
-{"path":"packages/effect-pg-boss/src/server/definition.ts","rule":"biome/lint/style/useNamingConvention","count":17}
 {"path":"packages/effect-pg-boss/src/server/edgeCases.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/effect-pg-boss/src/server/error.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-pg-boss/src/server/followUp.spec.ts","rule":"tests/named-values","count":3}
