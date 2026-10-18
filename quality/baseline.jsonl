@@ -24,7 +24,6 @@
 {"path":"packages/effect-pg-boss/src/server/health.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-pg-boss/src/server/internal/health.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-pg-boss/src/server/internal/health.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-pg-boss/src/server/internal/lifecycle.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-pg-boss/src/server/internal/register.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-pg-boss/src/server/internal/service.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-pg-boss/src/server/internal/service.ts","rule":"files/named-after-export","count":1}
