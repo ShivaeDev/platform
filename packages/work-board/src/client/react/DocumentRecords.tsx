@@ -1,4 +1,5 @@
 import type { Document } from "#browser/document/schema.ts";
+import { LinkButton } from "./LinkButton.tsx";
 import { Reference } from "./Reference.tsx";
 
 export function DocumentRecords({ document: data }: { readonly document: Document }) {
@@ -19,9 +20,7 @@ export function DocumentRecords({ document: data }: { readonly document: Documen
 					<p>
 						Reviewed SHA-256: <code>{handoff.reviewedRevision}</code>
 					</p>
-					<p>
-						<a href={`/_board/handoff?item=${encodeURIComponent(handoff.item)}`}>Read handoff history and copy its prompt</a>
-					</p>
+					<LinkButton href={`/_board/handoff?item=${encodeURIComponent(handoff.item)}`}>Read handoff history and copy its prompt</LinkButton>
 				</>
 			)}
 			{question !== undefined && (

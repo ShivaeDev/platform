@@ -1,13 +1,13 @@
 import type { StartProjection } from "#browser/views/remaining.ts";
+import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
 export function StartPage({ data }: { readonly data: StartProjection }) {
 	return (
 		<ReadingPanel className="onboarding">
-			<h1>{data.empty ? "Start your local workspace" : "Project and report templates"}</h1>
-			<p>
-				Work Board reads Markdown files from your workspace folder. Use your editor or existing agent tools to create and update them; this viewer
-				does not write project files.
-			</p>
+			<PageHeader
+				summary="Work Board reads Markdown files from your workspace folder. Use your editor or existing agent tools to create and update them; this viewer does not write project files."
+				title={data.empty ? "Start your local workspace" : "Project and report templates"}
+			/>
 			<ol>
 				<li>Choose a template below. Focus its text area, select all, and copy the Markdown.</li>
 				<li>Save it in the served folder with the suggested filename, or adjust its links to your chosen filenames.</li>

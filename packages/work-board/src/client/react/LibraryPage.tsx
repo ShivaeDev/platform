@@ -7,6 +7,7 @@ import { Label } from "#client/react/components/ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#client/react/components/ui/select.tsx";
 import { ToggleGroup, ToggleGroupItem } from "#client/react/components/ui/toggle-group.tsx";
 import { LibraryContents } from "./LibraryContents.tsx";
+import { PageHeader } from "./PageHeader.tsx";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
@@ -22,9 +23,8 @@ export function LibraryPage({ api, url = "/_board/library" }: { readonly api: Sh
 	const data = Option.getOrUndefined(query.data);
 	const fleetId = useId();
 	return (
-		<div className="mx-auto max-w-5xl p-4 md:p-8">
-			<h1>Library</h1>
-			<p className="text-muted-foreground">Every document in your workspace.</p>
+		<div className="max-w-5xl">
+			<PageHeader summary="Every document in your workspace." title="Library" />
 			<div className="my-6 flex flex-wrap items-end gap-4">
 				<Filter label="Kind" onChange={setKind} options={data?.kinds ?? []} value={kind} />
 				<Filter label="Status" name={statusLabel} onChange={setStatus} options={data?.statuses ?? []} value={status} />

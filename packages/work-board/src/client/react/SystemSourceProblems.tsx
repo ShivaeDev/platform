@@ -8,7 +8,7 @@ type Issues = InboxProjection["issues"];
 
 export function SystemSourceProblems({ issues, failed }: { readonly issues: Issues | undefined; readonly failed: boolean }) {
 	return (
-		<article aria-labelledby={`${SOURCE_PROBLEMS_ID}-title`} className="min-w-0 scroll-mt-4" id={SOURCE_PROBLEMS_ID}>
+		<article aria-labelledby={`${SOURCE_PROBLEMS_ID}-title`} className="min-w-0" id={SOURCE_PROBLEMS_ID}>
 			<Card>
 				<CardHeader>
 					<CardTitle>

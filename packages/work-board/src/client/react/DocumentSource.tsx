@@ -2,14 +2,16 @@ import type { Document } from "#browser/document/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { DocumentAttention } from "./DocumentAttention.tsx";
 import { DocumentRecords } from "./DocumentRecords.tsx";
+import { LinkButton } from "./LinkButton.tsx";
 export function DocumentSource({ document }: { readonly document: Document }) {
 	const reading = document.reading;
+	const hashed = /[a-f\d]{64}/iu.test(document.file);
 	return (
 		<section aria-label="Document source" className="space-y-4">
 			<p>
 				Source:{" "}
-				{/[a-f\d]{64}/iu.test(document.file) ? (
-					<a href={fileUrl(document.file)}>Open source file</a>
+				{hashed ? (
+					`line ${reading?.lines.id ?? 1}`
 				) : (
 					<code>
 						{document.file}:{reading?.lines.id ?? 1}
@@ -17,6 +19,7 @@ export function DocumentSource({ document }: { readonly document: Document }) {
 				)}
 				; prose starts at line {reading?.proseLine ?? 1}.
 			</p>
+			{hashed && <LinkButton href={fileUrl(document.file)}>Open source file</LinkButton>}
 			{reading?.raw !== undefined && (
 				<>
 					<h3>Original frontmatter</h3>

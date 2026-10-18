@@ -204,12 +204,8 @@
 	.document-layout .reading-column {
 		@apply w-full max-w-[68ch] text-base leading-[1.65] [overflow-wrap:anywhere];
 	}
-	.reading-column :is(h1, h2, h3, h4, h5, h6),
-	.item-introduction h1 {
+	.reading-column :is(h1, h2, h3, h4, h5, h6) {
 		@apply mt-8 mb-4 font-semibold leading-tight;
-	}
-	.item-introduction h1 {
-		@apply mt-0 text-2xl;
 	}
 	.reading-column h2 {
 		@apply text-xl;
@@ -260,10 +256,13 @@
 	.item-context p {
 		@apply my-3;
 	}
+	:where([data-board-page]) [id] {
+		scroll-margin-top: calc(var(--board-header-height) + 1rem);
+	}
 	.document-lead [id],
 	.item-context [id],
 	.reading-column [id] {
-		scroll-margin-top: 15rem;
+		scroll-margin-top: calc(var(--board-header-height, 0px) + 15rem);
 	}
 	.item-introduction .heading-anchor,
 	.reading-column .heading-anchor {
@@ -273,6 +272,16 @@
 	.reading-column :is(h1, h2, h3, h4, h5, h6):hover .heading-anchor,
 	.heading-anchor:focus-visible {
 		@apply opacity-100;
+	}
+}
+
+/* Matches the workspace header's h-12 and md:h-14, so sticky titles and anchored targets clear it. */
+[data-board-workspace] {
+	--board-header-height: 3rem;
+}
+@media (min-width: 768px) {
+	[data-board-workspace] {
+		--board-header-height: 3.5rem;
 	}
 }
 

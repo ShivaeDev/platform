@@ -5,6 +5,7 @@ import { Badge } from "#client/react/components/ui/badge.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import { Favorite } from "./Favorite.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
+import { LinkButton } from "./LinkButton.tsx";
 import { PrChip } from "./PrChip.tsx";
 
 const icons = { board: PanelsTopLeft, goal: Flag, project: Flag, question: MessageCircle, report: FileText, result: FileText, task: ClipboardList };
@@ -35,19 +36,24 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 				{item !== undefined && <PrChip url={item.prUrl} />}
 			</div>
 			<ItemFields fields={fields} />
-			<div className="flex flex-wrap items-center gap-3 text-sm">
-				<Favorite file={document.file} title={document.file} />
-				{document.identity && !["question", "response", "handoff"].includes(fields.kind ?? "") && (
-					<a href={`/_board/handoff?item=${encodeURIComponent(document.identity)}`}>Prepare an agent handoff</a>
-				)}
-				{document.identity && fields.kind === "board" && (
-					<a href={`/_board/work?view=board&board=${encodeURIComponent(document.identity)}`}>View this board</a>
-				)}
-				{document.identity && fields.kind === "result" && (
-					<a href={`/_board/result?item=${encodeURIComponent(document.identity)}`}>Review returned result</a>
-				)}
-			</div>
 		</section>
+	);
+}
+
+export function ItemActions({ document }: { readonly document: Document }) {
+	const kind = document.metadata.kind ?? "";
+	const identity = document.identity;
+	return (
+		<>
+			<Favorite file={document.file} title={document.file} />
+			{identity && !["question", "response", "handoff"].includes(kind) && (
+				<LinkButton href={`/_board/handoff?item=${encodeURIComponent(identity)}`}>Prepare an agent handoff</LinkButton>
+			)}
+			{identity && kind === "board" && (
+				<LinkButton href={`/_board/work?view=board&board=${encodeURIComponent(identity)}`}>View this board</LinkButton>
+			)}
+			{identity && kind === "result" && <LinkButton href={`/_board/result?item=${encodeURIComponent(identity)}`}>Review returned result</LinkButton>}
+		</>
 	);
 }
 
