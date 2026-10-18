@@ -2,17 +2,12 @@ import { Effect, Schema } from "effect";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { views } from "#engine/views.ts";
 import type { FleetHost } from "#host/config.ts";
-import { renderStatus as render } from "#host/renderStatus.ts";
 import { FleetRecord } from "#model.ts";
 import { dispatchStore } from "#storage/dispatchStore.ts";
 import { recordModel } from "#storage/model.ts";
 import { readRecords } from "#storage/readRecords.ts";
 import { recordShape } from "#storage/recordShape.ts";
 import { recordValues } from "#storage/recordValue.ts";
-
-export function renderStatus(current: Parameters<typeof render>[0]) {
-	return render(current);
-}
 
 export const fleetStatus = Effect.fn("FleetHost.fleetStatus")(function* (host: FleetHost, workId?: string) {
 	const repository = yield* makeRepository(recordModel(), {

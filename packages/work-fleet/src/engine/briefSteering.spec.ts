@@ -2,7 +2,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
-import { renderStatus } from "#host/status.ts";
+import { renderStatus } from "#host/renderStatus.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";

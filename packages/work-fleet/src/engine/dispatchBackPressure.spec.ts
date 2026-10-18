@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { cycle } from "#engine/scheduler.ts";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
-import { renderStatus } from "#host/status.ts";
+import { renderStatus } from "#host/renderStatus.ts";
 import { executing } from "#model.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { type EngineFixture, finishWorkers, prepareWork, withEngine } from "#test/engine.ts";

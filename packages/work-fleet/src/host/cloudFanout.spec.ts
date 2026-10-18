@@ -20,6 +20,7 @@ function records(fixture: HostFixture) {
 
 const killFanout = Effect.fn("CloudFanout.killFanout")(function* (fixture: HostFixture, backend: ReturnType<typeof cloudFanout>) {
 	const first = yield* hostProcess(fixture.configFile);
+	yield* first.until(() => Effect.succeed(first.url !== undefined));
 	yield* first.until(() =>
 		records(fixture).pipe(
 			Effect.map((stored) => ({
@@ -38,6 +39,7 @@ const killFanout = Effect.fn("CloudFanout.killFanout")(function* (fixture: HostF
 	yield* first.kill;
 	const readsDue = Math.max(...(yield* records(fixture)).map(({ value }) => value.attempts[0]?.readRetry?.retryAt ?? 0));
 	const restarted = yield* hostProcess(fixture.configFile);
+	yield* restarted.until(() => Effect.succeed(restarted.url !== undefined));
 	yield* Effect.sleep(Math.max(0, readsDue - (yield* Clock.currentTimeMillis)));
 	yield* restarted.until(() =>
 		records(fixture).pipe(
