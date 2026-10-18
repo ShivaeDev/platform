@@ -7,6 +7,7 @@ export function tracedGroup<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
 		const middlewares = new Set(rpc.middlewares);
 		middlewares.delete(RequestTracing);
 		middlewares.add(RequestTracing);
+		// Native middleware() clones each RPC but cannot move an existing middleware to the outermost position.
 		Object.assign(rpc, { middlewares });
 	}
 	return traced;

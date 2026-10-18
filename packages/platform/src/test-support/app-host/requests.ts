@@ -24,9 +24,9 @@ export function requests(state: HostState, tell: (line: string) => void) {
 				return { body: await response.text(), cacheControl: response.headers.get("cache-control"), status: response.status };
 			});
 		},
-		ping: () => {
+		ping: (options?: Parameters<typeof ping>[1]) => {
 			tell("the native RPC client pings the host");
-			return io(() => ping(`${state.url}${state.rpcPath}`));
+			return io(() => ping(`${state.url}${state.rpcPath}`, options));
 		},
 		post: (headers: Readonly<Record<string, string>>) => io(() => post(state.url, headers)),
 		postBytes: (chunks: readonly Uint8Array[], options?: Parameters<typeof postBody>[3]) =>

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { appHost } from "#appHost.ts";
 import { Authenticated, RequestTracing } from "#rpc/middleware.ts";
 import { sessions } from "./fixture.ts";
-import { Ping, pingHandlers } from "./ping.ts";
+import { AuthenticatedPing, Ping, pingHandlers } from "./ping.ts";
 import { host } from "./story.ts";
 
 export const defectiveRpc = host.trait("configured", "an untraced loopback RPC handler defects", (state) => {
@@ -19,7 +19,7 @@ export const defectiveRpc = host.trait("configured", "an untraced loopback RPC h
 
 export function tracingDeclaration(position: "omitted" | "first" | "last") {
 	return host.trait("configured", `the shared group's tracing declaration is ${position}`, (state) => {
-		const authenticated = Ping.middleware(Authenticated);
+		const authenticated = AuthenticatedPing;
 		function build() {
 			const options = { config: state.config, handlers: pingHandlers, sessions: sessions(state.lookups) };
 			if (position === "omitted") {
