@@ -1,7 +1,6 @@
 import { it as effectIt, type TestContext, type TestOptions } from "@effect/vitest";
-import { Cause, type Context, Effect, Exit, Layer, Scope } from "effect";
-import * as TestClock from "effect/testing/TestClock";
-import * as TestConsole from "effect/testing/TestConsole";
+import { Cause, type Context, Effect, Exit, type Layer, Scope } from "effect";
+import { environmentFor } from "#internal/environmentFor.ts";
 import { type AnyTestLayer, buildTestLayer } from "./anyTestLayer.ts";
 import type { EffectClock, EffectTest, EffectTestBody, EffectTester, EffectTestOptions, MakeEffectItOptions, MakeEffectItResult } from "./types.ts";
 
@@ -12,13 +11,6 @@ type EffectFixture<TProvided> = TestContext & {
 };
 
 type FixtureTest<TProvided> = (name: string, options: TestOptions, body: (context: EffectFixture<TProvided>) => Promise<unknown>) => void;
-
-const TestClockEnvironment = Layer.mergeAll(TestConsole.layer, TestClock.layer());
-const LiveClockEnvironment = TestConsole.layer;
-
-function environmentFor(clock: EffectClock) {
-	return clock === "live" ? LiveClockEnvironment : TestClockEnvironment;
-}
 
 function restoreContext<TProvided>(
 	fixture: Context.Context<TProvided>,
