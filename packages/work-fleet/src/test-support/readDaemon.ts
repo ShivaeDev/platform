@@ -53,9 +53,11 @@ export const withReadDaemon = Effect.fn("DaemonTest.withReadDaemon")(function* <
 }, Effect.scoped);
 
 export function daemonCli(host: FleetHost, args: readonly string[], options: Omit<ReadDaemonOptions, "port"> = {}) {
-	return withReadDaemon(host, (port) => Effect.promise(() => cliProcess([...args, "--port", String(port)])), options).pipe(
-		Effect.provide(NodeServices.layer),
-	);
+	return withReadDaemon(
+		host,
+		() => Effect.promise(() => cliProcess([...args, ...(args.includes("--board") ? [] : ["--board", host.boardDir])])),
+		options,
+	).pipe(Effect.provide(NodeServices.layer));
 }
 
 function observeSnapshots(handlers: ReturnType<typeof daemonHostOptions>["handlers"], onSnapshot: () => void) {

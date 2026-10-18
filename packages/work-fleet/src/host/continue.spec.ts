@@ -75,7 +75,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 					errors += text;
 				}
 				const options = { onError: captureError, stdin: message };
-				const run = yield* withReadDaemon(fixture.host, (port) => Effect.promise(() => cliProcess([...args, "--port", String(port)], options)), {
+				const run = yield* withReadDaemon(fixture.host, () => Effect.promise(() => cliProcess(args, options)), {
 					parts: { ...fixture.parts, provider: hostProvider(fixture.host) },
 				});
 				expect(run).toEqual({ code: 0, stdout: "one executing" });

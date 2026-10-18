@@ -11,7 +11,7 @@ import * as Flag from "effect/cli/Flag";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { answerCommand, continueCommand, nameThreadsCommand, reassignCommand, releaseCommand } from "#host/actionCommands.ts";
-import { board, config, host, port } from "#host/cliOptions.ts";
+import { board, clientPort, config, host, port } from "#host/cliOptions.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
 import { VERSION } from "#packageInfo.ts";
 
@@ -20,7 +20,7 @@ const serveCommand = Command.make(
 	{ board: Argument.Directory("board-dir"), config, port },
 	Effect.fn("WorkFleetCli.serve")(function* (input) {
 		const { serveFleet } = yield* Effect.promise(() => import("#host/daemon.ts"));
-		yield* serveFleet(yield* host(input.board, input.config), undefined, input.port);
+		yield* serveFleet(yield* host(input.board, input.config), undefined, Option.getOrUndefined(input.port));
 	}),
 ).pipe(Command.withDescription("Serve the local Fleet HTTP RPC daemon and schedule approved Board work"));
 
@@ -40,7 +40,7 @@ const dispatchCommand = Command.make(
 	Effect.fn("WorkFleetCli.dispatch")(function* (input) {
 		const { daemonRequest } = yield* Effect.promise(() => import("#host/daemonClient.ts"));
 		const value = yield* daemonRequest(
-			input.port,
+			yield* clientPort(input),
 			(client) => client("daemon.dispatch", { ignoreAreas: input.ignoreAreas, now: input.now, workId: input.workId }),
 			`dispatch ${input.workId}`,
 		);
@@ -62,12 +62,13 @@ const statusCommand = Command.make(
 			Promise.all([import("#host/daemonClient.ts"), import("#host/renderStatus.ts")]),
 		);
 		const workId = Option.getOrUndefined(input.workId);
+		const daemonPort = yield* clientPort(input);
 		const current = yield* daemonRequest(
-			input.port,
+			daemonPort,
 			(client) => client("daemon.status", workId === undefined ? {} : { workId }),
 			workId === undefined ? "status" : `status ${workId}`,
 		);
-		yield* Console.log(input.json ? JSON.stringify(current) : renderStatus(current, input.port));
+		yield* Console.log(input.json ? JSON.stringify(current) : renderStatus(current, daemonPort));
 	}),
 ).pipe(Command.withDescription("Show active and completed Fleet work, and waiting work grouped by owner"));
 

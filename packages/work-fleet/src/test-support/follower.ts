@@ -15,12 +15,14 @@ interface FollowRun {
 
 export interface Follower {
 	readonly done: Promise<FollowRun>;
+	readonly errors: () => string;
 	readonly isRunning: () => boolean;
 	readonly output: () => string;
 	readonly ready: Promise<void>;
 }
 
 interface FollowOptions {
+	readonly discover?: boolean;
 	readonly follow?: boolean;
 	readonly interval?: number;
 	readonly port?: number;
@@ -36,6 +38,7 @@ export function withFollower<A, E, R>(
 ) {
 	const ready = Promise.withResolvers<void>();
 	function run(port: number) {
+		const portArgs = options.port === undefined || options.discover ? [] : ["--port", String(port)];
 		return Effect.acquireUseRelease(
 			Effect.sync(() => {
 				const cli = fileURLToPath(new URL("../cli.ts", import.meta.url));
@@ -49,8 +52,9 @@ export function withFollower<A, E, R>(
 						command,
 						...ids,
 						...(options.follow ? ["--follow"] : []),
-						"--port",
-						String(port),
+						"--board",
+						dirname(configFile),
+						...portArgs,
 						"--interval",
 						String(options.interval ?? 0.05),
 						...(options.follow && options.timeout === undefined ? [] : ["--timeout", String(options.timeout ?? 20)]),
@@ -79,6 +83,7 @@ export function withFollower<A, E, R>(
 				return {
 					child,
 					done,
+					errors: () => stderr,
 					isRunning: () => child.exitCode === null && child.signalCode === null,
 					output: () => stdout,
 					ready: options.port === undefined ? ready.promise : Promise.resolve(),
@@ -101,13 +106,21 @@ export function withFollower<A, E, R>(
 }
 
 export const untilOutput = Effect.fn("FollowerTest.untilOutput")(function* (follower: Follower, text: string) {
+	yield* untilText(follower.output, text);
+});
+
+export const untilError = Effect.fn("FollowerTest.untilError")(function* (follower: Follower, text: string) {
+	yield* untilText(follower.errors, text);
+});
+
+const untilText = Effect.fn("FollowerTest.untilText")(function* (output: () => string, text: string) {
 	for (let attempt = 0; attempt < 1000; attempt += 1) {
-		if (follower.output().includes(text)) {
+		if (output().includes(text)) {
 			return;
 		}
 		yield* Effect.sleep("10 millis");
 	}
-	return yield* Effect.die(new Error(`Follower did not print ${text}`));
+	return yield* Effect.die(new Error(`Follower did not print ${text}; got ${output()}`));
 });
 
 export function untilEveryOutput(followers: readonly Follower[], text: string) {

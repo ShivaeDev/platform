@@ -1,12 +1,13 @@
-import { Effect, Stream } from "effect";
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import * as NodeServices from "@effect/platform-node/NodeServices";
+import { Console, Effect, Stream } from "effect";
+import { RpcClientError } from "effect/rpc/RpcClientError";
 import { type FleetError, isFleetError } from "#errors.ts";
 import { daemonClient, daemonError } from "#host/daemonClient.ts";
+import { readDaemonPort } from "#host/daemonPort.ts";
 import { decodeFollowState, type FollowState } from "#host/followState.ts";
 
-const { DAEMON_PORT } = diagnosticsApi;
-
 export interface FollowOptions {
+	readonly board?: string;
 	readonly follow?: boolean;
 	readonly intervalMs: number;
 	readonly port?: number;
@@ -14,12 +15,18 @@ export interface FollowOptions {
 }
 
 export function follow(options: FollowOptions, workIds: readonly string[]) {
-	const port = options.port ?? DAEMON_PORT;
+	let port = options.port ?? 0;
 	let ids = workIds;
 	let connected = false;
 	let failures = 0;
 	function connect(): Stream.Stream<readonly FollowState[], FleetError> {
-		return Stream.unwrap(daemonClient(port).pipe(Effect.map((client) => client("daemon.follow", { follow: options.follow, workIds: ids })))).pipe(
+		return Stream.unwrap(
+			Effect.gen(function* () {
+				port = yield* readDaemonPort(options.board ?? ".work", options.port).pipe(Effect.provide(NodeServices.layer));
+				const client = yield* daemonClient(port);
+				return client("daemon.follow", { follow: options.follow, workIds: ids });
+			}),
+		).pipe(
 			Stream.scoped,
 			Stream.map((states) => states.map(decodeFollowState)),
 			Stream.map((states) => {
@@ -33,6 +40,14 @@ export function follow(options: FollowOptions, workIds: readonly string[]) {
 			Stream.concat(Stream.fail(new Error("Fleet daemon subscription closed"))),
 			Stream.catch((error) => {
 				failures += 1;
+				if (options.follow && !isFleetError(error) && (!(error instanceof RpcClientError) || error.reason._tag === "HttpError")) {
+					return Stream.unwrap(
+						Console.error(`work-fleet: ERROR ${daemonError(error, port, "follow").message}; retrying in ${options.intervalMs / 1000}s`).pipe(
+							Effect.andThen(Effect.sleep(options.intervalMs)),
+							Effect.as(connect()),
+						),
+					);
+				}
 				if (!connected || isFleetError(error) || failures >= 20) {
 					return Stream.fail(daemonError(error, port, "follow"));
 				}

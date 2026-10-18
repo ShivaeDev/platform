@@ -19,7 +19,7 @@ const test = postgresTests("live");
 test("bulk CLI release closes changed done and deferred decisions and records one response per question", function* () {
 	const server = yield* codexServer(() => ({}));
 	yield* withHost({ "one.md": task("one", "approved"), "two.md": task("two", "approved") }, { local: { endpoint: server.endpoint } }, (fixture) =>
-		withReadDaemon(fixture.host, (port) => bulkReleaseStory(fixture, port), { parts: fixture.parts }),
+		withReadDaemon(fixture.host, () => bulkReleaseStory(fixture), { parts: fixture.parts }),
 	);
 });
 
@@ -39,7 +39,7 @@ function waitingDecision(fixture: HostFixture, id: string) {
 	}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 }
 
-const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function* (fixture: HostFixture, port: number) {
+const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function* (fixture: HostFixture) {
 	execFileSync("git", ["init", "--quiet", "--initial-branch=main", fixture.host.boardDir]);
 	const decisions: BoardDecision[] = [];
 	for (const [id, status] of [
@@ -47,7 +47,7 @@ const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function*
 		["two", "deferred"],
 	] as const) {
 		yield* dispatchWork(fixture.host, id, fixture.parts);
-		const running = yield* Effect.promise(() => cliProcess(["release", id, "--port", String(port), "--config", "unused.json"]));
+		const running = yield* Effect.promise(() => cliProcess(["release", id, "--board", fixture.host.boardDir, "--config", "unused.json"]));
 		expect(running.code).toBe(1);
 		const published = yield* waitingDecision(fixture, id);
 		decisions.push(published);
@@ -56,7 +56,7 @@ const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function*
 	for (const [index, published] of decisions.entries()) {
 		expect(yield* boardAskFiles(fixture.host.boardDir, index === 0 ? "orchestrator" : "automation")).toContain(published.sourcePath);
 	}
-	const args = ["release", "one", "two", "--port", String(port), "--config", "unused.json"];
+	const args = ["release", "one", "two", "--board", fixture.host.boardDir, "--config", "unused.json"];
 	let errors = "";
 	const released = yield* Effect.promise(() =>
 		cliProcess(args, {

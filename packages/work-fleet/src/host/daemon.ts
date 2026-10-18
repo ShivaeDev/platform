@@ -5,6 +5,7 @@ import { type HostParts, hostLayer, hostScheduler, productionParts } from "#host
 import type { FleetHost } from "#host/config.ts";
 import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";
 import { daemonHandlers } from "#host/daemonHandlers.ts";
+import { publishDaemonPort } from "#host/daemonPort.ts";
 import { watchedConfig } from "#host/liveConfig.ts";
 import { fleetHandlers } from "#operations.ts";
 
@@ -17,6 +18,7 @@ class Scheduler extends Context.Service<Scheduler, Fiber.Fiber<void, unknown>>()
 
 export function daemonHostOptions(host: FleetHost, parts: HostParts = productionParts(host), port: number = DAEMON_PORT) {
 	return {
+		boardDir: host.boardDir,
 		config: { disablePreemptiveShutdown: true, host: DAEMON_HOST, port },
 		group: DaemonContract,
 		handlers: Layer.merge(fleetHandlers, Layer.unwrap(daemonHandlers(host))),
@@ -33,7 +35,9 @@ export function daemonLayer(host: FleetHost, parts: HostParts = productionParts(
 }
 
 export function daemonHttpLayer(options: ReturnType<typeof daemonHostOptions>) {
-	return appHost({ ...options, services: Layer.empty }).pipe(Layer.provideMerge(options.services));
+	const { boardDir, ...http } = options;
+	const server = appHost({ ...http, services: Layer.empty }).pipe(Layer.provideMerge(options.services));
+	return Layer.effectDiscard(publishDaemonPort(boardDir)).pipe(Layer.provideMerge(server));
 }
 
 export function serveFleet(host: FleetHost, parts: HostParts = productionParts(host), port: number = DAEMON_PORT) {
