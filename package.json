@@ -34,6 +34,7 @@
 		"@biomejs/biome": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@shivaedev/changesets": "workspace:*",
+		"@shivaedev/effect-sql": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
