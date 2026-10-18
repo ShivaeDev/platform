@@ -1,6 +1,6 @@
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 export function pageQueries(api: ShellApi, kind: string, url: string): readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[] {
