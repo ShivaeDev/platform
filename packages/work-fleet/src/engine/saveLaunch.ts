@@ -33,7 +33,7 @@ export const saveLaunch = Effect.fn("Fleet.saveLaunch")(function* (
 	const priorityRepair = openSweep(record) && attempt.role === "repair";
 	const ignoreAreas = priorityRepair || (implementer && stored.value.dispatchNow?.ignoreAreas === true);
 	const admission: LaunchAdmission = {
-		areaWaiters: ignoreAreas ? [] : yield* areaWaiters(state, stored.value),
+		areaWaiters: ignoreAreas ? [] : yield* areaWaiters(state, stored.value, implementer ? launch.priority : undefined),
 		ignoreAreas,
 		implementer,
 		overLimit: priorityRepair,

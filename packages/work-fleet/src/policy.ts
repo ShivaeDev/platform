@@ -14,7 +14,7 @@ import type { SessionObservation } from "#session/schema.ts";
 import { type LaunchSettings, SessionReceipt } from "#session/schema.ts";
 import type { OpenPullRequestCurve } from "#storage/model.ts";
 
-export const Priority = Schema.Literals(["urgent", "high", "normal"]);
+export const Priority = Schema.Literals(["urgent", "high", "normal", "low"]);
 export type Priority = typeof Priority.Type;
 export const BoardWork = Schema.Struct({
 	approved: Schema.Boolean,

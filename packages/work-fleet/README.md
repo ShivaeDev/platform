@@ -182,7 +182,7 @@ fleet-priority: high
 ---
 ```
 
-`fleet-priority` takes `urgent`, `high` or `normal`, the default; Board treats the field as Fleet-owned, and any other value fails Fleet's Board read for that item. When slots are short, the scheduler admits prepared work in priority order, and within a priority the existing admission order holds.
+`fleet-priority` takes `urgent`, `high`, `normal` (the default) or `low`; Board treats the field as Fleet-owned, and any other value fails Fleet's Board read for that item. When slots are short, the scheduler admits prepared work in priority order, and within a priority the existing admission order holds. Low work fills idle capacity after prepared normal-or-higher work has had admission; an earlier prepared low item does not reserve an area ahead of that work. A running low item keeps running when higher-priority work arrives. Low work still waits for held areas and unfinished `depends_on` dependencies.
 
 ### Run, dispatch and inspect
 

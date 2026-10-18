@@ -97,3 +97,8 @@ export function reviewAcknowledgementIsLost(exhausted: boolean) {
 		};
 	});
 }
+
+export const providerCanReject = engineConfiguration("provider submissions can be rejected", (state) => ({
+	submissionFailure: () =>
+		state.providerRejects ? new SessionFailure({ code: "session-queue-full", message: "Provider queue is full", reason: "rejected" }) : undefined,
+}));

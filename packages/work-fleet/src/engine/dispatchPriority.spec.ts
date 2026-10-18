@@ -137,7 +137,7 @@ describe("Fleet dispatch priority", () => {
 					yield* prepareWork(id);
 				}
 				const invalid = yield* prepareWork("four").pipe(Effect.flip);
-				expect(invalid.message).toContain("Invalid fleet-priority; use urgent, high or normal, or omit the field.");
+				expect(invalid.message).toContain("Invalid fleet-priority; use urgent, high, normal or low, or omit the field.");
 				yield* cycle;
 				expect(yield* stages(["one", "two", "three"])).toEqual({ one: "prepared", three: "executing", two: "prepared" });
 			}),
