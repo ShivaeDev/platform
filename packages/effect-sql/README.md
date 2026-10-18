@@ -290,6 +290,25 @@ PostgreSQL commit visibility decides publication even when a caller is interrupt
 
 For the generic ownership mechanism, read [commit-bound changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md). Reactivity keys are local reader invalidation; an application's cross-process or browser delivery belongs at its delivery boundary.
 
+### PostgreSQL advisory locks
+
+Serialize cooperating jobs inside `transact`:
+
+```ts
+import { advisoryXactLock } from "@shivaedev/effect-sql/advisoryXactLock.ts";
+
+const serializeInvoiceJob = (input: typeof InvoiceLine.update.Type) => Effect.gen(function* () {
+  yield* advisoryXactLock("jobs:invoice-import");
+  yield* saveInvoiceLine(input);
+}).pipe(
+  transact({
+    onSqlError: (error) => new StorageUnavailable({ reason: error.message }),
+  }),
+);
+```
+
+`advisoryXactLock(key: bigint | string)` waits for PostgreSQL's `pg_advisory_xact_lock` on the current client's transaction. A bigint is passed as a signed 64-bit PostgreSQL key without converting it to a JavaScript number. A string uses PostgreSQL's `hashtextextended(key, 0)` as its bigint key; use the same string in cooperating callers. Hash collisions share a lock. Different keys proceed independently. The lock lasts until commit or rollback, including rollback when the holding fiber is interrupted. Outside a transaction, the function fails with typed `AdvisoryLockOutsideTransaction` from the same module. SQL failures remain typed `SqlError` and follow the surrounding `transact` mapper.
+
 ### PostgreSQL migrations: one discovered folder
 
 Application migrations live in `src/server/migrations/`. Name each file with a four-digit zero-padded sequential number, an underscore and a snake_case name, such as `0007_add_note_tags.ts`. Export the migration's SQL Effect as the default export:
@@ -362,6 +381,7 @@ Import the module that defines the name; there is no root entry.
 | `@shivaedev/effect-sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`. |
 | `@shivaedev/effect-sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |
 | `@shivaedev/effect-sql/transact.ts` | `invalidateOnCommit(keys)` | Records keys for its client, or invalidates immediately outside a transaction. |
+| `@shivaedev/effect-sql/advisoryXactLock.ts` | `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` | PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`. |
 | `@shivaedev/effect-sql/migrationConvention.ts` | `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` | Application folder and four-digit sequential snake_case TypeScript filename pattern. |
 | `@shivaedev/effect-sql/migrationsFromDirectory.ts` | `migrationsFromDirectory(root)` | Discover migrations under the application root with native `FileSystem` and `Path`. |
 | `@shivaedev/effect-sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional ledger `table`, default `effect_sql_migrations`. |
