@@ -32,7 +32,6 @@ export function releaseGitHub(repository: string, api: GitHubRequest = request) 
 	const pulls = `repos/${repository}/pulls`;
 	return {
 		close: (number: number) => api(`${pulls}/${number}`, "PATCH", { state: "closed" }),
-		dispatch: () => api(`repos/${repository}/actions/workflows/ci.yml/dispatches`, "POST", { ref: "release/next" }),
 		save: (number: number | undefined, title: string, body: string) =>
 			number === undefined
 				? api(pulls, "POST", { base: "main", body, head: "release/next", title })

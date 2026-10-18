@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardFilesystem, boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { boardFilesystem, boardStory, projectFiles, readerAt, responsesEnabled } from "#test/boardStory.ts";
 import { commandTransport } from "#test/commandTransport.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
 import { enterField } from "#test/enterField.ts";
@@ -13,7 +13,7 @@ const cases = (["response", "handoff"] as const).flatMap((kind) => (["rejection"
 for (const { failure, kind } of cases) {
 	boardStory.it(
 		`classifies ${kind} ${failure} and retries its retained identity through RPC`,
-		[projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled(true), boardFilesystem(silentWatch)],
+		[readerAt("/"), projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled(true), boardFilesystem(silentWatch)],
 		function* ({ notes, reader }) {
 			const commands: RpcRequest[] = [];
 			let offline = failure === "transport";

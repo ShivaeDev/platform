@@ -1,22 +1,14 @@
-import { Context, Effect, Exit, Layer, Scope } from "effect";
-import { HttpServer } from "effect/http";
+import { Context, Effect } from "effect";
 import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { Fleet } from "#fleet.ts";
 import type { HostConfig } from "#host/config.ts";
 import { daemonLayer } from "#host/daemon.ts";
-import { daemonClient } from "#host/daemonClient.ts";
 import { type ApprovedPrFixture, approvedPrFixture, schedulerReady } from "#test/approvedPrDaemon.ts";
 import { type HostFixture, hostFixture, task } from "#test/fleetHost.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
 import { spanCounts } from "#test/spanCounts.ts";
-
-interface Runtime {
-	readonly client: Effect.Success<ReturnType<typeof daemonClient>>;
-	readonly context: Context.Context<Layer.Success<ReturnType<typeof readDaemonLayer>>>;
-	readonly port: number;
-	readonly stop: Effect.Effect<void>;
-}
+import { type HostDaemon, startHostDaemon } from "#test/startHostDaemon.ts";
 
 export class AnswerHostEngine {
 	files: Record<string, string> = { "one.md": task("one", "approved") };
@@ -25,7 +17,7 @@ export class AnswerHostEngine {
 	readonly spans = spanCounts();
 	#fixture: HostFixture | undefined;
 	#pr: ApprovedPrFixture | undefined;
-	#runtime: Runtime | undefined;
+	#runtime: HostDaemon | undefined;
 
 	get host() {
 		if (this.#fixture === undefined) {
@@ -66,15 +58,10 @@ export class AnswerHostEngine {
 				if (engine.#runtime !== undefined) {
 					return yield* Effect.die("The daemon is already running");
 				}
-				const scope = yield* Scope.make();
-				yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void));
 				const { host, parts } = engine.host;
 				const previous = engine.#pr === undefined ? undefined : yield* fleetHealth(host.boardDir).pipe(Effect.option);
 				const layer = engine.#pr === undefined ? readDaemonLayer(host, { parts }) : daemonLayer(host, engine.#pr.parts, 0);
-				const context = yield* Layer.buildWithScope(Layer.fresh(layer), scope);
-				const url = HttpServer.formatAddress(Context.get(context, HttpServer.HttpServer).address);
-				const port = Number(new URL(url).port);
-				engine.#runtime = { client: yield* daemonClient(port), context, port, stop: Scope.close(scope, Exit.void) };
+				engine.#runtime = yield* startHostDaemon(layer);
 				if (previous !== undefined) {
 					yield* schedulerReady(host.boardDir, previous._tag === "Some" ? previous.value.lastSchedulerPass : null);
 				}

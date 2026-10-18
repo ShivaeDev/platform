@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.0 - 2026-10-18
+
+### Added
+
+- `PostgresTestDatabase.awaitCleanup`, a native `Effect<void>` that waits for already-queued drops and preserves cleanup failures as SQL defects.
+- Select an empty or migrated database from one test layer with `PostgresTestDatabase.clone(template)` or `withIsolatedDatabase(effect, { template })`. `PostgresTestTemplate` names the choices; migrated clones remain the default. Story traits can choose a template before acquiring their app services.
+- Accept a scoped `PostgresTestLoader` callback in `fixtures` that receives the migrated template's redacted URL, so app options can open their own pool during once-per-layer preparation. Existing fixture Effects remain supported.
+
+### Changed
+
+- Drop isolated databases in the background and await outstanding cleanup when the PostgreSQL test layer closes.
+
+### Fixed
+
+- Retry database drops when PostgreSQL's connection budget is exhausted, and sweep abandoned local test databases at startup. Retries use live time even when a test clock is paused. Permanent cleanup failures still surface as SQL defects when the layer closes.
+
 ## 0.5.5 - 2026-10-18
 
 ### Changed

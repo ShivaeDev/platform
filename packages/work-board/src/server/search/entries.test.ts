@@ -1,13 +1,9 @@
 import { expect } from "vitest";
-import { boardHome, boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 
 boardStory.it(
 	"omits synthetic source lines for board footnotes",
-	[
-		serverReading(),
-		projectFiles({ "board.md": "# Plan\n\n[^proof]: Supporting citation.\n\n## Review\n\n### Item\n\nA claim[^proof].\n" }),
-		boardHome("board.md"),
-	],
+	[projectFiles({ "board.md": "# Plan\n\n[^proof]: Supporting citation.\n\n## Review\n\n### Item\n\nA claim[^proof].\n" }), boardHome("board.md")],
 	function* ({ search }) {
 		const citations = (yield* search("Supporting citation")).results;
 		expect(citations.length).toBeGreaterThan(0);
@@ -20,7 +16,6 @@ for (const home of [false, true]) {
 	boardStory.it(
 		`links duplicate headings to generated anchors (home ${home})`,
 		[
-			serverReading(),
 			projectFiles({ "plans/c# & more?.md": "# Plan\n\n## Evidence\n\nA known phrase.\n\n## Evidence\n\nSecond needle." }),
 			boardHome(home ? "plans/c# & more?.md" : ""),
 		],
@@ -37,7 +32,6 @@ for (const home of [false, true]) {
 boardStory.it(
 	"searches readable GFM, code, links and Unicode without HTML markup",
 	[
-		serverReading(),
 		projectFiles({
 			"note.md": "# Ελληνικά\n\nA **bold** [phrase](target.md).\n\n```ts\nconst needle = 1;\n```\n\n| Value |\n| --- |\n| useful |",
 		}),
@@ -54,7 +48,6 @@ boardStory.it(
 boardStory.it(
 	"ranks titles before headings and passages and bounds results after counting",
 	[
-		serverReading(),
 		projectFiles({
 			"needle.md": `# Needle\n\n## Needle section\n\n${Array.from({ length: 50 }, (_, i) => `### Entry ${i}\n\nNeedle ${i} other.`).join("\n\n")}`,
 		}),
@@ -73,7 +66,6 @@ boardStory.it(
 boardStory.it(
 	"keeps the best block per anchor before limiting and counting results",
 	[
-		serverReading(),
 		projectFiles({
 			"note.md": `# Notes\n\n## Needle\n\n${Array.from({ length: 50 }, (_, i) => `Needle detail ${i}.`).join("\n\n")}\n\n## Other\n\nNeedle elsewhere.`,
 		}),

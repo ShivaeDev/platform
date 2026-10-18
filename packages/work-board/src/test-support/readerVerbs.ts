@@ -91,7 +91,10 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				detail: row.querySelector("p")?.getAttribute("title"),
 				title: row.querySelector("a")?.getAttribute("title"),
 			})),
-		view: () => readerView(engine),
+		view: () => {
+			page();
+			return readerView(engine);
+		},
 		waitForInbox: (count: number) => {
 			tell(`the reader waits for ${count} waiting in both Inbox counts`);
 			return Effect.promise(() =>
