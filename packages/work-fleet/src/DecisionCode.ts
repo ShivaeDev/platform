@@ -3,7 +3,6 @@ import { Schema } from "effect";
 export const DecisionCode = Schema.Literals([
 	"approval-required",
 	"board-failure",
-	"board-item-missing",
 	"checks-repair-exhausted",
 	"checks-result-invalid",
 	"delivery-head-mismatch",

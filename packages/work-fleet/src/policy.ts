@@ -63,7 +63,7 @@ export const DecisionResponse = Schema.Struct({
 });
 export type DecisionResponse = typeof DecisionResponse.Type;
 export class BoardFailure extends Schema.TaggedError<BoardFailure>()("BoardFailure", {
-	code: Schema.optional(DecisionCode),
+	code: Schema.optional(Schema.Union([DecisionCode, Schema.Literal("board-item-missing")])),
 	message: Schema.String,
 	workId: Schema.optional(Schema.String),
 }) {}

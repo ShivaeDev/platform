@@ -4,4 +4,4 @@
 
 ### Added
 
-- Board lookup failures use the `board-item-missing` decision code and optional `BoardFailure.workId` to distinguish confirmed absence from unreadable or ambiguous Board sources.
+- Board lookup failures use the `board-item-missing` error code and optional `BoardFailure.workId` to distinguish confirmed absence from unreadable or ambiguous Board sources.
