@@ -33,40 +33,29 @@ export function statusLayer(
 			const realRoot = yield* fs.realPath(root);
 			const lock = yield* Semaphore.make(1);
 			const snapshot = yield* Ref.make<FleetHealth | null>(null);
-			const publish = Semaphore.withPermits(
-				lock,
-				1,
-			)(
-				Effect.gen(function* () {
-					const records = yield* fleet.list();
-					yield* writeStatus(
-						root,
-						realRoot,
-						records.map(({ value }) => value),
-					).pipe(Effect.catch((error) => Console.error(`work-fleet: status publication failed: ${error.message}`)));
-					if (healthConfig !== undefined) {
-						const state = health._tag === "Some" ? yield* Ref.get(health.value) : { lastCapacityRejection: null, lastSchedulerPass: null };
-						const observations = yield* github;
-						const nextHealth: FleetHealth = {
-							...(observations.length === 0 ? {} : { github: observations }),
-							observedAt: yield* Clock.currentTimeMillis,
-							version: 2,
-							...(yield* healthConfig),
-							...state,
-							queued: records.filter(({ value }) => value.stage === "prepared").length,
-							running: records.filter(({ value }) => executing(value)).length,
-							waiting: waitingCounts(records.map(({ value }) => value)),
-						};
-						yield* Ref.set(snapshot, nextHealth);
-						yield* writeHealth(root, realRoot, nextHealth);
-					}
-				}),
-			).pipe(Effect.catch((error) => Console.error(`work-fleet: publication failed: ${error.message}`)));
+			const publication = Effect.fn("FleetStatus.publication")(function* (read: typeof fleet.list) {
+				const records = (yield* read()).map(({ value }) => value);
+				yield* writeStatus(root, realRoot, records).pipe(
+					Effect.catch((error) => Console.error(`work-fleet: status publication failed: ${error.message}`)),
+				);
+				if (healthConfig === undefined) {
+					return;
+				}
+				const state = health._tag === "Some" ? yield* Ref.get(health.value) : { lastCapacityRejection: null, lastSchedulerPass: null };
+				const nextHealth = fleetHealth(records, yield* github, { ...(yield* healthConfig), ...state }, yield* Clock.currentTimeMillis);
+				yield* Ref.set(snapshot, nextHealth);
+				yield* writeHealth(root, realRoot, nextHealth);
+			});
+			function publishFrom(read: typeof fleet.list) {
+				return lock.withPermit(publication(read)).pipe(Effect.catch((error) => Console.error(`work-fleet: publication failed: ${error.message}`)));
+			}
+			const publish = publishFrom(fleet.list);
 			if (healthConfig !== undefined) {
 				yield* publish;
 			}
 			if (background) {
-				yield* Effect.addFinalizer(() => publish);
+				// Shutdown flushes what is already committed instead of queueing behind admission held elsewhere.
+				yield* Effect.addFinalizer(() => publishFrom(fleet.listSnapshot));
 			}
 			return { fleet, publicationScope, publish, snapshot };
 		}),
@@ -109,6 +98,23 @@ export function statusLayer(
 			),
 		),
 	);
+}
+
+function fleetHealth(
+	records: Parameters<typeof views>[0],
+	observations: readonly GithubObservation[],
+	observed: Pick<FleetHealth, "concurrency" | "lastCapacityRejection" | "lastSchedulerPass" | "staleAfterMs">,
+	observedAt: number,
+): FleetHealth {
+	return {
+		...(observations.length === 0 ? {} : { github: observations }),
+		observedAt,
+		version: 2,
+		...observed,
+		queued: records.filter((record) => record.stage === "prepared").length,
+		running: records.filter(executing).length,
+		waiting: waitingCounts(records),
+	};
 }
 
 function waitingCounts(records: Parameters<typeof views>[0]) {

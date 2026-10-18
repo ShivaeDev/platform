@@ -41,6 +41,7 @@ export const Fleet = defineService({
 		get: (workId: string) => state.load(workId),
 		hasLaunchRetry: () => state.store.hasLaunchRetry(),
 		list: () => state.store.list(),
+		listSnapshot: () => state.store.listSnapshot(),
 		prepare: (input: PrepareWork) => prepareCommand(state)(input).pipe(Effect.flatMap(closeDecisions(state)), Effect.flatMap(cleanupSessions(state))),
 		publishDecision: (workId: string) => state.load(workId).pipe(Effect.flatMap((stored) => ensurePublication(state)(stored, true))),
 		queueAnswer: queueAnswerCommand(state),
