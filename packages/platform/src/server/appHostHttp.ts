@@ -4,10 +4,11 @@ import { ByteSize, Config, Effect, Layer, Option, Schema } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/http";
 import { type Rpc, RpcSerialization, RpcServer } from "effect/rpc";
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
-import type { AppHttpHostOptions } from "#server/appHost.ts";
+import type { AppChanges, AppHttpHostOptions } from "#server/appHost.ts";
 import { boundedRpcRequest } from "#server/boundedRpcRequest.ts";
 import type { databaseLayer } from "#server/databaseLayer.ts";
 import { healthRoute } from "#server/healthRoute.ts";
+import { hostChanges } from "#server/hostChanges.ts";
 import type { HostOptions, HostPolicy } from "#server/hostOptions.ts";
 import type { MigrationOptions } from "#server/MigrationOptions.ts";
 import { otlpTracing } from "#server/otlpTracing.ts";
@@ -27,6 +28,7 @@ export function appHostHttp<
 	TSession extends SessionShape,
 >(
 	options: HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & HostPolicy<TSession>,
+	changesService: typeof AppChanges,
 ) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
@@ -58,7 +60,10 @@ export function appHostHttp<
 						),
 					);
 				}),
-			).pipe(Layer.provide(Layer.merge(options.handlers, middleware)), Layer.provide(RpcSerialization.layerNdjson));
+			).pipe(
+				Layer.provide(Layer.mergeAll(options.handlers, middleware, hostChanges(options.group, changesService))),
+				Layer.provide(RpcSerialization.layerNdjson),
+			);
 			const assets =
 				options.assets === undefined
 					? Layer.empty
@@ -100,9 +105,10 @@ export function migratedHost<
 	options: HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
 		HostPolicy<TSession> & { readonly migrations: MigrationOptions<TMigrations> },
 	database: ReturnType<typeof databaseLayer<TMigrations>>,
+	changesService: typeof AppChanges,
 ) {
 	const services = Layer.mergeAll(options.services ?? Layer.empty);
-	return appHostHttp({ ...options, services: services.pipe(Layer.provideMerge(database)) });
+	return appHostHttp({ ...options, services: services.pipe(Layer.provideMerge(database)) }, changesService);
 }
 
 export function deferredHost<
@@ -124,6 +130,7 @@ export function deferredHost<
 		TApplicationRequirements
 	>,
 	database: ReturnType<typeof databaseLayer<TMigrations>>,
+	changesService: typeof AppChanges,
 ) {
-	return Layer.unwrap(Effect.map(application, (options) => appHostHttp(options))).pipe(Layer.provideMerge(database));
+	return Layer.unwrap(Effect.map(application, (options) => appHostHttp(options, changesService))).pipe(Layer.provideMerge(database));
 }

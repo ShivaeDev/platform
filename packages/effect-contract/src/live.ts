@@ -16,7 +16,7 @@ export interface LiveStatus<E> {
 }
 export interface LiveOptions<E, R> {
 	readonly resume?: Atom.Atom<unknown>;
-	readonly resyncKeys: readonly Key[];
+	readonly resyncKeys: readonly Key[] | (() => readonly Key[]);
 	readonly retryDelay?: Duration.Input;
 	readonly stream: Stream.Stream<LiveHint, E, R>;
 }
@@ -39,7 +39,7 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						update({ needsResync: true });
 						return;
 					}
-					reactivity.invalidateUnsafe(readKeys(options.resyncKeys));
+					reactivity.invalidateUnsafe(readKeys(typeof options.resyncKeys === "function" ? options.resyncKeys() : options.resyncKeys));
 					update({ needsResync: false, pending: 0 });
 				}
 				get.subscribe(paused, (value) => {

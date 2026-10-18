@@ -1,11 +1,10 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
-import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
+import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { Create, type Delete, notes, Update } from "#notes.ts";
+import { Create, type Delete, Update } from "#notes.ts";
 import { makeNotesRepository } from "./makeNotesRepository.ts";
 import { CountWords, NoteJobs } from "./noteJobs.ts";
 
@@ -42,7 +41,6 @@ export const NotesService = defineService({
 						return yield* Create.reject.Invalid({ field: "title", message: "Enter a title" });
 					}
 					const row = yield* repository.insert({ ownerId, title: trimmed, wordCount: null }).pipe(Effect.mapError(unavailable));
-					yield* invalidateOnCommit(invalidationKeys([notes.item(row.id)]));
 					return row;
 				}).pipe(
 					transact({ onSqlError: unavailable }),
@@ -52,7 +50,6 @@ export const NotesService = defineService({
 				Effect.gen(function* () {
 					yield* get(input.id, ownerId);
 					yield* repository.delete(input.id, input.version).pipe(Effect.mapError(writeFailure));
-					yield* invalidateOnCommit(invalidationKeys([notes.item(input.id)]));
 				}).pipe(transact({ onSqlError: unavailable })),
 			get,
 			list: (ownerId: string) =>
@@ -67,7 +64,6 @@ export const NotesService = defineService({
 						return yield* Update.reject.Invalid({ field: "title", message: "Enter a title" });
 					}
 					const saved = yield* repository.update({ ...row, ...input, title, wordCount: null }).pipe(Effect.mapError(writeFailure));
-					yield* invalidateOnCommit(invalidationKeys([notes.item(saved.id)]));
 					return saved;
 				}).pipe(
 					transact({ onSqlError: unavailable }),

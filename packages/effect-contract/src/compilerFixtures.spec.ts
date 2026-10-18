@@ -30,7 +30,6 @@ describe("contract compiler fixtures", { timeout: COMPILER_TIMEOUT }, () => {
 		const { result, declaration } = compiler.declarations();
 		expect(result.stderr || result.stdout).toBe("");
 		expect(result.status).toBe(0);
-		expect(declaration).toContain('api: import("#bind.ts").Bound<"notes"');
 		expect(declaration).toContain('Rpc<"notes.rename"');
 	});
 

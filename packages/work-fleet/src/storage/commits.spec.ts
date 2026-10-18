@@ -2,6 +2,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { CommittedSink, transact } from "@shivaedev/effect-sql/transact.ts";
 import { postgresTests } from "#test/postgres.ts";
+import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 import { record, withStorage } from "#test/storage.ts";
 
 const test = postgresTests("live", "isolated");
@@ -17,7 +18,15 @@ test("record and foreign occupancy writes announce their transaction commits", (
 				yield* store.reserveForeign("external", { backlog: true, executing: false });
 				yield* store.releaseForeign("external");
 			}).pipe(Effect.provideService(CommittedSink, (changes) => Effect.sync(() => hints.push(changes))));
-			expect(hints).toEqual([["fleet:one", "fleet"], ["fleet:one", "fleet"], ["fleet"], ["fleet"], ["fleet"]]);
+			const records = `${STORAGE_NAMESPACE}_records`;
+			const reservations = `${STORAGE_NAMESPACE}_foreign_reservations`;
+			expect(hints).toEqual([
+				[records, `${records}:one`, "fleet:one", "fleet"],
+				[records, `${records}:one`, "fleet:one", "fleet"],
+				[reservations, `${reservations}:external`, "fleet"],
+				[reservations, `${reservations}:external`, "fleet"],
+				[reservations, `${reservations}:external`, "fleet"],
+			]);
 		}),
 	));
 
