@@ -69,6 +69,14 @@
 			"tsconfig": "@shivaedev/quality/tsconfig/package.json"
 		}
 	],
+	"vitest-rerun": [
+		{
+			"entries": ["./error.ts", "./flakyTests.ts", "./options.ts", "./rerun.ts"],
+			"fixtures": [],
+			"omitOptionalPeers": false,
+			"run": []
+		}
+	],
 	"work-fleet": [
 		{
 			"entries": [
