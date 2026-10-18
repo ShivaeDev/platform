@@ -114,6 +114,10 @@ This is `packages/ui/quality.fences.config.ts`; paths remain relative to the rep
 
 Write setup in the domain kit under `test-support/` and keep each test specific to its story. [`@shivaedev/test-story`](https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme) explains how to build the kit, traits and verbs over a real engine.
 
+Quality's `tests/story-specs` rule reports a test file that declares tests without a kit's `it`, including plain Vitest `it` and `test` declarations mixed with stories. It uses Quality's test filenames, including `*.test.ts`, `*.spec.ts`, slow tests and DOM tests. Typecheck tests are exempt, as are test-story itself and its transitive workspace dependencies, including development, optional and peer dependencies: requiring those packages to depend on test-story would create a cycle. The exemption follows the workspace dependency graph rather than a fixed list of package names. Pure-function tests are included: the baseline records existing files, and that debt should only go down.
+
+Every package tests its real engine through its own story kit, so setup and actions share the package's domain vocabulary. To repair a finding, build the kit with `storyKit` from `@shivaedev/test-story/storyKit.ts` in `src/test-support`, import it in the spec and replace plain registrations with `kit.it(name, traits, body)`. The rule follows imports, aliases and conditional registrars back to the kit; it checks declarations, while review and runtime tests establish whether the kit exercises the real engine.
+
 Quality's `tests/story-setup` rule reports top-level test functions named with the words `seed`, `make`, `build` or `setup`, and fixture-writing calls imported from Node's `fs` or `fs/promises`. It leaves source and `test-support/` files alone. This is a check for those syntax patterns; a passing test file still needs review of what it tests.
 
 ### 3. Every day: repair findings and keep debt current

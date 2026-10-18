@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { expect, vi } from "vitest";
+import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
@@ -7,18 +7,12 @@ import { Highlighter } from "#server/render/Highlighter.ts";
 import { renderMarkdown } from "#server/render/markdown.ts";
 import { documentData, settledDocument } from "#test/documentRendering.ts";
 import { documentSource } from "#test/documentSource.ts";
+import { mermaidEngine as engine } from "#test/mermaidEngine.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { semanticElement } from "#test/semanticElement.ts";
 
 expectNoReactWarnings();
-const engine = vi.hoisted(() => ({
-	initialize: vi.fn(),
-	render: vi.fn(async () => ({ svg: '<svg role="img"><text>Question → Response → History</text></svg>' })),
-}));
-
-vi.mock("mermaid", () => ({ default: engine }));
-
 screenStory.it(
 	"renders Board document fixtures with GFM, footnotes, directives, query links, HTML and a Mermaid code override",
 	[],

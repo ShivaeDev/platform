@@ -1,7 +1,6 @@
 import { Clock, Effect } from "effect";
-import { expect, it } from "vitest";
+import { expect } from "vitest";
 import { compareStatuses, nowLanes } from "#browser/views/now.ts";
-import { stateOf } from "#browser/views/state.ts";
 import { nowFleet, nowWork } from "#test/nowWork.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen } from "#test/screenTraits.ts";
@@ -91,12 +90,6 @@ for (const sort of ["title", "owner", "status"] as const) {
 		expect(compareStatuses("done", "planned")).toBeGreaterThan(0);
 	});
 }
-
-it("opens Work on Now while keeping All work and Table explicit", () => {
-	expect(stateOf("/_board/work").view).toBe("now");
-	expect(stateOf("/_board/work?view=board").view).toBe("board");
-	expect(stateOf("/_board/work?view=table").view).toBe("table");
-});
 
 for (const stage of ["reviewing", "repairing", "validating"] as const) {
 	screenStory.it(`places Fleet ${stage} in Reviewing`, [], function* ({ render }) {

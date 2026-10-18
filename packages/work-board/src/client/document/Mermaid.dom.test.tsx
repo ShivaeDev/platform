@@ -3,12 +3,11 @@ import { afterEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { ThemeContext } from "#client/react/ThemeContext.ts";
 import { useAppearance } from "#client/react/useAppearance.ts";
+import { mermaidEngine as mermaid } from "#test/mermaidEngine.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen, screenTheme } from "#test/screenTraits.ts";
 import { Mermaid } from "./Mermaid.ts";
 
-const mermaid = vi.hoisted(() => ({ initialize: vi.fn(), render: vi.fn(async () => ({ svg: "<svg></svg>" })) }));
-vi.mock("mermaid", () => ({ default: mermaid }));
 expectNoReactWarnings();
 afterEach(() => {
 	vi.unstubAllGlobals();
