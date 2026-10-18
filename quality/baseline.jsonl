@@ -371,12 +371,6 @@
 {"path":"packages/effect-trpc/src/server/rejection.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-trpc/src/server/rejectionFormatter.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-trpc/src/server/testing/vitest.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/heavy-lock/src/acquire.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/heavy-lock/src/cli.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/heavy-lock/src/cli/signals.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/heavy-lock/src/lock-file.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/heavy-lock/src/protocol.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/heavy-lock/src/settings.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/errors/roundTrip.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/errors/trpcRejections.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/better-auth/adapter.test.ts","rule":"tests/story-specs","count":1}
