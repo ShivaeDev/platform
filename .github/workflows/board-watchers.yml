@@ -1,0 +1,38 @@
+name: Board watchers
+
+on:
+  pull_request:
+  merge_group:
+    types:
+      - checks_requested
+
+permissions:
+  contents: read
+
+jobs:
+  watchers:
+    name: Board watchers (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: ['26.12.0']
+        include:
+          - os: macos-latest
+            node: '26.10.0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/setup
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Test real filesystem delivery to live clients
+        env:
+          NODE_OPTIONS: --conditions=source
+        run: >-
+          pnpm --filter @shivaedev/work-board test
+          src/server/liveUpdates.spec.ts
+          src/server/http/home.spec.ts
+          src/server/http/server.spec.ts
+          src/server/rpc/rootRemoval.spec.ts
