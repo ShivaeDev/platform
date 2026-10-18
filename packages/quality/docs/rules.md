@@ -249,6 +249,8 @@ A finding has its fence's name as its subject, so a config exception with that s
 
 `manifests/sorted` keeps every `package.json` in the repository in the key order of [sort-package-json](https://github.com/keithamus/sort-package-json), a dependency of this package. It walks the whole repository, not only the sources, and skips untracked files ignored by git and `node_modules`. A manifest that is not valid JSON is reported too. `quality fix` sorts the manifests, and the rule takes no exceptions.
 
+`manifests/source-first` reports each condition block in the `exports` or `imports` of a `package.json` that names the `source` condition after another condition, nested blocks included. TypeScript takes the first condition that matches, and `types` always matches, so once built output exists a block that lists `types` first sends TypeScript to the built declarations instead of the sources. Each finding names the line of the block. Move `source` to the top of it. Like `manifests/sorted`, the rule walks the whole repository and takes no exceptions.
+
 ## Local-rule API
 
 The API allows a local rule to receive checked source text and return findings. This is an extension reference, not a step every repository must complete; reusable quality policy belongs in the shared package. This example is the same text-scanning rule exercised by the package's CLI tests:

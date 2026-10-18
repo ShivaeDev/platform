@@ -35,19 +35,19 @@
 	},
 	"exports": {
 		"./*.ts": {
-			"types": "./dist/*.d.ts",
 			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
 		"./client/*": null,
 		"./client/client.ts": {
-			"types": "./dist/client/client.d.ts",
 			"source": "./src/client/client.ts",
+			"types": "./dist/client/client.d.ts",
 			"default": "./dist/client/client.js"
 		},
 		"./client/document/View.ts": {
-			"types": "./dist/client/document/View.d.ts",
 			"source": "./src/client/document/View.ts",
+			"types": "./dist/client/document/View.d.ts",
 			"default": "./dist/client/document/View.js"
 		},
 		"./package.json": "./package.json"
