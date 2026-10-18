@@ -3,30 +3,31 @@ import { screenStory } from "#test/screenStory.ts";
 import { componentScreen } from "#test/screenTraits.ts";
 import { StatusChip } from "./StatusChip.tsx";
 
-for (const [status, token, icon] of [
-	["planned", "deferred", "circle"],
-	["active", "agent-working", "loader-circle"],
-	["received", "deferred", "inbox"],
-	["needs-human", "needs-you", "message-circle"],
-	["running", "agent-working", "loader-circle"],
-	["in-progress", "agent-working", "loader-circle"],
-	["needs-you", "needs-you", "message-circle"],
-	["agent-working", "agent-working", "loader-circle"],
-	["waiting-on-agents", "waiting-on-agents", "users"],
-	["blocked", "blocked", "ban"],
-	["done", "done", "check"],
-	["deferred", "deferred", "circle-pause"],
-	["superseded", "deferred", "clock"],
-	["unexpected", "deferred", "circle-help"],
+for (const [status, token, icon, label] of [
+	["planned", "deferred", "circle", "Planned"],
+	["active", "agent-working", "loader-circle", "Active"],
+	["received", "deferred", "inbox", "Received"],
+	["needs-human", "needs-you", "message-circle", "Needs you"],
+	["running", "agent-working", "loader-circle", "Running"],
+	["in-progress", "agent-working", "loader-circle", "In progress"],
+	["needs-you", "needs-you", "message-circle", "Needs you"],
+	["agent-working", "agent-working", "loader-circle", "Agent working"],
+	["waiting-on-agents", "waiting-on-agents", "users", "Waiting on agents"],
+	["blocked", "blocked", "ban", "Blocked"],
+	["done", "done", "check", "Done"],
+	["deferred", "deferred", "circle-pause", "Deferred"],
+	["superseded", "deferred", "clock", "Superseded"],
+	["unexpected", "deferred", "circle-help", "Unexpected"],
+	["ready_for-review", "deferred", "circle-help", "Ready for review"],
 ]) {
 	screenStory.it(
-		`renders ${status} with its semantic token, icon and source word`,
+		`renders ${status} with its semantic token, icon and plain words`,
 		[componentScreen(<StatusChip status={status} />)],
 		({ findElement, readAttribute }) => {
 			const chip = findElement("[data-status-token]");
 			expect(chip?.getAttribute("data-status-token")).toBe(token);
 			expect(chip?.classList.contains(`text-${token}`)).toBe(true);
-			expect(chip?.textContent).toBe(status);
+			expect(chip?.textContent).toBe(label);
 			expect(readAttribute(`svg.lucide-${icon}`, "aria-hidden", chip)).toBe("true");
 		},
 	);

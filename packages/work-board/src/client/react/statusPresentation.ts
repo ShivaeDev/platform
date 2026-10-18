@@ -1,4 +1,5 @@
 import { Ban, Check, Circle, CircleHelp, CirclePause, Clock, Inbox, LoaderCircle, MessageCircle, Users } from "lucide-react";
+import { statusLabel } from "#browser/views/statusLabel.ts";
 
 const statuses = {
 	active: { icon: LoaderCircle, token: "agent-working" },
@@ -28,5 +29,6 @@ function known(status: string): status is keyof typeof statuses {
 	return Object.hasOwn(statuses, status);
 }
 export function statusPresentation(status: string | undefined) {
-	return status && known(status) ? statuses[status] : ({ icon: CircleHelp, token: "deferred" } as const);
+	const label = statusLabel(status ?? "");
+	return status && known(status) ? { ...statuses[status], label } : ({ icon: CircleHelp, label, token: "deferred" } as const);
 }

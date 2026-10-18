@@ -23,7 +23,7 @@ for (const evidence of [false, true]) {
 			} else {
 				expect(findElement("#criterion-layout a")).toBeNull();
 			}
-			expect(readText(".item-introduction [data-status-token]")).toBe("done");
+			expect(readText(".item-introduction [data-status-token]")).toBe("Done");
 			expect(findElement('a[href="https://github.com/ShivaeDev/platform/pull/390"]')).not.toBeNull();
 		},
 	);

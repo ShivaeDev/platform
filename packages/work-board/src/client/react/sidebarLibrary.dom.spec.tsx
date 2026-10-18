@@ -70,7 +70,7 @@ screenStory.it(
 		const [kind, status] = findElements('#doc [role="combobox"]');
 		yield* Effect.promise(() => chooseOption(kind, "task"));
 		yield* Effect.promise(() => eventually(() => expect(findElement('#doc a[href="/question.md"]')).toBeNull()));
-		yield* Effect.promise(() => chooseOption(status, "active"));
+		yield* Effect.promise(() => chooseOption(status, "Active"));
 		yield* Effect.promise(() => eventually(() => expect(findElements("#doc li a")).toHaveLength(1)));
 		yield* Effect.promise(() => chooseOption(kind, "All"));
 		yield* Effect.promise(() => chooseOption(status, "All"));

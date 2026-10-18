@@ -32,7 +32,7 @@ for (const sort of ["title", "owner", "status"] as const) {
 			expect([...findElements(".work-column")].map((lane) => lane.getAttribute("aria-label"))).toEqual(nowLanes);
 			const card = findElement('[aria-label="Executing"] [data-item="task-1"]');
 			expect(readText("h3", card)).toBe("Work 5");
-			expect(readText("[data-status-token]", card)).toBe("executing");
+			expect(readText("[data-status-token]", card)).toBe("Executing");
 			expect(readText(".work-owner", card)).toBe("Fleet is working on this");
 			expect(readText(".work-stage", card)).toMatch(/^Executing for /u);
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', card)).not.toBeNull();

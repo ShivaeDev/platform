@@ -39,7 +39,7 @@ for (const status of ["superseded", "deferred", "done", "completed", "cancelled"
 			const cards = findElements('[aria-label="Done in the last 7 days"] [data-item]');
 			expect([...cards].map((card) => card.getAttribute("data-item"))).toEqual(["task-0"]);
 			expect(findElements("[data-status-token]", cards[0])).toHaveLength(1);
-			expect(readText("[data-status-token]", cards[0])).toBe("done");
+			expect(readText("[data-status-token]", cards[0])).toBe("Done");
 			expect(findElements("[data-item]")).toHaveLength(1);
 		},
 	);

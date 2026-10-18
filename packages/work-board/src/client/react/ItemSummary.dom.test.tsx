@@ -37,7 +37,11 @@ const fleet: FleetItemsProjection = {
 	state: "ready",
 };
 
-for (const status of ["open", "closed", "done"]) {
+for (const [status, label] of [
+	["open", "Needs you"],
+	["closed", "Closed"],
+	["done", "Done"],
+]) {
 	screenStory.it(
 		`only marks an explicit open request actionable while its question is open (status: ${status})`,
 		[
@@ -65,7 +69,7 @@ attention:
 			yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
 			expect(findElement('.item-summary [data-status-token="needs-you"]') !== null).toBe(status === "open");
 			expect(findElement(".answer-cards") !== null).toBe(status === "open");
-			expect(readText(".item-summary [data-status-token]")).toBe(status === "open" ? "needs-you" : status);
+			expect(readText(".item-summary [data-status-token]")).toBe(label);
 		},
 	);
 }
@@ -83,7 +87,7 @@ for (const [storyCase, value] of [undefined, { reason: "Not configured", state: 
 		({ findElement, readText }) => {
 			const header = findElement(".item-summary");
 			expect(header?.textContent).toContain("Owner: reader · Next action: Review the proof");
-			expect(readText("[data-status-token]", header)).toBe("active");
+			expect(readText("[data-status-token]", header)).toBe("Active");
 			expect(findElement("svg.lucide-clipboard-list", header)).not.toBeNull();
 			expect(readText("button", header)).toBe("Save favorite");
 			expect(findElement('a[href^="/_board/handoff"]', header)).not.toBeNull();
