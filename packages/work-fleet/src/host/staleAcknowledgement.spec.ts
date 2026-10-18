@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { Effect, Layer, Schedule } from "effect";
+import { Effect, Layer } from "effect";
 import { responseMarkdown } from "@shivaedev/work-board/responses/records.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
@@ -100,10 +100,7 @@ const staleStory = Effect.fn("StaleAcknowledgementTest.staleStory")(function* (
 	supersede(fixture.host.boardDir, published, response.responseId, release);
 	available();
 	finishWorkers(fixture.provider);
-	const completed = yield* client("fleet.reconcile", { workId: "one" }).pipe(
-		Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: (record) => record.blocker !== undefined }),
-		Effect.timeout("5 seconds"),
-	);
+	const completed = yield* client("fleet.reconcile", { workId: "one" });
 	expect(completed.stage).toBe(release ? "released" : "completed");
 	expect(completed.blocker).toBeUndefined();
 	expect(completed.responses).toEqual([
