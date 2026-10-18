@@ -1,4 +1,5 @@
-import type { Effect } from "effect";
+import type { Deferred, Effect } from "effect";
+import type { BoardDecision } from "#board/schema.ts";
 import type { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
 import type { createEngine } from "#test/createEngine.ts";
@@ -18,9 +19,11 @@ export interface EngineStory extends EngineWorld {
 	lastRecord?: FleetRecord;
 	markdown: boolean;
 	options: EngineOptions;
+	readinessPublications?: BoardDecision[];
 	root: string;
 	runtime?: Effect.Success<ReturnType<typeof createEngine<unknown>>> & { fleet: typeof Fleet.Service };
 	source: string;
+	sweepReadiness?: { readonly entered: Deferred.Deferred<void>; readonly resume: Deferred.Deferred<void> };
 	sweepRequests?: Map<string, SweepPullRequest>;
 	workId: string;
 }

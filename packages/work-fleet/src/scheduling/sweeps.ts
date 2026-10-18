@@ -31,11 +31,31 @@ export function sweepRepair(record: FleetRecord): boolean {
 	return openSweep(record) && record.stage === "repairing" && !executing(record);
 }
 
+export function acquiresMergeReadiness(record: FleetRecord, previous: FleetRecord | undefined): boolean {
+	return (
+		(record.mergeReadyAt !== undefined && (previous?.mergeReadyAt === undefined || previous.mergeReadyHead !== record.mergeReadyHead))
+		|| (record.decision?.code === "reviewed-pr-ready" && record.decision.id !== previous?.decision?.id)
+	);
+}
+
 export const checkSweeps = Effect.fn("Fleet.checkSweeps")(function* (
 	record: FleetRecord,
 	previous: FleetRecord | undefined,
 	records: readonly FleetRecord[],
 ) {
+	if (acquiresMergeReadiness(record, previous) && record.result?.kind === "change") {
+		const paths = record.result.paths;
+		const sweep = records.flatMap(sweepCycles).find((entry) => entry.workId !== record.workId && openSweep(entry) && touchesSweep(entry, paths));
+		if (sweep !== undefined) {
+			return yield* Effect.fail(
+				new StorageAdmission({
+					head: record.result.head,
+					message: `Held behind sweep ${sweep.workId}`,
+					sweepHold: { context: sweep.boardContext ?? sweep.prompt, operationId: sweep.attempts[0]?.operationId ?? "", workId: sweep.workId },
+				}),
+			);
+		}
+	}
 	if (!executing(record) || (previous !== undefined && executing(previous))) {
 		return;
 	}

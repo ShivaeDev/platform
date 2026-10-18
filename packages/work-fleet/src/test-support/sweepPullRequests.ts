@@ -1,9 +1,10 @@
-import { Effect } from "effect";
+import { Deferred, Effect } from "effect";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import type { BoardDecision } from "#board/schema.ts";
 import { conflictingPr } from "#engine/deliveryFailure.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
-import type { Delivery, WorkResult } from "#policy.ts";
+import { BoardFailure, type Delivery, type WorkResult } from "#policy.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 import type { SweepPullRequest } from "#test/engineState.ts";
 
@@ -53,6 +54,44 @@ export function sweepPullRequests(concurrency = 6) {
 					}
 					return result;
 				}),
+		};
+	});
+}
+
+export function sweepRacesReadiness(workId: string) {
+	return engineConfiguration("a sweep can launch between readiness observation and its PostgreSQL commit", (state) =>
+		Effect.gen(function* () {
+			const entered = yield* Deferred.make<void>();
+			const resume = yield* Deferred.make<void>();
+			state.sweepReadiness = { entered, resume };
+			return {
+				writeGate: (record) =>
+					record.workId === workId && record.mergeReadyAt !== undefined && record.decision === undefined
+						? Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(resume)))
+						: Effect.void,
+			};
+		}),
+	);
+}
+
+export function pendingReadyPublication() {
+	return engineConfiguration("the Board rejects the first ready publication before accepting it", (state) => {
+		let rejected = false;
+		const publications: BoardDecision[] = [];
+		state.readinessPublications = publications;
+		return {
+			decorateBoard: (board) => {
+				const decision = Effect.fn("Test.decision")(function* (...args: Parameters<typeof board.decision>) {
+					if (args[1].code === "reviewed-pr-ready" && !rejected) {
+						rejected = true;
+						return yield* Effect.fail(new BoardFailure({ message: "Board publication rejected before acceptance" }));
+					}
+					const receipt = yield* board.decision(...args);
+					publications.push(receipt);
+					return receipt;
+				});
+				return { ...board, decision };
+			},
 		};
 	});
 }
