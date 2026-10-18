@@ -9,8 +9,15 @@ export function pendingAcknowledgements(record: FleetRecord) {
 		readonly input: BoardDecisionAcknowledgement;
 	}[] = [];
 	const cycles = [...(record.history ?? []), record];
+	const answered = new Set(
+		cycles.flatMap((value) =>
+			(value.responses ?? []).flatMap((response) =>
+				response.action !== undefined && response.published !== undefined ? [response.published.questionId] : [],
+			),
+		),
+	);
 	for (const [cycle, value] of cycles.entries()) {
-		pending.push(...supersededAcknowledgements(value, cycle));
+		pending.push(...supersededAcknowledgements(value, cycle).filter((entry) => !answered.has(entry.input.decision.questionId)));
 		for (const [response, receipt] of (value.responses ?? []).entries()) {
 			if (
 				receipt.action !== undefined
@@ -28,6 +35,7 @@ export function pendingAcknowledgements(record: FleetRecord) {
 		if (
 			"archivedAt" in value
 			&& value.decision?.published !== undefined
+			&& !answered.has(value.decision.published.questionId)
 			&& !value.decisionAcknowledged
 			&& value.decision.boardAcknowledgementDisposition === undefined
 		) {

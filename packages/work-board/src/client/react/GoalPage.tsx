@@ -1,10 +1,10 @@
 import { Option } from "effect";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { Document } from "#browser/document/schema.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { GoalCriteria } from "./GoalCriteria.tsx";
 import { GoalWorkTable } from "./GoalWorkTable.tsx";
 import { targetsGoal } from "./goalWork.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 export function GoalPage({ api, document }: { readonly api: ShellApi; readonly document: Document }) {

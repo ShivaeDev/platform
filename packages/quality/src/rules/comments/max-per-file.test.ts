@@ -5,10 +5,10 @@ import { VITEST_ENVIRONMENT } from "#test/pragmas.ts";
 
 type Options = Parameters<typeof maxPerFile.configure>[0];
 
-const countOf = async (content: readonly string[], options: Options = { max: 0 }) => {
+async function countOf(content: readonly string[], options: Options = { max: 0 }) {
 	const findings = await checkRule(maxPerFile, options, { sources: [{ content: content.join("\n"), path: "src/a.ts" }] });
 	return findings[0]?.count ?? 0;
-};
+}
 
 describe("comments/max-per-file counts", () => {
 	it("a block comment once, however many lines it spans", async () => {

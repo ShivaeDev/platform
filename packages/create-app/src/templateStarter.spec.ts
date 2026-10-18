@@ -27,8 +27,6 @@ application.it(
 			expect(files[path]).not.toContain("--conditions=source");
 			expect(files[path]).toBe(starterFile(path).replaceAll('"--conditions=source", ', ""));
 		}
-		expect(JSON.parse(files["biome.json"] ?? "{}")).toMatchObject({ root: true });
-		expect(files["biome.json"]).toBe(starterFile("biome.json").replace('"root": false', '"root": true'));
 		for (const path of ["tsconfig.json", "vite.config.ts", "vitest.config.ts"]) {
 			expect(files[path]).not.toContain('"source"');
 			expect(files[path]).toBe(starterFile(path).replaceAll('"source", ', "").replaceAll('["source"]', "[]"));
@@ -44,6 +42,9 @@ application.it(
 		for (const path of [
 			".railway/railway.ts",
 			".env.example",
+			"biome.json",
+			"components.json",
+			"quality.config.ts",
 			"src/setup.ts",
 			"src/server/migrate.ts",
 			"src/server/migrateDatabase.ts",

@@ -3,8 +3,9 @@ import { noJsdoc } from "#rules/comments/no-jsdoc.ts";
 import { checkRule, issuesOf } from "#test/inputs.ts";
 import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "#test/pragmas.ts";
 
-const jsdoc = async (content: string, options?: { readonly allow?: readonly string[] }) =>
-	(await checkRule(noJsdoc, options, { sources: [{ content, path: "src/a.ts" }] })).map((finding) => finding.line);
+async function jsdoc(content: string, options?: { readonly allow?: readonly string[] }) {
+	return (await checkRule(noJsdoc, options, { sources: [{ content, path: "src/a.ts" }] })).map((finding) => finding.line);
+}
 
 describe("comments/no-jsdoc fires", () => {
 	it("on every JSDoc block, at its first line", async () => {

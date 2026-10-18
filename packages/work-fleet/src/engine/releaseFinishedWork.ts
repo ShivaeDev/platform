@@ -10,7 +10,6 @@ export function releaseFinishedWork(state: EngineState, stored: Versioned<FleetR
 	return state
 		.save(stored, {
 			...record,
-			admissionReady: false,
 			attentionOwner: undefined,
 			blocker: undefined,
 			decision: undefined,

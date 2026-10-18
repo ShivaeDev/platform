@@ -37,8 +37,10 @@ export function acknowledgeDecision(root: string, realRoot: string, snapshot: Ef
 		const content = `---\n${JSON.stringify({ id, kind: "result", "request_receipt": requestReceipt })}\n---\n# Managed request acknowledgement\n\nThis immutable receipt acknowledges request handling; it grants no execution, acceptance or delivery authority.\n`;
 		const file = `responses/${id}.md`;
 		const receiptDocument = { file, parsed: boardApi.metadataParse(content) };
-		const model = metadataModel([...all.filter((document) => document.file !== file), receiptDocument]);
-		if (!request || managedRequestReceipt(source, request, model) === undefined) {
+		const others = all.filter((document) => document.file !== file);
+		const acknowledged = others.some((document) => document.parsed.fields.requestReceipt?.question === decision.questionId);
+		const model = metadataModel([...others, receiptDocument]);
+		if (!request || acknowledged || managedRequestReceipt(source, request, model) === undefined) {
 			return yield* Effect.fail(
 				new BoardAcknowledgementStale({ message: "The exact managed question and applicable response cannot be qualified for acknowledgement." }),
 			);

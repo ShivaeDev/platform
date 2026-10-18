@@ -1,4 +1,3 @@
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { GoalsPage } from "./GoalsPage.tsx";
 import { HandoffPage } from "./HandoffPage.tsx";
 import { LibraryMain } from "./LibraryMain.tsx";
@@ -6,6 +5,7 @@ import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
 import { ResultPage } from "./ResultPage.tsx";
 import type { RemainingRoute } from "./remainingRoute.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { StartPage } from "./StartPage.tsx";
 import { SystemMain } from "./SystemMain.tsx";

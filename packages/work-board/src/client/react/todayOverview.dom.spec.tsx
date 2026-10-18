@@ -5,12 +5,12 @@ import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { type BoardTestApi, renderBoard } from "#test/react.tsx";
 import { todayFixture } from "#test/todayFixture.ts";
 import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 import { boardRouter } from "./boardRouter.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

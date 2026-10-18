@@ -15,21 +15,28 @@ const DIRECTIVES: readonly RegExp[] = [
 
 const TRIPLE_SLASH = /^\/\/\/\s*</u;
 
-const contentOf = (comment: SourceComment): readonly string[] => comment.body.filter((line) => line !== "");
+function contentOf(comment: SourceComment): readonly string[] {
+	return comment.body.filter((line) => line !== "");
+}
 
-const startsWithTag = (line: string, tags: readonly string[]): boolean =>
-	tags.some((tag) => line === tag || line.startsWith(`${tag} `) || line.startsWith(`${tag}\t`));
+function startsWithTag(line: string, tags: readonly string[]): boolean {
+	return tags.some((tag) => line === tag || line.startsWith(`${tag} `) || line.startsWith(`${tag}\t`));
+}
 
-export const textOf = (comment: SourceComment): string => comment.body.join("\n");
+export function textOf(comment: SourceComment): string {
+	return comment.body.join("\n");
+}
 
-export const isJsdoc = (comment: SourceComment): boolean => comment.kind === "block" && comment.text.startsWith("/**") && comment.text !== "/**/";
+export function isJsdoc(comment: SourceComment): boolean {
+	return comment.kind === "block" && comment.text.startsWith("/**") && comment.text !== "/**/";
+}
 
-export const isPragma = (comment: SourceComment, pragmas: readonly string[]): boolean => {
+export function isPragma(comment: SourceComment, pragmas: readonly string[]): boolean {
 	const content = contentOf(comment);
 	return content.length > 0 && content.every((line) => startsWithTag(line, pragmas));
-};
+}
 
-export const isDirective = (comment: SourceComment): boolean => {
+export function isDirective(comment: SourceComment): boolean {
 	const first = contentOf(comment)[0] ?? "";
 	return TRIPLE_SLASH.test(comment.text) || DIRECTIVES.some((directive) => directive.test(first));
-};
+}

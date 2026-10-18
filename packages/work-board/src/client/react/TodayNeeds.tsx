@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
 import { Age } from "./Age.tsx";
@@ -13,7 +14,9 @@ export function TodayNeeds({ api, data }: { readonly api: ShellApi; readonly dat
 		<ul aria-label="Needs you" className="m-0 list-none divide-y rounded-lg border border-border p-0">
 			{data.you.map((item) => (
 				<li className="h-12 max-h-12" data-attention-id={item.id} key={`${item.file}:${item.href}`}>
-					<TodayRow api={api} item={item} />
+					<TodayRow item={item} status="needs-you">
+						<TodayOptions api={api} item={item} />
+					</TodayRow>
 				</li>
 			))}
 		</ul>
@@ -22,13 +25,25 @@ export function TodayNeeds({ api, data }: { readonly api: ShellApi; readonly dat
 	);
 }
 
-function TodayRow({ api, item }: { readonly api: ShellApi; readonly item: Item }) {
+export function TodayLater({ items }: { readonly items: readonly Item[] }) {
 	return (
-		<div className="today-row flex h-full min-w-0 items-center gap-2 px-2" data-attention-row>
+		<ul aria-label="Later" className="m-0 list-none divide-y rounded-lg border border-border p-0">
+			{items.map((item) => (
+				<li className="h-12 max-h-12" key={item.file}>
+					<TodayRow item={item} status="deferred" />
+				</li>
+			))}
+		</ul>
+	);
+}
+
+function TodayRow({ children, item, status }: { readonly children?: ReactNode; readonly item: Item; readonly status: "deferred" | "needs-you" }) {
+	return (
+		<div className="today-row flex h-full min-w-0 items-center gap-2 px-2" data-attention-row={status === "needs-you" ? "" : undefined}>
 			<StatusChip
-				aria-label="Needs you"
+				aria-label={status === "needs-you" ? "Needs you" : "Deferred"}
 				className="shrink-0 max-sm:size-6 max-sm:justify-center max-sm:gap-0 max-sm:px-1 max-sm:text-[0px] max-sm:[&_svg]:shrink-0"
-				status="needs-you"
+				status={status}
 			/>
 			<div className="min-w-0 flex-1">
 				<div className="flex min-w-0 items-baseline gap-2">
@@ -48,7 +63,7 @@ function TodayRow({ api, item }: { readonly api: ShellApi; readonly item: Item }
 			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
 				{item.modified === undefined ? "Age ?" : <Age modified={item.modified} short />}
 			</span>
-			<TodayOptions api={api} item={item} />
+			{children}
 		</div>
 	);
 }

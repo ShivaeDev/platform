@@ -15,23 +15,28 @@ const shipped = Schema.toStandardSchemaV1(Schema.fromJsonString(Schema.Array(Dec
 	parseOptions: { errors: "all", onExcessProperty: "error" },
 });
 
-export const decodeShipped = (text: string | undefined): Promise<Decoded<readonly Declaration[]>> =>
-	text === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(shipped, text);
+export function decodeShipped(text: string | undefined): Promise<Decoded<readonly Declaration[]>> {
+	return text === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(shipped, text);
+}
 
 export interface Scoped {
 	readonly includes: readonly string[];
 	readonly rule: string;
 }
 
-const sameScope = (left: readonly string[], right: readonly string[]): boolean =>
-	new Set(left).size === new Set(right).size && left.every((glob) => right.includes(glob));
+function sameScope(left: readonly string[], right: readonly string[]): boolean {
+	return new Set(left).size === new Set(right).size && left.every((glob) => right.includes(glob));
+}
 
-export const matches = (declaration: Scoped, weakening: Scoped): boolean =>
-	declaration.rule === weakening.rule && sameScope(declaration.includes, weakening.includes);
+export function matches(declaration: Scoped, weakening: Scoped): boolean {
+	return declaration.rule === weakening.rule && sameScope(declaration.includes, weakening.includes);
+}
 
-export const scoped = (base: string, glob: string): string => {
-	const [, negation = "", path = glob] = /^(!*)(.*)$/u.exec(glob) ?? [];
+export function scoped(base: string, glob: string): string {
+	const { negation = "", path = glob } = /^(?<negation>!*)(?<path>.*)$/u.exec(glob)?.groups ?? {};
 	return base === "" ? glob : `${negation}${base}/${path}`;
-};
+}
 
-export const scopeText = (includes: readonly string[]): string => includes.map((glob) => `"${glob}"`).join(", ");
+export function scopeText(includes: readonly string[]): string {
+	return includes.map((glob) => `"${glob}"`).join(", ");
+}
