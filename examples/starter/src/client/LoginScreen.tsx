@@ -1,32 +1,27 @@
-import { useId, useState } from "react";
+import { RegistryContext } from "@effect/atom-react";
+import { Option } from "effect";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Atom from "effect/reactivity/Atom";
+import { useContext, useEffect, useId, useState } from "react";
+import { useAction } from "@shivaedev/effect-react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
 import type { AuthActions } from "./auth.ts";
 
 export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActions; readonly onAuthenticated: () => void }) {
 	const id = useId();
+	const registry = useContext(RegistryContext);
 	const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
 	const [credentials, setCredentials] = useState({ email: "", name: "", password: "" });
-	const [pending, setPending] = useState(false);
-	const [failure, setFailure] = useState<string>();
-	const submitLabel = mode === "sign-in" ? "Sign in" : "Create account";
-	const buttonLabel = pending ? "Please wait…" : submitLabel;
-	async function submit() {
-		setPending(true);
-		setFailure(undefined);
-		try {
-			const error = await auth.submit(mode, credentials);
-			if (error === undefined) {
-				onAuthenticated();
-			} else {
-				setFailure(error);
-			}
-		} catch {
-			setFailure("Could not reach authentication. Try again.");
-		} finally {
-			setPending(false);
+	const action = useAction(auth.submit);
+	const failure = AsyncResult.error(action.result);
+	useEffect(() => {
+		if (AsyncResult.isSuccess(action.result) && !action.pending) {
+			onAuthenticated();
 		}
-	}
+	}, [action.result, action.pending, onAuthenticated]);
+	const submitLabel = mode === "sign-in" ? "Sign in" : "Create account";
+	const buttonLabel = action.pending ? "Please wait…" : submitLabel;
 	return (
 		<main className="mx-auto w-full max-w-md space-y-6 px-4 py-12">
 			<h1 className="font-semibold text-3xl">{mode === "sign-in" ? "Sign in" : "Create an account"}</h1>
@@ -35,7 +30,7 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 				className="space-y-4"
 				onSubmit={(event) => {
 					event.preventDefault();
-					void submit();
+					action.dispatch({ credentials, mode });
 				}}
 			>
 				{mode === "sign-up" && (
@@ -73,20 +68,20 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 						value={credentials.password}
 					/>
 				</div>
-				{failure !== undefined && (
+				{!action.pending && Option.isSome(failure) && (
 					<p className="text-destructive" role="alert">
-						{failure}
+						{"_tag" in failure.value ? "Could not reach authentication. Try again." : (failure.value.message ?? "Authentication failed. Try again.")}
 					</p>
 				)}
-				<Button disabled={pending} type="submit">
+				<Button disabled={action.pending} type="submit">
 					{buttonLabel}
 				</Button>
 			</form>
 			<Button
-				disabled={pending}
+				disabled={action.pending}
 				onClick={() => {
 					setMode(mode === "sign-in" ? "sign-up" : "sign-in");
-					setFailure(undefined);
+					registry.set(auth.submit, Atom.Reset);
 				}}
 				variant="outline"
 			>
