@@ -18,6 +18,9 @@ function children(ast: SchemaAST.AST): readonly SchemaAST.AST[] {
 			return [];
 	}
 }
+function sensitiveCheck(check: SchemaAST.Check<never>): boolean {
+	return check.annotations?.sensitive === true || (check._tag === "FilterGroup" && check.checks.some(sensitiveCheck));
+}
 function marked(ast: SchemaAST.AST, seen = new Set<SchemaAST.AST>()): boolean {
 	if (seen.has(ast)) {
 		return false;
@@ -26,6 +29,7 @@ function marked(ast: SchemaAST.AST, seen = new Set<SchemaAST.AST>()): boolean {
 	if (
 		ast.annotations?.sensitive === true
 		|| ast.context?.annotations?.sensitive === true
+		|| ast.checks?.some(sensitiveCheck)
 		|| (Predicate.hasProperty(ast.annotations?.representation, "id") && ast.annotations.representation.id === "effect/schema/Redacted")
 	) {
 		return true;

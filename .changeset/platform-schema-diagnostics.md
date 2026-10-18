@@ -9,8 +9,8 @@
 
 ### Fixed
 
+- Honor sensitive annotations on schema checks and nested check groups in logs, RPC failures and exported span attributes.
 - Apply the source `_tag` sensitivity before tracing copies an error tag into `rpc.failure`, so schema annotations and host-listed keys also protect the failure log.
-
 - Apply sensitive-key declarations to non-enumerable Error `cause`, `message`, `name` and `stack` fields in reported causes and exported exceptions. Mask stacks when the name or message is sensitive, so their native stack headers cannot repeat those values.
 - Apply the same stack masking recursively to Error values in log messages and annotations, reported causes and exported span attributes. Expose `redactErrorStack(error, sensitive)` for the shared native Error stack policy.
 - Carry sensitive field names through `Schema.encodeKeys` so renamed failure fields and diagnostics stay redacted. Collect declarations before propagating encoded names until stable, making direct and chained mappings independent of schema traversal order. Detect sensitive descendants throughout the transformation source, including app-listed keys, so flattening nested fields cannot lose their sensitivity. Derive policy without executing encoder callbacks and mask every declared encoded target field, including every union branch, because opaque callbacks cannot guarantee field provenance.
