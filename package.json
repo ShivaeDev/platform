@@ -32,6 +32,7 @@
 		"@biomejs/biome": "catalog:",
 		"@codecov/bundle-analyzer": "catalog:",
 		"@effect/platform-node": "catalog:",
+		"@shivaedev/changesets": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",

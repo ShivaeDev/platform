@@ -1,0 +1,10 @@
+{
+	"date": "2026-10-18",
+	"fragments": [
+		{
+			"name": "explicit-workspace-releases.md",
+			"text": "### Added\n\n- Plan and apply workspace releases from root changesets with explicit bumps, grouped release notes and transitive published dependents.\n- Validate pending changesets and reproduce collected releases from manifests while protecting released history and later pending changes.\n- Run repository release hooks as typed Effect functions through the CLI or the plan, apply and check Effect APIs.\n"
+		}
+	],
+	"version": "0.1.0"
+}
