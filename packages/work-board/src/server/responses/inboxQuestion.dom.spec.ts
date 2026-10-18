@@ -18,7 +18,7 @@ boardStory.it(
 		}
 		expect(clear.nextElementSibling?.tagName).toBe("LABEL");
 		yield* reader.chooseOption("option-1");
-		expect(page.document.querySelector('[data-choice="option-1"]')?.getAttribute("aria-pressed")).toBe("true");
+		expect(page.document.querySelector('[data-choice="option-1"]')?.getAttribute("aria-checked")).toBe("true");
 		const response = yield* saveAnswer();
 		expect(response.fields.kind).toBe("response");
 		expect(response.fields.response?.answers?.[0]?.selected).toEqual(["option-1"]);

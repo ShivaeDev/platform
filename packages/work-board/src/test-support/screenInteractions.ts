@@ -18,13 +18,10 @@ export function screenInteractions(engine: ScreenEngine, tell: (line: string) =>
 			tell(`the browser emits ${type}`);
 			act(() => (destination === "window" ? window : document).dispatchEvent(new Event(type)));
 		},
-		check: (selector: string, checked = true) => {
-			tell(`the reader ${checked ? "checks" : "unchecks"} ${selector}`);
-			const field = control(selector, HTMLInputElement);
-			act(() => {
-				field.checked = checked;
-				field.dispatchEvent(new Event("input", { bubbles: true }));
-			});
+		check: (option: string) => {
+			tell(`the reader checks option ${option}`);
+			const choice = target(`[data-choice="${option}"]`);
+			act(() => choice.click());
 		},
 		closeScreen: async () => {
 			tell("the reader closes the current screen");
