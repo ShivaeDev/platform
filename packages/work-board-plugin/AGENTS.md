@@ -1,0 +1,11 @@
+# Work Board plugin
+
+The Work Board plugin brings the running Work Board into Claude Code, so a session sees what needs the maintainer, what Fleet has in flight and how goals are progressing without leaving the prompt. It is a Claude Code mod: a hooks module the Claude Code engine loads and draws, shipped from this repository's plugin marketplace and never published to npm.
+
+The Board stays the source of truth. The plugin only reads it, over the `board.sock` of the nearest `.work` folder at or above the session's folder, and answers with what the Board said or why it could not ask: no Board in this folder, a Board that is not running, or a request it refused. It never writes to the Board and never guesses state it was not given.
+
+When goals conflict, a truthful view comes first, then one quiet glance (a single band line, a toast only for a new decision), then parity with the Board's own MCP tools, then visual polish.
+
+The engine sets the rules this package lives by: JSX against its global `h`, the `claude-code` module it provides at runtime, and relative imports for anything it loads. The package never installs or runs Claude Code. `src/claude-code.d.ts` hand-declares only the part of that module the plugin uses, shaped from what the code calls, so the whole package typechecks with nothing downloaded; when the plugin starts using more of the API, or the API changes, update that file by hand. The code lives in `src/` like every package's, with `hooks/hooks.json` naming `../src/register.tsx`.
+
+The pane, the band, the toasts, the hook wiring and the tool registration have no automated test, because test-story cannot drive Claude Code. Check them by loading the plugin into Claude Code with `--plugin-dir`. What CI proves lives in the pure modules, `answers`, `board`, `boardTools`, `lines`, `rpc` and `summary`, which import no `claude-code` value: their `*.spec.ts` files are plain Vitest tests of the parsing and shaping, and `@shivaedev/work-board` keeps the contract test that feeds a real Board's answers through these parsers. Keep parsing and shaping in those modules so CI covers it. Usage and install live in the [README](README.md); the Board's queries live in [`@shivaedev/work-board`](../work-board/README.md).

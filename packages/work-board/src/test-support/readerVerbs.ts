@@ -5,6 +5,7 @@ import { enterField } from "./enterField.ts";
 import { followLink } from "./followLink.ts";
 import { formEvent } from "./formEvent.ts";
 import { waitFor } from "./live.ts";
+import { pageActions } from "./pageActions.ts";
 import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "./storyEngine.ts";
 import { currentReplies } from "./storyReplies.ts";
 
@@ -24,11 +25,14 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	}
 	function click(id: string) {
 		tell(`the reader clicks ${id}`);
-		page()
-			.document.getElementById(id)
-			?.dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true }));
+		const control = page().document.getElementById(id);
+		if (!control) {
+			throw new Error(`Missing ${id}`);
+		}
+		control.dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true }));
 	}
 	return {
+		...pageActions(page, tell),
 		answer: (prompt: string, value: string) => text(`[data-prompt="${prompt}"] textarea`, value),
 		choice: (value: string) => {
 			tell(`the reader chooses ${value}`);
@@ -42,9 +46,11 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		chooseOption: (value: string) =>
 			formEvent(page(), () => {
 				tell(`the reader chooses ${value}`);
-				page()
-					.document.querySelector(`[data-choice="${value}"]`)
-					?.dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true }));
+				const control = page().document.querySelector(`[data-choice="${value}"]`);
+				if (!control) {
+					throw new Error(`Missing choice ${value}`);
+				}
+				control.dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true }));
 			}),
 		click,
 		currentReplies: () => {
@@ -81,9 +87,11 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		submit: (form = "response-form") =>
 			formEvent(page(), () => {
 				tell(`the reader submits ${form}`);
-				page()
-					.document.getElementById(form)
-					?.dispatchEvent(new (page().window.Event)("submit", { bubbles: true, cancelable: true }));
+				const control = page().document.getElementById(form);
+				if (!(control instanceof page().window.HTMLFormElement)) {
+					throw new Error(`Missing form ${form}`);
+				}
+				control.dispatchEvent(new (page().window.Event)("submit", { bubbles: true, cancelable: true }));
 			}),
 		text,
 		todayRows: (list: string) =>
@@ -108,3 +116,5 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		},
 	};
 }
+
+export type BoardReader = ReturnType<typeof readerVerbs>;

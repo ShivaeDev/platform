@@ -1,5 +1,12 @@
 import { expect, it } from "vitest";
+import { stateOf as browserStateOf } from "#browser/views/state.ts";
 import { fieldFilter, stateOf, viewUrl } from "./state.ts";
+
+it("opens Work on Now while keeping All work and Table explicit", () => {
+	expect(browserStateOf("/_board/work").view).toBe("now");
+	expect(browserStateOf("/_board/work?view=board").view).toBe("board");
+	expect(browserStateOf("/_board/work?view=table").view).toBe("table");
+});
 
 it("round trips exact board, filter, sort, and selection values without confusing missing fields", () => {
 	const state = stateOf(

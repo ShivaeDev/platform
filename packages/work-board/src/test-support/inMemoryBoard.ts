@@ -1,14 +1,21 @@
 import { ByteSize, Effect, FileSystem, Layer, Option, Path, type PlatformError, PubSub, Ref } from "effect";
+import { stringify } from "yaml";
+import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { DiagnosticsConfig, SourceFailure } from "#diagnostics/source.ts";
 import { boardServices } from "#server/boardServices.ts";
 import type { Change, Changes } from "#server/files/changes.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
+import { health } from "./diagnostics.ts";
+import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
 import { fixtureSnapshot } from "./fixtureSnapshot.ts";
+import { memoryFiles } from "./memoryFiles.ts";
 
 export interface BoardFixtureOptions {
+	readonly beforeIndex?: () => Effect.Effect<void, PlatformError.PlatformError>;
 	readonly beforeRead?: (kind: "document", url: string) => Effect.Effect<void>;
+	readonly fleet?: FleetItemsProjection;
 	readonly fleetPort?: number;
 	readonly home: string | undefined;
 	readonly index?: Effect.Effect<Snapshot, PlatformError.PlatformError>;
@@ -21,11 +28,27 @@ const missing = Effect.fail(new SourceFailure({ kind: "not-configured", message:
 export function inMemoryBoard(files: Readonly<Record<string, string>>, configuration?: BoardFixtureOptions) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
+			const seeded = fleetFiles(files, configuration?.fleet);
+			const memory = yield* memoryFiles(files, configuration?.writable === true, seeded);
+			let fleetPort = configuration?.fleetPort ?? null;
+			if (configuration?.fleet?.state === "ready") {
+				const fleet = configuration.fleet;
+				const daemon = yield* diagnosticsDaemon(
+					() => ({
+						codex: { cause: "Not configured", observedAt: 0, state: "not-configured" },
+						fleet: { observedAt: 0, state: "ready", value: health },
+						github: { cause: "Not configured", observedAt: 0, state: "not-configured" },
+					}),
+					0,
+					() => fleet,
+				);
+				fleetPort = daemon.port;
+			}
 			const home = configuration ? configuration.home : Object.keys(files)[0];
 			const changes: Changes = {
 				events: yield* Effect.acquireRelease(PubSub.unbounded<Change>(), PubSub.shutdown),
 				files: Effect.sync(() => Object.keys(files).map((file) => ({ modified: configuration?.modified?.get(file) ?? 0, path: file }))),
-				realRoot: "/board",
+				realRoot: memory.root,
 				revision: Effect.succeed(0),
 				watching: yield* Ref.make(false),
 			};
@@ -36,45 +59,59 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 						Effect.suspend(() => configuration?.beforeRead?.("document", url) ?? Effect.void).pipe(Effect.andThen(service.document(url))),
 				})),
 			).pipe(Layer.provide(Workspace.layer));
-			return boardServices({ fleetPort: configuration?.fleetPort ?? null }).pipe(
+			return boardServices({ fleetPort }).pipe(
 				Layer.provide(workspace),
 				Layer.provide([
 					Layer.succeed(WorkspaceConfig, {
 						changes,
 						home,
-						index: configuration?.index ?? fixtureSnapshot(files, home, configuration?.modified),
-						root: "/board",
+						index: Effect.suspend(() => configuration?.beforeIndex?.() ?? Effect.void).pipe(
+							Effect.andThen(configuration?.index ?? Effect.suspend(() => fixtureSnapshot(memory.files(), home, configuration?.modified))),
+						),
+						root: memory.root,
 						writable: configuration?.writable === true,
 					}),
 					Layer.succeed(DiagnosticsConfig, { _tag: "Sources", sources: { codex: missing, fleet: missing, github: missing } }),
 				]),
+				Layer.provide([fixtureFileSystem(memory), Path.layer, Highlighter.layer]),
 			);
 		}),
-	).pipe(
-		Layer.provide([
-			FileSystem.layerNoop({
-				readFileString: (path) => Effect.succeed(files[path.slice("/board/".length)] ?? ""),
-				realPath: (path) => Effect.succeed(path),
-				stat: () =>
-					Effect.succeed({
-						atime: Option.none(),
-						birthtime: Option.none(),
-						blksize: Option.none(),
-						blocks: Option.none(),
-						dev: 0,
-						gid: Option.none(),
-						ino: Option.none(),
-						mode: 0,
-						mtime: Option.none(),
-						nlink: Option.none(),
-						rdev: Option.none(),
-						size: ByteSize.zero,
-						type: "Directory",
-						uid: Option.none(),
-					}),
-			}),
-			Path.layer,
-			Highlighter.layer,
-		]),
 	);
+}
+
+function fleetFiles(files: Readonly<Record<string, string>>, fleet?: FleetItemsProjection) {
+	const seeded: Record<string, string> = {};
+	if (fleet?.state === "ready") {
+		for (const item of [...fleet.items, ...fleet.completed]) {
+			if (item.document && files[item.document.file] === undefined) {
+				seeded[item.document.file] = `---\n${stringify(item.document.metadata)}---\n# ${item.document.title}\n`;
+			}
+		}
+	}
+
+	return seeded;
+}
+
+function fixtureFileSystem(memory: { readonly root: string; readonly files: () => Readonly<Record<string, string>> }) {
+	return FileSystem.layerNoop({
+		readFileString: (path) => Effect.succeed(memory.files()[path.slice(memory.root.length + 1)] ?? ""),
+		realPath: (path) => Effect.succeed(path),
+		stat: () =>
+			Effect.succeed({
+				atime: Option.none(),
+				birthtime: Option.none(),
+				blksize: Option.none(),
+				blocks: Option.none(),
+				dev: 0,
+				gid: Option.none(),
+				ino: Option.none(),
+				mode: 0,
+				mtime: Option.none(),
+				nlink: Option.none(),
+				rdev: Option.none(),
+				size: ByteSize.zero,
+				type: "Directory",
+				uid: Option.none(),
+			}),
+	});
 }
