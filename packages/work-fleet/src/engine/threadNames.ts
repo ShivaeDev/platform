@@ -1,4 +1,4 @@
-import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 
 function headingAt(line: string, next: string): string | undefined {

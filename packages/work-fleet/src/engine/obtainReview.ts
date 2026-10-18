@@ -78,7 +78,7 @@ export function obtainReview(state: EngineState) {
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,
 			},
-			{ quota, role: "reviewer" },
+			{ areaWaiters: [], quota, role: "reviewer" },
 		);
 		const input = {
 			access: "read-only",
