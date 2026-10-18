@@ -58,3 +58,20 @@ export const screenApp = storyKit({
 		};
 	},
 });
+
+export function hiddenScreen(style: string, ancestor: boolean) {
+	return screenApp.trait("screen", `the ${ancestor ? "screen ancestor" : "targets"} have ${style}`, ({ root }) => {
+		const targets = ancestor ? [root] : root.querySelectorAll<HTMLElement>("button,input,textarea,form,output");
+		for (const target of targets) {
+			if (style === "hidden") {
+				target.hidden = true;
+			} else {
+				target.style.cssText = style;
+			}
+		}
+	});
+}
+
+export const inertForm = screenApp.trait("screen", "the sign-in form has an inert ancestor", ({ root }) => {
+	root.inert = true;
+});

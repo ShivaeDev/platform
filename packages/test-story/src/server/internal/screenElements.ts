@@ -1,4 +1,16 @@
 export function screenElements(root: () => HTMLElement) {
+	function rendered(found: HTMLElement, selector: string) {
+		const visibility = getComputedStyle(found).visibility;
+		let hidden = visibility === "hidden" || visibility === "collapse";
+		for (let ancestor: HTMLElement | null = found; ancestor; ancestor = ancestor.parentElement) {
+			const style = getComputedStyle(ancestor);
+			hidden ||= Boolean(ancestor.hidden) || style.display === "none" || style.contentVisibility === "hidden";
+		}
+		if (hidden) {
+			throw new Error(`The screen's ${selector} is not rendered.\nhelp: Reveal the target and its ancestors before acting on or reading it.`);
+		}
+		return found;
+	}
 	function element(selector: string) {
 		const matches = root().querySelectorAll<HTMLElement>(selector);
 		const found = matches[0];
@@ -7,7 +19,7 @@ export function screenElements(root: () => HTMLElement) {
 				`The screen has ${matches.length} matches for ${JSON.stringify(selector)}.\nhelp: Use a selector for exactly one rendered control or readout.`,
 			);
 		}
-		return found;
+		return rendered(found, selector);
 	}
 	function input(selector: string) {
 		const found = element(selector);
@@ -41,8 +53,10 @@ export function screenElements(root: () => HTMLElement) {
 			if (!(found instanceof HTMLFormElement)) {
 				throw new Error(`The screen's ${selector} is not a form.\nhelp: Select a rendered form to submit.`);
 			}
+			enabled(found, selector);
 			return found;
 		},
 		input,
+		rendered,
 	};
 }

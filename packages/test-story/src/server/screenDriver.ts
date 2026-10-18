@@ -55,7 +55,7 @@ export function screenDriver({ root, pending, tell, act = (action) => action(), 
 		settle,
 		submit: (selector = "form") => perform(`submit ${selector}`, () => elements.form(selector).requestSubmit()),
 		text: (selector?: string) => {
-			const text = (selector === undefined ? currentRoot() : elements.element(selector)).innerText;
+			const text = (selector === undefined ? elements.rendered(currentRoot(), "root") : elements.element(selector)).innerText;
 			tell(`read ${selector ?? "the screen"}: ${JSON.stringify(text)}`);
 			return text;
 		},
