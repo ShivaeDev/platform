@@ -2,8 +2,8 @@ import { type Effect, Layer, Schema } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { BrowserDraftConfig } from "@shivaedev/effect-form/react.ts";
-import type { Editor } from "#editor.ts";
+import type { BrowserDraftConfig } from "@shivaedev/effect-form/client/react.ts";
+import type { Editor } from "#client/editor.ts";
 
 export const DraftFields = Schema.Struct({ name: Schema.NonEmptyString, quantity: Schema.NumberFromString });
 export const draftRuntime = Atom.runtime(Layer.empty);

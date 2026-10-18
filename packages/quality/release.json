@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "module-structure.md",
-			"text": "### Added\n\n- Built-in `nesting/max-depth` reports lines indented with eight or more tabs, except in declaration files. Built-in `structure/no-barrel` rejects `index.ts` and `index.tsx` modules, including those that define their own exports. Both run at error with no options. The existing wildcard export exposes the rules as `maxDepth` from `rules/maxDepth.ts` and `noBarrel` from `rules/noBarrel.ts`.\n"
+			"name": "story-specs.md",
+			"text": "### Added\n\n- Enforce `tests/story-specs`: test files declare tests through a kit built with `@shivaedev/test-story`'s `storyKit`. Plain registrations, including destructured Vitest bindings, remain findings alongside stories. Typecheck tests, test-story and its transitive workspace dependencies are exempt; existing plain tests can be recorded in the baseline.\n- Export `storySpecs` and its matching helpers `storyOrigins`, `storyPrerequisites` and `storyProgram` from their `rules/stories/*.ts` modules.\n"
 		}
 	],
-	"version": "0.23.0"
+	"version": "0.24.0"
 }

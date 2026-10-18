@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { attention } from "@shivaedev/work-board/integration/attention.ts";
-import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import { attention } from "@shivaedev/work-board/server/integration/attention.ts";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { type BoardSnapshot, recordBoardSource } from "#board/readPass.ts";
 import { BoardAcknowledgementStale, type BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";

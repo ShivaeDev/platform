@@ -1,5 +1,5 @@
-import type { ParsedMetadata } from "@shivaedev/work-board/integration/board.ts";
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import type { ParsedMetadata } from "@shivaedev/work-board/server/integration/board.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { fleetDeliverable } from "#board/fleetField.ts";
 
 const { revisionOf } = responses;

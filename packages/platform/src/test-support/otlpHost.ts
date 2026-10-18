@@ -1,4 +1,4 @@
-import { appHost } from "#appHost.ts";
+import { appHost } from "#server/appHost.ts";
 import { sessions } from "#test/app-host/fixture.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
 import type { HostState } from "#test/app-host/state.ts";

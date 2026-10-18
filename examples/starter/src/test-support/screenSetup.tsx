@@ -1,7 +1,7 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/testing.ts";
+import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { App } from "#client/App.tsx";
 import { appRouter } from "#client/appRouter.tsx";

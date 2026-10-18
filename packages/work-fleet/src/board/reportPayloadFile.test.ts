@@ -3,7 +3,7 @@ import { NodeServices } from "@effect/platform-node";
 import { expect } from "@effect/vitest";
 import { Effect, FileSystem } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { boardDocuments } from "#board/documents.ts";
 import { reportPayloadFile } from "#board/reportPayloadFile.ts";
 import { linkedReportPayload } from "#test/linkedReportPayload.ts";

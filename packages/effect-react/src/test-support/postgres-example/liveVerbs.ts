@@ -1,6 +1,6 @@
 import { Deferred, Effect, Result } from "effect";
 import { expect } from "vitest";
-import { eventually } from "#testing.ts";
+import { eventually } from "#client/testing.ts";
 import { type LiveEngine, view } from "./liveEngine.ts";
 import { makeClient } from "./makeClient.ts";
 import { call } from "./view.tsx";

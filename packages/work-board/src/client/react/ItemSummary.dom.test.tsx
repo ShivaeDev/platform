@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { eventually, render } from "@shivaedev/effect-react/testing.ts";
+import { eventually, render } from "@shivaedev/effect-react/client/testing.ts";
 import type { Document } from "#browser/document/schema.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { renderRouter } from "#test/renderRouter.tsx";

@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { expect } from "@effect/vitest";
 import { Clock, Context, Effect, Layer } from "effect";
 import { HttpServer } from "effect/http";
-import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
+import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import type { HostParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { daemonLayer } from "#host/daemon.ts";
