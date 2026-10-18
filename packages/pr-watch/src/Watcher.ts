@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { events } from "./events.ts";
 import { GitHub } from "./GitHub.ts";
 import type { Options, Snapshot, State, WatchError } from "./model.ts";

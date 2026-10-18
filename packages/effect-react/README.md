@@ -320,7 +320,7 @@ Here `save` has a tagged `SubtitleRejected` failure referring to the server's `s
 Keep the signal and query identities stable:
 
 ```ts
-import { resumeSignal } from "@shivaedev/effect-react/resume-signal.ts";
+import { resumeSignal } from "@shivaedev/effect-react/resumeSignal.ts";
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 
@@ -362,10 +362,10 @@ const query = Atom.swr(atom, {
 | `client/sessionBoundary.ts` | `SessionBoundary`, `useSessionRecheck`; `SessionBoundaryProps`. |
 | `client/editor.ts` | `useEditor`; `Editor`, `EditorConfig`. |
 | `client/create.ts` | `useCreate`; `Create`, `CreateConfig`. |
-| `resume-signal.ts` | `resumeSignal`; `ResumeSource`, `ResumeWindow`, `ResumeOptions`. |
+| `resumeSignal.ts` | `resumeSignal`; `ResumeSource`, `ResumeWindow`, `ResumeOptions`. |
 | `loadQuery.ts` | `loadQuery`. |
 | `client/saveState.ts` | `useSaveState`; `SaveState`. |
-| `field-rejection.ts` | `fieldRejectionOf`, `rejecting`; `FieldRejection`, `RejectField`, `FieldRejectionMapping`, `AtomServices`. |
+| `fieldRejection.ts` | `fieldRejectionOf`, `rejecting`; `FieldRejection`, `RejectField`, `FieldRejectionMapping`, `AtomServices`. |
 | `client/testing.ts` | `render`, `eventually`, `expectNoReactWarnings`; `Rendered`. |
 | `submission.ts` | `submission`; `Submission`, `SubmissionConfig`. |
 

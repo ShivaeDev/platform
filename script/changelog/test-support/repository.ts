@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { claudePluginFolder } from "#lib/test-support/claudePluginFolder.ts";
 
 export function repository() {
 	const root = mkdtempSync(join(tmpdir(), "platform-changelog-"));
@@ -30,5 +31,15 @@ export function repository() {
 		git("commit", "-m", "Record package notes");
 		return git("rev-parse", "HEAD").trim();
 	}
-	return { commit, directory, git, read, remove: () => rmSync(root, { force: true, recursive: true }), root, version, write };
+	return {
+		commit,
+		directory,
+		git,
+		plugin: (name: string) => claudePluginFolder(join(root, "packages", name)),
+		read,
+		remove: () => rmSync(root, { force: true, recursive: true }),
+		root,
+		version,
+		write,
+	};
 }

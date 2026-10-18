@@ -3,7 +3,7 @@ import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { makeRepository } from "#repository.ts";
-import { integration, runPostgres } from "#test/postgres-transact.ts";
+import { integration, runPostgres } from "#test/postgresTransact.ts";
 
 class Reading extends Model.Class<Reading>("Reading")({
 	amount: Schema.NumberFromString,

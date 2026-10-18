@@ -69,7 +69,7 @@ The live helper initializes derived resume atoms before observing them, so
 source listeners attach even without a separate UI subscriber. Their finalizers
 release on registry teardown.
 
-`effect-react/resume-signal.ts` delegates to the shared implementation. Use the [synthetic-signal tests](../../packages/effect-react/src/resume-signal.dom.test.ts) for its visibility, native-source and cleanup evidence.
+`effect-react/resumeSignal.ts` delegates to the shared implementation. Use the [synthetic-signal tests](../../packages/effect-react/src/resumeSignal.dom.test.ts) for its visibility, native-source and cleanup evidence.
 
 An ended or failed stream enters `reconnecting` and retries after one second by
 default. `retryDelay` lets the consumer choose a positive native Duration for its

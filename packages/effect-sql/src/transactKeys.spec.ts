@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { integration, onSqlError, runPostgres, setup } from "#test/postgres-transact.ts";
+import { integration, onSqlError, runPostgres, setup } from "#test/postgresTransact.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
 integration("a bigint row key beyond Number precision invalidates its exact string key after commit", () =>
