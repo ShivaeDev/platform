@@ -1,0 +1,12 @@
+{
+	"description": "Claude Code plugins from the ShivaeDev Platform monorepo",
+	"name": "shivaedev",
+	"owner": { "name": "ShivaeDev" },
+	"plugins": [
+		{
+			"description": "The Work Board inside Claude Code: what needs you, what is in flight, and goal progress",
+			"name": "workboard",
+			"source": "./packages/work-board-plugin"
+		}
+	]
+}
