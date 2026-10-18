@@ -6,11 +6,12 @@ import type { ScreenEngine } from "./screenEngine.ts";
 
 export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOptions) {
 	const configured = {
-		beforeRead: (kind: "document", url: string) =>
-			engine.documentFailed ? Effect.die("Read unavailable") : (options?.beforeRead?.(kind, url) ?? Effect.void),
-		home: Object.keys(engine.files)[0],
 		...options,
 		beforeIndex: () => indexAvailability(engine),
+		beforeRead: (kind: "document", url: string) => {
+			engine.documentReads.push(url);
+			return engine.documentFailed ? Effect.die("Read unavailable") : (options?.beforeRead?.(kind, url) ?? Effect.void);
+		},
 		...(engine.fleet ? { fleet: engine.fleet } : {}),
 	};
 	if (!engine.heldRead) {
@@ -20,17 +21,27 @@ export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOption
 	return {
 		...configured,
 		beforeRead: (kind: "document", url: string) => {
+			const available = configured.beforeRead(kind, url);
 			if (url !== read.url) {
-				return options?.beforeRead?.(kind, url) ?? Effect.void;
+				return available;
 			}
-			return Effect.sync(() => {
-				read.started = true;
-			}).pipe(Effect.andThen(Deferred.await(read.gate)));
+			return available.pipe(
+				Effect.andThen(
+					Effect.sync(() => {
+						read.started = true;
+					}),
+				),
+				Effect.andThen(Deferred.await(read.gate)),
+			);
 		},
 	};
 }
 export function screenReadVerbs(engine: ScreenEngine, tell: (line: string) => void) {
 	return {
+		readDocumentReads: () => {
+			tell("the reader inspects document read requests");
+			return [...engine.documentReads];
+		},
 		readStarted: () => {
 			tell("the reader checks whether the document read has started");
 			return engine.heldRead?.started ?? false;

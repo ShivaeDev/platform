@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import type { daemonClient } from "#host/daemonClient.ts";
 import type { FleetRecord } from "#model.ts";
@@ -42,14 +42,27 @@ export const waitForDispatch = Effect.fn("DaemonTest.waitForDispatch")(
 );
 
 export function appliedAnswer(client: Client, workId: string) {
-	return waitForRecord(
-		client,
-		workId,
-		(record) =>
-			record.blocker !== ANSWER_RECORDED
-			&& record.attempts.at(-1)?.status !== "submitting"
-			&& (record.responses?.at(-1)?.boardAcknowledged === true || record.blocker?.startsWith("Board request acknowledgement pending:") === true),
-	);
+	return Effect.gen(function* () {
+		while (true) {
+			const status = yield* client("daemon.status", { workId });
+			const view = [...status.active, ...status.completed, ...Object.values(status.waiting).flat()].find((item) => item.workId === workId);
+			if (view?.blocker?.startsWith("Answer failed: ")) {
+				return yield* new Conflict({ message: view.blocker.slice("Answer failed: ".length) });
+			}
+			const record = yield* client("fleet.get", { workId });
+			if (
+				view?.blocker !== ANSWER_RECORDED
+				&& record.blocker !== ANSWER_RECORDED
+				&& record.attempts.at(-1)?.status !== "submitting"
+				&& ((record.pendingAnswers?.length ?? 0) > 0
+					|| record.responses?.at(-1)?.boardAcknowledged === true
+					|| record.blocker?.startsWith("Board request acknowledgement pending:") === true)
+			) {
+				return record;
+			}
+			yield* Effect.sleep("10 millis");
+		}
+	}).pipe(Effect.timeout("10 seconds"));
 }
 
 export const answerAndWait = Effect.fn("DaemonTest.answerAndWait")(function* (

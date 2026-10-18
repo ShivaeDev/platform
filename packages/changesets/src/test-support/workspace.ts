@@ -4,6 +4,7 @@ import { Effect, FileSystem } from "effect";
 import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { changeset, git, makeFixture, run, write } from "./fixture.ts";
+import { installCommitGuard } from "./installCommitGuard.ts";
 export const workspace = storyKit({
 	clock: "live",
 	create: makeFixture,
@@ -41,6 +42,9 @@ export const workspace = storyKit({
 		write: (file: string, text: string) => write(root, file, text),
 	}),
 });
+export const guardedCommits = workspace.trait("pending", "global and repository hooks reject absolute machine paths", ({ root }) =>
+	installCommitGuard(root),
+);
 export function pending(packages: Readonly<Record<string, string>> = { "@test/core": "minor" }) {
 	return workspace.trait("pending", "a changeset requests explicit bumps", ({ root }) => write(root, ".changeset/feature.md", changeset(packages)));
 }

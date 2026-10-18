@@ -14,7 +14,15 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 		(value) => Effect.sync(value.remove),
 	);
 	const board = yield* startBoard(notes.root, undefined, undefined, true);
-	const transport = new Window({ url: board.url });
+	const previousFetch = globalThis.fetch;
+	const transport = yield* Effect.acquireRelease(
+		Effect.sync(() => new Window({ url: board.url })),
+		(value) =>
+			Effect.promise(async () => {
+				globalThis.fetch = previousFetch;
+				await value.happyDOM.abort();
+			}),
+	);
 	vi.stubGlobal("fetch", (...args: Parameters<Window["fetch"]>) => {
 		const input = args[0];
 		let url: string;
@@ -28,7 +36,6 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 		transport.happyDOM.setURL(new URL(url, board.url).origin);
 		return transport.fetch(...args);
 	});
-	yield* Effect.addFinalizer(() => Effect.promise(() => transport.happyDOM.abort()));
 	const environment: Parameters<typeof session>[0] = {
 		addEventListener: (type, listener) => window.addEventListener(type, listener),
 		document,

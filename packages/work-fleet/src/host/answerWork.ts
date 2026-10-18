@@ -1,21 +1,30 @@
-import { Effect } from "effect";
+import { Effect, Predicate } from "effect";
 import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import type { FleetRecord } from "#model.ts";
-import type { Decision } from "#policy.ts";
+import type { Decision, DecisionResponse } from "#policy.ts";
+import type { Versioned } from "#storage/model.ts";
 
-export const answerWork = Effect.fn("FleetHost.answerWork")(function* (
+export interface AnswerOptions<E = never, R = never> {
+	readonly background?: boolean;
+	readonly beforePublish?: (response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, E, R>;
+	readonly originalDecision?: Pick<Decision, "code" | "reason">;
+	readonly queue?: () => Effect.Effect<Versioned<FleetRecord>, E, R>;
+	readonly release?: boolean;
+	readonly text?: string;
+}
+
+export const answerWork = Effect.fn("FleetHost.answerWork")(function* <E = never, R = never>(
 	host: FleetHost,
 	workId: string,
-	text = "",
-	release = false,
-	background = false,
+	options: AnswerOptions<E, R> = {},
 ) {
+	const { text = "", release = false, background = false, originalDecision, beforePublish, queue } = options;
 	const fleet = yield* Fleet;
 	const resolve = background ? fleet.recordResponse : fleet.resolve;
-	const original = (yield* fleet.get(workId)).value.decision;
+	const original = originalDecision ?? (yield* fleet.get(workId)).value.decision;
 	let recorded: { readonly decisionId: string; readonly responseId: string } | undefined;
 	return yield* Effect.gen(function* () {
 		const current = (yield* fleet.get(workId)).value;
@@ -23,20 +32,22 @@ export const answerWork = Effect.fn("FleetHost.answerWork")(function* (
 			return yield* resolve(workId, recorded.decisionId, recorded.responseId);
 		}
 		if (canQueueAnswer(current, text, release)) {
-			return yield* fleet.queueAnswer(workId, text);
+			return yield* queue?.() ?? fleet.queueAnswer(workId, text);
 		}
 		yield* checkDecision(current, original);
-		const response = yield* publishAnswer(host, workId, original, text, release);
+		const response = yield* publishAnswer(host, workId, original, text, release, beforePublish);
 		recorded = response;
 		return yield* resolve(workId, response.decisionId, response.responseId).pipe(
 			Effect.catchTag("Conflict", (error) => decisionConflict(fleet, workId, response.decisionId, error)),
 		);
 	}).pipe(
-		Effect.retry({ while: (error) => error._tag === "StorageConflict" || (error._tag === "Conflict" && error.message === "Decision changed") }),
+		Effect.retry({
+			while: (error) => Predicate.isTagged(error, "StorageConflict") || (error instanceof Conflict && error.message === "Decision changed"),
+		}),
 	);
 });
 
-function checkDecision(record: FleetRecord, original: Decision | undefined) {
+function checkDecision(record: FleetRecord, original: Pick<Decision, "code" | "reason"> | undefined) {
 	const current = record.decision;
 	if (original !== undefined && (record.stage !== "needs-human" || current === undefined || !sameKind(original, current))) {
 		return Effect.fail(
@@ -50,7 +61,7 @@ function checkDecision(record: FleetRecord, original: Decision | undefined) {
 		: Effect.fail(new BadRequest({ message: `${record.workId} waits on no answer in stage ${record.stage}` }));
 }
 
-function sameKind(original: Decision, current: Decision) {
+function sameKind(original: Pick<Decision, "code" | "reason">, current: Decision) {
 	return original.code === undefined ? original.code === current.code && original.reason === current.reason : original.code === current.code;
 }
 
@@ -59,12 +70,13 @@ function hasResponse(record: FleetRecord, recorded: { readonly decisionId: strin
 	return receipts.some((receipt) => receipt.decisionId === recorded.decisionId && receipt.responseId === recorded.responseId);
 }
 
-const publishAnswer = Effect.fn("FleetHost.publishAnswer")(function* (
+const publishAnswer = Effect.fn("FleetHost.publishAnswer")(function* <E, R>(
 	host: FleetHost,
 	workId: string,
-	original: Decision | undefined,
+	original: Pick<Decision, "code" | "reason"> | undefined,
 	text: string,
 	release: boolean,
+	beforePublish: ((response: Pick<DecisionResponse, "decisionId" | "responseId">) => Effect.Effect<void, E, R>) | undefined,
 ) {
 	const fleet = yield* Fleet;
 	const stored = yield* fleet.publishDecision(workId);
@@ -84,7 +96,13 @@ const publishAnswer = Effect.fn("FleetHost.publishAnswer")(function* (
 		{ ...decision, published: decision.published },
 		release ? "release" : "retry",
 		text,
-	).pipe(Effect.catchTag("Conflict", (error) => decisionConflict(fleet, workId, decision.id, error)));
+		(selectedId) => beforePublish?.({ decisionId: decision.id, responseId: selectedId }) ?? Effect.void,
+	).pipe(
+		Effect.catchIf(
+			(error): error is Conflict => error instanceof Conflict,
+			(error) => decisionConflict(fleet, workId, decision.id, error),
+		),
+	);
 	return { decisionId: decision.id, responseId };
 });
 
