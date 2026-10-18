@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
@@ -31,6 +31,12 @@ export function templateSource({ realStarter = false, localArtifacts = false } =
 	}
 	return {
 		changeApp: (content: string) => writeFileSync(join(starter, "app.ts"), content),
+		files: (files: Readonly<Record<string, string>>) => {
+			for (const [path, content] of Object.entries(files)) {
+				mkdirSync(dirname(join(starter, path)), { recursive: true });
+				writeFileSync(join(starter, path), content);
+			}
+		},
 		pack: async () => {
 			await Effect.runPromise(packTemplate(starter, output).pipe(Effect.provide(NodeServices.layer)));
 			return Object.fromEntries(

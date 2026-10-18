@@ -46,6 +46,10 @@ export function screenObservations(engine: ScreenSurface, tell: (line: string) =
 			observe(`the saved note links to ${JSON.stringify(title)}`, () => {
 				expect(container().querySelector("li > a")?.textContent).toBe(title);
 			}),
+		screenOmits: (text: string) =>
+			observe(`the screen omits ${JSON.stringify(text)}`, () => {
+				expect(container().textContent).not.toContain(text);
+			}),
 		screenSays: (text: string) =>
 			observe(`the screen says ${JSON.stringify(text)}`, () => {
 				expect(container().textContent).toContain(text);

@@ -76,7 +76,7 @@ test("CLI dispatch launches an edited criterion after a local-only criterion blo
 					expect(fixture.provider.launched).toHaveLength(1);
 					expect([...fixture.provider.observations.values()][0]?.output).toContain("Measure repository fixtures.");
 				}),
-			local.parts,
+			{ parts: local.parts },
 		);
 	}));
 

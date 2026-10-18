@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { type HostOptions, startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { requests } from "#test-support/requests.ts";
+import { storyDatabase } from "#test-support/storyDatabase.ts";
 import type { Engine } from "./applicationState.ts";
 import { applicationVerbs } from "./applicationVerbs.ts";
 
@@ -14,7 +14,7 @@ export const app = storyKit({
 			engine.host = yield* startHost(engine.hostOptions);
 		},
 	},
-	around: withIsolatedDatabase,
+	around: storyDatabase,
 	clock: "live",
 	create: (): Engine => ({ actors: new Map(), existingNotes: new Map(), host: undefined, hostOptions: {}, tell: () => undefined }),
 	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),

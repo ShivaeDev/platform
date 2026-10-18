@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.9 - 2026-10-18
+
+### Fixed
+
+- Generated apps log terminated idle Better Auth database connections at debug and continue serving queries on a fresh connection.
+- Keep nested README.md, AGENTS.md, CLAUDE.md and published-versions.json files in generated apps while excluding the starter's root maintenance files.
+
+## 0.6.8 - 2026-10-17
+
+### Fixed
+
+- Generated app READMEs describe the variables each process needs and web's ownership of Railway pre-deploy migrations.
+- Creating an app without a configured Git identity no longer stalls for seconds while Git guesses an email from the host name. The initial commit uses the Create App identity unless Git's `user.name` and `user.email` settings or the `GIT_AUTHOR_*` variables provide one; `EMAIL` and host-name guesses no longer count.
+- Keep saved notes and the empty-list message visible without an initial loading message while the generated app refreshes its notes list.
+- A generated app pins the current published framework versions, including `platform` 0.14.2, `effect-prisma` 0.9.2, `effect-test-sql` 0.5.2, `local-postgres` 0.3.0 and `quality` 0.23.0.
+
 ## 0.6.7 - 2026-10-17
 
 ### Fixed

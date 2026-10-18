@@ -36,9 +36,13 @@ its browser acceptance belong to
 
 ## Built: first copyable application
 
-- [x] The [starter](../../examples/starter/README.md) is the first copyable app: a notes feature connects migrated PostgreSQL, a declared service and authenticated HTTP/NDJSON RPC to a React form. The [host tests](../../examples/starter/src/server/noteLifecycle.spec.ts) prove persisted note creation and querying over real HTTP and PostgreSQL; the [screen test](../../examples/starter/src/client/NotesScreen.dom.test.tsx) proves form submission refreshes the rendered list. The [generation tests](../../packages/create-app/src/createApp.test.ts) check the standalone app's Quality setup.
+- [x] `pnpm create @shivaedev/app` generates the [starter](../../examples/starter/README.md), the first copyable app: a notes feature connects migrated PostgreSQL, a declared service and authenticated HTTP/NDJSON RPC to a React form. The [host tests](../../examples/starter/src/server/noteLifecycle.spec.ts) prove persisted note creation and querying over real HTTP and PostgreSQL; the [screen test](../../examples/starter/src/client/NotesScreen.dom.test.tsx) proves form submission refreshes the rendered list. The [generation tests](../../packages/create-app/src/createApp.test.ts) check the standalone app's Quality setup.
 - [x] The starter integrates Better Auth as its session owner and supplies `SessionBoundary` with `session`, `identify` and `recheck`. Its [host tests](../../examples/starter/src/server/noteLifecycle.spec.ts) prove signed-out rejection, user isolation and revocation; its [session test](../../examples/starter/src/client/SessionApp.dom.test.tsx) proves session replacement clears cached notes and drafts. The [proxy test](../../examples/starter/src/server/appDeploy.spec.ts) checks secure auth cookies and foreign-Origin rejection through a loopback forwarding proxy configured with an HTTPS public URL.
-- [x] The starter authors numbered migrations and runs them through `migratePostgres` on the `app_migrations` ledger. Its [host tests](../../examples/starter/src/server/noteLifecycle.spec.ts) prove a second host runs the migration path without losing auth accounts or notes, and the word-count migration backfills existing notes. This proves the starter's convention; each deployment still owns its operational timeout and status interface.
+- [x] The starter's `pnpm migrate` command runs numbered migrations through `migratePostgres` on the `app_migrations` ledger. Web and worker startup check the ledger instead of applying migrations. The [deployment readiness tests](../../examples/starter/src/server/deployReadiness.spec.ts) check startup refusal before migration, startup after migration and command rerun preservation. The [host tests](../../examples/starter/src/server/noteLifecycle.spec.ts) check migration reruns preserve auth accounts and notes and backfill word counts. Deployments choose their operational timeouts.
+
+## Built: trace export
+
+- [x] The [host tracing tests](../../packages/platform/src/server/otlpTracing.test.ts) check `appHost` request spans exported to a local OTLP HTTP receiver with service identity, exporter headers and resource metadata, no exporter without an endpoint, and successful requests and shutdown when the collector is unavailable. The [redaction tests](../../packages/platform/src/server/otlpRedaction.spec.ts) check sensitive diagnostics in exported spans. The starter's [worker tracing tests](../../examples/starter/src/server/workerTracing.spec.ts) check word-count job spans against real PostgreSQL and a local receiver, configured identity and headers, and completed jobs with an unavailable collector. These fixtures do not establish deployed collector delivery.
 
 ## Next: application and deployment acceptance
 
@@ -52,12 +56,13 @@ its browser acceptance belong to
    reference process fixture does not establish a deployment proxy's behavior.
 4. Prove optimistic edits only for a concrete feature that benefits from them,
    including rejection and out-of-order responses.
-5. Effect trace export is proven through `appHost` requests and the starter's real PostgreSQL word-count worker to a local OTLP HTTP receiver, with configured service identity, exporter headers and resource metadata. Tests cover no exporter without an endpoint, sensitive diagnostic redaction, and successful requests, jobs and shutdown with an unavailable collector. This does not establish deployed collector delivery. Request/action correlation, comprehensive application redaction policy and error presentation through RPC and SQL remain open.
+5. Define request/action correlation and comprehensive application redaction policy across RPC and SQL.
 6. Validate background and external-provider behavior during adoption, including
    payload rejection, cancellation/retry ownership and worker shutdown.
 7. Keep one supported Effect version across package peers and installed
    consumers. Decide the compatibility range and coordinated upgrade conventions
    from application and runtime evidence.
+8. Verify Bun hosting, native RPC reads, typed rejections, authenticated saves, client abort propagation and server scope cleanup in an automated runtime test. Include an AtomRpc registry and the DOM hook and resume suites, and select a compatible SQL driver. Manual runtime checks are not CI evidence.
 
 Acceptance means a representative feature uses public package APIs across the
 real boundaries it deploys, with precise types, typed failures and explicit

@@ -1,21 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { NodeServices } from "@effect/platform-node";
-import { Effect } from "effect";
-import { afterEach, beforeAll, expect, it } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { appFolder, cleanup } from "#test/cli.ts";
-import { packTemplate } from "./packTemplate.ts";
 
-beforeAll(() =>
-	Effect.runPromise(
-		packTemplate(
-			fileURLToPath(new URL("../../../examples/starter", import.meta.url)),
-			fileURLToPath(new URL("../template.json", import.meta.url)),
-		).pipe(Effect.provide(NodeServices.layer)),
-	),
-);
 afterEach(cleanup);
 
 it("runs setup after Git initialization and installs the active Quality gate before the initial commit", () => {
@@ -43,16 +31,12 @@ it("leaves the initial commit blocked when the installed Quality gate fails", ()
 	expect(spawnSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: app }).status).not.toBe(0);
 });
 
-it("runs setup without installing a hook when Git initialization is disabled or a repository encloses the app", () => {
-	for (const enclosing of [false, true]) {
-		const { root, run } = appFolder({ realSetup: true });
-		if (enclosing) {
-			expect(spawnSync("git", ["init", "--quiet"], { cwd: root }).status).toBe(0);
-		}
-		const result = run(enclosing ? ["my-app"] : ["my-app", "--no-git"]);
-		expect(result.status, result.stdout + result.stderr).toBe(0);
-		expect(existsSync(join(root, "my-app/node_modules"))).toBe(true);
-		expect(existsSync(join(root, "my-app/.git"))).toBe(false);
-		expect(existsSync(join(root, ".git/hooks/pre-commit"))).toBe(false);
-	}
+it("runs setup without installing a hook when a repository encloses the app", () => {
+	const { root, run } = appFolder({ realSetup: true });
+	expect(spawnSync("git", ["init", "--quiet"], { cwd: root }).status).toBe(0);
+	const result = run(["my-app"]);
+	expect(result.status, result.stdout + result.stderr).toBe(0);
+	expect(existsSync(join(root, "my-app/node_modules"))).toBe(true);
+	expect(existsSync(join(root, "my-app/.git"))).toBe(false);
+	expect(existsSync(join(root, ".git/hooks/pre-commit"))).toBe(false);
 });

@@ -1,9 +1,12 @@
 import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { Migrator, SqlClient } from "effect/sql";
+import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { assertModelColumns } from "#assertModelColumns.ts";
+import { type MigrationUpgradeOptions, migrationUpgrade, type PostgresColumn } from "#migrationUpgrade.ts";
 import { makePostgresTestLayer } from "#postgres.ts";
+import { adminUrl, configured } from "#test/postgres.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
-import { adminUrl } from "./postgres.ts";
 
 export class Item extends Model.Class<Item>("Item")({
 	id: Model.GeneratedByDb(Schema.Number),
@@ -32,11 +35,36 @@ export const migrations = {
 	table: "upgrade_migrations",
 };
 
-const layer = makePostgresTestLayer({
-	migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" },
-	url: adminUrl,
+type Migrations = MigrationUpgradeOptions["migrations"];
+
+export const app = storyKit({
+	around: withIsolatedDatabase,
+	clock: "live",
+	create: () => migrations,
+	layer: makePostgresTestLayer({ migrations, prepare: false, url: adminUrl }),
+	name: "upgrade",
+	runIf: configured,
+	stages: ["ledger"],
+	verbs: (base) => ({
+		adding: (...extra: readonly Migrator.ResolvedMigration[]) =>
+			Effect.map(base.loader, (resolved) => [...resolved, ...extra].sort(([left], [right]) => left - right)),
+		assertModel: (columns: readonly PostgresColumn[]) => assertModelColumns(columns, Item, types),
+		upgrade: (overrides: Partial<Migrations> = {}, upTo = 1) => migrationUpgrade({ migrations: { ...base, ...overrides }, table: "items", upTo }),
+	}),
 });
 
-export function runUpgrade<A, E, R>(effect: Effect.Effect<A, E, R>) {
-	return withIsolatedDatabase(effect).pipe(Effect.provide(layer));
-}
+export const MIXED_CASE_LEDGER = "UpgradeMigrations";
+
+export const populatedMixedCaseLedger = app.trait("ledger", "a mixed-case ledger already records the upgrade", () =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`create table ${sql(MIXED_CASE_LEDGER)} (
+  migration_id integer primary key,
+  created_at timestamp with time zone not null default now(),
+  name text not null
+)`;
+		yield* sql`insert into ${sql(MIXED_CASE_LEDGER)} (migration_id, name) values (3, 'upgrade_items')`;
+		yield* sql`create table items (id integer primary key, name text not null, price numeric(10,2))`;
+		yield* sql`insert into items (id, name) values (1, 'kept')`;
+	}),
+);

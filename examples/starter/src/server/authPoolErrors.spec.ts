@@ -8,7 +8,7 @@ authPool.it(
 		const terminated = yield* terminateIdleBackend();
 		expect(logs()).toEqual([
 			{
-				level: "Warn",
+				level: "Debug",
 				message: [{ event: "auth_database_idle_client_failed", message: "terminating connection due to administrator command" }],
 			},
 		]);

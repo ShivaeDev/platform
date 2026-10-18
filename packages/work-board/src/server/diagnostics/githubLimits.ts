@@ -1,15 +1,13 @@
-import { Effect, Schema } from "effect";
-import { GithubLimits, SourceFailure } from "#diagnostics/source.ts";
-import { readCommand } from "./readCommand.ts";
+import { Effect } from "effect";
+import type { FleetHealth } from "#diagnostics/health.ts";
+import { type Source, SourceFailure } from "#diagnostics/source.ts";
 
-const Response = Schema.Struct({ resources: GithubLimits });
-
-export function githubLimits(read = readCommand("gh", ["api", "rate_limit"])) {
-	return read.pipe(
-		Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(Response))),
-		Effect.map(({ resources }) => resources),
-		Effect.mapError((error) =>
-			error instanceof SourceFailure ? error : new SourceFailure({ kind: "error", message: "GitHub returned invalid rate limits" }),
+export function githubLimits(fleet: Source<FleetHealth>) {
+	return fleet.pipe(
+		Effect.flatMap(({ github }) =>
+			github === undefined || github.length === 0
+				? Effect.fail(new SourceFailure({ kind: "not-configured", message: "Fleet has not recorded a GitHub response yet" }))
+				: Effect.succeed(github),
 		),
 	);
 }

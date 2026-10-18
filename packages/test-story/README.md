@@ -220,6 +220,8 @@ expect(receiver.requests.some(({ body }) => body.includes(Buffer.from("planted-s
 
 `exportWork` is the kit's verb that runs application work and flushes its exporter. The receiver accepts OTLP/HTTP JSON and protobuf. `spans` flattens all exports into decoded trace and span IDs, parent span IDs, names, numeric OTLP kinds and status codes, attributes, events and links. Attributes retain OTLP key/value objects, including lossless decimal strings for integers; each span also has `resourceAttributes`. `requests` retains every request's unmodified `body` Buffer, parsed `headers`, original `rawHeaders` pairs and `path`. Search all body bytes when checking that a secret was not exported. Optional `path`, `status` (a number or attempt callback) and `answer` configure collector responses for failure stories.
 
+For timeout stories, return `undefined` from the `status` callback to accept an export without sending response headers. Set `answer: null` to send headers without completing the response body.
+
 ### 2. Once per feature: traits and verbs
 
 A trait is a line and a change, tagged with a stage:
@@ -327,6 +329,14 @@ After the engine has been created, a failing story test adds the story to its fi
 - the command that reruns the test, with `-t` on a second line when one line would pass 120 columns.
 
 The package wraps between words or JSON fields toward 120 columns and prints the story's own lines whole. An indivisible word, field or rerun command component can exceed that width. A passing test adds nothing. A typed failure with no message, such as an `after` hook's `NoBowls`, prints by its tag.
+
+### Library package kits
+
+A library package has an engine too: its own services or Layer under test. Keep its kit in `src/test-support/`, acquire the real services in `create` with their dependencies supplied by the kit's `layer`, and use real PostgreSQL wherever the package touches it. Traits seed that engine in domain words; verbs call the package's public API. The same division applies as for an application: the kit owns setup and wiring, and a spec names traits, calls verbs and checks results. Following the [root test guidance](https://github.com/ShivaeDev/platform/blob/main/AGENTS.md), reserve plain Vitest tests for pure functions with no engine behind them.
+
+The [`backfill` kit](https://github.com/ShivaeDev/platform/blob/main/packages/effect-test-sql/src/test-support/migrationStory.ts) in `effect-test-sql` is a library example. Its `create` returns the package's `migrationSteps(migrations)` API, its worker Layer provides PostgreSQL, and `around: withIsolatedDatabase` isolates each story. The `oldSchema` and `existingContacts` traits put contacts with email addresses into the old schema; the `backfill` verb calls `steps.migrateToLatest`. Its [story](https://github.com/ShivaeDev/platform/blob/main/packages/effect-test-sql/src/server/migrationStory.spec.ts) proves that those existing addresses survive the migration into a new table. It runs only when `PLATFORM_EFFECT_TEST_SQL_TEST_DATABASE_URL` is configured; a skipped story proves nothing.
+
+A fake belongs only at a true external boundary, wired in `create`; keep the package's own engine real. The [resume kit](https://github.com/ShivaeDev/platform/blob/main/packages/effect-contract/src/test-support/resumeStory.ts), for example, creates synthetic browser and native event sources while running the package's real `resumeSignal` API. Its [stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-contract/src/resume.dom.test.ts) exercise refresh on those events and listener cleanup. Those synthetic sources prove the package's response to events, not a physical browser or native application's event delivery.
 
 ### Whole-stack application kits
 

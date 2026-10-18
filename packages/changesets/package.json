@@ -1,0 +1,115 @@
+{
+	"name": "@shivaedev/changesets",
+	"version": "0.1.0",
+	"description": "Explicit changesets and reproducible workspace releases with Effect",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/changesets#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/changesets"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#test/*": "./src/test-support/*",
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"exports": {
+		"./applyRelease.ts": {
+			"types": "./dist/applyRelease.d.ts",
+			"source": "./src/applyRelease.ts",
+			"import": "./dist/applyRelease.js",
+			"default": "./dist/applyRelease.js"
+		},
+		"./check.ts": {
+			"types": "./dist/check.d.ts",
+			"source": "./src/check.ts",
+			"import": "./dist/check.js",
+			"default": "./dist/check.js"
+		},
+		"./planner.ts": {
+			"types": "./dist/planner.d.ts",
+			"source": "./src/planner.ts",
+			"import": "./dist/planner.js",
+			"default": "./dist/planner.js"
+		},
+		"./config.ts": {
+			"types": "./dist/config.d.ts",
+			"source": "./src/config.ts",
+			"import": "./dist/config.js",
+			"default": "./dist/config.js"
+		},
+		"./parser.ts": {
+			"types": "./dist/parser.d.ts",
+			"source": "./src/parser.ts",
+			"import": "./dist/parser.js",
+			"default": "./dist/parser.js"
+		},
+		"./error.ts": {
+			"types": "./dist/error.d.ts",
+			"source": "./src/error.ts",
+			"import": "./dist/error.js",
+			"default": "./dist/error.js"
+		},
+		"./model.ts": {
+			"types": "./dist/model.d.ts",
+			"source": "./src/model.ts",
+			"import": "./dist/model.js",
+			"default": "./dist/model.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"bin": {
+		"changesets": "./dist/cli.js"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
+		"docs",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"@effect/vitest": "catalog:",
+		"@shivaedev/effect-test": "workspace:*",
+		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
+		"@types/node": "catalog:",
+		"@typescript/native": "catalog:",
+		"effect": "catalog:",
+		"happy-dom": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"effect": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}

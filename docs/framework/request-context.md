@@ -47,18 +47,9 @@ encoded JSON. Other fields are ignored. An untagged `{ field, message }`, a
 non-string `field` and non-objects are not field rejections, so a defect or an
 arbitrary thrown object with those keys is never shown as a field message. Code
 that maps rejections to form fields should start from this check and then keep
-only fields the form has. effect-react's default mapping does not yet require
-`_tag`; aligning it is tracked separately.
+only fields the form has. effect-react's default mapping also requires a string `_tag` and a field belonging to the form, as its [field-rejection test](../../packages/effect-react/src/field-rejection.test.ts) checks.
 
-The set has changed from what the consumers use today:
-
-- `ConflictError` is now `Conflict`, to match the other tags. The tag is sent over
-  the wire, so an application moving to these classes changes it in the same
-  release on client and server.
-- `InternalError` is gone. Unexpected failures stay defects. Native RPC sends them
-  as defects, and the middleware logs them. They are not declared errors carrying
-  a server-written message.
-- `AuthUnavailable` is new. It separates a provider outage from a signed-out user.
+Unexpected failures stay defects rather than declared errors carrying a server-written message. Native RPC sends them as defects, and request tracing redacts and logs them. `AuthUnavailable` distinguishes a provider outage from a signed-out user. The [redaction tests](../../packages/platform/src/server/rpc-server/redaction.spec.ts) check the defect seen by the client, reporter and span; the session tests below check provider failure.
 
 The message is for diagnostics and a fallback display. Applications can still
 choose their own wording per tag.
@@ -271,5 +262,4 @@ preflight.
   through RPC responses. Refresh sessions through the auth HTTP handler.
 - Declared failures log at Info. Alerting on particular tags is the
   application's decision.
-- Export of spans and logs, and the Antumbra sink's failure behavior, remain
-  roadmap §14 work.
+- `appHost` trace export to a local OTLP HTTP receiver is covered by the [host tracing tests](../../packages/platform/src/server/otlpTracing.test.ts); they also check that collector failure preserves requests and shutdown. The [roadmap](./roadmap.md) tracks request/action correlation and application redaction policy.

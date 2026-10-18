@@ -1,14 +1,14 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "app-files.md",
-			"text": "### Fixed\n\n- A generated app gets its own named README and framework guidance, with `CLAUDE.md` linked to `AGENTS.md`, without template maintenance files or names.\n- A generated app uses matching development and test database names in both environment files, reads only `TEST_DATABASE_URL` for tests, and includes only existing TypeScript paths.\n- A generated app keeps non-secret files and its installed lockfile at mode `0644`, with `.env.local` at `0600`, and pins the current published framework versions.\n"
+			"name": "idle-auth-client-debug.md",
+			"text": "### Fixed\n\n- Generated apps log terminated idle Better Auth database connections at debug and continue serving queries on a fresh connection.\n"
 		},
 		{
-			"name": "auth-pool-errors.md",
-			"text": "### Fixed\n\n- A generated app logs a warning when PostgreSQL terminates an idle Better Auth connection, instead of crashing the process with an uncaught pool error.\n"
+			"name": "nested-template-files.md",
+			"text": "### Fixed\n\n- Keep nested README.md, AGENTS.md, CLAUDE.md and published-versions.json files in generated apps while excluding the starter's root maintenance files.\n"
 		}
 	],
-	"version": "0.6.7"
+	"version": "0.6.9"
 }

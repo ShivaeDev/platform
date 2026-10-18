@@ -3,7 +3,7 @@ import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { FleetRepository, fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
-import { BoardFailure, type BoardGateway, type BoardWork, type FleetConfiguration, FleetPolicy } from "#policy.ts";
+import { BoardFailure, type BoardGateway, type BoardWork, type FleetConfiguration, FleetPolicy, type Priority } from "#policy.ts";
 import { SessionJournal, SessionService } from "#session/service.ts";
 import type { ForeignReservation } from "#storage/model.ts";
 import { attentionStorage } from "#test/attentionStorage.ts";
@@ -28,6 +28,8 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly foreign: (owner: string) => Effect.Effect<void, unknown>;
 	readonly foreignReservations: () => Effect.Effect<readonly ForeignReservation[], unknown>;
 	readonly merged: readonly string[];
+	readonly occupy: (owner: string) => Effect.Effect<void, unknown>;
+	readonly priority: (workId: string, priority: Priority) => void;
 	readonly replaceRecord: (value: FleetRecord) => Effect.Effect<void, unknown>;
 	readonly respond: (decisionId: string, action: "retry" | "release", type?: "answer" | "clarify" | "not_now") => string;
 	readonly restart: <TResult, TFailure>(
@@ -39,6 +41,7 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly unavailableWork: (workId: string, unavailable: boolean) => void;
 	readonly upgradeAttention: Effect.Effect<void, unknown>;
 	readonly upgradeDecisionCodes: Effect.Effect<void, unknown>;
+	readonly vacate: (owner: string) => Effect.Effect<void, unknown>;
 	readonly work: (id: string) => BoardWork;
 }
 export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, TBoardError = never>(
@@ -60,6 +63,7 @@ export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, 
 	const dependencies = new Map<string, readonly string[]>();
 	const areas = new Map<string, readonly string[]>();
 	const statuses = new Map<string, string>();
+	const priorities = new Map<string, Priority>();
 	const unavailable = new Set<string>();
 	const approved: Record<string, string> = { dependent: "board-dependent", one: "board-one", two: "board-two" };
 	const decisions: string[] = [];
@@ -68,7 +72,7 @@ export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, 
 	const scripted = scriptedBoard(options, decisions, (id) =>
 		unavailable.has(id)
 			? Effect.fail(new BoardFailure({ message: "Board work unavailable" }))
-			: Effect.succeed(boardWork(id, approved, revisions, dependencies, areas, statuses)),
+			: Effect.succeed(boardWork(id, approved, revisions, dependencies, areas, statuses, priorities)),
 	);
 	const base = Layer.mergeAll(Layer.succeed(FleetRepository)(store), boardOverride ?? scripted.layer, provider.transport);
 	const session = SessionService.layer.pipe(Layer.provide(Layer.merge(base, fleetSessionJournal.pipe(Layer.provide(base)))));
@@ -107,6 +111,10 @@ export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, 
 		foreign,
 		foreignReservations: store.foreignReservations,
 		merged,
+		occupy: (owner) => store.reserveForeign(owner, { backlog: false, executing: true }),
+		priority: (workId, value) => {
+			priorities.set(workId, value);
+		},
 		replaceRecord,
 		respond: scripted.respond,
 		restart: <TResult, TFailure>(
@@ -124,7 +132,8 @@ export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, 
 		},
 		upgradeAttention,
 		upgradeDecisionCodes,
-		work: (id: string) => boardWork(id, approved, revisions, dependencies, areas, statuses),
+		vacate: store.releaseForeign,
+		work: (id: string) => boardWork(id, approved, revisions, dependencies, areas, statuses, priorities),
 	};
 	return yield* use(fixture).pipe(Effect.provide(fleetLayer()));
 });

@@ -38,7 +38,7 @@ it("clears a recovered current-document refresh failure without restoring readin
 		const doc = control("#doc", HTMLElement);
 		const focused = control("#search-open", HTMLButtonElement);
 		focused.focus();
-		vi.stubGlobal("scrollY", 480);
+		vi.spyOn(window, "scrollY", "get").mockReturnValue(480);
 		const scroll = vi.spyOn(window, "scrollTo");
 		const passage = vi.spyOn(control("#heading-evidence", HTMLElement), "scrollIntoView");
 		failed = true;

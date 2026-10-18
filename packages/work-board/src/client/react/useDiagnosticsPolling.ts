@@ -1,14 +1,17 @@
 import { RegistryContext } from "@effect/atom-react";
 import type * as Atom from "effect/reactivity/Atom";
 import { useContext, useEffect } from "react";
-import { session } from "#client/entry.ts";
+import type { BrowserClient } from "#client/client.ts";
 
-export function useDiagnosticsPolling<A, TFleet>(atom: Atom.Atom<A>, fleet?: Atom.Atom<TFleet>) {
+export function useDiagnosticsPolling<A, TFleet>(
+	client: (Pick<BrowserClient, "registry"> & { readonly updates: Pick<BrowserClient["updates"], "paused"> }) | undefined,
+	atom: Atom.Atom<A>,
+	fleet?: Atom.Atom<TFleet>,
+) {
 	const registry = useContext(RegistryContext);
 	useEffect(() => {
 		function refresh() {
-			const native = session(window);
-			if (!(document.hidden || native.registry.get(native.updates.paused))) {
+			if (!(document.hidden || client?.registry.get(client.updates.paused))) {
 				registry.refresh(atom);
 				if (fleet) {
 					registry.refresh(fleet);
@@ -16,12 +19,16 @@ export function useDiagnosticsPolling<A, TFleet>(atom: Atom.Atom<A>, fleet?: Ato
 			}
 		}
 		const timer = setInterval(refresh, 15_000);
-		document.addEventListener("board-updates-resumed", refresh);
+		const resumed = client?.registry.subscribe(client.updates.paused, (paused) => {
+			if (!paused) {
+				refresh();
+			}
+		});
 		document.addEventListener("visibilitychange", refresh);
 		return () => {
 			clearInterval(timer);
-			document.removeEventListener("board-updates-resumed", refresh);
+			resumed?.();
 			document.removeEventListener("visibilitychange", refresh);
 		};
-	}, [atom, fleet, registry]);
+	}, [atom, fleet, registry, client]);
 }

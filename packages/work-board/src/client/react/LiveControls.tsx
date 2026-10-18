@@ -1,7 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { BrowserClient } from "#client/client.ts";
 import { activeRead } from "./activeRead.ts";
@@ -35,19 +35,6 @@ export function LiveControls({
 		waiting: navigationPending || reading.pending,
 		watching,
 	});
-	useEffect(
-		() =>
-			client.registry.subscribe(
-				client.updates.paused,
-				(value) => {
-					if (!value) {
-						document.dispatchEvent(new Event("board-updates-resumed"));
-					}
-				},
-				{ immediate: true },
-			),
-		[client],
-	);
 	return (
 		<span
 			className="font-mono text-muted-foreground text-xs data-[state=down]:text-destructive data-[state=stale]:text-destructive"

@@ -1,10 +1,35 @@
+import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
-import { registryDependencies } from "#template.ts";
+import { prepareFile, registryDependencies } from "#template.ts";
 import { removeTemplates, templateSource } from "#test/templateSource.ts";
 
 afterEach(removeTemplates);
+
+it("keeps nested template-internal names and omits root maintenance files", async () => {
+	const source = templateSource();
+	source.files({
+		"AGENTS.md": "template guidance",
+		"CLAUDE.md": "template alias",
+		"docs/AGENTS.md": "nested guidance",
+		"docs/CLAUDE.md": "nested alias",
+		"docs/published-versions.json": "nested versions",
+		"docs/README.md": "nested readme",
+		"README.md": "template readme",
+	});
+	expect(await source.pack()).toEqual({
+		"docs/AGENTS.md": "nested guidance",
+		"docs/CLAUDE.md": "nested alias",
+		"docs/published-versions.json": "nested versions",
+		"docs/README.md": "nested readme",
+	});
+});
+
+it("preserves binary files when preparing the template", () => {
+	const content = Buffer.from([0, 0xff, 0x80, 0x41]);
+	expect(prepareFile("image.png", content, {})).toEqual(content);
+});
 
 it("exempts only framework packages from pnpm's default release-age wait in a generated app", async () => {
 	const files = await templateSource({ realStarter: true }).pack();

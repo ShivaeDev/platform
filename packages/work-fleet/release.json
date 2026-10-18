@@ -1,10 +1,14 @@
 {
-	"date": "2026-10-17",
+	"date": "2026-10-18",
 	"fragments": [
 		{
-			"name": "trace-url-redaction.md",
-			"text": "### Fixed\n\n- Uses Platform 0.14.1 and Work Board 0.14.2 to keep published dependencies aligned with the exported trace URL redaction security fix.\n"
+			"name": "read-retry-ms.md",
+			"text": "### Added\n\n- `readRetryMs` in Fleet policy and `fleet.config.json` sets the first provider and integration read-retry delay, defaulting to 30 seconds; later retries still double it. The daemon applies an edited value without a restart.\n\n### Breaking\n\n- `readHostConfig` and `loadHost` moved from `@shivaedev/work-fleet/host/config.ts` to `@shivaedev/work-fleet/host/configFile.ts`.\n"
+		},
+		{
+			"name": "repair-area-claims.md",
+			"text": "### Fixed\n\n- Conflict repairs on existing PRs keep or regain their area ahead of prepared items with terminal provider attempts.\n"
 		}
 	],
-	"version": "0.2.1"
+	"version": "0.4.0"
 }

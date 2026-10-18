@@ -2,7 +2,7 @@ import { posix } from "node:path";
 import { Effect } from "effect";
 import { command } from "#package-check/io.ts";
 import { bins, type Manifest, type Package, targets } from "#package-check/model.ts";
-import { importEntry } from "./imports.ts";
+import { importEntry, importKey } from "./imports.ts";
 
 export interface Entry {
 	readonly json: boolean;
@@ -38,7 +38,7 @@ function stars(manifest: Manifest, value: unknown, packed: ReadonlySet<string>):
 }
 
 function exposedStars(manifest: Manifest, key: string, value: unknown, packed: ReadonlySet<string>): string[] {
-	return stars(manifest, value, packed).filter((star) => !blocked(manifest, key.replace("*", star)));
+	return stars(manifest, value, packed).filter((star) => importKey(manifest.exports ?? {}, key.replace("*", star)) === key);
 }
 
 function patterns(manifest: Manifest): [string, unknown][] {

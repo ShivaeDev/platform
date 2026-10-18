@@ -7,8 +7,9 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 		function* ({ actor, collector, storedWordCountIs }) {
 			const receiver = yield* collector();
 			const note = yield* actor().notes.create({ title: "Count these words" });
-			yield* receiver.startWorker(protocol);
+			const stopWorker = yield* receiver.startWorker(protocol);
 			yield* storedWordCountIs(note.id, 3);
+			yield* stopWorker;
 			yield* receiver.exportsCountWords();
 			yield* receiver.omitsSecrets(["worker collector secret", "app-test-secret"]);
 		},
@@ -23,9 +24,10 @@ for (const status of ["down", 500] as const) {
 		function* ({ actor, collector, storedWordCountIs, wordCountJobsComplete }) {
 			const receiver = yield* collector(status);
 			const note = yield* actor().notes.create({ title: "Collector has failed" });
-			yield* receiver.startWorker();
+			const stopWorker = yield* receiver.startWorker();
 			yield* storedWordCountIs(note.id, 3);
 			yield* wordCountJobsComplete(1);
+			yield* stopWorker;
 			if (status !== "down") {
 				yield* receiver.receivesRequests();
 			}

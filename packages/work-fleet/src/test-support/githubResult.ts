@@ -34,7 +34,7 @@ interface ResultOptions {
 	readonly unavailable?: boolean;
 }
 export function resultFixture(options: ResultOptions = {}) {
-	const requests: (readonly string[])[] = [];
+	const requests: string[] = [];
 	let refreshes = 0;
 	const snapshot = { observedAt: 1, revision: options.mainHead ?? HEAD };
 	const main = MainSource.of({
@@ -48,30 +48,28 @@ export function resultFixture(options: ResultOptions = {}) {
 	});
 	const read = scriptedGithubRead(options, requests);
 	const host = resolveHost("/synthetic/board", { provider: "local", result: "github" });
-	return { adopt: githubResult(host, main, read), host, main, refreshes: () => refreshes, requests };
+	return { adopt: githubResult(host, read, Effect.succeed("example/repository")), host, main, refreshes: () => refreshes, requests };
 }
 
-function scriptedGithubRead(options: ResultOptions, requests: (readonly string[])[]): GithubRead {
+function scriptedGithubRead(options: ResultOptions, requests: string[]): GithubRead {
 	let next = options.before;
 	const pr = { base: { ref: "main", sha: BASE }, "changed_files": 2, head: { sha: HEAD }, "html_url": PR, merged: false, number: 7, state: "open" };
-	const read: GithubRead = (args) =>
-		Effect.suspend(() => {
-			requests.push(args);
+	function read(endpoint: string) {
+		return Effect.suspend(() => {
+			requests.push(endpoint);
 			if (options.unavailable) {
 				return Effect.fail(new ServiceUnavailable({ message: "GitHub unavailable" }));
 			}
 			if (options.invalidJson) {
 				return Effect.succeed("not json");
 			}
-			if (args[0] === "repo") {
-				return Effect.succeed(JSON.stringify({ nameWithOwner: "example/repository" }));
-			}
-			if (args[1]?.includes("/files?")) {
+			if (endpoint.includes("/files?")) {
 				return Effect.succeed(JSON.stringify(options.files ?? [[{ filename: "src/one.ts" }], [{ filename: "src/two.ts" }]]));
 			}
 			const value = { ...pr, ...next };
 			next = options.after;
 			return Effect.succeed(JSON.stringify(value));
 		});
-	return read;
+	}
+	return { get: read, pages: read };
 }

@@ -49,14 +49,12 @@ function watchAnswer(fixture: HostFixture, port: number, release: boolean, respo
 }
 
 const recoveryStory = Effect.fn("AnswerRecoveryTest.recoveryStory")(function* (fixture: HostFixture, release: boolean) {
-	const responseId = yield* withReadDaemon(fixture.host, (port) => saveAnswer(fixture, port, release), fixture.parts);
+	const responseId = yield* withReadDaemon(fixture.host, (port) => saveAnswer(fixture, port, release), { parts: fixture.parts });
 	const snapshot = Promise.withResolvers<void>();
-	yield* withReadDaemon(
-		fixture.host,
-		(port) => watchAnswer(fixture, port, release, responseId, snapshot.promise),
-		fixture.parts,
-		() => snapshot.resolve(),
-	);
+	yield* withReadDaemon(fixture.host, (port) => watchAnswer(fixture, port, release, responseId, snapshot.promise), {
+		onSnapshot: () => snapshot.resolve(),
+		parts: fixture.parts,
+	});
 });
 
 for (const release of [false, true]) {

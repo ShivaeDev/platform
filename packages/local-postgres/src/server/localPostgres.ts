@@ -25,7 +25,12 @@ function clientEnvironment(url: URL) {
 	return { ...env, ...(password && { "PGPASSWORD": password }) };
 }
 
-export function localPostgres(environment: DockerEnvironment) {
+export interface ReadinessOptions {
+	readonly attempts?: number;
+	readonly delayMillis?: number;
+}
+
+export function localPostgres(environment: DockerEnvironment, { attempts = 30, delayMillis = 1000 }: ReadinessOptions = {}) {
 	function localDocker(args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding = { encoding: "utf8" }) {
 		return docker(environment, args, options);
 	}
@@ -67,12 +72,12 @@ export function localPostgres(environment: DockerEnvironment) {
 			version = sql(server, "SHOW server_version");
 		} catch {
 			startContainer(localDocker);
-			for (let attempt = 0; attempt < 30; attempt += 1) {
+			for (let attempt = 0; attempt < attempts; attempt += 1) {
 				try {
 					version = sql(server, "SHOW server_version");
 					break;
 				} catch {
-					Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
+					Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMillis);
 				}
 			}
 		}

@@ -49,6 +49,7 @@ export class FakeClient implements PgBossClient {
 	failStart = false;
 	stopCalls = 0;
 	failCreateQueue = false;
+	readonly createQueueFailures: unknown[] = [];
 
 	complete(name: string, target: JobAttempt | string | JobAttempt[] | string[]) {
 		this.completeCalls.push({ job: target, name });
@@ -62,6 +63,10 @@ export class FakeClient implements PgBossClient {
 	createQueue(name: string, options?: Omit<Queue, "name">) {
 		if (this.failCreateQueue) {
 			return Promise.reject(new Error("queue unavailable"));
+		}
+		const failure = this.createQueueFailures.shift();
+		if (failure !== undefined) {
+			return Promise.reject(failure);
 		}
 		this.createQueueCalls.push({ name, options });
 		if (!this.queues.has(name)) {

@@ -35,7 +35,8 @@ export function readOrContinueReview(state: EngineState) {
 
 function continueReview(state: EngineState) {
 	return Effect.fn("Fleet.continueReview")(function* (stored: Versioned<FleetRecord>, work: BoardWork, result: WorkResult, receipt: SessionReceipt) {
-		const { policy, store, board, save, sessions } = state;
+		const { store, board, save, sessions } = state;
+		const policy = yield* state.current;
 		const reviewerGuidance = yield* policyGuidance(policy, "reviewer");
 		const prompt = [
 			reviewerPrompt({
