@@ -13,15 +13,15 @@ export interface SourceComment {
 
 const DECLARATION = /\.d\.[cm]?ts$/u;
 
-const commentRanges = (source: ts.SourceFile): readonly ts.CommentRange[] => {
+function commentRanges(source: ts.SourceFile): readonly ts.CommentRange[] {
 	const ranges = new Map<number, ts.CommentRange>();
 	const jsxText: ts.Node[] = [];
-	const add = (found: readonly ts.CommentRange[] | undefined) => {
+	function add(found: readonly ts.CommentRange[] | undefined) {
 		for (const range of found ?? []) {
 			ranges.set(range.pos, range);
 		}
-	};
-	const visit = (node: ts.Node) => {
+	}
+	function visit(node: ts.Node) {
 		if (node.kind === ts.SyntaxKind.JsxText) {
 			jsxText.push(node);
 		}
@@ -30,22 +30,23 @@ const commentRanges = (source: ts.SourceFile): readonly ts.CommentRange[] => {
 		for (const child of node.getChildren(source)) {
 			visit(child);
 		}
-	};
+	}
 	visit(source);
 	return [...ranges.values()]
 		.filter((range) => !jsxText.some((text) => range.pos >= text.pos && range.pos < text.end))
 		.sort((left, right) => left.pos - right.pos);
-};
+}
 
-export const bodyOf = (kind: SourceComment["kind"], text: string): readonly string[] =>
-	kind === "line"
+export function bodyOf(kind: SourceComment["kind"], text: string): readonly string[] {
+	return kind === "line"
 		? [text.slice(2).trim()]
 		: text
 				.slice(2, -2)
 				.split("\n")
 				.map((line) => line.trim().replace(/^\*(?=\s|$)\s*/u, ""));
+}
 
-const toComment = (source: ts.SourceFile, range: ts.CommentRange): SourceComment => {
+function toComment(source: ts.SourceFile, range: ts.CommentRange): SourceComment {
 	const kind = range.kind === ts.SyntaxKind.SingleLineCommentTrivia ? "line" : "block";
 	const text = source.text.slice(range.pos, range.end);
 	const start = source.getLineAndCharacterOfPosition(range.pos);
@@ -58,16 +59,16 @@ const toComment = (source: ts.SourceFile, range: ts.CommentRange): SourceComment
 		ownLine: source.text.slice(lineStart, range.pos).trim() === "",
 		text,
 	};
-};
+}
 
 const scanned = new WeakMap<SourceFile, readonly SourceComment[]>();
 
-const scan = (file: SourceFile): readonly SourceComment[] => {
+function scan(file: SourceFile): readonly SourceComment[] {
 	const source = parse(file);
 	return source === undefined ? [] : commentRanges(source).map((range) => toComment(source, range));
-};
+}
 
-export const scanComments = (file: SourceFile): readonly SourceComment[] => {
+export function scanComments(file: SourceFile): readonly SourceComment[] {
 	const cached = scanned.get(file);
 	if (cached !== undefined) {
 		return cached;
@@ -75,6 +76,8 @@ export const scanComments = (file: SourceFile): readonly SourceComment[] => {
 	const comments = scan(file);
 	scanned.set(file, comments);
 	return comments;
-};
+}
 
-export const commentsOf = (file: SourceFile): readonly SourceComment[] => (DECLARATION.test(file.path) ? [] : scanComments(file));
+export function commentsOf(file: SourceFile): readonly SourceComment[] {
+	return DECLARATION.test(file.path) ? [] : scanComments(file);
+}

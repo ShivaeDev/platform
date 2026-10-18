@@ -9,7 +9,7 @@ import { discoveryDaemon } from "#test/discoveryDaemon.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import { untilError, untilOutput } from "#test/follower.ts";
 import { type Follower, followerProcess } from "#test/followerProcess.ts";
-import { postgresAvailable, postgresLayer } from "#test/postgres.ts";
+import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { statusRecord } from "#test/status.ts";
 import { storeState } from "#test/storeState.ts";
 
@@ -37,7 +37,7 @@ export const fleetDaemon = storyKit({
 	inspect: (engine) => ({ errors: engine.follower?.errors(), output: engine.follower?.output(), port: engine.daemon.port }),
 	layer: postgresLayer,
 	name: "Fleet daemon",
-	runIf: postgresAvailable,
+	runIf: postgresEnabled,
 	stages: ["daemon"],
 	verbs: (engine, story) => ({
 		awaitError: (text: string) => untilError(follower(engine), text),

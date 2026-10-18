@@ -6,7 +6,7 @@ import { appliedAnswer, dispatchAndWait } from "#test/daemonActions.ts";
 import { discoveryDaemon } from "#test/discoveryDaemon.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { hostFixture, task } from "#test/fleetHost.ts";
-import { postgresAvailable, postgresLayer } from "#test/postgres.ts";
+import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 
 interface Selection {
 	readonly board?: string;
@@ -36,7 +36,7 @@ export const fleetAnswerHint = storyKit({
 	inspect: (engine) => ({ board: engine.fixture.host.boardDir, port: engine.daemon.port }),
 	layer: postgresLayer,
 	name: "Fleet answer hint",
-	runIf: postgresAvailable,
+	runIf: postgresEnabled,
 	stages: ["daemon"],
 	verbs: (engine, story) => ({
 		answer: (hint: string, text: string) => {

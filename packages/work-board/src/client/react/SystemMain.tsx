@@ -1,7 +1,7 @@
 import { useContext } from "react";
-import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
+import { routeQueryOptions } from "./routeQuery.ts";
 import { SessionContext } from "./SessionContext.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { SystemPage } from "./SystemPage.tsx";

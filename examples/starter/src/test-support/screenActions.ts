@@ -19,7 +19,7 @@ export function screenActions(engine: ScreenSurface, tell: (line: string) => voi
 			const container = screenView(engine).container;
 			const link =
 				label === undefined
-					? container.querySelector<HTMLAnchorElement>("li > a")
+					? container.querySelector<HTMLAnchorElement>("tbody td a")
 					: [...container.querySelectorAll("a")].find((element) => element.textContent === label);
 			if (link === null || link === undefined) {
 				throw new Error(`Missing ${label ?? "saved note"} link`);
