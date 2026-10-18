@@ -18,6 +18,8 @@ Run `./script/update` once per checkout: it calls `pnpm run setup` to install fr
 
 Make each change on its own branch in `.worktrees/<name>`, created with `git worktree add`. Every `CLAUDE.md` is a symlink to the `AGENTS.md` beside it; edit the `AGENTS.md`. A package change that consumers would notice adds one `.changeset/<short-name>.md` per PR, naming each affected package and its explicit bump in YAML frontmatter (`"@shivaedev/example": minor`). Use minor for Added or Breaking behavior before 1.0, patch for Changed or Fixed only, and keep the notes under `### Added`, `### Changed`, `### Fixed` or `### Breaking` with Markdown bullets. Internal refactors, tests, tooling and docs need no changeset. Do not edit versions, `CHANGELOG.md` or release manifests outside an approved release. For a release, review `pnpm changesets plan`, then run `pnpm changesets apply` to bump packages, collect notes and align starter pins and binary version constants. Follow [the release steps](docs/releases.md). `pnpm changelog:check` rejects direct changelog edits outside a release and changes to released history.
 
+`pnpm changelog:check` also requires starter pins to match current workspace versions and include each pinned package's published framework dependencies.
+
 ## When you need more
 
 - For the framework design and its boundaries, read `docs/framework/README.md`.

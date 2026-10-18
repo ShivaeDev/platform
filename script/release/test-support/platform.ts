@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Console, Effect, FileSystem } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { command } from "./command.ts";
+import { copyRepository } from "./copyRepository.ts";
 
 const repository = process.cwd();
 
@@ -15,14 +16,7 @@ function git(root: string, ...args: readonly string[]): string {
 const create = Effect.fn("ReleaseStory.create")(function* () {
 	const fs = yield* FileSystem.FileSystem;
 	const root = yield* fs.makeTempDirectoryScoped({ prefix: "platform-release-" });
-	const files = git(repository, "ls-files", "--cached", "--others", "--exclude-standard", "-z").split("\0").filter(Boolean);
-	for (const relative of files) {
-		const source = join(repository, relative);
-		if (yield* fs.exists(source)) {
-			yield* fs.makeDirectory(dirname(join(root, relative)), { recursive: true });
-			yield* fs.copy(source, join(root, relative));
-		}
-	}
+	yield* copyRepository(repository, root);
 	yield* Effect.sync(() => {
 		git(root, "init", "-b", "main");
 		git(root, "config", "user.email", "release@example.test");

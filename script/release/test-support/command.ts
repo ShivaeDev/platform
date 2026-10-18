@@ -1,33 +1,24 @@
-import { execFile } from "node:child_process";
-import { Effect } from "effect";
+import { Effect, Stream } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
-interface CommandResult {
-	readonly status: number;
-	readonly stderr: string;
-	readonly stdout: string;
-}
-
-export function command(root: string, args: readonly string[]) {
-	return Effect.tryPromise({
-		catch: (cause) => new Error(`Cannot run pnpm ${args.join(" ")}`, { cause }),
-		try: (signal) =>
-			new Promise<CommandResult>((resolve) => {
-				execFile(
-					"env",
-					["CHANGELOG_BASE_REF=main", "pnpm", ...args],
-					{ cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024, signal },
-					(error, stdout, stderr) => {
-						let status = 0;
-						if (error !== null) {
-							status = typeof error.code === "number" ? error.code : 1;
-						}
-						resolve({
-							status,
-							stderr: error === null ? stderr : `${stderr}\n${error.message}`,
-							stdout,
-						});
-					},
-				);
-			}),
-	});
-}
+export const command = Effect.fn("ReleaseStory.command")(function* (root: string, args: readonly string[]) {
+	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+	return yield* Effect.scoped(
+		Effect.gen(function* () {
+			const child = yield* spawner.spawn(
+				ChildProcess.make("pnpm", args, {
+					cwd: root,
+					env: { "CHANGELOG_BASE_REF": "main" },
+					extendEnv: true,
+				}),
+			);
+			const [stdout, stderr, status] = yield* Effect.all(
+				[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
+				{
+					concurrency: "unbounded",
+				},
+			);
+			return { status: Number(status), stderr, stdout };
+		}),
+	);
+});

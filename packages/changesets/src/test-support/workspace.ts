@@ -31,7 +31,7 @@ export const workspace = storyKit({
 		exists: Effect.fn("ChangesetsStory.exists")(function* (file: string) {
 			return yield* (yield* FileSystem.FileSystem).exists(join(root, file));
 		}),
-		git: (...args: readonly string[]) => Effect.sync(() => git(root, args)),
+		git: Effect.fn("ChangesetsStory.git")((...args: readonly string[]) => Effect.sync(() => git(root, args))),
 		read: Effect.fn("ChangesetsStory.read")(function* (file: string) {
 			return yield* (yield* FileSystem.FileSystem).readFileString(join(root, file));
 		}),

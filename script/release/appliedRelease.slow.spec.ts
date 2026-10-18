@@ -51,7 +51,6 @@ platform.it(
 			}
 			const before = name === "@shivaedev/work-board" ? board : fleet;
 			expect(yield* read(path)).toBe(before.replace(`export const VERSION = "${release.from}";`, `export const VERSION = "${release.to}";`));
-			expect(yield* read(path)).toContain(`export const VERSION = "${release.to}";`);
 		}
 		const checked = yield* run("changelog:check");
 		expect(checked.status, checked.stderr).toBe(0);
