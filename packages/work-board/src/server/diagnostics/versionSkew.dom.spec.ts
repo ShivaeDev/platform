@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { boardStory, readerAt } from "#test/boardStory.ts";
-import { daemonReports } from "#test/daemonReports.ts";
 import { codexResponse, health } from "#test/diagnostics.ts";
+import { fleetDiagnostics } from "#test/storyTraits.ts";
 
-const unknownGithubLimits = daemonReports((observedAt) => ({
+const unknownGithubLimits = fleetDiagnostics((observedAt) => ({
 	codex: { observedAt, state: "ready", value: codexResponse.rateLimits },
 	fleet: { observedAt, state: "ready", value: { ...health, observedAt } },
 	github: { observedAt, state: "ready", value: { windows: [] } },
@@ -27,7 +27,7 @@ boardStory.it(
 
 boardStory.it(
 	"reports decode observations for every source when the daemon snapshot itself has an unknown shape",
-	[daemonReports(() => null), readerAt("/_board/system")],
+	[fleetDiagnostics(() => null), readerAt("/_board/system")],
 	function* ({ client, page }) {
 		const data = yield* Effect.promise(() => client.run(client.api.diagnostics.run(undefined)));
 		for (const source of ["codex", "github", "fleet"] as const) {

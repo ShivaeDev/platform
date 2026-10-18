@@ -1,12 +1,8 @@
 import { Clock, Effect, Layer, Predicate, Schema } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { Rpc, RpcClient, RpcSerialization } from "effect/rpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import { RpcClientError } from "effect/rpc/RpcClientError";
-import { DAEMON_PORT, DAEMON_RPC_PATH, DiagnosticsContract, DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
-
-const DaemonReadContract = DiagnosticsContract.omit("daemon.diagnostics").add(
-	Rpc.make("daemon.diagnostics", { payload: {}, success: Schema.Unknown }),
-);
+import { DAEMON_PORT, DAEMON_RPC_PATH, DaemonReadContract, DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 
 function makeDaemonClient() {
 	return RpcClient.make(DaemonReadContract, { flatten: true });
