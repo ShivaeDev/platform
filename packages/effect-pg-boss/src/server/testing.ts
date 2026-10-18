@@ -32,7 +32,7 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 		if (current !== undefined) {
 			throw new Error("A testing controller owns one jobs client; create a controller per runtime");
 		}
-		current = new PgBoss(clientOptions);
+		current = new PgBoss({ ...clientOptions, "__test__enableSpies": true });
 		return testingClient(current, clientOptions.schema ?? "pgboss", controls);
 	};
 	return {

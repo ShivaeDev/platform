@@ -1,6 +1,8 @@
 import type { Job, PgBoss, SendOptions, UpdateOptions, UpdateRequest, UpdateResponse } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { expireAttempt } from "#internal/expireAttempt.ts";
+import { observeTestingSettlements } from "#internal/observeTestingSettlements.ts";
+import { testingExpirations } from "#internal/testingExpirations.ts";
 
 export interface TestingControls {
 	readonly changed: () => void;
@@ -10,6 +12,8 @@ export interface TestingControls {
 }
 
 export function testingClient(client: PgBoss, schema: string, controls: TestingControls): PgBossClient {
+	const settlements = observeTestingSettlements(client, controls.changed);
+	const expirations = testingExpirations(client);
 	function update(request: UpdateRequest): Promise<UpdateResponse>;
 	function update(name: string, data: object | null | undefined, options?: UpdateOptions): Promise<UpdateResponse>;
 	async function update(request: string | UpdateRequest, data?: object | null, options?: UpdateOptions): Promise<UpdateResponse> {
@@ -47,14 +51,26 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 			}
 			const attempts = controls.expirations.get(name);
 			const { retryDelayMax, ...rest } = options ?? {};
-			const id = await client.send(name, data, {
-				...rest,
-				...(controls.retryPolicy.retryBackoff === false || retryDelayMax === undefined ? {} : { retryDelayMax }),
-				...controls.retryPolicy,
-				...(attempts === undefined ? {} : { retryLimit: attempts - 1 }),
-			});
+			const id = await expirations.send(
+				name,
+				data,
+				{
+					...rest,
+					...(controls.retryPolicy.retryBackoff === false || retryDelayMax === undefined ? {} : { retryDelayMax }),
+					...controls.retryPolicy,
+					...(attempts === undefined ? {} : { retryLimit: attempts - 1 }),
+				},
+				attempts,
+			);
 			controls.changed();
 			return id;
+		},
+		stop: async (options) => {
+			try {
+				await client.stop(options);
+			} finally {
+				settlements.close();
+			}
 		},
 		update,
 		updateQueue: (name, options) =>
@@ -63,13 +79,14 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 				...controls.retryPolicy,
 				...(controls.retryPolicy.retryBackoff === false ? { retryDelayMax: null } : {}),
 			}),
-		work: (name, options, handler) =>
-			client.work(name, options, async (jobs: Job<unknown>[]) => {
+		work: (name, options, handler) => {
+			settlements.watch(name);
+			return client.work(name, options, async (jobs: Job<unknown>[]) => {
 				controls.changed();
 				try {
 					const ready: Job<unknown>[] = [];
 					for (const job of jobs) {
-						const attempts = controls.expirations.get(name);
+						const attempts = await expirations.attemptsFor(job);
 						if (attempts !== undefined && job.retryCount + 1 >= attempts) {
 							await expireAttempt(client, schema, job);
 						} else {
@@ -82,7 +99,8 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 				} finally {
 					controls.changed();
 				}
-			}),
+			});
+		},
 	};
 	return new Proxy(client, {
 		get(target, property) {

@@ -23,6 +23,7 @@ function* create() {
 	const readout: JobWithMetadata<{ readonly id: number }>[] = [];
 	return {
 		attempts,
+		clientCacheKey: Symbol("testing-story"),
 		entered: yield* Deferred.make<void>(),
 		jobs: Option.none<PgBossService>(),
 		paused: false,
@@ -42,7 +43,24 @@ function* create() {
 
 export const queues = storyKit({
 	after: {
+		*producer(state) {
+			const database = yield* PostgresTestDatabase;
+			const context = yield* Layer.build(
+				Jobs.layer({
+					clientCacheKey: state.clientCacheKey,
+					clientFactory: state.testing.clientFactory,
+					connectionString: Redacted.value(database.url),
+					jobs: [state.queue],
+					schema: "story_jobs",
+					supervise: false,
+				}),
+			);
+			state.jobs = Option.some(Context.get(context, Jobs));
+		},
 		*runtime(state) {
+			if (!state.worker) {
+				return;
+			}
 			const database = yield* PostgresTestDatabase;
 			const worker = state.queue.handle(({ id }) => {
 				state.attempts.push(id);
@@ -52,9 +70,10 @@ export const queues = storyKit({
 			});
 			const context = yield* Layer.build(
 				Jobs.layer({
+					clientCacheKey: state.clientCacheKey,
 					clientFactory: state.testing.clientFactory,
 					connectionString: Redacted.value(database.url),
-					jobs: state.worker ? [worker] : [state.queue],
+					jobs: [worker],
 					schema: "story_jobs",
 					supervise: false,
 				}),
@@ -78,7 +97,7 @@ export const queues = storyKit({
 		},
 	},
 	runIf: databaseUrl !== "",
-	stages: ["configuration", "runtime"],
+	stages: ["configuration", "producer", "jobs", "runtime"],
 	verbs: (state, story) => ({
 		attempts: state.attempts,
 		queue: state.queue,
@@ -104,4 +123,15 @@ export const pausedWorker = queues.trait("configuration", "a real worker waits b
 
 export const productionRetries = queues.trait("configuration", "retry settings keep their production policy", (state) => {
 	state.testing = makePgBossTesting();
+});
+
+export const pendingExpiryRules = queues.trait("jobs", "pending jobs keep the expiry rule from their send", function* (state) {
+	const jobs = Option.getOrThrow(state.jobs);
+	yield* jobs.enqueue(state.queue, { id: 11 }, { retryLimit: 0 });
+	yield* state.testing.expireAfter(state.queue, 1);
+	yield* jobs.enqueue(state.queue, { id: 12 });
+	yield* state.testing.expireAfter(state.queue, 3);
+	const id = Option.getOrThrow(yield* jobs.enqueue(state.queue, { id: 13 }));
+	yield* state.testing.expireAfter(state.queue, 1);
+	yield* jobs.enqueue(state.queue, { id: 13 }, { id });
 });
