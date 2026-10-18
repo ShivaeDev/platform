@@ -20,7 +20,7 @@
 		"setup": "pnpm install && node src/setup.ts",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
 		"test": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run",
-		"typecheck": "tsc6 --noEmit",
+		"typecheck": "tsc --noEmit",
 		"worker": "node --conditions=source --env-file-if-exists=.env.local src/server/worker.ts"
 	},
 	"dependencies": {
