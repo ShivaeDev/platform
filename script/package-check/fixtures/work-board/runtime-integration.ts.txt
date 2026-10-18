@@ -5,11 +5,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer, Schema } from "effect";
-import { attention } from "@shivaedev/work-board/integration/attention.ts";
-import { board } from "@shivaedev/work-board/integration/board.ts";
-import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
-import { publication } from "@shivaedev/work-board/integration/publication.ts";
-import { responses } from "@shivaedev/work-board/integration/responses.ts";
+import { attention } from "@shivaedev/work-board/server/integration/attention.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
+import { publication } from "@shivaedev/work-board/server/integration/publication.ts";
+import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 
 const { managedRequestReceipt, RequestReceipt } = attention;
 const { listMarkdown, markdownPath, metadataModel, metadataParse, searchSnapshot, watchChanges } = board;

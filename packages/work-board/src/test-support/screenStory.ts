@@ -1,5 +1,5 @@
 import { act } from "react";
-import type { render } from "@shivaedev/effect-react/testing.ts";
+import type { render } from "@shivaedev/effect-react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { captureReading, restoreReading } from "#client/react/readingState.ts";
 import { ageActions } from "./ageActions.tsx";

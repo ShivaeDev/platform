@@ -1,10 +1,10 @@
 import { Option, Predicate } from "effect";
 import { useId } from "react";
-import { useField } from "@shivaedev/effect-form/react.ts";
-import { useCreate } from "@shivaedev/effect-react/create.ts";
+import { useField } from "@shivaedev/effect-form/client/react.ts";
+import { useCreate } from "@shivaedev/effect-react/client/create.ts";
+import { Button } from "#client/ui/button.tsx";
+import { Input } from "#client/ui/input.tsx";
 import { NoteFields } from "#notes.ts";
-import { Button } from "./Button.tsx";
-import { Input } from "./Input.tsx";
 import type { NotesClient } from "./makeNotes.ts";
 
 export function NoteCreate({ client }: { readonly client: NotesClient }) {

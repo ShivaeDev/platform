@@ -2,7 +2,7 @@ import { Deferred, Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
-import type { render } from "@shivaedev/effect-react/testing.ts";
+import type { render } from "@shivaedev/effect-react/client/testing.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { browserStorage } from "./browserStorage.ts";
 import type { chrome } from "./chrome.ts";

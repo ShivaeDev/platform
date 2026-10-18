@@ -4,6 +4,7 @@ import { addShapeColumns } from "#storage/addShapeColumns.ts";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import { modelTables } from "#storage/modelTables.ts";
 import { pruneEmptyCycles } from "#storage/pruneEmptyCycles.ts";
+import { childTable } from "#storage/recordChildren.ts";
 import { recordTimeColumns } from "#storage/recordTimes.ts";
 import { shapeV12 } from "#storage/shapeV12.ts";
 import { shapeV14 } from "#storage/shapeV14.ts";
@@ -55,6 +56,10 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 		"14_dispatch_now": Effect.gen(function* () {
 			yield* addShapeColumns(namespace, shapeV12, shapeV14);
 			yield* sql`alter table ${sql(`${namespace}_dispatches`)} add column now boolean, add column ignore_areas boolean`;
+		}),
+		"15_remove_admission_ready": Effect.gen(function* () {
+			yield* sql`alter table ${sql(`${namespace}_records`)} drop column ${sql("admissionReady")}`;
+			yield* sql`alter table ${sql(childTable(namespace, ["history"]))} drop column ${sql("admissionReady")}`;
 		}),
 	});
 });

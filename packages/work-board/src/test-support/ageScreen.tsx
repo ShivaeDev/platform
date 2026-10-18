@@ -1,6 +1,6 @@
 import { Clock, Effect } from "effect";
 import { vi } from "vitest";
-import { render } from "@shivaedev/effect-react/testing.ts";
+import { render } from "@shivaedev/effect-react/client/testing.ts";
 import { Age, AgeTicker } from "#client/react/Age.tsx";
 import { trackScreen } from "./screenEngine.ts";
 import { screenStory } from "./screenStory.ts";

@@ -1,6 +1,6 @@
+import { expectNoReactWarnings } from "#client/testing.ts";
 import { app, realPostgres } from "#test/postgres-example/integration.ts";
 import { commitIsHeld, editorsAreOpen } from "#test/postgres-example/liveTraits.ts";
-import { expectNoReactWarnings } from "#testing.ts";
 
 expectNoReactWarnings();
 

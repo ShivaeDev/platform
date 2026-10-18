@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { documentData, settledDocument } from "#test/documentRendering.ts";
 import { failingDiagrams, serverMarkup } from "#test/documentScreens.ts";
 import { documentSource } from "#test/documentSource.ts";

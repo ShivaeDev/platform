@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { diagnostics } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { AttentionOwner } from "#attention.ts";
 import { BoardReport } from "#board/schema.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";
@@ -60,7 +60,6 @@ export const Attempt = Schema.Struct({
 });
 export type Attempt = typeof Attempt.Type;
 const cycleFields = {
-	admissionReady: Schema.optional(Schema.Boolean),
 	areas: Schema.optional(Schema.Array(Schema.String)),
 	attempts: Schema.Array(Attempt),
 	attentionOwner: Schema.optional(AttentionOwner),

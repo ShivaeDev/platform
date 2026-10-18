@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { hostedHealthScreen } from "#test/hostedHealthScreen.tsx";
 import { screenStory } from "#test/screenStory.ts";
 

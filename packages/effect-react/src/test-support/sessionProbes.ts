@@ -34,3 +34,11 @@ export function TrackedProbe({ round, held, rendered }: { readonly round: number
 	rendered.push(round);
 	return createElement("output", null, `${round}:${useAtomValue(held)}`);
 }
+
+export function RegistryProbe({ registries }: { readonly registries: AtomRegistry.AtomRegistry[] }) {
+	const registry = useContext(RegistryContext);
+	if (!registries.includes(registry)) {
+		registries.push(registry);
+	}
+	return null;
+}

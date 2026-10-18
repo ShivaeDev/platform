@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { Clock, Effect, FileSystem, Path, Semaphore } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { Conflict, Forbidden, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
+import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import type { Handoff, HandoffInput } from "#browser/handoffs/schema.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
 import { handoffFrom, handoffMarkdown, handoffPrompt, matchesHandoff } from "#server/handoffs/records.ts";

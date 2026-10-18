@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";

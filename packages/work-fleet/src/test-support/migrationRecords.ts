@@ -30,7 +30,6 @@ export function migrationRecords(): readonly FleetRecord[] {
 		first,
 		{
 			...first,
-			admissionReady: false,
 			areas: [],
 			attempts: [],
 			boardRevision: "revision-two",

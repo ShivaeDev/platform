@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/testing.ts";
+import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { itemPolishFixture } from "#test/itemPolishFixture.ts";
 import { QueryDocument } from "#test/QueryDocument.tsx";
 import { screenStory } from "#test/screenStory.ts";

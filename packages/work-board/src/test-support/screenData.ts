@@ -1,5 +1,5 @@
 import { act } from "react";
-import { loadQuery } from "@shivaedev/effect-react/router.ts";
+import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
 import { documentQuery, navigationQuery, routeQueryOptions } from "#client/react/routeQuery.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
