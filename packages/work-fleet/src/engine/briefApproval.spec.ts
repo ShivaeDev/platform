@@ -90,7 +90,15 @@ for (const action of ["dispatch", "retry"] as const) {
 				expect(approved.value.attempts[0]?.briefSteers).toHaveLength(1);
 				expect(approved.value.history ?? []).toEqual([]);
 				expect(approved.value.decision).toBeUndefined();
-				expect(approved.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: decision.published }]);
+				const receipts = boardHttpFiles(root).receipts();
+				expect(receipts).toHaveLength(1);
+				if (action === "dispatch") {
+					expect(approved.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: decision.published }]);
+					expect(boardHttpFiles(root).read(receipts[0] ?? "")).toContain('"disposition":"superseded"');
+				} else {
+					expect(approved.value.responses).toMatchObject([{ boardAcknowledged: true, published: decision.published }]);
+					expect(boardHttpFiles(root).read(receipts[0] ?? "")).toContain('"disposition":"applied"');
+				}
 				expect((yield* fleet.reconcile("one")).value.stage).toBe("executing");
 				finishWorkers(fixture);
 				const reviewing = yield* fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.reconcile("one"))));
