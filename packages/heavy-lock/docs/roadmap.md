@@ -9,12 +9,12 @@ This file owns heavy-lock's implementation, verification gaps and open questions
 - [x] A CLI that waits, names the holder, runs a command under the hold and keeps its exit code. Packed-consumer checks run the installed executable and verify its hold and release.
 - [x] First-wait and minute reminders, plus elapsed wait on acquisition.
 - [x] Descendant joining through the inherited hold ID, in-process joining through `HeldLock`, and CI bypass with an empty held environment.
-- [x] `withHeavyLock`, `acquireHeavyLock` and `heavyLockLayer`, using Effect scopes and a typed acquisition error. Tests cover Effect failure, interruption, waiter cleanup and Layer lifetime; packed type fixtures check the public signatures.
+- [x] Documented lock-path precedence, default command and one-second polling, verified through real lock acquisition and a scripted clock. A changed holder is named immediately between reminders.
+- [x] `withHeavyLock`, `acquireHeavyLock` and `heavyLockLayer`, using Effect scopes and a typed acquisition error. Tests cover Effect failure, interruption, waiter cleanup, direct Scope lifetime and Layer lifetime; packed type fixtures check the public signatures.
 - [x] Child process-group leadership and forwarding of `SIGINT`, `SIGTERM` and `SIGHUP`, with the child's exit deciding the wrapper's exit. A waiting signal abandons the wait without releasing the holder.
 
 ## Next
 
-- [ ] Add focused assertions for default path precedence, default command and polling interval, changed-holder reminders and direct `acquireHeavyLock` Scope lifetime. These details are implemented but do not all have dedicated behavioral assertions.
 - [ ] Let a demonstrated host need decide portability or scheduling work; no additional lock policy is selected.
 
 ## Open questions

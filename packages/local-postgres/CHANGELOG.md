@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2026-10-18
+
+### Breaking
+
+- Modules are named in camelCase: `local-container.ts` becomes `localContainer.ts`, and `local-docker.ts` becomes `localDocker.ts`.
+
 ## 0.3.0 - 2026-10-17
 
 ### Added
