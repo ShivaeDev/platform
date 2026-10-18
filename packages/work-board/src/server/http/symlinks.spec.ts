@@ -36,9 +36,13 @@ boardStory.it(
 		]) {
 			expect((yield* request(path)).status).toBe(404);
 		}
-		const search = JSON.stringify(yield* rpcSearch(board, "Reference passage"));
-		expect(search).toContain("reference/guide/start.md");
-		expect(search).toContain("second-reference/guide/start.md");
+		const search = yield* rpcSearch(board, "Reference passage");
+		expect(search.results).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ file: "reference/guide/start.md" }),
+				expect.objectContaining({ file: "second-reference/guide/start.md" }),
+			]),
+		);
 	},
 );
 
@@ -60,14 +64,20 @@ boardStory.it(
 boardStory.it(
 	"watches external edits, additions, renames and removals using workspace-relative paths",
 	[linkedProject, boardHome("plan.md")],
-	function* ({ linked, searchFinds, watchingReady, board, request, watchProject }) {
+	function* ({ linked, search, watchingReady, board, request, watchProject }) {
 		const { reference } = linked;
 		const events = yield* watchProject();
 		try {
 			yield* watchingReady(events);
 			yield* rpcSearch(board, "Reference passage");
 			reference.write("guide/start.md", "# Reference guide\n\nUpdated linked passage.\n");
-			yield* changesUntilShown(events, "reference/guide/start.md", searchFinds("Updated linked passage", "reference/guide/start.md"));
+			const updated = search("Updated linked passage");
+			yield* changesUntilShown(
+				events,
+				"reference/guide/start.md",
+				Effect.map(updated, (found) => found.results.some((result) => result.file === "reference/guide/start.md")),
+			);
+			expect((yield* updated).results).toEqual(expect.arrayContaining([expect.objectContaining({ file: "reference/guide/start.md" })]));
 			expect(yield* Effect.map(rpcDocument(board, "/reference/guide/start.md"), (data) => data.source)).toContain("Updated linked passage");
 			expect((yield* rpcSearch(board, "Reference passage")).total).toBe(0);
 			reference.write("guide/added.md", "# Added reference\n");
@@ -89,7 +99,7 @@ boardStory.it(
 boardStory.it(
 	"discovers newly linked folders and retargeted links without restarting the server",
 	[linkedProject, boardHome("plan.md")],
-	function* ({ linked, notes: workspace, searchFinds, watchedDocumentShows, watchingReady, request, watchProject }) {
+	function* ({ linked, notes: workspace, search, watchedDocumentShows, watchingReady, request, watchProject }) {
 		const { replacement } = linked;
 		const events = yield* watchProject();
 		try {
@@ -103,7 +113,13 @@ boardStory.it(
 			yield* changesUntilShown(events, "reference/guide/start.md", watchedDocumentShows("/reference/guide/start.md", "New live replacement"));
 			expect((yield* request("/reference/guide/next.md")).status).toBe(404);
 			replacement.write("guide/start.md", "# Retargeted live reference\n");
-			yield* changesUntilShown(events, "reference/guide/start.md", searchFinds("Retargeted live reference", "reference/guide/start.md"));
+			const retargeted = search("Retargeted live reference");
+			yield* changesUntilShown(
+				events,
+				"reference/guide/start.md",
+				Effect.map(retargeted, (found) => found.results.some((result) => result.file === "reference/guide/start.md")),
+			);
+			expect((yield* retargeted).results).toEqual(expect.arrayContaining([expect.objectContaining({ file: "reference/guide/start.md" })]));
 		} finally {
 			yield* events.close();
 		}

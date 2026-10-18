@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect";
 import { waitFor } from "./live.ts";
-import { changesUntil, type EventStream, rpcDocument, rpcSearch, rpcWatcher } from "./nativeRpc.ts";
+import { changesUntil, type EventStream, rpcDocument, rpcWatcher } from "./nativeRpc.ts";
 import { type BoardEngine, served } from "./storyEngine.ts";
 
 export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
@@ -29,10 +29,6 @@ export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				throw new Error("No delivery fault was prepared");
 			}
 			engine.changeDelivery.omitPath = path;
-		},
-		searchFinds: (query: string, path: string) => {
-			tell(`the reader checks search for ${path}`);
-			return Effect.map(rpcSearch(served(engine).board, query), (found) => JSON.stringify(found).includes(path));
 		},
 		waitForConnection: () => {
 			tell("the reader waits for its native live connection");

@@ -43,9 +43,10 @@ boardStory.it("reads typed documents, stable item URLs, navigation, search throu
 boardStory.it(
 	"retains unrelated mounted reads while reconciling dependent pages and navigation after source changes",
 	readingProject,
-	function* ({ client, editFile }) {
+	function* ({ client, editFile, waitForConnection }) {
 		const atom = client.api.board.query({ url: "/note.md" });
 		const release = client.registry.mount(atom);
+		yield* waitForConnection();
 		const initial = yield* Effect.promise(() => client.read(atom));
 		const nav = client.api.navigation.query({ current: "note.md" });
 		const releaseNav = client.registry.mount(nav);
@@ -84,11 +85,15 @@ boardStory.it("requires the RPC content type even with responses disabled", read
 	expect(blocked.status).toBe(403);
 });
 
-boardStory.it("interrupts an active native subscription when the HTTP server scope ends", readingProject, function* ({ board, client }) {
-	yield* Effect.promise(() => client.read(client.api.document.query({ url: "/note.md" })));
-	yield* board.stop();
-	yield* Effect.promise(() => waitFor(() => expect(client.registry.get(client.updates.status).connection).toBe("reconnecting")));
-});
+boardStory.it(
+	"interrupts an active native subscription when the HTTP server scope ends",
+	readingProject,
+	function* ({ board, client, waitForConnection }) {
+		yield* waitForConnection();
+		yield* board.stop();
+		yield* Effect.promise(() => waitFor(() => expect(client.registry.get(client.updates.status).connection).toBe("reconnecting")));
+	},
+);
 
 boardStory.it("delivers the initial reconciliation hint through the bound Board subscription", readingProject, function* ({ client }) {
 	const hints = yield* Effect.promise(() => client.run(Stream.runCollect(client.api.subscribe.run(undefined).pipe(Stream.take(1)))));
