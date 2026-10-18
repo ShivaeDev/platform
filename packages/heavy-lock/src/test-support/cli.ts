@@ -28,7 +28,12 @@ function killGroup(pid: number | undefined): void {
 	}
 	try {
 		process.kill(-pid, "SIGKILL");
-	} catch {}
+	} catch (error) {
+		// The process group may have exited before cleanup reaches it.
+		if (!(error instanceof Error && "code" in error && error.code === "ESRCH")) {
+			throw error;
+		}
+	}
 }
 
 export interface Started {
@@ -38,7 +43,6 @@ export interface Started {
 	readonly stop: () => void;
 }
 
-// A run that deadlocks is killed so the test fails instead of hanging; its command, in a process group of its own, ends through its own bound.
 export function start(args: readonly string[], env: Record<string, string>, cwd?: string): Started {
 	const child = spawn(process.execPath, ["--conditions=source", HEAVY_LOCK_CLI, ...args], {
 		cwd,

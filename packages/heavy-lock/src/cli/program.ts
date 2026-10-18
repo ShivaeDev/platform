@@ -31,10 +31,10 @@ function report(cause: Cause.Cause<unknown>) {
 	return Console.error(error instanceof HeavyLockError ? `heavy-lock: ${error.message}` : `heavy-lock: ${Cause.pretty(cause)}`);
 }
 
-export const program = (args: readonly string[]) => {
+export function program(args: readonly string[]) {
 	const commandLine = parseCommandLine(args);
 	if (Option.isNone(commandLine)) {
 		return Effect.as(Console.error(USAGE), USAGE_ERROR);
 	}
 	return underLock(commandLine.value).pipe(Effect.catchCause((cause) => Effect.as(report(cause), FAILED)));
-};
+}
