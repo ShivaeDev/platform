@@ -1,4 +1,4 @@
-import { session } from "#client/entry.ts";
+import { session } from "#client/session.ts";
 import { mountBoard } from "./mountBoard.tsx";
 import "#client/react/entry.css";
 
