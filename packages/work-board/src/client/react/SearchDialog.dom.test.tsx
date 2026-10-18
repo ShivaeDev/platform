@@ -9,7 +9,7 @@ const QUERY = '#search-dialog [role="combobox"]';
 const OPTIONS = '#search-dialog [role="option"]';
 const SELECTED = '#search-dialog [role="option"][aria-selected="true"] a';
 screenStory.it(
-	"selects and opens the remaining result when a query refresh removes the selected third result",
+	"names and opens the remaining result when a query refresh removes the selected third result",
 	[
 		searchScreen({
 			"notes/first.md": "# First\n\nShared phrase one.",
@@ -20,16 +20,23 @@ screenStory.it(
 	function* ({ input, keyboard, editFile, refreshSearch, count, readAttribute, findElement, findElements }) {
 		input(QUERY, "Shared phrase");
 		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(3)));
+		yield* Effect.promise(() =>
+			eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[0]?.id)),
+		);
 		keyboard("ArrowDown", { bubbles: true }, QUERY);
 		keyboard("ArrowDown", { bubbles: true }, QUERY);
 		yield* Effect.promise(() =>
 			eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[2]?.id)),
 		);
+		expect(findElement(`${OPTIONS}[aria-selected="true"]`, document)?.id).toBe(readAttribute(QUERY, "aria-activedescendant", document));
 		editFile("notes/second.md", "# Second\n\nNo match.");
 		editFile("notes/third.md", "# Third\n\nNo match.");
 		yield* Effect.promise(() => refreshSearch("Shared phrase"));
 		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(1)));
 		yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/first.md#heading-first")));
+		yield* Effect.promise(() =>
+			eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[0]?.id)),
+		);
 		const enter = keyboard("Enter", { bubbles: true, cancelable: true }, QUERY);
 		expect(enter.defaultPrevented).toBe(true);
 		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));

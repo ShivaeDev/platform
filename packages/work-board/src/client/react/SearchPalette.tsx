@@ -1,5 +1,6 @@
+import { useCommandState } from "cmdk";
 import { Option } from "effect";
-import { type KeyboardEvent, type RefObject, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { Command, CommandInput } from "#client/react/components/ui/command.tsx";
@@ -30,6 +31,7 @@ export function SearchPalette({
 }) {
 	const [text, setText] = useState(() => input.trim());
 	const formRef = useRef<HTMLFormElement>(null);
+	const listRef = useRef<HTMLDivElement>(null);
 	const query = useQuery(api.search.query({ query: text }));
 	const data = Option.getOrUndefined(query.data);
 	const goals = useQuery(api.goals.query());
@@ -105,9 +107,30 @@ export function SearchPalette({
 					{status}
 				</p>
 			</div>
-			<SearchResults activate={activate} items={items} />
+			<SearchResults activate={activate} items={items} listRef={listRef} />
+			<ActiveDescendant inputRef={inputRef} listRef={listRef} />
 		</Command>
 	);
+}
+
+function ActiveDescendant({
+	inputRef,
+	listRef,
+}: {
+	readonly inputRef: RefObject<HTMLInputElement | null>;
+	readonly listRef: RefObject<HTMLDivElement | null>;
+}) {
+	const value = useCommandState((state) => state.value);
+	// cmdk 1.1.1 leaves aria-activedescendant empty when it selects an item on its own.
+	useLayoutEffect(() => {
+		const selected = [...(listRef.current?.querySelectorAll("[cmdk-item]") ?? [])].find((item) => item.getAttribute("data-value") === value);
+		if (selected?.id) {
+			inputRef.current?.setAttribute("aria-activedescendant", selected.id);
+		} else {
+			inputRef.current?.removeAttribute("aria-activedescendant");
+		}
+	}, [value, inputRef, listRef]);
+	return null;
 }
 
 function activateAppearance(command: string | undefined, appearance: AppearanceControls, toggleSidebar: () => void) {

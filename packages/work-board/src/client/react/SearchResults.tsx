@@ -1,8 +1,17 @@
+import type { Ref } from "react";
 import { CommandItem, CommandList } from "#client/react/components/ui/command.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import type { SearchItem } from "./searchCommands.ts";
 
-export function SearchResults({ items, activate }: { readonly items: readonly SearchItem[]; readonly activate: (item: SearchItem) => void }) {
+export function SearchResults({
+	items,
+	activate,
+	listRef,
+}: {
+	readonly items: readonly SearchItem[];
+	readonly activate: (item: SearchItem) => void;
+	readonly listRef?: Ref<HTMLDivElement>;
+}) {
 	const occurrences = new Map<string, number>();
 	function resultKey(item: SearchItem) {
 		const identity = JSON.stringify([item.command, item.href, item.file, item.id, item.kind, item.line, item.snippet, item.title]);
@@ -11,7 +20,7 @@ export function SearchResults({ items, activate }: { readonly items: readonly Se
 		return `${identity}:${occurrence}`;
 	}
 	return (
-		<CommandList className="max-h-[min(420px,calc(100dvh-280px))] px-1 pb-1" label="Search results">
+		<CommandList className="max-h-[min(420px,calc(100dvh-280px))] px-1 pb-1" label="Search results" ref={listRef}>
 			{items.map((item) => {
 				const key = resultKey(item);
 				return <SearchResult activate={activate} item={item} key={key} value={key} />;
