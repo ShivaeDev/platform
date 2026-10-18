@@ -1,15 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import type { ColumnDef } from "@tanstack/react-table";
+import { createColumnHelper } from "@tanstack/react-table";
 import { Badge } from "#client/ui/badge.tsx";
 import { Button } from "#client/ui/button.tsx";
 import type { Note } from "#notes.ts";
-import { DataTable } from "./DataTable.tsx";
+import { DataTable, type DataTableFeatures } from "./DataTable.tsx";
 
 type SavedNote = typeof Note.Type;
 
-const columns: ColumnDef<SavedNote>[] = [
-	{
-		accessorKey: "title",
+const columnHelper = createColumnHelper<DataTableFeatures, SavedNote>();
+
+const columns = columnHelper.columns([
+	columnHelper.accessor("title", {
 		cell: ({ row }) => (
 			<Link className="break-words underline" params={{ noteId: String(row.original.id) }} to="/notes/$noteId">
 				{row.original.title}
@@ -20,18 +21,17 @@ const columns: ColumnDef<SavedNote>[] = [
 				Title
 			</Button>
 		),
-	},
-	{
-		accessorKey: "wordCount",
+	}),
+	columnHelper.accessor("wordCount", {
 		cell: ({ row }) => (
 			<Badge variant="secondary">
 				{row.original.wordCount === null ? "Counting words…" : `${row.original.wordCount} ${row.original.wordCount === 1 ? "word" : "words"}`}
 			</Badge>
 		),
 		header: "Words",
-	},
-];
+	}),
+]);
 
 export function NotesTable({ notes }: { readonly notes: readonly SavedNote[] }) {
-	return <DataTable aria-label="Saved notes" columns={columns} data={[...notes]} />;
+	return <DataTable aria-label="Saved notes" columns={columns} data={notes} />;
 }

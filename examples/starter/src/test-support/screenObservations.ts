@@ -11,7 +11,7 @@ export function screenObservations(engine: ScreenSurface) {
 		form: () => container().querySelector("form"),
 		heading: () => container().querySelector("h1")?.textContent,
 		noteLink: () => container().querySelector("tbody td a")?.textContent,
-		savedNote: () => container().querySelector("tbody tr[data-state]"),
+		savedNote: () => container().querySelector("tbody td a")?.closest("tr") ?? null,
 		screenText: () => container().textContent,
 		signInLink: () => container().querySelector("a")?.getAttribute("href"),
 	};
