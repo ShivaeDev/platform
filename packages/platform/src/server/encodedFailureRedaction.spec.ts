@@ -30,18 +30,20 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 			const payload = { value: "private sealed detail" };
 			const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "renamedFailure" })}\n`, false);
 			expect(response.status).toBe(200);
-			expect(response.body).toContain('"_tag":"Rejected"');
+			expect(response.body).toContain('"_tag":"Fail"');
+			expect(response.body).toContain('"_tag":"<redacted>"');
 			expect(response.body).toContain('"wireValue":"<redacted>"');
-			expect(response.body).toContain('"visible":"public detail"');
+			expect(response.body).toContain('"visible":"<redacted>"');
 			expect(response.body).not.toContain(payload.value);
 			const log = logs().find((entry) => Array.isArray(entry.message) && entry.message.includes("encoded failure"));
-			expect(log?.annotations).toMatchObject({ sealed: "<redacted>", visible: "public detail", wireValue: "<redacted>" });
+			expect(log?.annotations).toMatchObject({ control: "public control", sealed: "<redacted>", visible: "<redacted>", wireValue: "<redacted>" });
 			yield* close();
 			const span = exportedSpans().find((value) => value.name === "renamedFailure");
 			expect(span?.attributes).toEqual(
 				expect.arrayContaining([
 					{ key: "wireValue", value: { stringValue: "<redacted>" } },
-					{ key: "visible", value: { stringValue: "public detail" } },
+					{ key: "visible", value: { stringValue: "<redacted>" } },
+					{ key: "control", value: { stringValue: "public control" } },
 				]),
 			);
 			expect(JSON.stringify(exportedSpans())).not.toContain(payload.value);

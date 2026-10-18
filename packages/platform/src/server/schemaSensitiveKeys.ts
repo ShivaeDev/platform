@@ -33,61 +33,46 @@ function marked(ast: SchemaAST.AST, seen = new Set<SchemaAST.AST>()): boolean {
 	const nested = ast._tag === "Objects" ? ast.indexSignatures.map((index) => index.type) : children(ast);
 	return (ast.encoding?.some((link) => marked(link.to, seen)) ?? false) || nested.some((type) => marked(type, seen));
 }
-function encodedMarkers(source: SchemaAST.Objects, link: SchemaAST.Link, markers: ReadonlyMap<PropertyKey, symbol>): [string, unknown][] {
-	const transformation = link.transformation;
-	if (transformation._tag !== "Transformation" || transformation.encode._tag !== "Transform") {
-		return [];
-	}
-	try {
-		const renamed: unknown = transformation.encode.transform(
-			Object.fromEntries(source.propertySignatures.map((property) => [property.name, markers.get(property.name)])),
-		);
-		return Predicate.isObjectOrArray(renamed) ? Object.entries(renamed) : [];
-	} catch {
-		// Value-dependent transforms cannot identify field provenance without application data.
-		return [];
-	}
-}
-function propagateKeys(source: SchemaAST.AST, link: SchemaAST.Link, keys: Set<string>) {
-	const sensitive = propertiesOf(source).filter(
-		(property) => typeof property.name === "string" && (keys.has(property.name) || isSensitiveKey(property.name)),
+function containsSensitive(ast: SchemaAST.AST, keys: ReadonlySet<string>): boolean {
+	return (
+		marked(ast)
+		|| propertiesOf(ast).some((property) => typeof property.name === "string" && (keys.has(property.name) || isSensitiveKey(property.name)))
 	);
-	if (sensitive.length === 0 && !marked(source)) {
-		return;
-	}
-	if (
-		source._tag !== "Objects"
-		|| link.to._tag !== "Objects"
-		|| marked(source)
-		|| sensitive.some((property) => !source.propertySignatures.includes(property))
-	) {
-		for (const name of propertiesOf(link.to)
-			.map((property) => property.name)
-			.filter(Predicate.isString)) {
-			keys.add(name);
-		}
-		return;
-	}
-	const markers = new Map(source.propertySignatures.map((property) => [property.name, Symbol(String(property.name))]));
-	const sensitiveMarkers = new Set<unknown>(sensitive.map((property) => markers.get(property.name)));
-	const entries = encodedMarkers(source, link, markers);
-	const knownMarkers = new Set<unknown>(markers.values());
-	const rename =
-		entries.length === markers.size
-		&& entries.every(([, value]) => knownMarkers.has(value))
-		&& new Set(entries.map(([, value]) => value)).size === markers.size;
-	for (const property of link.to.propertySignatures) {
-		if (typeof property.name === "string" && (!rename || entries.some(([key, value]) => key === property.name && sensitiveMarkers.has(value)))) {
-			keys.add(property.name);
-		}
-	}
 }
 function collectEncodedKeys(ast: SchemaAST.AST, keys: Set<string>) {
 	let source = ast;
+	let sensitive = false;
 	for (const link of ast.encoding ?? []) {
-		propagateKeys(source, link, keys);
+		sensitive ||= containsSensitive(source, keys);
+		if (sensitive) {
+			for (const property of propertiesOf(link.to)) {
+				if (typeof property.name === "string") {
+					keys.add(property.name);
+				}
+			}
+		}
 		source = link.to;
 	}
+}
+function maskedValue(ast: SchemaAST.AST, keys: ReadonlySet<string>, seen = new Set<SchemaAST.AST>()): boolean {
+	if (seen.has(ast)) {
+		return false;
+	}
+	seen.add(ast);
+	if (marked(ast)) {
+		return true;
+	}
+	let source = ast;
+	let sensitive = false;
+	for (const link of ast.encoding ?? []) {
+		sensitive ||= containsSensitive(source, keys);
+		if (sensitive && (link.to._tag !== "Objects" || link.to.indexSignatures.length > 0)) {
+			return true;
+		}
+		source = link.to;
+	}
+	const nested = ast._tag === "Objects" ? ast.indexSignatures.map((index) => index.type) : children(ast);
+	return nested.some((type) => maskedValue(type, keys, seen));
 }
 function collect(ast: SchemaAST.AST, nodes: Set<SchemaAST.AST>, encodings = true) {
 	if (nodes.has(ast)) {
@@ -102,6 +87,13 @@ function propertiesOf(ast: SchemaAST.AST) {
 	const nodes = new Set<SchemaAST.AST>();
 	collect(ast, nodes, false);
 	return [...nodes].flatMap((node) => (node._tag === "Objects" ? node.propertySignatures : []));
+}
+function collectFieldKeys(properties: SchemaAST.Objects["propertySignatures"], keys: Set<string>, sensitive: (ast: SchemaAST.AST) => boolean) {
+	for (const property of properties) {
+		if (typeof property.name === "string" && sensitive(property.type)) {
+			keys.add(property.name);
+		}
+	}
 }
 export function schemaSensitiveKeys<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>, extra: readonly string[] = []) {
 	const keys = new Set(extra);
@@ -123,14 +115,12 @@ export function schemaSensitiveKeys<R extends Rpc.Any>(group: RpcGroup.RpcGroup<
 			request(rpc);
 		}
 	}
-	for (const property of [...nodes].flatMap((ast) => (ast._tag === "Objects" ? ast.propertySignatures : []))) {
-		if (typeof property.name === "string" && marked(property.type)) {
-			keys.add(property.name);
-		}
-	}
+	const properties = [...nodes].flatMap((ast) => (ast._tag === "Objects" ? ast.propertySignatures : []));
+	collectFieldKeys(properties, keys, marked);
 	let previousSize: number;
 	do {
 		previousSize = keys.size;
+		collectFieldKeys(properties, keys, (ast) => maskedValue(ast, keys));
 		for (const ast of nodes) {
 			collectEncodedKeys(ast, keys);
 		}

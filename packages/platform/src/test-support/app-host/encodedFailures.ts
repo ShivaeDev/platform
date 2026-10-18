@@ -24,7 +24,7 @@ const handlers = Api.toLayer({
 	errorStack: ({ value }) => Effect.fail(new Error(value)),
 	renamedFailure: ({ value }) =>
 		Effect.gen(function* () {
-			const diagnostic = { sealed: value, visible: "public detail", wireValue: value };
+			const diagnostic = { control: "public control", sealed: value, visible: "public detail", wireValue: value };
 			yield* Effect.logInfo("encoded failure").pipe(Effect.annotateLogs(diagnostic));
 			yield* Effect.annotateCurrentSpan(diagnostic);
 			return yield* Effect.fail({ _tag: "Rejected" as const, sealed: Redacted.make(value), visible: diagnostic.visible });

@@ -62,14 +62,15 @@ for (const order of ["first", "last"] as const) {
 				expect(response.status).toBe(200);
 				expect(response.body).toContain('"_tag":"Fail"');
 				expect(response.body).toContain(`"${key}":"<redacted>"`);
-				expect(response.body).toContain('"visible":"public detail"');
+				expect(response.body).toContain('"visible":"<redacted>"');
 				expect(response.body).not.toContain(value);
 			}
 			const diagnostic = logs().find((entry) => Array.isArray(entry.message) && entry.message.includes("mapping diagnostic"));
 			expect(diagnostic?.annotations).toMatchObject({
 				contact: "<redacted>",
+				control: "public control",
 				intermediateContact: "<redacted>",
-				visible: "public detail",
+				visible: "<redacted>",
 				wireChainedContact: "<redacted>",
 				wireContact: "<redacted>",
 			});
@@ -78,7 +79,8 @@ for (const order of ["first", "last"] as const) {
 				expect.arrayContaining([
 					{ key: "wireContact", value: { stringValue: "<redacted>" } },
 					{ key: "wireChainedContact", value: { stringValue: "<redacted>" } },
-					{ key: "visible", value: { stringValue: "public detail" } },
+					{ key: "visible", value: { stringValue: "<redacted>" } },
+					{ key: "control", value: { stringValue: "public control" } },
 				]),
 			);
 		},

@@ -44,7 +44,14 @@ export function declarationOrder(order: "first" | "last") {
 			lastLink: ({ value }) => Effect.fail({ intermediateContact: value, visible: "public detail" }),
 			mapped: ({ value }) =>
 				Effect.gen(function* () {
-					const diagnostic = { contact: value, intermediateContact: value, visible: "public detail", wireChainedContact: value, wireContact: value };
+					const diagnostic = {
+						contact: value,
+						control: "public control",
+						intermediateContact: value,
+						visible: "public detail",
+						wireChainedContact: value,
+						wireContact: value,
+					};
 					yield* Effect.logInfo("mapping diagnostic").pipe(Effect.annotateLogs(diagnostic));
 					yield* Effect.annotateCurrentSpan(diagnostic);
 					return yield* Effect.fail({ contact: value, visible: diagnostic.visible });
