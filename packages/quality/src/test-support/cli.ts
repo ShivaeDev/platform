@@ -6,7 +6,7 @@ import { format } from "node:util";
 import { Config, Console, Effect, Option, Schema } from "effect";
 import { vi } from "vitest";
 import { program } from "#cli/program.ts";
-import { exitCode, explained, services } from "#cli/run-main.ts";
+import { exitCode, explained, services } from "#cli/runMain.ts";
 import rawTrees from "#test/fixtures/cli-trees.json" with { type: "json" };
 import { ISOLATED_ENV } from "#test/git.ts";
 import { packageRoot } from "#test/tree.ts";

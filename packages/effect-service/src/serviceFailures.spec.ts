@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Context, Data, Effect, Exit, Layer, Ref } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { defineService } from "#define-service.ts";
+import { defineService } from "#defineService.ts";
 
 class InitializationFailed extends Data.TaggedError("InitializationFailed") {}
 class MethodFailed extends Data.TaggedError("MethodFailed") {}

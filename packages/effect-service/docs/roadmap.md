@@ -19,4 +19,4 @@ No package-local implementation work is queued.
 
 ## Open questions
 
-- Should the exported helper and proof types be a supported application API, or should their export boundary become an implementation boundary? The wildcard module exports expose them; the documented service-authoring path uses `define-service.ts`, `generic-method.ts` and `service-requirements.ts`.
+- Should the exported helper and proof types be a supported application API, or should their export boundary become an implementation boundary? The wildcard module exports expose them; the documented service-authoring path uses `defineService.ts`, `genericMethod.ts` and `ServiceRequirements.ts`.

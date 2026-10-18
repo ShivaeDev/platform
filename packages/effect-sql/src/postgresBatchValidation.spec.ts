@@ -4,8 +4,8 @@ import { SqlClient } from "effect/sql";
 import { SqlError } from "effect/sql/SqlError";
 import { expect } from "vitest";
 import { makeRepository } from "#repository.ts";
-import { integration, runPostgres } from "#test/postgres-transact.ts";
 import { inputs, setupBatch } from "#test/postgresBatch.ts";
+import { integration, runPostgres } from "#test/postgresTransact.ts";
 
 integration("batch conflict writes validate every row and retain native duplicate-key failures", async () => {
 	await runPostgres(

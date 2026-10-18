@@ -3,8 +3,8 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expect } from "vitest";
-import { integration, onClient, onSqlError, secondPool, Unavailable } from "#test/postgres-transact.ts";
 import { runNotify, waitFor } from "#test/postgresNotify.ts";
+import { integration, onClient, onSqlError, secondPool, Unavailable } from "#test/postgresTransact.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
 integration("NOTIFY splits UTF-8 key batches and a payload error rolls back the write", () => {

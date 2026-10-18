@@ -87,8 +87,8 @@ The package's module export pattern also exposes these lower-level functions:
 
 | Module | Exports |
 | --- | --- |
-| `@shivaedev/local-postgres/local-docker.ts` | `DockerEnvironment`, the type with optional `DOCKER_CONTEXT` and `DOCKER_HOST`; `docker(environment, args, options?)`, the local-endpoint-checked Docker command function. |
-| `@shivaedev/local-postgres/local-container.ts` | `startContainer(docker)`, the container-start function; `sqlInContainer(docker, url, args, options)`, the container SQL-client function. Both take a Docker command callback. |
+| `@shivaedev/local-postgres/localDocker.ts` | `DockerEnvironment`, the type with optional `DOCKER_CONTEXT` and `DOCKER_HOST`; `docker(environment, args, options?)`, the local-endpoint-checked Docker command function. |
+| `@shivaedev/local-postgres/localContainer.ts` | `startContainer(docker)`, the container-start function; `sqlInContainer(docker, url, args, options)`, the container SQL-client function. Both take a Docker command callback. |
 
 Use `localPostgres.ts` for application preparation. The lower-level functions describe the command paths it uses and take Node child-process options where shown.
 

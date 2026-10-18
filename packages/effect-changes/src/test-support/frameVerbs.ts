@@ -1,7 +1,7 @@
 import { Effect, Exit } from "effect";
 import type { CommitFrame, Outcome } from "#frame.ts";
 import { database, type Engine } from "./engine.ts";
-import { on } from "./fake-database.ts";
+import { on } from "./fakeDatabase.ts";
 
 export function frameVerbs(engine: Engine, tell: (line: string) => void) {
 	const channel = engine.channel();

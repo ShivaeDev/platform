@@ -1,7 +1,7 @@
 import { Context, Effect, Scope } from "effect";
-import { defineService } from "#define-service.ts";
-import { genericMethod } from "#generic-method.ts";
-import type { ServiceRequirements } from "#service-requirements.ts";
+import { defineService } from "#defineService.ts";
+import { genericMethod } from "#genericMethod.ts";
+import type { ServiceRequirements } from "#ServiceRequirements.ts";
 
 export class Declared extends Context.Service<Declared, { readonly identity: object; readonly prefix: string }>()("story/Declared") {}
 export class Caller extends Context.Service<Caller, { readonly value: number }>()("story/Caller") {}

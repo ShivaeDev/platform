@@ -233,7 +233,7 @@ Import the defining module; the package has no root entry point.
 | `testing/vitest.ts` | `makeDatabaseIt({ database, layer, clock? })`. |
 | `testing/transaction.ts` | `withTestTransaction(database, program)` and `withTestTransaction(database)(program)`. |
 | `testing/types.ts` | `DatabaseIt`, `DatabaseTester`, `DatabaseTest`, `DatabaseService`, `MakeDatabaseItOptions`. |
-| `relation/include.ts`, `relation/include-metadata.ts`, `relation/prisma-methods.ts` | Supporting types: `IncludeMethod`, `AnyPostgresContract`, `IsToManyRelation`, `RelatedModelNameOf`, `IncludedRelationValue`, `PrismaRelationMethods`. |
+| `relation/include.ts`, `relation/includeMetadata.ts`, `relation/PrismaMethods.ts` | Supporting types: `IncludeMethod`, `AnyPostgresContract`, `IsToManyRelation`, `RelatedModelNameOf`, `IncludedRelationValue`, `RelationPrismaMethods`. |
 | `effect-prisma-normalize` | Executable taking one generated contract declaration path. |
 
 The Relation surface follows Prisma Next's collections. Its typed operations include filters and ordering; `select`, `take`, `cursor`, `distinct`, `distinctOn`; `include`, `count`, `exists`, `first`; `aggregate`, `groupBy`; and create, update and delete terminals. Cursor and distinct-on types require an order first. Import boolean filter combinators such as `and`, `or`, `not` and `all` from `@prisma-next/sql-orm-client`.
