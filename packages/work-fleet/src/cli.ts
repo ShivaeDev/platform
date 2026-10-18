@@ -68,7 +68,7 @@ const statusCommand = Command.make(
 			(client) => client("daemon.status", workId === undefined ? {} : { workId }),
 			workId === undefined ? "status" : `status ${workId}`,
 		);
-		yield* Console.log(input.json ? JSON.stringify(current) : renderStatus(current, daemonPort));
+		yield* Console.log(input.json ? JSON.stringify(current) : renderStatus(current));
 	}),
 ).pipe(Command.withDescription("Show active and completed Fleet work, and waiting work grouped by owner"));
 

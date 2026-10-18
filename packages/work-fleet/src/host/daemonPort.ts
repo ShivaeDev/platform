@@ -36,6 +36,15 @@ export const publishDaemonPort = Effect.fn("FleetDaemon.publishDaemonPort")(func
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const file = path.join(board, PORT_FILE);
-	yield* fs.writeFileString(`${file}.tmp`, `${server.address.port}\n`);
-	yield* fs.rename(`${file}.tmp`, file);
+	const port = String(server.address.port);
+	yield* Effect.acquireRelease(fs.writeFileString(`${file}.tmp`, `${port}\n`).pipe(Effect.andThen(fs.rename(`${file}.tmp`, file))), () =>
+		Effect.gen(function* () {
+			const current = yield* fs
+				.readFileString(file)
+				.pipe(Effect.catchTag("PlatformError", (error) => (error.reason._tag === "NotFound" ? Effect.succeed("") : Effect.fail(error))));
+			if (current.trim() === port) {
+				yield* fs.remove(file, { force: true });
+			}
+		}).pipe(Effect.orDie),
+	);
 });

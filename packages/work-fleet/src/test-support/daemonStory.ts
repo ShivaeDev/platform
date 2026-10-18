@@ -1,12 +1,17 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import type { FleetRecord } from "#model.ts";
 import { discoveryDaemon } from "#test/discoveryDaemon.ts";
+import { cliProcess } from "#test/fleetCli.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import { untilError, untilOutput } from "#test/follower.ts";
 import { type Follower, followerProcess } from "#test/followerProcess.ts";
 import { postgresAvailable, postgresLayer } from "#test/postgres.ts";
+import { statusRecord } from "#test/status.ts";
 import { storeState } from "#test/storeState.ts";
 
 interface DaemonEngine {
@@ -43,19 +48,54 @@ export const fleetDaemon = storyKit({
 		isRunning: () => follower(engine).isRunning(),
 		output: () => follower(engine).output(),
 		port: () => engine.daemon.port,
+		portFile: () =>
+			Effect.sync(() => {
+				const file = join(engine.fixture.host.boardDir, ".fleet-port");
+				return existsSync(file) ? readFileSync(file, "utf8").trim() : undefined;
+			}),
+		replacePort: (port: number) =>
+			Effect.sync(() => {
+				story.tell(`replace the Board port file with ${port}`);
+				engine.fixture.write(".fleet-port", `${port}\n`);
+			}),
 		restart: () =>
 			Effect.gen(function* () {
 				story.tell("restart the daemon on an allocated port");
+				const previousPort = engine.daemon.port;
+				yield* engine.daemon.close;
 				engine.daemon = yield* discoveryDaemon(engine.fixture);
+				if (engine.daemon.port === previousPort) {
+					return yield* Effect.die("Restart discovery stories require a different daemon port");
+				}
 			}),
-		transition: (workId: string, stage: "completed" | "released") => {
-			story.tell(`${workId} enters ${stage}`);
-			return storeState(engine.fixture.host, workId, { stage }).pipe(Effect.provideService(Reactivity.Reactivity, engine.daemon.reactivity));
+		status: () =>
+			Effect.promise(async () => {
+				let stderr = "";
+				const result = await cliProcess(["status", "--board", engine.fixture.host.boardDir], {
+					onError: (text) => {
+						stderr += text;
+					},
+				});
+				return { ...result, stderr };
+			}),
+		stop: () => {
+			story.tell("stop the daemon");
+			return engine.daemon.close;
 		},
-		watch: () =>
+		transition: (workId: string, stage: FleetRecord["stage"], decision?: FleetRecord["decision"]) => {
+			story.tell(`${workId} enters ${stage}`);
+			return storeState(engine.fixture.host, workId, { ...statusRecord(workId, stage), decision }).pipe(
+				Effect.provideService(Reactivity.Reactivity, engine.daemon.reactivity),
+			);
+		},
+		watch: (interval: number, port?: number) =>
 			Effect.gen(function* () {
-				story.tell("start watch --follow without --port");
-				engine.follower = yield* followerProcess(engine.fixture.configFile, "watch", [], { follow: true, interval: 0.05 });
+				story.tell(`start watch --follow ${port === undefined ? "without --port" : `with --port ${port}`}`);
+				engine.follower = yield* followerProcess(engine.fixture.configFile, "watch", [], {
+					follow: true,
+					interval,
+					...(port === undefined ? {} : { port }),
+				});
 			}),
 	}),
 });

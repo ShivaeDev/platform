@@ -15,5 +15,8 @@ export const discoveryDaemon = Effect.fn("DaemonStory.discoveryDaemon")(function
 	if (!NetAddress.isInetAddress(address)) {
 		return yield* Effect.die("Expected a TCP Fleet daemon");
 	}
+	if (address.port === 3457) {
+		return yield* Effect.die("Discovery stories require a non-default daemon port");
+	}
 	return { close, port: address.port, reactivity: Context.get(context, Reactivity.Reactivity), subscribed: subscribed.promise };
 });
