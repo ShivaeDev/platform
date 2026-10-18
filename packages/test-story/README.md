@@ -41,6 +41,8 @@ The first line is the assertion's own message. The box under it tells a reader w
 
 ## Using it
 
+Before writing or reviewing application stories, follow the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md), shipped by `@shivaedev/skills`. It owns the rules for observable evidence, boundary-driven setup, verbs and readouts, assertions, jobs, framework gaps, faked preconditions, database isolation and focused runs. The examples below explain this package's API; framework fixtures exercise this package's responsibilities, rather than prescribe application scenarios.
+
 ### How to think about it
 
 An application has an **engine**: the real thing a test drives, such as a bakery simulation, a game store or a service with its database. A **story** is one test's run of a fresh engine. It starts from **traits**, sentences of setup in domain words that each change the engine, and goes on through **verbs**, the entry points a user or caller reaches, such as `baker.kneads(2)` or `oven.bakesEverything()`. The engine may also run on its own, one **step** at a time, until something the test waits for holds. Every trait tells a line, and verbs and steps tell what they do, so the story is both the plan the test gave and the trace of what happened, in order.
@@ -346,29 +348,9 @@ Set `runIf: hasPostgres` in the kit definition to gate all its stories once, whe
 
 The [order feature kit](https://github.com/ShivaeDev/platform/tree/main/packages/effect-react/src/test-support/order-example) runs the existing feature’s services, repository, contracts, JSON serialization and authentication middleware over a loopback HTTP listener. Its [stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/orderStory.dom.spec.tsx) test visible commits through a separate PostgreSQL pool, rollback of a rejected write without publication, cross-owner rejection, a native React action refreshing a list, and an editor retaining rejected input before a corrected save.
 
-```ts
-import { app, realPostgres } from "./test-support/application.ts";
-import { aliceHasOrder } from "./test-support/traits.ts";
+For full-app stories, use `around: withIsolatedDatabase` from `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` with a PostgreSQL test layer prepared from the application's migrations. Each story gets a database cloned from that template, and HTTP and worker pools commit into the same clone. The clone is dropped after scoped hosts and pools close. The starter's [application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/application.ts) uses this isolation path.
 
-app.it("a save commits and a rejected write leaves storage intact", [realPostgres(), aliceHasOrder("paper")], function* ({ saveOrder, rejectOrder, storedOrderIs, changesAre }) {
-  yield* saveOrder("paper", "Office chairs", 8);
-  yield* storedOrderIs("paper", "Office chairs", 8);
-  yield* rejectOrder("paper", -1);
-  yield* storedOrderIs("paper", "Office chairs", 8);
-  yield* changesAre(1);
-});
-```
-
-The application’s worker Layer leases a uniquely named disposable database, opens native PgClient pools and runs `migratePostgres`. Multiple kits in the worker share the database; the last lease drops it after the pools close. The PostgreSQL trait checks that infrastructure and the declared policy; it does not start a database. The application validates its local disposable destination before database creation or reset and skips database stories without `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`. Tests sharing that database run serially; parallelism belongs between workers or inside one story.
-
-| Application mode | Reset policy | Transaction policy | Coverage |
-| --- | --- | --- | --- |
-| HTTP | Truncate application tables and restart identities before and after the story; retain the migration ledger. | Commands perform real commits. | RPC serialization/transport, independent persistence reads, React refresh and forms. |
-| Local | Reset the baseline before and after the story. | Wrap creation, seeds and body in an outer Platform `transact`, then force rollback after success with a private sentinel. | Local repositories and services, transactional seeds and nested writes. |
-
-The kit’s `around` implements that policy. HTTP requests run in separate fibers, so an outer test transaction cannot isolate their writes. Local rollback starts with Platform `transact`; putting it inside a native outer transaction violates transaction ownership. Catch only the wrapper’s private rollback sentinel, let other failures escape, and check independent storage before cleanup truncation so cleanup cannot hide an accidental commit.
-
-Application-authored seed builders reuse application schemas, validate overrides, insert actual rows and return generated values. Traits retain aliases such as `"paper"` so specs avoid generated IDs. There is no shared factory or automatic relationship seeding.
+For repository-level tests on a migrated template, `withTestTransaction` from `@shivaedev/effect-test-sql/withTestTransaction.ts` provides rollback isolation when all work uses its transaction connection. See the [database test helpers](https://github.com/ShivaeDev/platform/blob/main/packages/effect-test-sql/README.md) for template preparation and both wrappers.
 
 React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events and use bounded observations of rendered output. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook, not HTTP or DOM polling. Creation forms can use the same pattern with the existing `useCreate` path.
 
@@ -415,22 +397,7 @@ const cookieApp = storyKit({
 });
 ```
 
-`startHost`, `postgres` and `authVerbs` are application plumbing. The starter's [cookie application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/cookieApp.ts) shows the full setup. Its Better Auth client signs up and signs in, and its verbs read `/api/auth/get-session` and post to `/api/auth/sign-out` through the DOM fetch. They do not copy cookies into request headers or use bearer tokens.
-
-```ts
-cookieApp.it("sign-up and sign-in keep their cookie sessions against the PostgreSQL host", [], function* ({ signUp, signIn, signOut, sessionIs }) {
-  yield* signUp();
-  yield* sessionIs("alice@starter.test");
-  yield* signOut();
-  yield* sessionIs(null);
-  yield* signIn();
-  yield* sessionIs("alice@starter.test");
-  yield* signOut();
-  yield* sessionIs(null);
-});
-```
-
-This story proves Better Auth cookie sessions across real loopback HTTP requests from happy-dom with an in-process PostgreSQL host. It also reads sessions through Better Auth's client and checks the fetch response's status, headers and JSON body.
+`startHost`, `postgres` and `authVerbs` are application plumbing. Actions in `authVerbs` perform requests, and readouts return response data for assertions in the spec. A sign-in story drives its real sign-in flow; feature stories start from a faked signed-in precondition as described in the shared skill.
 
 #### Social sign-in through an outbound provider
 
@@ -450,20 +417,23 @@ const socialApp = storyKit({
       await engine.screen.click();
       await domNavigate();
     }),
-    signedInPageIs: (email: string) => Effect.promise(async () => {
-      expect(document.querySelector("h1")?.textContent).toBe(`Signed in as ${email}`);
-      expect(await (await engine.fetch("/api/auth/get-session")).json()).toMatchObject({ user: { email } });
-    }),
+    signedInPage: () => Effect.promise(async () => ({
+      heading: document.querySelector("h1")?.textContent,
+      session: await (await engine.fetch("/api/auth/get-session")).json(),
+    })),
   }),
 });
 
-socialApp.it("a social sign-in returns with a cookie session", [], function* ({ signInWithGitHub, signedInPageIs }) {
+socialApp.it("a social sign-in returns with a cookie session", [], function* ({ signInWithGitHub, signedInPage }) {
   yield* signInWithGitHub();
-  yield* signedInPageIs("alice@social.test");
+  expect(yield* signedInPage()).toMatchObject({
+    heading: "Signed in as alice@social.test",
+    session: { user: { email: "alice@social.test" } },
+  });
 });
 ```
 
-`socialDefinition` starts the host and renders the screen with a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The [story](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/server/socialSessions.dom.spec.ts) also checks the authorize, token and user requests at the fake, persisted PostgreSQL rows, and an HttpOnly session cookie read through a later document request. It does not copy cookies into request headers.
+`socialDefinition` starts the host and renders the screen with a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. It does not copy cookies into request headers.
 
 `domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
 
