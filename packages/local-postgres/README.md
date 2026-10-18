@@ -14,7 +14,7 @@ assertLocalDatabase(development, ["example_dev"]);
 localPostgres(process.env).prepareDatabases([development]);
 ```
 
-The application chooses `example_dev`. Preparation can run again: the package's real PostgreSQL test inserts a row, repeats preparation and reads the same row back.
+The application chooses `example_dev`. Preparation can run again without losing the data already in the database.
 
 ## Using it
 
@@ -49,7 +49,7 @@ Keep the explicit name checks even though the preparation functions check their 
 
 ### 2. Once per feature: prepare its schema in application tooling
 
-After `prepareDatabases`, run the application's own schema or migration entry point. This package provides no schema model, migration ledger, fixture catalogue or seed convention. In this monorepo, `script/setup-database.ts` chooses the database names and loads test schemas; `@shivaedev/effect-sql` owns the SQL and migration APIs.
+After `prepareDatabases`, run the application's own schema or migration entry point. This package provides no schema model, migration ledger, fixture catalogue or seed convention. `@shivaedev/effect-sql` owns the SQL and migration APIs.
 
 ### 3. In daily setup: prepare again and inspect with SQL
 
@@ -83,14 +83,7 @@ Import the setup API from `@shivaedev/local-postgres/localPostgres.ts`:
 
 The last three functions are members of the object returned by `localPostgres`, not module-level exports. They throw on failure; they are synchronous Node functions rather than Effects.
 
-The package's module export pattern also exposes these lower-level functions:
-
-| Module | Exports |
-| --- | --- |
-| `@shivaedev/local-postgres/localDocker.ts` | `DockerEnvironment`, the type with optional `DOCKER_CONTEXT` and `DOCKER_HOST`; `docker(environment, args, options?)`, the local-endpoint-checked Docker command function. |
-| `@shivaedev/local-postgres/localContainer.ts` | `startContainer(docker)`, the container-start function; `sqlInContainer(docker, url, args, options)`, the container SQL-client function. Both take a Docker command callback. |
-
-Use `localPostgres.ts` for application preparation. The lower-level functions describe the command paths it uses and take Node child-process options where shown.
+The module export pattern also exposes the lower-level Docker and container command functions in `localDocker.ts` and `localContainer.ts`. Use `localPostgres.ts` for application preparation.
 
 ### Install and machine setup
 
@@ -116,6 +109,4 @@ Pass the process's actual Docker settings to `localPostgres`, as `process.env` i
 - Commands block the calling thread. Keep them in development and test setup tooling.
 - Keep allowed names, schema changes, test isolation and cleanup in the application. Preparation is not a database reset.
 - A prepared database name has 1–63 lowercase letters, digits or underscores and starts with a letter. An allowlisted connection URL does not bypass this SQL-name constraint.
-- Scripted command tests cover container start/create, image-mismatch refusal, client selection, Docker context precedence and local endpoint variants. A lifecycle test simulates host-client absence and delayed container discovery, then uses real Docker and PostgreSQL to check readiness. Real service tests cover supplied container-client credentials, password-free failure diagnostics on both clients and data preservation across repeated preparation.
-- Rejection of an exact running PostgreSQL version mismatch still needs a test; image-mismatch command tests do not prove that check.
-- Concurrent creation of the same absent database is not covered by the package's tests. Prepare databases before parallel tests begin.
+- Concurrent creation of the same absent database is not supported. Prepare databases before parallel tests begin.
