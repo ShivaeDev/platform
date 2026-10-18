@@ -72,7 +72,7 @@ export const makePgBoss = <const TIdentifier extends string>(identifier: TIdenti
 					void Effect.runPromise(Effect.exit(Effect.provide(reportError(error), context)));
 				};
 				const unsubscribe = subscribeClientErrors(acquired.client, errorListener);
-				const registration = registerJobs(acquired.client, jobs, context, acquired.reused);
+				const registration = registerJobs(acquired.client, jobs, context, acquired.reused, constructorOptions.schema);
 				return yield* registration.pipe(
 					Effect.as({ acquired, service, unsubscribe }),
 					Effect.onError(() => releaseClient(acquired, stop).pipe(Effect.ensuring(Effect.sync(unsubscribe)))),

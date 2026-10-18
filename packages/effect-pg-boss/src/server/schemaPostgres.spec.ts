@@ -1,10 +1,10 @@
-import { Effect, Option, Schema } from "effect";
+import { DateTime, Effect, Option, Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue } from "#definition.ts";
+import { defineQueue, RetryAt } from "#definition.ts";
 import { installedTemplate, schemaIt } from "#test/schemaStories.ts";
 
 schemaIt(
-	"installs a template without workers or schedules and a clone processes jobs without schema work",
+	"installs a template without workers or schedules and a clone processes deferrals without schema work",
 	[installedTemplate],
 	function* ({ boot, query, untilJob }) {
 		expect(yield* query("SELECT name FROM jobs_test.queue")).toEqual([]);
@@ -15,16 +15,19 @@ schemaIt(
 		const worker = yield* boot(
 			[
 				queue.handle(({ value }) =>
-					Effect.sync(() => {
+					Effect.gen(function* () {
 						handled.push(value);
+						if (handled.length === 1) {
+							yield* new RetryAt({ at: DateTime.makeUnsafe(0), reason: "next fetch" });
+						}
 					}),
 				),
 			],
 			{ migrate: false },
 		);
 		const id = Option.getOrThrow(yield* worker.jobs.enqueue(queue, { value: 42 }));
-		expect(yield* untilJob(worker.jobs, queue, id, "completed")).toMatchObject({ data: { value: 42 }, id, state: "completed" });
-		expect(handled).toEqual([42]);
+		expect(yield* untilJob(worker.jobs, queue, id, "completed")).toMatchObject({ data: { value: 42 }, id, retryCount: 0, state: "completed" });
+		expect(handled).toEqual([42, 42]);
 	},
 );
 

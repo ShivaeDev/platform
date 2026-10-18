@@ -4,6 +4,7 @@ import type { PgBossClientFactory } from "#client.ts";
 import type { QueueDefinition } from "#definition.ts";
 import { PgBossTestingError } from "#error.ts";
 import { testingClient } from "#internal/testingClient.ts";
+import { testingDeferrals } from "#internal/testingDeferrals.ts";
 import { testingOperation, testingReadout } from "#internal/testingReadout.ts";
 import { testingSignal } from "#internal/testingSignal.ts";
 
@@ -15,6 +16,7 @@ export interface PgBossTestingOptions {
 
 export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 	let current: PgBoss | undefined;
+	let schema = "pgboss";
 	const signal = testingSignal();
 	const controls = {
 		changed: signal.changed,
@@ -32,10 +34,12 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 		if (current !== undefined) {
 			throw new Error("A testing controller owns one jobs client; create a controller per runtime");
 		}
+		schema = clientOptions.schema ?? "pgboss";
 		current = new PgBoss({ ...clientOptions, "__test__enableSpies": true });
 		return testingClient(current, clientOptions.schema ?? "pgboss", controls);
 	};
 	return {
+		...testingDeferrals(client, () => schema, signal.changed),
 		checkBatchWindow: (queue: QueueDefinition, millisecondsPerJob: number) =>
 			testingOperation(
 				"checkBatchWindow",
