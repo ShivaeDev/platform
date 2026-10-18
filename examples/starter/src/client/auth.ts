@@ -1,4 +1,6 @@
 import { createAuthClient } from "better-auth/react";
+import type * as Atom from "effect/reactivity/Atom";
+import { type AuthActionUnavailable, authAction } from "@shivaedev/effect-react/client/authAction.ts";
 
 export interface Credentials {
 	readonly email: string;
@@ -6,9 +8,20 @@ export interface Credentials {
 	readonly password: string;
 }
 
+export interface AuthFailure {
+	readonly code?: string | undefined;
+	readonly message?: string | undefined;
+	readonly status: number;
+	readonly statusText: string;
+}
+
 export interface AuthActions {
-	readonly signOut: () => Promise<string | undefined>;
-	readonly submit: (mode: "sign-in" | "sign-up", credentials: Credentials) => Promise<string | undefined>;
+	readonly signOut: Atom.AtomResultFn<void, unknown, AuthFailure | AuthActionUnavailable>;
+	readonly submit: Atom.AtomResultFn<
+		{ readonly mode: "sign-in" | "sign-up"; readonly credentials: Credentials },
+		unknown,
+		AuthFailure | AuthActionUnavailable
+	>;
 }
 
 export function makeAuth(options: {
@@ -17,14 +30,10 @@ export function makeAuth(options: {
 }) {
 	const client = createAuthClient({ "baseURL": options.baseUrl, ...("fetchOptions" in options ? { fetchOptions: options.fetchOptions } : {}) });
 	const actions: AuthActions = {
-		signOut: async () => {
-			const result = await client.signOut();
-			return result.error?.message;
-		},
-		submit: async (mode, credentials) => {
-			const result = mode === "sign-up" ? await client.signUp.email(credentials) : await client.signIn.email(credentials);
-			return result.error?.message;
-		},
+		signOut: authAction((_, signal) => client.signOut({ fetchOptions: { signal } })),
+		submit: authAction(({ mode, credentials }, signal) =>
+			mode === "sign-up" ? client.signUp.email(credentials, { signal }) : client.signIn.email(credentials, { signal }),
+		),
 	};
 	return { actions, client };
 }

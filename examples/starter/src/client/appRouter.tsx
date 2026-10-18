@@ -12,7 +12,7 @@ import { RouteFailure } from "./RouteFailure.tsx";
 export function appRouter(registry: AtomRegistry.AtomRegistry, client: NotesClient, auth: AuthActions, history?: RouterHistory) {
 	const root = createRootRouteWithContext<{ readonly registry: AtomRegistry.AtomRegistry }>()();
 	const notes = createRoute({
-		component: () => <NotesScreen client={client} onSignOut={() => auth.signOut()} />,
+		component: () => <NotesScreen client={client} onSignedOut={() => void router.navigate({ to: "/sign-in" })} signOut={auth.signOut} />,
 		errorComponent: RouteFailure,
 		getParentRoute: () => root,
 		loader: (context) => loadQuery(context.context.registry, client.api.list.query(), context),

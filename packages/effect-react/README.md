@@ -141,6 +141,31 @@ create.dispatch({
 
 An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result. Disable duplicate submissions or give independent work distinct native action atoms. When one caller needs its own success or failure, run the actual RPC Effect through its runtime, as the editor's `save` does; shared atom state cannot identify one invocation's completion.
 
+### Better Auth actions
+
+`authAction` from `@shivaedev/effect-react/client/authAction.ts` turns a Better Auth client call into a native action atom. Create it with the client, then pass it to `useAction` for the same `pending`, `data`, `cause`, `result` and `dispatch` shape as commands:
+
+```tsx
+const signIn = authAction((credentials: { email: string; password: string }, signal) =>
+  authClient.signIn.email(credentials, { signal }),
+);
+
+function SignInButton({ email, password }: { email: string; password: string }) {
+  const action = useAction(signIn);
+  const failure = AsyncResult.error(action.result);
+  return (
+    <>
+      <button disabled={action.pending} onClick={() => action.dispatch({ email, password })}>
+        {action.pending ? "Signing in…" : "Sign in"}
+      </button>
+      {Option.isSome(failure) && <p role="alert">Sign-in failed</p>}
+    </>
+  );
+}
+```
+
+The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Returned auth errors keep their fields in the typed failure channel. Rejected promises become `AuthActionUnavailable` with the original rejection in `cause`. The application chooses error text and what happens after success.
+
 ### Route loaders with TanStack Router
 
 TanStack Router owns routes, navigation, loader data and error components. `@shivaedev/effect-react/loadQuery.ts` supplies `loadQuery(registry, atom, loaderContext)` to read a contract query atom in the same registry as React. The atom runs through its native RPC runtime; the loader does not create another runtime or query cache.
