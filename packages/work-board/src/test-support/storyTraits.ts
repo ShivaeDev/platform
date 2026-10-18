@@ -2,23 +2,14 @@ import { chmodSync } from "node:fs";
 import { join } from "node:path";
 import { Clock, Effect } from "effect";
 import { expect } from "vitest";
-import type { RecordedResponse } from "#browser/responses/schema.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
-import { responseMarkdown } from "#server/responses/records.ts";
 import { boardStory, projectFiles, responsesEnabled } from "./boardStory.ts";
 import { diagnosticsDaemon, rawDiagnosticsDaemon } from "./diagnosticsDaemon.ts";
 import { enterField } from "./enterField.ts";
 import { inboxFixture, inboxQuestion } from "./inboxFixture.ts";
 import { waitFor } from "./live.ts";
 import { REVIEW_TASK, reviewResult } from "./resultReview.ts";
-import { connected } from "./storyEngine.ts";
-
-export function recordedReplies(...replies: readonly RecordedResponse[]) {
-	return projectFiles(
-		Object.fromEntries(replies.map((reply, index) => [`responses/reply-${index}.md`, responseMarkdown(reply)])),
-		"the project remembers replies from its authors",
-	);
-}
+import { connected, openReader } from "./storyEngine.ts";
 
 export function anOpenQuestion() {
 	return projectFiles({ "question.md": inboxQuestion, "readme.md": "# Project notes" }, "an open question offers local files or a database");
@@ -43,6 +34,7 @@ export function anUnreadableSource(file: string) {
 
 export function anAnswerForm(prefix = "response") {
 	return boardStory.trait("reader", `the ${prefix} form is ready`, function* (engine) {
+		yield* openReader(engine);
 		yield* Effect.promise(() =>
 			waitFor(() => expect(connected(engine).page.document.getElementById(`${prefix}-preview`)?.hasAttribute("disabled")).toBe(false)),
 		);
@@ -51,6 +43,7 @@ export function anAnswerForm(prefix = "response") {
 
 export function aRememberedAuthor(author: string) {
 	return boardStory.trait("reader", `the reader remembers the author ${author}`, function* (engine) {
+		yield* openReader(engine);
 		const page = connected(engine).page;
 		enterField(page, "author", author);
 		yield* Effect.promise(() => new Promise<void>((resolve) => page.window.requestAnimationFrame(() => resolve())));

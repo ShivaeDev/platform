@@ -1,7 +1,7 @@
 import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import type { DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
-import { boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { codexResponse, githubObservations, health } from "#test/diagnostics.ts";
 import { daemonSnapshot } from "#test/readingTraits.ts";
 
@@ -15,7 +15,7 @@ function snapshot(observedAt: number): DiagnosticsSnapshot {
 
 boardStory.it(
 	"reads health, rate limits and the Fleet waiting counts through HTTP RPC, ignoring a conflicting file",
-	[serverReading(), projectFiles({ "fleet/health.json": JSON.stringify({ ...health, running: 99 }) }), daemonSnapshot(snapshot)],
+	[projectFiles({ "fleet/health.json": JSON.stringify({ ...health, running: 99 }) }), daemonSnapshot(snapshot)],
 	function* ({ systemHtml }) {
 		const body = yield* systemHtml();
 		for (const text of ["24% used", "4321 / 5000", "3 / 8", "Current snapshot"]) {
@@ -30,7 +30,7 @@ boardStory.it(
 const old = Effect.runSync(Clock.currentTimeMillis) - 120_000;
 boardStory.it(
 	"discloses stale daemon data with its original observation time over HTTP",
-	[serverReading(), daemonSnapshot(() => snapshot(old))],
+	[daemonSnapshot(() => snapshot(old))],
 	function* ({ systemHtml }) {
 		const body = yield* systemHtml();
 		expect(body).toContain('data-source="fleet" data-state="stale"');
@@ -41,7 +41,7 @@ boardStory.it(
 
 boardStory.it(
 	"shows a stopped daemon despite an existing health file and recovers on its next HTTP refresh",
-	[serverReading(), daemonSnapshot(snapshot, true)],
+	[daemonSnapshot(snapshot, true)],
 	function* ({ systemHtml, story, restartDiagnostics }) {
 		const port = story.engine.fleetPort;
 		if (!port) {
@@ -61,7 +61,6 @@ boardStory.it(
 boardStory.it(
 	"preserves independent source failures across RPC without hiding daemon health",
 	[
-		serverReading(),
 		daemonSnapshot((observedAt) => ({
 			...snapshot(observedAt),
 			codex: { cause: "Codex missing", observedAt, state: "not-configured" },

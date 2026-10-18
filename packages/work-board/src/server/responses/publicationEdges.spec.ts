@@ -4,11 +4,11 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { publishIn } from "#server/responses/publishIn.ts";
-import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { workspaceFiles, workspaceStory } from "#test/workspaceStory.ts";
 
-boardStory.it(
+workspaceStory.it(
 	"refuses publication when an external process moves the already-open write directory",
-	[projectFiles({ "responses/existing.md": "Existing feedback" }, "the project has the stated publication files")],
+	[workspaceFiles({ "responses/existing.md": "Existing feedback" }, "the project has the stated publication files")],
 	function* ({ notes }) {
 		const target = yield* Effect.promise(() => open(join(notes.root, "responses"), constants.O_RDONLY | constants.O_DIRECTORY));
 		try {

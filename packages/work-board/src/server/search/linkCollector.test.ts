@@ -1,10 +1,9 @@
 import { expect } from "vitest";
-import { boardHome, boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 
 boardStory.it(
 	"collects Markdown reference links as backlinks without code or section anchors",
 	[
-		serverReading(),
 		projectFiles({
 			"evidence.md": "# Evidence",
 			"fake.md": "# Fake",
@@ -23,7 +22,6 @@ boardStory.it(
 boardStory.it(
 	"deduplicates repeated home-board reference links",
 	[
-		serverReading(),
 		projectFiles({
 			"home.md": "# Home\n\n## To read\n\n### One\n\n[Record][record]\n\n### Two\n\n[Record][record]\n\n[record]: notes/evidence.md\n",
 			"notes/evidence.md": "# Evidence",

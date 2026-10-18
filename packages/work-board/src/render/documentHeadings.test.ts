@@ -1,10 +1,9 @@
 import { expect } from "vitest";
-import { boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
 
 boardStory.it(
 	"assigns unambiguous Unicode anchors and excludes footnote and authored headings",
 	[
-		serverReading(),
 		projectFiles({
 			"headings.md":
 				'# **Evidence**\n\n## Evidence\n\nA claim.[^source]\n\n[^source]: Proof.\n\n### Evidence-2\n\n### Evidence\n\n## Απόφαση\n\n## !!!\n\n<h2 id="authored">Kept</h2>',

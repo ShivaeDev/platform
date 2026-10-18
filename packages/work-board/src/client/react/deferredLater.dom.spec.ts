@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { boardStory, projectFiles, readerAt } from "#test/boardStory.ts";
 import { waitFor } from "#test/live.ts";
 
 const PLANNED =
@@ -8,7 +8,7 @@ const PLANNED =
 
 boardStory.it(
 	"moves person-owned work from Needs you to the collapsed Later list once it is deferred",
-	[projectFiles({ "goals/admin.md": PLANNED }, "a person owns planned work with a next action")],
+	[readerAt("/"), projectFiles({ "goals/admin.md": PLANNED }, "a person owns planned work with a next action")],
 	function* ({ editFile, page, reader }) {
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live")));
 		expect(reader.todayRows("Needs you")).toEqual([{ detail: "Casey: Later: design the admin system", title: "Admin system" }]);

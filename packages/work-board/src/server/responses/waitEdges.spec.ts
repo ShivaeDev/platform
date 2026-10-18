@@ -5,12 +5,13 @@ import { Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonom
 import { waitForResponse } from "#server/responses/waitFor.ts";
 import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
 import { recordedEdgeResponse } from "#test/responseEdges.ts";
+import { responseFunctionStory } from "#test/responseFunctionStory.ts";
 import { waitReplies } from "#test/waitReplies.ts";
 
-boardStory.it("preserves a nonretryable external RPC rejection without polling it again", [], function* () {
+responseFunctionStory.it("preserves a nonretryable external RPC rejection without polling it again", [], function* ({ waitForResponse: request }) {
 	const failure = new Conflict({ message: "The registered question identity is ambiguous; response history is unknown." });
 	const rpc = waitReplies([Effect.fail(failure)]);
-	expect(yield* Effect.flip(waitForResponse(rpc.read, () => undefined))).toMatchObject({ _tag: failure._tag, message: failure.message });
+	expect(yield* Effect.flip(request(rpc.read, () => undefined))).toMatchObject({ _tag: failure._tag, message: failure.message });
 	expect(rpc.calls()).toBe(1);
 });
 

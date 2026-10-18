@@ -19,7 +19,6 @@ export interface BoardEngine {
 	path: string;
 	pollDiagnostics?: () => void;
 	readAt?: number;
-	readingOnly?: boolean;
 	reads?: WorkspaceReads;
 	responses: boolean;
 	server?: { board: RunningBoard; client: ReturnType<typeof browserClient> };
@@ -42,13 +41,16 @@ export function wrapFilesystem(engine: BoardEngine, wrap?: FileSystemWrapper) {
 
 export function connected(engine: BoardEngine) {
 	if (!engine.live) {
-		throw new Error("The story's board has not started");
+		throw new Error("The story has no bundle page. Add the readerAt(path) reader trait before reading page or opening through reader.");
 	}
 	return engine.live;
 }
 
 export function served(engine: BoardEngine) {
-	return engine.live ?? engine.server ?? connected(engine);
+	if (!engine.server) {
+		throw new Error("The story's board has not started");
+	}
+	return engine.server;
 }
 
 export function* createBoard() {
@@ -72,12 +74,15 @@ export function* serveProject(engine: BoardEngine) {
 			return client;
 		},
 	};
-	if (engine.readingOnly) {
+}
+
+export function* openReader(engine: BoardEngine) {
+	if (engine.live) {
 		return;
 	}
-	const reader = engine.server.client;
+	const { board, client } = served(engine);
 	const page = yield* openPage(board, engine.path, engine.beforeScripts);
-	engine.live = { board, client: reader, page };
+	engine.live = { board, client, page };
 	yield* rememberReader(engine);
 }
 

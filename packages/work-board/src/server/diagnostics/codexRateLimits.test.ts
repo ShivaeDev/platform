@@ -1,11 +1,11 @@
 import { expect } from "vitest";
-import { boardStory, serverReading } from "#test/boardStory.ts";
+import { boardStory } from "#test/boardStory.ts";
 import { codexProtocolStory } from "#test/codexProtocolStory.ts";
 import { codexProvider } from "#test/readingTraits.ts";
 
 boardStory.it(
 	"initializes the provider, reads its account and limits, and denies approval requests",
-	[serverReading(), codexProvider("ready")],
+	[codexProvider("ready")],
 	function* ({ systemHtml }) {
 		const html = yield* systemHtml();
 		expect(html).toContain("24% used");
@@ -13,7 +13,7 @@ boardStory.it(
 	},
 );
 for (const mode of ["missing", "api-key"]) {
-	boardStory.it(`${mode} accounts have no Codex usage windows`, [serverReading(), codexProvider(mode)], function* ({ systemHtml }) {
+	boardStory.it(`${mode} accounts have no Codex usage windows`, [codexProvider(mode)], function* ({ systemHtml }) {
 		const html = yield* systemHtml();
 		expect(html).toContain('data-source="codex" data-state="not-configured"');
 		if (mode === "api-key") {
@@ -27,13 +27,13 @@ for (const [mode, message] of [
 	["exit", "exited"],
 	["malformed", "invalid"],
 ] as const) {
-	boardStory.it(`reports the provider's ${mode} failure`, [serverReading(), codexProvider(mode)], function* ({ systemHtml }) {
+	boardStory.it(`reports the provider's ${mode} failure`, [codexProvider(mode)], function* ({ systemHtml }) {
 		const html = yield* systemHtml();
 		expect(html).toContain('data-source="codex" data-state="error"');
 		expect(html).toContain(message);
 	});
 }
-boardStory.it("bounds a stalled provider read", [serverReading(), codexProvider("timeout", 50)], function* ({ systemHtml }) {
+boardStory.it("bounds a stalled provider read", [codexProvider("timeout", 50)], function* ({ systemHtml }) {
 	expect(yield* systemHtml()).toContain("Codex rate limits timed out");
 });
 codexProtocolStory.it("interruption terminates the provider child", [], function* ({ cancelRead, childKilled }) {

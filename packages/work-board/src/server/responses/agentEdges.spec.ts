@@ -3,23 +3,28 @@ import { expect } from "vitest";
 import { agentRequest } from "#server/responses/agent.ts";
 import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
 import { questionnaireAnswers } from "#test/questionnaire.ts";
+import { responseFunctionStory } from "#test/responseFunctionStory.ts";
 
-boardStory.it("rejects unsafe agent server URLs through the typed error channel before creating any HTTP request", [], function* () {
-	for (const url of [
-		"not a URL",
-		"https://127.0.0.1:4747",
-		"http://remote.example",
-		"http://user:pass@localhost:4747",
-		"http://localhost:4747/path",
-		"http://localhost:4747/?q=1",
-		"http://localhost:4747/#fragment",
-	]) {
-		expect(yield* Effect.flip(agentRequest("question", { request: "item/request", url }))).toMatchObject({
-			_tag: "BadRequest",
-			message: "Use a loopback Work Board URL, such as http://127.0.0.1:4747.",
-		});
-	}
-});
+responseFunctionStory.it(
+	"rejects unsafe agent server URLs through the typed error channel before creating any HTTP request",
+	[],
+	function* ({ agentRequest: request }) {
+		for (const url of [
+			"not a URL",
+			"https://127.0.0.1:4747",
+			"http://remote.example",
+			"http://user:pass@localhost:4747",
+			"http://localhost:4747/path",
+			"http://localhost:4747/?q=1",
+			"http://localhost:4747/#fragment",
+		]) {
+			expect(yield* Effect.flip(request("question", { request: "item/request", url }))).toMatchObject({
+				_tag: "BadRequest",
+				message: "Use a loopback Work Board URL, such as http://127.0.0.1:4747.",
+			});
+		}
+	},
+);
 
 boardStory.it("reports malformed agent request references with the exact command correction", [aQuestionnaire()], function* ({ workspace }) {
 	const url = workspace.board.url;

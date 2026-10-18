@@ -1,13 +1,12 @@
 import { expect } from "vitest";
 import { inboxCount } from "#server/navigation/model.ts";
 import { questionId, questionMarkdown, revisionOf } from "#server/responses/records.ts";
-import { boardStory } from "#test/boardStory.ts";
 import { closedInboxFixture } from "#test/closedInboxFixture.ts";
-import { anInbox } from "#test/storyTraits.ts";
+import { workspaceStory } from "#test/workspaceStory.ts";
 import { inboxItems } from "./inbox.ts";
 import { requestInbox } from "./requestInbox.ts";
 
-boardStory.it("keeps only the latest ask for open work and the authored question in the Inbox", [anInbox()], function* ({ readAttention }) {
+workspaceStory.it("keeps only the latest ask for open work and the authored question in the Inbox", [], function* ({ readAttention }) {
 	const snapshot = yield* readAttention(closedInboxFixture());
 	const rows = inboxItems(snapshot);
 	expect(rows).toHaveLength(2);
@@ -22,7 +21,7 @@ boardStory.it("keeps only the latest ask for open work and the authored question
 });
 
 for (const status of ["closed", "done", "superseded", "completed", "cancelled", "canceled", "resolved", "released"]) {
-	boardStory.it(`resolves managed asks when all targets are ${status}, including criterion references`, [anInbox()], function* ({ readAttention }) {
+	workspaceStory.it(`resolves managed asks when all targets are ${status}, including criterion references`, [], function* ({ readAttention }) {
 		const files = closedInboxFixture();
 		files["done.md"] = `---\nid: task.done\nstatus: ${status.toUpperCase()}\ncriteria:\n  - id: proof\n    text: Evidence\n---\n# Finished work\n`;
 		files["asks/done-1.md"] = files["asks/done-1.md"]?.replace("[task.done]", "[task.done#proof, task.superseded]") ?? "";
@@ -30,7 +29,7 @@ for (const status of ["closed", "done", "superseded", "completed", "cancelled", 
 	});
 }
 
-boardStory.it("keeps mixed closed and deferred targets visible and parks only wholly deferred work", [anInbox()], function* ({ readAttention }) {
+workspaceStory.it("keeps mixed closed and deferred targets visible and parks only wholly deferred work", [], function* ({ readAttention }) {
 	const files = closedInboxFixture();
 	files["asks/done-1.md"] = files["asks/done-1.md"]?.replace("[task.done]", "[task.done, task.deferred]") ?? "";
 	files["asks/deferred-1.md"] = files["asks/deferred-1.md"]?.replace("[task.deferred]", "[task.deferred, task.done]") ?? "";
@@ -41,7 +40,7 @@ boardStory.it("keeps mixed closed and deferred targets visible and parks only wh
 	expect(groups.items.find((item) => item.id === "decision.deferred.1")?.earlierAsks).toBe(1);
 });
 
-boardStory.it("uses source modification time to select the newest ask regardless of file order", [anInbox()], function* ({ readAttention }) {
+workspaceStory.it("uses source modification time to select the newest ask regardless of file order", [], function* ({ readAttention }) {
 	const snapshot = yield* readAttention(closedInboxFixture());
 	const modified = new Map([...snapshot.modified, ["asks/planned-1.md", 100_000] as const]);
 	const item = inboxItems({ ...snapshot, modified }).find((row) => row.id === "task.planned");
@@ -49,7 +48,7 @@ boardStory.it("uses source modification time to select the newest ask regardless
 	expect(item?.earlierAsks).toBe(1);
 });
 
-boardStory.it("counts separate requests in one source and groups criterion references by item", [anInbox()], function* ({ readAttention }) {
+workspaceStory.it("counts separate requests in one source and groups criterion references by item", [], function* ({ readAttention }) {
 	const files = closedInboxFixture();
 	delete files["asks/planned-2.md"];
 	files["planned.md"] = files["planned.md"]?.replace("owner: codex", "owner: codex\ncriteria:\n  - id: proof\n    text: Evidence") ?? "";
@@ -65,7 +64,7 @@ boardStory.it("counts separate requests in one source and groups criterion refer
 	expect(items[1]?.href).toBe("/_board/item/decision.planned.1/#answer-card-later");
 });
 
-boardStory.it("groups registered asks on ordinary attention sources with other asks for the same item", [anInbox()], function* ({ readAttention }) {
+workspaceStory.it("groups registered asks on ordinary attention sources with other asks for the same item", [], function* ({ readAttention }) {
 	const files = closedInboxFixture();
 	const source = files["asks/planned-2.md"]?.replace("managed: true", "managed: false") ?? "";
 	files["asks/planned-2.md"] = source;

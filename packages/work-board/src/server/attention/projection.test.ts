@@ -2,14 +2,13 @@ import { expect } from "vitest";
 import { attention } from "#server/integration/attention.ts";
 import { inboxCount } from "#server/navigation/model.ts";
 import { attentionLanesFixture } from "#test/attentionLanesFixture.ts";
-import { boardStory } from "#test/boardStory.ts";
 import { responseRecords } from "#test/responseRecords.ts";
-import { anInbox } from "#test/storyTraits.ts";
+import { workspaceStory } from "#test/workspaceStory.ts";
 import { attentionProjection } from "./projection.ts";
 
-boardStory.it(
+workspaceStory.it(
 	"partitions asks and reports source diagnostics separately with one count for all queries",
-	[anInbox()],
+	[],
 	function* ({ readAttention, readInbox }) {
 		const snapshot = { ...(yield* readAttention(attentionLanesFixture("Casey"))), maintainer: "Casey" };
 		const projection = attention.projection(snapshot);
@@ -25,7 +24,7 @@ boardStory.it(
 	},
 );
 
-boardStory.it("includes unregistered asks and isolates audiences when they share a target", [anInbox()], function* ({ readAttention }) {
+workspaceStory.it("includes unregistered asks and isolates audiences when they share a target", [], function* ({ readAttention }) {
 	const files = attentionLanesFixture();
 	files["reader.md"] = files["reader.md"]?.replace("managed: true", "managed: false").replace("[maintainer]", "[orchestrator, maintainer]") ?? "";
 	files["orchestrator.md"] = files["orchestrator.md"]?.replace("unblocks: [decision.orchestrator]", "unblocks: [decision.reader]") ?? "";
@@ -35,7 +34,7 @@ boardStory.it("includes unregistered asks and isolates audiences when they share
 	expect(data.agents[0]?.id).toBe("decision.reader");
 });
 
-boardStory.it("withholds all lanes and the badge when the workspace is incomplete", [anInbox()], function* ({ readAttention }) {
+workspaceStory.it("withholds all lanes and the badge when the workspace is incomplete", [], function* ({ readAttention }) {
 	const snapshot = yield* readAttention(attentionLanesFixture(), ["unreadable.md"]);
 	const data = attentionProjection(snapshot);
 	expect(data.complete).toBe(false);
@@ -43,7 +42,7 @@ boardStory.it("withholds all lanes and the badge when the workspace is incomplet
 	expect(inboxCount(snapshot)).toBeNull();
 });
 
-boardStory.it("preserves a person's next action when an agent request targets the same item", [anInbox()], function* ({ readAttention }) {
+workspaceStory.it("preserves a person's next action when an agent request targets the same item", [], function* ({ readAttention }) {
 	const files = attentionLanesFixture();
 	files["orchestrator.md"] = files["orchestrator.md"]?.replace("unblocks: [decision.orchestrator]", "unblocks: [task.person]") ?? "";
 	const data = attentionProjection(yield* readAttention(files));
@@ -52,7 +51,7 @@ boardStory.it("preserves a person's next action when an agent request targets th
 });
 
 for (const audience of ["reader", "orchestrator"]) {
-	boardStory.it(`retires an answered ordinary request for ${audience} only in its current context`, [anInbox()], function* ({ readAttention }) {
+	workspaceStory.it(`retires an answered ordinary request for ${audience} only in its current context`, [], function* ({ readAttention }) {
 		const files = attentionLanesFixture();
 		const file = `${audience}.md`;
 		const item = `decision.${audience}`;
