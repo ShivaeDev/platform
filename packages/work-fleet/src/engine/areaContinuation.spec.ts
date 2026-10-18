@@ -1,15 +1,15 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { continuedWorkHasExpiredAreas } from "#test/continuedWorkHasExpiredAreas.ts";
+import { continuedWorkHasExpiredAreas } from "#test/engineAreaTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { noChangeReported } from "#test/engineTraits.ts";
 
 engine.it(
 	"continuing completed work reacquires areas even when the old attempts move to history",
 	[noChangeReported()],
-	function* ({ fixture, fleet, prepareWork, finishWorkers }) {
-		fixture.areas("one", ["fleet/host"]);
-		fixture.areas("two", ["fleet/host"]);
+	function* ({ fleet, prepareWork, finishWorkers, setAreas, providerOperationCount }) {
+		setAreas("one", ["fleet/host"]);
+		setAreas("two", ["fleet/host"]);
 		yield* prepareWork("one");
 		yield* prepareWork("two");
 		yield* fleet.dispatch("one");
@@ -20,7 +20,7 @@ engine.it(
 			message: "waiting for area fleet/host held by two",
 		});
 		expect((yield* fleet.get("one")).value.stage).toBe("completed");
-		expect(fixture.operations.size).toBe(3);
+		expect(providerOperationCount()).toBe(3);
 		finishWorkers();
 		yield* fleet.reconcile("two");
 		const continued = yield* fleet.continue("one", "Check the follow-up");
@@ -30,25 +30,23 @@ engine.it(
 		expect(continued.value.attempts[0]?.receipt?.sessionId).toBe("session-operation-1");
 	},
 );
-
 {
 	const setup = continuedWorkHasExpiredAreas();
 	engine.it(
 		"continuing a PR after its merge wait must reacquire the area and clear the old timer",
-		[setup.given],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, respond }) {
-			const context = setup.context();
-			fixture.areas("one", ["fleet/host"]);
-			fixture.areas("two", ["fleet/host"]);
+		[setup],
+		function* ({ fleet, prepareWork, finishWorkers, respond, setAreas, advanceTime, providerOperationCount }) {
+			setAreas("one", ["fleet/host"]);
+			setAreas("two", ["fleet/host"]);
 			yield* prepareWork("one");
 			yield* prepareWork("two");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.mergeReadyAt).toBe(100);
-			context.now += 5000;
+			advanceTime(5000);
 			yield* fleet.dispatch("two");
 			expect(yield* fleet.continue("one", "Revise the PR").pipe(Effect.flip)).toMatchObject({ message: "waiting for area fleet/host held by two" });
-			expect(fixture.operations.size).toBe(3);
+			expect(providerOperationCount()).toBe(3);
 			finishWorkers();
 			const holder = yield* fleet.reconcile("two");
 			const decision = holder.value.decision?.id ?? "missing";

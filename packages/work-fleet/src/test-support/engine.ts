@@ -43,8 +43,8 @@ export const withEngine = Effect.fn("FleetFixture.withEngine")(function* <A, E, 
 	use: (fixture: EngineFixture<TBoardError>) => Effect.Effect<A, E, typeof Fleet.Identifier>,
 	boardOverride?: Layer.Layer<BoardGateway, TBoardError>,
 ) {
-	const { fixture, layer } = yield* createEngine(options, boardOverride);
-	return yield* use(fixture).pipe(Effect.provide(layer));
+	const { fixture, fleetLayer } = yield* createEngine(options, boardOverride);
+	return yield* use(fixture).pipe(Effect.provide(fleetLayer));
 });
 
 export const prepareWork = Effect.fn("Fleet.prepareWork")(function* (workId: string) {

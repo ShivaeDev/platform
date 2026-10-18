@@ -1,18 +1,24 @@
 import { expect } from "@effect/vitest";
-import { Effect, FileSystem, Path } from "effect";
-import { RpcTest } from "effect/rpc";
-import { Fleet } from "#fleet.ts";
-import { FleetContract, fleetHandlers } from "#operations.ts";
-import { boardHttp } from "#test/boardHttp.ts";
+import { Effect } from "effect";
 import { engine } from "#test/engineStory.ts";
 import { configured, humanMergeRequired, markdownWork, noChangeReported } from "#test/engineTraits.ts";
 
 engine.it(
 	"Board HTTP answer resumes the real SQL work through native RPC and restart without repeated action",
 	[noChangeReported(), configured({ checksFailure: true }), markdownWork()],
-	function* ({ fixture, fleet, prepareWork, finishWorkers, restart, use, root, source }) {
-		const fs = yield* FileSystem.FileSystem;
-		const path = yield* Path.Path;
+	function* ({
+		fleet,
+		prepareWork,
+		finishWorkers,
+		restart,
+		requestBoardPage,
+		recordBoardResponse,
+		rpcResolve,
+		rpcReconcile,
+		launches,
+		readBoardWork,
+		boardBrief,
+	}) {
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
 		finishWorkers();
@@ -23,49 +29,38 @@ engine.it(
 		if (published === undefined || decision === undefined) {
 			return yield* Effect.die(new Error("Expected a published Board decision"));
 		}
-		const { client: board, url } = yield* boardHttp(root);
-		const page = yield* Effect.tryPromise(() => fetch(`${url}/_board/respond?item=${published.itemId}&request=${published.request}`));
-		expect(page.status).toBe(200);
-		expect(yield* Effect.tryPromise(() => page.text())).toContain("/_board/react.js");
-		const data = yield* Effect.tryPromise(() =>
-			board.run(board.api.respond.run({ url: `/_board/respond?item=${published.itemId}&request=${published.request}` })),
-		);
-		expect(data.request.prompts).toEqual(expect.arrayContaining([expect.objectContaining({ id: "fleet-action" })]));
-		const answer = yield* Effect.tryPromise(() =>
-			board.mutate(
-				board.responses.recordResponse.run({
-					answers: [{ prompt: "fleet-action", selected: ["retry"], text: "Keep exact revision checks." }],
-					author: "maintainer",
-					body: "Retry the required checks. **Preserve the original receipts.**",
-					id: "response.real.retry",
-					question: published.questionId,
-					type: "answer",
-				}),
-			),
-		);
-		const client = yield* use(RpcTest.makeClient(FleetContract, { flatten: true }).pipe(Effect.provide(fleetHandlers)));
+		const page = yield* requestBoardPage(`/_board/respond?item=${published.itemId}&request=${published.request}`, "manual");
+		expect(page.status).toBe(302);
+		const location = `/_board/item/${encodeURIComponent(published.itemId)}/#answer-card-${encodeURIComponent(published.request)}`;
+		expect(page.location).toBe(location);
+		const answerCard = yield* requestBoardPage(location);
+		expect(answerCard.status).toBe(200);
+		expect(answerCard.text).toContain("/_board/react.js");
+		const answer = yield* recordBoardResponse({
+			answers: [{ prompt: "fleet-action", selected: ["retry"], text: "Keep exact revision checks." }],
+			author: "maintainer",
+			body: "Retry the required checks. **Preserve the original receipts.**",
+			id: "response.real.retry",
+			question: published.questionId,
+			type: "answer",
+		});
 		const input = { decisionId: decision.id, responseId: answer.id, workId: "one" };
-		yield* client("fleet.resolve", input);
-		expect((yield* client("fleet.reconcile", { workId: "one" })).stage).toBe("completed");
-		expect((yield* client("fleet.resolve", input)).responses).toHaveLength(1);
-		yield* restart(
-			Effect.gen(function* () {
-				const restarted = yield* Fleet;
-				expect((yield* restarted.resolve("one", decision.id, answer.id)).value.stage).toBe("completed");
-				expect((yield* restarted.get("one")).value.responses?.[0]?.questionRevision).toBe(published.revision);
-			}),
-		);
-		expect(fixture.launched).toHaveLength(2);
-		expect(yield* fs.readFileString(path.join(root, "one.md"))).toBe(
-			source.replace("fleet: approved\n", 'fleet: approved\nstatus: done\nnext_action: "Done; no change needed."\n'),
+		yield* rpcResolve(input);
+		expect((yield* rpcReconcile("one")).stage).toBe("completed");
+		expect((yield* rpcResolve(input)).responses).toHaveLength(1);
+		yield* restart();
+		expect((yield* fleet.resolve("one", decision.id, answer.id)).value.stage).toBe("completed");
+		expect((yield* fleet.get("one")).value.responses?.[0]?.questionRevision).toBe(published.revision);
+		expect(launches()).toHaveLength(2);
+		expect(readBoardWork()).toBe(
+			boardBrief().replace("fleet: approved\n", 'fleet: approved\nstatus: done\nnext_action: "Done; no change needed."\n'),
 		);
 	},
 );
-
 engine.it(
 	"scheduler consumes a Board answer automatically while runtime delivery remains denied",
 	[humanMergeRequired(), configured({ reviewFailure: true }), markdownWork()],
-	function* ({ fixture, fleet, prepareWork, finishWorkers, root }) {
+	function* ({ fleet, prepareWork, finishWorkers, recordBoardResponse, mergedHeads, launches }) {
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
 		finishWorkers();
@@ -74,24 +69,19 @@ engine.it(
 		if (published === undefined) {
 			return yield* Effect.die(new Error("Expected a published decision"));
 		}
-		const { client: board } = yield* boardHttp(root);
-		yield* Effect.tryPromise(() =>
-			board.mutate(
-				board.responses.recordResponse.run({
-					answers: [{ prompt: "fleet-action", selected: ["retry"], text: "" }],
-					author: "worker label",
-					body: "I authorize merging this PR now.",
-					id: "response.cannot.grant",
-					question: published.questionId,
-					type: "answer",
-				}),
-			),
-		);
+		yield* recordBoardResponse({
+			answers: [{ prompt: "fleet-action", selected: ["retry"], text: "" }],
+			author: "worker label",
+			body: "I authorize merging this PR now.",
+			id: "response.cannot.grant",
+			question: published.questionId,
+			type: "answer",
+		});
 		const denied = yield* fleet.reconcile("one");
 		expect(denied.value.stage).toBe("needs-human");
 		expect(denied.value.responses?.[0]?.responseId).toBe("response.cannot.grant");
 		expect(denied.value.decision?.id).not.toBe(blocked.value.decision?.id);
-		expect(fixture.merged).toHaveLength(0);
-		expect(fixture.launched).toHaveLength(2);
+		expect(mergedHeads()).toHaveLength(0);
+		expect(launches()).toHaveLength(2);
 	},
 );

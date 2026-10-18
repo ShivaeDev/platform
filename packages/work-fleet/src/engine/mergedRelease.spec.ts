@@ -10,8 +10,19 @@ for (const scenario of ["worker question", "failing check", "changed head"] as c
 	engine.it(
 		`a human merge releases an adopted PR with a ${scenario} after one reconcile`,
 		[githubPullRequest({ failed: scenario === "failing check" }), checksWithoutRepair()],
-		function* ({ fixture, fleet, pullRequest, prepareWork, workerReports, turnReports, respond }) {
-			const github = pullRequest();
+		function* ({
+			fleet,
+			prepareWork,
+			workerReports,
+			turnReports,
+			respond,
+			mergePullRequest,
+			movePullRequestHead,
+			reserveForeign,
+			acknowledgements,
+			foreignReservations,
+			mergedHeads,
+		}) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			workerReports(REPORT);
@@ -30,13 +41,13 @@ for (const scenario of ["worker question", "failing check", "changed head"] as c
 			expect(waiting.value.stage).toBe("needs-human");
 			expect(executing(waiting.value)).toBe(false);
 			const published = waiting.value.decision?.published ?? (yield* Effect.die("Missing published decision"));
-			github.state.status = "MERGED";
-			github.state.head = scenario === "changed head" ? MOVED : HEAD;
-			yield* fixture.foreign(PR);
+			mergePullRequest();
+			movePullRequestHead(scenario === "changed head" ? MOVED : HEAD);
+			yield* reserveForeign(PR);
 			const released = yield* fleet.reconcile("one");
 			expect(released.value.stage).toBe("released");
 			expect(released.value.releaseReason).toBe(
-				`PR #7 merged by a human at ${github.state.head}; Fleet review covered ${waiting.value.review?.head ?? "nothing"}`,
+				`PR #7 merged by a human at ${scenario === "changed head" ? MOVED : HEAD}; Fleet review covered ${waiting.value.review?.head ?? "nothing"}`,
 			);
 			expect(released.value.outcome).toBeUndefined();
 			expect(released.value.decision).toBeUndefined();
@@ -45,15 +56,15 @@ for (const scenario of ["worker question", "failing check", "changed head"] as c
 				published,
 				supersededAt: expect.any(Number),
 			});
-			expect(fixture.acknowledgements).toContainEqual({
+			expect(acknowledgements()).toContainEqual({
 				decision: published,
 				disposition: "superseded",
 				recordedAt: expect.any(Number),
 			});
 			expect(backlog(released.value)).toBe(false);
-			expect(yield* fixture.foreignReservations()).toEqual([]);
+			expect(yield* foreignReservations()).toEqual([]);
 			expect((yield* fleet.reconcile("one")).version).toBe(released.version);
-			expect(fixture.merged).toEqual([]);
+			expect(mergedHeads()).toEqual([]);
 		},
 	);
 }

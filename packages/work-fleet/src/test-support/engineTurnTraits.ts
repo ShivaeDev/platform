@@ -2,7 +2,8 @@ import { Effect } from "effect";
 import { SessionFailure } from "#session/schema.ts";
 import type { SessionTransport } from "#session/service.ts";
 import { duplicateTurns } from "#test/duplicateTurns.ts";
-import { engineScenario } from "#test/engineScenario.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
+import { missingTurnTransport } from "#test/missingTurnTransport.ts";
 
 function decorated(native: ReturnType<typeof duplicateTurns>, fault: string, restored: () => boolean) {
 	return (transport: typeof SessionTransport.Service): typeof SessionTransport.Service => ({
@@ -30,27 +31,23 @@ function decorated(native: ReturnType<typeof duplicateTurns>, fault: string, res
 		reconcile: (input) => native.adapter().reconcile(input),
 	});
 }
-
 export function duplicateTerminalTurns(fault: "acknowledged" | "mismatch" | "none" | "running" | "unavailable" | "wrong-session") {
-	return engineScenario("the provider reports three terminal receipts with conflicting evidence", () => {
+	return engineConfiguration("the provider reports three terminal receipts with conflicting evidence", (state) => {
 		const native = duplicateTurns();
-		let restored = false;
+		state.terminalEvidenceRestored = false;
 		const receipts = ["first", "second", "third"].map((turnId) => ({ sessionId: "session-operation-1", turnId }));
+		state.nativeTurns = native;
+		state.terminalReceipts = receipts;
 		return {
-			context: {
-				native,
-				receipts,
-				get restored() {
-					return restored;
-				},
-				set restored(value: typeof restored) {
-					restored = value;
-				},
-			},
-			options: {
-				decorateTransport: decorated(native, fault, () => restored),
-				lostAcknowledgement: true,
-			},
+			decorateTransport: decorated(native, fault, () => state.terminalEvidenceRestored),
+			lostAcknowledgement: true,
 		};
+	});
+}
+export function workerTurnDisappears(lostAcknowledgement: boolean) {
+	return engineConfiguration("a worker turn disappears with an optional lost acknowledgement", (state) => {
+		const missing = missingTurnTransport();
+		state.missingTurns = missing;
+		return { decorateTransport: missing.decorate, lostAcknowledgement };
 	});
 }

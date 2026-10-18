@@ -1,8 +1,8 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { pullRequestHeadCanMove } from "#test/engineAdoptionTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { configured, reviewAcknowledgementLost, reviewEnds, reviewerStillRunning } from "#test/engineTraits.ts";
-import { pullRequestHeadCanMove } from "#test/pullRequestHeadCanMove.ts";
 
 describe("independent reviewer sessions", () => {
 	engine.it(
@@ -14,7 +14,7 @@ describe("independent reviewer sessions", () => {
 				reviewerGuidance: "Inspect synthetic database checks.",
 			}),
 		],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, restart }) {
+		function* ({ fleet, prepareWork, finishWorkers, restart, providerStarts, boardWork, launches }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
@@ -23,23 +23,24 @@ describe("independent reviewer sessions", () => {
 			expect(reviewing.value.stage).toBe("reviewing");
 			expect(reviewing.value.review).toBeUndefined();
 			expect(attempt).toMatchObject({ reviewHead: "head-one-0", role: "reviewer", status: "running" });
-			const start = fixture.starts.at(-1);
+			const start = providerStarts().at(-1);
 			expect(start).toMatchObject({ access: "read-only", settings: { effort: "high", model: "host-model", serviceTier: "priority" } });
-			expect(start?.prompt).toContain(fixture.work("one").context);
+			expect(start?.prompt).toContain(boardWork("one").context);
 			expect(start?.prompt).toContain("https://example.invalid/pr/one");
 			expect(start?.prompt).toContain("Inspect synthetic database checks.");
 			expect(start?.prompt).not.toContain("Implement one");
 			finishWorkers();
-			const completed = yield* restart(fleet.reconcile("one"));
+			yield* restart();
+			const completed = yield* fleet.reconcile("one");
 			expect(completed.value.stage).toBe("completed");
 			expect(completed.value.review).toMatchObject({ head: "head-one-0", receipt: attempt?.receipt, verdict: "approved" });
-			expect(fixture.launched).toHaveLength(2);
+			expect(launches()).toHaveLength(2);
 		},
 	);
 	engine.it(
 		"recovers a lost reviewer turn response by its durable session without another launch",
 		[reviewAcknowledgementLost()],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, restart, respond }) {
+		function* ({ fleet, prepareWork, finishWorkers, restart, respond, launches }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
@@ -47,8 +48,9 @@ describe("independent reviewer sessions", () => {
 			expect(lost.value.attempts.at(-1)).toMatchObject({ role: "reviewer", sessionId: "session-operation-2", status: "submitting" });
 			expect(lost.value.attempts.at(-1)?.receipt).toBeUndefined();
 			yield* fleet.resolve("one", lost.value.decision?.id ?? "missing", respond(lost.value.decision?.id ?? "missing", "retry"));
-			expect((yield* restart(fleet.reconcile("one"))).value.stage).toBe("completed");
-			expect(fixture.launched).toHaveLength(2);
+			yield* restart();
+			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect(launches()).toHaveLength(2);
 		},
 	);
 	for (const reviewExecution of ["failed", "interrupted"] as const) {
@@ -71,7 +73,7 @@ describe("independent reviewer sessions", () => {
 	engine.it(
 		"a human retry after confirmed reviewer failure starts a fresh independent session",
 		[reviewerStillRunning()],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, respond }) {
+		function* ({ fleet, prepareWork, finishWorkers, respond, setTurnExecution, launches }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
@@ -80,7 +82,7 @@ describe("independent reviewer sessions", () => {
 			if (original === undefined) {
 				return yield* Effect.die(new Error("Reviewer receipt missing"));
 			}
-			fixture.observations.set(original.turnId, { execution: "failed", output: "Provider failure", provisioning: "ready", receipt: original });
+			setTurnExecution(original, "failed", "Provider failure");
 			const failed = yield* fleet.reconcile("one");
 			const id = failed.value.decision?.id ?? "missing";
 			yield* fleet.resolve("one", id, respond(id, "retry"));
@@ -90,34 +92,33 @@ describe("independent reviewer sessions", () => {
 			expect(retry.value.attempts.at(-1)?.status).toBe("running");
 			finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-			expect(fixture.launched).toHaveLength(3);
+			expect(launches()).toHaveLength(3);
 		},
 	);
 	{
 		const setup = pullRequestHeadCanMove();
 		engine.it(
 			"keeps approval on the old head and starts fresh review when the PR head moves",
-			[setup.given],
-			function* ({ fixture, fleet, prepareWork, finishWorkers }) {
-				const context = setup.context();
+			[setup],
+			function* ({ fleet, prepareWork, finishWorkers, movePullRequestHead, mergedHeads, reviewedHeads }) {
 				yield* prepareWork("one");
 				yield* fleet.dispatch("one");
 				finishWorkers();
 				yield* fleet.reconcile("one");
-				context.result = { ...context.result, head: "second-head" };
+				movePullRequestHead("second-head");
 				finishWorkers();
 				const moved = yield* fleet.reconcile("one");
 				expect(moved.value.stage).toBe("reviewing");
 				expect(moved.value.result?.head).toBe("second-head");
 				expect(moved.value.review?.head).toBe("first-head");
 				expect(moved.value.checks).toBeUndefined();
-				expect(fixture.merged).toHaveLength(0);
+				expect(mergedHeads()).toHaveLength(0);
 				const fresh = yield* fleet.reconcile("one");
 				expect(fresh.value.attempts.at(-1)).toMatchObject({ reviewHead: "second-head", status: "running" });
 				finishWorkers();
 				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-				expect(fixture.reviews).toEqual(["first-head", "second-head"]);
-				expect(fixture.merged).toEqual(["second-head"]);
+				expect(reviewedHeads()).toEqual(["first-head", "second-head"]);
+				expect(mergedHeads()).toEqual(["second-head"]);
 			},
 		);
 	}

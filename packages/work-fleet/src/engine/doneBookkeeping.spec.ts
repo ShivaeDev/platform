@@ -1,8 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
-import { Fleet } from "#fleet.ts";
-import { boardHttpFiles } from "#test/boardHttp.ts";
+import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork, noChangeReported, reviewerStillRunning } from "#test/engineTraits.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
@@ -12,15 +10,26 @@ for (const wholeFileRevision of [false, true]) {
 		engine.it(
 			`${wholeFileRevision ? "saved whole-file" : "authored brief"} ${phase} work survives status done and ${["preparation", "decision"].includes(phase) ? "releases without launching" : "completes normally"}`,
 			[noChangeReported(phase !== "review"), reviewerStillRunning(phase === "review"), markdownWork()],
-			function* ({ fixture, fleet, prepareWork, finishWorkers, restart, root, source, turnReports }) {
-				const files = boardHttpFiles(root);
-				const original = source.replace("kind: task", "kind: task\nstatus: planned\nnext_action: Implement the work.");
-				files.write("one.md", original);
+			function* ({
+				fleet,
+				prepareWork,
+				finishWorkers,
+				restart,
+				turnReports,
+				boardBrief,
+				writeBoardWork,
+				replaceStoredRecord,
+				providerCalls,
+				boardReceipts,
+				foreignReservations,
+			}) {
+				const original = boardBrief().replace("kind: task", "kind: task\nstatus: planned\nnext_action: Implement the work.");
+				writeBoardWork("one.md", original);
 				yield* prepareWork("one");
 				if (wholeFileRevision) {
 					const prepared = (yield* fleet.get("one")).value;
 					const context = prepared.boardContext ?? (yield* Effect.die("Missing saved Board source"));
-					yield* fixture.replaceRecord({ ...prepared, boardRevision: revisionOf(context) });
+					yield* replaceStoredRecord({ ...prepared, boardRevision: revisionOf(context) });
 				}
 				if (phase !== "preparation") {
 					yield* fleet.dispatch("one");
@@ -34,15 +43,16 @@ for (const wholeFileRevision of [false, true]) {
 					expect((yield* fleet.reconcile("one")).value.decision?.published).toBeDefined();
 				}
 				const active = yield* fleet.get("one");
-				const turns = fixture.settings.filter((call) => call.call === "turn").length;
-				files.write("one.md", original.replace("status: planned", "status: done").replace("Implement the work.", "Work completed."));
-				const preserved = yield* restart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("one"))));
+				const turns = providerCalls().filter((call) => call.call === "turn").length;
+				writeBoardWork("one.md", original.replace("status: planned", "status: done").replace("Implement the work.", "Work completed."));
+				yield* restart();
+				const preserved = yield* fleet.reconcile("one");
 				if (phase === "decision") {
 					expect(preserved.value.stage).toBe("released");
 					expect(preserved.value.releaseReason).toBe("Board status is done");
 					expect(preserved.value.decision).toBeUndefined();
 					expect(preserved.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: active.value.decision?.published }]);
-					expect(files.receipts()).toHaveLength(1);
+					expect(boardReceipts()).toHaveLength(1);
 					return;
 				}
 				expect(preserved.value).toMatchObject({
@@ -54,10 +64,10 @@ for (const wholeFileRevision of [false, true]) {
 				expect(preserved.value.decision).toEqual(active.value.decision);
 				expect(preserved.value.result).toEqual(active.value.result);
 				expect(preserved.value.outcome).toEqual(active.value.outcome);
-				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns);
+				expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(turns);
 				if (phase === "preparation") {
 					expect((yield* fleet.dispatch("one")).value.stage).toBe("released");
-					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns);
+					expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(turns);
 					return;
 				}
 				finishWorkers();
@@ -65,7 +75,7 @@ for (const wholeFileRevision of [false, true]) {
 				expect(completed.value.stage).toBe("completed");
 				expect(completed.value.decision).toBeUndefined();
 				expect(completed.value.boardContext).toBe(original);
-				expect(yield* fixture.foreignReservations()).toEqual([]);
+				expect(yield* foreignReservations()).toEqual([]);
 			},
 		);
 	}

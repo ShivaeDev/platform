@@ -10,8 +10,7 @@ for (const failedChecks of [false, true]) {
 		engine.it(
 			`a merged PR with ${failedChecks ? "failing checks" : "changes requested"} and queued guidance releases after its repair turn is ${execution}`,
 			[githubPullRequest({ failed: failedChecks }), reviewRequestsRepairs(!failedChecks)],
-			function* ({ fixture, fleet, pullRequest, prepareWork, workerReports }) {
-				const github = pullRequest();
+			function* ({ fleet, prepareWork, workerReports, launches, providerCalls, mergePullRequest, setTurnExecution }) {
 				yield* prepareWork("one");
 				yield* fleet.dispatch("one");
 				workerReports(REPORT);
@@ -20,23 +19,23 @@ for (const failedChecks of [false, true]) {
 				expect(repairing.value.review?.verdict).toBe(failedChecks ? "approved" : "changes");
 				const guidance = "Keep the requested repair focused.";
 				yield* fleet.queueAnswer("one", guidance);
-				const launches = [...fixture.settings];
-				github.state.status = "MERGED";
+				const callsBeforeMerge = providerCalls();
+				mergePullRequest();
 				const active = yield* fleet.reconcile("one");
 				expect(executing(active.value)).toBe(true);
 				expect(active.value.pendingAnswers).toEqual([guidance]);
 				const receipt = repairing.value.attempts.at(-1)?.receipt ?? (yield* Effect.die("Missing repair receipt"));
-				fixture.observations.set(receipt.turnId, { execution, output: "", provisioning: "ready", receipt });
+				setTurnExecution(receipt, execution);
 				const released = yield* fleet.reconcile("one");
 				expect(released.value.stage).toBe("released");
 				expect(released.value.releaseReason).toBe(`PR #7 merged by a human at ${HEAD}; Fleet review covered ${HEAD}`);
 				expect(released.value.outcome).toBeUndefined();
 				expect(backlog(released.value)).toBe(false);
 				expect(executing(released.value)).toBe(false);
-				expect(fixture.launched).toHaveLength(2);
+				expect(launches()).toHaveLength(2);
 				expect(released.value.attempts).toHaveLength(3);
 				expect((yield* fleet.reconcile("one")).version).toBe(released.version);
-				expect(fixture.settings).toEqual(launches);
+				expect(providerCalls()).toEqual(callsBeforeMerge);
 			},
 		);
 	}

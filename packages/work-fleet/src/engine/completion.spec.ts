@@ -10,17 +10,10 @@ import {
 } from "#test/engineTraits.ts";
 
 describe("Fleet completion path", () => {
-	engine.it("requires a dispatched turn before workers can finish", [noChangeReported()], function* ({ fleet, prepareWork, finishWorkers }) {
-		expect(() => finishWorkers()).toThrow("No worker turn is available to finish");
-		yield* prepareWork("one");
-		expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
-		finishWorkers();
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-	});
 	engine.it(
 		"independently reviews, checks and delivers the exact adopted head",
 		[],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, waitForStage }) {
+		function* ({ fleet, prepareWork, finishWorkers, waitForStage, mergedHeads }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
@@ -29,13 +22,13 @@ describe("Fleet completion path", () => {
 			expect(completed.value.stage).toBe("completed");
 			expect(completed.value.review?.receipt.sessionId).not.toBe(completed.value.attempts[0]?.receipt?.sessionId);
 			expect(completed.value.checks?.head).toBe(completed.value.review?.head);
-			expect(fixture.merged).toEqual([completed.value.review?.head]);
+			expect(mergedHeads()).toEqual([completed.value.review?.head]);
 		},
 	);
 	engine.it(
 		"repairs continue the original conversation and require fresh head review and checks",
 		[reviewRequestsRepairs()],
-		function* ({ fixture, fleet, prepareWork, finishWorkers }) {
+		function* ({ fleet, prepareWork, finishWorkers, reviewedHeads }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
@@ -46,21 +39,21 @@ describe("Fleet completion path", () => {
 			finishWorkers();
 			const complete = yield* fleet.reconcile("one");
 			expect(complete.value.stage).toBe("completed");
-			expect(fixture.reviews).toEqual(["head-one-0", "head-one-1"]);
+			expect(reviewedHeads()).toEqual(["head-one-0", "head-one-1"]);
 			expect(complete.value.checks?.head).toBe("head-one-1");
 		},
 	);
 	engine.it(
 		"reviewed green work waits for a human merge and retains its PR through requested changes",
 		[humanMergeRequired()],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, respond }) {
+		function* ({ fleet, prepareWork, finishWorkers, respond, mergedHeads, launches }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const denied = yield* fleet.reconcile("one");
 			expect(denied.value.stage).toBe("needs-human");
 			expect(denied.value.decision?.reason).toContain("ready to merge");
-			expect(fixture.merged).toHaveLength(0);
+			expect(mergedHeads()).toHaveLength(0);
 			const decisionId = denied.value.decision?.id ?? "missing";
 			const requested = yield* fleet.resolve("one", decisionId, respond(decisionId, "retry"));
 			expect(requested.value.stage).toBe("repairing");
@@ -68,14 +61,14 @@ describe("Fleet completion path", () => {
 			const repairing = yield* fleet.reconcile("one");
 			expect(repairing.value.stage).toBe("executing");
 			expect(repairing.value.attempts.at(-1)?.prompt).toContain("Human context");
-			expect(fixture.launched).toHaveLength(2);
-			expect(fixture.merged).toHaveLength(0);
+			expect(launches()).toHaveLength(2);
+			expect(mergedHeads()).toHaveLength(0);
 		},
 	);
 	engine.it(
 		"accepts no-change at its actual head after independent review and required checks",
 		[noChangeReported()],
-		function* ({ fixture, fleet, prepareWork, finishWorkers }) {
+		function* ({ fleet, prepareWork, finishWorkers, mergedHeads }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
@@ -83,49 +76,49 @@ describe("Fleet completion path", () => {
 			expect(completed.value.stage).toBe("completed");
 			expect(completed.value.checks?.head).toBe("current-main");
 			expect(completed.value.outcome).toMatchObject({ evidence: [expect.any(String)] });
-			expect(fixture.merged).toHaveLength(0);
+			expect(mergedHeads()).toHaveLength(0);
 		},
 	);
 	for (const wrongHead of ["review", "checks"] as const) {
 		engine.it(
 			`rejects ${wrongHead} evidence for a different head`,
 			[evidenceHasWrongHead(wrongHead)],
-			function* ({ fixture, fleet, prepareWork, finishWorkers }) {
+			function* ({ fleet, prepareWork, finishWorkers, mergedHeads }) {
 				yield* prepareWork("one");
 				yield* fleet.dispatch("one");
 				finishWorkers();
 				expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
-				expect(fixture.merged).toHaveLength(0);
+				expect(mergedHeads()).toHaveLength(0);
 			},
 		);
 	}
 	engine.it(
 		"rejects review by the original worker conversation",
 		[reviewerSharesWorker()],
-		function* ({ fixture, fleet, prepareWork, finishWorkers }) {
+		function* ({ fleet, prepareWork, finishWorkers, providerCalls, mergedHeads }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const rejected = yield* fleet.reconcile("one");
 			expect(rejected.value.decision?.reason).toContain("Independent review");
-			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
-			expect(fixture.merged).toHaveLength(0);
+			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+			expect(mergedHeads()).toHaveLength(0);
 		},
 	);
 	engine.it(
 		"a reviewer verdict cannot free its slot until the exact turn is terminal",
 		[reviewerStillRunning()],
-		function* ({ fixture, fleet, prepareWork, finishWorkers }) {
+		function* ({ fleet, prepareWork, finishWorkers, mergedHeads, reviewedHeads }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const reviewing = yield* fleet.reconcile("one");
 			expect(reviewing.value.stage).toBe("reviewing");
 			expect(reviewing.value.attempts.at(-1)?.status).toBe("running");
-			expect(fixture.merged).toHaveLength(0);
+			expect(mergedHeads()).toHaveLength(0);
 			finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-			expect(fixture.reviews).toHaveLength(1);
+			expect(reviewedHeads()).toHaveLength(1);
 		},
 	);
 });

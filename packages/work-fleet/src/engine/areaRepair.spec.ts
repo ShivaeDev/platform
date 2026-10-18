@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { cycle } from "#engine/scheduler.ts";
-import { conflictRepairCanRaceDispatch } from "#test/conflictRepairCanRaceDispatch.ts";
+import { conflictRepairCanRaceDispatch } from "#test/engineAreaTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 
 for (const released of [false, true]) {
@@ -9,11 +8,21 @@ for (const released of [false, true]) {
 		const setup = conflictRepairCanRaceDispatch(released);
 		isolatedEngine.it(
 			`conflict repair ${released ? "regains" : "keeps"} its area ahead of a prepared provider retry across restart`,
-			[setup.given],
-			function* ({ fixture, fleet, prepareWork, finishWorkers, restart, schedule }) {
-				const context = setup.context();
-				fixture.areas("one", ["fleet/host"]);
-				fixture.areas("two", [released ? "fleet/host" : "board/ui"]);
+			[setup],
+			function* ({
+				fleet,
+				prepareWork,
+				finishWorkers,
+				restart,
+				schedule,
+				setAreas,
+				advanceTime,
+				rejectProvider,
+				recoverProvider,
+				conflictPullRequest,
+			}) {
+				setAreas("one", ["fleet/host"]);
+				setAreas("two", [released ? "fleet/host" : "board/ui"]);
 				yield* prepareWork("one");
 				yield* prepareWork("two");
 				yield* fleet.dispatch("one");
@@ -21,24 +30,25 @@ for (const released of [false, true]) {
 				const ready = (yield* fleet.reconcile("one")).value;
 				expect(ready).toMatchObject({ mergeReadyAt: 100, stage: "needs-human" });
 				if (released) {
-					context.now += 5000;
+					advanceTime(5000);
 				}
-				context.reject = true;
+				rejectProvider();
 				yield* schedule();
 				expect((yield* fleet.get("two")).value).toMatchObject({
 					attempts: [{ status: "failed" }],
 					stage: "prepared",
 				});
 				expect((yield* fleet.get("one")).value.mergeAreasReleased).toBe(released ? true : undefined);
-				context.reject = false;
+				recoverProvider();
 				if (!released) {
-					fixture.areas("two", ["fleet/host"]);
-					context.now += 30_000;
+					setAreas("two", ["fleet/host"]);
+					advanceTime(30_000);
 					yield* fleet.dispatch("two").pipe(Effect.result);
 					expect((yield* fleet.get("two")).value.blocker).toBe("waiting for area fleet/host held by one");
 				}
-				context.conflicting = true;
-				yield* restart(cycle);
+				conflictPullRequest();
+				yield* restart();
+				yield* schedule();
 				const repaired = (yield* fleet.get("one")).value;
 				expect(repaired.stage).toBe("executing");
 				expect(repaired.blocker).toBeUndefined();
@@ -49,8 +59,9 @@ for (const released of [false, true]) {
 					receipt: { sessionId: ready.attempts[0]?.receipt?.sessionId },
 					role: "repair",
 				});
-				context.now += 30_000;
-				yield* restart(cycle);
+				advanceTime(30_000);
+				yield* restart();
+				yield* schedule();
 				expect((yield* fleet.get("two")).value).toMatchObject({
 					attempts: [{ status: "failed" }],
 					blocker: "waiting for area fleet/host held by one",

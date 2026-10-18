@@ -9,17 +9,28 @@ for (const head of [HEAD, MOVED]) {
 		engine.it(
 			`a human merge at ${head} during review releases once the reviewer is terminal with ${pending ? "pending" : "green"} checks`,
 			[githubPullRequest({}), reviewerStillRunning()],
-			function* ({ fixture, fleet, finishWorkers, pullRequest, prepareWork, workerReports }) {
-				const github = pullRequest();
+			function* ({
+				fleet,
+				finishWorkers,
+				prepareWork,
+				workerReports,
+				mergePullRequest,
+				movePullRequestHead,
+				checksRemainPending,
+				launches,
+				reviewedHeads,
+				mergedHeads,
+				githubRequests,
+			}) {
 				yield* prepareWork("one");
 				yield* fleet.dispatch("one");
 				workerReports(REPORT);
 				const reviewing = yield* fleet.reconcile("one");
 				expect(reviewing.value.stage).toBe("reviewing");
 				expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
-				github.state.status = "MERGED";
-				github.state.head = head;
-				github.state.pending = pending;
+				mergePullRequest();
+				movePullRequestHead(head);
+				checksRemainPending(pending);
 				expect((yield* fleet.reconcile("one")).value.stage).toBe("reviewing");
 				finishWorkers();
 				const observed = yield* fleet.reconcile("one");
@@ -31,15 +42,14 @@ for (const head of [HEAD, MOVED]) {
 				expect(observed.value.result).toEqual(reviewing.value.result);
 				expect(backlog(observed.value)).toBe(false);
 				expect((yield* fleet.reconcile("one")).version).toBe(observed.version);
-				expect(fixture.launched).toHaveLength(2);
-				expect(fixture.reviews).toEqual([HEAD]);
-				expect(fixture.merged).toEqual([]);
-				expect(github.requests.filter((request) => request === "/repos/example/repository/pulls/7").length).toBeGreaterThan(2);
+				expect(launches()).toHaveLength(2);
+				expect(reviewedHeads()).toEqual([HEAD]);
+				expect(mergedHeads()).toEqual([]);
+				expect(githubRequests().filter((request) => request === "/repos/example/repository/pulls/7").length).toBeGreaterThan(2);
 			},
 		);
 	}
 }
-
 for (const scenario of [
 	{
 		head: HEAD,
@@ -51,16 +61,15 @@ for (const scenario of [
 	engine.it(
 		`${scenario.name} during review retains ownership and waits on the orchestrator`,
 		[githubPullRequest({}), reviewerStillRunning()],
-		function* ({ fixture, fleet, finishWorkers, pullRequest, prepareWork, workerReports }) {
-			const github = pullRequest();
+		function* ({ fleet, finishWorkers, prepareWork, workerReports, closePullRequest, movePullRequestHead, launches, reviewedHeads, mergedHeads }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			workerReports(REPORT);
 			const reviewing = yield* fleet.reconcile("one");
 			expect(reviewing.value.stage).toBe("reviewing");
 			expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
-			github.state.status = scenario.status;
-			github.state.head = scenario.head;
+			closePullRequest();
+			movePullRequestHead(scenario.head);
 			finishWorkers();
 			const observed = yield* fleet.reconcile("one");
 			expect(observed.value.stage).toBe("needs-human");
@@ -69,9 +78,9 @@ for (const scenario of [
 			expect(observed.value.outcome).toBeUndefined();
 			expect(backlog(observed.value)).toBe(true);
 			expect(observed.value.result).toEqual(reviewing.value.result);
-			expect(fixture.launched).toHaveLength(2);
-			expect(fixture.reviews).toEqual([HEAD]);
-			expect(fixture.merged).toEqual([]);
+			expect(launches()).toHaveLength(2);
+			expect(reviewedHeads()).toEqual([HEAD]);
+			expect(mergedHeads()).toEqual([]);
 		},
 	);
 }

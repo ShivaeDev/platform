@@ -1,21 +1,16 @@
 import { expect } from "@effect/vitest";
-import { cycle } from "#engine/scheduler.ts";
 import { views } from "#engine/views.ts";
 import { backlog, executing } from "#model.ts";
+import { humanDeliveryWithoutReview, reviewedPullRequestIsOpen } from "#test/engineDeliveryTraits.ts";
 import { engine } from "#test/engineStory.ts";
-import { humanDeliveryWithoutReview, reviewedPullRequestIsOpen } from "#test/humanDeliveryScenarios.ts";
 
 const result = { head: "reviewed-head", kind: "change", paths: ["src/one.ts"], pr: "https://github.com/example/repository/pull/42" } as const;
-const open = { headRefOid: result.head, mergeCommit: null, mergedAt: null, state: "OPEN", url: result.pr };
-const merged = { ...open, mergeCommit: { oid: "merged-revision" }, mergedAt: "2026-01-01T00:00:00Z", state: "MERGED" };
-
 {
 	const setup = reviewedPullRequestIsOpen();
 	engine.it(
 		"green work never submits a merge and a restarted scheduler accepts the human merge once",
-		[setup.given],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, restart }) {
-			const context = setup.context();
+		[setup],
+		function* ({ fleet, prepareWork, finishWorkers, restart, mergePullRequest, schedule, launches, reviewedHeads, mergedHeads }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
@@ -29,8 +24,9 @@ const merged = { ...open, mergeCommit: { oid: "merged-revision" }, mergedAt: "20
 			expect(backlog(ready.value)).toBe(true);
 			expect(executing(ready.value)).toBe(false);
 			expect((yield* fleet.reconcile("one")).version).toBe(ready.version);
-			context.observation = merged;
-			yield* restart(cycle);
+			mergePullRequest();
+			yield* restart();
+			yield* schedule();
 			const accepted = yield* fleet.get("one");
 			expect(accepted.value.stage).toBe("completed");
 			expect(accepted.value.outcome).toEqual({ head: result.head, revision: "merged-revision", url: result.pr });
@@ -42,49 +38,46 @@ const merged = { ...open, mergeCommit: { oid: "merged-revision" }, mergedAt: "20
 			expect(completedViews.completed[0]?.decision).toBeUndefined();
 			expect(accepted.value.decision?.published).toBeDefined();
 			expect((yield* fleet.reconcile("one")).version).toBe(accepted.version);
-			expect(fixture.launched).toHaveLength(2);
-			expect(fixture.reviews).toHaveLength(1);
-			expect(fixture.merged).toEqual([]);
+			expect(launches()).toHaveLength(2);
+			expect(reviewedHeads()).toHaveLength(1);
+			expect(mergedHeads()).toEqual([]);
 		},
 	);
 }
-
 {
 	const setup = reviewedPullRequestIsOpen();
 	engine.it(
 		"a PR closed without merging replaces the ready decision with that fact",
-		[setup.given],
-		function* ({ fixture, fleet, prepareWork, finishWorkers, restart }) {
-			const context = setup.context();
+		[setup],
+		function* ({ fleet, prepareWork, finishWorkers, restart, closePullRequest, schedule, mergedHeads }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			yield* fleet.reconcile("one");
-			context.observation = { ...open, state: "CLOSED" };
-			yield* restart(cycle);
+			closePullRequest();
+			yield* restart();
+			yield* schedule();
 			const closed = yield* fleet.get("one");
 			expect(closed.value.stage).toBe("needs-human");
 			expect(closed.value.decision?.reason).toContain("closed without merging");
 			expect(closed.value.outcome).toBeUndefined();
 			expect(backlog(closed.value)).toBe(true);
 			expect((yield* fleet.reconcile("one")).version).toBe(closed.version);
-			expect(fixture.merged).toEqual([]);
+			expect(mergedHeads()).toEqual([]);
 		},
 	);
 }
-
 {
 	const setup = reviewedPullRequestIsOpen();
 	engine.it(
 		"a human merge of a changed head cannot reuse the old review and checks",
-		[setup.given],
-		function* ({ fleet, prepareWork, finishWorkers }) {
-			const context = setup.context();
+		[setup],
+		function* ({ fleet, prepareWork, finishWorkers, mergePullRequest }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			yield* fleet.reconcile("one");
-			context.observation = { ...merged, headRefOid: "unreviewed-head" };
+			mergePullRequest("unreviewed-head");
 			const blocked = yield* fleet.reconcile("one");
 			expect(blocked.value.stage).toBe("released");
 			expect(blocked.value.releaseReason).toBe("PR #42 merged by a human at unreviewed-head; Fleet review covered reviewed-head");
@@ -93,16 +86,15 @@ const merged = { ...open, mergeCommit: { oid: "merged-revision" }, mergedAt: "20
 		},
 	);
 }
-
 for (const state of ["CLOSED", "MERGED"] as const) {
 	{
 		const setup = humanDeliveryWithoutReview(state);
-		engine.it(`observes ${state} without accepting unreviewed work`, [setup.given], function* ({ fixture, fleet, prepareWork, finishWorkers }) {
+		engine.it(`observes ${state} without accepting unreviewed work`, [setup], function* ({ fleet, prepareWork, finishWorkers, replaceStoredRecord }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const waiting = yield* fleet.reconcile("one");
-			yield* fixture.replaceRecord({ ...waiting.value, attempts: waiting.value.attempts.map((attempt) => ({ ...attempt, status: "completed" })) });
+			yield* replaceStoredRecord({ ...waiting.value, attempts: waiting.value.attempts.map((attempt) => ({ ...attempt, status: "completed" })) });
 			const observed = yield* fleet.reconcile("one");
 			expect(observed.value.stage).toBe(state === "CLOSED" ? "needs-human" : "released");
 			if (state === "CLOSED") {
