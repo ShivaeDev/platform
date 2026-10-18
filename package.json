@@ -23,7 +23,7 @@
 		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",
 		"test:changelog": "node --conditions=source node_modules/vitest/vitest.mjs run script/changelog/*.spec.ts --configLoader native",
 		"test:orchestration": "node --conditions=source --test script/ci/*.test.ts script/ci/*.spec.ts script/package-check/archives.test.ts script/package-check/server.test.ts script/changelog/*.test.ts script/starter-published/*.test.ts && pnpm test:quality && pnpm test:changelog",
-		"test:package": "node --conditions=source packages/heavy-lock/src/cli.ts -- node script/package-check.ts",
+		"test:package": "env -u NODE_OPTIONS node --conditions=source packages/heavy-lock/src/cli.ts -- node script/package-check.ts",
 		"test:quality": "node --conditions=source node_modules/vitest/vitest.mjs run script/quality --configLoader native",
 		"typecheck": "node --conditions=source packages/heavy-lock/src/cli.ts -- sh -c 'pnpm typecheck:root && pnpm --recursive --workspace-concurrency=${CI_WORKSPACE_CONCURRENCY:-1} --if-present typecheck'",
 		"typecheck:root": "tsc --noEmit"

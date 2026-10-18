@@ -1,6 +1,6 @@
 import process from "node:process";
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
-import { Config, Effect } from "effect";
+import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 
@@ -8,7 +8,6 @@ const program = Effect.gen(function* () {
 	const databases = yield* postgresTestEnvironment;
 	const env = { ...databases, "TEST_DATABASE_URL": databases.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL };
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	const nodeOptions = yield* Config.String("NODE_OPTIONS").pipe(Config.withDefault(""));
 	const args = process.argv.slice(2);
 	const workspace = args.includes("--workspace");
 	const ciShard = workspace && args.includes("--ci-shard");
@@ -42,7 +41,7 @@ const program = Effect.gen(function* () {
 				...args.filter((arg) => !["--workspace", "--ci-shard"].includes(arg)),
 			],
 			{
-				env: workspace ? { ...env, "NODE_OPTIONS": `${nodeOptions} --conditions=source` } : env,
+				env,
 				extendEnv: true,
 				stderr: "inherit",
 				stdin: "inherit",
