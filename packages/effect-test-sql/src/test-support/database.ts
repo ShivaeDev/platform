@@ -7,6 +7,7 @@ import { budgetVerbs } from "./budgetVerbs.ts";
 import { createDatabaseEngine } from "./databaseEngine.ts";
 import { idleVerbs } from "./idleVerbs.ts";
 import { isolationVerbs } from "./isolationVerbs.ts";
+import { lifecycleVerbs } from "./lifecycleVerbs.ts";
 import { limitVerbs } from "./limitVerbs.ts";
 import { narrated } from "./narrated.ts";
 import { poolVerbs } from "./poolVerbs.ts";
@@ -28,6 +29,7 @@ export const database = storyKit({
 			...transactionVerbs(engine),
 			...applicationVerbs(engine),
 			...isolationVerbs(engine),
+			...lifecycleVerbs(engine),
 			...limitVerbs(engine),
 			...budgetVerbs(engine),
 			...poolVerbs(engine),
@@ -36,11 +38,17 @@ export const database = storyKit({
 		};
 		return {
 			adminConnectionIsReleased: narrated(story.tell, "admin connection is released", verbs.adminConnectionIsReleased),
+			applicationFinalizersKeepDatabaseOpen: narrated(
+				story.tell,
+				"application finalizers keep their database open",
+				verbs.applicationFinalizersKeepDatabaseOpen,
+			),
 			applicationLayersUseTheirOwnClient: narrated(story.tell, "application layers use their own client", verbs.applicationLayersUseTheirOwnClient),
 			cloneExplainsConnectionLimit: narrated(story.tell, "clone explains connection limit", verbs.cloneExplainsConnectionLimit),
 			clonesCleanUpEveryExit: narrated(story.tell, "clones clean up every exit", verbs.clonesCleanUpEveryExit),
 			clonesCommitAndDrop: narrated(story.tell, "clones commit and drop", verbs.clonesCommitAndDrop),
 			connectionBudgetIsRespected: narrated(story.tell, "connection budget is respected", verbs.connectionBudgetIsRespected),
+			failedDatabaseDropIsDefect: narrated(story.tell, "a failed database drop is a defect", verbs.failedDatabaseDropIsDefect),
 			failedPreparationDropsDatabase: narrated(story.tell, "failed preparation drops database", verbs.failedPreparationDropsDatabase),
 			idleConnectionsAndDatabasesAreReleased: narrated(
 				story.tell,

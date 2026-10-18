@@ -1,9 +1,10 @@
+import { Effect } from "effect";
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
-import { session } from "#client/session.ts";
-import { answerDraft, answerInput, answerPreview, answerPrompt, responseClick } from "#test/answerDraft.tsx";
+import { answerClient, answerDraft, answerInput, answerPreview, answerPrompt, responseClick } from "#test/answerDraft.tsx";
 import { browserStorage } from "#test/browserStorage.ts";
+import { recordedResponse, responseCommands } from "#test/responseCommands.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -26,19 +27,17 @@ it("retains new questionnaire choices, text and reviewed context after a save, r
 		},
 	];
 	const view = await render(answerDraft(answerPreview, 0, prompts));
-	const native = session(window);
-	native.registry.dispose();
 	let release: (() => void) | undefined;
 	const gate = new Promise<void>((resolve) => {
 		release = resolve;
 	});
-	const mutate = vi
-		.spyOn(native, "mutate")
-		.mockResolvedValueOnce({ id: answerPreview.id })
-		.mockImplementationOnce(async () => {
+	const { record } = responseCommands(answerClient);
+	record.mockImplementationOnce((input) =>
+		Effect.promise(async () => {
 			await gate;
-			return undefined;
-		});
+			return recordedResponse(input);
+		}),
+	);
 	function choose(value: string) {
 		const control = document.querySelector<HTMLInputElement>(`[value="${value}"]`);
 		if (!control) {
@@ -54,7 +53,7 @@ it("retains new questionnaire choices, text and reviewed context after a save, r
 		choose("local");
 		responseClick("preview");
 		await act(async () => responseClick("submit"));
-		await eventually(() => expect(mutate).toHaveBeenCalledTimes(2));
+		await eventually(() => expect(record).toHaveBeenCalledTimes(1));
 		choose("export");
 		answerPrompt("direction", "A newer rationale");
 		await act(async () => release?.());

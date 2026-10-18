@@ -1,23 +1,26 @@
-import { beforeAll, describe, expect, it } from "vitest";
-import { environmentVariable } from "#test/environment.ts";
-import { runDisconnectedBegin } from "#test/runDisconnectedBegin.ts";
+import { expect } from "vitest";
+import { disconnectsBeforeBegin, postgresStory } from "#test/postgresStory.ts";
 
-describe.runIf(environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL") !== undefined)("PostgreSQL disconnect before BEGIN", () => {
-	let result: Awaited<ReturnType<typeof runDisconnectedBegin>>;
-	beforeAll(async () => {
-		result = await runDisconnectedBegin();
-		if (result.status !== 0) {
-			expect(result.stderr).toBe("uncaughtException: Connection terminated unexpectedly\n");
-		}
+postgresStory.it(
+	"preserves the original connection error after transaction acquisition fails",
+	[disconnectsBeforeBegin()],
+	function* ({ disconnectedBegin }) {
+		const result = yield* disconnectedBegin();
+		expect(JSON.parse(result.stdout)).toMatchObject({
+			begins: 1,
+			kind: "PrismaConnectionFailure",
+			original: { kind: "sql_connection", message: "Connection terminated unexpectedly" },
+		});
+	},
+);
+
+postgresStory.it(
+	"survives a PostgreSQL disconnect before BEGIN without an uncaught pg error",
+	[disconnectsBeforeBegin()],
+	function* ({ disconnectedBegin }) {
+		const result = yield* disconnectedBegin();
 		expect(JSON.parse(result.stdout)).toMatchObject({ begins: 1, kind: "PrismaConnectionFailure", original: { kind: "sql_connection" } });
-	});
-
-	it("preserves the original connection error after transaction acquisition fails", () => {
-		expect(JSON.parse(result.stdout)).toMatchObject({ original: { message: "Connection terminated unexpectedly" } });
-	});
-
-	it.fails("BUG: survives a PostgreSQL disconnect before BEGIN without an uncaught pg error", () => {
 		expect(result.stderr).toBe("");
 		expect(result.status).toBe(0);
-	});
-});
+	},
+);

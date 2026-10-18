@@ -1,7 +1,8 @@
-import { expect, it } from "vitest";
+import { expect } from "vitest";
 import { outcome } from "#server/responses/outcome.ts";
+import { boardStory } from "#test/boardStory.ts";
 
-it("checks durable replies before a 48h deadline and never treats a missing next-response cursor as answered", () => {
+boardStory.it("checks durable replies before a 48h deadline and never treats a missing next-response cursor as answered", [], () => {
 	const question = {
 		context: "# Context",
 		id: "question.a",

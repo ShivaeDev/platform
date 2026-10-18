@@ -43,7 +43,7 @@ const postgres = localPostgres(process.env);
 postgres.prepareDatabases([development, tests]);
 ```
 
-This is a complete preparation script for two application-owned databases. `assertLocalDatabase` checks the name against the list the caller supplies. It rejects a remote host, the wrong port, a different database name or a `host` connection parameter that redirects the connection. Preparation and SQL execution also reject remote database targets.
+This is a complete preparation script for two application-owned databases. `assertLocalDatabase` checks the name against the list the caller supplies. It rejects a remote host, the wrong port, a different database name or any redirecting connection parameter: `host`, `hostaddr`, `port`, `dbname` or `service`. Preparation and SQL execution also reject remote database targets.
 
 Keep the explicit name checks even though the preparation functions check their destinations. The application's allowlist says which database it intends to touch; service preparation does not choose that policy for it.
 
@@ -76,7 +76,7 @@ Import the setup API from `@shivaedev/local-postgres/localPostgres.ts`:
 | --- | --- |
 | `localServer` | The base URL `postgresql://postgres:postgres@127.0.0.1:55432`. Append the application database name. |
 | `assertLocalDatabase(value: string, names: readonly string[]): URL` | Validate a local database URL against application-owned allowed names. |
-| `localPostgres(environment: DockerEnvironment)` | Create the setup functions using the Docker settings to validate. |
+| `localPostgres(environment: DockerEnvironment, readiness?: ReadinessOptions)` | Create the setup functions using the Docker settings to validate. After starting the container, `startPostgres` checks readiness `attempts` times (default 30), waiting `delayMillis` between checks (default 1000). |
 | `prepareDatabases(values: readonly string[]): void` | Prepare the service and create absent databases. |
 | `startPostgres(connection?: string): void` | Prepare the service; the default connection is `localServer`. |
 | `sql(value: string \| URL, query: string): string` | Execute SQL through PostgreSQL's command-line client. |
@@ -98,7 +98,7 @@ Use `localPostgres.ts` for application preparation. The lower-level functions de
 pnpm add --save-dev @shivaedev/local-postgres
 ```
 
-The package requires Node 24 or later and has no runtime dependencies. It needs host `psql` or a local Docker installation. SQL uses host `psql` when available and falls back to the container's client when the host executable is missing.
+The package requires Node 24 or later and has no runtime dependencies. It needs host `psql` or a local Docker installation. SQL uses host `psql` when available and falls back to the container's client when the host executable is missing. Both clients receive the connection password through `PGPASSWORD`, outside the command line. Query failures retain PostgreSQL's diagnostics and the original error as `cause` without exposing the connection password.
 
 The shared baseline is PostgreSQL 18.6 on loopback port 55432. Docker preparation uses container and volume name `development-postgres`, loopback publication `127.0.0.1:55432:5432`, and this image:
 
@@ -116,5 +116,6 @@ Pass the process's actual Docker settings to `localPostgres`, as `process.env` i
 - Commands block the calling thread. Keep them in development and test setup tooling.
 - Keep allowed names, schema changes, test isolation and cleanup in the application. Preparation is not a database reset.
 - A prepared database name has 1–63 lowercase letters, digits or underscores and starts with a letter. An allowlisted connection URL does not bypass this SQL-name constraint.
-- The PostgreSQL preservation test checks repeated preparation on a real service. It does not establish container creation, image-mismatch handling or host-client fallback.
+- Scripted command tests cover container start/create, image-mismatch refusal, client selection, Docker context precedence and local endpoint variants. A lifecycle test simulates host-client absence and delayed container discovery, then uses real Docker and PostgreSQL to check readiness. Real service tests cover supplied container-client credentials, password-free failure diagnostics on both clients and data preservation across repeated preparation.
+- Rejection of an exact running PostgreSQL version mismatch still needs a test; image-mismatch command tests do not prove that check.
 - Concurrent creation of the same absent database is not covered by the package's tests. Prepare databases before parallel tests begin.

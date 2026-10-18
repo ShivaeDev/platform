@@ -1,15 +1,16 @@
-import { dirname } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "@effect/vitest";
 import { DecisionCode } from "#DecisionCode.ts";
 import { decisionSites, sourceDecisionSites } from "#test/decisionSites.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { recoveryCapacityCases } from "#test/recoveryCapacityCases.ts";
-import { recoveryCases } from "#test/recoveryCases.ts";
+import { recoveryCaseGroups, recoveryCases } from "#test/recoveryCases.ts";
 import { recoveryDaemon } from "#test/recoveryDaemon.ts";
-import { runRecoveryCase } from "#test/runRecoveryCase.ts";
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const engine = dirname(fileURLToPath(import.meta.url));
+const root = dirname(engine);
 const scenarios = recoveryCases();
 const rows = [...scenarios, ...recoveryCapacityCases];
 const covered = new Set(scenarios.flatMap((scenario) => scenario.sites));
@@ -61,7 +62,14 @@ describe("every published Fleet decision has a recovery", () => {
 		}
 		expect(uncoveredCodes([...DecisionCode.literals, "new-code"])).toEqual(["new-code"]);
 	});
-	const test = postgresTests("test");
+	it("every case group runs from its own spec file", () => {
+		const groups = Object.keys(recoveryCaseGroups).sort((left, right) => left.localeCompare(right));
+		const files = readdirSync(engine).filter((file) => file.endsWith("RecoveryMatrix.spec.ts"));
+		expect(files.sort((left, right) => left.localeCompare(right))).toEqual(groups.map((group) => `${group}RecoveryMatrix.spec.ts`));
+		for (const group of groups) {
+			expect(readFileSync(join(engine, `${group}RecoveryMatrix.spec.ts`), "utf8")).toContain(`recoveryMatrix("${group}");`);
+		}
+	});
 	for (const scenario of recoveryCapacityCases) {
 		postgresTests("live")(`${scenario.code}: ${scenario.name}`, scenario.run);
 	}
@@ -71,10 +79,5 @@ describe("every published Fleet decision has a recovery", () => {
 			() => recoveryDaemon(action),
 			30_000,
 		);
-		for (const code of DecisionCode.literals) {
-			for (const [row, scenario] of scenarios.filter((candidate) => candidate.code === code).entries()) {
-				test(`${code}: ${scenario.name}: ${action} after restart`, () => runRecoveryCase(code, row, action));
-			}
-		}
 	}
 });

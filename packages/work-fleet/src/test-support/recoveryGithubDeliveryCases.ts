@@ -15,7 +15,7 @@ export function recoveryGithubDeliveryCases(): readonly RecoveryCase[] {
 		let reads = 0;
 		const healthy = { headRefOid: HEAD, mergeCommit: null, mergedAt: null, state: "OPEN", url: PR };
 		const merged = { ...healthy, mergeCommit: { oid: HEAD }, mergedAt: "2026-01-01", state: "MERGED" };
-		const delivery = githubDelivery("/synthetic", () =>
+		const delivery = githubDelivery(() =>
 			Effect.sync(() => {
 				reads += 1;
 				return restored ? merged : { ...healthy, ...fault.patch };

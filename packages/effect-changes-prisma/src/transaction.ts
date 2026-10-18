@@ -47,7 +47,7 @@ function commit<TTx extends Transactional<TTx>, TX, E, R>(
 	);
 }
 
-export const runTransaction = <TTx extends Transactional<TTx>, TX, E, R, TOpenRequirements>(options: {
+export function runTransaction<TTx extends Transactional<TTx>, TX, E, R, TOpenRequirements>(options: {
 	readonly client: TTx;
 	readonly open: Effect.Effect<Frame, never, TOpenRequirements>;
 	readonly body: (tx: TTx) => Effect.Effect<TX, E, R>;
@@ -55,8 +55,8 @@ export const runTransaction = <TTx extends Transactional<TTx>, TX, E, R, TOpenRe
 	readonly savepoint: boolean;
 	readonly deadline: number | undefined;
 	readonly Expiry: Context.Reference<Expire>;
-}): Effect.Effect<TX, E | TransactionExpired | PrismaError, R | TOpenRequirements> =>
-	Effect.uninterruptibleMask((restore) =>
+}): Effect.Effect<TX, E | TransactionExpired | PrismaError, R | TOpenRequirements> {
+	return Effect.uninterruptibleMask((restore) =>
 		Effect.gen(function* () {
 			const { client, savepoint, body, deadline, Expiry } = options;
 			const frame = yield* options.open;
@@ -73,7 +73,7 @@ export const runTransaction = <TTx extends Transactional<TTx>, TX, E, R, TOpenRe
 					Effect.as(frame.settle(settled.committed ? "committed" : "rolledBack"), settled.exit),
 				);
 			}
-			const settled = yield* restore(Effect.promise(() => outcome)).pipe(
+			const result = yield* restore(Effect.promise(() => outcome)).pipe(
 				Effect.onInterrupt(() =>
 					Effect.andThen(
 						Effect.sync(() => abort.abort()),
@@ -84,6 +84,7 @@ export const runTransaction = <TTx extends Transactional<TTx>, TX, E, R, TOpenRe
 					),
 				),
 			);
-			return yield* Effect.flatten(settle(settled));
+			return yield* Effect.flatten(settle(result));
 		}),
 	);
+}

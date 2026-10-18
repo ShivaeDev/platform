@@ -1,10 +1,10 @@
 import { useAtomValue } from "@effect/atom-react";
-import { Effect, Option, Ref, Schema } from "effect";
+import { Clock, Effect, Option, Ref, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { act, createElement } from "react";
-import { expect, it } from "vitest";
+import { afterAll, expect, it, vi } from "vitest";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
@@ -13,7 +13,30 @@ import { useAction, useQuery } from "#result-state.ts";
 import { eventually, expectNoReactWarnings, render } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+const originalError = console.error;
 expectNoReactWarnings();
+afterAll(() => {
+	expect(console.error).toBe(originalError);
+	expect(vi.isMockFunction(console.error)).toBe(false);
+});
+it("eventually rethrows its last assertion failure after the three-second deadline", async () => {
+	const started = Effect.runSync(Clock.currentTimeMillis);
+	let attempts = 0;
+	let lastFailure: unknown;
+	const thrown = await eventually(() => {
+		attempts += 1;
+		try {
+			expect(attempts).toBe(0);
+		} catch (error) {
+			lastFailure = error;
+			throw error;
+		}
+	}).catch((error: unknown) => error);
+	expect(Effect.runSync(Clock.currentTimeMillis) - started).toBeGreaterThanOrEqual(3000);
+	expect(attempts).toBeGreaterThan(1);
+	expect(lastFailure).toBeInstanceOf(Error);
+	expect(thrown).toBe(lastFailure);
+});
 const notes = collection("notes", Schema.Number);
 const List = query("list", { reads: () => [notes.list], success: Schema.Array(Schema.String) });
 const Add = command("add", { invalidates: () => [notes.list], payload: { title: Schema.String } });
@@ -102,4 +125,7 @@ it("rerenders in the same registry, isolates mounts and disposes native resource
 		await second.unmount();
 	}
 	expect(released).toBe(2);
+});
+it.fails("fails when the test logs to console.error and restores the spy afterwards", () => {
+	vi.mocked(console.error)("Expected warning for the helper regression");
 });

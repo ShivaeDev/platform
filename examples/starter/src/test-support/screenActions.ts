@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { type Screen, screenView } from "./screenState.ts";
+import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
 
-export function screenInput(engine: Screen, label?: string) {
+export function screenInput(engine: ScreenSurface, label?: string) {
 	const container = screenView(engine).container;
 	const field = label === undefined ? undefined : [...container.querySelectorAll("label")].find((element) => element.textContent === label);
 	const input = label === undefined ? container.querySelector("input") : document.getElementById(field?.htmlFor ?? "");
@@ -12,7 +12,21 @@ export function screenInput(engine: Screen, label?: string) {
 	return input;
 }
 
-export function screenActions(engine: Screen, tell: (line: string) => void) {
+export function screenActions(engine: ScreenSurface, tell: (line: string) => void) {
+	function followLink(label?: string) {
+		return Effect.promise(async () => {
+			tell(label === undefined ? "open the saved note from the list" : `follow ${label}`);
+			const container = screenView(engine).container;
+			const link =
+				label === undefined
+					? container.querySelector<HTMLAnchorElement>("li > a")
+					: [...container.querySelectorAll("a")].find((element) => element.textContent === label);
+			if (link === null || link === undefined) {
+				throw new Error(`Missing ${label ?? "saved note"} link`);
+			}
+			await act(() => link.click());
+		});
+	}
 	return {
 		click: (label: string) =>
 			Effect.promise(async () => {
@@ -32,6 +46,8 @@ export function screenActions(engine: Screen, tell: (line: string) => void) {
 					input.dispatchEvent(new Event("input", { bubbles: true }));
 				});
 			}),
+		followLink,
+		openListedNote: () => followLink(),
 		submit: () =>
 			Effect.promise(async () => {
 				tell("submit the form");

@@ -32,6 +32,7 @@ export const migrations = {
 };
 
 export const layer = makePostgresTestLayer({
-	migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" },
+	migrations,
+	prepare: false,
 	url: adminUrl,
 });

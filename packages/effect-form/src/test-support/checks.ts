@@ -4,6 +4,7 @@ import { formStories } from "./formStories.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const Names = Schema.Struct({ name: Schema.String });
+export const CHECK_DEBOUNCE = 5;
 export const takenCheck = formStories(
 	() => Names,
 	() => ({
@@ -16,9 +17,12 @@ export const takenCheck = formStories(
 );
 export const brokenCheck = formStories(
 	() => Names,
-	() => ({
+	({ checked }) => ({
 		checks: {
-			name: (value) => (value === "broken" ? Effect.die("check unavailable") : Effect.succeed(value === "taken" ? "Name is taken" : undefined)),
+			name: (value) =>
+				value === "broken"
+					? Effect.die("check unavailable").pipe(Effect.onExit(() => Effect.sync(() => checked.push(value))))
+					: Effect.succeed(value === "taken" ? "Name is taken" : undefined),
 		},
 		debounce: "5 millis",
 		initialValues: { name: "" },
@@ -57,7 +61,7 @@ export const validatedCheck = formStories(
 					return undefined;
 				}),
 		},
-		debounce: "5 millis",
+		debounce: CHECK_DEBOUNCE,
 		initialValues: { name: "" },
 		onSubmit: Effect.succeed,
 		runtime,

@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { Schema } from "effect";
 
 const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)));
@@ -9,15 +10,20 @@ export function databaseName(name: string) {
 		.slice(0, 58);
 }
 
-export function appFile(path: string, content: string, name: string) {
+export function appFile(path: string, content: Buffer, name: string) {
 	if (path === "package.json") {
-		return `${JSON.stringify({ ...decodeManifest(content), name }, null, "\t")}\n`;
+		return Buffer.from(`${JSON.stringify({ ...decodeManifest(content.toString()), name }, null, "\t")}\n`);
 	}
 	if (path === ".env.example") {
-		return content.replaceAll("starter_dev", `${databaseName(name)}_dev`).replaceAll("starter_test", `${databaseName(name)}_test`);
+		return Buffer.from(
+			content
+				.toString()
+				.replaceAll("starter_dev", `${databaseName(name)}_dev`)
+				.replaceAll("starter_test", `${databaseName(name)}_test`),
+		);
 	}
 	if (["AGENTS.md", "README.md"].includes(path)) {
-		return content.replaceAll("{{appName}}", name);
+		return Buffer.from(content.toString().replaceAll("{{appName}}", name));
 	}
 	return content;
 }

@@ -36,6 +36,31 @@ for (const observationDelay of [0, 299_000]) {
 	});
 }
 
+it.effect("idle busy rejections back off before the same turn starts", function* () {
+	const methods: string[] = [];
+	const times: number[] = [];
+	const submissions: unknown[] = [];
+	const rpc: CodexRequest = (method, requestParams) =>
+		Effect.gen(function* () {
+			methods.push(method);
+			if (method !== "turn/start") {
+				return { data: [], nextCursor: null };
+			}
+			times.push(yield* Clock.currentTimeMillis);
+			submissions.push(requestParams);
+			return submissions.length < 3
+				? yield* new SessionFailure({ code: "session-rejected", message: "turn already active for thread", reason: "rejected" })
+				: { turn: { id: "followup" } };
+		});
+	const params = { clientUserMessageId: "operation", input: [{ text: "Continue", type: "text" }], threadId: "thread" };
+	const submitting = yield* startCodexTurn(rpc, codexTurns(rpc).waitUntilIdle)("thread", params).pipe(Effect.forkChild);
+	yield* TestClock.adjust("15 seconds");
+	expect(yield* Fiber.join(submitting)).toEqual({ turn: { id: "followup" } });
+	expect(times).toEqual([0, 5000, 15_000]);
+	expect(submissions).toEqual([params, params, params]);
+	expect(new Set(methods)).toEqual(new Set(["thread/turns/list", "turn/start"]));
+});
+
 it.effect("an invalid request does not check contention or resubmit", function* () {
 	const methods: string[] = [];
 	const rpc: CodexRequest = (method) =>

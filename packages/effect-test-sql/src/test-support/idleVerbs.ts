@@ -1,4 +1,4 @@
-import { Effect, Redacted } from "effect";
+import { Effect, Redacted, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
@@ -21,12 +21,12 @@ export function idleVerbs(engine: DatabaseEngine) {
 						yield* TestClock.adjust("61 seconds");
 					}),
 				);
+				const adminName = new URL(Redacted.value(engine.options.url)).pathname.slice(1);
 				yield* Effect.gen(function* () {
-					while ((yield* connections(shared)) !== 0) {
+					while ((yield* connections(shared)) !== 0 || (yield* connections(adminName)) !== 0) {
 						yield* Effect.sleep("10 millis");
 					}
 				}).pipe(Effect.timeout("5 seconds"));
-				const adminName = new URL(Redacted.value(engine.options.url)).pathname.slice(1);
 				const idleAdminConnections = yield* connections(adminName);
 				let isolated = "";
 				yield* engine.run(
@@ -40,7 +40,11 @@ export function idleVerbs(engine: DatabaseEngine) {
 				);
 				yield* engine.close();
 				expect(idleAdminConnections).toBe(0);
-				expect(yield* connections(adminName)).toBe(0);
+				const closedAdminConnections = yield* connections(adminName).pipe(
+					Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: (total) => total !== 0 }),
+					Effect.timeout("5 seconds"),
+				);
+				expect(closedAdminConnections).toBe(0);
 				expect([engine.template, shared, isolated].every((name) => name !== "")).toBe(true);
 				for (const name of [engine.template, shared, isolated]) {
 					expect(yield* engine.admin`select datname from pg_database where datname = ${name}`).toEqual([]);

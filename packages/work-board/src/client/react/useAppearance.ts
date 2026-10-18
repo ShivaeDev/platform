@@ -37,7 +37,6 @@ export function useAppearance() {
 		if (doc) {
 			doc.dataset.scheme = scheme;
 		}
-		document.dispatchEvent(new Event("board-theme"));
 	}, [value.theme, value.density, scheme]);
 	function change(next: Partial<Pick<typeof value, "closed" | "density" | "theme">>) {
 		const appearance = { closed: valueRef.current.closed, density: valueRef.current.density, theme: valueRef.current.theme, ...next };
@@ -50,6 +49,6 @@ export function useAppearance() {
 		valueRef.current = { ...appearance, notice };
 		setValue(valueRef.current);
 	}
-	return { ...value, change };
+	return { ...value, change, scheme };
 }
-export type AppearanceControls = ReturnType<typeof useAppearance>;
+export type AppearanceControls = Omit<ReturnType<typeof useAppearance>, "scheme">;

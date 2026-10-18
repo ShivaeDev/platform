@@ -41,7 +41,7 @@ export function prepareCommand(state: EngineState) {
 			return yield* store.insert(current);
 		}
 		if (unusedPreparation(existing.value)) {
-			return yield* save(existing, { ...current, history: existing.value.history });
+			return yield* save(existing, { ...current, dispatchNow: existing.value.dispatchNow, history: existing.value.history });
 		}
 		if (refreshablePreparation(existing.value, work, input)) {
 			return yield* save(existing, {
