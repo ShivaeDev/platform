@@ -190,7 +190,7 @@ const preserved = Effect.gen(function* () {
 
 The wrapped Effect still requires `Caller`, which the caller supplies separately. The generic service's Layer has no declared dependencies. The emitted declarations preserve the generic success and failure types as well as caller requirements.
 
-Marked generic methods require a service with no declared dependencies. The compiler rejects an unmarked generic that correlates its input and returned Effect, and a structurally distinct two-signature overload, but not every unsupported generic or overloaded signature. Use ordinary methods with concrete signatures when the service binds dependencies.
+Marked generic methods require a service with no declared dependencies. The compiler rejects an unmarked generic that correlates its input and returned Effect, and a structurally distinct two-signature overload; it may not reject other generic or overloaded signatures. Use ordinary methods with concrete signatures when the service binds dependencies.
 
 Dependency binding wraps the method's outer returned Effect. A Stream returned as its value retains its own service requirements; provide them when running the Stream.
 

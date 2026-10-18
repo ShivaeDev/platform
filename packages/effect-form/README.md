@@ -131,7 +131,7 @@ export function mountOrderEditor(container: HTMLElement) {
 }
 ```
 
-`useState` creates the form once for this component's editing session. `useField` supplies encoded values and change/blur callbacks; `useSubmit` supplies the native result, a submit callback and waiting state; `useDirty` reads whether edits remain. The mount function supplies a registry and returns its cleanup.
+`useState` creates the form once for this component's editing session. `useField` supplies the field's name, encoded value, `error`, `choices` and change/blur callbacks; `useSubmit` supplies the native result, a submit callback and waiting state; `useDirty` reads whether edits remain. The mount function supplies a registry and returns its cleanup.
 
 Render general submission failures from `submit.result` in the application's own words. A field rejection and schema failure are available there too; showing a field message does not replace handling the whole result.
 
