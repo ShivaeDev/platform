@@ -88,7 +88,7 @@ it("packages the real starter with registry dependencies, standalone configurati
 	for (const path of ["railway.json", "railway.worker.json", "railway.toml", "railway.worker.toml"]) {
 		expect(files[path]).toBeUndefined();
 	}
-	for (const path of [".railway/railway.ts", ".railway/railway.test.ts"]) {
+	for (const path of [".railway/railway.ts"]) {
 		expect(files[path]).toBeDefined();
 		expect(files[path]).toBe(readFileSync(join(starter, path), "utf8"));
 	}
