@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { browserClient } from "#client/client.ts";
 import { folder, type RunningBoard } from "./board.ts";
 import { embeddedBoard } from "./embeddedBoard.ts";
+import { subscribe } from "./nativeRpc.ts";
 import { type BoardEngine, connected } from "./storyEngine.ts";
 
 export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
@@ -24,6 +25,10 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				(client) => Effect.sync(() => client.registry.dispose()),
 			);
 		}),
+		removeProject: () => {
+			tell("an outside process removes the project root");
+			engine.notes.remove();
+		},
 		restart: Effect.fn("Story.restart")(function* (responses = engine.responses) {
 			tell("the board restarts from its project files");
 			yield* Effect.promise(() => connected(engine).page.close());
@@ -42,5 +47,9 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				yield* board.stop();
 			}
 		}),
+		watchProject: () => {
+			tell("a live RPC client subscribes to project changes");
+			return subscribe(connected(engine).board);
+		},
 	};
 }

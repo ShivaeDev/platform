@@ -5,6 +5,13 @@ import { isMarkdown, scanMarkdown } from "./list.ts";
 
 const SETTLE = "100 millis";
 
+type WatchRoots = readonly { readonly real: string; readonly relative: string }[];
+
+function sameRoots(previous: WatchRoots, next: WatchRoots): boolean {
+	const known = new Map(previous.map((folder) => [folder.relative, folder.real]));
+	return previous.length === next.length && next.every((folder) => known.get(folder.relative) === folder.real);
+}
+
 export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function* (
 	root: string,
 	realRoot: string,
@@ -34,22 +41,31 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 					}),
 				),
 			);
+			// A removed root can be reported without any descendant file events.
+			streams.push(
+				fs.watch(path.dirname(realRoot)).pipe(
+					Stream.filter((event) => event._tag === "Remove" && path.resolve(path.dirname(realRoot), event.path) === realRoot),
+					Stream.map(() => ""),
+				),
+			);
+			const checkTopology = Effect.fn("WorkBoard.checkTopology")(function* (relative: string) {
+				const info = yield* Effect.option(fs.stat(path.join(root, relative)));
+				const removedLink = roots.some((folder) => folder.relative === relative || folder.relative.startsWith(`${relative}/`));
+				if (Option.match(info, { onNone: () => removedLink, onSome: (value) => value.type === "Directory" })) {
+					yield* stale;
+					if (Option.isSome(info) && sameRoots(roots, (yield* scanMarkdown(root, realRoot)).roots)) {
+						return;
+					}
+					yield* Effect.forkScoped(Effect.delay(Deferred.succeed(topology, undefined), SETTLE));
+				}
+			});
 			const pending = new Set<string>();
 			const watch = Stream.mergeAll(streams, { concurrency: "unbounded" }).pipe(
 				Stream.filter(
 					(relative) => !relative.split("/").some((segment) => segment === ".board.sock.starting" || /^\.s[A-Za-z0-9]{6}$/u.test(segment)),
 				),
 				Stream.tap((relative) => (isMarkdown(relative) || attachmentType(relative) !== undefined ? observed : Effect.void)),
-				Stream.tap((relative) =>
-					Effect.gen(function* () {
-						const info = yield* Effect.option(fs.stat(path.join(root, relative)));
-						const removedLink = roots.some((folder) => folder.relative === relative || folder.relative.startsWith(`${relative}/`));
-						if (Option.match(info, { onNone: () => removedLink, onSome: (value) => value.type === "Directory" })) {
-							yield* stale;
-							yield* Effect.forkScoped(Effect.delay(Deferred.succeed(topology, undefined), SETTLE));
-						}
-					}),
-				),
+				Stream.tap(checkTopology),
 				Stream.filter((relative) => isMarkdown(relative) || attachmentType(relative) !== undefined),
 				Stream.tap((relative) =>
 					Effect.sync(() => {
