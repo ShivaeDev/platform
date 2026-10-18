@@ -68,6 +68,8 @@ The version query returns the string `18.6`. `sql` also accepts a `URL` and retu
 
 `startPostgres(connection)` prepares the service without choosing an application database to create. Its connection defaults to `localServer`. Prefer `prepareDatabases` when the setup script needs named databases as well.
 
+On each start, setup reads `SHOW max_connections`. When the shared container allows fewer than 500 connections, setup applies `ALTER SYSTEM SET max_connections = 500`, restarts that same container, waits for readiness and confirms the setting. Existing data stays in place. A limit of 500 or higher causes no setting change or restart. If the setting cannot be applied, setup throws `PostgresSettingError` from `localConnections.ts`, with `_tag`, `container`, `setting` and the original `cause`.
+
 ### API
 
 Import the setup API from `@shivaedev/local-postgres/localPostgres.ts`:
