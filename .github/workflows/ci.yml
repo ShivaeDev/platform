@@ -135,6 +135,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          # Tally reports a PR's coverage for its head commit, so its lines must match that commit, not the merge with main.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: ./.github/actions/setup
         with:
@@ -149,7 +151,7 @@ jobs:
       - run: pnpm db:setup
       - name: Test workspace shard
         run: >-
-          pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+          pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
       - name: Record test timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/tests.json
@@ -164,6 +166,18 @@ jobs:
             .ci/tests*.junit.xml
             .ci/vite/vitest/**/results.json
           include-hidden-files: true
+          retention-days: 14
+      - name: Upload coverage for Tally
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ !cancelled() }}
+        with:
+          overwrite: true
+          name: coverage-tests-${{ matrix.shard }}
+          path: |
+            .ci/coverage/lcov.info
+            .ci/tests.junit.xml
+          include-hidden-files: true
+          if-no-files-found: error
           retention-days: 14
 
   consumers:
