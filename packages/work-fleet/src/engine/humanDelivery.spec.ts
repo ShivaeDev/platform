@@ -5,91 +5,83 @@ import { humanDeliveryWithoutReview, reviewedPullRequestIsOpen } from "#test/eng
 import { engine } from "#test/engineStory.ts";
 
 const result = { head: "reviewed-head", kind: "change", paths: ["src/one.ts"], pr: "https://github.com/example/repository/pull/42" } as const;
-{
-	const setup = reviewedPullRequestIsOpen();
-	engine.it(
-		"green work never submits a merge and a restarted scheduler accepts the human merge once",
-		[setup],
-		function* ({ fleet, prepareWork, finishWorkers, restart, mergePullRequest, schedule, launches, reviewedHeads, mergedHeads }) {
-			yield* prepareWork("one");
-			yield* fleet.dispatch("one");
-			finishWorkers();
-			const ready = yield* fleet.reconcile("one");
-			expect(ready.value.stage).toBe("needs-human");
-			expect(ready.value.attentionOwner).toBe("orchestrator");
-			expect(ready.value.decision?.attentionOwner).toBe("orchestrator");
-			expect(ready.value.decision?.reason).toBe("Reviewed PR is ready to merge");
-			expect(ready.value.review?.head).toBe(result.head);
-			expect(ready.value.checks).toMatchObject({ head: result.head, passed: true });
-			expect(backlog(ready.value)).toBe(true);
-			expect(executing(ready.value)).toBe(false);
-			expect((yield* fleet.reconcile("one")).version).toBe(ready.version);
-			mergePullRequest();
-			yield* restart();
-			yield* schedule();
-			const accepted = yield* fleet.get("one");
-			expect(accepted.value.stage).toBe("completed");
-			expect(accepted.value.outcome).toEqual({ head: result.head, revision: "merged-revision", url: result.pr });
-			expect(backlog(accepted.value)).toBe(false);
-			const completedViews = views((yield* fleet.list()).map(({ value }) => value));
-			expect(completedViews.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
-			expect(accepted.value.attentionOwner).toBeUndefined();
-			expect(completedViews.completed[0]?.blocker).toBeUndefined();
-			expect(completedViews.completed[0]?.decision).toBeUndefined();
-			expect(accepted.value.decision?.published).toBeDefined();
-			expect((yield* fleet.reconcile("one")).version).toBe(accepted.version);
-			expect(launches()).toHaveLength(2);
-			expect(reviewedHeads()).toHaveLength(1);
-			expect(mergedHeads()).toEqual([]);
-		},
-	);
-}
-{
-	const setup = reviewedPullRequestIsOpen();
-	engine.it(
-		"a PR closed without merging replaces the ready decision with that fact",
-		[setup],
-		function* ({ fleet, prepareWork, finishWorkers, restart, closePullRequest, schedule, mergedHeads }) {
-			yield* prepareWork("one");
-			yield* fleet.dispatch("one");
-			finishWorkers();
-			yield* fleet.reconcile("one");
-			closePullRequest();
-			yield* restart();
-			yield* schedule();
-			const closed = yield* fleet.get("one");
-			expect(closed.value.stage).toBe("needs-human");
-			expect(closed.value.decision?.reason).toContain("closed without merging");
-			expect(closed.value.outcome).toBeUndefined();
-			expect(backlog(closed.value)).toBe(true);
-			expect((yield* fleet.reconcile("one")).version).toBe(closed.version);
-			expect(mergedHeads()).toEqual([]);
-		},
-	);
-}
-{
-	const setup = reviewedPullRequestIsOpen();
-	engine.it(
-		"a human merge of a changed head cannot reuse the old review and checks",
-		[setup],
-		function* ({ fleet, prepareWork, finishWorkers, mergePullRequest }) {
-			yield* prepareWork("one");
-			yield* fleet.dispatch("one");
-			finishWorkers();
-			yield* fleet.reconcile("one");
-			mergePullRequest("unreviewed-head");
-			const blocked = yield* fleet.reconcile("one");
-			expect(blocked.value.stage).toBe("released");
-			expect(blocked.value.releaseReason).toBe("PR #42 merged by a human at unreviewed-head; Fleet review covered reviewed-head");
-			expect(blocked.value.outcome).toBeUndefined();
-			expect(backlog(blocked.value)).toBe(false);
-		},
-	);
-}
+engine.it(
+	"green work never submits a merge and a restarted scheduler accepts the human merge once",
+	[reviewedPullRequestIsOpen()],
+	function* ({ fleet, prepareWork, finishWorkers, restart, mergePullRequest, schedule, launches, reviewedHeads, mergedHeads }) {
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		finishWorkers();
+		const ready = yield* fleet.reconcile("one");
+		expect(ready.value.stage).toBe("needs-human");
+		expect(ready.value.attentionOwner).toBe("orchestrator");
+		expect(ready.value.decision?.attentionOwner).toBe("orchestrator");
+		expect(ready.value.decision?.reason).toBe("Reviewed PR is ready to merge");
+		expect(ready.value.review?.head).toBe(result.head);
+		expect(ready.value.checks).toMatchObject({ head: result.head, passed: true });
+		expect(backlog(ready.value)).toBe(true);
+		expect(executing(ready.value)).toBe(false);
+		expect((yield* fleet.reconcile("one")).version).toBe(ready.version);
+		mergePullRequest();
+		yield* restart();
+		yield* schedule();
+		const accepted = yield* fleet.get("one");
+		expect(accepted.value.stage).toBe("completed");
+		expect(accepted.value.outcome).toEqual({ head: result.head, revision: "merged-revision", url: result.pr });
+		expect(backlog(accepted.value)).toBe(false);
+		const completedViews = views((yield* fleet.list()).map(({ value }) => value));
+		expect(completedViews.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
+		expect(accepted.value.attentionOwner).toBeUndefined();
+		expect(completedViews.completed[0]?.blocker).toBeUndefined();
+		expect(completedViews.completed[0]?.decision).toBeUndefined();
+		expect(accepted.value.decision?.published).toBeDefined();
+		expect((yield* fleet.reconcile("one")).version).toBe(accepted.version);
+		expect(launches()).toHaveLength(2);
+		expect(reviewedHeads()).toHaveLength(1);
+		expect(mergedHeads()).toEqual([]);
+	},
+);
+engine.it(
+	"a PR closed without merging replaces the ready decision with that fact",
+	[reviewedPullRequestIsOpen()],
+	function* ({ fleet, prepareWork, finishWorkers, restart, closePullRequest, schedule, mergedHeads }) {
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		finishWorkers();
+		yield* fleet.reconcile("one");
+		closePullRequest();
+		yield* restart();
+		yield* schedule();
+		const closed = yield* fleet.get("one");
+		expect(closed.value.stage).toBe("needs-human");
+		expect(closed.value.decision?.reason).toContain("closed without merging");
+		expect(closed.value.outcome).toBeUndefined();
+		expect(backlog(closed.value)).toBe(true);
+		expect((yield* fleet.reconcile("one")).version).toBe(closed.version);
+		expect(mergedHeads()).toEqual([]);
+	},
+);
+engine.it(
+	"a human merge of a changed head cannot reuse the old review and checks",
+	[reviewedPullRequestIsOpen()],
+	function* ({ fleet, prepareWork, finishWorkers, mergePullRequest }) {
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		finishWorkers();
+		yield* fleet.reconcile("one");
+		mergePullRequest("unreviewed-head");
+		const blocked = yield* fleet.reconcile("one");
+		expect(blocked.value.stage).toBe("released");
+		expect(blocked.value.releaseReason).toBe("PR #42 merged by a human at unreviewed-head; Fleet review covered reviewed-head");
+		expect(blocked.value.outcome).toBeUndefined();
+		expect(backlog(blocked.value)).toBe(false);
+	},
+);
 for (const state of ["CLOSED", "MERGED"] as const) {
-	{
-		const setup = humanDeliveryWithoutReview(state);
-		engine.it(`observes ${state} without accepting unreviewed work`, [setup], function* ({ fleet, prepareWork, finishWorkers, replaceStoredRecord }) {
+	engine.it(
+		`observes ${state} without accepting unreviewed work`,
+		[humanDeliveryWithoutReview(state)],
+		function* ({ fleet, prepareWork, finishWorkers, replaceStoredRecord }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
@@ -104,6 +96,6 @@ for (const state of ["CLOSED", "MERGED"] as const) {
 			}
 			expect(observed.value.outcome).toBeUndefined();
 			expect(backlog(observed.value)).toBe(state === "CLOSED");
-		});
-	}
+		},
+	);
 }

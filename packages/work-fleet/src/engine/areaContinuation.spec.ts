@@ -30,32 +30,29 @@ engine.it(
 		expect(continued.value.attempts[0]?.receipt?.sessionId).toBe("session-operation-1");
 	},
 );
-{
-	const setup = continuedWorkHasExpiredAreas();
-	engine.it(
-		"continuing a PR after its merge wait must reacquire the area and clear the old timer",
-		[setup],
-		function* ({ fleet, prepareWork, finishWorkers, respond, setAreas, advanceTime, providerOperationCount }) {
-			setAreas("one", ["fleet/host"]);
-			setAreas("two", ["fleet/host"]);
-			yield* prepareWork("one");
-			yield* prepareWork("two");
-			yield* fleet.dispatch("one");
-			finishWorkers();
-			expect((yield* fleet.reconcile("one")).value.mergeReadyAt).toBe(100);
-			advanceTime(5000);
-			yield* fleet.dispatch("two");
-			expect(yield* fleet.continue("one", "Revise the PR").pipe(Effect.flip)).toMatchObject({ message: "waiting for area fleet/host held by two" });
-			expect(providerOperationCount()).toBe(3);
-			finishWorkers();
-			const holder = yield* fleet.reconcile("two");
-			const decision = holder.value.decision?.id ?? "missing";
-			yield* fleet.resolve("two", decision, respond(decision, "release"));
-			const continued = yield* fleet.continue("one", "Revise the PR");
-			expect(continued.value.stage).toBe("executing");
-			expect(continued.value.mergeReadyAt).toBeUndefined();
-			expect(continued.value.mergeAreasReleased).toBeUndefined();
-			expect(continued.value.history?.[0]?.mergeReadyAt).toBe(100);
-		},
-	);
-}
+engine.it(
+	"continuing a PR after its merge wait must reacquire the area and clear the old timer",
+	[continuedWorkHasExpiredAreas()],
+	function* ({ fleet, prepareWork, finishWorkers, respond, setAreas, advanceTime, providerOperationCount }) {
+		setAreas("one", ["fleet/host"]);
+		setAreas("two", ["fleet/host"]);
+		yield* prepareWork("one");
+		yield* prepareWork("two");
+		yield* fleet.dispatch("one");
+		finishWorkers();
+		expect((yield* fleet.reconcile("one")).value.mergeReadyAt).toBe(100);
+		advanceTime(5000);
+		yield* fleet.dispatch("two");
+		expect(yield* fleet.continue("one", "Revise the PR").pipe(Effect.flip)).toMatchObject({ message: "waiting for area fleet/host held by two" });
+		expect(providerOperationCount()).toBe(3);
+		finishWorkers();
+		const holder = yield* fleet.reconcile("two");
+		const decision = holder.value.decision?.id ?? "missing";
+		yield* fleet.resolve("two", decision, respond(decision, "release"));
+		const continued = yield* fleet.continue("one", "Revise the PR");
+		expect(continued.value.stage).toBe("executing");
+		expect(continued.value.mergeReadyAt).toBeUndefined();
+		expect(continued.value.mergeAreasReleased).toBeUndefined();
+		expect(continued.value.history?.[0]?.mergeReadyAt).toBe(100);
+	},
+);

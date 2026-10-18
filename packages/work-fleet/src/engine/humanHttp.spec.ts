@@ -1,11 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { engine } from "#test/engineStory.ts";
-import { configured, humanMergeRequired, markdownWork, noChangeReported } from "#test/engineTraits.ts";
+import { humanMergeRequired, independentReviewFailsOnce, markdownWork, noChangeReported, requiredChecksFailOnce } from "#test/engineTraits.ts";
 
 engine.it(
 	"Board HTTP answer resumes the real SQL work through native RPC and restart without repeated action",
-	[noChangeReported(), configured({ checksFailure: true }), markdownWork()],
+	[noChangeReported(), requiredChecksFailOnce(), markdownWork()],
 	function* ({
 		fleet,
 		prepareWork,
@@ -59,7 +59,7 @@ engine.it(
 );
 engine.it(
 	"scheduler consumes a Board answer automatically while runtime delivery remains denied",
-	[humanMergeRequired(), configured({ reviewFailure: true }), markdownWork()],
+	[humanMergeRequired(), independentReviewFailsOnce(), markdownWork()],
 	function* ({ fleet, prepareWork, finishWorkers, recordBoardResponse, mergedHeads, launches }) {
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");

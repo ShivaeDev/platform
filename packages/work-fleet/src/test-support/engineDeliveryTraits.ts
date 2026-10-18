@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 
@@ -45,4 +46,15 @@ export function movedHeadReadCanFail() {
 				state.githubUnavailable ? Effect.fail(new ServiceUnavailable({ message: "GitHub result read failed" })) : Effect.succeed(result),
 		};
 	});
+}
+
+export function deliveryObservationUnavailable(owner: "automation" | "orchestrator") {
+	return engineConfiguration(`delivery observation is unavailable and waits on ${owner}`, () => ({
+		deliveryQuery: () =>
+			Effect.fail(
+				withFailureContext(new ServiceUnavailable({ message: "Delivery unavailable" }), {
+					attentionOwner: owner === "automation" ? owner : undefined,
+				}),
+			),
+	}));
 }

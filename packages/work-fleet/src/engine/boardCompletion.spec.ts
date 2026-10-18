@@ -44,45 +44,31 @@ for (const released of [false, true]) {
 		},
 	);
 }
-{
-	const setup = boardEditRacesCompletion();
-	engine.it(
-		"a Board edit between the scheduler read and completion write survives and is marked done on a later pass",
-		[githubPullRequest({}), setup, markdownWork()],
-		function* ({
-			fleet,
-			restart,
-			schedule,
-			prepareWork,
-			workerReports,
-			boardBrief,
-			editBoardAtCompletion,
-			mergePullRequest,
-			readBoardWork,
-			launches,
-		}) {
-			yield* prepareWork("one");
-			yield* fleet.dispatch("one");
-			workerReports(REPORT);
-			yield* schedule();
-			const waiting = yield* fleet.get("one");
-			const changed = `${boardBrief()}\nA human added this note.\n`;
-			editBoardAtCompletion(changed);
-			mergePullRequest();
-			yield* schedule();
-			const done = yield* fleet.get("one");
-			expect(done.value.stage).toBe("completed");
-			expect(readBoardWork()).toBe(changed);
-			yield* restart();
-			yield* schedule();
-			expect(readBoardWork()).toBe(changed.replace("fleet: approved\n", 'fleet: approved\nstatus: done\nnext_action: "Done; PR #7 merged."\n'));
-			expect(yield* fleet.get("one")).toEqual(done);
-			expect(done.value.boardRevision).toBe(waiting.value.boardRevision);
-			expect(done.value.history ?? []).toEqual(waiting.value.history ?? []);
-			expect(launches()).toHaveLength(2);
-		},
-	);
-}
+engine.it(
+	"a Board edit between the scheduler read and completion write survives and is marked done on a later pass",
+	[githubPullRequest({}), boardEditRacesCompletion(), markdownWork()],
+	function* ({ fleet, restart, schedule, prepareWork, workerReports, boardBrief, editBoardAtCompletion, mergePullRequest, readBoardWork, launches }) {
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		workerReports(REPORT);
+		yield* schedule();
+		const waiting = yield* fleet.get("one");
+		const changed = `${boardBrief()}\nA human added this note.\n`;
+		editBoardAtCompletion(changed);
+		mergePullRequest();
+		yield* schedule();
+		const done = yield* fleet.get("one");
+		expect(done.value.stage).toBe("completed");
+		expect(readBoardWork()).toBe(changed);
+		yield* restart();
+		yield* schedule();
+		expect(readBoardWork()).toBe(changed.replace("fleet: approved\n", 'fleet: approved\nstatus: done\nnext_action: "Done; PR #7 merged."\n'));
+		expect(yield* fleet.get("one")).toEqual(done);
+		expect(done.value.boardRevision).toBe(waiting.value.boardRevision);
+		expect(done.value.history ?? []).toEqual(waiting.value.history ?? []);
+		expect(launches()).toHaveLength(2);
+	},
+);
 engine.it(
 	"a report completion marks only Board bookkeeping fields and preserves its recorded report and cycle",
 	[markdownWork()],

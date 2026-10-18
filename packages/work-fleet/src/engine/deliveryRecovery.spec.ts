@@ -2,31 +2,28 @@ import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { deliveryObservationFailsOnce } from "#test/engineAreaTraits.ts";
 import { engine } from "#test/engineStory.ts";
-import { configured, humanMergeRequired } from "#test/engineTraits.ts";
+import { humanMergeRequired, providerReusesOperationIdentity } from "#test/engineTraits.ts";
 import { prepared } from "#test/preparation.ts";
 
 describe("Fleet delivery ownership", () => {
-	{
-		const setup = deliveryObservationFailsOnce();
-		engine.it(
-			"failed delivery observation retains ownership and recovers without a human retry",
-			[setup],
-			function* ({ fleet, prepareWork, finishWorkers, advanceTime, currentTime, mergedHeads, reviewedHeads }) {
-				yield* prepareWork("one");
-				yield* fleet.dispatch("one");
-				finishWorkers();
-				const ambiguous = yield* fleet.reconcile("one");
-				expect(ambiguous.value.stage).toBe("delivering");
-				expect(ambiguous.value.decision).toBeUndefined();
-				expect(ambiguous.value.blocker).toContain("observation unavailable");
-				expect(ambiguous.value.attentionOwner).toBe("automation");
-				advanceTime(30_100 - currentTime());
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-				expect(mergedHeads()).toHaveLength(1);
-				expect(reviewedHeads()).toHaveLength(1);
-			},
-		);
-	}
+	engine.it(
+		"failed delivery observation retains ownership and recovers without a human retry",
+		[deliveryObservationFailsOnce()],
+		function* ({ fleet, prepareWork, finishWorkers, advanceTime, currentTime, mergedHeads, reviewedHeads }) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			const ambiguous = yield* fleet.reconcile("one");
+			expect(ambiguous.value.stage).toBe("delivering");
+			expect(ambiguous.value.decision).toBeUndefined();
+			expect(ambiguous.value.blocker).toContain("observation unavailable");
+			expect(ambiguous.value.attentionOwner).toBe("automation");
+			advanceTime(30_100 - currentTime());
+			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect(mergedHeads()).toHaveLength(1);
+			expect(reviewedHeads()).toHaveLength(1);
+		},
+	);
 	engine.it(
 		"safe local release keeps the adopted PR in the foreign backlog without blocking its paths",
 		[humanMergeRequired()],
@@ -43,7 +40,7 @@ describe("Fleet delivery ownership", () => {
 	);
 	engine.it(
 		"duplicate operation identity cannot acknowledge the wrong work's turn",
-		[configured({ operationCollision: true })],
+		[providerReusesOperationIdentity()],
 		function* ({ fleet, prepareWork, providerOperationCount }) {
 			yield* prepareWork("one");
 			yield* prepareWork("two");

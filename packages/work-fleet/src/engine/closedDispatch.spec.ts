@@ -53,25 +53,22 @@ engine.it(
 	},
 );
 for (const status of ["done", "superseded", "deferred"]) {
-	{
-		const setup = workClosesDuringAssessment();
-		engine.it(
-			`launch bypasses the scheduler snapshot when Markdown status becomes ${status} during assessment`,
-			[setup, markdownWork()],
-			function* ({ fleet, prepareWork, schedule, boardBrief, writeBoardWork, editBoardDuringAssessment, providerStarts, providerCalls }) {
-				const planned = boardBrief().replace("kind: task", "kind: task\nstatus: planned");
-				writeBoardWork("one.md", planned);
-				yield* prepareWork("one");
-				editBoardDuringAssessment(planned.replace("status: planned", `status: ${status}`));
-				yield* schedule();
-				expect((yield* fleet.get("one")).value).toMatchObject({
-					attempts: [],
-					releaseReason: `Not launched because current Board status is ${status}`,
-					stage: "released",
-				});
-				expect(providerStarts()).toEqual([]);
-				expect(providerCalls().filter((call) => call.call === "turn")).toEqual([]);
-			},
-		);
-	}
+	engine.it(
+		`launch bypasses the scheduler snapshot when Markdown status becomes ${status} during assessment`,
+		[workClosesDuringAssessment(), markdownWork()],
+		function* ({ fleet, prepareWork, schedule, boardBrief, writeBoardWork, editBoardDuringAssessment, providerStarts, providerCalls }) {
+			const planned = boardBrief().replace("kind: task", "kind: task\nstatus: planned");
+			writeBoardWork("one.md", planned);
+			yield* prepareWork("one");
+			editBoardDuringAssessment(planned.replace("status: planned", `status: ${status}`));
+			yield* schedule();
+			expect((yield* fleet.get("one")).value).toMatchObject({
+				attempts: [],
+				releaseReason: `Not launched because current Board status is ${status}`,
+				stage: "released",
+			});
+			expect(providerStarts()).toEqual([]);
+			expect(providerCalls().filter((call) => call.call === "turn")).toEqual([]);
+		},
+	);
 }

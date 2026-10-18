@@ -25,16 +25,9 @@ export function mainMovesBeforeNoChange() {
 		return { resultQuery: github.adopt };
 	});
 }
-export function reportedPullRequestIsInvalid(scenario: {
-	options: {
-		before: {
-			state: string;
-		};
-	};
-	output: string;
-}) {
-	return engineConfiguration("the reported pull request is invalid for adoption", (state) => {
-		const github = resultFixture(scenario.options);
+export function reportedPullRequestIsClosed() {
+	return engineConfiguration("the reported pull request is closed without merging", (state) => {
+		const github = resultFixture({ before: { state: "closed" } });
 		state.adoption = github;
 		return { resultQuery: github.adopt };
 	});

@@ -1,6 +1,6 @@
 import { describe, expect } from "@effect/vitest";
 import { engine } from "#test/engineStory.ts";
-import { configured, reviewerStillRunning } from "#test/engineTraits.ts";
+import { reviewerStillRunning, reviewerUsesHostSettings, reviewFollowUpAcknowledgementLost } from "#test/engineTraits.ts";
 
 const approval = `FLEET_REVIEW: ${JSON.stringify({
 	evidence: ["Read the diff at head-one-0", "Required checks passed at head-one-0", "CI job logs and artifacts unavailable: HTTP 403"],
@@ -29,10 +29,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 	for (const malformed of ["Cannot see CI job logs: HTTP 403", "FLEET_REVIEW: invalid"]) {
 		engine.it(
 			`continues the same reviewer thread once to fix ${JSON.stringify(malformed)}`,
-			[
-				reviewerStillRunning(),
-				configured({ launch: { effort: "high", model: "host-model" }, reviewerGuidance: "Inspect synthetic database checks." }),
-			],
+			[reviewerStillRunning(), reviewerUsesHostSettings({ effort: "high", model: "host-model" })],
 			function* ({ fleet, prepareWork, finishWorkers, restart, turnReports, launches }) {
 				yield* prepareWork("one");
 				yield* fleet.dispatch("one");
@@ -63,7 +60,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 	}
 	engine.it(
 		"reconciles a lost follow-up acknowledgement on the same thread after restart",
-		[reviewerStillRunning(), configured({ lostReviewContinuationAcknowledgement: true })],
+		[reviewerStillRunning(), reviewFollowUpAcknowledgementLost()],
 		function* ({ fleet, prepareWork, finishWorkers, restart, turnReports, launches, providerCalls }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");

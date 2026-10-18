@@ -2,18 +2,12 @@ import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { pullRequestHeadCanMove } from "#test/engineAdoptionTraits.ts";
 import { engine } from "#test/engineStory.ts";
-import { configured, reviewAcknowledgementLost, reviewEnds, reviewerStillRunning } from "#test/engineTraits.ts";
+import { reviewAcknowledgementLost, reviewEnds, reviewerStillRunning, reviewerUsesHostSettings } from "#test/engineTraits.ts";
 
 describe("independent reviewer sessions", () => {
 	engine.it(
 		"launches asynchronously with host settings and accepts only a completed verdict",
-		[
-			reviewerStillRunning(),
-			configured({
-				launch: { effort: "high", model: "host-model", serviceTier: "priority" },
-				reviewerGuidance: "Inspect synthetic database checks.",
-			}),
-		],
+		[reviewerStillRunning(), reviewerUsesHostSettings({ effort: "high", model: "host-model", serviceTier: "priority" })],
 		function* ({ fleet, prepareWork, finishWorkers, restart, providerStarts, boardWork, launches }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
@@ -95,31 +89,28 @@ describe("independent reviewer sessions", () => {
 			expect(launches()).toHaveLength(3);
 		},
 	);
-	{
-		const setup = pullRequestHeadCanMove();
-		engine.it(
-			"keeps approval on the old head and starts fresh review when the PR head moves",
-			[setup],
-			function* ({ fleet, prepareWork, finishWorkers, movePullRequestHead, mergedHeads, reviewedHeads }) {
-				yield* prepareWork("one");
-				yield* fleet.dispatch("one");
-				finishWorkers();
-				yield* fleet.reconcile("one");
-				movePullRequestHead("second-head");
-				finishWorkers();
-				const moved = yield* fleet.reconcile("one");
-				expect(moved.value.stage).toBe("reviewing");
-				expect(moved.value.result?.head).toBe("second-head");
-				expect(moved.value.review?.head).toBe("first-head");
-				expect(moved.value.checks).toBeUndefined();
-				expect(mergedHeads()).toHaveLength(0);
-				const fresh = yield* fleet.reconcile("one");
-				expect(fresh.value.attempts.at(-1)).toMatchObject({ reviewHead: "second-head", status: "running" });
-				finishWorkers();
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-				expect(reviewedHeads()).toEqual(["first-head", "second-head"]);
-				expect(mergedHeads()).toEqual(["second-head"]);
-			},
-		);
-	}
+	engine.it(
+		"keeps approval on the old head and starts fresh review when the PR head moves",
+		[pullRequestHeadCanMove()],
+		function* ({ fleet, prepareWork, finishWorkers, movePullRequestHead, mergedHeads, reviewedHeads }) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			yield* fleet.reconcile("one");
+			movePullRequestHead("second-head");
+			finishWorkers();
+			const moved = yield* fleet.reconcile("one");
+			expect(moved.value.stage).toBe("reviewing");
+			expect(moved.value.result?.head).toBe("second-head");
+			expect(moved.value.review?.head).toBe("first-head");
+			expect(moved.value.checks).toBeUndefined();
+			expect(mergedHeads()).toHaveLength(0);
+			const fresh = yield* fleet.reconcile("one");
+			expect(fresh.value.attempts.at(-1)).toMatchObject({ reviewHead: "second-head", status: "running" });
+			finishWorkers();
+			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect(reviewedHeads()).toEqual(["first-head", "second-head"]);
+			expect(mergedHeads()).toEqual(["second-head"]);
+		},
+	);
 });

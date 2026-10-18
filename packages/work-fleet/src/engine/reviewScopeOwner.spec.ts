@@ -5,10 +5,9 @@ import { isolatedEngine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
 
 for (const timing of ["between review passes", "while the reviewer finishes"] as const) {
-	const setup = scopeApproval(timing);
 	isolatedEngine.it(
 		`approval removed ${timing} publishes a maintainer decision and persists its waiting group`,
-		[markdownWork(), setup],
+		[markdownWork(), scopeApproval(timing)],
 		function* ({
 			fleet,
 			prepareWork,

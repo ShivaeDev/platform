@@ -1,59 +1,39 @@
 import { Effect } from "effect";
 import type { EngineOptions } from "#test/EngineOptions.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 
-const descriptions: Readonly<Record<string, string>> = {
-	denyDelivery: "delivery waits for a human merge",
-	lostReviewAcknowledgement: "the provider loses the review acknowledgement",
-	noChange: "the worker reports no change",
-	repairs: "independent review requests a repair",
-	reviewRunning: "the reviewer keeps its turn running",
-	sameReviewer: "the provider reuses the worker's conversation for review",
-	writeFailure: "PostgreSQL rejects the supplied writes",
-	writeGate: "PostgreSQL writes wait at the supplied gate",
-};
-
-export function configured(options: EngineOptions) {
-	return engine.traits(
-		...Object.entries(options).map(([key, value]) =>
-			engine.trait("configuration", descriptions[key] ?? `Fleet uses ${key}`, (state) => {
-				state.options = { ...state.options, [key]: value };
-			}),
-		),
-	);
-}
-
 export function reviewRequestsRepairs(enabled = true) {
-	return configured({ repairs: enabled });
+	return engineConfiguration("independent review requests a repair", () => ({ repairs: enabled }));
 }
 
 export function humanMergeRequired(enabled = true) {
-	return configured({ denyDelivery: enabled });
+	return engineConfiguration("delivery waits for a human merge", () => ({ denyDelivery: enabled }));
 }
 
 export function noChangeReported(enabled = true) {
-	return configured({ noChange: enabled });
+	return engineConfiguration("the worker reports no change", () => ({ noChange: enabled }));
 }
 
 export function reviewerStillRunning(enabled = true) {
-	return configured({ reviewRunning: enabled });
+	return engineConfiguration("the reviewer keeps its turn running", () => ({ reviewRunning: enabled }));
 }
 
 export function reviewerSharesWorker() {
-	return configured({ sameReviewer: true });
+	return engineConfiguration("the provider reuses the worker's conversation for review", () => ({ sameReviewer: true }));
 }
 
 export function reviewAcknowledgementLost() {
-	return configured({ lostReviewAcknowledgement: true });
+	return engineConfiguration("the provider loses the review acknowledgement", () => ({ lostReviewAcknowledgement: true }));
 }
 
 export function reviewEnds(reviewExecution: EngineOptions["reviewExecution"] & string) {
-	return configured({ reviewExecution });
+	return engineConfiguration(`the reviewer turn ends ${reviewExecution}`, () => ({ reviewExecution }));
 }
 
 export function evidenceHasWrongHead(wrongHead: EngineOptions["wrongHead"] & string) {
-	return configured({ wrongHead });
+	return engineConfiguration(`${wrongHead} evidence names the wrong head`, () => ({ wrongHead }));
 }
 
 export function markdownWork() {
@@ -82,4 +62,27 @@ export function checksWithoutRepair() {
 			checksQuery: (result) => checks(result).pipe(Effect.map((value) => ({ ...value, repairPrompt: undefined }))),
 		};
 	});
+}
+
+export function providerReusesOperationIdentity() {
+	return engineConfiguration("the provider reuses an operation identity across work", () => ({ operationCollision: true }));
+}
+
+export function requiredChecksFailOnce() {
+	return engineConfiguration("required checks fail once before a human retry", () => ({ checksFailure: true }));
+}
+
+export function independentReviewFailsOnce() {
+	return engineConfiguration("independent review fails once before a human retry", () => ({ reviewFailure: true }));
+}
+
+export function reviewerUsesHostSettings(launch: NonNullable<EngineOptions["launch"]>) {
+	return engineConfiguration("the reviewer uses the host launch settings and database-check guidance", () => ({
+		launch,
+		reviewerGuidance: "Inspect synthetic database checks.",
+	}));
+}
+
+export function reviewFollowUpAcknowledgementLost() {
+	return engineConfiguration("the provider loses the review follow-up acknowledgement", () => ({ lostReviewContinuationAcknowledgement: true }));
 }
