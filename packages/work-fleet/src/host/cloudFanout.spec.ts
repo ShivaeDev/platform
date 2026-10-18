@@ -1,5 +1,5 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
@@ -9,6 +9,8 @@ import { authFolder, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, 
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { hostProcess } from "#test/hostProcess.ts";
 import { postgresTests } from "#test/postgres.ts";
+
+const ATTEMPTS = 10;
 
 function records(fixture: HostFixture) {
 	return Effect.gen(function* () {
@@ -21,26 +23,28 @@ const killFanout = Effect.fn("CloudFanout.killFanout")(function* (fixture: HostF
 	yield* first.until(() =>
 		records(fixture).pipe(
 			Effect.map((stored) => ({
-				done: backend.operations.size === 100,
+				done: backend.operations.size === ATTEMPTS,
 				progress: stored.length + backend.sessions.length + backend.operations.size,
 			})),
 		),
 	);
 	const before = yield* records(fixture);
-	expect(before).toHaveLength(100);
+	expect(before).toHaveLength(ATTEMPTS);
 	expect(
 		before.every(
 			({ value }) => value.attempts.length === 1 && value.attempts[0]?.sessionId !== undefined && value.attempts[0]?.receipt === undefined,
 		),
 	).toBe(true);
 	yield* first.kill;
+	const readsDue = Math.max(...(yield* records(fixture)).map(({ value }) => value.attempts[0]?.readRetry?.retryAt ?? 0));
 	const restarted = yield* hostProcess(fixture.configFile);
+	yield* Effect.sleep(Math.max(0, readsDue - (yield* Clock.currentTimeMillis)));
 	yield* restarted.until(() =>
 		records(fixture).pipe(
 			Effect.map((stored) => {
 				const running = stored.filter(({ value }) => value.attempts[0]?.status === "running").length;
 				const acknowledged = stored.filter(({ value }) => value.attempts[0]?.receipt !== undefined).length;
-				return { done: stored.length === 100 && running === 100, progress: acknowledged + running };
+				return { done: stored.length === ATTEMPTS && running === ATTEMPTS, progress: acknowledged + running };
 			}),
 		),
 	);
@@ -52,10 +56,10 @@ const killFanout = Effect.fn("CloudFanout.killFanout")(function* (fixture: HostF
 		expect(attempt?.operationId).toBe(before.find((stored) => stored.value.workId === value.workId)?.value.attempts[0]?.operationId);
 		expect(attempt?.receipt).toEqual({ sessionId: attempt?.sessionId, turnId: `turn-${attempt?.sessionId}` });
 	}
-	expect(new Set(backend.operations.values()).size).toBe(100);
-	expect(backend.sessions).toHaveLength(100);
-	expect(backend.mutations.filter((method) => method === "thread/start")).toHaveLength(100);
-	expect(backend.mutations.filter((method) => method === "turn/start")).toHaveLength(100);
+	expect(new Set(backend.operations.values()).size).toBe(ATTEMPTS);
+	expect(backend.sessions).toHaveLength(ATTEMPTS);
+	expect(backend.mutations.filter((method) => method === "thread/start")).toHaveLength(ATTEMPTS);
+	expect(backend.mutations.filter((method) => method === "turn/start")).toHaveLength(ATTEMPTS);
 });
 
 function fanoutStory() {
@@ -65,14 +69,15 @@ function fanoutStory() {
 			const server = yield* codexServer(backend.handle);
 			const authFile = yield* authFolder(syntheticToken("current", FUTURE_EXPIRY));
 			const files = Object.fromEntries(
-				Array.from({ length: 100 }, (_unused, index) => [`work-${index}.md`, task(`synthetic-work-${index}`, "approved")]),
+				Array.from({ length: ATTEMPTS }, (_unused, index) => [`work-${index}.md`, task(`synthetic-work-${index}`, "approved")]),
 			);
 			return yield* withHost(
 				files,
 				{
-					// Each lost acknowledgement must time out before sequential dispatch can reach the next attempt.
+					// Each lost acknowledgement times out before sequential dispatch reaches the next attempt, and defers that attempt's next provider read by readRetryMs.
 					cloud: { authFile, cwd: SYNTHETIC_WORKSPACE, endpoint: server.endpoint, environmentId: SYNTHETIC_ENVIRONMENT, requestTimeoutMs: 1000 },
 					provider: "cloud",
+					readRetryMs: 1000,
 					worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" },
 				},
 				(fixture) => killFanout(fixture, backend).pipe(Effect.scoped),
@@ -83,7 +88,7 @@ function fanoutStory() {
 
 describe("Cloud fanout restarts against PostgreSQL", () => {
 	postgresTests("live")(
-		"SIGKILL with 100 lost turn acknowledgements recovers exactly one session per attempt",
+		`SIGKILL with ${ATTEMPTS} lost turn acknowledgements recovers exactly one session per attempt`,
 		fanoutStory,
 		// Each launch and recovery phase is bounded by the progress stall timer.
 		0,

@@ -20,7 +20,7 @@ const recoveryStory = Effect.fn("AnswerRequestRecoveryTest.recoveryStory")(funct
 				yield* dispatchAndWait(client, "one");
 				return (yield* askWorker(fixture.provider)).decision;
 			}),
-		fixture.parts,
+		{ parts: fixture.parts },
 	);
 	let free = Effect.succeed(false);
 	yield* Effect.addFinalizer(() => free);
@@ -39,7 +39,7 @@ const recoveryStory = Effect.fn("AnswerRequestRecoveryTest.recoveryStory")(funct
 				const stored = yield* (yield* answerStore(fixture.host.namespace)).list("one");
 				expect(stored).toMatchObject([{ "decision_id": decision.id, release, text: "Use PostgreSQL." }]);
 			}),
-		fixture.parts,
+		{ parts: fixture.parts },
 	);
 	yield* free;
 	yield* withReadDaemon(
@@ -55,7 +55,7 @@ const recoveryStory = Effect.fn("AnswerRequestRecoveryTest.recoveryStory")(funct
 				}
 				expect(yield* (yield* answerStore(fixture.host.namespace)).list("one")).toEqual([]);
 			}),
-		fixture.parts,
+		{ parts: fixture.parts },
 	);
 });
 

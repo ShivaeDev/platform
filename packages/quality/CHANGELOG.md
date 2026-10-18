@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.0 - 2026-10-17
+
+### Added
+
+- Built-in `nesting/max-depth` reports lines indented with eight or more tabs, except in declaration files. Built-in `structure/no-barrel` rejects `index.ts` and `index.tsx` modules, including those that define their own exports. Both run at error with no options. The existing wildcard export exposes the rules as `maxDepth` from `rules/maxDepth.ts` and `noBarrel` from `rules/noBarrel.ts`.
+
 ## 0.22.0 - 2026-10-16
 
 ### Added

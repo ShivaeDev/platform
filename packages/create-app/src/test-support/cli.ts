@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -76,7 +76,7 @@ export function appFolder({
 	readonly typecheckExit?: number;
 	readonly destination?: "absent" | "empty" | "file" | "nonempty" | "environment";
 } = {}) {
-	const root = mkdtempSync(join(tmpdir(), "create-app-cli-"));
+	const root = realpathSync(mkdtempSync(join(tmpdir(), "create-app-cli-")));
 	folders.push(root);
 	const bin = join(root, "bin");
 	mkdirSync(bin);

@@ -2,14 +2,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import type { DecisionCode } from "#DecisionCode.ts";
 import { releaseOnly } from "#engine/releaseOnly.ts";
 import { Fleet } from "#fleet.ts";
 import { backlog, executing, type FleetRecord } from "#model.ts";
 import { exhaustReadRetries } from "#test/exhaustReadRetries.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
-import { recoveryCases } from "#test/recoveryCases.ts";
+import { type RecoveryCaseGroup, recoveryCaseGroups } from "#test/recoveryCases.ts";
 import { answerReport } from "#test/report.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 
@@ -100,8 +99,8 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 	expect(repeated.value.attempts).toEqual(recovered.value.attempts);
 	expect(repeated.value.responses).toEqual(recovered.value.responses);
 });
-export const runRecoveryCase = Effect.fn("Test.runRecoveryCase")(function* (code: DecisionCode, row: number, action: "retry" | "release") {
-	const scenario = recoveryCases().filter((candidate) => candidate.code === code)[row];
+export const runRecoveryCase = Effect.fn("Test.runRecoveryCase")(function* (group: RecoveryCaseGroup, row: number, action: "retry" | "release") {
+	const scenario = recoveryCaseGroups[group]()[row];
 	if (scenario === undefined) {
 		return yield* Effect.die("Missing matrix row");
 	}

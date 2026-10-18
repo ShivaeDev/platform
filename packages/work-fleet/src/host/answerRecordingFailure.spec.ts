@@ -37,7 +37,7 @@ const recordingFailure = Effect.fn("AnswerRecordingTest.recordingFailure")(funct
 for (const release of [false, true]) {
 	postgresTests("live")(`the ${release ? "release" : "text"} answer CLI reports failure when its request cannot be recorded`, () =>
 		withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-			withReadDaemon(fixture.host, (port) => recordingFailure(fixture, port, release), fixture.parts),
+			withReadDaemon(fixture.host, (port) => recordingFailure(fixture, port, release), { parts: fixture.parts }),
 		),
 	);
 }

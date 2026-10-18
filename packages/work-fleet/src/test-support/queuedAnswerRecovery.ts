@@ -12,11 +12,9 @@ const messages = ["Keep the loading indicator visible.", "Preserve the empty sta
 
 export const queuedAnswerRecovery = Effect.fn("AnswerQueueTest.queuedAnswerRecovery")(function* (fixture: HostFixture) {
 	const scope = yield* Effect.scope;
-	const current = yield* withReadDaemon(
-		fixture.host,
-		(port) => daemonClient(port).pipe(Effect.flatMap((client) => dispatchAndWait(client, "one"))),
-		fixture.parts,
-	);
+	const current = yield* withReadDaemon(fixture.host, (port) => daemonClient(port).pipe(Effect.flatMap((client) => dispatchAndWait(client, "one"))), {
+		parts: fixture.parts,
+	});
 	let free = Effect.succeed(false);
 	yield* Effect.addFinalizer(() => free);
 	yield* withReadDaemon(
@@ -31,7 +29,7 @@ export const queuedAnswerRecovery = Effect.fn("AnswerQueueTest.queuedAnswerRecov
 				const stored = yield* (yield* answerStore(fixture.host.namespace)).list("one");
 				expect(stored.map((request) => request.text)).toEqual(messages);
 			}),
-		fixture.parts,
+		{ parts: fixture.parts },
 	);
 	yield* free;
 	yield* withReadDaemon(
@@ -47,6 +45,6 @@ export const queuedAnswerRecovery = Effect.fn("AnswerQueueTest.queuedAnswerRecov
 				}
 				expect((yield* client("fleet.get", { workId: "one" })).pendingAnswers).toEqual(messages);
 			}).pipe(Effect.timeout("10 seconds")),
-		fixture.parts,
+		{ parts: fixture.parts },
 	);
 });

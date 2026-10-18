@@ -62,17 +62,15 @@ test("a daemon command commit reaches a CLI follower without periodic PostgreSQL
 		const snapshot = Promise.withResolvers<void>();
 		const reads = snapshotReads(fixture.host);
 		return reads.observe(
-			withReadDaemon(
-				fixture.host,
-				(port) => commitStory(fixture, port, snapshot.promise, reads),
-				fixture.parts,
-				() => snapshot.resolve(),
-			),
+			withReadDaemon(fixture.host, (port) => commitStory(fixture, port, snapshot.promise, reads), {
+				onSnapshot: () => snapshot.resolve(),
+				parts: fixture.parts,
+			}),
 		);
 	}));
 
 test("a rolled-back daemon store write sends no snapshot or refresh query", () =>
 	withHost({}, {}, (fixture) => {
 		const reads = snapshotReads(fixture.host);
-		return reads.observe(withReadDaemon(fixture.host, (port) => rollbackStory(port, reads), fixture.parts));
+		return reads.observe(withReadDaemon(fixture.host, (port) => rollbackStory(port, reads), { parts: fixture.parts }));
 	}));

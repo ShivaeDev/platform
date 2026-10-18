@@ -15,7 +15,7 @@ const merged = { ...open, mergeCommit: { oid: "merged-revision" }, mergedAt: "20
 
 test("green work never submits a merge and a restarted scheduler accepts the human merge once", () => {
 	let observation: unknown = open;
-	const deliveryQuery = githubDelivery("/repository", () => Effect.succeed(observation));
+	const deliveryQuery = githubDelivery(() => Effect.succeed(observation));
 	return withEngine({ deliveryQuery, resultQuery: () => Effect.succeed(result) }, (fixture) =>
 		Effect.gen(function* () {
 			yield* prepareWork("one");
@@ -54,7 +54,7 @@ test("green work never submits a merge and a restarted scheduler accepts the hum
 
 test("a PR closed without merging replaces the ready decision with that fact", () => {
 	let observation: unknown = open;
-	const deliveryQuery = githubDelivery("/repository", () => Effect.succeed(observation));
+	const deliveryQuery = githubDelivery(() => Effect.succeed(observation));
 	return withEngine({ deliveryQuery, resultQuery: () => Effect.succeed(result) }, (fixture) =>
 		Effect.gen(function* () {
 			yield* prepareWork("one");
@@ -77,7 +77,7 @@ test("a PR closed without merging replaces the ready decision with that fact", (
 
 test("a human merge of a changed head cannot reuse the old review and checks", () => {
 	let observation: unknown = open;
-	const deliveryQuery = githubDelivery("/repository", () => Effect.succeed(observation));
+	const deliveryQuery = githubDelivery(() => Effect.succeed(observation));
 	return withEngine({ deliveryQuery, resultQuery: () => Effect.succeed(result) }, (fixture) =>
 		Effect.gen(function* () {
 			yield* prepareWork("one");
@@ -98,7 +98,7 @@ test("a human merge of a changed head cannot reuse the old review and checks", (
 for (const state of ["CLOSED", "MERGED"] as const) {
 	test(`observes ${state} without accepting unreviewed work`, () => {
 		const observation = state === "CLOSED" ? { ...open, state } : merged;
-		const deliveryQuery = githubDelivery("/repository", () => Effect.succeed(observation));
+		const deliveryQuery = githubDelivery(() => Effect.succeed(observation));
 		return withEngine({ deliveryQuery, resultQuery: () => Effect.succeed(result), sameReviewer: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");

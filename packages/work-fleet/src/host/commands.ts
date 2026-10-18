@@ -5,6 +5,7 @@ import { run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
 import type { FleetHost } from "#host/config.ts";
+import { GithubApi } from "#host/githubApi.ts";
 import { healthLayer } from "#host/healthLayer.ts";
 import { LiveConfig, staticConfig } from "#host/liveConfig.ts";
 import { gitMainSource, type MainSource } from "#host/mainSource.ts";
@@ -15,8 +16,9 @@ import type { BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import type { SessionTransport } from "#session/service.ts";
 
 export interface HostParts {
-	readonly board?: Layer.Layer<BoardGateway | ReportInspection, unknown, MainSource>;
-	readonly integrations?: Layer.Layer<FleetIntegrations, unknown, MainSource>;
+	readonly board?: Layer.Layer<BoardGateway | ReportInspection, unknown, MainSource | GithubApi>;
+	readonly github?: Layer.Layer<GithubApi>;
+	readonly integrations?: Layer.Layer<FleetIntegrations, unknown, MainSource | GithubApi>;
 	readonly main: Layer.Layer<MainSource, unknown>;
 	readonly policy?: Layer.Layer<FleetPolicy>;
 	readonly provider: Layer.Layer<SessionTransport, unknown>;
@@ -42,6 +44,15 @@ export function hostLayer(host: FleetHost, parts: HostParts, config: Layer.Layer
 	return status.pipe(Layer.provideMerge(runtime), Layer.provideMerge(config));
 }
 
+// An applied config edit starts the next pass at once instead of after the interval it replaced, and a low GitHub budget stretches that interval.
+export const schedulerPause = Effect.gen(function* () {
+	const live = yield* LiveConfig;
+	const github = yield* GithubApi;
+	const { host: applied } = yield* live.current;
+	const delay = yield* github.pace(applied.interval * 1000);
+	yield* Effect.raceFirst(Effect.sleep(delay), live.changes.pipe(Stream.drop(1), Stream.take(1), Stream.runDrain));
+});
+
 export function hostScheduler(host: FleetHost) {
 	let reported = new Set<string>();
 	const admission = admitApproved(host).pipe(
@@ -55,13 +66,7 @@ export function hostScheduler(host: FleetHost) {
 			}),
 		),
 	);
-	// An applied config edit starts the next pass at once instead of after the interval it replaced.
-	const pause = Effect.gen(function* () {
-		const live = yield* LiveConfig;
-		const { host: applied } = yield* live.current;
-		yield* Effect.raceFirst(Effect.sleep(`${applied.interval} seconds`), live.changes.pipe(Stream.drop(1), Stream.take(1), Stream.runDrain));
-	});
-	return run(pause, admission);
+	return run(schedulerPause, admission);
 }
 
 export function runFleet(host: FleetHost, parts: HostParts = productionParts(host)) {

@@ -74,7 +74,7 @@ const replacementStory = Effect.fn("AnswerReplacementTest.replacementStory")(fun
 				const result = yield* answerAndWait(client, { text: TEXT, workId: "one" }).pipe(Effect.result);
 				yield* assertReplacementOutcome(client, replacement, decision.id, result);
 			}),
-		{ ...fixture.parts, board },
+		{ parts: { ...fixture.parts, board } },
 	);
 });
 

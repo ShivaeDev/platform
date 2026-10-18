@@ -114,17 +114,14 @@ describe("document navigation", () => {
 		page.window.getSelection()?.setBaseAndExtent(text, 0, text, 5);
 		followLink(page, "/flow.md");
 		yield* Effect.promise(frame);
-		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
 		expect(page.document.body.dataset.visit).toBe("kept");
 		expect(page.window.location.pathname).toBe("/flow.md");
 		page.window.history.back();
-		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Plan")));
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("article details")?.hasAttribute("open")).toBe(true)));
 		expect(page.window.getSelection()?.toString()).toBe("Intro");
 		page.window.history.forward();
-		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
 	});
 
@@ -135,7 +132,6 @@ describe("document navigation", () => {
 		expect(page.document.getElementById("favorite-toggle")?.getAttribute("aria-pressed")).toBe("true");
 		followLink(page, "/flow.md");
 		yield* Effect.promise(frame);
-		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
 		const saved = JSON.parse(page.window.localStorage.getItem(key()) ?? "null");
 		expect(saved.favorites).toEqual([{ file: "plan.md", title: "Plan" }]);
@@ -159,7 +155,6 @@ describe("document navigation", () => {
 		yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.count).toBe(reads + 1)));
 		followLink(page, "/flow.md");
 		yield* Effect.promise(frame);
-		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
 		response.release();
 		yield* Effect.promise(() => settle());
@@ -174,7 +169,6 @@ describe("document navigation", () => {
 		yield* Effect.promise(frame);
 		followLink(page, "/flow.md");
 		yield* Effect.promise(frame);
-		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
 		click("#library-open");
 		rmSync(join(notes.root, "plan.md"));

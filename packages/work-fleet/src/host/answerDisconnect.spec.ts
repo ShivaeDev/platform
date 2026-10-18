@@ -60,11 +60,11 @@ const recordedAnswer = Effect.fn("AnswerDisconnectTest.recordedAnswer")(function
 for (const release of [false, true]) {
 	test(`a ${release ? "release" : "text"} answer confirms within the acknowledgement timeout and applies once admission frees`, () =>
 		withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-			withReadDaemon(fixture.host, (port) => recordedAnswer(fixture, port, release), fixture.parts),
+			withReadDaemon(fixture.host, (port) => recordedAnswer(fixture, port, release), { parts: fixture.parts }),
 		));
 	test(`a disconnected ${release ? "release" : "text"} answer still records and applies when recording becomes available`, () =>
 		withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
-			withReadDaemon(fixture.host, (port) => disconnectedAnswer(fixture, port, release), fixture.parts),
+			withReadDaemon(fixture.host, (port) => disconnectedAnswer(fixture, port, release), { parts: fixture.parts }),
 		));
 }
 
@@ -101,7 +101,7 @@ test("daemon answers share one watched Board response index", () =>
 	withHost({ "one.md": task("one", "approved"), "two.md": task("two", "approved") }, {}, (fixture) =>
 		Effect.gen(function* () {
 			const spans = spanCounts();
-			yield* spans.trace(withReadDaemon(fixture.host, (port) => answerBoth(fixture, port), fixture.parts));
+			yield* spans.trace(withReadDaemon(fixture.host, (port) => answerBoth(fixture, port), { parts: fixture.parts }));
 			expect(spans.count("WorkBoard.searchSnapshot")).toBe(1);
 		}),
 	));

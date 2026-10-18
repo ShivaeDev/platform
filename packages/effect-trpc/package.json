@@ -227,6 +227,7 @@
 		"@effect/vitest": "catalog:",
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",

@@ -34,6 +34,6 @@ export const daemonResync = Effect.fn("DaemonTest.daemonResync")(function* (fixt
 				yield* until(() => Effect.succeed(received.length === 2));
 				expect(received).toMatchObject([[{ stage: "executing", workId: "one" }], [{ stage: "completed", workId: "one" }]]);
 			}),
-		fixture.parts,
+		{ parts: fixture.parts },
 	);
 });

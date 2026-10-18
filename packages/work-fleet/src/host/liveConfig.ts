@@ -15,7 +15,8 @@ import {
 	Stream,
 	SubscriptionRef,
 } from "effect";
-import { type FleetHost, HostConfig, HostConfigRejected, type HostFailure, readHostConfig, resolveHost } from "#host/config.ts";
+import { type FleetHost, HostConfig, HostConfigRejected, type HostFailure, resolveHost } from "#host/config.ts";
+import { readHostConfig } from "#host/configFile.ts";
 import { changedSettings, withReloadable } from "#host/configSettings.ts";
 import { hostGuidance } from "#host/guidance.ts";
 
