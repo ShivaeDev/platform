@@ -19,6 +19,7 @@ export interface PgBossClient {
 	readonly findJobs?: (name: string, options?: FindJobsOptions) => Promise<readonly JobWithMetadata<unknown>[]>;
 	readonly getDb?: PgBoss["getDb"];
 	readonly getQueue: (name: string) => Promise<QueueResult | null>;
+	readonly getWipData?: PgBoss["getWipData"];
 	readonly notifyWorker?: PgBoss["notifyWorker"];
 	readonly off: (event: "error", listener: (error: Error) => void) => unknown;
 	readonly offWork: (name: string) => Promise<void>;

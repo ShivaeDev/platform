@@ -10,7 +10,7 @@ export function registerWorker(
 	run: (job: Job<unknown>) => Effect.Effect<unknown, unknown>,
 	scope: Scope.Scope,
 ): Promise<string> {
-	const worker = client.work(
+	const registration = client.work(
 		name,
 		{ ...options, includeMetadata: true },
 		batchHandler(client, name, run, async (attempt) => {
@@ -21,16 +21,22 @@ export function registerWorker(
 			if (job?.state !== "retry") {
 				return;
 			}
-			const id = await worker;
+			const workId = await registration;
 			await Effect.runPromise(
 				Effect.gen(function* () {
 					const now = yield* Clock.currentTimeMillis;
 					// PostgreSQL timestamps retain sub-millisecond precision that Date drops.
 					yield* Effect.sleep(Math.max(0, job.startAfter.getTime() + 1 - now));
-					client.notifyWorker?.(id);
+					const workerIds = client
+						.getWipData?.()
+						.filter((worker) => worker.workId === workId)
+						.map((worker) => worker.id) ?? [workId];
+					for (const workerId of workerIds) {
+						client.notifyWorker?.(workerId);
+					}
 				}).pipe(Effect.forkIn(scope)),
 			);
 		}),
 	);
-	return worker;
+	return registration;
 }
