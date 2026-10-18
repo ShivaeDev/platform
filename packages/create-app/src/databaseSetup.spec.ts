@@ -4,9 +4,9 @@ import { application } from "#test/application.ts";
 application.it(
 	"prepares both databases and runs generated tests with the app environment on PostgreSQL",
 	[],
-	({ cli, prepareDatabases, runTests, read }) => {
+	function* ({ cli, prepareDatabases, runTests, read }) {
 		const name = `setup_${crypto.randomUUID().replaceAll("-", "")}`;
-		expect(cli([name, "--no-git"]).status).toBe(0);
+		expect((yield* cli([name, "--no-git"])).status).toBe(0);
 		const setup = prepareDatabases();
 		expect(setup.status, setup.stdout + setup.stderr).toBe(0);
 		const test = runTests();

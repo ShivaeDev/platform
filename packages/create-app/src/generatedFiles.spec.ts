@@ -4,8 +4,8 @@ import { application } from "#test/application.ts";
 application.it(
 	"gives a generated app its own guidance, documentation, names and normal file permissions",
 	[],
-	({ cli, read, guidanceLink, files, generatedFiles, exists }) => {
-		const result = cli(["demo", "--no-git"], ["NODE_OPTIONS=--import=data:text/javascript,process.umask(0o077)"]);
+	function* ({ cli, read, guidanceLink, files, generatedFiles, exists }) {
+		const result = yield* cli(["demo", "--no-git"], ["NODE_OPTIONS=--import=data:text/javascript,process.umask(0o077)"]);
 		expect(result.status, result.stdout + result.stderr).toBe(0);
 		expect(read("README.md")).toMatch(/^# demo\n/u);
 		for (const path of ["README.md", "AGENTS.md"]) {

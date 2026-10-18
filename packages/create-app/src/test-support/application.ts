@@ -11,7 +11,6 @@ import { appScript, testEnvironment } from "./environment.ts";
 export const application = storyKit({
 	after: {
 		*installation(engine) {
-			yield* engine.source.pack();
 			yield* Effect.sync(() => appFolder(engine.root, engine.options));
 		},
 	},
@@ -25,6 +24,7 @@ export const application = storyKit({
 	stages: ["template", "installation", "workspace"],
 	verbs: (engine, story) => {
 		let app = "my-app";
+		let packed = false;
 		function target() {
 			return join(engine.root, app);
 		}
@@ -32,9 +32,14 @@ export const application = storyKit({
 			changeTemplate: (content: string) => {
 				story.tell("the template source changes");
 				engine.source.changeApp(content);
+				packed = false;
 			},
-			cli: (args: readonly string[], environment: readonly string[] = []) => {
+			*cli(args: readonly string[], environment: readonly string[] = []) {
 				story.tell(`create-app ${args.join(" ")}`);
+				if (!(packed || args.includes("--help") || args.includes("--version"))) {
+					yield* engine.source.pack();
+					packed = true;
+				}
 				if (args[0] !== undefined && !args[0].startsWith("--")) {
 					app = args[0];
 				}
@@ -63,12 +68,12 @@ export const application = storyKit({
 			parentGit: (...args: readonly string[]) => spawnSync("git", args, { cwd: engine.root, encoding: "utf8" }),
 			prepareDatabases: () => {
 				story.tell("the app prepares its databases");
-				testEnvironment(target());
 				return appScript(target(), "db:setup");
 			},
 			read: (path: string) => readFileSync(join(target(), path), "utf8"),
 			runTests: () => {
 				story.tell("the app runs its tests");
+				testEnvironment(target());
 				return appScript(target(), "test", ["--config", "environment.config.ts"]);
 			},
 			starterFile: (path: string) => readFileSync(join(engine.source.starter, path), "utf8"),
