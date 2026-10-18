@@ -5,7 +5,7 @@ import { hostedHealthScreen } from "#test/hostedHealthScreen.tsx";
 import { heldWorkspace, screenQuery } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
-import { todayScreen } from "#test/screenWorkspaceTraits.ts";
+import { screenRoute, todayScreen } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
 screenStory.it(
@@ -22,7 +22,7 @@ screenStory.it(
 
 screenStory.it(
 	"opens the page the reader navigates to while the first page is still loading",
-	[todayScreen(), screenQuery("goals", "pending"), openScreen()],
+	[todayScreen(), screenRoute("/_board/goals"), screenQuery("goals", "pending"), openScreen()],
 	function* ({ navigate, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc [role=status]")).toBe("Opening view…")));
 		yield* Effect.promise(() => navigate("/home.md"));

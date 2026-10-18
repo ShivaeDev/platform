@@ -16,7 +16,7 @@ export type BoardLoaderContext = Pick<LoaderFnContext, "location" | "abortContro
 	readonly context: { readonly shell?: RouterShell };
 };
 
-// Settles on failure too, because the first page keeps its opening view until this load or a later navigation settles.
+// Settles on failure too, because the opening view lasts until this load settles; a navigation away aborts it through the router's abort controller.
 export function openBoardPage(context: BoardLoaderContext): Promise<void> {
 	redirectLegacy(context.location.pathname, context.location.searchStr);
 	return loadBoardPage(context).then(
