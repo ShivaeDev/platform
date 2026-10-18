@@ -1,8 +1,7 @@
 import { useRouter } from "@tanstack/react-router";
 import { CalendarDays, Ellipsis, Flag, Search, Zap } from "lucide-react";
-import { useEffect } from "react";
-import { Button } from "#client/react/components/ui/Button.tsx";
-import { Modal } from "./Modal.tsx";
+import { useEffect, useRef } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "#client/react/components/ui/sheet.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { shellIds } from "./shellIds.ts";
 import { useMedia } from "./useMedia.ts";
@@ -25,6 +24,7 @@ export function PhoneNavigation({
 }) {
 	const router = useRouter();
 	const narrow = useMedia("(max-width: 767px)");
+	const openerRef = useRef<HTMLButtonElement>(null);
 	useEffect(() => {
 		if (!narrow) {
 			onMoreChange(false);
@@ -56,34 +56,47 @@ export function PhoneNavigation({
 					aria-haspopup="dialog"
 					className={TAB_CLASS}
 					onClick={() => onMoreChange(true)}
+					ref={openerRef}
 					type="button"
 				>
 					<Ellipsis aria-hidden="true" className="size-5" />
 					More
 				</button>
 			</nav>
-			<Modal className="phone-more" close={() => onMoreChange(false)} id={shellIds.phoneMore} open={more} title={shellIds.phoneMoreTitle}>
-				<div className="mb-3 flex items-center justify-between">
-					<h2 className="font-semibold" id={shellIds.phoneMoreTitle}>
-						More
-					</h2>
-					<Button onClick={() => onMoreChange(false)} variant="ghost">
-						Close
-					</Button>
-				</div>
-				<nav aria-label="More destinations" className="grid gap-2">
-					{workspaceDestinations.slice(3).map(({ href, label, view }) => (
-						<a
-							aria-current={main.view === view ? "page" : undefined}
-							className="flex min-h-12 items-center rounded-md px-3 hover:bg-accent"
-							href={href}
-							key={view}
-						>
-							{label}
-						</a>
-					))}
-				</nav>
-			</Modal>
+			<Sheet onOpenChange={onMoreChange} open={more}>
+				<SheetContent
+					aria-describedby={undefined}
+					className="max-h-[80dvh] overflow-y-auto rounded-t-2xl pb-[max(1rem,env(safe-area-inset-bottom))]"
+					id={shellIds.phoneMore}
+					onCloseAutoFocus={(event) => {
+						event.preventDefault();
+						openerRef.current?.focus();
+					}}
+					side="bottom"
+				>
+					<SheetHeader>
+						<SheetTitle>More</SheetTitle>
+					</SheetHeader>
+					<MoreDestinations main={main} />
+				</SheetContent>
+			</Sheet>
 		</>
+	);
+}
+
+function MoreDestinations({ main }: { readonly main: MainLocation }) {
+	return (
+		<nav aria-label="More destinations" className="grid gap-2 px-4">
+			{workspaceDestinations.slice(3).map(({ href, label, view }) => (
+				<a
+					aria-current={main.view === view ? "page" : undefined}
+					className="flex min-h-12 items-center rounded-md px-3 hover:bg-accent"
+					href={href}
+					key={view}
+				>
+					{label}
+				</a>
+			))}
+		</nav>
 	);
 }

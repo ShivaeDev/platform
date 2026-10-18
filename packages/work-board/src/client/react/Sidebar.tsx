@@ -1,14 +1,14 @@
+import { cn } from "cn";
 import { Option } from "effect";
 import { PanelsTopLeft } from "lucide-react";
 import { useContext, useEffect } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { Navigation } from "#browser/Navigation.ts";
-import { Badge } from "#client/react/components/ui/Badge.tsx";
-import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
+import { Badge } from "#client/react/components/ui/badge.tsx";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { GoalProgress } from "#client/react/GoalProgress.tsx";
 import { InboxCount } from "#client/react/Header.tsx";
 import { type Item, LibraryContext } from "#client/react/LibraryContext.ts";
-import { cn } from "#client/react/lib/cn.ts";
 import type { MainLocation } from "#client/react/mainLocation.ts";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
@@ -64,21 +64,18 @@ export function Sidebar({
 			</a>
 			<nav aria-label="Workspace" className="grid shrink-0 gap-1" data-inbox-count={String(data?.inboxCount ?? "?")} id={shellIds.primaryNavigation}>
 				{workspaceDestinations.map(({ label, href, view, id }) => (
-					<a
-						aria-current={(view === "today" ? home : main.view === view) ? "page" : undefined}
-						className={cn(
-							buttonVariants({ variant: "ghost" }),
-							"justify-between no-underline",
-							(view === "today" ? home : main.view === view) && "bg-accent",
-						)}
-						href={href}
-						id={id}
+					<Button
+						asChild
+						className={cn("justify-between no-underline", (view === "today" ? home : main.view === view) && "bg-accent")}
 						key={view}
+						variant="ghost"
 					>
-						<span>{label}</span>
-						{view === "today" && <InboxCount count={counts.today ?? null} id={shellIds.inboxCount} />}
-						{view === "work" && <Badge>{counts.work ?? "?"}</Badge>}
-					</a>
+						<a aria-current={(view === "today" ? home : main.view === view) ? "page" : undefined} href={href} id={id}>
+							<span>{label}</span>
+							{view === "today" && <InboxCount count={counts.today ?? null} id={shellIds.inboxCount} />}
+							{view === "work" && <Badge variant="secondary">{counts.work ?? "?"}</Badge>}
+						</a>
+					</Button>
 				))}
 			</nav>
 			<ReadingSection current={main.file} items={reading.favorites} title="Pinned" />

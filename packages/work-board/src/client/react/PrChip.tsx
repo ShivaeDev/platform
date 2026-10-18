@@ -1,13 +1,13 @@
 import { GitPullRequest } from "lucide-react";
-import { Badge } from "#client/react/components/ui/Badge.tsx";
+import { Badge } from "#client/react/components/ui/badge.tsx";
 
 export function PrChip({ url }: { readonly url: string | undefined }) {
 	return url ? (
-		<a href={url}>
-			<Badge variant="outline">
+		<Badge asChild variant="outline">
+			<a href={url}>
 				<GitPullRequest aria-hidden="true" />
 				PR
-			</Badge>
-		</a>
+			</a>
+		</Badge>
 	) : null;
 }

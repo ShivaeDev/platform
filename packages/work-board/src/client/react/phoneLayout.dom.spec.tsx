@@ -58,15 +58,15 @@ it("opens Library and System through More and closes the sheet on navigation or 
 	try {
 		for (const href of ["/_board/library", "/_board/system"]) {
 			click(`${PHONE} button[aria-controls="phone-more"]`);
-			expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
+			expect(document.querySelector("#phone-more")).not.toBeNull();
 			expect([...document.querySelectorAll("#phone-more a")].map((link) => link.textContent)).toEqual(["Library", "System"]);
 			click(`#phone-more a[href="${href}"]`);
 			await eventually(() => expect(view.router.state.location.pathname).toBe(href));
-			expect(control("#phone-more", HTMLDialogElement).open).toBe(false);
+			expect(document.querySelector("#phone-more")).toBeNull();
 		}
 		click(`${PHONE} button[aria-controls="phone-more"]`);
 		click("#phone-more button");
-		expect(control("#phone-more", HTMLDialogElement).open).toBe(false);
+		expect(document.querySelector("#phone-more")).toBeNull();
 		click("#sidebar-toggle");
 		expect(control("#sidebar", HTMLElement).hidden).toBe(false);
 		click("#sidebar-backdrop");

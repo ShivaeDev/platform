@@ -1,4 +1,4 @@
-import { cn } from "#client/react/lib/cn.ts";
+import { cn } from "cn";
 import { StatusChip } from "./StatusChip.tsx";
 import { statusPresentation } from "./statusPresentation.ts";
 
@@ -10,15 +10,16 @@ const colors = {
 	"needs-you": "bg-needs-you",
 	"waiting-on-agents": "bg-waiting-on-agents",
 };
-export function StatusSegments({
+export function SegmentedBar({
 	counts,
 	label,
-	large = false,
+	size = "small",
 }: {
 	readonly counts: Readonly<Record<string, number>>;
 	readonly label: string;
-	readonly large?: boolean;
+	readonly size?: "small" | "large";
 }) {
+	const large = size === "large";
 	const entries = Object.entries(counts).sort(([a], [b]) => a.localeCompare(b));
 	const segments = large ? entries : entries.filter(([, count]) => count > 0);
 	const description = entries.map(([status, count]) => `${status}: ${count}`).join(", ") || "No linked work";

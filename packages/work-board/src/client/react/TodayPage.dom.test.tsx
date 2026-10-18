@@ -62,25 +62,24 @@ it("opens compact answer controls, records an option and removes its ask on quer
 	);
 	try {
 		await eventually(() =>
-			expect(view.container.querySelector("[aria-label='Options for question.storage'] button")?.textContent).toContain(
-				"Keep local files · Recommended",
-			),
+			expect(view.container.querySelector("[data-attention-id='question.storage'] button[aria-haspopup='dialog']")).not.toBeNull(),
 		);
 		const entry = view.container.querySelector("[data-attention-id='question.storage']");
 		const trigger = entry?.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]');
-		const dialog = entry?.querySelector<HTMLElement>('[role="dialog"]');
-		expect(dialog?.hidden).toBe(true);
+		expect(document.querySelector('[role="dialog"]')).toBeNull();
 		expect(trigger?.getAttribute("aria-expanded")).toBe("false");
 		act(() => trigger?.click());
-		await eventually(() => expect(dialog?.hidden).toBe(false));
+		await eventually(() =>
+			expect(document.querySelector("[aria-label='Options for question.storage'] button")?.textContent).toContain("Keep local files · Recommended"),
+		);
 		expect(document.activeElement?.textContent).toContain("Keep local files · Recommended");
 		act(() => document.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" })));
-		expect(dialog?.hidden).toBe(true);
-		expect(document.activeElement).toBe(trigger);
+		expect(document.querySelector('[role="dialog"]')).toBeNull();
+		await eventually(() => expect(document.activeElement).toBe(trigger));
 		act(() => trigger?.click());
-		expect(dialog?.hidden).toBe(false);
+		expect(document.querySelector('[role="dialog"]')).not.toBeNull();
 		expect(view.container.querySelectorAll("[data-attention-id='question.storage']")).toHaveLength(1);
-		await act(async () => view.container.querySelector<HTMLButtonElement>("[aria-label='Options for question.storage'] button")?.click());
+		await act(async () => document.querySelector<HTMLButtonElement>("[aria-label='Options for question.storage'] button")?.click());
 		await eventually(() =>
 			expect(command).toHaveBeenCalledWith(
 				expect.objectContaining({ answers: [{ prompt: "answer", selected: ["option-1"], text: "" }], question: id, type: "answer" }),

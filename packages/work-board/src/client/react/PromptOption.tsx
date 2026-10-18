@@ -1,9 +1,9 @@
+import { cn } from "cn";
 import { useId } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import { optionText } from "#browser/responses/cardContext.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
-import { Badge } from "#client/react/components/ui/Badge.tsx";
-import { cn } from "#client/react/lib/cn.ts";
+import { Badge } from "#client/react/components/ui/badge.tsx";
 
 export function PromptOption({
 	document,

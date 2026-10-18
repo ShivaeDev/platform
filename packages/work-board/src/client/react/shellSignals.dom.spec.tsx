@@ -29,9 +29,9 @@ it.each(["Files", "More"])("dismisses %s when its current destination is selecte
 			await eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true));
 		} else {
 			click('[aria-controls="phone-more"]');
-			expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
+			expect(document.querySelector("#phone-more")).not.toBeNull();
 			click('#phone-more a[href="/_board/library"]');
-			await eventually(() => expect(control("#phone-more", HTMLDialogElement).open).toBe(false));
+			await eventually(() => expect(document.querySelector("#phone-more")).toBeNull());
 		}
 		expect(view.router.state.location).toBe(location);
 	} finally {
@@ -48,9 +48,9 @@ it("closes Files and More on direct router navigation and retains the new recent
 		await act(async () => view.router.navigate({ to: "/other.md" }));
 		await eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true));
 		click('[aria-controls="phone-more"]');
-		expect(control("#phone-more", HTMLDialogElement).open).toBe(true);
+		expect(document.querySelector("#phone-more")).not.toBeNull();
 		await act(async () => view.router.navigate({ to: "/notes/plan.md" }));
-		await eventually(() => expect(control("#phone-more", HTMLDialogElement).open).toBe(false));
+		await eventually(() => expect(document.querySelector("#phone-more")).toBeNull());
 		files["notes/plan.md"] = "# Revised plan";
 		act(() => {
 			view.registry.refresh(navigationQuery(view.api));

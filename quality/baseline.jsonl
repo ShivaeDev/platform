@@ -388,8 +388,8 @@
 {"path":"packages/work-board/src/client/react/answerDrafts.dom.spec.tsx","rule":"tests/story-specs","count":1}
 {"path":"packages/work-board/src/client/react/boardRouter.dom.test.tsx","rule":"tests/story-specs","count":1}
 {"path":"packages/work-board/src/client/react/chrome.dom.spec.tsx","rule":"tests/story-specs","count":1}
-{"path":"packages/work-board/src/client/react/components/ui/SegmentedBar.dom.test.tsx","rule":"tests/story-specs","count":1}
-{"path":"packages/work-board/src/client/react/components/ui/StatusChip.dom.test.tsx","rule":"tests/story-specs","count":1}
+{"path":"packages/work-board/src/client/react/SegmentedBar.dom.test.tsx","rule":"tests/story-specs","count":1}
+{"path":"packages/work-board/src/client/react/StatusChip.dom.test.tsx","rule":"tests/story-specs","count":1}
 {"path":"packages/work-board/src/client/react/documentNavigation.dom.spec.tsx","rule":"tests/story-specs","count":1}
 {"path":"packages/work-board/src/client/react/documents.dom.spec.tsx","rule":"tests/story-specs","count":1}
 {"path":"packages/work-board/src/client/react/fleetCompletionConflicts.dom.spec.tsx","rule":"tests/story-specs","count":1}

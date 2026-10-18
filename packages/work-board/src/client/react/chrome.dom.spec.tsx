@@ -51,6 +51,7 @@ it("saves appearance and sidebar choices through a document refresh and reload",
 	const files = fixtures();
 	let view = await chrome(files);
 	try {
+		click("#settings-open");
 		choose("#theme", "dark");
 		choose("#density", "compact");
 		click("#sidebar-toggle");
@@ -61,6 +62,7 @@ it("saves appearance and sidebar choices through a document refresh and reload",
 		expect(control("#sidebar", HTMLElement).hidden).toBe(true);
 		await view.unmount();
 		view = await chrome(files);
+		click("#settings-open");
 		expect(control("#theme", HTMLSelectElement).value).toBe("dark");
 		expect(control("#density", HTMLSelectElement).value).toBe("compact");
 		expect(control("#sidebar-toggle", HTMLButtonElement).getAttribute("aria-expanded")).toBe("false");

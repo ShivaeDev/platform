@@ -2,6 +2,7 @@ import { RouterContextProvider } from "@tanstack/react-router";
 import * as Atom from "effect/reactivity/Atom";
 import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { eventually } from "@shivaedev/effect-react/testing.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { choose, click, control } from "#test/chrome.ts";
 import { renderBoard } from "#test/react.tsx";
@@ -45,10 +46,9 @@ it("changes saved theme and density and pauses native updates from the header se
 		</RouterContextProvider>
 	));
 	try {
-		expect(control('[role="dialog"][aria-label="Settings"]', HTMLElement).hidden).toBe(true);
+		expect(document.querySelector('[role="dialog"][aria-label="Settings"]')).toBeNull();
 		click("#settings-open");
 		expect(document.activeElement?.id).toBe("theme");
-		expect(control('[role="dialog"][aria-label="Settings"]', HTMLElement).hidden).toBe(false);
 		choose("#theme", "dark");
 		choose("#density", "compact");
 		expect(document.documentElement.classList.contains("dark")).toBe(true);
@@ -60,8 +60,8 @@ it("changes saved theme and density and pauses native updates from the header se
 		choose("#theme", "light");
 		expect(document.documentElement.classList.contains("dark")).toBe(false);
 		act(() => document.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" })));
-		expect(control('[role="dialog"][aria-label="Settings"]', HTMLElement).hidden).toBe(true);
-		expect(document.activeElement?.id).toBe("settings-open");
+		expect(document.querySelector('[role="dialog"][aria-label="Settings"]')).toBeNull();
+		await eventually(() => expect(document.activeElement?.id).toBe("settings-open"));
 	} finally {
 		await view.unmount();
 	}

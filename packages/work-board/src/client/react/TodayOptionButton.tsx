@@ -1,5 +1,5 @@
 import { optionText } from "#browser/responses/cardContext.ts";
-import { Button } from "#client/react/components/ui/Button.tsx";
+import { Button } from "#client/react/components/ui/button.tsx";
 
 export function TodayOptionButton({
 	disabled,
@@ -25,6 +25,7 @@ export function TodayOptionButton({
 			disabled={disabled}
 			onClick={onChoose}
 			size="sm"
+			type="button"
 			variant="outline"
 		>
 			<span>

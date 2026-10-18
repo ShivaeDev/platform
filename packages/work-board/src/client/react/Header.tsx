@@ -1,9 +1,7 @@
 import { AlertCircle, Inbox, PanelLeft, Search } from "lucide-react";
 import type { ReactNode } from "react";
-import { Badge } from "#client/react/components/ui/Badge.tsx";
-import { Button } from "#client/react/components/ui/Button.tsx";
-import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
-import { cn } from "#client/react/lib/cn.ts";
+import { Badge } from "#client/react/components/ui/badge.tsx";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { SettingsPopover } from "./SettingsPopover.tsx";
@@ -12,7 +10,7 @@ import type { AppearanceControls } from "./useAppearance.ts";
 import type { SidebarControls } from "./useSidebar.ts";
 export function InboxCount({ count, id }: { readonly count: number | null; readonly id: string }) {
 	return (
-		<Badge aria-label={`${count ?? "?"} waiting`} id={id} role="status">
+		<Badge aria-label={`${count ?? "?"} waiting`} id={id} role="status" variant="secondary">
 			{count ?? "?"}
 		</Badge>
 	);
@@ -48,6 +46,7 @@ export function Header({
 				id={shellIds.sidebarToggle}
 				onClick={() => sidebar.toggle()}
 				size="sm"
+				type="button"
 				variant="ghost"
 			>
 				<PanelLeft aria-hidden="true" />
@@ -55,17 +54,13 @@ export function Header({
 			</Button>
 			<span className="min-w-0 flex-1 truncate font-medium md:hidden">{main.title ?? main.file}</span>
 			<Breadcrumbs file={main.title ?? main.file} />
-			<a
-				aria-current={main.view === "today" ? "page" : undefined}
-				aria-label="Today"
-				className={cn(buttonVariants({ size: "sm", variant: "ghost" }), "hidden md:inline-flex")}
-				href="/"
-				id={shellIds.inboxTopbar}
-			>
-				<Inbox aria-hidden="true" />
-				<span className="hidden sm:inline">Today</span>
-				<InboxCount count={count} id={shellIds.inboxTopbarCount} />
-			</a>
+			<Button asChild className="hidden md:inline-flex" size="sm" variant="ghost">
+				<a aria-current={main.view === "today" ? "page" : undefined} aria-label="Today" href="/" id={shellIds.inboxTopbar}>
+					<Inbox aria-hidden="true" />
+					<span className="hidden sm:inline">Today</span>
+					<InboxCount count={count} id={shellIds.inboxTopbarCount} />
+				</a>
+			</Button>
 			<Button
 				aria-controls="search-dialog"
 				aria-haspopup="dialog"
@@ -74,6 +69,7 @@ export function Header({
 				id={shellIds.searchOpen}
 				onClick={() => openSearch()}
 				size="sm"
+				type="button"
 				variant="ghost"
 			>
 				<Search aria-hidden="true" />

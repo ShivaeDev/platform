@@ -1,6 +1,6 @@
 import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Document } from "#browser/document/schema.ts";
-import { Tabs } from "#client/react/components/ui/Tabs.tsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "#client/react/components/ui/tabs.tsx";
 import { Age } from "./Age.tsx";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
 import { DocumentSource } from "./DocumentSource.tsx";
@@ -47,10 +47,6 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 		report(context, true);
 		return () => report(context, false);
 	}, [headings, report]);
-	const tabs = [
-		{ content: <Outline headings={headings} />, label: "Details", value: "details" },
-		{ content: <SourcePanel document={data} />, label: "Source", value: "source" },
-	];
 	return (
 		<aside
 			aria-label="Item context"
@@ -58,7 +54,22 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 			data-key="item-context"
 			ref={contextRef}
 		>
-			<Tabs label="Item context" onValueChange={setTab} tabs={tabs} value={tab} />
+			<Tabs onValueChange={setTab} value={tab}>
+				<TabsList aria-label="Item context" className="w-full">
+					<TabsTrigger onClick={() => setTab("details")} value="details">
+						Details
+					</TabsTrigger>
+					<TabsTrigger onClick={() => setTab("source")} value="source">
+						Source
+					</TabsTrigger>
+				</TabsList>
+				<TabsContent className="pt-2" forceMount hidden={tab !== "details"} value="details">
+					<Outline headings={headings} />
+				</TabsContent>
+				<TabsContent className="pt-2" forceMount hidden={tab !== "source"} value="source">
+					<SourcePanel document={data} />
+				</TabsContent>
+			</Tabs>
 			<DocumentMetadata document={data} />
 		</aside>
 	);

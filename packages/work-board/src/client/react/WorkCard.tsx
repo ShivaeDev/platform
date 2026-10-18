@@ -1,8 +1,8 @@
 import { cardStatus, type FleetWork, holderOf } from "#browser/views/now.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
-import { Card } from "#client/react/components/ui/Card.tsx";
-import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
+import { Card } from "#client/react/components/ui/card.tsx";
+import { StatusChip } from "#client/react/StatusChip.tsx";
 import { Age } from "./Age.tsx";
 import { PrChip } from "./PrChip.tsx";
 import { WorkItemTitle } from "./WorkItemTitle.tsx";
@@ -18,7 +18,7 @@ export function WorkCard({
 }) {
 	const holder = holderOf(item.metadata, fleet);
 	return (
-		<Card className="work-card" data-item={item.id} data-selected={item.id === state.item ? "true" : undefined}>
+		<Card className="work-card gap-2 p-4" data-item={item.id} data-selected={item.id === state.item ? "true" : undefined}>
 			<p className="work-kind">{item.metadata.kind ?? ""}</p>
 			<h3>
 				<WorkItemTitle item={item} state={state} />

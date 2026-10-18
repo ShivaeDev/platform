@@ -1,7 +1,7 @@
 import { cva } from "class-variance-authority";
+import { cn } from "cn";
 import type { ComponentProps } from "react";
-import { cn } from "#client/react/lib/cn.ts";
-import { Badge } from "./Badge.tsx";
+import { Badge } from "#client/react/components/ui/badge.tsx";
 import { statusPresentation } from "./statusPresentation.ts";
 
 const colors = cva("", {
