@@ -7,6 +7,7 @@ import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { runSchemaPlan } from "#internal/runSchemaPlan.ts";
 import { installPgBossSchema, type PgBossSchemaOptions } from "#schema.ts";
 import { clientEngine } from "#test/clientEngine.ts";
+import { holdIndexBuild } from "#test/holdIndexBuild.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
 import { waitingVerbs } from "#test/waitingVerbs.ts";
@@ -33,6 +34,7 @@ export const schemaStories = storyKit({
 		return {
 			...runtime,
 			...waitingVerbs(),
+			holdIndexBuild: () => holdIndexBuild(sql),
 			installSchema: (options?: PgBossSchemaOptions) => installPgBossSchema(options).pipe(Effect.provideContext(state.services)),
 			query: <A extends object>(text: string) => sql.unsafe<A>(text),
 			rollbackSchema: (schema: string, version: number) =>

@@ -5,6 +5,7 @@ import { getConstructionPlans, getMigrationPlans, type MigrationPartition, PgBos
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
 import { type PgBossError, toPgBossError } from "#error.ts";
 import { runSchemaPlan } from "#internal/runSchemaPlan.ts";
+import { resumeSchemaIndexes } from "#internal/schemaIndexBuilds.ts";
 
 export interface PgBossSchemaOptions {
 	readonly schema?: string;
@@ -29,11 +30,18 @@ async function installSchema(
 	if (version === null) {
 		throw new Error("The pg-boss version table is empty");
 	}
+	if (version > pgBossPackage.pgboss.schema) {
+		return;
+	}
+	if (version >= 27) {
+		await resumeSchemaIndexes(client, schema);
+	}
 	if (version < pgBossPackage.pgboss.schema) {
 		const partitionTables: MigrationPartition[] = Array.from(
 			await run(connection.executeUnprepared(`SELECT table_name AS "tableName", policy FROM ${schema}.queue WHERE partition = true`, [], undefined)),
 		);
-		await runSchemaPlan(connection, getMigrationPlans(schema, version, { partitionTables }), run);
+		await runSchemaPlan(connection, getMigrationPlans(schema, version, { partitionTables }), run, { schema, version: pgBossPackage.pgboss.schema });
+		await resumeSchemaIndexes(client, schema);
 	}
 }
 

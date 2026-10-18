@@ -47,7 +47,7 @@ import { installPgBossSchema } from "@shivaedev/effect-pg-boss/schema.ts";
 const jobsFixture = installPgBossSchema({ schema: "app_jobs" });
 ```
 
-The Effect requires `SqlClient` and fails with `PgBossError` whose `operation` is `"install"`. The schema defaults to `"pgboss"`. Repeating installation preserves existing jobs. Upgrades apply pg-boss's migration SQL and concurrent index builds, including partition indexes, before returning.
+The Effect requires `SqlClient` and fails with `PgBossError` whose `operation` is `"install"`. The schema defaults to `"pgboss"`. Repeating installation preserves existing jobs. Upgrades apply pg-boss's migration SQL and concurrent index builds, including partition indexes, before returning. Pending index commands are recorded in pg-boss's BAM table in the same transaction as the schema version. A retry resumes unfinished commands and repairs invalid indexes left by failed builds, even when the schema version has already committed.
 
 After installation, pass the same schema and `migrate: false` to `Jobs.layer` to start producers and workers without schema installation or migration. Startup fails if the schema is missing. Ordinary Layer startup retains pg-boss's default migration behavior when `migrate` is omitted.
 
