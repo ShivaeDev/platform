@@ -21,11 +21,17 @@ host.it(
 		expect(aborted()).toBe(true);
 	},
 );
-host.it("ignores normal completed request close", [subscriptionConnection("completed")], function* ({ openSubscription, completeRequest, aborted }) {
-	yield* openSubscription();
-	yield* completeRequest();
-	expect(aborted()).toBe(false);
-});
+host.it(
+	"ignores normal request completion and aborts on later socket close",
+	[subscriptionConnection("completed")],
+	function* ({ openSubscription, completeRequest, disconnect, aborted }) {
+		yield* openSubscription();
+		yield* completeRequest();
+		expect(aborted()).toBe(false);
+		yield* disconnect();
+		expect(aborted()).toBe(true);
+	},
+);
 host.it("aborts immediately for an already destroyed connection", [subscriptionConnection("destroyed")], function* ({ openSubscription, aborted }) {
 	yield* openSubscription();
 	expect(aborted()).toBe(true);
