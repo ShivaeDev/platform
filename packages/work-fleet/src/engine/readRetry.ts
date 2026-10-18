@@ -11,6 +11,8 @@ import { SessionFailure } from "#session/schema.ts";
 import { requestTimedOut, transientFailure } from "#session/transientFailure.ts";
 import type { Versioned } from "#storage/model.ts";
 
+export const DEFAULT_READ_RETRY_MS = 30_000;
+
 function retryKind(error: unknown, record: FleetRecord) {
 	if (error instanceof SessionFailure && retryProviderRead(error, record)) {
 		return "provider";
@@ -89,7 +91,7 @@ export const readRetry = Effect.fn("Fleet.readRetry")(function* (
 	if (failures >= 5 && (yield* retryLostReview(state, current.value, error))) {
 		return yield* state.load(current.value.workId);
 	}
-	const retryAt = state.policy.now() + 30_000 * 2 ** (failures - 1);
+	const retryAt = state.policy.now() + ((yield* state.current).readRetryMs ?? DEFAULT_READ_RETRY_MS) * 2 ** (failures - 1);
 	const message = failureMessage(error);
 	const subject = { integration: "integration evidence", provider: "provider state" }[kind];
 	const retry = failures < 5 ? { error: message, failures, retryAt } : undefined;

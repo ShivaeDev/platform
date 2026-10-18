@@ -1,9 +1,6 @@
-import * as Effect from "effect/Effect";
-import * as FileSystem from "effect/FileSystem";
-import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
-import * as SchemaIssue from "effect/SchemaIssue";
-import { CONFIG_FILE, DEFAULT_NAMESPACE, NAMESPACE, SHARED_LOCAL_POSTGRES } from "#host/defaults.ts";
+import { DEFAULT_READ_RETRY_MS } from "#engine/readRetry.ts";
+import { DEFAULT_NAMESPACE, NAMESPACE, SHARED_LOCAL_POSTGRES } from "#host/defaults.ts";
 import { DEFAULT_AREA_MERGE_WAIT_MS } from "#scheduling/areas.ts";
 import { LaunchSettings } from "#session/schema.ts";
 import type { OpenPullRequestCurve } from "#storage/model.ts";
@@ -44,6 +41,7 @@ export const HostConfig = Schema.Struct({
 	),
 	provider: Schema.Literals(["local", "cloud"]),
 	quota: Schema.optional(Schema.Literals(["codex", "unlimited"])),
+	readRetryMs: Schema.optional(Positive),
 	repository: Schema.optional(Schema.Struct({ branch: Text, remote: Text })),
 	result: Schema.optional(Schema.Literal("github")),
 	stallMinutes: Schema.optional(Positive),
@@ -83,6 +81,7 @@ export interface FleetHost {
 	readonly openPullRequests?: OpenPullRequestCurve;
 	readonly provider: HostConfig["provider"];
 	readonly quota: NonNullable<HostConfig["quota"]>;
+	readonly readRetryMs: number;
 	readonly repository: NonNullable<HostConfig["repository"]>;
 	readonly result?: HostConfig["result"];
 	readonly stallMinutes: number;
@@ -107,42 +106,10 @@ export function resolveHost(boardDir: string, config: HostConfig, configFile?: s
 		...(config.openPullRequests === undefined ? {} : { openPullRequests: { ...config.openPullRequests, floor: config.openPullRequests.floor ?? 0 } }),
 		provider: config.provider,
 		quota: config.quota ?? "codex",
+		readRetryMs: config.readRetryMs ?? DEFAULT_READ_RETRY_MS,
 		repository: config.repository ?? { branch: "main", remote: "origin" },
 		result: config.result,
 		stallMinutes: config.stallMinutes ?? 30,
 		worker: config.worker,
 	};
 }
-
-export const readHostConfig = Effect.fn("FleetHost.readHostConfig")(function* (file: string) {
-	const fs = yield* FileSystem.FileSystem;
-	const text = yield* fs
-		.readFileString(file)
-		.pipe(Effect.mapError(() => new HostConfigRejected({ file, message: `Fleet host configuration is missing or unreadable: ${file}` })));
-	const config = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(HostConfig))(text).pipe(
-		Effect.mapError((error) => {
-			const field = SchemaIssue.makeFormatterStandardSchemaV1()(error.issue).issues[0]?.path?.map(String).join(".");
-			return new HostConfigRejected({
-				...(field === undefined || field === "" ? {} : { field }),
-				file,
-				message: `Fleet host configuration ${file} is invalid: ${error.message}`,
-			});
-		}),
-	);
-	if (config.provider === "cloud" && (config.cloud === undefined || config.worker === undefined)) {
-		return yield* new HostConfigRejected({
-			field: config.cloud === undefined ? "cloud" : "worker",
-			file,
-			message: `Fleet host configuration ${file} selects provider "cloud" without cloud and worker settings`,
-		});
-	}
-	return config;
-});
-
-export const loadHost = Effect.fn("FleetHost.loadHost")(function* (board: string, configPath?: string) {
-	const path = yield* Path.Path;
-	const boardDir = path.resolve(board);
-	const file = configPath === undefined ? path.join(boardDir, CONFIG_FILE) : path.resolve(configPath);
-	const config = yield* readHostConfig(file).pipe(Effect.mapError((rejected) => new HostFailure({ message: rejected.message })));
-	return resolveHost(boardDir, config, file);
-});

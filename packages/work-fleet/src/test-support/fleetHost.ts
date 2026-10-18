@@ -8,7 +8,8 @@ import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDat
 import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostParts } from "#host/commands.ts";
-import { type FleetHost, type HostConfig, loadHost, resolveHost } from "#host/config.ts";
+import { type FleetHost, type HostConfig, resolveHost } from "#host/config.ts";
+import { loadHost } from "#host/configFile.ts";
 import { CONFIG_FILE } from "#host/defaults.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";

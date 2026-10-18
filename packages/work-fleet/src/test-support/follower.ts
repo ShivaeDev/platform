@@ -4,7 +4,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { loadHost } from "#host/config.ts";
+import { loadHost } from "#host/configFile.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
 
 interface FollowRun {

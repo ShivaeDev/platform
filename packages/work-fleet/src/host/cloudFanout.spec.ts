@@ -74,9 +74,10 @@ function fanoutStory() {
 			return yield* withHost(
 				files,
 				{
-					// Each lost acknowledgement times out before sequential dispatch reaches the next attempt, and defers that attempt's next provider read by 30 seconds.
+					// Each lost acknowledgement times out before sequential dispatch reaches the next attempt, and defers that attempt's next provider read by readRetryMs.
 					cloud: { authFile, cwd: SYNTHETIC_WORKSPACE, endpoint: server.endpoint, environmentId: SYNTHETIC_ENVIRONMENT, requestTimeoutMs: 1000 },
 					provider: "cloud",
+					readRetryMs: 1000,
 					worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" },
 				},
 				(fixture) => killFanout(fixture, backend).pipe(Effect.scoped),
