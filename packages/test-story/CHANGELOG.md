@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-10-18
+
+### Added
+
+- `forwardingProxy(upstream, options?)` and `ForwardingProxyOptions` from `@shivaedev/test-story/forwardingProxy.ts` provide a scoped loopback proxy for host stories. It forwards requests and responses, appends the caller to `x-forwarded-for`, and applies the story's configured headers.
+
 ## 0.8.0 - 2026-10-18
 
 ### Added
