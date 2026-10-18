@@ -1,4 +1,4 @@
-import { Effect, Stream } from "effect";
+import { Effect, Queue, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { type Key, readKeys } from "./keys.ts";
 import type { LiveHint } from "./live.ts";
@@ -6,26 +6,55 @@ import type { LiveHint } from "./live.ts";
 export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
 	const resyncKey = `@shivaedev/effect-contract/resync/${crypto.randomUUID()}`;
-	let generation = 0;
 	function stream(keys: readonly Key[]) {
 		return Stream.unwrap(
-			Effect.sync(() => {
-				let seen = -1;
-				return reactivity.stream(
-					[...readKeys(keys), resyncKey],
-					Effect.sync((): LiveHint => {
-						if (seen !== generation) {
-							seen = generation;
-							return { _tag: "Resync" };
+			Effect.gen(function* () {
+				const queue = yield* Queue.unbounded<LiveHint>();
+				const pending = new Map<string, Key>();
+				let scheduled = false;
+				let resync = false;
+				let active = true;
+				function flush() {
+					if (scheduled) {
+						return;
+					}
+					scheduled = true;
+					queueMicrotask(() => {
+						scheduled = false;
+						if (active) {
+							Queue.offerUnsafe(queue, resync ? { _tag: "Resync" } : { _tag: "Changed", keys: [...pending.values()] });
 						}
-						return { _tag: "Changed", keys };
+						pending.clear();
+						resync = false;
+					});
+				}
+				const cancel = keys.map((key) => {
+					const own = readKeys([key]);
+					return reactivity.registerUnsafe(own, () => {
+						pending.set(own[0] ?? "", key);
+						flush();
+					});
+				});
+				cancel.push(
+					reactivity.registerUnsafe([resyncKey], () => {
+						resync = true;
+						flush();
 					}),
 				);
+				yield* Effect.addFinalizer(() =>
+					Effect.sync(() => {
+						active = false;
+						for (const stop of cancel) {
+							stop();
+						}
+					}),
+				);
+				yield* Queue.offer(queue, { _tag: "Resync" });
+				return Stream.fromQueue(queue);
 			}),
 		);
 	}
 	const resync = Effect.sync(() => {
-		generation += 1;
 		reactivity.invalidateUnsafe([resyncKey]);
 	});
 	return { resync, stream };

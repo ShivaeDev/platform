@@ -3,6 +3,7 @@ import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
+import type { RepositoryChanges } from "./repositoryChanges.ts";
 
 export type InsertMany<TModel extends Model.Any> = (
 	inputs: readonly TModel["insert"]["Type"][],
@@ -15,7 +16,7 @@ export interface BatchWrites<TModel extends Model.Any> {
 export function makeInsertMany(
 	model: Model.Any,
 	sql: SqlClient.SqlClient,
-	options: { readonly tableName: string; readonly spanPrefix: string },
+	options: { readonly tableName: string; readonly spanPrefix: string; readonly changes: RepositoryChanges },
 	operation: string,
 	prepare: (row: Readonly<Record<string, unknown>>) => Effect.Effect<Fragment, Schema.SchemaError> = () => Effect.succeed(sql``),
 ) {
@@ -40,6 +41,7 @@ export function makeInsertMany(
 			let suffix: Fragment = sql``;
 			const flush = Effect.gen(function* () {
 				const returned = yield* sql`insert into ${sql(options.tableName)} (${names}) values ${sql.csv(chunk)} ${suffix} returning *`;
+				yield* options.changes.record(returned);
 				for (const row of yield* decode(returned)) {
 					results.push(row);
 				}
@@ -59,5 +61,5 @@ export function makeInsertMany(
 			}
 			yield* flush;
 			return results;
-		}).pipe(Effect.withSpan(`${options.spanPrefix}.${operation}`));
+		}).pipe(options.changes.write, Effect.withSpan(`${options.spanPrefix}.${operation}`));
 }
