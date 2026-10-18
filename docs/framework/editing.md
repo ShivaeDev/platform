@@ -72,14 +72,6 @@ The call site is similar in length. The difference is in the defaults: refresh,
 save and reset races are handled per field, and a contract field rejection is
 checked against the form's field names at compile time.
 
-## Evidence
+## Worked example
 
-The [starter editor](../../examples/starter/src/client/NoteEdit.tsx) uses `useEditor` with a contract query loaded by its typed `/notes/$noteId` route. Its [DOM tests](../../examples/starter/src/client/NoteEdit.dom.test.tsx) prove that live refresh retains a draft, a conflict keeps the input for review and retry, and deletion returns to a refreshed list without the note. The [authenticated HTTP tests](../../examples/starter/src/server/noteEditingHost.spec.ts) prove versioned updates and deletes against PostgreSQL, including unchanged rows after stale writes and `NotFound` for another account. These tests also run in the generated-app package check.
-
-[`invoiceLineEditor.dom.spec.tsx`](../../packages/effect-react/src/invoiceLineEditor.dom.spec.tsx)
-renders a contract-bound invoice line editor over in-process native RPC. It covers
-initial loading, refresh failure with retained data and retry, dirty refresh,
-server normalization with an edit made while saving, an ignored second submit,
-field and non-field failures, remounting per id, create-reset during a save and
-session switch teardown with an Unauthorized re-check. It does not cover real
-HTTP, browsers or optimistic updates.
+The [starter editor](../../examples/starter/src/client/NoteEdit.tsx) uses `useEditor` with a contract query loaded by its typed `/notes/$noteId` route, with versioned updates and deletes.
