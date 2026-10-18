@@ -1,8 +1,9 @@
 import { type FileSystem, PubSub, Stream } from "effect";
 import { boardStory } from "./boardStory.ts";
 
-export function directoryNotifications() {
+export function directoryNotifications(onlyDirectories = false) {
 	let notifications: PubSub.PubSub<FileSystem.WatchEvent> | undefined;
+	let starts = 0;
 	return {
 		changed: (path: string) => {
 			if (!notifications) {
@@ -12,12 +13,20 @@ export function directoryNotifications() {
 			return PubSub.publish(notifications, event);
 		},
 		trait: boardStory.trait("project", "the watcher can receive delayed directory notifications", function* (engine) {
+			starts = 0;
 			notifications = yield* PubSub.unbounded<FileSystem.WatchEvent>();
 			const events = notifications;
 			engine.wrap = (fs) => ({
 				...fs,
-				watch: (path, options) => (options?.recursive ? Stream.merge(fs.watch(path, options), Stream.fromPubSub(events)) : fs.watch(path, options)),
+				watch: (path, options) => {
+					if (!options?.recursive) {
+						return fs.watch(path, options);
+					}
+					starts += 1;
+					return onlyDirectories ? Stream.fromPubSub(events) : Stream.merge(fs.watch(path, options), Stream.fromPubSub(events));
+				},
 			});
 		}),
+		watchStarts: () => starts,
 	};
 }

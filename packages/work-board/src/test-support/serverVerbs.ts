@@ -1,3 +1,5 @@
+import { renameSync } from "node:fs";
+import { join } from "node:path";
 import { Effect } from "effect";
 import { browserClient } from "#client/client.ts";
 import { folder, type RunningBoard } from "./board.ts";
@@ -25,6 +27,10 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				(client) => Effect.sync(() => client.registry.dispose()),
 			);
 		}),
+		moveDirectory: (from: string, to: string) => {
+			tell(`an outside process moves ${from} to ${to}`);
+			renameSync(join(engine.notes.root, from), join(engine.notes.root, to));
+		},
 		removeProject: () => {
 			tell("an outside process removes the project root");
 			engine.notes.remove();

@@ -12,6 +12,17 @@ function sameRoots(previous: WatchRoots, next: WatchRoots): boolean {
 	return previous.length === next.length && next.every((folder) => known.get(folder.relative) === folder.real);
 }
 
+function recordFile(contents: Map<string, number>, relative: string, info: Option.Option<FileSystem.File.Info>) {
+	if (!isMarkdown(relative)) {
+		return;
+	}
+	if (Option.isSome(info) && info.value.type === "File") {
+		contents.set(relative, Option.match(info.value.mtime, { onNone: () => 0, onSome: (date) => date.getTime() }));
+	} else {
+		contents.delete(relative);
+	}
+}
+
 export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function* (
 	root: string,
 	realRoot: string,
@@ -24,7 +35,8 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 	const path = yield* Path.Path;
 	const cycle = Effect.scoped(
 		Effect.gen(function* () {
-			const { roots } = yield* scanMarkdown(root, realRoot);
+			const { files, roots } = yield* scanMarkdown(root, realRoot);
+			let contents = new Map(files.map((file) => [file.path, file.modified]));
 			const topology = yield* Deferred.make<void>();
 			// Node's recursive watcher can miss replacement of directory symlinks.
 			const parents = yield* Effect.forEach(
@@ -48,16 +60,22 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 					Stream.map(() => ""),
 				),
 			);
-			const checkTopology = Effect.fn("WorkBoard.checkTopology")(function* (relative: string) {
+			const changedPath = Effect.fn("WorkBoard.changedPath")(function* (relative: string) {
 				const info = yield* Effect.option(fs.stat(path.join(root, relative)));
 				const removedLink = roots.some((folder) => folder.relative === relative || folder.relative.startsWith(`${relative}/`));
-				if (Option.match(info, { onNone: () => removedLink, onSome: (value) => value.type === "Directory" })) {
-					yield* stale;
-					if (Option.isSome(info) && sameRoots(roots, (yield* scanMarkdown(root, realRoot)).roots)) {
-						return;
-					}
-					yield* Effect.forkScoped(Effect.delay(Deferred.succeed(topology, undefined), SETTLE));
+				if (!Option.match(info, { onNone: () => removedLink, onSome: (value) => value.type === "Directory" })) {
+					recordFile(contents, relative, info);
+					return isMarkdown(relative) || attachmentType(relative) !== undefined;
 				}
+				yield* stale;
+				const next = Option.isSome(info) ? yield* scanMarkdown(root, realRoot) : undefined;
+				if (next && sameRoots(roots, next.roots)) {
+					const changed = next.files.length !== contents.size || next.files.some((file) => contents.get(file.path) !== file.modified);
+					contents = new Map(next.files.map((file) => [file.path, file.modified]));
+					return changed;
+				}
+				yield* Effect.forkScoped(Effect.delay(Deferred.succeed(topology, undefined), SETTLE));
+				return false;
 			});
 			const pending = new Set<string>();
 			const watch = Stream.mergeAll(streams, { concurrency: "unbounded" }).pipe(
@@ -65,8 +83,7 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 					(relative) => !relative.split("/").some((segment) => segment === ".board.sock.starting" || /^\.s[A-Za-z0-9]{6}$/u.test(segment)),
 				),
 				Stream.tap((relative) => (isMarkdown(relative) || attachmentType(relative) !== undefined ? observed : Effect.void)),
-				Stream.tap(checkTopology),
-				Stream.filter((relative) => isMarkdown(relative) || attachmentType(relative) !== undefined),
+				Stream.filterEffect(changedPath),
 				Stream.tap((relative) =>
 					Effect.sync(() => {
 						pending.add(relative);

@@ -3,7 +3,7 @@ import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { directoryNotifications } from "#test/directoryNotifications.ts";
-import { changesUntil, rpcDocument, rpcNavigation, rpcWatcher } from "#test/nativeRpc.ts";
+import { changesUntil, rpcDocument, rpcNavigation, rpcPaths, rpcWatcher } from "#test/nativeRpc.ts";
 
 boardStory.it(
 	"delivers an edit, an added file and a removed root to a connected client",
@@ -55,6 +55,32 @@ boardStory.it("announces removal of an empty workspace root to a connected clien
 });
 
 const notifications = directoryNotifications();
+const directoriesOnly = directoryNotifications(true);
+
+boardStory.it(
+	"announces a populated directory move when only the destination directory is reported",
+	[projectFiles({ "drafts/log.md": "# Log", "drafts/nested/plan.md": "# Plan" }), directoriesOnly.trait],
+	function* ({ board, editFile, moveDirectory, watchProject }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		expect(directoriesOnly.watchStarts()).toBe(1);
+		moveDirectory("drafts", "published");
+		yield* directoriesOnly.changed("published");
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		expect(yield* rpcPaths(board)).toEqual(["/published/log.md", "/published/nested/plan.md"]);
+		expect((yield* rpcDocument(board, "/published/nested/plan.md")).source).toBe("# Plan");
+		expect((yield* rpcWatcher(board)).watching).toBe(true);
+		expect(directoriesOnly.watchStarts()).toBe(1);
+
+		editFile("published/log.md", "# After the move");
+		yield* directoriesOnly.changed("published");
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		expect((yield* rpcDocument(board, "/published/log.md")).source).toBe("# After the move");
+		expect((yield* rpcWatcher(board)).watching).toBe(true);
+		expect(directoriesOnly.watchStarts()).toBe(1);
+		yield* events.close();
+	},
+);
 
 boardStory.it(
 	"keeps delivering edits when an existing directory is reported again",
