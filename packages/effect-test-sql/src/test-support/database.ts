@@ -19,16 +19,16 @@ export const database = storyKit({
 	after: { configuration: (engine) => engine.lease() },
 	clock: "live",
 	create: () => createDatabaseEngine,
-	inspect: (engine) => ({ clones: engine.cloneNames, counts: engine.fixture.counts, template: engine.template }),
+	inspect: (engine) => ({ counts: engine.fixture.counts, template: engine.template }),
 	layer: PgClient.layer({ url: adminUrl }).pipe(Layer.provideMerge(Reactivity.layer)),
 	name: "database",
 	runIf: configured,
 	stages: ["configuration", "activity"],
 	verbs: (engine, story) => {
+		const isolation = isolationVerbs(engine);
 		const verbs = {
 			...transactionVerbs(engine),
 			...applicationVerbs(engine),
-			...isolationVerbs(engine),
 			...lifecycleVerbs(engine),
 			...limitVerbs(engine),
 			...budgetVerbs(engine),
@@ -37,6 +37,7 @@ export const database = storyKit({
 			...rowLockVerbs(engine),
 		};
 		return {
+			...isolation,
 			adminConnectionIsReleased: narrated(story.tell, "admin connection is released", verbs.adminConnectionIsReleased),
 			applicationFinalizersKeepDatabaseOpen: narrated(
 				story.tell,
@@ -45,8 +46,8 @@ export const database = storyKit({
 			),
 			applicationLayersUseTheirOwnClient: narrated(story.tell, "application layers use their own client", verbs.applicationLayersUseTheirOwnClient),
 			cloneExplainsConnectionLimit: narrated(story.tell, "clone explains connection limit", verbs.cloneExplainsConnectionLimit),
-			clonesCleanUpEveryExit: narrated(story.tell, "clones clean up every exit", verbs.clonesCleanUpEveryExit),
-			clonesCommitAndDrop: narrated(story.tell, "clones commit and drop", verbs.clonesCommitAndDrop),
+			closeWorker: narrated(story.tell, "the worker scope closes and drains database cleanup", isolation.closeWorker),
+			commitItem: narrated(story.tell, "an item commits in its clone", isolation.commitItem),
 			connectionBudgetIsRespected: narrated(story.tell, "connection budget is respected", verbs.connectionBudgetIsRespected),
 			failedPreparationDropsDatabase: narrated(story.tell, "failed preparation drops database", verbs.failedPreparationDropsDatabase),
 			idleConnectionsAndDatabasesAreReleased: narrated(
@@ -64,8 +65,8 @@ export const database = storyKit({
 			savepointsSuppressInvalidations: narrated(story.tell, "savepoints suppress invalidations", verbs.savepointsSuppressInvalidations),
 			sequenceStateSurvivesRollback: narrated(story.tell, "sequence state survives rollback", verbs.sequenceStateSurvivesRollback),
 			setupExplainsConnectionLimit: narrated(story.tell, "setup explains connection limit", verbs.setupExplainsConnectionLimit),
-			workerDatabasesAreDropped: narrated(story.tell, "worker databases are dropped", verbs.workerDatabasesAreDropped),
-			workerDatabasesExist: narrated(story.tell, "worker databases exist", verbs.workerDatabasesExist),
+			writeItem: narrated(story.tell, "an item is written in its clone", isolation.writeItem),
+			writeSharedItem: narrated(story.tell, "an item is written in the shared database", isolation.writeSharedItem),
 		};
 	},
 });

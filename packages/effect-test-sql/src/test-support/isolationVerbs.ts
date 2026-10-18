@@ -1,62 +1,47 @@
-import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
+import { Effect } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { expect } from "vitest";
+import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
+import { PostgresTestDatabase } from "#database.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
-import { values } from "./postgres.ts";
+import { secondClient, values } from "./postgres.ts";
+
+function writeItem(value: string) {
+	return Effect.flatMap(SqlClient.SqlClient, (sql) => sql`update items set value = ${value}`);
+}
 
 export function isolationVerbs(engine: DatabaseEngine) {
 	return {
-		clonesCleanUpEveryExit: () =>
-			engine.run(
-				Effect.gen(function* () {
-					const names: string[] = [];
-					const entered = yield* Deferred.make<void>();
-					function record() {
-						return Effect.gen(function* () {
-							const sql = yield* SqlClient.SqlClient;
-							const [row] = yield* sql<{ name: string }>`select current_database() as name`;
-							names.push(row?.name ?? "");
-							yield* sql`update items set value = 'committed'`;
-						});
-					}
-					expect(yield* withIsolatedDatabase(Effect.andThen(record(), Effect.fail("rejected"))).pipe(Effect.flip)).toBe("rejected");
-					const defect = yield* withIsolatedDatabase(Effect.andThen(record(), Effect.die("assertion"))).pipe(Effect.exit);
-					expect(Exit.isFailure(defect) && Cause.hasDies(defect.cause)).toBe(true);
-					const fiber = yield* withIsolatedDatabase(
-						Effect.gen(function* () {
-							yield* record();
-							yield* Deferred.succeed(entered, undefined);
-							yield* Effect.never;
-						}),
-					).pipe(Effect.forkScoped);
-					yield* Deferred.await(entered);
-					yield* Fiber.interrupt(fiber);
-					yield* engine.close();
-					expect(yield* engine.admin`select datname from pg_database where ${engine.admin.in("datname", names)}`).toEqual([]);
-				}).pipe(Effect.timeout("5 seconds")),
-			),
-		clonesCommitAndDrop: () =>
-			engine.run(
-				Effect.gen(function* () {
-					expect(new Set(engine.cloneNames).size).toBe(2);
-					expect(yield* values).toEqual([{ value: "shared" }]);
-					expect(engine.fixture.counts).toEqual({ fixtures: 1, migrations: 1 });
-					yield* engine.close();
-					expect(yield* engine.admin`select datname from pg_database where ${engine.admin.in("datname", engine.cloneNames)}`).toEqual([]);
-				}),
-			),
-		workerDatabasesAreDropped: () =>
+		closeWorker: () => engine.close(),
+		commitItem: (value: string) => transact(Effect.andThen(writeItem(value), invalidateOnCommit(["items"])), { onSqlError: (error) => error }),
+		inClone: <A, E, R>(effect: Effect.Effect<A, E, R>) => engine.run(withIsolatedDatabase(effect)),
+		openCloneClient: () => Effect.flatMap(PostgresTestDatabase, (database) => secondClient(database.url)),
+		readCurrentDatabaseName: () =>
 			Effect.gen(function* () {
-				const names = [engine.template, yield* engine.sharedName];
-				yield* engine.close();
-				expect(yield* engine.admin`select datname from pg_database where ${engine.admin.in("datname", names)}`).toEqual([]);
+				const sql = yield* SqlClient.SqlClient;
+				const [row] = yield* sql<{ name: string }>`select current_database() as name`;
+				if (row === undefined) {
+					return yield* Effect.die("PostgreSQL did not return the current database name.");
+				}
+				return row.name;
 			}),
-		workerDatabasesExist: () =>
+		readDatabases: (names: readonly string[]) =>
+			engine.admin<{ datname: string }>`select datname from pg_database where ${engine.admin.in("datname", names)}`,
+		readItems: () => values,
+		readItemsFrom: (client: SqlClient.SqlClient) => client<{ value: string }>`select value from items order by id`,
+		readPreparationCounts: () => Effect.sync(() => ({ ...engine.fixture.counts })),
+		readSharedItems: () => engine.run(values),
+		readWorkerDatabaseNames: () => Effect.map(engine.sharedName, (shared) => [engine.template, shared]),
+		watchItemInvalidations: () =>
 			Effect.gen(function* () {
-				const names = [engine.template, yield* engine.sharedName];
-				expect(names.every(Boolean)).toBe(true);
-				expect(yield* engine.admin`select datname from pg_database where ${engine.admin.in("datname", names)}`).toHaveLength(2);
+				const reactivity = yield* Reactivity.Reactivity;
+				const events: number[] = [];
+				const unregister = reactivity.registerUnsafe(["items"], () => events.push(1));
+				yield* Effect.addFinalizer(() => Effect.sync(unregister));
+				return () => [...events];
 			}),
+		writeItem,
+		writeSharedItem: (value: string) => engine.run(writeItem(value)),
 	};
 }
