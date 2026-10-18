@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FleetWork, NowLane } from "#browser/views/now.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
-import { Button } from "#client/react/components/ui/Button.tsx";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { WorkCardList } from "#client/react/WorkCardList.tsx";
 
 export function WorkLane({
@@ -30,6 +30,7 @@ export function WorkLane({
 						className="h-auto min-h-8 shrink whitespace-normal text-left"
 						onClick={() => setOpen(!open)}
 						size="sm"
+						type="button"
 						variant="outline"
 					>
 						{lane}
