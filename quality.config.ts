@@ -16,7 +16,7 @@ export default defineConfig({
 		{
 			"files": ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/server/testing/AnyTestLayer.ts"],
 			"reason":
-				"The bound every test Layer must satisfy. Layer's output slot is contravariant, so the only non-any bound is never, and a never bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any is the only bound that neither rejects nor rewrites the caller's Layer. effect-test's bound adds a never-output member so it also takes a Layer that provides nothing, such as Layer.empty.",
+				"effect-test declares the shared test Layer bound; effect-trpc preserves the same type at its public compatibility path. Layer's output slot is contravariant, so a never-only bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any preserves service inference, and the never-output member accepts Layers that provide nothing, such as Layer.empty.",
 			"rules": ["biome/lint/suspicious/noExplicitAny"],
 		},
 		{
