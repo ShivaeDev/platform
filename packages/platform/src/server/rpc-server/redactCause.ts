@@ -32,9 +32,20 @@ export function redactCause<E>(cause: Cause.Cause<E>, sensitive: SensitiveKey = 
 		),
 	);
 }
+export function redactDiagnosticCause(cause: Cause.Cause<unknown>, sensitive: SensitiveKey = isSensitiveKey): Cause.Cause<unknown> {
+	return Cause.fromReasons(
+		cause.reasons.flatMap((reason) => {
+			const redacted = Cause.isFailReason(reason)
+				? Cause.fail(redactDefect(reason.error, sensitive))
+				: redactCause(Cause.fromReasons([reason]), sensitive);
+			const annotations = new Map([...reason.annotations].map(([key, value]) => [key, sensitive(key) ? "<redacted>" : redact(value, sensitive)]));
+			return Cause.annotate(redacted, Context.makeUnsafe(annotations), { overwrite: true }).reasons;
+		}),
+	);
+}
 export function redactingErrorReporter(reporter: ErrorReporter.ErrorReporter, sensitive: SensitiveKey = isSensitiveKey): ErrorReporter.ErrorReporter {
 	return {
 		[ErrorReporter.TypeId]: ErrorReporter.TypeId,
-		report: (options) => reporter.report({ ...options, cause: redactCause(options.cause, sensitive) }),
+		report: (options) => reporter.report({ ...options, cause: redactDiagnosticCause(options.cause, sensitive) }),
 	};
 }
