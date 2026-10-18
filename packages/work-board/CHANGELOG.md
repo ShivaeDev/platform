@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.17.1 - 2026-10-18
+
+### Changed
+
+- Answer cards lead with what happened and the recommendation, show each option as a selectable card with what it does, and confirm the recorded choice by name.
+- The Today answer popover shows the reason, the question and each option's effect before you choose.
+- Recorded responses show who chose which option and their note, with the full Markdown behind a toggle.
+- Today keeps `status: deferred` items out of Needs you and lists the ones that would otherwise need you in a collapsed Later section with their count and next action. The attention projection exposes them as `later`; deferred stays an open status everywhere else.
+
+### Fixed
+
+- Answer options written as `**Label** — description` show that label on the option card, in the Today popover and in recorded responses, instead of a name made from the option id.
+- A managed decision leaves Today once every receipt for its question is valid, so an applied receipt followed by a superseded one no longer keeps an answered decision under Needs you. When only some of several receipts are valid, Today shows the request with a problem naming the receipt files instead of offering an answer.
+
 ## 0.17.0 - 2026-10-18
 
 ### Changed
