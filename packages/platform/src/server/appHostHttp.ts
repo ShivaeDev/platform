@@ -14,6 +14,7 @@ import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
 import { TrustedProxy } from "#rpc-server/trustedProxy.ts";
 import { healthRoute } from "#server/healthRoute.ts";
+import { tracedGroup } from "#server/tracedGroup.ts";
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
 	THandlers,
@@ -46,7 +47,7 @@ export function appHostHttp<
 			const routes = HttpRouter.use((router) =>
 				Effect.gen(function* () {
 					const wire = yield* RpcSerialization.RpcSerialization;
-					const handler = yield* RpcServer.toHttpEffect(options.group);
+					const handler = yield* RpcServer.toHttpEffect(tracedGroup(options.group));
 					const guarded = localRpcGuard(handler, trustedProxy);
 					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) =>
 						guarded.pipe(
