@@ -19,15 +19,16 @@ export const startAdminHost = Effect.gen(function* () {
 		Effect.sync(() => new Pool({ connectionString: Redacted.value(database.url) })),
 		(value) => Effect.promise(() => value.end()),
 	);
+	const testing = testUtils();
 	const options = {
 		"baseURL": "http://localhost:3000",
 		database: pool,
 		plugins: [
 			admin(),
 			{
-				...testUtils(),
+				...testing,
 				init(authContext) {
-					const result = testUtils().init(authContext);
+					const result = testing.init(authContext);
 					return { context: result.context, ...(result.options === undefined ? {} : { options: result.options }) };
 				},
 			},

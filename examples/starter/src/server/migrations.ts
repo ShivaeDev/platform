@@ -2,7 +2,6 @@ import { getMigrations } from "better-auth/db/migration";
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import type { Pool } from "pg";
-import { authOptions } from "#server/authOptions.ts";
 
 export function migrations(database: Pool) {
 	return {
@@ -28,9 +27,14 @@ export function migrations(database: Pool) {
 				const sql = yield* SqlClient.SqlClient;
 				yield* sql`alter table notes add column version integer not null default 0`;
 			}),
-			"006_auth_admin": Effect.tryPromise(async () => {
-				const migration = await getMigrations(authOptions(database));
-				await migration.runMigrations();
+			"006_auth_admin": Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql`alter table "user"
+					add column role text,
+					add column banned boolean default false,
+					add column "banReason" text,
+					add column "banExpires" timestamptz`;
+				yield* sql`alter table "session" add column "impersonatedBy" text`;
 			}),
 		}),
 		table: "app_migrations",

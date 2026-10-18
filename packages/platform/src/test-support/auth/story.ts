@@ -1,10 +1,13 @@
-import { Config, Effect, Layer } from "effect";
+import { Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { environmentVariable } from "#test/environmentVariable.ts";
 import { startAdminHost } from "./adminHost.ts";
 import { adminVerbs } from "./adminVerbs.ts";
+
+const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 
 export const auth = storyKit({
 	around: withIsolatedDatabase,
@@ -12,12 +15,12 @@ export const auth = storyKit({
 	*create() {
 		return yield* startAdminHost;
 	},
-	layer: Layer.unwrap(
-		Effect.map(Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"), (url) =>
-			makePostgresTestLayer({ migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" }, url }),
-		),
-	),
+	layer: makePostgresTestLayer({
+		migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" },
+		url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled"),
+	}),
 	name: "auth",
+	runIf: databaseUrl !== undefined,
 	stages: ["session"],
 	verbs: adminVerbs,
 });
