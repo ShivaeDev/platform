@@ -65,7 +65,6 @@ boardStory.it(
 		expect(yield* events.next()).toEqual({ _tag: "Resync" });
 		for (const directory of ["archive.md", "images.png"]) {
 			yield* directoriesOnly.changed(directory);
-			yield* Effect.sleep("200 millis");
 			expect(yield* rpcPaths(board).pipe(Effect.timeout("1 second"))).toEqual(["/archive.md/log.md", "/images.png/plan.md"]);
 			expect((yield* rpcDocument(board, "/archive.md/log.md").pipe(Effect.timeout("1 second"))).source).toBe("# Log");
 		}
@@ -84,7 +83,16 @@ boardStory.it(
 		expect(directoriesOnly.watchStarts()).toBe(1);
 		moveDirectory("drafts", "published");
 		yield* directoriesOnly.changed("published");
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		expect(yield* events.next()).toMatchObject({
+			_tag: "Changed",
+			keys: expect.arrayContaining(
+				["drafts/log.md", "drafts/nested/plan.md", "published/log.md", "published/nested/plan.md"].map((id) => ({
+					_tag: "Item",
+					collection: "work-board/documents",
+					id,
+				})),
+			),
+		});
 		expect(yield* rpcPaths(board)).toEqual(["/published/log.md", "/published/nested/plan.md"]);
 		expect((yield* rpcDocument(board, "/published/nested/plan.md")).source).toBe("# Plan");
 		expect((yield* rpcWatcher(board)).watching).toBe(true);
@@ -92,7 +100,7 @@ boardStory.it(
 
 		editFile("published/log.md", "# After the move");
 		yield* directoriesOnly.changed("published");
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		expect(yield* changesUntil(events, "published/log.md")).toMatchObject({ _tag: "Changed" });
 		expect((yield* rpcDocument(board, "/published/log.md")).source).toBe("# After the move");
 		expect((yield* rpcWatcher(board)).watching).toBe(true);
 		expect(directoriesOnly.watchStarts()).toBe(1);
@@ -107,11 +115,11 @@ boardStory.it(
 		const events = yield* watchProject();
 		expect(yield* events.next()).toEqual({ _tag: "Resync" });
 		yield* notifications.changed("notes");
-		yield* Effect.sleep("200 millis");
 		editFile("notes/log.md", "# After the directory notification");
 		expect(yield* changesUntil(events, "notes/log.md")).toMatchObject({ _tag: "Changed" });
 		expect((yield* rpcDocument(board, "/notes/log.md")).source).toBe("# After the directory notification");
 		expect((yield* rpcWatcher(board)).watching).toBe(true);
+		expect(notifications.watchStarts()).toBe(1);
 		yield* events.close();
 	},
 );
