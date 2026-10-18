@@ -16,6 +16,8 @@ This file owns the story kit's implementation, next work and open questions. The
 - [x] Creation, traits and stage `after` hooks can return Effects directly, with services from the kit's Layer and resources released in the story's Scope, covered by [Effect hook stories](../src/server/effectHooks.spec.ts).
 - [x] Kit hooks and steps support a live clock and a per-story TestClock override. [Live-time stories](../src/server/liveTime.spec.ts) cover polling real workers with `withLive` without advancing virtual token expiry.
 
+- [x] `screenDriver` narrates DOM actions and readouts and settles on app-owned pending signals. [Screen driver stories](../src/server/screenSignals.dom.spec.ts) hold HTTP data across identical renders and submit sign-in through a fake identity provider; [React stories](../../effect-react/src/screenDriver.dom.spec.tsx) cover native pending state and controlled inputs through an `act` adapter.
+
 ## Next
 
 - [ ] Move the Work Fleet engine's hand-written story DSL onto the kit and let what it needs decide the next hook.

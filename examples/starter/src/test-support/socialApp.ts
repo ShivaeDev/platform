@@ -1,9 +1,11 @@
-import { Effect } from "effect";
+import { Effect, Exit, Scope } from "effect";
+import { act } from "react";
 import { afterAll, beforeAll } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { domFetch } from "@shivaedev/test-story/domFetch.ts";
 import { domNavigate } from "@shivaedev/test-story/domNavigate.ts";
+import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { oauthProvider } from "./oauthProvider.ts";
 import { postgres } from "./postgres.ts";
@@ -12,12 +14,14 @@ import { socialHost } from "./socialHost.ts";
 import { socialScreen } from "./socialScreen.tsx";
 
 const outbound: Record<string, string> = {};
-let provider: Awaited<ReturnType<typeof oauthProvider>>;
+let provider: Effect.Success<ReturnType<typeof oauthProvider>>;
+let providerScope: Scope.Closeable;
 beforeAll(async () => {
-	provider = await oauthProvider();
+	providerScope = await Effect.runPromise(Scope.make());
+	provider = await Effect.runPromise(oauthProvider().pipe(Effect.provideService(Scope.Scope, providerScope)));
 	Object.assign(outbound, { "api.github.com": provider.url, "github.com": provider.url });
 });
-afterAll(async () => provider.close());
+afterAll(async () => Effect.runPromise(Scope.close(providerScope, Exit.void)));
 
 export const socialApp = storyKit({
 	around: withIsolatedDatabase,
@@ -49,29 +53,47 @@ export const socialApp = storyKit({
 			story.tell("the signed-in user reads provider account IDs through native RPC");
 			return readProviderAccounts(baseUrl, fetch);
 		},
-		providerRequests: () => provider.requests,
+		providerRequests: () =>
+			provider.requests.map(({ body, headers, method, path }) => ({
+				body: body.toString(),
+				cookie: headers.cookie,
+				method,
+				path: new URL(path, provider.url).pathname,
+			})),
 		signedInPage: () =>
 			Effect.promise(async () => {
 				story.tell("Alice reads her signed-in page and cookie session");
 				return {
 					cookie: document.cookie,
-					heading: document.querySelector("h1")?.textContent,
+					heading: screenDriver({ pending: () => false, root: document.body, tell: story.tell }).text("h1"),
 					session: await (await fetch("/api/auth/get-session")).json(),
 				};
 			}),
 		signInWithGitHub: () =>
-			Effect.promise(async () => {
-				story.tell("Alice clicks Sign in with GitHub");
-				await screen.click();
-				const providerHostname = window.location.hostname;
-				const response = await domNavigate();
-				return {
-					body: await response.text(),
-					location: window.location.href,
-					providerHostname,
-					redirected: response.redirected,
-					status: response.status,
-				};
+			Effect.gen(function* () {
+				provider.narrate(story.tell);
+				const driver = screenDriver({
+					act: async (action) => {
+						await act(action);
+					},
+					pending: screen.pending,
+					root: screen.container,
+					tell: story.tell,
+				});
+				yield* driver.click("button");
+				yield* driver.settle();
+				screen.check();
+				return yield* Effect.promise(async () => {
+					const providerHostname = window.location.hostname;
+					const response = await domNavigate();
+					return {
+						body: await response.text(),
+						location: window.location.href,
+						providerHostname,
+						redirected: response.redirected,
+						status: response.status,
+					};
+				});
 			}),
 		signOut: () =>
 			Effect.promise(async () => {

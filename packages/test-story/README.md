@@ -441,37 +441,31 @@ Happy-dom's detached window records a location change without loading the next d
 
 The starter's [social application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/socialApp.ts) runs a fixture Better Auth host on real PostgreSQL, with a rendered sign-in button and a fake GitHub provider. Its `outbound` map routes both `github.com` and `api.github.com` to the fake's loopback origin. The fake's authorize endpoint returns the application's callback URL with the received state and a test code. The real callback exchanges that code and fetches the user against the fake, creates the account and session in PostgreSQL, and redirects to the signed-in page.
 
-```ts
-import { domNavigate } from "@shivaedev/test-story/domNavigate.ts";
-
-const socialApp = storyKit({
-  ...socialDefinition,
-  outbound: { "github.com": fakeUrl, "api.github.com": fakeUrl },
-  verbs: (engine, story) => ({
-    signInWithGitHub: () => Effect.promise(async () => {
-      story.tell("Alice clicks Sign in with GitHub");
-      await engine.screen.click();
-      await domNavigate();
-    }),
-    signedInPage: () => Effect.promise(async () => ({
-      heading: document.querySelector("h1")?.textContent,
-      session: await (await engine.fetch("/api/auth/get-session")).json(),
-    })),
-  }),
-});
-
-socialApp.it("a social sign-in returns with a cookie session", [], function* ({ signInWithGitHub, signedInPage }) {
-  yield* signInWithGitHub();
-  expect(yield* signedInPage()).toMatchObject({
-    heading: "Signed in as alice@social.test",
-    session: { user: { email: "alice@social.test" } },
-  });
-});
-```
-
-`socialDefinition` starts the host and renders the screen with a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. It does not copy cookies into request headers.
+The kit renders a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. Its `signInWithGitHub` verb uses `screenDriver` to click the sign-in button and settle on the screen's request state, then calls `domNavigate`. The provider uses `fakeHttpService`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. The kit does not copy cookies into request headers.
 
 `domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
+
+### Driving a screen
+
+`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root`, the story's `tell`, and a `pending()` function that reads the application's own request or atom state. `settle()` waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
+
+```ts
+import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
+
+verbs: ({ view, requests }, story) => screenDriver({
+  root: view.container,
+  pending: () => requests.pending,
+  tell: story.tell,
+})
+```
+
+`click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
+
+`text(selector?)` returns rendered text from the selected element or the whole root. `value(selector)` returns the current input or textarea value. Both narrate what they read through `tell` and leave assertions to the spec. Entry narration omits the supplied value.
+
+For React, pass `act: async (action) => { await act(action); }` using React's `act`. The adapter wraps each action and flushes renderer work before checking the pending signal, including while waiting for an asynchronous response. The [React driver stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/screenDriver.dom.spec.tsx) cover a native pending atom, a rendered response and a controlled field without React warnings. The driver itself has no renderer dependency.
+
+Settlement has a live-time limit of 3 seconds, configurable with `timeoutMs`, and fails with the current screen text and advice when that limit expires. Use the existing DOM environment and the kit's `outbound` routing to reach `fakeHttpService`; the driver does not install another transport. The [screen stories](src/server/screenSignals.dom.spec.ts) hold a real HTTP response across repeated renders and sign in by filling and submitting a form against a fake identity provider. These fixtures prove DOM interactions and loopback HTTP, not a browser or a production authentication system.
 
 ### API by module
 
@@ -481,6 +475,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | --- | --- |
 | `storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
 | `domFetch.ts` | `domFetch(baseUrl)` |
+| `screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver` |
 | `domNavigate.ts` | `domNavigate(url?)` |
 | `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
 | `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |

@@ -7,12 +7,23 @@ export async function socialScreen(baseUrl: string, fetch: typeof globalThis.fet
 	const container = document.createElement("div");
 	document.body.append(container);
 	const root = createRoot(container);
-	let pending: ReturnType<typeof client.signIn.social> | undefined;
+	let pending = false;
+	let failure: unknown;
 	await act(async () =>
 		root.render(
 			<button
 				onClick={() => {
-					pending = client.signIn.social({ "callbackURL": `${baseUrl}/signed-in`, provider: "github" });
+					pending = true;
+					void client.signIn.social({ "callbackURL": `${baseUrl}/signed-in`, provider: "github" }).then(
+						(result) => {
+							failure = result.error ?? undefined;
+							pending = false;
+						},
+						(error: unknown) => {
+							failure = error;
+							pending = false;
+						},
+					);
 				}}
 				type="button"
 			>
@@ -21,18 +32,16 @@ export async function socialScreen(baseUrl: string, fetch: typeof globalThis.fet
 		),
 	);
 	return {
-		async click() {
-			await act(async () => {
-				container.querySelector("button")?.click();
-				const result = await pending;
-				if (result?.error !== null) {
-					throw new Error(`Social sign-in failed: ${JSON.stringify(result)}`);
-				}
-			});
+		check() {
+			if (failure !== undefined) {
+				throw new Error(`Social sign-in failed: ${JSON.stringify(failure)}`);
+			}
 		},
 		async close() {
 			await act(async () => root.unmount());
 			container.remove();
 		},
+		container,
+		pending: () => pending,
 	};
 }
