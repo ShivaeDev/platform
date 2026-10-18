@@ -1,0 +1,141 @@
+import { Effect, Effectable, type Stream } from "effect";
+import type { PrismaError } from "#error.ts";
+import type { Relation } from "#relation.ts";
+import { hasMethod } from "./dynamic.ts";
+import { evaluateResult } from "./evaluateResult.ts";
+import { executeQuery } from "./executeQuery.ts";
+import type { AnyPostgresContract, DatabaseExecutor } from "./executor.ts";
+import { makeRelationStream } from "./makeRelationStream.ts";
+import { appendOperation, type RelationRecipe, replayRecipe, rootRecipe } from "./recipe.ts";
+import { setRelationPlan } from "./relationPlan.ts";
+
+interface RelationRuntime<TModels extends object, TContract extends AnyPostgresContract> {
+	readonly executor: DatabaseExecutor<TModels, TContract>;
+	readonly recipe: RelationRecipe;
+	readonly resolveExecutor: Effect.Effect<DatabaseExecutor<TModels, TContract>, PrismaError>;
+	readonly terminal?: PropertyKey;
+}
+
+interface RelationValue extends Effect.Effect<unknown, PrismaError> {
+	readonly stream: Stream.Stream<unknown, PrismaError>;
+}
+
+type AnyRelationRuntime = RelationRuntime<object, AnyPostgresContract>;
+
+const runtimes = new WeakMap<object, AnyRelationRuntime>();
+
+function runtimeOf(self: object): AnyRelationRuntime {
+	const runtime = runtimes.get(self);
+	if (runtime === undefined) {
+		throw new TypeError("Relation runtime is unavailable");
+	}
+	return runtime;
+}
+
+function relationEffect(self: object): Effect.Effect<unknown, PrismaError> {
+	const runtime = runtimeOf(self);
+	return Effect.flatMap(runtime.resolveExecutor, (executor) =>
+		executeQuery(
+			executor,
+			Effect.suspend(() =>
+				evaluateResult(replayRecipe(executor.models, runtime.recipe, executor.identity, executor.transactionIdentity), runtime.terminal),
+			),
+		),
+	).pipe(
+		Effect.withSpan(`prisma.${runtime.recipe.model}.${String(runtime.terminal ?? "all")}`, {
+			attributes: {
+				"db.model": runtime.recipe.model,
+				"db.operation": String(runtime.terminal ?? "all"),
+				"db.system": "postgresql",
+			},
+			kind: "client",
+		}),
+	);
+}
+
+const RelationPrototype = {
+	...Effectable.Prototype<RelationValue>({
+		evaluate(this: RelationValue) {
+			return relationEffect(this);
+		},
+		label: "EffectPrismaRelation",
+	}),
+	get stream(): Stream.Stream<unknown, PrismaError> {
+		const runtime = runtimeOf(this);
+		return makeRelationStream(runtime.resolveExecutor, runtime.recipe);
+	},
+};
+
+function makeRelationProxy(runtime: AnyRelationRuntime): object {
+	const target: object = Object.create(RelationPrototype);
+	const proxy = new Proxy(target, {
+		get(self, property, receiver) {
+			if (property === "then") {
+				return undefined;
+			}
+			if (Reflect.has(self, property)) {
+				return Reflect.get(self, property, receiver);
+			}
+			if (property === "exists") {
+				return () =>
+					makeRelationProxy({
+						...runtime,
+						terminal: "exists",
+					});
+			}
+			if (property === "count") {
+				return () =>
+					makeRelationProxy({
+						...runtime,
+						terminal: "count",
+					});
+			}
+			// Effect reads protocol keys such as its Exit identifier from every yielded value, so only the collection's own methods become Relation calls.
+			if (!hasMethod(Reflect.get(runtime.executor.models, runtime.recipe.model), property)) {
+				return undefined;
+			}
+			return (...arguments_: readonly unknown[]) =>
+				makeRelationProxy({
+					...runtime,
+					recipe: appendOperation(runtime.recipe, property, arguments_),
+					terminal: property,
+				});
+		},
+	});
+	const plan = {
+		liveness: runtime.executor.liveness,
+		owner: runtime.executor.identity,
+		recipe: runtime.recipe,
+		...(runtime.terminal === undefined ? {} : { terminal: runtime.terminal }),
+		transactionIdentity: runtime.executor.transactionIdentity,
+	};
+	for (const value of [target, proxy]) {
+		runtimes.set(value, runtime);
+		setRelationPlan(value, plan);
+	}
+	return proxy;
+}
+
+// The proxy replays every Relation call onto the Prisma collection for `model`, so it has that collection's Relation surface.
+function asRelation<TCollection, TModel extends string>(proxy: object): Relation<TCollection, undefined, TModel>;
+function asRelation(proxy: object): unknown {
+	return proxy;
+}
+
+export const makeModelRelation = <
+	TCollection,
+	TModels extends object,
+	TExecutorContract extends AnyPostgresContract = AnyPostgresContract,
+	TModel extends string = string,
+>(
+	executor: DatabaseExecutor<TModels, TExecutorContract>,
+	model: TModel,
+	resolveExecutor: Effect.Effect<DatabaseExecutor<TModels, TExecutorContract>, PrismaError> = Effect.succeed(executor),
+): Relation<TCollection, undefined, TModel> =>
+	asRelation<TCollection, TModel>(
+		makeRelationProxy({
+			executor,
+			recipe: rootRecipe(model),
+			resolveExecutor,
+		}),
+	);

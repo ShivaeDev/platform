@@ -55,17 +55,12 @@ export const checkArchiveRegressions = Effect.fn("Packed.checkArchiveRegressions
 		`${pkg.manifest.name}: executable needs ${SHARED_PEER} as an exact peer`,
 	);
 	yield* checkMutation(pkg, "missing ./dist/error.js", removing("dist/error.js"), "whose target ./dist/error.js is not packed");
+	yield* checkMutation(pkg, "missing ./dist/withHeavyLock.js", removing("dist/withHeavyLock.js"), "missing manifest target ./dist/withHeavyLock.js");
 	yield* checkMutation(
 		pkg,
-		"missing ./dist/with-heavy-lock.js",
-		removing("dist/with-heavy-lock.js"),
-		"missing manifest target ./dist/with-heavy-lock.js",
-	);
-	yield* checkMutation(
-		pkg,
-		"packed dist/lock-file.test.js",
-		writing("dist/lock-file.test.js", "export {};\n"),
-		"packed test file package/dist/lock-file.test.js",
+		"packed dist/lockFile.test.js",
+		writing("dist/lockFile.test.js", "export {};\n"),
+		"packed test file package/dist/lockFile.test.js",
 	);
 	yield* checkMutation(
 		pkg,

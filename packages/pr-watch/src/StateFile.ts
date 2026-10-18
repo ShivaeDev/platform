@@ -1,7 +1,7 @@
 import { dirname } from "node:path";
 import process from "node:process";
 import { Effect, FileSystem, Schema } from "effect";
-import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { State, WatchError } from "./model.ts";
 
 function failure(cause: unknown) {

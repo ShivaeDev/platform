@@ -4,7 +4,7 @@ import { encodeBaseline } from "#baseline/format.ts";
 import { convertLegacy, decodeLegacyBaseline, LEGACY_BASELINE } from "#baseline/legacy.ts";
 import { loadConfig } from "#config/load.ts";
 import { validOrFail } from "#decoded.ts";
-import { readInput } from "#engine/baseline-file.ts";
+import { readInput } from "#engine/baselineFile.ts";
 import { scan } from "#engine/session.ts";
 import { SetupFailure } from "#failure.ts";
 import { writeText } from "#inventory/filesystem.ts";

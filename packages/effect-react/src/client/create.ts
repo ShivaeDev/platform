@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { useCallback, useState } from "react";
 import { type BrowserDraftConfig, usePersistedDraft } from "@shivaedev/effect-form/client/react.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form/shape.ts";
-import type { AtomServices, FieldRejectionMapping } from "#field-rejection.ts";
+import type { AtomServices, FieldRejectionMapping } from "#fieldRejection.ts";
 import { submission } from "#submission.ts";
 import { type SaveState, useSaveState } from "./saveState.ts";
 export type CreateConfig<TFields extends Fields, TCreated, TSaveError, R, TRuntimeError> = {

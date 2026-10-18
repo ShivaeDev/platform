@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { make } from "@shivaedev/effect-form/form.ts";
 import type { PersistedDraftConfig } from "@shivaedev/effect-form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form/shape.ts";
-import { type AtomServices, type RejectField, rejecting } from "./field-rejection.ts";
+import { type AtomServices, type RejectField, rejecting } from "./fieldRejection.ts";
 
 export interface SubmissionConfig<F extends Fields, A, E, R, ER> {
 	readonly fields: Schema.Struct<F>;

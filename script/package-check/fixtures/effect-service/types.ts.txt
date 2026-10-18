@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect"
-import { defineService } from "@shivaedev/effect-service/define-service.ts"
+import { defineService } from "@shivaedev/effect-service/defineService.ts"
 
 class Prefix extends Context.Service<Prefix, string>()("@consumer/Prefix") {}
 const Greetings = defineService({

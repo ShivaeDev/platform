@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { releaseOnly } from "#engine/releaseOnly.ts";
+import { releaseOnly } from "#engine/decisionCopy.ts";
 import { Fleet } from "#fleet.ts";
 import { backlog, executing, type FleetRecord } from "#model.ts";
 import { exhaustReadRetries } from "#test/exhaustReadRetries.ts";
@@ -44,7 +44,7 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 		expect(document).toContain(':::option{id="release"}');
 		expect(document.includes(':::option{id="retry"}')).toBe(explanation === undefined);
 	} else {
-		expect(document).toContain("guided release answer");
+		expect(document).not.toContain(':::option{id="retry"}');
 	}
 	const restored = yield* context.fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.get("one"))));
 	expect(restored.value.decision).toEqual(decision);
@@ -86,7 +86,9 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 		expect(backlog(recovered.value)).toBe(false);
 		expect((yield* fleet.list()).map(({ value }) => value.stage)).toEqual(["released"]);
 		if (stopped.result?.kind === "change") {
-			expect(yield* context.fixture.foreignReservations()).toContainEqual(expect.objectContaining({ owner: stopped.result.pr }));
+			const owner = stopped.result.pr;
+			const reservations = yield* context.fixture.foreignReservations();
+			expect(reservations.some((reservation) => reservation.owner === owner)).toBe(decision.code !== "pr-closed");
 		}
 	} else {
 		assertRetryProgress(stopped, recovered.value);

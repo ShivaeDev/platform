@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Exit, Schema, Scope } from "effect";
 import { fakeHttpService } from "#fakeHttpService.ts";
 import { storyKit } from "#storyKit.ts";
 
@@ -16,23 +16,26 @@ function fakeHttpKit(guarded: boolean, acquisitionTell = false) {
 	return storyKit({
 		clock: "live",
 		*create() {
+			const scope = yield* Scope.fork(yield* Scope.Scope);
 			let tell: ((line: string) => void) | undefined;
 			const service = yield* fakeHttpService({
 				...(guarded ? { guard: ({ headers }) => headers.authorization === "Bearer story-key" } : {}),
 				routes,
 				tell: (line) => tell?.(line),
-			});
+			}).pipe(Effect.provideService(Scope.Scope, scope));
 			return {
 				connectNarration: (sink: (line: string) => void) => {
 					tell = sink;
 				},
+				headers: new Headers(),
+				scope,
 				service,
 			};
 		},
 		inspect: ({ service }) => service.requests,
 		name: acquisitionTell ? "HTTP acquisition narration" : name,
 		stages: ["ready"],
-		verbs: ({ connectNarration, service }, story) => {
+		verbs: ({ connectNarration, headers, scope, service }, story) => {
 			if (acquisitionTell) {
 				connectNarration(story.tell);
 			} else {
@@ -40,20 +43,21 @@ function fakeHttpKit(guarded: boolean, acquisitionTell = false) {
 			}
 			function request(path: string, init: RequestInit = {}) {
 				return Effect.tryPromise(async (signal) => {
-					const response = await fetch(`${service.url}${path}`, { headers: { authorization: "Bearer story-key" }, ...init, signal });
+					const response = await fetch(`${service.url}${path}`, { headers, ...init, signal });
 					const text = await response.text();
 					const body: unknown = text ? JSON.parse(text) : undefined;
 					return { body, headers: Object.fromEntries(response.headers), status: response.status };
 				});
 			}
 			return {
-				closedUrl: () => Effect.scoped(Effect.map(fakeHttpService({ routes }), ({ url }) => url)),
+				close: () => Scope.close(scope, Exit.void),
 				failOnce: service.failOnce,
 				hold: service.hold,
 				readPage: (page: number) =>
 					request(page === 1 ? "/items" : `/items?page=${page}`).pipe(Effect.flatMap(({ body }) => Schema.decodeUnknownEffect(HttpPage)(body))),
 				request,
 				requests: () => service.requests.map(({ method, path, body }) => ({ body: body.toString(), method, path })),
+				url: () => service.url,
 			};
 		},
 	});
@@ -62,3 +66,9 @@ function fakeHttpKit(guarded: boolean, acquisitionTell = false) {
 export const fakeHttpApp = fakeHttpKit(true);
 export const publicHttpApp = fakeHttpKit(false);
 export const acquisitionHttpApp = fakeHttpKit(false, true);
+
+export function hasCredential(credential: string) {
+	return fakeHttpApp.trait("ready", "the caller has an API credential", (engine) => {
+		engine.headers.set("authorization", credential);
+	});
+}

@@ -5,7 +5,7 @@ import process from "node:process";
 import { ConfigProvider, Effect, FileSystem, Option } from "effect";
 import type { HeavyLockOptions } from "#acquire.ts";
 import { encodeHolder, type Holder } from "#holder.ts";
-import { readHolder, reclaim, release, tryAcquire } from "#lock-file.ts";
+import { readHolder, reclaim, release, tryAcquire } from "#lockFile.ts";
 import { startTime } from "./startTime.ts";
 
 export const createLock = Effect.gen(function* () {

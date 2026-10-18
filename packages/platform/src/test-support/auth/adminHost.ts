@@ -1,0 +1,64 @@
+import { type BetterAuthOptions, betterAuth } from "better-auth";
+import { getMigrations } from "better-auth/db/migration";
+import { admin, testUtils } from "better-auth/plugins";
+import { Effect, Layer, Redacted } from "effect";
+import { HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { Migrator } from "effect/sql";
+import { Pool } from "pg";
+import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
+import { appHost } from "#server/appHost.ts";
+import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
+import { authenticatedUserLayer } from "#server/rpc-server/session.ts";
+import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
+
+export const startAdminHost = Effect.gen(function* () {
+	const database = yield* PostgresTestDatabase;
+	const pool = yield* Effect.acquireRelease(
+		Effect.sync(() => new Pool({ connectionString: Redacted.value(database.url) })),
+		(value) => Effect.promise(() => value.end()),
+	);
+	const testing = testUtils();
+	const options = {
+		"baseURL": "http://localhost:3000",
+		database: pool,
+		plugins: [
+			admin(),
+			{
+				...testing,
+				init(authContext) {
+					const result = testing.init(authContext);
+					return { context: result.context, ...(result.options === undefined ? {} : { options: result.options }) };
+				},
+			},
+		],
+		secret: "integration-only-secret-with-at-least-32-characters",
+		session: { cookieCache: { enabled: false } },
+	} satisfies BetterAuthOptions;
+	yield* migratePostgres({
+		loader: Migrator.fromRecord({
+			"001_auth": Effect.tryPromise(async () => (await getMigrations(options)).runMigrations()),
+		}),
+		lockTimeout: "5 seconds",
+		table: "auth_migrations",
+	});
+	const auth = betterAuth(options);
+	const sessions = { origin: () => true, provider: betterAuthSessions((headers) => auth.api.getSession({ headers })) };
+	const context = yield* Layer.build(
+		appHost({
+			config: { port: 0 },
+			group: AdminApi,
+			handlers: adminHandlers.pipe(Layer.provideMerge(authenticatedUserLayer(sessions))),
+			routes: adminRoutes(sessions),
+			sessions,
+		}),
+	);
+	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
+	if (!NetAddress.isInetAddress(server.address)) {
+		return yield* Effect.die("Expected a TCP server");
+	}
+	return { auth, baseUrl: `http://127.0.0.1:${server.address.port}`, headers: new Headers(), userId: "" };
+});
+
+export type AdminHost = Effect.Success<typeof startAdminHost>;
