@@ -2,7 +2,7 @@ import { Cause, Deferred, Effect, Exit, Fiber, Logger, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { integration, onSqlError, runPostgres, secondPool, setup } from "#test/postgres-transact.ts";
+import { integration, onSqlError, runPostgres, secondPool, setup } from "#test/postgresTransact.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
 function slowCommit(sql: SqlClient.SqlClient, table: string, seconds: number) {

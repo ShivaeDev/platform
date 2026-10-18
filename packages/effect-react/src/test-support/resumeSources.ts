@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import type { ResumeWindow } from "#resume-signal.ts";
+import type { ResumeWindow } from "#resumeSignal.ts";
 export function syntheticWindow() {
 	const target = new EventTarget();
 	const listeners = new Set<() => void>();

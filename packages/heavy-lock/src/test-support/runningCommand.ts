@@ -1,6 +1,6 @@
 import { type Context, Deferred, Effect } from "effect";
-import type { HeldLock } from "#held-lock.ts";
-import { withHeavyLock } from "#with-heavy-lock.ts";
+import type { HeldLock } from "#HeldLock.ts";
+import { withHeavyLock } from "#withHeavyLock.ts";
 import { configured, type Lock } from "./lock.ts";
 
 export const startCommand = Effect.fn("LockStory.startCommand")(function* (engine: Lock, parent?: Context.Context<HeldLock>) {

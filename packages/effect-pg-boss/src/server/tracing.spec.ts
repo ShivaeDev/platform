@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
 import { PgBossPayloadError } from "#error.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions, FakeClient, job } from "#test/fake-client.ts";
+import { constructorOptions, FakeClient, job } from "#test/fakeClient.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 
 it("parents scheduled Effect.fn steps to a job span and records scheduled failures", async () => {

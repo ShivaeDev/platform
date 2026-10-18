@@ -1,6 +1,6 @@
 import { Cause, Deferred, Effect, Exit, Fiber, Option, Stream } from "effect";
 import { expect } from "vitest";
-import { Database, scopedValues, uniqueEmail } from "#test/postgres-database.ts";
+import { Database, scopedValues, uniqueEmail } from "#test/postgresDatabase.ts";
 import { hasUsers, postgresStory, rollbackWrites } from "#test/postgresStory.ts";
 import { queryGroup, queryUsers } from "#test/queryUsers.ts";
 
