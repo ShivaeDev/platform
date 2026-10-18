@@ -1,10 +1,11 @@
 import { Effect, Result } from "effect";
+import { failureCode } from "#engine/failureCode.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetCycleSnapshot, FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 
 function unobserved(cycle: FleetRecord | FleetCycleSnapshot): boolean {
-	return cycle.stage === "released" && cycle.result?.kind === "change" && cycle.mergedDelivery === undefined;
+	return cycle.stage === "released" && cycle.result?.kind === "change" && cycle.mergedDelivery === undefined && cycle.sweepClosed !== true;
 }
 
 export function needsReleasedDelivery(record: FleetRecord): boolean {
@@ -21,6 +22,10 @@ export const observeReleasedDeliveries = Effect.fn("Fleet.observeReleasedDeliver
 			return cycle;
 		}
 		const delivery = yield* state.integrations.delivery(result).pipe(Effect.result);
+		if (Result.isFailure(delivery) && failureCode(delivery.failure) === "pr-closed" && (cycle.sweep?.length ?? 0) > 0) {
+			yield* state.store.releaseForeign(result.pr);
+			return { ...cycle, sweepClosed: true };
+		}
 		if (Result.isFailure(delivery) || delivery.success === undefined) {
 			return cycle;
 		}

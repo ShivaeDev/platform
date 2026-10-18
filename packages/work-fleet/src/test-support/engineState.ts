@@ -6,6 +6,13 @@ import type { EngineOptions } from "#test/EngineOptions.ts";
 import { type EngineWorld, worldDefaults } from "#test/EngineWorld.ts";
 import type { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 
+export interface SweepPullRequest {
+	checksFailed?: boolean;
+	conflicting?: boolean;
+	paths: readonly string[];
+	state: "open" | "closed" | "merged";
+}
+
 export interface EngineStory extends EngineWorld {
 	github?: Effect.Success<ReturnType<typeof mergedReviewGithub>>;
 	lastRecord?: FleetRecord;
@@ -14,6 +21,7 @@ export interface EngineStory extends EngineWorld {
 	root: string;
 	runtime?: Effect.Success<ReturnType<typeof createEngine<unknown>>> & { fleet: typeof Fleet.Service };
 	source: string;
+	sweepRequests?: Map<string, SweepPullRequest>;
 	workId: string;
 }
 

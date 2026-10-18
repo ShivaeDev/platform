@@ -35,6 +35,10 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 			state.closeDuringAssessment = () => write("one.md", text);
 			tell("a Board edit will arrive during main assessment");
 		},
+		occupyExecution: (owner: string) => {
+			tell(`reserve foreign execution for ${owner}`);
+			return running(state).fixture.occupy(owner);
+		},
 		readBoardPublication: (path: string) => {
 			files();
 			return metadataParse(readFileSync(join(state.root, path), "utf8"));
@@ -70,6 +74,10 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 		upgradeMergedDeliveries: () => {
 			tell("migrate released deliveries from the previous PostgreSQL schema");
 			return upgradeMergedDeliveries;
+		},
+		vacateExecution: (owner: string) => {
+			tell(`release foreign execution for ${owner}`);
+			return running(state).fixture.vacate(owner);
 		},
 		writeBoardWork: (path: string, text: string) => {
 			write(path, text);

@@ -68,13 +68,15 @@ function deliveryPending(record: FleetRecord): boolean {
 
 const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	state: EngineState,
-	stored: Versioned<FleetRecord>,
+	input: Versioned<FleetRecord>,
 	result: typeof ChangeResult.Type,
 ) {
+	let stored = input;
 	const record = stored.value;
 	const observed = yield* state.integrations.delivery(result).pipe(Effect.result);
 	if (Result.isFailure(observed) && failureCode(observed.failure) === "pr-closed") {
 		yield* state.store.releaseForeign(result.pr);
+		stored = yield* recordClosedSweep(state, stored);
 	}
 	if (Result.isSuccess(observed) && observed.success !== undefined && !executing(record)) {
 		return yield* settleMergedDelivery(state, stored, result, observed.success, deliveryPending(record));
@@ -109,6 +111,13 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	yield* validateChecks(record.checks, result.head);
 	return yield* awaitHumanMerge(state, stored, result.head);
 });
+
+function recordClosedSweep(state: EngineState, stored: Versioned<FleetRecord>) {
+	const record = stored.value;
+	return (record.sweep?.length ?? 0) > 0 && record.sweepClosed !== true
+		? state.save(stored, { ...record, sweepClosed: true })
+		: Effect.succeed(stored);
+}
 
 const releaseClosedDelivery = Effect.fn("Fleet.releaseClosedDelivery")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
 	if (stored.value.stage !== "needs-human" || executing(stored.value)) {

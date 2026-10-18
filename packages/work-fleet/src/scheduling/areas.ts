@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
+import { openSweep } from "#scheduling/sweeps.ts";
 import { StorageAdmission } from "#storage/errors.ts";
 import type { AdmissionLimits, ForeignReservation } from "#storage/model.ts";
 
@@ -71,6 +72,7 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	const holder = records.find(
 		(entry) =>
 			entry.workId !== record.workId
+			&& !(openSweep(entry) && previous !== undefined && previous.attempts.length > 0)
 			&& holdsAreas(entry, scheduling.now, scheduling.areaMergeWaitMs)
 			&& overlappingArea(areas, entry.areas) !== undefined,
 	);
