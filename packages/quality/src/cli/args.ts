@@ -12,6 +12,7 @@ export type Command =
 	| { readonly _tag: "BaselineMigrate"; readonly config: string | undefined; readonly from: string | undefined }
 	| { readonly _tag: "HooksInstall"; readonly config: string | undefined; readonly force: boolean }
 	| { readonly _tag: "HooksUninstall" }
+	| { readonly _tag: "HooksStatus" }
 	| { readonly _tag: "HooksPreCommit"; readonly config: string | undefined }
 	| { readonly _tag: "Help" };
 
@@ -52,6 +53,7 @@ const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	fix: [],
 	"hooks install": ["force"],
 	"hooks pre-commit": [],
+	"hooks status": [],
 	"hooks uninstall": [],
 	lint: [],
 };
@@ -85,6 +87,8 @@ function commandFor(name: string, values: Values): Parsed {
 			return parsed({ _tag: "HooksInstall", config, force: values.force === true });
 		case "hooks uninstall":
 			return parsed({ _tag: "HooksUninstall" });
+		case "hooks status":
+			return parsed({ _tag: "HooksStatus" });
 		case "hooks pre-commit":
 			return parsed({ _tag: "HooksPreCommit", config });
 		default:
