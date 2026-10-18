@@ -76,11 +76,11 @@ For a new application, follow the [framework quickstart](./docs/framework/quicks
 
 Requirements:
 
-- Node.js 26.10.0 (the development runtime; published packages retain their Node 24 minimum)
-- pnpm 12.8.1
+- Node.js at the version in [`.node-version`](./.node-version) (the development runtime; published packages retain their Node 24 minimum)
+- pnpm at the `packageManager` version in [`package.json`](./package.json)
 - Docker, or PostgreSQL client tools (`psql`) when reusing a native local service
 
-The package Node requirement is `>=24`, so deployment hosts such as Vercel can use Node 24. Local development and CI use the pinned Node 26.10.0 runtime.
+The package Node requirement is `>=24`, so deployment hosts such as Vercel can use Node 24. Local development and CI use the pinned development runtime.
 
 ```sh
 corepack enable
@@ -104,6 +104,13 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`, using 
 `pnpm db:setup` creates missing development and package-specific test databases, then initializes the integration and auth schemas in the Prisma test database without dropping tables. SQL, pg-boss and changes-prisma tests prepare their own objects in their separate databases. Local preparation and `pnpm test` validate each database name and refuse remote hosts, development databases, shared test targets or connection overrides. Existing databases and data are preserved.
 
 `pnpm test` and CI select the package variables through the shared PostgreSQL test-environment module in `script/lib`, using these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage. Prisma generation runs explicitly in the package build/typecheck/test paths.
+
+Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. Add `--project slow` for `*.slow.test.ts` files. For example, after local setup:
+
+```sh
+PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_effect_sql pnpm --filter @shivaedev/work-fleet test src/engine/approvedBrief.spec.ts
+PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_effect_sql pnpm --filter @shivaedev/effect-sql test src/postgres.spec.ts
+```
 
 CI runs each workspace test shard once with Vitest retries disabled. Pull requests and pushes have no reruns. In the merge queue, a test failure selects only the failed files from the Vitest JSON report and runs them once more in a new Vitest process, without sharding that subset. Tests that already passed are excluded by their Vitest test IDs, including passing tests in a failed file. Unhandled process errors cannot be recovered by a test rerun. The shard fails if the fresh rerun fails, and recovered tests appear as flaky in the job summary.
 
