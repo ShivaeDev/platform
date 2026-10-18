@@ -18,7 +18,7 @@ postgres.it(
 	function* ({ start, checkReadiness, stop }) {
 		expect(start).not.toThrow();
 		yield* checkReadiness();
-		yield* stop(4);
+		yield* stop(5);
 	},
 );
 
