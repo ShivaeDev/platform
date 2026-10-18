@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { declarationOrder, unionEncoding } from "#test/app-host/encodingGraph.ts";
+import { declarationOrder, flattenedEncoding, unionEncoding } from "#test/app-host/encodingGraph.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
@@ -17,6 +17,35 @@ for (const [key, value] of [
 		expect(response.body).toContain(`"${key}":"<redacted>"`);
 		expect(response.body).not.toContain(value);
 	});
+}
+
+for (const declaration of ["schema", "host"] as const) {
+	host.it(
+		`protects flattened descendants declared sensitive by the ${declaration}`,
+		[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json" } }), flattenedEncoding(declaration)],
+		function* ({ postNdjson, logs, close, exportedSpans }) {
+			const value = "private nested contact";
+			const response = yield* postNdjson(
+				`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { value }, tag: "flattened" })}\n`,
+				false,
+			);
+			expect(response.status).toBe(200);
+			expect(response.body).toContain('"_tag":"Fail"');
+			expect(response.body).toContain('"wireContact":"<redacted>"');
+			expect(response.body).toContain('"wireVisible":"<redacted>"');
+			expect(response.body).not.toContain(value);
+			const diagnostic = logs().find((entry) => Array.isArray(entry.message) && entry.message.includes("flattened diagnostic"));
+			expect(diagnostic?.annotations).toMatchObject({ visible: "public detail", wireContact: "<redacted>", wireVisible: "<redacted>" });
+			yield* close();
+			expect(exportedSpans().find((span) => span.name === "flattened")?.attributes).toEqual(
+				expect.arrayContaining([
+					{ key: "wireContact", value: { stringValue: "<redacted>" } },
+					{ key: "wireVisible", value: { stringValue: "<redacted>" } },
+					{ key: "visible", value: { stringValue: "public detail" } },
+				]),
+			);
+		},
+	);
 }
 
 for (const order of ["first", "last"] as const) {

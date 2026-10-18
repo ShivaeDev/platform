@@ -49,12 +49,18 @@ function encodedMarkers(source: SchemaAST.Objects, link: SchemaAST.Link, markers
 	}
 }
 function propagateKeys(source: SchemaAST.AST, link: SchemaAST.Link, keys: Set<string>) {
-	const properties = source._tag === "Objects" ? source.propertySignatures : propertiesOf(source);
-	const sensitive = properties.filter((property) => typeof property.name === "string" && (keys.has(property.name) || isSensitiveKey(property.name)));
+	const sensitive = propertiesOf(source).filter(
+		(property) => typeof property.name === "string" && (keys.has(property.name) || isSensitiveKey(property.name)),
+	);
 	if (sensitive.length === 0 && !marked(source)) {
 		return;
 	}
-	if (source._tag !== "Objects" || link.to._tag !== "Objects" || marked(source)) {
+	if (
+		source._tag !== "Objects"
+		|| link.to._tag !== "Objects"
+		|| marked(source)
+		|| sensitive.some((property) => !source.propertySignatures.includes(property))
+	) {
 		for (const name of propertiesOf(link.to)
 			.map((property) => property.name)
 			.filter(Predicate.isString)) {

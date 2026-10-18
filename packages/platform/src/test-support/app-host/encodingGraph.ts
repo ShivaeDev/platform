@@ -53,3 +53,27 @@ export function declarationOrder(order: "first" | "last") {
 		state.build = () => appHost({ config: state.config, group, handlers, policy: "loopback", services: Layer.empty });
 	});
 }
+
+export function flattenedEncoding(source: "schema" | "host") {
+	return host.trait("configured", `a nested ${source} declaration encodes into flat wire fields`, (state) => {
+		const Contact = source === "schema" ? Schema.String.annotate({ sensitive: true }) : Schema.String;
+		const Failure = Schema.Struct({ profile: Schema.Struct({ contact: Contact }), visible: Schema.String }).pipe(
+			Schema.encodeTo(Schema.Struct({ wireContact: Schema.String, wireVisible: Schema.String }), {
+				decode: SchemaGetter.transform(({ wireContact, wireVisible }) => ({ profile: { contact: wireContact }, visible: wireVisible })),
+				encode: SchemaGetter.transform(({ profile, visible }) => ({ wireContact: profile.contact, wireVisible: visible })),
+			}),
+		);
+		const group = RpcGroup.make(Rpc.make("flattened", { error: Failure, payload: { value: Schema.String }, success: Schema.Void }));
+		const handlers = group.toLayer({
+			flattened: ({ value }) =>
+				Effect.gen(function* () {
+					const diagnostic = { visible: "public detail", wireContact: value, wireVisible: "encoded public detail" };
+					yield* Effect.logInfo("flattened diagnostic").pipe(Effect.annotateLogs(diagnostic));
+					yield* Effect.annotateCurrentSpan(diagnostic);
+					return yield* Effect.fail({ profile: { contact: value }, visible: diagnostic.wireVisible });
+				}),
+		});
+		state.config.sensitiveKeys = source === "host" ? ["contact"] : [];
+		state.build = () => appHost({ config: state.config, group, handlers, policy: "loopback", services: Layer.empty });
+	});
+}
