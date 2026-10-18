@@ -1,12 +1,12 @@
 import { expect } from "vitest";
-import { boardStory, projectFiles, serverReading } from "#test/boardStory.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { modifiedNotes } from "#test/readingTraits.ts";
 import { fleetItemRankingFixture, identityRankingFixture, searchRankingFixture } from "#test/searchRankingFixture.ts";
 
 const fleet = fleetItemRankingFixture();
 boardStory.it(
 	"ranks all items by status, title/ID relevance and recency before every heading or passage",
-	[serverReading(), projectFiles(fleet.files), modifiedNotes(fleet.modified)],
+	[projectFiles(fleet.files), modifiedNotes(fleet.modified)],
 	function* ({ search }) {
 		const results = (yield* search("records: watch")).results;
 		expect(results.slice(0, 4).map((entry) => [entry.kind, entry.id])).toEqual([
@@ -26,7 +26,7 @@ boardStory.it(
 const ranked = searchRankingFixture();
 boardStory.it(
 	"ranks open work before closed or deferred work, then title matches and most recently changed sources",
-	[serverReading(), projectFiles(ranked.files), modifiedNotes(ranked.modified)],
+	[projectFiles(ranked.files), modifiedNotes(ranked.modified)],
 	function* ({ search }) {
 		const results = (yield* search("watch")).results;
 		const sources = [...new Set(results.map((entry) => entry.file))];
@@ -65,7 +65,7 @@ for (const { first, passageStatus, titleStatus } of [
 	const { files, modified } = identityRankingFixture(titleStatus, passageStatus);
 	boardStory.it(
 		`ranks ${titleStatus} title/ID and ${passageStatus} passage matches by status, then relevance`,
-		[serverReading(), projectFiles(files), modifiedNotes(modified)],
+		[projectFiles(files), modifiedNotes(modified)],
 		function* ({ search }) {
 			for (const query of ["inbox", "task.inbox"]) {
 				const results = (yield* search(query)).results;

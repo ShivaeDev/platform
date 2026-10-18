@@ -1,8 +1,15 @@
 import { Effect, Layer, Option } from "effect";
 import type { Headers } from "effect/http";
 import { type AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
-import { Identity, OptionalIdentity, SessionUser, type SessionUserValue } from "#rpc/identity.ts";
-import { Authenticated, AuthenticatedUser, MaybeAuthenticated } from "#rpc/middleware.ts";
+import {
+	Identity,
+	OptionalIdentity,
+	SessionUser,
+	type SessionUserValue,
+	SessionUserWithProviderAccounts,
+	type SessionUserWithProviderAccountsValue,
+} from "#rpc/identity.ts";
+import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#rpc/middleware.ts";
 import { type OriginPolicy, originRequest } from "./origin.ts";
 import { transportHeaders } from "./transportHeaders.ts";
 export interface SessionShape {
@@ -67,7 +74,7 @@ export function withSessionUser<TSession extends UserSessionShape>(policy: Sessi
 			if (Option.isNone(session)) {
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
-			const { name, email, role, providerAccounts } = session.value.user;
+			const { name, email, role } = session.value.user;
 			const id = yield* identified(session.value.user.id);
 			return yield* effect.pipe(
 				Effect.provideService(Identity, { id }),
@@ -76,9 +83,6 @@ export function withSessionUser<TSession extends UserSessionShape>(policy: Sessi
 					id,
 					name,
 					...(role === undefined ? {} : { role }),
-					...(providerAccounts === undefined
-						? {}
-						: { providerAccounts: providerAccounts.map(({ accountId, providerId }) => ({ accountId, providerId })) }),
 				}),
 				Effect.annotateLogs({ userId: id }),
 			);
@@ -86,4 +90,32 @@ export function withSessionUser<TSession extends UserSessionShape>(policy: Sessi
 }
 export function authenticatedUserLayer<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<AuthenticatedUser> {
 	return Layer.succeed(AuthenticatedUser, (effect, { headers, rpc }) => effect.pipe(withSessionUser(policy, headers, rpc._tag)));
+}
+
+export interface ProviderAccountsSessionShape extends UserSessionShape {
+	readonly user: SessionUserWithProviderAccountsValue;
+}
+export function authenticatedUserWithProviderAccountsLayer<TSession extends ProviderAccountsSessionShape>(
+	policy: SessionPolicy<TSession>,
+): Layer.Layer<AuthenticatedUserWithProviderAccounts> {
+	return Layer.succeed(AuthenticatedUserWithProviderAccounts, (effect, { headers, rpc }) =>
+		Effect.gen(function* () {
+			const session = yield* resolveSession(policy, headers, rpc._tag);
+			if (Option.isNone(session)) {
+				return yield* new Unauthorized({ message: "Authentication required" });
+			}
+			const { id, name, email, role, providerAccounts } = session.value.user;
+			const accounts = yield* Effect.cached(
+				Effect.map(providerAccounts, (values) => values.map(({ accountId, providerId }) => ({ accountId, providerId }))),
+			);
+			const user = { email, id, name, ...(role === undefined ? {} : { role }) };
+			yield* identified(id);
+			return yield* effect.pipe(
+				Effect.provideService(Identity, { id }),
+				Effect.provideService(SessionUser, user),
+				Effect.provideService(SessionUserWithProviderAccounts, { ...user, providerAccounts: accounts }),
+				Effect.annotateLogs({ userId: id }),
+			);
+		}),
+	);
 }

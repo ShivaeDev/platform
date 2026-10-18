@@ -40,7 +40,7 @@ export const socialApp = storyKit({
 	layer: postgres,
 	name: "social auth",
 	stages: ["account"],
-	verbs: ({ baseUrl, fetch, pool, provider, screen, failAccountLookup }, story) => {
+	verbs: ({ auth, baseUrl, fetch, pool, provider, screen, failAccountLookup, accountLookups, expireBeforeAccountLookup }, story) => {
 		provider.narrate(story.tell);
 		const driver = screenDriver({
 			act: async (action) => {
@@ -51,11 +51,13 @@ export const socialApp = storyKit({
 			tell: story.tell,
 		});
 		return {
+			accountLookups,
 			clickGitHubSignIn: () => driver.click("button"),
 			cookie: () => {
 				story.tell("read the document's visible cookies");
 				return document.cookie;
 			},
+			expireBeforeAccountLookup: () => Effect.sync(expireBeforeAccountLookup),
 			failAccountLookup: () => Effect.sync(failAccountLookup),
 			followRedirect: () =>
 				Effect.promise(() => {
@@ -63,10 +65,17 @@ export const socialApp = storyKit({
 					return domNavigate();
 				}),
 			heading: () => driver.text("h1"),
+			identityOnly: () => readProviderAccounts(baseUrl, fetch, "identityOnly"),
 			location: () => {
 				story.tell(`read the page location: ${window.location.href}`);
 				return window.location.href;
 			},
+			mintSession: (email: string) =>
+				Effect.gen(function* () {
+					story.tell(`the browser starts with a minted session for ${email}`);
+					const { cookies } = yield* Effect.promise(() => signedInUser(auth, { email, name: email }));
+					yield* seedCookies(cookies);
+				}),
 			providerAccounts: () => {
 				story.tell("the signed-in user reads provider account IDs through native RPC");
 				return readProviderAccounts(baseUrl, fetch);

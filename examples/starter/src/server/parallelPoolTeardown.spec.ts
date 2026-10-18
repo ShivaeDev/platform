@@ -15,6 +15,11 @@ parallelApps.it(
 			.filter((item) => item.type === "worker")
 			.map((item) => item.message);
 		expect(new Set(workers).size).toBe(4);
+		const databases = tests
+			.flatMap((test) => test.annotations())
+			.filter((item) => item.type === "database")
+			.map((item) => item.message);
+		expect(new Set(databases).size).toBe(4);
 		for (const test of tests) {
 			expect(test.result().errors ?? []).toEqual([]);
 			expect(test.result().state).toBe("passed");

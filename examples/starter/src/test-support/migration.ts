@@ -4,7 +4,7 @@ import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { migrationUpgrade } from "@shivaedev/effect-test-sql/migrationUpgrade.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { authDatabase } from "@shivaedev/platform/better-auth.ts";
+import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { migrations } from "#server/migrations.ts";

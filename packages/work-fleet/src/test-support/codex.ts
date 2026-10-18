@@ -11,8 +11,8 @@ const Params = Schema.Struct({ cursor: Schema.optional(Schema.NullOr(Schema.Stri
 export function requestCursor(request: WireRequest) {
 	return Schema.decodeUnknownSync(Params)(request.params).cursor;
 }
-export function codexConfiguration(endpoint: string) {
-	return codexLocalLayer.pipe(Layer.provide(Layer.succeed(CodexLocalConfig)({ endpoint, requestTimeoutMs: 1000 })));
+export function codexConfiguration(endpoint: string, requestTimeoutMs = 1000) {
+	return codexLocalLayer.pipe(Layer.provide(Layer.succeed(CodexLocalConfig)({ endpoint, requestTimeoutMs })));
 }
 
 function frame(value: unknown) {

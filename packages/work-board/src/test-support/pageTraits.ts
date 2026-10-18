@@ -4,10 +4,14 @@ import { REVIEW_TASK, reviewResult } from "./resultReview.ts";
 import { sidebarWorkspace } from "./sidebarFixture.ts";
 
 export function navigationWorkspace() {
-	return boardStory.traits(projectFiles({ ...FILES, "items/result.md": reviewResult(), "items/task.md": REVIEW_TASK }), boardHome("board.md"));
+	return boardStory.traits(
+		projectFiles({ ...FILES, "items/result.md": reviewResult(), "items/task.md": REVIEW_TASK }),
+		boardHome("board.md"),
+		readerAt("/"),
+	);
 }
 export function samplePages() {
-	return boardStory.traits(projectFiles(FILES), boardHome("board.md"));
+	return boardStory.traits(projectFiles(FILES), boardHome("board.md"), readerAt("/"));
 }
 export function searchablePage() {
 	return boardStory.traits(
@@ -16,5 +20,5 @@ export function searchablePage() {
 	);
 }
 export function sidebarPages() {
-	return boardStory.traits(projectFiles(sidebarWorkspace()), boardHome("board.md"));
+	return boardStory.traits(projectFiles(sidebarWorkspace()), boardHome("board.md"), readerAt("/"));
 }

@@ -131,7 +131,7 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 | `name` | What the engine is called in failures, "the bakery", and the kit's genre, "Bakery Story". |
 | `outbound` | Optional. A map of exact hostnames to fake server origins for Node fetch and the DOM environment's document requests. |
 | `around(effect)` | Optional. Wraps creation, staged seeding and the body; worker Layer acquisition remains outside it. It may require the worker services and per-test Scope. |
-| `clock` | Optional. `"test"` by default, or `"live"` for HTTP and DOM stories. A story’s `options.clock` takes precedence. |
+| `clock` | Optional. `"test"` by default, `"live"` for real time, or a UTC `DateTime` to start TestClock at that instant. A story’s `options.clock` takes precedence. |
 | `create()` | A fresh engine. Every story starts from a new one. |
 | `layer` | Optional. The worker Effect layer that provides the services hooks, traits and test bodies use. Per-test Scope is already available to creation, staged and run hooks, traits and bodies. A hook that needs a service the layer does not provide does not compile, and neither does a test whose traits or body need one. |
 | `stages` | The order traits are applied in. A trait names its stage, and one that names a stage the kit does not declare does not compile. |
@@ -378,6 +378,29 @@ bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, o
 `kit.it(name, traits, body, options)` declares one Vitest test, named after the kit's genre: `Bakery Story: tells each step into the story`. It starts a fresh engine, seeds the traits stage by stage and runs the body with the kit's verbs and the `story`: its `engine`, `lines`, `tell(line)` and `runUntil`. The body's second argument is Vitest's test context. A body that yields Effects, such as a verb that runs the engine, is a generator, and one that yields nothing is a plain function. A test that only checks that its traits refuse may leave the body out. `options` is a timeout in milliseconds or Vitest's test options, whose own `tags` join the genre tag when the config declares it. `it.fails`, `it.only`, `it.skip`, `it.runIf(condition)` and `it.skipIf(condition)` work as they do in Vitest.
 
 A spec starts a story, acts through verbs and checks what a user would see. When it needs a setup or an action the kit lacks, add a trait or verb to the kit instead of building it in the spec.
+
+### Pinning time
+
+Pass a UTC `DateTime` as the story's `clock` option to pin time before its wrapper, creation, traits and hooks run. Code that uses `Clock` or `DateTime.now` reads that instant. Advance it explicitly with native `TestClock.adjust`:
+
+```ts
+import { DateTime } from "effect";
+import * as TestClock from "effect/testing/TestClock";
+
+app.it("shows the worker's date", [], function* ({ click, settle, text }) {
+  yield* click("button");
+  yield* settle();
+  expect(text("#worker")).toBe("Worker: since Oct 17");
+  yield* TestClock.adjust("1 day");
+  yield* click("button");
+  yield* settle();
+  expect(text("#worker")).toBe("Worker: since Oct 18");
+}, { clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z") });
+```
+
+Acquire hosts, workers and screens in per-story Scope so they inherit the story's Clock. An independent runtime or native HTTP handler must capture the Effect Context at acquisition, as with `HttpEffect.toWebHandlerWith(context)` or `Effect.runPromiseWith(context)`. Worker-scoped kit `layer` acquisition stays outside the per-story clock; shared services acquired there do not acquire a new clock for each story. Direct JavaScript wall-time reads are not replaced. Formatting stays with the application, including its locale and time zone.
+
+The [clock application stories](src/server/fixedClock.dom.spec.ts) run loopback HTTP, a queued worker that writes a timestamp to a file, and a DOM screen with its own Effect runner. They check exact timestamps and rendered dates, advancing time, and a live story without the option. A live-clock kit still runs on real time when a story omits the override.
 
 ### Running the engine
 

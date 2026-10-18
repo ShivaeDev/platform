@@ -2,6 +2,7 @@ import { Context, Effect, Exit, Layer, Logger, References, Scope } from "effect"
 import type { Job, JobInsert } from "pg-boss";
 import { type ConstructorOptions, PgBoss } from "pg-boss";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition } from "#definition.ts";
+import { expireAttempt } from "#internal/expireAttempt.ts";
 import { makePgBoss, type PgBossLayerOptions } from "#service.ts";
 import type { clientEngine } from "#test/clientEngine.ts";
 import { dispatch } from "#test/dispatch.ts";
@@ -54,6 +55,8 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 		client: state.client,
 		dispatch: (name: string, jobs: readonly Job<unknown>[]) => dispatch(state.client, name, jobs),
 		events: state.events,
+		expireClaim: (client: PgBoss, job: Job<unknown>, cause: "expiry" | "heartbeat") =>
+			Effect.promise(() => expireAttempt(client, constructorOptions.schema ?? "pgboss", job, cause)),
 		layer,
 		logs: state.logs,
 		native,

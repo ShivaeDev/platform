@@ -4,7 +4,7 @@ import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
 
 releasePullRequest.it(
-	"a main push publishes an applied release branch and a reviewable PR with CI",
+	"a main push publishes an applied release branch and a PR ready for CI approval",
 	[],
 	function* ({ pushMain, run, git, readGitHub, check }) {
 		yield* pushMain(".changeset/draft.md", PENDING);
@@ -22,7 +22,7 @@ releasePullRequest.it(
 		expect(received.body).toContain("| @shivaedev/platform | 0.15.0 | 0.15.1 | patch |");
 		expect(received.body).toContain("- Keep a saved draft.");
 		expect(received.body).toContain("Allow GitHub Actions to create pull requests");
-		expect(received.dispatched).toEqual([{ ref: "release/next" }]);
+		expect(received.body).toContain("press **Approve and run**, then merge when full CI is green");
 		expect(received.requests.filter((request) => request.endpoint === "graphql")).toHaveLength(1);
 	},
 );
@@ -58,7 +58,6 @@ releasePullRequest.it(
 		expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
 		const after = yield* readGitHub();
 		expect(after.body).toBe(before.body);
-		expect(after.dispatched).toEqual(before.dispatched);
 		expect(after.requests.slice(before.requests.length).map((request) => request.endpoint)).toEqual(["graphql"]);
 	},
 );
@@ -76,5 +75,4 @@ releasePullRequest.it("merging a release leaves no pending plan and closes a sta
 	expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
 	const received = yield* readGitHub();
 	expect(received.open).toBe(false);
-	expect(received.dispatched).toEqual([{ ref: "release/next" }]);
 });

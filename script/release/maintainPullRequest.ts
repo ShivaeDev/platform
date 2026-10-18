@@ -1,9 +1,10 @@
 import { execFileSync } from "node:child_process";
 import process from "node:process";
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
-import { Config, Console, Effect } from "effect";
+import { Clock, Config, Console, Effect } from "effect";
 import { applyRelease } from "@shivaedev/changesets/applyRelease.ts";
 import config from "#release-config";
+import { compareRelease } from "./compare.ts";
 import { releaseGitHub } from "./gitHub.ts";
 import { planPullRequest } from "./planPullRequest.ts";
 import { releasePrSummary } from "./prSummary.ts";
@@ -24,14 +25,38 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 		}
 		return "empty";
 	}
-	yield* applyRelease(root, config);
+	const comparison = yield* compareRelease(root, head);
+	const clock = yield* Clock.Clock;
+	// Reuse the standing release date for comparison so midnight alone cannot trigger a push.
+	yield* applyRelease(root, config).pipe(
+		Effect.provideService(Clock.Clock, {
+			currentTimeMillis: comparison === undefined ? clock.currentTimeMillis : Effect.succeed(Date.parse(comparison.date)),
+			currentTimeMillisUnsafe: () => clock.currentTimeMillisUnsafe(),
+			currentTimeNanos: clock.currentTimeNanos,
+			currentTimeNanosUnsafe: () => clock.currentTimeNanosUnsafe(),
+			monotonicTimeNanos: clock.monotonicTimeNanos,
+			monotonicTimeNanosUnsafe: () => clock.monotonicTimeNanosUnsafe(),
+			sleep: (duration) => clock.sleep(duration),
+		}),
+	);
 	git("add", "--all");
 	const { title, body } = releasePrSummary(plan);
+	if (comparison?.tree === git("write-tree")) {
+		git("reset", "--hard", head);
+		if (pull === undefined) {
+			github.save(undefined, title, body);
+		}
+		return "unchanged";
+	}
+	if (comparison !== undefined) {
+		git("reset", "--hard", "origin/main");
+		yield* planPullRequest(root);
+		yield* applyRelease(root, config);
+		git("add", "--all");
+	}
 	git("commit", "-m", title);
 	git("push", `--force-with-lease=refs/heads/release/next:${head}`, "origin", "HEAD:refs/heads/release/next");
 	github.save(pull?.number, title, body);
-	// GITHUB_TOKEN pushes and PR creation do not trigger pull_request CI.
-	github.dispatch();
 	return "updated";
 });
 
