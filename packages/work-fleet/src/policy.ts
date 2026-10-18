@@ -65,6 +65,7 @@ export type DecisionResponse = typeof DecisionResponse.Type;
 export class BoardFailure extends Schema.TaggedError<BoardFailure>()("BoardFailure", {
 	code: Schema.optional(DecisionCode),
 	message: Schema.String,
+	workId: Schema.optional(Schema.String),
 }) {}
 export class BoardGateway extends Context.Service<
 	BoardGateway,
