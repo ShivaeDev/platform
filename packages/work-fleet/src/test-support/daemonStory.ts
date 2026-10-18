@@ -78,13 +78,14 @@ export const fleetDaemon = storyKit({
 				Effect.provideService(Reactivity.Reactivity, engine.daemon.reactivity),
 			);
 		},
-		watch: (interval: number, port?: number) =>
+		watch: (interval: number, options: { readonly port?: number; readonly timeout?: number } = {}) =>
 			Effect.gen(function* () {
+				const { port } = options;
 				story.tell(`start watch --follow ${port === undefined ? "without --port" : `with --port ${port}`}`);
 				engine.follower = yield* followerProcess(engine.fixture.configFile, "watch", [], {
 					follow: true,
 					interval,
-					...(port === undefined ? {} : { port }),
+					...options,
 				});
 			}),
 	}),

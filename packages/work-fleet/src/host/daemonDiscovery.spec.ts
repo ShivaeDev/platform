@@ -21,7 +21,7 @@ fleetDaemon.it("an explicit watch port overrides a dead port file for snapshots 
 		reason: "Choose the next step",
 		recommendation: "retry",
 	});
-	yield* daemon.watch(0.05, daemon.port());
+	yield* daemon.watch(0.05, { port: daemon.port() });
 	yield* daemon.awaitSnapshot();
 	const snapshot = "one needs-human (waiting on orchestrator): Choose the next step\n";
 	yield* daemon.awaitOutput(snapshot);
@@ -53,7 +53,7 @@ fleetDaemon.it(
 		yield* daemon.awaitError(`retrying in ${interval}s\n`);
 		const line = daemon.errors().split("\n")[0];
 		expect(line).toContain(`work-fleet: ERROR No Fleet daemon is running at 127.0.0.1:${daemon.port()}`);
-		yield* daemon.awaitError(`${line}\n`.repeat(3));
+		yield* daemon.awaitError(`${line}\n`.repeat(20));
 		expect(daemon.isRunning()).toBe(true);
 		const previousPort = daemon.port();
 		yield* daemon.restart();
@@ -64,6 +64,15 @@ fleetDaemon.it(
 		expect(daemon.output()).toBe("one released\n");
 	},
 );
+
+fleetDaemon.it("an explicit watch timeout ends initial unreachable retries with exit 4", [daemonPortIsUnreachable()], function* (daemon) {
+	yield* daemon.watch(5, { timeout: 1 });
+	const result = yield* daemon.exit();
+	expect(result.code).toBe(4);
+	expect(result.stdout).toBe("");
+	expect(result.stderr).toContain(`No Fleet daemon is running at 127.0.0.1:${daemon.port()}`);
+	expect(result.stderr).toContain("watch: timed out waiting for Fleet work");
+});
 
 fleetDaemon.it("watch reports an unreadable port file without inventing a daemon endpoint", [unreadablePortFile()], function* (daemon) {
 	yield* daemon.watch(0.05);
