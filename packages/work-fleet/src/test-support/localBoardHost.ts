@@ -5,9 +5,8 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
 import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
-import { MainSource, unchanged } from "#host/mainSource.ts";
 import type { HostFixture } from "#test/fleetHost.ts";
-import { MAIN } from "#test/mainSource.ts";
+import { fixedMainSource } from "#test/mainSource.ts";
 
 export function localBoardHost(fixture: HostFixture, { ignored = true, inside = true } = {}) {
 	const root = fixture.host.boardDir;
@@ -19,12 +18,6 @@ export function localBoardHost(fixture: HostFixture, { ignored = true, inside = 
 	if (ignored) {
 		writeFileSync(join(repositoryRoot, ".gitignore"), "private/board/\n");
 	}
-	const main = MainSource.of({
-		current: Effect.succeed(MAIN),
-		observe: (preparation) => Effect.succeed(unchanged(preparation.baseRevision, MAIN)),
-		refresh: Effect.succeed(MAIN),
-		repositoryRoot,
-	});
 	return {
 		host: { ...fixture.host, boardDir },
 		parts: {
@@ -33,7 +26,7 @@ export function localBoardHost(fixture: HostFixture, { ignored = true, inside = 
 				markdownBoard(boardDir).pipe(Layer.provide(NodeServices.layer)),
 				Layer.succeed(ReportInspection)({ check: () => Effect.void }),
 			),
-			main: Layer.succeed(MainSource)(main),
+			main: fixedMainSource({ repositoryRoot }),
 		},
 		write: (source: string) => writeFileSync(join(boardDir, "one.md"), source),
 	};

@@ -15,7 +15,7 @@ export const refreshDelay = Effect.fn("DaemonTest.refreshDelay")(function* (fixt
 		entered: Deferred.await(entered),
 		parts: {
 			...fixture.parts,
-			main: fixedMainSource(refresh),
+			main: fixedMainSource({ current: refresh, refresh }),
 		},
 		release: Deferred.succeed(release, undefined),
 	};

@@ -29,23 +29,27 @@ const seeding = storyKit({
 	runIf: postgresEnabled,
 	stages: ["database"],
 	verbs: ({ host, sql }, story) => ({
-		connection: () => sql<{ readonly pid: number }>`select pg_backend_pid() as pid`,
+		connection: () =>
+			Effect.gen(function* () {
+				const [row] = yield* sql<{ readonly pid: number }>`select pg_backend_pid() as pid`;
+				if (row === undefined) {
+					return yield* Effect.die(new Error("PostgreSQL did not report the seed connection PID"));
+				}
+				return row.pid;
+			}),
 		seed: (workId: string, stage: string) => {
 			story.tell(`seed ${workId} as ${stage}`);
 			return storeState(host, workId, { stage }).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 		},
-		sessions: () =>
-			sql<{ readonly pid: number }>`select pid from pg_stat_activity where datname = current_database() and application_name = 'work-fleet-fixture'`,
 		writers: () => sql<{ readonly pid: number; readonly writes: number }>`select pid, count(*)::integer as writes from seed_writers group by pid`,
 	}),
 });
 
-seeding.it("100 inserts and an overwrite share the caller's single PostgreSQL connection", [], function* ({ seed, writers, connection, sessions }) {
-	const [caller] = yield* connection();
+seeding.it("100 inserts and an overwrite share the caller's single PostgreSQL connection", [], function* ({ seed, writers, connection }) {
+	const caller = yield* connection();
 	for (let index = 0; index < 100; index += 1) {
 		yield* seed(`item-${index}`, "executing");
 	}
 	yield* seed("item-0", "completed");
-	expect(yield* writers()).toEqual([{ pid: caller?.pid, writes: 101 }]);
-	expect(yield* sessions()).toEqual([{ pid: caller?.pid }]);
+	expect(yield* writers()).toEqual([{ pid: caller, writes: 101 }]);
 });

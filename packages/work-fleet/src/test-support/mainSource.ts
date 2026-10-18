@@ -4,12 +4,22 @@ import { type MainSnapshot, MainSource, unchanged } from "#host/mainSource.ts";
 
 export const MAIN = { observedAt: 1, revision: "main-revision" };
 
-export function fixedMainSource(current: Effect.Effect<MainSnapshot, FleetError> = Effect.succeed(MAIN)) {
+interface FixedMainOptions {
+	readonly current?: Effect.Effect<MainSnapshot, FleetError>;
+	readonly refresh?: Effect.Effect<MainSnapshot, FleetError>;
+	readonly repositoryRoot?: string;
+}
+
+export function fixedMainSource({
+	current = Effect.succeed(MAIN),
+	refresh = current,
+	repositoryRoot = "/synthetic-repository",
+}: FixedMainOptions = {}) {
 	return Layer.succeed(MainSource)({
 		current,
 		observe: (preparation) => Effect.succeed(unchanged(preparation.baseRevision, MAIN)),
-		refresh: current,
-		repositoryRoot: "/synthetic-repository",
+		refresh,
+		repositoryRoot,
 	});
 }
 

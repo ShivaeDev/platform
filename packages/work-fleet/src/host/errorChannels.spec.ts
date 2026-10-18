@@ -7,11 +7,10 @@ import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@
 import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { daemonLayer } from "#host/daemon.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
-import { MainSource, unchanged } from "#host/mainSource.ts";
 import { until } from "#test/cloudRestart.ts";
 import { waitForDispatch } from "#test/daemonActions.ts";
 import { task, withHost } from "#test/fleetHost.ts";
-import { MAIN } from "#test/mainSource.ts";
+import { fixedMainSource } from "#test/mainSource.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
 
@@ -60,9 +59,7 @@ describe("Fleet errors over daemon HTTP", () => {
 		withHost({}, { intervalSeconds: 60 }, (fixture) =>
 			Effect.scoped(
 				Effect.gen(function* () {
-					const main = Layer.succeed(MainSource, {
-						current: Effect.succeed(MAIN),
-						observe: (preparation) => Effect.succeed(unchanged(preparation.baseRevision, MAIN)),
+					const main = fixedMainSource({
 						refresh: Effect.fail(new ServiceUnavailable({ message: "Git observation unavailable" })),
 						repositoryRoot: "/synthetic",
 					});
