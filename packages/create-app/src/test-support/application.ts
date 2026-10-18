@@ -6,7 +6,7 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { appFolder, runCli } from "./cli.ts";
 import { createEngine } from "./createEngine.ts";
-import { appScript, testEnvironment } from "./environment.ts";
+import { appScript, installDatabaseProbe } from "./environment.ts";
 
 export const application = storyKit({
 	after: {
@@ -63,7 +63,12 @@ export const application = storyKit({
 			navigate: (command: string) => spawnSync("sh", ["-c", `${command}\npwd`], { cwd: engine.root, encoding: "utf8" }),
 			pack: () => {
 				story.tell("the template source is packed");
-				return engine.source.pack();
+				return engine.source.pack().pipe(
+					Effect.map((files) => {
+						packed = true;
+						return files;
+					}),
+				);
 			},
 			parentGit: (...args: readonly string[]) => spawnSync("git", args, { cwd: engine.root, encoding: "utf8" }),
 			prepareDatabases: () => {
@@ -72,9 +77,9 @@ export const application = storyKit({
 			},
 			read: (path: string) => readFileSync(join(target(), path), "utf8"),
 			readPacked: (path: string) => engine.source.readPacked(path),
-			runTests: () => {
-				story.tell("the app runs its tests");
-				testEnvironment(target());
+			runDatabaseProbe: () => {
+				story.tell("the app runs the database probe");
+				installDatabaseProbe(target());
 				return appScript(target(), "test", ["--config", "environment.config.ts"]);
 			},
 			starterFile: (path: string) => readFileSync(join(engine.source.starter, path), "utf8"),

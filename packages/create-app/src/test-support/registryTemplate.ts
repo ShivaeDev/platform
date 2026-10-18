@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Clock } from "effect";
 import { application } from "./application.ts";
@@ -10,6 +10,11 @@ import { templateSource } from "./templateSource.ts";
 export function registryTemplate(releases: Readonly<Record<string, Release>>) {
 	return application.trait("template", "the app installs registry releases without approving release-age policy changes", function* (engine) {
 		const root = dirname(engine.root);
+		const config = join(root, "pnpm-config");
+		const npmrc = join(root, "npmrc");
+		mkdirSync(config);
+		writeFileSync(npmrc, "");
+		engine.environment.push(`XDG_CONFIG_HOME=${config}`, `npm_config_userconfig=${npmrc}`);
 		const now = new Date(yield* Clock.currentTimeMillis).toISOString();
 		const published = Object.fromEntries(
 			Object.entries(releases).map(([name, release]) => [

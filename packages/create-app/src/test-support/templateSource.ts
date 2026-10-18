@@ -25,7 +25,12 @@ export function templateSource(root: string, { realStarter = false, localArtifac
 		writeFileSync(join(starter, ".env.example"), "example");
 	}
 	return {
-		changeApp: (content: string) => writeFileSync(join(starter, "app.ts"), content),
+		changeApp: (content: string) => {
+			if (realStarter) {
+				throw new Error("Changing the template requires a custom template trait");
+			}
+			writeFileSync(join(starter, "app.ts"), content);
+		},
 		files: (files: Readonly<Record<string, string | Uint8Array>>) => {
 			for (const [path, content] of Object.entries(files)) {
 				mkdirSync(dirname(join(starter, path)), { recursive: true });
