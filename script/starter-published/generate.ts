@@ -1,7 +1,8 @@
 import { join, resolve } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { command, writeJson } from "#package-check/io.ts";
-import { packedInstaller } from "./packedInstaller.ts";
+import { packedInstaller } from "#starter-published/packedInstaller.ts";
+import { withTarballOverrides } from "#withTarballOverrides.ts";
 
 export const generateStarter = Effect.fn("Published.generateStarter")(function* (
 	root: string,
@@ -32,7 +33,7 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 	const generator = join(temporary, "generator");
 	yield* fs.makeDirectory(generator);
 	yield* writeJson(join(generator, "package.json"), { dependencies: { "@shivaedev/create-app": `file:${packed}` }, private: true });
-	yield* fs.writeFileString(join(generator, "pnpm-workspace.yaml"), "packages: []\n");
+	yield* fs.writeFileString(join(generator, "pnpm-workspace.yaml"), withTarballOverrides("packages: []\n", tarballs));
 	yield* command(generator, "pnpm", ["install", "--registry=https://registry.npmjs.org"]);
 	yield* Effect.log("Generating and installing the starter with the packed create-app command.");
 	const bin = join(generator, "node_modules/.bin/create-app");
