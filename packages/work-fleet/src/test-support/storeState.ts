@@ -4,7 +4,7 @@ import { fleetRecords } from "#fleetRecords.ts";
 import type { FleetHost } from "#host/config.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 import { recordInput, recordModel } from "#storage/model.ts";
-import { writeChildren } from "#storage/recordChildren.ts";
+import { makeRecordChildren, writeChildren } from "#storage/recordChildren.ts";
 import { recordShape } from "#storage/recordShape.ts";
 
 export function storeState(host: FleetHost, workId: string, payload: Readonly<Record<string, unknown>>) {
@@ -35,3 +35,25 @@ export function storeState(host: FleetHost, workId: string, payload: Readonly<Re
 		);
 	}).pipe(Effect.orDie);
 }
+
+export const storeRecords = Effect.fn("FleetStory.storeRecords")(function* (host: FleetHost, records: readonly { readonly workId: string }[]) {
+	const transaction = yield* makeFleetTransaction;
+	const model = recordModel();
+	const repository = yield* makeRepository(model, {
+		idColumn: "work_id",
+		spanPrefix: "FleetStory.seed",
+		tableName: `${host.namespace}_records`,
+		versionColumn: "version",
+	});
+	const save = yield* makeRecordChildren(host.namespace, recordShape());
+	yield* transaction(
+		[fleetRecords.list],
+		Effect.gen(function* () {
+			for (const record of records) {
+				const input = yield* Schema.decodeUnknownEffect(model.insert)({ ...recordInput(record), "work_id": record.workId });
+				yield* repository.insertVoid(input);
+				yield* save(record.workId, record, false);
+			}
+		}),
+	);
+});

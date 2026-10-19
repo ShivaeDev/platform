@@ -6,15 +6,15 @@ import { screenStory } from "#test/screenStory.ts";
 
 expectNoReactWarnings();
 screenStory.it(
-	"ticks mounted ages and updates a refreshed timestamp without replacing its span",
+	"ticks mounted ages and updates a refreshed timestamp without replacing its element",
 	[ageScreen()],
 	function* ({ advanceTime, refreshAge, findElement, readText }) {
-		const span = findElement("span");
-		expect(readText("span")).toBe("0s");
+		const age = findElement("time");
+		expect(readText("time")).toBe("0s");
 		yield* Effect.promise(() => advanceTime(5000));
-		expect(readText("span")).toBe("5s");
+		expect(readText("time")).toBe("5s");
 		yield* Effect.promise(() => refreshAge(60_000));
-		expect(findElement("span")).toBe(span);
-		expect(readText("span")).toBe("1m");
+		expect(findElement("time")).toBe(age);
+		expect(readText("time")).toBe("1m");
 	},
 );

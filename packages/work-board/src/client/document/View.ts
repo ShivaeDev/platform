@@ -3,7 +3,7 @@ import { type Components, MarkdownHooks } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import type { PluggableList } from "unified";
 import type { Document } from "#browser/document/schema.ts";
-import { Age } from "#client/react/Age.tsx";
+import { AgeLabel } from "#client/react/AgeLabel.tsx";
 import { PageHeader } from "#client/react/PageHeader.tsx";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { documentLinks } from "#render/documentLinks.ts";
@@ -31,7 +31,7 @@ const components: Components = {
 	span: ({ node, children, ...props }) => {
 		const modified = node?.properties.dataModified ?? node?.properties["data-modified"];
 		if (modified !== undefined && props.className?.split(" ").includes("age")) {
-			return createElement(Age, { modified: Number(modified), short: props.className.split(" ").includes("short") });
+			return createElement(AgeLabel, { modified: Number(modified), short: props.className.split(" ").includes("short") });
 		}
 		return createElement("span", props, children);
 	},
@@ -41,6 +41,7 @@ export interface DocumentViewProps {
 	readonly actions?: ReactNode;
 	readonly answer?: ReactNode;
 	readonly board?: readonly { readonly count: number; readonly title: string }[];
+	readonly components?: Components;
 	readonly content?: ReactNode;
 	readonly context?: ReactNode;
 	readonly document: Document;
@@ -58,17 +59,8 @@ const LayoutContext = createContext<{
 	readonly lead: ReactNode;
 	readonly file: string;
 	readonly identified: boolean;
-}>({
-	actions: null,
-	answer: null,
-	content: null,
-	context: null,
-	file: "",
-	identified: false,
-	introduction: null,
-	lead: null,
-});
-const layoutComponents: Components = { ...components, article: LayoutArticle, header: LayoutHeader };
+}>({ actions: null, answer: null, content: null, context: null, file: "", identified: false, introduction: null, lead: null });
+const layoutElements: Components = { article: LayoutArticle, header: LayoutHeader };
 function LayoutArticle({ node, children, ...props }: React.ComponentProps<"article"> & import("react-markdown").ExtraProps) {
 	const { content } = useContext(LayoutContext);
 	return createElement("article", props, node?.properties.dataSource === undefined ? null : content, children);
@@ -98,7 +90,18 @@ function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<
 		context,
 	);
 }
-export function DocumentView({ document, idPrefix = "", context, content, introduction, board, answer, lead, actions }: DocumentViewProps) {
+export function DocumentView({
+	document,
+	idPrefix = "",
+	context,
+	content,
+	introduction,
+	board,
+	answer,
+	lead,
+	actions,
+	components: overrides,
+}: DocumentViewProps) {
 	const layout = context !== undefined;
 	const identity = document.identity ?? document.file;
 	const states = useMemo(() => ({ identity, values: new Map<string, boolean>() }), [identity]);
@@ -129,7 +132,7 @@ export function DocumentView({ document, idPrefix = "", context, content, introd
 				createElement(
 					MarkdownHooks,
 					{
-						components: layout ? layoutComponents : components,
+						components: { ...components, ...overrides, ...(layout ? layoutElements : {}) },
 						rehypePlugins,
 						remarkPlugins: documentPlugins(new Map(Object.entries(document.questionActions))),
 					},

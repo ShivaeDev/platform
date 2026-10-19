@@ -15,6 +15,8 @@ for (const [status, token, icon, label] of [
 	["waiting-on-agents", "waiting-on-agents", "users", "Waiting on agents"],
 	["blocked", "blocked", "ban", "Blocked"],
 	["done", "done", "check", "Done"],
+	["finished", "done", "check", "Finished"],
+	["in-review", "agent-working", "loader-circle", "In review"],
 	["deferred", "deferred", "circle-pause", "Deferred"],
 	["superseded", "deferred", "clock", "Superseded"],
 	["unexpected", "deferred", "circle-help", "Unexpected"],

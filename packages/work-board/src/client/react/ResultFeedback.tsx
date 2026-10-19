@@ -1,67 +1,78 @@
+import { CircleAlert } from "lucide-react";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
+import { statusLabel } from "#browser/views/statusLabel.ts";
+import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
+import { Badge } from "#client/react/components/ui/badge.tsx";
 import { fileUrl } from "#files/url.ts";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
+import { SectionCard } from "./SectionCard.tsx";
 import { shellIds } from "./shellIds.ts";
+import { Version } from "./Version.tsx";
+
 export function ResultFeedback({ data }: { readonly data: ResultProjection }) {
+	let body = data.feedback.map((entry) => <FeedbackEntry entry={entry} key={entry.response.id} />);
+	if (data.feedbackUnknown) {
+		body = [
+			<Alert key="unknown">
+				<CircleAlert aria-hidden="true" />
+				<AlertTitle>Some feedback couldn't be read</AlertTitle>
+				<AlertDescription>There may be feedback that isn't shown here. Check the response files before relying on this list.</AlertDescription>
+			</Alert>,
+		];
+	} else if (body.length === 0) {
+		body = [
+			<p className="m-0 text-muted-foreground" key="none">
+				No feedback yet.
+			</p>,
+		];
+	}
 	return (
-		<section id={shellIds.resultFeedback}>
-			<h2>Recorded human feedback</h2>
-			{data.feedbackUnknown ? (
-				<p role="status">
-					Response history is unknown or ambiguous. Unreadable records do not establish that no feedback exists. Read the source files before relying
-					on it.
-				</p>
-			) : (
-				<>
-					<p>
-						Human direction is pinned to its reviewed report. Option IDs and authored acceptance text are not a computed verified-acceptance state.
-						Completing a run or receiving feedback does not change work status.
-					</p>
-					{data.feedback.length === 0 && <p>No readable response is recorded for this result.</p>}
-					{data.feedback.map((entry) => (
-						<FeedbackEntry entry={entry} key={entry.response.id} />
-					))}
-				</>
-			)}
-		</section>
+		<SectionCard
+			description="Each answer applies to the report version it was written for. An answer, even an acceptance, doesn't change the work's status."
+			id={shellIds.resultFeedback}
+			title="Feedback"
+		>
+			{body}
+		</SectionCard>
 	);
 }
 
 function FeedbackEntry({ entry }: { readonly entry: ResultProjection["feedback"][number] }) {
 	const { response, question, responseFile, questionFile, supersedesFile, matching } = entry;
 	return (
-		<article id={response.id}>
-			<h3>
-				{response.response.author} · {response.response.type}
-			</h3>
-			<p>
-				<b>
-					{matching ? "Feedback on this exact result revision" : "Earlier or moved result context — does not apply automatically to this revision"}
-				</b>
+		<article className="min-w-0 space-y-3 rounded-lg border p-4" data-matching={matching} id={response.id}>
+			<header className="flex flex-wrap items-center gap-2">
+				<h3 className="m-0 font-semibold text-sm">{response.response.author}</h3>
+				<Badge variant="secondary">{statusLabel(response.response.type)}</Badge>
+				<Badge variant="outline">{matching ? "This version" : "Earlier version"}</Badge>
+			</header>
+			<p className="m-0 text-muted-foreground">
+				{matching
+					? "Written for the version of the report shown here."
+					: "Written for an earlier or moved version of this report. It doesn't apply to this version automatically."}{" "}
+				Reviewed <a href={fileUrl(question.question.source)}>{question.question.source}</a> at version{" "}
+				<Version revision={question.question.reviewedRevision} />.
 			</p>
-			<p>
-				Reviewed source: {question.question.source} · SHA-256 <code>{question.question.reviewedRevision}</code>
-			</p>
-			{Boolean(response.response.answers) && (
-				<p>
-					Recorded option IDs:{" "}
-					{response.response.answers?.map((answer) => `${answer.prompt}: ${answer.selected.join(", ") || "text only"}`).join("; ")}. Labels and
-					reasoning are recorded below.
+			{response.response.answers !== undefined && response.response.answers.length > 0 && (
+				<p className="m-0">
+					Chose {response.response.answers.map((answer) => `${answer.prompt}: ${answer.selected.join(", ") || "written answer only"}`).join("; ")}.
 				</p>
 			)}
 			{Boolean(response.response.supersedes) && (
-				<p>
-					Explicitly supersedes <a href={fileUrl(supersedesFile ?? "")}>{response.response.supersedes}</a>.
+				<p className="m-0">
+					Replaces earlier feedback <a href={fileUrl(supersedesFile ?? "")}>{response.response.supersedes}</a>.
 				</p>
 			)}
-			<ResponseMarkdown file={responseFile} source={response.body} />
-			<p>
-				<a href={fileUrl(responseFile)}>Response source</a> · <a href={fileUrl(questionFile)}>Registered reviewed context</a>
-			</p>
-			<details>
-				<summary>Exact reviewed result source</summary>
-				<pre>{question.context}</pre>
+			<div className="reading-column">
+				<ResponseMarkdown file={responseFile} source={response.body} />
+			</div>
+			<details className="rounded-md border px-3 py-2">
+				<summary className="cursor-pointer font-medium">Report as reviewed</summary>
+				<pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-xs">{question.context}</pre>
 			</details>
+			<p className="m-0 text-muted-foreground text-xs">
+				<a href={fileUrl(responseFile)}>Response file</a> · <a href={fileUrl(questionFile)}>Question file</a>
+			</p>
 		</article>
 	);
 }

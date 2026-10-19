@@ -25,7 +25,7 @@ boardStory.it(
 		expect(retry).toEqual(saved);
 		const page = yield* Effect.promise(() => fetch(`${board.url}/_board/handoff?item=task.keyboard`));
 		expect(page.status).toBe(200);
-		expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain("Copy tiny prompt");
+		expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain("Copy prompt");
 	},
 );
 
@@ -55,7 +55,7 @@ boardStory.it(
 		const page = yield* Effect.promise(() => fetch(`${board.url}/_board/handoff?item=task.keyboard`));
 		expect(page.status).toBe(200);
 		expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain(
-			"Earlier or unavailable reviewed source",
+			"Written for an earlier version of",
 		);
 	},
 );
@@ -87,7 +87,9 @@ boardStory.it(
 	function* ({ notes, board, client, handoffDraft }) {
 		const draft = yield* handoffDraft();
 		yield* Effect.promise(() => expect(client.mutate(client.handoffs.prepareHandoff.run(draft))).rejects.toThrow("--responses"));
-		expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain("Read-only mode");
+		expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain(
+			"Saving handoffs is turned off on this Board.",
+		);
 		expect(readFileSync(join(notes.root, "items/keyboard.md"), "utf8")).toBe(SOURCE);
 	},
 );
