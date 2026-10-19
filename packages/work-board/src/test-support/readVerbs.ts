@@ -1,6 +1,4 @@
 import { Deferred, Effect } from "effect";
-import { expect } from "vitest";
-import { waitFor } from "./live.ts";
 import type { BoardEngine } from "./storyEngine.ts";
 
 export function readVerbs(engine: BoardEngine, tell: (line: string) => void) {
@@ -11,14 +9,14 @@ export function readVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		return engine.reads;
 	}
 	return {
+		readFiles: () => {
+			tell("the reader inspects the workspace paths read by the board");
+			return [...reads().files];
+		},
 		releaseReads: () => {
 			tell("the held workspace reads continue");
 			const { gate } = reads();
 			return gate ? Deferred.succeed(gate, undefined) : Effect.void;
-		},
-		waitForReads: (files: readonly string[]) => {
-			tell(`the board reads ${files.join(", ")}`);
-			return Effect.promise(() => waitFor(() => expect(files.filter((file) => reads().files.includes(file))).toEqual(files)));
 		},
 	};
 }

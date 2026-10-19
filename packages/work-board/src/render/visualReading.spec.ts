@@ -1,14 +1,11 @@
 import { describe, expect } from "vitest";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
-
-function progress(attributes: string) {
-	return `:::progress${attributes}\nBrowser checks recorded\n\nSource: [Reading checks](../checks.md)\n:::\n`;
-}
+import { visualProgress } from "#test/visualProgress.ts";
 
 describe("visual document directives", () => {
 	boardStory.it(
 		"renders sourced values and a native labeled progress bar without JavaScript",
-		[projectFiles({ "nested/home.md": progress('{completed="3" total="8"}') })],
+		[projectFiles({ "nested/home.md": visualProgress('{completed="3" total="8"}') })],
 		function* ({ renderDocument }) {
 			const html = yield* renderDocument("nested/home.md");
 			expect(html).toContain('class="visual-document visual-progress"');
@@ -23,7 +20,7 @@ describe("visual document directives", () => {
 	for (const attributes of ['{completed="unknown" total="8"}', '{total="8"}', '{completed="0" total="0"}', "{}"]) {
 		boardStory.it(
 			`keeps incomplete or zero-total tallies explicit (${JSON.stringify(attributes)})`,
-			[projectFiles({ "nested/home.md": progress(attributes) })],
+			[projectFiles({ "nested/home.md": visualProgress(attributes) })],
 			function* ({ renderDocument }) {
 				const html = yield* renderDocument("nested/home.md");
 				expect(html).not.toContain("Percentage unavailable.");
@@ -46,7 +43,7 @@ describe("visual document directives", () => {
 	]) {
 		boardStory.it(
 			`shows the original source for invalid progress (${JSON.stringify(attributes)})`,
-			[projectFiles({ "nested/home.md": `${progress(attributes)}\nAfter the component.\n` })],
+			[projectFiles({ "nested/home.md": `${visualProgress(attributes)}\nAfter the component.\n` })],
 			function* ({ renderDocument }) {
 				const html = yield* renderDocument("nested/home.md");
 				expect(html).toContain("Visual component could not be rendered:");
@@ -101,7 +98,7 @@ describe("visual document directives", () => {
 			boardHome("nested/home.md"),
 			projectFiles({
 				"checks.md": "# Checks",
-				"nested/home.md": `# Board\n\n## Open\n\n### Task\n\n${progress('{completed="3" total="8"}')}\n## Closed\n`,
+				"nested/home.md": `# Board\n\n## Open\n\n### Task\n\n${visualProgress('{completed="3" total="8"}')}\n## Closed\n`,
 			}),
 		],
 		function* ({ search, readDocument, readBoard }) {
@@ -180,7 +177,7 @@ describe("visual document directives", () => {
 		"retains inline and leaf directive source and renders a later valid component",
 		[
 			projectFiles({
-				"nested/home.md": `Inline :metric[value]{unit="seconds"} stays readable.\n\n::metric[Leaf]{value="1" unit="seconds"}\n\n${progress('{completed="3" total="8"}')}`,
+				"nested/home.md": `Inline :metric[value]{unit="seconds"} stays readable.\n\n::metric[Leaf]{value="1" unit="seconds"}\n\n${visualProgress('{completed="3" total="8"}')}`,
 			}),
 		],
 		function* ({ renderDocument }) {
