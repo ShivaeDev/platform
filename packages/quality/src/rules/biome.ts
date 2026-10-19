@@ -1,12 +1,10 @@
-import { biomeReport, type Diagnostic } from "#biome/report.ts";
+import { biomeReport, type Diagnostic, FAILING } from "#biome/report.ts";
 import { defineRule, type Finding, type Rule, type RuleInputs } from "#rule.ts";
 import { itemsOf, member, parseJsonc, textOf } from "#rules/suppressions/biome/json.ts";
 
 export const PRESET = "@shivaedev/quality/biome";
 
 const ROOT_CONFIGS: readonly string[] = ["biome.json", "biome.jsonc"];
-
-const FAILING: ReadonlySet<string> = new Set(["error", "fatal"]);
 
 function messageOf(diagnostic: Diagnostic): string {
 	return diagnostic.category === "format" && diagnostic.message.startsWith("Formatter would have printed")
