@@ -14,10 +14,10 @@ const features = tableFeatures({ rowSortingFeature });
 const column = createColumnHelper<typeof features, WorkRow>();
 const columns = column.columns([
 	column.accessor("title", { header: "Work" }),
-	column.accessor((item) => item.metadata.kind ?? "", { header: "Kind", id: "kind" }),
-	column.accessor((item) => item.metadata.status ?? "", { header: "Status", id: "status" }),
-	column.accessor((item) => item.metadata.owner ?? "", { header: "Owner", id: "owner" }),
-	column.accessor((item) => item.metadata.nextAction ?? "", { enableSorting: false, header: "Next action", id: "nextAction" }),
+	column.accessor("metadata.kind", { header: "Kind", id: "kind" }),
+	column.accessor("metadata.status", { header: "Status", id: "status" }),
+	column.accessor("metadata.owner", { header: "Owner", id: "owner" }),
+	column.accessor("metadata.nextAction", { enableSorting: false, header: "Next action", id: "nextAction" }),
 ]);
 const widths: Readonly<Record<string, string>> = {
 	kind: "w-[8%] max-md:hidden",
@@ -32,7 +32,7 @@ const ariaSorts = { asc: "ascending", desc: "descending" } as const;
 export function WorkTable({ data }: { readonly data: WorkProjection }) {
 	const { state } = data;
 	const sorting = useMemo(() => [{ desc: state.order === "desc", id: state.sort }], [state.order, state.sort]);
-	const table = useTable({ columns, data: data.rows, features, manualSorting: true, onSortingChange: ignoreSorting, state: { sorting } });
+	const table = useTable({ columns, data: data.rows, features, manualSorting: true, state: { sorting } });
 	const rows = table.getRowModel().rows;
 	const window = useVirtualRows(rows.length, ROW_HEIGHT);
 	const virtual = rows.length > 200;
@@ -78,11 +78,6 @@ function HeaderRow({ headers, state }: { readonly headers: readonly Header<typeo
 			))}
 		</TableRow>
 	);
-}
-
-// The server sorts by the URL, so header links change the sort instead of table state.
-function ignoreSorting() {
-	return undefined;
 }
 
 function SortableHead({ header, state }: { readonly header: Header<typeof features, WorkRow, unknown>; readonly state: State }) {

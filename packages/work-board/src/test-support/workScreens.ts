@@ -16,3 +16,7 @@ export function workTableTitles() {
 export function labelledCombobox(triggers: readonly Element[], label: string) {
 	return triggers.find((trigger) => document.querySelector(`label[for="${CSS.escape(trigger.id)}"]`)?.textContent === label);
 }
+
+export function menuOptions(trigger: Element | undefined) {
+	return [...document.querySelectorAll<HTMLElement>(`#${CSS.escape(trigger?.getAttribute("aria-controls") ?? "")} [role="option"]`)];
+}

@@ -1,6 +1,7 @@
 import { Option, Schema } from "effect";
 
 const View = Schema.Literals(["now", "board", "table"]);
+export const viewNames = { board: "All work", now: "Now", table: "Table" } as const;
 const Sort = Schema.Literals(["title", "kind", "status", "owner"]);
 const Order = Schema.Literals(["asc", "desc"]);
 export const State = Schema.Struct({

@@ -38,13 +38,9 @@ export function WorkLane({
 		);
 	if (collapsed) {
 		return (
-			<Collapsible
-				render={<section aria-label={lane} className={cn("work-column group/lane min-w-0 data-open:min-w-44 data-open:flex-[2]", className)} />}
-			>
-				<h2 className="m-0 mb-2 flex min-h-8 items-center justify-between gap-2 font-medium text-sm">
-					<CollapsibleTrigger
-						className={cn(buttonVariants({ size: "sm", variant: "ghost" }), "-ml-2 h-auto min-h-7 min-w-0 shrink whitespace-normal text-left")}
-					>
+			<Collapsible render={<section aria-label={lane} className={cn("work-column group/lane min-w-0", className)} />}>
+				<h2 className="m-0 mb-2 flex min-h-8 items-center gap-2 font-medium text-sm">
+					<CollapsibleTrigger className={cn(buttonVariants({ size: "sm", variant: "ghost" }), "-ml-2")}>
 						<ChevronRight aria-hidden="true" className="transition-transform group-data-open/lane:rotate-90" />
 						{lane}
 					</CollapsibleTrigger>

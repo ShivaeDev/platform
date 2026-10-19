@@ -1,7 +1,8 @@
 import { Clock, Effect } from "effect";
 import { InfoIcon } from "lucide-react";
 import { useContext, useState } from "react";
-import { type FleetWork, laneOf, type NowLane, nowLanes } from "#browser/views/now.ts";
+import { type FleetWork, type NowLane, nowLanes } from "#browser/views/now.ts";
+import { doneLane, laneRows } from "#browser/views/nowLanes.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
 import { Alert, AlertDescription } from "#client/react/components/ui/alert.tsx";
@@ -11,20 +12,11 @@ import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";
 import { useMedia } from "#client/react/useMedia.ts";
 import { WorkLane } from "#client/react/WorkLane.tsx";
 
-const DONE = nowLanes[5];
-
 export function WorkNow({ data }: { readonly data: WorkProjection }) {
 	const fleet = useContext(FleetItemsContext);
 	const phone = useMedia("(max-width: 767px)");
 	const ready = fleet?.state === "ready";
-	const items = new Map(ready ? [...fleet.completed, ...fleet.items].map((item) => [item.workId, item] as const) : []);
-	const recent = new Set(
-		ready
-			? fleet.completed.filter((item) => item.completedAt >= Effect.runSync(Clock.currentTimeMillis) - 604_800_000).map((item) => item.workId)
-			: [],
-	);
-	const groups = Map.groupBy(data.rows, (item) => laneOf(item.metadata, items.get(item.id), item.fleetApproved, item.answered !== undefined));
-	const lanes = nowLanes.map((lane) => ({ lane, rows: (groups.get(lane) ?? []).filter((item) => lane !== DONE || recent.has(item.id)) }));
+	const { fleet: items, lanes } = laneRows(data.rows, fleet, Effect.runSync(Clock.currentTimeMillis));
 	const shared = { fleet: items, state: data.state, virtual: data.rows.length > 200 };
 	const [chosen, setChosen] = useState<NowLane | undefined>(undefined);
 	const shown = chosen ?? lanes.find(({ rows }) => rows.length > 0)?.lane ?? nowLanes[0];
@@ -44,8 +36,8 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 }
 
 interface Lanes {
-	readonly lanes: readonly { readonly lane: NowLane; readonly rows: WorkProjection["rows"] }[];
 	readonly fleet: ReadonlyMap<string, FleetWork>;
+	readonly lanes: readonly { readonly lane: NowLane; readonly rows: WorkProjection["rows"] }[];
 	readonly state: State;
 	readonly virtual: boolean;
 }
@@ -73,18 +65,24 @@ function PhoneLanes({ lanes, shown, onChoose, ...lane }: Lanes & { readonly show
 }
 
 function DesktopLanes({ lanes, ...lane }: Lanes) {
+	const done = lanes.find(({ lane: name }) => name === doneLane);
 	return (
-		<div className="work-columns work-now flex items-start gap-3 overflow-x-auto pb-2">
-			{lanes.map(({ lane: name, rows }) => (
-				<WorkLane
-					className={rows.length > 0 && name !== DONE ? "min-w-44 flex-[2] basis-0" : "min-w-28 flex-1 basis-0"}
-					collapsed={name === DONE}
-					key={name}
-					lane={name}
-					rows={rows}
-					{...lane}
-				/>
-			))}
+		<div className="work-now grid gap-2">
+			<div className="work-columns flex items-start gap-3 overflow-x-auto pb-2">
+				{lanes
+					.filter(({ lane: name }) => name !== doneLane)
+					.map(({ lane: name, rows }) => (
+						<WorkLane
+							className={rows.length > 0 ? "min-w-44 flex-[2] basis-0" : "min-w-28 flex-1 basis-0"}
+							collapsed={false}
+							key={name}
+							lane={name}
+							rows={rows}
+							{...lane}
+						/>
+					))}
+			</div>
+			{done && <WorkLane collapsed lane={done.lane} rows={done.rows} {...lane} />}
 		</div>
 	);
 }

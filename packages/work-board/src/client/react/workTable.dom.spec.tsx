@@ -1,11 +1,14 @@
 import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { fleetWorkspace, fleetWorkspaceItems } from "#test/fleetWorkspaceFixture.ts";
 import { nowScreen } from "#test/nowScreen.tsx";
 import { nowFleet } from "#test/nowWork.ts";
 import { screenMedia } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { workRouteParams, workTableScreen, workTableTitles } from "#test/workScreens.ts";
+import { openScreen } from "#test/screenTraits.ts";
+import { screenFiles, screenFleet, screenRoute } from "#test/screenWorkspaceTraits.ts";
+import { labelledCombobox, menuOptions, workRouteParams, workTableScreen, workTableTitles } from "#test/workScreens.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
 expectNoReactWarnings();
@@ -58,7 +61,7 @@ screenStory.it(
 		yield* roles.enter({ name: "Find work", role: "searchbox" }, "upload");
 		yield* roles.click({ name: "Apply", role: "button" });
 		yield* Effect.promise(() => eventually(() => expect(workTableTitles()).toEqual(["Fix the flaky upload test"])));
-		expect(workRouteParams().get("q")).toBe("upload");
+		expect(Object.fromEntries(workRouteParams())).toEqual({ q: "upload", sort: "title", view: "table" });
 		yield* roles.click({ name: "Reset", role: "link" });
 		yield* Effect.promise(() => eventually(() => expect(workTableTitles()).toEqual(all)));
 		expect(document.querySelector("#work-filters a")).toBeNull();
@@ -76,6 +79,16 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(roles.text("#saved-view")).toBe("By owner")));
 		const open = new URL(document.querySelector<HTMLAnchorElement>("#open-saved-view")?.href ?? "", "http://board");
 		expect(Object.fromEntries(open.searchParams)).toMatchObject({ order: "desc", sort: "owner", view: "table" });
+		function saved() {
+			return document.querySelector("#saved-view") ?? undefined;
+		}
+		yield* roles.click("#saved-view");
+		yield* roles.click({ name: "Choose a saved view", role: "option" });
+		yield* Effect.promise(() => eventually(() => expect(document.querySelector("#open-saved-view")).toHaveProperty("hidden", true)));
+		yield* roles.click("#saved-view");
+		expect(menuOptions(saved()).map((option) => option.textContent)).toEqual(["Choose a saved view", "By owner"]);
+		yield* roles.click({ name: "By owner", role: "option" });
+		yield* Effect.promise(() => eventually(() => expect(document.querySelector("#open-saved-view")).toHaveProperty("hidden", false)));
 		yield* roles.click({ name: "Remove", role: "button" });
 		yield* Effect.promise(() => eventually(() => expect(document.querySelector("#open-saved-view")).toHaveProperty("hidden", true)));
 		expect(roles.text("#saved-view")).toBe("No saved views");
@@ -85,8 +98,15 @@ screenStory.it(
 screenStory.it(
 	"marks empty Now lanes and keeps Done closed until the reader opens it",
 	[nowScreen(6, WorkNow, nowFleet(3, Effect.runSync(Clock.currentTimeMillis)))],
-	function* ({ readText, roles }) {
+	function* ({ findElements, readText, roles }) {
 		expect(readText('section[aria-label="Delivering"]')).toBe("Delivering0Nothing here");
+		expect(findElements(".work-columns > section").map((lane) => lane.getAttribute("aria-label"))).toEqual([
+			"Queued",
+			"Executing",
+			"Reviewing",
+			"Delivering",
+			"Waiting on a person",
+		]);
 		const done = { name: "Done in the last 7 days", role: "button" } as const;
 		expect(document.querySelector('section[aria-label="Done in the last 7 days"] [data-item]')).toBeNull();
 		expect(document.querySelector('section[aria-label="Done in the last 7 days"] [aria-expanded]')?.getAttribute("aria-expanded")).toBe("false");
@@ -140,5 +160,91 @@ screenStory.it(
 				String(findElements("[data-item]", column).length),
 			]);
 		}
+	},
+);
+
+for (const [route, name] of [
+	["/_board/work", "Now"],
+	["/_board/work?view=board", "All work"],
+	["/_board/work?view=table", "Table"],
+] as const) {
+	screenStory.it(`names the ${name} view in the page heading and its pressed tab`, [workTableScreen(route)], function* ({ readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("main h1")).toBe(name)));
+		expect(readText('nav[aria-label="Work layout"] [aria-current="page"]')).toBe(name);
+	});
+}
+
+screenStory.it(
+	"counts in the sidebar the same open tasks the Now lanes show",
+	[
+		screenFiles(
+			{ ...fleetWorkspace, "tasks/later.md": "---\nid: task.later\nkind: task\nstatus: planned\n---\n# Plan the later work\n" },
+			{ home: "home.md" },
+		),
+		screenFleet(fleetWorkspaceItems(Effect.runSync(Clock.currentTimeMillis))),
+		screenRoute("/_board/work"),
+		openScreen(),
+	],
+	function* ({ findElements }) {
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toContain(
+					`Now, ${findElements(".work-columns [data-item]").length} open tasks`,
+				),
+			),
+		);
+		expect(findElements(".work-columns [data-item]").map((card) => card.getAttribute("data-item"))).toEqual([
+			"task.pricing",
+			"task.guide",
+			"task.upload",
+			"task.email",
+		]);
+	},
+);
+
+screenStory.it(
+	"filters All work by owner and sorts it from the toolbar menus",
+	[workTableScreen("/_board/work?view=board")],
+	function* ({ findElements, roles }) {
+		function menu(label: string) {
+			return labelledCombobox(findElements("main [role='combobox']"), label);
+		}
+		yield* Effect.promise(() => eventually(() => expect(menu("Sort by")).toBeDefined()));
+		yield* roles.click(`#${CSS.escape(menu("Owner")?.id ?? "")}`);
+		yield* roles.click({ name: "maintainer", role: "option" });
+		yield* Effect.promise(() => eventually(() => expect(workRouteParams().get("owner")).toBe("value:maintainer")));
+		yield* Effect.promise(() =>
+			eventually(() => expect(findElements("[data-item]").map((card) => card.getAttribute("data-item"))).toEqual(["task.pricing"])),
+		);
+		yield* roles.click(`#${CSS.escape(menu("Sort by")?.id ?? "")}`);
+		yield* roles.click({ name: "Owner", role: "option" });
+		yield* Effect.promise(() =>
+			eventually(() => expect(Object.fromEntries(workRouteParams())).toEqual({ owner: "value:maintainer", sort: "owner", view: "board" })),
+		);
+	},
+);
+
+screenStory.it(
+	"keeps an unavailable board and an unmatched status visible in the toolbar menus",
+	[workTableScreen("/_board/work?view=table&board=board.missing&status=value:paused")],
+	function* ({ findElements, readText }) {
+		function chosen(label: string) {
+			return readText("[data-slot='select-value']", labelledCombobox(findElements("main [role='combobox']"), label));
+		}
+		yield* Effect.promise(() => eventually(() => expect(chosen("Board")).toBe("board.missing (unavailable)")));
+		expect(chosen("Status")).toBe("Paused (no current matches)");
+	},
+);
+
+screenStory.it(
+	"marks the selected item's Table row and its title link",
+	[workTableScreen("/_board/work?view=table&item=task.upload")],
+	function* ({ findElements }) {
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements("#work-results tr[data-state='selected']").map((row) => row.getAttribute("data-item"))).toEqual(["task.upload"]),
+			),
+		);
+		expect(findElements("#work-results tbody a[aria-current='true']").map((link) => link.textContent)).toEqual(["Fix the flaky upload test"]);
 	},
 );
