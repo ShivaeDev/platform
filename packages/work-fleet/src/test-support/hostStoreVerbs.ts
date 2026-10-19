@@ -17,14 +17,20 @@ export function hostStoreVerbs(engine: HostStoryEngine, tell: (line: string) => 
 		},
 		queriesDuring: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
 			Effect.suspend(() => {
-				if (engine.reads === undefined) {
-					throw new Error("Deploy the host before reading its queries");
-				}
-				tell("record the SQL statements the daemon runs");
-				const reads = engine.reads;
+				const reads = observedReads(engine);
+				tell("record every SQL statement the daemon runs meanwhile");
 				const before = reads.statements().length;
 				return Effect.map(effect, (value) => ({ queries: reads.statements().slice(before).map(boundQuery), value }));
 			}),
+		// RPC propagates the caller's trace, so the daemon's statements for these requests share its trace id and background work does not.
+		requestQueries: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+			Effect.gen(function* () {
+				const reads = observedReads(engine);
+				tell("record the SQL statements the daemon runs for these requests");
+				const { traceId } = yield* Effect.orDie(Effect.currentSpan);
+				const value = yield* effect;
+				return { queries: reads.statements(traceId).map(boundQuery), value };
+			}).pipe(Effect.withSpan("HostStory.requestQueries")),
 		rollbackInsert: (record: FleetRecord, failure: string) => {
 			tell(`roll back an insert of ${record.workId}`);
 			return Effect.flatMap(FleetRepository, (store) =>
@@ -49,6 +55,13 @@ export function hostStoreVerbs(engine: HostStoryEngine, tell: (line: string) => 
 			return storeRecords(engine.fixture.host, records).pipe(Effect.provideContext(engine.running.context));
 		},
 	};
+}
+
+function observedReads(engine: HostStoryEngine) {
+	if (engine.reads === undefined) {
+		throw new Error("Deploy the host before reading its queries");
+	}
+	return engine.reads;
 }
 
 // A statement's distinct placeholders count the values it binds, such as the work ids in a child-table filter.
