@@ -23,13 +23,11 @@ screenStory.it(
 		expect(readText("#response-status")).toContain("Unanswered");
 		restoreSession();
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-preview")).toHaveProperty("disabled", false)));
-		input('[name="author"]', "reviewer");
 		input('[data-prompt="checks"] textarea', "Keyboard checks.");
 		yield* Effect.promise(() => activate("#response-preview"));
 		expect(findElements(".response-field-error:not([hidden])")).toHaveLength(VISIBLE_ERRORS);
 		const messages = findElements(".response-field-error");
 		expect(new Set(messages.map((message) => message.id)).size).toBe(messages.length);
 		expect(readText("#response-status")).not.toContain("Unanswered");
-		expect(readText("#response-status")).not.toContain("Add your local author");
 	},
 );

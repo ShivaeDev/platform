@@ -1,10 +1,12 @@
 import { cn } from "cn";
 import { CheckCircle2 } from "lucide-react";
+import { useEffect } from "react";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { AnswerMore } from "./AnswerMore.tsx";
 import { AnswerPrompts } from "./AnswerPrompts.tsx";
+import { answerTextClass } from "./answerTextClass.ts";
 import { FormField } from "./FormField.tsx";
 import { shellIds } from "./shellIds.ts";
 import { useFormFocus } from "./useFormFocus.ts";
@@ -12,6 +14,7 @@ import { useResponseForm } from "./useResponseForm.ts";
 
 interface AnswerProps {
 	readonly document: Document;
+	readonly onDraft?: ((text: string) => void) | undefined;
 	readonly preview: QuestionPreview;
 	readonly request: DocumentRequest;
 }
@@ -23,7 +26,7 @@ export function AnswerForm(props: AnswerProps) {
 		/>
 	);
 }
-function AnswerSession({ document: data, request, preview }: AnswerProps) {
+function AnswerSession({ document: data, onDraft, request, preview }: AnswerProps) {
 	function id(value: string) {
 		return data.requests.filter((entry) => entry.open).length > 1 ? `${value}-${request.id}` : value;
 	}
@@ -31,10 +34,12 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 	const state = useResponseForm(preview, prompts, request.options, request.answered?.response);
 	const focus = useFormFocus(state.draft.key);
 	const form = state.form;
+	useEffect(() => onDraft?.(state.text), [onDraft, state.text]);
 	const body = (
 		<FormField
+			className={answerTextClass(prompts.length === 0)}
 			form={form}
-			label={prompts.length > 0 ? "Overall response / next action (optional)" : "Your response"}
+			label={prompts.length > 0 ? "Anything else to add (optional)" : "Your response"}
 			maxLength={32_768}
 			name="body"
 			required={prompts.length === 0}

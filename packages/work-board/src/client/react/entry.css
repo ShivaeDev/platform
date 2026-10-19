@@ -336,10 +336,10 @@
 	--document-leading-rows: 0;
 }
 .document-layout:has(> .document-lead),
-.document-layout:has(> .answer-cards) {
+.document-layout:has(> .answer-cards:not([data-after])) {
 	--document-leading-rows: 1;
 }
-.document-layout:has(> .document-lead):has(> .answer-cards) {
+.document-layout:has(> .document-lead):has(> .answer-cards:not([data-after])) {
 	--document-leading-rows: 2;
 }
 .document-layout > .document-lead {
@@ -351,13 +351,22 @@
 .document-layout > :is(article, .board) {
 	grid-row-start: calc(2 + var(--document-leading-rows));
 }
+.document-layout > .answer-cards[data-after] {
+	grid-row-start: calc(3 + var(--document-leading-rows));
+}
 .document-layout > aside {
 	grid-row-start: calc(3 + var(--document-leading-rows));
+}
+.document-layout:has(> [data-after]) > aside {
+	grid-row-start: calc(4 + var(--document-leading-rows));
 }
 
 @media (min-width: 1024px) {
 	.document-layout > aside {
 		grid-row-start: calc(2 + var(--document-leading-rows));
+	}
+	.document-layout:has(> [data-after]) > aside {
+		grid-row: calc(2 + var(--document-leading-rows)) / span 2;
 	}
 }
 

@@ -67,7 +67,6 @@ screenStory.it(
 	],
 	function* ({ findElements, input, check, activate, submit, readText, readResponses }) {
 		yield* Effect.promise(() => eventually(() => expect(findElements("fieldset[data-prompt]")).toHaveLength(PACKET_PROMPTS)));
-		input('[name="author"]', "maintainer");
 		check("history");
 		input('[data-prompt="checks"] textarea', "None of these; test keyboard use instead.");
 		yield* Effect.promise(() => activate("#response-preview"));
@@ -88,7 +87,6 @@ screenStory.it(
 	[routedScreen({ "proposal.md": questionnaireSource }, URL, { home: undefined, writable: true })],
 	function* ({ findElement, input, check, editFile, refreshDocument, readText, readAttribute, submit, activate }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
-		input('[name="author"]', "maintainer");
 		check("history");
 		const rationale = input('[data-prompt="display"] textarea', "Keep this rationale.");
 		yield* Effect.promise(() => activate("#response-preview"));

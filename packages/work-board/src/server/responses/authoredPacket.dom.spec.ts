@@ -2,8 +2,10 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
+import { screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
+import { storedScreenState } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
 const source = questionnaireSource.replace(
@@ -12,14 +14,17 @@ const source = questionnaireSource.replace(
 );
 screenStory.it(
 	"keeps authored form and script markup outside live packet controls",
-	[routedScreen({ "proposal.md": source }, "/_board/item/investigation.choices/", { home: undefined, writable: true })],
+	[
+		screenWorkspace("authored-packet"),
+		storedScreenState({ "work-board:author:authored-packet": "Reviewer" }),
+		routedScreen({ "proposal.md": source }, "/_board/item/investigation.choices/", { home: undefined, writable: true }),
+	],
 	function* ({ findElement, input, submit, readResponses, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
 		expect(findElement("#response-form #forged")).toBeNull();
 		expect(findElement("#response-form script")).toBeNull();
 		expect(readText("#response-form")).not.toContain("<form");
 		expect(readText("#response-form")).not.toContain("globalThis.authoredPacketRan");
-		input('#response-form [name="author"]', "Reviewer");
 		input('#response-form [data-prompt="display"] textarea', "Keep the history.");
 		input('#response-form [data-prompt="checks"] textarea', "Test keyboard use.");
 		submit("#response-form");
