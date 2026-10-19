@@ -29,7 +29,7 @@ screenStory.it(
 	function* ({ editFile, findElement, findElements, readText, refreshInbox }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(`ul${ANSWERED}`)).not.toBeNull()));
 		expect([...findElements(`ul${ANSWERED} > li p`)].map((row) => row.getAttribute("title"))).toEqual([NEXT_PASS]);
-		expect(readText(`ul${ANSWERED} > li a`)).toBe("Publish the install guide");
+		expect(readText(`ul${ANSWERED} > li a`)).toBe("Do you want changes before merging?");
 		expect(findElement(`ul${ANSWERED} [data-status-token]`)).toBeNull();
 		expect(findElement("ul[aria-label='Needs you']")).toBeNull();
 		expect(readText("#needs-you")).toContain("Nothing needs you");

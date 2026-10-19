@@ -9,6 +9,9 @@
 
 ### Changed
 
+- Each Answered row is named by its own question, not the task it unblocks, and two rows that would read the same add the request reason or chosen option that tells them apart.
+- The Fleet start command wraps, so the whole command shows on a phone.
+- The sidebar and top bar show no needs-you badge at zero, like the phone's Today tab; screen readers still hear the count.
 - Getting started appears on an empty Today only while the workspace has no identified documents; the inbox projection carries this as `identified`.
 - The Today button for the `--home` file is named after that document's title instead of "Workspace notes". The breadcrumb root stays "Workspace".
 - "How to start Fleet" shows `npx @shivaedev/work-fleet serve <folder> --port <port>` with the Board's folder relative to where it was started, so it runs where work-fleet is a project dependency.
