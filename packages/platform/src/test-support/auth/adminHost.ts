@@ -1,14 +1,14 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { admin } from "better-auth/plugins";
-import { Duration, Effect, Layer, Redacted } from "effect";
+import { Duration, Effect, Layer } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Migrator } from "effect/sql";
-import { Pool } from "pg";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { appHost } from "#server/appHost.ts";
+import { authDatabase } from "#server/better-auth/mount.ts";
 import { authTestUtils } from "#server/better-auth/testing.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { authenticatedAdminLayer, authenticatedOwnerLayer } from "#server/rpc-server/roles.ts";
@@ -16,10 +16,7 @@ import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
 
 export const startAdminHost = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
-	const pool = yield* Effect.acquireRelease(
-		Effect.sync(() => new Pool({ connectionString: Redacted.value(database.url) })),
-		(value) => Effect.promise(() => value.end()),
-	);
+	const pool = yield* authDatabase(database.url);
 	const options = {
 		"baseURL": "http://localhost:3000",
 		database: pool,
