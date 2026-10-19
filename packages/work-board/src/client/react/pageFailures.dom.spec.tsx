@@ -100,6 +100,20 @@ for (const url of ["/_board/goals/zzz", "/_board/zzz", "/notes"]) {
 	);
 }
 
+for (const url of ["/notes/broken%E0.md", "/_board/item/broken%E0"]) {
+	screenStory.it(
+		`shows the not-found page for the undecodable link ${url}`,
+		[routedScreen(files, url)],
+		function* ({ readAttribute, readText, readTitle }) {
+			yield* Effect.promise(() => eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("Page not found")));
+			expect(readText("#doc [data-slot=empty-description]")).toBe(`Nothing on the Board lives at ${url}. The link may be old or mistyped.`);
+			expect(readAttribute("#doc", "data-status")).toBe("404");
+			yield* Effect.promise(() => eventually(() => expect(readText("#breadcrumbs")).toBe("Workspace/ Page not found")));
+			expect(readTitle()).toBe("Page not found · Work Board");
+		},
+	);
+}
+
 screenStory.it(
 	"keeps the live status settled on a not-found page",
 	[screenFiles(files, { home: "home.md" }), screenRoute("/_board/goals/zzz"), sessionScreen("response")],

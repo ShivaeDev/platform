@@ -1,7 +1,7 @@
 import { FileQuestion } from "lucide-react";
 import { useLayoutEffect } from "react";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "#client/react/components/ui/empty.tsx";
-import { decodedPath, itemRouteId } from "./documentRoute.ts";
+import { documentTarget } from "./documentRoute.ts";
 import { LinkButton } from "./LinkButton.tsx";
 import { type MainLocation, NOT_FOUND_PROJECTION } from "./mainLocation.ts";
 import { shellIds } from "./shellIds.ts";
@@ -39,12 +39,12 @@ export function NotFoundPage({ url }: { readonly url: string }) {
 }
 
 function notFound(pathname: string) {
-	const item = itemRouteId(pathname);
-	if (item !== undefined) {
-		return { description: `No item has the ID ${item}. It may be missing, renamed, or invalid.`, title: "Item not found" };
+	const target = documentTarget(pathname);
+	if (target && "item" in target) {
+		return { description: `No item has the ID ${target.item}. It may be missing, renamed, or invalid.`, title: "Item not found" };
 	}
-	if (/\.md$/iu.test(pathname)) {
-		return { description: `No Markdown file at ${decodedPath(pathname)}. It may have been moved or deleted.`, title: "File not found" };
+	if (target) {
+		return { description: `No Markdown file at ${target.file}. It may have been moved or deleted.`, title: "File not found" };
 	}
 	return { description: `Nothing on the Board lives at ${pathname}. The link may be old or mistyped.`, title: NOT_FOUND_TITLE };
 }

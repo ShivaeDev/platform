@@ -1,5 +1,8 @@
 import type { Navigation } from "#browser/Navigation.ts";
 import { fileUrl } from "#files/url.ts";
+
+export type DocumentTarget = { readonly item: string } | { readonly file: string };
+
 export function documentRoute(pathname: string, home: Navigation["home"]): boolean {
 	if (
 		home
@@ -9,19 +12,23 @@ export function documentRoute(pathname: string, home: Navigation["home"]): boole
 	) {
 		return false;
 	}
-	return pathname === "/" || /\.md$/iu.test(pathname) || itemRouteId(pathname) !== undefined;
+	return pathname === "/" || documentTarget(pathname) !== undefined;
 }
 
-export function itemRouteId(pathname: string) {
+// A link that can't be decoded names no document, matching the server's 404 for invalid percent-encoding.
+export function documentTarget(pathname: string): DocumentTarget | undefined {
 	const id = /^\/_board\/item\/(?<id>[^/]+)\/?$/u.exec(pathname)?.groups?.id;
-	return id === undefined ? undefined : decodeURIComponent(id);
-}
-
-export function decodedPath(pathname: string) {
-	return decodeURIComponent(pathname.slice(1));
+	if (id === undefined && !/\.md$/iu.test(pathname)) {
+		return undefined;
+	}
+	try {
+		return id === undefined ? { file: decodeURIComponent(pathname.slice(1)) } : { item: decodeURIComponent(id) };
+	} catch {
+		return undefined;
+	}
 }
 
 export function documentTitle(url: string) {
-	const pathname = new URL(url, "http://127.0.0.1").pathname;
-	return (itemRouteId(pathname) ?? decodedPath(pathname)) || undefined;
+	const target = documentTarget(new URL(url, "http://127.0.0.1").pathname);
+	return target && ("item" in target ? target.item : target.file);
 }
