@@ -1,0 +1,16 @@
+{"path":"packages/effect-changes-prisma/src/closed.spec.ts","rule":"tests/named-values","count":1}
+{"path":"packages/effect-changes-prisma/src/coverageCheck.spec.ts","rule":"tests/named-values","count":1}
+{"path":"packages/effect-changes-prisma/src/coverageCheck.spec.ts","rule":"tests/spec-helpers","count":1}
+{"path":"packages/effect-changes-prisma/src/nested.spec.ts","rule":"tests/named-values","count":1}
+{"path":"packages/effect-changes-prisma/src/test-support/bindingIsolation.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/effect-changes-prisma/src/test-support/changes.ts","rule":"tests/support-imports","count":5}
+{"path":"packages/effect-changes-prisma/src/test-support/nativeExpiry.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/effect-changes-prisma/src/test-support/nonnegativeOrderChanges.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/effect-changes-prisma/src/test-support/postgresEngine.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/effect-changes-prisma/src/test-support/postgresVerbs.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/effect-changes-prisma/src/test-support/prisma.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/effect-changes-prisma/src/test-support/prismaTraits.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/effect-changes-prisma/src/test-support/reusedConnection.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/effect-changes-prisma/src/test-support/writeEngine.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/effect-changes-prisma/src/timeout.spec.ts","rule":"tests/story-specs","count":1}
+{"path":"packages/effect-changes-prisma/src/transaction.ts","rule":"files/named-after-export","count":1}

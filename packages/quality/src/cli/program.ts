@@ -1,4 +1,6 @@
 import { Console, Effect } from "effect";
+import { installDriver } from "#baseline/installDriver.ts";
+import { mergeBaseline } from "#baseline/merge.ts";
 import { parseCommand, USAGE } from "#cli/args.ts";
 import { writeBaseline } from "#cli/baseline.ts";
 import { fix } from "#cli/fix.ts";
@@ -31,6 +33,10 @@ export const program = Effect.fn("Cli.program")(function* (args: readonly string
 			return yield* lint(cwd, command.config);
 		case "Fix":
 			return yield* fix(cwd, command.config);
+		case "BaselineMerge":
+			return yield* mergeBaseline(command.base, command.ours, command.theirs);
+		case "BaselineInstallDriver":
+			return yield* installDriver(cwd, launch);
 		case "BaselineWrite":
 			return yield* writeBaseline(cwd, command.config, command.rules);
 		case "BaselinePrune":

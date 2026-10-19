@@ -1,13 +1,13 @@
 import { join } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
-import { encodeBaseline } from "#baseline/format.ts";
+import { decodeBaseline } from "#baseline/format.ts";
 import { convertLegacy, decodeLegacyBaseline, LEGACY_BASELINE } from "#baseline/legacy.ts";
+import { saveShards, shardPaths } from "#baseline/shards.ts";
 import { loadConfig } from "#config/load.ts";
 import { validOrFail } from "#decoded.ts";
 import { readInput } from "#engine/baselineFile.ts";
 import { scan } from "#engine/session.ts";
 import { SetupFailure } from "#failure.ts";
-import { writeText } from "#inventory/filesystem.ts";
 import { plural } from "#report/plural.ts";
 
 export const migrateBaseline = Effect.fn("Cli.migrateBaseline")(function* (
@@ -17,17 +17,21 @@ export const migrateBaseline = Effect.fn("Cli.migrateBaseline")(function* (
 ): Effect.fn.Return<void, SetupFailure, FileSystem.FileSystem> {
 	const config = yield* loadConfig(cwd, configPath);
 	const source = from ?? LEGACY_BASELINE;
-	if (source === config.baseline || (yield* readInput(config.root, config.baseline)) !== undefined) {
+	const paths = yield* shardPaths(config).pipe(Effect.mapError((error) => new SetupFailure({ message: error.message })));
+	const existing = yield* Effect.forEach(paths, (path) => readInput(config.root, path));
+	if (source === config.baseline || existing.some((text) => text !== undefined)) {
 		return yield* new SetupFailure({ message: `${config.baseline} already exists. Migrate into a baseline file that does not exist yet.` });
 	}
 	const raw = yield* readInput(config.root, source);
 	if (raw === undefined) {
 		return yield* new SetupFailure({ message: `no baseline at ${source} to migrate. Name it with --from <file>.` });
 	}
-	const legacy = yield* validOrFail(source, yield* Effect.promise(() => decodeLegacyBaseline(raw)));
-	const entries = convertLegacy(legacy, (yield* scan(config)).violations);
+	const legacy = source.endsWith(".jsonl")
+		? yield* validOrFail(source, yield* Effect.promise(() => decodeBaseline(raw)))
+		: yield* validOrFail(source, yield* Effect.promise(() => decodeLegacyBaseline(raw)));
+	const entries = source.endsWith(".jsonl") ? legacy : convertLegacy(legacy, (yield* scan(config)).violations);
 	const fs = yield* FileSystem.FileSystem;
-	const written = Effect.andThen(writeText(join(config.root, config.baseline), encodeBaseline(entries)), fs.remove(join(config.root, source)));
+	const written = Effect.andThen(saveShards(config, new Map(), entries), fs.remove(join(config.root, source)));
 	yield* Effect.mapError(written, (failure) => new SetupFailure({ message: failure.message }));
 	const fixed = legacy.length - entries.length;
 	const dropped = fixed > 0 ? `, dropping ${plural(fixed, "fixed entry", "fixed entries")}` : "";

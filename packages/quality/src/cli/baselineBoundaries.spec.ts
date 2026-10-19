@@ -7,12 +7,12 @@ afterEach(removeSeededTrees);
 describe("baseline migration boundaries", { timeout: 60_000 }, () => {
 	it("refuses to overwrite an existing JSON Lines baseline", () => {
 		const root = seedTree(trees.clean, [
-			{ content: "", path: "quality/baseline.jsonl" },
+			{ content: "", path: "quality-baseline.jsonl" },
 			{ content: "{}", path: "quality/baseline.json" },
 		]);
 		expect(quality(root, "baseline", "migrate")).toEqual({
 			status: 2,
-			stderr: "quality: quality/baseline.jsonl already exists. Migrate into a baseline file that does not exist yet.\n",
+			stderr: "quality: quality-baseline.jsonl already exists. Migrate into a baseline file that does not exist yet.\n",
 			stdout: "",
 		});
 	});
