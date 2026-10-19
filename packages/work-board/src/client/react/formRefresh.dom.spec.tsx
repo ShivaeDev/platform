@@ -9,7 +9,7 @@ expectNoReactWarnings();
 const SOURCE =
 	"---\nid: task.fixture\nkind: task\nnext_action: Inspect the proof\nattention:\n - id: direction\n   kind: decision\n   state: open\n   reason: Choose a direction\n   response_from: [maintainer]\n   unblocks: [task.fixture]\n---\n# A task\n\nTask context.\n";
 const cases = [
-	{ field: '[name="body"]', kind: "response", query: "document" as const, source: SOURCE, url: "/_board/item/task.fixture/" },
+	{ field: '[name="body"]', kind: "response", query: "document" as const, source: SOURCE, url: "/_board/item/task.fixture/", writable: true },
 	{
 		field: '[data-prompt="answer"] textarea',
 		kind: "response",
@@ -17,6 +17,7 @@ const cases = [
 		source:
 			"---\nid: task.fixture\nkind: question\nstatus: open\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n",
 		url: "/_board/item/task.fixture/",
+		writable: true,
 	},
 	{
 		field: '[name="body"]',
@@ -25,15 +26,16 @@ const cases = [
 		source:
 			"---\nid: task.fixture\nkind: question\nstatus: open\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n",
 		url: "/_board/item/task.fixture/",
+		writable: true,
 	},
-	{ field: '[name="goal"]', kind: "handoff", query: "handoff" as const, source: SOURCE, url: "/_board/handoff?item=task.fixture" },
+	{ field: '[name="goal"]', kind: "handoff", query: "handoff" as const, source: SOURCE, url: "/_board/handoff?item=task.fixture", writable: false },
 ];
-for (const { kind, query, field, url, source: content } of cases) {
+for (const { kind, query, field, url, source: content, writable } of cases) {
 	const files = { "home.md": "# Home", "task.md": content };
 	const selector = `#${kind}-form ${field}`;
 	screenStory.it(
 		`retains ${query} ${field} draft, source notice and caret through query refresh and reload`,
-		[screenWorkspace("forms-fixture"), routedScreen(files, url)],
+		[screenWorkspace("forms-fixture"), routedScreen(files, url, { writable })],
 		function* ({ findElement, readText, readFocus, typeText, selectText, editFile, refreshQuery, browserEvent, closeScreen, renderRouter }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement(`#${kind}-form`)).not.toBeNull()));
 			const original = findElement<HTMLTextAreaElement>(selector);
@@ -58,7 +60,7 @@ for (const { kind, query, field, url, source: content } of cases) {
 			}
 			expect(readFocus()).toBe(restored);
 			expect([restored?.selectionStart, restored?.selectionEnd, restored?.selectionDirection]).toEqual([4, 9, "backward"]);
-			expect(findElement(`#${kind}-submit`)).toHaveProperty("disabled", true);
+			expect(findElement(`#${kind}-submit`)).toHaveProperty("disabled", !writable);
 		},
 	);
 }
