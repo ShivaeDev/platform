@@ -1,3 +1,4 @@
+import { betterAuth } from "better-auth";
 import { type Duration, Effect, Fiber, Layer, Option, Queue, Schema, Stream } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
@@ -5,6 +6,7 @@ import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { Identity, OptionalIdentity, SessionUser, SessionUserWithProviderAccounts } from "@shivaedev/platform/rpc/identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "@shivaedev/platform/rpc/middleware.ts";
+import { authTestUtils, signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
 import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
 import {
 	authenticatedLayer,
@@ -14,7 +16,7 @@ import {
 } from "@shivaedev/platform/server/rpc-server/session.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { AuthUnavailable } from "#errors/taxonomy.ts";
-import { createProvider, signup } from "./harness.ts";
+import { createProvider } from "./harness.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
 import { signOut } from "./sessionLifecycle.ts";
 
@@ -30,7 +32,13 @@ export const streamSession = storyKit({
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		const provider = yield* createProvider(database.url);
-		const account = yield* Effect.promise(() => signup(provider, "alice"));
+		const mintingAuth = betterAuth({ ...provider.auth.options, plugins: [authTestUtils()] });
+		const session = yield* Effect.promise(() => signedInUser(mintingAuth, { email: "alice@example.test", name: "Alice" }));
+		const cookie = session.headers.get("cookie");
+		if (cookie === null) {
+			return yield* Effect.die("The minted session did not supply a cookie");
+		}
+		const account = { cookie, userId: session.user.id };
 		const input = yield* Queue.unbounded<string>();
 		const output = yield* Queue.unbounded<string>();
 		const checked = yield* Queue.unbounded<void>();
