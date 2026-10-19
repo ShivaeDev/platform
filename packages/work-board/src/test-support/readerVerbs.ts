@@ -74,6 +74,23 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			return opened;
 		}),
 		preview: () => formEvent(page(), () => click("response-preview")),
+		requestsByMethod: Effect.fn("Story.requestsByMethod")(function* () {
+			tell("the reader waits for the page to settle and counts its RPC requests by method");
+			const opened = page();
+			yield* Effect.promise(() =>
+				waitFor(() => {
+					if (opened.document.getElementById("live")?.textContent !== "live") {
+						throw new Error("The page is not live yet");
+					}
+				}),
+			);
+			let seen = -1;
+			while (seen !== opened.pageRequests.methods.length) {
+				seen = opened.pageRequests.methods.length;
+				yield* Effect.sleep("150 millis");
+			}
+			return Object.fromEntries(Map.groupBy(opened.pageRequests.methods, (method) => method).entries().map(([method, calls]) => [method, calls.length]));
+		}),
 		responseStatus: () => page().document.getElementById("response-status")?.textContent,
 		savedResponses: () => savedResponseItems(engine),
 		submit: (form = "response-form") =>

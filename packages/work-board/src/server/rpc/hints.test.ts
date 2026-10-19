@@ -18,3 +18,17 @@ boardStory.it(
 		expect(yield* events.next()).toEqual({ _tag: "Resync" });
 	},
 );
+
+boardStory.it(
+	"sends no hint for a saved file whose bytes and modification time did not change",
+	[projectFiles({ "note.md": "# Note", "other.md": "# Other" })],
+	function* ({ watchProject, editFile, resaveFile }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		resaveFile("note.md");
+		editFile("other.md", "# Other edited");
+		const hint = yield* events.next();
+		expect(hint).toMatchObject({ _tag: "Changed", keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "other.md" }]) });
+		expect(JSON.stringify(hint)).not.toContain("note.md");
+	},
+);

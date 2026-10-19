@@ -4,6 +4,7 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
 import type { ShellOptions } from "./BoardShell.tsx";
 import { documentRoute } from "./documentRoute.ts";
+import { awaitLiveReady } from "./liveReady.ts";
 import { loadProjection } from "./loadProjection.ts";
 import { loadRemaining } from "./loadRemaining.ts";
 import { projectionRoute } from "./projectionRoute.ts";
@@ -33,6 +34,7 @@ export async function loadBoardPage({ context: { shell }, location, abortControl
 	const { api, registry } = shell;
 	const url = location.pathname + location.searchStr;
 	try {
+		await awaitLiveReady(registry, shell.client?.updates, abortController.signal);
 		const navigation = await loadQuery(registry, navigationQuery(api), { abortController });
 		const projection = projectionRoute(location.pathname, navigation.home);
 		if (projection) {

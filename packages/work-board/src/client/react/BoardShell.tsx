@@ -14,6 +14,7 @@ import { OpeningView } from "./OpeningView.tsx";
 import { PhoneNavigation } from "./PhoneNavigation.tsx";
 import { ReadingLibrary } from "./ReadingLibrary.tsx";
 import { ReadingReadyContext, readingReady } from "./ReadingReadyContext.ts";
+import { useLiveRead } from "./liveReady.ts";
 import { navigationQuery } from "./routeQuery.ts";
 import { SearchDialog } from "./SearchDialog.tsx";
 import { SessionContext } from "./SessionContext.ts";
@@ -76,7 +77,7 @@ function BoardWorkspace(
 	const search = useSearchDialog();
 	const [libraryOpen, setLibraryOpen] = useState(false);
 	const location = useRouterState({ select: (state) => state.location });
-	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
+	const query = useQuery(useLiveRead(client?.updates, navigationQuery(api)), { keepPreviousData: true });
 	const opened = useOpened(options.opening);
 	const data = Option.getOrUndefined(query.data);
 	const { element } = useContext(ReadingReadyContext);

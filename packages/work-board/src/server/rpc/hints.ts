@@ -30,7 +30,10 @@ export function hints() {
 				});
 			}
 
-			const changesStream = Stream.fromSubscription(subscription).pipe(Stream.mapEffect(nextHint));
+			const changesStream = Stream.fromSubscription(subscription).pipe(
+				Stream.mapEffect(nextHint),
+				Stream.filter((hint) => hint._tag === "Resync" || hint.keys.length > 0),
+			);
 			return Stream.concat(Stream.succeed<LiveHint>({ _tag: "Resync" }), changesStream);
 		}),
 	);

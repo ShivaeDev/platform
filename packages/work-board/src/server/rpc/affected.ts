@@ -1,10 +1,18 @@
 import type { Key } from "@shivaedev/effect-contract/keys.ts";
 import { documents, identities, index, navigation } from "#rpc/keys.ts";
 import { referencesFrom } from "#server/metadata/backlinks.ts";
-import type { MetadataModel } from "#server/metadata/model.ts";
+import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { referencesOf } from "#server/metadata/referencesOf.ts";
 import { malformedResponse } from "#server/responses/records.ts";
 
+function same(old: MetadataDocument | undefined, next: MetadataDocument | undefined) {
+	return (
+		old?.modified === next?.modified
+		&& old?.parsed.body === next?.parsed.body
+		&& old?.parsed.raw === next?.parsed.raw
+		&& old?.parsed.bodyLine === next?.parsed.bodyLine
+	);
+}
 function uncertain(previous: MetadataModel, current: MetadataModel, paths: readonly string[]) {
 	if (previous.unavailable.length > 0 || current.unavailable.length > 0) {
 		return true;
@@ -71,8 +79,14 @@ export function affected(previous: MetadataModel, current: MetadataModel, paths:
 	if (uncertain(previous, current, paths)) {
 		return undefined;
 	}
+	const before = new Map(previous.documents.map((document) => [document.file, document]));
+	const after = new Map(current.documents.map((document) => [document.file, document]));
+	const changed = paths.filter((path) => !same(before.get(path), after.get(path)));
+	if (changed.length === 0) {
+		return [];
+	}
 	const models = [previous, current];
-	const files = linkedFiles(models, paths);
+	const files = linkedFiles(models, changed);
 	const keys: Key[] = [index.list, navigation.list, ...[...files].map((file) => documents.item(file))];
 	for (const model of models) {
 		if (model.rootFile && files.has(model.rootFile)) {

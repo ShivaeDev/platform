@@ -38,6 +38,10 @@ export const liveNotesStory = storyKit({
 			},
 			emit: (hint: Parameters<typeof server.emit>[0]) => Effect.promise(() => server.emit(hint)),
 			gateReads: (gate: Effect.Effect<void>) => Ref.set(server.gate, gate),
+			isPaused: () => {
+				story.tell("the consumer reads whether live reads are paused");
+				return registry.get(client.paused);
+			},
 			get: (id: number) => {
 				story.tell(`read live note ${id}`);
 				return run(client.api.get.run({ id }));
