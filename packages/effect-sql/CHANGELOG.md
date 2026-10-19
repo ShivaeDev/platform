@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0 - 2026-10-19
+
+### Added
+
+- Repositories expose `latestPerGroup({ partitionBy, orderBy, limit, where })` to read up to N rows per group in one statement, with typed filters applied before ranking and Schema-decoded results. `LatestPerGroup` and the existing `OrderBy` type are exported from `repository.ts`; the ordered sort keys include the caller's stable tie-break column.
+- `findMany` accepts a nonempty `orderBy` list of `{ field, direction }` entries, applying each in order to break ties with independently chosen directions. The single-object form and model field validation remain supported.
+
 ## 0.11.0 - 2026-10-19
 
 ### Added

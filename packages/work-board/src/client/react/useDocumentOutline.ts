@@ -39,9 +39,6 @@ export function useCurrentHeading(headings: readonly OutlineEntry[]) {
 	const [current, setCurrent] = useState<string>();
 	useEffect(() => {
 		const elements = headings.flatMap((heading) => document.getElementById(heading.id) ?? []);
-		if (elements.length === 0 || typeof IntersectionObserver !== "function") {
-			return;
-		}
 		function update() {
 			setCurrent(currentHeading(elements));
 		}

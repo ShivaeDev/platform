@@ -65,9 +65,9 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	}
 	return Layer.merge(
 		diagnostics,
-		ClientContract.toLayer(
+		ClientContract.omit("daemon.$changes").toLayer(
 			Effect.succeed(
-				ClientContract.of({
+				ClientContract.omit("daemon.$changes").of({
 					"daemon.answer": ({ workId, text, release }) => exposeFailure(settle(answers(workId, text, release))),
 					"daemon.dispatch": ({ workId, now, ignoreAreas }) => exposeFailure(dispatch.accept(workId, { ignoreAreas, now })),
 					"daemon.dispatch-status": ({ workId }) => exposeFailure(dispatch.get(workId)),

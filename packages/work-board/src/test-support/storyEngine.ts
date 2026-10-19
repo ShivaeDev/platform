@@ -28,6 +28,7 @@ export interface BoardEngine {
 	pollDiagnostics?: () => void;
 	readAt?: number;
 	reads?: WorkspaceReads;
+	repositoryLookup?: Deferred.Deferred<void>;
 	responses: boolean;
 	server?: { board: RunningBoard; client: ReturnType<typeof browserClient> };
 	sources?: Sources;

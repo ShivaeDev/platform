@@ -5,7 +5,7 @@ import { eventually } from "#test/eventually.ts";
 import { notes } from "#test/viewerEngine.ts";
 import { viewerStory } from "#test/viewerStory.ts";
 
-viewerStory.it("only the signed-in viewer who may query a row receives its changed key", [], function* ({ get, rename, watch, resync }) {
+viewerStory.it("contract-typed clients receive changed keys only for rows their viewer may query", [], function* ({ get, rename, watch, resync }) {
 	const alice: LiveHint[] = [];
 	const bob: LiveHint[] = [];
 	expect(yield* get("alice", 1)).toMatchObject({ id: 1, title: "One" });
@@ -23,6 +23,10 @@ viewerStory.it("only the signed-in viewer who may query a row receives its chang
 		expect(bob).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]);
 		expect(alice.at(-1)).toEqual({ _tag: "Resync" });
 	});
+});
+
+viewerStory.it("the contract's middleware rejects a change subscription without a session", [], function* ({ watch }) {
+	expect(yield* watch(undefined, [notes.item(1)], []).pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Denied" } });
 });
 
 viewerStory.it("both viewers receive allowed list hints while the private row key stays filtered", [], function* (test) {

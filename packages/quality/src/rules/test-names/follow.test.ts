@@ -59,4 +59,40 @@ describe("tests/follow", () => {
 			'"checkout.spec.ts" uses the DOM, so it is checkout.dom.spec.ts and runs in the dom project.',
 		]);
 	});
+
+	it("accepts the unit modifier, keeps it in the names it suggests and rejects a unit test of the DOM", async () => {
+		const unitSources = [
+			code("src/cart/cart.ts"),
+			code("src/cart/Basket.tsx"),
+			code("src/cart/cart.unit.test.ts"),
+			code("src/cart/checkoutFlow.unit.spec.ts"),
+			code("src/cart/totals.unit.test.ts"),
+			code("src/cart/cart.unit.spec.ts"),
+			code("src/cart/cart.unit.dom.test.ts"),
+			code("src/cart/Basket.unit.test.tsx", "document.body.append(node);\n"),
+		];
+		const findings = await checkRule(testsFollow, undefined, { sources: unitSources });
+		expect(findings).toEqual([
+			{
+				file: "src/cart/totals.unit.test.ts",
+				message:
+					'"totals.unit.test.ts" follows no file: totals.unit.test.ts sits beside totals.ts in the same folder. A test that covers the folder as a whole is a <behaviour>.spec.ts, such as checkoutFlow.unit.spec.ts.',
+			},
+			{
+				file: "src/cart/cart.unit.spec.ts",
+				message:
+					'"cart.unit.spec.ts" shares its name with cart.ts. A .spec names a behaviour of its folder, such as checkoutFlow.unit.spec.ts; a test of cart.ts is cart.unit.test.ts.',
+			},
+			{
+				file: "src/cart/cart.unit.dom.test.ts",
+				message:
+					'"cart.unit.dom.test.ts" is both a unit and a DOM test, but a unit test runs without the DOM. Drive the DOM through the package\'s story kit in cart.dom.test.ts, or keep only pure code in cart.unit.test.ts.',
+			},
+			{
+				file: "src/cart/Basket.unit.test.tsx",
+				message:
+					'"Basket.unit.test.tsx" uses the DOM, so it is Basket.dom.test.tsx, not a unit test, and drives the DOM through the package\'s story kit and runs in the dom project.',
+			},
+		]);
+	});
 });

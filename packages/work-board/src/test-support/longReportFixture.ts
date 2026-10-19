@@ -84,3 +84,13 @@ ${filler}
 [guide]: guide.md
 [^source]: Read the source.
 `;
+
+export const REWRITTEN_SUMMARY = "The research now fits in one paragraph.";
+export const REWRITTEN_REPORT = `---
+id: report.long-research
+kind: report
+---
+# ${LONG_REPORT_TITLE}
+
+${REWRITTEN_SUMMARY}
+`;

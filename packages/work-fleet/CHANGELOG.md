@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.7 - 2026-10-19
+
+### Fixed
+
+- Exported RPC contracts and application handler layers stay compatible with typed reserved change streams supplied by Platform hosts.
+
 ## 0.13.6 - 2026-10-19
 
 ### Fixed
