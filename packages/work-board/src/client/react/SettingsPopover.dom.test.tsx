@@ -9,7 +9,9 @@ screenStory.it(
 	[headerScreen(0, true)],
 	function* ({ click, control, findElements, keyboard, readFocus, readRootAttribute, readPaused, roles }) {
 		const settings = { name: "Settings", role: "dialog" } as const;
-		const pressed = () => findElements('[role="group"] [aria-pressed="true"]', document).map((found) => roles.accessible(found).name);
+		function pressed() {
+			return findElements('[role="group"] [aria-pressed="true"]', document).map((found) => roles.accessible(found).name);
+		}
 		expect(() => roles.text(settings)).toThrow(/has 0 matches/u);
 		yield* roles.click({ name: "Settings", role: "button" });
 		expect(roles.text({ name: "Theme", role: "group" })).toContain("System");

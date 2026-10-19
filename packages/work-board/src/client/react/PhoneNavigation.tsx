@@ -87,7 +87,7 @@ export function PhoneNavigation({
 					<MoreDestinations current={current} />
 					<MoreReading
 						current={main.file}
-						openHistory={() => {
+						onOpenHistory={() => {
 							historyRef.current = true;
 							onMoreChange(false);
 							reading.openHistory(openerRef.current);
@@ -116,13 +116,13 @@ function MoreDestinations({ current }: { readonly current: string | undefined })
 	);
 }
 
-function MoreReading({ current, openHistory }: { readonly current: string; readonly openHistory: () => void }) {
+function MoreReading({ current, onOpenHistory }: { readonly current: string; readonly onOpenHistory: () => void }) {
 	const reading = useContext(LibraryContext);
 	return (
 		<div className="grid gap-4 px-4">
 			<ReadingLinks current={current} items={reading.favorites} title="Pinned" />
 			<ReadingLinks current={current} items={reading.recents.slice(0, 5)} title="Recent" />
-			<Button className="justify-start" onClick={openHistory} type="button" variant="ghost">
+			<Button className="justify-start" onClick={onOpenHistory} type="button" variant="ghost">
 				<History aria-hidden="true" />
 				Reading history
 			</Button>

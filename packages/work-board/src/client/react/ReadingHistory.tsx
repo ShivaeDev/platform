@@ -11,13 +11,13 @@ function LibraryList({
 	items,
 	available,
 	current,
-	close,
+	onClose,
 }: {
 	readonly title: string;
 	readonly items: readonly Item[];
 	readonly available: ReadonlySet<string>;
 	readonly current: string;
-	readonly close: () => void;
+	readonly onClose: () => void;
 }) {
 	const id = useId();
 	if (items.length === 0) {
@@ -35,7 +35,7 @@ function LibraryList({
 							aria-current={item.file === current ? "page" : undefined}
 							className="block truncate rounded-md px-2 py-1.5 text-foreground no-underline outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground"
 							href={fileUrl(item.file)}
-							onClick={close}
+							onClick={onClose}
 							title={item.title}
 						>
 							{item.title}
@@ -50,13 +50,13 @@ function LibraryList({
 
 export function ReadingHistory({
 	api,
-	close,
+	onClose,
 	current,
 	favorites,
 	recents,
 }: {
 	readonly api: ShellApi;
-	readonly close: () => void;
+	readonly onClose: () => void;
 	readonly current: string;
 	readonly favorites: readonly Item[];
 	readonly recents: readonly Item[];
@@ -66,8 +66,8 @@ export function ReadingHistory({
 	const available = new Set(data ? data.files.map((file) => file.path) : [...favorites, ...recents].map((item) => item.file));
 	return (
 		<nav aria-label="Reading history" id={shellIds.readingLibrary}>
-			<LibraryList available={available} close={close} current={current} items={favorites} title="Pinned" />
-			<LibraryList available={available} close={close} current={current} items={recents} title="Recent documents" />
+			<LibraryList available={available} current={current} items={favorites} onClose={onClose} title="Pinned" />
+			<LibraryList available={available} current={current} items={recents} onClose={onClose} title="Recent documents" />
 		</nav>
 	);
 }

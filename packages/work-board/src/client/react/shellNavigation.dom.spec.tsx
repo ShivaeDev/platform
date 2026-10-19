@@ -31,14 +31,22 @@ screenStory.it(
 		yield* roles.click({ name: "Reading history", role: "button" });
 		expect(roles.text({ name: "Pinned", role: "list" })).toBe("First");
 		expect(roles.text({ name: "Recent documents", role: "list" })).toContain("Next");
-		expect(findElements(`[role="dialog"] a[href]`, document).map((link) => [roles.accessible(link).name, link.getAttribute("href"), link.getAttribute("aria-current")])).toEqual([
+		expect(
+			findElements(`[role="dialog"] a[href]`, document).map((link) => [
+				roles.accessible(link).name,
+				link.getAttribute("href"),
+				link.getAttribute("aria-current"),
+			]),
+		).toEqual([
 			["First", "/notes/first.md", null],
 			["Plan", "/notes/plan.md", "page"],
 			["Next", "/notes/next.md", null],
 		]);
 		keyboard("Escape");
 		yield* Effect.promise(() => eventually(() => expect(() => roles.text({ name: "Reading history", role: "dialog" })).toThrow(missing)));
-		yield* Effect.promise(() => eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "Reading history", role: "button" })));
+		yield* Effect.promise(() =>
+			eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "Reading history", role: "button" })),
+		);
 	},
 );
 
@@ -53,7 +61,7 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readStarted()).toBe(true)));
 		expect(readAttribute(current, "aria-label")).toMatch(/^Now/u);
 		expect(() => roles.text(progress)).toThrow(missing);
-		yield* Effect.promise(() => eventually(() => expect(roles.text(progress)).toBe("")));
+		yield* Effect.promise(() => eventually(() => expect(() => roles.text(progress)).not.toThrow()));
 		yield* Effect.promise(releaseRead);
 		yield* Effect.promise(finishNavigation);
 		yield* Effect.promise(() => eventually(() => expect(readText(".work-head h1")).toBe("Now")));
@@ -82,7 +90,13 @@ screenStory.it(
 	function* ({ findElements, keyboard, readFocus, roles }) {
 		yield* roles.click({ name: "More", role: "button" });
 		expect(roles.text({ name: "More", role: "dialog" })).toContain("Reading history");
-		expect(findElements(`[role="dialog"] section a[href]`, document).map((link) => [roles.accessible(link).name, link.getAttribute("href"), link.getAttribute("aria-current")])).toEqual([
+		expect(
+			findElements(`[role="dialog"] section a[href]`, document).map((link) => [
+				roles.accessible(link).name,
+				link.getAttribute("href"),
+				link.getAttribute("aria-current"),
+			]),
+		).toEqual([
 			["First", "/notes/first.md", null],
 			["Plan", "/notes/plan.md", "page"],
 			["Next", "/notes/next.md", null],

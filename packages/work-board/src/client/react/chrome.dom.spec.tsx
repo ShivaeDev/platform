@@ -56,7 +56,10 @@ expectNoReactWarnings();
 			yield* Effect.promise(() => closeScreen());
 			yield* Effect.promise(() => chrome());
 			click("#settings-open");
-			expect(findElements('[role="group"] [aria-pressed="true"]', document).map((found) => roles.accessible(found).name)).toEqual(["Dark", "Compact"]);
+			expect(findElements('[role="group"] [aria-pressed="true"]', document).map((found) => roles.accessible(found).name)).toEqual([
+				"Dark",
+				"Compact",
+			]);
 			expect(control("#sidebar-toggle", HTMLButtonElement).getAttribute("aria-expanded")).toBe("false");
 		},
 	);

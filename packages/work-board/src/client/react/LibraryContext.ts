@@ -17,8 +17,8 @@ export function restoreLibrary(key: string) {
 }
 interface LibraryState {
 	readonly favorites: readonly Item[];
+	readonly openHistory: (returnFocus: HTMLElement | null) => void;
 	readonly recents: readonly Item[];
 	readonly toggle: (file: string, title: string) => void;
-	readonly openHistory: (returnFocus: HTMLElement | null) => void;
 }
 export const LibraryContext = createContext<LibraryState>({ favorites: [], openHistory: () => undefined, recents: [], toggle: () => undefined });

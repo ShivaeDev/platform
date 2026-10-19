@@ -9,8 +9,7 @@ type Destination = (typeof workspaceDestinations)[number]["view"];
 
 export function useNavigationTarget() {
 	return useRouterState({
-		select: (state) =>
-			state.status === "pending" && state.location.href !== state.resolvedLocation?.href ? state.location.pathname : undefined,
+		select: (state) => (state.status === "pending" && state.location.href !== state.resolvedLocation?.href ? state.location.pathname : undefined),
 	});
 }
 

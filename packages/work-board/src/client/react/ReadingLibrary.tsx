@@ -129,7 +129,7 @@ function HistoryDialog({
 					<DialogTitle>Reading history</DialogTitle>
 				</DialogHeader>
 				<div className="min-h-0 overflow-y-auto px-2 pb-4">
-					<ReadingHistory api={api} close={() => close(true)} current={current} favorites={saved.favorites} recents={saved.recents} />
+					<ReadingHistory api={api} current={current} favorites={saved.favorites} onClose={() => close(true)} recents={saved.recents} />
 					{saved.notice !== "" && (
 						<p className="px-2 text-muted-foreground text-xs" role="status">
 							{saved.notice}

@@ -2,6 +2,7 @@ import { AlertCircle, Inbox, PanelLeft, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Button, buttonVariants } from "#client/react/components/ui/button.tsx";
+import { Progress } from "#client/react/components/ui/progress.tsx";
 import { destinationName } from "#client/react/destinationName.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 import type { MainLocation } from "./mainLocation.ts";
@@ -93,9 +94,11 @@ export function Header({
 			</span>
 			<SettingsPopover appearance={appearance} updates={updates} />
 			{pending && (
-				<div aria-label="Opening page" className="absolute inset-x-0 -bottom-px h-0.5 overflow-hidden" role="progressbar">
-					<div className="h-full w-full animate-pulse bg-primary motion-reduce:animate-none" />
-				</div>
+				<Progress
+					aria-label="Opening page"
+					className="absolute inset-x-0 -bottom-px gap-0 **:data-[slot=progress-indicator]:w-full **:data-[slot=progress-indicator]:animate-pulse motion-reduce:**:data-[slot=progress-indicator]:animate-none"
+					value={null}
+				/>
 			)}
 		</header>
 	);
