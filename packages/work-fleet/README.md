@@ -197,6 +197,7 @@ fleet-priority: high
 | `work-fleet dispatch <work-id> [--now [--ignore-areas]] [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. `--now` launches over capacity limits; `--ignore-areas` also skips area claims. |
 | `work-fleet status [--port <port>]` | Prints Active, owner-grouped waiting and Completed views from stored records, then the config the daemon applies. |
 | `work-fleet status <work-id> --json [--port <port>]` | Filters to one item and prints the views as JSON. |
+| `work-fleet close-finished-decisions [--dry-run] [--port <port>]` | Closes unanswered Fleet decision requests whose linked Board work is done, deferred or superseded; previews each closure with `--dry-run`. |
 | `work-fleet release <work-id>... [--port <port>]` | Releases terminal needs-human items and records closing responses on their Board decisions. |
 | `work-fleet reassign <work-id> <decision-id> <owner> [--port <port>]` | Reassigns the exact current question to maintainer, orchestrator or automation. |
 | `work-fleet wait <work-id> --timeout <seconds> [--port <port>]` | Subscribes to daemon snapshots until an outcome or timeout. |
@@ -204,6 +205,8 @@ fleet-priority: high
 | `work-fleet continue <work-id> [message] [--port <port>]` | Continues terminal work on its existing worker thread; reads stdin when the message is omitted. |
 | `work-fleet answer <work-id> [text] [--release] [--port <port>]` | Answers the waiting worker question or Fleet decision; reads text from stdin when omitted, except with `--release`. |
 | `work-fleet name-threads [--port <port>]` | Names existing Cloud threads from Fleet records and reports each rename or failure. |
+
+Reconciliation closes open Fleet decision requests when their linked Board work is done, deferred or superseded, including work finished outside Fleet. The decision source records `state: closed` and the Board status that caused closure. `close-finished-decisions` sweeps existing unanswered decisions, leaves live work open, and closes nothing on a second run.
 
 Automatic reconciliation refreshes eligible edited briefs in place. Explicit dispatch can re-approve work waiting on a context decision; renewal still requires safe execution and result ownership. Keep `serve` active to reconcile worker progress. All commands except `serve` connect to its loopback port over RPC and open no PostgreSQL connection. `serve` writes its bound port to `<board-dir>/.fleet-port`. Clients read that file from `--board <board-dir>` (default `.work`); an explicit `--port` overrides discovery. On shutdown, the daemon removes the port file if it still holds that daemon's port. The running daemon owns its configuration; client `--config` does not change it. Without a daemon, clients other than `watch --follow` exit 1 with the address and a command to start it.
 

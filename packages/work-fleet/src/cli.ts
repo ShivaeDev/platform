@@ -12,6 +12,7 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { answerCommand, continueCommand, nameThreadsCommand, reassignCommand, releaseCommand } from "#host/actionCommands.ts";
 import { board, clientPort, config, host, port } from "#host/cliOptions.ts";
+import { closeFinishedDecisionsCommand } from "#host/closeFinishedDecisionsCommand.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
 import { reservePrCommand } from "#host/reservePrCommand.ts";
 import { VERSION } from "#packageInfo.ts";
@@ -84,6 +85,7 @@ const cli = Command.make("work-fleet").pipe(
 	Command.withDescription("Run approved Work Board items through Work Fleet"),
 	Command.withSubcommands([
 		serveCommand,
+		closeFinishedDecisionsCommand,
 		dispatchCommand,
 		reservePrCommand,
 		continueCommand,

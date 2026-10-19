@@ -28,6 +28,11 @@ export function completeBoardWork(state: EngineState) {
 				.complete(stored.value.workId, stored.value.boardSourcePath, action)
 				.pipe(Effect.catchTag("BoardFailure", (error) => Effect.logWarning(error.message)));
 		}
+		if (state.board.closeFinishedDecisions !== undefined) {
+			yield* state.board
+				.closeFinishedDecisions({ workId: stored.value.workId })
+				.pipe(Effect.catchTag("BoardFailure", (error) => Effect.logWarning(error.message)));
+		}
 		return stored;
 	});
 }

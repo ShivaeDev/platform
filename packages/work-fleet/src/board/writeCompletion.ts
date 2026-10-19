@@ -23,11 +23,14 @@ const replace = Effect.fnUntraced(function* (
 	source: string,
 	content: string,
 ) {
-	if (source === content || !(yield* current(target.folder, name, source))) {
-		return;
+	if (!(yield* current(target.folder, name, source))) {
+		return false;
+	}
+	if (source === content) {
+		return true;
 	}
 	const temporary = `${target.folder}/.${name}-${crypto.randomUUID()}.tmp`;
-	yield* Effect.acquireUseRelease(
+	return yield* Effect.acquireUseRelease(
 		reportFileIo(name, () => open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL, 0o600)),
 		(file) =>
 			Effect.gen(function* () {
@@ -37,10 +40,11 @@ const replace = Effect.fnUntraced(function* (
 					yield* validateReportDirectory(name, directory);
 				}
 				if (!(yield* current(target.folder, name, source))) {
-					return;
+					return false;
 				}
 				yield* reportFileIo(name, () => rename(temporary, `${target.folder}/${name}`));
 				yield* reportFileIo(name, () => target.file.sync());
+				return true;
 			}),
 		(file) => reportFileIo(name, () => file.close()).pipe(Effect.onExit(() => reportFileIo(name, () => rm(temporary, { force: true })))),
 	);
@@ -50,13 +54,13 @@ export function writeCompletion(root: string, realRoot: string, relative: string
 	const parts = relative.split("/");
 	const name = parts.pop();
 	if (name === undefined || !name.endsWith(".md") || parts.some((part) => part === "" || part === "." || part === "..")) {
-		return Effect.void;
+		return Effect.succeed(false);
 	}
 	function descend(
 		directory: ReportDirectory,
 		parents: readonly ReportDirectory[],
 		index: number,
-	): Effect.Effect<void, Effect.Error<ReturnType<typeof replace>>> {
+	): Effect.Effect<boolean, Effect.Error<ReturnType<typeof replace>>> {
 		const directories = [...parents, directory];
 		const part = parts[index];
 		return part === undefined
