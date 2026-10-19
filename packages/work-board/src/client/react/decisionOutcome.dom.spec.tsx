@@ -1,7 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
-import { decisionId } from "#test/answerCardFixture.ts";
+import { questionId, responseMarkdown, revisionOf } from "#server/responses/records.ts";
+import { decisionFile, decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
 import { answeredDecisionFixture } from "#test/answeredDecisionFixture.ts";
 import { closedDecision, unansweredDecision } from "#test/itemHeaderFixture.ts";
 import { reviewedDecisionId, reviewedWorkFixture } from "#test/reviewedWorkFixture.ts";
@@ -19,6 +20,22 @@ const AUTHORED = {
 		kind: "decision",
 		status: "done",
 	})}\n---\n# Seven design questions\n\nThe choices where a maintainer could go either way.\n`,
+};
+const question = questionId(decisionId, "direction", revisionOf(readyDecisionFixture[decisionFile] ?? ""), decisionFile);
+const competing = {
+	...closedDecision(answeredDecisionFixture()),
+	"responses/response.direction-release.md": responseMarkdown({
+		body: "Stop and hand back",
+		id: "response.direction-release",
+		response: {
+			answers: [{ prompt: "fleet-action", selected: ["release"], text: "Hand it back before the release." }],
+			author: "orchestrator",
+			question,
+			recordedAt: 3000,
+			reviewedRevision: revisionOf(readyDecisionFixture[decisionFile] ?? ""),
+			type: "answer",
+		},
+	}),
 };
 const quietPacket = Object.fromEntries(
 	Object.entries(reviewedWorkFixture()).map(([file, source]) => [
@@ -43,6 +60,26 @@ screenStory.it(
 		expect(readText(".item-introduction h1")).toBe("Fleet decision: Publish the install guide");
 		expect(readTitle()).toContain("Fleet decision: Publish the install guide");
 		expect(findElement("main[data-decision-packet]")).not.toBeNull();
+	},
+);
+
+screenStory.it(
+	"shows every author's current answer with its note when answers compete",
+	[routedScreen(competing, `/_board/item/${decisionId}/`, { home: "home.md" })],
+	function* ({ findElement, findElements, readText }) {
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements(`${OUTCOME} [data-outcome-answer]`).map((answer) => answer.getAttribute("data-outcome-answer"))).toEqual([
+					"response.direction-retry",
+					"response.direction-release",
+				]),
+			),
+		);
+		const release = findElement(`${OUTCOME} [data-outcome-answer='response.direction-release']`);
+		expect(readText("p:first-child", release)).toBe("Stop and hand back");
+		expect(readText("p:nth-child(2)", release)).toBe("Hand it back before the release.");
+		expect(readText("p:last-child", release)).toMatch(/^Answered by orchestrator \S/u);
+		expect(readText(`${OUTCOME} [data-outcome-answer='response.direction-retry'] > p:first-child`)).toBe("Request changes");
 	},
 );
 

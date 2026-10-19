@@ -12,7 +12,7 @@ export function DecisionOutcome({ document }: { readonly document: Document }) {
 	const id = useId();
 	const kind = document.metadata.kind;
 	const status = itemStatus(document);
-	if ((kind !== "decision" && kind !== "question") || !(status === "answered" || closedStatus(status))) {
+	if ((kind !== "decision" && kind !== "question") || !(status === "answered" || (closedStatus(status) && closedInSource(document)))) {
 		return null;
 	}
 	const unavailable = document.requests.find((request) => request.unavailable)?.unavailable;
@@ -28,12 +28,15 @@ export function DecisionOutcome({ document }: { readonly document: Document }) {
 			</h2>
 			{unavailable !== undefined && <p className="m-0 text-sm">{unavailable}</p>}
 			{unavailable === undefined && answers.length === 0 && <p className="m-0 text-sm">Closed with no answer recorded on the Board.</p>}
-			{unavailable === undefined
-				&& answers
-					.toSorted((a, b) => b.record.response.recordedAt - a.record.response.recordedAt)
-					.map(({ record, request }) => <RecordedAnswer key={record.id} record={record} request={request} />)}
+			{unavailable === undefined && answers.map(({ record, request }) => <RecordedAnswer key={record.id} record={record} request={request} />)}
 		</section>
 	);
+}
+
+// The Board also calls an unanswered item without a status closed; only the source's own word closes it.
+function closedInSource(document: Document) {
+	const attention = document.metadata.attention ?? [];
+	return closedStatus(document.metadata.status) || (attention.length > 0 && attention.every((request) => request.state !== "open"));
 }
 
 function RecordedAnswer({ record, request }: { readonly record: RecordedResponse; readonly request: DocumentRequest }) {
