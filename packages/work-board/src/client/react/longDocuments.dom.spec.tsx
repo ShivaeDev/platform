@@ -2,7 +2,8 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { finishDocumentBody, heldDocumentBody } from "#test/documentBodyTiming.ts";
-import { LATE_HEADING, LONG_REPORT, LONG_REPORT_TITLE } from "#test/longReportFixture.ts";
+import { failingSectionRender } from "#test/failingSectionRender.ts";
+import { LATE_HEADING, LONG_REPORT, LONG_REPORT_TITLE, REWRITTEN_REPORT, REWRITTEN_SUMMARY } from "#test/longReportFixture.ts";
 import { observedOutline } from "#test/observedOutline.ts";
 import { screenMedia } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -70,5 +71,33 @@ screenStory.it(
 				expect(findElement('[data-slot="popover-content"] a[aria-current="location"]', document)?.getAttribute("href")).toBe("#heading-finding-7"),
 			),
 		);
+	},
+);
+
+screenStory.it(
+	"keeps the new version of a long report when the file changes while the old version is still rendering",
+	[heldDocumentBody(), routedScreen(files, "/report.md")],
+	function* ({ editFile, findElement, readText, refreshDocument }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc [data-page-header] h1")).toBe(LONG_REPORT_TITLE)));
+		editFile("report.md", REWRITTEN_REPORT);
+		yield* Effect.promise(() => refreshDocument("/report.md"));
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc article.doc")?.trim()).toBe(REWRITTEN_SUMMARY)));
+		yield* Effect.promise(finishDocumentBody);
+		expect(readText("#doc article.doc")?.trim()).toBe(REWRITTEN_SUMMARY);
+		expect(findElement("#heading-finding-1")).toBeNull();
+	},
+);
+
+screenStory.it(
+	"ignores a render failure in the old version of a long report once the file has changed",
+	[heldDocumentBody(), failingSectionRender("Finding 1"), routedScreen(files, "/report.md")],
+	function* ({ editFile, findElement, readText, refreshDocument }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc [data-page-header] h1")).toBe(LONG_REPORT_TITLE)));
+		editFile("report.md", REWRITTEN_REPORT);
+		yield* Effect.promise(() => refreshDocument("/report.md"));
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc article.doc")?.trim()).toBe(REWRITTEN_SUMMARY)));
+		yield* Effect.promise(finishDocumentBody);
+		expect(readText("#doc article.doc")?.trim()).toBe(REWRITTEN_SUMMARY);
+		expect(findElement("pre code")).toBeNull();
 	},
 );

@@ -27,5 +27,8 @@ export function heldDocumentBody() {
 }
 
 export function finishDocumentBody() {
-	return act(async () => release());
+	return act(async () => {
+		release();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+	});
 }
