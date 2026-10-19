@@ -16,16 +16,11 @@ const routes = [
 	{ kind: "system", selector: "[data-source=codex]", text: "Source missing", url: "/_board/system" },
 	{ kind: "start", selector: ".start-template textarea", text: "example.project", url: "/_board/start" },
 	{ kind: "handoff", selector: "#handoff-form", text: "Agent name", url: "/_board/handoff?item=task.fixture" },
-	{ kind: "result", selector: "#result-criteria", text: "Show the result", url: "/_board/result?item=result.fixture" },
 ];
 for (const { kind, url, selector, text } of routes) {
 	screenStory.it(`renders ${kind} from typed queries`, [routedScreen(files, url, undefined)], function* ({ readText, findElement }) {
 		yield* Effect.promise(() => eventually(() => expect(readText(selector)).toContain(text)));
 		expect(findElement("main")?.dataset.projection).toBe(kind);
-		if (kind === "result") {
-			expect(readText("#result-report")).toContain("Report limitations");
-			expect(readText("#result-criteria")).toContain("doesn't compare revisions with your checkout");
-		}
 	});
 }
 screenStory.it(

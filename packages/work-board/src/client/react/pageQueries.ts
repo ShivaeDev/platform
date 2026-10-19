@@ -36,8 +36,5 @@ export function pageQueries(api: ShellApi, kind: string, url: string): readonly 
 	if (kind === "handoff") {
 		return [api.handoff.query({ url }, routeQueryOptions)];
 	}
-	if (kind === "result") {
-		return [api.result.query({ url }, routeQueryOptions)];
-	}
 	return [api.document.query({ url }, routeQueryOptions)];
 }

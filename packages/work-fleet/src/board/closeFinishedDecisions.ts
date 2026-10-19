@@ -5,6 +5,9 @@ import type { BoardSnapshot } from "#board/readPass.ts";
 import type { ClosedDecision } from "#board/schema.ts";
 import type { BoardFailure } from "#policy.ts";
 
+// Each closure syncs its file and directory, so a sweep in sequence waits on every sync in turn.
+const WRITE_CONCURRENCY = 16;
+
 export interface CloseFinishedOptions {
 	readonly dryRun?: boolean;
 	readonly workId?: string;
@@ -21,22 +24,20 @@ export function closeFinishedDecisions(root: string, realRoot: string, snapshot:
 		const answered = new Set(
 			current.documents.flatMap(({ parsed }) => (parsed.fields.response?.type === "answer" ? [questions.get(parsed.fields.response.question)] : [])),
 		);
-		const closed: ClosedDecision[] = [];
-		for (const document of current.documents) {
+		const candidates = current.documents.flatMap((document) => {
 			const candidate = finishedDecision(current, document, options.workId, answered);
-			if (candidate === undefined) {
-				continue;
-			}
-			const { reason, workId } = candidate;
-			if (!options.dryRun) {
-				const updated = yield* closePublishedDecision(root, realRoot, document, reason);
-				if (updated === undefined) {
-					continue;
-				}
-			}
-			closed.push({ reason, sourcePath: document.file, workId });
+			return candidate === undefined ? [] : [{ decision: { ...candidate, sourcePath: document.file } satisfies ClosedDecision, document }];
+		});
+		if (options.dryRun) {
+			return candidates.map(({ decision }) => decision);
 		}
-		return closed;
+		const closed = yield* Effect.forEach(
+			candidates,
+			({ decision, document }) =>
+				closePublishedDecision(root, realRoot, document, decision.reason).pipe(Effect.map((updated) => (updated === undefined ? [] : [decision]))),
+			{ concurrency: WRITE_CONCURRENCY },
+		);
+		return closed.flat();
 	});
 }
 

@@ -43,7 +43,6 @@ for (const { name, files, url, open, actions } of [
 		actions: [
 			["button", "Pin"],
 			["link", "Prepare an agent handoff"],
-			["link", "Review returned result"],
 			["link", "Respond to this request"],
 			["link", "Reviewed item"],
 		],

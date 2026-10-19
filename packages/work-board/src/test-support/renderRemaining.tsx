@@ -3,7 +3,7 @@ import { prerender } from "react-dom/static";
 import { browserClient } from "#browserClient.ts";
 import { FormContext } from "#client/react/FormContext.ts";
 import { HandoffPage } from "#client/react/HandoffPage.tsx";
-import { ResultPage } from "#client/react/ResultPage.tsx";
+import { ResultReview } from "#client/react/ResultReview.tsx";
 import { StartPage } from "#client/react/StartPage.tsx";
 import { SystemPage } from "#client/react/SystemPage.tsx";
 
@@ -15,7 +15,11 @@ async function staticMarkup(page: ReactNode) {
 export async function renderRemaining(origin: string, url: string, now?: number) {
 	const client = browserClient(origin);
 	try {
-		switch (new URL(url, origin).pathname) {
+		const pathname = new URL(url, origin).pathname;
+		if (pathname.startsWith("/_board/item/")) {
+			return await staticMarkup(<ResultReview data={await client.run(client.api.result.run({ url }))} />);
+		}
+		switch (pathname) {
 			case "/_board/system":
 				return await staticMarkup(
 					<SystemPage data={{ ...(await client.run(client.api.diagnostics.run(undefined))), ...(now === undefined ? {} : { now }) }} />,
@@ -28,8 +32,6 @@ export async function renderRemaining(origin: string, url: string, now?: number)
 						<HandoffPage data={await client.run(client.api.handoff.run({ url }))} />
 					</FormContext.Provider>,
 				);
-			case "/_board/result":
-				return await staticMarkup(<ResultPage data={await client.run(client.api.result.run({ url }))} />);
 			default:
 				throw new Error("Unknown view");
 		}

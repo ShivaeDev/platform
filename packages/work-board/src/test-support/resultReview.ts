@@ -80,3 +80,29 @@ export function answeredResult(earlier = false): Record<string, string> {
 		...(earlier ? {} : { "responses/response.second.md": responseFile("response.second", question, revision, "second-reader", "answer", 3000) }),
 	};
 }
+
+export function unrelatedProblems(): Record<string, string> {
+	const revision = sha256("Other report");
+	return {
+		"questions/about.md":
+			"---\nid: question.about\nkind: question\nrelationships:\n  - kind: relates_to\n    target: result.keyboard\n---\n# Is the report enough?\n",
+		"questions/other.md":
+			"---\nid: question.other\nkind: question\nrelationships:\n  - kind: relates_to\n    target: work.other\n---\n# Other question\n",
+		"responses/question.mismatch.md": `---\nid: question.mismatch\nkind: question\nquestion:\n  deadline: 9000\n  item: work.other\n  reason: Review it\n  registeredAt: 1000\n  request: review\n  reviewedRevision: ${revision}\n  source: items/other.md\n---\nEdited after it was asked.\n`,
+		"responses/unnamed.md": `---\nkind: response\nresponse:\n  author: other-reader\n  question: question.mismatch\n  recordedAt: 2000\n  reviewedRevision: ${revision}\n  type: answer\n---\nFeedback on other work.\n`,
+	};
+}
+
+export function relatedProblems(): Record<string, string> {
+	const revision = sha256("Edited report");
+	return {
+		"responses/no-record.md": "---\nkind: response\n---\nFeedback without a record.\n",
+		"responses/question.edited.md": `---\nid: question.edited\nkind: question\nquestion:\n  deadline: 9000\n  item: result.keyboard\n  reason: Review it\n  registeredAt: 1000\n  request: review\n  reviewedRevision: ${revision}\n  source: items/result.md\n---\nEdited after it was asked.\n`,
+	};
+}
+
+export function ambiguousQuestion(): Record<string, string> {
+	const answered = answeredResult();
+	const [path, question] = Object.entries(answered).find(([, text]) => text.includes("kind: question")) ?? ["", ""];
+	return { ...answered, [path.replace("responses/", "questions/copy-of-")]: question };
+}
