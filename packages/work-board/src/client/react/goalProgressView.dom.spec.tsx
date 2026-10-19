@@ -7,7 +7,7 @@ import { screenStory } from "#test/screenStory.ts";
 import { boardScreen } from "#test/screenTraits.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
 
-const files = goalPageFixture();
+const files = { ...goalPageFixture(), "asks.md": "# No open asks" };
 
 screenStory.it(
 	"shows goal progress on the stock progress bar and charts each state overall and per criterion under its own heading",

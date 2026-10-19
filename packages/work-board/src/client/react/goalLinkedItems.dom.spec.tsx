@@ -39,7 +39,7 @@ relationships:
 				},
 			),
 		],
-		function* ({ findElements, readText }) {
+		function* ({ click, findElements, readText }) {
 			yield* Effect.promise(() => eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(6)));
 			const goal = readProgress()?.goals.find((entry) => entry.id === "project.example");
 			expect(goal?.linked).toBe(6);
@@ -49,22 +49,23 @@ relationships:
 			expect(counts).toEqual(goal?.counts);
 			for (const [item, group] of [
 				[id, "Done"],
-				["task.first", "Planned"],
+				["task.first", "Needs you"],
 				["task.second", "Planned"],
-				["task.third", "Deferred"],
+				["task.third", "Planned"],
 				["task.fourth", "Done"],
-				["task.fifth", "Planned"],
+				["task.fifth", "Needs you"],
 			]) {
 				const rows = findElements(`[data-goal-item="${item}"]`);
 				expect(rows).toHaveLength(1);
 				expect(rows[0]?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe(group);
 			}
+			click("#criterion-first [data-slot=collapsible-trigger]");
 			const links = findElements(`#criterion-first a[href="/_board/item/${id}/"]`);
 			expect(links).toHaveLength(1);
 			expect(readText("[data-status-token]", links[0]?.parentElement)).toBe("Done");
-			expect(goal?.criteria[0]?.counts).toEqual({ done: 1, "in progress": 0, "needs you": 0, planned: 2 });
-			expect(readText("#criterion-first [data-criterion-progress]")).toBe("1 done · 2 planned");
-			expect(readText("#criterion-second")).toBe("Second criterion");
+			expect(goal?.criteria[0]?.counts).toEqual({ done: 1, "in progress": 0, "needs you": 1, planned: 1 });
+			expect(readText("#criterion-first [data-criterion-progress]")).toBe("1 done · 1 needs you · 1 planned");
+			yield* Effect.promise(() => eventually(() => expect(readText("#criterion-second")).toBe("Second criterion")));
 		},
 	);
 }
