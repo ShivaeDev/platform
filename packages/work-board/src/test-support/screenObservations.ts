@@ -1,6 +1,22 @@
 import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
+function columnLayout(cells: readonly HTMLTableCellElement[]) {
+	if (cells.every((cell) => cell.classList.contains("min-w-[20ch]") && cell.classList.contains("whitespace-normal"))) {
+		return "readable width";
+	}
+	return cells.every((cell) => cell.classList.contains("whitespace-nowrap") && !cell.classList.contains("whitespace-normal")) ? "one line" : "mixed";
+}
+
+function tableLayout(table: HTMLTableElement) {
+	const container = table.parentElement;
+	const rows = [...table.rows].map((row) => [...row.cells]);
+	return {
+		columns: (rows[0] ?? []).map((head, index) => [head.textContent, columnLayout(rows.flatMap((row) => row[index] ?? []))] as const),
+		scrolls: container?.dataset.slot === "table-container" && container.classList.contains("overflow-x-auto"),
+	};
+}
+
 export function screenObservations(engine: ScreenEngine, tell: (line: string) => void) {
 	function root() {
 		return engine.container ?? engine.view?.container ?? document;
@@ -62,6 +78,14 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 		readRootAttribute: (name: string) => {
 			tell(`the reader checks browser ${name}`);
 			return document.documentElement.getAttribute(name);
+		},
+		readTableLayout: (selector: string, within?: ParentNode | null) => {
+			const table = element<HTMLTableElement>(selector, within);
+			if (!table) {
+				throw new Error(`Missing ${selector}`);
+			}
+			tell("the reader checks how the table columns wrap and whether the table scrolls in its own box");
+			return tableLayout(table);
 		},
 		readText: (selector?: string, within?: ParentNode | null) => {
 			tell(`the reader reads ${selector ?? "the screen"}`);

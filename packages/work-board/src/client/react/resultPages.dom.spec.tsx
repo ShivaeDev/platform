@@ -4,6 +4,7 @@ import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/clien
 import { REVIEW_TASK, reviewResult } from "#test/resultReview.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
+import { WIDE_TABLE, WIDE_TABLE_LAYOUT } from "#test/wideTableFixture.ts";
 
 expectNoReactWarnings();
 
@@ -134,5 +135,19 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readText(".start-template [data-copy-status]")).toBe("Copied. Save it as project.md.")));
 		const template = findElement<HTMLTextAreaElement>("#template-project\\.md");
 		expect(yield* Effect.promise(() => navigator.clipboard.readText())).toBe(template?.value);
+	},
+);
+
+screenStory.it(
+	"lays out a wide table in the report like a document table, scrolling inside its own box",
+	[
+		routedScreen(
+			{ ...result, "items/result.md": reviewResult().replace("## Limits", `${WIDE_TABLE}\n## Limits`) },
+			"/_board/result?item=result.keyboard",
+		),
+	],
+	function* ({ findElement, readTableLayout }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("#result-report table")).not.toBeNull()));
+		expect(readTableLayout("#result-report table")).toEqual(WIDE_TABLE_LAYOUT);
 	},
 );
