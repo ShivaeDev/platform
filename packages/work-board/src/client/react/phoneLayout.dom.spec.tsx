@@ -16,8 +16,8 @@ screenStory.it(
 		for (const url of ["/", "/_board/work", "/_board/item/project.alpha/", "/home.md"]) {
 			yield* Effect.promise(() => navigate(url));
 			yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe(url)));
-			expect([...findElements(`${PHONE} a`)].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-				["Today", "/"],
+			expect([...findElements(`${PHONE} a`)].map((link) => [roles.accessible(link).name, link.getAttribute("href")])).toEqual([
+				["Today, 7 need you", "/"],
 				["Goals", "/_board/goals"],
 				["Now", "/_board/work"],
 			]);

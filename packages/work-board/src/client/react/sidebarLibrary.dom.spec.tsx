@@ -54,6 +54,17 @@ screenStory.it(
 	},
 );
 screenStory.it(
+	"leaves Active goals out of the sidebar while Today lists them in its main column",
+	[chromeScreen(goalsFixture(), "/")],
+	function* ({ click, findElement, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc")).toContain("Example goal")));
+		expect(findElement('section[aria-label="Active goals"]')).toBeNull();
+		expect(findElement('section[aria-label="Pinned"]')).not.toBeNull();
+		click("#goals-open");
+		yield* Effect.promise(() => eventually(() => expect(readText('section[aria-label="Active goals"]')).toContain("Example goal")));
+	},
+);
+screenStory.it(
 	"browses titles, filters kinds and statuses, hides records and requests folders only as expanded",
 	[
 		screenWorkspace("library-fixture"),
