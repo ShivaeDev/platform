@@ -589,6 +589,44 @@ The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL
 
 `AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`; other Better Auth rate-limit options pass through. `TRUSTED_PROXY` supplies the same address and CIDR policy used by the host. An untrusted transport peer loses `x-forwarded-for` and the configured client-IP header before Better Auth sees the request. `AUTH_CLIENT_IP_HEADER` defaults to `x-forwarded-for`. With no trusted proxy, Better Auth ignores forwarded IPs and shares a rate-limit bucket per path.
 
+### Decide who may sign in
+
+Give the mount a sign-in policy as its second argument, and resolve RPC sessions through `admittedSessions` so a removal ends access on the next request:
+
+```ts
+import { Config, Effect } from "effect";
+import { allowedAccounts } from "@shivaedev/platform/server/better-auth/allowedAccounts.ts";
+import { authDatabase, betterAuthMount } from "@shivaedev/platform/server/better-auth/mount.ts";
+import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
+import { trustedOrigins } from "@shivaedev/platform/server/rpc-server/origin.ts";
+
+const authentication = Effect.gen(function* () {
+  const database = yield* authDatabase(yield* Config.Redacted("DATABASE_URL"));
+  const mounted = yield* betterAuthMount(
+    { database, session: { cookieCache: { enabled: false } }, socialProviders: { github } },
+    { signIn: { accounts: allowedAccounts, recheckInterval: "5 minutes", rule: inOrganization } },
+  );
+  yield* mounted.revokeUnadmitted;
+  const sessions = {
+    origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
+    provider: betterAuthSessions(mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers }))),
+  };
+  return { ...mounted, sessions };
+});
+```
+
+`github` is the application's GitHub client settings. `inOrganization` is the application's rule, `(account: ProviderAccountValue) => Effect<boolean, E, R>`, which asks the provider whether that account belongs to its organization; the mount requires the rule's `R`, and its failures stay typed. Both parts are optional, and a user is admitted when one of their provider accounts is on the list and the rule admits that account.
+
+`allowedAccounts` reads `AUTH_ALLOWED_ACCOUNTS` through Effect Config and decodes it with the `AllowedAccounts` Schema: comma-separated `providerId:accountId` entries, such as `github:1001,github:1002` for two GitHub user IDs. A malformed or empty list stops the mount with a `ConfigError`. For another variable name, pass `Config.schema(AllowedAccounts, "NAME")` as `accounts`.
+
+At sign-in the mount installs the policy into Better Auth's own hooks. `user.validateUserInfo` checks the provider account from the provider's verified profile before Better Auth creates a user, so a refused sign-up leaves no user behind. Sign-ups without a provider account, such as email and password, are refused while a policy is set. `databaseHooks.session.create.before` checks the stored accounts of a returning user before Better Auth creates the session. A refused OAuth sign-in redirects to the error URL with `error=sign_in_refused`, and a refused API call answers HTTP 403 with code `sign_in_refused`. When the rule fails, the sign-in is refused with `sign_in_unavailable`.
+
+A removal takes effect on the user's next request through `admittedSessions`: the list is read from Config at every check, the user is refused with `Unauthorized`, and Better Auth's internal adapter deletes every stored session of that user. With environment variables, the list changes when the application restarts with the new value; a Config provider whose values change at runtime applies a removal without a restart. The rule's answer for each provider account is reused for `recheckInterval`, five minutes by default, so a rule that turns false refuses the user on their first request after that interval. A failing rule answers `AuthUnavailable` and keeps the session.
+
+`revokeUnadmitted` checks every stored user against the current policy, deletes the sessions of each user it no longer admits and succeeds with `{ users, sessions }`, the number of users and sessions it revoked. Run it at startup, as above, or from an administrative command. It fails with `AuthUnavailable` when Better Auth's storage fails, with the rule's error or with a `ConfigError`.
+
+Without `signIn`, the mount installs no hooks, `admittedSessions` returns the lookup unchanged and `revokeUnadmitted` revokes nothing.
+
 ### Signed-in story preconditions
 
 Use `authTestUtils()` from `@shivaedev/platform/server/better-auth/testing.ts` in a test-only Better Auth instance with the host's database, secret and cookie policy. The wrapper preserves the plugin's typed `$context.test` under `exactOptionalPropertyTypes`. Keep the plugin out of production auth options.
@@ -705,7 +743,10 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/redactingDiagnostics.ts`, `server/redactingTracer.ts`, `server/redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactRecord(values, sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
-| `server/better-auth/mount.ts` | `betterAuthMount(options)`, `authDatabase(url)`: native auth routes and a scoped PostgreSQL pool. |
+| `server/better-auth/mount.ts` | `betterAuthMount(options, { signIn? })`, returning `{ auth, routes, admittedSessions, revokeUnadmitted }`, and `authDatabase(url)`: native auth routes, the sign-in policy and a scoped PostgreSQL pool. |
+| `server/better-auth/allowedAccounts.ts` | `AllowedAccounts`, `allowedAccounts`: the provider-account list Schema and its `AUTH_ALLOWED_ACCOUNTS` Config. |
+| `server/better-auth/signInGate.ts` | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy. |
+| `server/better-auth/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation. |
 | `server/better-auth/testing.ts` | `authTestUtils(options?)`, `signedInUser(auth, fields)`: test-only typed Better Auth helpers and minted user sessions. |
 | `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, options?)`: a Better Auth adapter over Effect Prisma; `modelName` maps model names. |
 | `server/testing/makePlatformIt.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |

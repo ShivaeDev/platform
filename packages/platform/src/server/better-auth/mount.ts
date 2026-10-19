@@ -2,9 +2,21 @@ import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { Pool, type PoolClient } from "pg";
+import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
+import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
+import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
+import type { GetSession } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { trustedProxyPeer, trustedProxyRanges } from "#server/rpc-server/local.ts";
+import type { SessionShape } from "#server/rpc-server/session.ts";
 
-export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <const TOptions extends BetterAuthOptions>(options: TOptions) {
+export interface BetterAuthMountOptions<E = never, R = never> {
+	readonly signIn?: SignInPolicy<E, R> | undefined;
+}
+
+export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <const TOptions extends BetterAuthOptions, E = never, R = never>(
+	options: TOptions,
+	mount: BetterAuthMountOptions<E, R> = {},
+) {
 	const secret = options.secret ?? Redacted.value(yield* Config.Redacted("BETTER_AUTH_SECRET"));
 	const publicUrl = yield* Config.URL("PUBLIC_URL").pipe(Config.option);
 	const origin = Option.map(publicUrl, (url) => url.origin);
@@ -13,6 +25,14 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	const rateLimitEnabled = yield* Config.Boolean("AUTH_RATE_LIMIT_ENABLED").pipe(Config.withDefault(true));
 	const isTrustedProxy = trustedProxyPeer(trustedProxy);
 	const trustedProxies = trustedProxyRanges(trustedProxy);
+	const context = yield* Effect.context<R>();
+	const run = Effect.runPromiseWith(context);
+	const policy = mount.signIn ?? {};
+	if (policy.accounts !== undefined) {
+		yield* policy.accounts;
+	}
+	const gate = yield* signInGate(policy);
+	const gated = signInPolicyOptions(options, gate, run, (): Promise<PolicyStorage> => auth.$context);
 	const auth = betterAuth({
 		...options,
 		advanced: {
@@ -25,9 +45,11 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 			},
 		},
 		"baseURL": options.baseURL ?? Option.getOrElse(origin, () => ({ allowedHosts: ["127.0.0.1:*"], protocol: "http" as const })),
+		databaseHooks: gate.active ? gated.databaseHooks : options.databaseHooks,
 		rateLimit: { ...options.rateLimit, enabled: rateLimitEnabled },
 		secret,
 		trustedOrigins: options.trustedOrigins ?? [Option.getOrElse(origin, () => "http://127.0.0.1:*")],
+		user: gate.active ? gated.user : options.user,
 	});
 	const routes = HttpRouter.use((router) =>
 		router.add("*", "/api/auth/*", (request) =>
@@ -41,7 +63,36 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 			}).pipe(Effect.catch(() => Effect.succeed(HttpServerResponse.text("Authentication is temporarily unavailable", { status: 503 })))),
 		),
 	);
-	return { auth, routes };
+	function admittedSessions<TSession extends SessionShape>(getSession: GetSession<TSession>): GetSession<TSession> {
+		if (!gate.active) {
+			return getSession;
+		}
+		return (headers) =>
+			run(
+				Effect.gen(function* () {
+					const session = yield* Effect.tryPromise(() => getSession(headers));
+					if (session === null) {
+						return null;
+					}
+					const storage = yield* Effect.tryPromise(() => auth.$context);
+					if (yield* gate.admitsUser(storage, session.user.id)) {
+						return session;
+					}
+					yield* Effect.tryPromise(() => storage.internalAdapter.deleteUserSessions(session.user.id));
+					yield* Effect.logInfo("The sign-in policy revoked a user's sessions").pipe(Effect.annotateLogs({ userId: session.user.id }));
+					return null;
+				}),
+			);
+	}
+	return {
+		admittedSessions,
+		auth,
+		revokeUnadmitted: Effect.provideContext(
+			revokeUnadmitted(gate, () => auth.$context),
+			context,
+		),
+		routes,
+	};
 });
 
 export const authDatabase = Effect.fn("Platform.authDatabase")(function* (url: Redacted.Redacted<string>) {
