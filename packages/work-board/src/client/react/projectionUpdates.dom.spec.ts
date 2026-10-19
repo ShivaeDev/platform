@@ -29,7 +29,7 @@ const routes = [
 	{
 		file: "task.md",
 		next: task("Updated task"),
-		selector: ".work-table tbody th a",
+		selector: "#work-results tbody th a",
 		tag: "work-board.work",
 		text: "Updated task",
 		url: "/_board/work?view=table",

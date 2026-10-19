@@ -374,10 +374,6 @@
 		grid-auto-flow: row;
 		overflow-x: visible;
 	}
-	[data-board-page] .work-card-list {
-		height: auto;
-		max-height: min(60vh, 600px);
-	}
 	[data-board-page] .item-introduction {
 		position: static;
 		z-index: auto;

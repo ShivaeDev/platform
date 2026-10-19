@@ -1,65 +1,150 @@
+import { createColumnHelper, type Header, rowSortingFeature, tableFeatures, useTable } from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { useMemo } from "react";
 import type { WorkProjection } from "#browser/views/schema.ts";
-import type { State } from "#browser/views/state.ts";
+import { type State, viewUrl } from "#browser/views/state.ts";
+import { sameStatus } from "#browser/views/statusLabel.ts";
+import { buttonVariants } from "#client/react/components/ui/button.tsx";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "#client/react/components/ui/table.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import { useVirtualRows } from "./useVirtualRows.ts";
 import { WorkItemTitle } from "./WorkItemTitle.tsx";
+
+type WorkRow = WorkProjection["rows"][number];
+const features = tableFeatures({ rowSortingFeature });
+const column = createColumnHelper<typeof features, WorkRow>();
+const columns = column.columns([
+	column.accessor("title", { header: "Work" }),
+	column.accessor((item) => item.metadata.kind ?? "", { header: "Kind", id: "kind" }),
+	column.accessor((item) => item.metadata.status ?? "", { header: "Status", id: "status" }),
+	column.accessor((item) => item.metadata.owner ?? "", { header: "Owner", id: "owner" }),
+	column.accessor((item) => item.metadata.nextAction ?? "", { enableSorting: false, header: "Next action", id: "nextAction" }),
+]);
+const widths: Readonly<Record<string, string>> = {
+	kind: "w-[8%] max-md:hidden",
+	nextAction: "w-[30%] max-md:hidden",
+	owner: "w-[11%] max-md:hidden",
+	status: "w-[15%] max-md:w-[38%]",
+	title: "w-[36%] max-md:w-[62%]",
+};
+const ROW_HEIGHT = 64;
+
 export function WorkTable({ data }: { readonly data: WorkProjection }) {
-	const window = useVirtualRows(data.rows.length, 96);
-	const virtual = data.rows.length > 200;
-	const headings = ["Work", "Kind", "Status", "Owner", "Next action"].map((label) => (
-		<th key={label} scope="col">
-			{label}
-		</th>
-	));
+	const { state } = data;
+	const sorting = useMemo(() => [{ desc: state.order === "desc", id: state.sort }], [state.order, state.sort]);
+	const table = useTable({ columns, data: data.rows, features, manualSorting: true, onSortingChange: ignoreSorting, state: { sorting } });
+	const rows = table.getRowModel().rows;
+	const window = useVirtualRows(rows.length, ROW_HEIGHT);
+	const virtual = rows.length > 200;
 	return (
-		<div className="work-table-wrap" onScroll={window.onScroll}>
-			<table className="work-table">
-				<caption className="sr-only">Identified work, sorted by {data.state.sort}</caption>
-				<thead>
-					<tr>{headings}</tr>
-				</thead>
-				<tbody>
+		<div
+			className="overflow-hidden rounded-lg border bg-card [&>[data-slot=table-container]]:max-h-[min(72dvh,60rem)] [&>[data-slot=table-container]]:overflow-y-auto"
+			onScrollCapture={window.onScroll}
+		>
+			<Table className="table-fixed text-sm">
+				<TableCaption className="sr-only">
+					Identified work, sorted by {state.sort} {state.order === "desc" ? "descending" : "ascending"}
+				</TableCaption>
+				<TableHeader className="sticky top-0 z-10 bg-card shadow-[inset_0_-1px_0_var(--border)] [&_tr]:border-0">
+					{table.getHeaderGroups().map((group) => (
+						<HeaderRow headers={group.headers} key={group.id} state={state} />
+					))}
+				</TableHeader>
+				<TableBody>
 					{window.top > 0 && (
-						<tr>
-							<td colSpan={5} style={{ height: window.top, padding: 0 }} />
+						<tr aria-hidden="true">
+							<td colSpan={columns.length} style={{ height: window.top, padding: 0 }} />
 						</tr>
 					)}
-					{data.rows.slice(window.start, window.end).map((item) => (
-						<Row item={item} key={item.id} state={data.state} virtual={virtual} />
+					{rows.slice(window.start, window.end).map((row) => (
+						<WorkTableRow item={row.original} key={row.id} state={state} virtual={virtual} />
 					))}
 					{window.bottom > 0 && (
-						<tr>
-							<td colSpan={5} style={{ height: window.bottom, padding: 0 }} />
+						<tr aria-hidden="true">
+							<td colSpan={columns.length} style={{ height: window.bottom, padding: 0 }} />
 						</tr>
 					)}
-				</tbody>
-			</table>
+				</TableBody>
+			</Table>
 		</div>
 	);
 }
-function Row({ item, state, virtual }: { readonly item: WorkProjection["rows"][number]; readonly state: State; readonly virtual: boolean }) {
+
+function HeaderRow({ headers, state }: { readonly headers: readonly Header<typeof features, WorkRow, unknown>[]; readonly state: State }) {
 	return (
-		<tr className={virtual ? "work-virtual-row" : undefined} data-item={item.id} data-selected={item.id === state.item ? "true" : undefined}>
-			<th scope="row">
-				<div className="work-cell">
-					<WorkItemTitle item={item} state={state} />
-					<span className="work-id">{item.id}</span>
+		<TableRow className="hover:bg-transparent">
+			{headers.map((header) => (
+				<SortableHead header={header} key={header.id} state={state} />
+			))}
+		</TableRow>
+	);
+}
+
+// The server sorts by the URL, so header links change the sort instead of table state.
+function ignoreSorting() {
+	return undefined;
+}
+
+function SortableHead({ header, state }: { readonly header: Header<typeof features, WorkRow, unknown>; readonly state: State }) {
+	const label = String(header.column.columnDef.header);
+	const sorted = header.column.getIsSorted();
+	const className = `${widths[header.column.id] ?? ""} h-9 bg-card text-muted-foreground text-xs`;
+	const sort = sortOf(header.column.id);
+	if (!header.column.getCanSort() || sort === undefined) {
+		return (
+			<TableHead className={className} scope="col">
+				{label}
+			</TableHead>
+		);
+	}
+	const Icon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
+	return (
+		<TableHead aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined} className={className} scope="col">
+			<a
+				className={buttonVariants({ className: "-ml-2 text-muted-foreground data-sorted:text-foreground", size: "sm", variant: "ghost" })}
+				data-sorted={sorted ? "" : undefined}
+				href={viewUrl(state, { order: sorted === "asc" ? "desc" : "asc", sort }, "work-results")}
+			>
+				{label}
+				<Icon aria-hidden="true" className={sorted ? undefined : "opacity-50"} />
+			</a>
+		</TableHead>
+	);
+}
+
+function sortOf(id: string): State["sort"] | undefined {
+	return id === "title" || id === "kind" || id === "status" || id === "owner" ? id : undefined;
+}
+
+function WorkTableRow({ item, state, virtual }: { readonly item: WorkRow; readonly state: State; readonly virtual: boolean }) {
+	const selected = item.id === state.item;
+	const status = item.metadata.status;
+	return (
+		<TableRow
+			className="relative align-top has-[a:focus-visible]:bg-muted/50"
+			data-item={item.id}
+			data-selected={selected ? "true" : undefined}
+			data-state={selected ? "selected" : undefined}
+			style={virtual ? { height: ROW_HEIGHT } : undefined}
+		>
+			<TableHead className="h-auto whitespace-normal py-2.5 font-normal" scope="row">
+				<WorkItemTitle
+					className="font-medium text-foreground no-underline after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:underline"
+					item={item}
+					state={state}
+				/>
+				<span className="block break-all font-mono text-muted-foreground text-xs">{item.id}</span>
+				{Boolean(item.metadata.nextAction) && <span className="mt-1 block text-muted-foreground text-xs md:hidden">{item.metadata.nextAction}</span>}
+			</TableHead>
+			<TableCell className="whitespace-normal py-2.5 text-muted-foreground max-md:hidden">{item.metadata.kind ?? ""}</TableCell>
+			<TableCell className="whitespace-normal py-2.5">
+				<div className="flex flex-wrap gap-1">
+					{Boolean(item.waiting) && !(status && sameStatus(status, "needs-you")) && <StatusChip status="needs-you" />}
+					<StatusChip status={status} />
 				</div>
-			</th>
-			<td>
-				<div className="work-cell">{item.metadata.kind ?? ""}</div>
-			</td>
-			<td>
-				<div className="work-cell">
-					{Boolean(item.waiting) && <StatusChip status="needs-you" />} <StatusChip status={item.metadata.status} />
-				</div>
-			</td>
-			<td>
-				<div className="work-cell">{item.metadata.owner ?? ""}</div>
-			</td>
-			<td>
-				<div className="work-cell">{item.metadata.nextAction ?? ""}</div>
-			</td>
-		</tr>
+			</TableCell>
+			<TableCell className="whitespace-normal break-words py-2.5 max-md:hidden">{item.metadata.owner ?? ""}</TableCell>
+			<TableCell className="whitespace-normal py-2.5 text-muted-foreground max-md:hidden">{item.metadata.nextAction ?? ""}</TableCell>
+		</TableRow>
 	);
 }

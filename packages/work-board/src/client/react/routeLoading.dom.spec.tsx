@@ -48,11 +48,11 @@ screenStory.it(
 	function* ({ preload, findElement, readText, navigate }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=board")));
 		yield* Effect.promise(() => preload("/_board/work?view=table"));
-		expect(readText(".work-eyebrow")).toContain("BOARD");
+		expect(readText('nav[aria-label="Work layout"] [aria-current="page"]')).toBe("All work");
 		expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=board");
 		yield* Effect.promise(() => navigate("/_board/work?view=table"));
 		yield* Effect.promise(() => eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=table")));
-		expect(findElement(".work-table")).not.toBeNull();
-		expect(readText(".work-eyebrow")).toContain("TABLE");
+		expect(findElement("#work-results table")).not.toBeNull();
+		expect(readText('nav[aria-label="Work layout"] [aria-current="page"]')).toBe("Table");
 	},
 );

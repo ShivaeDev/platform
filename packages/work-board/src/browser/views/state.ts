@@ -1,10 +1,12 @@
 import { Option, Schema } from "effect";
 
 const View = Schema.Literals(["now", "board", "table"]);
-const Sort = Schema.Literals(["title", "owner", "status"]);
+const Sort = Schema.Literals(["title", "kind", "status", "owner"]);
+const Order = Schema.Literals(["asc", "desc"]);
 export const State = Schema.Struct({
 	board: Schema.String,
 	item: Schema.String,
+	order: Order,
 	owner: Schema.String,
 	query: Schema.String,
 	sort: Sort,
@@ -18,6 +20,7 @@ export function stateOf(url: string): State {
 	return {
 		board: params.get("board") ?? "",
 		item: params.get("item") ?? "",
+		order: params.get("order") === "desc" ? "desc" : "asc",
 		owner: params.get("owner") ?? "",
 		query: (params.get("q") ?? "").slice(0, 200),
 		sort: Option.getOrElse(Schema.decodeUnknownOption(Sort)(params.get("sort")), () => "title"),
@@ -31,6 +34,7 @@ export function viewUrl(state: State, changes: Partial<State> = {}, hash = ""): 
 	for (const [key, value] of Object.entries({
 		board: next.board,
 		item: next.item,
+		order: next.order === "desc" ? "desc" : "",
 		owner: next.owner,
 		q: next.query,
 		sort: next.sort,

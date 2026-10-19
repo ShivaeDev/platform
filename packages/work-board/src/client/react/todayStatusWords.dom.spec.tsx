@@ -5,6 +5,7 @@ import { fleetWorkspace } from "#test/fleetWorkspaceFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute, todayScreen } from "#test/screenWorkspaceTraits.ts";
+import { labelledCombobox } from "#test/workScreens.ts";
 
 expectNoReactWarnings();
 
@@ -62,14 +63,18 @@ screenStory.it(
 screenStory.it(
 	"names statuses in plain words in the All work status filter",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), screenRoute("/_board/work?view=board"), openScreen()],
-	function* ({ findElements }) {
-		yield* Effect.promise(() => eventually(() => expect(findElements("select[name='status'] option").length).toBeGreaterThan(1)));
-		expect(findElements<HTMLOptionElement>("select[name='status'] option").map((option) => [option.value, option.textContent])).toEqual([
-			["", "All statuses"],
-			["value:active", "Active"],
-			["value:needs-human", "Needs you"],
-			["value:planned", "Planned"],
-		]);
+	function* ({ click, findElement, findElements, readText }) {
+		const status = () => labelledCombobox(findElements("main [role='combobox']"), "Status");
+		const options = () => findElements(`#${CSS.escape(status()?.getAttribute("aria-controls") ?? "")} [role="option"]`, document);
+		yield* Effect.promise(() => eventually(() => expect(status()).toBeDefined()));
+		click(status());
+		click(options().find((option) => option.textContent === "Needs you"));
+		yield* Effect.promise(() =>
+			eventually(() => expect(new URL(findElement<HTMLElement>("#doc")?.dataset.route ?? "", "http://board").searchParams.get("status")).toBe("value:needs-human")),
+		);
+		yield* Effect.promise(() => eventually(() => expect(readText("[data-slot='select-value']", status())).toBe("Needs you")));
+		click(status());
+		expect(options().map((option) => option.textContent)).toEqual(["All statuses", "Active", "Needs you", "Planned"]);
 	},
 );
 
@@ -104,15 +109,17 @@ screenStory.it(
 screenStory.it(
 	"offers one All work status option for spellings that share a name and lists items of each",
 	[screenFiles(BOTH_SPELLINGS, { home: "home.md" }), screenRoute("/_board/work?view=board&status=value%3Aneeds-you"), openScreen()],
-	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("select[name='status']")).not.toBeNull()));
-		expect(findElements<HTMLOptionElement>("select[name='status'] option").map((option) => option.textContent)).toEqual([
+	function* ({ click, findElements, readText }) {
+		const status = () => labelledCombobox(findElements("main [role='combobox']"), "Status");
+		yield* Effect.promise(() => eventually(() => expect(status()).toBeDefined()));
+		expect(readText("[data-slot='select-value']", status())).toBe("Needs you");
+		click(status());
+		expect(findElements(`#${CSS.escape(status()?.getAttribute("aria-controls") ?? "")} [role="option"]`, document).map((option) => option.textContent)).toEqual([
 			"All statuses",
 			"Active",
 			"Needs you",
 			"Planned",
 		]);
-		expect(findElement<HTMLSelectElement>("select[name='status']")?.selectedOptions[0]?.textContent).toBe("Needs you");
 		expect(readText("main")).toContain("Review the landing copy");
 		expect(readText("main")).toContain("Ship the onboarding email");
 		expect(readText("main")).not.toContain("Write the install guide");
