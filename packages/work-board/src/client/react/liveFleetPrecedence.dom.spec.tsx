@@ -8,12 +8,12 @@ import { WorkNow } from "./WorkNow.tsx";
 for (const [stage, lane, label] of [
 	["prepared", "Queued", "Prepared"],
 	["needs-human", "Waiting on a person", "Needs you"],
-	["adopting", "Executing", "Adopting"],
-	["executing", "Executing", "Executing"],
-	["reviewing", "Reviewing", "Reviewing"],
-	["repairing", "Reviewing", "Repairing"],
-	["validating", "Reviewing", "Validating"],
-	["delivering", "Delivering", "Delivering"],
+	["adopting", "Executing", "In progress"],
+	["executing", "Executing", "In progress"],
+	["reviewing", "Reviewing", "In progress"],
+	["repairing", "Reviewing", "In progress"],
+	["validating", "Reviewing", "In progress"],
+	["delivering", "Delivering", "In progress"],
 ] as const) {
 	const data = nowWork();
 	const statuses = ["done", "completed", "superseded", "deferred", "cancelled", "canceled"];

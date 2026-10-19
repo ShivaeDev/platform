@@ -36,7 +36,7 @@ screenStory.it(
 			),
 		);
 		expect(findElements("[data-progress-id]").map((row) => row.getAttribute("data-progress-id"))).toEqual(["task.upload"]);
-		expect(readText("[data-progress-id='task.upload']")).toBe("Fix the flaky upload testTask file · Active");
+		expect(readText("[data-progress-id='task.upload']")).toBe("Fix the flaky upload testTask file");
 		expect(findElements("#in-progress [role='status'] p").map((line) => line.textContent)).toEqual([
 			"Fleet unavailable. Fleet daemon is not configured for this Board",
 			"Status comes from the task files, not live Fleet.",

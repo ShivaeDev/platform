@@ -87,7 +87,7 @@ screenStory.it(
 	],
 	function* ({ findByRole, findElements, readText }) {
 		const progress = `#${todayIds.progress}`;
-		yield* Effect.promise(() => eventually(() => expect(readText(`${progress} [data-progress-id="task.active"]`)).toContain("Task file · Active")));
+		yield* Effect.promise(() => eventually(() => expect(readText(`${progress} [data-progress-id="task.active"]`)).toBe("Active taskTask file")));
 		const panel = findElements(`${progress} [role="status"]`).find((status) => status.textContent === STOPPED)?.parentElement;
 		expect(panel?.textContent).toContain("Status comes from the task files, not live Fleet.");
 		expect(panel?.contains(findByRole("button", "How to start Fleet") ?? null)).toBe(true);

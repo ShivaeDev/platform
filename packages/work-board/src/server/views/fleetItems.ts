@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { waitsOnYou } from "#browser/document/asks.ts";
 import type { AuthoredProgress, FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
-import { laneOf } from "#browser/views/now.ts";
+import { heldLanes, laneOf } from "#browser/views/now.ts";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
 import { inboxItems } from "#server/attention/inbox.ts";
 import { requestInbox } from "#server/attention/requestInbox.ts";
@@ -18,7 +18,7 @@ function authoredProgress(snapshot: Snapshot): readonly AuthoredProgress[] {
 		const metadata = document.parsed.fields;
 		const asked = waitsOnYou({ metadata, requests: itemRequests(document, snapshot).map((request) => request.state) });
 		const lane = laneOf(metadata, undefined, false, answered.has(id) && !waiting.has(id), asked);
-		return (lane === "Executing" || lane === "Reviewing") && metadata.status !== undefined
+		return lane !== undefined && heldLanes.has(lane) && metadata.status !== undefined
 			? [{ file: document.file, status: metadata.status, title, workId: id }]
 			: [];
 	});
