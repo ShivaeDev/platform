@@ -48,7 +48,7 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 			<div className="text-muted-foreground text-xs empty:sr-only" role="status">
 				{change}
 			</div>
-			<WaitingOn asks={document.waitingOn} />
+			<WaitingOn asks={document.waitingOn ?? []} />
 			<AnswerJump document={document} />
 			<ItemFields document={document} />
 		</section>

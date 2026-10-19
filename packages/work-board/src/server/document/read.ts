@@ -10,7 +10,7 @@ import { readingActions } from "#server/responses/readingActions.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import type { WorkspaceSettings } from "#server/workspace.ts";
 import { answerBody } from "./answerBody.ts";
-import { documentMentions } from "./mentions.ts";
+import { type DocumentMention, documentMentions } from "./mentions.ts";
 import { readingContext } from "./readingContext.ts";
 import { requestOutcome } from "./requestOutcome.ts";
 import { documentRequests } from "./requests.ts";
@@ -44,7 +44,7 @@ const selected = Effect.fn("WorkBoard.selected")(function* (
 
 function referenceDetails(
 	references: Readonly<Record<string, string>>,
-	mentions: ReturnType<typeof documentMentions>,
+	mentions: readonly DocumentMention[],
 	model: MetadataModel,
 	titles: ReadonlyMap<string, string>,
 ) {
@@ -90,6 +90,7 @@ export function readDocument({ changes, home, pullRequests, root, realRoot, writ
 		);
 		const mentions = documentMentions(parsed.fields.nextAction, document, model);
 		const requests = documentRequests(document, source, current.snapshot);
+		const pulls = yield* pullRequests ?? Effect.succeed(undefined);
 		return {
 			...targets,
 			diagnostics: model.diagnostics.get(file.path) ?? parsed.diagnostics,
@@ -97,7 +98,7 @@ export function readDocument({ changes, home, pullRequests, root, realRoot, writ
 			...(identity ? { identity } : {}),
 			metadata: parsed.fields,
 			modified: file.modified,
-			pullRequests,
+			pullRequests: pulls,
 			questionActions: Object.fromEntries(questionActions ?? []),
 			reading,
 			referenceDetails: referenceDetails(targets.references, mentions, model, titles),

@@ -19,7 +19,6 @@ export function documentData(source: string): Document {
 		requests: [],
 		source: parsed.body,
 		unavailable: [],
-		waitingOn: [],
 		writable: false,
 	};
 }

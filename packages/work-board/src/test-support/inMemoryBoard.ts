@@ -85,7 +85,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 						index: Effect.suspend(() => configuration?.beforeIndex?.(Object.keys(memory.files())) ?? Effect.void).pipe(
 							Effect.andThen(configuration?.index ?? index),
 						),
-						pullRequests: configuration?.pullRequests,
+						pullRequests: Effect.succeed(configuration?.pullRequests),
 						root: memory.root,
 						writable: configuration?.writable === true,
 					}),

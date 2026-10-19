@@ -14,11 +14,19 @@ export function pullRequestBase(repository: string): string | undefined {
 }
 
 // The nearest package.json repository wins, then the enclosing git checkout's origin remote; only GitHub has a known pull request URL.
-export const repositoryPulls = Effect.fn("WorkBoard.repositoryPulls")(function* (root: string) {
+// Any failure, even a defect, leaves pull request numbers as plain text rather than failing the page.
+export function repositoryPulls(root: string): Effect.Effect<string | undefined, never, FileSystem.FileSystem | Path.Path> {
+	return nearestPulls(root).pipe(Effect.catchCause(() => Effect.succeed(undefined)));
+}
+
+const nearestPulls = Effect.fn("WorkBoard.nearestPulls")(function* (root: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	function read(file: string) {
-		return fs.readFileString(file).pipe(Effect.option);
+		return Effect.flatMap(exists(file), (found) => (found ? fs.readFileString(file).pipe(Effect.option) : Effect.succeedNone));
+	}
+	function exists(file: string) {
+		return fs.exists(file).pipe(Effect.orElseSucceed(() => false));
 	}
 	for (let directory = path.resolve(root); ; directory = path.dirname(directory)) {
 		const manifest = Option.flatMap(yield* read(path.join(directory, "package.json")), (source) =>
@@ -29,7 +37,7 @@ export const repositoryPulls = Effect.fn("WorkBoard.repositoryPulls")(function* 
 			return pullRequestBase(typeof declared === "string" ? declared : declared.url);
 		}
 		const git = path.join(directory, ".git");
-		if (yield* fs.exists(git).pipe(Effect.orElseSucceed(() => false))) {
+		if (yield* exists(git)) {
 			return yield* originPulls(git);
 		}
 		if (path.dirname(directory) === directory) {

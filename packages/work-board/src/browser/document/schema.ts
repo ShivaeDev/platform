@@ -60,7 +60,7 @@ export const Document = Schema.Struct({
 	requests: Schema.Array(DocumentRequest),
 	source: Schema.String,
 	unavailable: Schema.Array(Schema.String),
-	waitingOn: Schema.Array(WaitingAsk),
+	waitingOn: Schema.optional(Schema.Array(WaitingAsk)),
 	writable: Schema.Boolean,
 });
 export type Document = typeof Document.Type;

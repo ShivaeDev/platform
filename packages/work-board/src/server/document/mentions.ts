@@ -4,8 +4,14 @@ import { referenceTarget } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { sourceFile } from "#server/metadata/sourceLinks.ts";
 
+export interface DocumentMention {
+	readonly href: string;
+	readonly target: MetadataDocument;
+	readonly token: string;
+}
+
 // Agents write next actions like "Waiting on question.x" or "see decisions/y.md"; each token that names one workspace document becomes a reference.
-export function documentMentions(text: string | undefined, document: MetadataDocument, model: MetadataModel) {
+export function documentMentions(text: string | undefined, document: MetadataDocument, model: MetadataModel): readonly DocumentMention[] {
 	if (text === undefined || model.unavailable.length > 0) {
 		return [];
 	}

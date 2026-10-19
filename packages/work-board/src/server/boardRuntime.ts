@@ -18,12 +18,12 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 	const mermaid = yield* mermaidRoot();
 	yield* checkBrowserAssets();
 	const changes = yield* watchChanges(options.root);
-	const pullRequests = yield* repositoryPulls(options.root);
 	const path = yield* Path.Path;
 	const fleetFolder = path.relative(path.resolve(), options.root) || ".";
 	const platform = (yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>()).pipe(
 		Context.pick(Highlighter, FileSystem.FileSystem, Path.Path),
 	);
+	const pullRequests = yield* Effect.cached(Effect.provideContext(repositoryPulls(options.root), platform));
 	const indexing = yield* SubscriptionRef.make<Indexing | undefined>(undefined);
 	const index: Effect.Effect<Snapshot, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path> = yield* searchSnapshot(
 		options.root,
@@ -36,6 +36,8 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 		index.pipe(
 			Effect.tapError((error) => Effect.logDebug("The startup index failed; the next read rebuilds it", error)),
 			Effect.ignore,
+			// The repository lookup reads outside the workspace, so it waits until the startup index no longer needs the file reads.
+			Effect.andThen(pullRequests),
 		),
 	);
 	const provided = yield* Effect.serviceOption(DiagnosticsSources);

@@ -24,7 +24,6 @@ export const mergedTask = {
 	requests: [],
 	source: "# Merged task\n",
 	unavailable: [],
-	waitingOn: [],
 	writable: false,
 };
 
