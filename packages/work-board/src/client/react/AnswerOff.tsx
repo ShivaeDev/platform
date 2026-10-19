@@ -5,7 +5,15 @@ import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 
 type Prompt = NonNullable<DocumentRequest["prompts"]>[number];
 
-function OptionItem({ choice, document, option }: { readonly choice: number; readonly document: Document; readonly option: Prompt["options"][number] }) {
+function OptionItem({
+	choice,
+	document,
+	option,
+}: {
+	readonly choice: number;
+	readonly document: Document;
+	readonly option: Prompt["options"][number];
+}) {
 	const authored = document.metadata.options?.[choice];
 	const source = optionText(option.id, option.source);
 	const label = authored?.label ?? source.label;

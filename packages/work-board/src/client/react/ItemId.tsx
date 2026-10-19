@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "#client/react/component
 export function ItemId({ id, href }: { readonly id: string; readonly href: string | undefined }) {
 	const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
 	const label = { copied: "Copied item ID", failed: "Copy failed; select the ID instead", idle: "Copy item ID" }[copy];
-	function copyId() {
+	function handleCopy() {
 		void Effect.runPromise(
 			Effect.tryPromise(() => navigator.clipboard.writeText(id)).pipe(
 				Effect.match({ onFailure: () => setCopy("failed"), onSuccess: () => setCopy("copied") }),
@@ -22,7 +22,7 @@ export function ItemId({ id, href }: { readonly id: string; readonly href: strin
 			<Tooltip>
 				<TooltipTrigger
 					render={
-						<Button aria-label={label} onBlur={() => setCopy("idle")} onClick={copyId} size="icon-xs" type="button" variant="ghost">
+						<Button aria-label={label} onBlur={() => setCopy("idle")} onClick={handleCopy} size="icon-xs" type="button" variant="ghost">
 							{copy === "copied" ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
 						</Button>
 					}

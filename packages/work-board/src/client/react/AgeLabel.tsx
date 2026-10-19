@@ -31,7 +31,9 @@ export interface AgeProps {
 }
 export function AgeLabel({ modified, short = false, className, ...props }: AgeProps & Omit<ComponentProps<"time">, "children" | "dateTime">) {
 	const ago = since(Math.max(0, Math.round((useContext(TimeContext) - modified) / 1000)));
-	const base = short ? "shrink-0 whitespace-nowrap font-mono text-muted-foreground text-xs" : "ml-1.5 whitespace-nowrap font-mono text-muted-foreground text-xs";
+	const base = short
+		? "shrink-0 whitespace-nowrap font-mono text-muted-foreground text-xs"
+		: "ml-1.5 whitespace-nowrap font-mono text-muted-foreground text-xs";
 	return (
 		<time {...props} className={className ? `${base} ${className}` : base} data-modified={modified} dateTime={new Date(modified).toISOString()}>
 			{short ? ago : `updated ${ago} ago`}

@@ -29,7 +29,7 @@ screenStory.it(
 		const container = findElement("article.doc table")?.parentElement;
 		expect(container?.dataset.slot).toBe("table-container");
 		expect(container?.classList.contains("overflow-x-auto")).toBe(true);
-		expect([...findElements("article.doc th")].map((cell) => [cell.dataset.slot, cell.textContent])).toEqual([
+		expect([...findElements("article.doc th")].map((head) => [head.dataset.slot, head.textContent])).toEqual([
 			["table-head", "Package"],
 			["table-head", "Role and cohesion assessment"],
 			["table-head", "Source"],

@@ -7,18 +7,20 @@ import { DocumentContext } from "./DocumentContext.tsx";
 import { documentElements } from "./documentElements.tsx";
 import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
 
+const SEPARATOR = " · ";
+
 function BoardCounts({ counts }: { readonly counts: BoardProjection["counts"] }) {
 	return (
 		<>
 			<span className="counts">
 				{counts.map((column, index) => (
 					<Fragment key={column.title}>
-						{index > 0 && " · "}
+						{index > 0 && SEPARATOR}
 						<b className="font-medium text-foreground">{column.count}</b> {column.title.toLowerCase()}
 					</Fragment>
 				))}
 			</span>
-			{" · "}
+			{SEPARATOR}
 		</>
 	);
 }

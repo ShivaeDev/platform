@@ -1,6 +1,5 @@
 import { act } from "react";
 import { vi } from "vitest";
-import { Age, AgeTicker } from "#client/react/Age.tsx";
 import type { ScreenEngine } from "./screenEngine.ts";
 export function ageActions(engine: ScreenEngine, tell: (line: string) => void) {
 	return {
@@ -19,14 +18,10 @@ export function ageActions(engine: ScreenEngine, tell: (line: string) => void) {
 		},
 		refreshAge: async (millisecondsAgo: number) => {
 			tell(`the timestamp refreshes to ${millisecondsAgo} milliseconds earlier`);
-			if (!engine.view || engine.ageModified === undefined) {
+			if (!engine.view || engine.age === undefined) {
 				throw new Error("The age screen has not opened");
 			}
-			await engine.view.render(
-				<AgeTicker>
-					<Age modified={engine.ageModified - millisecondsAgo} short />
-				</AgeTicker>,
-			);
+			await engine.view.render(engine.age.view(engine.age.modified - millisecondsAgo));
 		},
 	};
 }

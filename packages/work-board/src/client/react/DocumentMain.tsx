@@ -45,7 +45,7 @@ export function DocumentMain({
 	return (
 		<>
 			<main className="document-view min-w-0 p-4 md:p-8" data-file="" data-react-document data-url="" id={shellIds.doc} ref={hostRef} tabIndex={-1}>
-				{data && <DocumentPage api={api} document={data} key={data.identity ?? data.file} />}
+				{data ? <DocumentPage api={api} document={data} key={data.identity ?? data.file} /> : null}
 				{!data && failure?._tag === "NotFound" && <MissingPage url={url} />}
 				{!(data || failure?._tag === "NotFound") && (
 					<p className="empty" role="status">

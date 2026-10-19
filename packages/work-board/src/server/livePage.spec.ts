@@ -116,7 +116,11 @@ describe("live page", () => {
 			const page = yield* openLivePage("/plan.md");
 			removeFile("plan.md");
 			yield* Effect.promise(() =>
-				waitFor(() => expect(page.document.querySelector("#doc [data-slot=empty-description]")?.textContent).toBe("No Markdown file at plan.md. It may have been moved or deleted.")),
+				waitFor(() =>
+					expect(page.document.querySelector("#doc [data-slot=empty-description]")?.textContent).toBe(
+						"No Markdown file at plan.md. It may have been moved or deleted.",
+					),
+				),
 			);
 			expect((yield* rpcNavigation(board)).counts.library).toBe(Object.keys(FILES).length - 1);
 			yield* Effect.promise(() => waitFor(() => expect(liveStatus()).toBe("live")));

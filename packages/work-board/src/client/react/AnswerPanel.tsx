@@ -82,25 +82,8 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 					<AnswerContext preview={preview} />
 				</>
 			)}
-			{request.open && preview && !unavailable && answered === undefined && data.writable && (
-				<AnswerForm document={source} preview={preview} request={request} />
-			)}
-			{request.open && preview && !unavailable && answered === undefined && !data.writable && <AnswerOff document={source} request={request} />}
-			{preview && !unavailable && answered !== undefined && data.writable && (
-				<details className="group/change space-y-4" data-key="change-answer">
-					<Button
-						className="w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-						nativeButton={false}
-						render={<summary />}
-						size="sm"
-						variant="outline"
-					>
-						<Pencil aria-hidden="true" />
-						Change your answer
-						<ChevronDown aria-hidden="true" className="transition-transform group-open/change:rotate-180" />
-					</Button>
-					<AnswerForm document={source} preview={preview} request={request} />
-				</details>
+			{preview && !unavailable && (
+				<AnswerControls answered={answered !== undefined} open={request.open} preview={preview} request={request} source={source} />
 			)}
 			{!request.unavailable && (
 				<ResponseHistory
@@ -109,6 +92,43 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 				/>
 			)}
 		</section>
+	);
+}
+
+function AnswerControls({
+	answered,
+	open,
+	preview,
+	request,
+	source,
+}: {
+	readonly answered: boolean;
+	readonly open: boolean;
+	readonly preview: NonNullable<DocumentRequest["preview"]>;
+	readonly request: DocumentRequest;
+	readonly source: Document;
+}) {
+	if (!source.writable) {
+		return open && !answered ? <AnswerOff document={source} request={request} /> : null;
+	}
+	if (!answered) {
+		return open ? <AnswerForm document={source} preview={preview} request={request} /> : null;
+	}
+	return (
+		<details className="group/change space-y-4" data-key="change-answer">
+			<Button
+				className="w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+				nativeButton={false}
+				render={<summary />}
+				size="sm"
+				variant="outline"
+			>
+				<Pencil aria-hidden="true" />
+				Change your answer
+				<ChevronDown aria-hidden="true" className="transition-transform group-open/change:rotate-180" />
+			</Button>
+			<AnswerForm document={source} preview={preview} request={request} />
+		</details>
 	);
 }
 

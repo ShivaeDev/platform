@@ -13,7 +13,7 @@ import type { BoardTestApi, renderBoard } from "./react.tsx";
 import type { renderRouter } from "./renderRouter.tsx";
 
 export interface ScreenEngine {
-	ageModified?: number;
+	age?: { readonly modified: number; readonly view: (modified: number) => ReactNode };
 	api?: BoardTestApi;
 	boardScreen?: Awaited<ReturnType<typeof renderBoard>>;
 	readonly cleanups: Array<() => Promise<void>>;
