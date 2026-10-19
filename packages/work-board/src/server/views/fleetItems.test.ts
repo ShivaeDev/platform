@@ -5,6 +5,7 @@ import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { unlistableWorkspace } from "#test/readTraits.ts";
+import { nestedProject } from "#test/servingTraits.ts";
 import { fleetReports } from "#test/storyTraits.ts";
 
 const item = {
@@ -89,3 +90,17 @@ boardStory.it("reports a Fleet service rejection as unavailable over Board HTTP 
 		state: "unavailable",
 	});
 });
+boardStory.it(
+	"quotes a Board folder name with a space and an apostrophe in the Fleet start command",
+	[nestedProject("Team's notes"), deferredServing],
+	function* ({ start, rpc, story }) {
+		const daemon = yield* diagnosticsDaemon(snapshot, 0, () => data);
+		yield* start({ fleetPort: daemon.port });
+		yield* daemon.stop();
+		const quoted = `'${story.engine.notes.root.replace("Team's", "Team'\\''s")}'`;
+		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toMatchObject({
+			startCommand: `work-fleet serve ${quoted} --port ${daemon.port}`,
+			state: "unavailable",
+		});
+	},
+);
