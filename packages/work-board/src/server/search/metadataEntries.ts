@@ -25,7 +25,7 @@ export function metadataEntries(
 		const fields = document.parsed.fields;
 		return {
 			...entry,
-			href: entry.kind === "document" ? itemUrl(document, model) : entry.href,
+			href: entry.href === fileUrl(document.file) ? itemUrl(document, model) : entry.href,
 			text:
 				entry.kind === "document"
 					? [entry.text, fields.id, fields.kind, fields.status, fields.owner, fields.nextAction].filter(Boolean).join(" ")

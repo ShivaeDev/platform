@@ -54,6 +54,7 @@ export const screenStory = storyKit({
 			...motionActions(engine, story.tell),
 			...availabilityActions(engine, story.tell),
 			...screenReadVerbs(engine, story.tell),
+			...screenRoles(story.tell),
 			boardView() {
 				if (!engine.boardScreen) {
 					throw new Error("The story has no Board screen");

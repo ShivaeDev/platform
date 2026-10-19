@@ -8,6 +8,7 @@ import { Button } from "#client/react/components/ui/button.tsx";
 import { destinationName } from "#client/react/destinationName.ts";
 import { InboxCount } from "#client/react/Header.tsx";
 import { LibraryContext } from "#client/react/LibraryContext.ts";
+import { LinkButton } from "#client/react/LinkButton.tsx";
 import type { MainLocation } from "#client/react/mainLocation.ts";
 import { useCurrentDestination } from "#client/react/navigationTarget.ts";
 import { ReadingLinks } from "#client/react/ReadingLinks.tsx";
@@ -117,13 +118,16 @@ function WorkspaceLink({
 	readonly children: ReactNode;
 }) {
 	return (
-		<Button
+		<LinkButton
+			aria-current={current ? "page" : undefined}
+			aria-label={name}
 			className={cn("justify-between no-underline", current && "bg-accent")}
-			nativeButton={false}
-			render={<a aria-current={current ? "page" : undefined} aria-label={name} href={href} id={id} />}
+			href={href}
+			id={id}
+			size="default"
 			variant="ghost"
 		>
 			{children}
-		</Button>
+		</LinkButton>
 	);
 }
