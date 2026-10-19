@@ -614,21 +614,21 @@ Settlement has a live-time limit of 3 seconds, configurable with the driver's `t
 
 ### API by module
 
-Import each module with the prefix `@shivaedev/test-story/server/`; there is no root entry.
+Import each module with the prefix `@shivaedev/test-story/`; there is no root entry.
 
 | Module | Exports |
 | --- | --- |
-| `storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
-| `domFetch.ts` | `domFetch(baseUrl)` |
-| `seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
-| `routeOutbound.ts` | `routeOutbound(routes)` |
-| `screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget` |
-| `domNavigate.ts` | `domNavigate(url?)` |
-| `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
-| `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
-| `fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpFault`, `FakeHttpHold`, `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
-| `forwardingProxy.ts` | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions` |
-| `otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
+| `server/storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
+| `server/domFetch.ts` | `domFetch(baseUrl)` |
+| `server/seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
+| `server/routeOutbound.ts` | `routeOutbound(routes)` |
+| `server/screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget` |
+| `server/domNavigate.ts` | `domNavigate(url?)` |
+| `server/genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
+| `server/domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
+| `server/fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpFault`, `FakeHttpHold`, `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
+| `server/forwardingProxy.ts` | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions` |
+| `server/otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
 
 ### Install and limits
 

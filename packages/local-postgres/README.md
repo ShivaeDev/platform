@@ -81,7 +81,7 @@ The version query returns the string `18.6`. `sql` also accepts a `URL` and retu
 
 `startPostgres(connection)` prepares the service without choosing an application database to create. Its connection defaults to `localServer`. Prefer `prepareDatabases` when the setup script needs named databases as well.
 
-On each start, setup reads `SHOW max_connections`. When the shared container allows fewer than 500 connections, setup applies `ALTER SYSTEM SET max_connections = 500`, restarts that same container, waits for readiness and confirms the setting. Existing data stays in place. A limit of 500 or higher causes no setting change or restart. If the setting cannot be applied, setup throws `PostgresSettingError` from `localConnections.ts`, with `_tag`, `container`, `setting` and the original `cause`.
+On each start, setup reads `SHOW max_connections`. When the shared container allows fewer than 500 connections, setup applies `ALTER SYSTEM SET max_connections = 500`, restarts that same container, waits for readiness and confirms the setting. Existing data stays in place. A limit of 500 or higher causes no setting change or restart. If the setting cannot be applied, setup throws `PostgresSettingError` from `@shivaedev/local-postgres/server/localConnections.ts`, with `_tag`, `container`, `setting` and the original `cause`.
 
 ### API
 
@@ -98,7 +98,7 @@ Import the setup API from `@shivaedev/local-postgres/server/localPostgres.ts`:
 
 The last three functions are members of the object returned by `localPostgres`, not module-level exports. They throw on failure; they are synchronous Node functions rather than Effects.
 
-The module export pattern also exposes the lower-level Docker and container command functions in `localDocker.ts` and `localContainer.ts`. Use `localPostgres.ts` for application preparation.
+The module export pattern also exposes the lower-level Docker and container command functions in `@shivaedev/local-postgres/server/localDocker.ts` and `@shivaedev/local-postgres/server/localContainer.ts`. Use `@shivaedev/local-postgres/server/localPostgres.ts` for application preparation.
 
 ### Install and machine setup
 
