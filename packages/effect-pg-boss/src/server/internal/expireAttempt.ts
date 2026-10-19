@@ -1,10 +1,11 @@
 import type { Job, PgBoss } from "pg-boss";
+import { quotedSchema } from "#internal/storedRows.ts";
 
 export async function expireAttempt(client: PgBoss, schema: string, job: Job<unknown>, cause: "expiry" | "heartbeat" = "expiry"): Promise<void> {
 	if ((await client.schemaVersion()) !== 45) {
 		throw new Error("Testing expiry requires pg-boss schema version 45");
 	}
-	const quoted = `"${schema.replaceAll('"', '""')}"`;
+	const quoted = quotedSchema(schema);
 	const timestamp = cause === "expiry" ? "started_on" : "heartbeat_on";
 	const seconds = cause === "expiry" ? "expire_seconds" : "heartbeat_seconds";
 	await client.getDb().executeSql(

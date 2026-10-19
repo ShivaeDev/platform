@@ -1,5 +1,6 @@
 import { Data, Deferred, Effect, Option } from "effect";
 import type { SendOptions } from "pg-boss";
+import { vi } from "vitest";
 import type { PgBossService } from "#service.ts";
 import type { clientEngine } from "#test/clientEngine.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
@@ -16,7 +17,7 @@ export function* testingProducer(state: State) {
 	if (!testing.enabled) {
 		return;
 	}
-	const runtime = yield* pgBossRuntime(state, () => undefined).boot([testing.queue], {
+	const runtime = yield* pgBossRuntime(state, () => undefined).boot([testing.queue, testing.followUps], {
 		clientCacheKey: testing.clientCacheKey,
 		clientFactory: (options) => {
 			const client = testing.testing.clientFactory(options);
@@ -41,7 +42,7 @@ export function* testingWorker(state: State) {
 		}
 		return testing.recovered ? Effect.void : Effect.fail(new WorkerRejected({ id, message: "The worker fails this attempt" }));
 	});
-	const runtime = yield* pgBossRuntime(state, () => undefined).boot([worker], {
+	const runtime = yield* pgBossRuntime(state, () => undefined).boot([worker, testing.followUps], {
 		clientCacheKey: testing.clientCacheKey,
 		clientFactory: testing.testing.clientFactory,
 		schema: "story_jobs",
@@ -54,18 +55,30 @@ export function testingVerbs(state: TestingState) {
 	function jobs() {
 		return Option.getOrThrow(state.jobs);
 	}
+	function recordIdleReads() {
+		const db = Option.getOrThrow(state.client).getDb?.();
+		if (db === undefined) {
+			throw new Error("The testing client exposes its database");
+		}
+		const executeSql = vi.spyOn(db, "executeSql");
+		return () => executeSql.mock.calls.flatMap(([text]) => (text.includes("effect-pg-boss testing idle") ? [text] : []));
+	}
 	return {
 		attempts: state.attempts,
 		deadLetteredJobs: (options: JobPageOptions) => jobs().deadLetteredJobs(state.queue, options),
 		failedJobs: (options: JobPageOptions) => jobs().failedJobs(state.queue, options),
+		followUps: state.followUps,
 		queue: state.queue,
+		recordIdleReads,
 		recoverWorker: Effect.sync(() => {
 			state.recovered = true;
 		}),
 		releaseWorker: Deferred.succeed(state.release, undefined),
 		retry: (id: string) => jobs().retry(state.queue, id),
 		send: (id: number, options?: SendOptions) => jobs().enqueue(state.queue, { id }, options),
+		sendFollowUp: (note: string, options?: SendOptions) => jobs().enqueue(state.followUps, { note }, options),
 		service: jobs,
+		snapshot: Effect.suspend(() => state.testing.snapshot([state.queue, state.followUps])),
 		testing: state.testing,
 		testingClient: () => Option.getOrThrow(state.client),
 		workerStarted: Deferred.await(state.entered),

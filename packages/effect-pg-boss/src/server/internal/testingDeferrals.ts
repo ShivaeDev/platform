@@ -2,6 +2,7 @@ import { DateTime } from "effect";
 import type { PgBoss } from "pg-boss";
 import type { QueueDefinition } from "#definition.ts";
 import { deferralOf } from "#internal/deferral.ts";
+import { quotedSchema } from "#internal/storedRows.ts";
 import { testingOperation } from "#internal/testingReadout.ts";
 
 export function testingDeferrals(client: () => PgBoss, schema: () => string, changed: () => void) {
@@ -22,11 +23,11 @@ export function testingDeferrals(client: () => PgBoss, schema: () => string, cha
 			testingOperation(
 				"runDeferredNow",
 				async () => {
-					const quotedSchema = `"${schema().replaceAll('"', '""')}"`;
+					const quoted = quotedSchema(schema());
 					await client()
 						.getDb()
 						.executeSql(
-							`UPDATE ${quotedSchema}.job SET start_after = ${quotedSchema}.job_now()
+							`UPDATE ${quoted}.job SET start_after = ${quoted}.job_now()
 				WHERE name = $1 AND state = 'retry' AND output ? 'jobDeferral' AND started_on IS NULL`,
 							[queue.name],
 						);

@@ -52,7 +52,7 @@ postgresIt(
 postgresIt(
 	"pages failed jobs newest first and returns each exactly once while new failures arrive",
 	[realPostgres, acceleratedTesting, failingWorker],
-	function* ({ deadLetteredJobs, failedJobs, queue, send, service, settle, untilJob }) {
+	function* ({ deadLetteredJobs, failedJobs, send, settle }) {
 		const sent: string[] = [];
 		for (const value of [1, 2, 3, 4, 5]) {
 			sent.push(Option.getOrThrow(yield* send(value, { retryLimit: 0 })));
@@ -62,7 +62,7 @@ postgresIt(
 		expect(first.jobs.map((job) => job.data.id)).toEqual([5, 4]);
 
 		const later = Option.getOrThrow(yield* send(6, { retryLimit: 0 }));
-		yield* untilJob(service(), queue, later, "failed");
+		yield* settle();
 
 		const pages = [first];
 		let cursor = first.next;
@@ -111,14 +111,14 @@ postgresIt(
 postgresIt(
 	"runs a listed failed job again when it is passed to retry",
 	[realPostgres, acceleratedTesting, failingWorker],
-	function* ({ attempts, failedJobs, queue, recoverWorker, retry, send, service, settle, untilJob }) {
+	function* ({ attempts, failedJobs, recoverWorker, retry, send, settle }) {
 		yield* send(9, { retryLimit: 0 });
 		yield* settle();
 		const [listed] = (yield* failedJobs({ limit: 1 })).jobs;
 		const id = listed?.id ?? "";
 		yield* recoverWorker;
 		yield* retry(id);
-		expect(yield* untilJob(service(), queue, id, "completed")).toMatchObject({ data: { id: 9 }, id, state: "completed" });
+		expect(yield* settle()).toMatchObject([{ data: { id: 9 }, id, state: "completed" }]);
 		expect(attempts).toEqual([9, 9]);
 		expect((yield* failedJobs({ limit: 10 })).jobs).toEqual([]);
 	},

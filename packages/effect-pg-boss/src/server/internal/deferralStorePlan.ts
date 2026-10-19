@@ -1,7 +1,8 @@
-import { STATELY_DEFERRAL_POLICY } from "./deferral.ts";
+import { STATELY_DEFERRAL_POLICY } from "#internal/deferral.ts";
+import { quotedSchema } from "#internal/storedRows.ts";
 
 export function deferralStorePlan(schema: string): string {
-	const quoted = `"${schema.replaceAll('"', '""')}"`;
+	const quoted = quotedSchema(schema);
 	const jobTable = `${quoted}.job`.replaceAll("'", "''");
 	const key = `${schema}.effect_job_deferral`.replaceAll("'", "''");
 	const body = `BEGIN

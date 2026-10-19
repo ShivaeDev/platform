@@ -1,9 +1,9 @@
-import { Effect, Option, Redacted, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import type { PgBossClient } from "#client.ts";
 import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
-import { type PgBossError, PgBossPayloadError, toPgBossError } from "#error.ts";
+import { type PgBossError, type PgBossPayloadError, toPgBossError } from "#error.ts";
 import { type DeadLetteredJob, deadLetterQueueName, type JobPage, type JobPageOptions } from "#health.ts";
-import { payloadOf } from "#internal/tracing.ts";
+import { decodeStoredData, quotedSchema } from "#internal/storedRows.ts";
 import type { PgBossService } from "#service.ts";
 
 const Cursor = Schema.StringFromBase64Url.pipe(Schema.decodeTo(Schema.fromJsonString(Schema.Tuple([Schema.String, Schema.String]))));
@@ -56,7 +56,7 @@ function listJobs<const TName extends string, const TPayload extends JobPayloadS
 				throw new RangeError("The page limit must be a positive integer");
 			}
 			const after = options.cursor === undefined ? undefined : await Schema.decodeUnknownPromise(Cursor)(options.cursor);
-			const quotedSchema = `"${schema.replaceAll('"', '""')}"`;
+			const quoted = quotedSchema(schema);
 			const { rows } = await client.getDb().executeSql(
 				`SELECT
 						id,
@@ -72,7 +72,7 @@ function listJobs<const TName extends string, const TPayload extends JobPayloadS
 						source_id AS "sourceId",
 						source_output AS "sourceOutput",
 						to_json(created_on) #>> '{}' AS "cursorAt"
-					FROM ${quotedSchema}.job
+					FROM ${quoted}.job
 					WHERE name = $1
 						${listing === "failedJobs" ? "AND state = 'failed'" : ""}
 						AND ($2::timestamptz IS NULL OR (created_on, id) < ($2::timestamptz, $3::uuid))
@@ -89,8 +89,7 @@ function listJobs<const TName extends string, const TPayload extends JobPayloadS
 			const next =
 				rows.length > options.limit && last !== undefined ? Option.some(Schema.encodeSync(Cursor)([last.cursorAt, last.id])) : Option.none();
 			return Effect.forEach(page, ({ cursorAt: _, data, ...row }) =>
-				Schema.decodeUnknownEffect(queue.schema)(payloadOf(data)).pipe(
-					Effect.mapError((error) => new PgBossPayloadError({ direction: "decode", original: Redacted.make(error), queue: queue.name })),
+				decodeStoredData(queue, data).pipe(
 					Effect.map((decoded) => ({ ...row, attempt: Option.isSome(row.startedOn) ? row.retryCount + 1 : 0, data: decoded })),
 				),
 			).pipe(Effect.map((jobs) => ({ jobs, next })));

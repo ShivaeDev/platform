@@ -4,16 +4,25 @@ import { deferralObservers } from "#internal/deferral.ts";
 import { expireAttempt } from "#internal/expireAttempt.ts";
 import { observeTestingSettlements } from "#internal/observeTestingSettlements.ts";
 import { testingExpirations } from "#internal/testingExpirations.ts";
+import type { TestingBatch, TestingWork } from "#internal/testingIdle.ts";
 
 export interface TestingControls {
 	readonly changed: () => void;
 	readonly expirations: Map<string, number>;
 	readonly failures: Set<string>;
 	readonly retryPolicy: Pick<SendOptions, "retryBackoff" | "retryDelay">;
+	readonly work: TestingWork;
 }
 
 export function testingClient(client: PgBoss, schema: string, controls: TestingControls): PgBossClient {
-	const settlements = observeTestingSettlements(client, controls.changed);
+	const settlements = observeTestingSettlements(client, (name) => {
+		for (const batch of controls.work.batches) {
+			if (batch.name === name) {
+				batch.settled = true;
+			}
+		}
+		controls.changed();
+	});
 	const expirations = testingExpirations(client);
 	function update(request: UpdateRequest): Promise<UpdateResponse>;
 	function update(name: string, data: object | null | undefined, options?: UpdateOptions): Promise<UpdateResponse>;
@@ -82,7 +91,10 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 			}),
 		work: (name, options, handler) => {
 			settlements.watch(name);
+			controls.work.queues.add(name);
 			return client.work(name, options, async (jobs: Job<unknown>[]) => {
+				const batch: TestingBatch = { name, settled: false };
+				controls.work.batches.add(batch);
 				controls.changed();
 				try {
 					const ready: Job<unknown>[] = [];
@@ -98,6 +110,7 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 						await handler(ready);
 					}
 				} finally {
+					controls.work.batches.delete(batch);
 					controls.changed();
 				}
 			});
