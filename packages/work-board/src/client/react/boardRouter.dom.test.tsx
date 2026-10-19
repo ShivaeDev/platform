@@ -9,7 +9,7 @@ expectNoReactWarnings();
 const files = {
 	"home.md": "# Workspace\n\n## Plans",
 	"notes/deep/review.md": "# Review\n\nThe review page.",
-	"notes/design.md": "# Design\n\nThe design page.",
+	"notes/design.md": "# Design\n\nThe design page.\n\n## Decisions\n",
 };
 screenStory.it(
 	"renders compact navigation and the selected document title",

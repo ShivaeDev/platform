@@ -1,10 +1,9 @@
-import { Children, type ComponentProps, createContext, createElement, Fragment, isValidElement, type ReactNode, useContext, useMemo } from "react";
+import { createElement, Fragment, type ReactNode, useMemo } from "react";
 import { type Components, MarkdownHooks } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import type { PluggableList } from "unified";
 import type { Document } from "#browser/document/schema.ts";
 import { AgeLabel } from "#client/react/AgeLabel.tsx";
-import { PageHeader } from "#client/react/PageHeader.tsx";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
@@ -13,6 +12,7 @@ import { boardLayout } from "./boardLayout.ts";
 import { DetailStatesContext, DocumentDetails } from "./Details.ts";
 import { highlightDocument } from "./highlight.ts";
 import { documentLayout, documentSourceId } from "./layout.ts";
+import { LayoutContext, layoutElements } from "./layoutElements.ts";
 import { Mermaid } from "./Mermaid.ts";
 
 const components: Components = {
@@ -42,6 +42,7 @@ export interface DocumentViewProps {
 	readonly after?: ReactNode;
 	readonly answer?: ReactNode;
 	readonly board?: readonly { readonly count: number; readonly title: string }[];
+	readonly closing?: ReactNode;
 	readonly components?: Components;
 	readonly content?: ReactNode;
 	readonly context?: ReactNode;
@@ -51,50 +52,6 @@ export interface DocumentViewProps {
 	readonly lead?: ReactNode;
 }
 
-const LayoutContext = createContext<{
-	readonly actions: ReactNode;
-	readonly after: ReactNode;
-	readonly answer: ReactNode;
-	readonly context: ReactNode;
-	readonly content: ReactNode;
-	readonly introduction: ReactNode;
-	readonly lead: ReactNode;
-	readonly file: string;
-	readonly identified: boolean;
-}>({ actions: null, after: null, answer: null, content: null, context: null, file: "", identified: false, introduction: null, lead: null });
-const layoutElements: Components = { article: LayoutArticle, header: LayoutHeader };
-function LayoutArticle({ node, children, ...props }: React.ComponentProps<"article"> & import("react-markdown").ExtraProps) {
-	const { after, content } = useContext(LayoutContext);
-	if (node?.properties.dataSource === undefined) {
-		return createElement("article", props, null, children);
-	}
-	return createElement(Fragment, null, createElement("article", props, content, children), after);
-}
-function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<"header"> & import("react-markdown").ExtraProps) {
-	const { actions, answer, context, introduction, lead, file, identified } = useContext(LayoutContext);
-	if (!props.className?.split(" ").includes("item-introduction")) {
-		return createElement("header", props, children);
-	}
-	const [first, ...rest] = Children.toArray(children);
-	const heading = isValidElement<ComponentProps<"h1">>(first) && first.type === "h1" ? first : undefined;
-	const { children: title, ...titleProps } = heading?.props ?? { children: file, className: "font-mono" };
-	const leading = heading ? rest : Children.toArray(children);
-	return createElement(
-		Fragment,
-		null,
-		createElement(PageHeader, {
-			...props,
-			actions,
-			className: `${props.className} col-span-full bg-background pb-4 ${identified ? "sticky top-[var(--board-header-height,0px)] z-10 -mt-3 border-border border-b pt-3" : ""}`,
-			summary: leading.length > 0 || introduction ? createElement(Fragment, null, ...leading, introduction) : undefined,
-			title,
-			titleProps,
-		}),
-		lead,
-		answer,
-		context,
-	);
-}
 export function DocumentView({
 	document,
 	idPrefix = "",
@@ -106,6 +63,7 @@ export function DocumentView({
 	answer,
 	lead,
 	actions,
+	closing,
 	components: overrides,
 }: DocumentViewProps) {
 	const layout = context !== undefined;
@@ -134,7 +92,20 @@ export function DocumentView({
 			{ key: states.identity, value: states.values },
 			createElement(
 				LayoutContext.Provider,
-				{ value: { actions, after, answer, content, context, file: document.file, identified: Boolean(document.metadata.id), introduction, lead } },
+				{
+					value: {
+						actions,
+						after,
+						answer,
+						closing,
+						content,
+						context,
+						file: document.file,
+						identified: Boolean(document.metadata.id),
+						introduction,
+						lead,
+					},
+				},
 				createElement(
 					MarkdownHooks,
 					{
