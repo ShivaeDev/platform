@@ -157,6 +157,10 @@ The override changes the per-test environment used by the wrapper, harness and b
 
 Worker acquisition is separate: a Layer that reads the default Clock while it is being built sees live time, even when its tests use TestClock.
 
+A `Clock.Clock` supplied by the fixture's Layer takes precedence over the runner's default Clock in the wrapper, harness and body. Reads and sleeps use that fixture Clock, including explicit advancement when it is a native TestClock.
+
+Both test and live clock fixtures install a fresh native TestConsole for each test. `Console.log` from `effect` is captured by `TestConsole.logLines` from `effect/testing/TestConsole`; one test's output does not carry into the next.
+
 ### Waiting for a typed readiness condition
 
 `eventually(effect, options)` retries the Effect's typed failures until it succeeds or uses its retry budget. It uses the active Clock: under TestClock it advances time with `TestClock.adjust`; under live time it retries with `Schedule.spaced`.
