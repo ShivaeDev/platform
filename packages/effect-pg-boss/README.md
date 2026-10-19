@@ -457,7 +457,11 @@ Set `retryPolicy: testRetryPolicy` through the controller to override queue and 
 
 `checkBatchWindow(queue, millisecondsPerJob)` checks that the declared sequential batch fits strictly inside the stored queue expiry window. `schemaVersion` reads the installed version, and `checkSchemaVersion(expected)` fails when it differs. Test control, read and check failures use `PgBossTestingError` with `operation`, optional `queue` and a redacted `original`.
 
-A kit can capture `revision` before reading jobs and yield `waitForChange(revision)` when its condition is unmet. The wait resumes after a local send, settlement, worker fetch or return to idle, including terminal native worker timeouts whose handler promises remain pending. It also resumes immediately if a change occurred between the read and the wait. This signal observes the controller's client; external clients, future scheduled work and external database writes need their own wake source. Stories should retain a bounded test timeout.
+`snapshot(queues)` reads the unfinished jobs of several queues in one query, so the result is one consistent PostgreSQL snapshot. It returns jobs in the `created`, `retry`, `active` and `failed` states, never completed ones, oldest first by creation. Each entry has the job's `id`, `queue` (the definition's name), `state`, `startAfter` as a UTC `DateTime` and `data` decoded by that queue's Schema. Only unfinished rows are decoded, so a completed job whose stored data the Schema no longer accepts does not fail the read; invalid unfinished data fails with `PgBossPayloadError`.
+
+`waitForIdle` completes when the controller's local workers hold no job in flight and none of their queues has a job ready to fetch. A job is in flight while it is active in a local worker's queue. A terminal native worker timeout still lets the wait complete, because pg-boss fails the job even while its handler promise stays pending. A job whose `startAfter` is in the future does not hold the wait open, and neither do queues without a local worker. While a fetched batch has no settlement yet, the wait reads nothing and waits for the next local change; otherwise it checks with one query per change. A kit settles by yielding `waitForIdle` and then reading jobs once.
+
+A kit can also capture `revision` before reading jobs and yield `waitForChange(revision)` when its condition is unmet. The wait resumes after a local send, settlement or worker fetch, and when a local worker returns to idle as `waitForIdle` defines it, including terminal native worker timeouts whose handler promises remain pending. It also resumes immediately if a change occurred between the read and the wait. This signal observes the controller's client; external clients, future scheduled work and external database writes need their own wake source. Stories should retain a bounded test timeout.
 
 ### API
 
@@ -471,7 +475,7 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/effect-pg-boss/server/health.ts` | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth` |
 | `@shivaedev/effect-pg-boss/server/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
 | `@shivaedev/effect-pg-boss/server/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
-| `@shivaedev/effect-pg-boss/server/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions` |
+| `@shivaedev/effect-pg-boss/server/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `SnapshotQueue`, `UnfinishedJob` |
 
 The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, with literal `QueuePolicy` values and `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 

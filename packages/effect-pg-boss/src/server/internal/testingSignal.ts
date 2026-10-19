@@ -6,10 +6,12 @@ export function testingSignal() {
 	return {
 		changed() {
 			revision += 1;
-			for (const listener of listeners) {
+			// A resumed waiter can wait again synchronously; it must wait for the next change, not this one.
+			const waiting = [...listeners];
+			listeners.clear();
+			for (const listener of waiting) {
 				listener(revision);
 			}
-			listeners.clear();
 		},
 		revision: Effect.sync(() => revision),
 		waitForChange: (after: number): Effect.Effect<number> =>

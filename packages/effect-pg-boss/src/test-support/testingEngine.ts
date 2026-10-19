@@ -14,6 +14,7 @@ export function* testingEngine() {
 		clientCacheKey: Symbol("testing-story"),
 		enabled: false,
 		entered: yield* Deferred.make<void>(),
+		followUps: defineQueue({ name: "testing-story-follow-up", schema: Schema.Struct({ note: Schema.String }) }),
 		jobs: Option.none<PgBossService>(),
 		paused: false,
 		queue: defineQueue({
@@ -25,7 +26,6 @@ export function* testingEngine() {
 		readout,
 		recovered: false,
 		release: yield* Deferred.make<void>(),
-		revision: 0,
 		testing: makePgBossTesting({ retryPolicy: testRetryPolicy }),
 		worker: false,
 	};

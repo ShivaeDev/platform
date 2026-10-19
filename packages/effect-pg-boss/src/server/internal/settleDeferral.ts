@@ -1,7 +1,8 @@
 import { Schema } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
-import { STATELY_DEFERRAL_POLICY } from "./deferral.ts";
+import { STATELY_DEFERRAL_POLICY } from "#internal/deferral.ts";
+import { quotedSchema } from "#internal/storedRows.ts";
 
 const Settlement = Schema.Struct({ claimed: Schema.Boolean, deferred: Schema.Boolean });
 
@@ -9,7 +10,7 @@ export async function settleDeferral(client: PgBossClient, schema: string, job: 
 	if (client.getDb === undefined) {
 		throw new TypeError("This pg-boss client does not support getDb for RetryAt");
 	}
-	const quoted = `"${schema.replaceAll('"', '""')}"`;
+	const quoted = quotedSchema(schema);
 	// Native failure settlement deletes and reinserts jobs, so a cascading job foreign key would erase the counter.
 	const { rows } = await client.getDb().executeSql(
 		`WITH claimed AS MATERIALIZED (

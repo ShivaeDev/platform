@@ -28,16 +28,6 @@ export const boss = storyKit({
 		settled: state.client.completeCalls,
 	}),
 	name: "pg-boss",
-	run: {
-		diagnose: (state) => JSON.stringify(state.testingState.readout),
-		maxSteps: 100,
-		*step(state) {
-			const testing = state.testingState;
-			yield* testing.testing.waitForChange(testing.revision);
-			testing.revision = yield* testing.testing.revision;
-			testing.readout = yield* testing.testing.jobs(testing.queue);
-		},
-	},
 	stages: ["database", "client", "configuration", "producer", "jobs", "runtime"],
 	verbs: (state, story) => {
 		const runtime = pgBossRuntime(state, story.tell);
@@ -48,13 +38,12 @@ export const boss = storyKit({
 			traces: tracingVerbs(state.trace, runtime),
 			...testingVerbs(state.testingState),
 			settle: () =>
-				story
-					.runUntil(
-						(current) =>
-							current.testingState.readout.length > 0
-							&& current.testingState.readout.every((job) => job.state === "completed" || job.state === "failed"),
-					)
-					.pipe(Effect.map(() => state.testingState.readout)),
+				Effect.gen(function* () {
+					const testing = state.testingState;
+					yield* testing.testing.waitForIdle;
+					testing.readout = yield* testing.testing.jobs(testing.queue);
+					return testing.readout;
+				}),
 		};
 	},
 });

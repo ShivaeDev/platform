@@ -1,12 +1,24 @@
-import { Effect, Redacted } from "effect";
+import { type DateTime, Effect, Redacted } from "effect";
 import { PgBoss } from "pg-boss";
 import type { PgBossClientFactory } from "#client.ts";
-import type { QueueDefinition } from "#definition.ts";
+import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
 import { PgBossTestingError } from "#error.ts";
 import { testingClient } from "#internal/testingClient.ts";
 import { testingDeferrals } from "#internal/testingDeferrals.ts";
+import { type TestingWork, testingIdle } from "#internal/testingIdle.ts";
 import { testingOperation, testingReadout } from "#internal/testingReadout.ts";
 import { testingSignal } from "#internal/testingSignal.ts";
+import { testingSnapshot } from "#internal/testingSnapshot.ts";
+
+export type SnapshotQueue = Pick<QueueDefinition<string, JobPayloadSchema>, "name" | "schema">;
+
+export interface UnfinishedJob<TQueue extends SnapshotQueue> {
+	readonly data: TQueue["schema"]["Type"];
+	readonly id: string;
+	readonly queue: TQueue["name"];
+	readonly startAfter: DateTime.Utc;
+	readonly state: "active" | "created" | "failed" | "retry";
+}
 
 export const testRetryPolicy = Object.freeze({ retryBackoff: false, retryDelay: 0 });
 
@@ -18,11 +30,13 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 	let current: PgBoss | undefined;
 	let schema = "pgboss";
 	const signal = testingSignal();
+	const work: TestingWork = { batches: new Set(), queues: new Set() };
 	const controls = {
 		changed: signal.changed,
 		expirations: new Map<string, number>(),
 		failures: new Set<string>(),
 		retryPolicy: options.retryPolicy ?? {},
+		work,
 	};
 	function client(): PgBoss {
 		if (current === undefined) {
@@ -82,7 +96,9 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 		jobs: testingReadout(client),
 		revision: signal.revision,
 		schemaVersion: testingOperation("schemaVersion", () => client().schemaVersion()),
+		snapshot: testingSnapshot(client, () => schema),
 		waitForChange: signal.waitForChange,
+		waitForIdle: testingIdle(client, () => schema, work, signal),
 	};
 }
 

@@ -1,6 +1,6 @@
 import type { PgBoss } from "pg-boss";
 
-export function observeTestingSettlements(client: PgBoss, changed: () => void) {
+export function observeTestingSettlements(client: PgBoss, settled: (name: string) => void) {
 	const observers = new Map<string, () => void>();
 	return {
 		close() {
@@ -23,7 +23,7 @@ export function observeTestingSettlements(client: PgBoss, changed: () => void) {
 					}
 					// This controller owns the spy; clear history and the losing wait before rearming both outcomes.
 					spy.clear();
-					changed();
+					settled(name);
 				}
 			}
 			observers.set(name, () => {
