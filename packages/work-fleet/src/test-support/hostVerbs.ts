@@ -8,6 +8,7 @@ import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#t
 import { cliProcess } from "#test/fleetCli.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { hostBoardVerbs } from "#test/hostBoardVerbs.ts";
+import { hostConfigVerbs } from "#test/hostConfigVerbs.ts";
 import { hostFollowerVerbs } from "#test/hostFollowerVerbs.ts";
 import { hostProviderVerbs } from "#test/hostProviderVerbs.ts";
 import { hostStoreVerbs } from "#test/hostStoreVerbs.ts";
@@ -15,6 +16,7 @@ import { hostStoreVerbs } from "#test/hostStoreVerbs.ts";
 export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
 		...hostBoardVerbs(engine, tell),
+		...hostConfigVerbs(engine, tell),
 		...hostFollowerVerbs(engine, tell),
 		...hostProviderVerbs(engine, tell),
 		...hostStoreVerbs(engine, tell),

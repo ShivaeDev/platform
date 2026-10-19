@@ -1,5 +1,5 @@
 import { Effect, Result } from "effect";
-import { validateChecks, validateReview } from "#completion.ts";
+import { validateChecks, validateReviewRequirement } from "#completion.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { releaseFinishedWork } from "#engine/releaseFinishedWork.ts";
 import type { FleetRecord } from "#model.ts";
@@ -16,9 +16,8 @@ export const settleMergedDelivery = Effect.fn("Fleet.settleMergedDelivery")(func
 	const record = stored.value;
 	yield* state.store.releaseForeign(result.pr);
 	const approved =
-		record.review?.verdict === "approved"
-		&& !pendingDecision
-		&& Result.isSuccess(yield* validateReview(record, record.review, result.head).pipe(Effect.result))
+		!pendingDecision
+		&& Result.isSuccess(yield* validateReviewRequirement(record, result.head).pipe(Effect.result))
 		&& record.checks !== undefined
 		&& Result.isSuccess(yield* validateChecks(record.checks, result.head).pipe(Effect.result));
 	return approved && delivery.head === result.head

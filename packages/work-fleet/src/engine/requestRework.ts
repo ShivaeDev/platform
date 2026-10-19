@@ -34,6 +34,7 @@ export function requestRework(state: EngineState) {
 				].join("\n\n"),
 				responses: responses ?? record.responses,
 				review: undefined,
+				reviewSkippedHead: undefined,
 				stage: "repairing",
 				supersededDecisions:
 					responses !== undefined || published === undefined

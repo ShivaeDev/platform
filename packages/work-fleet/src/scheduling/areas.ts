@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { reviewSatisfied } from "#completion.ts";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
 import { openSweep } from "#scheduling/sweeps.ts";
 import { StorageAdmission } from "#storage/errors.ts";
@@ -25,8 +26,7 @@ export function mergeWaitExpired(record: FleetRecord, now: number, mergeWaitMs: 
 		&& !executing(record)
 		&& record.result?.kind === "change"
 		&& record.mergeReadyHead === head
-		&& record.review?.head === head
-		&& record.review?.verdict === "approved"
+		&& reviewSatisfied(record, record.result.head)
 		&& record.checks?.head === head
 		&& record.checks?.passed === true
 	);

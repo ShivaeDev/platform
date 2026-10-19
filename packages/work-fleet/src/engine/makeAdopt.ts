@@ -5,6 +5,7 @@ import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { completeReport } from "#engine/completeReport.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { resultReview } from "#engine/resultReview.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
@@ -52,6 +53,12 @@ export function makeAdopt(state: EngineState) {
 		) {
 			return yield* save(stored, { ...stored.value, checks: undefined, result, stage: "validating" });
 		}
-		return yield* save(stored, { ...stored.value, checks: undefined, result, review: undefined, stage: "reviewing" });
+		return yield* save(stored, {
+			...stored.value,
+			checks: undefined,
+			result,
+			review: undefined,
+			...(yield* resultReview(state, result.head)),
+		});
 	});
 }

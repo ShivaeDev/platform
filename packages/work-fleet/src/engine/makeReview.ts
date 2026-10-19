@@ -24,6 +24,9 @@ export function makeReview(state: EngineState) {
 			return stored;
 		}
 		yield* authorizeBriefContext(stored.value, work);
+		if (stored.value.reviewSkippedHead === result.head) {
+			return yield* save(stored, { ...stored.value, stage: "validating" });
+		}
 		if (stored.value.launchRetry !== undefined && state.policy.now() < stored.value.launchRetry.retryAt) {
 			return stored;
 		}

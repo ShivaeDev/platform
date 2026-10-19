@@ -42,13 +42,13 @@ host.it(
 		const original = publications.map(({ sourcePath }) => fleet.readBoard(sourcePath));
 		const preview = yield* fleet.cli(["close-finished-decisions", "--dry-run"]);
 		expect(preview, preview.stderr).toMatchObject({ code: 0 });
-		expect(preview.stdout).toContain("300 decision(s) would close.");
+		expect(preview.stdout).toContain("6 decision(s) would close.");
 		for (const [index, publication] of publications.entries()) {
 			expect(fleet.readBoard(publication.sourcePath)).toBe(original[index]);
 		}
 		const closed = yield* fleet.cli(["close-finished-decisions"]);
 		expect(closed, closed.stderr).toMatchObject({ code: 0 });
-		expect(closed.stdout).toContain("300 decision(s) closed.");
+		expect(closed.stdout).toContain("6 decision(s) closed.");
 		for (const [index, publication] of publications.entries()) {
 			const item = finishedDecisionWork[index];
 			const finished = item !== undefined && ["done", "deferred", "superseded"].includes(item.status);

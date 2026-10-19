@@ -1,5 +1,5 @@
 import { Effect, Result } from "effect";
-import { validateChecks, validateReview } from "#completion.ts";
+import { reviewSatisfied, validateChecks, validateReviewRequirement } from "#completion.ts";
 import { authorizeBriefContext, briefChanged, isChangedBriefDecision, stopChangedBrief } from "#engine/boardBrief.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
@@ -96,7 +96,7 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	if (
 		deliveryPending(record)
 		|| !["delivering", "needs-human"].includes(record.stage)
-		|| record.review?.verdict !== "approved"
+		|| !reviewSatisfied(record, result.head)
 		|| record.checks?.passed !== true
 	) {
 		return stored;
@@ -105,7 +105,7 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	if (denied !== undefined) {
 		return denied;
 	}
-	yield* validateReview(record, record.review, result.head);
+	yield* validateReviewRequirement(record, result.head);
 	yield* validateChecks(record.checks, result.head);
 	return yield* awaitHumanMerge(state, stored, result.head);
 });

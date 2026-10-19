@@ -4,6 +4,7 @@ import { validateResult } from "#completion.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { resultReview } from "#engine/resultReview.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -47,7 +48,7 @@ export function refreshReviewResult(state: EngineState) {
 			mergeReadyHead: undefined,
 			result: current,
 			resultObservations: [...(stored.value.resultObservations ?? []), result],
-			stage: "reviewing",
+			...(yield* resultReview(state, current.head)),
 			supersededDecisions: supersedeDecision(stored.value, policy.now()),
 		});
 	});
