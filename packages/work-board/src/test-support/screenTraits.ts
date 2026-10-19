@@ -31,9 +31,9 @@ export function openScreen() {
 export function routedScreen(files: Parameters<typeof renderRouter>[0], path: string, options?: BoardFixtureOptions) {
 	return screenStory.traits(screenFiles(files, options), screenRoute(path), openScreen());
 }
-export function chromeScreen(files: Parameters<typeof renderRouter>[0], path = "/notes/plan.md") {
+export function chromeScreen(files: Parameters<typeof renderRouter>[0], path = "/notes/plan.md", options?: BoardFixtureOptions) {
 	return screenStory.traits(
-		routedScreen(files, path),
+		routedScreen(files, path, options),
 		screenStory.trait("screen", `the shell finishes opening ${path}`, function* (engine) {
 			yield* Effect.promise(() =>
 				eventually(() => {

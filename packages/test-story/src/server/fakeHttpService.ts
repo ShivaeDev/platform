@@ -22,7 +22,21 @@ export interface FakeHttpReply {
 
 export type FakeHttpFault = { readonly kind: "status"; readonly reply: FakeHttpReply } | { readonly kind: "drop" | "reset" };
 
+export interface FakeHttpScope {
+	readonly params?: Readonly<Record<string, string>>;
+}
+
+export interface FakeHttpScriptOptions extends FakeHttpScope {
+	readonly phase?: "before" | "after";
+	readonly repeat?: boolean;
+}
+
+export interface FakeHttpScript {
+	readonly lift: Effect.Effect<void>;
+}
+
 export type FakeHttpRoute = {
+	readonly guard?: (request: FakeHttpRequest) => boolean;
 	readonly method?: string;
 	readonly path: string;
 } & (
@@ -57,8 +71,10 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 		}
 	}
 	return {
-		failOnce: (route: string, reply: FakeHttpReply) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply))),
-		fault: (route: string, fault: FakeHttpFault) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.fault(route, fault))),
+		failOnce: (route: string, reply: FakeHttpReply, scope?: FakeHttpScope) =>
+			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply, scope))),
+		fault: (route: string, fault: FakeHttpFault, scope?: FakeHttpScope) =>
+			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.fault(route, fault, scope))),
 		hold: (route: string) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.hold(route))),
 		narrate: (sink: (line: string) => void) => {
 			narrate = sink;
@@ -68,11 +84,14 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 				checkRoute(route);
 				checkRoute(arrival);
 			}).pipe(Effect.andThen(controls.releaseOnArrival(route, arrival))),
-		replyOnce: (route: string, reply: FakeHttpReply) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply))),
+		replyOnce: (route: string, reply: FakeHttpReply, scope?: FakeHttpScope) =>
+			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply, scope))),
 		get requests(): readonly FakeHttpRequest[] {
 			return requests.slice();
 		},
-		stall: (route: string) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.stall(route))),
+		scriptFault: (route: string, fault: FakeHttpFault, scriptOptions?: FakeHttpScriptOptions) =>
+			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.scriptFault(route, fault, scriptOptions))),
+		stall: (route: string, scope?: FakeHttpScope) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.stall(route, scope))),
 		url,
 	};
 });

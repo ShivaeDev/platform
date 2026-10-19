@@ -2,6 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import { RouterProvider } from "@tanstack/react-router";
 import { createRoot } from "react-dom/client";
 import type { BrowserClient } from "#client/client.ts";
+import { TooltipProvider } from "#client/react/components/ui/tooltip.tsx";
 import { boardRouter } from "./boardRouter.ts";
 
 export function mountBoard(container: Element, readSession: () => BrowserClient) {
@@ -26,7 +27,9 @@ export function mountBoard(container: Element, readSession: () => BrowserClient)
 	function render() {
 		root.render(
 			<RegistryContext.Provider key={generation} value={native.registry}>
-				<RouterProvider router={router} />
+				<TooltipProvider>
+					<RouterProvider router={router} />
+				</TooltipProvider>
 			</RegistryContext.Provider>,
 		);
 	}

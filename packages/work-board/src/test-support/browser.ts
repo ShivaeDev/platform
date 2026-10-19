@@ -13,7 +13,6 @@ export interface MermaidControl {
 
 export interface PageRequests {
 	answered: number;
-	beforeReact?: { readonly scheme: string | undefined; readonly dark: boolean; readonly sidebar: string | undefined; readonly skeleton: boolean };
 	count: number;
 	failWith: number | "network" | undefined;
 	gate: Promise<void>;

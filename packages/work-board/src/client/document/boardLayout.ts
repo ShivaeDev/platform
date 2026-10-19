@@ -8,9 +8,11 @@ interface Draft {
 	closing: boolean;
 	readonly footer: Element;
 	readonly header: Element;
+	readonly introduction: Element;
 	item: Element | undefined;
 	section: Element | undefined;
 }
+const ITEM = "item my-3 rounded-lg border bg-card px-4 py-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0 [&>h3]:mb-2 [&>h3]:text-base";
 function place(draft: Draft, node: ElementContent, afterHeading: boolean) {
 	if (node.type === "element" && node.tagName === "hr" && afterHeading && draft.section) {
 		draft.closing = true;
@@ -21,17 +23,17 @@ function place(draft: Draft, node: ElementContent, afterHeading: boolean) {
 		return;
 	}
 	if (node.type === "element" && node.tagName === "h2") {
-		draft.section = element("section", [node]);
+		draft.section = element("section", [node], "board-section");
 		draft.board.children.push(draft.section);
 		draft.item = undefined;
 		return;
 	}
 	if (!draft.section) {
-		draft.header.children.push(node);
+		(node.type === "element" && node.tagName === "h1" ? draft.header : draft.introduction).children.push(node);
 		return;
 	}
 	if (node.type === "element" && node.tagName === "h3") {
-		draft.item = element("article", [node], "item");
+		draft.item = element("article", [node], ITEM);
 		draft.section.children.push(draft.item);
 		return;
 	}
@@ -64,10 +66,11 @@ export function boardLayout(
 		const nodes = tree.children.filter((node): node is ElementContent => node.type !== "doctype" && !(node.type === "text" && !node.value.trim()));
 		const lastHeading = nodes.findLastIndex((node) => node.type === "element" && /^h[1-6]$/u.test(node.tagName));
 		const draft: Draft = {
-			board: element("div", [], layout ? "board lg:col-start-1 lg:row-start-2" : "board"),
+			board: element("div", [], layout ? "board doc reading-column lg:col-start-1 lg:row-start-2" : "board"),
 			closing: false,
 			footer: element("footer"),
 			header: element("header", [], layout ? "item-introduction board-head" : "board-head"),
+			introduction: element("div", [], "board-introduction"),
 			item: undefined,
 			section: undefined,
 		};
@@ -77,10 +80,19 @@ export function boardLayout(
 		if (!draft.header.children.some((node) => node.type === "element" && node.tagName === "h1")) {
 			draft.header.children.unshift(element("h1", [{ type: "text", value: file }]));
 		}
+		draft.board.properties.dataSource = source;
+		const footer = draft.footer.children.length > 0 ? [draft.footer] : [];
+		if (draft.introduction.children.length > 0) {
+			draft.board.children.unshift(draft.introduction);
+		}
+		if (layout) {
+			draft.board.children.push(...footer);
+			tree.children = [draft.header, draft.board];
+			return;
+		}
 		const age = element("span", [{ type: "text", value: `updated ${new Date(modified).toISOString()}` }], "age");
 		age.properties.dataModified = modified;
-		draft.board.properties.dataSource = source;
 		draft.header.children.push(summary(counts), element("p", [age], "meta"));
-		tree.children = [draft.header, draft.board, ...(draft.footer.children.length > 0 ? [draft.footer] : [])];
+		tree.children = [draft.header, draft.board, ...footer];
 	};
 }

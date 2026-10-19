@@ -3,14 +3,14 @@ import { chmod, open, readdir, readFile, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect, Exit } from "effect";
 import { expect, vi } from "vitest";
-import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { outsideResponseDirectory, responseDirectory, responseLink } from "#test/responseFiles.ts";
 import { publish } from "./publish.ts";
 import { publishIn } from "./publishIn.ts";
 
 boardStory.it(
 	"never replaces a conflicting file or follows a destination symlink",
-	[projectFiles({ "responses/response.a.md": "Other contribution" }, "the project has the stated publication files")],
+	[deferredServing, projectFiles({ "responses/response.a.md": "Other contribution" }, "the project has the stated publication files")],
 	function* ({ notes, anotherFolder }) {
 		const outside = yield* anotherFolder({ "reference.md": "Outside source" });
 		expect((yield* Effect.flip(publish(notes.root, notes.root, "response.a", "New feedback"))).message).toContain("different content");
@@ -24,7 +24,7 @@ boardStory.it(
 
 boardStory.it(
 	"reports uncertainty after publication fails directory synchronization and safely reconciles the already-published identity",
-	[projectFiles({}, "the project has the stated publication files")],
+	[deferredServing, projectFiles({}, "the project has the stated publication files")],
 	function* ({ notes }) {
 		responseDirectory(notes.root);
 		const target = yield* Effect.promise(() => open(join(notes.root, "responses"), constants.O_RDONLY | constants.O_DIRECTORY));
@@ -49,7 +49,7 @@ boardStory.it(
 
 boardStory.it(
 	"rejects permission failure before publication and cleans temporary files",
-	[projectFiles({}, "the project has the stated publication files")],
+	[deferredServing, projectFiles({}, "the project has the stated publication files")],
 	function* ({ notes }) {
 		responseDirectory(notes.root);
 		yield* Effect.promise(() => chmod(join(notes.root, "responses"), 0o500));
@@ -64,7 +64,7 @@ boardStory.it(
 
 boardStory.it(
 	"concurrent writers publish one winner and reconcile only identical content",
-	[projectFiles({}, "the project has the stated publication files")],
+	[deferredServing, projectFiles({}, "the project has the stated publication files")],
 	function* ({ notes }) {
 		const attempts = yield* Effect.all(
 			["First feedback", "Other feedback"].map((content) => Effect.exit(publish(notes.root, notes.root, "response.race", content))),
@@ -82,7 +82,7 @@ boardStory.it(
 
 boardStory.it(
 	"rejects a replaced directory before publication and reports uncertainty after publication",
-	[projectFiles({}, "the project has the stated publication files")],
+	[deferredServing, projectFiles({}, "the project has the stated publication files")],
 	function* ({ notes, anotherFolder }) {
 		const outside = yield* anotherFolder({});
 		responseDirectory(notes.root);
@@ -114,7 +114,7 @@ boardStory.it(
 
 boardStory.it(
 	"reports a boundary change detected during cleanup as uncertain without cleaning another directory",
-	[projectFiles({}, "the project has the stated publication files")],
+	[deferredServing, projectFiles({}, "the project has the stated publication files")],
 	function* ({ notes, anotherFolder }) {
 		const outside = yield* anotherFolder({});
 		responseDirectory(notes.root);

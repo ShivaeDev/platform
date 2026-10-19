@@ -37,15 +37,6 @@ export function pageFetch({
 	return {
 		afterAsyncResponse: async ({ request, response, window }) => {
 			const decoded = await decodedBody(response, window);
-			if (new URL(request.url).pathname === "/_board/react.js") {
-				const root = window.document.documentElement;
-				pageRequests.beforeReact = {
-					dark: root.classList.contains("dark"),
-					scheme: root.dataset.scheme,
-					sidebar: root.dataset.sidebar,
-					skeleton: window.document.querySelector("[data-board-react-root] > [data-board-skeleton] header") !== null,
-				};
-			}
 			return (await rpcAfter(request, decoded ?? response, window, path, pageRequests, streams)) ?? decoded;
 		},
 		beforeAsyncRequest: async ({ request, window }) => {

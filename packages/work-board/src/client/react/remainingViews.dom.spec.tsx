@@ -15,22 +15,22 @@ const files = {
 const routes = [
 	{ kind: "system", selector: "[data-source=codex]", text: "Source missing", url: "/_board/system" },
 	{ kind: "start", selector: ".start-template textarea", text: "example.project", url: "/_board/start" },
-	{ kind: "handoff", selector: "#handoff-form", text: "Recipient", url: "/_board/handoff?item=task.fixture" },
+	{ kind: "handoff", selector: "#handoff-form", text: "Agent name", url: "/_board/handoff?item=task.fixture" },
 	{ kind: "result", selector: "#result-criteria", text: "Show the result", url: "/_board/result?item=result.fixture" },
 ];
 for (const { kind, url, selector, text } of routes) {
-	screenStory.it(`renders ${kind} from typed queries`, [routedScreen(files, url, undefined)], function* ({ readText, findElement, readAttribute }) {
+	screenStory.it(`renders ${kind} from typed queries`, [routedScreen(files, url, undefined)], function* ({ readText, findElement }) {
 		yield* Effect.promise(() => eventually(() => expect(readText(selector)).toContain(text)));
 		expect(findElement("main")?.dataset.projection).toBe(kind);
 		if (kind === "result") {
 			expect(readText("#result-report")).toContain("Report limitations");
-			expect(readAttribute("#result-criteria h2", "title")).toContain("authored records");
+			expect(readText("#result-criteria")).toContain("doesn't compare revisions with your checkout");
 		}
 	});
 }
 screenStory.it(
 	"updates answer card context while retaining answer text, node and caret",
-	[routedScreen({ ...files }, "/_board/item/task.fixture/")],
+	[routedScreen({ ...files }, "/_board/item/task.fixture/", { writable: true })],
 	function* ({ refreshDocument, selectText, editFile, findElement, readText, readFocus, typeText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form textarea")).not.toBeNull()));
 		const body = findElement<HTMLTextAreaElement>("#response-form textarea");

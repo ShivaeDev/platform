@@ -1,45 +1,38 @@
-import { SegmentedBar } from "#client/react/SegmentedBar.tsx";
+import { cn } from "cn";
+import type { GoalCounts } from "#browser/views/GoalsProjection.ts";
+import { Progress, ProgressLabel, ProgressValue } from "#client/react/components/ui/progress.tsx";
+import { goalTotal } from "./goalCounts.ts";
+
 export function GoalProgress({
 	counts,
 	title,
 	compact = false,
+	size = "small",
 }: {
-	readonly counts: Readonly<Record<string, number>>;
+	readonly counts: GoalCounts;
 	readonly title: string;
 	readonly compact?: boolean;
+	readonly size?: "small" | "large";
 }) {
-	const grouped = { done: 0, "in progress": 0, planned: 0 };
-	for (const [status, count] of Object.entries(counts)) {
-		if (["done", "completed", "accepted"].includes(status)) {
-			grouped.done += count;
-		} else if (
-			[
-				"active",
-				"running",
-				"in-progress",
-				"in progress",
-				"agent-working",
-				"blocked",
-				"needs-human",
-				"executing",
-				"reviewing",
-				"repairing",
-				"adopting",
-			].includes(status)
-		) {
-			grouped["in progress"] += count;
-		} else {
-			grouped.planned += count;
-		}
-	}
-	const total = grouped.done + grouped["in progress"] + grouped.planned;
-	const amount = compact ? `${grouped.done}/${total}` : `${grouped.done} of ${total} done`;
+	const total = goalTotal(counts);
+	const summary = `${counts.done} of ${total} done`;
+	const large = size === "large";
 	return (
-		<div className="mt-2 space-y-1">
-			<SegmentedBar counts={grouped} label={`${title}: ${grouped.done} of ${total} done`} />
-			<p className="m-0 text-muted-foreground text-xs tabular-nums" title={`${grouped.done} of ${total} done`}>
-				{amount}
-			</p>
-		</div>
+		<Progress
+			aria-label={`${title}: ${summary}`}
+			className={cn(
+				"[&_[data-slot=progress-indicator]]:bg-done",
+				large ? "gap-2 text-sm [&_[data-slot=progress-track]]:h-2.5" : "mt-2 gap-1 [&_[data-slot=progress-track]]:h-1.5",
+			)}
+			data-goal-progress=""
+			getAriaValueText={() => summary}
+			max={Math.max(total, 1)}
+			value={counts.done}
+		>
+			{large ? <ProgressLabel className="text-sm">Done</ProgressLabel> : null}
+			<ProgressValue className={cn("tabular-nums", large ? "text-sm" : "order-last ml-0")} title={summary}>
+				{() => (compact ? `${counts.done}/${total}` : summary)}
+			</ProgressValue>
+		</Progress>
 	);
 }

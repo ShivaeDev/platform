@@ -8,13 +8,15 @@ import { folder, startBoard } from "./board.ts";
 import { EDGE_ATTENTION_SOURCE } from "./coverageEdges.ts";
 import { decodedBody } from "./decodedBody.ts";
 import { type ScreenEngine, screenView } from "./screenEngine.ts";
+import { registerSessionFetch, sessionFetch } from "./sessionFetch.ts";
 
 export const mountSession = Effect.fn("Story.mountSession")(function* (engine: ScreenEngine, kind: "response" | "handoff") {
+	const files = Object.keys(engine.files).length > 0 ? engine.files : { "item.md": EDGE_ATTENTION_SOURCE };
 	const notes = yield* Effect.acquireRelease(
-		Effect.sync(() => folder({ "item.md": EDGE_ATTENTION_SOURCE })),
+		Effect.sync(() => folder(files)),
 		(value) => Effect.sync(value.remove),
 	);
-	const board = yield* startBoard(notes.root, undefined, undefined, true);
+	const board = yield* startBoard(notes.root, engine.options?.home, engine.sessionWrap, true, undefined, undefined, engine.sessionFleetPort);
 	const previousFetch = globalThis.fetch;
 	const transport = yield* Effect.acquireRelease(
 		Effect.sync(
@@ -30,19 +32,9 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 				await value.happyDOM.abort();
 			}),
 	);
-	vi.stubGlobal("fetch", (...args: Parameters<Window["fetch"]>) => {
-		const input = args[0];
-		let url: string;
-		if (typeof input === "string") {
-			url = input;
-		} else if ("url" in input) {
-			url = input.url;
-		} else {
-			url = input.href;
-		}
-		transport.happyDOM.setURL(new URL(url, board.url).origin);
-		return transport.fetch(...args);
-	});
+	const unregister = registerSessionFetch(board.url, transport, engine);
+	yield* Effect.addFinalizer(() => Effect.sync(unregister));
+	vi.stubGlobal("fetch", sessionFetch);
 	const environment: Parameters<typeof session>[0] = {
 		addEventListener: (type, listener) => window.addEventListener(type, listener),
 		document,
@@ -53,16 +45,20 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 	const container = document.createElement("div");
 	document.body.append(container);
 	engine.container = container;
-	history.replaceState(null, "", kind === "response" ? "/_board/item/item.edge/" : "/_board/handoff?item=item.edge");
+	const formRoute = kind === "response" ? "/_board/item/item.edge/" : "/_board/handoff?item=item.edge";
+	const route = engine.path === "/" ? formRoute : engine.path;
+	history.replaceState(null, "", route);
 	window.dispatchEvent(new PopStateEvent("popstate"));
 	let unmount: (() => void) | undefined;
 	yield* Effect.addFinalizer(() =>
-		Effect.sync(() => {
+		Effect.promise(async () => {
 			engine.lastView = screenView(engine);
-			act(() => {
-				unmount?.();
-				window.dispatchEvent(new Event("pagehide"));
-			});
+			await act(() =>
+				Promise.resolve().then(() => {
+					unmount?.();
+					window.dispatchEvent(new Event("pagehide"));
+				}),
+			);
 			container.remove();
 		}),
 	);

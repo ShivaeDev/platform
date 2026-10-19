@@ -55,9 +55,9 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 			tell(`write the legacy Fleet record for ${args[0].workId}`);
 			return running(state).fixture.replaceRecord(...args);
 		},
-		reserveForeign: (owner: string) => {
+		reserveForeign: (owner: string, areas?: readonly string[]) => {
 			tell(`reserve backlog for ${owner}`);
-			return running(state).fixture.foreign(owner);
+			return running(state).fixture.foreign(owner, areas);
 		},
 		setAreas: (...args: Parameters<EngineFixture["areas"]>) => {
 			running(state).fixture.areas(...args);

@@ -3,80 +3,50 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "effect-react-loaded-navigation.md",
-				"text": "---\n\"@shivaedev/effect-react\": patch\n---\n\n### Fixed\n\n- Wait for an active query loader before a newly mounted `useLoaderQuery` screen renders, so links to cached routes after invalidation show the changed data on their first render. Already mounted screens keep their data during refreshes.\n"
-			},
-			{
-				"name": "quality-extend-tool-paths.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Breaking\n\n- `toolOwned` in `files/named-after-export` and `files/other-names` now extends the default tool-owned paths instead of replacing them. Remove copied defaults from your configured lists and keep only repository-specific additions.\n"
+				"name": "local-postgres-version-error.md",
+				"text": "---\n\"@shivaedev/local-postgres\": minor\n---\n\n### Added\n\n- `PostgresVersionMismatch` from `@shivaedev/local-postgres/PostgresVersionMismatch.ts` identifies a refused running version through `_tag`, `expectedVersion` and `observedVersion`, retaining the existing error message.\n"
 			},
 			{
 				"name": "release-starter-pins.md",
 				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			},
 			{
-				"name": "test-story-screen-roles.md",
-				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- `screenDriver` actions and text/value readouts accept `ScreenTarget` selectors or `{ role, name }` targets, with exact string or regular-expression accessible names, hidden-element exclusion, candidate diagnostics and role/name narration.\n- `screenDriver.accessible(element)` computes an existing element's accessible name and role without narration; `accessible(selector)` keeps its narrated readout.\n"
+				"name": "test-story-scoped-http-faults.md",
+				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- Scope `fakeHttpService` stalls, immediate faults and one-shot replies by decoded path parameters with `FakeHttpScope`.\n- Script future status, drop and reset faults with `scriptFault` and `FakeHttpScriptOptions`, optionally repeat until the returned `FakeHttpScript.lift` control or strike after the route's reply applies its effects.\n- Declare per-route guards alongside the service guard; rejected requests receive 401 before holds, arrival scripts or faults are consumed.\n"
 			},
 			{
-				"name": "work-board-links-and-columns.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Sidebar destinations, the Now / All work / Table switch and answer card links are announced as links instead of buttons, and the All work board shows one column per status name, so items spelled `needs-you` and `needs-human` share one Needs you column.\n"
-			},
-			{
-				"name": "work-board-search-groups.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Search lists each item once: a document's title and the passages under it now share the document's row instead of adding a second row for the title anchor.\n- Search rows no longer repeat their title as the snippet; they show the next matching passage instead, or no snippet.\n\n### Changed\n\n- The search palette groups rows under **Go to**, **Appearance**, **Work** and **Documents** headings and drops the \"command\" subtitle from command rows.\n- **Include Fleet records** in the palette sets the new optional `records` search option; the `records:` query prefix keeps working.\n- The palette closes through the dialog's standard close control. The Search button is gone: Enter in the field still searches an unfinished query at once, and a failed search offers **Retry search**.\n"
-			},
-			{
-				"name": "work-fleet-predicted-conflict-hold.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- Predict conflicts against main and watched open PR heads with Git merge-tree, and hold the later PR before review and merge readiness until the earlier PR merges. Continue its worker once to merge main, even after area reservations expire.\n- Expose `MergePrediction` and `PredictedConflict` schemas, optional `FleetIntegrations.predict(pr, watchedPrs)` and `MainSource.mergeConflicts(head, otherHeads)` ports, and durable `mergePrediction` and `predictedConflictHold` record fields. Store conflict file names in typed PostgreSQL rows with UTC observation times through an additive migration.\n"
-			},
-			{
-				"name": "work-fleet-release-acknowledgement.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Acknowledge accepted daemon release commands within the client timeout while launches are busy, then apply their durable responses in the background.\n"
+				"name": "work-fleet-released-pr-observation.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Keep observing reserved PRs after release or renewed preparation and free their areas when they merge or close. Reuse conditional GitHub requests for unchanged PRs, and keep legacy closure decisions from reserving their areas again on release.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.3",
+				"from": "0.11.5",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.4"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-react",
-				"from": "0.10.0",
-				"name": "@shivaedev/effect-react",
-				"to": "0.10.1"
+				"to": "0.11.6"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/quality",
-				"from": "0.28.2",
-				"name": "@shivaedev/quality",
-				"to": "0.29.0"
+				"directory": "packages/local-postgres",
+				"from": "0.4.2",
+				"name": "@shivaedev/local-postgres",
+				"to": "0.5.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/test-story",
-				"from": "0.13.0",
+				"from": "0.14.0",
 				"name": "@shivaedev/test-story",
-				"to": "0.14.0"
+				"to": "0.15.0"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/work-board",
-				"from": "0.21.2",
-				"name": "@shivaedev/work-board",
-				"to": "0.21.3"
-			},
-			{
-				"bump": "minor",
 				"directory": "packages/work-fleet",
-				"from": "0.12.1",
+				"from": "0.13.1",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.13.0"
+				"to": "0.13.2"
 			}
 		]
 	}
