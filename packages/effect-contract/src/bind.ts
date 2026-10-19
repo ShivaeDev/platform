@@ -7,6 +7,7 @@ import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc, RpcSchema } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
+import { queryReactivity } from "#internal/queryReactivity.ts";
 import { automaticLive, type LiveBound, LiveConnection } from "./automaticLive.ts";
 import type { Contract, Declared, Tag } from "./contract.ts";
 import { invalidationKeys, type Key, readKeys } from "./keys.ts";
@@ -75,13 +76,14 @@ const invalidateAfter = Effect.fn("EffectContract.invalidateAfter")(function* (k
 });
 
 function boundQuery(service: ErasedClient, tag: string, query: QueryShape, track: (keys: readonly Key[]) => void) {
+	const reactive = queryReactivity(service.runtime);
 	function reads(payload: unknown) {
 		return readKeys(query.reads(payload));
 	}
 	return {
 		query: (payload: unknown, options: QueryOptions = {}) => {
 			track(query.reads(payload));
-			return service.query(tag, payload, { ...options, reactivityKeys: reads(payload) });
+			return reactive(service.query(tag, payload, options), reads(payload));
 		},
 		run: (payload: unknown) => service.use((client) => client(tag, payload)),
 	};

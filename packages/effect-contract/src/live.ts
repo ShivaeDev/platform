@@ -1,6 +1,7 @@
-import { type Cause, type Duration, Effect, Option, Schema, Stream } from "effect";
+import { type Cause, Duration, Effect, Option, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { invalidateLive } from "#internal/queryReactivity.ts";
 import { invalidationKeys, Key, readKeys } from "./keys.ts";
 
 export const LiveHint = Schema.Union([
@@ -15,6 +16,7 @@ export interface LiveStatus<E> {
 	readonly pending: number;
 }
 export interface LiveOptions<E, R> {
+	readonly coalesceWindow?: Duration.Input;
 	readonly resume?: Atom.Atom<unknown>;
 	readonly resyncKeys: readonly Key[] | (() => readonly Key[]);
 	readonly retryDelay?: Duration.Input;
@@ -24,6 +26,7 @@ export interface LiveOptions<E, R> {
 const MAX_PENDING = 256;
 
 export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeError>, options: LiveOptions<E, R>) {
+	const coalesceWindow = Atom.keepAlive(Atom.make<Duration.Input>(options.coalesceWindow ?? "20 millis"));
 	const paused = Atom.make(false);
 	const status = Atom.make<LiveStatus<E>>({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
 	const connection = runtime
@@ -34,7 +37,37 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 				function update(value: Partial<LiveStatus<E>>) {
 					get.set(status, { ...get.once(status), ...value });
 				}
+				const pending = new Set<string>();
+				let timer: ReturnType<typeof setTimeout> | undefined;
+				function clear() {
+					clearTimeout(timer);
+					timer = undefined;
+					pending.clear();
+				}
+				let active = true;
+				get.addFinalizer(() => {
+					active = false;
+					clear();
+				});
+				function changed(changedKeys: readonly Key[]) {
+					const delay = Duration.toMillis(Duration.fromInputUnsafe(get.once(coalesceWindow)));
+					if (delay === 0) {
+						reactivity.invalidateUnsafe(invalidationKeys(changedKeys));
+						return;
+					}
+					for (const key of invalidationKeys(changedKeys)) {
+						pending.add(key);
+					}
+					timer ??= setTimeout(() => {
+						const keys = [...pending];
+						clear();
+						if (!get.once(paused)) {
+							invalidateLive(reactivity, keys, () => active && !get.once(paused));
+						}
+					}, delay);
+				}
 				function resync() {
+					clear();
 					if (get.once(paused)) {
 						update({ needsResync: true });
 						return;
@@ -63,7 +96,7 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						} else if (isFirst || hint._tag === "Resync") {
 							resync();
 						} else {
-							reactivity.invalidateUnsafe(invalidationKeys(hint.keys));
+							changed(hint.keys);
 						}
 						isFirst = false;
 					}
@@ -79,5 +112,5 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 			}),
 		)
 		.pipe(Atom.setIdleTTL(0));
-	return { connection, paused, status };
+	return { coalesceWindow, connection, paused, status };
 }
