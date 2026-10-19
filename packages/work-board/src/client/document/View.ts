@@ -7,6 +7,7 @@ import { documentHeadings } from "#render/documentHeadings.ts";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
 import { footnoteIds } from "#render/footnoteIds.ts";
+import { tableColumns } from "#render/tableColumns.ts";
 import { boardLayout } from "./boardLayout.ts";
 import { DetailStatesContext, DocumentDetails } from "./Details.ts";
 import { highlightDocument } from "./highlight.ts";
@@ -67,6 +68,7 @@ export function DocumentView({
 		footnoteIds(idPrefix),
 		documentLinks(document.file, document.links),
 		documentHeadings(true).plugin,
+		tableColumns,
 	];
 	if (board) {
 		rehypePlugins.push([boardLayout, board, document.file, documentSourceId(document), layout]);
