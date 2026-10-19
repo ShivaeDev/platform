@@ -4,7 +4,7 @@ import { FilesystemFailure, orWhenAbsent, readOptionalText } from "./filesystem.
 import { emptyScope, type IgnoreScope, insideKept, verdictFor, withIgnoreFile } from "./ignoreScope.ts";
 import { trackedPaths } from "./trackedPaths.ts";
 
-const SKIPPED = new Set([".git", "node_modules"]);
+const SKIPPED = new Set([".git", ".worktrees", "node_modules"]);
 
 export function ignoreScopeAt(
 	dir: string,

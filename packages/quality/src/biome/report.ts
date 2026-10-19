@@ -48,7 +48,7 @@ export async function biomeReport(root: string, args: readonly string[], excepti
 	const [report, tracked] = await Promise.all([reportFor(root, args, ["."], exceptions), ignoredTrackedPaths(root)]);
 	const paths = tracked
 		.map((path) => relative(root, path))
-		.filter((path) => !path.split(sep).some((part) => part === ".git" || part === "node_modules"));
+		.filter((path) => !path.split(sep).some((part) => part === ".git" || part === ".worktrees" || part === "node_modules"));
 	const extra = paths.length === 0 ? undefined : await reportFor(root, [...args, "--vcs-enabled=false"], paths, exceptions);
 	const diagnostics = [...report.diagnostics, ...(extra?.diagnostics ?? [])];
 	const unique = [...new Map(diagnostics.map((diagnostic) => [JSON.stringify(diagnostic), diagnostic])).values()];

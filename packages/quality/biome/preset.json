@@ -38,6 +38,9 @@
 			"tailwindDirectives": true
 		}
 	},
+	"files": {
+		"includes": ["**", "!**/.worktrees"]
+	},
 	"formatter": {
 		"attributePosition": "auto",
 		"bracketSameLine": false,
