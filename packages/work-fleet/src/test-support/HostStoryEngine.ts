@@ -8,6 +8,7 @@ import type { Follower } from "#test/followerProcess.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
 import { localBoardHost } from "#test/localBoardHost.ts";
 import { movingMainSource } from "#test/mainSource.ts";
+import type { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { questionPublicationBoard } from "#test/questionPublicationVerbs.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
 import { type SnapshotReads, snapshotReads } from "#test/snapshotReads.ts";
@@ -19,6 +20,8 @@ export class HostStoryEngine {
 	config: Partial<HostConfig> = {};
 	stored: Record<string, Readonly<Record<string, unknown>>> = {};
 	main: MainSnapshot | undefined;
+	integrations: HostFixture["parts"]["integrations"];
+	pullRequest: Effect.Success<ReturnType<typeof mergedReviewGithub>> | undefined;
 	localBoard = false;
 	repositoryRoot: string | undefined;
 	briefParseCount: (() => number) | undefined;
@@ -92,6 +95,9 @@ export class HostStoryEngine {
 			}
 			const board = questionPublicationBoard(engine);
 			const parts = { ...engine.fixture.parts, ...(board === undefined ? {} : { board }), provider: resources.provider };
+			if (engine.integrations !== undefined) {
+				parts.integrations = engine.integrations;
+			}
 			if (engine.main !== undefined) {
 				parts.main = movingMainSource(() => engine.observedMain, engine.repositoryRoot);
 			}

@@ -4,6 +4,20 @@ import { finishedDecisionFiles, finishedDecisionWork } from "#test/finishedDecis
 import { task } from "#test/fleetHost.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 
+host.it("the CLI closes an unanswered decision for dropped work", [boardWork({ "one.md": task("one") })], function* (fleet) {
+	const decision = yield* fleet.publishBoardDecision("one", {
+		id: "one.1",
+		links: [],
+		reason: "Choose how to continue",
+		recommendation: "Review the work",
+	});
+	fleet.writeBoard("one.md", task("one").replace("kind: task", "kind: task\nstatus: dropped"));
+	const closed = yield* fleet.cli(["close-finished-decisions"]);
+	expect(closed).toMatchObject({ code: 0 });
+	expect(fleet.readBoard(decision.sourcePath)).toContain("Closed because Board work one is dropped.");
+	expect(board.metadataParse(fleet.readBoard(decision.sourcePath)).fields.attention).toMatchObject([{ state: "closed" }]);
+});
+
 host.it(
 	"the CLI previews and closes only unanswered finished decisions, and a second sweep closes none",
 	[boardWork({ ...finishedDecisionFiles, "answered.md": task("answered") })],

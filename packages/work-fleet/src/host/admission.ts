@@ -14,6 +14,7 @@ import { BoardGateway, type BoardWork } from "#policy.ts";
 import { coversRepository, preparationStop } from "#preparation/compatibility.ts";
 import type { Preparation } from "#preparation/schema.ts";
 import { workerPrompt } from "#prompt/worker.ts";
+import { sweepMerged } from "#scheduling/sweeps.ts";
 import { LaunchSettings } from "#session/schema.ts";
 
 // Workers start from current main, so the whole repository is their scope and preparation pins only the base.
@@ -83,6 +84,9 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	record: FleetRecord | undefined,
 	approval: Approval,
 ) {
+	if (!work.approved || ["done", "superseded", "deferred", "dropped"].includes(work.status ?? "")) {
+		return;
+	}
 	if (record?.stage === "prepared" && record.launchRetry !== undefined) {
 		return;
 	}
@@ -90,7 +94,8 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	const main = yield* MainSource;
 	const snapshot = yield* main.current;
 	const reapproved = record !== undefined && approval === "explicit" && (record.stage === "released" || briefChanged(record, work));
-	if (record !== undefined && !reapproved && !stalePreparation(record, work, snapshot) && !stoppedBehindMain(record)) {
+	const released = record?.stage === "released" && !sweepMerged(record);
+	if (record !== undefined && !released && !reapproved && !stalePreparation(record, work, snapshot) && !stoppedBehindMain(record)) {
 		return;
 	}
 	yield* fleet.prepare({

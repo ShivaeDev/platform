@@ -16,6 +16,13 @@ export function hostProviderVerbs(engine: HostStoryEngine, tell: (line: string) 
 				output: output ?? observation.output,
 			});
 		},
+		mergePullRequest: () => {
+			if (engine.pullRequest === undefined) {
+				throw new Error("Configure a pull request before merging it");
+			}
+			tell("a human merges the pull request");
+			engine.pullRequest.state.status = "MERGED";
+		},
 		providerCalls: () => [...engine.fixture.provider.settings],
 		providerStarts: () => [...engine.fixture.provider.starts],
 		providerSteers: () => [...engine.fixture.provider.steered],

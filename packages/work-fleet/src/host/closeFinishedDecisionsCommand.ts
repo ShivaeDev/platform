@@ -19,4 +19,4 @@ export const closeFinishedDecisionsCommand = Command.make(
 		}
 		yield* Console.log(`${closed.length} decision(s) ${input.dryRun ? "would close" : "closed"}.`);
 	}),
-).pipe(Command.withDescription("Close unanswered Fleet decisions whose Board work is done, deferred or superseded"));
+).pipe(Command.withDescription("Close unanswered Fleet decisions whose Board work is done, deferred, superseded or dropped"));
