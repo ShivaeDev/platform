@@ -1,4 +1,4 @@
-import type { Story } from "@shivaedev/test-story/storyKit.ts";
+import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { Screen } from "./Screen.ts";
 
 export function screenKit<TState, TVerbs extends object>(name: string, create: () => TState, verbs: (state: TState, screen: Screen) => TVerbs) {

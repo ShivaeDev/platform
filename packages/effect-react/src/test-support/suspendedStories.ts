@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { ViewEditor } from "./draftFields.ts";
 import { draftStorage } from "./draftStorage.ts";
 import { typeInput } from "./Screen.ts";

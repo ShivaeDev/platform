@@ -96,7 +96,16 @@ boardStory.it(
 );
 
 boardStory.it("delivers the initial reconciliation hint through the bound Board subscription", readingProject, function* ({ client }) {
-	const hints = yield* Effect.promise(() => client.run(Stream.runCollect(client.api.subscribe.run(undefined).pipe(Stream.take(1)))));
+	const hints = yield* Effect.promise(() =>
+		client.run(
+			Stream.runCollect(
+				client.api.subscribe.run(undefined).pipe(
+					Stream.filter((item) => item._tag !== "Indexing"),
+					Stream.take(1),
+				),
+			),
+		),
+	);
 	expect(hints).toEqual([{ _tag: "Resync" }]);
 });
 

@@ -1,4 +1,4 @@
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { connected, createBoard, inspectBoard, openReader, serveProject } from "./storyEngine.ts";
 
 export const storyEngineStory = storyKit({

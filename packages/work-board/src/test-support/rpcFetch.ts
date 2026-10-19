@@ -52,6 +52,9 @@ export async function rpcBefore(request: Request, window: BrowserWindow, path: s
 	}
 	pageRequests.methods.push(...(await rpcRequests(request)).map(({ tag }) => tag));
 	const call = await rpcRequest(request);
+	if (call) {
+		await pageRequests.held.get(call.tag);
+	}
 	if (call?.tag === "work-board.subscribe") {
 		streams[0] ??= new RpcStream();
 		if (streams[0].blocked) {

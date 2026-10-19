@@ -1,7 +1,8 @@
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { attentionVerbs } from "./attentionVerbs.ts";
 import type { FileSystemWrapper } from "./board.ts";
+import { held } from "./browser.ts";
 import { fileVerbs } from "./fileVerbs.ts";
 import { livePageVerbs } from "./livePageVerbs.ts";
 import { nativeVerbs } from "./nativeVerbs.ts";
@@ -111,6 +112,13 @@ export function readerAt(path: string, beforeScripts?: Parameters<typeof import(
 	});
 }
 
+export function readerArrivesEarly(path: string) {
+	return boardStory.trait("reader", `the reader opens ${path} before the board can show it`, function* (engine) {
+		engine.path = path;
+		yield* openReader(engine, false);
+	});
+}
+
 export function aQuestionnaire(source = questionnaireSource, wrap?: FileSystemWrapper) {
 	return boardStory.traits(
 		projectFiles({ "proposal.md": source, "task.md": "# Affected work" }, "a questionnaire asks for reading and verification choices"),
@@ -128,6 +136,13 @@ export function boardHome(home: string) {
 export function boardFilesystem(wrap: FileSystemWrapper) {
 	return boardStory.trait("project", "the workspace uses the specified filesystem boundary", (engine) => {
 		wrapFilesystem(engine, wrap);
+	});
+}
+
+export function heldRequest(method: string) {
+	return boardStory.trait("project", `the page holds its ${method} requests until released`, (engine) => {
+		engine.heldRequests ??= new Map();
+		engine.heldRequests.set(method, held());
 	});
 }
 

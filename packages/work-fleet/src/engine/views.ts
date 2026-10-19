@@ -9,6 +9,13 @@ type ViewRecord = Pick<FleetRecord, "workId" | "stage" | "attentionOwner" | "blo
 	readonly report?: Pick<NonNullable<FleetRecord["report"]>, "sourcePath"> | undefined;
 };
 
+export const RECENT_COMPLETED = 50;
+
+export function newestCompletion<A extends { readonly completedAt?: unknown; readonly updatedAt?: unknown }>(workId: (item: A) => string) {
+	return (left: A, right: A) =>
+		Number(right.completedAt ?? right.updatedAt ?? 0) - Number(left.completedAt ?? left.updatedAt ?? 0) || workId(right).localeCompare(workId(left));
+}
+
 export function views(records: readonly ViewRecord[]): typeof FleetViews.Type {
 	const items = records
 		.filter((record) => record.stage !== "released" || waitingOwner(record) !== undefined)

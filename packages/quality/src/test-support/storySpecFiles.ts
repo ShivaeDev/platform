@@ -6,7 +6,7 @@ export const kitFiles: readonly SeedFile[] = [
 		path: "package.json",
 	},
 	{
-		content: 'import { storyKit as kit } from "@shivaedev/test-story/storyKit.ts"; export const orders = kit({});',
+		content: 'import { storyKit as kit } from "@shivaedev/test-story/server/storyKit.ts"; export const orders = kit({});',
 		path: "src/test-support/orders.ts",
 	},
 	{ content: 'export { orders as app } from "./orders.ts";', path: "src/test-support/index.ts" },

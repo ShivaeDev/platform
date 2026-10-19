@@ -5,8 +5,8 @@ import { SqlClient } from "effect/sql";
 import { MIGRATIONS_DIRECTORY } from "@shivaedev/effect-sql/migrationConvention.ts";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { migrationsFromDirectory } from "@shivaedev/effect-sql/migrationsFromDirectory.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { postgres } from "./postgres.ts";
 
 export const migrationFolder = storyKit({

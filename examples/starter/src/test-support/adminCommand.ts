@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Fiber, Redacted, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { secret } from "./host.ts";
 
 export const adminCommand = Effect.fn("AdminSetup.adminCommand")(function* (email: string, password: string) {

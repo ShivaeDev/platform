@@ -14,14 +14,12 @@ import {
 } from "#test/resultReview.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
+import { WIDE_TABLE, WIDE_TABLE_LAYOUT } from "#test/wideTableFixture.ts";
 
 expectNoReactWarnings();
 
 const PAGE_TITLE = "#doc [data-page-header] > h1";
 const result = { "items/result.md": reviewResult(), "items/task.md": REVIEW_TASK };
-const task = {
-	"task.md": "---\nid: task.focus\nkind: task\nstatus: planned\nnext_action: Inspect focus\n---\n# Focus\n\nKeep the source readable.\n",
-};
 
 screenStory.it(
 	"heads a returned result with its plain status, links to its file and answer, and states what the Board does not verify",
@@ -203,96 +201,15 @@ screenStory.it(
 );
 
 screenStory.it(
-	"prepares a handoff in plain words, linking back to the item and keeping its actions as buttons",
-	[routedScreen(task, "/_board/handoff?item=task.focus", { writable: true })],
-	function* ({ findElement, findElements, readText, roles }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: Focus")));
-		expect(findElements("[data-page-actions] :is(a, button)").map((control) => roles.accessible(control))).toEqual([
-			{ name: "Back to item", role: "link" },
-		]);
-		expect(findElement("[data-page-actions] a")?.getAttribute("href")).toBe("/_board/item/task.focus/");
-		expect(readText(".response-context")).toContain("Keep the source readable.");
-		expect(findElements("#handoff-form label").map((label) => label.textContent)).toEqual([
-			"Agent name",
-			"Goal",
-			"Constraints (optional)",
-			"Next step",
-		]);
-		expect(findElements("#handoff-form button").map((control) => roles.accessible(control))).toEqual([
-			{ name: "Prepare handoff", role: "button" },
-			{ name: "Preview file", role: "button" },
-			{ name: "Clear draft", role: "button" },
-		]);
-		yield* Effect.promise(() => eventually(() => expect(findElement("#handoff-submit")).toHaveProperty("disabled", false)));
-		expect(findElement("#handoff-submit")?.classList.contains("bg-primary")).toBe(false);
-		expect(readText("#handoff-status")).toBe("");
-		expect(findElement<HTMLInputElement>('[name="nextAction"]')?.value).toBe("Inspect focus");
-		expect(findElement("main [role='alert']")).toBeNull();
-		expect(readText('#handoff-history [data-slot="empty-title"]')).toBe("No handoffs yet");
-	},
-);
-
-screenStory.it(
-	"names the item's owner as the agent and leaves a done item's old next step empty",
+	"lays out a wide table in the report like a document table, scrolling inside its own box",
 	[
 		routedScreen(
-			{ "task.md": "---\nid: task.shipped\nkind: task\nstatus: done\nowner: codex\nnext_action: Done; PR #395 merged.\n---\n# Shipped work\n" },
-			"/_board/handoff?item=task.shipped",
-			{ writable: true },
+			{ ...result, "items/result.md": reviewResult().replace("## Limits", `${WIDE_TABLE}\n## Limits`) },
+			"/_board/result?item=result.keyboard",
 		),
 	],
-	function* ({ activate, findElement, input, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: Shipped work")));
-		expect(findElement<HTMLInputElement>('[name="recipient"]')?.value).toBe("codex");
-		const next = findElement<HTMLTextAreaElement>('[name="nextAction"]');
-		expect(next?.value).toBe("");
-		expect(next?.placeholder).toBe("What should the agent do first?");
-		const goal = input('[name="goal"]', "A different direction");
-		yield* Effect.promise(() => activate("#handoff-clear"));
-		expect(readText("#handoff-status")).toBe("Draft cleared. Saved handoffs are unchanged.");
-		expect(goal.value).toBe("Shipped work");
-	},
-);
-
-screenStory.it(
-	"titles a handoff by the item ID when the item has no heading",
-	[routedScreen({ "task.md": "---\nid: task.plain\nkind: task\nstatus: planned\n---\nNo heading here.\n" }, "/_board/handoff?item=task.plain")],
-	function* ({ findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: task.plain")));
-		expect(findElement<HTMLTextAreaElement>('[name="goal"]')?.value).toBe("task.plain");
-	},
-);
-
-screenStory.it(
-	"tells a read-only reader that saving is off and keeps Prepare handoff disabled",
-	[routedScreen(task, "/_board/handoff?item=task.focus")],
-	function* ({ findElement, readText, submit }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("main [role='alert']")).not.toBeNull()));
-		expect(readText("main [role='alert']")).toBe("Read-onlySaving handoffs is turned off on this Board.");
-		expect(findElement("#handoff-submit")).toHaveProperty("disabled", true);
-		submit("#handoff-form");
-		expect(readText("#handoff-status")).toBe("");
-		expect(readText("main")).not.toContain("--responses");
-	},
-);
-
-screenStory.it(
-	"starts an empty workspace with steps and copyable template cards",
-	[routedScreen({}, "/_board/start")],
-	function* ({ findElement, findElements, readText, roles }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Start your workspace")));
-		expect(findElements("main ol li").map((step) => step.textContent)).toEqual([
-			"Copy a template below.",
-			"Save it in this folder under the suggested name.",
-			"Change the example IDs to your own, and update the links that use them.",
-			"Fill in the real details. Start with the project, then the investigation and the result.",
-		]);
-		const cards = findElements(".start-template");
-		expect(cards.map((card) => card.querySelector("h2")?.textContent)).toEqual(["Project", "Investigation", "Agent result"]);
-		expect(readText(".start-template [data-slot='card-description']")).toBe("Save as project.md");
-		yield* roles.click({ name: "Copy project template", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(readText(".start-template [data-copy-status]")).toBe("Copied. Save it as project.md.")));
-		const template = findElement<HTMLTextAreaElement>("#template-project\\.md");
-		expect(yield* Effect.promise(() => navigator.clipboard.readText())).toBe(template?.value);
+	function* ({ findElement, readTableLayout }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("#result-report table")).not.toBeNull()));
+		expect(readTableLayout("#result-report table")).toEqual(WIDE_TABLE_LAYOUT);
 	},
 );

@@ -1,6 +1,6 @@
 import { type Context, Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase, type PostgresTestServices, type PostgresTestTemplate } from "#database.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { narrated } from "./narrated.ts";

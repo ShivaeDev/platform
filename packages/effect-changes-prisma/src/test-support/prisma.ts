@@ -1,5 +1,5 @@
 import { Effect, Option } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { configuredTimeout } from "#expiry.ts";
 import type { bindingIsolation } from "./bindingIsolation.ts";
 import { connect } from "./database.ts";

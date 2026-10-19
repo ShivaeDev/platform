@@ -2,7 +2,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Exit, Layer, Redacted, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { databaseFailures } from "./databaseFailures.ts";
 import { overlappingStories } from "./overlappingStories.ts";
 import { acquireDatabase, databaseUrl, disposableDestination, hasPostgres } from "./postgres.ts";

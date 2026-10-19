@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { CommittedSink } from "@shivaedev/effect-sql/transact.ts";
-import type { Story } from "@shivaedev/test-story/storyKit.ts";
+import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet, type PrepareWork } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";

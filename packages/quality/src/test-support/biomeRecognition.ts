@@ -51,7 +51,7 @@ const PROBES: Readonly<Record<string, readonly string[]>> = {
 export function recognitionTree(): string {
 	const root = seedTree(
 		[
-			{ content: '{ "extends": ["@shivaedev/quality/biome"] }\n', path: "biome.json" },
+			{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },
 			{ content: "node_modules/\n", path: ".gitignore" },
 		],
 		Object.entries(PROBES).map(([path, lines]) => ({ content: `${lines.join("\n")}\n`, path })),

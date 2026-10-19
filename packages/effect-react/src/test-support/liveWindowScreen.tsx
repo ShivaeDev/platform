@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import { LiveConnection } from "@shivaedev/effect-contract/automaticLive.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { type LiveHint, live } from "@shivaedev/effect-contract/live.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { LiveWindowRead } from "./LiveWindowRead.tsx";
 import { Screen } from "./Screen.ts";

@@ -5,9 +5,9 @@ import { shellIds } from "./shellIds.ts";
 type LiveState = ReturnType<typeof liveStatus>["state"];
 
 const problems: Partial<Record<LiveState, { readonly icon: LucideIcon; readonly label: string }>> = {
-	down: { icon: WifiOff, label: "reconnecting" },
-	paused: { icon: Pause, label: "paused" },
-	stale: { icon: RefreshCwOff, label: "refresh failed" },
+	down: { icon: WifiOff, label: "Reconnecting…" },
+	paused: { icon: Pause, label: "Paused" },
+	stale: { icon: RefreshCwOff, label: "Not updated" },
 };
 
 export function CompactLiveStatus({ state, text }: { readonly state: LiveState; readonly text: string }) {
