@@ -1,3 +1,4 @@
+import { accessibleName, accessibleRole } from "./accessibleRole.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 export function screenObservations(engine: ScreenEngine, tell: (line: string) => void) {
@@ -18,6 +19,14 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 	}
 	return {
 		count: (selector: string, within?: ParentNode | null) => elements(selector, within).length,
+		findByRole: (role: string, name: string | RegExp, within: ParentNode | null = root()) => {
+			tell(`the reader finds the ${role} named ${name}`);
+			return (
+				[...(within?.querySelectorAll<HTMLElement>("*") ?? [])].find(
+					(candidate) => accessibleRole(candidate) === role && (typeof name === "string" ? accessibleName(candidate) === name : name.test(accessibleName(candidate))),
+				) ?? null
+			);
+		},
 		findElement: element,
 		findElements: elements,
 		location: () => {

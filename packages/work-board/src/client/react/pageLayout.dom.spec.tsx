@@ -1,7 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
-import { decisionId } from "#test/answerCardFixture.ts";
+import { decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
+import { accessibleRole } from "#test/accessibleRole.ts";
 import { answeredDecisionFixture } from "#test/answeredDecisionFixture.ts";
 import { attentionFixture } from "#test/attentionFixture.ts";
 import { observedBrowserMotion } from "#test/browserMotion.ts";
@@ -38,10 +39,6 @@ screenStory.it(
 
 const ACTION_CONTROLS = '#doc [data-slot="button"], #doc [data-slot="link-button"]';
 
-function roleOf(element: Element) {
-	return element.getAttribute("role") ?? (element.tagName === "A" && element.hasAttribute("href") ? "link" : element.tagName.toLowerCase());
-}
-
 for (const { name, files, url, open, actions } of [
 	{
 		actions: [
@@ -74,12 +71,12 @@ for (const { name, files, url, open, actions } of [
 		function* ({ click, findElement, findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
 			click(open);
-			const controls = findElements(ACTION_CONTROLS).map((element) => [roleOf(element), element.textContent?.trim()]);
+			const controls = findElements(ACTION_CONTROLS).map((element) => [accessibleRole(element), element.textContent?.trim()]);
 			for (const action of actions) {
 				expect(controls).toContainEqual(action);
 			}
-			for (const element of findElements(ACTION_CONTROLS).filter((candidate) => roleOf(candidate) === "link")) {
-				expect(element.getAttribute("href")).toMatch(/^\//u);
+			for (const element of findElements(ACTION_CONTROLS).filter((candidate) => accessibleRole(candidate) === "link")) {
+				expect(element.getAttribute("href")).toMatch(/^(\/|https:\/\/)/u);
 			}
 		},
 	);
@@ -96,5 +93,36 @@ screenStory.it(
 	function* ({ findElement, readPassageTargets }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("[data-source-problem]")).not.toBeNull()));
 		yield* Effect.promise(() => eventually(() => expect(readPassageTargets()).toContain("source-problems")));
+	},
+);
+
+screenStory.it(
+	"offers the sidebar destinations and the Now, All work and Table switch as links",
+	[chromeScreen(todayFixture(), "/_board/work")],
+	function* ({ findByRole }) {
+		const sidebar = findByRole("complementary", "Workspace navigation");
+		for (const [name, href] of [
+			[/^Today/u, "/"],
+			[/^Goals$/u, "/_board/goals"],
+			[/^Now/u, "/_board/work"],
+			[/^Library$/u, "/_board/library"],
+			[/^System$/u, "/_board/system"],
+		] as const) {
+			expect(findByRole("link", name, sidebar)?.getAttribute("href")).toBe(href);
+		}
+		const layouts = findByRole("navigation", "Work layout");
+		for (const name of ["Now", "All work", "Table"]) {
+			expect(findByRole("link", name, layouts)?.getAttribute("href")).toMatch(/^\/_board\/work\?/u);
+		}
+		expect(findByRole("link", "Now", layouts)?.getAttribute("aria-current")).toBe("page");
+	},
+);
+
+screenStory.it(
+	"offers an answer card's links as links to their pages",
+	[routedScreen(readyDecisionFixture, "/guide.md", { home: "home.md" })],
+	function* ({ findByRole, findElement }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement(".answer-links")).not.toBeNull()));
+		expect(findByRole("link", "Open PR #395")?.getAttribute("href")).toBe("https://github.com/ShivaeDev/platform/pull/395");
 	},
 );
