@@ -1043,7 +1043,7 @@
 {"path":"packages/work-fleet/src/engine/sessionCleanupFlow.spec.ts","rule":"tests/named-values","count":12}
 {"path":"packages/work-fleet/src/engine/sessionCleanupFlow.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/sessionNaming.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/staleDecisions.spec.ts","rule":"tests/named-values","count":5}
+{"path":"packages/work-fleet/src/engine/staleDecisions.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/work-fleet/src/engine/staleDecisions.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/stallProgress.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/stallRecovery.spec.ts","rule":"tests/named-values","count":6}
