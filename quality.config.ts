@@ -101,6 +101,7 @@ export default defineConfig({
 					"packages/quality/src/testProjects.ts",
 					"packages/test-story/src/server/fakeHttpService.ts",
 					"packages/test-story/src/server/forwardingProxy.ts",
+					"packages/test-story/src/server/screenDriver.ts",
 					"packages/test-story/src/server/storyKit.ts",
 					"packages/platform/src/server/appHost.ts",
 					"packages/platform/src/errors/taxonomy.ts",
