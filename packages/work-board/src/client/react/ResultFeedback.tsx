@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { fileUrl } from "#files/url.ts";
 import { EmptyState } from "./EmptyState.tsx";
-import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
+import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 import { SectionCard } from "./SectionCard.tsx";
 import { shellIds } from "./shellIds.ts";
 import { Version } from "./Version.tsx";
@@ -65,7 +65,7 @@ function FeedbackEntry({ entry }: { readonly entry: ResultProjection["feedback"]
 				</p>
 			)}
 			<div className="reading-column">
-				<ResponseMarkdown file={responseFile} source={response.body} />
+				<LazyResponseMarkdown file={responseFile} source={response.body} />
 			</div>
 			<details className="rounded-md border px-3 py-2">
 				<summary className="cursor-pointer font-medium">Report as reviewed</summary>

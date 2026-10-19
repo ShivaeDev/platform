@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { cn } from "cn";
+import { ChevronRight } from "lucide-react";
 import type { FleetWork, NowLane } from "#browser/views/now.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
-import { Button } from "#client/react/components/ui/button.tsx";
+import { Badge } from "#client/react/components/ui/badge.tsx";
+import { buttonVariants } from "#client/react/components/ui/button.tsx";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#client/react/components/ui/collapsible.tsx";
 import { EmptyState } from "#client/react/EmptyState.tsx";
 import { WorkCardList } from "#client/react/WorkCardList.tsx";
 
@@ -22,6 +25,7 @@ export function WorkLane({
 	fleet,
 	virtual,
 	collapsed,
+	className,
 }: {
 	readonly lane: NowLane;
 	readonly rows: WorkProjection["rows"];
@@ -29,33 +33,42 @@ export function WorkLane({
 	readonly fleet: ReadonlyMap<string, FleetWork>;
 	readonly virtual: boolean;
 	readonly collapsed: boolean;
+	readonly className?: string | undefined;
 }) {
-	const [open, setOpen] = useState(!collapsed);
-	return (
-		<section aria-label={lane} className="work-column min-w-0">
-			<h2 className="m-0 mb-3 flex min-h-8 items-center justify-between gap-2 font-semibold text-sm">
-				{collapsed ? (
-					<Button
-						aria-expanded={open}
-						className="h-auto min-h-8 shrink whitespace-normal text-left"
-						onClick={() => setOpen(!open)}
-						size="sm"
-						type="button"
-						variant="outline"
-					>
+	const count = (
+		<Badge className="work-count shrink-0 tabular-nums" variant="secondary">
+			{rows.length}
+		</Badge>
+	);
+	const list =
+		rows.length > 0 ? (
+			<WorkCardList fleet={fleet} rows={rows} state={state} virtual={virtual} />
+		) : (
+			<EmptyState compact title={emptyLanes[lane].title}>
+				{emptyLanes[lane].description}
+			</EmptyState>
+		);
+	if (collapsed) {
+		return (
+			<Collapsible render={<section aria-label={lane} className={cn("work-column group/lane min-w-0", className)} />}>
+				<h2 className="m-0 mb-2 flex min-h-8 items-center gap-2 font-medium text-sm">
+					<CollapsibleTrigger className={cn(buttonVariants({ size: "sm", variant: "ghost" }), "-ml-2")}>
+						<ChevronRight aria-hidden="true" className="transition-transform group-data-open/lane:rotate-90" />
 						{lane}
-					</Button>
-				) : (
-					lane
-				)}
-				<span className="work-count shrink-0 text-muted-foreground text-xs tabular-nums">{rows.length}</span>
+					</CollapsibleTrigger>
+					{count}
+				</h2>
+				<CollapsibleContent>{list}</CollapsibleContent>
+			</Collapsible>
+		);
+	}
+	return (
+		<section aria-label={lane} className={cn("work-column min-w-0", className)}>
+			<h2 className="m-0 mb-2 flex min-h-8 items-center justify-between gap-2 font-medium text-sm">
+				{lane}
+				{count}
 			</h2>
-			{Boolean(open) && rows.length > 0 && <WorkCardList fleet={fleet} rows={rows} state={state} virtual={virtual} />}
-			{Boolean(open) && rows.length === 0 && (
-				<EmptyState compact title={emptyLanes[lane].title}>
-					{emptyLanes[lane].description}
-				</EmptyState>
-			)}
+			{list}
 		</section>
 	);
 }

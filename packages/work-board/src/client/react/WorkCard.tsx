@@ -25,17 +25,28 @@ export function WorkCard({
 	const answered = status === "waiting-on-agents" && item.answered ? answeredCopy(item.answered, fleetItems) : undefined;
 	const kind = item.metadata.kind === "task" ? undefined : item.metadata.kind;
 	return (
-		<Card className="work-card gap-2 p-4" data-item={item.id} data-selected={item.id === state.item ? "true" : undefined}>
-			{kind !== undefined && <p className="work-kind">{kind}</p>}
-			<h3>
-				<WorkItemTitle item={item} state={state} />
+		<Card
+			className="work-card relative gap-2 p-3 transition-colors hover:bg-muted/40 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring data-selected:ring-2 data-selected:ring-primary"
+			data-item={item.id}
+			data-selected={item.id === state.item ? "true" : undefined}
+			size="sm"
+		>
+			{kind !== undefined && <p className="work-kind m-0 text-muted-foreground text-xs uppercase tracking-wide">{kind}</p>}
+			<h3 className="m-0 font-medium text-sm leading-snug [overflow-wrap:anywhere]">
+				<WorkItemTitle
+					className="text-foreground no-underline outline-none after:absolute after:inset-0 after:content-['']"
+					item={item}
+					state={state}
+				/>
 			</h3>
 			<div className="flex flex-wrap items-center gap-2">
 				<StatusChip status={status} title={answered ?? item.waiting} />
-				<PrChip url={fleet?.prUrl} />
+				<span className="relative z-10">
+					<PrChip url={fleet?.prUrl} />
+				</span>
 			</div>
-			{answered !== undefined && <p className="work-answer">{answered}</p>}
-			{holder && <p className="work-owner">{holder}</p>}
+			{answered !== undefined && <p className="work-answer m-0 text-muted-foreground text-xs">{answered}</p>}
+			{holder && <p className="work-owner m-0 text-muted-foreground text-xs">{holder}</p>}
 			{fleet?.stageEnteredAt !== undefined && fleet.stageEnteredAt !== null && <StageTime entered={fleet.stageEnteredAt} stage={fleet.stage} />}
 		</Card>
 	);
@@ -44,7 +55,7 @@ export function WorkCard({
 function StageTime({ stage, entered }: { readonly stage: FleetWork["stage"]; readonly entered: number }) {
 	const { ended, label } = stageTime(stage);
 	return (
-		<p className="work-stage">
+		<p className="work-stage m-0 text-muted-foreground text-xs">
 			{label} {ended ? "" : "for "}
 			<Age modified={entered} short />
 			{ended ? " ago" : ""}

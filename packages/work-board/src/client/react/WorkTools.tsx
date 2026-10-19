@@ -1,5 +1,4 @@
-import type { State } from "#browser/views/state.ts";
-import { viewUrl } from "#browser/views/state.ts";
+import { type State, viewNames, viewUrl } from "#browser/views/state.ts";
 import { LinkButton } from "#client/react/LinkButton.tsx";
 
 export function WorkTools({ state }: { readonly state: State }) {
@@ -12,7 +11,7 @@ export function WorkTools({ state }: { readonly state: State }) {
 					key={view}
 					variant={state.view === view ? "secondary" : "outline"}
 				>
-					{{ board: "All work", now: "Now", table: "Table" }[view]}
+					{viewNames[view]}
 				</LinkButton>
 			))}
 		</nav>

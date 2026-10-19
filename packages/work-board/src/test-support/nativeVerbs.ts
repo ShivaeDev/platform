@@ -9,6 +9,13 @@ export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			tell(`the reader waits for a live change naming ${path}`);
 			return changesUntil(events, path);
 		},
+		changeWasAnnounced: (path: string) => {
+			tell(`the reader observes whether the server announced a change to ${path}`);
+			if (!engine.announcedChanges) {
+				throw new Error("Announced changes are not observed");
+			}
+			return engine.announcedChanges.some((paths) => paths.includes(path));
+		},
 		changeWasDropped: () => {
 			tell("the reader observes whether live delivery lost a change");
 			if (!engine.changeDelivery) {

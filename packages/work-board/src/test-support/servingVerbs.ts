@@ -1,7 +1,7 @@
 import { chmodSync, existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { rawGet, rawPost, startBoard } from "./board.ts";
+import { rawExchange, rawGet, rawPost, startBoard } from "./board.ts";
 import { boardCommand } from "./boardCommand.ts";
 import { bundleBoard } from "./bundleBoard.ts";
 import { embeddedBoard } from "./embeddedBoard.ts";
@@ -27,6 +27,11 @@ export function servingVerbs(engine: BoardEngine, tell: (line: string) => void) 
 		connectMcp: () => {
 			tell("an agent connects to the board through MCP stdio");
 			return mcpClient(engine.notes.root);
+		},
+		exchange: (path: string, headers: Readonly<Record<string, string>> = {}, method = "GET", body = "") => {
+			const sent = Object.entries(headers).map(([name, value]) => `${name}: ${value}`);
+			tell(`a local HTTP client sends ${method} ${path}${sent.length > 0 ? ` with ${sent.join(", ")}` : ""}`);
+			return rawExchange(served(engine).board, path, headers, method, body);
 		},
 		files: () => {
 			tell("the reader inspects the files left in the project");

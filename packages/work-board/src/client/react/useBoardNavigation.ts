@@ -117,7 +117,9 @@ export function useBoardNavigation(shell: RouterShell, onCurrentDestination?: ()
 			}
 			event.preventDefault();
 			const target = new URL(form.action, location.href);
-			target.search = new URLSearchParams([...new FormData(form)].map(([key, value]) => [key, String(value)])).toString();
+			target.search = new URLSearchParams(
+				[...new FormData(form)].flatMap(([key, value]) => (String(value) ? [[key, String(value)]] : [])),
+			).toString();
 			void open(target);
 		}
 		document.addEventListener("submit", submit);

@@ -1,13 +1,27 @@
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { Effect, FileSystem, Path, Schema } from "effect";
-import type { HttpRouter, HttpServerRequest } from "effect/http";
+import { type HttpRouter, type HttpServerRequest, HttpServerResponse } from "effect/http";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { INITIAL_THEME_SCRIPT, THEME_ROUTE } from "#server/page/initialTheme.ts";
-import { respond } from "./respond.ts";
+import { HEADERS, respond } from "./respond.ts";
 
 export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, string]> = [[THEME_ROUTE, INITIAL_THEME_SCRIPT, "text/javascript"]];
 
 const MERMAID = "/_board/mermaid/";
+
+const IMMUTABLE = "max-age=31536000, immutable";
+const REVALIDATE = "no-cache";
+
+function cacheable(request: HttpServerRequest.HttpServerRequest, body: string | Uint8Array, contentType: string, cacheControl: string) {
+	const etag = `W/"${createHash("sha256").update(body).digest("base64url").slice(0, 32)}"`;
+	const headers = { "cache-control": cacheControl, etag };
+	const known = (request.headers["if-none-match"] ?? "").split(",").map((tag) => tag.trim().replace(/^W\//u, ""));
+	if (known.includes(etag.slice(2)) || known.includes("*")) {
+		return HttpServerResponse.empty({ headers: { ...HEADERS, ...headers }, status: 304 });
+	}
+	return HttpServerResponse.setHeaders(respond(body, contentType), headers);
+}
 
 export class MermaidMissing extends Schema.TaggedError<MermaidMissing>()("MermaidMissing", { cause: Schema.Unknown }) {
 	override get message() {
@@ -29,7 +43,9 @@ export function mermaidFile(root: string) {
 		if (!(file.startsWith(`${root}${path.sep}`) && file.endsWith(".mjs") && (yield* fs.exists(file)))) {
 			return respond("Not found", "text/plain", 404);
 		}
-		return respond(yield* fs.readFile(file), "text/javascript");
+		// Mermaid's build names every file under chunks/ after its content hash; only its entry keeps a fixed name.
+		const hashed = file.startsWith(path.join(root, "chunks") + path.sep);
+		return cacheable(request, yield* fs.readFile(file), "text/javascript", hashed ? IMMUTABLE : REVALIDATE);
 	});
 }
 
@@ -61,8 +77,8 @@ export function checkBrowserAssets() {
 }
 
 const BUNDLED_ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, ReturnType<typeof bundledAsset>]> = [
-	["/_board/react.js", bundledAsset("react.js", "text/javascript")],
-	["/_board/react.css", bundledAsset("react.css", "text/css")],
+	["/_board/react.js", bundledAsset("react.js", "text/javascript", REVALIDATE)],
+	["/_board/react.css", bundledAsset("react.css", "text/css", REVALIDATE)],
 ];
 
 const CHUNK_TYPES: Readonly<Record<string, string>> = { js: "text/javascript", woff2: "font/woff2" };
@@ -73,14 +89,15 @@ const reactChunk = Effect.fn("WorkBoard.reactChunk")(function* (request: HttpSer
 	if (!type) {
 		return respond("Not found", "text/plain", 404);
 	}
-	return yield* bundledAsset(`react-assets/${name}`, CHUNK_TYPES[type] ?? "text/javascript")();
+	// vite.config.ts names every file under react-assets/ with its content hash.
+	return yield* bundledAsset(`react-assets/${name}`, CHUNK_TYPES[type] ?? "text/javascript", IMMUTABLE)(request);
 });
 
-function bundledAsset(file: string, contentType: string) {
-	return Effect.fn("WorkBoard.bundledAsset")(function* () {
+function bundledAsset(file: string, contentType: string, cacheControl: string) {
+	return Effect.fn("WorkBoard.bundledAsset")(function* (request: HttpServerRequest.HttpServerRequest) {
 		const fs = yield* FileSystem.FileSystem;
 		return yield* fs.readFile(yield* bundledPath(file)).pipe(
-			Effect.map((body) => respond(body, contentType)),
+			Effect.map((body) => cacheable(request, body, contentType, cacheControl)),
 			Effect.catchIf(
 				(error) => error.reason._tag === "NotFound",
 				() => Effect.succeed(respond(missingBundle(file), "text/plain", 500)),
@@ -90,7 +107,10 @@ function bundledAsset(file: string, contentType: string) {
 }
 
 export const ASSET_HANDLERS = [
-	...ASSETS.map(([route, body, type]) => [route, () => Effect.succeed(respond(body, type))] as const),
+	...ASSETS.map(
+		([route, body, type]) =>
+			[route, (request: HttpServerRequest.HttpServerRequest) => Effect.succeed(cacheable(request, body, type, REVALIDATE))] as const,
+	),
 	...BUNDLED_ASSETS,
 	["/_board/react-assets/*", reactChunk] as const,
 ];

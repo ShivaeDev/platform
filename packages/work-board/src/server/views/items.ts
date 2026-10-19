@@ -54,6 +54,7 @@ export function filterItems(items: readonly Item[], state: State): readonly Item
 			if (right === undefined) {
 				return -1;
 			}
-			return collator.compare(left, right) || a.id.localeCompare(b.id);
+			const compared = collator.compare(left, right) || a.id.localeCompare(b.id);
+			return state.order === "desc" ? -compared : compared;
 		});
 }
