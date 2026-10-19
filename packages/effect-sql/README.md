@@ -147,7 +147,15 @@ const listInvoiceLines = (name: string | undefined) =>
   });
 ```
 
-The filters are equality conditions joined together. A null filter matches SQL `NULL`; an omitted or `undefined` value leaves the field unconstrained. Filters use decoded field values, so `amount` takes a number. Selected results are decoded records with the selected fields' types; this function returns `Array<{ readonly name: string; readonly amount: number }>`.
+Filter entries are joined with `AND`. A field value uses equality; a null filter matches SQL `NULL`, and an omitted or `undefined` value leaves the field unconstrained. Filters use decoded field values, so `amount` takes a number. Selected results are decoded records with the selected fields' types; this function returns `Array<{ readonly name: string; readonly amount: number }>`.
+
+Use `{ in: values }` to match any value in a list, alongside equality entries:
+
+```ts
+yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
+```
+
+Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field; only the explicit `{ in: [...] }` entry requests SQL `IN`.
 
 `select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one field and `asc` or `desc`; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use native SQL and composed schemas for joins, aggregates, range filters or other queries outside this shape.
 
@@ -228,7 +236,7 @@ const entries = yield* makeRepository(Entry, {
 const inserted = yield* entries.insertManyOrIgnore(inputs);
 ```
 
-All four conflict methods use this target, producing `ON CONFLICT (a, b) WHERE kind = $n` before `DO NOTHING` or `DO UPDATE SET ...`, followed by `RETURNING`. `conflictWhere` uses the same typed equality filter as `findMany.where`: decoded field values pass through their field codecs and remain bound parameters. Rows outside the index predicate can insert with the same key. A target that matches no unique index fails with native `SqlError` in the error channel. Use native `SqlClient` and `SqlSchema` for SQL expressions or other conflict policies.
+All four conflict methods use this target, producing `ON CONFLICT (a, b) WHERE kind = $n` before `DO NOTHING` or `DO UPDATE SET ...`, followed by `RETURNING`. `conflictWhere` uses typed equality entries like `findMany.where`: decoded field values pass through their field codecs and remain bound parameters. Rows outside the index predicate can insert with the same key. A target that matches no unique index fails with native `SqlError` in the error channel. Use native `SqlClient` and `SqlSchema` for SQL expressions or other conflict policies.
 
 Conflict writes belong to unversioned repositories. They cannot be combined with `versionColumn`, whose writes must compare the version read by the caller. `versionColumn` takes a scalar `idColumn`.
 

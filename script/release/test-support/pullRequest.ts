@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Clock, Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkPlatform } from "#release/check.ts";
 import { releaseGitHub } from "#release/gitHub.ts";
 import { maintainPullRequest } from "#release/maintainPullRequest.ts";

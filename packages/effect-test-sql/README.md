@@ -33,8 +33,8 @@ import { expect } from "vitest";
 import { Config, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
-import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
-import { withTestTransaction } from "@shivaedev/effect-test-sql/withTestTransaction.ts";
+import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
+import { withTestTransaction } from "@shivaedev/effect-test-sql/server/withTestTransaction.ts";
 
 const layer = makePostgresTestLayer({
   url: Redacted.make(Effect.runSync(Config.String("TEST_DATABASE_URL"))),
@@ -126,7 +126,7 @@ Use `withIsolatedDatabase` for after-commit effects, LISTEN/NOTIFY, advisory-loc
 An isolated block can live inside the rollback tester above:
 
 ```ts
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 
 effectApp("commits in its own database", function* () {
   yield* withIsolatedDatabase(Effect.gen(function* () {
@@ -162,8 +162,8 @@ A backfill needs rows in the old schema. Prepare an empty template with the appl
 This example uses an application loader whose `001_create_contacts` migration creates `contacts(id, email)`, `002_backfill_emails` creates `emails(contact_id, address)` and copies the contact email addresses into it, and `003_drop_email` drops `contacts.email`:
 
 ```ts
-import { migrationSteps } from "@shivaedev/effect-test-sql/migrationSteps.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
+import { migrationSteps } from "@shivaedev/effect-test-sql/server/migrationSteps.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { appMigrations } from "./migrations.ts";
 
 const migrationLayer = makePostgresTestLayer({
@@ -199,8 +199,8 @@ For test-story, use the same Layer and `around: withIsolatedDatabase`, acquire `
 A fresh-database test cannot prove that older databases upgrade to the current model. Run `migrationUpgrade` in a disposable database with an empty migration ledger, outside a wrapping transaction. It resolves the application's loader once, commits migrations through the existing `upTo` id, then applies the remaining migrations through `migratePostgres`. It returns the target table's column names and PostgreSQL `format_type` strings, including type modifiers such as `numeric(10,2)`; dropped columns are excluded.
 
 ```ts
-import { assertModelColumns } from "@shivaedev/effect-test-sql/assertModelColumns.ts";
-import { migrationUpgrade } from "@shivaedev/effect-test-sql/migrationUpgrade.ts";
+import { assertModelColumns } from "@shivaedev/effect-test-sql/server/assertModelColumns.ts";
+import { migrationUpgrade } from "@shivaedev/effect-test-sql/server/migrationUpgrade.ts";
 
 const columns = yield* migrationUpgrade({
   migrations: appMigrations,
@@ -226,13 +226,13 @@ Import each name from the module that defines it. The package has no root entry.
 
 | Module | Exports |
 | --- | --- |
-| `@shivaedev/effect-test-sql/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures?, maxConnections?, prepare?, transformQueryNames?, transformResultNames? })`, `PostgresTestOptions`, `PostgresTestLoader` |
-| `@shivaedev/effect-test-sql/withTestTransaction.ts` | `withTestTransaction(effect)` |
-| `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect, { template? }?)` |
-| `@shivaedev/effect-test-sql/database.ts` | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices`, `PostgresTestTemplate` |
-| `@shivaedev/effect-test-sql/migrationSteps.ts` | `migrationSteps(appMigrations)` returning `{ migrateTo(name), migrateToLatest }` |
-| `@shivaedev/effect-test-sql/migrationUpgrade.ts` | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn` |
-| `@shivaedev/effect-test-sql/assertModelColumns.ts` | `assertModelColumns(columns, model, types)`, `ModelColumnMismatch` |
+| `@shivaedev/effect-test-sql/server/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures?, maxConnections?, prepare?, transformQueryNames?, transformResultNames? })`, `PostgresTestOptions`, `PostgresTestLoader` |
+| `@shivaedev/effect-test-sql/server/withTestTransaction.ts` | `withTestTransaction(effect)` |
+| `@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect, { template? }?)` |
+| `@shivaedev/effect-test-sql/server/database.ts` | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices`, `PostgresTestTemplate` |
+| `@shivaedev/effect-test-sql/server/migrationSteps.ts` | `migrationSteps(appMigrations)` returning `{ migrateTo(name), migrateToLatest }` |
+| `@shivaedev/effect-test-sql/server/migrationUpgrade.ts` | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn` |
+| `@shivaedev/effect-test-sql/server/assertModelColumns.ts` | `assertModelColumns(columns, model, types)`, `ModelColumnMismatch` |
 
 `url` is a redacted PostgreSQL URL for an existing administrative database. `PostgresTestDatabase` supplies the current database's redacted `url`, an `awaitCleanup: Effect<void>` drain, a scoped `isolated` Effect that acquires a migrated clone's service Context, and `clone(template)` for an explicit `"empty"` or `"migrated"` choice. With `prepare: false`, both choices are empty. Prefer `withIsolatedDatabase` to acquire and release that Context around a test. Wrappers retain the body's result, failures and unmet service requirements, with native `SqlError` added for acquisition or transaction failures. Cleanup failures surface as SQL defects when the Layer closes. Drops that fail with connection exhaustion (SQLSTATE `53300`) retry every 100 ms of live time for up to 300 retries, even while a test clock is paused; if capacity does not return, the SQL defect remains visible. Startup sweeps databases left by dead processes on the same host and databases from the older unowned naming format. Databases owned by live processes or another host are retained, so local parallel workers keep their databases. Use the same host to reclaim its abandoned databases.
 

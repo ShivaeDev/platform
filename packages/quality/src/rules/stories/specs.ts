@@ -82,7 +82,7 @@ export const storySpecs = defineRule({
 					file: file.path,
 					line: source.getLineAndCharacterOfPosition(plain.getStart(source)).line + 1,
 					message:
-						"Declares tests without a test-story story kit. Build the package's kit with storyKit from @shivaedev/test-story/storyKit.ts in src/test-support, and declare every test through the kit's it. See https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.",
+						"Declares tests without a test-story story kit. Build the package's kit with storyKit from @shivaedev/test-story/server/storyKit.ts in src/test-support, and declare every test through the kit's it. See https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.",
 				},
 			];
 		});

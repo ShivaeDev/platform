@@ -1,9 +1,9 @@
 import { Context, Effect, Layer, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { getRollbackPlans } from "pg-boss";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { runSchemaPlan } from "#internal/runSchemaPlan.ts";
 import { installPgBossSchema, type PgBossSchemaOptions } from "#schema.ts";
 import { clientEngine } from "#test/clientEngine.ts";

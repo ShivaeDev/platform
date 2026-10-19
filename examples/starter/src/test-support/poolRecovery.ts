@@ -1,9 +1,9 @@
 import { Context, Effect, Layer, Logger, Redacted, References, Schema } from "effect";
 import { SqlClient } from "effect/sql";
-import { defaultClientFactory, type PgBossClient } from "@shivaedev/effect-pg-boss/client.ts";
-import { makePgBoss } from "@shivaedev/effect-pg-boss/service.ts";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { defaultClientFactory, type PgBossClient } from "@shivaedev/effect-pg-boss/server/client.ts";
+import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { storyDatabase } from "#test-support/storyDatabase.ts";

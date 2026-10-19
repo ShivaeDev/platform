@@ -15,6 +15,16 @@ export function hostStoreVerbs(engine: HostStoryEngine, tell: (line: string) => 
 			}
 			return { providers: engine.resources.providers, releases: engine.resources.releases };
 		},
+		queriesDuring: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+			Effect.suspend(() => {
+				if (engine.reads === undefined) {
+					throw new Error("Deploy the host before reading its queries");
+				}
+				tell("record the SQL statements the daemon runs");
+				const reads = engine.reads;
+				const before = reads.statements().length;
+				return Effect.map(effect, (value) => ({ queries: reads.statements().slice(before).map(boundQuery), value }));
+			}),
 		rollbackInsert: (record: FleetRecord, failure: string) => {
 			tell(`roll back an insert of ${record.workId}`);
 			return Effect.flatMap(FleetRepository, (store) =>
@@ -39,4 +49,9 @@ export function hostStoreVerbs(engine: HostStoryEngine, tell: (line: string) => 
 			return storeRecords(engine.fixture.host, records).pipe(Effect.provideContext(engine.running.context));
 		},
 	};
+}
+
+// A statement's distinct placeholders count the values it binds, such as the work ids in a child-table filter.
+function boundQuery(text: string) {
+	return { parameters: new Set(text.match(/\$\d+/gu)).size, text };
 }

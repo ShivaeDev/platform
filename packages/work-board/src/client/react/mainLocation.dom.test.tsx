@@ -14,10 +14,10 @@ screenStory.it(
 		click("[data-retry]");
 		yield* Effect.promise(() => eventually(() => expect(readAttribute("#live", "title")).toContain("reads settled")));
 		click("[data-document]");
-		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("refresh failed")));
+		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("Couldn't update this page")));
 		recoverDocument();
 		click("[data-retry]");
-		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("reconnecting")));
+		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("Reconnecting…")));
 		expect(readAttribute("#live", "title")).toContain("reads settled");
 	},
 );

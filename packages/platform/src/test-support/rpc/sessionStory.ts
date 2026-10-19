@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type OriginPolicy, trustedOrigins } from "#server/rpc-server/origin.ts";
 import { makeApp } from "./api.ts";
 import { annotationsOf, createProvider, ORIGIN, signup } from "./harness.ts";

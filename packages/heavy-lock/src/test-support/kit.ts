@@ -3,7 +3,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { HeavyLockOptions } from "#acquire.ts";
 import { acquisition } from "./acquisition.ts";
 import { cli } from "./cli.ts";

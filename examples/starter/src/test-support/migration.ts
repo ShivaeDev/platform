@@ -1,11 +1,11 @@
 import { getMigrations } from "better-auth/db/migration";
 import { Effect } from "effect";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { migrationUpgrade } from "@shivaedev/effect-test-sql/migrationUpgrade.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { migrationUpgrade } from "@shivaedev/effect-test-sql/server/migrationUpgrade.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { migrations } from "#server/migrations.ts";
 import { postgres } from "#test-support/postgres.ts";

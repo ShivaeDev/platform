@@ -1,6 +1,6 @@
 import { initTRPC } from "@trpc/server";
 import { Effect, Layer, ManagedRuntime, Stream, Tracer } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeEffectTRPC } from "#server/adapter.ts";
 import { RequestSignal } from "#server/RequestSignal.ts";
 import { makeRequestServices } from "#server/requestServices.ts";

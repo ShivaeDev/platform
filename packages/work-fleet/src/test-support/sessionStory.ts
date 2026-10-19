@@ -1,5 +1,5 @@
 import { Context, Layer } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionService } from "#session/service.ts";
 import { sessionHarness } from "#test/session.ts";
 

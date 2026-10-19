@@ -1,7 +1,7 @@
 import { connect } from "node:net";
 import { Deferred, Effect, Fiber, Layer, Stream } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import { discoveryDaemon } from "#test/discoveryDaemon.ts";
 import { hostFixture } from "#test/fleetHost.ts";

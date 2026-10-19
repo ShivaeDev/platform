@@ -80,8 +80,11 @@ describe("pages", () => {
 		expect(yield* Effect.promise(() => response.text())).not.toContain("Outside the folder");
 	});
 
-	boardStory.it("links and serves files whose names contain # or ?", readingProject, function* ({ board, request, editFile }) {
+	boardStory.it("links and serves files whose names contain # or ?", readingProject, function* ({ board, request, editFile, watchProject }) {
+		const events = yield* watchProject();
+		expect(yield* events.next()).toEqual({ _tag: "Resync" });
 		editFile("notes/c# & more?.md", "# Sharp\n");
+		yield* changesUntil(events, "notes/c# & more?.md");
 		expect(yield* rpcPaths(board)).toContain("/notes/c%23%20%26%20more%3F.md");
 		expect((yield* request("/notes/c%23%20%26%20more%3F.md")).status).toBe(200);
 	});

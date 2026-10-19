@@ -3,16 +3,19 @@ import Markdown from "react-markdown";
 import { Mermaid } from "#client/document/Mermaid.ts";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
+import { tableColumns } from "#render/tableColumns.ts";
+import { documentElements } from "./documentElements.tsx";
 
 export function ResponseMarkdown({ source, file }: { readonly source: string; readonly file: string }) {
 	return (
-		<Markdown components={components} rehypePlugins={[documentLinks(file, {})]} remarkPlugins={documentPlugins()} skipHtml>
+		<Markdown components={components} rehypePlugins={[documentLinks(file, {}), tableColumns]} remarkPlugins={documentPlugins()} skipHtml>
 			{source}
 		</Markdown>
 	);
 }
 
 const components: Components = {
+	...documentElements,
 	code: ({ node: _node, className, children, ...props }) => {
 		if (!className?.split(" ").includes("language-mermaid")) {
 			return (

@@ -1,7 +1,7 @@
 import process from "node:process";
 import { Effect, Layer, ManagedRuntime, Redacted, Schema } from "effect";
-import { defineQueue } from "@shivaedev/effect-pg-boss/definition.ts";
-import { makePgBoss } from "@shivaedev/effect-pg-boss/service.ts";
+import { defineQueue } from "@shivaedev/effect-pg-boss/server/definition.ts";
+import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
 import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
 import { migrations, repository } from "./feature.ts";

@@ -1,6 +1,6 @@
 import { ConfigProvider, Effect, Exit, Layer, Scope } from "effect";
 import { SqlClient } from "effect/sql";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { makeAuth } from "#client/auth.ts";
 import { CountWords } from "#server/noteJobs.ts";
 import { noteWorker } from "#server/noteWorker.ts";

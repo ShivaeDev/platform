@@ -5,7 +5,7 @@ import { testProjects } from "@shivaedev/quality/testProjects.ts";
 const test = testProjects();
 for (const project of test.projects ?? []) {
 	if (typeof project === "object" && "test" in project && project.test?.name === "dom") {
-		project.test.environment = fileURLToPath(import.meta.resolve("@shivaedev/test-story/domEnvironment.config.ts"));
+		project.test.environment = fileURLToPath(import.meta.resolve("@shivaedev/test-story/server/domEnvironment.config.ts"));
 	}
 }
 

@@ -16,6 +16,7 @@ export interface PageRequests {
 	count: number;
 	failWith: number | "network" | undefined;
 	gate: Promise<void>;
+	readonly held: ReadonlyMap<string, Promise<void>>;
 	readonly methods: string[];
 	responseGate?: Promise<void> | undefined;
 }
@@ -46,10 +47,11 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		window: BrowserWindow,
 		mermaid: MermaidControl,
 	) => void | Promise<void> | Effect.Effect<void, unknown, Scope.Scope> = async (): Promise<void> => undefined,
+	{ holds = new Map(), ready = true }: { readonly holds?: ReadonlyMap<string, Promise<void>>; readonly ready?: boolean } = {},
 ) {
 	const chunkRequests: string[] = [];
 	const mermaidRequests: string[] = [];
-	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve(), methods: [] };
+	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve(), held: holds, methods: [] };
 	const streams: RpcStream[] = [];
 	const response = yield* rawGet(board, path);
 	const resolved = new URL(response.location ?? path, board.url);
@@ -77,13 +79,14 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	}
 	page.content = html;
 	const deadline = (yield* Clock.currentTimeMillis) + 5000;
-	while (
-		!(
-			window.document.documentElement.dataset.boardReady
+	function opened() {
+		return (
+			(window.document.documentElement.dataset.boardReady || !ready)
 			&& window.document.getElementById("doc")
 			&& window.document.querySelector("#primary-navigation[data-inbox-count]")
-		)
-	) {
+		);
+	}
+	while (!opened()) {
 		if ((yield* Clock.currentTimeMillis) >= deadline) {
 			throw new Error(
 				`The React shell did not initialize: ${page.virtualConsolePrinter.readAsString()} · ${window.document.getElementById("doc")?.textContent}`,

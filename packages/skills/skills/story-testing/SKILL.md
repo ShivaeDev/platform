@@ -10,7 +10,7 @@ metadata:
 
 A story proves what the application does for someone outside it. Start with the behaviour and the evidence that would convince that person, then choose the setup and actions. Keep the real application running behind its public boundaries. A short story with the wrong evidence still proves the wrong thing.
 
-Use `storyKit` from `@shivaedev/test-story/storyKit.ts`. Keep the application's kits, traits, verbs and readouts in `src/test-support/`; a spec names traits with the kit's `it`, calls verbs, reads results and states expectations. Extend the kit when a feature needs another action or setup.
+Use `storyKit` from `@shivaedev/test-story/server/storyKit.ts`. Keep the application's kits, traits, verbs and readouts in `src/test-support/`; a spec names traits with the kit's `it`, calls verbs, reads results and states expectations. Extend the kit when a feature needs another action or setup.
 
 ## Assert what someone outside sees
 
@@ -70,7 +70,7 @@ Good: a note-editing story starts with a minted session; the one OAuth story dri
 
 Full-app stories use an isolated database cloned from a template, not a wrapping transaction. Writes cross several pools, and PostgreSQL `NOTIFY` fires only on commit; a transaction around one pool neither contains the other writes nor exercises committed notifications.
 
-Use `withIsolatedDatabase` from `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` as the kit's `around` hook with its PostgreSQL test layer. Keep `withTestTransaction` from `@shivaedev/effect-test-sql/withTestTransaction.ts` for repository-level tests on a migrated template, where all work stays on the transaction's connection.
+Use `withIsolatedDatabase` from `@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts` as the kit's `around` hook with its PostgreSQL test layer. Keep `withTestTransaction` from `@shivaedev/effect-test-sql/server/withTestTransaction.ts` for repository-level tests on a migrated template, where all work stays on the transaction's connection.
 
 Good: let an HTTP story commit into its disposable database clone. Bad: wrap that story in a transaction and assume separate HTTP and worker pools roll back with it.
 

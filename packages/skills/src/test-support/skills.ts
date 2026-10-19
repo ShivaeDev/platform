@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Path } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkSkills } from "#checkSkills.ts";
 import { hashSkill } from "#hashSkill.ts";
 import { syncSkills } from "#syncSkills.ts";

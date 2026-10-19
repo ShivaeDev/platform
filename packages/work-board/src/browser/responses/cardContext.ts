@@ -10,7 +10,30 @@ export function cardContext(source: string) {
 		const pr = /\/pull\/(?<number>\d+)/u.exec(url)?.groups?.number;
 		return { label: pr ? `Open PR #${pr}` : "Open relevant link", primary: Boolean(pr), url };
 	});
-	return { links, recommendation };
+	return { choices: choices(source), links, recommendation };
+}
+
+const CHOICE = /^[-*+]\s+\*\*(?<label>[^*]+)\*\*/u;
+
+function choices(source: string) {
+	const found: { label: string; description: string; recommended: boolean }[] = [];
+	let fence: string | undefined;
+	for (const line of source.replace(/^---\n[\s\S]*?\n---\n/u, "").split("\n")) {
+		const marker = /^\s*(?<fence>`{3,}|~{3,})/u.exec(line)?.groups?.fence;
+		if (marker) {
+			fence = nextFence(fence, marker);
+			continue;
+		}
+		const label = fence ? undefined : CHOICE.exec(line)?.groups?.label;
+		const previous = found.at(-1);
+		if (label) {
+			const recommended = /\(recommended\)/iu.test(label);
+			found.push({ description: line.replace(CHOICE, "").trim(), label: label.replace(/\s*\(recommended\)/iu, "").trim(), recommended });
+		} else if (previous && !fence && /^\s+\S/u.test(line)) {
+			previous.description = `${previous.description} ${line.trim()}`.trim();
+		}
+	}
+	return found.length > 1 ? found : [];
 }
 
 export function optionText(id: string, source: string) {

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { startServer } from "#test/order-example/startServer.ts";
 import { screenKit } from "./screenKit.ts";
 import { sessions, shell } from "./session.tsx";

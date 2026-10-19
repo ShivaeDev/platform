@@ -1,14 +1,12 @@
 import { Effect } from "effect";
-import { Window } from "happy-dom";
 import { act } from "react";
 import { vi } from "vitest";
 import { mountBoard } from "#client/react/mountBoard.tsx";
 import { session } from "#client/session.ts";
 import { folder, startBoard } from "./board.ts";
 import { EDGE_ATTENTION_SOURCE } from "./coverageEdges.ts";
-import { decodedBody } from "./decodedBody.ts";
 import { type ScreenEngine, screenView } from "./screenEngine.ts";
-import { registerSessionFetch, sessionFetch } from "./sessionFetch.ts";
+import { registerSessionFetch, sessionFetch, transportWindow } from "./sessionFetch.ts";
 
 export const mountSession = Effect.fn("Story.mountSession")(function* (engine: ScreenEngine, kind: "response" | "handoff") {
 	const files = Object.keys(engine.files).length > 0 ? engine.files : { "item.md": EDGE_ATTENTION_SOURCE };
@@ -16,16 +14,10 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 		Effect.sync(() => folder(files)),
 		(value) => Effect.sync(value.remove),
 	);
-	const board = yield* startBoard(notes.root, engine.options?.home, engine.sessionWrap, true, undefined, undefined, engine.sessionFleetPort);
+	const board = yield* startBoard(notes.root, engine.options?.home, engine.sessionWrap, true, undefined, undefined, engine.sessionFleetPort ?? null);
 	const previousFetch = globalThis.fetch;
 	const transport = yield* Effect.acquireRelease(
-		Effect.sync(
-			() =>
-				new Window({
-					settings: { fetch: { interceptor: { afterAsyncResponse: ({ response, window }) => decodedBody(response, window) } } },
-					url: board.url,
-				}),
-		),
+		Effect.sync(() => transportWindow(board.url)),
 		(value) =>
 			Effect.promise(async () => {
 				globalThis.fetch = previousFetch;
@@ -33,7 +25,7 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 			}),
 	);
 	const unregister = registerSessionFetch(board.url, transport, engine);
-	yield* Effect.addFinalizer(() => Effect.sync(unregister));
+	yield* Effect.addFinalizer(() => Effect.promise(unregister));
 	vi.stubGlobal("fetch", sessionFetch);
 	const environment: Parameters<typeof session>[0] = {
 		addEventListener: (type, listener) => window.addEventListener(type, listener),

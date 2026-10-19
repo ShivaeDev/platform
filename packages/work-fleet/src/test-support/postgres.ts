@@ -1,9 +1,9 @@
 import { Config, Effect, Option, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
-import { makePostgresTestLayer, type PostgresTestOptions } from "@shivaedev/effect-test-sql/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { withTestTransaction } from "@shivaedev/effect-test-sql/withTestTransaction.ts";
+import { makePostgresTestLayer, type PostgresTestOptions } from "@shivaedev/effect-test-sql/server/postgres.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { withTestTransaction } from "@shivaedev/effect-test-sql/server/withTestTransaction.ts";
 import { migrateFleet } from "#test/migrateFleet.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 

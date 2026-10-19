@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, FileSystem, Layer } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { publishAfterBoardPass } from "#board/readPass.ts";
 import { writeStatus } from "#board/writeStatus.ts";
 import { BoardGateway } from "#policy.ts";

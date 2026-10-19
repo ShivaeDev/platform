@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
-import { DraftInput, Question, QuestionPreview, Reading, RecordedResponse, Revision, WaitReading } from "#browser/responses/schema.ts";
+import { AnswerInput, DraftInput, Question, QuestionPreview, Reading, RecordedResponse, Revision, WaitReading } from "#browser/responses/schema.ts";
 import { index, workspace } from "#rpc/keys.ts";
 import { responseRejections } from "#rpc/rejections.ts";
 
@@ -36,6 +36,12 @@ const respond = command("recordResponse", {
 	rejections: responseRejections,
 	success: RecordedResponse,
 });
-export const responseContract = contract("work-board", { commands: [register, respond], queries: [locate, read, awaitResponse] }).middleware(
+const answer = command("answerQuestion", {
+	invalidates: () => [workspace.list, index.list],
+	payload: AnswerInput,
+	rejections: responseRejections,
+	success: RecordedResponse,
+});
+export const responseContract = contract("work-board", { commands: [register, respond, answer], queries: [locate, read, awaitResponse] }).middleware(
 	RequestTracing,
 );

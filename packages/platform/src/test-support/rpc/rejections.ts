@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { RpcClient } from "effect/rpc";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { httpClient, recorder, rpcHttp, serve } from "./harness.ts";
 import { Profiles, Handlers as RenameHandlers } from "./renameFixture.ts";

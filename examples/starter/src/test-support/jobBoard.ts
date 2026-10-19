@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { Window } from "happy-dom";
 import { vi } from "vitest";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { startHost } from "./host.ts";
 import { jobBoardSession } from "./jobBoardSession.ts";
 import { postgres } from "./postgres.ts";

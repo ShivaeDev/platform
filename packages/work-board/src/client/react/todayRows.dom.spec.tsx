@@ -72,7 +72,7 @@ screenStory.it(
 		const options = roles.text({ name: "Answer Where should the project documents live?", role: "dialog" });
 		expect(options).toContain("Keep local files · Recommended");
 		expect(options).toContain("Use a database");
-		yield* roles.click({ name: "Open question", role: "link" });
+		yield* roles.click({ name: "Read the full question", role: "link" });
 		yield* Effect.promise(() => eventually(() => expect(location()?.pathname).toBe("/_board/item/question.storage/")));
 	},
 );
@@ -101,13 +101,12 @@ screenStory.it(
 		yield* roles.click({ name: "Answer Name the next release", role: "button" });
 		yield* roles.enter({ name: "What should the release be called?", role: "textbox" }, "Harbor");
 		openDetails("[role='dialog'] details");
-		yield* roles.enter({ name: "Local author label", role: "textbox" }, "");
+		yield* roles.enter({ name: "Answer as", role: "textbox" }, "");
 		function record() {
 			return findElements("[role='dialog'] button[type='submit']", document).map((button) => button.hasAttribute("disabled"));
 		}
-		expect(roles.text({ name: "Answer Name the next release", role: "dialog" })).toContain("Answer as …");
 		expect(record()).toEqual([true]);
-		yield* roles.enter({ name: "Local author label", role: "textbox" }, "Casey");
+		yield* roles.enter({ name: "Answer as", role: "textbox" }, "Casey");
 		expect(record()).toEqual([false]);
 		yield* roles.click({ name: "Record answer", role: "button" });
 		yield* Effect.promise(() => eventually(() => expect(roles.text({ name: "Needs you", role: "list" })).not.toContain("Name the next release")));
@@ -165,7 +164,7 @@ screenStory.it(
 			const controls = findElements("[role='dialog'] :is(a, button, input, textarea, select, summary)", document).map((control) =>
 				roles.accessible(control),
 			);
-			expect(controls).toEqual([{ name: "Open question", role: "link" }]);
+			expect(controls).toEqual([{ name: "Read the full question", role: "link" }]);
 			keyboard("Escape");
 			yield* Effect.promise(() => eventually(() => expect(findElements("[role='dialog']", document)).toEqual([])));
 		}

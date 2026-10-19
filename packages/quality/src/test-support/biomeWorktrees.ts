@@ -30,6 +30,6 @@ export function messyText(root: string): string {
 
 // Biome matches this folder glob against the folders above the root too, so inside `.worktrees/` it ignores every file.
 export function ignoringEveryFile(root: string): string {
-	writes(root, "biome.json", '{ "extends": ["@shivaedev/quality/biome"], "files": { "includes": ["**", "!**/.worktrees"] } }\n');
+	writes(root, "biome.json", '{ "extends": ["@shivaedev/quality/biome/preset.json"], "files": { "includes": ["**", "!**/.worktrees"] } }\n');
 	return root;
 }

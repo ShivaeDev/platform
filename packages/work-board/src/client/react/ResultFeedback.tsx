@@ -1,4 +1,5 @@
 import { CircleAlert } from "lucide-react";
+import type { ReactNode } from "react";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { statusLabel } from "#browser/views/statusLabel.ts";
 import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
@@ -6,8 +7,10 @@ import { Badge } from "#client/react/components/ui/badge.tsx";
 import { fileUrl } from "#files/url.ts";
 import { EmptyState } from "./EmptyState.tsx";
 import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
+import { responseKinds } from "./responseKinds.ts";
 import { SectionCard } from "./SectionCard.tsx";
 import { shellIds } from "./shellIds.ts";
+import { Time } from "./Time.tsx";
 import { Version } from "./Version.tsx";
 
 export function ResultFeedback({ data }: { readonly data: ResultProjection }) {
@@ -35,6 +38,35 @@ export function ResultFeedback({ data }: { readonly data: ResultProjection }) {
 		>
 			{body}
 		</SectionCard>
+	);
+}
+
+export function ResultFeedbackSummary({ data }: { readonly data: ResultProjection }) {
+	const latest = data.feedback[0];
+	let summary: ReactNode = "No feedback yet.";
+	if (data.feedbackUnknown) {
+		summary = "Some feedback couldn't be read.";
+	} else if (latest) {
+		const count = data.feedback.length;
+		summary = (
+			<>
+				{count === 1 ? "1 response" : `${count} responses`}. Latest: {latest.response.response.author} {responseKinds[latest.response.response.type]}{" "}
+				<Time at={latest.response.response.recordedAt} />
+				{latest.matching ? "" : " on an earlier version"}.
+			</>
+		);
+	}
+	return (
+		<p className="text-muted-foreground" data-feedback-summary>
+			<span className="font-medium text-foreground">Feedback: </span>
+			{summary}
+			{(data.feedbackUnknown || latest !== undefined) && (
+				<>
+					{" "}
+					<a href={`#${shellIds.resultFeedback}`}>Jump to feedback</a>
+				</>
+			)}
+		</p>
 	);
 }
 

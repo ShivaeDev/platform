@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.0 - 2026-10-19
+
+### Added
+
+- `findMany` and `select` accept model-typed `{ in: [...] }` filter entries alongside equality entries. Each list value uses its field codec, empty lists match no rows, and array field values retain equality semantics. The `FindManyFilter` type describes these query filters.
+
+## 0.10.0 - 2026-10-19
+
+### Added
+
+- Repositories expose `select`, `insertFromSelect` and `insertFromSelectOrIgnore` to copy filtered projections into mapped target columns with compile-time name and type checks, Schema-decoded returned rows and transaction rollback. `RepositorySelect`, `InsertFromSelect` and `SelectWrites` describe the new query and write shapes; `makeInsertFromSelect` and `makeConflictClause` build their native SQL fragments.
+
 ## 0.9.0 - 2026-10-19
 
 ### Added

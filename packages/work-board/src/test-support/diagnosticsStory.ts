@@ -1,6 +1,6 @@
 import { Deferred, Effect, Layer } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Diagnostics, DiagnosticsConfig, type diagnostics, SourceFailure, type Sources } from "#diagnostics/source.ts";
 import { syntheticSources } from "./diagnostics.ts";
 

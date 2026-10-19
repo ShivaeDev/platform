@@ -1,8 +1,8 @@
 import { Context, Effect, Layer } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";

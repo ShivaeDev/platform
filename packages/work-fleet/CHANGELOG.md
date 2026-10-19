@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.13.5 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.13.4 - 2026-10-19
+
+### Fixed
+
+- When an answer's completion write fails and is retried, the retry leaves an answer that Fleet already recorded and is still resolving in the background to that resolution. Before, a retry in that window published the answer again and could also queue it as a pending answer for the next turn, which left the answer turn stuck in submission.
+- When a prepared task is edited on the Board in a way Fleet cannot accept by itself, for example handed to a person, the decision card now says so and asks to undo the edit and try again, or hand the task back. It replaced the generic "Something changed" card, whose retry kept failing while the edit stayed.
+- Continuing work or answering a worker question approves the current task brief and includes edited criteria in the next worker turn. Edits approved after a finished turn remain queued across restarts.
+- Continue retries concurrent storage changes during provider observation, and reconciliation leaves unchanged needs-human records untouched.
+- Answers reach waiting workers when another Board read has already published the same decision question. Fleet reuses the registered question instead of conflicting with its registration timestamp.
+- Decision source and question publication failures retain their underlying `cause` on `BoardFailure` and include its message in CLI and daemon diagnostics.
+- Approved work that main leaves behind before dispatch launches on the observed main instead of stopping for a release. A repository-wide preparation assessed as `incomplete-context`, `not-ancestor` or `relevant-change` with no attempts is prepared again in place, and merge prediction reads the newest main without moving the snapshot that admission and dispatch share.
+- Work that an earlier dispatch stopped this way is prepared again by the next admission or by `dispatch <id>`, without a release. A local-only criterion still asks for an edit.
+- The stop question for a scoped preparation that main left behind says main moved, instead of saying the task needs information the worker cannot reach, and a retry answer is refused with the same explanation the card shows.
+
 ## 0.13.3 - 2026-10-19
 
 ### Fixed

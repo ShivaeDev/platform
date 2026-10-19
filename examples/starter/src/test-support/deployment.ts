@@ -1,9 +1,9 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deployChild, deployPort } from "#test-support/deployChild.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { deploymentProcesses } from "./deploymentProcesses.ts";
