@@ -140,7 +140,7 @@ export function sharedHeadingFixture(now: number): Record<string, string> {
 	return {
 		"home.md": "# Release plans\n",
 		"task.md": "---\nid: task.ship\nkind: task\nstatus: blocked\n---\n# Ship the release\n",
-		...answeredDecision("decisions/notes.md", "decision.notes", "The release notes are missing", now - DAY),
+		...answeredDecision("decisions/notes.md", "decision.notes", "The release notes are **missing**", now - DAY),
 		...answeredDecision("decisions/review.md", "decision.review", "The PR changed after review", now - 2 * DAY),
 	};
 }

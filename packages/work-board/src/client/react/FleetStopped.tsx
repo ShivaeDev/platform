@@ -38,7 +38,7 @@ function StartCommand({ command }: { readonly command: string }) {
 				{/* A wrapping field shows the whole command on a phone; a one-line input opens scrolled to its end. */}
 				<Textarea
 					aria-label="Command to start Fleet"
-					className="min-h-0 break-all font-mono text-xs"
+					className="wrap-anywhere min-h-0 font-mono text-xs"
 					readOnly
 					ref={fieldRef}
 					rows={1}

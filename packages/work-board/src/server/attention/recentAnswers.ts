@@ -6,6 +6,7 @@ import { responseUrl } from "#responses/url.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { plainText } from "#server/search/snippet.ts";
 import { questionPrompts, responseSummary } from "./answerSummary.ts";
 import { authoredQuestion, openItem } from "./inbox.ts";
 import { managedRequestState } from "./managedRequestReceipt.ts";
@@ -51,7 +52,7 @@ interface Candidate {
 }
 
 function firstLine(text: string) {
-	return reasonMarkdown(text).split("\n")[0]?.trim() ?? "";
+	return plainText(reasonMarkdown(text).split("\n")[0]?.trim() ?? "");
 }
 
 function questionTitle(prompts: ReturnType<typeof questionPrompts>, request: Request | undefined, documentTitle: string) {
