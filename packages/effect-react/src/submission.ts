@@ -3,34 +3,37 @@ import type * as Atom from "effect/reactivity/Atom";
 import { make } from "@shivaedev/effect-form/form.ts";
 import type { PersistedDraftConfig } from "@shivaedev/effect-form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form/shape.ts";
+import { actionTrace } from "#actionTrace.ts";
 import { type AtomServices, type RejectField, rejecting } from "./fieldRejection.ts";
 
-export interface SubmissionConfig<F extends Fields, A, E, R, ER> {
-	readonly fields: Schema.Struct<F>;
-	readonly initialValues: Encoded<F>;
+export interface SubmissionConfig<TFields extends Fields, A, E, R, TRuntimeError> {
+	readonly fields: Schema.Struct<TFields>;
+	readonly initialValues: Encoded<TFields>;
 	readonly persistedDraft?: PersistedDraftConfig | undefined;
-	readonly rejectField: RejectField<F, E> | undefined;
-	readonly runtime: Atom.AtomRuntime<Services<F, R>, ER>;
-	readonly save: (values: Decoded<F>) => Effect.Effect<A, E, AtomServices<R>>;
+	readonly rejectField: RejectField<TFields, E> | undefined;
+	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
+	readonly save: (values: Decoded<TFields>) => Effect.Effect<A, E, AtomServices<R>>;
 }
 
-export interface Submission<F extends Fields, A, E, ER> {
-	readonly form: Form<F, A, E | FieldFailure, ER>;
-	readonly submitted: () => Encoded<F> | undefined;
+export interface Submission<TFields extends Fields, A, E, TRuntimeError> {
+	readonly form: Form<TFields, A, E | FieldFailure, TRuntimeError>;
+	readonly submitted: () => Encoded<TFields> | undefined;
 }
 
-export const submission = <F extends Fields, A, E, R, ER>(config: SubmissionConfig<F, A, E, R, ER>): Submission<F, A, E, ER> => {
+export function submission<TFields extends Fields, A, E, R, TRuntimeError>(
+	config: SubmissionConfig<TFields, A, E, R, TRuntimeError>,
+): Submission<TFields, A, E, TRuntimeError> {
 	const { fields, initialValues, runtime } = config;
 	const save = rejecting(fields, config.save, config.rejectField);
-	let submitted: Encoded<F> | undefined;
-	const form: Form<F, A, E | FieldFailure, ER> = make(fields, {
+	let submitted: Encoded<TFields> | undefined;
+	const form: Form<TFields, A, E | FieldFailure, TRuntimeError> = make(fields, {
 		initialValues,
 		onSubmit: (values, submitter, snapshot) => {
 			submitted = snapshot;
-			return save(values, submitter);
+			return actionTrace(save(values, submitter), "ui.submit");
 		},
 		persistedDraft: config.persistedDraft,
 		runtime,
 	});
 	return { form, submitted: () => submitted };
-};
+}

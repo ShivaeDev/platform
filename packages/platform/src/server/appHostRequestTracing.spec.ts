@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { defectiveRpc, tracingDeclaration } from "#test/app-host/requestTracing.ts";
+import { defectiveRpc, traceEcho, tracingDeclaration } from "#test/app-host/requestTracing.ts";
 import { host } from "#test/app-host/story.ts";
 
 for (const position of ["omitted", "first", "last"] as const) {
@@ -43,4 +43,14 @@ host.it("traces and redacts a loopback RPC defect without changing the shared gr
 	});
 	expect(JSON.stringify({ defects, result })).not.toContain("hidden-defect-password");
 	expect(yield* directPing()).toBe("pong");
+});
+
+host.it("continues an incoming W3C trace in RPC handling without an installed exporter", [traceEcho], function* ({ request }) {
+	const traceId = "0123456789abcdef0123456789abcdef";
+	const response = yield* request("/rpc", {
+		body: `${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: null, tag: "ping" })}\n`,
+		headers: { "content-type": "application/ndjson", traceparent: `00-${traceId}-0123456789abcdef-01` },
+		method: "POST",
+	});
+	expect(response.body).toContain(traceId);
 });
