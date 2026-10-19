@@ -454,7 +454,7 @@
 {"path":"packages/effect-sql/src/test-support/postgresCodecs.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/postgresNotify.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/postgresVersioned.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-sql/src/test-support/sqlEngine.ts","rule":"tests/support-imports","count":5}
+{"path":"packages/effect-sql/src/test-support/sqlEngine.ts","rule":"tests/support-imports","count":4}
 {"path":"packages/effect-sql/src/test-support/sqliteRepository.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/transaction.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/wideRows.ts","rule":"tests/support-imports","count":1}
