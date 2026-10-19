@@ -19,8 +19,8 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 		return [...(within?.querySelectorAll<E>(selector) ?? [])];
 	}
 	return {
-		count: (selector: string, within?: ParentNode | null) => elements(selector, within).length,
 		accessible,
+		count: (selector: string, within?: ParentNode | null) => elements(selector, within).length,
 		findByRole: (role: string, name: string | RegExp, within: ParentNode | null = root()) => {
 			tell(`the reader finds the ${role} named ${name}`);
 			return (
