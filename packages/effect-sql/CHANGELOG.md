@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 - 2026-10-19
+
+### Added
+
+- Repositories without a version column accept `delete(where: FindManyFilter<Model>)` with model-typed equality and `{ in: [...] }` filters alongside existing primary-key deletes. List values use field codecs, empty lists delete nothing, and deleted row keys are announced only after commit.
+
 ## 0.12.0 - 2026-10-19
 
 ### Added
