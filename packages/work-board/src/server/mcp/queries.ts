@@ -37,7 +37,7 @@ export const overview = Effect.fn("BoardMcp.overview")(function* (client: BoardC
 	);
 	return {
 		fleet: fleet.state === "ready" ? { items: fleet.items, state: fleet.state } : fleet,
-		goals: { closedGoals: goals.closedGoals, goals: goals.goals },
+		goals: { closedGoals: goals.closedGoals, deferredGoals: goals.deferredGoals, goals: goals.goals },
 		needsYou: { count: needs.you.length, ...needs },
 	};
 });

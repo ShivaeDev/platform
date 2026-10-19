@@ -1,30 +1,38 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import { inProgress, type ProgressRow as Row } from "#browser/views/inProgress.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { FleetStopped } from "./FleetStopped.tsx";
-import { inProgressItems } from "./inProgressItems.ts";
 
 export function TodayProgress({ data, failed }: { readonly data: FleetItemsProjection | undefined; readonly failed: boolean }) {
-	const items = inProgressItems(data);
+	const progress = inProgress(data);
+	const source = progress?.source === "files" ? "Task file" : "Fleet";
 	return (
 		<div className="space-y-3">
 			{data?.state === "unavailable" && data.startCommand !== undefined ? (
-				<FleetStopped command={data.startCommand} reason={data.reason} />
+				<FleetStopped command={data.startCommand} reason={data.reason}>
+					{progress?.source === "files" && <p className="m-0 text-muted-foreground">Status comes from the task files, not live Fleet.</p>}
+				</FleetStopped>
 			) : (
-				items === undefined && (
-					<p className="text-muted-foreground text-sm" role="status">
-						{unavailable(data, failed)}
-					</p>
+				progress?.source !== "fleet" && (
+					<div className="text-muted-foreground text-sm" role="status">
+						<p className="m-0">{unavailable(data, failed)}</p>
+						{progress?.source === "files" && <p className="m-0">Status comes from the task files, not live Fleet.</p>}
+					</div>
 				)
 			)}
-			{items?.length === 0 && <p className="text-muted-foreground text-sm">Fleet holds no work in progress.</p>}
-			{items !== undefined && items.length > 0 && (
-				<ul aria-label="In progress" className="m-0 list-none divide-y rounded-lg border border-border p-0">
-					{items.slice(0, 8).map((item) => (
-						<ProgressRow item={item} key={item.workId} />
+			{progress?.rows.length === 0 && (
+				<p className="text-muted-foreground text-sm">
+					{progress.source === "files" ? "No task file marks work in progress." : "Fleet holds no work in progress."}
+				</p>
+			)}
+			{progress !== undefined && progress.rows.length > 0 && (
+				<ul aria-label="In progress" className="m-0 list-none divide-y rounded-lg border border-border p-0" data-progress-source={progress.source}>
+					{progress.rows.slice(0, 8).map((item) => (
+						<ProgressRow item={item} key={item.workId} source={source} />
 					))}
 				</ul>
 			)}
-			{items !== undefined && failed && (
+			{progress !== undefined && failed && (
 				<p className="text-sm" role="status">
 					Fleet refresh failed. Displayed work is retained.
 				</p>
@@ -36,18 +44,17 @@ export function TodayProgress({ data, failed }: { readonly data: FleetItemsProje
 	);
 }
 
-function ProgressRow({ item }: { readonly item: NonNullable<ReturnType<typeof inProgressItems>>[number] }) {
-	const title = item.document?.title ?? item.workId;
+function ProgressRow({ item, source }: { readonly item: Row; readonly source: string }) {
 	return (
 		<li className="flex h-10 min-w-0 items-center gap-2 px-2" data-progress-id={item.workId}>
-			<a className="min-w-0 flex-1 truncate text-sm" href={`/_board/item/${encodeURIComponent(item.workId)}/`} title={title}>
-				{title}
+			<a className="min-w-0 flex-1 truncate text-sm" href={`/_board/item/${encodeURIComponent(item.workId)}/`} title={item.title}>
+				{item.title}
 			</a>
 			<Badge className="shrink-0 border-agent-working/25 bg-agent-working/10 text-agent-working text-xs" variant="outline">
-				Fleet · {item.stage}
+				{source} · {item.state}
 			</Badge>
 			{item.prUrl ? (
-				<a aria-label={`Pull request for ${title}`} className="shrink-0 text-xs" href={item.prUrl}>
+				<a aria-label={`Pull request for ${item.title}`} className="shrink-0 text-xs" href={item.prUrl}>
 					PR ↗
 				</a>
 			) : null}

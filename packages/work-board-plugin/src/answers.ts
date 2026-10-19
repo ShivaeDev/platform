@@ -85,7 +85,7 @@ export function goalTitlesOf(value: unknown): Map<string, string> {
 	if (!isRecord(value)) {
 		return titles;
 	}
-	for (const row of [...records(value.goals), ...records(value.closedGoals)]) {
+	for (const row of [...records(value.goals), ...records(value.deferredGoals), ...records(value.closedGoals)]) {
 		const id = text(row.id);
 		if (id !== undefined) {
 			titles.set(id, text(row.title) ?? id);

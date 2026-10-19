@@ -11,7 +11,7 @@ import { todaySummaryScreen } from "#test/todaySummaryScreen.tsx";
 expectNoReactWarnings();
 
 for (const [workspace, summaries] of [
-	["pending", ["Fleet unavailable", "Loading goals…"]],
+	["pending", ["Loading Fleet…", "Loading goals…"]],
 	["failed", ["Loading Fleet…", "Goals unavailable"]],
 ] as const) {
 	screenStory.it(
