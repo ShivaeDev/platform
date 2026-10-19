@@ -1,4 +1,4 @@
-import { Clock, Effect, Layer } from "effect";
+import { Clock, Effect, Layer, Stream } from "effect";
 import { HttpRouter } from "effect/http";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 import { Authentication, Orders, Principal, type SaveOrderInput, Unauthorized } from "./contract.ts";
@@ -37,6 +37,7 @@ export function orderWebHandler(service: Layer.Layer<typeof OrderService.Identif
 		Effect.gen(function* () {
 			const orders = yield* OrderService;
 			return Orders.of({
+				"orders.$changes": () => Stream.never,
 				"orders.get": ({ id }) =>
 					Effect.gen(function* () {
 						const { userId } = yield* Principal;

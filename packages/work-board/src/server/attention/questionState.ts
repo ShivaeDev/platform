@@ -1,12 +1,12 @@
 import type { Question } from "#browser/responses/schema.ts";
 import { responseUrl } from "#responses/url.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
+import { documentSource, type MetadataDocument, type MetadataModel } from "#server/metadata/model.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { attentionRequests, isMaintainerRequest } from "./requests.ts";
 
 function currentSource(question: Question, document: MetadataDocument): boolean {
-	return question.question.source === document.file && question.context === (document.parsed.raw ?? "") + document.parsed.body;
+	return question.question.source === document.file && question.context === documentSource(document);
 }
 
 function hasAnswer(question: Question, model: MetadataModel): boolean {

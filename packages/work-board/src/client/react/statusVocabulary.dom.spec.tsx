@@ -20,6 +20,16 @@ screenStory.it(
 	},
 );
 
+const { "tasks/ready.md": _ready, ...withoutReady } = statusVocabularyFixture();
+screenStory.it(
+	"names a single open task in the singular in the nav",
+	[routedScreen(withoutReady, "/_board/work", options)],
+	function* ({ findElement, readAttribute }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement(`[aria-label='Reviewing'] ${MERGE}`)).not.toBeNull()));
+		yield* Effect.promise(() => eventually(() => expect(readAttribute("a[href='/_board/work']", "aria-label")).toBe("Now, 1 open task")));
+	},
+);
+
 screenStory.it(
 	"queues Fleet-approved ready work while Fleet is unavailable",
 	[routedScreen(statusVocabularyFixture(), "/_board/work", options)],
@@ -33,10 +43,10 @@ screenStory.it(
 	[routedScreen(statusVocabularyFixture(), "/", options)],
 	function* ({ findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("[data-progress-id='task.merge']")).not.toBeNull()));
-		expect(readText("[data-progress-id='task.merge']")).toBe("Merge the release branchTask file");
+		expect(readText("[data-progress-id='task.merge']")).toBe("Merge the release branchIn review");
 		expect(findElement("[data-progress-id='task.odd']")).toBeNull();
 		yield* Effect.promise(() =>
-			eventually(() => expect(readText(".today-strip")).toBe("0 need you·1 in progress in task files·1 active goal·1 file has problems")),
+			eventually(() => expect(readText(".today-strip")).toBe("0 need you·1 marked in progress·1 active goal·1 file has problems")),
 		);
 	},
 );

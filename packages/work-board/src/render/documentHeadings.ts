@@ -8,9 +8,8 @@ export interface Heading {
 	readonly title: string;
 }
 
-export function documentHeadings(titleFirst = false) {
+export function documentHeadings(titleFirst = false, used = new Set<string>()) {
 	const entries: Heading[] = [];
-	const used = new Set<string>();
 	function plugin() {
 		return function transform(tree: Root) {
 			if (titleFirst) {

@@ -2,6 +2,7 @@ import type { Root, RootContent } from "mdast";
 import type { ContainerDirective, LeafDirective, TextDirective } from "mdast-util-directive";
 import { SKIP, visit as visitNodes } from "unist-util-visit";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { errorMessage } from "#errorMessage.ts";
 import { renderVisual } from "./visual.ts";
 
 type Directive = ContainerDirective | LeafDirective | TextDirective;
@@ -33,7 +34,7 @@ function failureOf(node: Directive, source: string): string | undefined {
 		renderVisual(node);
 		return undefined;
 	} catch (error) {
-		return error instanceof Error ? error.message : String(error);
+		return errorMessage(error);
 	}
 }
 

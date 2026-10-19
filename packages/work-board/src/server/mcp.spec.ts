@@ -108,7 +108,7 @@ boardStory.it(
 		);
 		const board = yield* start({ fleetPort: null });
 		const client = yield* connectMcp();
-		const unavailable = { reason: "Fleet daemon is not configured for this Board", state: "unavailable" };
+		const unavailable = { reason: "Fleet isn't set up for this Board.", state: "unavailable" };
 		expect(toolValue(yield* client.call("board_overview"))).toMatchObject({ fleet: unavailable });
 		expect(toolValue(yield* client.call("needs_you"))).toMatchObject({
 			you: expect.arrayContaining([

@@ -37,16 +37,15 @@ const fleetItemsUnavailable = Effect.fn("WorkBoard.fleetItemsUnavailable")(funct
 	return projection;
 });
 
-export function fleetItems(fleetPort: number | null = DAEMON_PORT): Effect.Effect<FleetItemsProjection, never, Workspace> {
+export function fleetItems(folder: string, fleetPort: number | null = DAEMON_PORT): Effect.Effect<FleetItemsProjection, never, Workspace> {
 	if (fleetPort === null) {
-		return fleetItemsUnavailable({ reason: "Fleet daemon is not configured for this Board" });
+		return fleetItemsUnavailable({ reason: "Fleet isn't set up for this Board." });
 	}
 	return Effect.gen(function* () {
 		const result = yield* readDaemon(fleetPort, (client) => client("daemon.fleetItems", {})).pipe(Effect.result);
 		const workspace = yield* Workspace;
 		if (result._tag === "Failure") {
-			const { root } = yield* workspace.settings();
-			return yield* fleetItemsUnavailable(daemonUnavailable(result.failure, fleetPort, root));
+			return yield* fleetItemsUnavailable(daemonUnavailable(result.failure, fleetPort, folder));
 		}
 		const data = result.success;
 		const snapshot = yield* workspace.index().pipe(Effect.catch(() => Effect.succeed(undefined)));

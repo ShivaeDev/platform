@@ -12,7 +12,7 @@ describe("native Fleet contract", () => {
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.scoped(
 				Effect.gen(function* () {
-					const client = yield* RpcTest.makeClient(FleetContract, { flatten: true }).pipe(Effect.provide(fleetHandlers));
+					const client = yield* RpcTest.makeClient(FleetContract.omit("fleet.$changes"), { flatten: true }).pipe(Effect.provide(fleetHandlers));
 					yield* client("fleet.prepare", {
 						cwd: "/synthetic",
 						preparation: prepared({ ownedPaths: ["src/one.ts"], sourcePaths: ["src/one.ts"] }),

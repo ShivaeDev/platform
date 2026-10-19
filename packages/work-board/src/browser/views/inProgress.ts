@@ -1,8 +1,10 @@
 import type { FleetItemsProjection } from "./FleetItemsProjection.ts";
+import { statusLabel } from "./statusLabel.ts";
 import { heldPhase, workPhase } from "./workStatus.ts";
 
 export interface ProgressRow {
 	readonly prUrl?: string | undefined;
+	readonly state?: string;
 	readonly title: string;
 	readonly workId: string;
 }
@@ -22,5 +24,5 @@ export function inProgress(data: FleetItemsProjection | undefined): InProgress |
 	}
 	return data?.authored === undefined
 		? undefined
-		: { rows: data.authored.map((item) => ({ title: item.title, workId: item.workId })), source: "files" };
+		: { rows: data.authored.map((item) => ({ state: statusLabel(item.status), title: item.title, workId: item.workId })), source: "files" };
 }

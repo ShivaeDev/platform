@@ -22,7 +22,7 @@ describe("Fleet continuation against PostgreSQL", () => {
 				Effect.scoped(
 					Effect.gen(function* () {
 						yield* prepareWork("one");
-						const client = yield* RpcTest.makeClient(FleetContract, { flatten: true }).pipe(Effect.provide(fleetHandlers));
+						const client = yield* RpcTest.makeClient(FleetContract.omit("fleet.$changes"), { flatten: true }).pipe(Effect.provide(fleetHandlers));
 						const first = yield* client("fleet.dispatch", { workId: "one" });
 						finishWorkers(fixture);
 						const stopped = yield* client("fleet.reconcile", { workId: "one" });

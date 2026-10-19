@@ -161,6 +161,30 @@ Each list value uses the field's codec and decoded type. An empty list matches n
 
 If a field codec requires a service, provide it for the query. Filter encoding and selected-row decoding retain their required services in the Effect environment.
 
+### Newest rows per group, distinct-on and grouped aggregates
+
+Use `latestPerGroup` when each parent needs its own row limit, such as the newest 21 runs per repository, workflow and merge-queue flag on a dashboard:
+
+```ts
+const recentRuns = yield* runs.latestPerGroup({
+  partitionBy: ["repositoryId", "workflow", "mergeQueue"],
+  orderBy: [
+    { field: "createdAt", direction: "desc" },
+    { field: "id", direction: "desc" },
+  ],
+  limit: 21,
+  where: { repositoryId: { in: repositoryIds }, status: "completed" },
+});
+```
+
+Here `runs` is a repository whose model declares those fields. `partitionBy` and `orderBy` are nonempty lists of model fields, and ordering reuses the same `{ field, direction }` entries as `findMany`. End the ordering with a unique tie-break column (or columns for a composite key) to make membership and order stable when timestamps tie. The repository does not infer a tie-break. `limit` is a nonnegative integer per partition; zero returns no rows, and smaller groups return all their matching rows.
+
+The existing typed `where` filter, including `IN` and field codecs, runs before `row_number() over (partition by ... order by ...)` ranks rows. The outer query keeps ranks up to `limit` and decodes all model fields through their Schema, without exposing the rank column. One statement reads all matching groups. Results are ordered by partition columns ascending, then by the declared ordering within each partition.
+
+Choose `latestPerGroup` for up to N complete rows per group. PostgreSQL `DISTINCT ON` is useful when you need exactly one representative row per nonempty group; `latestPerGroup` with `limit: 1` covers that case too. Use native SQL `GROUP BY` with a result Schema for grouped aggregates such as counts or sums, where the output is a summary rather than model rows. Distinct-on and grouped aggregates stay on the native SQL path.
+
+### Copy query results into another table
+
 To copy a query directly into another table, prepare a select and map each target insert field to a projected source field:
 
 ```ts

@@ -46,3 +46,139 @@ export function responseRecords(index: number, item: string, file: string, sourc
 	}
 	return files;
 }
+
+const DAY = 86_400_000;
+
+function question(id: string, title: string, status: string) {
+	return `---\nid: ${id}\nkind: question\nstatus: ${status}\noptions:\n  - label: Yes\n    description: Go ahead.\n  - label: No\n    description: Leave it.\n---\n# ${title}\n`;
+}
+
+function answered(file: string, id: string, title: string, { author = "maintainer", daysAgo, now, status }: AnswerOptions) {
+	const source = question(id, title, status);
+	const revision = revisionOf(question(id, title, "open"));
+	const record = questionId(id, "answer", revision, file);
+	return {
+		[file]: source,
+		[`responses/${record}.md`]: questionMarkdown({
+			context: question(id, title, "open"),
+			id: record,
+			question: { deadline: 0, item: id, reason: title, registeredAt: 0, request: "answer", reviewedRevision: revision, source: file },
+		}),
+		[`responses/response.${id}.md`]: responseMarkdown({
+			body: "",
+			id: `response.${id}`,
+			response: {
+				answers: [{ prompt: "answer", selected: ["option-1"], text: "" }],
+				author,
+				question: record,
+				recordedAt: now - daysAgo * DAY,
+				reviewedRevision: revision,
+				type: "answer",
+			},
+		}),
+	};
+}
+
+function laterAnswer(file: string, id: string, title: string, recordedAt: number) {
+	const revision = revisionOf(question(id, title, "open"));
+	return {
+		[`responses/response.${id}.later.md`]: responseMarkdown({
+			body: "",
+			id: `response.${id}.later`,
+			response: {
+				answers: [{ prompt: "answer", selected: ["option-2"], text: "" }],
+				author: "maintainer",
+				question: questionId(id, "answer", revision, file),
+				recordedAt,
+				reviewedRevision: revision,
+				type: "answer",
+			},
+		}),
+	};
+}
+
+export function answeredTwiceFixture(now: number): Record<string, string> {
+	return {
+		"home.md": "# Release plans\n",
+		...answered("questions/both.md", "question.both", "Keep the beta flag?", { author: "reviewer", daysAgo: 2, now, status: "open" }),
+		...laterAnswer("questions/both.md", "question.both", "Keep the beta flag?", now - DAY),
+	};
+}
+
+interface AnswerOptions {
+	readonly author?: string;
+	readonly daysAgo: number;
+	readonly now: number;
+	readonly status: "done" | "open";
+}
+
+export function recentAnswersFixture(now: number): Record<string, string> {
+	return {
+		"home.md": "# Release plans\n",
+		...answered("questions/waiting.md", "question.waiting", "Keep the release branch?", { daysAgo: 30, now, status: "open" }),
+		...answered("questions/closed.md", "question.closed", "Ship the guide this week?", { daysAgo: 2, now, status: "done" }),
+		...answered("questions/old.md", "question.old", "Rename the starter?", { daysAgo: 8, now, status: "done" }),
+		...answered("questions/theirs.md", "question.theirs", "Split the docs?", { author: "reviewer", daysAgo: 1, now, status: "done" }),
+		...answered("questions/theirs-waiting.md", "question.theirs-waiting", "Drop the old flag?", {
+			author: "reviewer",
+			daysAgo: 3,
+			now,
+			status: "open",
+		}),
+	};
+}
+
+function decision(id: string, request: string, reason: string, asks: boolean) {
+	const asked = asks
+		? `::::question{id="${request}" select="one"}\n### How should we proceed?\n\n:::option{id="retry"}\nRetry once the blocker is gone.\n:::\n\n:::option{id="release"}\nRelease the work.\n:::\n::::\n`
+		: "";
+	return `---\n${JSON.stringify({
+		attention: [{ id: request, kind: "decision", reason, "response_from": ["maintainer"], state: "open", unblocks: ["task.ship"] }],
+		id,
+		kind: "decision",
+	})}\n---\n# Decision for task.ship\n\n${asked}`;
+}
+
+function answeredDecision(file: string, id: string, request: string, reason: string, recordedAt: number, asks = true) {
+	const source = decision(id, request, reason, asks);
+	const revision = revisionOf(source);
+	const record = questionId(id, request, revision, file);
+	return {
+		[file]: source,
+		[`responses/${record}.md`]: questionMarkdown({
+			context: source,
+			id: record,
+			question: { deadline: 0, item: id, reason, registeredAt: 0, request, reviewedRevision: revision, source: file },
+		}),
+		[`responses/response.${id}.md`]: responseMarkdown({
+			body: asks ? "" : "Go ahead.",
+			id: `response.${id}`,
+			response: {
+				...(asks ? { answers: [{ prompt: request, selected: ["retry"], text: "" }] } : {}),
+				author: "maintainer",
+				question: record,
+				recordedAt,
+				reviewedRevision: revision,
+				type: "answer",
+			},
+		}),
+	};
+}
+
+export function sharedHeadingFixture(now: number): Record<string, string> {
+	return {
+		"home.md": "# Release plans\n",
+		"task.md": "---\nid: task.ship\nkind: task\nstatus: blocked\n---\n# Ship the release\n",
+		...answeredDecision("decisions/notes.md", "decision.notes", "notes-blocked", "The release notes are **missing**", now - DAY),
+		...answeredDecision("decisions/review.md", "decision.review", "review-stale", "The PR changed after review", now - 2 * DAY),
+		...answeredDecision(
+			"decisions/wording.md",
+			"decision.wording",
+			"wording",
+			"The changelog wording for the **release** reads as a breaking change, although every public type and export stays the same",
+			now - 3 * DAY,
+			false,
+		),
+		...answeredDecision("decisions/same.md", "decision.same", "same", "Ship the release", now - 4 * DAY, false),
+	};
+}

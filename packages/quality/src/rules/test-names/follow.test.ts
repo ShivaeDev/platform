@@ -46,9 +46,9 @@ describe("tests/follow", () => {
 			'"totals.test.ts" follows no file: totals.test.ts sits beside totals.ts in the same folder. A test that covers the folder as a whole is a <behaviour>.spec.ts, such as checkoutFlow.spec.ts.',
 			'"cart.spec.ts" shares its name with cart.ts. A .spec names a behaviour of its folder, such as checkoutFlow.spec.ts; a test of cart.ts is cart.test.ts.',
 			'"checkout-flow.spec.ts" names its behaviour in camelCase, such as checkoutFlow.spec.ts.',
-			'"cart.hydration.test.ts" has the suffixes ".hydration". A test file is <file>[.<environment>].test.ts beside its file or <behaviour>[.<environment>].spec.ts in the folder it covers, with at most one environment of dom, slow and typecheck. An aspect of a module gets its own file in the module\'s folder, or a .spec.',
-			'"cart.dom.slow.test.ts" has the suffixes ".dom.slow". A test file is <file>[.<environment>].test.ts beside its file or <behaviour>[.<environment>].spec.ts in the folder it covers, with at most one environment of dom, slow and typecheck. An aspect of a module gets its own file in the module\'s folder, or a .spec.',
-			'".postgres" is not a test environment. A test that needs a database or a running app takes it from the app\'s test fixture and is named like any other test. A test file is <file>[.<environment>].test.ts beside its file or <behaviour>[.<environment>].spec.ts in the folder it covers, with at most one environment of dom, slow and typecheck.',
+			'"cart.hydration.test.ts" has the suffixes ".hydration". A test file is <file>[.<modifier>].test.ts beside its file or <behaviour>[.<modifier>].spec.ts in the folder it covers, with at most one modifier of dom, slow, typecheck and unit. An aspect of a module gets its own file in the module\'s folder, or a .spec.',
+			'"cart.dom.slow.test.ts" has the suffixes ".dom.slow". A test file is <file>[.<modifier>].test.ts beside its file or <behaviour>[.<modifier>].spec.ts in the folder it covers, with at most one modifier of dom, slow, typecheck and unit. An aspect of a module gets its own file in the module\'s folder, or a .spec.',
+			'".postgres" is not a test environment. A test that needs a database or a running app takes it from the app\'s test fixture and is named like any other test. A test file is <file>[.<modifier>].test.ts beside its file or <behaviour>[.<modifier>].spec.ts in the folder it covers, with at most one modifier of dom, slow, typecheck and unit.',
 			'"Basket.test.tsx" uses the DOM, so it is Basket.dom.test.tsx and runs in the dom project.',
 		]);
 	});

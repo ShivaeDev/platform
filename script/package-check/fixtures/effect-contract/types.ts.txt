@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect"
+import { Effect, Schema, Stream } from "effect"
 import { collection } from "@shivaedev/effect-contract/keys.ts"
 import { command, query, type QueryShape } from "@shivaedev/effect-contract/operation.ts"
 import { contract } from "@shivaedev/effect-contract/contract.ts"
@@ -15,6 +15,7 @@ const Rename = command("rename", {
 })
 const Notes = contract("notes", { queries: [Get], commands: [Rename] })
 export const handlers = Notes.of({
+  "notes.$changes": () => Stream.never,
   "notes.get": ({ id }) => (id === 1 ? Effect.succeed("one") : Get.reject.Missing()),
   "notes.rename": ({ title }) => (title === "" ? Rename.reject.Invalid({ field: "title", message: "Enter a title" }) : Effect.void),
 })
@@ -28,13 +29,12 @@ export const readsName: string = shapes[0]?.reads({ id: 1 })
 
 import { stream } from "@shivaedev/effect-contract/operation.ts"
 import { bind } from "@shivaedev/effect-contract/bind.ts"
-import { Stream } from "effect"
 import * as AtomRpc from "effect/reactivity/AtomRpc"
 import { RpcTest } from "effect/rpc"
 import type { RpcClientError } from "effect/rpc/RpcClientError"
 const Subscribe = stream("subscribe", { payload: { id: Schema.Number }, success: Schema.String, rejections: { Missing }, reads: ({ id }) => [notes.item(id)] })
 const Feed = contract("feed", { streams: [Subscribe] })
-const feedHandlers = Feed.toLayer({ "feed.subscribe": ({ id }) => Stream.succeed(String(id)) })
+const feedHandlers = Feed.toLayer({ "feed.$changes": () => Stream.never, "feed.subscribe": ({ id }) => Stream.succeed(String(id)) })
 class Client extends AtomRpc.Service<Client>()("packed/Stream", { group: Feed, makeEffect: RpcTest.makeClient(Feed, { flatten: true }), protocol: feedHandlers }) {}
 const api = bind(Feed, Client)
 export const subscription: Stream.Stream<string, Missing | RpcClientError, Client> = api.subscribe.run({ id: 1 })
