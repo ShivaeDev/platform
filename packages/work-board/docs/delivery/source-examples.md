@@ -45,7 +45,7 @@ relationships:
 Use deterministic local matching first. Keep Markdown authoritative.
 ```
 
-Every top-level field is optional. Missing values stay blank in work details. `owner` records responsibility, without claiming authorship. `status` and `next_action` are explicit source text; no status vocabulary or transition rules are inferred.
+Every top-level field is optional. Missing values stay blank in work details. `owner` records responsibility, without claiming authorship. `status` and `next_action` are explicit source text, and no transition rules are inferred. Now, Today and goal pages read the `status` of tasks and of items that implement a goal through one work vocabulary: `planned`, `received` and `ready` are planned; `approved` and `prepared` are queued; `active`, `running`, `in-progress`, `in progress`, `agent-working`, `executing` and `adopting` are executing; `review`, `in-review`, `in review`, `reviewing`, `repairing` and `validating` are reviewing; `delivering` is delivering; `blocked` and `waiting-on-person` wait on a person; `needs-human` and `needs-you` need you; `deferred` is deferred; and `done`, `closed`, `dropped`, `superseded`, `completed`, `cancelled`, `canceled`, `resolved` and `released` are closed. Case and surrounding spaces do not matter, and a missing status is planned. A work status outside this vocabulary is listed on System as a file problem: Now leaves the item out and its goal page counts it as planned.
 
 | Field | Source shape |
 | --- | --- |

@@ -16,6 +16,7 @@ const labels: Readonly<Record<string, string>> = {
 	prepared: "Prepared",
 	received: "Received",
 	repairing: "Repairing",
+	review: "In review",
 	reviewing: "Reviewing",
 	running: "Running",
 	superseded: "Superseded",

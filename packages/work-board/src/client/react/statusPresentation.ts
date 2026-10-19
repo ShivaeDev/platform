@@ -26,6 +26,7 @@ const statuses = {
 	ready: { icon: Circle, token: "deferred" },
 	received: { icon: Inbox, token: "deferred" },
 	repairing: { icon: LoaderCircle, token: "agent-working" },
+	review: { icon: LoaderCircle, token: "agent-working" },
 	reviewing: { icon: LoaderCircle, token: "agent-working" },
 	running: { icon: LoaderCircle, token: "agent-working" },
 	superseded: { icon: Clock, token: "deferred" },

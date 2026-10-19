@@ -99,8 +99,10 @@ boardStory.it(
 	[
 		projectFiles({
 			"active.md": "---\nid: task.active\nkind: task\nstatus: active\nowner: codex\n---\n# Active task",
+			"delivering.md": "---\nid: task.delivering\nkind: task\nstatus: delivering\n---\n# Delivering task",
 			"done.md": "---\nid: task.done\nkind: task\nstatus: done\n---\n# Done task",
 			"dropped.md": "---\nid: task.dropped\nkind: task\nstatus: dropped\n---\n# Dropped task",
+			"merge.md": "---\nid: task.merge\nkind: task\nstatus: review\n---\n# Merge task",
 			"planned.md": "---\nid: task.planned\nkind: task\nstatus: planned\n---\n# Planned task",
 			"project.md": "---\nid: project.running\nkind: project\nstatus: active\n---\n# Running goal",
 			"review.md": "---\nid: task.review\nkind: task\nstatus: in-review\n---\n# Reviewed task",
@@ -112,6 +114,8 @@ boardStory.it(
 		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
 			authored: [
 				{ file: "active.md", status: "active", title: "Active task", workId: "task.active" },
+				{ file: "delivering.md", status: "delivering", title: "Delivering task", workId: "task.delivering" },
+				{ file: "merge.md", status: "review", title: "Merge task", workId: "task.merge" },
 				{ file: "review.md", status: "in-review", title: "Reviewed task", workId: "task.review" },
 			],
 			reason: "Fleet isn't set up for this Board.",

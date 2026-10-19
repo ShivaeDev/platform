@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { waitsOnYou } from "#browser/document/asks.ts";
 import type { FleetWork } from "#browser/views/now.ts";
-import { cardStatus, holderOf, stageTime } from "#browser/views/nowCard.ts";
+import { cardLabelStatus, cardStatus, holderOf, stageTime } from "#browser/views/nowCard.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
 import { kindLabel } from "#browser/views/statusLabel.ts";
@@ -17,10 +17,12 @@ export function WorkCard({
 	item,
 	state,
 	fleet,
+	inLane = false,
 }: {
 	readonly item: WorkProjection["rows"][number];
 	readonly state: State;
 	readonly fleet: FleetWork | undefined;
+	readonly inLane?: boolean;
 }) {
 	const fleetItems = useContext(FleetItemsContext);
 	const asked = waitsOnYou(item);
@@ -44,7 +46,7 @@ export function WorkCard({
 				/>
 			</h3>
 			<div className="flex flex-wrap items-center gap-2">
-				<StatusChip status={status} title={answered ?? item.waiting} />
+				<StatusChip status={inLane ? cardLabelStatus(status) : status} title={answered ?? item.waiting} />
 				<span className="relative z-10">
 					<PrChip url={fleet?.prUrl} />
 				</span>

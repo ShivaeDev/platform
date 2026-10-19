@@ -14,12 +14,14 @@ export function WorkCardList({
 	fleet,
 	virtual,
 	bounded = false,
+	inLane = false,
 }: {
 	readonly rows: WorkProjection["rows"];
 	readonly state: State;
 	readonly fleet: ReadonlyMap<string, FleetWork>;
 	readonly virtual: boolean;
 	readonly bounded?: boolean | undefined;
+	readonly inLane?: boolean;
 }) {
 	const window = useVirtualRows<HTMLElement>(rows.length, CARD_HEIGHT, virtual, bounded);
 	return (
@@ -36,7 +38,7 @@ export function WorkCardList({
 		>
 			<div className="flex flex-col gap-2" style={{ paddingBottom: window.bottom, paddingTop: window.top }}>
 				{rows.slice(window.start, window.end).map((item) => (
-					<WorkCard fleet={fleet.get(item.id)} item={item} key={item.id} state={state} />
+					<WorkCard fleet={fleet.get(item.id)} inLane={inLane} item={item} key={item.id} state={state} />
 				))}
 			</div>
 		</section>

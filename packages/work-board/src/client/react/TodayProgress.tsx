@@ -56,7 +56,7 @@ function ProgressRow({ fleet, item }: { readonly fleet: boolean; readonly item: 
 				{item.title}
 			</a>
 			<Badge className="shrink-0 border-agent-working/25 bg-agent-working/10 text-agent-working text-xs" variant="outline">
-				{fleet ? `Fleet · ${item.state}` : item.state}
+				{fleet ? "Fleet" : item.state}
 			</Badge>
 			{item.prUrl ? (
 				<a aria-label={`Pull request for ${item.title}`} className="shrink-0 text-xs" href={item.prUrl}>
