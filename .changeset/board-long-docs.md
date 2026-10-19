@@ -1,5 +1,5 @@
 ---
-"@shivaedev/work-board": patch
+"@shivaedev/work-board": minor
 ---
 
 ### Fixed
