@@ -115,6 +115,15 @@ export function fleetHealth(value: FleetHealth) {
 	});
 }
 
+export function stoppedFleet() {
+	return screenStory.trait("workspace", "the Fleet daemon has stopped", function* (engine) {
+		const missing = { cause: "Not configured", observedAt: 0, state: "not-configured" } as const;
+		const daemon = yield* diagnosticsDaemon(() => ({ codex: missing, fleet: missing, github: missing }));
+		yield* daemon.stop();
+		engine.options = { ...engine.options, fleetPort: daemon.port };
+	});
+}
+
 export function pendingFleet() {
 	return screenStory.trait("workspace", "the Fleet daemon waits before answering", function* (engine) {
 		const missing = { cause: "Not configured", observedAt: 0, state: "not-configured" } as const;
