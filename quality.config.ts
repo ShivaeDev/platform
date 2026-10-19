@@ -128,6 +128,7 @@ export default defineConfig({
 					"examples/starter/src/server/notesHost.ts",
 					"examples/starter/src/notes.ts",
 					"examples/starter/src/server/noteJobs.ts",
+					"script/starter-published/workspaceDocumentation.ts",
 				],
 			},
 		},
