@@ -100,7 +100,9 @@ for (const kind of ["handoff", "response"] as const) {
 			expect(page.document.getElementById(`${kind}-submit`)?.hasAttribute("disabled")).toBe(false);
 			yield* reader.submit(`${kind}-form`);
 			yield* Effect.promise(() =>
-				waitFor(() => expect(page.document.getElementById(`${kind}-status`)?.textContent).toContain(kind === "handoff" ? "Prepared:" : "Saved:")),
+				waitFor(() =>
+					expect(page.document.getElementById(`${kind}-status`)?.textContent).toContain(kind === "handoff" ? "Saved handoffs/" : "Saved:"),
+				),
 			);
 		},
 	);

@@ -1,9 +1,9 @@
 import { CircleAlert } from "lucide-react";
 import type { HandoffProjection } from "#browser/views/remaining.ts";
 import { statusLabel } from "#browser/views/statusLabel.ts";
-import { fileUrl } from "#files/url.ts";
 import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
+import { fileUrl } from "#files/url.ts";
 import { HandoffForm } from "./HandoffForm.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
 import { LinkButton } from "./LinkButton.tsx";

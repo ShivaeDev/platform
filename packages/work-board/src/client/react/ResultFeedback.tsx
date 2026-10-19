@@ -1,9 +1,9 @@
 import { CircleAlert } from "lucide-react";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { statusLabel } from "#browser/views/statusLabel.ts";
-import { fileUrl } from "#files/url.ts";
 import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
+import { fileUrl } from "#files/url.ts";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 import { SectionCard } from "./SectionCard.tsx";
 import { shellIds } from "./shellIds.ts";

@@ -49,7 +49,7 @@ for (const { failure, kind } of cases) {
 			offline = false;
 			yield* formEvent(page, () => reader.click(`${kind}-preview`));
 			yield* reader.submit(`${kind}-form`);
-			yield* Effect.promise(() => waitFor(() => expect(status()).toContain(kind === "response" ? "Saved:" : "Prepared:")));
+			yield* Effect.promise(() => waitFor(() => expect(status()).toContain(kind === "response" ? "Saved:" : "Saved handoffs/")));
 			expect(commands.length).toBe(failure === "transport" || kind === "handoff" ? 2 : 1);
 			for (const call of commands) {
 				expect(call.payload).toMatchObject({ id: identity });

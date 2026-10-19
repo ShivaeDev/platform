@@ -87,7 +87,9 @@ boardStory.it(
 	function* ({ notes, board, client, handoffDraft }) {
 		const draft = yield* handoffDraft();
 		yield* Effect.promise(() => expect(client.mutate(client.handoffs.prepareHandoff.run(draft))).rejects.toThrow("--responses"));
-		expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain("to save handoffs");
+		expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain(
+			"Saving handoffs is turned off on this Board.",
+		);
 		expect(readFileSync(join(notes.root, "items/keyboard.md"), "utf8")).toBe(SOURCE);
 	},
 );

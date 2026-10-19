@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#client/react/components/ui/table.tsx";
+import { ClaimCells } from "./ClaimCells.tsx";
 import { keyed } from "./keyed.ts";
 import { SectionCard } from "./SectionCard.tsx";
 import { StatusChip } from "./StatusChip.tsx";
@@ -8,7 +9,6 @@ import { shellIds } from "./shellIds.ts";
 
 type Target = ResultProjection["targets"][number];
 type Criterion = Target["criteria"][number];
-type Claim = Criterion["claims"][number];
 
 export function ResultCriteria({ data }: { readonly data: ResultProjection }) {
 	const identity = data.document.identity;
@@ -103,28 +103,5 @@ function CheckCell({ criterion }: { readonly criterion: Criterion }) {
 		<TableCell className="min-w-40 whitespace-normal">
 			{criterion.link.href ? <a href={criterion.link.href}>{criterion.text}</a> : criterion.text}
 		</TableCell>
-	);
-}
-
-function ClaimCells({ claim }: { readonly claim: Claim }) {
-	return (
-		<>
-			<TableCell className="min-w-32 whitespace-normal">
-				<a href={claim.source.href}>{claim.source.label}</a>
-				{claim.problem ? <span className="text-destructive">{claim.problem}</span> : null}
-			</TableCell>
-			<Reported value={claim.outcome} />
-			<Reported value={claim.method} />
-			<Reported mono value={claim.checkedRevision} />
-			<Reported value={claim.observedAt} />
-		</>
-	);
-}
-
-function Reported({ value, mono = false }: { readonly value: string | undefined; readonly mono?: boolean }) {
-	return value ? (
-		<TableCell className={mono ? "whitespace-normal break-all font-mono" : "whitespace-normal"}>{value}</TableCell>
-	) : (
-		<TableCell className="text-muted-foreground">Not recorded</TableCell>
 	);
 }

@@ -19,6 +19,7 @@ screenStory.it(
 	function* ({ findElement, findElements, readText, roles }) {
 		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Review result")));
 		expect(readText("[data-result-summary] [data-status-token]")).toBe("Finished");
+		expect(findElement("[data-result-summary] [data-status-token] svg.lucide-check")).not.toBeNull();
 		expect(findElements("[data-page-actions] :is(a, button)").map((control) => roles.accessible(control))).toEqual([
 			{ name: "Open file", role: "link" },
 		]);
@@ -41,6 +42,7 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(findElement("#result-criteria table")).not.toBeNull()));
 		expect(findElements("#result-criteria section[aria-label]").map((section) => section.getAttribute("aria-label"))).toEqual(["work.keyboard"]);
 		expect(readText("#result-criteria section[aria-label='work.keyboard'] [data-status-token]")).toBe("In review");
+		expect(findElement("#result-criteria section[aria-label='work.keyboard'] [data-status-token] svg.lucide-loader-circle")).not.toBeNull();
 		expect(findElements("#result-criteria th").map((cell) => cell.textContent)).toEqual([
 			"Check",
 			"Evidence",
@@ -53,14 +55,16 @@ screenStory.it(
 		expect(rows).toEqual([
 			[
 				"Escape restores focus",
-				"../evidence/focus.md (missing Markdown source)",
+				"../evidence/focus.mdFile not found",
 				"Focus restored in the recorded check",
 				"Actual keyboard check",
-				"0123456789012345678901234567890123456789",
+				"012345678901",
 				"Not recorded",
 			],
 			["Narrow layout stays readable", "No evidence recorded"],
 		]);
+		expect(findElement("#result-criteria tbody code")?.getAttribute("title")).toBe("Git revision 0123456789012345678901234567890123456789");
+		expect(readText("#result-criteria")).not.toContain("Markdown source");
 	},
 );
 
@@ -102,12 +106,16 @@ screenStory.it(
 );
 
 screenStory.it(
-	"tells a read-only reader how to enable saving handoffs",
+	"tells a read-only reader that saving is off and offers no Prepare handoff button",
 	[routedScreen(task, "/_board/handoff?item=task.focus")],
-	function* ({ findElement, readText }) {
+	function* ({ findElement, findElements, readText, roles }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("main [role='alert']")).not.toBeNull()));
-		expect(readText("main [role='alert']")).toBe("Read-onlyStart the Board with --responses to save handoffs.");
-		expect(readText("#handoff-status")).not.toContain("--responses");
+		expect(readText("main [role='alert']")).toBe("Read-onlySaving handoffs is turned off on this Board.");
+		expect(findElements("#handoff-form button").map((control) => roles.accessible(control))).toEqual([
+			{ name: "Preview file", role: "button" },
+			{ name: "Clear draft", role: "button" },
+		]);
+		expect(readText("main")).not.toContain("--responses");
 	},
 );
 

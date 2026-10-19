@@ -22,7 +22,7 @@ boardStory.it(
 		expect(body).toContain(">In review</span>");
 		expect(body).toContain("No evidence recorded");
 		expect(body).toContain("Not recorded");
-		expect(body).toContain("missing Markdown source");
+		expect(body).toContain("File not found");
 		expect(body).toContain("can&#x27;t tell whether they are still current");
 		expect(body).toContain("doesn&#x27;t compare revisions with your checkout");
 		expect(body).toMatch(/>Review result<\/h1>/u);

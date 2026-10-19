@@ -39,9 +39,7 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 				<Alert>
 					<Lock aria-hidden="true" />
 					<AlertTitle>Read-only</AlertTitle>
-					<AlertDescription>
-						Start the Board with <code>--responses</code> to save handoffs.
-					</AlertDescription>
+					<AlertDescription>Saving handoffs is turned off on this Board.</AlertDescription>
 				</Alert>
 			)}
 			<details className="rounded-md border px-3 py-2">
@@ -74,9 +72,11 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 					<Button disabled={server || state.created.saving} id={shellIds.handoffPreview} onClick={state.showPreview} type="button" variant="outline">
 						Preview file
 					</Button>
-					<Button disabled={!(data.writable && state.preview && state.valid) || state.created.saving} id={shellIds.handoffSubmit} type="submit">
-						Prepare handoff
-					</Button>
+					{data.writable && (
+						<Button disabled={!(state.preview && state.valid) || state.created.saving} id={shellIds.handoffSubmit} type="submit">
+							Prepare handoff
+						</Button>
+					)}
 					<Button disabled={server || state.created.saving} id={shellIds.handoffClear} onClick={state.clear} type="button" variant="ghost">
 						Clear draft
 					</Button>

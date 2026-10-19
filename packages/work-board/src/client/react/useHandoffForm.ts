@@ -71,7 +71,7 @@ export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) 
 		created,
 		interaction,
 		"handoff",
-		(saved) => `Saved ${saved.file}. Copy the prompt below into your agent session.${created.dirty ? " Your newer edits aren't saved yet." : ""}`,
+		(saved) => `Saved ${saved.file}. Copy the prompt below into your agent session.${created.dirty ? " Your newer draft remains unsaved." : ""}`,
 	);
 	return {
 		clear,
