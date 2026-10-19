@@ -1,3 +1,5 @@
+import type { Metadata } from "#metadata/schema.ts";
+
 export interface SourceLink {
 	readonly href: string;
 	readonly kind: string;
@@ -6,12 +8,12 @@ export interface SourceLink {
 	readonly title?: string | undefined;
 }
 
-const outgoing = new Map([
-	["depends_on", "Depends on"],
-	["implements", "Implements"],
-	["informs", "Informs"],
-	["relates_to", "Related to"],
-]);
+const outgoing: Readonly<Record<NonNullable<Metadata["relationships"]>[number]["kind"], string>> = {
+	"depends_on": "Depends on",
+	implements: "Implements",
+	informs: "Informs",
+	"relates_to": "Related to",
+};
 const incoming = new Map([
 	["agent handoff", "Agent handoff"],
 	["attention target", "Attention request"],
@@ -45,8 +47,8 @@ const specificity = [
 	"Markdown link",
 ];
 
-export function linkLabel(kind: string): string {
-	return outgoing.get(kind) ?? kind;
+export function linkLabel(kind: keyof typeof outgoing): string {
+	return outgoing[kind];
 }
 
 export function backlinkLabel(kind: string): string {

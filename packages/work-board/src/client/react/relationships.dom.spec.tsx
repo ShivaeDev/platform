@@ -49,6 +49,28 @@ screenStory.it(
 );
 
 screenStory.it(
+	"lists a board's declared items under Links to",
+	[boardScreen(relationshipsFixture, (api) => <QueryDocument api={api} url="/board.md" />)],
+	function* ({ findElement, findElements, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement('[aria-label="Links to"]')).not.toBeNull()));
+		const linksTo = findElement('[aria-label="Links to"]');
+		expect(findElements("h4", linksTo).map((node) => node.textContent)).toEqual(["Board items"]);
+		expect(readText('[aria-label="Board items"] a', linksTo)).toBe("Task");
+	},
+);
+
+screenStory.it(
+	"lists a link whose target is not in the workspace under its label, without a link",
+	[boardScreen(relationshipsFixture, (api) => <QueryDocument api={api} url="/orphan.md" />)],
+	function* ({ findElement, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement('[aria-label="Links to"]')).not.toBeNull()));
+		const linksTo = findElement('[aria-label="Links to"]');
+		expect(readText("li", linksTo)).toBe("Depends on: missing.fixture (unresolved, ambiguous, or unavailable)");
+		expect(findElement("a", linksTo)).toBeNull();
+	},
+);
+
+screenStory.it(
 	"leaves Implemented by out of a project's incoming links",
 	[boardScreen(projectLinksFixture, (api) => <QueryDocument api={api} url="/project.md" />)],
 	function* ({ findElement, findElements }) {

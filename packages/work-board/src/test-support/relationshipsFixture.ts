@@ -16,6 +16,7 @@ export const relationshipsFixture: Readonly<Record<string, string>> = {
 	"goal.md": item("goal.fixture", "Goal", {}, "goal"),
 	"later.md": item("later.fixture", "Later", { "depends_on": "task.fixture" }),
 	"notes.md": item("notes.fixture", "Notes"),
+	"orphan.md": item("orphan.fixture", "Orphan", { "depends_on": "missing.fixture" }),
 	"peer.md": item("peer.fixture", "Peer", { "relates_to": "task.fixture" }),
 	"task.md": item("task.fixture", "Task", {
 		"depends_on": "base.fixture",

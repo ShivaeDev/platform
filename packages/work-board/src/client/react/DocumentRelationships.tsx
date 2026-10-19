@@ -14,15 +14,11 @@ export function DocumentRelationships({ document }: { readonly document: Documen
 	if (targets.length === 0) {
 		return null;
 	}
-	const resolved = targets
-		.filter((link) => document.references[link.target])
-		.map((link) => ({
-			href: document.references[link.target] ?? "",
-			kind: link.kind,
-			label: link.target,
-			status: document.referenceDetails?.[link.target]?.status,
-			title: document.referenceDetails?.[link.target]?.title,
-		}));
+	const resolved = targets.flatMap((link) => {
+		const href = document.references[link.target];
+		const details = document.referenceDetails?.[link.target];
+		return href ? [{ href, kind: link.kind, label: link.target, status: details?.status, title: details?.title }] : [];
+	});
 	const links = [...specificSources(resolved.filter((link) => link.kind !== BOARD_ITEMS)), ...resolved.filter((link) => link.kind === BOARD_ITEMS)];
 	const missing = keyed(
 		targets.filter((link) => !document.references[link.target]),
