@@ -36,3 +36,13 @@ screenStory.it("omits an empty closed section and keeps the empty active state",
 	expect(read().text).toContain("No active goals.");
 	expect(findElement("details")).toBeNull();
 });
+
+screenStory.it(
+	"aligns goal cards at the top and shows each goal's done share on the stock progress bar",
+	[goalsScreen()],
+	({ findElement, readAttribute }) => {
+		const card = findElement('[data-goal-id="project.example"]');
+		expect(card?.parentElement?.classList.contains("items-start")).toBe(true);
+		expect(readAttribute('[role="progressbar"][data-slot="progress"]', "aria-valuetext", card)).toBe("2 of 5 done");
+	},
+);

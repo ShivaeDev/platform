@@ -1,6 +1,8 @@
 import { expect } from "vitest";
-import { boardStory, projectFiles, readerAt } from "#test/boardStory.ts";
-import { savedAppearance } from "#test/savedAppearance.ts";
+import { INITIAL_THEME_SCRIPT } from "#server/page/initialTheme.ts";
+import { blockedStorage, screenMedia, screenWorkspace } from "#test/screenEnvironment.ts";
+import { screenStory } from "#test/screenStory.ts";
+import { storedScreenState } from "#test/screenWorkspaceTraits.ts";
 
 for (const [saved, system, expected] of [
 	['{"theme":"dark"}', "light", "dark"],
@@ -12,16 +14,17 @@ for (const [saved, system, expected] of [
 	["invalid", "dark", "dark"],
 	[undefined, "dark", "dark"],
 ] as const) {
-	boardStory.it(
-		`initializes saved ${saved} with system ${system} from the served shell`,
-		[projectFiles({ "plan.md": "# Plan" }), savedAppearance(saved, system), readerAt("/plan.md")],
-		({ page }) => {
-			expect(page.pageRequests.beforeReact).toEqual({
-				dark: expected === "dark",
-				scheme: expected,
-			});
-			expect(page.document.documentElement.dataset.scheme).toBe(expected);
-			expect(page.document.documentElement.classList.contains("dark")).toBe(expected === "dark");
+	screenStory.it(
+		`initializes saved ${saved} with system ${system} before React`,
+		[
+			screenWorkspace("initial-appearance"),
+			screenMedia(system === "dark" ? ["(prefers-color-scheme: dark)"] : []),
+			saved === undefined ? blockedStorage() : storedScreenState({ "work-board:appearance:initial-appearance": saved }),
+		],
+		({ initializeAppearance, readRootAttribute }) => {
+			initializeAppearance(INITIAL_THEME_SCRIPT);
+			expect(readRootAttribute("data-scheme")).toBe(expected);
+			expect(document.documentElement.classList.contains("dark")).toBe(expected === "dark");
 		},
 	);
 }

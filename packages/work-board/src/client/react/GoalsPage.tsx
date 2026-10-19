@@ -26,7 +26,7 @@ function goalsSummary(data: GoalsProjection) {
 
 function GoalCards({ goals }: { readonly goals: GoalsProjection["goals"] }) {
 	return (
-		<div className="grid min-w-0 gap-3 md:grid-cols-2">
+		<div className="grid min-w-0 items-start gap-3 md:grid-cols-2">
 			{goals.map((goal) => (
 				<GoalOverviewCard goal={goal} key={goal.id} />
 			))}

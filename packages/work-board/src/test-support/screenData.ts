@@ -18,6 +18,13 @@ export function screenData(engine: ScreenEngine, tell: (line: string) => void) {
 			}
 			await act(() => Promise.resolve().then(() => engine.router?.history.back()));
 		},
+		deleteFile: (file: string) => {
+			tell(`an editor deletes ${file}`);
+			if (!(file in engine.files)) {
+				throw new Error(`No file ${file} to delete`);
+			}
+			Reflect.deleteProperty(engine.files, file);
+		},
 		editFile: (file: string, source: string) => {
 			tell(`an editor writes ${file}`);
 			Object.assign(engine.files, { [file]: source });
@@ -31,6 +38,17 @@ export function screenData(engine: ScreenEngine, tell: (line: string) => void) {
 			await act(async () => {
 				await engine.pendingNavigation;
 			});
+		},
+		follow: async (href: string) => {
+			tell(`the reader follows ${href}`);
+			const link = document.createElement("a");
+			link.href = href;
+			document.body.append(link);
+			try {
+				await act(async () => link.click());
+			} finally {
+				link.remove();
+			}
 		},
 		preload: async (to: string) => {
 			tell("the reader preloads a destination");
@@ -85,7 +103,10 @@ export function screenData(engine: ScreenEngine, tell: (line: string) => void) {
 			const { api, registry } = client();
 			await act(() => Promise.resolve().then(() => registry.refresh(api.inbox.query(undefined, routeQueryOptions))));
 		},
-		refreshQuery: async (kind: "document" | "handoff" | "work" | "search", input: { readonly url: string } | { readonly query: string }) => {
+		refreshQuery: async (
+			kind: "document" | "board" | "handoff" | "work" | "search",
+			input: { readonly url: string } | { readonly query: string },
+		) => {
 			tell(`the reader refreshes the ${kind} query`);
 			const { api, registry } = client();
 			if (kind === "search") {
@@ -99,6 +120,7 @@ export function screenData(engine: ScreenEngine, tell: (line: string) => void) {
 				throw new Error("The query requires a URL");
 			}
 			const refresh = {
+				board: () => registry.refresh(api.board.query(input, routeQueryOptions)),
 				document: () => registry.refresh(api.document.query(input, routeQueryOptions)),
 				handoff: () => registry.refresh(api.handoff.query(input, routeQueryOptions)),
 				work: () => registry.refresh(api.work.query(input, routeQueryOptions)),
