@@ -75,6 +75,6 @@ boardStory.it(
 		expect(found.total).toBe(2);
 		expect(found.results.map((entry) => entry.kind)).toEqual(["heading", "passage"]);
 		expect(found.results.map((entry) => entry.href)).toEqual(["/note.md#heading-needle", "/note.md#heading-other"]);
-		expect(found.results[0]?.snippet).toBe("Needle");
+		expect(found.results[0]?.snippet).toBe("Needle detail 0.");
 	},
 );

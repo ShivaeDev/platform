@@ -16,6 +16,12 @@ export function searchCollector(file: string, startLine: () => number | undefine
 	let passage = "";
 	let label = file;
 	let titled = false;
+	function enter(heading: Element, text: string, title: boolean) {
+		if (typeof heading.properties.id === "string") {
+			passage = title ? "" : heading.properties.id;
+			label = text;
+		}
+	}
 	function collect(element: Element) {
 		const text = element.children.map(textContent).join("").replace(/\s+/gu, " ").trim();
 		const title = element.tagName === "h1" && !titled;
@@ -23,10 +29,9 @@ export function searchCollector(file: string, startLine: () => number | undefine
 		if (!text || element.properties.id === "footnote-label") {
 			return;
 		}
-		const heading = element.tagName.startsWith("h") && element.tagName !== "th";
-		if (heading && typeof element.properties.id === "string") {
-			passage = title ? "" : element.properties.id;
-			label = text;
+		const heading = /^h[1-6]$/u.test(element.tagName);
+		if (heading) {
+			enter(element, text, title);
 		}
 		// The document entry already stands for its title, so the title and its passages share the document's address.
 		if (title) {

@@ -65,7 +65,7 @@ export function SearchPalette({
 		activateCommand(item.command, appearance, toggleSidebar);
 		close(!item.command);
 	}
-	function search() {
+	function handleSearch() {
 		setText(input.trim());
 		query.refresh();
 	}
@@ -78,10 +78,10 @@ export function SearchPalette({
 		if (link) {
 			link.click();
 		} else {
-			search();
+			handleSearch();
 		}
 	}
-	function keepEnter(event: KeyboardEvent<HTMLElement>) {
+	function handleControlKeyDown(event: KeyboardEvent<HTMLElement>) {
 		if (event.key === "Enter") {
 			event.stopPropagation();
 		}
@@ -116,7 +116,7 @@ export function SearchPalette({
 					<p>↑/↓ to choose · Enter to open · Escape to close</p>
 				</KeyboardHints>
 				<div className="flex items-center gap-2">
-					<Checkbox checked={records} id={recordsId} onCheckedChange={setRecords} onKeyDown={keepEnter} />
+					<Checkbox checked={records} id={recordsId} onCheckedChange={setRecords} onKeyDown={handleControlKeyDown} />
 					<Label className="font-normal text-muted-foreground" htmlFor={recordsId}>
 						Include Fleet records
 					</Label>
@@ -127,7 +127,7 @@ export function SearchPalette({
 					{status}
 				</p>
 				{failed && (
-					<Button onClick={search} onKeyDown={keepEnter} size="xs" variant="outline">
+					<Button onClick={handleSearch} onKeyDown={handleControlKeyDown} size="xs" variant="outline">
 						Retry search
 					</Button>
 				)}

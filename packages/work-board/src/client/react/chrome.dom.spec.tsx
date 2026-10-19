@@ -16,9 +16,7 @@ expectNoReactWarnings();
 			click("#search-open");
 			input('#search-dialog [role="combobox"]', "Second phrase");
 			yield* Effect.promise(() =>
-				eventually(() =>
-					expect(control('#search-dialog [role="option"] a', HTMLAnchorElement).getAttribute("href")).toBe("/notes/deep/proof.md"),
-				),
+				eventually(() => expect(control('#search-dialog [role="option"] a', HTMLAnchorElement).getAttribute("href")).toBe("/notes/deep/proof.md")),
 			);
 			editFile("notes/deep/proof.md", "# Proof\n\nSecond phrase changed.\n");
 			yield* Effect.promise(() => refreshQuery("search", { query: "Second phrase" }));

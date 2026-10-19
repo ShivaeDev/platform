@@ -31,7 +31,13 @@ export function SearchResults({
 	return (
 		<CommandList className="max-h-[min(420px,calc(100dvh-280px))] px-1 pb-1 [scrollbar-width:thin]!" label="Search results" ref={listRef}>
 			{GROUPS.map((heading) => (
-				<SearchGroup activate={activate} heading={heading} items={items.filter((item) => groupOf(item) === heading)} key={heading} resultKey={resultKey} />
+				<SearchGroup
+					activate={activate}
+					heading={heading}
+					items={items.filter((item) => groupOf(item) === heading)}
+					key={heading}
+					resultKey={resultKey}
+				/>
 			))}
 		</CommandList>
 	);

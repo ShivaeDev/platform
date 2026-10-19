@@ -19,6 +19,10 @@ function relevance(entry: Entry, terms: readonly string[], phrase: string, text:
 	return { rank: (entry.record ? 10 : 0) + ranks[entry.kind] + (text.includes(phrase) ? 0 : 1), title: titleMatch ? 0 : 1 };
 }
 
+function located(entry: Entry) {
+	return entry.line === undefined ? {} : { line: entry.line };
+}
+
 export function searchMatch(entries: readonly Entry[], query: string, modified: ReadonlyMap<string, number> = new Map(), includeRecords = false) {
 	const input = normalize(query.slice(0, 200));
 	const prefixed = input.startsWith("records:");
@@ -35,11 +39,12 @@ export function searchMatch(entries: readonly Entry[], query: string, modified: 
 			if ((!records && entry.record) || !terms.every((term) => text.includes(term))) {
 				return [];
 			}
-			const snippet = searchSnippet(entry.kind === "document" ? entry.title : entry.text, terms[0] ?? "");
+			const source = entry.kind === "document" ? entry.title : entry.text;
+			const snippet = searchSnippet(source, terms[0] ?? "");
 			const item = entry.kind === "document" ? undefined : items.get(entry.file);
 			return (item ? [item, entry] : [entry]).map((result) => ({
 				...relevance(result, terms, phrase, text),
-				entry: { ...result, snippet },
+				entry: { ...result, ...located(entry), snippet: normalize(source) === normalize(result.title) ? "" : snippet },
 				group: result.inactive ? 1 : 0,
 				modified: modified.get(result.file) ?? 0,
 				order,
@@ -57,7 +62,12 @@ export function searchMatch(entries: readonly Entry[], query: string, modified: 
 		);
 	const anchors = new Map<string, (typeof matches)[number]["entry"]>();
 	for (const match of matches) {
-		anchors.set(match.entry.href, anchors.get(match.entry.href) ?? match.entry);
+		const kept = anchors.get(match.entry.href);
+		if (!kept) {
+			anchors.set(match.entry.href, match.entry);
+		} else if (!kept.snippet && match.entry.snippet) {
+			anchors.set(match.entry.href, { ...kept, ...located(match.entry), snippet: match.entry.snippet });
+		}
 	}
 	const results = [...anchors.values()];
 	return { results: results.slice(0, 40), total: results.length };

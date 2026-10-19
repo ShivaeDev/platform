@@ -5,6 +5,7 @@
 ### Fixed
 
 - Search lists each item once: a document's title and the passages under it now share the document's row instead of adding a second row for the title anchor.
+- Search rows no longer repeat their title as the snippet; they show the next matching passage instead, or no snippet.
 
 ### Changed
 
