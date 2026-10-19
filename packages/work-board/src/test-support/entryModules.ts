@@ -1,10 +1,9 @@
 import { fileURLToPath } from "node:url";
-import { build } from "vite";
 
-const root = fileURLToPath(new URL("../..", import.meta.url));
-
-// Every module the first page runs before any lazy chunk loads: the entry chunk and the chunks it imports statically.
+// Returns the modules of the entry chunk and the chunks it imports statically. DOM specs load this file through the serving verbs, where import.meta.url is not a file URL, so the path and Vite resolve only when a story builds.
 export async function entryModules() {
+	const root = fileURLToPath(new URL("../..", import.meta.url));
+	const { build } = await import("vite");
 	const result = await build({ build: { write: false }, configFile: `${root}vite.config.ts`, logLevel: "silent", root });
 	const files = (Array.isArray(result) ? result : [result]).flatMap((bundle) => ("output" in bundle ? bundle.output : []));
 	const chunks = new Map(files.flatMap((file) => (file.type === "chunk" ? [[file.fileName, file] as const] : [])));
