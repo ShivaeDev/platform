@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { documentRequests } from "#server/document/requests.ts";
-import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { capturedQuestionnaire, questionnaireSource } from "#test/questionnaire.ts";
 import { anUnreadableSource } from "#test/storyTraits.ts";
 import { questionId, revisionOf } from "./records.ts";
@@ -32,7 +32,7 @@ for (const { files, unreadable, message } of [
 ]) {
 	boardStory.it(
 		"keeps unavailable response history typed with recovery instructions",
-		[projectFiles(files), ...(unreadable ? [anUnreadableSource("unreadable.md")] : [])],
+		[deferredServing, projectFiles(files), ...(unreadable ? [anUnreadableSource("unreadable.md")] : [])],
 		function* ({ readHistory }) {
 			const failure = yield* Effect.flip(readHistory(preview));
 			expect(failure).toBeInstanceOf(ServiceUnavailable);
@@ -43,7 +43,7 @@ for (const { files, unreadable, message } of [
 
 boardStory.it(
 	"discloses ambiguous document identity to the reader without selecting response history",
-	[projectFiles({ "first.md": questionnaireSource, "second.md": questionnaireSource }, "two project sources share one identity")],
+	[deferredServing, projectFiles({ "first.md": questionnaireSource, "second.md": questionnaireSource }, "two project sources share one identity")],
 	function* ({ readAttention }) {
 		const snapshot = yield* readAttention({ "first.md": questionnaireSource, "second.md": questionnaireSource });
 		const document = snapshot.documents.at(0);

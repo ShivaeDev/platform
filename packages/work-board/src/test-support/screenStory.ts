@@ -3,7 +3,9 @@ import type { render } from "@shivaedev/effect-react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { captureReading, restoreReading } from "#client/react/readingState.ts";
 import { ageActions } from "./ageActions.tsx";
+import { appearanceActions } from "./appearanceActions.ts";
 import { chrome } from "./chrome.ts";
+import { diagramActions } from "./diagramActions.ts";
 import { motionActions } from "./motionActions.ts";
 import { renderBoard } from "./react.tsx";
 import { readingActions } from "./readingActions.ts";
@@ -17,6 +19,7 @@ import { screenInteractions } from "./screenInteractions.ts";
 import { screenObservations } from "./screenObservations.ts";
 import { screenOptions, screenReadVerbs } from "./screenReads.ts";
 import { sessionActions } from "./sessionActions.ts";
+import { sessionTransportActions } from "./sessionTransportActions.ts";
 
 export const screenStory = storyKit({
 	clock: "live",
@@ -45,10 +48,13 @@ export const screenStory = storyKit({
 			...screenActions(story.tell),
 			...readingActions(story.tell),
 			...ageActions(engine, story.tell),
+			...appearanceActions(story.tell),
 			...screenObservations(engine, story.tell),
 			...screenData(engine, story.tell),
+			...diagramActions(engine, story.tell),
 			...screenInteractions(engine, story.tell),
 			...sessionActions(engine, story.tell),
+			...sessionTransportActions(engine, story.tell),
 			...motionActions(engine, story.tell),
 			...availabilityActions(engine, story.tell),
 			...screenReadVerbs(engine, story.tell),

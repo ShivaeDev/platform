@@ -104,6 +104,10 @@ expectNoReactWarnings();
 			click("#library-open");
 			expect([...findElements("#reading-library h2")].map((heading) => heading.textContent)).toEqual(["Favorites", "Recent documents"]);
 			expect(findElement('#reading-library a[href="/notes/deep/proof.md"]')).not.toBeNull();
+			expect(findElements('section[aria-label="Recent"] a').map((link) => link.getAttribute("href"))).toEqual([
+				"/notes/plan.md",
+				"/notes/deep/proof.md",
+			]);
 		},
 	);
 }

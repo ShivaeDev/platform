@@ -5,6 +5,7 @@ import type { ScreenEngine } from "./screenEngine.ts";
 
 export function indexAvailability(engine: ScreenEngine) {
 	return Effect.suspend(() => {
+		engine.indexReads += 1;
 		if (engine.indexFailed) {
 			return Effect.fail(
 				PlatformError.systemError({ _tag: "Unknown", description: "Workspace unavailable", method: "readDirectory", module: "FileSystem" }),
@@ -16,9 +17,17 @@ export function indexAvailability(engine: ScreenEngine) {
 
 export function availabilityActions(engine: ScreenEngine, tell: (line: string) => void) {
 	return {
+		failWorkspace: () => {
+			tell("workspace indexing becomes unavailable");
+			engine.indexFailed = true;
+		},
 		holdWorkspace: () => {
 			tell("workspace indexing waits");
 			engine.indexGate = Deferred.makeUnsafe<void>();
+		},
+		readIndexReads: () => {
+			tell("the reader checks how many workspace index reads ran");
+			return engine.indexReads;
 		},
 		recoverWorkspace: () => {
 			tell("the workspace becomes readable again");
