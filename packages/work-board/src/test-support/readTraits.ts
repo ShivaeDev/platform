@@ -16,6 +16,17 @@ export function readsOneByOne() {
 	});
 }
 
+export function slowRepositoryLookup() {
+	return boardStory.trait("project", "finding the repository's package.json and git folder waits until released", (engine) => {
+		const gate = Deferred.makeUnsafe<void>();
+		engine.repositoryLookup = gate;
+		wrapFilesystem(engine, (fs) => ({
+			...fs,
+			exists: (path) => (/\/(?:package\.json|\.git)$/u.test(path) ? Effect.andThen(Deferred.await(gate), fs.exists(path)) : fs.exists(path)),
+		}));
+	});
+}
+
 export function heldWorkspaceListing() {
 	return boardStory.trait("project", "listing the workspace for the index waits until released", (engine) => {
 		const reads: WorkspaceReads = { files: [], gate: Deferred.makeUnsafe<void>() };
