@@ -1442,7 +1442,7 @@
 {"path":"packages/work-fleet/src/test-support/recoveryReportCases.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/work-fleet/src/test-support/recoveryReviewCases.ts","rule":"tests/no-expect-in-support","count":3}
 {"path":"packages/work-fleet/src/test-support/recoveryReviewCases.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/work-fleet/src/test-support/recoveryScopeCases.ts","rule":"tests/no-expect-in-support","count":13}
+{"path":"packages/work-fleet/src/test-support/recoveryScopeCases.ts","rule":"tests/no-expect-in-support","count":10}
 {"path":"packages/work-fleet/src/test-support/recoveryScopeCases.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/recoveryStallCase.ts","rule":"tests/no-expect-in-support","count":2}
 {"path":"packages/work-fleet/src/test-support/recoveryStallCase.ts","rule":"tests/support-imports","count":1}
