@@ -11,7 +11,12 @@ const Timestamp = Schema.Number.check(Schema.isFinite(), Schema.isGreaterThanOrE
 function observation<TSchema extends Schema.Top>(value: TSchema) {
 	return Schema.Union([
 		Schema.Struct({ observedAt: Timestamp, state: Schema.Literal("ready"), value }),
-		Schema.Struct({ cause: Schema.String, observedAt: Timestamp, state: Schema.Literals(["not-configured", "error"]) }),
+		Schema.Struct({
+			cause: Schema.String,
+			observedAt: Timestamp,
+			startCommand: Schema.optionalKey(Schema.String),
+			state: Schema.Literals(["not-configured", "error"]),
+		}),
 	]);
 }
 

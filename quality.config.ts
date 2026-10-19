@@ -70,6 +70,13 @@ export default defineConfig({
 		"tests/support-imports": {
 			options: {
 				modules: [
+					"packages/effect-contract/src/contract.ts",
+					"packages/effect-contract/src/keys.ts",
+					"packages/effect-contract/src/live.ts",
+					"packages/effect-contract/src/makeLiveServer.ts",
+					"packages/effect-contract/src/operation.ts",
+					"packages/effect-contract/src/readPolicy.ts",
+					"packages/effect-contract/src/serverMetadata.ts",
 					"packages/effect-react/src/actionTrace.ts",
 					"packages/effect-react/src/client/create.ts",
 					"packages/effect-react/src/client/editor.ts",

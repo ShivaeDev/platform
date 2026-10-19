@@ -7,8 +7,14 @@ import { constrainedItems } from "./constrainedItems.ts";
 import { generatedRows } from "./generatedRows.ts";
 import { invoiceLines } from "./invoiceLines.ts";
 import { jsonReceipts } from "./jsonReceipts.ts";
+import { partialConflicts } from "./partialConflicts.ts";
 import { postgres } from "./sqlStory.ts";
 import { wideRows } from "./wideRows.ts";
+export function hasPartialConflicts() {
+	return postgres.trait("schema", "a composite unique index covers only kind x", function* (engine) {
+		engine.partialConflicts.set(yield* partialConflicts);
+	});
+}
 export function hasPostgresInvoiceLines() {
 	return postgres.trait("schema", "invoice lines have their database schema", function* (engine) {
 		engine.invoiceLines.set(yield* invoiceLines);

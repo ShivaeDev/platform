@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-10-19
+
+### Added
+
+- `PostgresVersionMismatch` from `@shivaedev/local-postgres/PostgresVersionMismatch.ts` identifies a refused running version through `_tag`, `expectedVersion` and `observedVersion`, retaining the existing error message.
+
 ## 0.4.2 - 2026-10-18
 
 ### Changed

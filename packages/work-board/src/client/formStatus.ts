@@ -12,7 +12,7 @@ export function formStatus<A>(
 	if (state.saving) {
 		return {
 			outcome: "pending",
-			text: kind === "response" ? "Pending: registering reviewed context, then recording response…" : "Pending: preparing the local handoff file…",
+			text: kind === "response" ? "Pending: registering reviewed context, then recording response…" : "Saving the handoff file…",
 		};
 	}
 	if (interaction === "submitted") {
@@ -23,7 +23,7 @@ export function formStatus<A>(
 			return { outcome: "saved", text: saved(state.created.value) };
 		}
 	}
-	const ready = kind === "handoff" ? "Draft ready. Review and preview before preparing the file." : "";
+	const ready = kind === "handoff" ? "Preview the file, then prepare the handoff." : "";
 	return {
 		outcome: undefined,
 		text: interaction === "cleared" ? `Draft cleared. Saved ${kind === "response" ? "responses" : "handoffs"} are unchanged.` : ready,

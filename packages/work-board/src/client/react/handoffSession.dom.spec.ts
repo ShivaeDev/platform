@@ -64,8 +64,8 @@ screenStory.it(
 		input('[name="goal"]', "Fix focus");
 		yield* Effect.promise(() => activate("#handoff-preview"));
 		submit("#handoff-form");
-		yield* Effect.promise(() => eventually(() => expect(readText("#handoff-status")).toContain("Prepared:")));
-		expect(readText("#handoff-status")).toContain("execution and acceptance remain separate");
+		yield* Effect.promise(() => eventually(() => expect(readText("#handoff-status")).toContain("Saved handoffs/")));
+		expect(readText("#handoff-status")).toContain("Copy the prompt below into your agent session");
 		yield* Effect.promise(() => activate("#handoff-prepared [data-handoff-copy]"));
 		expect(readText("#handoff-prepared [data-copy-status]")).toContain("selected");
 		const prompt = findElement<HTMLTextAreaElement>("#handoff-prepared textarea");
