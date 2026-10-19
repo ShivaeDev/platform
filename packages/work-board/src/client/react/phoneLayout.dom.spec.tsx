@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { hostedHealthScreen } from "#test/hostedHealthScreen.tsx";
 import { screenMedia } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
@@ -61,5 +62,39 @@ screenStory.it(
 		expect(control("#sidebar", HTMLElement).hidden).toBe(true);
 		click("#settings-open");
 		expect(roles.text({ name: "Theme", role: "group" })).toContain("System");
+	},
+);
+
+const LIVE = "#live";
+screenStory.it(
+	"keeps the phone's live status region empty while nothing is wrong with the connection",
+	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen("connecting")],
+	function* ({ findElement, readAttribute, roles }) {
+		yield* Effect.promise(() => eventually(() => expect(readAttribute(LIVE, "data-state")).toBe("connecting")));
+		expect(roles.accessible(findElement(LIVE) ?? document.body).role).toBe("status");
+		expect(findElement(LIVE)?.textContent).toBe("");
+	},
+);
+
+screenStory.it(
+	"tells a phone reader when the connection is reconnecting or a refresh failed",
+	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen()],
+	function* ({ click, findElement, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("reconnecting")));
+		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("reconnecting");
+		expect(findElement(`${LIVE} svg`)).not.toBeNull();
+		click("[data-document]");
+		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("refresh failed")));
+		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("refresh failed");
+	},
+);
+
+screenStory.it(
+	"tells a phone reader that updates are paused",
+	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen("live", "paused")],
+	function* ({ readAttribute, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("updates paused · 0 pending updates")));
+		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("paused");
+		expect(readAttribute(LIVE, "data-state")).toBe("paused");
 	},
 );

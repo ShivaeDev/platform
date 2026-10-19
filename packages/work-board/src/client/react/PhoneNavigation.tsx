@@ -1,10 +1,10 @@
 import { useRouter } from "@tanstack/react-router";
 import { CalendarDays, Ellipsis, Flag, type LucideIcon, Search, Zap } from "lucide-react";
 import { useContext, useEffect, useRef } from "react";
-import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "#client/react/components/ui/sheet.tsx";
 import { destinationName } from "#client/react/destinationName.ts";
 import { LibraryContext } from "#client/react/LibraryContext.ts";
+import { NeedsYouBadge } from "#client/react/NeedsYouBadge.tsx";
 import { PhoneMore } from "#client/react/PhoneMore.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { useCurrentDestination } from "./navigationTarget.ts";
@@ -120,11 +120,7 @@ function PhoneTab({
 		<a aria-current={current ? "page" : undefined} aria-label={destinationName(label, count, "need you")} className={TAB_CLASS} href={href}>
 			<span className="relative">
 				<Icon aria-hidden="true" className="size-5" />
-				{count ? (
-					<Badge aria-hidden="true" className="absolute -top-1.5 left-3.5">
-						{count}
-					</Badge>
-				) : null}
+				{count ? <NeedsYouBadge aria-hidden="true" className="absolute -top-1.5 left-3.5" count={count} /> : null}
 			</span>
 			{label}
 		</a>

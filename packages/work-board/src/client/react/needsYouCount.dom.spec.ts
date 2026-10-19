@@ -73,6 +73,10 @@ screenStory.it(
 		expect(roles.accessible(findElement(PHONE_TODAY) ?? document.body).name).toBe(readAttribute("#home-open", "aria-label"));
 		expect(readAttribute(PHONE_TODAY, "aria-label")).toBe("Today, 3 need you");
 		expect(readText(`${PHONE_TODAY} [data-slot="badge"]`)).toBe("3");
+		expect([readAttribute("#inbox-count", "data-variant"), readAttribute(`${PHONE_TODAY} [data-slot="badge"]`, "data-variant")]).toEqual([
+			"default",
+			"default",
+		]);
 	},
 );
 
@@ -83,5 +87,6 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readText("#inbox-count")).toBe("0")));
 		expect(readAttribute(PHONE_TODAY, "aria-label")).toBe("Today, 0 need you");
 		expect(findElement(`${PHONE_TODAY} [data-slot="badge"]`)).toBeNull();
+		expect(readAttribute("#inbox-count", "data-variant")).toBe("secondary");
 	},
 );
