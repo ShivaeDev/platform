@@ -67,7 +67,13 @@ for (const [readAt, label] of [
 		function* ({ systemHtml }) {
 			const body = yield* systemHtml();
 			expect(body).toContain(label);
-			for (const text of ["None observed", "<h3>Short limit</h3><p>Not reported</p>", "<h3>Long limit</h3><p>Not reported</p>", "Needs attention"]) {
+			for (const text of [
+				"None observed",
+				"<dt>Last scheduler pass</dt><dd>Not reported</dd>",
+				"<h3>Short limit</h3><p>Not reported</p>",
+				"<h3>Long limit</h3><p>Not reported</p>",
+				"Needs attention",
+			]) {
 				expect(body).toContain(text);
 			}
 		},
@@ -134,6 +140,20 @@ boardStory.it(
 		expect(html).toContain("<h3>Weekly limit</h3>");
 		expect(html).toContain("Codex usage");
 		expect(html).toContain(`dateTime="${new Date(codexResponse.rateLimits.primary.resetsAt * 1000).toISOString()}">in 3h</time>`);
+	},
+);
+boardStory.it(
+	"says a Codex window's reset time is not reported when Codex leaves it out",
+	[
+		readingTime(resetNow),
+		daemonSnapshot(() => ({
+			codex: { observedAt: resetNow, state: "ready", value: { primary: { ...codexResponse.rateLimits.primary, resetsAt: null }, secondary: null } },
+			fleet: missing,
+			github: missing,
+		})),
+	],
+	function* ({ systemHtml }) {
+		expect(yield* systemHtml()).toContain("<p>Resets Not reported</p>");
 	},
 );
 for (const [minutes, label] of [
