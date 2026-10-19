@@ -72,11 +72,9 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 					<Button disabled={server || state.created.saving} id={shellIds.handoffPreview} onClick={state.showPreview} type="button" variant="outline">
 						Preview file
 					</Button>
-					{data.writable && (
-						<Button disabled={!(state.preview && state.valid) || state.created.saving} id={shellIds.handoffSubmit} type="submit">
-							Prepare handoff
-						</Button>
-					)}
+					<Button disabled={!(data.writable && state.preview && state.valid) || state.created.saving} id={shellIds.handoffSubmit} type="submit">
+						Prepare handoff
+					</Button>
 					<Button disabled={server || state.created.saving} id={shellIds.handoffClear} onClick={state.clear} type="button" variant="ghost">
 						Clear draft
 					</Button>

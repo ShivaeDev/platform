@@ -106,15 +106,12 @@ screenStory.it(
 );
 
 screenStory.it(
-	"tells a read-only reader that saving is off and offers no Prepare handoff button",
+	"tells a read-only reader that saving is off and keeps Prepare handoff disabled",
 	[routedScreen(task, "/_board/handoff?item=task.focus")],
-	function* ({ findElement, findElements, readText, roles }) {
+	function* ({ findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("main [role='alert']")).not.toBeNull()));
 		expect(readText("main [role='alert']")).toBe("Read-onlySaving handoffs is turned off on this Board.");
-		expect(findElements("#handoff-form button").map((control) => roles.accessible(control))).toEqual([
-			{ name: "Preview file", role: "button" },
-			{ name: "Clear draft", role: "button" },
-		]);
+		expect(findElement("#handoff-submit")).toHaveProperty("disabled", true);
 		expect(readText("main")).not.toContain("--responses");
 	},
 );
