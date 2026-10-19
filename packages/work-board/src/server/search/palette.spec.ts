@@ -59,3 +59,20 @@ boardStory.it(
 		expect((yield* search("readable needle")).results[0]?.snippet).toBe("A readable needle passage.");
 	},
 );
+
+boardStory.it(
+	"shows inline Markdown in snippets as plain text",
+	[
+		projectFiles({
+			"tasks/snippet.md":
+				'---\nid: task.snippet\nkind: task\nstatus: active\ncriteria:\n  - id: plain\n    text: "Search shows `code`, **bold**, _emphasis_, ~~old~~ and [linked](https://example.com/page) words as plain text, keeping snake_case_names and 2*3*4."\n---\n# Snippet item\n',
+		}),
+	],
+	function* ({ search }) {
+		const results = (yield* search("search shows")).results.filter((entry) => entry.snippet);
+		expect(results.length).toBeGreaterThan(0);
+		for (const entry of results) {
+			expect(entry.snippet).toBe("Search shows code, bold, emphasis, old and linked words as plain text, keeping snake_case_names and 2*3*4.");
+		}
+	},
+);
