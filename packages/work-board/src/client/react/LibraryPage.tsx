@@ -1,12 +1,13 @@
 import { Option } from "effect";
 import { useId, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
-import { statusLabel } from "#browser/views/statusLabel.ts";
+import { sentenceLabel, statusLabel } from "#browser/views/statusLabel.ts";
 import { Checkbox } from "#client/react/components/ui/checkbox.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#client/react/components/ui/select.tsx";
 import { ToggleGroup, ToggleGroupItem } from "#client/react/components/ui/toggle-group.tsx";
 import { LibraryContents } from "./LibraryContents.tsx";
+import { LoadingRows } from "./loading.tsx";
 import { PageHeader } from "./PageHeader.tsx";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
@@ -24,19 +25,32 @@ export function LibraryPage({ api, url = "/_board/library" }: { readonly api: Sh
 	const fleetId = useId();
 	return (
 		<div className="max-w-5xl">
-			<PageHeader summary="Every document in your workspace." title="Library" />
+			<PageHeader summary="Every document in this workspace. Filter by kind or status, or browse by folder." title="Library" />
 			<div className="my-6 flex flex-wrap items-end gap-4">
-				<Filter label="Kind" onChange={setKind} options={data?.kinds ?? []} value={kind} />
+				<Filter label="Kind" name={sentenceLabel} onChange={setKind} options={data?.kinds ?? []} value={kind} />
 				<Filter label="Status" name={statusLabel} onChange={setStatus} options={data?.statuses ?? []} value={status} />
 				<ViewToggle onChange={setView} view={view} />
 				<div className="flex h-7 items-center gap-2">
 					<Checkbox checked={showFleet} id={fleetId} onCheckedChange={setShowFleet} />
-					<Label htmlFor={fleetId}>Show Fleet records ({data?.fleetCount ?? 0})</Label>
+					<Label htmlFor={fleetId}>Include files Fleet writes ({data?.fleetCount ?? 0})</Label>
 				</div>
 			</div>
-			{query.pending ? <p role="status">Loading Library…</p> : null}
+			{data === undefined && query.pending ? <LoadingRows label="Loading documents" rows={6} /> : null}
 			{Option.isSome(query.cause) && <p role="alert">Library refresh failed. Try again.</p>}
-			{data ? <LibraryContents api={api} data={data} filters={filters} view={view} /> : null}
+			{data ? (
+				<div aria-busy={query.pending} className="transition-opacity aria-busy:opacity-60">
+					<LibraryContents
+						api={api}
+						data={data}
+						filters={filters}
+						onClear={() => {
+							setKind("");
+							setStatus("");
+						}}
+						view={view}
+					/>
+				</div>
+			) : null}
 		</div>
 	);
 }
@@ -60,8 +74,8 @@ function ViewToggle({ view, onChange }: { readonly view: string; readonly onChan
 }
 
 const views = [
-	["titles", "Titles"],
-	["folders", "Folders"],
+	["titles", "By title"],
+	["folders", "By folder"],
 	["recently changed", "Recently changed"],
 ] as const;
 

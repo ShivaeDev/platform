@@ -4,6 +4,7 @@ import { statusLabel } from "#browser/views/statusLabel.ts";
 import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { fileUrl } from "#files/url.ts";
+import { EmptyState } from "./EmptyState.tsx";
 import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 import { SectionCard } from "./SectionCard.tsx";
 import { shellIds } from "./shellIds.ts";
@@ -21,9 +22,9 @@ export function ResultFeedback({ data }: { readonly data: ResultProjection }) {
 		];
 	} else if (body.length === 0) {
 		body = [
-			<p className="m-0 text-muted-foreground" key="none">
-				No feedback yet.
-			</p>,
+			<EmptyState key="none" title="No feedback yet">
+				Feedback recorded on this result appears here.
+			</EmptyState>,
 		];
 	}
 	return (

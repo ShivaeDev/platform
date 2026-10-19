@@ -7,13 +7,13 @@ import { chromeScreen, routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
-for (const panel of ["Files", "More"]) {
+for (const panel of ["Sidebar", "More"]) {
 	screenStory.it(
 		`dismisses ${panel} when its current destination is selected without a router transition`,
 		[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen({ "home.md": "# Home" }, "/_board/library")],
 		function* ({ click, control, findElement, location }) {
 			const previousLocation = location();
-			if (panel === "Files") {
+			if (panel === "Sidebar") {
 				click("#sidebar-toggle");
 				expect(control("#sidebar", HTMLElement).hidden).toBe(false);
 				click("#sidebar #documents-open");
@@ -31,7 +31,7 @@ for (const panel of ["Files", "More"]) {
 
 const files = { "home.md": "# Home", "notes/plan.md": "# Plan", "other.md": "# Other" };
 screenStory.it(
-	"closes Files and More on direct router navigation and retains the new recent title",
+	"closes the sidebar and More on direct router navigation and retains the new recent title",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen(files)],
 	function* ({ click, control, findElement, navigate, readText, editFile, refreshDocument, readTitle }) {
 		click("#sidebar-toggle");

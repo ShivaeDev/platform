@@ -112,14 +112,13 @@ export function withQualityAt(repository: HookRepository, path: string): string 
 	return join(repository.root, path);
 }
 
-export function withBareWorktree(repository: HookRepository, name: string): string {
-	const root = seedTree([]);
+export function withBareWorktree(repository: HookRepository, name: string, root = seedTree([])): string {
 	git(repository.root, "worktree", "add", "--quiet", "-b", name, root);
 	return root;
 }
 
-export function withWorktree(repository: HookRepository, name: string): string {
-	const root = withBareWorktree(repository, name);
+export function withWorktree(repository: HookRepository, name: string, at?: string): string {
+	const root = withBareWorktree(repository, name, at);
 	withBin(join(root, repository.folder));
 	linkPackage(join(root, repository.folder));
 	return root;

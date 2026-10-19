@@ -1,10 +1,22 @@
 import { Settings } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "#client/react/components/ui/popover.tsx";
 import { Separator } from "#client/react/components/ui/separator.tsx";
+import { ToggleGroup, ToggleGroupItem } from "#client/react/components/ui/toggle-group.tsx";
 import { shellIds } from "./shellIds.ts";
 import type { AppearanceControls } from "./useAppearance.ts";
+
+const themes = [
+	{ label: "System", value: "system" },
+	{ label: "Light", value: "light" },
+	{ label: "Dark", value: "dark" },
+];
+const densities = [
+	{ label: "Comfortable", value: "comfortable" },
+	{ label: "Compact", value: "compact" },
+];
+
 export function SettingsPopover({ appearance, updates }: { readonly appearance: AppearanceControls; readonly updates: ReactNode }) {
 	return (
 		<Popover>
@@ -14,40 +26,56 @@ export function SettingsPopover({ appearance, updates }: { readonly appearance: 
 				<Settings aria-hidden="true" />
 			</PopoverTrigger>
 			<PopoverContent align="end" aria-label="Settings" className="max-w-[calc(100vw-2rem)] text-sm">
-				<fieldset aria-label="Reading preferences" className="m-0 grid gap-4 border-0 p-0">
-					<legend className="mb-3 font-semibold">Settings</legend>
-					<label className="grid gap-1" htmlFor={shellIds.theme}>
-						Theme
-						<select
-							className="h-9 rounded-md border bg-background px-2 text-foreground"
-							id={shellIds.theme}
-							onChange={(event) => appearance.change({ theme: event.target.value })}
-							value={appearance.theme}
-						>
-							<option value="system">System</option>
-							<option value="light">Light</option>
-							<option value="dark">Dark</option>
-						</select>
-					</label>
-					<label className="grid gap-1" htmlFor={shellIds.density}>
-						Density
-						<select
-							className="h-9 rounded-md border bg-background px-2 text-foreground"
-							id={shellIds.density}
-							onChange={(event) => appearance.change({ density: event.target.value })}
-							value={appearance.density}
-						>
-							<option value="comfortable">Comfortable</option>
-							<option value="compact">Compact</option>
-						</select>
-					</label>
+				<div className="grid gap-4">
+					<h2 className="font-semibold">Settings</h2>
+					<Choice label="Theme" onChange={(theme) => appearance.change({ theme })} options={themes} value={appearance.theme} />
+					<Choice label="Density" onChange={(density) => appearance.change({ density })} options={densities} value={appearance.density} />
 					<Separator />
 					{updates}
 					<span className="text-muted-foreground text-xs empty:hidden" id={shellIds.preferenceStatus} role="status">
 						{appearance.notice}
 					</span>
-				</fieldset>
+				</div>
 			</PopoverContent>
 		</Popover>
+	);
+}
+
+function Choice({
+	label,
+	options,
+	value,
+	onChange,
+}: {
+	readonly label: string;
+	readonly options: ReadonlyArray<{ readonly label: string; readonly value: string }>;
+	readonly value: string;
+	readonly onChange: (value: string) => void;
+}) {
+	const id = useId();
+	return (
+		<div className="grid gap-1.5">
+			<span className="text-muted-foreground text-xs" id={id}>
+				{label}
+			</span>
+			<ToggleGroup
+				aria-labelledby={id}
+				className="w-full"
+				onValueChange={([next]) => {
+					if (next !== undefined) {
+						onChange(next);
+					}
+				}}
+				spacing={0}
+				value={[value]}
+				variant="outline"
+			>
+				{options.map((option) => (
+					<ToggleGroupItem className="flex-1" key={option.value} value={option.value}>
+						{option.label}
+					</ToggleGroupItem>
+				))}
+			</ToggleGroup>
+		</div>
 	);
 }

@@ -10,17 +10,20 @@ import { todaySummaryScreen } from "#test/todaySummaryScreen.tsx";
 
 expectNoReactWarnings();
 
-for (const [workspace, summaries] of [
-	["pending", ["Fleet unavailable", "Loading goals…"]],
-	["failed", ["Loading Fleet…", "Goals unavailable"]],
+for (const [workspace, summaries, loading] of [
+	["pending", [], ["Loading work in progress", "Loading goals"]],
+	["failed", ["Goals unavailable"], ["Loading work in progress"]],
 ] as const) {
 	screenStory.it(
-		`names the Today summaries it cannot count while workspace indexing is ${workspace}`,
+		`names the Today summaries it cannot count and holds a skeleton for the one still loading while workspace indexing is ${workspace}`,
 		[screenFiles(fleetWorkspace, { home: "home.md" }), ...(workspace === "failed" ? [pendingFleet()] : []), todaySummaryScreen(workspace)],
-		function* ({ findElements }) {
+		function* ({ findElements, readText }) {
 			yield* Effect.promise(() =>
 				eventually(() => expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual(["3 need you", ...summaries])),
 			);
+			expect(findElements('.today-strip [role="status"][aria-busy="true"]').map((status) => status.textContent)).toEqual(loading);
+			expect(findElements('.today-strip [data-slot="skeleton"]').map((skeleton) => skeleton.closest("[role=status]")?.textContent)).toEqual(loading);
+			expect(readText(".today-strip")).not.toContain("…");
 		},
 	);
 }

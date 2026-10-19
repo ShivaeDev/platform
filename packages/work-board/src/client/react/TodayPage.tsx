@@ -2,10 +2,11 @@ import { Option } from "effect";
 import { useEffect, useRef } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import { inProgress } from "#browser/views/inProgress.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
-import { inProgressItems } from "./inProgressItems.ts";
 import { LinkButton } from "./LinkButton.tsx";
+import { LoadingCards } from "./loading.tsx";
 import { PageHeader } from "./PageHeader.tsx";
 import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
@@ -20,7 +21,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 	const goals = Option.getOrUndefined(query.data);
 	const fleetQuery = useQuery(api.fleetItems.query(undefined, routeQueryOptions), { keepPreviousData: true });
 	const fleet = Option.getOrUndefined(fleetQuery.data);
-	const progress = inProgressItems(fleet);
+	const progress = inProgress(fleet);
 	const navigation = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const home = Option.getOrUndefined(navigation.data)?.home;
 	useArrivalFocus(data.answered);
@@ -34,7 +35,8 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 						goalsFailed={Option.isSome(query.cause)}
 						issues={data.issues}
 						needs={data.complete ? data.you.length : undefined}
-						progress={progress?.length}
+						progress={progress?.rows.length}
+						progressFromFiles={progress?.source === "files"}
 						progressUnavailable={fleet?.state === "unavailable" || Option.isSome(fleetQuery.cause)}
 					/>
 				}
@@ -54,7 +56,9 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 				</div>
 				<section className="min-w-0" id={todayIds.goals}>
 					<h2 className="mt-0 mb-3 font-semibold text-lg">Goals</h2>
-					{goals ? <TodayGoals data={goals} /> : <p role="status">{Option.isSome(query.cause) ? "Goals unavailable." : "Loading goals…"}</p>}
+					{goals ? <TodayGoals data={goals} /> : null}
+					{goals === undefined && Option.isSome(query.cause) ? <p role="status">Goals unavailable.</p> : null}
+					{goals === undefined && Option.isNone(query.cause) ? <LoadingCards cards={2} columns={1} label="Loading goals" /> : null}
 					{goals && Option.isSome(query.cause) && <p role="status">Goal refresh failed. Displayed goals are retained.</p>}
 				</section>
 			</div>
@@ -67,11 +71,6 @@ function NeedsYou({ api, data }: { readonly api: ShellApi; readonly data: InboxP
 		<section className="min-w-0" id={todayIds.needs}>
 			<h2 className="mt-0 mb-3 font-semibold text-lg">Needs you</h2>
 			<TodayNeeds api={api} data={data} />
-			{data.complete && data.you.length === 0 && (
-				<a className="text-sm" href="/_board/start">
-					Getting started
-				</a>
-			)}
 		</section>
 	);
 }

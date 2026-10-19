@@ -12,7 +12,7 @@ boardStory.it("counts only eligible active Inbox rows for linked work", [linkedA
 	expect(navigation.inboxCount).toBe(2);
 	expect(data.goals[0]?.openAsks).toBeLessThanOrEqual(navigation.inboxCount ?? 0);
 });
-for (const status of ["closed", "done", "superseded", "completed", "cancelled", "canceled", "resolved", "released"]) {
+for (const status of ["closed", "done", "dropped", "superseded", "completed", "cancelled", "canceled", "resolved", "released"]) {
 	boardStory.it(
 		`retains Fleet-aware progress for a ${status} project outside active navigation`,
 		[projectFiles(closedGoalPageFixture(status)), fleetReports(goalFleetFixture())],
@@ -23,8 +23,9 @@ for (const status of ["closed", "done", "superseded", "completed", "cancelled", 
 			expect(goal?.criteria[0]?.counts).toEqual({ done: 2, "in progress": 1, "needs you": 0, planned: 0 });
 			expect(goal?.criteria[1]?.counts).toEqual({ done: 0, "in progress": 0, "needs you": 0, planned: 0 });
 			expect(goal?.linked).toBe(6);
-			expect(data.goals.map((entry) => entry.id)).toEqual(["project.empty", "project.example"]);
-			expect((yield* rpc((client) => client("work-board.navigation", { current: "" }))).counts.goals).toBe(2);
+			expect(data.goals.map((entry) => entry.id)).toEqual(["project.example"]);
+			expect(data.deferredGoals.map((entry) => entry.id)).toEqual(["project.empty"]);
+			expect((yield* rpc((client) => client("work-board.navigation", { current: "" }))).counts.goals).toBe(1);
 		},
 	);
 }

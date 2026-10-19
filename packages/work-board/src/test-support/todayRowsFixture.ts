@@ -77,7 +77,7 @@ export function todayRowsFixture(): Record<string, string> {
 		),
 		"responses/decision.ship.md": FLEET_DECISION,
 		"tasks/policy.md":
-			'---\nid: docs.policy\nkind: task\nstatus: dropped\nowner: maintainer\nnext_action: "Dropped: every export is supported API."\n---\n# Is every module supported API?\n',
+			'---\nid: docs.policy\nkind: task\nstatus: planned\nowner: maintainer\nnext_action: "Planned: every export is supported API."\n---\n# Is every module supported API?\n',
 		"tasks/ship.md": "---\nid: task.ship\nkind: task\nstatus: active\nowner: codex\n---\n# Ship the upload fix\n",
 	};
 }

@@ -9,15 +9,6 @@ export function pageActions(page: () => OpenPage, tell: (line: string) => void) 
 		return found;
 	}
 	return {
-		choose: (selector: string, value: string) => {
-			tell(`the reader chooses ${value} in ${selector}`);
-			const field = element(selector);
-			if (!(field instanceof page().window.HTMLSelectElement)) {
-				throw new Error(`Missing select ${selector}`);
-			}
-			field.value = value;
-			field.dispatchEvent(new (page().window.Event)("change", { bubbles: true }));
-		},
 		clickSelector: (selector: string) => {
 			tell(`the reader clicks ${selector}`);
 			element(selector).dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true, button: 0, cancelable: true }));

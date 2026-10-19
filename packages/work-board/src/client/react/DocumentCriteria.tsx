@@ -1,6 +1,25 @@
 import type { Document } from "#browser/document/schema.ts";
+import { criteriaInBody } from "./criteriaInBody.ts";
 import { keyed } from "./keyed.ts";
-export function DocumentCriteria({ document }: { readonly document: Document }) {
+import { LazyInlineMarkdown } from "./lazyMarkdown.tsx";
+
+export function BodyCriteria({ document }: { readonly document: Document }) {
+	return criteriaInBody(document) ? (
+		<section aria-labelledby="criteria" className="document-criteria">
+			<DocumentCriteria document={document} headingId="criteria" level="h2" />
+		</section>
+	) : null;
+}
+
+export function DocumentCriteria({
+	document,
+	headingId,
+	level: Heading = "h3",
+}: {
+	readonly document: Document;
+	readonly headingId?: string;
+	readonly level?: "h2" | "h3";
+}) {
 	const criteria = document.metadata.criteria ?? [];
 	if (criteria.length === 0) {
 		return null;
@@ -12,7 +31,7 @@ export function DocumentCriteria({ document }: { readonly document: Document }) 
 	const evidenced = criteria.filter((entry) => valid && unique(entry.id) && (document.reading?.claims[entry.id]?.length ?? 0) > 0).length;
 	return (
 		<>
-			<h3>Criteria and recorded evidence</h3>
+			<Heading id={headingId}>Criteria and recorded evidence</Heading>
 			<p className="text-muted-foreground text-xs">
 				{evidenced} of {criteria.length} criteria have recorded evidence
 			</p>
@@ -35,7 +54,7 @@ function Criterion({ document, index }: { readonly document: Document; readonly 
 	const unique = document.metadata.criteria?.filter((entry) => entry.id === criterion.id).length === 1;
 	return (
 		<li id={unique ? `criterion-${criterion.id}` : undefined} tabIndex={-1}>
-			<code>{criterion.id}</code>: {criterion.text}
+			<code>{criterion.id}</code>: <LazyInlineMarkdown document={document} source={criterion.text} />
 			<CriterionClaims document={document} id={criterion.id} valid={Boolean(document.identity) && document.unavailable.length === 0 && unique} />
 		</li>
 	);

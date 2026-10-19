@@ -8,6 +8,7 @@ import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { ItemId } from "./ItemId.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import { PrChip } from "./PrChip.tsx";
+import { PrReferences } from "./PrReferences.tsx";
 
 const icons = { board: PanelsTopLeft, goal: Flag, project: Flag, question: MessageCircle, report: FileText, result: FileText, task: ClipboardList };
 function kindIcon(kind: string) {
@@ -69,7 +70,11 @@ function ItemFields({ fields }: { readonly fields: Document["metadata"] }) {
 		<p>
 			{Boolean(owner) && <span>Owner: {owner}</span>}
 			{Boolean(owner && next) && " · "}
-			{Boolean(next) && <span>Next action: {next}</span>}
+			{next ? (
+				<span>
+					Next action: <PrReferences text={next} />
+				</span>
+			) : null}
 		</p>
 	);
 }

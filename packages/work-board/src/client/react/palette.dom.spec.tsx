@@ -169,10 +169,10 @@ screenStory.it(
 );
 
 screenStory.it(
-	"includes Fleet records while the records toggle is on",
+	"includes files Fleet writes while the toggle is on",
 	[searchScreen(paletteFixture())],
 	function* ({ input, findElements, findElement, keyboard, readAttribute, roles }) {
-		const recordsToggle = { name: "Include Fleet records", role: "checkbox" } as const;
+		const recordsToggle = { name: "Include files Fleet writes", role: "checkbox" } as const;
 		function titles() {
 			return [...findElements<HTMLElement>('#search-dialog [role="option"] strong', document)].map((title) => title.textContent);
 		}

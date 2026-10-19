@@ -25,8 +25,15 @@ export type Report = typeof Report.Type;
 
 const decodeReport = Schema.decodeUnknownOption(Schema.fromJsonString(Report));
 
-function failure(args: readonly string[], run: BiomeRun): Error {
-	return new Error(`biome ${args.join(" ")} exited ${run.code} without a report:\n${[run.stdout, run.stderr].join("\n").trim()}`);
+export const FAILING: ReadonlySet<string> = new Set(["error", "fatal"]);
+
+function failure(args: readonly string[], run: BiomeRun, missing: string, output: string): Error {
+	return new Error(`biome ${args.join(" ")} exited ${run.code} without ${missing}:\n${output.trim()}`);
+}
+
+// Biome exits with an error but prints an empty report when no file was processed, so only a failing diagnostic explains a failed run.
+function unexplained(run: BiomeRun, report: Report): boolean {
+	return run.code !== 0 && !report.diagnostics.some((diagnostic) => FAILING.has(diagnostic.severity));
 }
 
 async function reportFor(
@@ -39,7 +46,10 @@ async function reportFor(
 	const run = await runBiome(root, command, exceptions);
 	const report = decodeReport(run.stdout.trim());
 	if (report._tag === "None") {
-		throw failure(command, run);
+		throw failure(command, run, "a report", [run.stdout, run.stderr].join("\n"));
+	}
+	if (unexplained(run, report.value)) {
+		throw failure(command, run, "a failing diagnostic", run.stderr);
 	}
 	return report.value;
 }
@@ -49,7 +59,8 @@ export async function biomeReport(root: string, args: readonly string[], excepti
 	const paths = tracked
 		.map((path) => relative(root, path))
 		.filter((path) => !path.split(sep).some((part) => part === ".git" || part === ".worktrees" || part === "node_modules"));
-	const extra = paths.length === 0 ? undefined : await reportFor(root, [...args, "--vcs-enabled=false"], paths, exceptions);
+	const extra =
+		paths.length === 0 ? undefined : await reportFor(root, [...args, "--vcs-enabled=false", "--no-errors-on-unmatched"], paths, exceptions);
 	const diagnostics = [...report.diagnostics, ...(extra?.diagnostics ?? [])];
 	const unique = [...new Map(diagnostics.map((diagnostic) => [JSON.stringify(diagnostic), diagnostic])).values()];
 	return {

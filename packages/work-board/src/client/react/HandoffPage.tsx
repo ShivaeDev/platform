@@ -4,6 +4,7 @@ import { statusLabel } from "#browser/views/statusLabel.ts";
 import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { fileUrl } from "#files/url.ts";
+import { EmptyState } from "./EmptyState.tsx";
 import { HandoffForm } from "./HandoffForm.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
 import { LinkButton } from "./LinkButton.tsx";
@@ -56,7 +57,7 @@ export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 						<AlertDescription>{data.reading.unknown.join(", ")}. There may be handoffs or receipts that aren't shown here.</AlertDescription>
 					</Alert>
 				)}
-				{data.reading.records.length === 0 && <p className="m-0 text-muted-foreground">No handoffs yet.</p>}
+				{data.reading.records.length === 0 && <EmptyState title="No handoffs yet">Handoffs you prepare for this item appear here.</EmptyState>}
 				{data.reading.records.map((record) => (
 					<HandoffEntry current={data.source} key={record.id} record={record} />
 				))}

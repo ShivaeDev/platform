@@ -24,16 +24,34 @@ screenStory.it(
 );
 
 screenStory.it("keeps closed goals in one collapsed section after active goals", [goalsScreen()], ({ findElement, readText, findElements }) => {
-	const closed = findElement<HTMLDetailsElement>("details");
+	const closed = findElement<HTMLDetailsElement>("details:last-of-type");
 	expect(closed).not.toBeNull();
 	expect(closed?.open).toBe(false);
 	expect(readText("summary", closed)).toBe("Closed goals");
 	expect(readText('[data-goal-id="project.closed"]', closed)).toBe("Closed goal1 open ask");
-	expect(findElements("[data-goal-id]", closed?.previousElementSibling)).toHaveLength(2);
+	expect(findElements("[data-goal-id]", findElement("details")?.previousElementSibling)).toHaveLength(1);
 });
 
-screenStory.it("omits an empty closed section and keeps the empty active state", [goalsScreen({})], ({ read, findElement }) => {
-	expect(read().text).toContain("No active goals.");
+screenStory.it(
+	"keeps deferred goals out of the active count in their own collapsed section",
+	[goalsScreen()],
+	({ findElement, findElements, readText }) => {
+		expect(readText("[data-page-summary]")).toBe("1 active goal");
+		const deferred = findElement<HTMLDetailsElement>("details");
+		expect(deferred?.open).toBe(false);
+		expect(readText("summary", deferred)).toBe("Deferred goals");
+		expect(findElements("[data-goal-id]", deferred).map((card) => card.getAttribute("data-goal-id"))).toEqual(["project.empty"]);
+		expect(findElements("[data-goal-id]", deferred?.previousElementSibling).map((card) => card.getAttribute("data-goal-id"))).toEqual([
+			"project.example",
+		]);
+	},
+);
+
+screenStory.it("omits an empty closed section and keeps the empty active state", [goalsScreen({})], ({ findElement, readText }) => {
+	expect(readText('[data-slot="empty-title"]')).toBe("No active goals");
+	expect(readText('[data-slot="empty-description"]')).toBe("A goal appears here when a file in this workspace declares one.");
+	expect(readText('[data-slot="empty"] a[href="/_board/start"]')).toBe("Getting started");
+	expect(findElement("[data-page-summary]")).toBeNull();
 	expect(findElement("details")).toBeNull();
 });
 
