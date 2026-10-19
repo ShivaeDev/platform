@@ -73,6 +73,15 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 			tell("the reader checks keyboard focus");
 			return document.activeElement;
 		},
+		readOrder: (...selectors: readonly string[]) => {
+			tell(`the reader reads in which order ${selectors.join(", ")} appear`);
+			const found = selectors.flatMap((selector) => {
+				const match = element(selector);
+				return match ? [{ match, selector }] : [];
+			});
+			found.sort((left, right) => (left.match.compareDocumentPosition(right.match) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+			return found.map(({ selector }) => selector);
+		},
 		readPaused: () => {
 			tell("the reader checks whether live updates are paused");
 			if (!(engine.view && engine.updatesPaused)) {

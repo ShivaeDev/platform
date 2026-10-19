@@ -7,7 +7,7 @@ import { metadataParse } from "#server/metadata/parse.ts";
 import type { Folder, RunningBoard } from "./board.ts";
 import { renderRemaining } from "./renderRemaining.tsx";
 
-const REVIEW_PATH = "/_board/result?item=result.keyboard";
+const REVIEW_PATH = "/_board/item/result.keyboard/";
 
 export const handoffInput = Effect.fn("Story.handoffInput")(function* (client: ReturnType<typeof browserClient>) {
 	const preview = yield* Effect.promise(() => client.run(client.handoffs.handoffSource.run({ item: "task.keyboard" })));

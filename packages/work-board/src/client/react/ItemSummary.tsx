@@ -102,11 +102,6 @@ export function ItemActions({ document }: { readonly document: Document }) {
 					View this board
 				</LinkButton>
 			)}
-			{identity && kind === "result" && (
-				<LinkButton className={TOUCH} href={`/_board/result?item=${encodeURIComponent(identity)}`}>
-					Review returned result
-				</LinkButton>
-			)}
 		</>
 	);
 }

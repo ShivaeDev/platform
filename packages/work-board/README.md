@@ -289,11 +289,11 @@ The [handoff source reference](docs/delivery/handoff-examples.md) shows a comple
 
 #### Review the returned result
 
-A file with `kind: result` and a unique ID offers **Review returned result** at `/_board/result?item=<id>`. The page separates the report's authored status from linked work status, lists its criterion-level claims and missing provenance, and keeps the report, limitations and human feedback together. Its header names each linked item by title with its status chip and a **Prepare follow-up handoff** link, and shows how long ago the report file changed. A report with no review request and no checks says so in one line, and a short feedback summary with a link to the feedback sits above the report. Reading through normal GET or the typed query leaves project files unchanged.
+A file with `kind: result` and a unique ID is reviewed on its own item page, `/_board/item/<id>/`. Above the report sit its open review requests, then each linked item by title with its status chip and a **Prepare follow-up handoff** link, the criterion-level claims and missing provenance, and the human feedback. The report's authored status stays in the page header, apart from linked work status. Whatever is missing, whether a review request, checks or feedback, is said in one line. Older `/_board/result?item=<id>` links redirect to the item page. Reading through normal GET or the typed query leaves project files unchanged.
 
 The agent declares an explicit open `attention` request of kind `review` on the report. That request links into the existing response surface. A Markdown question packet can offer request revision or accept this exact report, with room for human rationale. These options are authored text, rather than reserved acceptance states. Preview and submit the response against the exact source you reviewed.
 
-Feedback matching both the current report SHA-256 and source path is labeled **Feedback on this exact result revision**. An edit or move labels the old feedback as earlier context; its saved snapshot remains inspectable. A new response can explicitly supersede the revision request. Malformed or duplicate history stays unknown. None of those actions changes linked task status or supplies missing criterion evidence.
+Feedback matching both the current report SHA-256 and source path is labeled **This version** and dated by when the report was received. An edit or move labels the old feedback **Earlier version**, dated by when it was reviewed; its saved snapshot and full SHA-256 remain inspectable under **Report as reviewed**. A new response can explicitly supersede the revision request. Malformed or duplicate history stays unknown: the feedback list names each file it can't read, says why, and links to System's source problems. None of those actions changes linked task status or supplies missing criterion evidence.
 
 Reported `evidence.checked_revision` is a Git revision, distinct from the report's source SHA-256. Work Board does not compare evidence with the current checkout; evidence freshness remains unknown. The [returned-result source reference](docs/delivery/result-review-examples.md) gives complete task/report files and the reviewed-revision wait workflow.
 
@@ -447,7 +447,7 @@ export async function readReturnedResult(url: string, item: string) {
   try {
     return await client.read(
       client.api.result.query({
-        url: `/_board/result?item=${encodeURIComponent(item)}`,
+        url: `/_board/item/${encodeURIComponent(item)}/`,
       }),
     );
   } finally {
@@ -535,7 +535,7 @@ In Claude Code, the [Work Board plugin](https://github.com/ShivaeDev/platform/tr
 | `--port <number>` | Select the shared server's port; default `4747` |
 | `--url <origin>` | Select an HTTP loopback origin instead of `--port` |
 
-The browser uses local NDJSON RPC at `POST /_board/rpc`. Ordinary document GETs, `/_board/start`, `/_board/goals`, `/_board/work`, `/_board/library`, `/_board/system`, `/_board/handoff`, `/_board/result`, and identity links load the React shell. `GET /_board/respond` redirects an open request to its item’s answer card with HTTP 302; an unavailable request returns an HTTP 409 page. Search and live subscriptions use the same RPC route. There is no automatic workspace discovery or server launch in agent commands.
+The browser uses local NDJSON RPC at `POST /_board/rpc`. Ordinary document GETs, `/_board/start`, `/_board/goals`, `/_board/work`, `/_board/library`, `/_board/system`, `/_board/handoff`, and identity links load the React shell. `GET /_board/respond` redirects an open request to its item’s answer card and `GET /_board/result` redirects to the result's item page, both with HTTP 302; an unavailable request returns an HTTP 409 page. Search and live subscriptions use the same RPC route. There is no automatic workspace discovery or server launch in agent commands.
 
 A running `work-board <dir>` also serves that NDJSON RPC at `POST /_board/rpc` over the Unix socket `<dir>/board.sock`, using the same handlers and services as TCP. Tools can read `work-board.inbox`, `work-board.fleetItems` and `work-board.goals` from the board directory without knowing its port. Each board directory has its own socket. For example:
 

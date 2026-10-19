@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import type { Document } from "#browser/document/schema.ts";
+import type { Reading } from "#browser/responses/schema.ts";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
 import { readResponses } from "#server/responses/read.ts";
@@ -20,27 +21,48 @@ export const resultProjection = Effect.fn("WorkBoard.resultProjection")(function
 	});
 	const read = readResponses(Effect.succeed(data));
 	const readings = yield* Effect.forEach(questions, (question) => Effect.result(read(question.id)));
-	const feedbackUnknown =
-		data.unavailable.length > 0
-		|| data.documents.some((entry) => malformedResponse(entry) || (entry.parsed.fields.kind === "question" && !questionFrom(entry)))
-		|| readings.some((entry) => entry._tag === "Failure");
 	function file(id: string) {
 		return data.model.ids.get(id)?.[0]?.file ?? `responses/${id}.md`;
 	}
-	const feedback = feedbackUnknown
-		? []
-		: readings.flatMap((entry) =>
-				entry._tag === "Success"
-					? entry.success.responses.map((response) => ({
-							matching: entry.success.question.question.reviewedRevision === revision && entry.success.question.question.source === result.file,
-							question: entry.success.question,
-							questionFile: file(entry.success.question.id),
-							response,
-							responseFile: file(response.id),
-							supersedesFile: response.response.supersedes ? file(response.response.supersedes) : undefined,
-						}))
-					: [],
-			);
+	function feedbackEntries(history: Reading) {
+		return history.responses.map((response) => ({
+			matching: history.question.question.reviewedRevision === revision && history.question.question.source === result.file,
+			question: history.question,
+			questionFile: file(history.question.id),
+			response,
+			responseFile: file(response.id),
+			supersedesFile: response.response.supersedes ? file(response.response.supersedes) : undefined,
+		}));
+	}
+	const broken = [
+		...data.unavailable.map((path) => ({ file: path, reason: "The Board can't read this file." })),
+		...data.documents.flatMap((entry) => {
+			const reason = recordProblem(entry, data);
+			return reason ? [{ file: entry.file, reason }] : [];
+		}),
+	];
+	// A broken record also fails every history read, so a read failure is listed only when no file explains it.
+	const unreadableFeedback =
+		broken.length > 0
+			? broken
+			: readings.flatMap((entry, index) =>
+					entry._tag === "Failure" ? [{ file: file(questions[index]?.id ?? ""), reason: entry.failure.message }] : [],
+				);
+	const feedback = unreadableFeedback.length > 0 ? [] : readings.flatMap((entry) => (entry._tag === "Success" ? feedbackEntries(entry.success) : []));
 	feedback.sort((a, b) => b.response.response.recordedAt - a.response.response.recordedAt || a.response.id.localeCompare(b.response.id));
-	return { document, feedback, feedbackUnknown, item, revision, targets: criteria };
+	return { document, feedback, item, revision, targets: criteria, unreadableFeedback };
 });
+
+function recordProblem(entry: MetadataDocument, data: Snapshot) {
+	if (malformedResponse(entry)) {
+		return (
+			entry.parsed.diagnostics.find((problem) => problem.field === undefined)?.message
+			?? "It's marked as a response but has no ID or response record."
+		);
+	}
+	if (entry.parsed.fields.kind === "question" && !questionFrom(entry)) {
+		return "It's marked as a question but its record doesn't match its text.";
+	}
+	const id = entry.parsed.fields.kind === "response" ? entry.parsed.fields.id : undefined;
+	return id && (data.model.ids.get(id)?.length ?? 0) > 1 ? `Another file uses the same response ID, ${id}.` : undefined;
+}

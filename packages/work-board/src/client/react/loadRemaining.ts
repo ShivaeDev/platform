@@ -24,7 +24,5 @@ export function loadRemaining(
 			]);
 		case "handoff":
 			return loadQuery(registry, api.handoff.query({ url }, routeQueryOptions), { abortController });
-		case "result":
-			return loadQuery(registry, api.result.query({ url }, routeQueryOptions), { abortController });
 	}
 }

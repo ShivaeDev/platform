@@ -42,7 +42,7 @@ export const remainingQueries = Effect.gen(function* () {
 			}),
 		result: (url: string) =>
 			Effect.gen(function* () {
-				const item = new URL(url, "http://127.0.0.1").searchParams.get("item") ?? "";
+				const item = resultItem(url);
 				const data = yield* index;
 				const matches = data.model.ids.get(item);
 				const result = matches?.length === 1 ? matches[0] : undefined;
@@ -58,3 +58,9 @@ export const remainingQueries = Effect.gen(function* () {
 		start: () => Effect.map(changes.files, (files) => ({ empty: files.length === 0, templates: startTemplates })),
 	};
 });
+
+function resultItem(url: string) {
+	const parsed = new URL(url, "http://127.0.0.1");
+	const identity = /^\/_board\/item\/(?<id>[^/]+)\/?$/u.exec(parsed.pathname)?.groups?.id;
+	return identity ? decodeURIComponent(identity) : (parsed.searchParams.get("item") ?? "");
+}
