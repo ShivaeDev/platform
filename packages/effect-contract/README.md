@@ -191,6 +191,8 @@ const readOnce = api.get.run({ id: 1 });
 const rename = api.rename.run({ id: 1, title: "Uno" });
 ```
 
+`queryCoalesceWindow(query)` from `@shivaedev/effect-contract/queryCoalesceWindow.ts` returns a writable native atom for that bound query's live changed-hint window. Set it through the query's registry to a Duration, or `undefined` to use the live connection's default. Changing it does not refetch or reconnect; the next window uses the new value. React consumers can set it with `useQuery(query, { coalesceWindow: "2 seconds" })`.
+
 `one` and `list` are native query atoms. `readOnce` and `rename` are Effects for individual calls. A query's Effect requires `NotesClient`; a command's Effect also requires native `Reactivity`. Commands expose `run`, and have no `query` member.
 
 Mount the atoms and run commands through the service's atom runtime in the same registry:
