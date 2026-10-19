@@ -1,9 +1,10 @@
 import { RegistryContext, useAtomRefresh, useAtomSet, useAtomValue } from "@effect/atom-react";
-import { Cause, Option, Predicate } from "effect";
+import { Cause, type Duration, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useState } from "react";
+import { queryCoalesceWindow } from "@shivaedev/effect-contract/queryCoalesceWindow.ts";
 import { acceptLoaderQuery } from "#internal/queryHandoff.ts";
 import { useSessionRecheck } from "./sessionBoundary.ts";
 export interface ResultState<A, E> {
@@ -37,6 +38,7 @@ export interface QueryState<A, E> extends ResultState<A, E> {
 	readonly refresh: () => void;
 }
 export interface QueryOptions {
+	readonly coalesceWindow?: Duration.Input | undefined;
 	readonly keepPreviousData?: boolean;
 }
 interface HeldQuery<A, E> {
@@ -51,6 +53,14 @@ export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, o
 	const result = useAtomValue(atom);
 	const registry = useContext(RegistryContext);
 	useEffect(() => acceptLoaderQuery(registry, atom), [registry, atom]);
+	useEffect(() => {
+		if (options.coalesceWindow === undefined) {
+			return;
+		}
+		const window = queryCoalesceWindow(atom);
+		registry.set(window, options.coalesceWindow);
+		return () => registry.set(window, undefined);
+	}, [registry, atom, options.coalesceWindow]);
 	const keepPreviousData = options.keepPreviousData === true;
 	const nativeData = AsyncResult.value(result);
 	const [held, hold] = useState<HeldQuery<A, E>>(() => ({ atom, data: nativeData, dataAtom: atom, keepPreviousData, registry, result }));
