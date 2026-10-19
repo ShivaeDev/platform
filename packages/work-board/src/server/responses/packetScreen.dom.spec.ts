@@ -12,12 +12,13 @@ const READABLE_OPTIONS = 4;
 expectNoReactWarnings();
 const URL = "/_board/item/investigation.choices/";
 screenStory.it(
-	"shows packet controls but disables recording in read-only mode",
+	"lists the packet questions and says answering is turned off in read-only mode",
 	[routedScreen({ "proposal.md": questionnaireSource }, URL, { home: undefined, writable: false })],
-	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElements("#answer-card-direction fieldset")).toHaveLength(PACKET_PROMPTS)));
-		expect(findElement("#response-submit")).toHaveProperty("disabled", true);
-		expect(readText("#response-status")).toBe("This Board is read-only. Start it with --responses to record answers.");
+	function* ({ findElement, findElements }) {
+		yield* Effect.promise(() => eventually(() => expect(findElements("#answer-card-direction [data-prompt]")).toHaveLength(PACKET_PROMPTS)));
+		const card = findElement("#answer-card-direction");
+		expect(findElements("form, input, textarea, select, button", card)).toEqual([]);
+		expect(findElements('[role="status"]', card).map((status) => status.textContent)).toEqual(["Answering is turned off on this Board."]);
 	},
 );
 
