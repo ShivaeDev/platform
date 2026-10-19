@@ -70,6 +70,7 @@ export default defineConfig({
 		"tests/support-imports": {
 			options: {
 				modules: [
+					"packages/effect-react/src/client/testing.ts",
 					"packages/effect-sql/src/clientOptions.ts",
 					"packages/effect-sql/src/repository.ts",
 					"packages/effect-test-sql/src/server/assertModelColumns.ts",

@@ -525,6 +525,8 @@ screenStories.it("shows the route failure", [], async () => {
 
 The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs.
 
+Story kits can acquire `captureReactWarnings` from `client/testing.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
+
 ### Install, setup and limits
 
 ```sh
