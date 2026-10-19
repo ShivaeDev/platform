@@ -94,6 +94,17 @@ screenStory.it(
 );
 
 screenStory.it(
+	"keeps a header written in the document body inside the text",
+	[routedScreen({ "home.md": "# Home", "note.md": "# Signed note\n\n## Sign-off\n\n<header>Reviewed by the team</header>\n" }, "/note.md")],
+	function* ({ findElement, findElements }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("article.doc header")).not.toBeNull()));
+		expect(findElement("article.doc header")?.textContent).toBe("Reviewed by the team");
+		expect(findElement("article.doc header")?.hasAttribute("data-page-header")).toBe(false);
+		expect([...findElements("[data-page-header]")].map((header) => header.querySelector("h1")?.id)).toEqual(["heading-signed-note"]);
+	},
+);
+
+screenStory.it(
 	"renders inline Markdown in criteria and keeps a short list in the details panel",
 	[routedScreen({ "home.md": "# Home", "task.md": criteriaTask(["Run `pnpm lint` and **pass**", "See [the guide](guide.md)"]) }, "/task.md")],
 	function* ({ findElement, readText }) {

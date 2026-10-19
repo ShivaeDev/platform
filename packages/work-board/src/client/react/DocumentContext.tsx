@@ -36,12 +36,8 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 			<div className="rounded-lg border border-border p-4">
 				<Tabs onValueChange={setTab} value={tab}>
 					<TabsList aria-label="Item context" className="w-full">
-						<TabsTrigger onClick={() => setTab("details")} value="details">
-							Details
-						</TabsTrigger>
-						<TabsTrigger onClick={() => setTab("source")} value="source">
-							Source
-						</TabsTrigger>
+						<TabsTrigger value="details">Details</TabsTrigger>
+						<TabsTrigger value="source">Source</TabsTrigger>
 					</TabsList>
 					<TabsContent hidden={tab !== "details"} keepMounted value="details" />
 					<TabsContent className="pt-2" hidden={tab !== "source"} keepMounted value="source">
