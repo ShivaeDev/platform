@@ -77,7 +77,7 @@ function DesktopLanes({ lanes, ...lane }: Lanes) {
 		<div className="work-columns work-now flex items-start gap-3 overflow-x-auto pb-2">
 			{lanes.map(({ lane: name, rows }) => (
 				<WorkLane
-					className={rows.length > 0 && name !== DONE ? "min-w-60 flex-1 basis-0" : "w-44 flex-none"}
+					className={rows.length > 0 && name !== DONE ? "min-w-44 flex-[2] basis-0" : "min-w-28 flex-1 basis-0"}
 					collapsed={name === DONE}
 					key={name}
 					lane={name}

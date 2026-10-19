@@ -129,3 +129,16 @@ screenStory.it(
 		expect(cards()).toEqual(["task-2"]);
 	},
 );
+
+screenStory.it(
+	"heads each All work status group with a count badge for its cards",
+	[workTableScreen("/_board/work?view=board")],
+	function* ({ findElements }) {
+		yield* Effect.promise(() => eventually(() => expect(findElements(".work-column").length).toBeGreaterThan(1)));
+		for (const column of findElements(".work-column")) {
+			expect(findElements("h2 .work-count[data-slot='badge']", column).map((badge) => badge.textContent)).toEqual([
+				String(findElements("[data-item]", column).length),
+			]);
+		}
+	},
+);
