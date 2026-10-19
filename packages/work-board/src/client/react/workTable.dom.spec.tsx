@@ -99,7 +99,7 @@ screenStory.it(
 	"marks empty Now lanes and keeps Done closed until the reader opens it",
 	[nowScreen(6, WorkNow, nowFleet(3, Effect.runSync(Clock.currentTimeMillis)))],
 	function* ({ findElements, readText, roles }) {
-		expect(readText('section[aria-label="Delivering"]')).toBe("Delivering0Nothing here");
+		expect(readText('section[aria-label="Delivering"]')).toBe("Delivering0Nothing deliveringWork that Fleet is merging appears here.");
 		expect(findElements(".work-columns > section").map((lane) => lane.getAttribute("aria-label"))).toEqual([
 			"Queued",
 			"Executing",

@@ -22,7 +22,8 @@ boardStory.it(
 			linked: 5,
 			openAsks: 2,
 		});
-		expect(result.goals.find((goal) => goal.id === "project.empty")).toMatchObject({
+		expect(result.goals.map((goal) => goal.id)).toEqual(["project.example"]);
+		expect(result.deferredGoals.find((goal) => goal.id === "project.empty")).toMatchObject({
 			linked: 0,
 			unlinked: true,
 		});
@@ -44,7 +45,7 @@ boardStory.it(
 		yield* Effect.promise(() =>
 			waitFor(() => {
 				const updated = client.registry.get(atom);
-				expect(updated._tag === "Success" && updated.value.goals.map((goal) => goal.id)).toEqual(["project.empty"]);
+				expect(updated._tag === "Success" && updated.value.goals.map((goal) => goal.id)).toEqual([]);
 				expect(updated._tag === "Success" && updated.value.closedGoals.find((goal) => goal.id === "project.example")?.counts).toEqual({
 					done: 2,
 					"in progress": 1,
@@ -54,7 +55,7 @@ boardStory.it(
 			}),
 		);
 		const navigation = yield* Effect.promise(() => client.read(client.api.navigation.query({ current: "/goal.md" })));
-		expect(navigation.counts.goals).toBe(1);
+		expect(navigation.counts.goals).toBe(0);
 		release();
 	},
 );

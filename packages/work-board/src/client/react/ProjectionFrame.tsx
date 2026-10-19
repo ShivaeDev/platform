@@ -4,6 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { type ReactNode, useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { fileUrl } from "#files/url.ts";
+import { LoadingPage } from "./LoadingPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { projectionChanges, type RenderedProjection } from "./projectionChanges.ts";
 import type { ProjectionRoute } from "./projectionRoute.ts";
@@ -103,7 +104,8 @@ export function ProjectionFrame<A, E>({
 				ref={hostRef}
 				tabIndex={-1}
 			>
-				{data === undefined && <ViewStatus>{loadingMessage(query.pending, missing, failure)}</ViewStatus>}
+				{data === undefined
+					&& (query.pending ? <LoadingPage board={route === "board"} url={url} /> : <ViewStatus>{failureMessage(missing, failure)}</ViewStatus>)}
 				<div className={data === undefined ? "hidden" : "contents"} hidden={data === undefined}>
 					{content === undefined ? null : render(content)}
 				</div>
@@ -113,10 +115,7 @@ export function ProjectionFrame<A, E>({
 	);
 }
 
-function loadingMessage(pending: boolean, missing: boolean, failure: unknown) {
-	if (pending) {
-		return "Opening view…";
-	}
+function failureMessage(missing: boolean, failure: unknown) {
 	if (typeof failure === "object" && failure !== null && "message" in failure && typeof failure.message === "string") {
 		return failure.message;
 	}

@@ -1,5 +1,7 @@
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
+import { EmptyState } from "./EmptyState.tsx";
 import { GoalProgress } from "./GoalProgress.tsx";
+import { LinkButton } from "./LinkButton.tsx";
 
 export function TodayGoals({ data }: { readonly data: GoalsProjection }) {
 	return data.goals.length > 0 ? (
@@ -9,7 +11,9 @@ export function TodayGoals({ data }: { readonly data: GoalsProjection }) {
 			))}
 		</div>
 	) : (
-		<p className="text-muted-foreground text-sm">No active goals.</p>
+		<EmptyState action={<LinkButton href="/_board/goals">All goals</LinkButton>} title="No active goals">
+			Goals you are working toward appear here with their progress.
+		</EmptyState>
 	);
 }
 function GoalCard({ goal }: { readonly goal: GoalsProjection["goals"][number] }) {

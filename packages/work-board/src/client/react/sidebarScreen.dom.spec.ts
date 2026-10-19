@@ -14,7 +14,7 @@ for (const phone of [false, true]) {
 	screenStory.it(
 		`keeps primary rows independent of recent visits on ${phone ? "phone" : "desktop"}`,
 		[screenMedia(phone ? ["(max-width: 767px)", "(any-pointer: coarse)"] : []), chromeScreen(sidebarWorkspace(), "/notes/topic-1.md")],
-		function* ({ findElements, control, navigate, readAttribute, click }) {
+		function* ({ findElement, findElements, control, navigate, readAttribute, readFocus, click, roles }) {
 			const rows = findElements("#primary-navigation > *");
 			expect(rows.map((row) => row.id)).toEqual(["home-open", "goals-open", "work-open", "documents-open", "diagnostics-open"]);
 			for (let index = 2; index <= 6; index += 1) {
@@ -22,23 +22,23 @@ for (const phone of [false, true]) {
 				yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-file")).toBe(`notes/topic-${index}.md`)));
 				expect(findElements("#primary-navigation > *")).toEqual(rows);
 				expect(readAttribute('section[aria-label="Recent"] a[aria-current="page"]', "href")).toBe(`/notes/topic-${index}.md`);
-				expect(control("#library-dialog", HTMLDialogElement).open).toBe(false);
+				expect(findElement("#library-dialog", document)).toBeNull();
 			}
 			expect(findElements('section[aria-label="Recent"] a')).toHaveLength(SIDEBAR_RECENT_LIMIT);
 			if (phone) {
 				click("#sidebar-toggle");
 			}
 			click("#library-open");
-			expect(findElements("#reading-library a")).toHaveLength(ALL_VISITED_FILES);
-			click("#library-close");
-			expect(control("#library-dialog", HTMLDialogElement).open).toBe(false);
-			expect(document.activeElement).toBe(control("#library-open", HTMLButtonElement));
+			expect(findElements("#reading-library a", document)).toHaveLength(ALL_VISITED_FILES);
+			yield* roles.click({ name: "Close", role: "button" });
+			yield* Effect.promise(() => eventually(() => expect(findElement("#library-dialog", document)).toBeNull()));
+			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(control("#library-open", HTMLButtonElement))));
 		},
 	);
 }
 
 screenStory.it(
-	"makes the page inert while Files is open and restores focus after dismissal",
+	"makes the page inert while the sidebar is open and restores focus after dismissal",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen(sidebarWorkspace(), "/notes/topic-1.md")],
 	function* ({ click, focus, keyboard, control, findElement, readFocus, setMediaMatch }) {
 		for (const dismiss of ["escape", "outside"]) {

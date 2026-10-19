@@ -1,7 +1,9 @@
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#client/react/components/ui/card.tsx";
 import { fileUrl } from "#files/url.ts";
+import { EmptyState } from "./EmptyState.tsx";
 import { keyed } from "./keyed.ts";
+import { LoadingRows } from "./loading.tsx";
 import { SOURCE_PROBLEMS_ID } from "./sourceProblems.ts";
 
 type Issues = InboxProjection["issues"];
@@ -13,10 +15,10 @@ export function SystemSourceProblems({ issues, failed }: { readonly issues: Issu
 				<CardHeader>
 					<CardTitle>
 						<h2 className="text-lg" id={`${SOURCE_PROBLEMS_ID}-title`}>
-							Source problems
+							Files with problems
 						</h2>
 					</CardTitle>
-					<CardDescription>Workspace files the Board could not read in full. Open a file to fix it.</CardDescription>
+					<CardDescription>The Board could not read these files in full. Open a file to fix the problem.</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Problems failed={failed} issues={issues} />
@@ -28,10 +30,14 @@ export function SystemSourceProblems({ issues, failed }: { readonly issues: Issu
 
 function Problems({ issues, failed }: { readonly issues: Issues | undefined; readonly failed: boolean }) {
 	if (issues === undefined) {
-		return <p role="status">{failed ? "Source problems unavailable." : "Loading source problems…"}</p>;
+		return failed ? (
+			<p role="status">The list of files with problems is not available.</p>
+		) : (
+			<LoadingRows framed={false} label="Loading files with problems" />
+		);
 	}
 	if (issues.length === 0) {
-		return <p className="text-muted-foreground text-sm">Every workspace file reads cleanly.</p>;
+		return <EmptyState title="No files with problems">The Board reads every file in this workspace in full.</EmptyState>;
 	}
 	return (
 		<ul className="m-0 list-none divide-y p-0">
@@ -41,7 +47,7 @@ function Problems({ issues, failed }: { readonly issues: Issues | undefined; rea
 						<a className="font-medium font-mono" href={fileUrl(issue.file)}>
 							{issue.file}
 						</a>{" "}
-						<span className="text-muted-foreground text-xs">line {issue.line}</span>
+						<span className="text-muted-foreground text-xs">Line {issue.line}</span>
 					</p>
 					<p className="m-0">{issue.message}</p>
 				</li>

@@ -7,7 +7,6 @@ import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { responseMarkdown } from "#server/responses/records.ts";
 import { boardStory, projectFiles, responsesEnabled } from "./boardStory.ts";
 import { diagnosticsDaemon, rawDiagnosticsDaemon } from "./diagnosticsDaemon.ts";
-import { enterField } from "./enterField.ts";
 import { inboxFixture, inboxQuestion } from "./inboxFixture.ts";
 import { REVIEW_TASK, reviewResult } from "./resultReview.ts";
 import { connected, openReader } from "./storyEngine.ts";
@@ -56,8 +55,7 @@ export function aRememberedAuthor(author: string) {
 	return boardStory.trait("reader", `the reader remembers the author ${author}`, function* (engine) {
 		yield* openReader(engine);
 		const page = connected(engine).page;
-		enterField(page, "author", author);
-		yield* Effect.promise(() => new Promise<void>((resolve) => page.window.requestAnimationFrame(() => resolve())));
+		page.window.localStorage.setItem(`work-board:author:${page.document.documentElement.dataset.workspace ?? ""}`, author);
 	});
 }
 

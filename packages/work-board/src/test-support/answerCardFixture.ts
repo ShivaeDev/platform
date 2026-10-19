@@ -78,3 +78,20 @@ export const paragraphDecisionFixture = {
 		.replaceAll(JSON.stringify(DECISION_REASON), JSON.stringify(PARAGRAPH_REASON))
 		.replace(DECISION_REASON, `Preserve this background before the decision.\n\n${PARAGRAPH_REASON}\n\nPreserve this conclusion after the decision.`),
 };
+
+export const TEXT_QUESTION_ID = "question.pooling";
+export const textQuestionFixture = {
+	"home.md": "# Project notes",
+	"question.md": `---
+id: ${TEXT_QUESTION_ID}
+kind: question
+status: open
+next_action: Share your pooling design, or say to park it.
+---
+# Pooling design for the scale tests
+
+The scale tests opened too many database connections.
+
+Write the design in your answer: how connections are shared and what a scale test should prove.
+`,
+};

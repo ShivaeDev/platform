@@ -3,9 +3,11 @@ import { useId } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
 import type { GoalCounts } from "#browser/views/GoalsProjection.ts";
+import { Skeleton } from "#client/react/components/ui/skeleton.tsx";
 import { GoalBreakdown } from "./GoalBreakdown.tsx";
 import { GoalProgress } from "./GoalProgress.tsx";
 import { goalCountOrder } from "./goalCounts.ts";
+import { Loading } from "./loading.tsx";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { StatusChip } from "./StatusChip.tsx";
@@ -16,7 +18,7 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 	const headingId = useId();
 	const progress = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
 	const data = Option.getOrUndefined(progress.data);
-	const goal = data?.goals.find((entry) => entry.id === document.identity) ?? data?.closedGoals.find((entry) => entry.id === document.identity);
+	const goal = [...(data?.goals ?? []), ...(data?.deferredGoals ?? []), ...(data?.closedGoals ?? [])].find((entry) => entry.id === document.identity);
 	return (
 		<section aria-labelledby={headingId} className="document-lead col-span-full max-w-[68ch] space-y-4" data-goal-section="progress">
 			<h2 className="font-semibold text-xl" id={headingId}>
@@ -34,9 +36,15 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 					<GoalCountList counts={goal.counts} />
 					<GoalBreakdown goal={goal} />
 				</>
-			) : (
-				<p role="status">{progress.pending ? "Loading goal progress…" : "Progress is available for uniquely identified projects."}</p>
-			)}
+			) : null}
+			{goal === undefined && progress.pending ? (
+				<Loading className="space-y-3" label="Loading goal progress">
+					<Skeleton className="h-4 w-48" />
+					<Skeleton className="h-3 w-full" />
+					<Skeleton className="h-3 w-2/3" />
+				</Loading>
+			) : null}
+			{goal === undefined && !progress.pending ? <p role="status">Progress is available for uniquely identified projects.</p> : null}
 			{Option.isSome(progress.cause) && <p role="status">Goal progress refresh failed.</p>}
 		</section>
 	);

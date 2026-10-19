@@ -19,7 +19,7 @@ screenStory.it(
 		expect(readText("#doc h1")).toBe("Today");
 		expect(readAttribute("#doc", "data-status")).toBe("200");
 		expect(findElements("[data-attention-id]")).toHaveLength(7);
-		expect(findElements("[data-goal-id]")).toHaveLength(4);
+		expect(findElements("[data-goal-id]")).toHaveLength(3);
 		holdWorkspace();
 		yield* Effect.promise(refreshToday);
 		yield* Effect.promise(() => eventually(() => expect(readText('[aria-label="Page health"]')).toBe("pending")));

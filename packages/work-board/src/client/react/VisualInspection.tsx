@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Modal } from "./Modal.tsx";
+import { Dialog, DialogContent } from "#client/react/components/ui/dialog.tsx";
 import { shellIds } from "./shellIds.ts";
 import { VisualViewer } from "./VisualViewer.tsx";
 import { useVisualSources, type VisualSelection } from "./visualSources.ts";
@@ -12,24 +12,30 @@ export function VisualInspection() {
 		setSelection(next);
 	}, []);
 	useVisualSources(inspect);
-	const close = useCallback(() => {
-		setSelection(undefined);
-		const origin = originRef.current;
-		(origin?.isConnected ? origin : document.getElementById("doc"))?.focus();
-	}, []);
+	const close = useCallback(() => setSelection(undefined), []);
 	useEffect(() => {
 		window.addEventListener("pagehide", close);
 		return () => window.removeEventListener("pagehide", close);
 	}, [close]);
 	return (
-		<Modal
-			close={close}
-			id={shellIds.visualDialog}
+		<Dialog
+			onOpenChange={(next) => {
+				if (!next) {
+					close();
+				}
+			}}
 			open={selection !== undefined}
-			returnFocus={originRef.current?.isConnected ? originRef.current : (document.getElementById("doc") ?? undefined)}
-			title="visual-title"
 		>
-			{selection ? <VisualViewer close={close} key={selection.origin.dataset.localImage ?? "drawing"} selection={selection} /> : null}
-		</Modal>
+			<DialogContent
+				aria-describedby={undefined}
+				aria-labelledby={shellIds.visualTitle}
+				className="max-h-[90dvh] overflow-auto text-sm sm:max-w-5xl"
+				finalFocus={() => (originRef.current?.isConnected ? originRef.current : document.getElementById("doc"))}
+				id={shellIds.visualDialog}
+				showCloseButton={false}
+			>
+				{selection ? <VisualViewer close={close} key={selection.origin.dataset.localImage ?? "drawing"} selection={selection} /> : null}
+			</DialogContent>
+		</Dialog>
 	);
 }

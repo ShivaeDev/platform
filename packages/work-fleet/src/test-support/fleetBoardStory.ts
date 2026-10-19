@@ -10,6 +10,7 @@ import { createEngine } from "#test/createEngine.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
+import { answerReport } from "#test/report.ts";
 
 const layer = Layer.merge(postgresLayer, NodeServices.layer);
 
@@ -40,6 +41,15 @@ export const fleetBoardStory = storyKit({
 	runIf: postgresEnabled,
 	stages: ["board"],
 	verbs: ({ fixture, fleetLayer, fs, root, runtime, source, validation }, story) => ({
+		answerDecision: (action: "retry" | "release") =>
+			Effect.gen(function* () {
+				const decision = (yield* runtime.fleet.get("one")).value.decision;
+				if (decision?.published === undefined) {
+					return yield* Effect.die("No published decision to answer");
+				}
+				story.tell(`the maintainer chooses ${action} on the decision card`);
+				return yield* runtime.fleet.resolve("one", decision.id, answerReport(root, decision.published, action));
+			}),
 		changeBriefWhenChecksFinish: () => {
 			validation.editBrief = true;
 		},
@@ -59,6 +69,8 @@ export const fleetBoardStory = storyKit({
 					yield* fs.remove(`${root}/responses/${name}`);
 				}
 			}),
+		handBriefToPerson: () =>
+			fs.writeFileString(`${root}/one.md`, `${source.replace("fleet: approved", "fleet: approved\nowner: human")}\nRevised scope for a person.\n`),
 		legacyAutomaticRouting: () =>
 			Effect.gen(function* () {
 				const current = (yield* runtime.fleet.get("one")).value;
@@ -87,6 +99,7 @@ export const fleetBoardStory = storyKit({
 				const board = Context.get(yield* Layer.build(Layer.fresh(markdownBoard(root))).pipe(Effect.provide(NodeServices.layer)), BoardGateway);
 				yield* board.get("one");
 			}),
+		undoBriefEdit: () => fs.writeFileString(`${root}/one.md`, source),
 		upgradeStorage: () => fixture.upgradeAttention,
 	}),
 });

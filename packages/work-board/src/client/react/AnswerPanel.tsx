@@ -1,30 +1,47 @@
-import { ChevronDown, Hourglass, MessageCircleQuestion, Pencil } from "lucide-react";
+import { Hourglass, MessageCircleQuestion } from "lucide-react";
 import { useContext, useEffect, useRef } from "react";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
-import { Button } from "#client/react/components/ui/button.tsx";
 import { answeredCopy } from "#client/responses/answeredCopy.ts";
 import { AnswerContext } from "./AnswerContext.tsx";
-import { AnswerForm } from "./AnswerForm.tsx";
+import { AnswerControls } from "./AnswerControls.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
-import { AnswerOff } from "./AnswerOff.tsx";
+import { ClosedDraftCard } from "./ClosedDraftCard.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { ResponseHistory } from "./ResponseHistory.tsx";
+import { useClosedDrafts } from "./useClosedDrafts.ts";
 
-export function AnswerPanel({ document: data }: { readonly document: Document }) {
+export function AnswerPanel({ after = false, document: data }: { readonly after?: boolean; readonly document: Document }) {
 	const requests = data.requests.filter(
 		(request) =>
 			request.open || (request.id === "answer" && request.sourceOpen && data.metadata.kind === "question" && data.metadata.question === undefined),
 	);
-	return requests.length > 0 ? (
-		<div className="answer-cards col-span-full space-y-4">
+	const { closed, record: handleDraft } = useClosedDrafts(data);
+	const shown = closed.filter((entry) => !requests.some((request) => request.id === entry.id));
+	return requests.length + shown.length > 0 ? (
+		<div
+			className={after ? "answer-cards min-w-0 space-y-4 lg:col-start-1" : "answer-cards col-span-full space-y-4"}
+			data-after={after ? "" : undefined}
+		>
 			{requests.map((request) => (
-				<AnswerCard document={data} key={request.id} request={request} />
+				<AnswerCard document={data} key={request.id} onDraft={handleDraft} request={request} />
+			))}
+			{shown.map((draft) => (
+				<ClosedDraftCard draft={draft} key={draft.id} />
 			))}
 		</div>
 	) : null;
 }
-function AnswerCard({ document: data, request }: { readonly document: Document; readonly request: DocumentRequest }) {
+
+function AnswerCard({
+	document: data,
+	onDraft,
+	request,
+}: {
+	readonly document: Document;
+	readonly onDraft: (request: DocumentRequest, text: string) => void;
+	readonly request: DocumentRequest;
+}) {
 	const preview = request.preview;
 	const source = {
 		...data,
@@ -83,7 +100,14 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 				</>
 			)}
 			{preview && !unavailable && (
-				<AnswerControls answered={answered !== undefined} open={request.open} preview={preview} request={request} source={source} />
+				<AnswerControls
+					answered={answered !== undefined}
+					onDraft={(text) => onDraft(request, text)}
+					open={request.open}
+					preview={preview}
+					request={request}
+					source={source}
+				/>
 			)}
 			{!request.unavailable && (
 				<ResponseHistory
@@ -92,43 +116,6 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 				/>
 			)}
 		</section>
-	);
-}
-
-function AnswerControls({
-	answered,
-	open,
-	preview,
-	request,
-	source,
-}: {
-	readonly answered: boolean;
-	readonly open: boolean;
-	readonly preview: NonNullable<DocumentRequest["preview"]>;
-	readonly request: DocumentRequest;
-	readonly source: Document;
-}) {
-	if (!source.writable) {
-		return open && !answered ? <AnswerOff document={source} request={request} /> : null;
-	}
-	if (!answered) {
-		return open ? <AnswerForm document={source} preview={preview} request={request} /> : null;
-	}
-	return (
-		<details className="group/change space-y-4" data-key="change-answer">
-			<Button
-				className="w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-				nativeButton={false}
-				render={<summary />}
-				size="sm"
-				variant="outline"
-			>
-				<Pencil aria-hidden="true" />
-				Change your answer
-				<ChevronDown aria-hidden="true" className="transition-transform group-open/change:rotate-180" />
-			</Button>
-			<AnswerForm document={source} preview={preview} request={request} />
-		</details>
 	);
 }
 

@@ -1,6 +1,5 @@
 import { Effect } from "effect";
 import { openPage } from "./browser.ts";
-import { enterField } from "./enterField.ts";
 import { followLink } from "./followLink.ts";
 import { formEvent } from "./formEvent.ts";
 import { waitFor } from "./live.ts";
@@ -49,11 +48,6 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			return currentReplies(engine);
 		},
 		enterAnswer: (value: string) => formEvent(page(), () => text("[data-answer-text]", value)),
-		enterAuthor: (value: string) =>
-			formEvent(page(), () => {
-				tell(`the reader signs as ${value}`);
-				enterField(page(), "author", value);
-			}),
 		fieldValue: (name: string) => {
 			const field = page().document.querySelector(`[name="${name}"]`);
 			return field instanceof page().window.HTMLTextAreaElement ? field.value : undefined;

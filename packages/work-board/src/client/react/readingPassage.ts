@@ -20,13 +20,30 @@ export function scrollToPassage(hash: string) {
 	if (!target) {
 		return MISSING_PASSAGE;
 	}
-	if (target.matches('[id^="answer-card-"]')) {
-		const header = target.closest(".document-layout")?.querySelector(".item-introduction");
-		target.style.scrollMarginTop = `calc(var(--board-header-height, 0px) + ${(header?.getBoundingClientRect().height ?? 0) + 16}px)`;
+	if (!target.matches('[id^="answer-card-"]')) {
+		target.scrollIntoView();
+		target.focus({ preventScroll: true });
+		return "";
 	}
+	const header = target.closest(".document-layout")?.querySelector(".item-introduction");
+	target.style.scrollMarginTop = `calc(var(--board-header-height, 0px) + ${(header?.getBoundingClientRect().height ?? 0) + 16}px)`;
 	target.scrollIntoView();
-	target.focus({ preventScroll: true });
+	const control = answerControl(target);
+	if (control) {
+		control.focus();
+	} else {
+		target.focus({ preventScroll: true });
+	}
 	return "";
+}
+function answerControl(card: HTMLElement) {
+	const active = document.activeElement;
+	if (active instanceof HTMLElement && card.contains(active) && active.matches("[data-response-form] :is(textarea, input, [data-choice])")) {
+		return active;
+	}
+	return [...card.querySelectorAll<HTMLElement>("[data-response-form] :is([data-choice]:not([tabindex='-1']), textarea)")].find(
+		(control) => !(control.closest("details:not([open])") || control.matches(":disabled, [aria-disabled='true']")),
+	);
 }
 export function passageStatus(hash: string) {
 	return !hash || passageTarget(hash) ? "" : MISSING_PASSAGE;

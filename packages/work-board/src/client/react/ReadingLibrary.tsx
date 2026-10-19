@@ -1,28 +1,22 @@
 import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#client/react/components/ui/dialog.tsx";
+import { EmptyState } from "#client/react/EmptyState.tsx";
 import { LibraryContext, restoreLibrary } from "#client/react/LibraryContext.ts";
 import { useMainLocation } from "./MainLocationContext.ts";
-import { Modal } from "./Modal.tsx";
 import { ReadingHistory } from "./ReadingHistory.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
 
-export function ReadingLibrary({
-	api,
-	open,
-	close,
-	children,
-}: {
-	readonly api: ShellApi;
-	readonly open: boolean;
-	readonly close: () => void;
-	readonly children: ReactNode;
-}) {
+export function ReadingLibrary({ api, children }: { readonly api: ShellApi; readonly children: ReactNode }) {
 	const page = useMainLocation();
 	const key = `work-board:library:${document.documentElement.dataset.workspace}`;
 	const [saved, setSaved] = useState(() => restoreLibrary(key));
 	const [current, setCurrent] = useState("");
+	const [open, setOpen] = useState(false);
 	const savedRef = useRef(saved);
 	const visitedRef = useRef("");
+	const returnFocusRef = useRef<HTMLElement | null>(null);
+	const navigatingRef = useRef(false);
 	const save = useCallback(
 		(next: Pick<typeof saved, "favorites" | "recents">) => {
 			let notice = "";
@@ -36,6 +30,11 @@ export function ReadingLibrary({
 		},
 		[key],
 	);
+	const openHistory = useCallback((returnFocus: HTMLElement | null) => {
+		returnFocusRef.current = returnFocus;
+		navigatingRef.current = false;
+		setOpen(true);
+	}, []);
 	useLayoutEffect(() => {
 		function sync() {
 			if (!page.route) {
@@ -61,6 +60,7 @@ export function ReadingLibrary({
 		<LibraryContext.Provider
 			value={{
 				favorites: saved.favorites,
+				openHistory,
 				recents: saved.recents,
 				toggle: (file, title) =>
 					save({
@@ -72,23 +72,75 @@ export function ReadingLibrary({
 			}}
 		>
 			{children}
-			<Modal close={close} id={shellIds.libraryDialog} open={open} opener="library-open" title="library-title">
-				<div className="search-header">
-					<h2 id={shellIds.libraryTitle}>Reading history</h2>
-					<button id={shellIds.libraryClose} onClick={() => close()} type="button">
-						Close
-					</button>
-				</div>
-				<div className="reading-library" id={shellIds.readingLibrary}>
-					{open ? <ReadingHistory api={api} close={close} current={current} favorites={saved.favorites} recents={saved.recents} /> : null}
+			<HistoryDialog
+				api={api}
+				close={(navigating) => {
+					navigatingRef.current = navigating;
+					setOpen(false);
+				}}
+				current={current}
+				onClosed={() => {
+					if (!navigatingRef.current) {
+						returnFocusRef.current?.focus({ preventScroll: true });
+					}
+				}}
+				open={open}
+				saved={saved}
+			/>
+		</LibraryContext.Provider>
+	);
+}
+
+function HistoryDialog({
+	api,
+	open,
+	close,
+	onClosed,
+	current,
+	saved,
+}: {
+	readonly api: ShellApi;
+	readonly open: boolean;
+	readonly close: (navigating: boolean) => void;
+	readonly onClosed: () => void;
+	readonly current: string;
+	readonly saved: ReturnType<typeof restoreLibrary>;
+}) {
+	return (
+		<Dialog
+			onOpenChange={(next) => {
+				if (!next) {
+					close(false);
+				}
+			}}
+			onOpenChangeComplete={(next) => {
+				if (!next) {
+					onClosed();
+				}
+			}}
+			open={open}
+		>
+			<DialogContent
+				aria-describedby={undefined}
+				className="max-h-[80dvh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden p-0 text-sm sm:max-w-md"
+				finalFocus={false}
+				id={shellIds.libraryDialog}
+			>
+				<DialogHeader className="px-4 pt-4 pr-12">
+					<DialogTitle>Reading history</DialogTitle>
+				</DialogHeader>
+				<div className="min-h-0 overflow-y-auto px-2 pb-4">
+					<ReadingHistory api={api} current={current} favorites={saved.favorites} onClose={() => close(true)} recents={saved.recents} />
 					{saved.notice !== "" && (
-						<p className="library-status" role="status">
+						<p className="px-2 text-muted-foreground text-xs" role="status">
 							{saved.notice}
 						</p>
 					)}
-					{saved.notice === "" && saved.favorites.length + saved.recents.length === 0 && "No recent documents yet."}
+					{saved.notice === "" && saved.favorites.length + saved.recents.length === 0 && (
+						<EmptyState title="No reading history">Documents you open appear here so you can return to them.</EmptyState>
+					)}
 				</div>
-			</Modal>
-		</LibraryContext.Provider>
+			</DialogContent>
+		</Dialog>
 	);
 }
