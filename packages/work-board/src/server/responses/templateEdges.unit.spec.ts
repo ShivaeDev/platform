@@ -1,22 +1,21 @@
-import { expect } from "vitest";
+import { expect, it } from "vitest";
 import { questionTemplate } from "#server/responses/template.ts";
-import { boardStory, deferredServing } from "#test/boardStory.ts";
 import { packetOption, TEXT_QUESTION } from "#test/coverageEdges.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
 
-boardStory.it("rejects a packet explicitly scoped to an attention request absent from the source", [deferredServing], () => {
+it("rejects a packet explicitly scoped to an attention request absent from the source", () => {
 	expect(() => questionTemplate(questionnaireSource.replace('id="display"', 'id="display" request="missing"'), "direction")).toThrow(
 		"A question's request= must name an attention request in this document.",
 	);
 });
 
-boardStory.it("rejects empty option descriptions and nested response controls inside options", [deferredServing], () => {
+it("rejects empty option descriptions and nested response controls inside options", () => {
 	for (const body of ["", '::question[Nested]{id="nested"}']) {
 		expect(() => questionTemplate(packetOption(body), "direction")).toThrow("Options need Markdown descriptions and cannot nest response controls.");
 	}
 });
 
-boardStory.it("preserves external packet links when relocating reviewed descriptions", [deferredServing], () => {
+it("preserves external packet links when relocating reviewed descriptions", () => {
 	const source = TEXT_QUESTION.replace(
 		"What should happen next?",
 		"See [web](https://example.com/check?q=1#result) and [network](//example.com/check).",
