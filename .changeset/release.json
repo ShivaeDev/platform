@@ -3,78 +3,128 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "fleet-status-under-load.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- The daemon answers status and follow requests promptly right after a restart with 2,000 stored records. `fleet/status.md` lists the same 50 most recently completed items as `work-fleet status`, newest first, instead of one Done card per completed item, so the daemon no longer re-indexes a file that grows with every finished item. Follow snapshots read attempt rows only for executing work, and records are assembled from their child rows in one pass instead of scanning every child row once per record.\n"
+				"name": "board-long-docs.md",
+				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Fixed\n\n- Long documents show their title and item header right away and render the body section by section, instead of freezing the page while the whole document renders. Deep links to a late heading still land on it once its section is in place.\n\n### Added\n\n- The **On this page** outline marks the section the reader is in, on wide screens and in the phone outline menu.\n"
 			},
 			{
-				"name": "quality-exports-shape.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n\"@shivaedev/effect-pg-boss\": minor\n\"@shivaedev/effect-test-sql\": minor\n\"@shivaedev/local-postgres\": minor\n\"@shivaedev/test-story\": minor\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Quality's `manifests/exports-shape` rule checks exports at the package root and in workspace members by default. Modules use one file-preserving TypeScript wildcard with matching source, types and runtime targets; root entries, exact non-code assets, package metadata and null blocks are allowed.\n\n### Breaking\n\n- Quality's Biome preset moves from `@shivaedev/quality/biome` to `@shivaedev/quality/biome/preset.json`. Change the `extends` entry in your Biome config to the new path; the old alias is removed. TypeScript preset paths are unchanged.\n- `@shivaedev/effect-pg-boss`, `@shivaedev/effect-test-sql`, `@shivaedev/local-postgres` and `@shivaedev/test-story` expose server modules at their file paths. Add `/server/` after the package name in imports, for example `@shivaedev/test-story/server/storyKit.ts`. The shortened paths are removed; internal server modules remain blocked.\n- Work Board moves `@shivaedev/work-board/client/client.ts` to `@shivaedev/work-board/browserClient.ts`; change browser-client imports to that file path. `@shivaedev/work-board/client/document/View.ts` is removed: consume document queries with your own renderer, or use the bundled Board browser UI. The client bundle stays private and the old export overrides are removed.\n"
+				"name": "board-now-lanes.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- Table and All work on Now scroll with the page instead of inside fixed-height boxes, and so does the phone's Now lane. The table header sticks below the workspace header.\n- Switching between Now, All work and Table keeps the page still while the results already start in the top three quarters of the view, and the focused results show the Board's control focus ring instead of the browser outline.\n\n### Fixed\n\n- A task with an open ask for you, linked through `attention.unblocks`, sits in **Waiting on a person** and its card reads \"Waiting on your answer\". Asks only for agents and questions that only relate to a task leave it where it was.\n- An item's header says \"Needs you\" only when an open ask is for you, and \"Waiting on agents\" when only agents can answer it, matching Now and Today.\n- All work cards and the table's Kind column name a goal's kind \"Goal\" instead of \"PROJECT\" or \"project\".\n"
 			},
 			{
-				"name": "release-starter-pins.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+				"name": "effect-contract-typed-changes.md",
+				"text": "---\n\"@shivaedev/effect-contract\": minor\n---\n\n### Added\n\n- Contracts include their reserved `<namespace>.$changes` stream in native RPC client types, with the same middleware as declared operations. Subscribe through a client typed from the contract without a cast or a separate Changes group.\n\n### Breaking\n\n- Native contract handler builders now require the reserved `$changes` handler. When a Platform host supplies it, build application handlers with `contract.omit(\"<namespace>.$changes\").of(...)` and `.toLayer(...)`, while retaining the full contract for the host and client. Standalone servers and test clients must supply a changes stream handler. Remove hand-built Changes groups and use the contract directly.\n"
 			},
 			{
-				"name": "work-board-library-state.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Added\n\n- **Find documents** on Library keeps the documents whose title or ID contains every typed word, as Now's **Find work** does. `library.query` accepts the same text as an optional `query`.\n\n### Changed\n\n- Library keeps its text, kind, status, view and **Include files Fleet writes** choice in the URL, so Back, reload and a shared link reopen the same list. It used to reset to all documents by title.\n- Library opens on Recently changed and renders the first 100 rows with a count of all matches. **Show more** adds the next 100, and Back from a document returns to the same rows.\n- Library's Kind and Status filters use the same compact controls as Now.\n"
+				"name": "effect-react-live-session-recheck.md",
+				"text": "---\n\"@shivaedev/effect-react\": patch\n---\n\n### Fixed\n\n- Recheck the session when an automatic live connection fails with `Unauthorized`, so `SessionBoundary` shows its signed-out content without another query read, stops reconnecting while signed out and restores live updates after sign-in.\n"
+			},
+			{
+				"name": "effect-sql-latest-per-group.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Repositories expose `latestPerGroup({ partitionBy, orderBy, limit, where })` to read up to N rows per group in one statement, with typed filters applied before ranking and Schema-decoded results. `LatestPerGroup` and the existing `OrderBy` type are exported from `repository.ts`; the ordered sort keys include the caller's stable tie-break column.\n"
+			},
+			{
+				"name": "effect-sql-several-order-columns.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- `findMany` accepts a nonempty `orderBy` list of `{ field, direction }` entries, applying each in order to break ties with independently chosen directions. The single-object form and model field validation remain supported.\n"
+			},
+			{
+				"name": "pg-boss-failed-jobs.md",
+				"text": "---\n\"@shivaedev/effect-pg-boss\": minor\n---\n\n### Added\n\n- The jobs service lists a queue's failed jobs with `failedJobs(queue, { limit, cursor })` and the jobs in its dead-letter queue with `deadLetteredJobs(queue, { limit, cursor })`, newest first in pages with an opaque cursor. Each entry carries the job's ID, queue, state, attempt and retry counts, UTC times, the output pg-boss stored, and `data` decoded by the queue's Schema; invalid stored data fails with `PgBossPayloadError`. Dead-letter entries add the original job's ID and error. A failed entry's ID can be passed to `retry`.\n"
+			},
+			{
+				"name": "platform-typed-change-handlers.md",
+				"text": "---\n\"@shivaedev/platform\": patch\n---\n\n### Fixed\n\n- Host types account for framework-provided `$changes` handlers, so contracts with typed changes streams compose with application handler layers. Without a changes service, hosts preserve an application-supplied change handler or keep the stream idle. Public configuration handlers leave the reserved stream to the host.\n"
+			},
+			{
+				"name": "quality-unit-tests.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Added\n\n- A pure function with no engine behind it gets a plain test in a unit test file, declared with the `unit` modifier: `parse.unit.test.ts` beside `parse.ts`, or `<behaviour>.unit.spec.ts`. `tests/story-specs` accepts plain Vitest tests there and still rejects them in every other test file, so the default answer stays a story.\n- `tests/story-specs` rejects a `.unit` file that reaches an engine, directly or through what it imports: Node's file, network, process and worker modules, database clients, HTTP, socket and DOM libraries, and the story runners. It follows runtime imports through Quality's import graph, ignores type-only imports, and names the reached engine and the import chain. When the module under test reaches the engine, the finding asks you to split that module so its pure code can be tested alone.\n- `tests/story-specs` also rejects mocking (`vi.mock`, `vi.spyOn`, `vi.fn`, env and global stubs, fake timers), providing services (`Effect.provide*`, `Layer`, `ManagedRuntime`, `it.layer`) and DOM use in a `.unit` file and in the test-support fixtures it imports. Running an Effect that needs nothing, with `Effect.runSync` or `it.effect`, stays allowed.\n- `tests/follow` and `tests/colocated` accept `unit` as a test modifier beside `dom`, `slow` and `typecheck`, keep it in the names they suggest, and reject `.unit.dom` because a unit test runs without the DOM. `testProjects()` runs `.unit` files in the Node project. `ENVIRONMENTS` from `naming/testName.ts` now includes `\"unit\"`.\n- Every `tests/story-specs` finding names both repairs: drive the engine through the package's story kit, or, when the code under test is pure, move the test to a `.unit` file.\n- To adopt it, rename each baselined plain test of pure code to `<name>.unit.test.ts` (or `.unit.spec.ts`), run `quality lint` to confirm it reaches no engine and mocks nothing, then run `quality baseline tighten` so its `tests/story-specs` entry leaves the baseline and other entries move with the file. Replace a `tests/story-specs` exception kept for pure tests with the same rename.\n"
+			},
+			{
+				"name": "role-middleware.md",
+				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- RPCs declare the role they need as middleware. `AuthenticatedAdmin` and `AuthenticatedOwner` from `rpc/middleware.ts`, with `authenticatedAdminLayer(sessions)` and `authenticatedOwnerLayer(sessions)` from `server/rpc-server/roles.ts`, provide `Identity` and `SessionUser` to the handler and fail in the middleware's error channel with `Unauthorized` when the caller is signed out and `Forbidden` when the role list lacks `admin` or `owner`. Live streams behind them end with `Forbidden` at the next session revalidation after the role is removed. Replace `requireAdmin` calls inside RPC handlers with `.middleware(AuthenticatedAdmin)` on the RPC; `requireAdmin` remains the guard for HTTP routes.\n- `hasRole(user, role)` from `rpc/hasRole.ts` is the browser-safe role check over a user's comma-separated role list that the middleware and `requireAdmin` share.\n"
+			},
+			{
+				"name": "work-board-today-answered.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Added\n\n- Today lists recent answers under **Answered**: the item each question is about, when it was answered and what happened since. An answer reads \"Waiting on the agent.\" until its item closes, its question changes or Fleet's receipt settles it. Answers still waiting stay listed at any age; your own settled answers stay for a week. The inbox projection carries them as `recent`.\n- The Fleet start command has a Copy button. When the clipboard refuses it, the command is selected so you can copy it yourself. Start, Handoff and closed drafts share the same copy behaviour.\n\n### Changed\n\n- Each Answered row names the item its question is about, then the question's short label, your answer and the outcome on a second line. Two rows that would read the same add the request ID.\n- The Fleet start command wraps, so the whole command shows on a phone.\n- The sidebar and top bar show no needs-you badge at zero, like the phone's Today tab; screen readers still hear the count.\n- Getting started appears on an empty Today only while the workspace has no identified documents; the inbox projection carries this as `identified`.\n- The Today button for the `--home` file is named after that document's title instead of \"Workspace notes\". The breadcrumb root stays \"Workspace\".\n- \"How to start Fleet\" shows `npx @shivaedev/work-fleet serve <folder> --port <port>` with the Board's folder relative to where it was started, so it runs where work-fleet is a project dependency.\n- Plainer words on Today and System: \"N marked in progress\" instead of \"N in progress in task files\", no \"Task file\" badge, \"Age unknown\" instead of \"Age ?\", a plain sentence when files can't be read, \"Fleet isn't set up for this Board\" and System says where Pause updates lives.\n"
+			},
+			{
+				"name": "work-board-typed-change-handlers.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Native RPC handlers cover the reserved `$changes` stream required by typed contracts. Filesystem change delivery continues through the declared `work-board.subscribe` stream.\n"
+			},
+			{
+				"name": "work-fleet-typed-change-handlers.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Exported RPC contracts and application handler layers stay compatible with typed reserved change streams supplied by Platform hosts.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.9",
+				"from": "0.11.10",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.10"
+				"to": "0.11.11"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-contract",
+				"from": "0.8.0",
+				"name": "@shivaedev/effect-contract",
+				"to": "0.9.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-pg-boss",
-				"from": "0.12.0",
+				"from": "0.13.0",
 				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.13.0"
+				"to": "0.14.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-react",
+				"from": "0.11.0",
+				"name": "@shivaedev/effect-react",
+				"to": "0.11.1"
 			},
 			{
 				"bump": "minor",
+				"directory": "packages/effect-sql",
+				"from": "0.11.0",
+				"name": "@shivaedev/effect-sql",
+				"to": "0.12.0"
+			},
+			{
+				"bump": "patch",
 				"directory": "packages/effect-test-sql",
-				"from": "0.7.5",
+				"from": "0.8.0",
 				"name": "@shivaedev/effect-test-sql",
-				"to": "0.8.0"
+				"to": "0.8.1"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/local-postgres",
-				"from": "0.5.0",
-				"name": "@shivaedev/local-postgres",
-				"to": "0.6.0"
+				"directory": "packages/platform",
+				"from": "0.21.1",
+				"name": "@shivaedev/platform",
+				"to": "0.22.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/quality",
-				"from": "0.29.1",
+				"from": "0.30.0",
 				"name": "@shivaedev/quality",
-				"to": "0.30.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/test-story",
-				"from": "0.16.0",
-				"name": "@shivaedev/test-story",
-				"to": "0.17.0"
+				"to": "0.31.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/work-board",
-				"from": "0.22.0",
+				"from": "0.23.0",
 				"name": "@shivaedev/work-board",
-				"to": "0.23.0"
+				"to": "0.24.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.13.5",
+				"from": "0.13.6",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.13.6"
+				"to": "0.13.7"
 			}
 		]
 	}
