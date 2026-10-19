@@ -27,9 +27,13 @@ export function liveReady(updates: Updates | undefined): Atom.Atom<boolean> {
 	return updates === undefined ? always : ready(updates);
 }
 
-export function awaitLiveReady(registry: AtomRegistry.AtomRegistry, updates: Updates | undefined, signal: AbortSignal): Promise<void> {
+export function awaitLiveReady(registry: AtomRegistry.AtomRegistry, updates: Updates | undefined, signal: AbortSignal): Promise<void> | undefined {
+	const atom = liveReady(updates);
+	if (registry.get(atom)) {
+		return undefined;
+	}
 	return Effect.runPromise(
-		AtomRegistry.toStream(registry, liveReady(updates)).pipe(
+		AtomRegistry.toStream(registry, atom).pipe(
 			Stream.filter((value) => value),
 			Stream.runHead,
 		),
@@ -37,6 +41,9 @@ export function awaitLiveReady(registry: AtomRegistry.AtomRegistry, updates: Upd
 	).then(() => undefined);
 }
 
-export function useLiveRead<A, E>(updates: Updates | undefined, atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> {
+export function useLiveRead<A, E>(
+	updates: Updates | undefined,
+	atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+): Atom.Atom<AsyncResult.AsyncResult<A, E>> {
 	return useAtomValue(liveReady(updates)) ? atom : waiting;
 }

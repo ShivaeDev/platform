@@ -89,7 +89,11 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				seen = opened.pageRequests.methods.length;
 				yield* Effect.sleep("150 millis");
 			}
-			return Object.fromEntries(Map.groupBy(opened.pageRequests.methods, (method) => method).entries().map(([method, calls]) => [method, calls.length]));
+			return Object.fromEntries(
+				Map.groupBy(opened.pageRequests.methods, (method) => method)
+					.entries()
+					.map(([method, calls]) => [method, calls.length]),
+			);
 		}),
 		responseStatus: () => page().document.getElementById("response-status")?.textContent,
 		savedResponses: () => savedResponseItems(engine),

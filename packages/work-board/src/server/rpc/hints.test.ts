@@ -28,7 +28,10 @@ boardStory.it(
 		resaveFile("note.md");
 		editFile("other.md", "# Other edited");
 		const hint = yield* events.next();
-		expect(hint).toMatchObject({ _tag: "Changed", keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "other.md" }]) });
+		expect(hint).toMatchObject({
+			_tag: "Changed",
+			keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "other.md" }]),
+		});
 		expect(JSON.stringify(hint)).not.toContain("note.md");
 	},
 );

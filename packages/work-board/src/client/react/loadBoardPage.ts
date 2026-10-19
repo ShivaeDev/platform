@@ -34,7 +34,10 @@ export async function loadBoardPage({ context: { shell }, location, abortControl
 	const { api, registry } = shell;
 	const url = location.pathname + location.searchStr;
 	try {
-		await awaitLiveReady(registry, shell.client?.updates, abortController.signal);
+		const live = awaitLiveReady(registry, shell.client?.updates, abortController.signal);
+		if (live) {
+			await live;
+		}
 		const navigation = await loadQuery(registry, navigationQuery(api), { abortController });
 		const projection = projectionRoute(location.pathname, navigation.home);
 		if (projection) {
