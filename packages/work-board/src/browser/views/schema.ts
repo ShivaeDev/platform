@@ -45,6 +45,7 @@ const RecentAnswer = Schema.Struct({
 	answeredAt: Schema.Number,
 	href: Schema.String,
 	id: Schema.String,
+	label: Schema.optional(Schema.String),
 	state: RecentAnswerState,
 	title: Schema.String,
 });

@@ -47,18 +47,26 @@ function unblocked(request: Request | undefined, model: MetadataModel) {
 }
 
 interface Candidate {
-	readonly cues: readonly string[];
+	readonly request: string;
 	readonly row: RecentAnswer;
 }
 
-function firstLine(text: string) {
-	return plainText(reasonMarkdown(text).split("\n")[0]?.trim() ?? "");
+const LABEL_LENGTH = 80;
+
+function shortLabel(markdown: string) {
+	const text = plainText(reasonMarkdown(markdown).split("\n")[0]?.trim() ?? "");
+	if (text.length <= LABEL_LENGTH) {
+		return text;
+	}
+	const space = text.lastIndexOf(" ", LABEL_LENGTH);
+	return `${text.slice(0, space > 0 ? space : LABEL_LENGTH).replace(/[\s,;:.]+$/u, "")}…`;
 }
 
-function questionTitle(prompts: ReturnType<typeof questionPrompts>, request: Request | undefined, documentTitle: string) {
+function questionLabel(prompts: ReturnType<typeof questionPrompts>, request: Request | undefined, title: string) {
 	const [prompt, ...others] = prompts;
 	const heading = prompt && others.length === 0 ? promptHeading(prompt.source).title : undefined;
-	return heading || (request && firstLine(request.reason)) || documentTitle;
+	const label = heading || (request ? shortLabel(request.reason) : "");
+	return label && label !== title ? label : undefined;
 }
 
 function recentAnswer(question: Question, snapshot: Snapshot, titles: ReadonlyMap<string, string>): Candidate | undefined {
@@ -76,32 +84,35 @@ function recentAnswer(question: Question, snapshot: Snapshot, titles: ReadonlyMa
 	}
 	const target = unblocked(asked.request, model);
 	const prompts = questionPrompts(question.context, question.question.request, question.question.source);
-	const summary = responseSummary(answer, prompts, document, maintainer);
+	const title = (target ? titles.get(target.file) : undefined) ?? titles.get(document.file) ?? document.file;
+	const label = questionLabel(prompts, asked.request, title);
 	return {
-		cues: [asked.request ? firstLine(asked.request.reason) : "", summary.choice, question.question.request],
+		request: question.question.request,
 		row: {
-			answer: summary,
+			answer: responseSummary(answer, prompts, document, maintainer),
 			answeredAt: answer.response.recordedAt,
 			href: responseUrl(question.question.item, question.question.request),
 			id: target?.parsed.fields.id ?? question.question.item,
+			...(label === undefined ? {} : { label }),
 			state: stateOf(question, document, asked.request, model),
-			title: questionTitle(prompts, asked.request, titles.get(document.file) ?? document.file),
+			title,
 		},
 	};
 }
 
-// Questions can share a heading, such as each Fleet decision's "How should Fleet proceed?", so the first cue that differs tells them apart.
+// Two questions on one item can share their label, answer and outcome, such as two "How should Fleet proceed?" decisions; the request ID is then all that tells them apart.
+function sameness({ row }: Candidate) {
+	return JSON.stringify([row.title, row.label, row.answer.author, row.answer.choice, row.state]);
+}
+
 function distinct(candidates: readonly Candidate[]): RecentAnswer[] {
-	const byTitle = new Map<string, Candidate[]>();
+	const counts = new Map<string, number>();
 	for (const candidate of candidates) {
-		byTitle.set(candidate.row.title, [...(byTitle.get(candidate.row.title) ?? []), candidate]);
+		counts.set(sameness(candidate), (counts.get(sameness(candidate)) ?? 0) + 1);
 	}
-	return candidates.map(({ cues, row }) => {
-		const same = byTitle.get(row.title) ?? [];
-		const telling =
-			same.length > 1 ? cues.findIndex((_, index) => new Set(same.map((other) => other.cues[index] || row.title)).size === same.length) : -1;
-		const cue = cues[telling];
-		return cue ? { ...row, title: `${row.title} · ${cue}` } : row;
+	return candidates.map((candidate) => {
+		const { request, row } = candidate;
+		return (counts.get(sameness(candidate)) ?? 0) > 1 ? { ...row, label: row.label ? `${row.label} · ${request}` : request } : row;
 	});
 }
 

@@ -22,20 +22,18 @@ screenStory.it(
 		click("[data-attention-id='question.storage'] button[aria-haspopup='dialog']");
 		yield* Effect.promise(() => eventually(() => expect(findElement(OPTIONS, document)).not.toBeNull()));
 		yield* Effect.promise(() => activate(OPTIONS));
-		yield* Effect.promise(() =>
-			eventually(() => expect(answeredRows()).toEqual([[STORAGE, "You answered: Keep local files. Waiting on the agent."]])),
-		);
+		yield* Effect.promise(() => eventually(() => expect(answeredRows()).toEqual([[STORAGE, "You chose Keep local files · Waiting on the agent."]])));
 		expect(readText('#needs-you [data-slot="empty-title"]')).toBe("Nothing needs you");
 		expect(findElement("#needs-you a[href='/_board/start']")).toBeNull();
 		expect(readText(`${ROWS} time`)).toBe("just now");
 		editFile("question.md", inboxQuestion.replace("status: open", "status: done"));
 		yield* Effect.promise(refreshInbox);
-		yield* Effect.promise(() => eventually(() => expect(answeredRows()).toEqual([[STORAGE, "You answered: Keep local files. It's closed now."]])));
+		yield* Effect.promise(() => eventually(() => expect(answeredRows()).toEqual([[STORAGE, "You chose Keep local files · It's closed now."]])));
 		editFile("question.md", `${inboxQuestion}\nThe shared drive is gone.\n`);
 		yield* Effect.promise(refreshInbox);
 		yield* Effect.promise(() =>
 			eventually(() =>
-				expect(answeredRows()).toEqual([[STORAGE, "You answered: Keep local files. The question changed after the answer, so it asks again."]]),
+				expect(answeredRows()).toEqual([[STORAGE, "You chose Keep local files · The question changed after the answer, so it asks again."]]),
 			),
 		);
 		expect(findElement("[data-attention-id='question.storage']")).not.toBeNull();
@@ -49,9 +47,9 @@ screenStory.it(
 		yield* Effect.promise(() =>
 			eventually(() =>
 				expect(answeredRows()).toEqual([
-					["Ship the guide this week?", "You answered: Yes. It's closed now."],
-					["Drop the old flag?", "Answered by reviewer: Yes. Waiting on the agent."],
-					["Keep the release branch?", "You answered: Yes. Waiting on the agent."],
+					["Ship the guide this week?", "You chose Yes · It's closed now."],
+					["Drop the old flag?", "reviewer chose Yes · Waiting on the agent."],
+					["Keep the release branch?", "You chose Yes · Waiting on the agent."],
 				]),
 			),
 		);
@@ -105,14 +103,19 @@ screenStory.it(
 );
 
 screenStory.it(
-	"names each answer by its own question and tells apart questions that share a heading",
+	"names each answer by the item it is about and tells its questions apart by a label that never repeats it, then request ID",
 	[routedScreen(sharedHeadingFixture(Effect.runSync(Clock.currentTimeMillis)), "/", { home: "home.md" })],
 	function* ({ answeredRows }) {
 		yield* Effect.promise(() =>
 			eventually(() =>
 				expect(answeredRows()).toEqual([
-					["How should we proceed? · The release notes are missing", "You answered: Retry. Waiting on the agent."],
-					["How should we proceed? · The PR changed after review", "You answered: Retry. Waiting on the agent."],
+					["Ship the release", "How should we proceed? · notes-blocked · You chose Retry · Waiting on the agent."],
+					["Ship the release", "How should we proceed? · review-stale · You chose Retry · Waiting on the agent."],
+					[
+						"Ship the release",
+						"The changelog wording for the release reads as a breaking change, although every… · You answered · Waiting on the agent.",
+					],
+					["Ship the release", "You answered · Waiting on the agent."],
 				]),
 			),
 		);

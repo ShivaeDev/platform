@@ -25,6 +25,11 @@ export function answeredCopy(answer: AnswerSummary, fleet: FleetItemsProjection 
 	return `${answeredLine(answer)} ${fleetLine(fleet)}`;
 }
 
+function chosen(answer: AnswerSummary) {
+	const who = answer.yours ? "You" : answer.author;
+	return answer.choice ? `${who} chose ${answer.choice}` : `${who} answered`;
+}
+
 export function recentAnswerCopy(row: RecentAnswer, fleet: FleetItemsProjection | undefined): string {
-	return `${answeredLine(row.answer)} ${row.state === "fleet" ? fleetLine(fleet) : outcomes[row.state]}`;
+	return [row.label, chosen(row.answer), row.state === "fleet" ? fleetLine(fleet) : outcomes[row.state]].filter(Boolean).join(" · ");
 }

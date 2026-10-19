@@ -102,30 +102,33 @@ export function recentAnswersFixture(now: number): Record<string, string> {
 	};
 }
 
-function decision(id: string, reason: string) {
+function decision(id: string, request: string, reason: string, asks: boolean) {
+	const asked = asks
+		? `::::question{id="${request}" select="one"}\n### How should we proceed?\n\n:::option{id="retry"}\nRetry once the blocker is gone.\n:::\n\n:::option{id="release"}\nRelease the work.\n:::\n::::\n`
+		: "";
 	return `---\n${JSON.stringify({
-		attention: [{ id: "proceed", kind: "decision", reason, "response_from": ["maintainer"], state: "open", unblocks: ["task.ship"] }],
+		attention: [{ id: request, kind: "decision", reason, "response_from": ["maintainer"], state: "open", unblocks: ["task.ship"] }],
 		id,
 		kind: "decision",
-	})}\n---\n# Decision for task.ship\n\n::::question{id="proceed" select="one"}\n### How should we proceed?\n\n:::option{id="retry"}\nRetry once the blocker is gone.\n:::\n\n:::option{id="release"}\nRelease the work.\n:::\n::::\n`;
+	})}\n---\n# Decision for task.ship\n\n${asked}`;
 }
 
-function answeredDecision(file: string, id: string, reason: string, recordedAt: number) {
-	const source = decision(id, reason);
+function answeredDecision(file: string, id: string, request: string, reason: string, recordedAt: number, asks = true) {
+	const source = decision(id, request, reason, asks);
 	const revision = revisionOf(source);
-	const record = questionId(id, "proceed", revision, file);
+	const record = questionId(id, request, revision, file);
 	return {
 		[file]: source,
 		[`responses/${record}.md`]: questionMarkdown({
 			context: source,
 			id: record,
-			question: { deadline: 0, item: id, reason, registeredAt: 0, request: "proceed", reviewedRevision: revision, source: file },
+			question: { deadline: 0, item: id, reason, registeredAt: 0, request, reviewedRevision: revision, source: file },
 		}),
 		[`responses/response.${id}.md`]: responseMarkdown({
-			body: "",
+			body: asks ? "" : "Go ahead.",
 			id: `response.${id}`,
 			response: {
-				answers: [{ prompt: "proceed", selected: ["retry"], text: "" }],
+				...(asks ? { answers: [{ prompt: request, selected: ["retry"], text: "" }] } : {}),
 				author: "maintainer",
 				question: record,
 				recordedAt,
@@ -140,7 +143,16 @@ export function sharedHeadingFixture(now: number): Record<string, string> {
 	return {
 		"home.md": "# Release plans\n",
 		"task.md": "---\nid: task.ship\nkind: task\nstatus: blocked\n---\n# Ship the release\n",
-		...answeredDecision("decisions/notes.md", "decision.notes", "The release notes are **missing**", now - DAY),
-		...answeredDecision("decisions/review.md", "decision.review", "The PR changed after review", now - 2 * DAY),
+		...answeredDecision("decisions/notes.md", "decision.notes", "notes-blocked", "The release notes are **missing**", now - DAY),
+		...answeredDecision("decisions/review.md", "decision.review", "review-stale", "The PR changed after review", now - 2 * DAY),
+		...answeredDecision(
+			"decisions/wording.md",
+			"decision.wording",
+			"wording",
+			"The changelog wording for the **release** reads as a breaking change, although every public type and export stays the same",
+			now - 3 * DAY,
+			false,
+		),
+		...answeredDecision("decisions/same.md", "decision.same", "same", "Ship the release", now - 4 * DAY, false),
 	};
 }
