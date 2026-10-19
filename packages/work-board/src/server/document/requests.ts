@@ -1,9 +1,10 @@
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { DocumentRequest, RequestState } from "#browser/document/schema.ts";
+import { errorMessage } from "#errorMessage.ts";
 import { addressedElsewhere, authoredQuestion, openItem } from "#server/attention/inbox.ts";
 import { requestInbox } from "#server/attention/requestInbox.ts";
 import { attentionRequests, isMaintainerRequest } from "#server/attention/requests.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
+import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
 import { responseHistory } from "#server/responses/history.ts";
 import { questionId, revisionOf } from "#server/responses/records.ts";
 import { requestSource } from "#server/responses/requestSource.ts";
@@ -14,6 +15,7 @@ import { requestTitle } from "./requestTitle.ts";
 interface ItemRequest {
 	readonly active: { readonly document: MetadataDocument; readonly reason: string } | undefined;
 	readonly document: MetadataDocument;
+	readonly item: string;
 	readonly request: string;
 	readonly state: RequestState;
 }
@@ -38,7 +40,7 @@ export function itemRequests(document: MetadataDocument, snapshot: Snapshot): re
 
 export function documentRequests(document: MetadataDocument, source: string, snapshot: Snapshot): readonly DocumentRequest[] {
 	return itemRequests(document, snapshot).map((request) =>
-		requestDetails(request, request.document === document ? source : (request.document.parsed.raw ?? "") + request.document.parsed.body, snapshot),
+		requestDetails(request, request.document === document ? source : documentSource(request.document), snapshot),
 	);
 }
 
@@ -55,6 +57,7 @@ function sourceRequests(document: MetadataDocument, snapshot: Snapshot): readonl
 		return {
 			active,
 			document,
+			item,
 			request: id,
 			state: {
 				answered,
@@ -76,8 +79,7 @@ function audienceOf(document: MetadataDocument, id: string, snapshot: Snapshot):
 	return addressedElsewhere(document, maintainer) ? "agents" : "you";
 }
 
-function requestDetails({ active, document, request: id, state }: ItemRequest, source: string, snapshot: Snapshot): DocumentRequest {
-	const item = document.parsed.fields.id ?? "";
+function requestDetails({ active, document, item, request: id, state }: ItemRequest, source: string, snapshot: Snapshot): DocumentRequest {
 	const reviewedRevision = revisionOf(source);
 	const preview = {
 		context: source,
@@ -103,10 +105,10 @@ function requestDetails({ active, document, request: id, state }: ItemRequest, s
 		try {
 			return { ...request, prompts: questionTemplate(source, id, document.file).prompts, responses };
 		} catch (error) {
-			return { ...request, promptUnavailable: error instanceof Error ? error.message : String(error), responses };
+			return { ...request, promptUnavailable: errorMessage(error), responses };
 		}
 	} catch (error) {
-		return { ...request, unavailable: error instanceof Error ? error.message : String(error) };
+		return { ...request, unavailable: errorMessage(error) };
 	}
 }
 

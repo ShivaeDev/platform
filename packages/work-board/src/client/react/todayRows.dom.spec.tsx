@@ -85,9 +85,7 @@ screenStory.it(
 		yield* roles.click({ name: "Answer Question for reader", role: "button" });
 		yield* roles.enter({ name: "Your answer", role: "textbox" }, "Publish the guide on Monday.");
 		yield* roles.click({ name: "Record answer", role: "button" });
-		yield* Effect.promise(() =>
-			eventually(() => expect(roles.text({ name: "Answered, waiting for Fleet", role: "list" })).toContain("Question for reader")),
-		);
+		yield* Effect.promise(() => eventually(() => expect(roles.text({ name: "Answered", role: "list" })).toContain("Question for reader")));
 		const saved = yield* Effect.promise(() => readResponses("decision.reader", "direction"));
 		expect(saved.responses.map((entry) => entry.body)).toEqual(["Publish the guide on Monday."]);
 	},

@@ -1,7 +1,7 @@
 import type { RequestReceipt } from "#attention/RequestReceipt.ts";
 import type { Question, RecordedResponse } from "#browser/responses/schema.ts";
 import type { Metadata } from "#metadata/schema.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
+import { documentSource, type MetadataDocument, type MetadataModel } from "#server/metadata/model.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import { questionId, revisionOf } from "#server/responses/records.ts";
 
@@ -62,7 +62,7 @@ function registeredQuestion(document: MetadataDocument, request: Request, model:
 	) {
 		return undefined;
 	}
-	const source = `${document.parsed.raw ?? ""}${document.parsed.body}`;
+	const source = documentSource(document);
 	const revision = revisionOf(source);
 	const id = questionId(item, request.id, revision, document.file);
 	const archived = uniqueDocument(id, model);

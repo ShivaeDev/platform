@@ -3,7 +3,7 @@ import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
-import type { FindMany } from "#repository.ts";
+import type { FindMany, LatestPerGroup } from "#repository.ts";
 import { makeFilter } from "#repositoryFilter.ts";
 
 type Key<TModel extends Model.Any> = Extract<keyof TModel["fields"] & keyof Row<TModel>, string>;
@@ -23,6 +23,13 @@ export interface Queries<TModel extends Model.Any> {
 		Pick<Row<TModel>, TKey>[],
 		SqlError | Schema.SchemaError,
 		TModel["fields"][Key<TModel>]["EncodingServices"] | TModel["fields"][TKey]["DecodingServices"]
+	>;
+	latestPerGroup: (
+		query: LatestPerGroup<TModel>,
+	) => Effect.Effect<
+		Row<TModel>[],
+		SqlError | Schema.SchemaError,
+		TModel["fields"][Key<TModel>]["EncodingServices"] | TModel["fields"][Key<TModel>]["DecodingServices"]
 	>;
 	select: <TKey extends Key<TModel> = Key<TModel>>(
 		query?: FindMany<TModel, TKey>,
@@ -83,5 +90,26 @@ export function makeQueries<TModel extends Model.Any>(
 			return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(selected.fields)))(rows);
 		}).pipe(Effect.withSpan(`${options.spanPrefix}.findMany`));
 	}
-	return { findMany, select };
+	function latestPerGroup(query: LatestPerGroup<TModel>): ReturnType<Queries<TModel>["latestPerGroup"]>;
+	function latestPerGroup(query: LatestPerGroup<TModel>): Effect.Effect<unknown, SqlError | Schema.SchemaError, unknown> {
+		return Effect.gen(function* () {
+			yield* Effect.forEach(query.partitionBy, fieldAt);
+			const predicate = yield* where(query.where, true);
+			const order = yield* orderClause(query.orderBy);
+			const count = yield* Schema.decodeUnknownEffect(Limit)(query.limit);
+			const partitions = sql.csv(query.partitionBy.map((key) => sql`${sql(key)}`));
+			const columns = sql.csv(Object.keys(model.fields).map((key) => sql`${sql(key)}`));
+			let rankColumn = "__effect_sql_rank";
+			while (Object.hasOwn(model.fields, rankColumn)) {
+				rankColumn += "_";
+			}
+			const rows = yield* sql`select ${columns} from (
+				select ${columns}, row_number() over (partition by ${partitions} ${order}) as ${sql(rankColumn)}
+				from ${sql(options.tableName)} where ${predicate}
+			) as ${sql("__effect_sql_ranked")} where ${sql(rankColumn)} <= ${count}
+			order by ${partitions}, ${sql(rankColumn)}`;
+			return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(model.fields)))(rows);
+		}).pipe(Effect.withSpan(`${options.spanPrefix}.latestPerGroup`));
+	}
+	return { findMany, latestPerGroup, select };
 }

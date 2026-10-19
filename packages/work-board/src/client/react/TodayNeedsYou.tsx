@@ -9,10 +9,12 @@ export function TodayNeedsYou({
 	answering,
 	api,
 	complete,
+	identified,
 }: {
 	readonly answering: ReturnType<typeof useSavedAnswers>;
 	readonly api: ShellApi;
 	readonly complete: boolean;
+	readonly identified: boolean;
 }) {
 	const headingRef = useRef<HTMLHeadingElement>(null);
 	const [announced, setAnnounced] = useState(false);
@@ -34,6 +36,7 @@ export function TodayNeedsYou({
 			<TodayNeeds
 				api={api}
 				complete={complete}
+				identified={identified}
 				items={answering.items}
 				onSaved={(item) => {
 					answering.save(item);

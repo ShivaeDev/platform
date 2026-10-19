@@ -1,3 +1,5 @@
+import { errorMessage } from "#errorMessage.ts";
+
 export type MarkdownRenderers = typeof import("./markdownRenderers.ts").markdownRenderers;
 export type ChunkLoad<T> = T | { readonly error: string };
 
@@ -12,7 +14,7 @@ function lazyChunk<T>(load: () => Promise<T>) {
 					loaded = module;
 					return module;
 				},
-				(error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }),
+				(error: unknown) => ({ error: errorMessage(error) }),
 			);
 			return loading;
 		},

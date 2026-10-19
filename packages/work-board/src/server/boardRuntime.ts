@@ -19,6 +19,8 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 	yield* checkBrowserAssets();
 	const changes = yield* watchChanges(options.root);
 	const pullRequests = yield* repositoryPulls(options.root);
+	const path = yield* Path.Path;
+	const fleetFolder = path.relative(path.resolve(), options.root) || ".";
 	const platform = (yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>()).pipe(
 		Context.pick(Highlighter, FileSystem.FileSystem, Path.Path),
 	);
@@ -39,6 +41,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 	const provided = yield* Effect.serviceOption(DiagnosticsSources);
 	const services = yield* Layer.build(
 		boardServices({
+			fleetFolder,
 			...(options.fleetPort === undefined ? {} : { fleetPort: options.fleetPort }),
 			...(server === undefined ? {} : { server }),
 		}).pipe(
@@ -57,7 +60,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 					DiagnosticsConfig,
 					provided._tag === "Some"
 						? { _tag: "Sources", sources: provided.value }
-						: { _tag: "Read", read: daemonDiagnostics(options.root, options.fleetPort) },
+						: { _tag: "Read", read: daemonDiagnostics(fleetFolder, options.fleetPort) },
 				),
 			]),
 		),
