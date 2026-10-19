@@ -6,6 +6,7 @@ import { Button } from "#client/react/components/ui/button.tsx";
 import { Checkbox } from "#client/react/components/ui/checkbox.tsx";
 import { Command, CommandInput } from "#client/react/components/ui/command.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
+import { SearchOutcome } from "#client/react/SearchOutcome.tsx";
 import { SearchResults } from "#client/react/SearchResults.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { activateCommand, matchingCommands, type SearchItem } from "#client/react/searchCommands.ts";
@@ -133,6 +134,15 @@ export function SearchPalette({
 				)}
 			</div>
 			<SearchResults activate={activate} items={items} listRef={listRef} />
+			<SearchOutcome
+				failed={failed}
+				found={items.length}
+				input={input}
+				onIncludeRecords={records ? undefined : () => setRecords(true)}
+				onKeyDown={handleControlKeyDown}
+				text={text}
+				waiting={editing || query.pending || !data}
+			/>
 			<ActiveDescendant inputRef={inputRef} listRef={listRef} />
 		</Command>
 	);

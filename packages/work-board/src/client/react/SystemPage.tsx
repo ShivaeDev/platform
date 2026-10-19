@@ -24,7 +24,7 @@ export function SystemPage({
 	return (
 		<div className="space-y-6">
 			<PageHeader
-				summary="Agent usage, Fleet health and workspace source problems. Refreshes every 15 seconds while this view is visible; Pause updates holds the current view."
+				summary="How much agent and GitHub capacity is left, how Fleet is doing, and which files the Board could not read. The page updates every 15 seconds while it is open. Use Pause updates to stop this."
 				title="System"
 			/>
 			<div className="grid gap-4 lg:grid-cols-2">
@@ -36,12 +36,14 @@ export function SystemPage({
 					name="Codex"
 					render={(value) => <DiagnosticsWindows now={now} value={value} />}
 					source={data.codex}
+					title="Codex usage"
 				/>
 				<Card
 					attention={data.github.state === "ready" && data.github.value.some((window) => githubLimited(window, now))}
 					name="GitHub"
 					render={(value) => <DiagnosticsGithub now={now} value={value} />}
 					source={data.github}
+					title="GitHub request limits"
 				/>
 				<Card
 					attention={
@@ -63,12 +65,14 @@ export function SystemPage({
 }
 function Card<A>({
 	name,
+	title = name,
 	source,
 	attention,
 	stale,
 	render,
 }: {
 	readonly name: string;
+	readonly title?: string;
 	readonly source: Observation<A>;
 	readonly attention: boolean;
 	readonly stale?: boolean;
@@ -93,7 +97,7 @@ function Card<A>({
 				<CardHeader>
 					<CardTitle>
 						<h2 className="text-lg" id={`diagnostics-${name.toLowerCase()}`}>
-							{name}
+							{title}
 						</h2>
 					</CardTitle>
 					<CardAction>
@@ -103,7 +107,7 @@ function Card<A>({
 				<CardContent className="space-y-4">{source.state === "ready" ? render(source.value) : <p role="status">{source.cause}</p>}</CardContent>
 				<CardFooter className="mt-auto text-muted-foreground text-xs">
 					<p>
-						Observed <ObservedTime at={source.observedAt} />
+						Last checked <ObservedTime at={source.observedAt} />
 					</p>
 				</CardFooter>
 			</Surface>

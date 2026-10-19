@@ -16,11 +16,11 @@ const brokenSources = {
 const FIXED_SOURCE = "---\nid: note.extra\n---\n# Extra fields\n";
 
 screenStory.it(
-	"tells Today how many sources have problems and links to where they are listed",
+	"tells Today how many files have problems and links to where they are listed",
 	[screenFiles({ ...fleetWorkspace, ...brokenSources }, { home: "home.md" }), openScreen()],
 	function* ({ findElement, readAttribute, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(LINE)).not.toBeNull()));
-		expect(readText(".today-strip")).toBe("3 need you·Fleet unavailable·0 active goals·2 sources have problems");
+		expect(readText(".today-strip")).toBe("3 need you·Fleet unavailable·0 active goals·2 files have problems");
 		expect(readAttribute(LINE, "href")).toBe("/_board/system#source-problems");
 	},
 );
@@ -29,7 +29,7 @@ screenStory.it(
 	"drops the Today problems line once every source is fixed",
 	[screenFiles({ ...fleetWorkspace, "notes/extra.md": brokenSources["notes/extra.md"] }, { home: "home.md" }), openScreen()],
 	function* ({ editFile, findElement, readText, refreshInbox }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(LINE)).toBe("1 source has problems")));
+		yield* Effect.promise(() => eventually(() => expect(readText(LINE)).toBe("1 file has problems")));
 		editFile("notes/extra.md", FIXED_SOURCE);
 		yield* Effect.promise(refreshInbox);
 		yield* Effect.promise(() => eventually(() => expect(findElement(LINE)).toBeNull()));
@@ -40,7 +40,7 @@ screenStory.it(
 screenStory.it(
 	"lists each source problem with its path and reason on System",
 	[screenFiles({ ...fleetWorkspace, ...brokenSources }, { home: "home.md" }), screenRoute("/_board/system"), openScreen()],
-	function* ({ findElements, readAttribute }) {
+	function* ({ findElements, readAttribute, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElements("[data-source-problem]")).toHaveLength(3)));
 		expect(findElements("[data-source-problem]").map((row) => [row.querySelector("a")?.textContent, row.lastElementChild?.textContent])).toEqual([
 			["notes/extra.md", "Unknown field flavor; kept in the original frontmatter."],
@@ -48,14 +48,16 @@ screenStory.it(
 			["notes/missing.md", expect.stringContaining("absent.item")],
 		]);
 		expect(readAttribute("[data-source-problem] a", "href")).toBe("/notes/extra.md");
+		expect(readText("#source-problems-title")).toBe("Files with problems");
+		expect(readText("[data-source-problem] span")).toMatch(/^Line \d+$/u);
 	},
 );
 
 screenStory.it(
-	"tells System that every source reads cleanly when none has problems",
+	"tells System that no file has problems with an empty state",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), screenRoute("/_board/system"), openScreen()],
 	function* ({ findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#source-problems")).toContain("Every workspace file reads cleanly.")));
+		yield* Effect.promise(() => eventually(() => expect(readText('#source-problems [data-slot="empty-title"]')).toBe("No files with problems")));
 		expect(findElement("[data-source-problem]")).toBeNull();
 	},
 );

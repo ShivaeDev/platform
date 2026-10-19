@@ -11,7 +11,7 @@ boardStory.it(
 	function* ({ getPage, systemHtml }) {
 		expect((yield* getPage("/_board/system")).status).toBe(200);
 		const body = yield* systemHtml();
-		for (const text of ["24% used", "63% used", "4321 / 5000", "0 / 5000", "3 / 8", "Provider is at capacity", "Last scheduler pass"]) {
+		for (const text of ["24% used", "63% used", "4321 of 5000", "0 of 5000", "3 / 8", "Provider is at capacity", "Last scheduler pass"]) {
 			expect(body).toContain(text);
 		}
 		expect(body).toContain("<dt>Needs you</dt>");
@@ -67,7 +67,7 @@ for (const [readAt, label] of [
 		function* ({ systemHtml }) {
 			const body = yield* systemHtml();
 			expect(body).toContain(label);
-			for (const text of ["None observed", "Not reported", "Window not reported", "Needs attention"]) {
+			for (const text of ["None observed", "<h3>Short limit</h3><p>Not reported</p>", "<h3>Long limit</h3><p>Not reported</p>", "Needs attention"]) {
 				expect(body).toContain(text);
 			}
 		},
@@ -85,21 +85,23 @@ boardStory.it(
 		const github = html.slice(html.indexOf('data-source="github"'), html.indexOf("</article>", html.indexOf('data-source="github"')));
 		expect(github).toContain('data-state="attention"');
 		const rest = github.slice(github.indexOf('data-resource="core"'), github.indexOf('data-resource="graphql"'));
-		expect(rest).toContain("<dt>REST</dt>");
-		expect(rest).toContain("4321 / 5000");
+		expect(rest).toContain("<dt>REST API</dt>");
+		expect(rest).toContain("4321 of 5000</strong> requests left");
+		expect(rest).toContain("Checked <time");
 		expect(rest).toContain("1 min ago");
-		expect(rest).not.toContain("Rate-limited");
+		expect(rest).not.toContain("Resumes");
 		const graphql = github.slice(github.indexOf('data-resource="graphql"'), github.indexOf('data-resource="search"'));
-		expect(graphql).toContain("<dt>GraphQL</dt>");
-		expect(graphql).toContain("0 / 5000");
-		expect(graphql).toContain("<strong>Rate-limited</strong> until");
+		expect(graphql).toContain("<dt>GraphQL API</dt>");
+		expect(graphql).toContain("0 of 5000");
+		expect(graphql).toContain("<strong>GitHub is blocking requests</strong>. Resumes");
 		expect(graphql).toContain("5 min ago");
 		const search = github.slice(github.indexOf('data-resource="search"'));
-		expect(search).toContain("<dt>Search</dt>");
-		expect(search).toContain("5 / 30");
-		expect(search).toContain("<strong>GitHub paused below the 20% reserve</strong> until");
-		expect(search).not.toContain("Rate-limited");
-		expect(github).toContain("Recorded from the rate-limit headers of Fleet&#x27;s own GitHub responses.");
+		expect(search).toContain("<dt>Search API</dt>");
+		expect(search).toContain("5 of 30");
+		expect(search).toContain("<strong>Fleet paused to keep 20% in reserve</strong>. Resumes");
+		expect(search).not.toContain("GitHub is blocking requests");
+		expect(github).toContain("Fleet reads these limits from its own GitHub requests. The Board does not call GitHub.");
+		expect(github).toContain("GitHub request limits");
 	},
 );
 
@@ -114,7 +116,7 @@ boardStory.it(
 		const fleet = html.slice(html.indexOf('data-source="fleet"'));
 		expect(fleet).toContain('data-state="stale"');
 		expect(fleet).toContain(">Stale</span>");
-		expect(fleet).toContain(`Observed <time dateTime="${new Date(now).toISOString()}"`);
+		expect(fleet).toContain(`Last checked <time dateTime="${new Date(now).toISOString()}"`);
 		expect(fleet).not.toContain(new Date(now + 120_000).toISOString());
 	},
 );
@@ -128,17 +130,18 @@ boardStory.it(
 	],
 	function* ({ systemHtml }) {
 		const html = yield* systemHtml();
-		expect(html).toContain("<h3>5-hour</h3>");
-		expect(html).toContain("<h3>Weekly</h3>");
+		expect(html).toContain("<h3>5-hour limit</h3>");
+		expect(html).toContain("<h3>Weekly limit</h3>");
+		expect(html).toContain("Codex usage");
 		expect(html).toContain(
 			`in 3 h, ${new Date(codexResponse.rateLimits.primary.resetsAt * 1000).toLocaleTimeString(undefined, { hour: "2-digit", hour12: false, minute: "2-digit" })}`,
 		);
 	},
 );
 for (const [minutes, label] of [
-	[30, "30-minute"],
-	[2880, "2-day"],
-	[null, "Primary — duration not reported"],
+	[30, "30-minute limit"],
+	[2880, "2-day limit"],
+	[null, "Short limit (length not reported)"],
 ] as const) {
 	boardStory.it(
 		`labels a ${label} Codex window`,

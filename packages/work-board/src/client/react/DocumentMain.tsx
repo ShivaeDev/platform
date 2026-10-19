@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { DocumentPage } from "./DocumentPage.tsx";
+import { LoadingPage } from "./LoadingPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionMain } from "./ProjectionMain.tsx";
 import { RemainingMain } from "./RemainingMain.tsx";
@@ -42,13 +43,13 @@ export function DocumentMain({
 	return (
 		<>
 			<main className="document-view min-w-0 p-4 md:p-8" data-file="" data-react-document data-url="" id={shellIds.doc} ref={hostRef} tabIndex={-1}>
-				{data ? (
-					<DocumentPage api={api} document={data} key={data.identity ?? data.file} />
-				) : (
+				{data ? <DocumentPage api={api} document={data} key={data.identity ?? data.file} /> : null}
+				{data === undefined && Option.isNone(query.cause) ? <LoadingPage /> : null}
+				{data === undefined && Option.isSome(query.cause) ? (
 					<p className="empty" role="status">
-						{loadingMessage(failure?._tag, Option.isSome(query.cause), url)}
+						{failureMessage(failure?._tag, url)}
 					</p>
-				)}
+				) : null}
 			</main>
 			{data !== undefined && Option.isSome(query.cause) && <p role="status">Refresh failed. Your displayed page is retained.</p>}
 		</>
@@ -63,7 +64,7 @@ function readStatus(tag: string | undefined, failed: boolean) {
 	}
 	return failed ? "503" : "200";
 }
-function loadingMessage(tag: string | undefined, failed: boolean, url: string) {
+function failureMessage(tag: string | undefined, url: string) {
 	if (tag === "Conflict") {
 		return "The document identity is duplicated. No document was selected. Inspect the project files to resolve the duplicate ID.";
 	}
@@ -73,5 +74,5 @@ function loadingMessage(tag: string | undefined, failed: boolean, url: string) {
 	if (tag === "NotFound" && /\.md$/iu.test(new URL(url, "http://127.0.0.1").pathname)) {
 		return `No markdown file at ${decodeURIComponent(new URL(url, "http://127.0.0.1").pathname.slice(1))}.`;
 	}
-	return failed ? "This document could not be opened. Retry the link or reload the page." : "Opening document…";
+	return "This document could not be opened. Retry the link or reload the page.";
 }

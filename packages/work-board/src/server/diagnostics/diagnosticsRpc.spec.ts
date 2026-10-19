@@ -9,7 +9,7 @@ boardStory.it(
 	[projectFiles({ "fleet/health.json": JSON.stringify({ ...health, running: 99 }) }), daemonSnapshot(diagnosticsSnapshot)],
 	function* ({ systemHtml }) {
 		const body = yield* systemHtml();
-		for (const text of ["24% used", "4321 / 5000", "3 / 8", "Current snapshot"]) {
+		for (const text of ["24% used", "4321 of 5000", "3 / 8", "Current snapshot"]) {
 			expect(body).toContain(text);
 		}
 		expect(body).toContain(`<dt>Waiting on the orchestrator</dt><dd><strong>${health.waiting.orchestrator}</strong>`);
@@ -25,7 +25,7 @@ boardStory.it(
 	function* ({ systemHtml }) {
 		const body = yield* systemHtml();
 		expect(body).toContain('data-source="fleet" data-state="stale"');
-		expect(body).toContain(`Observed <time dateTime="${new Date(old).toISOString()}"`);
+		expect(body).toContain(`Last checked <time dateTime="${new Date(old).toISOString()}"`);
 		expect(body).toContain("Stale snapshot");
 	},
 );

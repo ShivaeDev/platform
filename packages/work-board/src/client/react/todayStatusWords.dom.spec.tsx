@@ -48,14 +48,14 @@ screenStory.it(
 		function rows() {
 			return findElements("main li p").map((row) => row.textContent);
 		}
-		expect(rows()).toContain("task · Needs you");
-		expect(rows()).toContain("task · Active");
+		expect(rows()).toContain("Task · Needs you");
+		expect(rows()).toContain("Task · Active");
 		expect(readText("main")).not.toMatch(/needs-human|needs-you/u);
 		const status = findElements("main [role='combobox']").find(
 			(trigger) => document.querySelector(`label[for="${trigger.id}"]`)?.textContent === "Status",
 		);
 		yield* Effect.promise(() => chooseOption(status, "Needs you"));
-		yield* Effect.promise(() => eventually(() => expect(rows()).toEqual(["task · Needs you"])));
+		yield* Effect.promise(() => eventually(() => expect(rows()).toEqual(["Task · Needs you"])));
 	},
 );
 

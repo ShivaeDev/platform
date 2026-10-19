@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react";
+import { EmptyState } from "#client/react/EmptyState.tsx";
 import { LibraryContext, restoreLibrary } from "#client/react/LibraryContext.ts";
 import { useMainLocation } from "./MainLocationContext.ts";
 import { Modal } from "./Modal.tsx";
@@ -86,7 +87,9 @@ export function ReadingLibrary({
 							{saved.notice}
 						</p>
 					)}
-					{saved.notice === "" && saved.favorites.length + saved.recents.length === 0 && "No recent documents yet."}
+					{saved.notice === "" && saved.favorites.length + saved.recents.length === 0 && (
+						<EmptyState title="No reading history">Documents you open appear here so you can return to them.</EmptyState>
+					)}
 				</div>
 			</Modal>
 		</LibraryContext.Provider>

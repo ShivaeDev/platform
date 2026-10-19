@@ -32,7 +32,7 @@ screenStory.it(
 		expect(readText(`ul${ANSWERED} > li a`)).toBe("Publish the install guide");
 		expect(findElement(`ul${ANSWERED} [data-status-token]`)).toBeNull();
 		expect(findElement("ul[aria-label='Needs you']")).toBeNull();
-		expect(readText("#needs-you")).toContain("All quiet — nothing needs you.");
+		expect(readText("#needs-you")).toContain("Nothing needs you");
 		expect(readText(".today-strip")).toMatch(/^0 need you/u);
 		editFile("guide.md", ANSWERED_TASK.replace("status: needs-human", "status: active"));
 		const [[receipt, content] = []] = Object.entries(appliedReceipt());

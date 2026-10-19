@@ -6,6 +6,7 @@ import type { InboxProjection } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { inProgressItems } from "./inProgressItems.ts";
 import { LinkButton } from "./LinkButton.tsx";
+import { LoadingCards } from "./loading.tsx";
 import { PageHeader } from "./PageHeader.tsx";
 import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
@@ -54,7 +55,9 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 				</div>
 				<section className="min-w-0" id={todayIds.goals}>
 					<h2 className="mt-0 mb-3 font-semibold text-lg">Goals</h2>
-					{goals ? <TodayGoals data={goals} /> : <p role="status">{Option.isSome(query.cause) ? "Goals unavailable." : "Loading goals…"}</p>}
+					{goals ? <TodayGoals data={goals} /> : null}
+					{goals === undefined && Option.isSome(query.cause) ? <p role="status">Goals unavailable.</p> : null}
+					{goals === undefined && Option.isNone(query.cause) ? <LoadingCards cards={2} columns={1} label="Loading goals" /> : null}
 					{goals && Option.isSome(query.cause) && <p role="status">Goal refresh failed. Displayed goals are retained.</p>}
 				</section>
 			</div>
@@ -67,11 +70,6 @@ function NeedsYou({ api, data }: { readonly api: ShellApi; readonly data: InboxP
 		<section className="min-w-0" id={todayIds.needs}>
 			<h2 className="mt-0 mb-3 font-semibold text-lg">Needs you</h2>
 			<TodayNeeds api={api} data={data} />
-			{data.complete && data.you.length === 0 && (
-				<a className="text-sm" href="/_board/start">
-					Getting started
-				</a>
-			)}
 		</section>
 	);
 }

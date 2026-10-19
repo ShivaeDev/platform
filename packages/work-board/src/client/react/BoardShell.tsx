@@ -76,6 +76,7 @@ function BoardWorkspace(
 	const search = useSearchDialog();
 	const [libraryOpen, setLibraryOpen] = useState(false);
 	const location = useRouterState({ select: (state) => state.location });
+	const url = location.pathname + location.searchStr;
 	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const opened = useOpened(options.opening);
 	const data = Option.getOrUndefined(query.data);
@@ -127,7 +128,7 @@ function BoardWorkspace(
 							status={status}
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
-						{opened ? <FleetMain api={api} home={data?.home} onPage={onPage} url={location.pathname + location.searchStr} /> : <OpeningView />}
+						{opened ? <FleetMain api={api} home={data?.home} onPage={onPage} url={url} /> : <OpeningView url={url} />}
 						<PhoneNavigation main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
 					</div>
 				</div>

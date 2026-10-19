@@ -1,17 +1,20 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
+import { EmptyState } from "./EmptyState.tsx";
 import { inProgressItems } from "./inProgressItems.ts";
+import { LoadingRows } from "./loading.tsx";
 
 export function TodayProgress({ data, failed }: { readonly data: FleetItemsProjection | undefined; readonly failed: boolean }) {
 	const items = inProgressItems(data);
 	return (
 		<div className="space-y-3">
-			{items === undefined && (
+			{items === undefined && data === undefined && !failed && <LoadingRows label="Loading work in progress" />}
+			{items === undefined && (data !== undefined || failed) && (
 				<p className="text-muted-foreground text-sm" role="status">
-					{unavailable(data, failed)}
+					{unavailable(data)}
 				</p>
 			)}
-			{items?.length === 0 && <p className="text-muted-foreground text-sm">Fleet holds no work in progress.</p>}
+			{items?.length === 0 && <EmptyState title="No work in progress">Fleet is not working on anything right now.</EmptyState>}
 			{items !== undefined && items.length > 0 && (
 				<ul aria-label="In progress" className="m-0 list-none divide-y rounded-lg border border-border p-0">
 					{items.slice(0, 8).map((item) => (
@@ -50,9 +53,9 @@ function ProgressRow({ item }: { readonly item: NonNullable<ReturnType<typeof in
 	);
 }
 
-function unavailable(data: FleetItemsProjection | undefined, failed: boolean) {
+function unavailable(data: FleetItemsProjection | undefined) {
 	if (data?.state === "unavailable") {
 		return `Fleet unavailable. ${data.reason}`;
 	}
-	return failed ? "Fleet work unavailable." : "Loading Fleet work…";
+	return "Fleet work unavailable.";
 }

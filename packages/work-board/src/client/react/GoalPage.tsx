@@ -4,6 +4,7 @@ import type { Document } from "#browser/document/schema.ts";
 import { GoalCriteria } from "./GoalCriteria.tsx";
 import { GoalWorkTable } from "./GoalWorkTable.tsx";
 import { targetsGoal } from "./goalWork.ts";
+import { LoadingRows } from "./loading.tsx";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
@@ -18,7 +19,8 @@ export function GoalPage({ api, document }: { readonly api: ShellApi; readonly d
 		<div className="goal-page space-y-6">
 			<GoalCriteria document={document} items={items} progress={goal?.criteria} />
 			{items && id !== undefined ? <GoalWorkTable criteria={criteria} goal={id} items={items} /> : null}
-			{items ? null : <p role="status">{progress.pending ? "Loading linked work…" : "Linked work unavailable."}</p>}
+			{items === undefined && progress.pending ? <LoadingRows label="Loading linked work" /> : null}
+			{items === undefined && !progress.pending ? <p role="status">Linked work unavailable.</p> : null}
 			{Option.isSome(progress.cause) && <p role="status">Linked work refresh failed.</p>}
 		</div>
 	);

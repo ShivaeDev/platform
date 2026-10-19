@@ -5,6 +5,7 @@ import type { Navigation } from "#browser/Navigation.ts";
 import { ActiveGoals } from "#client/react/ActiveGoals.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { destinationName } from "#client/react/destinationName.ts";
+import { EmptyState } from "#client/react/EmptyState.tsx";
 import { InboxCount } from "#client/react/Header.tsx";
 import { type Item, LibraryContext } from "#client/react/LibraryContext.ts";
 import { LinkButton } from "#client/react/LinkButton.tsx";
@@ -134,8 +135,15 @@ function ReadingSection({ title, items, current }: { readonly title: string; rea
 					</li>
 				))}
 			</ul>
-			{items.length === 0 && (
-				<p className="px-2 text-muted-foreground text-xs">{title === "Pinned" ? "Pin a document to keep it here." : "No recent documents."}</p>
+			{items.length === 0 && title === "Pinned" && (
+				<EmptyState compact title="No pinned documents">
+					Pin a document to keep it here.
+				</EmptyState>
+			)}
+			{items.length === 0 && title !== "Pinned" && (
+				<EmptyState compact title="No recent documents">
+					Documents you open appear here.
+				</EmptyState>
 			)}
 		</section>
 	);

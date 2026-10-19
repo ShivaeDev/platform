@@ -1,5 +1,6 @@
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { fileUrl } from "#files/url.ts";
+import { EmptyState } from "./EmptyState.tsx";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 import { shellIds } from "./shellIds.ts";
 export function ResultFeedback({ data }: { readonly data: ResultProjection }) {
@@ -17,7 +18,9 @@ export function ResultFeedback({ data }: { readonly data: ResultProjection }) {
 						Human direction is pinned to its reviewed report. Option IDs and authored acceptance text are not a computed verified-acceptance state.
 						Completing a run or receiving feedback does not change work status.
 					</p>
-					{data.feedback.length === 0 && <p>No readable response is recorded for this result.</p>}
+					{data.feedback.length === 0 && (
+						<EmptyState title="No feedback yet">No readable response is recorded for this result. Feedback you record on it appears here.</EmptyState>
+					)}
 					{data.feedback.map((entry) => (
 						<FeedbackEntry entry={entry} key={entry.response.id} />
 					))}

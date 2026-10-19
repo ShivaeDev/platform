@@ -1,4 +1,5 @@
 import type { CodexLimits, GithubLimits, GithubWindow, UsageWindow } from "#browser/diagnostics/schema.ts";
+import { sentenceLabel } from "#browser/views/statusLabel.ts";
 import { resetLabel } from "#diagnostics/resetLabel.ts";
 export function ObservedTime({ at }: { readonly at: number | null }) {
 	return at === null ? (
@@ -23,27 +24,27 @@ function Reset({ at, now }: { readonly at: number | null; readonly now: number }
 }
 function windowLabel(name: string, minutes: number | null) {
 	if (minutes === null) {
-		return `${name} — duration not reported`;
+		return `${name} (length not reported)`;
 	}
 	if (minutes === 10_080) {
-		return "Weekly";
+		return "Weekly limit";
 	}
 	for (const [duration, unit] of [
 		[1440, "day"],
 		[60, "hour"],
 	] as const) {
 		if (minutes % duration === 0) {
-			return `${minutes / duration}-${unit}`;
+			return `${minutes / duration}-${unit} limit`;
 		}
 	}
-	return `${minutes}-minute`;
+	return `${minutes}-minute limit`;
 }
 function Usage({ name, window, now }: { readonly name: string; readonly window: UsageWindow | null; readonly now: number }) {
 	if (!window) {
 		return (
 			<li>
 				<h3>{name}</h3>
-				<p>Window not reported</p>
+				<p>Not reported</p>
 			</li>
 		);
 	}
@@ -66,13 +67,13 @@ function Usage({ name, window, now }: { readonly name: string; readonly window: 
 export function DiagnosticsWindows({ value, now }: { readonly value: CodexLimits; readonly now: number }) {
 	return (
 		<ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 [&_meter]:w-full">
-			<Usage name="Primary" now={now} window={value.primary} />
-			<Usage name="Secondary" now={now} window={value.secondary} />
+			<Usage name="Short limit" now={now} window={value.primary} />
+			<Usage name="Long limit" now={now} window={value.secondary} />
 		</ul>
 	);
 }
-const GITHUB_RESOURCES: Readonly<Record<string, string>> = { core: "REST", graphql: "GraphQL", search: "Search" };
-const GITHUB_PAUSES = { "rate-limit": "Rate-limited", reserve: "GitHub paused below the 20% reserve" } as const;
+const GITHUB_RESOURCES: Readonly<Record<string, string>> = { core: "REST API", graphql: "GraphQL API", search: "Search API" };
+const GITHUB_PAUSES = { "rate-limit": "GitHub is blocking requests", reserve: "Fleet paused to keep 20% in reserve" } as const;
 export function DiagnosticsGithub({ value, now }: { readonly value: GithubLimits; readonly now: number }) {
 	return (
 		<>
@@ -81,30 +82,30 @@ export function DiagnosticsGithub({ value, now }: { readonly value: GithubLimits
 					<GithubResource key={window.resource} now={now} window={window} />
 				))}
 			</dl>
-			<p className="text-muted-foreground text-xs">Recorded from the rate-limit headers of Fleet's own GitHub responses.</p>
+			<p className="text-muted-foreground text-xs">Fleet reads these limits from its own GitHub requests. The Board does not call GitHub.</p>
 		</>
 	);
 }
 function GithubResource({ window, now }: { readonly window: GithubWindow; readonly now: number }) {
 	return (
 		<div data-resource={window.resource}>
-			<dt>{GITHUB_RESOURCES[window.resource] ?? window.resource}</dt>
+			<dt>{GITHUB_RESOURCES[window.resource] ?? `${sentenceLabel(window.resource)} API`}</dt>
 			<dd>
 				<strong>
-					{window.remaining} / {window.limit}
+					{window.remaining} of {window.limit}
 				</strong>{" "}
-				remaining
+				requests left
 			</dd>
 			{window.limitedUntil !== null && window.limitedUntil > now ? (
 				<dd>
-					<strong>{GITHUB_PAUSES[window.limitedBy ?? "rate-limit"]}</strong> until <Reset at={window.limitedUntil} now={now} />
+					<strong>{GITHUB_PAUSES[window.limitedBy ?? "rate-limit"]}</strong>. Resumes <Reset at={window.limitedUntil} now={now} />
 				</dd>
 			) : null}
 			<dd>
 				Resets <Reset at={window.reset * 1000} now={now} />
 			</dd>
 			<dd>
-				Observed <time dateTime={new Date(window.observedAt).toISOString()}>{resetLabel(window.observedAt, now)}</time>
+				Checked <time dateTime={new Date(window.observedAt).toISOString()}>{resetLabel(window.observedAt, now)}</time>
 			</dd>
 		</div>
 	);

@@ -1,5 +1,6 @@
 import type { HandoffProjection } from "#browser/views/remaining.ts";
 import { fileUrl } from "#files/url.ts";
+import { EmptyState } from "./EmptyState.tsx";
 import { HandoffForm } from "./HandoffForm.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
 import { PageHeader } from "./PageHeader.tsx";
@@ -26,7 +27,9 @@ export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 						Some handoff history is unavailable: {data.reading.unknown.join(", ")}. Missing records do not establish that no receipt exists.
 					</p>
 				)}
-				{data.reading.records.length === 0 && <p>No readable handoff is recorded for this item.</p>}
+				{data.reading.records.length === 0 && (
+					<EmptyState title="No handoffs yet">No readable handoff is recorded for this item. Handoffs you prepare appear here.</EmptyState>
+				)}
 				{data.reading.records.map((record) => (
 					<HandoffEntry current={data.source} key={record.id} record={record} />
 				))}

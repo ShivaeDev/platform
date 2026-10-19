@@ -24,7 +24,8 @@ for (const back of [false, true]) {
 			yield* Effect.promise(() => eventually(() => expect(readStarted()).toBe(true)));
 			expect(location()?.pathname).toBe("/notes/next.md");
 			expect(findElement("#doc h1")).toBeNull();
-			expect(readText("#doc [role=status]")).toBe("Opening document…");
+			expect(readText("#doc [role=status]")).toBe("Loading page");
+			expect(findElement('#doc [data-loading-shape="document"]')).not.toBeNull();
 			if (back) {
 				yield* Effect.promise(() => goBack());
 				yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("First")));
