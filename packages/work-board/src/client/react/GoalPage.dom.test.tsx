@@ -16,7 +16,7 @@ for (const [stage, label, group] of [
 	["reviewing", "Reviewing", "In progress"],
 	["needs-human", "Needs you", "Needs you"],
 ] as const) {
-	const files = { ...goalPageFixture() };
+	const files: Record<string, string> = { ...goalPageFixture(), "asks.md": "# No open asks" };
 	files["goal.md"] = (files["goal.md"] ?? "").replace(
 		"owner: agent",
 		"owner: agent\nattention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Review the goal\n   unblocks: [project.example]",
@@ -33,7 +33,7 @@ for (const [stage, label, group] of [
 			}),
 			routedScreen(files, "/_board/item/project.example/", { home: "home.md" }),
 		],
-		function* ({ readGoals, findElements, findElement, readText }) {
+		function* ({ click, readAttribute, readGoals, findElements, findElement, readText }) {
 			yield* Effect.promise(() => eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(5)));
 			const header = findElement(".item-introduction");
 			const progress = findElement('[data-goal-section="progress"]');
@@ -54,11 +54,16 @@ for (const [stage, label, group] of [
 			expect(goal.counts).toEqual({ done: 2, "in progress": 1 - waiting, "needs you": waiting, planned: 2 });
 			expect(counts).toEqual(goal.counts);
 			expect(readText('[data-goal-section="progress"]')).toContain("5 linked items");
-			expect(readText("[data-goal-open-asks]")).toBe(`${goal.openAsks} open asks`);
+			expect(goal.asks).toHaveLength(1);
+			expect(readText("[data-goal-open-asks]")).toBe("1 open ask");
+			expect(readAttribute("a[data-goal-open-asks]", "href")).toBe("/_board/item/project.example/#answer-card-direction");
+			expect(findElement("[data-goal-open-asks]")?.className).toContain("text-needs-you");
 			expect(progress?.textContent).not.toContain("%");
 			expect(readText(".goal-page")).not.toContain("No recorded evidence naming");
 			for (const [status, count] of Object.entries(counts)) {
-				const legend = [...findElements("[data-goal-counts] li")].find((entry) => readText("[data-status-token]", entry) === LEGEND_LABELS[status]);
+				const legend = [...findElements("[data-goal-counts] li")].find(
+					(entry) => readText("[data-status-token], [data-quiet-count]", entry) === LEGEND_LABELS[status],
+				);
 				expect(readText("strong", legend)).toBe(String(count));
 			}
 			for (const [id, expected] of [
@@ -78,22 +83,23 @@ for (const [stage, label, group] of [
 			expect(readText('[data-goal-item="task.fifth"] td')).toBe("");
 			expect(readText('[data-goal-item="task.fifth"] td [data-status-token]')).toBeUndefined();
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', row)).not.toBeNull();
-			expect([...findElements(`[data-goal-group="${group}"] th[scope="col"]`)].map((head) => head.textContent)).toEqual([
-				"Work",
-				"Criteria",
-				"State",
-				"PR",
-			]);
+			expect([...findElements(`[data-goal-group="${group}"] th[scope="col"]`)].map((head) => head.textContent)).toEqual(
+				group === "In progress" ? ["Work", "Criteria", "State", "Owner", "Updated", "PR"] : ["Work", "Criteria", "State", "PR"],
+			);
 			for (const done of ["Done", "Planned"]) {
 				expect([...findElements(`[data-goal-group="${done}"] th[scope="col"]`)].map((head) => head.textContent)).not.toContain("PR");
 			}
 			expect(findElements('[data-goal-group="Deferred"], [data-goal-group="Active"], [data-goal-group="Not recorded"]')).toHaveLength(0);
 			expect(readText("#criterion-first [data-criterion-progress]")).toBe(`1 done · 1 ${group.toLowerCase()}`);
-			expect([...findElements("#criterion-first li:first-child [data-status-token]")].slice(0, 2).map((chip) => chip.textContent)).toEqual([label]);
+			expect(findElements("#criterion-first [data-criterion-work]")).toHaveLength(0);
+			click("#criterion-first [data-slot=collapsible-trigger]");
+			expect(
+				[...findElements("#criterion-first [data-criterion-work] li:first-child [data-status-token]")].slice(0, 2).map((chip) => chip.textContent),
+			).toEqual([label]);
 			expect(findElements('#criterion-first a[href*="#recorded-evidence-"]')).toHaveLength(2);
-			expect(readText("#criterion-second")).toBe("Second criterion");
+			yield* Effect.promise(() => eventually(() => expect(readText("#criterion-second")).toBe("Second criterion")));
 			expect(findElement("#criterion-second")?.closest("details, [hidden]")).toBeNull();
-			expect(findElement<HTMLDetailsElement>('[data-goal-group="Done"]')?.open).toBe(false);
+			expect(readAttribute('[data-goal-group="Done"] [data-slot=collapsible-trigger]', "aria-expanded")).toBe("false");
 			expect(findElement("article.doc")?.firstElementChild?.className).toContain("goal-page");
 			yield* Effect.promise(() =>
 				eventually(() => {
@@ -112,7 +118,7 @@ screenStory.it(
 			...goalFleetFixture(),
 			items: goalFleetFixture().items.map((item) => (item.workId === "task.third" ? { ...item, stage: "executing" } : item)),
 		}),
-		routedScreen(goalPageFixture(), "/_board/item/project.example/", { home: "home.md" }),
+		routedScreen({ ...goalPageFixture(), "asks.md": "# No open asks" }, "/_board/item/project.example/", { home: "home.md" }),
 	],
 	function* ({ findElement, findElements, readText }) {
 		yield* Effect.promise(() =>
@@ -122,6 +128,8 @@ screenStory.it(
 			"Work",
 			"Criteria",
 			"State",
+			"Owner",
+			"Updated",
 			"PR",
 		]);
 		expect(readText('[data-goal-item="task.first"] td:last-child')).toBe("PR");

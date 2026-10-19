@@ -17,16 +17,18 @@ export function fixedMainSource({
 }: FixedMainOptions = {}) {
 	return Layer.succeed(MainSource)({
 		current,
+		latest: refresh,
 		observe: (preparation) => Effect.succeed(unchanged(preparation.baseRevision, MAIN)),
 		refresh,
 		repositoryRoot,
 	});
 }
 
-export function movingMainSource(snapshot: () => MainSnapshot) {
+export function movingMainSource(snapshot: () => MainSnapshot, repositoryRoot = "/synthetic-repository") {
 	const current = Effect.sync(snapshot);
 	return Layer.succeed(MainSource)({
 		current,
+		latest: current,
 		observe: (preparation) =>
 			Effect.map(current, (main) => ({
 				...main,
@@ -37,6 +39,6 @@ export function movingMainSource(snapshot: () => MainSnapshot) {
 				fromRevision: preparation.baseRevision,
 			})),
 		refresh: current,
-		repositoryRoot: "/synthetic-repository",
+		repositoryRoot,
 	});
 }

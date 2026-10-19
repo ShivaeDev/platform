@@ -7,15 +7,16 @@ import { LibraryContents } from "./LibraryContents.tsx";
 
 expectNoReactWarnings();
 screenStory.it(
-	"shows how long ago each listed document changed",
+	"shows how long ago each listed document changed without adding a Tab stop to its row",
 	[
 		routedScreen({ "home.md": "# Home", "note.md": "# Note" }, "/_board/library?view=recently-changed", {
 			home: "home.md",
 			modified: new Map([["note.md", Effect.runSync(Clock.currentTimeMillis) - 2 * 60 * 60 * 1000]]),
 		}),
 	],
-	function* ({ readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText('#doc li:has(a[href="/note.md"]) [data-modified]')).toBe("updated 2h ago")));
+	function* ({ findElement, readTabStops, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText('#doc li:has(a[href="/note.md"]) [data-updated]')).toBe("Updated 2h ago")));
+		expect(readTabStops('#doc li:has(a[href="/note.md"])')).toEqual([findElement('#doc a[href="/note.md"]')]);
 	},
 );
 const files = [
@@ -32,5 +33,24 @@ screenStory.it(
 	],
 	({ findElements }) => {
 		expect([...findElements("a")].map((link) => link.textContent)).toEqual(["Newest title", "Middle title", "Alphabetical first"]);
+	},
+);
+
+screenStory.it(
+	"names goals Goal in the library list and its kind filter",
+	[
+		routedScreen(
+			{ "goal.md": "---\nid: project.calm\nkind: project\nstatus: active\n---\n# A calm workspace\n", "note.md": "# Note" },
+			"/_board/library",
+		),
+	],
+	function* ({ findElements, readText, roles }) {
+		const goalRow = '#doc li:has(a[href="/goal.md"]) p';
+		yield* Effect.promise(() => eventually(() => expect(readText(goalRow)).toBe("Goal · Active")));
+		yield* roles.click({ name: "Kind", role: "combobox" });
+		yield* roles.click({ name: "Goal", role: "option" });
+		yield* Effect.promise(() =>
+			eventually(() => expect([...findElements("#doc li a")].map((link) => link.textContent)).toEqual(["A calm workspace"])),
+		);
 	},
 );

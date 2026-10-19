@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schedule } from "effect";
 import { Fleet } from "#fleet.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { withDecisionResponses } from "#host/releaseWork.ts";
@@ -19,6 +19,10 @@ export function answerReceiptVerbs(engine: AnswerHostEngine, tell: (line: string
 		failCompletion: () => answerCompletionFailure(engine.host.host),
 		failQueue: () => answerQueueFailure(engine.host.host),
 		failRecording: (fail: boolean) => answerRecordingFailure(engine.host.host, fail),
+		holdBoardReadsOnce: (blocker: string, workId = "one") => {
+			tell(`hold Fleet's Board reads once ${workId} shows "${blocker}"`);
+			return engine.resolution.arm(engine.host.host, workId, blocker);
+		},
 		pauseCompletion: (workId = "one") => {
 			tell(`pause answer completion for ${workId}`);
 			return pauseAnswerCompletion(engine.host.host, workId);
@@ -39,6 +43,15 @@ export function answerReceiptVerbs(engine: AnswerHostEngine, tell: (line: string
 			return askWorker(engine.host.provider, workId).pipe(Effect.provideService(Fleet, engine.fleet));
 		},
 		rejectNextTurn: (failure: SessionFailure) => engine.host.provider.rejectNextTurn(failure),
+		requestsFinished: (workId = "one") => {
+			tell(`wait until the answer requests for ${workId} finish`);
+			return answerStore(engine.host.host.namespace).pipe(
+				Effect.flatMap((store) => store.list(workId)),
+				Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (requests) => requests.length === 0 }),
+				Effect.asVoid,
+				Effect.timeout("10 seconds"),
+			);
+		},
 		// Recovery starts after a durable commit and before the daemon notices it.
 		seedRecordedRequest: (decision: Decision, text: string, release: boolean, workId = "one") =>
 			answerStore(engine.host.host.namespace).pipe(Effect.flatMap((store) => store.accept(workId, decision, text, release))),

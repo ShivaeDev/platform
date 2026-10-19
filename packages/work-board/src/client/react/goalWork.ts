@@ -9,7 +9,7 @@ export function goalRun(item: GoalWorkItem, fleet: FleetItemsProjection | undefi
 	return fleet?.state === "ready" ? [...fleet.items, ...fleet.completed].find((entry) => entry.workId === item.id) : undefined;
 }
 export function goalGroup(item: GoalWorkItem, run: GoalRun | undefined): GoalWorkGroup {
-	return goalWorkGroup(item.metadata.status, run?.stage);
+	return goalWorkGroup(item.metadata.status, run?.stage, item.waiting !== undefined);
 }
 
 export function targetsGoal(item: GoalWorkItem, id: string, criterion?: string) {

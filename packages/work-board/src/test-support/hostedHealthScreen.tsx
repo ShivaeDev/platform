@@ -6,26 +6,30 @@ import { trackScreen } from "./screenEngine.ts";
 import { screenClient } from "./screenFeatures.tsx";
 import { screenOptions } from "./screenReads.ts";
 import { screenStory } from "./screenStory.ts";
-export function hostedHealthScreen(connection: "connecting" | "live" = "live") {
-	return screenStory.trait("screen", `a host supplies its displayed location without a document element while ${connection}`, function* (engine) {
-		engine.documentFailed = true;
-		const paused = Atom.make(false);
-		const status = Atom.make<Atom.Type<LiveClient["updates"]["status"]>>({
-			connection,
-			failure: Option.none(),
-			needsResync: false,
-			pending: 0,
-		});
-		const view = yield* Effect.promise(() =>
-			renderBoard(
-				{ "broken.md": "# Recovered" },
-				(api, registry) => {
-					screenClient(engine, api);
-					return <HostedHealth client={{ api, registry, updates: { paused, status } }} />;
-				},
-				screenOptions(engine, { ...engine.options, home: undefined }),
-			),
-		);
-		trackScreen(engine, view, (line) => engine.tell?.(line));
-	});
+export function hostedHealthScreen(connection: "connecting" | "live" = "live", updates: "running" | "paused" = "running") {
+	return screenStory.trait(
+		"screen",
+		`a host supplies its displayed location without a document element while ${connection} with updates ${updates}`,
+		function* (engine) {
+			engine.documentFailed = true;
+			const paused = Atom.make(updates === "paused");
+			const status = Atom.make<Atom.Type<LiveClient["updates"]["status"]>>({
+				connection,
+				failure: Option.none(),
+				needsResync: false,
+				pending: 0,
+			});
+			const view = yield* Effect.promise(() =>
+				renderBoard(
+					{ "broken.md": "# Recovered" },
+					(api, registry) => {
+						screenClient(engine, api);
+						return <HostedHealth client={{ api, registry, updates: { paused, status } }} />;
+					},
+					screenOptions(engine, { ...engine.options, home: undefined }),
+				),
+			);
+			trackScreen(engine, view, (line) => engine.tell?.(line));
+		},
+	);
 }

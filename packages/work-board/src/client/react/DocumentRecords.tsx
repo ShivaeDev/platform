@@ -1,6 +1,7 @@
 import type { Document } from "#browser/document/schema.ts";
 import { LinkButton } from "./LinkButton.tsx";
 import { Reference } from "./Reference.tsx";
+import { Time } from "./Time.tsx";
 
 export function DocumentRecords({ document: data }: { readonly document: Document }) {
 	const { handoff, question, response, requestReceipt } = data.metadata;
@@ -30,8 +31,8 @@ export function DocumentRecords({ document: data }: { readonly document: Documen
 						<Reference document={data} target={question.item} /> / {question.request} · {question.reason}
 					</p>
 					<p>
-						Reviewed SHA-256: <code>{question.reviewedRevision}</code>. Registered: {new Date(question.registeredAt).toISOString()}. Unanswered
-						deadline: {new Date(question.deadline).toISOString()}.
+						Reviewed SHA-256: <code>{question.reviewedRevision}</code>. Registered: <Time at={question.registeredAt} />. Unanswered deadline:{" "}
+						<Time at={question.deadline} />.
 					</p>
 				</>
 			)}

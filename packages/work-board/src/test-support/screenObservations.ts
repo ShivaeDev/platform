@@ -87,6 +87,13 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 			tell("the reader checks how the table columns wrap and whether the table scrolls in its own box");
 			return tableLayout(table);
 		},
+		readTabStops: (target: string | Element | null | undefined) => {
+			tell(`the reader tabs through ${typeof target === "string" ? target : target?.textContent}`);
+			const within = typeof target === "string" ? element(target) : target;
+			return [...(within?.querySelectorAll<HTMLElement>("*") ?? [])].filter(
+				(candidate) => candidate.tabIndex >= 0 && !candidate.matches(":disabled") && candidate.closest("[inert]") === null,
+			);
+		},
 		readText: (selector?: string, within?: ParentNode | null) => {
 			tell(`the reader reads ${selector ?? "the screen"}`);
 			return selector ? element(selector, within)?.textContent : root().textContent;

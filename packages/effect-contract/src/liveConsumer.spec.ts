@@ -3,7 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expect } from "vitest";
 import { eventually } from "#test/eventually.ts";
-import { liveNotesStory, liveSession, watchingNotes } from "#test/liveNotesStory.ts";
+import { coalescing, liveNotesStory, liveSession, watchingNotes } from "#test/liveNotesStory.ts";
 
 liveNotesStory.it(
 	"refreshes affected item/list over native streaming HTTP while preserving the unrelated query",
@@ -65,7 +65,7 @@ liveNotesStory.it(
 );
 liveNotesStory.it(
 	"interrupts stale HTTP reads on invalidation and disposes the single stream subscription",
-	[liveSession(), watchingNotes()],
+	[liveSession(), coalescing(0), watchingNotes()],
 	function* (test) {
 		const { one } = test;
 		const gate = yield* Deferred.make<void>();

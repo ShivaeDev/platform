@@ -43,9 +43,7 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 			yield* queue(request);
 			return;
 		}
-		const current = (yield* fleet.get(request.work_id)).value;
-		const receipts = [...(current.history ?? []).flatMap((cycle) => cycle.responses ?? []), ...(current.responses ?? [])];
-		if (!receipts.some((receipt) => receipt.decisionId === request.response_decision_id && receipt.responseId === request.response_id)) {
+		if (!taken((yield* fleet.get(request.work_id)).value, request)) {
 			yield* apply(request.work_id, {
 				beforePublish: (response) => store.recordResponse(request, response),
 				originalDecision: { code: request.decision_code ?? undefined, reason: request.decision_reason },
@@ -109,3 +107,16 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		return { ...current, blocker: ANSWER_RECORDED };
 	});
 });
+
+// Fleet records a background answer with the ANSWER_RECORDED blocker and adds the receipt only once the Board
+// resolution applies it, so a retry in between must not publish or queue the same answer again.
+function taken(record: FleetRecord, request: AnswerRequest) {
+	if (request.response_decision_id === null) {
+		return false;
+	}
+	const receipts = [...(record.history ?? []).flatMap((cycle) => cycle.responses ?? []), ...(record.responses ?? [])];
+	return (
+		receipts.some((receipt) => receipt.decisionId === request.response_decision_id && receipt.responseId === request.response_id)
+		|| (record.blocker === ANSWER_RECORDED && record.stage === "needs-human" && record.decision?.id === request.response_decision_id)
+	);
+}

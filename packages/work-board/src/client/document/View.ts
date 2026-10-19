@@ -3,7 +3,6 @@ import { type Components, MarkdownHooks } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import type { PluggableList } from "unified";
 import type { Document } from "#browser/document/schema.ts";
-import { AgeLabel } from "#client/react/AgeLabel.tsx";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
@@ -28,13 +27,6 @@ const components: Components = {
 		return code?.type === "element" && Array.isArray(code.properties.className) && code.properties.className.includes("language-mermaid")
 			? createElement(Fragment, null, children)
 			: createElement("pre", props, children);
-	},
-	span: ({ node, children, ...props }) => {
-		const modified = node?.properties.dataModified ?? node?.properties["data-modified"];
-		if (modified !== undefined && props.className?.split(" ").includes("age")) {
-			return createElement(AgeLabel, { modified: Number(modified), short: props.className.split(" ").includes("short") });
-		}
-		return createElement("span", props, children);
 	},
 };
 
@@ -79,7 +71,7 @@ export function DocumentView({
 		tableColumns,
 	];
 	if (board) {
-		rehypePlugins.push([boardLayout, board, document.modified, document.file, documentSourceId(document), layout]);
+		rehypePlugins.push([boardLayout, board, document.file, documentSourceId(document), layout]);
 	}
 	if (layout && !board) {
 		rehypePlugins.push([documentLayout, documentSourceId(document)]);
