@@ -1,17 +1,17 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
-import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
+import type { GoalCounts, GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { goalWorkGroup } from "#browser/views/goalWorkState.ts";
 import { inboxItems, openItem } from "#server/attention/inbox.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { type Item, itemsOf } from "./items.ts";
 
+const countOf = { Deferred: "planned", Done: "done", "In progress": "in progress", "Needs you": "needs you", Planned: "planned" } as const;
 function countsOf(items: readonly Item[], fleet: FleetItemsProjection | undefined) {
-	const counts = { done: 0, "in progress": 0, planned: 0 };
+	const counts: { -readonly [Key in keyof GoalCounts]: number } = { done: 0, "in progress": 0, "needs you": 0, planned: 0 };
 	const runs = fleet?.state === "ready" ? [...fleet.items, ...fleet.completed] : [];
 	for (const item of items) {
 		const group = goalWorkGroup(item.document.parsed.fields.status, runs.find((run) => run.workId === item.id)?.stage);
-		const status = { Deferred: "planned", Done: "done", "In progress": "in progress", Planned: "planned" } as const;
-		counts[status[group]] += 1;
+		counts[countOf[group]] += 1;
 	}
 	return counts;
 }
