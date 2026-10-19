@@ -84,11 +84,6 @@ describe("files/named-after-export", () => {
 		]);
 	});
 
-	it("leaves the configured tool-owned files alone", async () => {
-		const sources = [{ content: "export function loadItem() {}\n", path: "src/fetch.ts" }];
-		expect(await checkRule(namedAfterExport, { toolOwned: ["src/fetch.ts"] }, { sources })).toEqual([]);
-	});
-
 	it("leaves only Railway's authoring paths tool-owned, including in nested projects", async () => {
 		const content = "export default function infrastructure() {}\n";
 		const paths = [

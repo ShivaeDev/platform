@@ -12,7 +12,7 @@ export async function loadQuery<A, E>(
 	{ abortController }: Pick<LoaderFnContext, "abortController">,
 ): Promise<A> {
 	const { signal } = abortController;
-	const release = keepLoaderQuery(registry, atom, signal);
+	const handoff = keepLoaderQuery(registry, atom, signal);
 	try {
 		const result = await Effect.runPromise(Effect.result(AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true })), { signal });
 		if (result._tag === "Failure") {
@@ -21,12 +21,14 @@ export async function loadQuery<A, E>(
 		}
 		return result.success;
 	} catch (error) {
-		release();
+		handoff.release();
 		if (signal.aborted) {
 			const canceled = new Error("Query loading canceled", { cause: error });
 			canceled.name = "AbortError";
 			throw canceled;
 		}
 		throw error;
+	} finally {
+		handoff.complete();
 	}
 }

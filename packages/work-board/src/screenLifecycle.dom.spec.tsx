@@ -1,6 +1,6 @@
 import { Effect, Exit } from "effect";
 import { expect } from "vitest";
-import { failingScreenFinalizer, screenScopeStory } from "./screenScopeStory.ts";
+import { failingScreenFinalizer, screenScopeStory } from "#test/screenScopeStory.ts";
 
 for (const mounts of [1, 4]) {
 	for (const completion of ["success", "failure", "failure after closing", "finalizer failure"]) {

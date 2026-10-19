@@ -1,14 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { expect } from "vitest";
 import type { DraftInput } from "#browser/responses/schema.ts";
 import type { browserClient } from "#client/client.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import type { Folder, RunningBoard } from "./board.ts";
-import type { OpenPage } from "./browser.ts";
-import { inboxQuestion } from "./inboxFixture.ts";
-import type { readerVerbs } from "./readerVerbs.ts";
 import { renderRemaining } from "./renderRemaining.tsx";
 
 const REVIEW_PATH = "/_board/result?item=result.keyboard";
@@ -62,22 +58,13 @@ export const reviewReport = Effect.fn("Story.reviewReport")(function* (
 	return yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run(draft)));
 });
 
-export const saveInboxAnswer = Effect.fn("Story.saveInboxAnswer")(function* (
-	{ notes, page }: { notes: Folder; page: OpenPage },
-	reader: ReturnType<typeof readerVerbs>,
-) {
-	yield* reader.preview();
-	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
-	yield* reader.submit();
-	yield* reader.waitForResponseStatus("Saved:");
-	yield* reader.waitForInbox(0);
-	expect(readFileSync(join(notes.root, "question.md"), "utf8")).toBe(inboxQuestion);
+export function savedInboxAnswer(notes: Folder) {
 	const saved = readdirSync(join(notes.root, "responses")).find((file) => file.startsWith("response."));
 	if (!saved) {
 		throw new Error("No response saved");
 	}
 	return metadataParse(readFileSync(join(notes.root, "responses", saved), "utf8"));
-});
+}
 
 export function responseDraft(question: string, id = "response.first", body = "Use explicit requests.") {
 	return {

@@ -28,7 +28,7 @@ const SHAPES =
 	"The file name and the names of its folders spell the export, in any order, and the file's first letter follows the export's case: listItems in items/ is items/list.ts, ItemPanel is ItemPanel.tsx or item/Panel.tsx.";
 
 const NamedAfterExportOptions = Schema.Struct({
-	toolOwned: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_TOOL_OWNED))),
+	toolOwned: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
 });
 
 function stemOf(path: string): string {
@@ -86,7 +86,7 @@ function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[]
 export const namedAfterExport = defineRule({
 	check: async ({ files, options, readText, sources }) => {
 		const layout = await packageLayout({ files, readText });
-		const toolOwned = ignore().add([...options.toolOwned]);
+		const toolOwned = ignore().add([...DEFAULT_TOOL_OWNED, ...options.toolOwned]);
 		return sources
 			.filter((file) => !(TEST.test(file.path) || isMigrationFile(file.path) || toolOwned.ignores(file.path)))
 			.flatMap((file) => findingsOf(file, layout));
