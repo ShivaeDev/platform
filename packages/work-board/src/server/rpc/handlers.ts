@@ -63,8 +63,8 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.registerQuestion": (input) => Effect.suspend(() => responses.register(input)).pipe(responseBoundary),
 			"work-board.responses": ({ question }) => Effect.suspend(() => responses.read(question)).pipe(responseBoundary),
 			"work-board.result": ({ url }) => remaining.result(url).pipe(documentBoundary),
-			"work-board.search": ({ query }) =>
-				Effect.map(index, (snapshot) => ({ ...searchMatch(snapshot.entries, query, snapshot.modified), unavailable: snapshot.unavailable })).pipe(
+			"work-board.search": ({ query, records }) =>
+				Effect.map(index, (snapshot) => ({ ...searchMatch(snapshot.entries, query, snapshot.modified, records), unavailable: snapshot.unavailable })).pipe(
 					readBoundary,
 				),
 			"work-board.server": () => options.server ?? Effect.fail(new ServiceUnavailable({ message: "The board server address is unavailable." })),

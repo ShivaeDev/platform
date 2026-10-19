@@ -19,10 +19,11 @@ function relevance(entry: Entry, terms: readonly string[], phrase: string, text:
 	return { rank: (entry.record ? 10 : 0) + ranks[entry.kind] + (text.includes(phrase) ? 0 : 1), title: titleMatch ? 0 : 1 };
 }
 
-export function searchMatch(entries: readonly Entry[], query: string, modified: ReadonlyMap<string, number> = new Map()) {
+export function searchMatch(entries: readonly Entry[], query: string, modified: ReadonlyMap<string, number> = new Map(), includeRecords = false) {
 	const input = normalize(query.slice(0, 200));
-	const records = input.startsWith("records:");
-	const phrase = records ? input.slice("records:".length).trim() : input;
+	const prefixed = input.startsWith("records:");
+	const records = includeRecords || prefixed;
+	const phrase = prefixed ? input.slice("records:".length).trim() : input;
 	const terms = phrase.split(" ").filter(Boolean).slice(0, 8);
 	if (terms.length === 0) {
 		return { results: [], total: 0 };

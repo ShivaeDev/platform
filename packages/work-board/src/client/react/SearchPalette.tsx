@@ -1,12 +1,14 @@
 import { Option } from "effect";
-import { type KeyboardEvent, type RefObject, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, type RefObject, useEffect, useId, useRef, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { ActiveDescendant } from "#client/react/ActiveDescendant.tsx";
 import { Button } from "#client/react/components/ui/button.tsx";
+import { Checkbox } from "#client/react/components/ui/checkbox.tsx";
 import { Command, CommandInput } from "#client/react/components/ui/command.tsx";
+import { Label } from "#client/react/components/ui/label.tsx";
 import { SearchResults } from "#client/react/SearchResults.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
-import { matchingCommands, type SearchItem } from "#client/react/searchCommands.ts";
+import { activateCommand, matchingCommands, type SearchItem } from "#client/react/searchCommands.ts";
 import { searchStatus } from "#client/react/searchStatus.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import type { AppearanceControls } from "#client/react/useAppearance.ts";
@@ -20,6 +22,8 @@ export function SearchPalette({
 	input,
 	inputRef,
 	setInput,
+	records,
+	setRecords,
 }: {
 	readonly api: ShellApi;
 	readonly close: (navigating: boolean) => void;
@@ -28,11 +32,13 @@ export function SearchPalette({
 	readonly input: string;
 	readonly inputRef: RefObject<HTMLInputElement | null>;
 	readonly setInput: (input: string) => void;
+	readonly records: boolean;
+	readonly setRecords: (records: boolean) => void;
 }) {
+	const recordsId = useId();
 	const [text, setText] = useState(() => input.trim());
-	const formRef = useRef<HTMLFormElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
-	const query = useQuery(api.search.query({ query: text }));
+	const query = useQuery(api.search.query(records ? { query: text, records } : { query: text }));
 	const data = Option.getOrUndefined(query.data);
 	const goals = useQuery(api.goals.query());
 	const commands = matchingCommands(Option.getOrUndefined(goals.data)?.goals ?? [], text);
@@ -56,8 +62,12 @@ export function SearchPalette({
 		return () => clearTimeout(timer);
 	}, [input]);
 	function activate(item: SearchItem) {
-		activateAppearance(item.command, appearance, toggleSidebar);
+		activateCommand(item.command, appearance, toggleSidebar);
 		close(!item.command);
+	}
+	function search() {
+		setText(input.trim());
+		query.refresh();
 	}
 	function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
 		if (event.key !== "Enter" || event.nativeEvent.isComposing) {
@@ -68,10 +78,10 @@ export function SearchPalette({
 		if (link) {
 			link.click();
 		} else {
-			formRef.current?.requestSubmit();
+			search();
 		}
 	}
-	function handleSearchButtonKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+	function keepEnter(event: KeyboardEvent<HTMLElement>) {
 		if (event.key === "Enter") {
 			event.stopPropagation();
 		}
@@ -81,7 +91,8 @@ export function SearchPalette({
 			event.stopPropagation();
 		}
 	}
-	const status = searchStatus(text, query.pending || editing, Option.isSome(query.cause), data);
+	const failed = Option.isSome(query.cause);
+	const status = searchStatus(text, query.pending || editing, failed, data);
 	return (
 		<Command
 			className="min-h-0 rounded-none bg-transparent"
@@ -91,54 +102,38 @@ export function SearchPalette({
 			shouldFilter={false}
 			vimBindings={false}
 		>
-			<form
-				className="flex items-center gap-1"
-				id={shellIds.searchForm}
-				onSubmit={(event) => {
-					event.preventDefault();
-					setText(input.trim());
-					query.refresh();
-				}}
-				ref={formRef}
-			>
-				<div className="min-w-0 flex-1">
-					<CommandInput
-						enterKeyHint="search"
-						maxLength={200}
-						onKeyDown={handleInputKeyDown}
-						onValueChange={setInput}
-						placeholder="Search work or go to a view"
-						ref={inputRef}
-						value={input}
-					/>
-				</div>
-				<Button className="mt-1" onKeyDown={handleSearchButtonKeyDown} type="submit" variant="outline">
-					Search
-				</Button>
-			</form>
-			<div className="space-y-1 p-2 text-muted-foreground text-xs">
+			<CommandInput
+				enterKeyHint="search"
+				maxLength={200}
+				onKeyDown={handleInputKeyDown}
+				onValueChange={setInput}
+				placeholder="Search work or go to a view"
+				ref={inputRef}
+				value={input}
+			/>
+			<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pt-2 text-muted-foreground text-xs">
 				<KeyboardHints>
 					<p>↑/↓ to choose · Enter to open · Escape to close</p>
 				</KeyboardHints>
-				<p>Use records: to include Fleet records.</p>
-				<p className="text-foreground" id={shellIds.searchStatus} role="status">
+				<div className="flex items-center gap-2">
+					<Checkbox checked={records} id={recordsId} onCheckedChange={setRecords} onKeyDown={keepEnter} />
+					<Label className="font-normal text-muted-foreground" htmlFor={recordsId}>
+						Include Fleet records
+					</Label>
+				</div>
+			</div>
+			<div className="flex items-center gap-2 px-3 py-2 text-xs">
+				<p id={shellIds.searchStatus} role="status">
 					{status}
 				</p>
+				{failed && (
+					<Button onClick={search} onKeyDown={keepEnter} size="xs" variant="outline">
+						Retry search
+					</Button>
+				)}
 			</div>
 			<SearchResults activate={activate} items={items} listRef={listRef} />
 			<ActiveDescendant inputRef={inputRef} listRef={listRef} />
 		</Command>
 	);
-}
-
-function activateAppearance(command: string | undefined, appearance: AppearanceControls, toggleSidebar: () => void) {
-	if (command === "sidebar-toggle") {
-		toggleSidebar();
-	}
-	if (command === "density") {
-		appearance.change({ density: appearance.density === "compact" ? "comfortable" : "compact" });
-	}
-	if (command === "theme") {
-		appearance.change({ theme: appearance.theme === "dark" ? "light" : "dark" });
-	}
 }

@@ -18,7 +18,9 @@ boardStory.it(
 		expect(results[1]?.snippet).toBe("The watch needs a policy.");
 		expect(results.slice(4).every((entry) => entry.kind !== "document" || !entry.itemKind)).toBe(true);
 		expect(results.some((entry) => entry.kind === "heading" && entry.file === "notes.md")).toBe(true);
-		expect(results.some((entry) => entry.kind === "passage" && entry.file === "open.md")).toBe(true);
+		expect(results.filter((entry) => entry.file === "open.md")).toEqual([
+			expect.objectContaining({ href: "/_board/item/task.review/", kind: "document", snippet: "The watch keeps running." }),
+		]);
 		expect((yield* search("watch")).results.some((entry) => entry.file.startsWith("decision-"))).toBe(false);
 	},
 );

@@ -33,12 +33,12 @@ boardStory.it(
 	"searches readable GFM, code, links and Unicode without HTML markup",
 	[
 		projectFiles({
-			"note.md": "# Ελληνικά\n\nA **bold** [phrase](target.md).\n\n```ts\nconst needle = 1;\n```\n\n| Value |\n| --- |\n| useful |",
+			"note.md": "# Ελληνικά\n\nA **bold** [phrase](target.md).\n\n## Κώδικας\n\n```ts\nconst needle = 1;\n```\n\n| Value |\n| --- |\n| useful |",
 		}),
 	],
 	function* ({ search }) {
 		expect((yield* search("BOLD phrase")).results[0]?.snippet).toContain("bold phrase");
-		expect((yield* search("needle")).results[0]?.href).toContain("heading-%CE%B5");
+		expect((yield* search("needle")).results[0]?.href).toBe(`/note.md#${encodeURIComponent("heading-κώδικας")}`);
 		expect((yield* search("useful")).total).toBeGreaterThan(0);
 		expect((yield* search("href")).total).toBe(0);
 		expect((yield* search("ελληνικά")).results[0]?.kind).toBe("document");
@@ -54,9 +54,9 @@ boardStory.it(
 	],
 	function* ({ search }) {
 		const found = yield* search("needle");
-		expect(found.total).toBe(53);
+		expect(found.total).toBe(52);
 		expect(found.results).toHaveLength(40);
-		expect(found.results.slice(0, 3).map((entry) => entry.kind)).toEqual(["document", "heading", "heading"]);
+		expect(found.results.slice(0, 3).map((entry) => entry.kind)).toEqual(["document", "heading", "passage"]);
 		expect((yield* search("other 49")).results[0]?.snippet).toBe("Needle 49 other.");
 		expect((yield* search("missing")).results).toEqual([]);
 		expect((yield* search("  ")).total).toBe(0);

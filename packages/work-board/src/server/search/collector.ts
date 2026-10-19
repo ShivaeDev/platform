@@ -15,15 +15,22 @@ export function searchCollector(file: string, startLine: () => number | undefine
 	const entries: Entry[] = [];
 	let passage = "";
 	let label = file;
+	let titled = false;
 	function collect(element: Element) {
 		const text = element.children.map(textContent).join("").replace(/\s+/gu, " ").trim();
+		const title = element.tagName === "h1" && !titled;
+		titled ||= element.tagName === "h1";
 		if (!text || element.properties.id === "footnote-label") {
 			return;
 		}
 		const heading = element.tagName.startsWith("h") && element.tagName !== "th";
 		if (heading && typeof element.properties.id === "string") {
-			passage = element.properties.id;
+			passage = title ? "" : element.properties.id;
 			label = text;
+		}
+		// The document entry already stands for its title, so the title and its passages share the document's address.
+		if (title) {
+			return;
 		}
 		entries.push({
 			file,
