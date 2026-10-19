@@ -3,72 +3,78 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "board-handoff-result.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- The handoff page is titled with the item, starts the agent name as the item's owner and keeps it after saving. A done or dropped item's next step starts empty with a placeholder instead of its old `next_action`.\n- **Prepare handoff** saves directly; **Preview file** is optional. When the item changed under a draft, the first **Prepare handoff** binds the draft to the new version and a second one saves it. Preparing moves focus to the prompt, and one status line reports the save and the copy. **Prepare handoff** and **Copy prompt** use neutral buttons instead of the amber one.\n- Earlier handoffs show how long ago they were prepared.\n- The result page names each linked item by title with its status chip and offers **Prepare follow-up handoff**, and shows how long ago the report changed. An empty review and empty checks collapse into one line, and a feedback summary with a link to the feedback sits above the report.\n"
+				"name": "fleet-status-under-load.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- The daemon answers status and follow requests promptly right after a restart with 2,000 stored records. `fleet/status.md` lists the same 50 most recently completed items as `work-fleet status`, newest first, instead of one Done card per completed item, so the daemon no longer re-indexes a file that grows with every finished item. Follow snapshots read attempt rows only for executing work, and records are assembled from their child rows in one pass instead of scanning every child row once per record.\n"
 			},
 			{
-				"name": "effect-sql-list-filters.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- `findMany` and `select` accept model-typed `{ in: [...] }` filter entries alongside equality entries. Each list value uses its field codec, empty lists match no rows, and array field values retain equality semantics. The `FindManyFilter` type describes these query filters.\n"
+				"name": "quality-exports-shape.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n\"@shivaedev/effect-pg-boss\": minor\n\"@shivaedev/effect-test-sql\": minor\n\"@shivaedev/local-postgres\": minor\n\"@shivaedev/test-story\": minor\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Quality's `manifests/exports-shape` rule checks exports at the package root and in workspace members by default. Modules use one file-preserving TypeScript wildcard with matching source, types and runtime targets; root entries, exact non-code assets, package metadata and null blocks are allowed.\n\n### Breaking\n\n- Quality's Biome preset moves from `@shivaedev/quality/biome` to `@shivaedev/quality/biome/preset.json`. Change the `extends` entry in your Biome config to the new path; the old alias is removed. TypeScript preset paths are unchanged.\n- `@shivaedev/effect-pg-boss`, `@shivaedev/effect-test-sql`, `@shivaedev/local-postgres` and `@shivaedev/test-story` expose server modules at their file paths. Add `/server/` after the package name in imports, for example `@shivaedev/test-story/server/storyKit.ts`. The shortened paths are removed; internal server modules remain blocked.\n- Work Board moves `@shivaedev/work-board/client/client.ts` to `@shivaedev/work-board/browserClient.ts`; change browser-client imports to that file path. `@shivaedev/work-board/client/document/View.ts` is removed: consume document queries with your own renderer, or use the bundled Board browser UI. The client bundle stays private and the old export overrides are removed.\n"
 			},
 			{
-				"name": "work-board-answer-save.md",
-				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- `client.responses.answerQuestion` saves an answer in one command: it registers the question for the reviewed revision and records the response together.\n\n### Changed\n\n- Answering from Today closes the popover as soon as the server saves the answer. The row leaves Needs you at once and \"Answer saved\" appears beside the heading while the Board refreshes in the background. The popover says \"Saving your answer…\" while it waits.\n- The Today popover shows the options or recommendation from the question's body in a collapsed section, and its link reads \"Read the full question\".\n- Today and the item page use the same words: \"Your answer\", \"Answers so far\" and \"More options\".\n- The Today popover and the item page's answer card disable their answer controls while the Board's live connection is reconnecting, and say why. A draft on the item page stays in place.\n- Screen readers name the popover's answer group after the question's title instead of its IDs.\n- The Board's answer forms save through `answerQuestion` instead of calling `registerQuestion` and then `recordResponse`.\n\n### Fixed\n\n- An answer whose browser closes mid-save is still saved in full, so a registered question never lands without its response.\n"
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			},
 			{
-				"name": "work-board-item-header.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- An item page's status chip shows **Needs you** whenever a request on that item is open and unanswered, for every kind of item. Before, only decisions and questions did, so a task waiting on you said **Active**. Once someone answers, the chip shows **Waiting on agents**.\n- Decisions and questions with no open request show **Answered** or **Closed** instead of no status.\n- The item header on goal pages names the kind **Goal** instead of \"project\".\n- **Prepare an agent handoff** is no longer offered on finished or dropped items or on goals.\n\n### Added\n\n- The item header shows when the item last changed, after its ID.\n- When the file changes while the page is open and the status changes with it, the header says so, for example \"Status changed: Active → In review\". Screen readers announce it politely. The first load is not announced.\n- An item that implements a goal links to it from the header as \"Part of <goal title>\".\n- Header controls (the ID link, the copy button, the goal link, the PR chip, **On this page**, **Pin** and the page actions) are at least 44px tall on touch screens. The desktop header keeps its height.\n"
-			},
-			{
-				"name": "work-board-startup-progress.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- While the server reads the workspace, the loading page says how far it has got, such as \"Reading 1,240 of 3,936 files…\", and \"Reading the workspace…\" before the count is known.\n- Pages start their reads as soon as the Board is live instead of waiting for the sidebar's navigation read.\n- The header names its state in plain words, such as \"Connecting…\", \"Updating…\" and \"Can't reach the Board server\", and the Needs you badge shows a spinner while its count is still loading.\n- The header no longer repeats a failure that the page already explains, and says \"Couldn't refresh this page\" when it keeps showing an older copy.\n\n### Fixed\n\n- Server startup lists the workspace concurrently, which cuts listing a workspace of about 4,000 files from several seconds to under half a second.\n"
-			},
-			{
-				"name": "work-board-wide-tables.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Wide Markdown tables stay readable. Prose columns keep a readable width instead of shrinking to a word or two per line, short columns such as IDs, statuses and numbers stay on one line, and a table wider than the page scrolls sideways in its own box. A soft shadow at the edge shows that more of the table is hidden.\n- Tables in answer cards and result reports now look and behave like tables in documents.\n"
+				"name": "work-board-library-state.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Added\n\n- **Find documents** on Library keeps the documents whose title or ID contains every typed word, as Now's **Find work** does. `library.query` accepts the same text as an optional `query`.\n\n### Changed\n\n- Library keeps its text, kind, status, view and **Include files Fleet writes** choice in the URL, so Back, reload and a shared link reopen the same list. It used to reset to all documents by title.\n- Library opens on Recently changed and renders the first 100 rows with a count of all matches. **Show more** adds the next 100, and Back from a document returns to the same rows.\n- Library's Kind and Status filters use the same compact controls as Now.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.8",
+				"from": "0.11.9",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.9"
+				"to": "0.11.10"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/effect-sql",
-				"from": "0.10.0",
-				"name": "@shivaedev/effect-sql",
-				"to": "0.11.0"
+				"directory": "packages/effect-pg-boss",
+				"from": "0.12.0",
+				"name": "@shivaedev/effect-pg-boss",
+				"to": "0.13.0"
 			},
 			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/effect-test-sql",
-				"from": "0.7.4",
+				"from": "0.7.5",
 				"name": "@shivaedev/effect-test-sql",
-				"to": "0.7.5"
+				"to": "0.8.0"
 			},
 			{
-				"bump": "patch",
-				"directory": "packages/platform",
-				"from": "0.21.0",
-				"name": "@shivaedev/platform",
-				"to": "0.21.1"
+				"bump": "minor",
+				"directory": "packages/local-postgres",
+				"from": "0.5.0",
+				"name": "@shivaedev/local-postgres",
+				"to": "0.6.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/quality",
+				"from": "0.29.1",
+				"name": "@shivaedev/quality",
+				"to": "0.30.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/test-story",
+				"from": "0.16.0",
+				"name": "@shivaedev/test-story",
+				"to": "0.17.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/work-board",
-				"from": "0.21.6",
+				"from": "0.22.0",
 				"name": "@shivaedev/work-board",
-				"to": "0.22.0"
+				"to": "0.23.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.13.4",
+				"from": "0.13.5",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.13.5"
+				"to": "0.13.6"
 			}
 		]
 	}
