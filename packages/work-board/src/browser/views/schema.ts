@@ -38,14 +38,27 @@ const InboxItem = Schema.Struct({
 	responseFrom: Schema.optional(Schema.Array(Schema.String)),
 	title: Schema.String,
 });
+export const RecentAnswerState = Schema.Literals(["waiting", "fleet", "closed", "changed", "applied", "superseded"]);
+export type RecentAnswerState = typeof RecentAnswerState.Type;
+const RecentAnswer = Schema.Struct({
+	answer: AnswerSummary,
+	answeredAt: Schema.Number,
+	href: Schema.String,
+	id: Schema.String,
+	state: RecentAnswerState,
+	title: Schema.String,
+});
+export type RecentAnswer = typeof RecentAnswer.Type;
 export const InboxProjection = Schema.Struct({
 	agents: Schema.Array(InboxItem),
 	answered: Schema.Array(InboxItem),
 	complete: Schema.Boolean,
+	identified: Schema.Boolean,
 	issues: Schema.Array(Schema.Struct({ file: Schema.String, line: Schema.Number, message: Schema.String })),
 	items: Schema.Array(InboxItem),
 	later: Schema.Array(InboxItem),
 	parked: Schema.Array(InboxItem),
+	recent: Schema.Array(RecentAnswer),
 	resolved: Schema.Array(InboxItem),
 	sourceIssues: Schema.Boolean,
 	you: Schema.Array(InboxItem),

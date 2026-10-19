@@ -46,3 +46,58 @@ export function responseRecords(index: number, item: string, file: string, sourc
 	}
 	return files;
 }
+
+const DAY = 86_400_000;
+
+function question(id: string, title: string, status: string) {
+	return `---\nid: ${id}\nkind: question\nstatus: ${status}\noptions:\n  - label: Yes\n    description: Go ahead.\n  - label: No\n    description: Leave it.\n---\n# ${title}\n`;
+}
+
+function answered(file: string, id: string, title: string, { author = "maintainer", daysAgo, now, status }: AnswerOptions) {
+	const source = question(id, title, status);
+	const revision = revisionOf(question(id, title, "open"));
+	const record = questionId(id, "answer", revision, file);
+	return {
+		[file]: source,
+		[`responses/${record}.md`]: questionMarkdown({
+			context: question(id, title, "open"),
+			id: record,
+			question: { deadline: 0, item: id, reason: title, registeredAt: 0, request: "answer", reviewedRevision: revision, source: file },
+		}),
+		[`responses/response.${id}.md`]: responseMarkdown({
+			body: "",
+			id: `response.${id}`,
+			response: {
+				answers: [{ prompt: "answer", selected: ["option-1"], text: "" }],
+				author,
+				question: record,
+				recordedAt: now - daysAgo * DAY,
+				reviewedRevision: revision,
+				type: "answer",
+			},
+		}),
+	};
+}
+
+interface AnswerOptions {
+	readonly author?: string;
+	readonly daysAgo: number;
+	readonly now: number;
+	readonly status: "done" | "open";
+}
+
+export function recentAnswersFixture(now: number): Record<string, string> {
+	return {
+		"home.md": "# Release plans\n",
+		...answered("questions/waiting.md", "question.waiting", "Keep the release branch?", { daysAgo: 30, now, status: "open" }),
+		...answered("questions/closed.md", "question.closed", "Ship the guide this week?", { daysAgo: 2, now, status: "done" }),
+		...answered("questions/old.md", "question.old", "Rename the starter?", { daysAgo: 8, now, status: "done" }),
+		...answered("questions/theirs.md", "question.theirs", "Split the docs?", { author: "reviewer", daysAgo: 1, now, status: "done" }),
+		...answered("questions/theirs-waiting.md", "question.theirs-waiting", "Drop the old flag?", {
+			author: "reviewer",
+			daysAgo: 3,
+			now,
+			status: "open",
+		}),
+	};
+}

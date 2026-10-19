@@ -1,3 +1,4 @@
+import { relative, resolve } from "node:path";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
@@ -56,7 +57,7 @@ boardStory.it(
 		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
 			authored: [],
 			reason: "Fleet isn't running, so agent work and its health are unknown.",
-			startCommand: `work-fleet serve ${story.engine.notes.root} --port ${daemon.port}`,
+			startCommand: `npx @shivaedev/work-fleet serve ${relative(resolve(), story.engine.notes.root)} --port ${daemon.port}`,
 			state: "unavailable",
 		});
 		expect((yield* rpc((client) => client("work-board.work", { url: "/_board/work" }))).items.length).toBeGreaterThan(0);
@@ -66,11 +67,11 @@ boardStory.it("keeps an unconfigured Fleet explicit over Board RPC", [project, d
 	yield* start({ fleetPort: null });
 	expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
 		authored: [],
-		reason: "Fleet daemon is not configured for this Board",
+		reason: "Fleet isn't set up for this Board.",
 		state: "unavailable",
 	});
 	expect((yield* rpc((client) => client("work-board.diagnostics", undefined))).sources.fleet).toMatchObject({
-		cause: "Fleet daemon is not configured for this Board",
+		cause: "Fleet isn't set up for this Board.",
 		state: "not-configured",
 	});
 });
@@ -89,7 +90,7 @@ boardStory.it("reports a Fleet service rejection as unavailable over Board HTTP 
 	yield* start({ fleetPort: daemon.port });
 	expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
 		authored: [],
-		reason: `Fleet daemon communication failed at 127.0.0.1:${daemon.port}`,
+		reason: `Fleet on port ${daemon.port} didn't answer as expected, so agent work and its health are unknown.`,
 		state: "unavailable",
 	});
 });
@@ -113,7 +114,7 @@ boardStory.it(
 				{ file: "active.md", status: "active", title: "Active task", workId: "task.active" },
 				{ file: "review.md", status: "in-review", title: "Reviewed task", workId: "task.review" },
 			],
-			reason: "Fleet daemon is not configured for this Board",
+			reason: "Fleet isn't set up for this Board.",
 			state: "unavailable",
 		});
 	},
@@ -125,9 +126,9 @@ boardStory.it(
 		const daemon = yield* diagnosticsDaemon(snapshot, 0, () => data);
 		yield* start({ fleetPort: daemon.port });
 		yield* daemon.stop();
-		const quoted = `'${story.engine.notes.root.replace("Team's", "Team'\\''s")}'`;
+		const quoted = `'${relative(resolve(), story.engine.notes.root).replace("Team's", "Team'\\''s")}'`;
 		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toMatchObject({
-			startCommand: `work-fleet serve ${quoted} --port ${daemon.port}`,
+			startCommand: `npx @shivaedev/work-fleet serve ${quoted} --port ${daemon.port}`,
 			state: "unavailable",
 		});
 	},

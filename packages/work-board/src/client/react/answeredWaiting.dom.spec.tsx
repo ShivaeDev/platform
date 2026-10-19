@@ -10,7 +10,7 @@ import { screenFleet } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
 const url = `/_board/item/${decisionId}/`;
-const ANSWERED = "[aria-label='Answered, waiting for Fleet']";
+const ANSWERED = "[aria-label='Answered']";
 const NEXT_PASS = "You answered: Request changes. Fleet picks this up on its next pass.";
 const FLEET_DOWN = "You answered: Request changes. Fleet isn't running. It picks this up when it starts again.";
 const OPEN_ASK = {
@@ -24,7 +24,7 @@ const OPEN_ASK = {
 };
 
 screenStory.it(
-	"moves an answered Fleet decision out of Needs you until Fleet's receipt settles it",
+	"moves an answered Fleet decision out of Needs you until Fleet's receipt settles its week-old answer",
 	[screenFleet(guideFleet), routedScreen(answeredDecisionFixture(), "/", { home: "home.md" })],
 	function* ({ editFile, findElement, findElements, readText, refreshInbox }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(`ul${ANSWERED}`)).not.toBeNull()));
@@ -102,13 +102,13 @@ screenStory.it(
 );
 
 screenStory.it(
-	"moves a decision answered from the Today popover to Answered and keeps focus on its row",
+	"moves a decision answered from the Today popover to Answered, keeps focus on its row and says when Fleet applies it",
 	[
 		screenWorkspace("answered-today"),
 		screenFleet(guideFleet),
 		routedScreen({ ...readyDecisionFixture, "guide.md": ANSWERED_TASK }, "/", { home: "home.md", writable: true }),
 	],
-	function* ({ activate, click, findElement, readAttribute, readFocus }) {
+	function* ({ activate, click, editFile, findElement, readAttribute, readFocus, readResponses, refreshInbox }) {
 		const ask = "[data-attention-id='task.guide']";
 		yield* Effect.promise(() => eventually(() => expect(findElement(`${ask} button[aria-haspopup='dialog']`)).not.toBeNull()));
 		click(`${ask} button[aria-haspopup='dialog']`);
@@ -120,6 +120,13 @@ screenStory.it(
 		expect(findElement(ask)).toBeNull();
 		expect(readAttribute("[data-answered-id='task.guide'] p", "title")).toBe(NEXT_PASS);
 		expect(readFocus()).toBe(findElement("[data-answered-id='task.guide'] a"));
+		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
+		const [[receipt, content] = []] = Object.entries(appliedReceipt(saved.responses[0]?.id));
+		editFile(receipt ?? "", content ?? "");
+		yield* Effect.promise(refreshInbox);
+		yield* Effect.promise(() =>
+			eventually(() => expect(readAttribute("[data-answered-id='task.guide'] p", "title")).toBe("You answered: Request changes. Fleet applied it.")),
+		);
 	},
 );
 
