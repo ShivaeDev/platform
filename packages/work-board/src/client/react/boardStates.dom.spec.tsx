@@ -7,6 +7,7 @@ import { boardScreen, chromeScreen, openScreen, routedScreen } from "#test/scree
 import { screenRoute, todayScreen } from "#test/screenWorkspaceTraits.ts";
 import { searchScreen } from "#test/searchScreen.tsx";
 import { DocumentMain } from "./DocumentMain.tsx";
+import { ProjectionMain } from "./ProjectionMain.tsx";
 
 expectNoReactWarnings();
 
@@ -32,6 +33,21 @@ for (const { label, shape, url } of [
 		},
 	);
 }
+
+screenStory.it(
+	"holds a lanes-shaped skeleton while a board document's lanes load",
+	[
+		boardScreen(
+			{ "board.md": "---\nid: board.held\nkind: board\nitems: []\n---\n# Held board\n", "home.md": "# Home" },
+			(api) => <ProjectionMain api={api} onPage={() => undefined} route="board" url="/board.md" />,
+			{ beforeIndex: () => Effect.never, home: "home.md" },
+		),
+	],
+	function* ({ findElement, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText('#doc [role="status"][aria-busy="true"]')).toBe("Loading board")));
+		expect(findElement('#doc [data-loading-shape="lanes"]')).not.toBeNull();
+	},
+);
 
 screenStory.it(
 	"tells an empty Today what fills Needs you and Goals and where to go next",
