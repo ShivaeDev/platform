@@ -9,7 +9,7 @@ import { clearIntegrationRetry, retryPending } from "#engine/readRetry.ts";
 import { refreshBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import type { DispatchNow, FleetRecord } from "#model.ts";
-import { assessPreparation } from "#preparation/compatibility.ts";
+import { assessPreparation, rebasedPreparation } from "#preparation/compatibility.ts";
 import type { Versioned } from "#storage/model.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	const { board, load, save, decision, integrations, policy } = state;
@@ -17,6 +17,23 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		const requested = requestedNow(stored.value, now);
 		return requested === undefined ? Effect.succeed(stored) : save(stored, requested);
 	}
+	const carryPreparation = Effect.fn("Fleet.carryPreparation")(function* (stored: Versioned<FleetRecord>) {
+		const current = stored.value.preparation;
+		const observation = yield* integrations.main(current);
+		const assessment = yield* assessPreparation(current, observation);
+		if (assessment._tag === "Reprepare") {
+			const rebased = stored.value.attempts.length === 0 ? rebasedPreparation(current, assessment, observation) : undefined;
+			if (rebased === undefined) {
+				return {
+					stopped: yield* decision(stored, assessment.code ?? "fleet-invalid", assessment.reason, "Prepare the affected scope again before dispatch"),
+				};
+			}
+			return { stored: yield* save(stored, { ...stored.value, preparation: rebased }) };
+		}
+		const next = assessment.preparation;
+		const moved = next.baseRevision !== current.baseRevision || next.observedAt !== current.observedAt;
+		return { stored: moved ? yield* save(stored, { ...stored.value, preparation: next }) : stored };
+	});
 	const dispatchPrepared = Effect.fn("Fleet.dispatchPrepared")(function* (workId: string, prompt?: string, now?: DispatchNow) {
 		let stored = yield* load(workId);
 		const work = yield* board.get(workId);
@@ -44,17 +61,11 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
 			return stored;
 		}
-		const assessment = yield* assessPreparation(stored.value.preparation, yield* integrations.main(stored.value.preparation));
-		if (assessment._tag === "Reprepare") {
-			return yield* decision(stored, assessment.code ?? "fleet-invalid", assessment.reason, "Prepare the affected scope again before dispatch");
+		const carried = yield* carryPreparation(stored);
+		if ("stopped" in carried) {
+			return carried.stopped;
 		}
-		if (
-			assessment.preparation.baseRevision !== stored.value.preparation.baseRevision
-			|| assessment.preparation.observedAt !== stored.value.preparation.observedAt
-		) {
-			stored = yield* save(stored, { ...stored.value, preparation: assessment.preparation });
-		}
-		return yield* launch(stored, "worker", stored.value.prompt);
+		return yield* launch(carried.stored, "worker", carried.stored.value.prompt);
 	});
 	return Effect.fn("Fleet.dispatch")(function* (workId: string, prompt?: string, now?: DispatchNow) {
 		const current = yield* load(workId);

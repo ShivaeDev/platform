@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
-import { unavailableWorkspace } from "#test/screenEnvironment.ts";
+import { unavailableWorkspace, unreadableHome } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { searchScreen } from "#test/searchScreen.tsx";
 
@@ -98,5 +98,16 @@ screenStory.it(
 		expect(findElement(`${OPTIONS}[aria-selected="true"]`, document)?.id).toBe(selected);
 		keyboard("End", { cancelable: true }, QUERY);
 		expect(findElement(`${OPTIONS}[aria-selected="true"]`, document)?.id).toBe(selected);
+	},
+);
+
+screenStory.it(
+	"says the results are incomplete when a workspace file cannot be read",
+	[searchScreen({ "home.md": "# Home\n", "notes/first.md": "# First\n\nShared phrase one." }, { home: "home.md" }), unreadableHome()],
+	function* ({ input, readText }) {
+		input(QUERY, "Shared phrase");
+		yield* Effect.promise(() =>
+			eventually(() => expect(readText(STATUS, document)).toBe("1 matches. Could not read 1 files; results are incomplete.")),
+		);
 	},
 );

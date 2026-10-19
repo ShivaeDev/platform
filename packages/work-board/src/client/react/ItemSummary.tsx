@@ -1,11 +1,11 @@
 import { ClipboardList, FileText, Flag, MessageCircle, PanelsTopLeft } from "lucide-react";
 import { useContext, useState } from "react";
 import type { Document } from "#browser/document/schema.ts";
-import { statusLabel } from "#browser/views/statusLabel.ts";
+import { kindLabel, statusLabel } from "#browser/views/statusLabel.ts";
 import { closedStatus } from "#browser/views/workStatus.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
-import { Age } from "./Age.tsx";
+import { Time } from "#client/react/Time.tsx";
 import { Favorite } from "./Favorite.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { ItemId } from "./ItemId.tsx";
@@ -32,15 +32,15 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 		<section aria-label="Item overview" className="item-summary space-y-3">
 			<div className="flex flex-wrap items-center gap-2">
 				<Icon aria-hidden="true" className="size-4" />
-				<span>{fields.kind === "project" ? "goal" : (fields.kind ?? "Document")}</span>
+				<span>{kindLabel(fields.kind ?? "document")}</span>
 				<StatusChip status={status} />
 				{item !== undefined && <Badge variant="outline">Fleet · {item.stage}</Badge>}
 				{item !== undefined && <PrChip className="pointer-coarse:h-11 pointer-coarse:px-3" url={item.prUrl} />}
 				{visibleIdentity(fields.id) && (
 					<ItemId href={document.identity ? `/_board/item/${encodeURIComponent(document.identity)}/` : undefined} id={fields.id} />
 				)}
-				<span className="whitespace-nowrap font-mono text-muted-foreground text-xs" data-item-updated>
-					updated <Age modified={document.modified} short /> ago
+				<span className="whitespace-nowrap text-muted-foreground text-xs" data-item-updated>
+					updated <Time at={document.modified} />
 				</span>
 				<ItemGoals document={document} />
 			</div>

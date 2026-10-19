@@ -6,7 +6,6 @@ import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { answerReport } from "#test/report.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
-import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
 const test = postgresTests("test");
 
@@ -100,25 +99,5 @@ test("concurrent retries cannot authorize a changed brief or consume the origina
 			);
 			expect(files.receipts()).toHaveLength(1);
 			expect(fixture.launched).toHaveLength(2);
-		}),
-	));
-
-test("a worker answer cannot continue its thread after an authored brief edit", () =>
-	withFleetBoard({}, (fixture, root, source) =>
-		Effect.gen(function* () {
-			const fleet = yield* Fleet;
-			yield* prepareWork("one");
-			yield* fleet.dispatch("one");
-			const { decision } = yield* askWorker(fixture);
-			yield* answerWorker(root, decision);
-			const current = `${source}\nChanged criteria.\n`;
-			boardHttpFiles(root).write("one.md", current);
-			const continued = yield* fleet.reconcile("one");
-			expect(continued.value.stage).toBe("needs-human");
-			expect(continued.value.decision?.reason).toBe("Board context changed");
-			expect(continued.value.boardContext).toBe(source);
-			expect(continued.value.responses).toBeUndefined();
-			expect(continued.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: decision.published }]);
-			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
 		}),
 	));

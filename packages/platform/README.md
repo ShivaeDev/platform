@@ -306,9 +306,25 @@ const githubAccount = Effect.gen(function* () {
 
 Declare `Schema.Union([AuthUnavailable, Unauthorized])` in the account-reading RPC's `error` schema: lookup failures now come from the handler's Effect. An outage fails with `AuthUnavailable`; a session that expires before the lookup fails with `Unauthorized`. Neither failure exposes provider exception details.
 
-The lookup uses the same transport headers and runs only when the handler evaluates `user.providerAccounts`. The boundary memoizes its result in that invocation's Effect context, including concurrent reads, without sharing it across requests or users. Identity-only handlers never run the accounts lookup. `SessionUserWithProviderAccountsValue.providerAccounts` is a required `Effect<readonly ProviderAccountValue[], AuthUnavailable | Unauthorized>`. Each result contains only `{ providerId: string, accountId: string }`; for example, GitHub's numeric user ID is the string `"123"`, not Better Auth's account-row id. `SessionUser` and `SessionUserValue` contain the base profile without accounts.
+The lookup uses the same transport headers and runs only when the handler evaluates `user.providerAccounts`. The boundary memoizes a successful result in that invocation's Effect context, including concurrent reads, without sharing it across requests or users. A failed lookup is not retained: the next read tries again. Identity-only handlers never run the accounts lookup. `SessionUserWithProviderAccountsValue.providerAccounts` is a required `Effect<readonly ProviderAccountValue[], AuthUnavailable | Unauthorized>`. Each result contains only `{ providerId: string, accountId: string }`; for example, GitHub's numeric user ID is the string `"123"`, not Better Auth's account-row id. `SessionUser` and `SessionUserValue` contain the base profile without accounts.
 
 A custom session provider supplies `user.providerAccounts` as a lazy Effect with that same result and failure type, described by `ProviderAccountsSessionShape`. The boundary owns request-local memoization and the reduction to public IDs; custom providers need not cache or project the returned account objects.
+
+### Session freshness in streams
+
+`authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer` and signed-in `maybeAuthenticatedLayer` calls revalidate live RPC streams every 30 seconds by default, using the original transport headers. A missing or revoked session ends the stream with `Unauthorized`, including an idle stream. With a session store that reflects sign-out immediately, delivery can continue for up to that interval plus the session lookup time after sign-out. Provider cookie caching or secondary storage can add their own delay; keep Better Auth's cookie cache disabled for database-backed revocation.
+
+Set `SessionPolicy.streamRevalidationInterval` to an Effect `Duration.Input` to change the interval for middleware using that policy:
+
+```ts
+const sessions = {
+  origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }),
+  provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
+  streamRevalidationInterval: "5 seconds",
+};
+```
+
+An `AuthUnavailable` failure during revalidation leaves the stream running and the next interval checks again. During a session-store outage, the sign-out delivery window extends until a lookup succeeds. Initial session lookup failures still reject the subscription. Unary calls resolve their session once per call. `MaybeAuthenticated` streams that start anonymous continue without a session monitor; a signed-in optional stream ends with `Unauthorized` when its session is removed. Callers can subscribe again to continue anonymously.
 
 ### Requiring an admin
 

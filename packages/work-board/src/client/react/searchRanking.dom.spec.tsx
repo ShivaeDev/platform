@@ -1,36 +1,39 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { paletteFixture } from "#test/paletteFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { identityRankingFixture, searchRankingFixture } from "#test/searchRankingFixture.ts";
+import { crossGroupRankingFixture, identityRankingFixture, searchRankingFixture } from "#test/searchRankingFixture.ts";
 import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
+const QUERY = '#search-dialog [role="combobox"]';
 
 const STATUS_LABELS: Readonly<Record<string, string>> = { active: "Active", deferred: "Deferred", done: "Done", planned: "Planned" };
 
-for (const { fixture, first, id, queries, status } of [
-	{ first: "A running watch sees reviews finish", fixture: searchRankingFixture(), id: "", queries: ["watch"], status: "planned" },
-	...["active", "done", "deferred"].map((itemStatus) => ({
-		first: "Inbox triage",
-		fixture: identityRankingFixture(itemStatus, itemStatus),
-		id: "task.inbox",
-		queries: ["inbox", "task.inbox"],
-		status: itemStatus,
-	})),
-	...["planned", "active"].flatMap((passageStatus) =>
-		["done", "deferred"].map((titleStatus) => ({
-			first: "Captured notes",
+for (const { fixture, first, id, name, queries, status } of [
+	{
+		first: "A running watch sees reviews finish",
+		fixture: searchRankingFixture(),
+		id: "",
+		name: "titles before passages",
+		queries: ["watch"],
+		status: "planned",
+	},
+	...["active", "done", "deferred"].flatMap((titleStatus) =>
+		["planned", titleStatus].map((passageStatus) => ({
+			first: "Inbox triage",
 			fixture: identityRankingFixture(titleStatus, passageStatus),
-			id: "task.notes",
+			id: "task.inbox",
+			name: `a ${titleStatus} title/ID match above a newer ${passageStatus} passage match`,
 			queries: ["inbox", "task.inbox"],
-			status: passageStatus,
+			status: titleStatus,
 		})),
 	),
 ]) {
 	const { files, modified } = fixture;
 	screenStory.it(
-		`ranks status first, then title/ID relevance and recency (${status}, ${id})`,
+		`ranks ${name}`,
 		[searchScreen(files, { home: undefined, modified })],
 		function* ({ findElement, readText, findElements, typeText }) {
 			const field = findElement<HTMLInputElement>('#search-dialog [role="combobox"]', document);
@@ -49,10 +52,10 @@ for (const { fixture, first, id, queries, status } of [
 						"Watch needs you",
 						"Active watch",
 						"Held watch",
-						"Keep reviews visible",
 						"Done watch",
 						"Deferred watch",
 						"Superseded watch",
+						"Keep reviews visible",
 						"Finished",
 					]);
 				} else {
@@ -64,3 +67,54 @@ for (const { fixture, first, id, queries, status } of [
 		},
 	);
 }
+
+screenStory.it(
+	"lists a plain document whose title starts with the query first and orders the other groups by their best hit",
+	[searchScreen(crossGroupRankingFixture())],
+	function* ({ input, findElements, roles }) {
+		function groups() {
+			return [...findElements<HTMLElement>('#search-dialog [role="listbox"] [role="group"]', document)].map((group) => ({
+				name: roles.accessible(group).name,
+				titles: [...group.querySelectorAll('[role="option"] strong')].map((title) => title.textContent),
+			}));
+		}
+		input(QUERY, "Work Board on client-rendered React");
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(groups()).toEqual([
+					{ name: "Documents", titles: ["Work Board on client-rendered React: slice plan"] },
+					{ name: "Work", titles: ["Platform work", "Queries keep their data while they refresh 0"] },
+				]),
+			),
+		);
+		input(QUERY, "budget");
+		yield* Effect.promise(() => eventually(() => expect(groups().map((group) => group.titles[0])).toEqual(["Connection budget", "Platform work"])));
+		expect(groups().map((group) => group.name)).toEqual(["Documents", "Work"]);
+	},
+);
+
+screenStory.it(
+	"lists a goal named exactly ahead of a document whose title only starts with that name",
+	[searchScreen({ ...paletteFixture(), "notes/calmer.md": "# A calmer workspace review\n\nNotes from the review.\n" })],
+	function* ({ input, findElements, readText }) {
+		input(QUERY, "A calmer workspace");
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements<HTMLElement>('#search-dialog [role="option"]', document).map((row) => readText("strong", row))).toEqual([
+					"Go to A calmer workspace",
+					"A calmer workspace review",
+				]),
+			),
+		);
+	},
+);
+
+screenStory.it("labels goals as Goal in search results", [searchScreen(paletteFixture())], function* ({ input, findElements, readText }) {
+	input(QUERY, "finished");
+	yield* Effect.promise(() =>
+		eventually(() => expect(readText("strong", findElements<HTMLElement>('#search-dialog [role="option"]', document)[0])).toBe("Finished workspace")),
+	);
+	const row = findElements<HTMLElement>('#search-dialog [role="option"]', document)[0];
+	expect(row?.querySelector("small")?.firstChild?.textContent).toBe("Goal");
+	expect(readText("small", row)).not.toMatch(/^project/u);
+});

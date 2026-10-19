@@ -1,5 +1,7 @@
 import { Effect } from "effect";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { approveBrief } from "#engine/approveBrief.ts";
+import { briefChanged } from "#engine/boardBrief.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { executing, type FleetRecord } from "#model.ts";
@@ -20,6 +22,8 @@ export function continueWorker(state: EngineState) {
 		) {
 			return yield* Effect.fail(new Forbidden({ message: "Confirm the exact question turn is terminal before continuing" }));
 		}
-		return yield* makeLaunch(state)(stored, latest.role, prompt, { responses, sessionId: worker.sessionId });
+		const work = yield* state.board.get(stored.value.workId, { fresh: true });
+		const current = briefChanged(stored.value, work) ? yield* approveBrief(state)(stored, work, undefined, undefined, true) : stored;
+		return yield* makeLaunch(state)(current, latest.role, prompt, { responses, sessionId: worker.sessionId });
 	});
 }

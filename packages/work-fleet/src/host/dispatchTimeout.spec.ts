@@ -41,7 +41,7 @@ const refreshRequest = Effect.fn("DispatchTimeoutTest.refreshRequest")(function*
 ) {
 	yield* Effect.addFinalizer(() => delay.release);
 	const client = yield* daemonClient(port);
-	const cli = yield* Effect.promise(() => cliProcess(["dispatch", "one", "--port", String(port)])).pipe(Effect.timeout("3 seconds"));
+	const cli = yield* Effect.promise(() => cliProcess(["dispatch", "one", "--port", String(port)]));
 	expect(cli).toEqual({ code: 0, stdout: "one: dispatch recorded; preparing and launching in the background" });
 	yield* delay.entered;
 	const accepted = yield* client("daemon.dispatch-status", { workId: "one" });

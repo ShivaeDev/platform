@@ -43,6 +43,15 @@ export const duplicateSave = roleScreen.trait("screen", "another visible Save bu
 	root.insertAdjacentHTML("beforeend", "<button>Save</button>");
 });
 
+export const deferredSave = roleScreen.trait("screen", "the Save button appears after clicking its twin", ({ root, save }) => {
+	const twin = root.querySelector("#twin");
+	if (!twin) {
+		throw new Error("The role screen has no twin button");
+	}
+	save.remove();
+	twin.addEventListener("click", () => root.append(save), { once: true });
+});
+
 export function hiddenSave(style: string, ancestor: boolean) {
 	return roleScreen.trait("screen", `a Save button ${ancestor ? "inside" : "with"} ${style}`, ({ root }) => {
 		const container = document.createElement("div");

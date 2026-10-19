@@ -4,15 +4,19 @@ import type { ComponentProps } from "react";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { statusPresentation } from "./statusPresentation.ts";
 
-const colors = cva("", {
+// The stock badge's 10px text is too small to read on a phone, and amber is the Board's one "needs you" signal, so only that state is solid.
+// The quiet tint is mixed over the card rather than left translucent, so a hovered or selected row behind it can't pull the label under 4.5:1.
+const QUIET_TINT =
+	"border-(--tone)/25 bg-[color-mix(in_oklab,var(--tone)_10%,var(--color-card))] text-(--tone) dark:bg-[color-mix(in_oklab,var(--tone)_10%,var(--color-card))]";
+const colors = cva("text-xs [&>svg]:size-3!", {
 	variants: {
 		status: {
-			"agent-working": "border-agent-working/25 bg-agent-working/10 text-agent-working dark:bg-agent-working/10",
-			blocked: "border-blocked/25 bg-blocked/10 text-blocked dark:bg-blocked/10",
-			deferred: "border-deferred/25 bg-deferred/10 text-deferred dark:bg-deferred/10",
-			done: "border-done/25 bg-done/10 text-done dark:bg-done/10",
-			"needs-you": "border-needs-you/25 bg-needs-you/10 text-needs-you dark:bg-needs-you/10",
-			"waiting-on-agents": "border-waiting-on-agents/25 bg-waiting-on-agents/10 text-waiting-on-agents dark:bg-waiting-on-agents/10",
+			"agent-working": `${QUIET_TINT} [--tone:var(--color-agent-working)]`,
+			blocked: `${QUIET_TINT} [--tone:var(--color-blocked)]`,
+			deferred: `${QUIET_TINT} [--tone:var(--color-deferred)]`,
+			done: `${QUIET_TINT} [--tone:var(--color-done)]`,
+			"needs-you": "",
+			"waiting-on-agents": `${QUIET_TINT} [--tone:var(--color-waiting-on-agents)]`,
 		},
 	},
 });
@@ -23,7 +27,12 @@ export function StatusChip({ status, className, ...props }: ComponentProps<"span
 	const value = statusPresentation(status);
 	const Icon = value.icon;
 	return (
-		<Badge className={cn(colors({ status: value.token }), className)} data-status-token={value.token} variant="outline" {...props}>
+		<Badge
+			className={cn(colors({ status: value.token }), className)}
+			data-status-token={value.token}
+			variant={value.token === "needs-you" ? "default" : "outline"}
+			{...props}
+		>
 			<Icon aria-hidden="true" />
 			{value.label}
 		</Badge>

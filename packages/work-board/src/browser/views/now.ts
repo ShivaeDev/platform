@@ -105,8 +105,10 @@ const stageNames: Record<FleetWork["stage"], string> = {
 	validating: "Validating",
 };
 
-export function stageTime(stage: FleetWork["stage"]): { readonly ended: boolean; readonly label: string } {
-	return { ended: stage === "completed" || stage === "released", label: stageNames[stage] };
+const notRunningStages: ReadonlySet<FleetWork["stage"]> = new Set(["completed", "prepared", "released"]);
+
+export function stageTime(stage: FleetWork["stage"]): { readonly label: string; readonly started: boolean } {
+	return { label: stageNames[stage], started: !notRunningStages.has(stage) };
 }
 
 export function cardStatus(metadata: Metadata, fleet: FleetWork | undefined, waiting: string | undefined, answered = false): string | undefined {

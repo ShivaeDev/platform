@@ -12,12 +12,13 @@ export interface MainSnapshot {
 	readonly revision: string;
 }
 
-// Preparation and dispatch share the latest fetched main revision.
+// Preparation and dispatch share the snapshot that `refresh` records; `latest` reads main without moving it under them.
 export class MainSource extends Context.Service<
 	MainSource,
 	{
 		readonly mergeConflicts?: (head: string, otherHeads: readonly string[]) => Effect.Effect<readonly (readonly string[])[], FleetError>;
 		readonly current: Effect.Effect<MainSnapshot, FleetError>;
+		readonly latest: Effect.Effect<MainSnapshot, FleetError>;
 		readonly observe: (preparation: Preparation) => Effect.Effect<MainObservation, FleetError>;
 		readonly refresh: Effect.Effect<MainSnapshot, FleetError>;
 		readonly repositoryRoot: string;
@@ -41,17 +42,21 @@ export function gitMainSource(host: FleetHost) {
 			const root = yield* git(host.boardDir, ["rev-parse", "--show-toplevel"]);
 			const ref = `${host.repository.remote}/${host.repository.branch}`;
 			let snapshot: MainSnapshot | undefined;
-			const refresh = Effect.gen(function* () {
+			const latest = Effect.gen(function* () {
 				yield* git(root, ["fetch", "--quiet", host.repository.remote, host.repository.branch]);
-				const next = { observedAt: yield* Clock.currentTimeMillis, revision: yield* git(root, ["rev-parse", ref]) };
-				snapshot = next;
-				return next;
+				return { observedAt: yield* Clock.currentTimeMillis, revision: yield* git(root, ["rev-parse", ref]) };
 			});
+			const refresh = Effect.tap(latest, (next) =>
+				Effect.sync(() => {
+					snapshot = next;
+				}),
+			);
 			const current = Effect.suspend(() => (snapshot === undefined ? refresh : Effect.succeed(snapshot)));
-			return { current, refresh, root };
+			return { current, latest, refresh, root };
 		}),
-		methods: ({ root, current, refresh }) => ({
+		methods: ({ root, current, latest, refresh }) => ({
 			current: () => current,
+			latest: () => latest,
 			mergeConflicts: (head: string, otherHeads: readonly string[]) =>
 				Effect.gen(function* () {
 					yield* predictionGit(root, ["fetch", "--quiet", host.repository.remote, ...new Set([head, ...otherHeads])]);
@@ -88,6 +93,7 @@ export function gitMainSource(host: FleetHost) {
 			const main = yield* GitMainSource;
 			return MainSource.of({
 				current: main.current(),
+				latest: main.latest(),
 				mergeConflicts: main.mergeConflicts,
 				observe: main.observe,
 				refresh: main.refresh(),

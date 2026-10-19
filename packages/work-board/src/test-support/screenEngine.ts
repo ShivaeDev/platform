@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
 import type { render } from "@shivaedev/effect-react/client/testing.ts";
-import { loadMarkdownRenderers } from "#client/react/markdownLoader.ts";
+import { loadLazyChunks } from "#client/react/lazyChunks.ts";
 import type { FileSystemWrapper } from "./board.ts";
 import { browserStorage } from "./browserStorage.ts";
 import type { chrome } from "./chrome.ts";
@@ -16,7 +16,6 @@ import type { DiagramDrawing } from "./screenDiagrams.ts";
 import type { SessionTransport } from "./sessionTransport.ts";
 
 export interface ScreenEngine {
-	age?: { readonly modified: number; readonly view: (modified: number) => ReactNode };
 	api?: BoardTestApi;
 	boardScreen?: Awaited<ReturnType<typeof renderBoard>>;
 	readonly cleanups: Array<() => Promise<void>>;
@@ -48,12 +47,14 @@ export interface ScreenEngine {
 	routed?: Awaited<ReturnType<typeof chrome>>;
 	router?: Awaited<ReturnType<typeof renderRouter>>["router"];
 	scrollPosition?: number;
+	serverStopped?: boolean;
 	session?: Effect.Success<ReturnType<typeof mountSession>>;
 	sessionFleetPort?: number;
 	sessionTransport?: SessionTransport;
 	sessionWrap?: FileSystemWrapper | undefined;
 	startupGate?: Deferred.Deferred<void>;
 	tell?: (line: string) => void;
+	time?: { readonly at: number; readonly view: (at: number) => ReactNode };
 	updatesPaused?: Atom.Writable<boolean>;
 	view?: Awaited<ReturnType<typeof render>>;
 }
@@ -64,7 +65,7 @@ export function* createScreen() {
 	window.sessionStorage.clear();
 	window.history.replaceState({}, "", "/");
 	// Screens render inside synchronous act(), which rejects a suspending first load; the served-bundle stories cover the lazy load itself.
-	yield* Effect.promise(loadMarkdownRenderers);
+	yield* Effect.promise(loadLazyChunks);
 	const attributes = [...document.documentElement.attributes].map(({ name, value }) => [name, value] as const);
 	const engine: ScreenEngine = { cleanups: [], documentReads: [], files: {}, indexReads: 0, path: "/" };
 	yield* Effect.addFinalizer(() =>

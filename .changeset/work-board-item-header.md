@@ -6,7 +6,7 @@
 
 - An item page's status chip shows **Needs you** whenever a request on that item is open and unanswered, for every kind of item. Before, only decisions and questions did, so a task waiting on you said **Active**. Once someone answers, the chip shows **Waiting on agents**.
 - Decisions and questions with no open request show **Answered** or **Closed** instead of no status.
-- Goal pages call their kind "goal" instead of "project".
+- The item header on goal pages names the kind **Goal** instead of "project".
 - **Prepare an agent handoff** is no longer offered on finished or dropped items or on goals.
 
 ### Added

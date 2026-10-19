@@ -14,7 +14,7 @@ const test = postgresTests("test");
 
 for (const field of ["criteria", "body"]) {
 	for (const phase of ["preparation", "execution", "review", "decision"]) {
-		test(`${field} edits during ${phase} refresh active work and guard pending answers after restart`, () =>
+		test(`${field} edits during ${phase} refresh active work and approve pending worker answers after restart`, () =>
 			withFleetBoard({ noChange: true, reviewRunning: phase === "review" }, (fixture, root, source) =>
 				Effect.gen(function* () {
 					const files = boardHttpFiles(root);
@@ -36,15 +36,13 @@ for (const field of ["criteria", "body"]) {
 						expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns + (phase === "preparation" ? 1 : 0));
 						return;
 					}
-					expect(stopped.value.stage).toBe("needs-human");
-					expect(stopped.value.blocker ?? stopped.value.decision?.reason).toContain("Board context changed");
-					expect(stopped.value.attentionOwner).toBe("orchestrator");
-					expect(stopped.value.boardContext).toBe(original);
-					expect(stopped.value.boardRevision).toBe(active.value.boardRevision);
-					expect(stopped.value.attempts).toEqual(active.value.attempts);
-					expect(stopped.value.outcome).toBeUndefined();
-					expect(stopped.value.responses).toBeUndefined();
-					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns);
+					expect(stopped.value.stage).toBe("executing");
+					expect(stopped.value.boardContext).toBe(current);
+					expect(stopped.value.boardRevision).toBe(briefRevision(metadataParse(current)));
+					expect(stopped.value.decision).toBeUndefined();
+					expect(stopped.value.attempts.at(-1)?.prompt).toContain(current);
+					expect(stopped.value.responses).toMatchObject([{ action: "continue", boardAcknowledged: true }]);
+					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns + 1);
 				}),
 			));
 	}

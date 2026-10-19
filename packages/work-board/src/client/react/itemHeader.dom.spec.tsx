@@ -62,7 +62,7 @@ screenStory.it(
 	function* ({ findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
 		const updated = findElement(`${HEADER} [data-item-updated]`);
-		expect(updated?.textContent).toMatch(/^updated \d+[smhd] ago$/u);
+		expect(updated?.textContent).toMatch(/^updated \S/u);
 		expect(findElement("time[data-modified]", updated)).not.toBeNull();
 		expect(updated?.previousElementSibling?.textContent).toBe("task.fresh");
 		expect(readText(`${HEADER} [role="status"]`)).toBe("");
@@ -102,9 +102,9 @@ screenStory.it(
 );
 
 for (const [item, kind] of [
-	["task.finished", "task"],
-	["task.dropped", "task"],
-	["goal.reader", "goal"],
+	["task.finished", "Task"],
+	["task.dropped", "Task"],
+	["goal.reader", "Goal"],
 ] as const) {
 	screenStory.it(
 		`offers no agent handoff on ${item}`,

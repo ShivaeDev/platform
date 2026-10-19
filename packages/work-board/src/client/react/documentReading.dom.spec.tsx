@@ -1,12 +1,10 @@
-import { Clock, Effect } from "effect";
+import { Effect } from "effect";
 import { expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { answerCardFixture } from "#test/answerCardFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen, routedScreen } from "#test/screenTraits.ts";
-import { Age } from "./Age.tsx";
-import { AgeTicker } from "./AgeLabel.tsx";
 import { ItemSummary } from "./ItemSummary.tsx";
 
 expectNoReactWarnings();
@@ -76,10 +74,10 @@ screenStory.it(
 		]);
 		expect(readText("article.item p", board)).toBe("Readers open the source first.");
 		expect(readText("[data-page-summary] .counts")).toBe("1 plan · 1 done");
-		expect(readText("[data-page-summary]")).toMatch(/updated \d+[smhd] ago/u);
-		expect([...findElements("[data-page-summary] time[data-modified]")].map((time) => time.parentElement?.hasAttribute("data-item-updated"))).toEqual(
-			[true],
-		);
+		expect(readText("[data-page-summary]")).toMatch(/updated \S/u);
+		const updated = findElement("[data-page-summary] time");
+		expect(updated?.getAttribute("datetime")).toBe(new Date(Number(updated?.getAttribute("data-modified"))).toISOString());
+		expect([...findElements("[data-page-summary] time[data-modified]")].map((time) => time.closest("[data-item-updated]") !== null)).toEqual([true]);
 	},
 );
 
@@ -90,26 +88,6 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(findElement(".document-layout > .board")).not.toBeNull()));
 		expect(readText(".document-layout > .board")).toBe("Local planning for the project.");
 		expect(findElement("[data-page-summary] .counts")).toBeNull();
-	},
-);
-
-const THREE_HOURS_AGO = Effect.runSync(Clock.currentTimeMillis) - 3 * 3_600_000;
-screenStory.it(
-	"shows the exact timestamp behind an age when the reader points at it",
-	[
-		componentScreen(
-			<AgeTicker>
-				<Age modified={THREE_HOURS_AGO} short />
-			</AgeTicker>,
-		),
-	],
-	function* ({ findElement, hover, readText }) {
-		const age = findElement("time");
-		expect(age?.textContent).toBe("3h");
-		expect(age?.getAttribute("datetime")).toBe(new Date(THREE_HOURS_AGO).toISOString());
-		yield* Effect.promise(() => hover(age));
-		const expected = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(THREE_HOURS_AGO);
-		yield* Effect.promise(() => eventually(() => expect(readText("[data-slot=tooltip-content]", document)).toBe(expected)));
 	},
 );
 

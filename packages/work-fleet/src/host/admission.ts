@@ -11,6 +11,7 @@ import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
 import { workerCwd } from "#host/providers.ts";
 import type { DispatchNow, FleetRecord } from "#model.ts";
 import { BoardGateway, type BoardWork } from "#policy.ts";
+import { coversRepository, preparationStop } from "#preparation/compatibility.ts";
 import type { Preparation } from "#preparation/schema.ts";
 import { workerPrompt } from "#prompt/worker.ts";
 import { LaunchSettings } from "#session/schema.ts";
@@ -62,6 +63,18 @@ function stalePreparation(record: FleetRecord, work: BoardWork, main: MainSnapsh
 	return record.stage === "prepared" && (unlaunched(record) || !changed) && (changed || record.preparation.baseRevision !== main.revision);
 }
 
+function stoppedBehindMain(record: FleetRecord) {
+	const decision = record.decision;
+	return (
+		record.stage === "needs-human"
+		&& record.attempts.length === 0
+		&& decision !== undefined
+		&& decision.worker === undefined
+		&& preparationStop(decision)
+		&& coversRepository(record.preparation)
+	);
+}
+
 export type Approval = "board" | "explicit";
 
 export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* (
@@ -77,7 +90,7 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	const main = yield* MainSource;
 	const snapshot = yield* main.current;
 	const reapproved = record !== undefined && approval === "explicit" && (record.stage === "released" || briefChanged(record, work));
-	if (record !== undefined && !reapproved && !stalePreparation(record, work, snapshot)) {
+	if (record !== undefined && !reapproved && !stalePreparation(record, work, snapshot) && !stoppedBehindMain(record)) {
 		return;
 	}
 	yield* fleet.prepare({

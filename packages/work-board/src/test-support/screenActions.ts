@@ -99,6 +99,20 @@ export function screenActions(tell: (line: string) => void) {
 			const form = control(selector, HTMLFormElement);
 			act(() => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
 		},
+		tap: async (target: string | Element | null | undefined) => {
+			tell(`the reader taps ${typeof target === "string" ? target : target?.textContent}`);
+			const element = typeof target === "string" ? control(target, HTMLElement) : target;
+			if (!(element instanceof HTMLElement)) {
+				throw new Error(`Missing tap target ${target}`);
+			}
+			await act(async () => {
+				for (const type of ["pointerdown", "pointerup"]) {
+					element.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: "touch" }));
+				}
+				element.click();
+				await Promise.resolve();
+			});
+		},
 		typeText: input,
 	};
 }
