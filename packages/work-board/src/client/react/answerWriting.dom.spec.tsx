@@ -83,6 +83,19 @@ screenStory.it(
 );
 
 screenStory.it(
+	"keeps focus where the reader writes when they follow the Answer link again",
+	[screenWorkspace("arrival-keep"), routedScreen(answerCardFixture, `/_board/item/${decisionId}/`, { home: "home.md", writable: true })],
+	function* ({ findElement, focus, follow, readFocus }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form [data-choice='option-1']")).not.toBeNull()));
+		const box = findElement<HTMLTextAreaElement>('#response-form [name="body"]');
+		focus(box);
+		yield* Effect.promise(() => follow(`/_board/item/${decisionId}/#answer-card-direction`));
+		yield* Effect.promise(() => eventually(() => expect(findElement("#answer-card-direction")?.style.scrollMarginTop).not.toBe("")));
+		expect(readFocus()).toBe(box);
+	},
+);
+
+screenStory.it(
 	"says More options in plain words without the author label",
 	[screenWorkspace("plain-options"), routedScreen(answeredDecisionFixture(), `/_board/item/${decisionId}/`, { home: "home.md", writable: true })],
 	function* ({ findElement, openDetails, readText }) {
