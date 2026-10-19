@@ -1,19 +1,13 @@
+import type { VariantProps } from "class-variance-authority";
 import { cn } from "cn";
-import type { ReactNode } from "react";
+import type { ComponentProps } from "react";
 import { buttonVariants } from "#client/react/components/ui/button.tsx";
 
 export function LinkButton({
-	href,
-	children,
+	className,
+	size = "sm",
 	variant = "outline",
-}: {
-	readonly href: string;
-	readonly children: ReactNode;
-	readonly variant?: "default" | "outline";
-}) {
-	return (
-		<a className={cn(buttonVariants({ size: "sm", variant }))} data-slot="link-button" href={href}>
-			{children}
-		</a>
-	);
+	...props
+}: ComponentProps<"a"> & VariantProps<typeof buttonVariants> & { readonly href: string }) {
+	return <a className={cn(buttonVariants({ className, size, variant }))} data-slot="link-button" {...props} />;
 }

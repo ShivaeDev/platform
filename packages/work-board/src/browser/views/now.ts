@@ -130,6 +130,7 @@ const statusOrder = [
 	"delivering",
 	"blocked",
 	"needs-human",
+	"needs-you",
 	"done",
 	"deferred",
 	"superseded",

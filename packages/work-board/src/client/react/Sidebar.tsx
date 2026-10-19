@@ -4,10 +4,10 @@ import { type ReactNode, useContext, useEffect } from "react";
 import type { Navigation } from "#browser/Navigation.ts";
 import { ActiveGoals } from "#client/react/ActiveGoals.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
-import { Button } from "#client/react/components/ui/button.tsx";
 import { destinationName } from "#client/react/destinationName.ts";
 import { InboxCount } from "#client/react/Header.tsx";
 import { type Item, LibraryContext } from "#client/react/LibraryContext.ts";
+import { LinkButton } from "#client/react/LinkButton.tsx";
 import type { MainLocation } from "#client/react/mainLocation.ts";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
@@ -108,14 +108,17 @@ function WorkspaceLink({
 	readonly children: ReactNode;
 }) {
 	return (
-		<Button
+		<LinkButton
+			aria-current={current ? "page" : undefined}
+			aria-label={name}
 			className={cn("justify-between no-underline", current && "bg-accent")}
-			nativeButton={false}
-			render={<a aria-current={current ? "page" : undefined} aria-label={name} href={href} id={id} />}
+			href={href}
+			id={id}
+			size="default"
 			variant="ghost"
 		>
 			{children}
-		</Button>
+		</LinkButton>
 	);
 }
 function ReadingSection({ title, items, current }: { readonly title: string; readonly items: readonly Item[]; readonly current: string }) {
