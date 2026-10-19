@@ -7,6 +7,7 @@ import { malformedResponse, questionFrom, revisionOf } from "#server/responses/r
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { resultTargets } from "./resultTargets.ts";
 export const resultProjection = Effect.fn("WorkBoard.resultProjection")(function* (
+	item: string,
 	result: MetadataDocument,
 	data: Snapshot,
 	document: Document,
@@ -41,5 +42,5 @@ export const resultProjection = Effect.fn("WorkBoard.resultProjection")(function
 					: [],
 			);
 	feedback.sort((a, b) => b.response.response.recordedAt - a.response.response.recordedAt || a.response.id.localeCompare(b.response.id));
-	return { document, feedback, feedbackUnknown, revision, targets: criteria };
+	return { document, feedback, feedbackUnknown, item, revision, targets: criteria };
 });

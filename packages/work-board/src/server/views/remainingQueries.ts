@@ -51,7 +51,7 @@ export const remainingQueries = Effect.gen(function* () {
 						new Conflict({ message: "Choose one uniquely identified, readable result. Missing or ambiguous work is not accepted." }),
 					);
 				}
-				return yield* resultProjection(result, data, yield* read(identityUrl(item)));
+				return yield* resultProjection(item, result, data, yield* read(identityUrl(item)));
 			}),
 		start: () => Effect.map(changes.files, (files) => ({ empty: files.length === 0, templates: startTemplates })),
 	};

@@ -1,7 +1,17 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
-import { answeredResult, QUIET_RESULT, QUIET_TASK, REVIEW_TASK, reviewResult } from "#test/resultReview.ts";
+import {
+	answeredResult,
+	CHECKED_RESULT,
+	LONE_RESULT,
+	ORPHAN_RESULT,
+	QUIET_RESULT,
+	QUIET_TASK,
+	REVIEW_TASK,
+	reviewResult,
+	UNCHECKED_TASK,
+} from "#test/resultReview.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
@@ -44,7 +54,9 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(findElement("[data-result-linked]")).not.toBeNull()));
 		expect(readText("[data-result-linked] a[href='/_board/item/work.keyboard/']")).toBe("Keyboard work");
 		expect(readText("[data-result-linked] [data-status-token]")).toBe("In review");
-		const followUp = findElements("[data-result-linked] a").find((link) => roles.accessible(link).name === "Prepare follow-up handoff");
+		const followUp = findElements("[data-result-linked] a").find(
+			(link) => roles.accessible(link).name === "Prepare follow-up handoff for Keyboard work",
+		);
 		expect(followUp?.getAttribute("href")).toBe("/_board/handoff?item=work.keyboard");
 		expect(findElement("[data-result-summary] time[data-modified]")).not.toBeNull();
 		expect(readText("[data-result-summary] time")).toMatch(/^updated \d+[smhd] ago$/u);
@@ -63,6 +75,65 @@ screenStory.it(
 		expect(report && findElement("[data-result-empty]")?.compareDocumentPosition(report)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 		expect(readText("[data-result-linked] a")).toBe("Quiet work");
 		expect(readText("[data-result-linked] [data-status-token]")).toBe("Done");
+	},
+);
+
+screenStory.it(
+	"keeps the review card and says in one line that no checks are listed",
+	[routedScreen({ "items/result.md": reviewResult(), "items/task.md": UNCHECKED_TASK }, "/_board/result?item=result.keyboard")],
+	function* ({ findElement, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("[data-result-empty]")).not.toBeNull()));
+		expect(readText("[data-result-empty]")).toBe("No checks listed.");
+		expect(readText("#result-actions h2")).toBe("Your review");
+		expect(findElement("#result-actions a")?.getAttribute("href")).toBe("/_board/item/result.keyboard/#answer-card-review");
+		expect(findElement("#result-criteria")).toBeNull();
+	},
+);
+
+screenStory.it(
+	"keeps the checks and says in one line that no review is requested",
+	[routedScreen({ "items/result.md": CHECKED_RESULT, "items/task.md": REVIEW_TASK }, "/_board/result?item=result.checked")],
+	function* ({ findElement, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("[data-result-empty]")).not.toBeNull()));
+		expect(readText("[data-result-empty]")).toBe("No review requested.");
+		expect(findElement("#result-actions")).toBeNull();
+		expect(findElement("#result-criteria table")).not.toBeNull();
+	},
+);
+
+screenStory.it(
+	"shows no linked work row for a result that links to nothing",
+	[routedScreen({ "items/result.md": LONE_RESULT }, "/_board/result?item=result.alone")],
+	function* ({ findElement, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("[data-result-empty]")).not.toBeNull()));
+		expect(readText("[data-result-empty]")).toBe("No review requested and no checks listed.");
+		expect(findElement("[data-result-linked]")).toBeNull();
+	},
+);
+
+screenStory.it(
+	"names linked work that can't be read by its ID and offers no follow-up for it",
+	[routedScreen({ "items/result.md": ORPHAN_RESULT }, "/_board/result?item=result.orphan")],
+	function* ({ findElement, findElements, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("[data-result-linked]")).not.toBeNull()));
+		expect(readText("[data-result-linked] li")).toBe("Forwork.missing (unresolved, ambiguous, or unavailable)");
+		expect(findElement("[data-result-linked] a")).toBeNull();
+		expect(findElements("#result-criteria section[aria-label]").map((section) => section.getAttribute("aria-label"))).toEqual(["work.missing"]);
+		expect(readText("#result-criteria section[aria-label='work.missing'] a")).toBe("work.missing");
+		expect(readText("#result-criteria section[aria-label='work.missing']")).toContain("This item can't be read");
+	},
+);
+
+screenStory.it(
+	"summarizes a single response written for an earlier report version",
+	[routedScreen(answeredResult(true), "/_board/result?item=result.keyboard")],
+	function* ({ findElements, readText }) {
+		yield* Effect.promise(() =>
+			eventually(() => expect(findElements("#result-feedback article h3").map((author) => author.textContent)).toEqual(["first-reader"])),
+		);
+		expect(readText("[data-feedback-summary]")).toMatch(
+			/^Feedback: 1 response\. Latest: first-reader asked back \d+[smhd] ago on an earlier version\. Jump to feedback$/u,
+		);
 	},
 );
 
@@ -166,22 +237,37 @@ screenStory.it(
 			{ writable: true },
 		),
 	],
-	function* ({ findElement, readText }) {
+	function* ({ activate, findElement, input, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: Shipped work")));
 		expect(findElement<HTMLInputElement>('[name="recipient"]')?.value).toBe("codex");
 		const next = findElement<HTMLTextAreaElement>('[name="nextAction"]');
 		expect(next?.value).toBe("");
 		expect(next?.placeholder).toBe("What should the agent do first?");
+		const goal = input('[name="goal"]', "A different direction");
+		yield* Effect.promise(() => activate("#handoff-clear"));
+		expect(readText("#handoff-status")).toBe("Draft cleared. Saved handoffs are unchanged.");
+		expect(goal.value).toBe("Shipped work");
+	},
+);
+
+screenStory.it(
+	"titles a handoff by the item ID when the item has no heading",
+	[routedScreen({ "task.md": "---\nid: task.plain\nkind: task\nstatus: planned\n---\nNo heading here.\n" }, "/_board/handoff?item=task.plain")],
+	function* ({ findElement, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: task.plain")));
+		expect(findElement<HTMLTextAreaElement>('[name="goal"]')?.value).toBe("task.plain");
 	},
 );
 
 screenStory.it(
 	"tells a read-only reader that saving is off and keeps Prepare handoff disabled",
 	[routedScreen(task, "/_board/handoff?item=task.focus")],
-	function* ({ findElement, readText }) {
+	function* ({ findElement, readText, submit }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("main [role='alert']")).not.toBeNull()));
 		expect(readText("main [role='alert']")).toBe("Read-onlySaving handoffs is turned off on this Board.");
 		expect(findElement("#handoff-submit")).toHaveProperty("disabled", true);
+		submit("#handoff-form");
+		expect(readText("#handoff-status")).toBe("");
 		expect(readText("main")).not.toContain("--responses");
 	},
 );

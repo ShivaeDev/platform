@@ -30,7 +30,7 @@ export function ResultPage({ data }: { readonly data: ResultProjection }) {
 				summary={<ResultSummary data={data} />}
 				title="Review result"
 			/>
-			{reviews.length > 0 && <ResultReviews document={document} reviews={reviews} />}
+			{reviews.length > 0 && <ResultReviews item={data.item} reviews={reviews} />}
 			{checks.length > 0 && <ResultCriteria data={data} targets={checks} />}
 			<div className="space-y-1 text-sm">
 				{empty && (
@@ -74,7 +74,7 @@ function ResultSummary({ data }: { readonly data: ResultProjection }) {
 			{linked.length > 0 && (
 				<ul className="list-none space-y-2" data-result-linked>
 					{linked.map((target) => (
-						<LinkedItem document={document} key={target} several={linked.length > 1} target={target} />
+						<LinkedItem document={document} key={target} target={target} />
 					))}
 				</ul>
 			)}
@@ -83,17 +83,16 @@ function ResultSummary({ data }: { readonly data: ResultProjection }) {
 	);
 }
 
-function LinkedItem({ document, target, several }: { readonly document: Document; readonly target: string; readonly several: boolean }) {
-	const title = document.referenceDetails?.[target]?.title ?? target;
-	const item = target.split("#")[0] ?? target;
+function LinkedItem({ document, target }: { readonly document: Document; readonly target: string }) {
+	const details = document.referenceDetails?.[target];
 	return (
 		<li className="flex flex-wrap items-center gap-x-3 gap-y-2 text-foreground">
 			<span className="text-muted-foreground">For</span>
 			<Reference document={document} target={target} />
-			{document.references[target] !== undefined && (
+			{details !== undefined && (
 				<LinkButton
-					aria-label={several ? `Prepare follow-up handoff for ${title}` : undefined}
-					href={`/_board/handoff?item=${encodeURIComponent(item)}`}
+					aria-label={`Prepare follow-up handoff for ${details.title}`}
+					href={`/_board/handoff?item=${encodeURIComponent(target.replace(/#.*$/u, ""))}`}
 				>
 					Prepare follow-up handoff
 				</LinkButton>
@@ -121,12 +120,12 @@ function openReviews(document: Document): readonly Review[] {
 	);
 }
 
-function ResultReviews({ document, reviews }: { readonly document: Document; readonly reviews: readonly Review[] }) {
+function ResultReviews({ item, reviews }: { readonly item: string; readonly reviews: readonly Review[] }) {
 	return (
 		<SectionCard description="The agent is waiting for your answer." id={shellIds.resultActions} title="Your review">
 			<ul className="list-none space-y-2 p-0">
 				{reviews.map((entry) => (
-					<ReviewRequest href={responseUrl(document.identity ?? "", entry.id)} key={entry.id} reason={entry.reason} />
+					<ReviewRequest href={responseUrl(item, entry.id)} key={entry.id} reason={entry.reason} />
 				))}
 			</ul>
 		</SectionCard>

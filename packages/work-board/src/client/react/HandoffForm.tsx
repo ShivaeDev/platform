@@ -30,10 +30,8 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 	const state = useHandoffForm(data, source);
 	const focus = useFormFocus(state.draft.key);
 	const saved = Option.getOrUndefined(state.created.created);
-	const server = typeof window === "undefined";
 	const [copied, setCopied] = useState<{ readonly id: string; readonly text: string }>();
-	const shown = copied && copied.id === saved?.id && !state.created.saving ? copied.text : state.status;
-	const status = server ? "Turn on JavaScript to prepare a handoff." : shown;
+	const status = copied && copied.id === saved?.id && !state.created.saving ? copied.text : state.status;
 	return (
 		<SectionCard
 			description="The file includes the item's full source and its checks. Preparing it doesn't change the item or start the agent. Your draft stays in this browser for 7 days."
@@ -85,13 +83,13 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 					rows={3}
 				/>
 				<div className="flex flex-wrap gap-2">
-					<Button disabled={server || !data.writable || state.created.saving} id={shellIds.handoffSubmit} type="submit" variant="secondary">
+					<Button disabled={!data.writable || state.created.saving} id={shellIds.handoffSubmit} type="submit" variant="secondary">
 						Prepare handoff
 					</Button>
-					<Button disabled={server || state.created.saving} id={shellIds.handoffPreview} onClick={state.showPreview} type="button" variant="outline">
+					<Button disabled={state.created.saving} id={shellIds.handoffPreview} onClick={state.showPreview} type="button" variant="outline">
 						Preview file
 					</Button>
-					<Button disabled={server || state.created.saving} id={shellIds.handoffClear} onClick={state.clear} type="button" variant="ghost">
+					<Button disabled={state.created.saving} id={shellIds.handoffClear} onClick={state.clear} type="button" variant="ghost">
 						Clear draft
 					</Button>
 				</div>
