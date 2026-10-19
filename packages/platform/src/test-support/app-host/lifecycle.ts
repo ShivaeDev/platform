@@ -1,8 +1,8 @@
 import { ConfigProvider, Context, Effect, Exit, Layer, Logger, References } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import { forwardingProxy } from "@shivaedev/test-story/forwardingProxy.ts";
 import { makePlatformRuntime } from "#server/runtime/makePlatform.ts";
-import { forwardingProxy } from "./forwardingProxy.ts";
 import { runtimeLayer } from "./runtimeLayer.ts";
 import { type HostState, io, runtimeOf } from "./state.ts";
 
@@ -52,13 +52,12 @@ export function close(state: HostState) {
 		await state.runtime?.dispose();
 	});
 }
-export function useForwardingProxy(state: HostState) {
-	return io(async () => {
-		const proxy = await forwardingProxy(state.url);
-		state.cleanup.push(proxy.close);
-		state.url = proxy.url;
+export const useForwardingProxy = Effect.fnUntraced(function* (state: HostState) {
+	const proxy = yield* forwardingProxy(state.url, {
+		headers: { host: "internal.test", "x-forwarded-host": "app.example", "x-forwarded-proto": "https" },
 	});
-}
+	state.url = proxy.url;
+});
 export function context(state: HostState) {
 	return io(() => runtimeOf(state).runPromise(Effect.context()));
 }

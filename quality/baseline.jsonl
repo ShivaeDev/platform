@@ -691,7 +691,7 @@
 {"path":"packages/test-story/src/test-support/genreStories.ts","rule":"tests/no-expect-in-support","count":2}
 {"path":"packages/test-story/src/test-support/onlyStories.ts","rule":"tests/no-expect-in-support","count":1}
 {"path":"packages/test-story/src/test-support/otlpApp.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/test-story/src/test-support/proxyHost.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/test-story/src/test-support/proxyHost.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/test-story/src/test-support/runStories.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/test-story/src/test-support/scopedStories.ts","rule":"tests/no-expect-in-support","count":1}
 {"path":"packages/test-story/src/test-support/screenApp.ts","rule":"tests/support-imports","count":3}

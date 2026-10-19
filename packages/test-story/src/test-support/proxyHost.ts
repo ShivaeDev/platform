@@ -1,6 +1,6 @@
-import { createServer } from "node:http";
+import { createServer, type RequestListener } from "node:http";
 import { Effect, Exit, Scope } from "effect";
-import { forwardingProxy } from "#forwardingProxy.ts";
+import { type ForwardingProxyOptions, forwardingProxy } from "#forwardingProxy.ts";
 import { loopbackServer } from "#internal/loopback.ts";
 import { storyKit } from "#storyKit.ts";
 
@@ -8,16 +8,29 @@ export const proxyHost = storyKit({
 	clock: "live",
 	*create() {
 		const hostScope = yield* Scope.fork(yield* Scope.Scope);
-		const host = createServer(async (request, response) => {
+		const respond: RequestListener = async (request, response) => {
 			const chunks: Buffer[] = [];
 			for await (const chunk of request) {
 				chunks.push(Buffer.from(chunk));
 			}
 			response.writeHead(201, { "content-type": "application/json", "set-cookie": ["first=one", "second=two"], "x-host": "reached" });
-			response.end(JSON.stringify({ body: Buffer.concat(chunks).toString(), headers: request.headers, method: request.method, path: request.url }));
-		});
-		const upstream = yield* loopbackServer(host).pipe(Effect.provideService(Scope.Scope, hostScope));
-		return { hostScope, proxyUrl: "", upstream };
+			response.end(
+				JSON.stringify({
+					body: Buffer.concat(chunks).toString(),
+					headers: request.headers,
+					method: request.method,
+					path: request.url,
+					remoteAddress: request.socket.remoteAddress,
+				}),
+			);
+		};
+		const url = yield* loopbackServer(createServer(respond)).pipe(Effect.provideService(Scope.Scope, hostScope));
+		yield* loopbackServer(createServer(respond), { host: "::1", port: Number(new URL(url).port) }).pipe(
+			Effect.provideService(Scope.Scope, hostScope),
+		);
+		const upstream = new URL(url);
+		upstream.hostname = "localhost";
+		return { hostScope, proxyUrl: "", upstream: upstream.origin };
 	},
 	name: "forwarding proxy",
 	stages: ["host"],
@@ -37,9 +50,9 @@ export const proxyHost = storyKit({
 					status: response.status,
 				};
 			}),
-		startProxy: (headers: Readonly<Record<string, string>> = {}) =>
+		startProxy: (options: ForwardingProxyOptions = {}) =>
 			Effect.gen(function* () {
-				const proxy = yield* forwardingProxy(engine.upstream, { headers });
+				const proxy = yield* forwardingProxy(engine.upstream, options);
 				engine.proxyUrl = proxy.url;
 				return proxy.url;
 			}),
