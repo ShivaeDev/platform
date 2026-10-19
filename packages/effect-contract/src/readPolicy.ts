@@ -1,16 +1,20 @@
-import { Context, Effect, Option } from "effect";
+import { Context, type Duration, Effect, Option } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { Key } from "./keys.ts";
 import { QueryReads } from "./serverMetadata.ts";
 
-export const ReadPolicy = Context.Reference<(key: Key) => Effect.Effect<boolean>>("@shivaedev/effect-contract/ReadPolicy", {
+export const ReadPolicy = Context.Reference<(key: Key) => Effect.Effect<boolean, unknown>>("@shivaedev/effect-contract/ReadPolicy", {
 	defaultValue: () => () => Effect.succeed(true),
 });
 
-export const authorizeReads = Effect.fnUntraced(function* <A, E, R, TPolicyServices, TDenied>(
+export const ReadPolicyMemoWindow = Context.Reference<Duration.Input>("@shivaedev/effect-contract/ReadPolicyMemoWindow", {
+	defaultValue: () => "1 second",
+});
+
+export const authorizeReads = Effect.fnUntraced(function* <A, E, R, TPolicyServices, TDenied, TPolicyError>(
 	effect: Effect.Effect<A, E, R>,
 	request: { readonly rpc: Rpc.AnyWithProps; readonly payload: unknown },
-	policy: (key: Key) => Effect.Effect<boolean, never, TPolicyServices>,
+	policy: (key: Key) => Effect.Effect<boolean, TPolicyError, TPolicyServices>,
 	denied: Effect.Effect<never, TDenied>,
 ) {
 	const context = yield* Effect.context<TPolicyServices>();

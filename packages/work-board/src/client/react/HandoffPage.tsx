@@ -13,6 +13,7 @@ import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
 import { SectionCard } from "./SectionCard.tsx";
 import { shellIds } from "./shellIds.ts";
+import { RowTime } from "./Time.tsx";
 import { Version } from "./Version.tsx";
 
 type HandoffRecord = HandoffProjection["reading"]["records"][number];
@@ -39,7 +40,7 @@ export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 						</p>
 					</div>
 				}
-				title="Hand off to an agent"
+				title={`Hand off: ${data.title}`}
 			/>
 			{Boolean(data.source) && (
 				<SectionCard title="About this item">
@@ -74,6 +75,9 @@ function HandoffEntry({ record, current }: { readonly record: HandoffRecord; rea
 			<header className="flex flex-wrap items-center gap-2">
 				<h3 className="m-0 font-semibold text-sm">{h.recipient}</h3>
 				<Badge variant="outline">{statusLabel(h.state)}</Badge>
+				<span className="text-muted-foreground text-xs">
+					prepared <RowTime at={h.preparedAt} />
+				</span>
 				<a className="ml-auto text-muted-foreground text-xs" href={fileUrl(record.file)}>
 					Open file
 				</a>

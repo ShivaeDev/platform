@@ -53,6 +53,9 @@ export const DraftInput = Schema.Struct({
 	supersedes: Schema.optional(Identity),
 	type: ResponseKind,
 });
+const { question: _question, ...answerFields } = DraftInput.fields;
+export const AnswerInput = Schema.Struct({ ...answerFields, item: Schema.String, request: Schema.String, revision: Revision });
+export type AnswerInput = typeof AnswerInput.Type;
 export type Question = typeof Question.Type;
 export type RecordedResponse = typeof RecordedResponse.Type;
 export type AnswerSummary = typeof AnswerSummary.Type;

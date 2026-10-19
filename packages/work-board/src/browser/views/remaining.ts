@@ -15,8 +15,11 @@ export const HandoffProjection = Schema.Struct({
 	goal: Schema.String,
 	item: Schema.String,
 	nextAction: Schema.String,
+	owner: Schema.optional(Schema.String),
 	reading: HandoffReading,
 	source: Schema.optional(HandoffPreview),
+	status: Schema.optional(Schema.String),
+	title: Schema.String,
 	unavailable: Schema.optional(Schema.String),
 	writable: Schema.Boolean,
 });

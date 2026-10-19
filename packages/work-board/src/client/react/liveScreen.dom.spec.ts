@@ -48,7 +48,7 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")?.getAttribute("data-item")).toBe("question.backup")));
 		click("[data-choice='option-1']");
 		yield* Effect.promise(async () => responseClick("submit"));
-		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Saved")));
+		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Answer saved")));
 		const saved = yield* Effect.promise(() => readResponses("question.backup", "answer"));
 		expect(saved.responses.map((entry) => entry.response.author)).toEqual(["Casey"]);
 	},

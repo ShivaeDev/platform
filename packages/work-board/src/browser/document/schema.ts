@@ -36,8 +36,14 @@ export const Document = Schema.Struct({
 	modified: Schema.Number,
 	questionActions: Schema.Record(Schema.String, Schema.String),
 	reading: Schema.optional(ReadingContext),
-	referenceDetails: Schema.optional(Schema.Record(Schema.String, Schema.Struct({ status: Schema.optional(Schema.String), title: Schema.String }))),
+	referenceDetails: Schema.optional(
+		Schema.Record(
+			Schema.String,
+			Schema.Struct({ kind: Schema.optional(Schema.String), status: Schema.optional(Schema.String), title: Schema.String }),
+		),
+	),
 	references: Schema.Record(Schema.String, Schema.String),
+	requestOutcome: Schema.optional(Schema.Literals(["answered", "closed"])),
 	requests: Schema.Array(DocumentRequest),
 	source: Schema.String,
 	unavailable: Schema.Array(Schema.String),
