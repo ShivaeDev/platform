@@ -104,3 +104,47 @@ for (const [stage, label, group] of [
 		},
 	);
 }
+
+screenStory.it(
+	"leaves the PR cell empty for linked work in a group where another row has a PR",
+	[
+		screenFleet({
+			...goalFleetFixture(),
+			items: goalFleetFixture().items.map((item) => (item.workId === "task.third" ? { ...item, stage: "executing" } : item)),
+		}),
+		routedScreen(goalPageFixture(), "/_board/item/project.example/", { home: "home.md" }),
+	],
+	function* ({ findElement, findElements, readText }) {
+		yield* Effect.promise(() =>
+			eventually(() => expect(findElement('[data-goal-group="In progress"] [data-goal-item="task.third"]')).not.toBeNull()),
+		);
+		expect([...findElements('[data-goal-group="In progress"] th[scope="col"]')].map((head) => head.textContent)).toEqual([
+			"Work",
+			"Criteria",
+			"State",
+			"PR",
+		]);
+		expect(readText('[data-goal-item="task.first"] td:last-child')).toBe("PR");
+		expect(readText('[data-goal-item="task.third"] td:last-child')).toBe("");
+		expect(findElement('[data-goal-item="task.third"] a[href*="/pull/"]')).toBeNull();
+	},
+);
+
+screenStory.it(
+	"shows no linked work for a project page without an id",
+	[
+		routedScreen({ ...goalPageFixture(), "unnamed.md": "---\nkind: project\nstatus: planned\n---\n# Unnamed goal" }, "/unnamed.md", {
+			home: "home.md",
+		}),
+	],
+	function* ({ findElement, readText }) {
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(readText('[data-goal-section="progress"] [role="status"]')).toBe("Progress is available for uniquely identified projects."),
+			),
+		);
+		yield* Effect.promise(() => eventually(() => expect(readText(".goal-page")).not.toContain("Loading linked work")));
+		expect(findElement('[data-goal-section="work"]')).toBeNull();
+		expect(readText(".goal-page")).not.toContain("Linked work unavailable.");
+	},
+);

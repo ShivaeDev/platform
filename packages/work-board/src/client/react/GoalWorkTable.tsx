@@ -3,9 +3,14 @@ import { goalState, goalWorkGroups } from "#browser/views/goalWorkState.ts";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "#client/react/components/ui/table.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
-import { type GoalWorkItem, goalCriteriaOf, goalGroup, goalRun } from "./goalWork.ts";
+import { type GoalWorkItem, goalGroup, goalRun, targetsGoal } from "./goalWork.ts";
 
-export function GoalWorkTable({ goal, items }: { readonly goal: string; readonly items: readonly GoalWorkItem[] }) {
+interface Props {
+	readonly criteria: readonly string[];
+	readonly goal: string;
+	readonly items: readonly GoalWorkItem[];
+}
+export function GoalWorkTable({ criteria, goal, items }: Props) {
 	const headingId = useId();
 	const fleet = useContext(FleetItemsContext);
 	return (
@@ -16,7 +21,7 @@ export function GoalWorkTable({ goal, items }: { readonly goal: string; readonly
 				if (work.length === 0) {
 					return null;
 				}
-				const table = <WorkGroup goal={goal} group={group} items={work} key={group} />;
+				const table = <WorkGroup criteria={criteria} goal={goal} group={group} items={work} key={group} />;
 				return group === "Done" ? (
 					<details data-goal-group={group} key={group}>
 						<summary className="cursor-pointer font-semibold">Done ({work.length})</summary>
@@ -34,9 +39,13 @@ export function GoalWorkTable({ goal, items }: { readonly goal: string; readonly
 		</section>
 	);
 }
-function WorkGroup({ goal, group, items }: { readonly goal: string; readonly group: string; readonly items: readonly GoalWorkItem[] }) {
+function WorkGroup({ criteria, goal, group, items }: Props & { readonly group: string }) {
 	const fleet = useContext(FleetItemsContext);
-	const rows: readonly Row[] = items.map((item) => ({ criteria: goalCriteriaOf(item, goal), item, pr: goalRun(item, fleet)?.prUrl }));
+	const rows: readonly Row[] = items.map((item) => ({
+		criteria: criteria.filter((criterion) => targetsGoal(item, goal, criterion)),
+		item,
+		pr: goalRun(item, fleet)?.prUrl,
+	}));
 	const columns = { criteria: rows.some((row) => row.criteria.length > 0), pr: rows.some((row) => row.pr) };
 	return (
 		<Table className="text-sm">

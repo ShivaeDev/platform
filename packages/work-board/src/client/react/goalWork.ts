@@ -18,10 +18,3 @@ export function targetsGoal(item: GoalWorkItem, id: string, criterion?: string) 
 			link.kind === "implements" && (criterion ? link.target === `${id}#${criterion}` : link.target === id || link.target.startsWith(`${id}#`)),
 	);
 }
-
-export function goalCriteriaOf(item: GoalWorkItem, id: string): readonly string[] {
-	const prefix = `${id}#`;
-	return (item.metadata.relationships ?? []).flatMap((link) =>
-		link.kind === "implements" && link.target.startsWith(prefix) ? [link.target.slice(prefix.length)] : [],
-	);
-}
