@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { FIXED, ignoringEveryFile, MESSY, messyText, messyWorktree } from "#test/biomeWorktrees.ts";
-import { CLI_EXIT } from "#test/cli.ts";
+import { CLI_EXIT, runQuality } from "#test/cli.ts";
 import { installedIn } from "#test/commitActions.ts";
 import { commits, quality, stages } from "#test/hookRepository.ts";
 import { removeSeededTrees } from "#test/tree.ts";
@@ -40,12 +40,12 @@ describe("Biome in a linked worktree under .worktrees", { timeout: 60_000 }, () 
 		expect(messyText(worktree)).toBe(MESSY.content);
 	});
 
-	it("fails the gate with Biome's message when its config ignores every file", () => {
+	it.each(["lint", "fix"])("fails %s with Biome's message when its config leaves no file to check", async (command) => {
 		const { worktree } = messyWorktree();
-		for (const command of ["lint", "fix"]) {
-			const result = quality(ignoringEveryFile(worktree), command);
-			expect(result.status).toBe(CLI_EXIT.invalid);
-			expect(result.stderr).toContain("No files were processed in the specified paths.");
-		}
+		const result = await runQuality(ignoringEveryFile(worktree), command);
+		expect(result.status).toBe(CLI_EXIT.invalid);
+		expect(result.stderr).toContain("exited 1 without a failing diagnostic:");
+		expect(result.stderr).toContain("No files were processed in the specified paths.");
+		expect(messyText(worktree)).toBe(MESSY.content);
 	});
 });
