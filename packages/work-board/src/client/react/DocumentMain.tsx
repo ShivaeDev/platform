@@ -42,7 +42,16 @@ export function DocumentMain({
 	}
 	return (
 		<>
-			<main className="document-view min-w-0 p-4 md:p-8" data-file="" data-react-document data-url="" id={shellIds.doc} ref={hostRef} tabIndex={-1}>
+			<main
+				className="document-view min-w-0 p-4 md:p-8"
+				data-decision-packet={data && decisionPacket(data) ? "" : undefined}
+				data-file=""
+				data-react-document
+				data-url=""
+				id={shellIds.doc}
+				ref={hostRef}
+				tabIndex={-1}
+			>
 				{data ? (
 					<DocumentPage api={api} document={data} key={data.identity ?? data.file} />
 				) : (
@@ -52,6 +61,9 @@ export function DocumentMain({
 			{data !== undefined && Option.isSome(query.cause) && <p role="status">Refresh failed. Your displayed page is retained.</p>}
 		</>
 	);
+}
+function decisionPacket(document: Document) {
+	return document.metadata.kind === "decision" && (document.metadata.attention?.some((request) => request.managed) ?? false);
 }
 function readStatus(tag: string | undefined, failed: boolean) {
 	if (tag === "NotFound") {

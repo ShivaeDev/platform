@@ -1,6 +1,7 @@
 import { fileUrl } from "#files/url.ts";
 import { fleetRecords } from "#server/attention/inbox.ts";
 import { closedItem, deferredItem } from "#server/attention/status.ts";
+import { fleetDecisionTitle } from "#server/document/requestTitle.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { attentionEntries } from "./attentionEntries.ts";
@@ -10,11 +11,16 @@ function itemUrl(document: MetadataDocument, model: MetadataModel): string {
 	const id = document.parsed.fields.id;
 	return model.unavailable.length === 0 && id && model.ids.get(id)?.length === 1 ? identityUrl(id) : fileUrl(document.file);
 }
+function documentTitles(entries: readonly Entry[]) {
+	const titles = new Map(entries.flatMap((entry) => (entry.kind === "document" ? [[entry.file, entry.title] as const] : [])));
+	return (file: string) => titles.get(file);
+}
 export function metadataEntries(
 	entries: readonly Entry[],
 	documents: readonly MetadataDocument[],
 	model: MetadataModel,
 	records: ReadonlySet<string> = fleetRecords(model),
+	titleOf: (file: string) => string | undefined = documentTitles(entries),
 ): readonly Entry[] {
 	const sources = new Map(documents.map((document) => [document.file, document]));
 	const enriched = entries.map((entry) => {
@@ -23,13 +29,15 @@ export function metadataEntries(
 			return entry;
 		}
 		const fields = document.parsed.fields;
+		const title = entry.kind === "document" ? fleetDecisionTitle(document, model, titleOf) : undefined;
 		return {
 			...entry,
 			href: entry.href === fileUrl(document.file) ? itemUrl(document, model) : entry.href,
 			text:
 				entry.kind === "document"
-					? [entry.text, fields.id, fields.kind, fields.status, fields.owner, fields.nextAction].filter(Boolean).join(" ")
+					? [entry.text, title, fields.id, fields.kind, fields.status, fields.owner, fields.nextAction].filter(Boolean).join(" ")
 					: entry.text,
+			title: title ?? entry.title,
 		};
 	});
 	for (const document of documents) {

@@ -12,6 +12,7 @@ import { answerBody } from "./answerBody.ts";
 import { readingContext } from "./readingContext.ts";
 import { requestOutcome } from "./requestOutcome.ts";
 import { documentRequests } from "./requests.ts";
+import { fleetDecisionTitle } from "./requestTitle.ts";
 import { documentTargets } from "./targets.ts";
 
 const selected = Effect.fn("WorkBoard.selected")(function* (
@@ -86,7 +87,11 @@ export function readDocument({ changes, home, root, realRoot, writable }: Worksp
 			referenceDetails,
 			requestOutcome: requestOutcome(document, current.snapshot),
 			requests,
-			source: answerBody(document, requests),
+			source: answerBody(
+				document,
+				requests,
+				fleetDecisionTitle(document, model, (path) => titles.get(path)),
+			),
 			unavailable: snapshot.unavailable,
 			writable,
 		} satisfies Document;
