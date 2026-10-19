@@ -6,29 +6,55 @@ export interface SourceLink {
 	readonly title?: string | undefined;
 }
 
-const specificity = [
-	"recorded response",
-	"superseding response",
-	"reviewed question",
-	"agent handoff",
-	"Criterion evidence",
-	"Evidence source",
-	"Attention request",
-	"Implements",
-	"Depends on",
-	"Informs",
-	"Board membership",
-	"Related to",
-	"Markdown link",
-];
-const kinds = new Map([
-	["relates_to", "Related to"],
+const outgoing = new Map([
 	["depends_on", "Depends on"],
 	["implements", "Implements"],
 	["informs", "Informs"],
+	["relates_to", "Related to"],
 ]);
+const incoming = new Map([
+	["agent handoff", "Agent handoff"],
+	["attention target", "Attention request"],
+	["board member", "Listed on board"],
+	["criterion evidence", "Criterion evidence"],
+	["depends_on", "Needed by"],
+	["evidence source", "Cited as evidence by"],
+	["implements", "Implemented by"],
+	["informs", "Informed by"],
+	["recorded response", "Recorded response"],
+	["relates_to", "Related to"],
+	["reviewed question", "Reviewed question"],
+	["superseding response", "Superseding response"],
+]);
+const specificity = [
+	"Recorded response",
+	"Superseding response",
+	"Reviewed question",
+	"Agent handoff",
+	"Criterion evidence",
+	"Cited as evidence by",
+	"Attention request",
+	"Implements",
+	"Implemented by",
+	"Depends on",
+	"Needed by",
+	"Informs",
+	"Informed by",
+	"Listed on board",
+	"Related to",
+	"Markdown link",
+];
+
+export function linkLabel(kind: string): string {
+	return outgoing.get(kind) ?? kind;
+}
+
+export function backlinkLabel(kind: string): string {
+	return incoming.get(kind) ?? kind;
+}
+
 function priority(kind: string) {
-	const index = specificity.indexOf(kinds.get(kind) ?? kind);
+	const index = specificity.indexOf(kind);
 	return index < 0 ? specificity.length : index;
 }
 
