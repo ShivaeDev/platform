@@ -3,12 +3,23 @@ import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { eventually } from "#client/testing.ts";
 import { clickButton, Screen } from "#test/Screen.ts";
 import { connect } from "./connect.ts";
 import { Jobs, migrations, Work } from "./feature.ts";
 import { openHost } from "./openHost.ts";
 import { Action, Create, Editor } from "./view.tsx";
 
+// Server spans end before the response reaches the client, so a click settles once the button is enabled again.
+function settled(container: HTMLElement) {
+	return Effect.promise(() =>
+		eventually(() => {
+			if (container.querySelector("button")?.disabled !== false) {
+				throw new Error("Write is still pending");
+			}
+		}),
+	);
+}
 const configured = Effect.runSync(Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
 export const actions = storyKit({
 	around: withIsolatedDatabase,
@@ -32,18 +43,18 @@ export const actions = storyKit({
 	stages: ["screen"],
 	verbs: (engine, story) => {
 		engine.screen.tell = story.tell;
-		function view() {
-			const rendered = engine.screen.roots[0];
-			if (!rendered) {
-				throw new Error("Missing action screen");
-			}
-			return rendered.container;
-		}
 		return {
-			click: () => engine.screen.act("click Write", () => clickButton(view(), "Write")),
+			click: () =>
+				Effect.gen(function* () {
+					const view = engine.screen.roots[0];
+					if (!view) {
+						return yield* Effect.die(new Error("Missing action screen"));
+					}
+					yield* engine.screen.act("click Write", () => clickButton(view.container, "Write"));
+					yield* settled(view.container);
+				}),
 			headers: () => engine.headers,
 			observe: (line: string, check: () => void) => engine.screen.observe(line, check),
-			ready: () => view().querySelector("button")?.disabled === false,
 			spans: () => engine.spans.filter((span) => span.status._tag === "Ended"),
 			stored: engine.stored,
 			work: () =>
