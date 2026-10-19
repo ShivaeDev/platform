@@ -78,7 +78,12 @@ for (const [stage, label, group] of [
 			expect(readText('[data-goal-item="task.fifth"] td')).toBe("");
 			expect(readText('[data-goal-item="task.fifth"] td [data-status-token]')).toBeUndefined();
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', row)).not.toBeNull();
-			expect([...findElements(`[data-goal-group="${group}"] th[scope="col"]`)].map((head) => head.textContent)).toEqual(["Work", "Criteria", "State", "PR"]);
+			expect([...findElements(`[data-goal-group="${group}"] th[scope="col"]`)].map((head) => head.textContent)).toEqual([
+				"Work",
+				"Criteria",
+				"State",
+				"PR",
+			]);
 			for (const done of ["Done", "Planned"]) {
 				expect([...findElements(`[data-goal-group="${done}"] th[scope="col"]`)].map((head) => head.textContent)).not.toContain("PR");
 			}

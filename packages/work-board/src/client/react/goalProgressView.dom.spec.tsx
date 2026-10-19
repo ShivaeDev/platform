@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { goalPageFixture } from "#test/goalPageFixture.ts";
-import { screenStory } from "#test/screenStory.ts";
 import { screenChartLayout } from "#test/screenEnvironment.ts";
+import { screenStory } from "#test/screenStory.ts";
 import { boardScreen } from "#test/screenTraits.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
 
@@ -28,7 +28,11 @@ screenStory.it(
 				expect(readText(`${progress} [data-goal-breakdown] h3`)).toBe("By criterion");
 				expect([...findElements(`${progress} .recharts-yAxis-tick-labels text`)].map((tick) => tick.textContent)).toEqual(["All work", "first"]);
 				expect(
-					[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("name"), bar.getAttribute("fill"), bar.getAttribute("width")]),
+					[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [
+						bar.getAttribute("name"),
+						bar.getAttribute("fill"),
+						bar.getAttribute("width"),
+					]),
 				).toEqual([
 					["All work", "var(--color-done)", "112.8"],
 					["All work", "var(--color-planned)", "451.2"],
@@ -50,7 +54,9 @@ screenStory.it(
 	[
 		screenChartLayout(),
 		boardScreen(
-			Object.fromEntries(Object.entries(files).map(([file, source]) => [file, source.replaceAll("target: project.example#first", "target: project.example")])),
+			Object.fromEntries(
+				Object.entries(files).map(([file, source]) => [file, source.replaceAll("target: project.example#first", "target: project.example")]),
+			),
 			(api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />,
 		),
 	],
@@ -71,7 +77,8 @@ screenStory.it(
 				...files,
 				"dropped.md":
 					"---\nid: task.dropped\nkind: task\nstatus: dropped\nrelationships:\n - kind: implements\n   target: project.example#first\n---\n# Dropped task",
-				"ready.md": "---\nid: task.ready\nkind: task\nstatus: ready\nrelationships:\n - kind: implements\n   target: project.example\n---\n# Ready task",
+				"ready.md":
+					"---\nid: task.ready\nkind: task\nstatus: ready\nrelationships:\n - kind: implements\n   target: project.example\n---\n# Ready task",
 			},
 			(api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />,
 		),

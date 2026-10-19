@@ -44,13 +44,13 @@ function WorkGroup({ goal, group, items }: { readonly goal: string; readonly gro
 			<TableHeader>
 				<TableRow className="hover:bg-transparent">
 					<TableHead scope="col">Work</TableHead>
-					{columns.criteria && <TableHead scope="col">Criteria</TableHead>}
+					{columns.criteria ? <TableHead scope="col">Criteria</TableHead> : null}
 					<TableHead scope="col">State</TableHead>
-					{columns.pr && (
+					{columns.pr ? (
 						<TableHead className="text-right" scope="col">
 							PR
 						</TableHead>
-					)}
+					) : null}
 				</TableRow>
 			</TableHeader>
 			<TableBody>
@@ -75,11 +75,11 @@ function WorkRow({ columns, row }: { readonly columns: { readonly criteria: bool
 				</a>
 				<span className="block text-muted-foreground text-xs">{row.item.id}</span>
 			</TableHead>
-			{columns.criteria && <TableCell className="text-muted-foreground">{row.criteria.join(", ")}</TableCell>}
+			{columns.criteria ? <TableCell className="text-muted-foreground">{row.criteria.join(", ")}</TableCell> : null}
 			<TableCell>
 				<GoalWorkStatus item={row.item} />
 			</TableCell>
-			{columns.pr && (
+			{columns.pr ? (
 				<TableCell className="text-right">
 					{row.pr ? (
 						<a className="relative z-10" href={row.pr}>
@@ -87,7 +87,7 @@ function WorkRow({ columns, row }: { readonly columns: { readonly criteria: bool
 						</a>
 					) : null}
 				</TableCell>
-			)}
+			) : null}
 		</TableRow>
 	);
 }

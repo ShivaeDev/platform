@@ -15,7 +15,11 @@ export function GoalPage({ api, document }: { readonly api: ShellApi; readonly d
 	return (
 		<div className="goal-page space-y-6">
 			<GoalCriteria document={document} items={items} progress={goal?.criteria} />
-			{items ? <GoalWorkTable goal={document.identity ?? ""} items={items} /> : <p role="status">{progress.pending ? "Loading linked work…" : "Linked work unavailable."}</p>}
+			{items ? (
+				<GoalWorkTable goal={document.identity ?? ""} items={items} />
+			) : (
+				<p role="status">{progress.pending ? "Loading linked work…" : "Linked work unavailable."}</p>
+			)}
 			{Option.isSome(progress.cause) && <p role="status">Linked work refresh failed.</p>}
 		</div>
 	);

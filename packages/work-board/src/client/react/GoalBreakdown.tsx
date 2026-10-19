@@ -18,10 +18,10 @@ const config = {
 	planned: { color: "var(--status-deferred)", label: "Planned" },
 } satisfies ChartConfig;
 const series = ["done", "needsYou", "inProgress", "planned"] as const;
-const rowHeight = 32;
-const legendHeight = 40;
-const labelCharacterWidth = 7.5;
-const labelGap = 16;
+const ROW_HEIGHT = 32;
+const LEGEND_HEIGHT = 40;
+const LABEL_CHARACTER_WIDTH = 7.5;
+const LABEL_GAP = 16;
 
 function row(name: string, counts: Goal["counts"]) {
 	return { done: counts.done, inProgress: counts["in progress"], name, needsYou: counts["needs you"], planned: counts.planned };
@@ -34,14 +34,14 @@ export function GoalBreakdown({ goal }: { readonly goal: Goal }) {
 		return null;
 	}
 	const rows = [row("All work", goal.counts), ...criteria.map((criterion) => row(criterion.id, criterion.counts))];
-	const labelWidth = Math.max(...rows.map((entry) => entry.name.length)) * labelCharacterWidth + labelGap;
+	const labelWidth = Math.max(...rows.map((entry) => entry.name.length)) * LABEL_CHARACTER_WIDTH + LABEL_GAP;
 	return (
 		<section aria-labelledby={headingId} className="space-y-3 pt-4" data-goal-breakdown="">
 			<h3 className="!m-0 font-semibold text-base" id={headingId}>
 				By criterion
 			</h3>
 			<p className="!m-0 text-muted-foreground text-sm">Share of linked work in each state, for all work and for each criterion with linked work.</p>
-			<ChartContainer className="aspect-auto w-full" config={config} style={{ height: rows.length * rowHeight + legendHeight }}>
+			<ChartContainer className="aspect-auto w-full" config={config} style={{ height: rows.length * ROW_HEIGHT + LEGEND_HEIGHT }}>
 				<BarChart accessibilityLayer data={rows} layout="vertical" margin={{ bottom: 0, left: 0, right: 0, top: 0 }} stackOffset="expand">
 					<XAxis domain={[0, 1]} hide type="number" />
 					<YAxis axisLine={false} dataKey="name" interval={0} tickLine={false} type="category" width={labelWidth} />

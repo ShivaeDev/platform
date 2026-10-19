@@ -1,5 +1,5 @@
 import type { GoalCounts } from "#browser/views/GoalsProjection.ts";
-import { goalCountOrder } from "./GoalProgress.tsx";
+import { goalCountOrder } from "./goalCounts.ts";
 
 export function GoalProgressSummary({ counts }: { readonly counts: GoalCounts }) {
 	return (
