@@ -1,5 +1,5 @@
 import type { Document } from "#browser/document/schema.ts";
-import { DocumentView } from "#client/document/View.ts";
+import { LazyDocumentView } from "./lazyMarkdown.tsx";
 import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
 import { DocumentCriteria } from "./DocumentCriteria.tsx";
@@ -10,7 +10,7 @@ import type { ShellApi } from "./ShellApi.ts";
 export function DocumentPage({ document, api }: { readonly document: Document; readonly api?: ShellApi | undefined }) {
 	const projectContent = api ? <GoalPage api={api} document={document} /> : <DocumentCriteria document={document} />;
 	return (
-		<DocumentView
+		<LazyDocumentView
 			actions={<ItemActions document={document} />}
 			answer={<AnswerPanel document={document} />}
 			content={document.metadata.kind === "project" ? projectContent : undefined}

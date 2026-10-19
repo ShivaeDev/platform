@@ -4,7 +4,7 @@ import { HandoffForm } from "./HandoffForm.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
 import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
-import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
+import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 import { shellIds } from "./shellIds.ts";
 export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 	return (
@@ -15,7 +15,7 @@ export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 			/>
 			{Boolean(data.source) && (
 				<section className="response-context">
-					<ResponseMarkdown file={data.source?.source ?? ""} source={data.background} />
+					<LazyResponseMarkdown file={data.source?.source ?? ""} source={data.background} />
 				</section>
 			)}
 			<HandoffForm data={data} />
@@ -64,11 +64,11 @@ function HandoffEntry({
 				</p>
 			)}
 			<h4>Goal</h4>
-			<ResponseMarkdown file={h.source} source={h.goal} />
+			<LazyResponseMarkdown file={h.source} source={h.goal} />
 			<h4>Constraints</h4>
-			{h.constraints ? <ResponseMarkdown file={h.source} source={h.constraints} /> : <p>None recorded.</p>}
+			{h.constraints ? <LazyResponseMarkdown file={h.source} source={h.constraints} /> : <p>None recorded.</p>}
 			<h4>Next action</h4>
-			<ResponseMarkdown file={h.source} source={h.nextAction} />
+			<LazyResponseMarkdown file={h.source} source={h.nextAction} />
 			<HandoffPrompt id={record.id} prompt={record.prompt} />
 			<details>
 				<summary>Exact reviewed source snapshot</summary>

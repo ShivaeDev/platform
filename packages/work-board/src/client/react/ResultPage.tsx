@@ -5,7 +5,7 @@ import { DocumentMetadata } from "./DocumentMetadata.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
-import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
+import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 import { ResultCriteria } from "./ResultCriteria.tsx";
 import { ResultFeedback } from "./ResultFeedback.tsx";
 import { shellIds } from "./shellIds.ts";
@@ -51,7 +51,7 @@ export function ResultPage({ data }: { readonly data: ResultProjection }) {
 			<ResultCriteria data={data} />
 			<section id={shellIds.resultReport}>
 				<h2>Report, evidence and limitations</h2>
-				<ResponseMarkdown file={document.file} source={document.source} />
+				<LazyResponseMarkdown file={document.file} source={document.source} />
 			</section>
 			<ResultFeedback data={data} />
 		</ReadingPanel>

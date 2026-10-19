@@ -1,11 +1,11 @@
 import type { BoardProjection } from "#browser/views/schema.ts";
-import { DocumentView } from "#client/document/View.ts";
+import { LazyDocumentView } from "./lazyMarkdown.tsx";
 import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
 import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
 export function HomeBoard({ data }: { readonly data: BoardProjection }) {
 	return (
-		<DocumentView
+		<LazyDocumentView
 			actions={<ItemActions document={data.document} />}
 			answer={<AnswerPanel document={data.document} />}
 			board={data.counts}

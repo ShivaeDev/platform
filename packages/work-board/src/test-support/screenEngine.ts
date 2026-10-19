@@ -11,6 +11,7 @@ import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
 import type { mountSession } from "./mountSession.ts";
 import type { BoardTestApi, renderBoard } from "./react.tsx";
 import type { renderRouter } from "./renderRouter.tsx";
+import { loadMarkdownRenderers } from "#client/react/markdownLoader.ts";
 
 export interface ScreenEngine {
 	ageModified?: number;
@@ -53,6 +54,8 @@ export function* createScreen() {
 	browserStorage();
 	window.sessionStorage.clear();
 	window.history.replaceState({}, "", "/");
+	// Screens render inside synchronous act(), which rejects a suspending first load; the served-bundle stories cover the lazy load itself.
+	yield* Effect.promise(loadMarkdownRenderers);
 	const attributes = [...document.documentElement.attributes].map(({ name, value }) => [name, value] as const);
 	const engine: ScreenEngine = { cleanups: [], documentReads: [], files: {}, path: "/" };
 	yield* Effect.addFinalizer(() =>

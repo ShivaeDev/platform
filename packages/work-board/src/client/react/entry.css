@@ -285,6 +285,52 @@
 	}
 }
 
+/* The served shell outlines BoardShell's header, sidebar and phone navigation with these rules, so the first paint holds the layout until React replaces it. */
+[data-board-skeleton] {
+	display: grid;
+	min-height: 100dvh;
+	background: var(--background);
+}
+[data-board-skeleton] > aside {
+	display: none;
+}
+[data-board-skeleton] header {
+	height: 3rem;
+	border-bottom: 1px solid var(--border);
+}
+[data-board-skeleton] > nav {
+	position: fixed;
+	inset: auto 0 0;
+	height: calc(3.3125rem + max(0.25rem, env(safe-area-inset-bottom)));
+	border-top: 1px solid var(--border);
+	background: var(--background);
+}
+@media (min-width: 768px) {
+	[data-board-skeleton] {
+		grid-template-columns: 248px minmax(0, 1fr);
+	}
+	[data-board-skeleton] > aside {
+		display: block;
+		position: sticky;
+		top: 0;
+		height: 100dvh;
+		border-right: 1px solid var(--border);
+		background: var(--card);
+	}
+	[data-board-skeleton] header {
+		height: 3.5rem;
+	}
+	[data-board-skeleton] > nav {
+		display: none;
+	}
+	[data-sidebar="closed"] [data-board-skeleton] {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	[data-sidebar="closed"] [data-board-skeleton] > aside {
+		display: none;
+	}
+}
+
 .document-layout {
 	--document-leading-rows: 0;
 }

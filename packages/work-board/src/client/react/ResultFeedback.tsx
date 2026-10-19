@@ -1,6 +1,6 @@
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { fileUrl } from "#files/url.ts";
-import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
+import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 import { shellIds } from "./shellIds.ts";
 export function ResultFeedback({ data }: { readonly data: ResultProjection }) {
 	return (
@@ -54,7 +54,7 @@ function FeedbackEntry({ entry }: { readonly entry: ResultProjection["feedback"]
 					Explicitly supersedes <a href={fileUrl(supersedesFile ?? "")}>{response.response.supersedes}</a>.
 				</p>
 			)}
-			<ResponseMarkdown file={responseFile} source={response.body} />
+			<LazyResponseMarkdown file={responseFile} source={response.body} />
 			<p>
 				<a href={fileUrl(responseFile)}>Response source</a> · <a href={fileUrl(questionFile)}>Registered reviewed context</a>
 			</p>

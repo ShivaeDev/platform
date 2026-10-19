@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import type { IFetchInterceptor } from "happy-dom";
+import type { BrowserWindow, IFetchInterceptor } from "happy-dom";
 import { THEME_ROUTE } from "#server/page/initialTheme.ts";
 import type { RawResponse } from "./board.ts";
 import type { PageRequests } from "./browser.ts";
@@ -20,6 +20,26 @@ export default {
 };
 `;
 
+type Response = InstanceType<BrowserWindow["Response"]>;
+
+// happy-dom closes its decompressing body stream on the decoder's "end" event without checking whether the
+// reader already cancelled, so a client that stops reading after its last message throws an uncaught
+// ERR_INVALID_STATE. Reading the encoded body to its end first keeps that close legal. A read that a closing
+// page aborts hands back the original response, which already carries that abort for the page to see.
+async function decodedBody(response: Response | null, window: BrowserWindow) {
+	if (response === null || response.headers.get("content-encoding") === null) {
+		return undefined;
+	}
+	const body = await response.arrayBuffer().catch(() => undefined);
+	if (body === undefined) {
+		return undefined;
+	}
+	const headers = new window.Headers(response.headers);
+	headers.delete("content-encoding");
+	headers.delete("content-length");
+	return new window.Response(body, { headers, status: response.status, statusText: response.statusText });
+}
+
 export function pageFetch({
 	path,
 	pageRequests,
@@ -34,14 +54,18 @@ export function pageFetch({
 	readonly theme: RawResponse;
 }): IFetchInterceptor {
 	return {
-		afterAsyncResponse: ({ request, response, window }) => {
+		afterAsyncResponse: async ({ request, response, window }) => {
+			const decoded = await decodedBody(response, window);
 			if (new URL(request.url).pathname === "/_board/react.js") {
+				const root = window.document.documentElement;
 				pageRequests.beforeReact = {
-					dark: window.document.documentElement.classList.contains("dark"),
-					scheme: window.document.documentElement.dataset.scheme,
+					dark: root.classList.contains("dark"),
+					scheme: root.dataset.scheme,
+					sidebar: root.dataset.sidebar,
+					skeleton: window.document.querySelector("[data-board-react-root] > [data-board-skeleton] header") !== null,
 				};
 			}
-			return rpcAfter(request, response, window, path, pageRequests, streams);
+			return (await rpcAfter(request, decoded ?? response, window, path, pageRequests, streams)) ?? decoded;
 		},
 		beforeAsyncRequest: async ({ request, window }) => {
 			const requested = new URL(request.url).pathname;
