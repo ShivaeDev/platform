@@ -114,6 +114,17 @@ export function screenInteractions(engine: ScreenEngine, tell: (line: string) =>
 				field.setSelectionRange(start, end, direction);
 			});
 		},
+		setMediaMatch: (query: string, matches: boolean) => {
+			tell(`the browser ${matches ? "matches" : "stops matching"} ${query}`);
+			const media = engine.media?.get(query);
+			if (!media) {
+				throw new Error(`No media query ${query} is mounted`);
+			}
+			act(() => {
+				Object.defineProperty(media, "matches", { configurable: true, value: matches });
+				media.dispatchEvent(new Event("change"));
+			});
+		},
 		stored: (key: string) => {
 			tell(`the reader checks stored ${key}`);
 			return localStorage.getItem(key);
