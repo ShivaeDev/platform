@@ -4,6 +4,7 @@ import { mermaidEngine } from "./mermaidEngine.ts";
 import { screenStory } from "./screenStory.ts";
 
 export interface DiagramDrawing {
+	readonly colors: Readonly<Record<string, unknown>>;
 	readonly dark: boolean;
 	readonly finish: (error?: string) => void;
 	readonly source: string;
@@ -17,6 +18,7 @@ export function gatedDiagrams() {
 			const dark = config?.themeVariables.darkMode === true;
 			return new Promise((resolve, reject) => {
 				engine.drawings?.push({
+					colors: config?.themeVariables ?? {},
 					dark,
 					finish: (error) =>
 						error ? reject(new Error(error)) : resolve({ svg: `<svg data-source="${encodeURIComponent(source.trim())}" data-dark="${dark}"></svg>` }),
