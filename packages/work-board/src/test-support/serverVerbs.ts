@@ -1,7 +1,7 @@
 import { renameSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { browserClient } from "#client/client.ts";
+import { browserClient } from "#browserClient.ts";
 import { folder, type RunningBoard } from "./board.ts";
 import { embeddedBoard } from "./embeddedBoard.ts";
 import { changesUntil, type EventStream, rpcWatcher, subscribe } from "./nativeRpc.ts";

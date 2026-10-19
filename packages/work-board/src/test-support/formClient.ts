@@ -3,7 +3,7 @@ import { FetchHttpClient } from "effect/http";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
-import type { Reader } from "#client/client.ts";
+import type { Reader } from "#browserClient.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";

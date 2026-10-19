@@ -77,7 +77,7 @@ The bakery below starts with a cold oven and no dough. Its traits declare heat a
 
 ### 1. Once per engine: the story kit
 
-`storyKit(definition)` from `@shivaedev/test-story/storyKit.ts` turns one definition into the kit. Every type, the engine's, the stages', the verbs' and the services', is inferred from it.
+`storyKit(definition)` from `@shivaedev/test-story/server/storyKit.ts` turns one definition into the kit. Every type, the engine's, the stages', the verbs' and the services', is inferred from it.
 
 ```ts
 export const bakery = storyKit({
@@ -143,7 +143,7 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 Every test of the kit is named `Bakery Story: <its name>`, so `vitest run -t "Bakery Story: "` runs only the bakery's stories with no setup. A project that splits runs by Vitest tags can also tag them:
 
 ```ts
-import { genreTags } from "@shivaedev/test-story/genreTags.ts";
+import { genreTags } from "@shivaedev/test-story/server/genreTags.ts";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -166,7 +166,7 @@ const app = storyKit({
 
 `appDefinition` holds the application's kit hooks, and `fakeUrl` is the listening fake server's HTTP or HTTPS origin, such as `http://127.0.0.1:4321`. The map matches exact URL hostnames, across ports. It replaces the destination origin while keeping the request's path, query, method, headers and body. For example, a POST to `https://github.com/login/oauth/access_token` reaches the fake's `/login/oauth/access_token`. In Node stories, other hostnames pass through the previous dispatcher unchanged. In the DOM environment, only loopback hosts (`localhost`, IPv4 loopback addresses and `[::1]`) may pass through without a route; every other hostname must have an `outbound` fake. A refused request fails the story and names its hostname, even when application code catches the fetch error.
 
-`routeOutbound(routes)` from `@shivaedev/test-story/routeOutbound.ts` installs the same routing in the current Effect Scope. Acquire a `fakeHttpService` in `create`, then yield `routeOutbound({ "api.example.com": api.url })` so the fake listener and its routing belong to that story. The starter's social sign-in story exercises this path through both document navigation and host-side requests.
+`routeOutbound(routes)` from `@shivaedev/test-story/server/routeOutbound.ts` installs the same routing in the current Effect Scope. Acquire a `fakeHttpService` in `create`, then yield `routeOutbound({ "api.example.com": api.url })` so the fake listener and its routing belong to that story. The starter's social sign-in story exercises this path through both document navigation and host-side requests.
 
 Routing uses the global dispatcher that Node's built-in `fetch` already uses. The kit's `outbound` option installs routing before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
 
@@ -182,7 +182,7 @@ A kit can collect spans with a native in-memory tracer, or start a fake OTLP rec
 import { Effect, Tracer } from "effect";
 import { HttpEffect, HttpServerResponse } from "effect/http";
 import { expect } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 const app = storyKit({
   around: (effect) => effect.pipe(Effect.withSpan("story")),
@@ -235,10 +235,10 @@ Detachment only removes the incoming parent: spans that application startup expl
 
 #### Forwarding requests to a host
 
-Use `forwardingProxy` from `@shivaedev/test-story/forwardingProxy.ts` in the kit's scoped `create` or `after` hook after starting the host under test:
+Use `forwardingProxy` from `@shivaedev/test-story/server/forwardingProxy.ts` in the kit's scoped `create` or `after` hook after starting the host under test:
 
 ```ts
-import { forwardingProxy } from "@shivaedev/test-story/forwardingProxy.ts";
+import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 
 const proxy = yield* forwardingProxy(upstream, {
   localAddress: "::1",
@@ -257,7 +257,7 @@ Set `localAddress` to choose the source socket address of the proxy's connection
 
 #### Reading OTLP exports
 
-Use `otlpReceiver` from `@shivaedev/test-story/otlpReceiver.ts` in a kit's scoped `create` hook. It listens on an allocated loopback port and closes with the story scope. Point the application's real exporter at `${receiver.url}/v1/traces`, then flush the exporter before reading:
+Use `otlpReceiver` from `@shivaedev/test-story/server/otlpReceiver.ts` in a kit's scoped `create` hook. It listens on an allocated loopback port and closes with the story scope. Point the application's real exporter at `${receiver.url}/v1/traces`, then flush the exporter before reading:
 
 ```ts
 app.it("exports the work span", [], function* ({ runWork, disposeRuntime, spans, requests }) {
@@ -274,10 +274,10 @@ For timeout stories, return `undefined` from the `status` callback to accept an 
 
 #### Faking an outbound HTTP API
 
-Use `fakeHttpService` from `@shivaedev/test-story/fakeHttpService.ts` in a kit's scoped `create` hook. Like the OTLP receiver, it listens on an allocated loopback port and closes with the scope. Routes have names for controls, a method (default `GET`), and a path whose `:segments` become decoded `request.params`. A reply receives the request and returns a JSON `body` (or a `Uint8Array`/Buffer sent as raw bytes), optional `status` (default 200), and optional response `headers`.
+Use `fakeHttpService` from `@shivaedev/test-story/server/fakeHttpService.ts` in a kit's scoped `create` hook. Like the OTLP receiver, it listens on an allocated loopback port and closes with the scope. Routes have names for controls, a method (default `GET`), and a path whose `:segments` become decoded `request.params`. A reply receives the request and returns a JSON `body` (or a `Uint8Array`/Buffer sent as raw bytes), optional `status` (default 200), and optional response `headers`.
 
 ```ts
-import { fakeHttpService } from "@shivaedev/test-story/fakeHttpService.ts";
+import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
 const api = yield* fakeHttpService({
   guard: ({ headers }) => headers.authorization === "Bearer story-key",
@@ -494,9 +494,9 @@ Set `runIf: hasPostgres` in the kit definition to gate all its stories once, whe
 
 The [order feature kit](https://github.com/ShivaeDev/platform/tree/main/packages/effect-react/src/test-support/order-example) is an example: it runs the feature’s services, repository, contracts, JSON serialization and authentication middleware over a loopback HTTP listener with bearer tokens.
 
-For full-app stories, use `around: withIsolatedDatabase` from `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` with a PostgreSQL test layer prepared from the application's migrations. Each story gets a database cloned from that template, and HTTP and worker pools commit into the same clone. The clone is dropped after scoped hosts and pools close. The starter's [application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/application.ts) uses this isolation path.
+For full-app stories, use `around: withIsolatedDatabase` from `@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts` with a PostgreSQL test layer prepared from the application's migrations. Each story gets a database cloned from that template, and HTTP and worker pools commit into the same clone. The clone is dropped after scoped hosts and pools close. The starter's [application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/application.ts) uses this isolation path.
 
-For repository-level tests on a migrated template, `withTestTransaction` from `@shivaedev/effect-test-sql/withTestTransaction.ts` provides rollback isolation when all work uses its transaction connection. See the [database test helpers](https://github.com/ShivaeDev/platform/blob/main/packages/effect-test-sql/README.md) for template preparation and both wrappers.
+For repository-level tests on a migrated template, `withTestTransaction` from `@shivaedev/effect-test-sql/server/withTestTransaction.ts` provides rollback isolation when all work uses its transaction connection. See the [database test helpers](https://github.com/ShivaeDev/platform/blob/main/packages/effect-test-sql/README.md) for template preparation and both wrappers.
 
 React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events and use bounded observations of rendered output. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook, not HTTP or DOM polling. Creation forms can use the same pattern with the existing `useCreate` path.
 
@@ -504,7 +504,7 @@ For cookie sessions, use the DOM host setup below. Native `RpcTest` can exercise
 
 ### DOM stories with cookie sessions
 
-Install `happy-dom@20.14.6` as a dev dependency. Select the `@shivaedev/test-story/domEnvironment.config.ts` Vitest environment for DOM tests that start their host in the same process:
+Install `happy-dom@20.14.6` as a dev dependency. Select the `@shivaedev/test-story/server/domEnvironment.config.ts` Vitest environment for DOM tests that start their host in the same process:
 
 ```ts
 import { fileURLToPath } from "node:url";
@@ -512,20 +512,20 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: fileURLToPath(import.meta.resolve("@shivaedev/test-story/domEnvironment.config.ts")),
+    environment: fileURLToPath(import.meta.resolve("@shivaedev/test-story/server/domEnvironment.config.ts")),
   },
 });
 ```
 
 The environment keeps Node's global `fetch`, `Request`, `Response`, `Headers`, `AbortController` and `AbortSignal` for the in-process host. The separate `window` keeps happy-dom's constructors and cookie jar. Its asynchronous HTTP requests use Node fetch through the same `outbound` dispatcher, including XMLHttpRequest. Synchronous document HTTP requests are refused. The starter's [Vitest config](https://github.com/ShivaeDev/platform/blob/main/examples/starter/vitest.config.ts) selects this environment only for its DOM project while retaining the shared test projects. Use Vitest's standard forks or threads pool.
 
-`domFetch(baseUrl)` from `@shivaedev/test-story/domFetch.ts` sets the document's location to the real HTTP host and returns a document fetch that resolves relative request strings against that URL. It translates Node `Request` and `Headers` inputs for happy-dom. Responses have happy-dom's status, headers and body methods; they are not instances of Node's global `Response`. The document keeps and sends cookies, including HttpOnly session cookies. Keep the default `same-origin` credentials policy for same-origin requests, and pass this fetch explicitly to browser clients, such as Better Auth's `fetchOptions.customFetchImpl`. The host continues to use global Node fetch without browser cookies.
+`domFetch(baseUrl)` from `@shivaedev/test-story/server/domFetch.ts` sets the document's location to the real HTTP host and returns a document fetch that resolves relative request strings against that URL. It translates Node `Request` and `Headers` inputs for happy-dom. Responses have happy-dom's status, headers and body methods; they are not instances of Node's global `Response`. The document keeps and sends cookies, including HttpOnly session cookies. Keep the default `same-origin` credentials policy for same-origin requests, and pass this fetch explicitly to browser clients, such as Better Auth's `fetchOptions.customFetchImpl`. The host continues to use global Node fetch without browser cookies.
 
 Call it in the kit's `create` hook after starting the host:
 
 ```ts
 import { createAuthClient } from "better-auth/react";
-import { domFetch } from "@shivaedev/test-story/domFetch.ts";
+import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
 
 const cookieApp = storyKit({
   around: withIsolatedDatabase,
@@ -547,11 +547,11 @@ const cookieApp = storyKit({
 
 #### Seeding a signed-in precondition
 
-`seedCookies(cookies)` from `@shivaedev/test-story/seedCookies.ts` returns an Effect that seeds the current happy-dom window's cookie container, including HttpOnly cookies. Call `domFetch(baseUrl)` first so the document and requests use the same origin. Each cookie has `name` and `value`, with optional `domain`, `path`, `httpOnly`, `secure`, `sameSite` (`Lax`, `Strict` or `None`) and `expires` (Unix seconds). Better Auth's test-utils login cookies fit this shape directly.
+`seedCookies(cookies)` from `@shivaedev/test-story/server/seedCookies.ts` returns an Effect that seeds the current happy-dom window's cookie container, including HttpOnly cookies. Call `domFetch(baseUrl)` first so the document and requests use the same origin. Each cookie has `name` and `value`, with optional `domain`, `path`, `httpOnly`, `secure`, `sameSite` (`Lax`, `Strict` or `None`) and `expires` (Unix seconds). Better Auth's test-utils login cookies fit this shape directly.
 
 ```ts
 import { signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
-import { seedCookies } from "@shivaedev/test-story/seedCookies.ts";
+import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 
 const { cookies } = yield* Effect.promise(() => signedInUser(testAuth, {
   email: "alice@example.test",
@@ -564,7 +564,7 @@ yield* seedCookies(cookies);
 
 #### Social sign-in through an outbound provider
 
-Happy-dom's detached window records a location change without loading the next document. `domNavigate(url = window.location.href)` from `@shivaedev/test-story/domNavigate.ts` performs that load: it follows HTTP redirects through the document transport, keeps cookies for each destination, sets the final location, writes the returned HTML and returns the happy-dom response. Call it after the sign-in client has set the provider location, and before checking the returned page. An unrouted external redirect fails with its hostname.
+Happy-dom's detached window records a location change without loading the next document. `domNavigate(url = window.location.href)` from `@shivaedev/test-story/server/domNavigate.ts` performs that load: it follows HTTP redirects through the document transport, keeps cookies for each destination, sets the final location, writes the returned HTML and returns the happy-dom response. Call it after the sign-in client has set the provider location, and before checking the returned page. An unrouted external redirect fails with its hostname.
 
 The starter's [social application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/socialApp.ts) runs a fixture Better Auth host on real PostgreSQL, with a rendered sign-in button and a fake GitHub provider. Its `create` hook acquires the provider and uses scoped `routeOutbound` routing for both `github.com` and `api.github.com`. The fake's authorize endpoint returns the application's callback URL with the received state and a test code. The real callback exchanges that code and fetches the user against the fake, creates the account and session in PostgreSQL, and redirects to the signed-in page.
 
@@ -589,7 +589,7 @@ socialApp.it("a social sign-in returns with a cookie session", [], function* ({ 
 `screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces), the story's `tell`, and a `pending()` function that reads the application's own request or atom state. `settle()` waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
 
 ```ts
-import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 
 verbs: ({ view, requests }, story) => screenDriver({
   root: view.container,
@@ -620,17 +620,17 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 
 | Module | Exports |
 | --- | --- |
-| `storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
-| `domFetch.ts` | `domFetch(baseUrl)` |
-| `seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
-| `routeOutbound.ts` | `routeOutbound(routes)` |
-| `screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget` |
-| `domNavigate.ts` | `domNavigate(url?)` |
-| `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
-| `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
-| `fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpFault`, `FakeHttpHold`, `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
-| `forwardingProxy.ts` | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions` |
-| `otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
+| `server/storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
+| `server/domFetch.ts` | `domFetch(baseUrl)` |
+| `server/seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
+| `server/routeOutbound.ts` | `routeOutbound(routes)` |
+| `server/screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget` |
+| `server/domNavigate.ts` | `domNavigate(url?)` |
+| `server/genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
+| `server/domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
+| `server/fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpFault`, `FakeHttpHold`, `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
+| `server/forwardingProxy.ts` | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions` |
+| `server/otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
 
 ### Install and limits
 

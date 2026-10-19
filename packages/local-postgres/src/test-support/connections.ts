@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createConnectionEngine } from "#test/createConnectionEngine.ts";
 
 export const connections = storyKit({

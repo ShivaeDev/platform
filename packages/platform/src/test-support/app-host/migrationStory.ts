@@ -5,7 +5,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Layer, Redacted } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { SqlClient } from "effect/sql";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
 import { bootMigrations } from "./bootMigrations.ts";
 import { migrationLoader } from "./migrationLoader.ts";

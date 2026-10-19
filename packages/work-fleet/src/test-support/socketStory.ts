@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { PassThrough } from "node:stream";
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { codexSockets } from "#test/codexSockets.ts";
 
 export const socketStory = storyKit({

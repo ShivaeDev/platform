@@ -1,7 +1,7 @@
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { configured, postgresLayer } from "./postgres.ts";
 import { RecordedLogs } from "./RecordedLogs.ts";
 import { sqlEngine, sqlSnapshot, sqlVerbs } from "./sqlEngine.ts";

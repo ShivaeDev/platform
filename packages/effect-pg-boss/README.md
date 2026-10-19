@@ -7,7 +7,7 @@ Run PostgreSQL jobs through the same Effect services as the rest of your applica
 A background worker lives outside the request that queued it. Without a shared boundary, the producer writes one payload shape, the worker assumes another, and every worker rebuilds its dependencies and shutdown plumbing. This package puts those decisions in one place:
 
 ```ts
-import { defineQueue } from "@shivaedev/effect-pg-boss/definition.ts";
+import { defineQueue } from "@shivaedev/effect-pg-boss/server/definition.ts";
 import { Effect, Schema } from "effect";
 import { Mail } from "./services.ts";
 
@@ -42,7 +42,7 @@ The work separates naturally: declare the application services once, define a qu
 `installPgBossSchema` installs or upgrades pg-boss through the provided Effect SQL client without starting workers or schedules. Run it outside an application transaction, in a release step or the `fixtures` Effect of `makePostgresTestLayer`, so stories inherit the schema from the migrated template:
 
 ```ts
-import { installPgBossSchema } from "@shivaedev/effect-pg-boss/schema.ts";
+import { installPgBossSchema } from "@shivaedev/effect-pg-boss/server/schema.ts";
 
 const jobsFixture = installPgBossSchema({ schema: "app_jobs" });
 ```
@@ -56,7 +56,7 @@ After installation, pass the same schema and `migrate: false` to `Jobs.layer` to
 Define the application's jobs service and worker dependencies in `services.ts`:
 
 ```ts
-import { makePgBoss } from "@shivaedev/effect-pg-boss/service.ts";
+import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
 import { Context, Effect, Layer } from "effect";
 
 export const Jobs = makePgBoss("@app/Jobs");
@@ -79,7 +79,7 @@ export const MailLive = Layer.succeed(Mail, {
 Define the feature's registrations in `jobs.ts`:
 
 ```ts
-import { defineQueue, defineSchedule } from "@shivaedev/effect-pg-boss/definition.ts";
+import { defineQueue, defineSchedule } from "@shivaedev/effect-pg-boss/server/definition.ts";
 import { Effect, Schema } from "effect";
 import { Mail } from "./services.ts";
 
@@ -136,7 +136,7 @@ Fail a queue handler or scheduled Effect with `RetryAt` when a provider gives a 
 
 ```ts
 import { DateTime, Effect } from "effect";
-import { RetryAt } from "@shivaedev/effect-pg-boss/definition.ts";
+import { RetryAt } from "@shivaedev/effect-pg-boss/server/definition.ts";
 
 const waitForQuota = Effect.fail(new RetryAt({
   at: DateTime.makeUnsafe("2030-01-01T00:01:00Z"),
@@ -392,8 +392,8 @@ This producer story uses the `SendEmail` definition and `Jobs` service from abov
 ```ts
 import { Context, Layer, Option } from "effect";
 import { expect } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
-import { makePgBossTesting, testRetryPolicy } from "@shivaedev/effect-pg-boss/testing.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { makePgBossTesting, testRetryPolicy } from "@shivaedev/effect-pg-boss/server/testing.ts";
 
 const emailStories = storyKit({
   clock: "live",
@@ -438,13 +438,13 @@ Import the module that defines the name; the package has no root entry.
 
 | Module | Public names |
 | --- | --- |
-| `@shivaedev/effect-pg-boss/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
-| `@shivaedev/effect-pg-boss/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
-| `@shivaedev/effect-pg-boss/schema.ts` | `installPgBossSchema`; `PgBossSchemaOptions` |
-| `@shivaedev/effect-pg-boss/health.ts` | `deadLetterQueueName`; `JobsHealth`, `QueueCounts`, `QueueHealth` |
-| `@shivaedev/effect-pg-boss/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
-| `@shivaedev/effect-pg-boss/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
-| `@shivaedev/effect-pg-boss/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions` |
+| `@shivaedev/effect-pg-boss/server/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
+| `@shivaedev/effect-pg-boss/server/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
+| `@shivaedev/effect-pg-boss/server/schema.ts` | `installPgBossSchema`; `PgBossSchemaOptions` |
+| `@shivaedev/effect-pg-boss/server/health.ts` | `deadLetterQueueName`; `JobsHealth`, `QueueCounts`, `QueueHealth` |
+| `@shivaedev/effect-pg-boss/server/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
+| `@shivaedev/effect-pg-boss/server/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
+| `@shivaedev/effect-pg-boss/server/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions` |
 
 The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, with literal `QueuePolicy` values and `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 

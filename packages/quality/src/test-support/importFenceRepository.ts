@@ -18,7 +18,11 @@ export function seedFences(): string {
 		{ content: '{ "type": "module", "devDependencies": { "@shivaedev/quality": "*" } }', path: "package.json" },
 		{ content: "packages:\n  - packages/*\n", path: "pnpm-workspace.yaml" },
 		{ content: '{ "name": "@demo/game", "dependencies": { "@demo/cms": "workspace:*" } }', path: "packages/game/package.json" },
-		{ content: '{ "name": "@demo/cms", "exports": { ".": "./src/edit.ts" } }', path: "packages/cms/package.json" },
+		{
+			content:
+				'{ "name": "@demo/cms", "exports": { ".": "./src/edit.ts", "./*.ts": { "source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" } } }',
+			path: "packages/cms/package.json",
+		},
 		{ content: 'import { edit } from "@demo/cms";\n\nexport const play = edit;\n', path: "packages/game/src/play.ts" },
 		{ content: "export function run(): number {\n\treturn 1;\n}\n", path: "packages/game/src/run.ts" },
 		{ content: "export function edit(): number {\n\treturn 1;\n}\n", path: "packages/cms/src/edit.ts" },

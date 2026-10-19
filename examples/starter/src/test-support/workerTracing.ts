@@ -1,5 +1,5 @@
 import { Effect, Exit, Scope } from "effect";
-import { otlpReceiver } from "@shivaedev/test-story/otlpReceiver.ts";
+import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 
 export function workerTracing<E, R>(
 	tell: (line: string) => void,

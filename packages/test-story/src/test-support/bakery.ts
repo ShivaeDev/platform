@@ -28,7 +28,7 @@ const MOST_SACKS = 5;
 const DOUGH_PER_BOWL = 3;
 
 export class Supplier extends Context.Service<Supplier, { readonly deliver: (sacks: number) => Effect.Effect<void, SupplierShort> }>()(
-	"@shivaedev/test-story/Supplier",
+	"@shivaedev/test-story/server/Supplier",
 ) {
 	static readonly layer = Layer.succeed(Supplier, {
 		deliver: (sacks) =>

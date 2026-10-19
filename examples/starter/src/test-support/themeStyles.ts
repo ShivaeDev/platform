@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { colorContrast } from "./colorContrast.ts";
 
 export const themeStyles = storyKit({

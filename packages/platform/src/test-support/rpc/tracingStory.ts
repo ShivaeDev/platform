@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import { Headers } from "effect/http";
 import { Rpc, type RpcClient, RpcMessage, RpcTest } from "effect/rpc";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
 import { type RequestTracingOptions, requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { annotationsOf, recorder } from "./harness.ts";

@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Rendered } from "#client/testing.ts";
 import { AnswerList } from "./AnswerList.tsx";
 import { makeAnswerForm } from "./answerForm.ts";

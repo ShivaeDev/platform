@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { parallelQueries } from "#test/parallelQueries.ts";
 import { postgresFailures } from "#test/postgresFailures.ts";
 import { postgresPoolLifetime } from "#test/postgresPoolLifetime.ts";

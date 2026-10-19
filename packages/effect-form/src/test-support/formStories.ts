@@ -1,5 +1,5 @@
 import { Deferred, Effect, type Schema } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { draftSession } from "#draftSession.ts";
 import { make } from "#form.ts";
 import type { Config, Decoded, Encoded, FieldFailure, Fields, Name, Path } from "#shape.ts";

@@ -1,4 +1,4 @@
-import { fakeHttpService } from "@shivaedev/test-story/fakeHttpService.ts";
+import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
 export function oauthProvider() {
 	return fakeHttpService({

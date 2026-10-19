@@ -5,7 +5,7 @@ interface CachedClient {
 	references: number;
 }
 
-const cacheSymbol = Symbol.for("@shivaedev/effect-pg-boss/client-cache");
+const cacheSymbol = Symbol.for("@shivaedev/effect-pg-boss/server/client-cache");
 const shared: unknown = Reflect.get(globalThis, cacheSymbol);
 const clients: Map<string | symbol, unknown> = shared instanceof Map ? shared : new Map<string | symbol, unknown>();
 Reflect.set(globalThis, cacheSymbol, clients);

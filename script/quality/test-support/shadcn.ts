@@ -5,7 +5,7 @@ import { loadConfig } from "@shivaedev/quality/config/load.ts";
 import { runRules } from "@shivaedev/quality/engine/runRules.ts";
 import type { Violation } from "@shivaedev/quality/engine/violation.ts";
 import { collectInventory, type Inventory } from "@shivaedev/quality/inventory/collect.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type SeedFile, seedTree } from "#quality-fixtures/tree.ts";
 
 interface Repository {
