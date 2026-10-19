@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.31.1 - 2026-10-19
+
+### Fixed
+
+- Resolve DOM globals by scope when checking unit tests and their test-support fixtures, so local variables, parameters and destructured bindings named `document` pass while global DOM access is still reported.
+
 ## 0.31.0 - 2026-10-19
 
 ### Added
