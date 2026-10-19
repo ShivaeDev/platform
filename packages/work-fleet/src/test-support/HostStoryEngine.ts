@@ -8,6 +8,7 @@ import type { Follower } from "#test/followerProcess.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
 import { localBoardHost } from "#test/localBoardHost.ts";
 import { movingMainSource } from "#test/mainSource.ts";
+import type { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { questionPublicationBoard } from "#test/questionPublicationVerbs.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
 import { type SnapshotReads, snapshotReads } from "#test/snapshotReads.ts";
@@ -17,6 +18,8 @@ import { storeState } from "#test/storeState.ts";
 export class HostStoryEngine {
 	files: Record<string, string> = {};
 	config: Partial<HostConfig> = {};
+	integrations: HostFixture["parts"]["integrations"];
+	github: Effect.Success<ReturnType<typeof mergedReviewGithub>> | undefined;
 	stored: Record<string, Readonly<Record<string, unknown>>> = {};
 	main: MainSnapshot | undefined;
 	localBoard = false;
@@ -91,7 +94,12 @@ export class HostStoryEngine {
 				return yield* Effect.die("Deploy the host before starting it");
 			}
 			const board = questionPublicationBoard(engine);
-			const parts = { ...engine.fixture.parts, ...(board === undefined ? {} : { board }), provider: resources.provider };
+			const parts = {
+				...engine.fixture.parts,
+				...(engine.integrations === undefined ? {} : { integrations: engine.integrations }),
+				...(board === undefined ? {} : { board }),
+				provider: resources.provider,
+			};
 			if (engine.main !== undefined) {
 				parts.main = movingMainSource(() => engine.observedMain, engine.repositoryRoot);
 			}

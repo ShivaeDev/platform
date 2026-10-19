@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { reviewSatisfied } from "#completion.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import { makeHuman } from "#engine/makeHuman.ts";
 import type { EngineState } from "#engine/makeState.ts";
@@ -24,8 +25,8 @@ export const requestConflictRepair = Effect.fn("Fleet.requestConflictRepair")(fu
 	}
 	if (
 		mainRevision === undefined
-		|| record.review?.verdict !== "approved"
-		|| record.review.head !== record.result?.head
+		|| record.result === undefined
+		|| !reviewSatisfied(record, record.result.head)
 		|| record.checks?.passed !== true
 		|| record.checks.head !== record.result?.head
 		|| record.conflictRepairs?.includes(mainRevision)

@@ -53,6 +53,7 @@ export function hostPolicy(host: FleetHost) {
 					readGuidance: (role) => guidance[role].pipe(Effect.mapError((error) => new ServiceUnavailable({ message: error.message }))),
 					readRetryMs: applied.readRetryMs,
 					refreshQuota: refreshQuota(applied),
+					review: applied.review ?? true,
 					stallMinutes: applied.stallMinutes,
 					...(applied.worker === undefined ? {} : { sharedEnvironment: applied.worker.sharedEnvironment }),
 				};
