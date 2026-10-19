@@ -3,7 +3,7 @@ import { goalCountOrder } from "./goalCounts.ts";
 
 export function GoalProgressSummary({ counts }: { readonly counts: GoalCounts }) {
 	return (
-		<p className="text-muted-foreground text-sm" data-criterion-progress>
+		<p className="!m-0 text-muted-foreground text-xs" data-criterion-progress>
 			{goalCountOrder
 				.filter((key) => counts[key] > 0)
 				.map((key) => `${counts[key]} ${key}`)

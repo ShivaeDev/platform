@@ -11,7 +11,7 @@ for (const [stage, group] of [
 ] as const) {
 	boardStory.it(
 		`counts Fleet ${stage} as ${group} through the goals RPC`,
-		[projectFiles(goalPageFixture()), deferredServing],
+		[projectFiles({ ...goalPageFixture(), "asks.md": "# No open asks" }), deferredServing],
 		function* ({ start, connectClient }) {
 			const missing = { cause: "Not configured for fixture", observedAt: 0, state: "not-configured" as const };
 			const fleet = goalFleetFixture(stage);
