@@ -7,23 +7,23 @@ import {
 	observedQuota,
 	serialReconciliation,
 } from "#test/continuationCapacity.ts";
-import { fleetStory } from "#test/fleetStory.ts";
+import { isolatedEngine } from "#test/engineStory.ts";
 
 for (const stage of ["needs-human", "completed"] as const) {
 	const resultKind = stage === "needs-human" ? needsHumanContinuation : completedContinuation;
-	fleetStory.it(
+	isolatedEngine.it(
 		`a queued continuation of ${stage} work stops for a changed brief and lets prepared work launch`,
 		[continuationCapacity, resultKind, fourApproved],
 		function* (fleet) {
 			for (const id of ["one", "two", "three", "four"]) {
-				yield* fleet.prepare(id);
+				yield* fleet.prepareWork(id);
 			}
 			yield* fleet.dispatch("one");
 			fleet.finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.stage).toBe(stage);
 			yield* fleet.dispatch("two");
 			yield* fleet.dispatch("three");
-			yield* fleet.continue("one", "Fix the remaining case");
+			yield* fleet.continueWork("one", "Fix the remaining case");
 			fleet.reviseBrief("one", "revised-brief");
 			yield* fleet.finishWorker("two");
 			yield* fleet.reconcile("two");
@@ -41,19 +41,19 @@ for (const stage of ["needs-human", "completed"] as const) {
 	);
 }
 
-fleetStory.it(
+isolatedEngine.it(
 	"a queued continuation reports unavailable quota and resumes when it returns",
 	[continuationCapacity, completedContinuation, fourApproved, observedQuota],
 	function* (fleet) {
 		for (const id of ["one", "two", "three", "four"]) {
-			yield* fleet.prepare(id);
+			yield* fleet.prepareWork(id);
 		}
 		const first = (yield* fleet.dispatch("one")).value;
 		fleet.finishWorkers();
 		yield* fleet.reconcile("one");
 		yield* fleet.dispatch("two");
 		yield* fleet.dispatch("three");
-		yield* fleet.continue("one", "Fix the remaining case");
+		yield* fleet.continueWork("one", "Fix the remaining case");
 		fleet.providerQuota(0);
 		yield* fleet.finishWorker("two");
 		yield* fleet.reconcile("two");
@@ -72,19 +72,19 @@ fleetStory.it(
 	},
 );
 
-fleetStory.it(
+isolatedEngine.it(
 	"a pass resumes a queued continuation after observing the turn that frees its slot",
 	[continuationCapacity, completedContinuation, fourApproved, serialReconciliation],
 	function* (fleet) {
 		for (const id of ["one", "two", "three", "four"]) {
-			yield* fleet.prepare(id);
+			yield* fleet.prepareWork(id);
 		}
 		const first = (yield* fleet.dispatch("one")).value;
 		fleet.finishWorkers();
 		yield* fleet.reconcile("one");
 		yield* fleet.dispatch("two");
 		yield* fleet.dispatch("three");
-		yield* fleet.continue("one", "Finish the queued change");
+		yield* fleet.continueWork("one", "Finish the queued change");
 		yield* fleet.finishWorker("two");
 		yield* fleet.schedule();
 		const resumed = (yield* fleet.get("one")).value;
