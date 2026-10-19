@@ -14,9 +14,9 @@ const definition = {
 	after: {
 		*configuration(state: EngineStory) {
 			const board = state.markdown ? yield* createFleetBoard(state.options) : undefined;
-			state.root = board?.root ?? "";
+			state.root = board?.root ?? state.root;
 			state.source = board?.source ?? "";
-			const runtime = yield* createEngine(state.options, board?.board);
+			const runtime = yield* createEngine(state.options, board?.board ?? state.board);
 			const services = yield* Layer.build(runtime.fleetLayer);
 			state.runtime = { ...runtime, fleet: Context.get(services, Fleet) };
 		},

@@ -1,91 +1,92 @@
 import { expect } from "vitest";
-import { fleetStory, githubBacklog, singlePrBacklog } from "#test/fleetStory.ts";
+import { githubBacklog, singlePrBacklog } from "#test/engineSchedulingTraits.ts";
+import { isolatedEngine } from "#test/engineStory.ts";
 import { PR } from "#test/githubResult.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
-fleetStory.it("a closed PR releases its foreign backlog once and waiting work launches", [githubBacklog], function* (fleet) {
-	yield* fleet.prepare("one");
+isolatedEngine.it("a closed PR releases its foreign backlog once and waiting work launches", [githubBacklog], function* (fleet) {
+	yield* fleet.prepareWork("one");
 	yield* fleet.dispatch("one");
 	yield* fleet.finishWorker("one");
 	expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
 	yield* fleet.reservePr();
-	yield* fleet.prepare("two");
+	yield* fleet.prepareWork("two");
 	expect(yield* fleet.attemptDispatch("two")).toMatchObject({ kind: "backlog" });
 	expect((yield* fleet.get("two")).value.stage).toBe("prepared");
 	yield* fleet.reconcile("one");
-	expect(yield* fleet.reservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: PR }]);
-	const beforeClose = fleet.commits.length;
-	fleet.closePrOnGithub();
+	expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: PR }]);
+	const beforeClose = fleet.commitBatches().length;
+	fleet.closePullRequest();
 	const closed = yield* fleet.reconcile("one");
 	expect(closed.value).toMatchObject({ decision: { code: "pr-closed" }, stage: "needs-human" });
 	expect(closed.value.outcome).toBeUndefined();
-	expect(yield* fleet.reservations()).toEqual([]);
+	expect(yield* fleet.foreignReservations()).toEqual([]);
 	const reservations = `${STORAGE_NAMESPACE}_foreign_reservations`;
-	expect(fleet.commits[beforeClose]?.toSorted()).toEqual(["fleet", reservations, `${reservations}:${PR}`].toSorted());
-	const commits = fleet.commits.length;
+	expect(fleet.commitBatches()[beforeClose]?.toSorted()).toEqual(["fleet", reservations, `${reservations}:${PR}`].toSorted());
+	const commits = fleet.commitBatches().length;
 	expect((yield* fleet.reconcile("one")).version).toBe(closed.version);
-	expect(fleet.commits).toHaveLength(commits);
-	const launches = fleet.launched.length;
+	expect(fleet.commitBatches()).toHaveLength(commits);
+	const launches = fleet.launches().length;
 	yield* fleet.schedule();
 	expect((yield* fleet.get("two")).value.stage).toBe("executing");
-	expect(fleet.launched).toHaveLength(launches + 1);
+	expect(fleet.launches()).toHaveLength(launches + 1);
 });
 
-fleetStory.it("a merged PR releases its foreign backlog and waiting work launches", [githubBacklog], function* (fleet) {
-	yield* fleet.prepare("one");
+isolatedEngine.it("a merged PR releases its foreign backlog and waiting work launches", [githubBacklog], function* (fleet) {
+	yield* fleet.prepareWork("one");
 	yield* fleet.dispatch("one");
 	yield* fleet.finishWorker("one");
 	expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
 	yield* fleet.reservePr();
-	yield* fleet.prepare("two");
+	yield* fleet.prepareWork("two");
 	expect(yield* fleet.attemptDispatch("two")).toMatchObject({ kind: "backlog" });
 	expect((yield* fleet.get("two")).value.stage).toBe("prepared");
 	yield* fleet.reconcile("one");
-	expect(yield* fleet.reservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: PR }]);
-	fleet.mergePrOnGithub();
+	expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: PR }]);
+	fleet.mergePullRequest();
 	expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-	expect(yield* fleet.reservations()).toEqual([]);
-	const launches = fleet.launched.length;
+	expect(yield* fleet.foreignReservations()).toEqual([]);
+	const launches = fleet.launches().length;
 	yield* fleet.schedule();
 	expect((yield* fleet.get("two")).value.stage).toBe("executing");
-	expect(fleet.launched).toHaveLength(launches + 1);
+	expect(fleet.launches()).toHaveLength(launches + 1);
 });
 
-fleetStory.it(
+isolatedEngine.it(
 	"releasing a closure decision keeps the foreign reservation absent and launches waiting work",
 	[githubBacklog, singlePrBacklog],
 	function* (fleet) {
-		yield* fleet.prepare("one");
+		yield* fleet.prepareWork("one");
 		yield* fleet.dispatch("one");
 		yield* fleet.finishWorker("one");
 		expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
 		yield* fleet.reservePr();
-		yield* fleet.prepare("two");
+		yield* fleet.prepareWork("two");
 		expect(yield* fleet.attemptDispatch("two")).toMatchObject({ kind: "backlog" });
-		fleet.closePrOnGithub();
+		fleet.closePullRequest();
 		expect((yield* fleet.reconcile("one")).value.decision?.code).toBe("pr-closed");
-		expect(yield* fleet.reservations()).toEqual([]);
+		expect(yield* fleet.foreignReservations()).toEqual([]);
 		expect(yield* fleet.attemptDispatch("two")).toMatchObject({ kind: "backlog" });
 		expect((yield* fleet.answerDecision("one", "release")).value.stage).toBe("released");
 		expect((yield* fleet.reconcile("one")).value.stage).toBe("released");
 		expect((yield* fleet.get("one")).value.mergedDelivery).toBeUndefined();
-		expect(yield* fleet.reservations()).toEqual([]);
-		const launches = fleet.launched.length;
+		expect(yield* fleet.foreignReservations()).toEqual([]);
+		const launches = fleet.launches().length;
 		yield* fleet.schedule();
 		expect((yield* fleet.get("two")).value.stage).toBe("executing");
-		expect(fleet.launched).toHaveLength(launches + 1);
+		expect(fleet.launches()).toHaveLength(launches + 1);
 		expect((yield* fleet.get("one")).value.mergedDelivery).toBeUndefined();
-		expect(yield* fleet.reservations()).toEqual([]);
+		expect(yield* fleet.foreignReservations()).toEqual([]);
 	},
 );
 
-fleetStory.it("releasing work whose PR is still open retains its foreign backlog owner", [githubBacklog], function* (fleet) {
-	yield* fleet.prepare("one");
+isolatedEngine.it("releasing work whose PR is still open retains its foreign backlog owner", [githubBacklog], function* (fleet) {
+	yield* fleet.prepareWork("one");
 	yield* fleet.dispatch("one");
 	yield* fleet.finishWorker("one");
 	expect((yield* fleet.reconcile("one")).value.decision?.code).toBe("reviewed-pr-ready");
-	expect(yield* fleet.reservations()).toEqual([]);
+	expect(yield* fleet.foreignReservations()).toEqual([]);
 	expect((yield* fleet.answerDecision("one", "release")).value.stage).toBe("released");
 	yield* fleet.reconcile("one");
-	expect(yield* fleet.reservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: PR }]);
+	expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: PR }]);
 });
