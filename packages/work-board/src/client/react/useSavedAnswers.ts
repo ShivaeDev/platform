@@ -1,19 +1,15 @@
-import { useEffect, useState } from "react";
+import { useAtom } from "@effect/atom-react";
+import type { Navigation } from "#browser/Navigation.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
+import { savedAnswers } from "./savedAnswers.ts";
 import { todayKey } from "./todayKey.ts";
 
-// A saved answer leaves Needs you at once; the row stays hidden until the refreshed inbox no longer lists it.
-export function useSavedAnswers(you: InboxProjection["you"]) {
-	const [saved, setSaved] = useState<ReadonlySet<string>>(() => new Set());
-	const listed = new Set(you.map(todayKey));
-	const stale = [...saved].some((key) => !listed.has(key));
-	useEffect(() => {
-		if (stale) {
-			setSaved((current) => new Set([...current].filter((key) => you.some((item) => todayKey(item) === key))));
-		}
-	}, [stale, you]);
+export function useSavedAnswers(inbox: InboxProjection, navigation: Navigation | undefined) {
+	const [saved, setSaved] = useAtom(savedAnswers);
+	const hidden = new Set(saved.filter((entry) => entry.inbox === inbox).map((entry) => entry.key));
 	return {
-		items: you.filter((item) => !saved.has(todayKey(item))),
-		save: (item: InboxProjection["you"][number]) => setSaved((current) => new Set([...current, todayKey(item)])),
+		items: inbox.you.filter((item) => !hidden.has(todayKey(item))),
+		save: (item: InboxProjection["you"][number]) =>
+			setSaved([...saved.filter((entry) => entry.inbox === inbox || entry.navigation === navigation), { inbox, key: todayKey(item), navigation }]),
 	};
 }

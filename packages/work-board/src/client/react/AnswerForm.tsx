@@ -75,7 +75,7 @@ function AnswerSession({ document: data, onDraft, request, preview }: AnswerProp
 						invalid?.focus();
 					});
 				}
-				if (valid && !offline && !state.created.saving) {
+				if (valid && !state.created.saving) {
 					state.created.save();
 				}
 			}}
@@ -111,7 +111,7 @@ function AnswerSession({ document: data, onDraft, request, preview }: AnswerProp
 					role="status"
 				>
 					{state.outcome === "saved" && <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-done" />}
-					{typeof window === "undefined" ? "JavaScript is required to record a response." : state.status}
+					{state.status}
 				</p>
 				<AnswerMore body={prompts.length > 0 ? body : undefined} id={id} request={request} state={state} />
 			</fieldset>

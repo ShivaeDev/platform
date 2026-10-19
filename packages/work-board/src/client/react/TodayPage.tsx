@@ -26,7 +26,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 	const progress = inProgress(fleet);
 	const navigation = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const home = Option.getOrUndefined(navigation.data)?.home;
-	const answering = useSavedAnswers(data.you);
+	const answering = useSavedAnswers(data, Option.getOrUndefined(navigation.data));
 	useArrivalFocus(data.answered);
 	return (
 		<div className="today-page min-w-0 space-y-3 md:space-y-6">

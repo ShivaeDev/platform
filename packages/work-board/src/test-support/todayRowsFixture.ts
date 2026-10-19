@@ -98,6 +98,11 @@ export function todayAnswerFixture(): Record<string, string> {
 export function todayContextFixture(): Record<string, string> {
 	return {
 		...todayAnswerFixture(),
+		"decisions/launch.md": decision(
+			"launch",
+			"Pick the launch day",
+			`${question("launch", "one", "Which day should the launch be?", ["monday", "friday"])}\n## Recommendation\n\nMonday, so the team can watch it.\n`,
+		),
 		"decisions/workaround.md": `---
 id: decision.workaround
 kind: decision
@@ -116,8 +121,9 @@ Workers source the setup script in every command.
 - **A. Keep the workaround (recommended).** Close the activation task as superseded.
 - **B. Fix the environment.** Publish a revision that activates on its own,
   then drop the workaround.
+- **C. Decide after the release.**
 
-Answer with A or B.
+Answer with A, B or C.
 `,
 	};
 }

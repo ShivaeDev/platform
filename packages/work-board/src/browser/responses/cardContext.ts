@@ -13,6 +13,8 @@ export function cardContext(source: string) {
 	return { choices: choices(source), links, recommendation };
 }
 
+const CHOICE = /^[-*+]\s+\*\*(?<label>[^*]+)\*\*/u;
+
 function choices(source: string) {
 	const found: { label: string; description: string; recommended: boolean }[] = [];
 	let fence: string | undefined;
@@ -22,11 +24,11 @@ function choices(source: string) {
 			fence = nextFence(fence, marker);
 			continue;
 		}
-		const choice = fence ? undefined : /^[-*+]\s+\*\*(?<label>[^*]+)\*\*\s*(?<description>.*)$/u.exec(line)?.groups;
+		const label = fence ? undefined : CHOICE.exec(line)?.groups?.label;
 		const previous = found.at(-1);
-		if (choice?.label) {
-			const recommended = /\(recommended\)/iu.test(choice.label);
-			found.push({ description: choice.description?.trim() ?? "", label: choice.label.replace(/\s*\(recommended\)/iu, "").trim(), recommended });
+		if (label) {
+			const recommended = /\(recommended\)/iu.test(label);
+			found.push({ description: line.replace(CHOICE, "").trim(), label: label.replace(/\s*\(recommended\)/iu, "").trim(), recommended });
 		} else if (previous && !fence && /^\s+\S/u.test(line)) {
 			previous.description = `${previous.description} ${line.trim()}`.trim();
 		}
