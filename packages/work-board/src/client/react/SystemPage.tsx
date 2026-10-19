@@ -8,10 +8,11 @@ import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { githubLimited } from "./githubLimited.ts";
 import { PageHeader } from "./PageHeader.tsx";
 import { SystemFleetLane } from "./SystemFleetLane.tsx";
+import { SystemFleetStopped } from "./SystemFleetStopped.tsx";
 import { SystemHealth } from "./SystemHealth.tsx";
 import { SystemSourceProblems } from "./SystemSourceProblems.tsx";
 export function SystemPage({
-	data: { sources: data, now },
+	data,
 	needsYou,
 	sourceProblems,
 }: {
@@ -19,14 +20,34 @@ export function SystemPage({
 	readonly needsYou?: number | null | undefined;
 	readonly sourceProblems?: Parameters<typeof SystemSourceProblems>[0];
 }) {
-	const items = useContext(FleetItemsContext);
-	const fleet = data.fleet.state === "ready" ? { ...data.fleet, observedAt: data.fleet.value.observedAt } : data.fleet;
+	const fleet = data.sources.fleet;
 	return (
 		<div className="space-y-6">
 			<PageHeader
 				summary="How much agent and GitHub capacity is left, how Fleet is doing, and which files the Board could not read. The page updates every 15 seconds while it is open. Use Pause updates to stop this."
 				title="System"
 			/>
+			{fleet.state === "error" && fleet.startCommand !== undefined ? (
+				<SystemFleetStopped command={fleet.startCommand} observedAt={fleet.observedAt} reason={fleet.cause} />
+			) : (
+				<FleetSources data={data} needsYou={needsYou} />
+			)}
+			{sourceProblems !== undefined && <SystemSourceProblems {...sourceProblems} />}
+		</div>
+	);
+}
+
+function FleetSources({
+	data: { sources: data, now },
+	needsYou,
+}: {
+	readonly data: DiagnosticsProjection;
+	readonly needsYou?: number | null | undefined;
+}) {
+	const items = useContext(FleetItemsContext);
+	const fleet = data.fleet.state === "ready" ? { ...data.fleet, observedAt: data.fleet.value.observedAt } : data.fleet;
+	return (
+		<>
 			<div className="grid gap-4 lg:grid-cols-2">
 				<Card
 					attention={
@@ -46,12 +67,7 @@ export function SystemPage({
 					title="GitHub request limits"
 				/>
 				<Card
-					attention={
-						fleet.state === "ready"
-						&& (fleet.value.running >= fleet.value.concurrency
-							|| Object.values(fleet.value.waiting).some((count) => count > 0)
-							|| now < fleet.value.observedAt)
-					}
+					attention={fleet.state === "ready" && (fleet.value.running >= fleet.value.concurrency || now < fleet.value.observedAt)}
 					name="Fleet"
 					render={(value) => <SystemHealth needsYou={needsYou} now={now} value={value} />}
 					source={fleet}
@@ -59,10 +75,10 @@ export function SystemPage({
 				/>
 			</div>
 			<SystemFleetLane data={items} />
-			{sourceProblems !== undefined && <SystemSourceProblems {...sourceProblems} />}
-		</div>
+		</>
 	);
 }
+
 function Card<A>({
 	name,
 	title = name,

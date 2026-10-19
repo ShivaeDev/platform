@@ -1,6 +1,7 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { EmptyState } from "./EmptyState.tsx";
+import { FleetStopped } from "./FleetStopped.tsx";
 import { inProgressItems } from "./inProgressItems.ts";
 import { LoadingRows } from "./loading.tsx";
 
@@ -9,10 +10,15 @@ export function TodayProgress({ data, failed }: { readonly data: FleetItemsProje
 	return (
 		<div className="space-y-3">
 			{items === undefined && data === undefined && !failed && <LoadingRows label="Loading work in progress" />}
-			{items === undefined && (data !== undefined || failed) && (
-				<p className="text-muted-foreground text-sm" role="status">
-					{unavailable(data)}
-				</p>
+			{data?.state === "unavailable" && data.startCommand !== undefined ? (
+				<FleetStopped command={data.startCommand} reason={data.reason} />
+			) : (
+				items === undefined &&
+				(data !== undefined || failed) && (
+					<p className="text-muted-foreground text-sm" role="status">
+						{unavailable(data)}
+					</p>
+				)
 			)}
 			{items?.length === 0 && <EmptyState title="No work in progress">Fleet is not working on anything right now.</EmptyState>}
 			{items !== undefined && items.length > 0 && (
