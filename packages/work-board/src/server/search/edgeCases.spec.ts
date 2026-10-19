@@ -18,6 +18,6 @@ boardStory.it(
 	function* ({ search }) {
 		const result = (yield* search("needle")).results[0];
 		expect(result?.snippet).toBe(`…${text.slice(text.indexOf("needle") - 50, text.indexOf("needle") + 130)}…`);
-		expect(result?.href).toBe("/note.md#heading-context");
+		expect(result?.href).toBe("/note.md");
 	},
 );

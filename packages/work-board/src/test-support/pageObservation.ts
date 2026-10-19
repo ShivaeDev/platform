@@ -15,7 +15,3 @@ export function element(page: OpenPage, id: string) {
 	}
 	return found;
 }
-
-export function roleOf(control: Element) {
-	return control.getAttribute("role") ?? (control.tagName === "A" && control.hasAttribute("href") ? "link" : control.tagName.toLowerCase());
-}
