@@ -8,7 +8,10 @@ import { readerLink } from "#client/react/readerLink.ts";
 import { captureReading } from "#client/react/readingState.ts";
 import { retryPage } from "#client/react/retryPage.ts";
 import { scheduleReading } from "#client/react/scheduleReading.ts";
+import { shellIds } from "#client/react/shellIds.ts";
 import { readingEntry, storedReadings } from "#client/react/storedReadings.ts";
+
+const filterForms: ReadonlySet<string> = new Set([shellIds.workFilters, shellIds.libraryFilters]);
 
 export function useBoardNavigation(shell: RouterShell, onCurrentDestination?: () => void) {
 	const router = useRouter();
@@ -112,7 +115,7 @@ export function useBoardNavigation(shell: RouterShell, onCurrentDestination?: ()
 		}
 		function submit(event: SubmitEvent) {
 			const form = event.target;
-			if (!(form instanceof HTMLFormElement) || form.id !== "work-filters") {
+			if (!(form instanceof HTMLFormElement && filterForms.has(form.id))) {
 				return;
 			}
 			event.preventDefault();

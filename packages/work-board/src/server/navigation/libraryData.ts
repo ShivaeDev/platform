@@ -1,12 +1,12 @@
-import type { Schema } from "effect";
 import type { Library, LibraryInput } from "#browser/navigation/library.ts";
 import { sameStatus, statusOptions } from "#browser/views/statusLabel.ts";
 import { fileUrl } from "#files/url.ts";
 import { fleetRecords } from "#server/attention/inbox.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { textMatches } from "#server/views/items.ts";
 
-export function libraryData(files: readonly MarkdownFile[], snapshot: Snapshot, input: Schema.Struct.Type<typeof LibraryInput>): Library {
+export function libraryData(files: readonly MarkdownFile[], snapshot: Snapshot, input: LibraryInput): Library {
 	const records = fleetRecords(snapshot.model);
 	const documents = new Map(snapshot.documents.map((document) => [document.file, document.parsed.fields]));
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
@@ -21,7 +21,8 @@ export function libraryData(files: readonly MarkdownFile[], snapshot: Snapshot, 
 		(file) =>
 			(input.showFleet || !records.has(file.path))
 			&& (!input.kind || input.kind === file.kind)
-			&& (!input.status || (file.status !== "" && sameStatus(input.status, file.status))),
+			&& (!input.status || (file.status !== "" && sameStatus(input.status, file.status)))
+			&& (!input.query || textMatches([file.title, documents.get(file.path)?.id], input.query)),
 	);
 	const prefix = input.folder ? `${input.folder}/` : "";
 	const folders = new Map<string, number>();
