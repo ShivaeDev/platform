@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.1 - 2026-10-19
+
+### Fixed
+
+- Wait for application database query and listener sockets to disconnect before host and worker scopes finish closing.
+
 ## 0.23.0 - 2026-10-19
 
 ### Added
