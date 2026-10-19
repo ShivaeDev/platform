@@ -58,6 +58,23 @@ export function screenChartLayout(width = 640) {
 	});
 }
 
+export function screenResultsLayout(top: number, header = 56, viewport = 900) {
+	return screenStory.trait(
+		"workspace",
+		`the browser lays out a ${viewport} pixel view whose work results start ${top} pixels down, below a ${header} pixel header`,
+		() => {
+			const measure = HTMLElement.prototype.getBoundingClientRect;
+			vi.spyOn(window, "innerHeight", "get").mockReturnValue(viewport);
+			vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+				if (this.id === "work-results") {
+					return new DOMRect(0, top, 960, 4000);
+				}
+				return this.hasAttribute("data-workspace-header") ? new DOMRect(0, 0, 960, header) : measure.call(this);
+			});
+		},
+	);
+}
+
 export function screenHeaderLayout(expanded: number, compact: number) {
 	return screenStory.trait("workspace", `the browser lays out page headers ${expanded} pixels tall, or ${compact} pixels when compact`, () => {
 		const measure = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight")?.get;

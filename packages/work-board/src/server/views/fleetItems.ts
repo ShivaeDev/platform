@@ -1,10 +1,12 @@
 import { Effect } from "effect";
+import { waitsOnYou } from "#browser/document/asks.ts";
 import type { AuthoredProgress, FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { laneOf } from "#browser/views/now.ts";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
 import { inboxItems } from "#server/attention/inbox.ts";
 import { requestInbox } from "#server/attention/requestInbox.ts";
 import { daemonUnavailable, readDaemon } from "#server/diagnostics/daemon.ts";
+import { itemRequests } from "#server/document/requests.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { itemsOf } from "#server/views/items.ts";
 import { Workspace } from "#server/workspace.ts";
@@ -14,7 +16,8 @@ function authoredProgress(snapshot: Snapshot): readonly AuthoredProgress[] {
 	const answered = new Set(requestInbox(snapshot).answered.map((entry) => entry.id));
 	return itemsOf(snapshot).flatMap(({ document, id, title }) => {
 		const metadata = document.parsed.fields;
-		const lane = laneOf(metadata, undefined, false, answered.has(id) && !waiting.has(id));
+		const asked = waitsOnYou({ metadata, requests: itemRequests(document, snapshot).map((request) => request.state) });
+		const lane = laneOf(metadata, undefined, false, answered.has(id) && !waiting.has(id), asked);
 		return (lane === "Executing" || lane === "Reviewing") && metadata.status !== undefined
 			? [{ file: document.file, status: metadata.status, title, workId: id }]
 			: [];

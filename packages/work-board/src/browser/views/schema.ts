@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { Document } from "#browser/document/schema.ts";
+import { Document, RequestState } from "#browser/document/schema.ts";
 import { AnswerSummary } from "#browser/responses/schema.ts";
 import { Metadata } from "#metadata/schema.ts";
 import { State } from "./state.ts";
@@ -10,6 +10,7 @@ export const WorkItem = Schema.Struct({
 	fleetApproved: Schema.optional(Schema.Boolean),
 	id: Schema.String,
 	metadata: Metadata,
+	requests: Schema.optional(Schema.Array(RequestState)),
 	title: Schema.String,
 	waiting: Schema.optional(Schema.String),
 });

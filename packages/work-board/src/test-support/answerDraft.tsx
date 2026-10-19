@@ -35,7 +35,7 @@ export const answerPreview: QuestionPreview = {
 export function answerDraft(preview = answerPreview, update = 0, prompts: readonly Prompt[] = []) {
 	return (
 		<main id={shellIds.doc} key={update}>
-			<AnswerForm document={answerDocument} preview={preview} request={{ id: preview.request, open: true, prompts }} />
+			<AnswerForm document={answerDocument} preview={preview} request={{ audience: "you", id: preview.request, open: true, prompts }} />
 		</main>
 	);
 }
