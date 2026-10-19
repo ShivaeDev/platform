@@ -1,3 +1,5 @@
+import { realpathSync } from "node:fs";
+import { join } from "node:path";
 import { expect } from "vitest";
 import { fileWatcherStory, watchedFiles } from "#test/fileWatcherStory.ts";
 
@@ -25,5 +27,19 @@ fileWatcherStory.it(
 		expect((yield* readIndex()).documents.map((indexed) => indexed.file)).toContain("notes/today.md");
 		expect(readPaths()).toEqual(["notes/today.md"]);
 		expect(story.engine.folders.slice(listed)).toEqual(["notes"]);
+	},
+);
+
+fileWatcherStory.it(
+	"rereads only the reported file when the watch reports absolute paths",
+	[watchedFiles({ "index.md": "# Index", "notes/log.md": "# Log" })],
+	function* ({ readIndex, clearReads, writeFile, notify, nextChange, readPaths, story }) {
+		yield* readIndex();
+		clearReads();
+		writeFile("notes/log.md", "# Log\n\nUpdated.");
+		yield* notify([join(realpathSync(story.engine.notes.root), "notes/log.md")]);
+		expect(yield* nextChange()).toMatchObject({ _tag: "Changed", paths: ["notes/log.md"] });
+		yield* readIndex();
+		expect(readPaths()).toEqual(["notes/log.md"]);
 	},
 );

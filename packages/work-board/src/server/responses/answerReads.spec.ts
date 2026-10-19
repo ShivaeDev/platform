@@ -34,3 +34,21 @@ boardStory.it(
 		expect(answered.filter((file) => file !== "task.md" && !file.startsWith("responses/"))).toEqual([]);
 	},
 );
+
+boardStory.it(
+	"saves an answer in a workspace whose changes offer only a full refresh",
+	[projectFiles({ "task.md": SOURCE }), responsesEnabled()],
+	function* ({ client, answerThroughFullRefresh }) {
+		const preview = yield* Effect.promise(() => client.run(client.responses.question.run({ item: "task.choice", request: "direction" })));
+		const saved = yield* answerThroughFullRefresh({
+			author: "maintainer",
+			body: "Take the second direction.",
+			id: "response.second",
+			item: preview.item,
+			request: preview.request,
+			revision: preview.reviewedRevision,
+			type: "answer",
+		});
+		expect(saved.id).toBe("response.second");
+	},
+);
