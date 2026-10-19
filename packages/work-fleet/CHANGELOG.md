@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.15.0 - 2026-10-19
+
+### Added
+
+- Set `review: false` in Fleet configuration to send delivered PRs straight to required checks and human merge readiness. The setting reloads for results that have not entered review; enabled or omitted keeps independent review.
+
+### Fixed
+
+- Treat dropped Board tasks as closed when releasing prepared or stopped work, refreshing briefs and closing decisions; never admit closed tasks.
+- Re-admit released tasks without a merged delivery on the next admission pass while they remain approved and open, preserving prior cycles and PR reservations so their dependents can proceed after delivery.
+
 ## 0.14.0 - 2026-10-19
 
 ### Added

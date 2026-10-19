@@ -3,65 +3,54 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "board-result-page.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- A returned result is reviewed on its own item page: its review request, checks and evidence, and feedback sit above the report, and whatever is missing is said in one line. `/_board/result?item=<id>` links redirect to the item page, and the item no longer offers a separate **Review returned result** button.\n- Feedback says when the reviewed report version was received or reviewed instead of showing a shortened hash; the full SHA-256 stays under **Report as reviewed**.\n\n### Fixed\n\n- When feedback can't be read, the Board names each file and the reason, and links to System's source problems.\n- A broken question or response about other work no longer hides a result's feedback, and an authored question about a result no longer counts as a broken record.\n"
+				"name": "optional-fleet-review.md",
+				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- Set `review: false` in Fleet configuration to send delivered PRs straight to required checks and human merge readiness. The setting reloads for results that have not entered review; enabled or omitted keeps independent review.\n"
 			},
 			{
-				"name": "pg-boss-testing-snapshot.md",
-				"text": "---\n\"@shivaedev/effect-pg-boss\": minor\n---\n\n### Added\n\n- The testing controller reads the unfinished jobs of several queues in one consistent snapshot with `snapshot(queues)`: created, retry, active and failed jobs with their queue, state, start-after time and decoded data, leaving completed jobs out and undecoded.\n- The testing controller's `waitForIdle` completes when its local workers hold no job in flight and none of their queues has a job ready to fetch. Jobs that start later do not hold it open, and it reads nothing while a fetched batch is still running, so a story kit settles with one read per idle.\n\n### Fixed\n\n- `waitForChange` no longer resumes at once when a waiter that a change resumed waits again in the same step; it waits for the next change.\n"
-			},
-			{
-				"name": "quality-local-dom-bindings.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Resolve DOM globals by scope when checking unit tests and their test-support fixtures, so local variables, parameters and destructured bindings named `document` pass while global DOM access is still reported.\n"
+				"name": "quality-baseline-shards.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Changed\n\n- Store baseline debt in package shards and a root `quality-baseline.jsonl`, remove empty shards, and keep tighten, prune and lint on the same records. Migrate a single-file baseline with `quality baseline migrate --from quality/baseline.jsonl`.\n- Merge baseline entries by path and rule: removals win, retained counts take the minimum and additions from both sides survive. Configure the checkout with `quality baseline install-driver` and register `merge=quality-baseline` for shard files in `.gitattributes`. The source exports are `mergeBaseline(base, ours, theirs)` in `baseline/merge.ts`, `installDriver(cwd, launch)` in `baseline/installDriver.ts`, and `SHARD_NAME`, `Shard`, `shardOf(file, rootFile)`, `shardPaths(config)` and `saveShards(config, before, entries)` in `baseline/shards.ts`.\n\n### Breaking\n\n- `BaselineFile` from `engine/baselineFile.ts` exposes `files: ReadonlyMap<string, Shard>` instead of a single `raw` string. Read each shard's `raw` and `entries` from `files`; the combined `entries` field remains available.\n"
 			},
 			{
 				"name": "release-starter-pins.md",
 				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			},
 			{
-				"name": "work-board-mermaid-colours.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Mermaid diagrams use the Board's neutral colours in light and dark, so notes, clusters, edge labels, Gantt bars, mind maps and branch labels stay readable and no diagram is painted amber.\n"
+				"name": "work-board-pull-requests.md",
+				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- A Pull requests page groups Fleet's current PRs with ready-to-merge work first, links PR numbers and Board task titles, and shows time in each state. Its navigation badge counts PRs waiting for a merge and updates with Fleet's live state.\n- Board's Fleet item projection exposes an optional `readyToMerge` flag derived from Fleet's current published merge decision.\n"
 			},
 			{
-				"name": "work-fleet-finished-decisions.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- Close open Fleet decision requests with a recorded reason when their Board work is done, deferred or superseded, including work finished outside Fleet. Run `work-fleet close-finished-decisions` to close existing unanswered decisions in one pass, or preview them with `--dry-run`.\n- Markdown Board gateways expose optional `closeFinishedDecisions({ dryRun?, workId? })` with `CloseFinishedOptions` and the `ClosedDecision` schema, returning each decision source, linked work ID and closure reason.\n\n### Breaking\n\n- `writeCompletion` returns `Effect<boolean, ...>` instead of `Effect<void, ...>` so callers can confirm that the expected source was current and the completion content was written or already present. Consumers that need a void effect can apply `Effect.asVoid`.\n"
+				"name": "work-fleet-closed-released.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Treat dropped Board tasks as closed when releasing prepared or stopped work, refreshing briefs and closing decisions; never admit closed tasks.\n- Re-admit released tasks without a merged delivery on the next admission pass while they remain approved and open, preserving prior cycles and PR reservations so their dependents can proceed after delivery.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.14",
+				"from": "0.11.15",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.15"
+				"to": "0.11.16"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/effect-pg-boss",
-				"from": "0.14.0",
-				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.15.0"
-			},
-			{
-				"bump": "patch",
 				"directory": "packages/quality",
-				"from": "0.31.0",
+				"from": "0.31.1",
 				"name": "@shivaedev/quality",
-				"to": "0.31.1"
+				"to": "0.32.0"
 			},
 			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/work-board",
-				"from": "0.27.0",
+				"from": "0.27.1",
 				"name": "@shivaedev/work-board",
-				"to": "0.27.1"
+				"to": "0.28.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/work-fleet",
-				"from": "0.13.10",
+				"from": "0.14.0",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.14.0"
+				"to": "0.15.0"
 			}
 		]
 	}
