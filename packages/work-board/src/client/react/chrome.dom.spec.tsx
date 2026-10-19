@@ -103,12 +103,9 @@ expectNoReactWarnings();
 			yield* Effect.promise(() => eventually(() => expect(control("article details", HTMLDetailsElement).open).toBe(true)));
 			expect(roles.text({ name: "Unpin", role: "button" })).toBe("Unpin");
 			click("#library-open");
-			expect([...findElements("#reading-library h3", document)].map((heading) => heading.textContent)).toEqual(["Pinned", "Recent documents"]);
+			expect([...findElements("#reading-library h3", document)].map((heading) => heading.textContent)).toEqual(["Pinned", "Today"]);
 			expect(findElement('#reading-library a[href="/notes/deep/proof.md"]', document)).not.toBeNull();
-			expect(findElements('section[aria-label="Recent"] a').map((link) => link.getAttribute("href"))).toEqual([
-				"/notes/plan.md",
-				"/notes/deep/proof.md",
-			]);
+			expect(findElements('section[aria-label="Recent"] a').map((link) => link.getAttribute("href"))).toEqual(["/notes/deep/proof.md"]);
 		},
 	);
 }

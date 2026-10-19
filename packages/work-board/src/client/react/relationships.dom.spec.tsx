@@ -27,7 +27,7 @@ screenStory.it(
 			"Agent handoff (1)",
 			"Implemented by (1)",
 			"Informed by (1)",
-			"Listed on board (1)",
+			"Listed in (1)",
 			"Needed by (1)",
 			"Related to (1)",
 			"Reviewed question (1)",

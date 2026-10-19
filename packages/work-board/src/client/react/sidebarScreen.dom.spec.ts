@@ -21,7 +21,8 @@ for (const phone of [false, true]) {
 				yield* Effect.promise(() => navigate(`/notes/topic-${index}.md`));
 				yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-file")).toBe(`notes/topic-${index}.md`)));
 				expect(findElements("#primary-navigation > *")).toEqual(rows);
-				expect(readAttribute('section[aria-label="Recent"] a[aria-current="page"]', "href")).toBe(`/notes/topic-${index}.md`);
+				expect(readAttribute('section[aria-label="Recent"] a', "href")).toBe(`/notes/topic-${index - 1}.md`);
+				expect(findElement('section[aria-label="Recent"] a[aria-current="page"]')).toBeNull();
 				expect(findElement("#library-dialog", document)).toBeNull();
 			}
 			expect(findElements('section[aria-label="Recent"] a')).toHaveLength(SIDEBAR_RECENT_LIMIT);

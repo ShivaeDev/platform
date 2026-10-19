@@ -17,7 +17,7 @@ const outgoing: Readonly<Record<NonNullable<Metadata["relationships"]>[number]["
 const incoming = new Map([
 	["agent handoff", "Agent handoff"],
 	["attention target", "Attention request"],
-	["board member", "Listed on board"],
+	["board member", "Listed in"],
 	["criterion evidence", "Criterion evidence"],
 	["depends_on", "Needed by"],
 	["evidence source", "Cited as evidence by"],
@@ -42,7 +42,7 @@ const specificity = [
 	"Needed by",
 	"Informs",
 	"Informed by",
-	"Listed on board",
+	"Listed in",
 	"Related to",
 	"Markdown link",
 ];
