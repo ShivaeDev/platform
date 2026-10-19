@@ -71,6 +71,7 @@ export default defineConfig({
 			options: {
 				modules: [
 					"packages/effect-contract/src/automaticLive.ts",
+					"packages/effect-contract/src/bind.ts",
 					"packages/effect-contract/src/contract.ts",
 					"packages/effect-contract/src/keys.ts",
 					"packages/effect-contract/src/live.ts",
