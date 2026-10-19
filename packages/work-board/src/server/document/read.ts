@@ -14,6 +14,7 @@ import { type DocumentMention, documentMentions } from "./mentions.ts";
 import { readingContext } from "./readingContext.ts";
 import { requestOutcome } from "./requestOutcome.ts";
 import { documentRequests } from "./requests.ts";
+import { fleetDecisionTitle } from "./requestTitle.ts";
 import { documentTargets } from "./targets.ts";
 import { waitingOn } from "./waitingOn.ts";
 
@@ -105,7 +106,11 @@ export function readDocument({ changes, home, pullRequests, root, realRoot, writ
 			references: { ...Object.fromEntries(mentions.map((mention) => [mention.token, mention.href])), ...targets.references },
 			requestOutcome: requestOutcome(document, current.snapshot),
 			requests,
-			source: answerBody(document, requests),
+			source: answerBody(
+				document,
+				requests,
+				fleetDecisionTitle(document, model, (path) => titles.get(path)),
+			),
 			unavailable: snapshot.unavailable,
 			waitingOn: waitingOn(document, current.snapshot),
 			writable,

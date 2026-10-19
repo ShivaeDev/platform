@@ -73,7 +73,7 @@ export function specificSources<T extends SourceLink>(links: readonly T[]): read
 
 export function sourceGroups<T extends SourceLink>(links: readonly T[]) {
 	return [...Map.groupBy(links, (link) => link.title ?? link.label)].map(([title, sources]) => ({
-		label: `${title.startsWith("Fleet decision for ") ? "Fleet decisions" : title} (${sources.length})`,
+		label: `${/^Fleet decision(?: for |: )/u.test(title) ? "Fleet decisions" : title} (${sources.length})`,
 		sources,
 		title,
 	}));

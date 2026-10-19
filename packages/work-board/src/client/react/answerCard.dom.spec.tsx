@@ -28,14 +28,14 @@ for (const mode of ["fenced", "nested", "paragraphs"]) {
 		files[decisionFile] = source.replace(DECISION_REASON, `~~~~\n${DECISION_REASON}\n~~~~`);
 	}
 	screenStory.it(
-		`renders a managed decision with a ${mode} reason once below its header and uses the unblocked item's title`,
+		`renders a managed decision with a ${mode} reason once below its header and is titled after the unblocked item`,
 		[screenWorkspace("answer-card-fixture"), routedScreen(files, url, { home: "home.md", writable: true })],
 		function* ({ findElement, readAttribute, readText, findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
 			expect(findElement('[name="author"]')).toBeNull();
 			const header = findElement(".item-introduction");
-			expect(readText("h1", header)).toBe("Publish the install guide");
-			expect(readText('[aria-label="File location"]')).toContain("Publish the install guide");
+			expect(readText("h1", header)).toBe("Fleet decision: Publish the install guide");
+			expect(readText('[aria-label="File location"]')).toContain("Fleet decision: Publish the install guide");
 			expect(readText('[aria-label="File location"]')).not.toContain(decisionId);
 			expect(header?.nextElementSibling?.classList.contains("answer-cards")).toBe(true);
 			expect(readText("#answer-title-direction")).toBe("Answer: Publish the install guide");
