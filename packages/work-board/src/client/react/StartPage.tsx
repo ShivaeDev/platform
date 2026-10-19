@@ -1,49 +1,97 @@
+import { Copy } from "lucide-react";
+import { useRef, useState } from "react";
 import type { StartProjection } from "#browser/views/remaining.ts";
+import { Button } from "#client/react/components/ui/button.tsx";
+import { copyText } from "./copyText.ts";
 import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
+import { SectionCard } from "./SectionCard.tsx";
+
+type Template = StartProjection["templates"][number];
+
 export function StartPage({ data }: { readonly data: StartProjection }) {
 	return (
-		<ReadingPanel className="onboarding">
+		<ReadingPanel>
 			<PageHeader
-				summary="Work Board reads Markdown files from your workspace folder. Use your editor or existing agent tools to create and update them; this viewer does not write project files."
-				title={data.empty ? "Start your local workspace" : "Project and report templates"}
+				summary="The Board shows the Markdown files in this folder and never writes them for you. Copy a template, save it with your editor, and it shows up here."
+				title={data.empty ? "Start your workspace" : "Templates"}
 			/>
-			<ol>
-				<li>Choose a template below. Focus its text area, select all, and copy the Markdown.</li>
-				<li>Save it in the served folder with the suggested filename, or adjust its links to your chosen filenames.</li>
-				<li>
-					Replace the example IDs with unique stable IDs and update every matching relationship and criterion reference. Frontmatter is optional;
-					ordinary Markdown and existing heading boards also work.
-				</li>
-				<li>
-					Fill in real context and observations. Work Board discovers saved files automatically. Start with the project, then follow the investigation
-					and result links.
-				</li>
-			</ol>
-			<p>
-				Unknown checks stay unknown. Add criterion evidence only after a real observation; a finished agent run is not verified acceptance. No project
-				content is created by opening these templates.
-			</p>
-			{data.templates.map((template) => (
-				<section className="start-template rounded-lg border p-4" key={template.file}>
-					<h2>{template.label}</h2>
-					<p>
-						Suggested file: <code>{template.file}</code>
-					</p>
-					<details data-key={`template:${template.file}`}>
-						<summary>Read and copy {template.label.toLowerCase()} Markdown</summary>
-						<label htmlFor={`template-${template.file}`}>{template.label} template Markdown</label>
-						<textarea
-							className="mt-3 w-full rounded-md border bg-background p-3 font-mono text-sm"
-							defaultValue={template.source}
-							id={`template-${template.file}`}
-							readOnly
-							rows={16}
-							spellCheck={false}
-						/>
-					</details>
-				</section>
-			))}
+			<SectionCard title="How to start">
+				<ol className="m-0 list-decimal space-y-2 pl-5">
+					<li>Copy a template below.</li>
+					<li>Save it in this folder under the suggested name.</li>
+					<li>Change the example IDs to your own, and update the links that use them.</li>
+					<li>Fill in the real details. Start with the project, then the investigation and the result.</li>
+				</ol>
+				<p className="m-0 text-muted-foreground">
+					Only record evidence for checks you actually ran. A finished agent run isn't proof on its own. Plain Markdown without frontmatter works too.
+				</p>
+			</SectionCard>
+			<div className="grid gap-4 lg:grid-cols-2">
+				{data.templates.map((template) => (
+					<StartTemplate key={template.file} template={template} />
+				))}
+			</div>
 		</ReadingPanel>
+	);
+}
+
+function StartTemplate({ template }: { readonly template: Template }) {
+	const detailsRef = useRef<HTMLDetailsElement>(null);
+	const fieldRef = useRef<HTMLTextAreaElement>(null);
+	const [status, setStatus] = useState("");
+	async function handleCopy() {
+		if (await copyText(template.source)) {
+			setStatus(`Copied. Save it as ${template.file}.`);
+			return;
+		}
+		if (detailsRef.current) {
+			detailsRef.current.open = true;
+		}
+		fieldRef.current?.focus();
+		fieldRef.current?.select();
+		setStatus("Couldn't copy automatically. The template is selected, so copy it yourself.");
+	}
+	return (
+		<SectionCard
+			action={
+				<Button
+					aria-label={`Copy ${template.label.toLowerCase()} template`}
+					data-template-copy={template.file}
+					onClick={handleCopy}
+					type="button"
+					variant="outline"
+				>
+					<Copy aria-hidden="true" data-icon="inline-start" />
+					Copy
+				</Button>
+			}
+			className="start-template"
+			description={
+				<>
+					Save as <code>{template.file}</code>
+				</>
+			}
+			title={template.label}
+		>
+			<p className={status ? "m-0 text-muted-foreground text-xs" : "sr-only"} data-copy-status role="status">
+				{status}
+			</p>
+			<details className="rounded-md border px-3 py-2" data-key={`template:${template.file}`} ref={detailsRef}>
+				<summary className="cursor-pointer font-medium">Show template</summary>
+				<label className="sr-only" htmlFor={`template-${template.file}`}>
+					{template.label} template
+				</label>
+				<textarea
+					className="mt-2 w-full rounded-md border bg-muted p-3 font-mono text-xs"
+					defaultValue={template.source}
+					id={`template-${template.file}`}
+					readOnly
+					ref={fieldRef}
+					rows={16}
+					spellCheck={false}
+				/>
+			</details>
+		</SectionCard>
 	);
 }

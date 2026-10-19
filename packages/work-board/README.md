@@ -275,9 +275,9 @@ If several requests are open in one file, add `request="keyboard-review"` to eac
 
 #### Hand a task to an existing agent session
 
-Open a uniquely identified project item and choose **Prepare an agent handoff**. Review the current source, enter a local recipient label, goal, constraints and next action, then preview and prepare. The existing `--responses` opt-in enables this writer too. It creates `handoffs/<id>.md` with a stable identity, direction, source path, reviewed SHA-256 and exact source snapshot, including original frontmatter and declared criteria. Context is limited to 256 KiB of UTF-8.
+Open a uniquely identified project item and choose **Prepare an agent handoff**. Review the current source, enter the agent name, goal, constraints and next step, then preview and prepare. The existing `--responses` opt-in enables this writer too. It creates `handoffs/<id>.md` with a stable identity, direction, source path, reviewed SHA-256 and exact source snapshot, including original frontmatter and declared criteria. Context is limited to 256 KiB of UTF-8.
 
-**Copy tiny prompt** gives a short instruction containing the absolute saved path. Paste it into the intended existing session. If clipboard access is unavailable, the prompt is selected for manual copying. Preparing a handoff records `requested`; it does not notify, wake or launch an agent.
+**Copy prompt** gives a short instruction containing the absolute saved path. Paste it into the intended existing session. If clipboard access is unavailable, the prompt is selected for manual copying. Preparing a handoff records `requested`; it does not notify, wake or launch an agent.
 
 The agent edits `handoff.state` to `acknowledged`, `rejected` or `unavailable` and can add `handoff.by` and `handoff.note`. These are explicit local receipt facts, independent of task status, execution and human acceptance. An absent receipt stays unconfirmed; damaged or ambiguous history stays unavailable.
 
