@@ -1,6 +1,10 @@
 ---
-"@shivaedev/work-board": patch
+"@shivaedev/work-board": minor
 ---
+
+### Added
+
+- `Changes` accepts an optional `refreshPaths` that rereads only the given files. Board writes use it when present and fall back to `refresh`.
 
 ### Fixed
 
