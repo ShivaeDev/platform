@@ -12,7 +12,7 @@ export function IndexingProgress() {
 	return client ? <IndexingBar indexing={client.indexing} /> : null;
 }
 
-function IndexingBar({ indexing }: { readonly indexing: Atom.Atom<Indexing | undefined> }) {
+export function IndexingBar({ indexing }: { readonly indexing: Atom.Atom<Indexing | undefined> }) {
 	const value = useAtomValue(indexing);
 	if (value === undefined) {
 		return null;
