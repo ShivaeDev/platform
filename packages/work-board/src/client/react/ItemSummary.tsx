@@ -1,11 +1,15 @@
 import { ClipboardList, FileText, Flag, MessageCircle, PanelsTopLeft } from "lucide-react";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import type { Document } from "#browser/document/schema.ts";
+import { kindLabel, statusLabel } from "#browser/views/statusLabel.ts";
+import { closedStatus } from "#browser/views/workStatus.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
+import { Time } from "#client/react/Time.tsx";
 import { Favorite } from "./Favorite.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { ItemId } from "./ItemId.tsx";
+import { itemStatus } from "./itemStatus.ts";
 import { LinkButton } from "./LinkButton.tsx";
 import { PrChip } from "./PrChip.tsx";
 import { PrReferences } from "./PrReferences.tsx";
@@ -21,24 +25,66 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 	const fleet = useContext(FleetItemsContext);
 	const fields = document.metadata;
 	const item = fleet?.state === "ready" ? [...fleet.items, ...fleet.completed].find((entry) => entry.workId === document.identity) : undefined;
-	const answering = fields.kind === "decision" || fields.kind === "question";
+	const status = itemStatus(document);
+	const change = useStatusChange(document.file, status === undefined ? undefined : statusLabel(status));
 	const Icon = kindIcon(fields.kind ?? "document");
 	return (
 		<section aria-label="Item overview" className="item-summary space-y-3">
 			<div className="flex flex-wrap items-center gap-2">
 				<Icon aria-hidden="true" className="size-4" />
-				<span>{fields.kind ?? "Document"}</span>
-				<ItemStatus answering={answering} document={document} />
+				<span>{kindLabel(fields.kind ?? "document")}</span>
+				<StatusChip status={status} />
 				{item !== undefined && <Badge variant="outline">Fleet · {item.stage}</Badge>}
-				{item !== undefined && <PrChip url={item.prUrl} />}
+				{item !== undefined && <PrChip className="pointer-coarse:h-11 pointer-coarse:px-3" url={item.prUrl} />}
 				{visibleIdentity(fields.id) && (
 					<ItemId href={document.identity ? `/_board/item/${encodeURIComponent(document.identity)}/` : undefined} id={fields.id} />
 				)}
+				<span className="whitespace-nowrap text-muted-foreground text-xs" data-item-updated>
+					updated <Time at={document.modified} />
+				</span>
+				<ItemGoals document={document} />
+			</div>
+			<div className="text-muted-foreground text-xs empty:sr-only" role="status">
+				{change}
 			</div>
 			<ItemFields fields={fields} />
 		</section>
 	);
 }
+
+function useStatusChange(file: string, label: string | undefined) {
+	const [seen, setSeen] = useState({ change: "", file, label });
+	if (seen.file !== file || seen.label !== label) {
+		const change = seen.file === file && seen.label && label ? `Status changed: ${seen.label} → ${label}` : "";
+		setSeen({ change, file, label });
+	}
+	return seen.change;
+}
+
+function ItemGoals({ document }: { readonly document: Document }) {
+	const goals = new Map(
+		(document.metadata.relationships ?? []).flatMap((link) => {
+			const details = document.referenceDetails?.[link.target];
+			const href = document.references[link.target]?.split("#")[0];
+			return link.kind === "implements" && href && details && goalKind(details.kind) ? [[href, details.title] as const] : [];
+		}),
+	);
+	return [...goals].map(([href, title]) => (
+		<a
+			className="inline-block pointer-coarse:min-h-11 max-w-full truncate text-muted-foreground text-sm pointer-coarse:leading-11 underline underline-offset-4 hover:text-foreground"
+			href={href}
+			key={href}
+		>
+			Part of {title}
+		</a>
+	));
+}
+
+function goalKind(kind: string | undefined) {
+	return kind === "project" || kind === "goal";
+}
+
+const TOUCH = "pointer-coarse:h-11";
 
 export function ItemActions({ document }: { readonly document: Document }) {
 	const kind = document.metadata.kind ?? "";
@@ -46,13 +92,21 @@ export function ItemActions({ document }: { readonly document: Document }) {
 	return (
 		<>
 			<Favorite file={document.file} title={document.file} />
-			{identity && !["question", "response", "handoff"].includes(kind) && (
-				<LinkButton href={`/_board/handoff?item=${encodeURIComponent(identity)}`}>Prepare an agent handoff</LinkButton>
+			{identity && !(["question", "response", "handoff"].includes(kind) || goalKind(kind) || closedStatus(document.metadata.status)) && (
+				<LinkButton className={TOUCH} href={`/_board/handoff?item=${encodeURIComponent(identity)}`}>
+					Prepare an agent handoff
+				</LinkButton>
 			)}
 			{identity && kind === "board" && (
-				<LinkButton href={`/_board/work?view=board&board=${encodeURIComponent(identity)}`}>View this board</LinkButton>
+				<LinkButton className={TOUCH} href={`/_board/work?view=board&board=${encodeURIComponent(identity)}`}>
+					View this board
+				</LinkButton>
 			)}
-			{identity && kind === "result" && <LinkButton href={`/_board/result?item=${encodeURIComponent(identity)}`}>Review returned result</LinkButton>}
+			{identity && kind === "result" && (
+				<LinkButton className={TOUCH} href={`/_board/result?item=${encodeURIComponent(identity)}`}>
+					Review returned result
+				</LinkButton>
+			)}
 		</>
 	);
 }
@@ -77,17 +131,4 @@ function ItemFields({ fields }: { readonly fields: Document["metadata"] }) {
 			) : null}
 		</p>
 	);
-}
-
-function ItemStatus({ document, answering }: { readonly document: Document; readonly answering: boolean }) {
-	const fields = document.metadata;
-	const asks = document.requests.filter(
-		(request) => request.open || (request.id === "answer" && request.sourceOpen && fields.kind === "question" && fields.question === undefined),
-	);
-	const requestState = asks.length > 0 ? askStatus(asks) : fields.status;
-	return fields.id && (!answering || requestState !== undefined) ? <StatusChip status={answering ? requestState : fields.status} /> : null;
-}
-
-function askStatus(asks: Document["requests"]) {
-	return asks.some((request) => request.answered === undefined) ? "needs-you" : "waiting-on-agents";
 }

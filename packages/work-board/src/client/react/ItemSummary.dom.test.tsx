@@ -99,13 +99,17 @@ for (const [storyCase, value] of [undefined, { reason: "Not configured", state: 
 	);
 }
 
-for (const kind of ["goal", "report"] as const) {
+for (const [kind, label, icon] of [
+	["goal", "Goal", "svg.lucide-flag"],
+	["project", "Goal", "svg.lucide-flag"],
+	["report", "Report", "svg.lucide-file-text"],
+] as const) {
 	screenStory.it(
 		`shows the recorded ${kind} kind and its icon`,
 		[componentScreen(<ItemSummary document={{ ...document, metadata: { ...document.metadata, kind } }} />)],
 		({ readText, findElement }) => {
-			expect(readText(".item-summary")).toContain(kind);
-			expect(findElement(kind === "goal" ? "svg.lucide-flag" : "svg.lucide-file-text")).not.toBeNull();
+			expect(readText(".item-summary > div > span")).toBe(label);
+			expect(findElement(icon)).not.toBeNull();
 		},
 	);
 }

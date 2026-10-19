@@ -74,9 +74,10 @@ screenStory.it(
 		]);
 		expect(readText("article.item p", board)).toBe("Readers open the source first.");
 		expect(readText("[data-page-summary] .counts")).toBe("1 plan · 1 done");
-		expect(readText("[data-page-summary]")).toMatch(/· updated \S/u);
+		expect(readText("[data-page-summary]")).toMatch(/updated \S/u);
 		const updated = findElement("[data-page-summary] time");
 		expect(updated?.getAttribute("datetime")).toBe(new Date(Number(updated?.getAttribute("data-modified"))).toISOString());
+		expect([...findElements("[data-page-summary] time[data-modified]")].map((time) => time.closest("[data-item-updated]") !== null)).toEqual([true]);
 	},
 );
 
