@@ -13,6 +13,11 @@ export function hostChanges<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>, chan
 				if (!rpc._tag.endsWith(".$changes")) {
 					continue;
 				}
+				const provided = services.mapUnsafe.get(rpc.key);
+				if (Option.isNone(changes) && provided !== undefined) {
+					handlers.set(rpc.key, provided);
+					continue;
+				}
 				function handler({ keys }: { readonly keys: readonly Key[] }) {
 					return Option.isSome(changes) ? changes.value.stream(keys) : Stream.never;
 				}
