@@ -6,13 +6,14 @@ import { closedStatus } from "#browser/views/workStatus.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import { Time } from "#client/react/Time.tsx";
+import { ActionText } from "./ActionText.tsx";
 import { Favorite } from "./Favorite.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { ItemId } from "./ItemId.tsx";
 import { itemStatus } from "./itemStatus.ts";
 import { LinkButton } from "./LinkButton.tsx";
 import { PrChip } from "./PrChip.tsx";
-import { PrReferences } from "./PrReferences.tsx";
+import { AnswerJump, WaitingOn } from "./WaitingOn.tsx";
 
 const icons = { board: PanelsTopLeft, goal: Flag, project: Flag, question: MessageCircle, report: FileText, result: FileText, task: ClipboardList };
 function kindIcon(kind: string) {
@@ -47,7 +48,9 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 			<div className="text-muted-foreground text-xs empty:sr-only" role="status">
 				{change}
 			</div>
-			<ItemFields fields={fields} />
+			<WaitingOn asks={document.waitingOn ?? []} />
+			<AnswerJump document={document} />
+			<ItemFields document={document} />
 		</section>
 	);
 }
@@ -111,7 +114,8 @@ export function ItemActions({ document }: { readonly document: Document }) {
 	);
 }
 
-function ItemFields({ fields }: { readonly fields: Document["metadata"] }) {
+function ItemFields({ document }: { readonly document: Document }) {
+	const fields = document.metadata;
 	if (!fields.id) {
 		return null;
 	}
@@ -126,7 +130,7 @@ function ItemFields({ fields }: { readonly fields: Document["metadata"] }) {
 			{Boolean(owner && next) && " · "}
 			{next ? (
 				<span>
-					Next action: <PrReferences text={next} />
+					Next action: <ActionText document={document} text={next} />
 				</span>
 			) : null}
 		</p>
