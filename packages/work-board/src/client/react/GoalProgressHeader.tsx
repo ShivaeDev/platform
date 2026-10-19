@@ -31,7 +31,7 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 					</p>
 					<GoalProgress counts={goal.counts} size="large" title="Linked work" />
 					<GoalCountList counts={goal.counts} />
-					{goal.linked > 0 && <GoalBreakdown goal={goal} />}
+					<GoalBreakdown goal={goal} />
 				</>
 			) : (
 				<p role="status">{progress.pending ? "Loading goal progress…" : "Progress is available for uniquely identified projects."}</p>

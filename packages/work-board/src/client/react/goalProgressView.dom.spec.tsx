@@ -10,7 +10,7 @@ import { DocumentMain } from "./DocumentMain.tsx";
 const files = goalPageFixture();
 
 screenStory.it(
-	"shows goal progress on the stock progress bar and charts each state overall and per criterion",
+	"shows goal progress on the stock progress bar and charts each state overall and per criterion under its own heading",
 	[screenChartLayout(), boardScreen(files, (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ findElement, findElements, readAttribute, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-section="progress"] [data-slot="chart"]')).not.toBeNull()));
@@ -25,13 +25,14 @@ screenStory.it(
 		]);
 		yield* Effect.promise(() =>
 			eventually(() => {
+				expect(readText(`${progress} [data-goal-breakdown] h3`)).toBe("By criterion");
 				expect([...findElements(`${progress} .recharts-yAxis-tick-labels text`)].map((tick) => tick.textContent)).toEqual(["All work", "first"]);
 				expect(
 					[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("name"), bar.getAttribute("fill"), bar.getAttribute("width")]),
 				).toEqual([
-					["All work", "var(--color-done)", "108.8"],
-					["All work", "var(--color-planned)", "435.2"],
-					["first", "var(--color-planned)", "544"],
+					["All work", "var(--color-done)", "112.8"],
+					["All work", "var(--color-planned)", "451.2"],
+					["first", "var(--color-planned)", "564"],
 				]);
 				expect([...findElements(`${progress} .recharts-legend-wrapper > div > div`)].map((entry) => entry.textContent)).toEqual([
 					"Done",
@@ -41,6 +42,24 @@ screenStory.it(
 				]);
 			}),
 		);
+	},
+);
+
+screenStory.it(
+	"leaves the chart out when no criterion has linked work, since the progress bar and counts already say it",
+	[
+		screenChartLayout(),
+		boardScreen(
+			Object.fromEntries(Object.entries(files).map(([file, source]) => [file, source.replaceAll("target: project.example#first", "target: project.example")])),
+			(api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />,
+		),
+	],
+	function* ({ findElement, readAttribute }) {
+		const progress = '[data-goal-section="progress"]';
+		yield* Effect.promise(() => eventually(() => expect(findElement(`${progress} [role="progressbar"]`)).not.toBeNull()));
+		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe("1 of 5 done");
+		expect(findElement(`${progress} [data-goal-counts]`)).not.toBeNull();
+		expect(findElement(`${progress} [data-goal-breakdown], ${progress} [data-slot="chart"]`)).toBeNull();
 	},
 );
 
