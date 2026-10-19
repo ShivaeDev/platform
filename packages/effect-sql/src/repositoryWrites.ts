@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { type SqlClient, SqlSchema } from "effect/sql";
 import type { RepositoryChanges } from "./repositoryChanges.ts";
+import { makeFilter } from "./repositoryFilter.ts";
 
 export function repositoryWrites(
 	model: Model.Any,
@@ -10,6 +11,7 @@ export function repositoryWrites(
 	changes: RepositoryChanges,
 ) {
 	const { idColumns, tableName, spanPrefix } = options;
+	const { where } = makeFilter(model, sql);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	function predicate(input: Readonly<Record<string, unknown>>) {
 		return sql.and(idColumns.map((column) => sql`${sql(column)} = ${input[column]}`));
@@ -31,28 +33,28 @@ export function repositoryWrites(
 	const insertVoid = SqlSchema.void({ execute: insert, Request: model.insert });
 	const updateRow = SqlSchema.findOne({ execute: update, Request: model.update, Result: model });
 	const updateVoid = SqlSchema.void({ execute: update, Request: model.update });
-	const fields = Object.fromEntries(
-		idColumns.map((column) => {
-			const field = model.fields[column];
-			if (field === undefined) {
-				throw new Error(`Unknown ID column: ${column}`);
-			}
-			return [column, field];
-		}),
-	);
-	const key = idColumns.length === 1 ? model.fields[idColumns[0] ?? ""] : Schema.Struct(fields);
+	const idColumn = idColumns[0] ?? "";
+	const key = model.fields[idColumn];
 	if (key === undefined) {
 		throw new Error("Unknown repository ID column");
 	}
-	const remove = SqlSchema.void({
-		execute: (id) => {
-			const row = idColumns.length === 1 ? { [idColumns[0] ?? ""]: id } : id;
-			return Effect.flatMap(record(row), (encoded) =>
+	const isKey = Schema.is(key);
+	const removeByKey = SqlSchema.void({
+		execute: (id) =>
+			Effect.flatMap(record({ [idColumn]: id }), (encoded) =>
 				sql`delete from ${sql(tableName)} where ${predicate(encoded)} returning *`.pipe(Effect.tap(changes.record)),
-			);
-		},
+			),
 		Request: key,
 	});
+	function remove(input: unknown) {
+		return idColumns.length === 1 && isKey(input)
+			? removeByKey(input)
+			: Effect.flatMap(record(input), (filter) =>
+					Effect.flatMap(where(filter, true), (clause) =>
+						sql`delete from ${sql(tableName)} where ${clause} returning *`.pipe(Effect.tap(changes.record), Effect.asVoid),
+					),
+				);
+	}
 	return {
 		delete: (id: unknown) => changes.write(remove(id)).pipe(Effect.withSpan(`${spanPrefix}.delete`)),
 		insert: (input: unknown) =>
