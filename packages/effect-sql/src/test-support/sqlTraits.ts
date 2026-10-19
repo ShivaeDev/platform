@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { vi } from "vitest";
 import { throwingSubscriber } from "./changeObservation.ts";
 import { slowCommit } from "./commitObservation.ts";
+import { heldSeed } from "./heldSeed.ts";
 import { migrationTables } from "./migrationTables.ts";
 import { notificationTable } from "./notificationTable.ts";
 import { setupBatch } from "./postgresBatch.ts";
@@ -25,6 +26,11 @@ export function hasVersionedDocuments() {
 export function hasMigrationTables() {
 	return postgres.trait("schema", "migration tables are isolated", function* (engine) {
 		engine.migrations.set(yield* migrationTables);
+	});
+}
+export function hasHeldSeed() {
+	return postgres.trait("schema", "the seed migration waits for release", function* (engine) {
+		engine.heldSeed.set(yield* heldSeed(engine.migrations.get().orders));
 	});
 }
 export function hasSqliteInvoiceLines() {
