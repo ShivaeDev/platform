@@ -4,7 +4,7 @@ A person can prepare reviewed direction as a Markdown file, then copy a short in
 
 ## One bounded walkthrough
 
-Review a uniquely identified project item. Open **Prepare an agent handoff**, enter recipient, goal, constraints and next action, then preview and prepare. The `--responses` opt-in permits the local writer to create `handoffs/<stable-id>.md`; the original project item stays unchanged.
+Review a uniquely identified project item. Open **Prepare an agent handoff**, enter the agent name, goal, constraints and next step, then preview and prepare. The `--responses` opt-in permits the local writer to create `handoffs/<stable-id>.md`; the original project item stays unchanged.
 
 The file's frontmatter records direction and the reviewed source SHA-256. Its body contains the complete source, including original frontmatter and declared criteria. A focused item's context is bounded to 256 KiB of UTF-8. The page renders its Markdown/Mermaid body through the safe Markdown reader and discloses the exact source separately.
 
@@ -37,7 +37,7 @@ Keep the source readable.
 
 This complete example captures `items/search.md`, beginning at its own second frontmatter block. Its reviewed revision is the SHA-256 of those captured bytes, including the final newline. The server assigns `prepared_at` when it prepares the record.
 
-**Copy tiny prompt** gives a JSON-quoted absolute path and the instruction to read that file and edit receipt. Paste it into the intended agent session. When clipboard permission is unavailable, the UI selects the prompt for manual copying. Preparing a file records `requested`; it does not notify, wake or launch an agent. An agent session can poll or wait for human answers through the independent question/response commands.
+**Copy prompt** gives a JSON-quoted absolute path and the instruction to read that file and edit receipt. Paste it into the intended agent session. When clipboard permission is unavailable, the UI selects the prompt for manual copying. Preparing a file records `requested`; it does not notify, wake or launch an agent. An agent session can poll or wait for human answers through the independent question/response commands.
 
 ## Receipt and source ownership
 

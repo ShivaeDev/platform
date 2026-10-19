@@ -45,7 +45,7 @@ screenStory.it(
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
 		click('#reading-library a[href="/notes/plan.md"]');
 		yield* Effect.promise(() => eventually(() => expect(readText("#navigation-status")).toContain("missing or was renamed")));
-		expect(readText("#doc")).toContain("No markdown file at notes/plan.md.");
+		expect(readText("#doc [data-slot=empty-description]")).toBe("No Markdown file at notes/plan.md. It may have been moved or deleted.");
 	},
 );
 
@@ -131,7 +131,11 @@ screenStory.it(
 	function* ({ deleteFile, refreshDocument, readText, readNavigation }) {
 		deleteFile("notes/plan.md");
 		yield* Effect.promise(() => refreshDocument());
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc .empty")).toBe("No markdown file at notes/plan.md.")));
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(readText("#doc [data-slot=empty-description]")).toBe("No Markdown file at notes/plan.md. It may have been moved or deleted."),
+			),
+		);
 		const navigation = yield* Effect.promise(() => readNavigation());
 		expect(navigation.counts.library).toBe(Object.keys(files).length - 1);
 	},

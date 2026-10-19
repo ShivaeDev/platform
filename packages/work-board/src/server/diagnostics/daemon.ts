@@ -9,11 +9,17 @@ function makeDaemonClient() {
 }
 type DaemonClient = Effect.Success<ReturnType<typeof makeDaemonClient>>;
 
-export function daemonUnavailableReason(error: unknown, port: number) {
+const FLEET_STOPPED = "Fleet isn't running, so agent work and its health are unknown.";
+
+export function daemonUnavailable(error: unknown, port: number, root: string): { readonly reason: string; readonly startCommand?: string } {
 	const stopped = error instanceof RpcClientError && error.reason._tag === "HttpError" && error.reason.kind === "TransportError";
 	return stopped
-		? `No Fleet daemon is running at 127.0.0.1:${port}; start work-fleet serve <board-dir> --port ${port}`
-		: `Fleet daemon communication failed at 127.0.0.1:${port}`;
+		? { reason: FLEET_STOPPED, startCommand: `work-fleet serve ${shellWord(root)} --port ${port}` }
+		: { reason: `Fleet daemon communication failed at 127.0.0.1:${port}` };
+}
+
+function shellWord(value: string) {
+	return /^[\w./@%+=:,-]+$/u.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`;
 }
 
 export function readDaemon<A, E>(port: number, read: (client: DaemonClient) => Effect.Effect<A, E>) {
@@ -32,7 +38,7 @@ export function readDaemon<A, E>(port: number, read: (client: DaemonClient) => E
 	);
 }
 
-export function daemonDiagnostics(port: number | null = DAEMON_PORT) {
+export function daemonDiagnostics(root: string, port: number | null = DAEMON_PORT) {
 	if (port === null) {
 		return Effect.gen(function* () {
 			const observation = {
@@ -47,7 +53,8 @@ export function daemonDiagnostics(port: number | null = DAEMON_PORT) {
 		Effect.flatMap(decodeSnapshot),
 		Effect.catch((error) =>
 			Effect.gen(function* () {
-				const observation = { cause: daemonUnavailableReason(error, port), observedAt: yield* Clock.currentTimeMillis, state: "error" as const };
+				const { reason, ...start } = daemonUnavailable(error, port, root);
+				const observation = { cause: reason, observedAt: yield* Clock.currentTimeMillis, state: "error" as const, ...start };
 				return { codex: observation, fleet: observation, github: observation } satisfies DiagnosticsSnapshot;
 			}),
 		),

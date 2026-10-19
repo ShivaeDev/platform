@@ -46,7 +46,7 @@ screenStory.it(
 const QUESTION = "---\nid: question.fixture\nkind: question\nstatus: open\n---\n# A choice\n\nChoose a direction.\n";
 screenStory.it(
 	"retains form text and focus when a hosted page query refreshes",
-	[routedScreen({ "home.md": "# Home", "question.md": QUESTION }, "/question.md")],
+	[routedScreen({ "home.md": "# Home", "question.md": QUESTION }, "/question.md", { home: "home.md", writable: true })],
 	function* ({ findElement, readText, readFocus, typeText, selectText, editFile, refreshDocument }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form textarea")).not.toBeNull()));
 		typeText("#response-form textarea", "Work in progress");
