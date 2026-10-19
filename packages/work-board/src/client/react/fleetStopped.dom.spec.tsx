@@ -13,7 +13,7 @@ expectNoReactWarnings();
 
 const STOPPED = "Fleet isn't running, so agent work and its health are unknown.";
 const command = /^npx @shivaedev\/work-fleet serve \S+ --port \d+$/u;
-const COMMAND = "input[aria-label='Command to start Fleet']";
+const COMMAND = "textarea[aria-label='Command to start Fleet']";
 
 screenStory.it(
 	"says once on Today that Fleet isn't running and keeps its start command behind one disclosure",
@@ -28,7 +28,7 @@ screenStory.it(
 		expect(findByRole("dialog", "Start Fleet", document)).toBeNull();
 		click(findByRole("button", "How to start Fleet"));
 		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Start Fleet", document)).not.toBeNull()));
-		expect(findElements<HTMLInputElement>(COMMAND, document).map((field) => field.value)).toEqual([expect.stringMatching(command)]);
+		expect(findElements<HTMLTextAreaElement>(COMMAND, document).map((field) => field.value)).toEqual([expect.stringMatching(command)]);
 	},
 );
 
@@ -65,7 +65,7 @@ screenStory.it(
 		expect(readText('[data-slot="alert"]')).toBe(`Lanes show the status written in each file. ${STOPPED}How to start Fleet`);
 		click(findByRole("button", "How to start Fleet"));
 		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Start Fleet", document)).not.toBeNull()));
-		expect(findElements<HTMLInputElement>(COMMAND, document).map((field) => field.value)).toEqual([expect.stringMatching(command)]);
+		expect(findElements<HTMLTextAreaElement>(COMMAND, document).map((field) => field.value)).toEqual([expect.stringMatching(command)]);
 	},
 );
 
@@ -122,7 +122,7 @@ for (const [clipboard, traits, status] of [
 			yield* Effect.promise(() => eventually(() => expect(findByRole("button", "How to start Fleet")).not.toBeNull()));
 			click(findByRole("button", "How to start Fleet"));
 			yield* Effect.promise(() => eventually(() => expect(findElement(COMMAND, document)).not.toBeNull()));
-			const field = findElement<HTMLInputElement>(COMMAND, document);
+			const field = findElement<HTMLTextAreaElement>(COMMAND, document);
 			click(findByRole("button", "Copy the command to start Fleet", document));
 			yield* Effect.promise(() => eventually(() => expect(readText("[role='dialog'] [data-copy-status]", document)).toBe(status)));
 			if (traits.length === 0) {

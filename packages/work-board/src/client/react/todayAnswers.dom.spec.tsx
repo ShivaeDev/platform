@@ -2,7 +2,7 @@ import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
-import { recentAnswersFixture } from "#test/responseRecords.ts";
+import { recentAnswersFixture, sharedHeadingFixture } from "#test/responseRecords.ts";
 import { unreadableHome } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen, routedScreen } from "#test/screenTraits.ts";
@@ -101,5 +101,20 @@ screenStory.it(
 			eventually(() => expect(readText("#needs-you > p[role='status']")).toBe("Some files couldn't be read, so what needs you is unknown.")),
 		);
 		expect(answeredRows()).toEqual([]);
+	},
+);
+
+screenStory.it(
+	"names each answer by its own question and tells apart questions that share a heading",
+	[routedScreen(sharedHeadingFixture(Effect.runSync(Clock.currentTimeMillis)), "/", { home: "home.md" })],
+	function* ({ answeredRows }) {
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(answeredRows()).toEqual([
+					["How should we proceed? · The release notes are missing", "You answered: Retry. Waiting on the agent."],
+					["How should we proceed? · The PR changed after review", "You answered: Retry. Waiting on the agent."],
+				]),
+			),
+		);
 	},
 );

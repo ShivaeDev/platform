@@ -1,3 +1,5 @@
+import { promptHeading } from "#browser/responses/cardContext.ts";
+import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
 import type { Question } from "#browser/responses/schema.ts";
 import type { RecentAnswer, RecentAnswerState } from "#browser/views/schema.ts";
 import { responseUrl } from "#responses/url.ts";
@@ -43,7 +45,22 @@ function unblocked(request: Request | undefined, model: MetadataModel) {
 	return ids.length === 1 && only !== undefined ? unique(only, model) : undefined;
 }
 
-function recentAnswer(question: Question, snapshot: Snapshot, titles: ReadonlyMap<string, string>): RecentAnswer | undefined {
+interface Candidate {
+	readonly cues: readonly string[];
+	readonly row: RecentAnswer;
+}
+
+function firstLine(text: string) {
+	return reasonMarkdown(text).split("\n")[0]?.trim() ?? "";
+}
+
+function questionTitle(prompts: ReturnType<typeof questionPrompts>, request: Request | undefined, documentTitle: string) {
+	const [prompt, ...others] = prompts;
+	const heading = prompt && others.length === 0 ? promptHeading(prompt.source).title : undefined;
+	return heading || (request && firstLine(request.reason)) || documentTitle;
+}
+
+function recentAnswer(question: Question, snapshot: Snapshot, titles: ReadonlyMap<string, string>): Candidate | undefined {
 	const { model } = snapshot;
 	const maintainer = snapshot.maintainer ?? "maintainer";
 	const document = unique(question.question.item, model);
@@ -58,28 +75,47 @@ function recentAnswer(question: Question, snapshot: Snapshot, titles: ReadonlyMa
 	}
 	const target = unblocked(asked.request, model);
 	const prompts = questionPrompts(question.context, question.question.request, question.question.source);
+	const summary = responseSummary(answer, prompts, document, maintainer);
 	return {
-		answer: responseSummary(answer, prompts, document, maintainer),
-		answeredAt: answer.response.recordedAt,
-		href: responseUrl(question.question.item, question.question.request),
-		id: target?.parsed.fields.id ?? question.question.item,
-		state: stateOf(question, document, asked.request, model),
-		title: (target ? titles.get(target.file) : undefined) ?? titles.get(document.file) ?? document.file,
+		cues: [asked.request ? firstLine(asked.request.reason) : "", summary.choice, question.question.request],
+		row: {
+			answer: summary,
+			answeredAt: answer.response.recordedAt,
+			href: responseUrl(question.question.item, question.question.request),
+			id: target?.parsed.fields.id ?? question.question.item,
+			state: stateOf(question, document, asked.request, model),
+			title: questionTitle(prompts, asked.request, titles.get(document.file) ?? document.file),
+		},
 	};
+}
+
+// Questions can share a heading, such as each Fleet decision's "How should Fleet proceed?", so the first cue that differs tells them apart.
+function distinct(candidates: readonly Candidate[]): RecentAnswer[] {
+	const byTitle = new Map<string, Candidate[]>();
+	for (const candidate of candidates) {
+		byTitle.set(candidate.row.title, [...(byTitle.get(candidate.row.title) ?? []), candidate]);
+	}
+	return candidates.map(({ cues, row }) => {
+		const same = byTitle.get(row.title) ?? [];
+		const telling =
+			same.length > 1 ? cues.findIndex((_, index) => new Set(same.map((other) => other.cues[index] || row.title)).size === same.length) : -1;
+		const cue = cues[telling];
+		return cue ? { ...row, title: `${row.title} · ${cue}` } : row;
+	});
 }
 
 // Someone else's answer stays on Today only while it waits on an agent; afterwards the trail is the reader's own answers.
 export function recentAnswers(snapshot: Snapshot): readonly RecentAnswer[] {
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
-	const latest = new Map<string, RecentAnswer>();
+	const latest = new Map<string, Candidate>();
 	for (const question of responseIndex(snapshot.model).questions.values()) {
-		const row = recentAnswer(question, snapshot, titles);
+		const candidate = recentAnswer(question, snapshot, titles);
 		const key = JSON.stringify([question.question.item, question.question.request]);
-		if (row && row.answeredAt > (latest.get(key)?.answeredAt ?? -1)) {
-			latest.set(key, row);
+		if (candidate && candidate.row.answeredAt > (latest.get(key)?.row.answeredAt ?? -1)) {
+			latest.set(key, candidate);
 		}
 	}
-	return [...latest.values()]
-		.filter((row) => row.answer.yours || row.state === "waiting" || row.state === "fleet")
-		.sort((left, right) => right.answeredAt - left.answeredAt || left.href.localeCompare(right.href));
+	return distinct([...latest.values()].filter(({ row }) => row.answer.yours || row.state === "waiting" || row.state === "fleet")).sort(
+		(left, right) => right.answeredAt - left.answeredAt || left.href.localeCompare(right.href),
+	);
 }

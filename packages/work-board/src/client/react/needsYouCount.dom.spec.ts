@@ -86,3 +86,21 @@ screenStory.it(
 		expect(readAttribute("#inbox-count", "data-variant")).toBe("secondary");
 	},
 );
+
+screenStory.it(
+	"shows no needs-you badge in the sidebar or header when nothing needs you and keeps the count for screen readers",
+	[chromeScreen({ "notes/plan.md": "# Plan\n" })],
+	function* ({ findElements, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#inbox-count")).toBe("0")));
+		expect(
+			findElements("#inbox-count, #inbox-topbar-count").map((badge) => [
+				badge.id,
+				badge.getAttribute("aria-label"),
+				badge.classList.contains("sr-only"),
+			]),
+		).toEqual([
+			["inbox-count", "0 need you", true],
+			["inbox-topbar-count", "0 need you", true],
+		]);
+	},
+);
