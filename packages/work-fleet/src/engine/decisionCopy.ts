@@ -28,6 +28,18 @@ const changedBrief: Situation = {
 	},
 };
 
+const handedOver: Situation = {
+	happened:
+		"The task was edited on the Board after Fleet prepared it, and Fleet cannot accept this edit by itself. This happens when the task now names an owner other than Codex, for example a person.",
+	question: "Should Codex still do this task as prepared?",
+	recommendation:
+		"If Codex should do it as prepared, undo the edit on the Board, then try again. If the edit should stand, stop here and hand the task back.",
+	retry: {
+		label: "Try again after undoing the edit",
+		outcome: "Fleet checks that the task matches what it prepared, then starts the work.",
+	},
+};
+
 const uncoded = blocked("Fleet stopped and needs your decision.", "Check the details, then let Fleet try again, or stop here.");
 
 const WORKER =
@@ -59,8 +71,8 @@ function situationOf(decision: Pick<Decision, "code" | "publicationWork" | "reas
 	if (decision.code === "reviewed-pr-ready" && decision.reason === "Reviewed sweep PR is ready to merge") {
 		return { ...situations[decision.code], happened: "The sweep PR passed review and all required checks. It is ready to merge before held PRs." };
 	}
-	if (decision.code === "fleet-stale" && decision.reason === CHANGED_BRIEF_REASON && decision.publicationWork !== undefined) {
-		return changedBrief;
+	if (decision.code === "fleet-stale" && decision.reason === CHANGED_BRIEF_REASON) {
+		return decision.publicationWork === undefined ? handedOver : changedBrief;
 	}
 	return decision.code === undefined ? uncoded : situations[decision.code];
 }
