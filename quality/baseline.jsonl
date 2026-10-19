@@ -1043,7 +1043,7 @@
 {"path":"packages/work-fleet/src/engine/sessionCleanupFlow.spec.ts","rule":"tests/named-values","count":12}
 {"path":"packages/work-fleet/src/engine/sessionCleanupFlow.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/sessionNaming.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/engine/staleDecisions.spec.ts","rule":"tests/named-values","count":5}
+{"path":"packages/work-fleet/src/engine/staleDecisions.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/work-fleet/src/engine/staleDecisions.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/stallProgress.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/stallRecovery.spec.ts","rule":"tests/named-values","count":6}
@@ -1442,7 +1442,7 @@
 {"path":"packages/work-fleet/src/test-support/recoveryReportCases.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/work-fleet/src/test-support/recoveryReviewCases.ts","rule":"tests/no-expect-in-support","count":3}
 {"path":"packages/work-fleet/src/test-support/recoveryReviewCases.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/work-fleet/src/test-support/recoveryScopeCases.ts","rule":"tests/no-expect-in-support","count":13}
+{"path":"packages/work-fleet/src/test-support/recoveryScopeCases.ts","rule":"tests/no-expect-in-support","count":10}
 {"path":"packages/work-fleet/src/test-support/recoveryScopeCases.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/recoveryStallCase.ts","rule":"tests/no-expect-in-support","count":2}
 {"path":"packages/work-fleet/src/test-support/recoveryStallCase.ts","rule":"tests/support-imports","count":1}
