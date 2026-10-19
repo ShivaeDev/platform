@@ -5,11 +5,11 @@ import type { FleetCycleSnapshot, FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 
 function unobserved(cycle: FleetRecord | FleetCycleSnapshot): boolean {
-	return cycle.stage === "released" && cycle.result?.kind === "change" && cycle.mergedDelivery === undefined && cycle.sweepClosed !== true;
+	return cycle.result?.kind === "change" && cycle.outcome === undefined && cycle.mergedDelivery === undefined && cycle.sweepClosed !== true;
 }
 
 export function needsReleasedDelivery(record: FleetRecord): boolean {
-	return [record, ...(record.history ?? [])].some(unobserved);
+	return (record.stage === "released" && unobserved(record)) || (record.history ?? []).some(unobserved);
 }
 
 export const observeReleasedDeliveries = Effect.fn("Fleet.observeReleasedDeliveries")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
@@ -22,9 +22,9 @@ export const observeReleasedDeliveries = Effect.fn("Fleet.observeReleasedDeliver
 			return cycle;
 		}
 		const delivery = yield* state.integrations.delivery(result).pipe(Effect.result);
-		if (Result.isFailure(delivery) && failureCode(delivery.failure) === "pr-closed" && (cycle.sweep?.length ?? 0) > 0) {
+		if (Result.isFailure(delivery) && failureCode(delivery.failure) === "pr-closed") {
 			yield* state.store.releaseForeign(result.pr);
-			return { ...cycle, sweepClosed: true };
+			return (cycle.sweep?.length ?? 0) > 0 ? { ...cycle, sweepClosed: true } : cycle;
 		}
 		if (Result.isFailure(delivery) || delivery.success === undefined) {
 			return cycle;
@@ -32,7 +32,7 @@ export const observeReleasedDeliveries = Effect.fn("Fleet.observeReleasedDeliver
 		yield* state.store.releaseForeign(result.pr);
 		return { ...cycle, mergedDelivery: delivery.success };
 	});
-	const record = yield* observeReleasedCycle(stored.value);
+	const record = stored.value.stage === "released" ? yield* observeReleasedCycle(stored.value) : stored.value;
 	const history = yield* Effect.forEach(record.history ?? [], observeReleasedCycle);
 	if (record === stored.value && history.every((cycle, index) => cycle === stored.value.history?.[index])) {
 		return stored;
