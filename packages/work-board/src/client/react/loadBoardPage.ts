@@ -8,7 +8,8 @@ import { loadProjection } from "./loadProjection.ts";
 import { loadRemaining } from "./loadRemaining.ts";
 import { projectionRoute } from "./projectionRoute.ts";
 import { remainingRoute } from "./remainingRoute.ts";
-import { documentQuery, navigationQuery } from "./routeQuery.ts";
+import { routeHome } from "./routeHome.ts";
+import { documentQuery } from "./routeQuery.ts";
 
 export type RouterShell = ShellOptions & { readonly registry: AtomRegistry.AtomRegistry };
 
@@ -33,13 +34,14 @@ export async function loadBoardPage({ context: { shell }, location, abortControl
 	const { api, registry } = shell;
 	const url = location.pathname + location.searchStr;
 	try {
-		const navigation = await loadNavigation(shell, abortController);
-		const projection = projectionRoute(location.pathname, navigation.home);
+		await awaitLiveReady(registry, shell.client?.updates, abortController.signal);
+		const home = await routeHome(shell, location.pathname, abortController);
+		const projection = projectionRoute(location.pathname, home);
 		if (projection) {
 			await loadProjection(registry, api, projection, url, abortController);
 			return undefined;
 		}
-		if (documentRoute(location.pathname, navigation.home)) {
+		if (documentRoute(location.pathname, home)) {
 			await loadQuery(registry, documentQuery(api, url), { abortController });
 			return undefined;
 		}
@@ -55,14 +57,6 @@ export async function loadBoardPage({ context: { shell }, location, abortControl
 		// The mounted page owns failure wording and retained-data rendering.
 		return { error };
 	}
-}
-
-function loadNavigation({ api, client, registry }: RouterShell, abortController: AbortController) {
-	function read() {
-		return loadQuery(registry, navigationQuery(api), { abortController });
-	}
-	const live = awaitLiveReady(registry, client?.updates, abortController.signal);
-	return live === undefined ? read() : live.then(read);
 }
 
 function mustRethrow(controller: AbortController, error: unknown) {

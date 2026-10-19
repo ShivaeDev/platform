@@ -6,15 +6,14 @@ import { DatabaseLifetime, type DatabaseLifetimeReadout } from "./DatabaseLifeti
 
 export const storyDatabase = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
 	const database = yield* PostgresTestDatabase;
-	const admin = yield* SqlClient.SqlClient;
 	const lifetime: DatabaseLifetimeReadout = {
-		awaitCleanup: Effect.suspend(() =>
-			Effect.andThen(database.awaitCleanup, admin<{ readonly datname: string }>`select datname from pg_database where datname = ${lifetime.name}`),
-		),
 		connectionAtAppClose: [],
+		connectionsAtAppClose: [],
 		name: "",
 		scopeAtAppClose: undefined,
+		teardownDuration: undefined,
 	};
+	let teardownStartedAt = 0;
 	let databaseScope: Scope.Scope | undefined;
 	const isolated = Effect.gen(function* () {
 		databaseScope = yield* Effect.scope;
@@ -32,9 +31,21 @@ export const storyDatabase = Effect.fnUntraced(function* <A, E, R>(effect: Effec
 				Effect.gen(function* () {
 					lifetime.scopeAtAppClose = databaseScope?.state._tag;
 					lifetime.connectionAtAppClose = yield* sql<{ readonly available: number }>`select 1 as available`.pipe(Effect.orDie);
+					lifetime.connectionsAtAppClose = yield* sql<{ readonly pid: number; readonly state: string }>`
+						select pid, state from pg_stat_activity
+						where datname = current_database() and backend_type = 'client backend' and pid <> pg_backend_pid()
+					`.pipe(Effect.orDie);
+					lifetime.teardownDuration = performance.now() - teardownStartedAt;
 				}),
 			);
-			return yield* effect.pipe(Effect.provideService(DatabaseLifetime, lifetime));
+			return yield* effect.pipe(
+				Effect.provideService(DatabaseLifetime, lifetime),
+				Effect.onExit(() =>
+					Effect.sync(() => {
+						teardownStartedAt = performance.now();
+					}),
+				),
+			);
 		}),
 	).pipe(Effect.provideService(PostgresTestDatabase, { ...database, isolated }));
 	return result;

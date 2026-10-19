@@ -1,32 +1,39 @@
-import { Context, Effect, Layer, Ref, Schema } from "effect";
+import { Context, type Duration, Effect, Layer, Ref, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcGroup, RpcMiddleware, RpcTest } from "effect/rpc";
 import { contract } from "#contract.ts";
 import { collection, invalidationKeys, type Key } from "#keys.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { command, query } from "#operation.ts";
-import { authorizeReads } from "#readPolicy.ts";
+import { authorizeReads, ReadPolicyMemoWindow } from "#readPolicy.ts";
 import { changesRpc } from "#serverMetadata.ts";
 
 export const notes = collection("notes", Schema.Number);
 class Row extends Schema.Class<Row>("ViewerRow")({ id: Schema.Number, owner: Schema.String, title: Schema.String }) {}
-class Denied extends Schema.TaggedError<Denied>()("Denied", {}) {}
+export class Denied extends Schema.TaggedError<Denied>()("Denied", {}) {}
+export class PolicyUnavailable extends Schema.TaggedError<PolicyUnavailable>()("PolicyUnavailable", {}) {}
 class Session extends Context.Service<Session, string>()("test/ViewerSession") {}
-class Guard extends RpcMiddleware.Service<Guard, { provides: Session }>()("test/ViewerGuard", { error: Denied }) {}
+class Guard extends RpcMiddleware.Service<Guard, { provides: Session }>()("test/ViewerGuard", { error: Schema.Union([Denied, PolicyUnavailable]) }) {}
 const Get = query("get", { payload: { id: Schema.Number }, reads: ({ id }) => [notes.item(id)], success: Row });
 const List = query("list", { reads: () => [notes.list], success: Schema.Array(Row) });
 const Rename = command("rename", { invalidates: ({ id }) => [notes.item(id)], payload: { id: Schema.Number, title: Schema.String } });
-const Notes = contract("notes", { commands: [Rename], queries: [Get, List] })
-	.merge(RpcGroup.make(changesRpc("notes")))
-	.middleware(Guard);
+export const Notes = contract("notes", { commands: [Rename], queries: [Get, List] }).middleware(Guard);
+export const ViewerRpcs = Notes.merge(RpcGroup.make(changesRpc("notes")).middleware(Guard));
 
 export const viewerEngine = Effect.gen(function* () {
 	const stored = yield* Ref.make(new Map([[1, new Row({ id: 1, owner: "alice", title: "One" })]]));
+	const unavailable = yield* Ref.make(false);
+	const checks = yield* Ref.make<readonly { readonly viewer: string; readonly key: Key }[]>([]);
+	const memoWindow = yield* Ref.make<Duration.Input>("1 second");
 	const reactivity = yield* Reactivity.make;
 	const live = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
 	function canRead(key: Key) {
 		return Effect.gen(function* () {
 			const viewer = yield* Session;
+			yield* Ref.update(checks, (calls) => [...calls, { key, viewer }]);
+			if (yield* Ref.get(unavailable)) {
+				return yield* Effect.fail(new PolicyUnavailable());
+			}
 			return key.collection === notes.name && (key._tag === "List" || (yield* Ref.get(stored)).get(Number(key.id))?.owner === viewer);
 		});
 	}
@@ -34,9 +41,16 @@ export const viewerEngine = Effect.gen(function* () {
 		const viewer = request.headers.viewer;
 		return viewer === undefined
 			? Effect.fail(new Denied())
-			: authorizeReads(effect, request, canRead, Effect.fail(new Denied())).pipe(Effect.provideService(Session, viewer));
+			: Ref.get(memoWindow).pipe(
+					Effect.flatMap((window) =>
+						authorizeReads(effect, request, canRead, Effect.fail(new Denied())).pipe(
+							Effect.provideService(ReadPolicyMemoWindow, window),
+							Effect.provideService(Session, viewer),
+						),
+					),
+				);
 	});
-	const handlers = Notes.toLayer({
+	const handlers = ViewerRpcs.toLayer({
 		"notes.$changes": ({ keys }) => live.stream(keys),
 		"notes.get": ({ id }) =>
 			Ref.get(stored).pipe(
@@ -65,6 +79,7 @@ export const viewerEngine = Effect.gen(function* () {
 				yield* reactivity.invalidate(invalidationKeys(Rename.invalidates({ id, title }, undefined)));
 			}),
 	});
-	const client = yield* RpcTest.makeClient(Notes, { flatten: true }).pipe(Effect.provide([handlers, guard]));
-	return { client, live, reactivity, stored };
+	const layer = Layer.mergeAll(handlers, guard);
+	const client = yield* RpcTest.makeClient(ViewerRpcs, { flatten: true }).pipe(Effect.provide(layer));
+	return { checks, client, layer, live, memoWindow, reactivity, stored, unavailable };
 });

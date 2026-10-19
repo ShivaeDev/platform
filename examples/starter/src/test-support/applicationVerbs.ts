@@ -40,7 +40,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		});
 	});
 	return {
-		awaitDatabaseCleanup: () => engine.databaseLifetime.awaitCleanup,
 		...storedNotes(story.tell),
 		databaseLifetime: () => engine.databaseLifetime,
 		existingNote: (title: string) => {

@@ -45,7 +45,7 @@ export function LiveControls({
 	}
 	return (
 		<span
-			className="font-mono text-muted-foreground text-xs data-[state=down]:text-destructive data-[state=stale]:text-destructive"
+			className="text-muted-foreground text-xs data-[state=down]:text-destructive data-[state=stale]:text-destructive"
 			data-state={displayed.state}
 			id={shellIds.live}
 			role="status"

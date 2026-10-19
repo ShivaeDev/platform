@@ -8,6 +8,7 @@ import { SessionContext } from "./SessionContext.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { SystemPage } from "./SystemPage.tsx";
 import { useDiagnosticsPolling } from "./useDiagnosticsPolling.ts";
+import { useNeedsYouCount } from "./useNeedsYouCount.ts";
 
 export function SystemMain({
 	api,
@@ -21,7 +22,7 @@ export function SystemMain({
 	const atom = api.diagnostics.query(undefined, routeQueryOptions);
 	useDiagnosticsPolling(useContext(SessionContext), atom, api.fleetItems.query(undefined, routeQueryOptions));
 	const navigation = useQuery(navigationQuery(api), { keepPreviousData: true });
-	const needsYou = Option.getOrUndefined(navigation.data)?.inboxCount;
+	const needsYou = useNeedsYouCount(Option.getOrUndefined(navigation.data));
 	const inbox = useQuery(api.inbox.query(undefined, routeQueryOptions), { keepPreviousData: true });
 	const sourceProblems = { failed: Option.isSome(inbox.cause), issues: Option.getOrUndefined(inbox.data)?.issues };
 	return (

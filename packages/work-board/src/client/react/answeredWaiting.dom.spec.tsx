@@ -112,8 +112,10 @@ screenStory.it(
 		const ask = "[data-attention-id='task.guide']";
 		yield* Effect.promise(() => eventually(() => expect(findElement(`${ask} button[aria-haspopup='dialog']`)).not.toBeNull()));
 		click(`${ask} button[aria-haspopup='dialog']`);
-		yield* Effect.promise(() => eventually(() => expect(findElement("[aria-label^='Options for'] button", document)).not.toBeNull()));
-		yield* Effect.promise(() => activate("[aria-label^='Options for'] button"));
+		yield* Effect.promise(() =>
+			eventually(() => expect(findElement("[aria-label^='Options for'] button:not([data-slot='collapsible-trigger'])", document)).not.toBeNull()),
+		);
+		yield* Effect.promise(() => activate("[aria-label^='Options for'] button:not([data-slot='collapsible-trigger'])"));
 		yield* Effect.promise(() => eventually(() => expect(findElement("[data-answered-id='task.guide']")).not.toBeNull()));
 		expect(findElement(ask)).toBeNull();
 		expect(readAttribute("[data-answered-id='task.guide'] p", "title")).toBe(NEXT_PASS);

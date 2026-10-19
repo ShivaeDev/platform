@@ -27,6 +27,7 @@ export interface ScreenEngine {
 	files: Readonly<Record<string, string>>;
 	fleet?: BoardFixtureOptions["fleet"];
 	health?: boolean;
+	heldAnswerRefresh?: { readonly gate: Deferred.Deferred<void>; started: boolean };
 	heldRead?: { readonly url: string; readonly gate: Deferred.Deferred<void>; started: boolean };
 	heldRefresh?: { readonly url: string; readonly gate: Deferred.Deferred<void>; readonly failed: boolean; started: boolean };
 	indexFailed?: boolean;
@@ -90,7 +91,7 @@ export function* createScreen() {
 }
 
 function releaseScreenReads(engine: ScreenEngine) {
-	for (const gate of [engine.indexGate, engine.startupGate, engine.heldRefresh?.gate]) {
+	for (const gate of [engine.indexGate, engine.startupGate, engine.heldRefresh?.gate, engine.heldAnswerRefresh?.gate]) {
 		if (gate) {
 			Effect.runSync(Deferred.succeed(gate, undefined));
 		}

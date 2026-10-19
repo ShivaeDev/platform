@@ -41,7 +41,8 @@ screenStory.it(
 		clearMotion();
 		failDocument();
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-		yield* Effect.promise(() => eventually(() => expect(readText("#navigation-status")).toContain("Could not open this document")));
+		yield* Effect.promise(() => eventually(() => expect(readText("#navigation-status")).toBe("Couldn't refresh this page")));
+		expect(readAttribute("#navigation-status", "data-state")).toBe("failed");
 		expect(readAttribute("#doc", "data-status")).toBe("503");
 		expect(readText("#doc")).toContain("Read this passage.");
 		recoverDocument();

@@ -8,14 +8,12 @@ import { AnswerControls } from "./AnswerControls.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { ClosedDraftCard } from "./ClosedDraftCard.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
+import { itemAsks } from "./itemStatus.ts";
 import { ResponseHistory } from "./ResponseHistory.tsx";
 import { useClosedDrafts } from "./useClosedDrafts.ts";
 
 export function AnswerPanel({ after = false, document: data }: { readonly after?: boolean; readonly document: Document }) {
-	const requests = data.requests.filter(
-		(request) =>
-			request.open || (request.id === "answer" && request.sourceOpen && data.metadata.kind === "question" && data.metadata.question === undefined),
-	);
+	const requests = itemAsks(data);
 	const { closed, record: handleDraft } = useClosedDrafts(data);
 	const shown = closed.filter((entry) => !requests.some((request) => request.id === entry.id));
 	return requests.length + shown.length > 0 ? (

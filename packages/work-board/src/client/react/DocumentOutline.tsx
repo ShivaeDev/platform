@@ -41,7 +41,7 @@ export function OutlineMenu({ document }: { readonly document: Document }) {
 		<span className="contents lg:hidden" ref={anchorRef}>
 			{headings.length > 1 && (
 				<Popover onOpenChange={setOpen} open={open}>
-					<PopoverTrigger render={<Button data-outline-menu size="sm" type="button" variant="outline" />}>
+					<PopoverTrigger render={<Button className="pointer-coarse:h-11" data-outline-menu size="sm" type="button" variant="outline" />}>
 						<TableOfContents aria-hidden="true" />
 						On this page
 					</PopoverTrigger>

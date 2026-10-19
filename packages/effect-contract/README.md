@@ -332,9 +332,21 @@ const guard = Layer.succeed(Guard, (effect, request) =>
 );
 ```
 
-The application supplies `resolveSession`, `canRead` and its middleware's `Denied` failure. Apply this middleware to the contract, including its reserved change stream. The policy returns an Effect boolean for a key. `authorizeReads` checks every declared query read key before running its handler and supplies the same policy to `makeLiveServer` streams, with the request's Effect context. Queries need no additional authorization declaration. A denied query returns the supplied failure.
+The application supplies `resolveSession`, `canRead` and its middleware's `Denied` failure. Apply this middleware to the contract, including its reserved change stream. The policy returns `Effect<boolean, PolicyError, PolicyServices>` for a key. `authorizeReads` checks every declared query read key before running its handler and supplies the same policy to `makeLiveServer` streams, with the request's Effect context. Queries need no additional authorization declaration. A `false` returns the supplied denial; a failed policy returns its original typed error. Declare policy errors alongside the denial in the native middleware's error schema so they reach the client, for example `error: Schema.Union([Denied, GitHubUnavailable])`.
 
 Each changed hint checks its keys against that viewer's policy before delivery and omits denied keys. An empty hint is suppressed. Item and list keys are checked independently: allow a list key when the viewer may read that list, even when a changed item is private to another viewer. The list query still selects its visible rows. Without a supplied `ReadPolicy`, streams keep the default of allowing their subscribed keys; applications own the policy.
+
+A failed hint check omits that key without ending the stream. The subscription rechecks failed keys after one second and repeats while checks fail. Once allowed, the key reaches the existing consumer even without another change or a reconnect. A `false` does not schedule a recheck. Interruption of the subscription stops its pending rechecks.
+
+Successful boolean results are memoised per subscription stream and key for one second by default, including `false`; failures are never memoised. Queries always run their policy afresh. The memo holds at most the subscription's key count. It can delay filtering a revoked key from hints by at most that window; hints contain keys, and the subsequent query still checks current access before returning data. Set `ReadPolicyMemoWindow` around the request effect to shorten the window or use `0` to turn memoisation off:
+
+```ts
+import { ReadPolicyMemoWindow } from "@shivaedev/effect-contract/readPolicy.ts";
+
+authorizeReads(effect, request, canRead, Effect.fail(new Denied())).pipe(
+  Effect.provideService(ReadPolicyMemoWindow, "100 millis"),
+);
+```
 
 ### API by module
 
@@ -349,7 +361,7 @@ Import the module that defines the name; the package has no root entry.
 | `bind.ts` | `bind(contract, atomRpcService)`, exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
 | `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`. |
 | `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
-| `readPolicy.ts` | `authorizeReads(effect, request, policy, denied)`; `ReadPolicy`, the request-local key policy used by server hint streams. |
+| `readPolicy.ts` | `authorizeReads(effect, request, policy, denied)`; `ReadPolicy`, the request-local fallible key policy used by server hint streams; `ReadPolicyMemoWindow`, a `Context.Reference<Duration.Input>` controlling each stream's memo duration. |
 | `serverMetadata.ts` | `QueryReads`, `CommandInvalidation` and `changesRpc(name)` for server adapters. |
 | `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
 

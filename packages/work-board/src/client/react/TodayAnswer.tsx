@@ -6,30 +6,41 @@ import { Input } from "#client/react/components/ui/input.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Textarea } from "#client/react/components/ui/textarea.tsx";
 import type { ShellApi } from "./ShellApi.ts";
+import { TodayContext } from "./TodayContext.tsx";
 import { TodayOptionButton } from "./TodayOptionButton.tsx";
 import { type Inline, inlineReason } from "./todayInline.ts";
 import { type TodayChoice, useTodayAnswer } from "./useTodayAnswer.ts";
 
-export function TodayAnswer({ api, document: data, inline }: { readonly api: ShellApi; readonly document: Document; readonly inline: Inline }) {
+export function TodayAnswer({
+	api,
+	document: data,
+	inline,
+	onSaved,
+	title,
+}: {
+	readonly api: ShellApi;
+	readonly document: Document;
+	readonly inline: Inline;
+	readonly onSaved: () => void;
+	readonly title: string;
+}) {
 	const authorId = useId();
-	const answer = useTodayAnswer(api, data, inline.preview, inline.prompt ? [inline.prompt] : []);
+	const answer = useTodayAnswer(api, data, inline.preview, inline.prompt ? [inline.prompt] : [], onSaved);
 	const { heading, reason } = inlineReason(inline);
 	return (
-		<fieldset
-			aria-label={`${inline.mode === "options" ? "Options" : "Answer"} for ${data.identity}`}
-			className="m-0 min-w-0 space-y-3 border-0 px-2 pb-1"
-		>
+		<fieldset aria-label={`${inline.mode === "options" ? "Options" : "Answer"} for ${title}`} className="m-0 min-w-0 space-y-3 border-0 px-2 pb-1">
 			{Boolean(reason) && <p className="m-0 font-medium text-sm">{reason}</p>}
+			<TodayContext inline={inline} />
 			{inline.mode === "options" ? (
 				<TodayChoices choose={answer.choose} document={data} heading={heading} locked={answer.locked} prompt={inline.prompt} />
 			) : (
 				<TodayText choose={answer.choose} heading={heading} locked={answer.locked} />
 			)}
 			<details className="text-muted-foreground text-xs">
-				<summary className="cursor-pointer">Answer as {answer.author || "…"}</summary>
+				<summary className="cursor-pointer">More options</summary>
 				<div className="mt-2 flex items-center gap-2">
 					<Label className="shrink-0 font-normal text-xs" htmlFor={authorId}>
-						Local author label
+						Answer as
 					</Label>
 					<Input
 						className="h-8 text-xs"

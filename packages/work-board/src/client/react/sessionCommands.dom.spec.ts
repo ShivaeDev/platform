@@ -8,10 +8,11 @@ import { sessionScreen } from "#test/sessionScreen.ts";
 import { sessionBoundary } from "#test/sessionTransport.ts";
 
 const CAPTURED_COMMAND = 1;
+const FAILED_THEN_SAVED = 2;
 
 expectNoReactWarnings();
 for (const kind of ["response", "handoff"] as const) {
-	const command = kind === "response" ? "work-board.recordResponse" : "work-board.prepareHandoff";
+	const command = kind === "response" ? "work-board.answerQuestion" : "work-board.prepareHandoff";
 	const field = kind === "response" ? '[name="body"]' : '[name="goal"]';
 	for (const failure of ["rejection", "transport"] as const) {
 		screenStory.it(
@@ -47,9 +48,9 @@ for (const kind of ["response", "handoff"] as const) {
 				yield* Effect.promise(() => activate(`#${kind}-preview`));
 				submit(`#${kind}-form`);
 				yield* Effect.promise(() =>
-					eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Saved:" : "Saved handoffs/")),
+					eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Answer saved." : "Saved handoffs/")),
 				);
-				expect(sessionCommands().length).toBe(failure === "transport" || kind === "handoff" ? 2 : 1);
+				expect(sessionCommands().length).toBe(FAILED_THEN_SAVED);
 				for (const call of sessionCommands()) {
 					expect(call.payload).toMatchObject({ id: identity });
 				}

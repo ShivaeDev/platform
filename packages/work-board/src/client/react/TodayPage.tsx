@@ -11,10 +11,12 @@ import { PageHeader } from "./PageHeader.tsx";
 import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { TodayGoals } from "./TodayGoals.tsx";
-import { TodayAnswered, TodayLater, TodayNeeds } from "./TodayNeeds.tsx";
+import { TodayAnswered, TodayLater } from "./TodayNeeds.tsx";
+import { TodayNeedsYou } from "./TodayNeedsYou.tsx";
 import { TodayProgress } from "./TodayProgress.tsx";
 import { TodaySummary } from "./TodaySummary.tsx";
 import { todayIds } from "./todayIds.ts";
+import { useSavedAnswers } from "./useSavedAnswers.ts";
 
 export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data: InboxProjection }) {
 	const query = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
@@ -24,6 +26,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 	const progress = inProgress(fleet);
 	const navigation = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const home = Option.getOrUndefined(navigation.data)?.home;
+	const answering = useSavedAnswers(data, Option.getOrUndefined(navigation.data));
 	useArrivalFocus(data.answered);
 	return (
 		<div className="today-page min-w-0 space-y-3 md:space-y-6">
@@ -34,7 +37,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 						goals={goals?.goals.length}
 						goalsFailed={Option.isSome(query.cause)}
 						issues={data.issues}
-						needs={data.complete ? data.you.length : undefined}
+						needs={data.complete ? answering.items.length : undefined}
 						progress={progress?.rows.length}
 						progressFromFiles={progress?.source === "files"}
 						progressUnavailable={fleet?.state === "unavailable" || Option.isSome(fleetQuery.cause)}
@@ -44,7 +47,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 			/>
 			<div className="today-grid grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<div className="min-w-0 space-y-6">
-					<NeedsYou api={api} data={data} />
+					<TodayNeedsYou answering={answering} api={api} complete={data.complete} />
 					{data.complete && data.answered.length > 0 && (
 						<Answered fleet={Option.isSome(fleetQuery.cause) ? undefined : fleet} items={data.answered} />
 					)}
@@ -66,15 +69,6 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 	);
 }
 
-function NeedsYou({ api, data }: { readonly api: ShellApi; readonly data: InboxProjection }) {
-	return (
-		<section className="min-w-0" id={todayIds.needs}>
-			<h2 className="mt-0 mb-3 font-semibold text-lg">Needs you</h2>
-			<TodayNeeds api={api} data={data} />
-		</section>
-	);
-}
-
 function Answered({ fleet, items }: { readonly fleet: FleetItemsProjection | undefined; readonly items: InboxProjection["answered"] }) {
 	return (
 		<section className="min-w-0" id={todayIds.answered}>
@@ -89,7 +83,9 @@ function useArrivalFocus(items: InboxProjection["answered"]) {
 	useEffect(() => {
 		const arrived = items.find((item) => !seenRef.current.has(item.id));
 		seenRef.current = new Set(items.map((item) => item.id));
-		if (arrived !== undefined && (document.activeElement === null || document.activeElement === document.body)) {
+		const resting =
+			document.activeElement === null || document.activeElement === document.body || document.activeElement.id === todayIds.needsHeading;
+		if (arrived !== undefined && resting) {
 			const row = [...document.querySelectorAll<HTMLElement>("[data-answered-id]")].find((element) => element.dataset.answeredId === arrived.id);
 			row?.querySelector("a")?.focus();
 		}

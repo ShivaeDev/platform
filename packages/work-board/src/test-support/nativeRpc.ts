@@ -56,8 +56,8 @@ export const subscribe = Effect.fn("Test.subscribe")(function* (board: Pick<Runn
 		close: () => Scope.close(scope, Exit.void),
 		next: () =>
 			Effect.gen(function* () {
-				if (pending.length === 0) {
-					pending.push(...(yield* pull));
+				while (pending.length === 0) {
+					pending.push(...(yield* pull).filter((item) => item._tag !== "Indexing"));
 				}
 				const hint = pending.shift();
 				if (hint === undefined) {

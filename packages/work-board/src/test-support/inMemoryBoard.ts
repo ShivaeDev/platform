@@ -15,7 +15,7 @@ import { memoryFiles } from "./memoryFiles.ts";
 
 export interface BoardFixtureOptions {
 	readonly afterRead?: (url: string) => Effect.Effect<void>;
-	readonly beforeIndex?: () => Effect.Effect<void, PlatformError.PlatformError>;
+	readonly beforeIndex?: (files: readonly string[]) => Effect.Effect<void, PlatformError.PlatformError>;
 	readonly beforeRead?: (kind: "document", url: string) => Effect.Effect<void>;
 	readonly beforeStart?: Effect.Effect<void>;
 	readonly fleet?: FleetItemsProjection;
@@ -81,7 +81,9 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 					Layer.succeed(WorkspaceConfig, {
 						changes,
 						home,
-						index: Effect.suspend(() => configuration?.beforeIndex?.() ?? Effect.void).pipe(Effect.andThen(configuration?.index ?? index)),
+						index: Effect.suspend(() => configuration?.beforeIndex?.(Object.keys(memory.files())) ?? Effect.void).pipe(
+							Effect.andThen(configuration?.index ?? index),
+						),
 						root: memory.root,
 						writable: configuration?.writable === true,
 					}),

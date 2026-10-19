@@ -1,5 +1,6 @@
 import { Option } from "effect";
 import { CircleAlert, Lock } from "lucide-react";
+import { useState } from "react";
 import type { HandoffPreview } from "#browser/handoffs/schema.ts";
 import type { HandoffProjection } from "#browser/views/remaining.ts";
 import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
@@ -29,7 +30,8 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 	const state = useHandoffForm(data, source);
 	const focus = useFormFocus(state.draft.key);
 	const saved = Option.getOrUndefined(state.created.created);
-	const server = typeof window === "undefined";
+	const [copied, setCopied] = useState<{ readonly id: string; readonly text: string }>();
+	const status = copied && copied.id === saved?.id && !state.created.saving ? copied.text : state.status;
 	return (
 		<SectionCard
 			description="The file includes the item's full source and its checks. Preparing it doesn't change the item or start the agent. Your draft stays in this browser for 7 days."
@@ -56,26 +58,38 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 				data-writable={data.writable}
 				id={shellIds.handoffForm}
 				noValidate
-				onInput={state.edit}
+				onInput={() => {
+					setCopied(undefined);
+					state.edit();
+				}}
 				onSubmit={(event) => {
 					event.preventDefault();
-					if (data.writable && state.preview && state.valid && !state.created.saving) {
-						state.created.save();
+					if (data.writable && !state.created.saving) {
+						setCopied(undefined);
+						state.prepare();
 					}
 				}}
 			>
 				<FormField form={state.form} label="Agent name" maxLength={200} name="recipient" required />
 				<FormField form={state.form} label="Goal" maxLength={8192} name="goal" required rows={3} />
 				<FormField form={state.form} label="Constraints (optional)" maxLength={8192} name="constraints" rows={4} />
-				<FormField form={state.form} label="Next step" maxLength={8192} name="nextAction" required rows={3} />
+				<FormField
+					form={state.form}
+					label="Next step"
+					maxLength={8192}
+					name="nextAction"
+					placeholder="What should the agent do first?"
+					required
+					rows={3}
+				/>
 				<div className="flex flex-wrap gap-2">
-					<Button disabled={server || state.created.saving} id={shellIds.handoffPreview} onClick={state.showPreview} type="button" variant="outline">
-						Preview file
-					</Button>
-					<Button disabled={!(data.writable && state.preview && state.valid) || state.created.saving} id={shellIds.handoffSubmit} type="submit">
+					<Button disabled={!data.writable || state.created.saving} id={shellIds.handoffSubmit} type="submit" variant="secondary">
 						Prepare handoff
 					</Button>
-					<Button disabled={server || state.created.saving} id={shellIds.handoffClear} onClick={state.clear} type="button" variant="ghost">
+					<Button disabled={state.created.saving} id={shellIds.handoffPreview} onClick={state.showPreview} type="button" variant="outline">
+						Preview file
+					</Button>
+					<Button disabled={state.created.saving} id={shellIds.handoffClear} onClick={state.clear} type="button" variant="ghost">
 						Clear draft
 					</Button>
 				</div>
@@ -86,11 +100,13 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 				>
 					{state.preview}
 				</pre>
-				<p className="m-0 text-muted-foreground" id={shellIds.handoffStatus} role="status">
-					{server ? "Turn on JavaScript to prepare a handoff." : state.status}
+				<p className="text-muted-foreground" id={shellIds.handoffStatus} role="status">
+					{status}
 				</p>
 				<section hidden={!saved} id={shellIds.handoffPrepared}>
-					{saved && <HandoffPrompt id={saved.id} prepared prompt={saved.prompt} />}
+					{saved !== undefined && (
+						<HandoffPrompt id={saved.id} key={saved.id} onStatus={(text) => setCopied({ id: saved.id, text })} prompt={saved.prompt} />
+					)}
 				</section>
 			</form>
 		</SectionCard>

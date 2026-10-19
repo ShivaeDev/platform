@@ -13,6 +13,7 @@ import { screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 import { storedScreenState } from "#test/screenWorkspaceTraits.ts";
+import { WIDE_TABLE, WIDE_TABLE_LAYOUT } from "#test/wideTableFixture.ts";
 
 expectNoReactWarnings();
 const url = `/_board/item/${decisionId}/`;
@@ -217,5 +218,20 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readText("[data-answered]")).toContain("Stop and hand back")));
 		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
 		expect(saved.responses.map((entry) => entry.response.answers)).toEqual([[{ prompt: "fleet-action", selected: ["release", "retry"], text: "" }]]);
+	},
+);
+
+const tableRecommendation = Object.fromEntries(
+	Object.entries(answerCardFixture).map(([file, source]) => [
+		file,
+		file === decisionFile ? source.replace("**Publish** the reviewed guide.", `**Publish** the reviewed guide.\n\n${WIDE_TABLE}`) : source,
+	]),
+);
+screenStory.it(
+	"lays out a wide table in an answer card like a document table, scrolling inside its own box",
+	[screenWorkspace("answer-card-table"), routedScreen(tableRecommendation, url, { home: "home.md", writable: true })],
+	function* ({ findElement, readTableLayout }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement(".answer-recommendation table")).not.toBeNull()));
+		expect(readTableLayout(".answer-recommendation table")).toEqual(WIDE_TABLE_LAYOUT);
 	},
 );

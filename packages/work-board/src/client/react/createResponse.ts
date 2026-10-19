@@ -8,8 +8,7 @@ export const createResponse = Effect.fn("Board.createResponse")(function* (
 	source: QuestionPreview,
 	submission: ResponseSubmission,
 ) {
-	const question = yield* client.responses.registerQuestion.run({ item: source.item, request: source.request, revision: submission.revision });
-	const { answerContext: _answerContext, recovery: _recovery, ...input } = submission;
-	yield* client.responses.recordResponse.run({ ...input, question: question.id });
+	const { answerContext: _answerContext, question: _question, recovery: _recovery, ...input } = submission;
+	yield* client.responses.answerQuestion.run({ ...input, item: source.item, request: source.request });
 	return submission;
 });
