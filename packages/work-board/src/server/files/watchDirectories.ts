@@ -1,10 +1,8 @@
 import { Deferred, Effect, FileSystem, Option, Path, Stream } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { attachmentType } from "#path/attachment.ts";
-import { isMarkdown, type MarkdownFile, scanMarkdown } from "./list.ts";
-import { folderEvents, SETTLE, watchedScan } from "./watchedScan.ts";
-
-type WatchRoots = readonly { readonly real: string; readonly relative: string }[];
+import { isMarkdown, type MarkdownFile } from "./list.ts";
+import { folderEvents, rescanFolders, SETTLE, type WatchRoots, watchedScan } from "./watchedScan.ts";
 
 function changedFiles(previous: ReadonlyMap<string, number>, next: ReadonlyMap<string, number>) {
 	return [...new Set([...previous.keys(), ...next.keys()])].filter((file) => previous.get(file) !== next.get(file));
@@ -84,7 +82,7 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 				),
 			);
 			const pending = new Set<string>();
-			let rescan = false;
+			const rescan = new Set<string>();
 			const changedPath = Effect.fn("WorkBoard.changedPath")(function* (relative: string) {
 				const relevant = isMarkdown(relative) || attachmentType(relative) !== undefined;
 				if (relevant) {
@@ -95,7 +93,7 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 					if (!relevant) {
 						yield* observed;
 					}
-					rescan = true;
+					rescan.add(relative);
 					return true;
 				}
 				recordFile(contents, relative, info);
@@ -105,17 +103,17 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 				return relevant;
 			});
 			const flush = Effect.gen(function* () {
-				if (rescan) {
-					rescan = false;
-					const next = yield* scanMarkdown(root, realRoot);
+				if (rescan.size > 0) {
+					const folders = [...rescan];
+					rescan.clear();
+					const next = yield* rescanFolders(root, realRoot, folders, roots, contents);
 					if (!sameRoots(roots, next.roots)) {
 						return yield* Deferred.succeed(topology, undefined);
 					}
-					const snapshot = new Map(next.files.map((file) => [file.path, file.modified]));
-					for (const file of changedFiles(contents, snapshot)) {
+					for (const file of changedFiles(contents, next.contents)) {
 						pending.add(file);
 					}
-					contents = snapshot;
+					contents = next.contents;
 				}
 				const paths = [...pending];
 				pending.clear();

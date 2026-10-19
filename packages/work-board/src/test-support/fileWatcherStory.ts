@@ -1,4 +1,4 @@
-import { rmSync } from "node:fs";
+import { renameSync, rmSync } from "node:fs";
 import { join, relative } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Deferred, Effect, FileSystem, PubSub, Stream } from "effect";
@@ -11,6 +11,7 @@ import { watcherIndexVerbs } from "./watcherIndexVerbs.ts";
 export interface WatcherEngine {
 	changes?: Changes;
 	readonly checked: string[];
+	readonly folders: string[];
 	hold?: { path: string; entered: Deferred.Deferred<void>; release: Deferred.Deferred<void> };
 	index?: Effect.Success<ReturnType<typeof searchSnapshot>>;
 	readonly input: PubSub.PubSub<FileSystem.WatchEvent>;
@@ -32,6 +33,7 @@ export const fileWatcherStory = storyKit({
 						if (path === engine.notes.root) {
 							engine.scans += 1;
 						}
+						engine.folders.push(relative(engine.notes.root, path));
 						return fs.readDirectory(path);
 					}),
 				readFileString: (path: string, encoding?: string) =>
@@ -69,10 +71,10 @@ export const fileWatcherStory = storyKit({
 			(acquired) => Effect.sync(acquired.remove),
 		);
 		const input = yield* PubSub.unbounded<FileSystem.WatchEvent>();
-		const engine: WatcherEngine = { checked: [], input, notes, reads: [], scans: 0, starts: 0 };
+		const engine: WatcherEngine = { checked: [], folders: [], input, notes, reads: [], scans: 0, starts: 0 };
 		return engine;
 	},
-	inspect: (engine) => ({ checked: engine.checked, scans: engine.scans, starts: engine.starts }),
+	inspect: (engine) => ({ checked: engine.checked, folders: engine.folders, scans: engine.scans, starts: engine.starts }),
 	layer: NodeServices.layer,
 	name: "file watcher",
 	stages: ["project"],
@@ -80,6 +82,10 @@ export const fileWatcherStory = storyKit({
 		...watcherIndexVerbs(engine, story.tell),
 		get checked() {
 			return engine.checked;
+		},
+		moveFile: (from: string, to: string) => {
+			story.tell(`an outside editor moves ${from} to ${to}`);
+			renameSync(join(engine.notes.root, from), join(engine.notes.root, to));
 		},
 		nextChange: () => {
 			if (!engine.output) {

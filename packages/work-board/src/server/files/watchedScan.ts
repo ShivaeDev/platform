@@ -1,6 +1,8 @@
 import { Effect, FileSystem, Path, Stream } from "effect";
 import { scanMarkdown } from "./list.ts";
 
+export type WatchRoots = readonly { readonly real: string; readonly relative: string }[];
+
 export const SETTLE = "100 millis";
 
 export interface WatchedFolder {
@@ -27,4 +29,31 @@ export const watchedScan = Effect.fn("WorkBoard.watchedScan")(function* (root: s
 	yield* Effect.sleep(SETTLE);
 	const { files, roots } = yield* scanMarkdown(root, realRoot);
 	return { files, listing: roots.length > 1 ? undefined : files, rootEvents: Stream.fromQueue(rootEvents), roots };
+});
+
+export const rescanFolders = Effect.fn("WorkBoard.rescanFolders")(function* (
+	root: string,
+	realRoot: string,
+	folders: readonly string[],
+	roots: WatchRoots,
+	contents: ReadonlyMap<string, number>,
+) {
+	const everything = Effect.map(scanMarkdown(root, realRoot), (scanned) => ({
+		contents: new Map(scanned.files.map((file) => [file.path, file.modified])),
+		roots: scanned.roots,
+	}));
+	if (roots.length > 1 || folders.includes("")) {
+		return yield* everything;
+	}
+	const next = new Map([...contents].filter(([file]) => !folders.some((folder) => file.startsWith(`${folder}/`))));
+	let found = roots;
+	for (const folder of folders) {
+		const scanned = yield* scanMarkdown(root, realRoot, folder);
+		for (const file of scanned.files) {
+			next.set(file.path, file.modified);
+		}
+		found = [...found, ...scanned.roots.slice(1)];
+	}
+	// Files no event named may have moved in from elsewhere in the workspace, whose old paths only a full scan finds gone.
+	return [...next.keys()].some((file) => !contents.has(file)) ? yield* everything : { contents: next, roots: found };
 });
