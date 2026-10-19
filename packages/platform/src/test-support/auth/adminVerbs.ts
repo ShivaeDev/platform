@@ -1,22 +1,34 @@
-import { Effect, Layer } from "effect";
+import { Effect, Fiber, Layer, Queue, Stream } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { AdminApi } from "./adminApi.ts";
 import type { AdminHost } from "./adminHost.ts";
 
 export function adminVerbs(host: AdminHost, story: { tell: (line: string) => void }) {
+	const protocol = Layer.suspend(() =>
+		RpcClient.layerProtocolHttp({
+			transformClient: (http) => HttpClient.mapRequest(http, HttpClientRequest.setHeaders(host.headers)),
+			url: `${host.baseUrl}/rpc`,
+		}),
+	).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
+	const makeClient = RpcClient.make(AdminApi);
+	function call<A, E>(use: (client: Effect.Success<typeof makeClient>) => Effect.Effect<A, E>) {
+		return makeClient.pipe(Effect.flatMap(use), Effect.result, Effect.provide(protocol));
+	}
 	return {
 		callAdminTools: Effect.fn("AuthStory.callAdminTools")(function* () {
-			story.tell("call the admin-only RPC handler");
-			const protocol = RpcClient.layerProtocolHttp({
-				transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders(host.headers)),
-				url: `${host.baseUrl}/rpc`,
-			}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
-			return yield* RpcClient.make(AdminApi).pipe(
-				Effect.flatMap((client) => client.adminTools()),
-				Effect.result,
-				Effect.provide(protocol),
-			);
+			story.tell("call the admin-only RPC");
+			return yield* call((client) => client.adminTools());
+		}),
+		callOwnerTools: Effect.fn("AuthStory.callOwnerTools")(function* () {
+			story.tell("call the owner-only RPC");
+			return yield* call((client) => client.ownerTools());
+		}),
+		followAdminFeed: Effect.fn("AuthStory.followAdminFeed")(function* () {
+			story.tell("subscribe to the admin-only RPC stream");
+			const received = yield* Queue.unbounded<string>();
+			const fiber = yield* Effect.forkScoped(call((client) => Stream.runForEach(client.adminFeed(), (value) => Queue.offer(received, value))));
+			return { ended: Fiber.join(fiber), next: Queue.take(received) };
 		}),
 		openAdminTools: Effect.fn("AuthStory.openAdminTools")(function* () {
 			story.tell("open the admin-only HTTP route");
