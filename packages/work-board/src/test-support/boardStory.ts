@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { attentionVerbs } from "./attentionVerbs.ts";
 import type { FileSystemWrapper } from "./board.ts";
 import { held } from "./browser.ts";

@@ -1,7 +1,7 @@
 import { rmSync } from "node:fs";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { seedTree } from "#quality-fixtures/tree.ts";
 import { collectInventory } from "#quality-internal/inventory/collect.ts";
 

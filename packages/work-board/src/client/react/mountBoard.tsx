@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import { RouterProvider } from "@tanstack/react-router";
 import { createRoot } from "react-dom/client";
-import type { BrowserClient } from "#client/client.ts";
+import type { BrowserClient } from "#browserClient.ts";
 import { TooltipProvider } from "#client/react/components/ui/tooltip.tsx";
 import { boardRouter } from "./boardRouter.ts";
 

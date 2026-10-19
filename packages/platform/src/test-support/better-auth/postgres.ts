@@ -1,6 +1,6 @@
 import { Redacted } from "effect";
 import { Migrator } from "effect/sql";
-import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
+import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
 
 export const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");

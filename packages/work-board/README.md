@@ -301,7 +301,7 @@ Reported `evidence.checked_revision` is a Git revision, distinct from the report
 
 ### API and integration
 
-Import the module that defines a name. The package has no root entry; a module's import path is its path under `src/`, which the `./*.ts` export maps to its source, declaration and runtime files. The browser bundle sources under `client/` stay unexported, except `client/client.ts` and `client/document/View.ts`. The main entry points are `server/board.ts` (`boardLayer`), `server/serve.ts` (`serveBoard`), `server/responses/agent.ts` (`agentRequest`), `client/client.ts` (`browserClient`) and `client/document/View.ts` (`DocumentView`); `rpc/` holds the native contracts and `rpc/rejections.ts` the declared errors. The [source directory](https://github.com/ShivaeDev/platform/tree/main/packages/work-board/src) contains file/watch, HTTP, rendering, search, views and result-review helpers. Compose `boardLayer` to retain the package's source policy and request guards.
+Import the module that defines a name. The package has no root entry; a module's import path is its path under `src/`, which the `./*.ts` export maps to its source, declaration and runtime files. The browser bundle sources under `client/` stay unexported. The main entry points are `server/board.ts` (`boardLayer`), `server/serve.ts` (`serveBoard`), `server/responses/agent.ts` (`agentRequest`) and `browserClient.ts` (`browserClient`); `rpc/` holds the native contracts and `rpc/rejections.ts` the declared errors. The [source directory](https://github.com/ShivaeDev/platform/tree/main/packages/work-board/src) contains file/watch, HTTP, rendering, search, views and result-review helpers. Compose `boardLayer` to retain the package's source policy and request guards.
 
 #### Embed the workspace
 
@@ -368,7 +368,7 @@ console.log(JSON.stringify(answer, null, 2));
 #### Use the native browser client
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/client/client.ts";
+import { browserClient } from "@shivaedev/work-board/browserClient.ts";
 
 export async function registerReviewedQuestion(url: string, revision: string) {
   const client = browserClient(url);
@@ -406,7 +406,7 @@ Each criterion shows its progress split in one small line, targeting items and r
 For a handoff, first read the preview with `client.run(client.handoffs.handoffSource.run({ item: "work.search" }))` and inspect its `context`. This complete program takes that reviewed path and revision as inputs:
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/client/client.ts";
+import { browserClient } from "@shivaedev/work-board/browserClient.ts";
 
 export async function prepareReviewedHandoff(
   url: string,
@@ -442,7 +442,7 @@ Pass `preview.source` and `preview.reviewedRevision` only after reviewing the pr
 Result reading returns the report, linked criteria and revision-pinned feedback from its typed query:
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/client/client.ts";
+import { browserClient } from "@shivaedev/work-board/browserClient.ts";
 
 export async function readReturnedResult(url: string, item: string) {
   const client = browserClient(url);
@@ -466,7 +466,7 @@ RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `
 
 Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities reject with `NotFound` and `Conflict`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
 
-Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/client/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router. Its route loaders read document and projection contract queries through `effect-react` in the shell's native registry; preloading and navigation share those reads. Document and item pages mount `DocumentView` from the typed document query; Today, Goals, Now, Library and System render typed projection queries in React, as do the home document, Start, Handoff and Result. Their direct URLs load the shell and require JavaScript. While a page waits for its data, the shell shows a skeleton shaped like that page instead of a blank page. Empty lists, lanes, tables and search results say what is empty, what fills them and, where one exists, link to a next step. The optional `reading` data supplies source context, backlinks, criterion claims and managed receipts; request `prompts` supply answer controls. Hosts can mount `DocumentView` directly from source-query data, or pass `context` and `introduction` React nodes for its document layout.
+The Board shell renders this data in its internal `DocumentView`, using the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. The Board shell is a React app with TanStack Router. Its route loaders read document and projection contract queries through `effect-react` in the shell's native registry; preloading and navigation share those reads. Document and item pages mount `DocumentView` from the typed document query; Today, Goals, Now, Library and System render typed projection queries in React, as do the home document, Start, Handoff and Result. Their direct URLs load the shell and require JavaScript. While a page waits for its data, the shell shows a skeleton shaped like that page instead of a blank page. Empty lists, lanes, tables and search results say what is empty, what fills them and, where one exists, link to a next step. The optional `reading` data supplies source context, backlinks, criterion claims and managed receipts; request `prompts` supply answer controls. Consumers of the source query own their rendering.
 
 #### Headless addon API
 

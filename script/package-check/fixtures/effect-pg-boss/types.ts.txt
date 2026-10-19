@@ -1,7 +1,7 @@
 import { Context, Effect, Schema } from "effect"
-import { defineQueue, defineSchedule } from "@shivaedev/effect-pg-boss/definition.ts"
-import { makePgBoss } from "@shivaedev/effect-pg-boss/service.ts"
-import { makePgBossTesting, testRetryPolicy } from "@shivaedev/effect-pg-boss/testing.ts"
+import { defineQueue, defineSchedule } from "@shivaedev/effect-pg-boss/server/definition.ts"
+import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts"
+import { makePgBossTesting, testRetryPolicy } from "@shivaedev/effect-pg-boss/server/testing.ts"
 
 class Mail extends Context.Service<Mail, { send(id: number): Effect.Effect<void> }>()("@consumer/Mail") {}
 

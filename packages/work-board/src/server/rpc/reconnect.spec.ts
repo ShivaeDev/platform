@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { browserClient } from "#client/client.ts";
+import { browserClient } from "#browserClient.ts";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { connectionBoundary } from "#test/connectionBoundary.ts";
 import { waitFor } from "#test/live.ts";

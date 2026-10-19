@@ -7,7 +7,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import { Migrator } from "effect/sql";
 import { Pool } from "pg";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { appHost } from "#server/appHost.ts";
 import { authTestUtils } from "#server/better-auth/testing.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";

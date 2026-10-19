@@ -1,5 +1,5 @@
 import { type Cause, Effect, Schema } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#errors/taxonomy.ts";
 import { type RpcBoundaryOptions, rpcBoundary } from "#server/rpc-server/boundary.ts";
 

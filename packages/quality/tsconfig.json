@@ -1,4 +1,9 @@
 {
+	"compilerOptions": {
+		"paths": {
+			"#exports-story": ["../../script/quality/test-support/exportsStory.ts"]
+		}
+	},
 	"extends": "../../tsconfig.base.json",
 	"include": ["src"]
 }

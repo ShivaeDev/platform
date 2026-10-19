@@ -1,8 +1,8 @@
 import { Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
-import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
 import { startAdminHost } from "./adminHost.ts";

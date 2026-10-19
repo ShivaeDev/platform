@@ -1,6 +1,6 @@
 import { Context, Data, Effect, Layer } from "effect"
-import { type GenreTag, genreTags } from "@shivaedev/test-story/genreTags.ts"
-import { type Story, storyKit, type Trait } from "@shivaedev/test-story/storyKit.ts"
+import { type GenreTag, genreTags } from "@shivaedev/test-story/server/genreTags.ts"
+import { type Story, storyKit, type Trait } from "@shivaedev/test-story/server/storyKit.ts"
 
 interface Garden {
   beds: number

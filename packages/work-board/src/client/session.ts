@@ -1,5 +1,5 @@
 import type { ResumeWindow } from "@shivaedev/effect-contract/resume.ts";
-import { browserClient } from "./client.ts";
+import { browserClient } from "#browserClient.ts";
 
 type BrowserEnvironment = ResumeWindow & {
 	readonly location: { readonly origin: string };

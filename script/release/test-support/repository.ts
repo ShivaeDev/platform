@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
 import { applyRelease } from "@shivaedev/changesets/applyRelease.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkPlatform } from "#release/check.ts";
 import config from "#release-config";
 import { copyRepository } from "./copyRepository.ts";

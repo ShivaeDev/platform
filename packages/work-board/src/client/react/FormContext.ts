@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { BrowserClient } from "#client/client.ts";
+import type { BrowserClient } from "#browserClient.ts";
 
 export type FormClient = Pick<BrowserClient, "handoffs" | "responses" | "runtime"> & {
 	readonly updates: Pick<BrowserClient["updates"], "status">;

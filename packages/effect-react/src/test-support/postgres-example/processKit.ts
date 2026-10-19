@@ -1,4 +1,4 @@
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { hasPostgres } from "#test/order-example/postgres.ts";
 import { createProcesses, observerLayer, openCluster } from "./processEngine.ts";
 import { processVerbs } from "./processVerbs.ts";
