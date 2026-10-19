@@ -5,6 +5,7 @@ import { rawExchange, rawGet, rawPost, startBoard } from "./board.ts";
 import { boardCommand } from "./boardCommand.ts";
 import { bundleBoard } from "./bundleBoard.ts";
 import { embeddedBoard } from "./embeddedBoard.ts";
+import { entryModules } from "./entryModules.ts";
 import { waitFor } from "./live.ts";
 import { mcpClient } from "./mcpClient.ts";
 import { rpcCall } from "./nativeRpc.ts";
@@ -36,6 +37,10 @@ export function servingVerbs(engine: BoardEngine, tell: (line: string) => void) 
 		files: () => {
 			tell("the reader inspects the files left in the project");
 			return readdirSync(engine.notes.root);
+		},
+		firstPageModules: () => {
+			tell("the browser client is bundled the way the package builds it");
+			return Effect.promise(entryModules);
 		},
 		get: (path: string, host?: string) => {
 			tell(`a local HTTP client requests ${path}`);

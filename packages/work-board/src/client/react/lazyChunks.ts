@@ -22,7 +22,9 @@ function lazyChunk<T>(load: () => Promise<T>) {
 
 export const markdownChunk = lazyChunk(() => import("./markdownRenderers.ts").then(({ markdownRenderers }) => markdownRenderers));
 export const goalChartChunk = lazyChunk(() => import("./GoalChart.tsx"));
+export const searchPaletteChunk = lazyChunk(() => import("./SearchPalette.tsx"));
+export const workTableChunk = lazyChunk(() => import("./WorkTable.tsx"));
 
 export function loadLazyChunks() {
-	return Promise.all([markdownChunk.load(), goalChartChunk.load()]);
+	return Promise.all([markdownChunk.load(), goalChartChunk.load(), searchPaletteChunk.load(), workTableChunk.load()]);
 }
