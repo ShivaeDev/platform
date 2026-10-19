@@ -34,11 +34,11 @@ for (const sort of ["title", "owner", "status"] as const) {
 			expect(readText("h3", card)).toBe("Work 5");
 			expect(readText("[data-status-token]", card)).toBe("Executing");
 			expect(readText(".work-owner", card)).toBe("Fleet is working on this");
-			expect(readText(".work-stage", card)).toMatch(/^Executing for /u);
+			expect(readText(".work-stage", card)).toBe("Executing since now");
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', card)).not.toBeNull();
 			expect(readText('[aria-label="Waiting on a person"] .work-owner')).toBe("Needs you");
 			expect(findElement('[data-item="task-5"]')).toBeNull();
-			const button = findElement<HTMLButtonElement>('[aria-expanded="false"]');
+			const button = findElement<HTMLButtonElement>('[data-slot="collapsible-trigger"][aria-expanded="false"]');
 			click(button);
 			expect(findElement('[aria-label="Done in the last 7 days"] [data-item="task-5"]')).not.toBeNull();
 		},
@@ -128,7 +128,7 @@ screenStory.it(
 		),
 	],
 	({ click, findElement, readText }) => {
-		click(findElement<HTMLButtonElement>('[aria-expanded="false"]'));
+		click(findElement<HTMLButtonElement>('[data-slot="collapsible-trigger"][aria-expanded="false"]'));
 		expect(findElement('[data-item="task-5"]')).toBeNull();
 		expect(readText('[aria-label="Done in the last 7 days"] .work-count')).toBe("0");
 	},

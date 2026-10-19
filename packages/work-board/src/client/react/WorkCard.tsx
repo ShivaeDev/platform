@@ -5,9 +5,9 @@ import type { State } from "#browser/views/state.ts";
 import { Card } from "#client/react/components/ui/card.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import { answeredCopy } from "#client/responses/answeredCopy.ts";
-import { Age } from "./Age.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { PrChip } from "./PrChip.tsx";
+import { Time } from "./Time.tsx";
 import { WorkItemTitle } from "./WorkItemTitle.tsx";
 
 export function WorkCard({
@@ -56,9 +56,8 @@ function StageTime({ stage, entered }: { readonly stage: FleetWork["stage"]; rea
 	const { ended, label } = stageTime(stage);
 	return (
 		<p className="work-stage m-0 text-muted-foreground text-xs">
-			{label} {ended ? "" : "for "}
-			<Age modified={entered} short />
-			{ended ? " ago" : ""}
+			{ended ? `${label} ` : `${label} since `}
+			<Time at={entered} className="relative z-10" />
 		</p>
 	);
 }

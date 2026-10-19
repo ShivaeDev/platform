@@ -4,11 +4,11 @@ import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Library, LibraryFile } from "#browser/navigation/library.ts";
 import { sentenceLabel, statusLabel } from "#browser/views/statusLabel.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
-import { Age } from "./Age.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import { LoadingRows } from "./loading.tsx";
 import type { ShellApi } from "./ShellApi.ts";
+import { Time } from "./Time.tsx";
 export function LibraryContents({
 	api,
 	data,
@@ -65,7 +65,9 @@ function DocumentList({ files }: { readonly files: readonly LibraryFile[] }) {
 							{file.status ? ` · ${statusLabel(file.status)}` : ""}
 						</p>
 					</div>
-					<Age modified={file.modified} />
+					<span className="shrink-0 text-muted-foreground text-xs" data-updated>
+						Updated <Time at={file.modified} />
+					</span>
 				</li>
 			))}
 		</ul>

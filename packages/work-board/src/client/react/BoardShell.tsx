@@ -4,7 +4,6 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { BrowserClient } from "#client/client.ts";
-import { AgeTicker } from "./AgeLabel.tsx";
 import { FleetMain } from "./FleetMain.tsx";
 import { FormContext } from "./FormContext.ts";
 import { Header } from "./Header.tsx";
@@ -23,6 +22,7 @@ import { ShellLiveStatus } from "./ShellLiveStatus.tsx";
 import { Sidebar } from "./Sidebar.tsx";
 import { shellIds } from "./shellIds.ts";
 import { ThemeContext } from "./ThemeContext.ts";
+import { TimeTicker } from "./Time.tsx";
 import { UpdatesToggle } from "./UpdatesToggle.tsx";
 import { useAppearance } from "./useAppearance.ts";
 import { useBoardNavigation } from "./useBoardNavigation.ts";
@@ -89,7 +89,7 @@ function BoardWorkspace(
 	}, [ready, data, main, element]);
 	const live = <ShellLiveStatus client={client} failed={Option.isSome(query.cause)} pending={query.pending} />;
 	const content = (
-		<AgeTicker>
+		<TimeTicker>
 			<ReadingLibrary api={api}>
 				<a className="sr-only rounded-md bg-background p-3 focus:not-sr-only focus:absolute focus:z-50" href="#doc">
 					Skip to content
@@ -142,7 +142,7 @@ function BoardWorkspace(
 					toggleSidebar={sidebar.toggle}
 				/>
 			</ReadingLibrary>
-		</AgeTicker>
+		</TimeTicker>
 	);
 	return client ? <FormContext.Provider value={client}>{content}</FormContext.Provider> : content;
 }

@@ -55,13 +55,7 @@ function summary(counts: readonly { readonly count: number; readonly title: stri
 	}
 	return result;
 }
-export function boardLayout(
-	counts: readonly { readonly count: number; readonly title: string }[],
-	modified: number,
-	file: string,
-	source: string,
-	layout = false,
-) {
+export function boardLayout(counts: readonly { readonly count: number; readonly title: string }[], file: string, source: string, layout = false) {
 	return (tree: Root) => {
 		const nodes = tree.children.filter((node): node is ElementContent => node.type !== "doctype" && !(node.type === "text" && !node.value.trim()));
 		const lastHeading = nodes.findLastIndex((node) => node.type === "element" && /^h[1-6]$/u.test(node.tagName));
@@ -90,9 +84,7 @@ export function boardLayout(
 			tree.children = [draft.header, draft.board];
 			return;
 		}
-		const age = element("span", [{ type: "text", value: `updated ${new Date(modified).toISOString()}` }], "age");
-		age.properties.dataModified = modified;
-		draft.header.children.push(summary(counts), element("p", [age], "meta"));
+		draft.header.children.push(summary(counts));
 		tree.children = [draft.header, draft.board, ...footer];
 	};
 }

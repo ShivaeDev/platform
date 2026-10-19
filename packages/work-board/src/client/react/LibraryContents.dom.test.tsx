@@ -15,7 +15,7 @@ screenStory.it(
 		}),
 	],
 	function* ({ readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText('#doc li:has(a[href="/note.md"]) [data-modified]')).toBe("updated 2h ago")));
+		yield* Effect.promise(() => eventually(() => expect(readText('#doc li:has(a[href="/note.md"]) [data-updated]')).toBe("Updated 2h ago")));
 	},
 );
 const files = [

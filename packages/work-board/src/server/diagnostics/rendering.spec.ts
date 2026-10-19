@@ -87,14 +87,14 @@ boardStory.it(
 		const rest = github.slice(github.indexOf('data-resource="core"'), github.indexOf('data-resource="graphql"'));
 		expect(rest).toContain("<dt>REST API</dt>");
 		expect(rest).toContain("4321 of 5000</strong> requests left");
-		expect(rest).toContain("Checked <time");
-		expect(rest).toContain("1 min ago");
+		expect(rest).toContain(">1m ago</time>");
 		expect(rest).not.toContain("Resumes");
 		const graphql = github.slice(github.indexOf('data-resource="graphql"'), github.indexOf('data-resource="search"'));
 		expect(graphql).toContain("<dt>GraphQL API</dt>");
 		expect(graphql).toContain("0 of 5000");
 		expect(graphql).toContain("<strong>GitHub is blocking requests</strong>. Resumes");
-		expect(graphql).toContain("5 min ago");
+		expect(graphql).toContain(">5m ago</time>");
+		expect(graphql).toContain(">in 10m</time>");
 		const search = github.slice(github.indexOf('data-resource="search"'));
 		expect(search).toContain("<dt>Search API</dt>");
 		expect(search).toContain("5 of 30");
@@ -116,7 +116,7 @@ boardStory.it(
 		const fleet = html.slice(html.indexOf('data-source="fleet"'));
 		expect(fleet).toContain('data-state="stale"');
 		expect(fleet).toContain(">Stale</span>");
-		expect(fleet).toContain(`Last checked <time dateTime="${new Date(now).toISOString()}"`);
+		expect(fleet).toContain(`dateTime="${new Date(now).toISOString()}">2m ago</time>`);
 		expect(fleet).not.toContain(new Date(now + 120_000).toISOString());
 	},
 );
@@ -133,9 +133,7 @@ boardStory.it(
 		expect(html).toContain("<h3>5-hour limit</h3>");
 		expect(html).toContain("<h3>Weekly limit</h3>");
 		expect(html).toContain("Codex usage");
-		expect(html).toContain(
-			`in 3 h, ${new Date(codexResponse.rateLimits.primary.resetsAt * 1000).toLocaleTimeString(undefined, { hour: "2-digit", hour12: false, minute: "2-digit" })}`,
-		);
+		expect(html).toContain(`dateTime="${new Date(codexResponse.rateLimits.primary.resetsAt * 1000).toISOString()}">in 3h</time>`);
 	},
 );
 for (const [minutes, label] of [

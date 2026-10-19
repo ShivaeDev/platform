@@ -75,8 +75,7 @@ export function ProjectionFrame<A, E>({
 				records.some(
 					(record) =>
 						record.target instanceof Element
-						&& (record.target.matches(".document-layout, .board[data-source]") || record.target.closest("article.doc, .item-introduction"))
-						&& !record.target.closest(".age"),
+						&& (record.target.matches(".document-layout, .board[data-source]") || record.target.closest("article.doc, .item-introduction")),
 				)
 			) {
 				announce();
