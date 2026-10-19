@@ -34,6 +34,7 @@ const configuredPrompt = Effect.fn("Guidance.configuredPrompt")(function* (
 		Effect.provide(hostPolicy(host).pipe(Layer.provide(staticConfig(host)))),
 		Effect.provideService(MainSource, {
 			current: Effect.succeed(MAIN),
+			latest: Effect.succeed(MAIN),
 			observe: () => Effect.die("Guidance does not observe main"),
 			refresh: Effect.succeed(MAIN),
 			repositoryRoot: board,

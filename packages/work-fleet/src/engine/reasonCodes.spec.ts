@@ -36,6 +36,13 @@ describe("stable decision codes", () => {
 		expect(copy.reason).toBe(`Fleet stopped and needs your decision.\n\nDetails: ${ready.reason}`);
 		expect(decisionAnswer(copy)).toContain(':::option{id="retry"}');
 	});
+	it("a preparation that main left behind says main moved, while a local-only criterion keeps its own explanation", () => {
+		const moved = decisionCopy({ ...ready, code: "incomplete-context", reason: "incomplete-context" });
+		expect(moved.reason).toBe("The main branch moved after this task was prepared, and Fleet cannot carry this preparation forward by itself.");
+		expect(moved.reason).not.toContain("cannot reach");
+		const localOnly = decisionCopy({ ...ready, code: "incomplete-context", reason: 'Criteria "evidence" reference private/board' });
+		expect(localOnly.reason).toBe('The task needs information the worker cannot reach.\n\nDetails: Criteria "evidence" reference private/board');
+	});
 	it("wording alone cannot select a release-only rule", () => {
 		expect(decisionAnswer(decisionCopy({ ...ready, code: "fleet-integration" }))).toContain(':::option{id="retry"}');
 		expect(Schema.is(Decision)({ ...ready, code: "unknown-code" })).toBe(false);

@@ -18,16 +18,25 @@ export function localBoardHost(fixture: HostFixture, { ignored = true, inside = 
 	if (ignored) {
 		writeFileSync(join(repositoryRoot, ".gitignore"), "private/board/\n");
 	}
+	const host = { ...fixture.host, boardDir };
+	const parts = { ...fixture.parts, board: board(boardDir), main: fixedMainSource({ repositoryRoot }) };
+	function write(file: string, source: string) {
+		writeFileSync(join(boardDir, file), source);
+	}
 	return {
-		host: { ...fixture.host, boardDir },
-		parts: {
-			...fixture.parts,
-			board: Layer.merge(
-				markdownBoard(boardDir).pipe(Layer.provide(NodeServices.layer)),
-				Layer.succeed(ReportInspection)({ check: () => Effect.void }),
-			),
-			main: fixedMainSource({ repositoryRoot }),
+		fixture: (files: Readonly<Record<string, string>>): HostFixture => {
+			for (const [file, source] of Object.entries(files)) {
+				write(file, source);
+			}
+			return { ...fixture, host, parts, write };
 		},
-		write: (source: string) => writeFileSync(join(boardDir, "one.md"), source),
+		host,
+		parts,
+		repositoryRoot,
+		write: (source: string) => write("one.md", source),
 	};
+}
+
+function board(boardDir: string) {
+	return Layer.merge(markdownBoard(boardDir).pipe(Layer.provide(NodeServices.layer)), Layer.succeed(ReportInspection)({ check: () => Effect.void }));
 }
