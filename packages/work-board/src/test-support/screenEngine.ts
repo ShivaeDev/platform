@@ -48,6 +48,7 @@ export interface ScreenEngine {
 	routed?: Awaited<ReturnType<typeof chrome>>;
 	router?: Awaited<ReturnType<typeof renderRouter>>["router"];
 	scrollPosition?: number;
+	serverStopped?: boolean;
 	session?: Effect.Success<ReturnType<typeof mountSession>>;
 	sessionFleetPort?: number;
 	sessionTransport?: SessionTransport;

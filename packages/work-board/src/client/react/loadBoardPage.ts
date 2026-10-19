@@ -1,5 +1,4 @@
 import { isRedirect, type LoaderFnContext, redirect } from "@tanstack/react-router";
-import { Predicate } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
 import type { ShellOptions } from "./BoardShell.tsx";
@@ -43,19 +42,13 @@ export async function loadBoardPage({ context: { shell }, location, abortControl
 			return undefined;
 		}
 		if (documentRoute(location.pathname, home)) {
-			try {
-				const data = await loadQuery(registry, documentQuery(api, url), { abortController });
-				if (data.reading?.board) {
-					await loadProjection(registry, api, "board", url, abortController);
-				}
-				return undefined;
-			} catch (error) {
-				if (!(location.pathname === "/" && Predicate.isTagged(error, "NotFound"))) {
-					throw error;
-				}
-			}
+			await loadQuery(registry, documentQuery(api, url), { abortController });
+			return undefined;
 		}
-		await loadRemaining(registry, api, remainingRoute(location.pathname) ?? "start", url, abortController);
+		const remaining = remainingRoute(location.pathname);
+		if (remaining) {
+			await loadRemaining(registry, api, remaining, url, abortController);
+		}
 		return undefined;
 	} catch (error) {
 		if (mustRethrow(abortController, error)) {

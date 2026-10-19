@@ -8,7 +8,18 @@ export function enginePredictionVerbs(state: EngineStory, tell: (line: string) =
 		}
 		return state.predictionRepository;
 	}
+	function main() {
+		if (state.predictionMain === undefined) {
+			throw new Error("No prediction main configured");
+		}
+		return state.predictionMain;
+	}
 	return {
+		admitPredictionMain: () => {
+			tell("admission records the current main");
+			return main().refresh;
+		},
+		admittedPredictionMain: () => main().current,
 		mergeWatchedPr: (id: string) => {
 			repository().merge(id);
 			tell(`merge ${id}'s PR`);

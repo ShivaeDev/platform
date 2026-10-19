@@ -1,15 +1,15 @@
 import { Cause, Option } from "effect";
-import { FileQuestion } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "#client/react/components/ui/empty.tsx";
 import { DocumentPage } from "./DocumentPage.tsx";
-import { LinkButton } from "./LinkButton.tsx";
+import { documentTitle } from "./documentRoute.ts";
+import { EmptyState } from "./EmptyState.tsx";
 import { LoadingPage } from "./LoadingPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
+import { NotFoundPage } from "./NotFoundPage.tsx";
+import { PageFailure } from "./PageFailure.tsx";
 import { ProjectionMain } from "./ProjectionMain.tsx";
-import { RemainingMain } from "./RemainingMain.tsx";
 import { documentQuery } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
@@ -36,12 +36,9 @@ export function DocumentMain({
 	const terminal = failure?._tag === "Conflict" || failure?._tag === "NotFound";
 	const data = terminal ? undefined : (fresh ?? (retained?.url === url ? retained.data : undefined));
 	const status = readStatus(failure?._tag, Option.isSome(query.cause));
-	const hostRef = useDocumentPage({ data, onPage, pending: query.pending, status, url });
+	const hostRef = useDocumentPage({ data, onPage, pending: query.pending, status, title: documentTitle(url), url });
 	if (data?.reading?.board) {
 		return <ProjectionMain api={api} onPage={onPage} route="board" url={url} />;
-	}
-	if (url === "/" && failure?._tag === "NotFound") {
-		return <RemainingMain api={api} onPage={onPage} route="start" url={url} />;
 	}
 	return (
 		<>
@@ -49,7 +46,7 @@ export function DocumentMain({
 				{data ? (
 					<DocumentPage api={api} document={data} key={data.identity ?? data.file} />
 				) : (
-					<NoDocument failed={Option.isSome(query.cause)} tag={failure?._tag} url={url} />
+					<NoDocument failed={Option.isSome(query.cause)} failure={failure} onRetry={query.refresh} retrying={query.pending} url={url} />
 				)}
 			</main>
 			{data !== undefined && Option.isSome(query.cause) && <p role="status">Refresh failed. Your displayed page is retained.</p>}
@@ -65,41 +62,27 @@ function readStatus(tag: string | undefined, failed: boolean) {
 	}
 	return failed ? "503" : "200";
 }
-function NoDocument({ failed, tag, url }: { readonly failed: boolean; readonly tag: string | undefined; readonly url: string }) {
-	if (tag === "NotFound") {
-		return <MissingPage url={url} />;
+function NoDocument({
+	failed,
+	failure,
+	onRetry,
+	retrying,
+	url,
+}: {
+	readonly failed: boolean;
+	readonly failure: { readonly _tag: string } | undefined;
+	readonly onRetry: () => void;
+	readonly retrying: boolean;
+	readonly url: string;
+}) {
+	if (failure?._tag === "NotFound") {
+		return <NotFoundPage url={url} />;
 	}
 	if (!failed) {
 		return <LoadingPage />;
 	}
-	return (
-		<p className="empty" role="status">
-			{tag === "Conflict"
-				? "The document identity is duplicated. No document was selected. Inspect the project files to resolve the duplicate ID."
-				: "This document could not be opened. Retry the link or reload the page."}
-		</p>
-	);
-}
-function MissingPage({ url }: { readonly url: string }) {
-	const pathname = new URL(url, "http://127.0.0.1").pathname;
-	const item = /^\/_board\/item\/[^/]+\/?$/u.test(pathname);
-	return (
-		<Empty className="mx-auto mt-8 max-w-xl border">
-			<EmptyHeader role="status">
-				<EmptyMedia variant="icon">
-					<FileQuestion />
-				</EmptyMedia>
-				<EmptyTitle>{item ? "Item not found" : "File not found"}</EmptyTitle>
-				<EmptyDescription>
-					{item
-						? `No item has the ID ${decodeURIComponent(pathname.split("/")[3] ?? "")}. It may be missing, renamed, or invalid.`
-						: `No Markdown file at ${decodeURIComponent(pathname.slice(1))}. It may have been moved or deleted.`}
-				</EmptyDescription>
-			</EmptyHeader>
-			<EmptyContent className="flex-row justify-center">
-				<LinkButton href="/">Back to Today</LinkButton>
-				<LinkButton href="/_board/library">Browse the Library</LinkButton>
-			</EmptyContent>
-		</Empty>
-	);
+	if (failure?._tag === "Conflict") {
+		return <EmptyState title="Two items share this ID">Give each item its own ID in its file, then open the link again.</EmptyState>;
+	}
+	return <PageFailure failure={failure} onRetry={onRetry} retrying={retrying} />;
 }

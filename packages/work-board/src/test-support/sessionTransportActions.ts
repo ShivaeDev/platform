@@ -41,5 +41,9 @@ export function sessionTransportActions(engine: ScreenEngine, tell: (line: strin
 			tell(`native command delivery becomes ${offline ? "unavailable" : "available"}`);
 			boundary().offline = offline;
 		},
+		setSessionServer: (answering: boolean) => {
+			tell(answering ? "the Board server answers again" : "the Board server stops answering");
+			engine.serverStopped = !answering;
+		},
 	};
 }

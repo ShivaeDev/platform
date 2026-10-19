@@ -1,4 +1,4 @@
-import { Effect, Layer, Option } from "effect";
+import { Duration, Effect, Exit, Layer, Option } from "effect";
 import type { Headers } from "effect/http";
 import { type AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
 import {
@@ -11,6 +11,7 @@ import {
 } from "#rpc/identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#rpc/middleware.ts";
 import { type OriginPolicy, originRequest } from "./origin.ts";
+import { revalidateStream } from "./revalidateStream.ts";
 import { transportHeaders } from "./transportHeaders.ts";
 export interface SessionShape {
 	readonly user: {
@@ -23,6 +24,7 @@ export interface SessionProvider<TSession extends SessionShape> {
 export interface SessionPolicy<TSession extends SessionShape> {
 	readonly origin: OriginPolicy;
 	readonly provider: SessionProvider<TSession>;
+	readonly streamRevalidationInterval?: Duration.Input | undefined;
 }
 export const resolveSession: <TSession extends SessionShape>(
 	policy: SessionPolicy<TSession>,
@@ -48,7 +50,11 @@ export function authenticatedLayer<TSession extends SessionShape>(policy: Sessio
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
 			const id = yield* identified(session.value.user.id);
-			return yield* effect.pipe(Effect.provideService(Identity, { id }), Effect.annotateLogs({ userId: id }));
+			return yield* effect.pipe(
+				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
+				Effect.provideService(Identity, { id }),
+				Effect.annotateLogs({ userId: id }),
+			);
 		}),
 	);
 }
@@ -60,7 +66,11 @@ export function maybeAuthenticatedLayer<TSession extends SessionShape>(policy: S
 				return yield* Effect.provideService(effect, OptionalIdentity, Option.none());
 			}
 			const id = yield* identified(session.value.user.id);
-			return yield* effect.pipe(Effect.provideService(OptionalIdentity, Option.some({ id })), Effect.annotateLogs({ userId: id }));
+			return yield* effect.pipe(
+				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
+				Effect.provideService(OptionalIdentity, Option.some({ id })),
+				Effect.annotateLogs({ userId: id }),
+			);
 		}),
 	);
 }
@@ -89,7 +99,13 @@ export function withSessionUser<TSession extends UserSessionShape>(policy: Sessi
 		});
 }
 export function authenticatedUserLayer<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<AuthenticatedUser> {
-	return Layer.succeed(AuthenticatedUser, (effect, { headers, rpc }) => effect.pipe(withSessionUser(policy, headers, rpc._tag)));
+	return Layer.succeed(AuthenticatedUser, (effect, { headers, rpc }) =>
+		effect.pipe(
+			(invocation) =>
+				Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)))),
+			withSessionUser(policy, headers, rpc._tag),
+		),
+	);
 }
 
 export interface ProviderAccountsSessionShape extends UserSessionShape {
@@ -105,12 +121,14 @@ export function authenticatedUserWithProviderAccountsLayer<TSession extends Prov
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
 			const { id, name, email, role, providerAccounts } = session.value.user;
-			const accounts = yield* Effect.cached(
+			const accounts = yield* Effect.cachedWithTTL(
 				Effect.map(providerAccounts, (values) => values.map(({ accountId, providerId }) => ({ accountId, providerId }))),
+				(exit) => (Exit.isSuccess(exit) ? Duration.infinity : Duration.zero),
 			);
 			const user = { email, id, name, ...(role === undefined ? {} : { role }) };
 			yield* identified(id);
 			return yield* effect.pipe(
+				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
 				Effect.provideService(Identity, { id }),
 				Effect.provideService(SessionUser, user),
 				Effect.provideService(SessionUserWithProviderAccounts, { ...user, providerAccounts: accounts }),

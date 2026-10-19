@@ -23,7 +23,7 @@ export function mergePrediction(read: GithubRead, main: typeof MainSource.Servic
 		);
 		const own = prs.find((pr) => pr.url === prUrl);
 		const open = prs.filter((pr) => pr.state === "open" && pr.url !== prUrl);
-		const snapshot = yield* main.refresh;
+		const snapshot = yield* main.latest;
 		const observedAt = new Date(yield* Clock.currentTimeMillis).toISOString();
 		const conflicts: MergePrediction["conflicts"][number][] = [];
 		if (own?.state === "open" && main.mergeConflicts !== undefined) {

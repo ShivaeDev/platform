@@ -4,12 +4,20 @@ import { board as boardApi } from "@shivaedev/work-board/server/integration/boar
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { decisionAnswer } from "#board/decisionAnswer.ts";
 import type { BoardDocument } from "#board/documents.ts";
-import { recordBoardSource } from "#board/readPass.ts";
+import { recordBoardSource, withBoardReadPass } from "#board/readPass.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { type DecisionCopy, decisionCopy } from "#engine/decisionCopy.ts";
 import { BoardFailure, type BoardWork, type Decision } from "#policy.ts";
 
 const { publish, questionFrom, questionId, questionMarkdown, revisionOf } = responses;
+
+function publicationFailure(message: string, cause: Error): BoardFailure {
+	const details: string[] = [];
+	for (let current: unknown = cause; current instanceof Error; current = current.cause) {
+		details.push(current.message);
+	}
+	return Object.defineProperty(new BoardFailure({ message: `${message}: ${details.join("; ")}` }), "cause", { value: cause });
+}
 
 function quoted(text: string): string {
 	const fence = "~".repeat(Math.max(3, ...Array.from(text.matchAll(/~+/gu), (match) => match[0].length + 1)));
@@ -70,7 +78,7 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 			workSourcePath,
 		};
 		yield* publish(root, realRoot, itemId, context).pipe(
-			Effect.mapError(() => new BoardFailure({ message: "Fleet decision source could not be recorded on Board." })),
+			Effect.mapError((cause) => publicationFailure("Fleet decision source could not be recorded on Board", cause)),
 		);
 		yield* recordBoardSource(realRoot, sourcePath, context, parsed);
 		const all = yield* documents;
@@ -91,9 +99,19 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 				source: sourcePath,
 			},
 		};
-		const questionSource = questionMarkdown(question);
-		yield* publish(root, realRoot, id, questionSource).pipe(
-			Effect.mapError(() => new BoardFailure({ message: "Fleet decision question could not be registered on Board." })),
+		const candidate = questionMarkdown(question);
+		const questionSource = yield* publish(root, realRoot, id, candidate).pipe(
+			Effect.as(candidate),
+			Effect.catchTag("Conflict", (cause) =>
+				Effect.gen(function* () {
+					const saved = (yield* withBoardReadPass(documents)).find((document) => questionFrom(document)?.id === id);
+					if (saved === undefined || questionFrom(saved)?.context !== context) {
+						return yield* Effect.fail(cause);
+					}
+					return yield* publish(root, realRoot, id, saved.source).pipe(Effect.as(saved.source));
+				}),
+			),
+			Effect.mapError((cause) => publicationFailure("Fleet decision question could not be registered on Board", cause)),
 		);
 		yield* recordBoardSource(realRoot, `responses/${id}.md`, questionSource);
 		return receipt;
