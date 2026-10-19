@@ -9,23 +9,26 @@ The [README](../README.md) introduces the gate. This page explains how the basel
 {"path":"src/server/db.ts","rule":"structure/max-lines","count":262}
 ```
 
-The baseline is a JSON Lines file with one entry per line: the violations of one rule in one file. `count` is how many violations the file may have. For a rule that counts occurrences, such as `comments/no-jsdoc`, that is the number of occurrences. For a rule with a limit, it is the amount over the limit: the entry above lets `src/server/db.ts` have 412 lines under a limit of 150. A new baseline is sorted by path and then rule. Later edits preserve unrelated lines, including their formatting and order, so the diff shows the entries that changed.
+The baseline is sharded: `packages/<package>/quality-baseline.jsonl` holds paths inside that package, and the root `quality-baseline.jsonl` holds all other paths. Packages without entries have no file. Each shard is JSON Lines with one entry per line: the violations of one rule in one file. `count` is how many violations the file may have. For a rule that counts occurrences, such as `comments/no-jsdoc`, that is the number of occurrences. For a rule with a limit, it is the amount over the limit: the entry above lets `src/server/db.ts` have 412 lines under a limit of 150. A new baseline is sorted by path and then rule. Later edits preserve unrelated lines, including their formatting and order, so the diff shows the entries that changed.
 
 `quality lint` fails when a baselined file has more violations than its `count`; the report then lists all of that file's violations for the rule. A file at or below its entry passes. An entry that allows more than is left, including a file with no violations left, is listed as a note and does not fail, so fixing debt never breaks the build; `tighten` and `prune` lower it. An entry for an unknown rule fails until it is pruned.
 
 - `quality baseline write` records every error-level violation when there is no baseline yet. Once a baseline exists it refuses, unless `--rule <id>` names the rules to record: it then replaces the entries of those rules with what the files have now, and leaves every other entry as it is.
 - `quality baseline tighten` lowers and removes the entries of files changed since `HEAD`, and with `--staged`, of the files staged for the next commit. It carries the entry of a file that git sees as moved to the new path. Every other line stays byte for byte.
 - `quality baseline prune` does the same for every entry. It carries the entries of files moved since the merge base (see `--against` under [Command line](../README.md#command-line)), and prunes without following moves outside a git work tree.
-- `quality baseline migrate` moves a baseline from the earlier JSON format, `quality/baseline.json` or the file `--from` names, to the configured file, and removes the old one. An old entry that stored a size, such as a line count, becomes that size less the rule's current limit; an entry whose file is now within the limit is dropped.
+- `quality baseline migrate` moves a baseline from the earlier JSON format, `quality/baseline.json` or the file `--from` names, to the root and package shards, and removes the old one. `--from quality/baseline.jsonl` splits a single JSON Lines baseline without changing its counts. An old entry that stored a size, such as a line count, becomes that size less the rule's current limit; an entry whose file is now within the limit is dropped.
 
 Neither `tighten` nor `prune` ever adds or raises an entry. They lower an entry to what its file has now, and remove it when that is 0. A moved file's entry keeps the lower of its old count and what the file has now. A move is seen when both of its sides are tracked, as after `git mv`; git's rename detection decides what counts as a move.
+
+Git merges shards through the driver described in the [README](../README.md#baseline-merges). `quality baseline install-driver` configures the current checkout; deletions win and retained counts take the minimum.
 
 ### Pre-commit
 
 Lowering entries in the commit that fixes them keeps the baseline current. Run these commands explicitly before committing:
 
 ```sh
-quality baseline tighten --staged && git add quality/baseline.jsonl
+quality baseline tighten --staged
+git add -- '**/quality-baseline.jsonl' quality-baseline.jsonl
 quality lint
 ```
 
