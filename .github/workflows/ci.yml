@@ -78,7 +78,7 @@ jobs:
           pnpm --filter @shivaedev/work-board test
           src/server/liveDelivery.spec.ts
           src/server/files
-          src/test-support/filesystemBoundaries.spec.ts
+          src/filesystemBoundaries.spec.ts
           src/server/liveUpdates.spec.ts
           src/server/http/home.spec.ts
           src/server/http/server.spec.ts

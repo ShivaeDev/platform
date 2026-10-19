@@ -1,21 +1,14 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { chromeFixture } from "#test/chromeFixture.ts";
 import { screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
-function fixtures() {
-	return {
-		"home.md": "# Home\n",
-		"notes/deep/proof.md": "# Proof\n\nSecond phrase.\n",
-		"notes/plan.md": "# Plan\n\nThe first passage.\n\n<details><summary>Evidence</summary>Source evidence.</details>\n",
-		"other/note.md": "# Other\n",
-	};
-}
 {
-	const files = fixtures();
+	const files = chromeFixture();
 	screenStory.it(
 		"searches native query results, chooses a passage, refreshes and searches again after reload",
 		[screenWorkspace("reading-fixture"), chromeScreen(files)],
@@ -46,7 +39,7 @@ function fixtures() {
 	);
 }
 {
-	const files = fixtures();
+	const files = chromeFixture();
 	screenStory.it(
 		"saves appearance and sidebar choices through a document refresh and reload",
 		[screenWorkspace("reading-fixture"), chromeScreen(files)],
@@ -70,7 +63,7 @@ function fixtures() {
 	);
 }
 {
-	const files = fixtures();
+	const files = chromeFixture();
 	screenStory.it(
 		"keeps favorites, recents and per-entry reading details through refresh, back and reload",
 		[screenWorkspace("reading-fixture"), chromeScreen(files)],

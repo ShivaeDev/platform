@@ -1,16 +1,20 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { boardStory, readerAt, responsesEnabled } from "#test/boardStory.ts";
 import { formEvent } from "#test/formEvent.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
 import { waitFor } from "#test/live.ts";
-import { waitForLibraryCount } from "#test/nativeRpc.ts";
+import { libraryCount } from "#test/nativeRpc.ts";
 import { anAnswerForm, anOpenQuestion, aRememberedAuthor } from "#test/storyTraits.ts";
+
+const EXPECTED_LIBRARY_COUNT = 3;
 
 boardStory.it(
 	"records a recommended option from the item page and updates the live Inbox badge",
 	[anOpenQuestion(), responsesEnabled(), readerAt("/_board/item/question.storage/"), anAnswerForm(), aRememberedAuthor("Casey")],
-	function* ({ page, reader, saveAnswer }) {
+	function* ({ page, reader, savedAnswer, notes }) {
 		expect(page.document.querySelectorAll("input:checked")).toHaveLength(0);
 		const clear = page.document.querySelector("[data-clear-choices]");
 		if (!(clear instanceof page.window.HTMLButtonElement)) {
@@ -19,7 +23,13 @@ boardStory.it(
 		expect(clear.nextElementSibling?.tagName).toBe("LABEL");
 		yield* reader.chooseOption("option-1");
 		expect(page.document.querySelector('[data-choice="option-1"]')?.getAttribute("aria-checked")).toBe("true");
-		const response = yield* saveAnswer();
+		yield* reader.preview();
+		expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
+		yield* reader.submit();
+		yield* Effect.promise(() => waitFor(() => expect(reader.responseStatus()).toContain("Saved:")));
+		yield* Effect.promise(() => waitFor(() => expect(reader.inboxCounts()).toEqual(["0", "0"])));
+		expect(readFileSync(join(notes.root, "question.md"), "utf8")).toBe(inboxQuestion);
+		const response = savedAnswer();
 		expect(response.fields.kind).toBe("response");
 		expect(response.fields.response?.answers?.[0]?.selected).toEqual(["option-1"]);
 		expect(response.body).toContain("Keep local files");
@@ -38,7 +48,7 @@ boardStory.it(
 			expect(page.document.querySelector(`[name="${name}"]`)?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 		}
 		editFile("other.md", inboxQuestion.replace("question.storage", "question.backup"));
-		yield* waitForLibraryCount(board, 3);
+		yield* Effect.promise(() => waitFor(async () => expect(await Effect.runPromise(libraryCount(board))).toBe(EXPECTED_LIBRARY_COUNT)));
 		yield* reader.follow("/other.md");
 		yield* Effect.promise(() =>
 			waitFor(() => expect(page.document.getElementById("response-form")?.getAttribute("data-item")).toBe("question.backup")),
@@ -50,9 +60,15 @@ boardStory.it(
 boardStory.it(
 	"records a free-text answer and returns an edited question to the Inbox",
 	[anOpenQuestion(), responsesEnabled(), readerAt("/_board/item/question.storage/"), anAnswerForm(), aRememberedAuthor("Casey")],
-	function* ({ page, reader, editFile, saveAnswer }) {
+	function* ({ page, reader, editFile, savedAnswer, notes }) {
 		yield* reader.enterAnswer("Keep files and add an export later.");
-		const response = yield* saveAnswer();
+		yield* reader.preview();
+		expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
+		yield* reader.submit();
+		yield* Effect.promise(() => waitFor(() => expect(reader.responseStatus()).toContain("Saved:")));
+		yield* Effect.promise(() => waitFor(() => expect(reader.inboxCounts()).toEqual(["0", "0"])));
+		expect(readFileSync(join(notes.root, "question.md"), "utf8")).toBe(inboxQuestion);
+		const response = savedAnswer();
 		expect(response.fields.response?.answers?.[0]).toMatchObject({ selected: [], text: "Keep files and add an export later." });
 		editFile("question.md", `${inboxQuestion}\nWhat about backups?`);
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("inbox-count")?.textContent).toBe("1")));
