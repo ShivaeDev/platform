@@ -1,5 +1,64 @@
 # Changelog
 
+## 0.21.6 - 2026-10-19
+
+### Added
+
+- The goals query returns each goal's open `asks` with a link to each answer card, and each linked item's file `modified` time and `waiting` reason.
+- Search results carry a `match` field: `exact`, `prefix`, `title` or `text`.
+- The empty search palette lists what needs you at the top, so Enter opens it.
+
+### Changed
+
+- Every time on the Board reads the same way: "just now" under a minute, relative under a week, such as "4m ago", and a short local date after, such as "Oct 13, 09:35", with the year only when it differs. This covers Today rows, Now cards, Library, the Source tab, response history, workspace notes and System, which used to mix raw ISO timestamps, UTC strings and their own relative formats.
+- Times use the regular sans font. On the Source tab records, System and the document context panel, pointing at, tapping or pressing Enter on a time shows its exact date, time and time zone, so keyboard and touch readers can reach it too. In list rows a time stays plain text, so each row keeps its link as its only Tab stop.
+- Fleet card stages read "Executing, started 4h ago" instead of "Executing for 4h", while queued and finished stages read "Queued 4h ago" and "Done 4h ago".
+- Documents with sections keep an "On this page" outline beside the text on wide screens. It stays in view while the reader scrolls. Narrow screens show an **On this page** button in the page header that opens the outline.
+- The pinned header on item and document pages shrinks to a one-line title while the reader scrolls. The text below does not move when the header shrinks.
+- Item criteria render inline Markdown such as code, emphasis and links. Lists of more than three criteria, or criteria with long text, show in the main column after the body instead of in the details panel.
+- `PR #123` and `PR 123` in an item's next action link to that pull request when every Fleet pull request is in one repository.
+- The goal chart labels each row with its criterion text, cut to fit, and links it to that criterion's card. The "All work" row is gone, since the progress bar above already shows it.
+- Counts sit on the bars, so a phone reader no longer needs the tooltip. A segment too narrow for its number leaves it to the tooltip.
+- A criterion without linked work stays in the chart as an empty row that says "No linked work".
+- The chart shows a focus ring when it has keyboard focus, and its labels use the foreground color in both themes.
+- The chart and Recharts load only on a goal page that shows the chart, which cuts the first bundle from 1.47 MB to 1.10 MB before compression. A skeleton holds the chart's height while it loads. If the chunk cannot be fetched, the page says so and asks for a reload; progress and criteria stay readable.
+- A goal page links its open asks in amber: one ask goes straight to its answer card, and several open a short list of links. Zero counts in the progress legend are muted, so amber appears only when something needs you.
+- Linked work that is not done and has an open ask counts as Needs you, so the Needs you count and the open asks agree.
+- Deferred work counts in the Planned table group, so each table group matches its count in the progress header.
+- Criteria render as cards with a one-line count summary, and their linked items sit in a disclosure that starts closed. The Planned and Done tables also start closed, which keeps long goal pages short.
+- The In progress table shows each item's owner and when it last changed.
+- A goal with no linked work shows an empty state instead of zero progress and an empty Linked work section.
+- Item pages show relationships in two groups, **Links to** and **Linked from**, with labels read from the item's side: Depends on and Needed by, Implements and Implemented by, Informs and Informed by, Related to. Incoming kinds such as Agent handoff and Listed on board use sentence case, and declared board items join the **Links to** group.
+- Relationship links are underlined, and on touch screens each link is at least 44px tall.
+- In the search palette, a row whose title or ID matches the query exactly, or starts with a query of two or more words, comes first whatever its group, including plain documents. The other groups follow their best match. An empty query keeps the fixed group order with Needs you first.
+- Exact and starts-with matches rank ahead of the 40-result limit, so many work items that only mention the words can no longer push them out.
+- Search results and the Library show the kind `project` as Goal, and show every kind in sentence case.
+- The phone navigation's Today tab shows the same needs-you count as the sidebar, as a badge, and names it for screen readers, such as "Today, 4 need you".
+- The sidebar, top bar and phone tab share one needs-you badge, in the needs-you colour when the count is above zero.
+- The sidebar leaves out Active goals while Today is open, because Today already lists them.
+- While a page waits for its data, the Board shows a skeleton shaped like that page (lanes, table, cards, rows or document) instead of "Opening view…" or a blank page. Sections that load on their own, such as Fleet work, linked work and folders, show row skeletons.
+- Empty lists, lanes, tables, search results and sidebar sections show an empty state that says what is empty, what fills it and, where one exists, a next step such as All goals, All work, Clear filters, Show all documents or Include files Fleet writes. A workspace with no work shows one empty state instead of six empty lanes, and a filtered table with no matches no longer shows a header-only table.
+- System uses plain labels: "Codex usage", "GitHub request limits", "5-hour limit", "Weekly limit", "REST API", "4321 of 5000 requests left", "Files with problems" and stage names such as "Executing" instead of raw keys.
+- Library says what each control does: "By title", "By folder", "Recently changed", "Include files Fleet writes (N)", and shows kinds in plain words.
+- Status chips use 12px text instead of 10px, so they read on a phone.
+- The Needs you chip is solid amber with dark text in both themes, the strongest signal on the page. Every other status keeps a quiet tint, which now stays at least 4.5:1 when the row behind it is hovered or selected.
+
+### Fixed
+
+- While Fleet isn't ready, the Now page's Done lane shows no count and says it needs Fleet, instead of a `0` and "Nothing here" that read as nothing finished. The Fleet notice above the lanes uses the Board's one "Fleet isn't running" sentence and offers **How to start Fleet** when the daemon is stopped.
+- When the Board server stops answering, a page now says "The Board server isn't answering" with a Retry button instead of showing `HttpError:`. Other read failures say the page couldn't be opened and offer Retry and System.
+- The breadcrumb and browser title keep the page's name, file path or item ID when its data fails to load.
+- An unknown `/_board/*` or other non-document URL shows the not-found page instead of the Templates page.
+- A file or item link with invalid percent-encoding, such as `/notes/broken%E0.md`, shows the not-found page instead of crashing.
+- A result link that names no single result, a handoff for a missing item and an item ID shared by two files now explain the problem in plain words, without error type names.
+- Search puts an exact title or ID match first, then other title and ID matches, ahead of open work that only mentions the words. An ID also matches by its last segment, so "answer card" finds `board.answer-card`.
+- Search snippets show inline Markdown as plain text and mark the searched words.
+- A result list cut short at 40 asks for more words or an ID.
+- On phones, the header says when updates are paused, a refresh failed or the connection is reconnecting, with an icon and a short word that screen readers announce. It stays empty while nothing is wrong.
+- Items with status `dropped` count as closed: they leave Needs you and every needs-you count, and managed asks that target only dropped work resolve. One shared list of closed statuses now drives Needs you, goal progress and Now.
+- Deferred goals no longer count as active. The goals query returns them in a new `deferredGoals` list, the Goals page shows them in a collapsed Deferred goals section, and Today, the sidebar and the active-goal counts leave them out. The MCP overview carries `deferredGoals` as well.
+- Today's In progress falls back to the task files when Fleet is unavailable, the same way Now does. Rows say Task file, the section says the status comes from the task files and not live Fleet, and the summary reads "N in progress in task files". The `fleetItems` query carries this list as `authored` on its unavailable state.
+
 ## 0.21.5 - 2026-10-19
 
 ### Changed

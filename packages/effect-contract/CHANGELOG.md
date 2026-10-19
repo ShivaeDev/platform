@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.0 - 2026-10-19
+
+### Added
+
+- `authorizeReads` accepts typed policy failures and preserves them in the query's error channel. Declare those errors in the native RPC middleware's error schema alongside its denial so clients can distinguish an outage from denied access.
+- `ReadPolicyMemoWindow`, a `Context.Reference<Duration.Input>`, configures per-subscription, per-key memoisation of successful policy results. The default is one second; provide a shorter duration or `0` to disable it. Queries always check afresh, and failures are never memoised.
+- Coalesce live changed hints over a default 20 ms window, with one follow-up read when hints arrive during an in-flight refetch. Configure `live()` with `coalesceWindow`, or set its returned `coalesceWindow` atom; zero retains immediate invalidation. Reconciliation stays immediate.
+- Configure automatic live connections per React `SessionBoundary` with `liveCoalesceWindow`.
+
+### Fixed
+
+- Failed live hint checks omit the affected keys and keep the stream open. Scoped rechecks after one second deliver an allowed key after recovery without another change or reconnect; a `false` does not schedule a recheck.
+
+### Breaking
+
+- Direct readers of `ReadPolicy` now receive `Effect<boolean, unknown>` instead of an infallible Effect. Handle its error channel when invoking the reference directly. Existing infallible policies passed to `authorizeReads` still work; fallible policies should declare their errors in their RPC middleware schema.
+
 ## 0.7.0 - 2026-10-19
 
 ### Added
