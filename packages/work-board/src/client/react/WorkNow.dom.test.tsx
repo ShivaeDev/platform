@@ -58,8 +58,10 @@ for (const [storyCase, fleet] of [undefined, { reason: "Stopped daemon", state: 
 				</FleetItemsContext.Provider>,
 			),
 		],
-		({ read, findElement }) => {
-			expect(read().text).toContain("Fleet is unavailable");
+		({ read, findElement, readText }) => {
+			expect(read().text).toContain("Lanes show the status written in each file.");
+			expect(read().text).not.toContain("How to start Fleet");
+			expect(readText('[aria-label="Done in the last 7 days"]')).toBe("Done in the last 7 daysNeeds Fleet to show finished work.");
 			for (const [index, lane] of nowLanes.entries()) {
 				if (index !== 5) {
 					expect(findElement(`[aria-label="${lane}"] [data-item="task-${index}"]`)).not.toBeNull();

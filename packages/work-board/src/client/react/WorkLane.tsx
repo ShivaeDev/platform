@@ -26,6 +26,7 @@ export function WorkLane({
 	virtual,
 	collapsed,
 	className,
+	unavailable,
 }: {
 	readonly lane: NowLane;
 	readonly rows: WorkProjection["rows"];
@@ -34,21 +35,20 @@ export function WorkLane({
 	readonly virtual: boolean;
 	readonly collapsed: boolean;
 	readonly className?: string | undefined;
+	readonly unavailable?: string | undefined;
 }) {
-	const count = (
+	const count = unavailable === undefined && (
 		<Badge className="work-count shrink-0 tabular-nums" variant="secondary">
 			{rows.length}
 		</Badge>
 	);
 	const list =
-		rows.length > 0 ? (
-			<WorkCardList fleet={fleet} rows={rows} state={state} virtual={virtual} />
+		unavailable === undefined ? (
+			<LaneCards fleet={fleet} lane={lane} rows={rows} state={state} virtual={virtual} />
 		) : (
-			<EmptyState compact title={emptyLanes[lane].title}>
-				{emptyLanes[lane].description}
-			</EmptyState>
+			<p className="m-0 text-muted-foreground text-xs">{unavailable}</p>
 		);
-	if (collapsed) {
+	if (collapsed && unavailable === undefined) {
 		return (
 			<Collapsible render={<section aria-label={lane} className={cn("work-column group/lane min-w-0", className)} />}>
 				<h2 className="m-0 mb-2 flex min-h-8 items-center gap-2 font-medium text-sm">
@@ -71,4 +71,25 @@ export function WorkLane({
 			{list}
 		</section>
 	);
+}
+
+function LaneCards({
+	lane,
+	rows,
+	...list
+}: {
+	readonly lane: NowLane;
+	readonly rows: WorkProjection["rows"];
+	readonly state: State;
+	readonly fleet: ReadonlyMap<string, FleetWork>;
+	readonly virtual: boolean;
+}) {
+	if (rows.length === 0) {
+		return (
+			<EmptyState compact title={emptyLanes[lane].title}>
+				{emptyLanes[lane].description}
+			</EmptyState>
+		);
+	}
+	return <WorkCardList rows={rows} {...list} />;
 }
