@@ -7,18 +7,18 @@ import type { MetadataDocument } from "#server/metadata/model.ts";
 import { documentBody } from "./body.ts";
 import { REVIEWED_WORK_HEADING, reviewedWork } from "./reviewedWork.ts";
 
-export function answerBody(document: MetadataDocument, requests: readonly DocumentRequest[]): string {
+export function answerBody(document: MetadataDocument, requests: readonly DocumentRequest[], fleetTitle?: string): string {
 	const source = documentBody(document);
 	const cards = requests.filter((request) => request.open && request.preview?.source === document.file);
 	const managed = document.parsed.fields.attention?.some((request) => request.managed);
-	const title = managed ? requests[0]?.title : undefined;
+	const title = managed ? (fleetTitle ?? requests[0]?.title) : undefined;
 	if (cards.length === 0 && !title && !managed) {
 		return source;
 	}
 	const tree = unified().use(remarkParse).use(remarkDirective).parse(source);
 	const removed = repeatedReason(tree.children, source, cards);
 	return tree.children
-		.flatMap((node, index) => {
+		.flatMap((node, index): [Node, string][] => {
 			if (
 				removed.has(index)
 				|| promptInCard(node, cards)
@@ -27,15 +27,27 @@ export function answerBody(document: MetadataDocument, requests: readonly Docume
 				return [];
 			}
 			if (index === 0 && node.type === "heading" && node.depth === 1 && title) {
-				return [`# ${title}`];
+				return [[node, `# ${title}`]];
 			}
 			const reviewed = managed && node.type === "code" && underReviewedWork(tree.children[index - 1], source) ? reviewedWork(node.value) : undefined;
 			if (reviewed !== undefined) {
-				return [reviewed];
+				return [[node, reviewed]];
 			}
-			return [source.slice(node.position?.start.offset, node.position?.end.offset)];
+			return [[node, source.slice(node.position?.start.offset, node.position?.end.offset)]];
 		})
+		.filter(([node], index, kept) => !(managed && emptySection(node, kept[index + 1]?.[0])))
+		.map(([, text]) => text)
 		.join("\n\n");
+}
+
+type Node = import("mdast").RootContent;
+
+// A generated packet writes every section heading even when it has nothing to say.
+function emptySection(node: Node, next: Node | undefined) {
+	if (node.type !== "heading" || node.depth !== 2) {
+		return false;
+	}
+	return next === undefined || (next.type === "heading" && next.depth <= 2) || (next.type === "containerDirective" && next.name === "question");
 }
 
 function repeatedReason(nodes: import("mdast").RootContent[], source: string, cards: readonly DocumentRequest[]) {

@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import { Context, Effect, Exit, Layer, Scope } from "effect";
+import { Context, Effect, Exit, Layer, Scope, Stream } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
@@ -18,6 +18,7 @@ export const rawDiagnosticsDaemon = Effect.fn("Test.rawDiagnosticsDaemon")(funct
 	items: (() => FleetItems) | Effect.Effect<FleetItems, ServiceUnavailable> = () => ({ completed: [], items: [] }),
 ) {
 	const handlers = DaemonReadContract.toLayer({
+		"daemon.$changes": () => Stream.never,
 		"daemon.diagnostics": () => Effect.sync(read),
 		"daemon.fleetItems": () => (typeof items === "function" ? Effect.sync(items) : items),
 	});

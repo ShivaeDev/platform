@@ -5,14 +5,15 @@ import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 import { TodayProgress } from "./TodayProgress.tsx";
 
 screenStory.it(
-	"caps Fleet-held work at eight rows with stages, titles, PR links and a Now link",
+	"caps Fleet-held work at eight rows with titles, PR links and a Now link and names no stage",
 	[componentScreen(<TodayProgress data={todayFleetFixture()} failed={false} />)],
 	({ findElements, readText, readAttribute }) => {
 		expect([...findElements("[data-progress-id]")].map((row) => row.getAttribute("data-progress-id"))).toEqual(
 			Array.from({ length: 8 }, (_, index) => `task.sample.${index}`),
 		);
+		expect(readText('[data-progress-id="task.sample.0"]')).toBe("Workspace task 0FleetPR ↗");
 		for (const stage of ["executing", "reviewing", "repairing", "adopting"]) {
-			expect(readText()).toContain(`Fleet · ${stage}`);
+			expect(readText()).not.toContain(stage);
 		}
 		expect(readText("[data-progress-id] a")).toBe("Workspace task 0");
 		expect(readAttribute('a[aria-label="Pull request for Workspace task 0"]', "href")).toBe("https://github.com/example/project/pull/1");
@@ -20,12 +21,16 @@ screenStory.it(
 	},
 );
 
-for (const [storyCase, data] of [undefined, { reason: "Daemon disconnected", state: "unavailable" } as const].entries()) {
+const UNANSWERED = "Fleet on port 3457 didn't answer as expected, so agent work and its health are unknown.";
+for (const [data, status] of [
+	[undefined, "Fleet work unavailable."],
+	[{ reason: UNANSWERED, state: "unavailable" }, UNANSWERED],
+] as const) {
 	screenStory.it(
-		`reports unavailable Fleet work instead of an empty list (${storyCase + 1})`,
+		`reports unavailable Fleet work instead of an empty list: ${status}`,
 		[componentScreen(<TodayProgress data={data} failed />)],
 		({ readText, findElements }) => {
-			expect(readText('[role="status"]')).toContain("unavailable");
+			expect(readText('[role="status"]')).toBe(status);
 			expect(findElements("[data-progress-id]")).toHaveLength(0);
 			expect(readText()).not.toContain("holds no work");
 		},

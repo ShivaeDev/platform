@@ -1,22 +1,9 @@
-import { Effect } from "effect";
+import { Duration, Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
-
-interface Batch {
-	readonly active: () => boolean;
-	readonly seen: Set<() => void>;
-}
-const batches = new WeakMap<Reactivity.Reactivity, Batch>();
-
-export function invalidateLive(reactivity: Reactivity.Reactivity, keys: readonly string[], active: () => boolean) {
-	batches.set(reactivity, { active, seen: new Set() });
-	try {
-		reactivity.invalidateUnsafe(keys);
-	} finally {
-		batches.delete(reactivity);
-	}
-}
+import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
+import { liveBatches, liveKeys } from "./liveInvalidation.ts";
 
 export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 	const service = runtime.atom(Effect.service(Reactivity.Reactivity));
@@ -40,22 +27,50 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 				}
 				const reactivity = context.value;
 				let pending: (() => boolean) | undefined;
-				function invalidate() {
-					const batch = batches.get(reactivity);
-					if (batch !== undefined) {
-						if (batch.seen.has(invalidate)) {
-							return;
-						}
-						batch.seen.add(invalidate);
-						if (get.once(source).waiting) {
-							pending = batch.active;
-							return;
-						}
-					}
+				let timer: ReturnType<typeof setTimeout> | undefined;
+				function clear() {
+					clearTimeout(timer);
+					timer = undefined;
 					pending = undefined;
-					get.refresh(source);
 				}
-				get.addFinalizer(reactivity.registerUnsafe(keys, invalidate));
+				function refresh(active: () => boolean) {
+					if (!active()) {
+						return;
+					}
+					if (get.once(source).waiting) {
+						pending = active;
+					} else {
+						pending = undefined;
+						get.refresh(source);
+					}
+				}
+				function changed() {
+					const batch = liveBatches.get(reactivity);
+					if (batch === undefined || batch.seen.has(changed)) {
+						return;
+					}
+					batch.seen.add(changed);
+					const delay = Duration.toMillis(Duration.fromInputUnsafe(get.once(queryCoalesceWindow(wrapped)) ?? batch.window ?? 0));
+					if (delay === 0) {
+						clear();
+						get.refresh(source);
+					} else {
+						timer ??= setTimeout(() => {
+							timer = undefined;
+							refresh(batch.active);
+						}, delay);
+					}
+				}
+				get.addFinalizer(clear);
+				get.addFinalizer(reactivity.registerUnsafe(liveKeys(keys), changed));
+				get.addFinalizer(
+					reactivity.registerUnsafe(keys, () => {
+						if (!liveBatches.has(reactivity)) {
+							clear();
+							get.refresh(source);
+						}
+					}),
+				);
 				get.subscribe(source, (value) => {
 					get.setSelf(value);
 					if (pending !== undefined && !value.waiting) {

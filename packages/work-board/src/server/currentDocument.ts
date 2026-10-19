@@ -1,4 +1,4 @@
-import type { MetadataDocument } from "#server/metadata/model.ts";
+import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { updateModel } from "#server/metadata/updateModel.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
@@ -10,7 +10,7 @@ interface CurrentDocument {
 
 export function currentDocument(snapshot: Snapshot, file: string, source: string, rootFile?: string): CurrentDocument {
 	const indexed = snapshot.documents.find((entry) => entry.file === file);
-	if (indexed && source === (indexed.parsed.raw ?? "") + indexed.parsed.body) {
+	if (indexed && source === documentSource(indexed)) {
 		return { document: indexed, snapshot };
 	}
 	const document: MetadataDocument = { file, parsed: metadataParse(source) };

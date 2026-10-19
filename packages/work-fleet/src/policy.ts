@@ -1,18 +1,12 @@
 import { Context, type Effect, Schema } from "effect";
 import { AttentionOwner } from "#attention.ts";
-import {
-	type BoardAcknowledgementStale,
-	BoardDecision,
-	type BoardDecisionAcknowledgement,
-	type BoardDecisionReading,
-	type BoardReport,
-} from "#board/schema.ts";
+import type { BoardGatewayService } from "#board/GatewayService.ts";
+import { BoardDecision } from "#board/schema.ts";
 import { DecisionCode } from "#DecisionCode.ts";
 import type { FleetError } from "#errors.ts";
 import type { MergePrediction } from "#MergePrediction.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
-import type { SessionObservation } from "#session/schema.ts";
-import { type LaunchSettings, SessionReceipt } from "#session/schema.ts";
+import { type LaunchSettings, type SessionObservation, SessionReceipt } from "#session/schema.ts";
 import type { OpenPullRequestCurve } from "#storage/model.ts";
 
 export const Priority = Schema.Literals(["urgent", "high", "normal", "low"]);
@@ -69,17 +63,7 @@ export class BoardFailure extends Schema.TaggedError<BoardFailure>()("BoardFailu
 	message: Schema.String,
 	workId: Schema.optional(Schema.String),
 }) {}
-export class BoardGateway extends Context.Service<
-	BoardGateway,
-	{
-		readonly acknowledgeDecision: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure | BoardAcknowledgementStale>;
-		readonly complete?: (workId: string, sourcePath: string, nextAction: string) => Effect.Effect<void, BoardFailure>;
-		readonly get: (workId: string, options?: { readonly fresh?: boolean }) => Effect.Effect<BoardWork, BoardFailure>;
-		readonly decision: (workId: string, decision: Decision, original?: BoardWork) => Effect.Effect<BoardDecision, BoardFailure>;
-		readonly readDecision: (decision: BoardDecision) => Effect.Effect<BoardDecisionReading, BoardFailure>;
-		readonly report: (work: BoardWork, observation: SessionObservation) => Effect.Effect<BoardReport, BoardFailure>;
-	}
->()("@shivaedev/work-fleet/BoardGateway") {}
+export class BoardGateway extends Context.Service<BoardGateway, BoardGatewayService>()("@shivaedev/work-fleet/BoardGateway") {}
 export const ChangeResult = Schema.Struct({
 	head: Schema.String,
 	kind: Schema.Literal("change"),

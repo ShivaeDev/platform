@@ -46,3 +46,6 @@ export const BoardDecisionReading = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Response"), response: RecordedResponse }),
 ]);
 export type BoardDecisionReading = typeof BoardDecisionReading.Type;
+
+export const ClosedDecision = Schema.Struct({ reason: Schema.String, sourcePath: Schema.String, workId: Schema.String });
+export type ClosedDecision = typeof ClosedDecision.Type;

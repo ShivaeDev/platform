@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.13.10 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.13.9 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.13.8 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.13.7 - 2026-10-19
+
+### Fixed
+
+- Exported RPC contracts and application handler layers stay compatible with typed reserved change streams supplied by Platform hosts.
+
 ## 0.13.6 - 2026-10-19
 
 ### Fixed

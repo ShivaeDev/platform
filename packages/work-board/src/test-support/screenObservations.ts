@@ -36,6 +36,13 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 	}
 	return {
 		accessible,
+		answeredRows: () => {
+			tell("the reader reads the Answered list on Today");
+			return elements("ul[aria-label='Answered'] > li").map((row) => [
+				row.querySelector("a")?.textContent,
+				row.querySelector("p")?.getAttribute("title"),
+			]);
+		},
 		count: (selector: string, within?: ParentNode | null) => elements(selector, within).length,
 		findByRole: (role: string, name: string | RegExp, within: ParentNode | null = root()) => {
 			tell(`the reader finds the ${role} named ${name}`);
@@ -72,6 +79,15 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 		readFocus: () => {
 			tell("the reader checks keyboard focus");
 			return document.activeElement;
+		},
+		readOrder: (...selectors: readonly string[]) => {
+			tell(`the reader reads in which order ${selectors.join(", ")} appear`);
+			const found = selectors.flatMap((selector) => {
+				const match = element(selector);
+				return match ? [{ match, selector }] : [];
+			});
+			found.sort((left, right) => (left.match.compareDocumentPosition(right.match) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+			return found.map(({ selector }) => selector);
 		},
 		readPaused: () => {
 			tell("the reader checks whether live updates are paused");

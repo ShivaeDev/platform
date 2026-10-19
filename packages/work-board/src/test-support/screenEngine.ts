@@ -41,6 +41,7 @@ export interface ScreenEngine {
 		scroll: MockInstance<Window["scrollTo"]>;
 	};
 	options?: BoardFixtureOptions | undefined;
+	outline?: { offset: number };
 	path: string;
 	pendingNavigation?: Promise<void> | undefined;
 	readingStatus?: string[];

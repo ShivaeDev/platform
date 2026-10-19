@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.23.1 - 2026-10-19
+
+### Fixed
+
+- Wait for application database query and listener sockets to disconnect before host and worker scopes finish closing.
+
+## 0.23.0 - 2026-10-19
+
+### Added
+
+- `betterAuthMount(options, { signIn })` takes a sign-in policy: provider accounts allowed through `allowedAccounts`, which reads `AUTH_ALLOWED_ACCOUNTS` (such as `github:1001,github:1002`) through Effect Config and the `AllowedAccounts` Schema, and an optional application rule Effect such as an organization membership check. Better Auth's `validateUserInfo` and `session.create.before` hooks refuse a sign-in the policy does not admit with `sign_in_refused`, before a user or session exists.
+- The mount returns `admittedSessions(getSession)`, which rechecks the policy for each resolved session: a user it no longer admits is refused with `Unauthorized` on the next request and loses every stored session. Rule answers are reused for `recheckInterval`, five minutes by default.
+- The mount returns `revokeUnadmitted`, an Effect that revokes the sessions of every user the current policy no longer admits and reports `{ users, sessions }`.
+
+## 0.22.1 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.22.0 - 2026-10-19
+
+### Added
+
+- RPCs declare the role they need as middleware. `AuthenticatedAdmin` and `AuthenticatedOwner` from `rpc/middleware.ts`, with `authenticatedAdminLayer(sessions)` and `authenticatedOwnerLayer(sessions)` from `server/rpc-server/roles.ts`, provide `Identity` and `SessionUser` to the handler and fail in the middleware's error channel with `Unauthorized` when the caller is signed out and `Forbidden` when the role list lacks `admin` or `owner`. Live streams behind them end with `Forbidden` at the next session revalidation after the role is removed. Replace `requireAdmin` calls inside RPC handlers with `.middleware(AuthenticatedAdmin)` on the RPC; `requireAdmin` remains the guard for HTTP routes.
+- `hasRole(user, role)` from `rpc/hasRole.ts` is the browser-safe role check over a user's comma-separated role list that the middleware and `requireAdmin` share.
+
+### Fixed
+
+- Host types account for framework-provided `$changes` handlers, so contracts with typed changes streams compose with application handler layers. Without a changes service, hosts preserve an application-supplied change handler or keep the stream idle. Public configuration handlers leave the reserved stream to the host.
+
 ## 0.21.1 - 2026-10-19
 
 ### Changed

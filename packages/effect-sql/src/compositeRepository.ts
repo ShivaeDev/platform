@@ -4,13 +4,19 @@ import type { Model } from "effect/schema";
 import { type SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { type RepositoryChanges, repositoryChanges } from "#repositoryChanges.ts";
+import type { FindManyFilter } from "#repositoryFilter.ts";
 import { repositoryWrites } from "#repositoryWrites.ts";
 import type { IdColumn, NativeRepository } from "#versionedRepository.ts";
 
 export type CompositeKey<TModel extends Model.Any> = readonly [IdColumn<TModel>, IdColumn<TModel>, ...IdColumn<TModel>[]];
 export type PrimaryKey<TModel extends Model.Any> = IdColumn<TModel> | CompositeKey<TModel>;
+type DeleteWhere<TModel extends Model.Any> = (
+	where: FindManyFilter<TModel>,
+) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][keyof TModel["fields"]]["EncodingServices"]>;
 export type Repository<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = [TId] extends [IdColumn<TModel>]
-	? NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>
+	? Omit<NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>, "delete"> & {
+			readonly delete: NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>["delete"] & DeleteWhere<TModel>;
+		}
 	: TId extends CompositeKey<TModel>
 		? Omit<NativeRepository<TModel, TId[number]>, "findById" | "delete"> & {
 				readonly findById: (
@@ -20,9 +26,10 @@ export type Repository<TModel extends Model.Any, TId extends PrimaryKey<TModel>>
 					SqlError | Schema.SchemaError | Cause.NoSuchElementError,
 					TModel["DecodingServices"] | TModel["fields"][TId[number]]["EncodingServices"]
 				>;
-				readonly delete: (
+				readonly delete: ((
 					id: Pick<TModel["Type"], TId[number]>,
-				) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][TId[number]]["EncodingServices"]>;
+				) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][TId[number]]["EncodingServices"]>) &
+					DeleteWhere<TModel>;
 			}
 		: never;
 

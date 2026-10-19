@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.12.0 - 2026-10-19
+
+### Added
+
+- Choose a live changed-hint coalescing window per bound query with React's `useQuery(atom, { coalesceWindow })`, keeping the session window as the default. Queries over one connection refetch on their own schedules; changing the option does not reconnect or refetch queries.
+- Configure a bound query's window through its registry with `queryCoalesceWindow(query)` from `@shivaedev/effect-contract/queryCoalesceWindow.ts`.
+
+## 0.11.1 - 2026-10-19
+
+### Fixed
+
+- Recheck the session when an automatic live connection fails with `Unauthorized`, so `SessionBoundary` shows its signed-out content without another query read, stops reconnecting while signed out and restores live updates after sign-in.
+
 ## 0.11.0 - 2026-10-19
 
 ### Added

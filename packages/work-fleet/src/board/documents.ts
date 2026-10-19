@@ -6,6 +6,7 @@ import { BoardSnapshot, readSnapshot } from "#board/readPass.ts";
 import { BoardFailure } from "#policy.ts";
 
 const { listMarkdown } = boardApi;
+const READ_CONCURRENCY = 16;
 
 export type BoardDocument = MetadataDocument & { readonly source: string };
 
@@ -33,26 +34,21 @@ const readDocuments = Effect.fn("FleetBoard.readDocuments")(function* (root: str
 			(error) => new BoardFailure({ code: "incomplete-observation", message: `Board sources could not be listed: ${root} (${error.message})` }),
 		),
 	);
-	const problems = new Map<string, BoardFailure>();
-	const documents = yield* Effect.forEach(files, (file) =>
-		readDocument(root, realRoot, file.path).pipe(
-			Effect.map(({ document, problem }) => {
-				if (problem !== undefined) {
-					problems.set(file.path, problem);
-				}
-				return document;
-			}),
-			Effect.catch((error) => {
-				problems.set(file.path, error);
-				return Effect.succeed(undefined);
-			}),
-		),
+	const reads = yield* Effect.forEach(
+		files,
+		(file) =>
+			readDocument(root, realRoot, file.path).pipe(
+				Effect.map(({ document, problem }) => ({ document, file: file.path, problem })),
+				Effect.catch((problem) => Effect.succeed({ document: undefined, file: file.path, problem })),
+			),
+		{ concurrency: READ_CONCURRENCY },
 	);
+	const problems = new Map(reads.flatMap(({ file, problem }) => (problem === undefined ? [] : [[file, problem] as const])));
 	for (const problem of problems.values()) {
 		yield* Effect.logWarning(problem.message);
 	}
 	return new BoardSnapshot(
-		documents.filter((document) => document !== undefined),
+		reads.flatMap(({ document }) => (document === undefined ? [] : [document])),
 		problems,
 	);
 });

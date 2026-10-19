@@ -49,7 +49,7 @@ export function Sidebar({
 		if (view === "today") {
 			return destinationName(label, counts.today, "need you");
 		}
-		return view === "work" ? destinationName(label, counts.work, "open tasks") : label;
+		return view === "work" ? destinationName(label, counts.work, "open tasks", "open task") : label;
 	}
 	useEffect(() => {
 		const sidebar = document.getElementById(shellIds.sidebar);

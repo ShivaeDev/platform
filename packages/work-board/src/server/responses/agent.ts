@@ -5,6 +5,7 @@ import * as RpcClient from "effect/rpc/RpcClient";
 import * as RpcSerialization from "effect/rpc/RpcSerialization";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { responseContract } from "#rpc/responseContract.ts";
+import { agentUrl } from "./agentArguments.ts";
 import { waitForResponse } from "./waitFor.ts";
 
 export interface AgentOptions {
@@ -15,21 +16,6 @@ export interface AgentOptions {
 }
 function protocol(url: string) {
 	return RpcClient.layerProtocolHttp({ url: `${url}/_board/rpc` }).pipe(Layer.provide([NodeHttpClient.layerNodeHttp, RpcSerialization.layerNdjson]));
-}
-function validate(url: string) {
-	const parsed = new URL(url);
-	if (
-		parsed.protocol !== "http:"
-		|| !["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname)
-		|| parsed.username
-		|| parsed.password
-		|| parsed.pathname !== "/"
-		|| parsed.search
-		|| parsed.hash
-	) {
-		throw new BadRequest({ message: "Use a loopback Work Board URL, such as http://127.0.0.1:4747." });
-	}
-	return parsed.origin;
 }
 const requestFrom = Effect.fn("WorkBoard.requestFrom")(function* (
 	action: "question" | "response" | "wait",
@@ -66,9 +52,6 @@ export const agentRequest = Effect.fn("WorkBoard.agentRequest")(function* (
 	options: AgentOptions,
 	diagnostic: (text: string) => void = () => undefined,
 ) {
-	const url = yield* Effect.try({
-		catch: () => new BadRequest({ message: "Use a loopback Work Board URL, such as http://127.0.0.1:4747." }),
-		try: () => validate(options.url),
-	});
+	const url = yield* agentUrl(options.url);
 	return yield* Effect.scoped(requestFrom(action, options, diagnostic)).pipe(Effect.provide(protocol(url)));
 });

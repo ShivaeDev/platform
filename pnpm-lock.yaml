@@ -1208,6 +1208,9 @@ importers:
       '@shivaedev/effect-prisma':
         specifier: workspace:*
         version: link:../effect-prisma
+      '@shivaedev/effect-test':
+        specifier: workspace:*
+        version: link:../effect-test
       '@shivaedev/effect-test-sql':
         specifier: workspace:*
         version: link:../effect-test-sql

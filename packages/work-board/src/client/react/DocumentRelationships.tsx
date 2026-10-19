@@ -29,12 +29,12 @@ export function DocumentRelationships({ document }: { readonly document: Documen
 		</li>
 	));
 	return (
-		<section aria-label="Links to">
+		<div data-context-group="links-to">
 			<h3>Links to</h3>
 			{[...Map.groupBy(links, (link) => link.kind)].map(([kind, sources]) => (
 				<SourceSection key={kind} label={kind} links={sources} />
 			))}
 			{missing.length > 0 && <ul>{missing}</ul>}
-		</section>
+		</div>
 	);
 }

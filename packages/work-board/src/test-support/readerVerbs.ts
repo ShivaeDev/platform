@@ -6,7 +6,6 @@ import { waitFor } from "./live.ts";
 import { pageActions } from "./pageActions.ts";
 import { setNativeValue } from "./setNativeValue.ts";
 import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "./storyEngine.ts";
-import { currentReplies } from "./storyReplies.ts";
 
 export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	function page() {
@@ -43,10 +42,6 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				control.dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true }));
 			}),
 		click,
-		currentReplies: () => {
-			tell("the reader reads the current saved replies");
-			return currentReplies(engine);
-		},
 		enterAnswer: (value: string) => formEvent(page(), () => text("[data-answer-text]", value)),
 		fieldValue: (name: string) => {
 			const field = page().document.querySelector(`[name="${name}"]`);

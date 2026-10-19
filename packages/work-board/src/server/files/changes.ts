@@ -13,9 +13,14 @@ export interface Changes {
 	readonly files: Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
 	readonly realRoot: string;
 	readonly refresh?: Effect.Effect<void>;
+	readonly refreshPaths?: (paths: readonly string[]) => Effect.Effect<void>;
 	readonly revision: Effect.Effect<number>;
 	readonly sequence?: Effect.Effect<number>;
 	readonly watching: Ref.Ref<boolean>;
+}
+
+export function refreshWritten(changes: Changes, paths: readonly string[]): Effect.Effect<void> {
+	return changes.refreshPaths?.(paths) ?? changes.refresh ?? Effect.void;
 }
 
 interface Cached {
@@ -55,7 +60,7 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 	});
 	const invalidations = trackInvalidations();
 	function invalidate(paths?: readonly string[]) {
-		return Ref.update(generation, (count) => {
+		return Ref.updateAndGet(generation, (count) => {
 			invalidations.record(count + 1, paths);
 			return count + 1;
 		});
@@ -64,20 +69,20 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 	function setWatching(now: boolean) {
 		return Effect.andThen(
 			Effect.flatMap(Ref.getAndSet(watching, now), (was) =>
-				was === now ? Effect.void : Effect.andThen(stale, publish({ _tag: "Watching", watching: now })),
+				// Each watch cycle hands over its own listing, so only a lost watch invalidates.
+				was === now ? Effect.void : Effect.andThen(now ? Effect.void : stale, publish({ _tag: "Watching", watching: now })),
 			),
 			Effect.andThen(finishPending, Deferred.succeed(settled, undefined)),
 		);
 	}
-	const attempt = watchDirectories(
-		root,
-		realRoot,
-		stale,
-		setWatching,
-		(paths) => Effect.andThen(invalidate(paths), Effect.andThen(finishPending, publish({ _tag: "Changed", paths }))),
+	const attempt = watchDirectories(root, realRoot, {
+		listed: (listing) => Effect.flatMap(stale, (current) => Ref.set(cached, Option.some({ files: listing, generation: current }))),
 		observed,
-		finishPending,
-	);
+		publish: (paths) => Effect.andThen(invalidate(paths), Effect.andThen(finishPending, publish({ _tag: "Changed", paths }))),
+		settled: finishPending,
+		setWatching,
+		stale,
+	});
 	yield* attempt.pipe(
 		Effect.sandbox,
 		Effect.tapError((cause) => Effect.andThen(setWatching(false), Effect.logWarning("Watching the folder failed; retrying", cause))),
@@ -105,7 +110,16 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 		yield* Ref.set(cached, Option.some({ files: listed, generation: now }));
 		return listed;
 	});
-	const changes: Changes = { events, files, realRoot, refresh: stale, revision: Ref.get(generation), sequence: Ref.get(sequence), watching };
+	const changes: Changes = {
+		events,
+		files,
+		realRoot,
+		refresh: Effect.asVoid(stale),
+		refreshPaths: (paths) => Effect.asVoid(invalidate(paths)),
+		revision: Ref.get(generation),
+		sequence: Ref.get(sequence),
+		watching,
+	};
 	registerInvalidations(changes, invalidations);
 	return changes;
 });

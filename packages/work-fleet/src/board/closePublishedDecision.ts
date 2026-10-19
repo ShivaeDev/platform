@@ -30,6 +30,7 @@ export const closePublishedDecision = Effect.fn("FleetBoard.closePublishedDecisi
 	root: string,
 	realRoot: string,
 	document: BoardDocument,
+	reason?: string,
 ) {
 	const decision = publishedDecision(document);
 	if (decision === undefined || decision.request.state !== "open") {
@@ -41,10 +42,16 @@ export const closePublishedDecision = Effect.fn("FleetBoard.closePublishedDecisi
 	}
 	const metadata = parseDocument(header.replace(/^---\r?\n/u, "").replace(/---\r?\n?$/u, ""));
 	metadata.setIn(["attention", 0, "state"], "closed");
+	if (reason !== undefined) {
+		metadata.set("next_action", reason);
+	}
 	const content = `---\n${metadata.toString()}---\n${document.parsed.body}`;
-	yield* writeCompletion(root, realRoot, document.file, document.source, content).pipe(
+	const written = yield* writeCompletion(root, realRoot, document.file, document.source, content).pipe(
 		Effect.mapError((error) => new BoardFailure({ message: error.message })),
 	);
+	if (!written) {
+		return;
+	}
 	const parsed = board.metadataParse(content);
 	yield* recordBoardSource(realRoot, document.file, content, parsed);
 	return { file: document.file, parsed, source: content };

@@ -22,7 +22,7 @@ export const searchCommands: readonly SearchItem[] = [
 	{ href: "/_board/work?view=board", kind: "command", title: "Go to Now" },
 	{ href: "/_board/library", kind: "command", title: "Go to Library" },
 	{ href: "/_board/system", kind: "command", title: "Go to System" },
-	{ command: "sidebar-toggle", kind: "command", title: "Show or hide files" },
+	{ command: "sidebar-toggle", kind: "command", title: "Show or hide sidebar" },
 	{ command: "density", kind: "command", title: "Toggle compact density" },
 	{ command: "theme", kind: "command", title: "Toggle light or dark theme" },
 ];

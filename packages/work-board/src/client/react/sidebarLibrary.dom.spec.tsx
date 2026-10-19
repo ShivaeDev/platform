@@ -87,7 +87,9 @@ screenStory.it(
 		yield* roles.click({ name: "Reset", role: "link" });
 		yield* Effect.promise(() => eventually(() => expect(findElement('#doc a[href="/question.md"]')).not.toBeNull()));
 		yield* roles.click({ name: "Include files Fleet writes (1)", role: "checkbox" });
-		yield* Effect.promise(() => eventually(() => expect(readText('#doc a[href="/responses/decision.md"]')).toBe("Fleet delivery decision")));
+		yield* Effect.promise(() =>
+			eventually(() => expect(readText('#doc a[href="/responses/decision.md"]')).toBe("Fleet decision: Deployment is blocked")),
+		);
 		yield* roles.click({ name: "By folder", role: "button" });
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc summary")).toContain("notes")));
 		expect(findElement('#doc a[href="/notes/slug.md"]')).toBeNull();

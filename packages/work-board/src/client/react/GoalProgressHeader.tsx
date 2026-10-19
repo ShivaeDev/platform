@@ -1,5 +1,4 @@
 import { Option } from "effect";
-import { useId } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
 import type { GoalCounts, GoalsProjection } from "#browser/views/GoalsProjection.ts";
@@ -14,17 +13,17 @@ import { Loading } from "./loading.tsx";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { StatusChip } from "./StatusChip.tsx";
+import { shellIds } from "./shellIds.ts";
 
 const dots = { done: "bg-done", "in progress": "bg-agent-working", "needs you": "bg-needs-you", planned: "bg-deferred" } as const;
 
 export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; readonly document: Document }) {
-	const headingId = useId();
 	const progress = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
 	const data = Option.getOrUndefined(progress.data);
 	const goal = [...(data?.goals ?? []), ...(data?.deferredGoals ?? []), ...(data?.closedGoals ?? [])].find((entry) => entry.id === document.identity);
 	return (
-		<section aria-labelledby={headingId} className="document-lead col-span-full max-w-[68ch] space-y-4" data-goal-section="progress">
-			<h2 className="font-semibold text-xl" id={headingId}>
+		<section aria-labelledby={shellIds.goalProgress} className="document-lead col-span-full max-w-[68ch] space-y-4" data-goal-section="progress">
+			<h2 className="font-semibold text-xl" id={shellIds.goalProgress} tabIndex={-1}>
 				Progress
 			</h2>
 			{goal ? <GoalSummary goal={goal} /> : null}

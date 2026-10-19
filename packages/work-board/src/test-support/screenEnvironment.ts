@@ -126,6 +126,12 @@ export function unreadableHome() {
 	});
 }
 
+export function failingRead(url: string) {
+	return screenStory.trait("workspace", `reads of ${url} fail`, (engine) => {
+		engine.options = { ...engine.options, beforeRead: (_kind, read) => (read === url ? Effect.die("Read unavailable") : Effect.void) };
+	});
+}
+
 export function fleetHealth(value: FleetHealth) {
 	return screenStory.trait("workspace", "Fleet publishes its health", (engine) => {
 		engine.options = { home: Object.keys(engine.files)[0], ...engine.options, fleetHealth: value };

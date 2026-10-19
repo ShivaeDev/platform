@@ -15,7 +15,7 @@ screenStory.it(
 	"renders compact navigation and the selected document title",
 	[routedScreen(files, "/notes/deep/review.md")],
 	function* ({ readText, findElement, count }) {
-		yield* Effect.promise(() => eventually(() => expect(readText('section[aria-label="Recent"] a[aria-current="page"]')).toBe("Review")));
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Review")));
 		expect(findElement("#files")).toBeNull();
 		expect(count("#primary-navigation a")).toBe(5);
 		expect(findElement("header")).not.toBeNull();

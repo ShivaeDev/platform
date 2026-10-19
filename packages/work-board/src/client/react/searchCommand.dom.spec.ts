@@ -31,7 +31,7 @@ screenStory.it(
 	function* ({ focus, click, input, keyboard, findElement, readAttribute, readFocus }) {
 		focus("#search-open");
 		click("#search-open");
-		input('#search-dialog [role="combobox"]', "files");
+		input('#search-dialog [role="combobox"]', "sidebar");
 		yield* Effect.promise(() =>
 			eventually(() => expect(findElement('#search-dialog [aria-selected="true"]', document)?.getAttribute("data-command")).toBe("sidebar-toggle")),
 		);

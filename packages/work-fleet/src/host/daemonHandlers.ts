@@ -19,9 +19,16 @@ import { LiveConfig } from "#host/liveConfig.ts";
 import { nameStoredThreads } from "#host/nameThreads.ts";
 import { decisionResponses } from "#host/releaseWork.ts";
 import { executing } from "#model.ts";
+import { BoardFailure, BoardGateway } from "#policy.ts";
 
 export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* (host: FleetHost) {
 	const scope = yield* Effect.scope;
+	const board = yield* BoardGateway;
+	function closeFinished(dryRun: boolean) {
+		return board.closeFinishedDecisions === undefined
+			? Effect.fail(new BoardFailure({ message: "The Board gateway cannot close finished decisions" }))
+			: board.closeFinishedDecisions({ dryRun });
+	}
 	const url = Redacted.make(host.databaseUrl);
 	const receiptContext = yield* Layer.buildWithScope(
 		PgClient.layer({ applicationName: "work-fleet-receipts", maxConnections: 1, url, ...databaseAddress(url) }),
@@ -65,10 +72,11 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	}
 	return Layer.merge(
 		diagnostics,
-		ClientContract.toLayer(
+		ClientContract.omit("daemon.$changes").toLayer(
 			Effect.succeed(
-				ClientContract.of({
+				ClientContract.omit("daemon.$changes").of({
 					"daemon.answer": ({ workId, text, release }) => exposeFailure(settle(answers(workId, text, release))),
+					"daemon.close-finished-decisions": ({ dryRun }) => exposeFailure(settle(closeFinished(dryRun))),
 					"daemon.dispatch": ({ workId, now, ignoreAreas }) => exposeFailure(dispatch.accept(workId, { ignoreAreas, now })),
 					"daemon.dispatch-status": ({ workId }) => exposeFailure(dispatch.get(workId)),
 					"daemon.follow": ({ workIds, follow: continuous }) => follow(workIds, continuous),

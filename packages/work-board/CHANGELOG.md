@@ -1,5 +1,94 @@
 # Changelog
 
+## 0.27.0 - 2026-10-19
+
+### Added
+
+- Reading history groups documents by the day you read them and shows when each was read, its kind and its status. Each entry has a remove button, and **Clear history** removes them all after an in-page confirmation while pinned documents stay. History now keeps the last 30 documents instead of 10.
+
+### Changed
+
+- The sidebar's and phone More sheet's Recent list leaves out pinned documents and the page you are on.
+- The palette command that toggles the sidebar reads **Show or hide sidebar**, and documents that list this one in a heading board appear under **Listed in**.
+
+## 0.26.0 - 2026-10-19
+
+### Added
+
+- A closed decision or question opens with an **Outcome** block before its body: the chosen option or recorded answer, who answered and when. A closed decision without a recorded answer says so.
+- `Changes` accepts an optional `refreshPaths` that rereads only the given files. Board writes use it when present and fall back to `refresh`.
+
+### Changed
+
+- Fleet decision pages are titled "Fleet decision:" followed by the task title in their heading, the browser tab, sources and search, so they no longer share the task's title.
+- Fleet decision pages wrap their fenced decision and recommendation text and hide sections with nothing in them, such as an empty "Relevant links".
+- On item pages, screen readers and the Tab key reach the main content before the side panel with details and the outline. The layout on screen does not change.
+- Goal sections link as `#progress`, `#criteria`, `#linked-work` and `#by-criterion`, so outline links and shared links keep working on every goal.
+- Only Progress, Criteria, Linked work and the item context are named page regions. Link groups in the side panel are plain lists under headings.
+- A plain Markdown file without front matter shows no empty Details card.
+- Now cards call held work **In progress** instead of naming its stage, and Today's In progress rows from Fleet say **Fleet** without the stage; Now's lane titles still name the stage. Today's In progress also lists Fleet work that is validating or delivering.
+
+### Fixed
+
+- Going back focuses the link that opened the page when that link is still there, and the page otherwise.
+- An empty Details panel is no longer a Tab stop.
+- Tasks whose files say `status: review` appear in Now's Reviewing lane, count as in progress on Today and in the Now count, and land in the same group on their goal page. One status vocabulary now drives Now, Today, the navigation count and goal pages.
+- Fleet-approved tasks with `status: ready` appear in Now's Queued lane while Fleet is unavailable, and `approved` work counts as planned on goal pages instead of in progress.
+- A task, or an item that implements a goal, whose status the Board does not know is listed on System as a file problem instead of being dropped from Now or counted as in progress on its goal page.
+- The sidebar's Now count reads **1 open task** in the singular.
+- Today's text box for a question's prompt stops at the 8,192 characters such an answer can hold, as the item page does, instead of accepting a longer answer that then cannot be saved.
+- Saving an answer, registering a question or preparing a handoff updates the index for the file it wrote instead of rereading the whole workspace, so the saved answer is confirmed and reaches open pages sooner.
+- A new or removed folder, such as the response folder an answer lands in, is listed on its own instead of listing the whole workspace again.
+- Startup lists the workspace once instead of twice before the first index.
+
+## 0.25.0 - 2026-10-19
+
+### Added
+
+- An item page leads with the open asks in other files that name it: "Waiting on you: <title>" in amber with an **Answer** button when the ask waits on you, and "Waiting on agents: <title>" in neutral colours when only agents can answer it.
+- On a phone, a question page shows an **Answer** button at the top that moves to the answer box and focuses it.
+- Item IDs and workspace paths in a next action show the named document's title as a link with its status chip. Words that name no document stay plain.
+- `#123` and `PR 123` in a next action link to the pull request when the workspace's `package.json` names a GitHub repository or its git checkout's `origin` remote is on GitHub, without Fleet running.
+
+### Changed
+
+- On a phone, Answer on Today opens a bottom sheet instead of a small popover, and its Answer and Record answer buttons are touch-sized. The phone navigation bar hides while you type in any text field, and the page fits above the on-screen keyboard.
+- Opening Answer on Today puts focus in the text box, or on the first option, instead of the question's context.
+
+### Fixed
+
+- Today's answer keeps what you typed after you close it, and shares one draft with the item page for the same question: start on Today, finish on the item page, or the other way round.
+- An option chosen on Today records the same response body as the item page, without a nested second copy of the recorded response.
+- An answer recorded on Today includes everything in the shared draft, such as a note, reply kind or replaced answer set on the item page. Today says when it sends any of those and links to the item page to review them.
+
+## 0.24.0 - 2026-10-19
+
+### Added
+
+- The **On this page** outline marks the section the reader is in, on wide screens and in the phone outline menu.
+- Today lists recent answers under **Answered**: the item each question is about, when it was answered and what happened since. An answer reads "Waiting on the agent." until its item closes, its question changes or Fleet's receipt settles it. Answers still waiting stay listed at any age; your own settled answers stay for a week. The inbox projection carries them as `recent`.
+- The Fleet start command has a Copy button. When the clipboard refuses it, the command is selected so you can copy it yourself. Start, Handoff and closed drafts share the same copy behaviour.
+
+### Changed
+
+- Table and All work on Now scroll with the page instead of inside fixed-height boxes, and so does the phone's Now lane. The table header sticks below the workspace header.
+- Switching between Now, All work and Table keeps the page still while the results already start in the top three quarters of the view, and the focused results show the Board's control focus ring instead of the browser outline.
+- Each Answered row names the item its question is about, then the question's short label, your answer and the outcome on a second line. Two rows that would read the same add the request ID.
+- The Fleet start command wraps, so the whole command shows on a phone.
+- The sidebar and top bar show no needs-you badge at zero, like the phone's Today tab; screen readers still hear the count.
+- Getting started appears on an empty Today only while the workspace has no identified documents; the inbox projection carries this as `identified`.
+- The Today button for the `--home` file is named after that document's title instead of "Workspace notes". The breadcrumb root stays "Workspace".
+- "How to start Fleet" shows `npx @shivaedev/work-fleet serve <folder> --port <port>` with the Board's folder relative to where it was started, so it runs where work-fleet is a project dependency.
+- Plainer words on Today and System: "N marked in progress" instead of "N in progress in task files", no "Task file" badge, "Age unknown" instead of "Age ?", a plain sentence when files can't be read, "Fleet isn't set up for this Board" and System says where Pause updates lives.
+
+### Fixed
+
+- Long documents show their title and item header right away and render the body section by section, instead of freezing the page while the whole document renders. Deep links to a late heading still land on it once its section is in place.
+- A task with an open ask for you, linked through `attention.unblocks`, sits in **Waiting on a person** and its card reads "Waiting on your answer". Asks only for agents and questions that only relate to a task leave it where it was.
+- An item's header says "Needs you" only when an open ask is for you, and "Waiting on agents" when only agents can answer it, matching Now and Today.
+- All work cards and the table's Kind column name a goal's kind "Goal" instead of "PROJECT" or "project".
+- Native RPC handlers cover the reserved `$changes` stream required by typed contracts. Filesystem change delivery continues through the declared `work-board.subscribe` stream.
+
 ## 0.23.0 - 2026-10-19
 
 ### Added

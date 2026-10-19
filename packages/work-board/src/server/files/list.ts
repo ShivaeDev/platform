@@ -26,7 +26,7 @@ const SCAN_CONCURRENCY = 16;
 
 type Listing = Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
 
-export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (root: string, realRoot: string) {
+export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (root: string, realRoot: string, from = "") {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const roots: Array<{ readonly real: string; readonly relative: string }> = [{ real: realRoot, relative: "" }];
@@ -69,7 +69,10 @@ export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (root:
 			return found.flat();
 		});
 	}
-	const files = yield* folder("", realRoot, realRoot, new Set());
+	const files =
+		from === ""
+			? yield* folder("", realRoot, realRoot, new Set())
+			: yield* entry(from, realRoot, new Set([realRoot]), path.join(realRoot, path.dirname(from)));
 	return { files: files.toSorted((left, right) => byFolder(left.path, right.path)), roots };
 });
 

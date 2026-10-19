@@ -33,16 +33,6 @@ export default defineConfig({
 			"rules": ["biome/lint/correctness/noEmptyPattern"],
 		},
 		{
-			files: [
-				"packages/work-board-plugin/src/boardStream.spec.ts",
-				"packages/work-board-plugin/src/boardSummary.spec.ts",
-				"packages/work-board-plugin/src/toolAnswers.spec.ts",
-			],
-			reason:
-				"These specs cover the plugin's pure parsing and shaping functions, which have no engine behind them: the only engine is Claude Code, which test-story cannot drive.",
-			rules: ["tests/story-specs"],
-		},
-		{
 			files: ["packages/work-board-plugin/src/claude-code.d.ts"],
 			reason: "TypeScript looks up the JSX namespace by that exact name to type the plugin's JSX against Claude Code's elements.",
 			rules: ["biome/lint/style/useNamingConvention"],
@@ -71,6 +61,7 @@ export default defineConfig({
 			options: {
 				modules: [
 					"packages/effect-contract/src/automaticLive.ts",
+					"packages/effect-contract/src/bind.ts",
 					"packages/effect-contract/src/contract.ts",
 					"packages/effect-contract/src/keys.ts",
 					"packages/effect-contract/src/live.ts",
@@ -111,9 +102,13 @@ export default defineConfig({
 					"packages/quality/src/testProjects.ts",
 					"packages/test-story/src/server/fakeHttpService.ts",
 					"packages/test-story/src/server/forwardingProxy.ts",
+					"packages/test-story/src/server/routeOutbound.ts",
 					"packages/test-story/src/server/screenDriver.ts",
 					"packages/test-story/src/server/storyKit.ts",
 					"packages/platform/src/server/appHost.ts",
+					"packages/platform/src/server/better-auth/allowedAccounts.ts",
+					"packages/platform/src/server/better-auth/mount.ts",
+					"packages/platform/src/server/better-auth/signInGate.ts",
 					"packages/platform/src/server/better-auth/testing.ts",
 					"packages/platform/src/rpc/identity.ts",
 					"packages/platform/src/rpc/middleware.ts",

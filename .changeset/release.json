@@ -3,78 +3,46 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "fleet-status-under-load.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- The daemon answers status and follow requests promptly right after a restart with 2,000 stored records. `fleet/status.md` lists the same 50 most recently completed items as `work-fleet status`, newest first, instead of one Done card per completed item, so the daemon no longer re-indexes a file that grows with every finished item. Follow snapshots read attempt rows only for executing work, and records are assembled from their child rows in one pass instead of scanning every child row once per record.\n"
+				"name": "board-reading-history.md",
+				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Reading history groups documents by the day you read them and shows when each was read, its kind and its status. Each entry has a remove button, and **Clear history** removes them all after an in-page confirmation while pinned documents stay. History now keeps the last 30 documents instead of 10.\n\n### Changed\n\n- The sidebar's and phone More sheet's Recent list leaves out pinned documents and the page you are on.\n- The palette command that toggles the sidebar reads **Show or hide sidebar**, and documents that list this one in a heading board appear under **Listed in**.\n"
 			},
 			{
-				"name": "quality-exports-shape.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n\"@shivaedev/effect-pg-boss\": minor\n\"@shivaedev/effect-test-sql\": minor\n\"@shivaedev/local-postgres\": minor\n\"@shivaedev/test-story\": minor\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Quality's `manifests/exports-shape` rule checks exports at the package root and in workspace members by default. Modules use one file-preserving TypeScript wildcard with matching source, types and runtime targets; root entries, exact non-code assets, package metadata and null blocks are allowed.\n\n### Breaking\n\n- Quality's Biome preset moves from `@shivaedev/quality/biome` to `@shivaedev/quality/biome/preset.json`. Change the `extends` entry in your Biome config to the new path; the old alias is removed. TypeScript preset paths are unchanged.\n- `@shivaedev/effect-pg-boss`, `@shivaedev/effect-test-sql`, `@shivaedev/local-postgres` and `@shivaedev/test-story` expose server modules at their file paths. Add `/server/` after the package name in imports, for example `@shivaedev/test-story/server/storyKit.ts`. The shortened paths are removed; internal server modules remain blocked.\n- Work Board moves `@shivaedev/work-board/client/client.ts` to `@shivaedev/work-board/browserClient.ts`; change browser-client imports to that file path. `@shivaedev/work-board/client/document/View.ts` is removed: consume document queries with your own renderer, or use the bundled Board browser UI. The client bundle stays private and the old export overrides are removed.\n"
+				"name": "platform-await-database-disconnects.md",
+				"text": "---\n\"@shivaedev/platform\": patch\n---\n\n### Fixed\n\n- Wait for application database query and listener sockets to disconnect before host and worker scopes finish closing.\n"
 			},
 			{
 				"name": "release-starter-pins.md",
 				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
-			},
-			{
-				"name": "work-board-library-state.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Added\n\n- **Find documents** on Library keeps the documents whose title or ID contains every typed word, as Now's **Find work** does. `library.query` accepts the same text as an optional `query`.\n\n### Changed\n\n- Library keeps its text, kind, status, view and **Include files Fleet writes** choice in the URL, so Back, reload and a shared link reopen the same list. It used to reset to all documents by title.\n- Library opens on Recently changed and renders the first 100 rows with a count of all matches. **Show more** adds the next 100, and Back from a document returns to the same rows.\n- Library's Kind and Status filters use the same compact controls as Now.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.9",
+				"from": "0.11.13",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.10"
+				"to": "0.11.14"
 			},
 			{
-				"bump": "minor",
-				"directory": "packages/effect-pg-boss",
-				"from": "0.12.0",
-				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.13.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-test-sql",
-				"from": "0.7.5",
-				"name": "@shivaedev/effect-test-sql",
-				"to": "0.8.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/local-postgres",
-				"from": "0.5.0",
-				"name": "@shivaedev/local-postgres",
-				"to": "0.6.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/quality",
-				"from": "0.29.1",
-				"name": "@shivaedev/quality",
-				"to": "0.30.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/test-story",
-				"from": "0.16.0",
-				"name": "@shivaedev/test-story",
-				"to": "0.17.0"
+				"bump": "patch",
+				"directory": "packages/platform",
+				"from": "0.23.0",
+				"name": "@shivaedev/platform",
+				"to": "0.23.1"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/work-board",
-				"from": "0.22.0",
+				"from": "0.26.0",
 				"name": "@shivaedev/work-board",
-				"to": "0.23.0"
+				"to": "0.27.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.13.5",
+				"from": "0.13.9",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.13.6"
+				"to": "0.13.10"
 			}
 		]
 	}

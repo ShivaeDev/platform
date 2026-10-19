@@ -6,6 +6,7 @@ import { appearanceActions } from "./appearanceActions.ts";
 import { chrome } from "./chrome.ts";
 import { diagramActions } from "./diagramActions.ts";
 import { motionActions } from "./motionActions.ts";
+import { outlineActions } from "./outlineActions.ts";
 import { renderBoard } from "./react.tsx";
 import { readingActions } from "./readingActions.ts";
 import { renderRouter } from "./renderRouter.tsx";
@@ -58,6 +59,7 @@ export const screenStory = storyKit({
 			...sessionActions(engine, story.tell),
 			...sessionTransportActions(engine, story.tell),
 			...motionActions(engine, story.tell),
+			...outlineActions(engine, story.tell),
 			...availabilityActions(engine, story.tell),
 			...screenReadVerbs(engine, story.tell),
 			...screenRoles(story.tell),

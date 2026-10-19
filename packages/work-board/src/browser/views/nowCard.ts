@@ -1,5 +1,6 @@
 import type { Metadata } from "#metadata/schema.ts";
 import { type FleetWork, waitsForFleet } from "./now.ts";
+import { heldPhase, workPhase } from "./workStatus.ts";
 
 const fleetHolders: Record<FleetWork["stage"], string> = {
 	adopting: "Fleet is working on this",
@@ -73,4 +74,9 @@ export function cardStatus(
 		return fleet.stage === "completed" ? "done" : fleet.stage;
 	}
 	return fleet || waiting ? "needs-you" : metadata.status;
+}
+
+// Now's lane titles name the stage, so a card calls held work by the one word every page uses for it.
+export function cardLabelStatus(status: string | undefined): string | undefined {
+	return heldPhase(workPhase(status)) ? "in progress" : status;
 }

@@ -94,5 +94,5 @@ function LaneCards({
 			</EmptyState>
 		);
 	}
-	return <WorkCardList rows={rows} {...list} />;
+	return <WorkCardList inLane rows={rows} {...list} />;
 }

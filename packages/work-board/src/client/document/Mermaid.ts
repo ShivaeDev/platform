@@ -1,5 +1,6 @@
 import { createElement, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
 import { ThemeContext } from "#client/react/ThemeContext.ts";
+import { errorMessage } from "#errorMessage.ts";
 import { mermaidColor } from "./mermaidColor.ts";
 
 const drawings = new Map<string, { readonly source: string; readonly svg: string }>();
@@ -56,7 +57,7 @@ export function Mermaid({ source }: { readonly source: string }) {
 				}
 			} catch (error) {
 				if (current) {
-					setDrawing({ error: error instanceof Error ? error.message : String(error), source });
+					setDrawing({ error: errorMessage(error), source });
 				}
 			}
 		}

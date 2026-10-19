@@ -2,21 +2,12 @@ import { chmodSync } from "node:fs";
 import { join } from "node:path";
 import { Clock, Effect } from "effect";
 import { vi } from "vitest";
-import type { RecordedResponse } from "#browser/responses/schema.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
-import { responseMarkdown } from "#server/responses/records.ts";
 import { boardStory, projectFiles, responsesEnabled } from "./boardStory.ts";
 import { diagnosticsDaemon, rawDiagnosticsDaemon } from "./diagnosticsDaemon.ts";
 import { inboxFixture, inboxQuestion } from "./inboxFixture.ts";
 import { REVIEW_TASK, reviewResult } from "./resultReview.ts";
 import { connected, openReader } from "./storyEngine.ts";
-
-export function recordedReplies(...replies: readonly RecordedResponse[]) {
-	return projectFiles(
-		Object.fromEntries(replies.map((reply, index) => [`responses/reply-${index}.md`, responseMarkdown(reply)])),
-		"the project remembers replies from its authors",
-	);
-}
 
 export function anOpenQuestion() {
 	return projectFiles({ "question.md": inboxQuestion, "readme.md": "# Project notes" }, "an open question offers local files or a database");

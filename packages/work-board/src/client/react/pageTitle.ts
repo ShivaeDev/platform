@@ -20,7 +20,5 @@ export function pageTitle(route: ProjectionRoute | RemainingRoute, url: string) 
 			return "Getting started";
 		case "handoff":
 			return "Hand off to an agent";
-		case "result":
-			return "Review result";
 	}
 }

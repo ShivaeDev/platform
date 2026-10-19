@@ -4,6 +4,7 @@ import { Cause, Clock, Effect, Fiber } from "effect";
 import { expect } from "vitest";
 import { folder } from "#test/board.ts";
 import { boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { waitFor } from "#test/live.ts";
 import { outsideResponseDirectory } from "#test/responseFiles.ts";
 import { responseDraft } from "#test/storyResponses.ts";
 import { agentRequest } from "./agent.ts";
@@ -103,7 +104,7 @@ boardStory.it(
 		const question = yield* register("investigation.model", "review-model");
 		renameSync(join(notes.root, "investigation.md"), join(notes.root, "moved.md"));
 		yield* Effect.promise(() =>
-			expect(client.mutate(client.responses.recordResponse.run(responseDraft(question.id)))).rejects.toThrow("Source changed"),
+			waitFor(() => expect(client.mutate(client.responses.recordResponse.run(responseDraft(question.id)))).rejects.toThrow("Source changed")),
 		);
 		unlinkSync(join(notes.root, "moved.md"));
 		yield* Effect.promise(() => expect(client.mutate(client.responses.recordResponse.run(responseDraft(question.id)))).rejects.toThrow());
@@ -144,7 +145,7 @@ boardStory.it(
 		const question = yield* register("investigation.model", "review-model");
 		editFile("duplicate.md", readFileSync(join(notes.root, "responses", `${question.id}.md`), "utf8"));
 		yield* Effect.promise(() =>
-			expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("response history is unknown"),
+			waitFor(() => expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("response history is unknown")),
 		);
 	},
 );
@@ -159,7 +160,7 @@ boardStory.it(
 			"---\nid: response.broken\nkind: response\nresponse: { type: answer }\n---\nActual feedback with incomplete provenance\n",
 		);
 		yield* Effect.promise(() =>
-			expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("history cannot be established"),
+			waitFor(() => expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("history cannot be established")),
 		);
 	},
 );

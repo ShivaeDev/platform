@@ -1,6 +1,5 @@
 import { cn } from "cn";
 import { ChevronRight } from "lucide-react";
-import { useId } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { buttonVariants } from "#client/react/components/ui/button.tsx";
@@ -13,6 +12,7 @@ import { GoalWorkLink, GoalWorkStatus } from "./GoalWorkStatus.tsx";
 import { type GoalWorkItem, targetsGoal } from "./goalWork.ts";
 import { keyed } from "./keyed.ts";
 import { LazyInlineMarkdown } from "./lazyMarkdown.tsx";
+import { shellIds } from "./shellIds.ts";
 
 interface Props {
 	readonly document: Document;
@@ -20,11 +20,12 @@ interface Props {
 	readonly progress: GoalsProjection["goals"][number]["criteria"] | undefined;
 }
 export function GoalCriteria({ document, items, progress }: Props) {
-	const headingId = useId();
 	const criteria = document.metadata.criteria ?? [];
 	return (
-		<section aria-labelledby={headingId} className="space-y-3" data-goal-section="criteria">
-			<h2 id={headingId}>Criteria and recorded evidence</h2>
+		<section aria-labelledby={shellIds.goalCriteria} className="space-y-3" data-goal-section="criteria">
+			<h2 id={shellIds.goalCriteria} tabIndex={-1}>
+				Criteria and recorded evidence
+			</h2>
 			{criteria.length === 0 && (
 				<EmptyState title="No criteria">This goal lists no criteria yet. Add them to the goal file to track evidence for each one.</EmptyState>
 			)}

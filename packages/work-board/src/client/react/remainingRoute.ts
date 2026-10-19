@@ -10,8 +10,6 @@ export function remainingRoute(pathname: string) {
 			return "start";
 		case "/_board/handoff":
 			return "handoff";
-		case "/_board/result":
-			return "result";
 		default:
 			return undefined;
 	}

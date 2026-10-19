@@ -11,12 +11,14 @@ for (const [route, target, title] of [
 	["inbox", "/", "Today"],
 	["changes", "/_board/library?view=recently-changed", "Library"],
 	["diagnostics", "/_board/system", "System"],
+	["result?item=result.note", "/_board/item/result.note/", "Returned note"],
+	["result", "/_board/library?kind=result", "Library"],
 ]) {
 	let router: ReturnType<typeof boardRouter> | undefined;
 	screenStory.it(
 		`redirects client navigation from ${route}`,
 		[
-			boardScreen({ "note.md": "# Note" }, (api, registry) => {
+			boardScreen({ "note.md": "# Note", "result.md": "---\nid: result.note\nkind: result\n---\n# Returned note\n" }, (api, registry) => {
 				router = boardRouter({ api, registry });
 				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [`/_board/${route}`] }) });
 				return <RouterProvider router={router} />;

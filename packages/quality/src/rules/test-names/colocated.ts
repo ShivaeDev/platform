@@ -15,10 +15,11 @@ function findingOf(path: string): readonly Finding[] {
 	if (name === undefined || mirror === undefined) {
 		return [];
 	}
+	const modifiers = name.modifiers.map((modifier) => `.${modifier}`).join("");
 	return [
 		{
 			file: path,
-			message: `Sits in the test folder "${mirror}/". A test sits beside the file it covers, as ${name.stem}.test${name.extension} beside ${name.stem}.ts, or as a <behaviour>.spec${name.extension} in the folder it covers. A folder of tests that cover several packages is a suite in the "suites" option.`,
+			message: `Sits in the test folder "${mirror}/". A test sits beside the file it covers, as ${name.stem}${modifiers}.test${name.extension} beside ${name.stem}.ts, or as a <behaviour>${modifiers}.spec${name.extension} in the folder it covers. A folder of tests that cover several packages is a suite in the "suites" option.`,
 		},
 	];
 }

@@ -73,11 +73,11 @@ The open `review` attention request explicitly asks for judgment. Its two `verdi
 
 ## Review beside the source
 
-Open **Review returned result** on the report, or `/_board/result?item=result.keyboard`. A uniquely identified readable result uses the ordinary GET route and the typed native `result` query. The report status is shown separately from its linked task's status. Neither report status nor a handoff receipt verifies execution or authorizes a merge.
+Open the report's item page, `/_board/item/result.keyboard/`; older `/_board/result?item=result.keyboard` links redirect there. A uniquely identified readable result reads its checks and feedback through the typed native `result` query. The report status is shown separately from its linked task's status. Neither report status nor a handoff receipt verifies execution or authorizes a merge.
 
 The page lists explicitly linked criteria, this result's claims, missing provenance, report/limitations and recorded human feedback. An unresolved or duplicate identity does not choose a convenient source. A missing local Markdown evidence source remains disclosed. Report and feedback context use the safe Markdown reader; exact reviewed source remains available separately.
 
-Choose the report's explicit review request to open its answer card. Review the exact source, preview and submit one complete response. That response captures the source path and SHA-256 of the original report bytes. Work Board leaves the project task and report unchanged.
+The report's explicit review request shows as an answer card at the top of the page. Review the exact source, preview and submit one complete response. That response captures the source path and SHA-256 of the original report bytes. Work Board leaves the project task and report unchanged.
 
 ## Read or wait through the agent CLI
 
@@ -95,9 +95,9 @@ The server must be running with `--responses` for registration and replies. A su
 
 ## Keep feedback on its reviewed report
 
-Feedback whose registered source path and SHA-256 both match the current report is labeled **Feedback on this exact result revision**. An ordinary edit creates a new report revision. Moving the report also qualifies earlier context, even when its bytes stay unchanged. The previous feedback and its exact reviewed snapshot remain inspectable; neither silently applies to the new report.
+Feedback whose registered source path and SHA-256 both match the current report is labeled **This version**. An ordinary edit creates a new report revision. Moving the report also qualifies earlier context, even when its bytes stay unchanged. The previous feedback and its exact reviewed snapshot remain inspectable; neither silently applies to the new report.
 
-After an agent records a revision, the next response can explicitly supersede the prior revision request. Supersession links immutable direction rather than rewriting history, task status or evidence. Malformed or ambiguous response history stays unknown instead of establishing that no feedback exists. Actual moved record paths remain the targets of source and supersession links.
+After an agent records a revision, the next response can explicitly supersede the prior revision request. Supersession links immutable direction rather than rewriting history, task status or evidence. Malformed or ambiguous response history stays unknown instead of establishing that no feedback exists; the page names each file it can't read and why. A broken file about other work doesn't hide this result's feedback; it shows only in System. Actual moved record paths remain the targets of source and supersession links.
 
 `evidence.checked_revision` is a reported full 40- or 64-digit Git revision. It is distinct from the report's content SHA-256. Work Board does not inspect the checkout or compare that reported revision with current Git state; evidence freshness remains unknown. Pinned report feedback does not verify a linked artifact. Closing attention, finishing a run, acknowledging a handoff and human acceptance remain separate facts.
 

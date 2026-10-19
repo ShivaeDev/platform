@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.11.14 - 2026-10-19
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
+## 0.11.13 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.11.12 - 2026-10-19
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
+## 0.11.11 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.11.10 - 2026-10-19
 
 ### Changed

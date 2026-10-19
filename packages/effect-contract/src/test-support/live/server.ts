@@ -3,7 +3,8 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "#keys.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
-import { makeServer, Note, notes } from "#test/notes.ts";
+import { Note, notes } from "#test/notes.ts";
+import { notesServer } from "#test/notesServer.ts";
 import { Unavailable } from "./contract.ts";
 import { hintStream } from "./hintStream.ts";
 import { httpHost } from "./httpHost.ts";
@@ -16,7 +17,7 @@ export interface NotesSource {
 }
 
 export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync" }, source?: NotesSource) {
-	const server = await Effect.runPromise(makeServer);
+	const server = await Effect.runPromise(notesServer);
 	await Effect.runPromise(
 		Ref.set(
 			server.stored,
@@ -39,6 +40,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 	const active = Effect.runSync(Ref.make(0));
 	const handlers = LiveNotes.toLayer({
 		...server.implementation,
+		"notes.$changes": ({ keys }) => hints.stream(keys),
 		"notes.get": ({ id }) =>
 			Effect.gen(function* () {
 				const local = yield* server.implementation["notes.get"]({ id });

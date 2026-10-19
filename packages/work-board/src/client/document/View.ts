@@ -1,19 +1,10 @@
 import { createElement, Fragment, type ReactNode, useMemo } from "react";
-import { type Components, MarkdownHooks } from "react-markdown";
-import rehypeRaw from "rehype-raw";
-import type { PluggableList } from "unified";
+import type { Components } from "react-markdown";
 import type { Document } from "#browser/document/schema.ts";
-import { documentHeadings } from "#render/documentHeadings.ts";
-import { documentLinks } from "#render/documentLinks.ts";
-import { documentPlugins } from "#render/documentPlugins.ts";
-import { footnoteIds } from "#render/footnoteIds.ts";
-import { tableColumns } from "#render/tableColumns.ts";
-import { boardLayout } from "./boardLayout.ts";
 import { DetailStatesContext, DocumentDetails } from "./Details.ts";
-import { highlightDocument } from "./highlight.ts";
-import { documentLayout, documentSourceId } from "./layout.ts";
 import { LayoutContext, layoutElements } from "./layoutElements.ts";
 import { Mermaid } from "./Mermaid.ts";
+import { type BoardCounts, useSections } from "./useSections.ts";
 
 const components: Components = {
 	code: ({ node: _node, className, children, ...props }) =>
@@ -34,7 +25,7 @@ export interface DocumentViewProps {
 	readonly actions?: ReactNode;
 	readonly after?: ReactNode;
 	readonly answer?: ReactNode;
-	readonly board?: readonly { readonly count: number; readonly title: string }[];
+	readonly board?: BoardCounts;
 	readonly closing?: ReactNode;
 	readonly components?: Components;
 	readonly content?: ReactNode;
@@ -62,20 +53,15 @@ export function DocumentView({
 	const layout = context !== undefined;
 	const identity = document.identity ?? document.file;
 	const states = useMemo(() => ({ identity, values: new Map<string, boolean>() }), [identity]);
-	const rehypePlugins: PluggableList = [
-		rehypeRaw,
-		highlightDocument,
-		footnoteIds(idPrefix),
-		documentLinks(document.file, document.links),
-		documentHeadings(true).plugin,
-		tableColumns,
-	];
-	if (board) {
-		rehypePlugins.push([boardLayout, board, document.file, documentSourceId(document), layout]);
-	}
-	if (layout && !board) {
-		rehypePlugins.push([documentLayout, documentSourceId(document)]);
-	}
+	const { complete, sections } = useSections({
+		board,
+		components: { ...components, ...overrides, ...(layout ? layoutElements : {}) },
+		document,
+		idPrefix,
+		layout,
+	});
+	const [first, ...rest] = sections;
+	const separate = layout && !board;
 	return createElement(
 		layout ? "div" : "article",
 		{
@@ -91,25 +77,20 @@ export function DocumentView({
 						actions,
 						after,
 						answer,
+						body: separate ? rest : null,
 						closing,
+						complete,
 						content,
-						context,
 						file: document.file,
 						identified: Boolean(document.metadata.id),
 						introduction,
 						lead,
 					},
 				},
-				createElement(
-					MarkdownHooks,
-					{
-						components: { ...components, ...overrides, ...(layout ? layoutElements : {}) },
-						rehypePlugins,
-						remarkPlugins: documentPlugins(new Map(Object.entries(document.questionActions))),
-					},
-					document.source,
-				),
+				separate ? first : sections,
 			),
 		),
+		// The context follows the content in reading and Tab order, and waits for the first section so its readiness report sees the page's headings.
+		first === undefined ? null : context,
 	);
 }

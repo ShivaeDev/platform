@@ -4,10 +4,11 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
 import { bind } from "#bind.ts";
-import { makeServer, Notes } from "./notes.ts";
+import { Notes } from "./notes.ts";
+import { notesServer } from "./notesServer.ts";
 
 export const localEngine = Effect.gen(function* () {
-	const server = yield* makeServer;
+	const server = yield* notesServer;
 	class Client extends AtomRpc.Service<Client>()("test/NotesClient", {
 		group: Notes,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),

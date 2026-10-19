@@ -7,8 +7,9 @@ export const LayoutContext = createContext<{
 	readonly actions: ReactNode;
 	readonly after: ReactNode;
 	readonly answer: ReactNode;
+	readonly body: ReactNode;
 	readonly closing: ReactNode;
-	readonly context: ReactNode;
+	readonly complete: boolean;
 	readonly content: ReactNode;
 	readonly introduction: ReactNode;
 	readonly lead: ReactNode;
@@ -18,9 +19,10 @@ export const LayoutContext = createContext<{
 	actions: null,
 	after: null,
 	answer: null,
+	body: null,
 	closing: null,
+	complete: true,
 	content: null,
-	context: null,
 	file: "",
 	identified: false,
 	introduction: null,
@@ -28,14 +30,16 @@ export const LayoutContext = createContext<{
 });
 export const layoutElements: Components = { article: LayoutArticle, header: LayoutHeader };
 function LayoutArticle({ node, children, ...props }: ComponentProps<"article"> & ExtraProps) {
-	const { after, closing, content } = useContext(LayoutContext);
+	const { after, body, closing, complete, content } = useContext(LayoutContext);
 	if (node?.properties.dataSource === undefined) {
 		return createElement("article", props, children);
 	}
-	return createElement(Fragment, null, createElement("article", props, content, children, closing), after);
+	// The page counts as shown, and a deep link scrolls, only once the last section is in place.
+	const article = { ...props, "data-source": complete ? String(node.properties.dataSource) : undefined };
+	return createElement(Fragment, null, createElement("article", article, content, children, body, closing), after);
 }
 function LayoutHeader({ node: _node, children, ...props }: ComponentProps<"header"> & ExtraProps) {
-	const { actions, answer, context, introduction, lead, file, identified } = useContext(LayoutContext);
+	const { actions, answer, introduction, lead, file, identified } = useContext(LayoutContext);
 	const introducing = props.className?.split(" ").includes("item-introduction") ?? false;
 	const { compact, gap, ref } = useCompactHeader(introducing && identified);
 	if (!introducing) {
@@ -61,6 +65,5 @@ function LayoutHeader({ node: _node, children, ...props }: ComponentProps<"heade
 		}),
 		lead,
 		answer,
-		context,
 	);
 }

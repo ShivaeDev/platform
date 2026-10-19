@@ -1,11 +1,10 @@
 import type { FleetItemsProjection } from "./FleetItemsProjection.ts";
 import { statusLabel } from "./statusLabel.ts";
-
-const held = new Set(["executing", "reviewing", "repairing", "adopting"]);
+import { heldPhase, workPhase } from "./workStatus.ts";
 
 export interface ProgressRow {
 	readonly prUrl?: string | undefined;
-	readonly state: string;
+	readonly state?: string;
 	readonly title: string;
 	readonly workId: string;
 }
@@ -18,8 +17,8 @@ export function inProgress(data: FleetItemsProjection | undefined): InProgress |
 	if (data?.state === "ready") {
 		return {
 			rows: data.items
-				.filter((item) => held.has(item.stage))
-				.map((item) => ({ prUrl: item.prUrl, state: item.stage, title: item.document?.title ?? item.workId, workId: item.workId })),
+				.filter((item) => heldPhase(workPhase(item.stage)))
+				.map((item) => ({ prUrl: item.prUrl, title: item.document?.title ?? item.workId, workId: item.workId })),
 			source: "fleet",
 		};
 	}

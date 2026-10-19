@@ -9,7 +9,7 @@ import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 expectNoReactWarnings();
 
 screenStory.it(
-	"opens Today with the exact human lane and one honest card per goal, retaining Workspace notes",
+	"opens Today with the exact human lane and one honest card per goal, linking the home document by its title",
 	[todayScreen(), screenFleet(todayFleetFixture()), openScreen()],
 	function* ({ openDetails, readInbox, readGoals, readText, readAttribute, findElements, findElement }) {
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Today")));
@@ -29,7 +29,7 @@ screenStory.it(
 				expect(next).toBeNull();
 			}
 		}
-		expect(readText(".today-strip")).toBe(`${inbox.you.length} need you·9 in progress·${goals.goals.length} active goals·2 files have problems`);
+		expect(readText(".today-strip")).toBe(`${inbox.you.length} need you·11 in progress·${goals.goals.length} active goals·2 files have problems`);
 		expect([...findElements(".today-strip a")].map((link) => link.getAttribute("href"))).toEqual([
 			"#needs-you",
 			"#in-progress",

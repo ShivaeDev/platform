@@ -191,14 +191,17 @@ screenStory.it(
 	[
 		routedScreen(
 			{
+				"README.md": "# Workspace\n",
 				"result.md": "---\nid: result.bare\nkind: result\nstatus: finished\n---\n# A bare result\n",
 				"task.md": "---\nid: task.handoff\nkind: task\nstatus: planned\n---\n# A task\n",
 			},
-			"/_board/result?item=result.bare",
+			"/_board/item/result.bare/",
 		),
 	],
 	function* ({ navigate, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText('#result-feedback [data-slot="empty-title"]')).toBe("No feedback yet")));
+		yield* Effect.promise(() =>
+			eventually(() => expect(readText("[data-result-empty]")).toBe("No review requested, no checks listed and no feedback yet.")),
+		);
 		yield* Effect.promise(() => navigate("/_board/handoff?item=task.handoff"));
 		yield* Effect.promise(() => eventually(() => expect(readText('#handoff-history [data-slot="empty-title"]')).toBe("No handoffs yet")));
 	},
