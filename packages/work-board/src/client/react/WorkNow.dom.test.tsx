@@ -34,7 +34,7 @@ for (const sort of ["title", "owner", "status"] as const) {
 			expect(readText("h3", card)).toBe("Work 5");
 			expect(readText("[data-status-token]", card)).toBe("Executing");
 			expect(readText(".work-owner", card)).toBe("Fleet is working on this");
-			expect(readText(".work-stage", card)).toBe("Executing since now");
+			expect(readText(".work-stage", card)).toBe("Executing, started just now");
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', card)).not.toBeNull();
 			expect(readText('[aria-label="Waiting on a person"] .work-owner')).toBe("Needs you");
 			expect(findElement('[data-item="task-5"]')).toBeNull();

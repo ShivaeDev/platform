@@ -8,7 +8,7 @@ import { EmptyState } from "./EmptyState.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import { LoadingRows } from "./loading.tsx";
 import type { ShellApi } from "./ShellApi.ts";
-import { Time } from "./Time.tsx";
+import { RowTime } from "./Time.tsx";
 export function LibraryContents({
 	api,
 	data,
@@ -66,7 +66,7 @@ function DocumentList({ files }: { readonly files: readonly LibraryFile[] }) {
 						</p>
 					</div>
 					<span className="shrink-0 text-muted-foreground text-xs" data-updated>
-						Updated <Time at={file.modified} />
+						Updated <RowTime at={file.modified} />
 					</span>
 				</li>
 			))}

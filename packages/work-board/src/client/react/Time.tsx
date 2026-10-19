@@ -22,8 +22,27 @@ export function TimeAsOf({ now, children }: { readonly now: number; readonly chi
 	return <NowContext.Provider value={now}>{children}</NowContext.Provider>;
 }
 
+function TimeElement({
+	at,
+	className,
+	title,
+}: {
+	readonly at: number;
+	readonly className?: string | undefined;
+	readonly title?: string | undefined;
+}) {
+	return (
+		<time className={className} data-modified={at} dateTime={new Date(at).toISOString()} title={title}>
+			{timeLabel(at, useContext(NowContext))}
+		</time>
+	);
+}
+
+export function RowTime({ at, className }: { readonly at: number; readonly className?: string | undefined }) {
+	return <TimeElement at={at} className={cn("whitespace-nowrap font-sans tabular-nums", className)} title={exactTime(at)} />;
+}
+
 export function Time({ at, className }: { readonly at: number; readonly className?: string | undefined }) {
-	const label = timeLabel(at, useContext(NowContext));
 	return (
 		<Popover>
 			<PopoverTrigger
@@ -33,9 +52,7 @@ export function Time({ at, className }: { readonly at: number; readonly classNam
 				)}
 				openOnHover
 			>
-				<time data-modified={at} dateTime={new Date(at).toISOString()}>
-					{label}
-				</time>
+				<TimeElement at={at} />
 			</PopoverTrigger>
 			<PopoverContent aria-label="Exact time" className="w-auto" side="top">
 				{exactTime(at)}

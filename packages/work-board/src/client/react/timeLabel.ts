@@ -4,7 +4,6 @@ const DAY = 24 * HOUR;
 const WEEK = 7 * DAY;
 
 const relative = new Intl.RelativeTimeFormat(undefined, { style: "narrow" });
-const immediate = new Intl.RelativeTimeFormat(undefined, { numeric: "auto", style: "narrow" });
 const sameYear = new Intl.DateTimeFormat(undefined, { day: "numeric", hour: "2-digit", minute: "2-digit", month: "short" });
 const otherYear = new Intl.DateTimeFormat(undefined, { day: "numeric", hour: "2-digit", minute: "2-digit", month: "short", year: "numeric" });
 const exact = new Intl.DateTimeFormat(undefined, { dateStyle: "full", timeStyle: "long" });
@@ -22,7 +21,7 @@ function relativeUnit(distance: number): readonly [number, Intl.RelativeTimeForm
 export function timeLabel(at: number, now: number): string {
 	const distance = Math.abs(now - at);
 	if (distance < MINUTE) {
-		return immediate.format(0, "second");
+		return "just now";
 	}
 	if (distance < WEEK) {
 		const [size, unit] = relativeUnit(distance);

@@ -7,7 +7,7 @@ import { StatusChip } from "#client/react/StatusChip.tsx";
 import { answeredCopy } from "#client/responses/answeredCopy.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { PrChip } from "./PrChip.tsx";
-import { Time } from "./Time.tsx";
+import { RowTime } from "./Time.tsx";
 import { WorkItemTitle } from "./WorkItemTitle.tsx";
 
 export function WorkCard({
@@ -56,8 +56,8 @@ function StageTime({ stage, entered }: { readonly stage: FleetWork["stage"]; rea
 	const { ended, label } = stageTime(stage);
 	return (
 		<p className="work-stage m-0 text-muted-foreground text-xs">
-			{ended ? `${label} ` : `${label} since `}
-			<Time at={entered} className="relative z-10" />
+			{ended ? `${label} ` : `${label}, started `}
+			<RowTime at={entered} />
 		</p>
 	);
 }

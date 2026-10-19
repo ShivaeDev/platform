@@ -4,7 +4,7 @@ import type { RecordedResponse } from "#browser/responses/schema.ts";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { shellIds } from "./shellIds.ts";
-import { Time } from "./Time.tsx";
+import { RowTime } from "./Time.tsx";
 
 const KINDS = { "answer": "answered", "clarify": "asked back", "not_now": "said not now" } as const;
 
@@ -49,7 +49,7 @@ function ResponseEntry({
 					{record.response.author}
 				</a>
 				<span className="text-muted-foreground">{KINDS[record.response.type]}</span>
-				<Time at={record.response.recordedAt} className="text-muted-foreground text-xs" />
+				<RowTime at={record.response.recordedAt} className="text-muted-foreground text-xs" />
 			</h3>
 			{answers === undefined ? (
 				<AnswerMarkdown file={`responses/${record.id}.md`} source={record.body} />

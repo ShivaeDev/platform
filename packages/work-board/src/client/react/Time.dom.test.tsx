@@ -17,7 +17,7 @@ screenStory.it(
 	[timeScreen()],
 	function* ({ advanceTime, refreshTime, findElement, readText }) {
 		const time = findElement("time");
-		expect(readText("time")).toBe(new Intl.RelativeTimeFormat(undefined, { numeric: "auto", style: "narrow" }).format(0, "second"));
+		expect(readText("time")).toBe("just now");
 		yield* Effect.promise(() => advanceTime(MINUTE));
 		expect(readText("time")).toBe(relative.format(-1, "minute"));
 		yield* Effect.promise(() => refreshTime(HOUR));
@@ -27,6 +27,7 @@ screenStory.it(
 );
 
 for (const [name, ago, label] of [
+	["under a minute", 59_000, "just now"],
 	["under five minutes", 4 * MINUTE + 59_000, relative.format(-4, "minute")],
 	["under an hour", 59 * MINUTE, relative.format(-59, "minute")],
 	["under a day", DAY - MINUTE, relative.format(-23, "hour")],
@@ -71,3 +72,16 @@ for (const [reach, open] of [
 		},
 	);
 }
+
+screenStory.it(
+	"keeps a time in a list row as plain text that adds no Tab stop and names its exact time",
+	[timeScreen(3 * HOUR, "row")],
+	({ findElement, readTabStops }) => {
+		const time = findElement("time");
+		expect(time?.textContent).toBe(relative.format(-3, "hour"));
+		expect(time?.getAttribute("datetime")).toBe(new Date(TIME_NOW.getTime() - 3 * HOUR).toISOString());
+		expect(time?.className).toContain("font-sans");
+		expect(time?.getAttribute("title")).toBe(exactTime(TIME_NOW.getTime() - 3 * HOUR));
+		expect(readTabStops(".time-host")).toEqual([]);
+	},
+);

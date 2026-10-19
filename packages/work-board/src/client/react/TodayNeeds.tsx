@@ -6,7 +6,7 @@ import { answeredCopy } from "#client/responses/answeredCopy.ts";
 import { EmptyState } from "./EmptyState.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import type { ShellApi } from "./ShellApi.ts";
-import { Time } from "./Time.tsx";
+import { RowTime } from "./Time.tsx";
 import { TodayOptions } from "./TodayOptions.tsx";
 
 type Item = InboxProjection["you"][number];
@@ -79,7 +79,7 @@ function TodayRow({
 				{item.title}
 			</a>
 			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums max-sm:self-start max-sm:leading-6 sm:row-span-2">
-				{item.modified === undefined ? "Age ?" : <Time at={item.modified} />}
+				{item.modified === undefined ? "Age ?" : <RowTime at={item.modified} />}
 			</span>
 			{children ? <div className="max-sm:self-start sm:row-span-2">{children}</div> : null}
 			<p className="col-span-full m-0 truncate text-muted-foreground text-xs sm:col-span-1 sm:col-start-1 sm:row-start-2" title={text}>
