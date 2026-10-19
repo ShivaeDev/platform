@@ -3,9 +3,14 @@ import { act } from "react";
 import { routeQueryOptions } from "#client/react/routeQuery.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
-export function indexAvailability(engine: ScreenEngine) {
+export function indexAvailability(engine: ScreenEngine, files: readonly string[]) {
 	return Effect.suspend(() => {
 		engine.indexReads += 1;
+		const refresh = engine.heldAnswerRefresh;
+		if (refresh && files.some((file) => file.startsWith("responses/response."))) {
+			refresh.started = true;
+			return Deferred.await(refresh.gate);
+		}
 		if (engine.indexFailed) {
 			return Effect.fail(
 				PlatformError.systemError({ _tag: "Unknown", description: "Workspace unavailable", method: "readDirectory", module: "FileSystem" }),
@@ -17,9 +22,23 @@ export function indexAvailability(engine: ScreenEngine) {
 
 export function availabilityActions(engine: ScreenEngine, tell: (line: string) => void) {
 	return {
+		answerRefreshStarted: () => engine.heldAnswerRefresh?.started ?? false,
+		dropLiveConnection: async () => {
+			tell("the Board's live connection drops and starts reconnecting");
+			if (!(engine.api && engine.view)) {
+				throw new Error("The screen has no Board client");
+			}
+			const { api, view } = engine;
+			const status = api.forms.updates.status;
+			await act(() => view.registry.set(status, { ...view.registry.get(status), connection: "reconnecting" }));
+		},
 		failWorkspace: () => {
 			tell("workspace indexing becomes unavailable");
 			engine.indexFailed = true;
+		},
+		holdRefreshAfterAnswer: () => {
+			tell("workspace indexing waits once an answer file is saved");
+			engine.heldAnswerRefresh = { gate: Deferred.makeUnsafe<void>(), started: false };
 		},
 		holdWorkspace: () => {
 			tell("workspace indexing waits");
@@ -45,6 +64,15 @@ export function availabilityActions(engine: ScreenEngine, tell: (line: string) =
 					view.registry.refresh(api.goals.query(undefined, routeQueryOptions));
 				}),
 			);
+		},
+		releaseRefreshAfterAnswer: async () => {
+			tell("the Board's refresh after the answer arrives");
+			const refresh = engine.heldAnswerRefresh;
+			if (!refresh) {
+				throw new Error("No refresh after an answer is held");
+			}
+			delete engine.heldAnswerRefresh;
+			await act(() => Promise.resolve().then(() => Effect.runSync(Deferred.succeed(refresh.gate, undefined))));
 		},
 		releaseWorkspace: async () => {
 			tell("workspace indexing resumes");

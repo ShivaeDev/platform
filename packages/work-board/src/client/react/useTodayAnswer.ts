@@ -1,4 +1,4 @@
-import { RegistryContext } from "@effect/atom-react";
+import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { Cause, Effect, Option } from "effect";
 import { useContext, useMemo, useRef, useState } from "react";
 import { useAction } from "@shivaedev/effect-react/client/resultState.ts";
@@ -19,11 +19,14 @@ export interface TodayChoice {
 	readonly text: string;
 }
 
-export function useTodayAnswer(api: ShellApi, data: Document, preview: QuestionPreview, prompts: readonly Prompt[]) {
+const OFFLINE = "Reconnecting to the Board. You can answer once it is back.";
+
+export function useTodayAnswer(api: ShellApi, data: Document, preview: QuestionPreview, prompts: readonly Prompt[], onSaved: () => void) {
 	const registry = useContext(RegistryContext);
-	const questionRef = useRef({ preview, prompts });
-	questionRef.current = { preview, prompts };
+	const questionRef = useRef({ onSaved, preview, prompts });
+	questionRef.current = { onSaved, preview, prompts };
 	const client = useFormClient();
+	const offline = useAtomValue(client.updates.status).connection !== "live";
 	const [label] = useState(() => authorLabel(() => localStorage, document.documentElement.dataset.workspace));
 	const [author, setAuthor] = useState(() => label.read("") || "maintainer");
 	const actionAtom = useMemo(
@@ -44,6 +47,7 @@ export function useTodayAnswer(api: ShellApi, data: Document, preview: QuestionP
 					registry.refresh(api.inbox.query(undefined, routeQueryOptions));
 					registry.refresh(navigationQuery(api));
 					registry.refresh(documentQuery(api, fileUrl(data.file)));
+					questionRef.current.onSaved();
 					return saved;
 				}),
 			),
@@ -52,8 +56,17 @@ export function useTodayAnswer(api: ShellApi, data: Document, preview: QuestionP
 	const action = useAction(actionAtom);
 	const failure = Option.getOrUndefined(Option.flatMap(action.cause, Cause.findErrorOption));
 	let status = failure ? saveFailure(failure, "response").text : "";
-	if (action.pending) {
-		status = "Pending: registering reviewed context, then recording response…";
+	if (offline) {
+		status = OFFLINE;
 	}
-	return { author, choose: action.dispatch, locked: !author.trim() || action.pending || Option.isSome(action.data), setAuthor, status };
+	if (action.pending) {
+		status = "Saving your answer…";
+	}
+	return {
+		author,
+		choose: action.dispatch,
+		locked: offline || !author.trim() || action.pending || Option.isSome(action.data),
+		setAuthor,
+		status,
+	};
 }

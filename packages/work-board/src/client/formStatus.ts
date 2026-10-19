@@ -12,7 +12,7 @@ export function formStatus<A>(
 	if (state.saving) {
 		return {
 			outcome: "pending",
-			text: kind === "response" ? "Pending: registering reviewed context, then recording response…" : "Saving the handoff file…",
+			text: kind === "response" ? "Saving your answer…" : "Saving the handoff file…",
 		};
 	}
 	if (interaction === "submitted") {
@@ -31,5 +31,5 @@ export function formStatus<A>(
 }
 
 export function responseSaved(id: string, dirty: boolean, choice = "") {
-	return `Saved: your answer${choice ? ` “${choice}”` : ""} is recorded. The agent reads it from responses/${id}.md the next time it checks. This records your answer, not acceptance of the work.${dirty ? " Your current draft remains unsaved." : ""}`;
+	return `Answer saved${choice ? `: “${choice}”` : ""}. The agent reads it from responses/${id}.md the next time it checks. This records your answer, not acceptance of the work.${dirty ? " Your current draft remains unsaved." : ""}`;
 }

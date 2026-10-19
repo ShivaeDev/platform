@@ -1,10 +1,12 @@
+import { Option } from "effect";
+import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import type { ReactNode } from "react";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { render } from "@shivaedev/effect-react/client/testing.ts";
-import type { Reader } from "#client/client.ts";
+import type { BrowserClient, Reader } from "#client/client.ts";
 import { FormContext } from "#client/react/FormContext.ts";
 import { workContract, workRpcs } from "#rpc/contract.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
@@ -18,8 +20,10 @@ function boardClient(files: Readonly<Record<string, string>>, options?: BoardFix
 		makeEffect: RpcTest.makeClient(workRpcs, { flatten: true }),
 		protocol: inMemoryBoard(files, options),
 	}) {}
+	const live: Atom.Type<BrowserClient["updates"]["status"]> = { connection: "live", failure: Option.none(), needsResync: false, pending: 0 };
+	const status: BrowserClient["updates"]["status"] = Atom.make(live).pipe(Atom.keepAlive);
 	return Object.assign(bind(workContract, Client), {
-		forms: { handoffs: bind(handoffContract, Client), responses: bind(responseContract, Client), runtime: Client.runtime },
+		forms: { handoffs: bind(handoffContract, Client), responses: bind(responseContract, Client), runtime: Client.runtime, updates: { status } },
 	});
 }
 

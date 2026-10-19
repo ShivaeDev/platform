@@ -39,7 +39,7 @@ function AnswerSession({ document: data, onDraft, request, preview }: AnswerProp
 		<FormField
 			className={answerTextClass(prompts.length === 0)}
 			form={form}
-			label={prompts.length > 0 ? "Anything else to add (optional)" : "Your response"}
+			label={prompts.length > 0 ? "Anything else to add (optional)" : "Your answer"}
 			maxLength={32_768}
 			name="body"
 			required={prompts.length === 0}
