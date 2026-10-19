@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { BrowserClient } from "#browserClient.ts";
 import { activeRead } from "./activeRead.ts";
+import { useLiveRead } from "./liveReady.ts";
 import { liveStatus } from "./liveStatus.ts";
 import { useMainLocation } from "./MainLocationContext.ts";
 import { shellIds } from "./shellIds.ts";
@@ -21,7 +22,7 @@ export function LiveControls({
 }) {
 	const status = useAtomValue(client.updates.status);
 	const paused = useAtomValue(client.updates.paused);
-	const watcher = useQuery(client.api.watcher.query());
+	const watcher = useQuery(useLiveRead(client.updates, client.api.watcher.query()));
 	const observed = Option.getOrUndefined(watcher.data);
 	const watching = observed === undefined && Option.isNone(watcher.cause) ? undefined : observed?.watching === true;
 	const page = useMainLocation();

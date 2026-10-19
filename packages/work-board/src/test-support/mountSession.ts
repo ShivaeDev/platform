@@ -6,6 +6,7 @@ import { mountBoard } from "#client/react/mountBoard.tsx";
 import { session } from "#client/session.ts";
 import { folder, startBoard } from "./board.ts";
 import { EDGE_ATTENTION_SOURCE } from "./coverageEdges.ts";
+import { decodedBody } from "./decodedBody.ts";
 import { type ScreenEngine, screenView } from "./screenEngine.ts";
 import { registerSessionFetch, sessionFetch } from "./sessionFetch.ts";
 
@@ -18,7 +19,13 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 	const board = yield* startBoard(notes.root, engine.options?.home, engine.sessionWrap, true, undefined, undefined, engine.sessionFleetPort);
 	const previousFetch = globalThis.fetch;
 	const transport = yield* Effect.acquireRelease(
-		Effect.sync(() => new Window({ url: board.url })),
+		Effect.sync(
+			() =>
+				new Window({
+					settings: { fetch: { interceptor: { afterAsyncResponse: ({ response, window }) => decodedBody(response, window) } } },
+					url: board.url,
+				}),
+		),
 		(value) =>
 			Effect.promise(async () => {
 				globalThis.fetch = previousFetch;

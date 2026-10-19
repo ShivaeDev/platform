@@ -71,9 +71,16 @@ for (const [fleet, copy] of [
 	screenStory.it(
 		`queues the answered Now card for Fleet (Fleet ready=${fleet})`,
 		[...(fleet ? [screenFleet(guideFleet)] : []), routedScreen(answeredDecisionFixture(), "/_board/work", { home: "home.md" })],
-		function* ({ findElement, readAttribute, readText }) {
+		function* ({ findElement, findElements, readAttribute, readText }) {
 			const card = "[aria-label='Queued'] [data-item='task.guide']";
-			yield* Effect.promise(() => eventually(() => expect(findElement(card)).not.toBeNull()));
+			yield* Effect.promise(() =>
+				eventually(() => {
+					expect(findElement(card)).not.toBeNull();
+					expect([...findElements("[role='status']")].map((status) => status.textContent)).not.toContainEqual(
+						expect.stringContaining("Fleet data has not loaded."),
+					);
+				}),
+			);
 			expect(findElement("[aria-label='Waiting on a person'] [data-item='task.guide']")).toBeNull();
 			expect(readAttribute(`${card} [data-status-token]`, "data-status-token")).toBe("waiting-on-agents");
 			expect(readText(`${card} [data-status-token]`)).toBe("Waiting on agents");
@@ -121,11 +128,10 @@ screenStory.it(
 		screenFleet(guideFleet),
 		routedScreen({ ...readyDecisionFixture, "guide.md": ANSWERED_TASK }, url, { home: "home.md", writable: true }),
 	],
-	function* ({ answerInput, click, editFile, findElement, readAttribute, readFocus, readResponses, readText, refreshDocument, responseClick }) {
+	function* ({ click, editFile, findElement, readAttribute, readFocus, readResponses, readText, refreshDocument, responseClick }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
 		expect(readText(".response-panel h2")).toBe("Answer: Publish the install guide");
 		expect(findElement("[data-answered]")).toBeNull();
-		answerInput("author", "maintainer");
 		click("[data-choice='retry']");
 		yield* Effect.promise(async () => responseClick("submit"));
 		yield* Effect.promise(() => eventually(() => expect(readText("[data-answered]")).toBe(NEXT_PASS)));
@@ -148,13 +154,13 @@ screenStory.it(
 screenStory.it(
 	"replaces the answer when the reader or someone else changes it",
 	[screenWorkspace("changed-answer"), screenFleet(guideFleet), routedScreen(answeredDecisionFixture(), url, { home: "home.md", writable: true })],
-	function* ({ answerInput, click, findElement, findElements, readAttribute, readFocus, readResponses, readText, responseClick }) {
+	function* ({ click, findElement, findElements, readAttribute, readFocus, readResponses, readText, rememberStored, responseClick }) {
 		function* change(author: string, choice: string, copy: string, replaces: string) {
 			click("details[data-key='change-answer'] summary");
 			expect(findElement<HTMLInputElement>("details[data-key='change-answer'] [name='supersedes']")?.value).toBe(replaces);
 			expect(findElements("details[data-key='change-answer'] [role='radio']")).toHaveLength(2);
 			expect(findElements("details[data-key='change-answer'] [role='radio'][aria-checked='true']")).toHaveLength(0);
-			answerInput("author", author);
+			rememberStored("work-board:author:changed-answer", author);
 			click(`[data-choice='${choice}']`);
 			expect(readAttribute(`[data-choice='${choice}']`, "aria-checked")).toBe("true");
 			yield* Effect.promise(async () => responseClick("submit"));

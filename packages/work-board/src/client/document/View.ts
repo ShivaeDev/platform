@@ -39,6 +39,7 @@ const components: Components = {
 
 export interface DocumentViewProps {
 	readonly actions?: ReactNode;
+	readonly after?: ReactNode;
 	readonly answer?: ReactNode;
 	readonly board?: readonly { readonly count: number; readonly title: string }[];
 	readonly components?: Components;
@@ -52,6 +53,7 @@ export interface DocumentViewProps {
 
 const LayoutContext = createContext<{
 	readonly actions: ReactNode;
+	readonly after: ReactNode;
 	readonly answer: ReactNode;
 	readonly context: ReactNode;
 	readonly content: ReactNode;
@@ -59,11 +61,14 @@ const LayoutContext = createContext<{
 	readonly lead: ReactNode;
 	readonly file: string;
 	readonly identified: boolean;
-}>({ actions: null, answer: null, content: null, context: null, file: "", identified: false, introduction: null, lead: null });
+}>({ actions: null, after: null, answer: null, content: null, context: null, file: "", identified: false, introduction: null, lead: null });
 const layoutElements: Components = { article: LayoutArticle, header: LayoutHeader };
 function LayoutArticle({ node, children, ...props }: React.ComponentProps<"article"> & import("react-markdown").ExtraProps) {
-	const { content } = useContext(LayoutContext);
-	return createElement("article", props, node?.properties.dataSource === undefined ? null : content, children);
+	const { after, content } = useContext(LayoutContext);
+	if (node?.properties.dataSource === undefined) {
+		return createElement("article", props, null, children);
+	}
+	return createElement(Fragment, null, createElement("article", props, content, children), after);
 }
 function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<"header"> & import("react-markdown").ExtraProps) {
 	const { actions, answer, context, introduction, lead, file, identified } = useContext(LayoutContext);
@@ -97,6 +102,7 @@ export function DocumentView({
 	content,
 	introduction,
 	board,
+	after,
 	answer,
 	lead,
 	actions,
@@ -128,7 +134,7 @@ export function DocumentView({
 			{ key: states.identity, value: states.values },
 			createElement(
 				LayoutContext.Provider,
-				{ value: { actions, answer, content, context, file: document.file, identified: Boolean(document.metadata.id), introduction, lead } },
+				{ value: { actions, after, answer, content, context, file: document.file, identified: Boolean(document.metadata.id), introduction, lead } },
 				createElement(
 					MarkdownHooks,
 					{

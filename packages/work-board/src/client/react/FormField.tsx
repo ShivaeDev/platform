@@ -17,7 +17,7 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	required,
 	rows,
 	options,
-	autoComplete,
+	className,
 	showErrors = true,
 }: {
 	readonly form: Form<TFields, A, E, TRuntimeError>;
@@ -27,15 +27,14 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	readonly required?: boolean;
 	readonly rows?: number;
 	readonly options?: readonly { readonly value: string; readonly label: string }[];
-	readonly autoComplete?: string;
+	readonly className?: string;
 	readonly showErrors?: boolean;
 }) {
 	const field = useField(form, name);
 	const ref = useRef<Control | null>(null);
 	const id = useId();
 	const value = typeof field.value === "string" ? field.value : "";
-	const validation = name === "author" && !value.trim() ? "Add your local author label." : field.error;
-	const error = showErrors ? validation : undefined;
+	const error = showErrors ? field.error : undefined;
 	useLayoutEffect(() => ref.current?.setCustomValidity(error ?? ""), [error]);
 	const props = {
 		"aria-describedby": `${id}-error`,
@@ -76,6 +75,7 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 		control = (
 			<Textarea
 				{...props}
+				className={className}
 				maxLength={maxLength}
 				name={name}
 				onInput={(event) => change(event.currentTarget.value)}
@@ -86,15 +86,7 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 		);
 	} else {
 		control = (
-			<Input
-				{...props}
-				autoComplete={autoComplete}
-				maxLength={maxLength}
-				name={name}
-				onInput={(event) => change(event.currentTarget.value)}
-				required={required}
-				value={value}
-			/>
+			<Input {...props} maxLength={maxLength} name={name} onInput={(event) => change(event.currentTarget.value)} required={required} value={value} />
 		);
 	}
 	return (

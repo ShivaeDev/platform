@@ -9,6 +9,7 @@ import { Button } from "#client/react/components/ui/button.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Textarea } from "#client/react/components/ui/textarea.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
+import { answerTextClass } from "./answerTextClass.ts";
 import { PromptChoices } from "./PromptChoices.tsx";
 import type { useResponseForm } from "./useResponseForm.ts";
 
@@ -88,6 +89,7 @@ function PromptField({
 			<Textarea
 				aria-describedby={`${fieldId}-error`}
 				aria-invalid={Boolean(error)}
+				className={answerTextClass(Boolean(choices) || prompt.mode === "text")}
 				data-answer-text
 				id={fieldId}
 				maxLength={8192}

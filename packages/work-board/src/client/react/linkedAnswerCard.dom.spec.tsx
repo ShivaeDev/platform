@@ -23,8 +23,8 @@ for (const url of ["/guide.md", "/_board/item/task.guide/"]) {
 			const more = findElement("details[data-key='response-details']", card);
 			expect(more).toHaveProperty("open", false);
 			expect(readText("summary", more)).toBe("More options");
-			expect(more?.textContent).toContain("256 KiB");
-			for (const selector of ['[name="author"]', '[name="type"]', "#response-preview", "#response-clear"]) {
+			expect(findElement('[name="author"]', card)).toBeNull();
+			for (const selector of ['[name="type"]', "#response-preview", "#response-clear"]) {
 				expect(findElement(selector, card)?.closest("details")).toBe(more);
 			}
 			expect([...findElements("textarea")].filter((field) => !field.closest("details"))).toHaveLength(1);

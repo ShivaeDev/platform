@@ -3,6 +3,7 @@ import type { IFetchInterceptor } from "happy-dom";
 import { THEME_ROUTE } from "#server/page/initialTheme.ts";
 import type { RawResponse } from "./board.ts";
 import type { PageRequests } from "./browser.ts";
+import { decodedBody } from "./decodedBody.ts";
 import type { RpcStream } from "./RpcStream.ts";
 import { rpcAfter, rpcBefore } from "./rpcFetch.ts";
 
@@ -34,14 +35,9 @@ export function pageFetch({
 	readonly theme: RawResponse;
 }): IFetchInterceptor {
 	return {
-		afterAsyncResponse: ({ request, response, window }) => {
-			if (new URL(request.url).pathname === "/_board/react.js") {
-				pageRequests.beforeReact = {
-					dark: window.document.documentElement.classList.contains("dark"),
-					scheme: window.document.documentElement.dataset.scheme,
-				};
-			}
-			return rpcAfter(request, response, window, path, pageRequests, streams);
+		afterAsyncResponse: async ({ request, response, window }) => {
+			const decoded = await decodedBody(response, window);
+			return (await rpcAfter(request, decoded ?? response, window, path, pageRequests, streams)) ?? decoded;
 		},
 		beforeAsyncRequest: async ({ request, window }) => {
 			const requested = new URL(request.url).pathname;

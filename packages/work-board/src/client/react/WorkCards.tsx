@@ -2,6 +2,7 @@ import { useContext } from "react";
 import { compareStatuses } from "#browser/views/now.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { statusLabel } from "#browser/views/statusLabel.ts";
+import { Badge } from "#client/react/components/ui/badge.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkCardList } from "./WorkCardList.tsx";
@@ -13,18 +14,24 @@ export function WorkCards({ data }: { readonly data: WorkProjection }) {
 		.map(([name, rows]) => ({ name, rows, status: rows.map((item) => item.metadata.status).toSorted(compareStatuses)[0] }))
 		.sort((left, right) => compareStatuses(left.status, right.status));
 	return (
-		<div className="work-columns">
+		<div className="work-columns grid gap-6">
 			{columns.map(({ name, rows, status }) => (
 				<section aria-label={name} className="work-column" key={name}>
-					{Boolean(status) && (
-						<h2>
-							<StatusChip status={status} />
-							<span className="work-count">{rows.length}</span>
-						</h2>
-					)}
+					{Boolean(status) && <GroupHeading count={rows.length} status={status} />}
 					<WorkCardList fleet={items} rows={rows} state={data.state} virtual={data.rows.length > 200} />
 				</section>
 			))}
 		</div>
+	);
+}
+
+function GroupHeading({ status, count }: { readonly status: string | undefined; readonly count: number }) {
+	return (
+		<h2 className="m-0 mb-2 flex items-center gap-2 font-medium text-sm">
+			<StatusChip status={status} />
+			<Badge className="work-count tabular-nums" variant="secondary">
+				{count}
+			</Badge>
+		</h2>
 	);
 }

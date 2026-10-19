@@ -43,6 +43,10 @@ export const liveNotesStory = storyKit({
 				return run(client.api.get.run({ id }));
 			},
 			invalidate: (keys: Parameters<typeof server.reactivity.invalidate>[0]) => server.reactivity.invalidate(keys),
+			isPaused: () => {
+				story.tell("the consumer reads whether live reads are paused");
+				return registry.get(client.paused);
+			},
 			list: client.api.list.query(undefined),
 			mount: <A>(atom: Atom.Atom<A>) => registry.mount(atom),
 			one: client.api.get.query({ id: 1 }),

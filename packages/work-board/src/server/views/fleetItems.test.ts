@@ -5,6 +5,7 @@ import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { unlistableWorkspace } from "#test/readTraits.ts";
+import { nestedProject } from "#test/servingTraits.ts";
 import { fleetReports } from "#test/storyTraits.ts";
 
 const item = {
@@ -36,7 +37,7 @@ function snapshot() {
 boardStory.it(
 	"joins daemon items by unique ID and retains missing documents and recent completions",
 	[project, deferredServing],
-	function* ({ start, rpc }) {
+	function* ({ start, rpc, story }) {
 		let current = data;
 		const daemon = yield* diagnosticsDaemon(snapshot, 0, () => current);
 		yield* start({ fleetPort: daemon.port });
@@ -53,7 +54,9 @@ boardStory.it(
 		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({ completed: [], items: [], state: "ready" });
 		yield* daemon.stop();
 		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
-			reason: `No Fleet daemon is running at 127.0.0.1:${daemon.port}; start work-fleet serve <board-dir> --port ${daemon.port}`,
+			authored: [],
+			reason: "Fleet isn't running, so agent work and its health are unknown.",
+			startCommand: `work-fleet serve ${story.engine.notes.root} --port ${daemon.port}`,
 			state: "unavailable",
 		});
 		expect((yield* rpc((client) => client("work-board.work", { url: "/_board/work" }))).items.length).toBeGreaterThan(0);
@@ -62,6 +65,7 @@ boardStory.it(
 boardStory.it("keeps an unconfigured Fleet explicit over Board RPC", [project, deferredServing], function* ({ start, rpc }) {
 	yield* start({ fleetPort: null });
 	expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
+		authored: [],
 		reason: "Fleet daemon is not configured for this Board",
 		state: "unavailable",
 	});
@@ -84,7 +88,47 @@ boardStory.it("reports a Fleet service rejection as unavailable over Board HTTP 
 	const daemon = yield* diagnosticsDaemon(snapshot, 0, Effect.fail(new ServiceUnavailable({ message: "Fleet store unavailable" })));
 	yield* start({ fleetPort: daemon.port });
 	expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
+		authored: [],
 		reason: `Fleet daemon communication failed at 127.0.0.1:${daemon.port}`,
 		state: "unavailable",
 	});
 });
+boardStory.it(
+	"lists the tasks whose own files say they are in progress while Fleet is unavailable",
+	[
+		projectFiles({
+			"active.md": "---\nid: task.active\nkind: task\nstatus: active\nowner: codex\n---\n# Active task",
+			"done.md": "---\nid: task.done\nkind: task\nstatus: done\n---\n# Done task",
+			"dropped.md": "---\nid: task.dropped\nkind: task\nstatus: dropped\n---\n# Dropped task",
+			"planned.md": "---\nid: task.planned\nkind: task\nstatus: planned\n---\n# Planned task",
+			"project.md": "---\nid: project.running\nkind: project\nstatus: active\n---\n# Running goal",
+			"review.md": "---\nid: task.review\nkind: task\nstatus: in-review\n---\n# Reviewed task",
+		}),
+		deferredServing,
+	],
+	function* ({ start, rpc }) {
+		yield* start({ fleetPort: null });
+		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
+			authored: [
+				{ file: "active.md", status: "active", title: "Active task", workId: "task.active" },
+				{ file: "review.md", status: "in-review", title: "Reviewed task", workId: "task.review" },
+			],
+			reason: "Fleet daemon is not configured for this Board",
+			state: "unavailable",
+		});
+	},
+);
+boardStory.it(
+	"quotes a Board folder name with a space and an apostrophe in the Fleet start command",
+	[nestedProject("Team's notes"), deferredServing],
+	function* ({ start, rpc, story }) {
+		const daemon = yield* diagnosticsDaemon(snapshot, 0, () => data);
+		yield* start({ fleetPort: daemon.port });
+		yield* daemon.stop();
+		const quoted = `'${story.engine.notes.root.replace("Team's", "Team'\\''s")}'`;
+		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toMatchObject({
+			startCommand: `work-fleet serve ${quoted} --port ${daemon.port}`,
+			state: "unavailable",
+		});
+	},
+);

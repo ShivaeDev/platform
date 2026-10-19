@@ -90,7 +90,7 @@ screenStory.it(
 		expect(findElement(".work-options")).toHaveProperty("open", false);
 		expect(readText(".work-options summary")).toBe("Filter");
 		expect(findElement(".work-options #saved-work-views")).not.toBeNull();
-		expect(findElement(".work-options .work-filters")).not.toBeNull();
+		expect(findElement(".work-options #work-filters")).not.toBeNull();
 		expect(readText()).not.toContain("Cards retain their authored status");
 		expect(readText()).not.toContain("completed items have no recent completion time");
 	},

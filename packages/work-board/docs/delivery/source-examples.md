@@ -66,7 +66,7 @@ Every top-level field is optional. Missing values stay blank in work details. `o
 
 Fleet's add-on fields `fleet`, `fleet-launch`, `fleet-deliverable` and `fleet-priority` are accepted without a diagnostic; Board leaves them uninterpreted and Fleet reads them.
 
-A unique ID resolves at `/_board/item/work.search/`. This URL survives file and heading renames while the ID remains unchanged and unique. A criterion resolves at `/_board/item/work.search/#criterion-keyboard`. File and generated heading URLs work alongside it; favorites and recents refer to file paths.
+A unique ID resolves at `/_board/item/work.search/`. This URL survives file and heading renames while the ID remains unchanged and unique. A criterion resolves at `/_board/item/work.search/#criterion-keyboard`. File and generated heading URLs work alongside it; pinned and recent documents refer to file paths.
 
 Search includes declared ID, kind, status, owner, next action, and criteria. Results show source lines where known; criterion results open and focus the criterion's work-details context. Source diagnostics identify file/line, and **Original frontmatter** exposes the retained header.
 

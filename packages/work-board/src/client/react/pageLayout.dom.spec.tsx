@@ -41,7 +41,7 @@ const ACTION_CONTROLS = '#doc [data-slot="button"], #doc [data-slot="link-button
 for (const { name, files, url, open, actions } of [
 	{
 		actions: [
-			["button", "Save favorite"],
+			["button", "Pin"],
 			["link", "Prepare an agent handoff"],
 			["link", "Review returned result"],
 			["link", "Respond to this request"],
@@ -54,7 +54,7 @@ for (const { name, files, url, open, actions } of [
 	},
 	{
 		actions: [
-			["button", "Save favorite"],
+			["button", "Pin"],
 			["button", "Change your answer"],
 			["button", "Clear selections"],
 		],

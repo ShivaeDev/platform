@@ -110,7 +110,12 @@ describe("the Board's RPC stream", () => {
 
 describe("Fleet items and goals", () => {
 	it("keeps working stages, links each item to the goal it implements and times its stage", () => {
-		const titles = goalTitlesOf({ closedGoals: [{ id: "goal.closed", title: "Closed goal" }], goals: [{ id: "project.open" }] });
+		const titles = goalTitlesOf({
+			closedGoals: [{ id: "goal.closed", title: "Closed goal" }],
+			deferredGoals: [{ id: "goal.parked", title: "Parked goal" }],
+			goals: [{ id: "project.open" }],
+		});
+		expect(titles.get("goal.parked")).toBe("Parked goal");
 		const flights = flightsOf(
 			{
 				items: [

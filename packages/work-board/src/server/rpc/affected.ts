@@ -4,7 +4,14 @@ import { referencesFrom } from "#server/metadata/backlinks.ts";
 import type { MetadataModel } from "#server/metadata/model.ts";
 import { referencesOf } from "#server/metadata/referencesOf.ts";
 import { malformedResponse } from "#server/responses/records.ts";
+import type { Snapshot } from "#server/search/snapshot.ts";
 
+type Indexed = Pick<Snapshot, "model" | "modified">;
+
+function versions({ model, modified }: Indexed) {
+	const parsed = new Map(model.documents.map((document) => [document.file, document.parsed]));
+	return (path: string) => JSON.stringify([modified.get(path), parsed.get(path)?.raw, parsed.get(path)?.body]);
+}
 function uncertain(previous: MetadataModel, current: MetadataModel, paths: readonly string[]) {
 	if (previous.unavailable.length > 0 || current.unavailable.length > 0) {
 		return true;
@@ -67,12 +74,18 @@ function linkedFiles(models: readonly MetadataModel[], paths: readonly string[])
 	}
 	return files;
 }
-export function affected(previous: MetadataModel, current: MetadataModel, paths: readonly string[]): readonly Key[] | undefined {
-	if (uncertain(previous, current, paths)) {
+export function affected(previous: Indexed, current: Indexed, paths: readonly string[]): readonly Key[] | undefined {
+	if (uncertain(previous.model, current.model, paths)) {
 		return undefined;
 	}
-	const models = [previous, current];
-	const files = linkedFiles(models, paths);
+	const before = versions(previous);
+	const after = versions(current);
+	const changed = paths.filter((path) => before(path) !== after(path));
+	if (changed.length === 0) {
+		return [];
+	}
+	const models = [previous.model, current.model];
+	const files = linkedFiles(models, changed);
 	const keys: Key[] = [index.list, navigation.list, ...[...files].map((file) => documents.item(file))];
 	for (const model of models) {
 		if (model.rootFile && files.has(model.rootFile)) {

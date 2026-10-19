@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, Redacted } from "effect";
+import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { batchBudget } from "#test/batchBudget.ts";
@@ -65,6 +66,7 @@ export const realPostgres = boss.trait("database", "an isolated real PostgreSQL 
 	const database = Context.get(services, PostgresTestDatabase);
 	const isolated = yield* database.isolated;
 	state.connectionString = Redacted.value(Context.get(isolated, PostgresTestDatabase).url);
+	state.sql = Context.get(isolated, SqlClient.SqlClient);
 	state.factory = undefined;
 });
 

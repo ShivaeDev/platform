@@ -26,7 +26,7 @@ screenStory.it(
 );
 
 screenStory.it(
-	"keeps the remembered author under More across different questions",
+	"records answers under the remembered author without showing it and keeps reply options under More",
 	[
 		screenWorkspace("remembered-author"),
 		storedScreenState({ "work-board:author:remembered-author": "Casey" }),
@@ -36,16 +36,21 @@ screenStory.it(
 			{ writable: true },
 		),
 	],
-	function* ({ findElement, findElements, navigate }) {
+	function* ({ click, findElement, findElements, navigate, readResponses, readText, responseClick }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
 		expect(findElement('[data-key="response-details"]')).toHaveProperty("open", false);
 		expect(findElements("#response-form textarea").filter((field) => !field.closest("details"))).toHaveLength(PRIMARY_ANSWER);
-		for (const name of ["author", "type", "supersedes"]) {
-			expect(findElement(`[name="${name}"]`)?.closest("details")?.getAttribute("data-key")).toBe("response-details");
-		}
+		expect(findElement('[name="type"]')?.closest("details")?.getAttribute("data-key")).toBe("response-details");
+		expect(findElement('[name="author"]')).toBeNull();
+		expect(findElement('[name="supersedes"]')).toBeNull();
+		expect(readText("#response-form")).not.toContain("Casey");
 		yield* Effect.promise(() => navigate("/other.md"));
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")?.getAttribute("data-item")).toBe("question.backup")));
-		expect(findElement('[name="author"]')).toHaveProperty("value", "Casey");
+		click("[data-choice='option-1']");
+		yield* Effect.promise(async () => responseClick("submit"));
+		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Saved")));
+		const saved = yield* Effect.promise(() => readResponses("question.backup", "answer"));
+		expect(saved.responses.map((entry) => entry.response.author)).toEqual(["Casey"]);
 	},
 );
 

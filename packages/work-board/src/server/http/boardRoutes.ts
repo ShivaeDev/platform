@@ -11,9 +11,13 @@ import { Responses } from "#server/Responses.ts";
 import type { Highlighter } from "#server/render/Highlighter.ts";
 import { ASSET_HANDLERS, MERMAID_ROUTE, mermaidFile } from "./assets.ts";
 import { attachment } from "./attachment.ts";
+import { encodedBodies, encodeResponse } from "./encoding.ts";
 import { identity } from "./identity.ts";
 import { page } from "./page.ts";
 import { respond } from "./respond.ts";
+
+// ETags hash the uncompressed bytes, so every board in the process can share one compressed copy of each asset.
+const encoded = encodedBodies();
 
 type Services = Highlighter | Responses | HandoffsService | Diagnostics | FileSystem.FileSystem | Path.Path;
 type Handler<E> = (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, Services | Scope.Scope>;
@@ -26,7 +30,9 @@ export function boardRoutes(options: BoardOptions, runtime: Effect.Success<Retur
 				return router.add(
 					"GET",
 					route,
-					loopbackOnly((request) => Effect.provideContext(handler(request), context)),
+					loopbackOnly((request) =>
+						Effect.provideContext(handler(request), context).pipe(Effect.flatMap((response) => encodeResponse(request, response, encoded))),
+					),
 				);
 			}
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
