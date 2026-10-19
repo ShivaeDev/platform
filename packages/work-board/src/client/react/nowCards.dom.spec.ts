@@ -24,7 +24,7 @@ screenStory.it(
 		yield* Effect.promise(() =>
 			eventually(() => expect(card("task.upload")).toEqual({ owner: "Fleet is working on this", stage: "Executing, started 4h ago" })),
 		);
-		expect(card("task.guide")).toEqual({ owner: "Queued for Fleet", stage: "Queued, started 4h ago" });
+		expect(card("task.guide")).toEqual({ owner: "Queued for Fleet", stage: "Queued 4h ago" });
 		expect(card("task.email")).toEqual({ owner: "Needs you", stage: "Waiting, started 4h ago" });
 		expect(card("task.pricing")).toEqual({ owner: "Assigned to you", stage: undefined });
 		expect(findElements(".work-now .work-kind")).toHaveLength(0);

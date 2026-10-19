@@ -53,10 +53,10 @@ export function WorkCard({
 }
 
 function StageTime({ stage, entered }: { readonly stage: FleetWork["stage"]; readonly entered: number }) {
-	const { ended, label } = stageTime(stage);
+	const { label, started } = stageTime(stage);
 	return (
 		<p className="work-stage m-0 text-muted-foreground text-xs">
-			{ended ? `${label} ` : `${label}, started `}
+			{started ? `${label}, started ` : `${label} `}
 			<RowTime at={entered} />
 		</p>
 	);
