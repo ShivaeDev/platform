@@ -10,6 +10,7 @@ import { engineEvidence } from "#test/engineEvidence.ts";
 import { engineGithubVerbs } from "#test/engineGithubVerbs.ts";
 import { engineLaunchVerbs } from "#test/engineLaunchVerbs.ts";
 import { engineLostTurnVerbs } from "#test/engineLostTurnVerbs.ts";
+import { enginePredictionVerbs } from "#test/enginePredictionVerbs.ts";
 import { engineProviderVerbs } from "#test/engineProviderVerbs.ts";
 import { engineRpcVerbs } from "#test/engineRpcVerbs.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
@@ -105,6 +106,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 	return {
 		...verbs,
 		...engineProviderVerbs(running(state).fixture, story.tell),
+		...enginePredictionVerbs(state, story.tell),
 		...engineEvidence(state),
 		...engineBoardVerbs(state, story.tell),
 		...engineWorldVerbs(state, story.tell),
