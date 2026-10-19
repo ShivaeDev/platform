@@ -5,16 +5,15 @@ import { LiveHint } from "#live.ts";
 import { query, stream } from "#operation.ts";
 
 export const documents = collection("documents", Schema.String);
-export const workspace = collection("workspace", Schema.String);
 export class Document extends Schema.Class<Document>("Document")({ body: Schema.String, id: Schema.String }) {}
 export class Missing extends Schema.TaggedError<Missing>()("Missing", { id: Schema.String }) {}
 export class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
 export const Get = query("get", {
 	payload: { id: Schema.String },
-	reads: ({ id }) => [documents.item(id), workspace.list],
+	reads: ({ id }) => [documents.item(id)],
 	rejections: { Missing, Unavailable },
 	success: Document,
 });
-export const List = query("list", { reads: () => [documents.list, workspace.list], success: Schema.Array(Document) });
-export const Subscribe = stream("subscribe", { reads: () => [workspace.list], rejections: { Unavailable }, success: LiveHint });
+export const List = query("list", { reads: () => [documents.list], success: Schema.Array(Document) });
+export const Subscribe = stream("subscribe", { reads: () => [documents.list], rejections: { Unavailable }, success: LiveHint });
 export const Documents = contract("documents", { queries: [Get, List], streams: [Subscribe] });

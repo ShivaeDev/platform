@@ -9,7 +9,13 @@ import { hintStream } from "./hintStream.ts";
 import { httpHost } from "./httpHost.ts";
 import { Get, LiveNotes } from "./notesContract.ts";
 
-export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync" }) {
+export interface NotesSource {
+	readonly edit: (id: number, body: string) => Promise<void>;
+	readonly get: (id: number) => Promise<Note>;
+	readonly list: () => Promise<readonly Note[]>;
+}
+
+export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync" }, source?: NotesSource) {
 	const server = await Effect.runPromise(makeServer);
 	await Effect.runPromise(
 		Ref.set(
@@ -35,13 +41,18 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 		...server.implementation,
 		"notes.get": ({ id }) =>
 			Effect.gen(function* () {
-				const note = yield* server.implementation["notes.get"]({ id });
+				const local = yield* server.implementation["notes.get"]({ id });
+				const note = source === undefined ? local : yield* Effect.promise(() => source.get(id));
 				yield* yield* Ref.get(gate);
 				if (yield* Ref.get(unavailable)) {
 					return yield* Get.reject.Unavailable({});
 				}
 				return note;
 			}),
+		"notes.list": () =>
+			source === undefined
+				? server.implementation["notes.list"]()
+				: Effect.andThen(server.implementation["notes.list"](), Effect.promise(source.list)),
 		"notes.subscribe": () =>
 			Stream.unwrap(
 				Effect.gen(function* () {
@@ -79,6 +90,9 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 				}),
 			),
 		edit: async (id: number, body: string) => {
+			if (source !== undefined) {
+				await source.edit(id, body);
+			}
 			await Effect.runPromise(
 				Ref.update(server.stored, (all) => {
 					const note = all.get(id);

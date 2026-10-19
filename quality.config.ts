@@ -70,6 +70,7 @@ export default defineConfig({
 		"tests/support-imports": {
 			options: {
 				modules: [
+					"packages/effect-contract/src/automaticLive.ts",
 					"packages/effect-contract/src/contract.ts",
 					"packages/effect-contract/src/keys.ts",
 					"packages/effect-contract/src/live.ts",
@@ -81,6 +82,7 @@ export default defineConfig({
 					"packages/effect-react/src/client/create.ts",
 					"packages/effect-react/src/client/editor.ts",
 					"packages/effect-react/src/client/resultState.ts",
+					"packages/effect-react/src/client/sessionBoundary.ts",
 					"packages/effect-pg-boss/src/server/client.ts",
 					"packages/effect-pg-boss/src/server/definition.ts",
 					"packages/effect-pg-boss/src/server/schema.ts",
