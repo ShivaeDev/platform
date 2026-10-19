@@ -26,6 +26,7 @@ import { TimeTicker } from "./Time.tsx";
 import { UpdatesToggle } from "./UpdatesToggle.tsx";
 import { useAppearance } from "./useAppearance.ts";
 import { useBoardNavigation } from "./useBoardNavigation.ts";
+import { useNeedsYouCount } from "./useNeedsYouCount.ts";
 import { useOpened } from "./useOpened.ts";
 import { useSearchDialog } from "./useSearchDialog.ts";
 import { useSidebar } from "./useSidebar.ts";
@@ -80,6 +81,7 @@ function BoardWorkspace(
 	const query = useQuery(useLiveRead(client?.updates, navigationQuery(api)), { keepPreviousData: true });
 	const opened = useOpened(options.opening);
 	const data = Option.getOrUndefined(query.data);
+	const needsYou = useNeedsYouCount(data) ?? null;
 	const { element } = useContext(ReadingReadyContext);
 	useEffect(() => {
 		const doc = document.getElementById("doc");
@@ -119,7 +121,7 @@ function BoardWorkspace(
 					<div className="min-w-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" data-board-page inert={sidebar.narrow && sidebar.open}>
 						<Header
 							appearance={appearance}
-							count={data?.inboxCount ?? null}
+							count={needsYou}
 							live={live}
 							main={main}
 							openSearch={search.show}
@@ -128,7 +130,7 @@ function BoardWorkspace(
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
 						{opened ? <FleetMain api={api} home={data?.home} onPage={onPage} url={url} /> : <OpeningView url={url} />}
-						<PhoneNavigation count={data?.inboxCount ?? null} main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
+						<PhoneNavigation count={needsYou} main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
 					</div>
 				</div>
 				{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}

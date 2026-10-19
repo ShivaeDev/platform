@@ -28,7 +28,7 @@ screenStory.it(
 		input('#response-form [data-prompt="display"] textarea', "Keep the history.");
 		input('#response-form [data-prompt="checks"] textarea', "Test keyboard use.");
 		submit("#response-form");
-		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Saved:")));
+		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Answer saved")));
 		const saved = yield* Effect.promise(() => readResponses("investigation.choices", "direction"));
 		expect(saved.responses[0]?.response.author).toBe("Reviewer");
 	},

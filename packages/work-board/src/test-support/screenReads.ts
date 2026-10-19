@@ -16,7 +16,7 @@ export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOption
 				read.started = true;
 				return Deferred.await(read.gate).pipe(Effect.andThen(read.failed ? Effect.die("Older read unavailable") : Effect.void));
 			}),
-		beforeIndex: () => indexAvailability(engine),
+		beforeIndex: (files: readonly string[]) => indexAvailability(engine, files),
 		beforeRead: (kind: "document", url: string) => {
 			engine.documentReads.push(url);
 			return engine.documentFailed ? Effect.die("Read unavailable") : (options?.beforeRead?.(kind, url) ?? Effect.void);

@@ -48,8 +48,8 @@ for (const state of ["open", "closed"]) {
 				expect(findElement("#answer-card-verification")).toBeNull();
 				expect(findElements(".questionnaire-question")).toHaveLength(SINGLE_REQUEST);
 			} else {
-				expect(readAttribute("#answer-card-direction fieldset", "data-mode")).toBe("one");
-				expect(readAttribute("#answer-card-verification fieldset", "data-mode")).toBe("many");
+				expect(readAttribute("#answer-card-direction fieldset[data-mode]", "data-mode")).toBe("one");
+				expect(readAttribute("#answer-card-verification fieldset[data-mode]", "data-mode")).toBe("many");
 				const ids = findElements(".answer-cards [id]").map((element) => element.id);
 				expect(new Set(ids).size).toBe(ids.length);
 			}

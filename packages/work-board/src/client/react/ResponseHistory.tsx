@@ -19,9 +19,9 @@ export function ResponseHistory({
 	const preview = request?.preview;
 	return (
 		<section className="space-y-3 border-t pt-4" id={id}>
-			<h2 className="font-medium text-sm">Recorded responses</h2>
+			<h2 className="font-medium text-sm">Answers so far</h2>
 			{records.length === 0 ? (
-				<EmptyState title="No responses yet">Answers recorded for this question appear here.</EmptyState>
+				<EmptyState title="No answers yet">Answers recorded for this question appear here.</EmptyState>
 			) : (
 				records.map((record) => (
 					<ResponseEntry current={record.response.question === preview?.id} key={record.id} record={record} request={request} />

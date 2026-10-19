@@ -24,7 +24,7 @@ for (const kind of ["response", "handoff"] as const) {
 			click(`#${kind}-preview`);
 			submit(`#${kind}-form`);
 			yield* Effect.promise(() =>
-				eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Saved:" : "Saved handoffs/")),
+				eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Answer saved." : "Saved handoffs/")),
 			);
 			if (kind === "response") {
 				expect(readText("#response-status")).toContain("not acceptance");

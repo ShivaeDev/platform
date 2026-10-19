@@ -94,3 +94,36 @@ export function todayAnswerFixture(): Record<string, string> {
 		"reader.md": inboxAudienceFixture()["reader.md"] ?? "",
 	};
 }
+
+export function todayContextFixture(): Record<string, string> {
+	return {
+		...todayAnswerFixture(),
+		"decisions/launch.md": decision(
+			"launch",
+			"Pick the launch day",
+			`${question("launch", "one", "Which day should the launch be?", ["monday", "friday"])}\n## Recommendation\n\nMonday, so the team can watch it.\n`,
+		),
+		"decisions/workaround.md": `---
+id: decision.workaround
+kind: decision
+attention:
+  - id: direction
+    kind: decision
+    state: open
+    reason: Keep the startup workaround?
+    response_from: [maintainer]
+    unblocks: [decision.workaround]
+---
+# Keep the startup workaround?
+
+Workers source the setup script in every command.
+
+- **A. Keep the workaround (recommended).** Close the activation task as superseded.
+- **B. Fix the environment.** Publish a revision that activates on its own,
+  then drop the workaround.
+- **C. Decide after the release.**
+
+Answer with A, B or C.
+`,
+	};
+}
