@@ -2,14 +2,13 @@ import { Cause, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { AdvisoryLockOutsideTransaction } from "#advisoryXactLock.ts";
-import { waitingOn } from "#test/migrationConcurrency.ts";
 import { Rejected } from "#test/postgresTransact.ts";
 import { postgres } from "#test/sqlStory.ts";
 
 postgres.it(
 	"the same bigint advisory key waits until the holding transaction commits",
 	[],
-	function* ({ advisoryXactLock, holdAdvisoryLock, transact }) {
+	function* ({ advisoryXactLock, holdAdvisoryLock, transact, waitingOn }) {
 		const key = 9_223_372_036_854_775_807n;
 		const held = yield* holdAdvisoryLock(key);
 		const second = yield* advisoryXactLock(key).pipe(transact({ onSqlError: (error) => error }), Effect.forkScoped);
@@ -41,7 +40,7 @@ postgres.it(
 postgres.it(
 	"string advisory keys use hashtextextended with seed zero and release on rollback",
 	[],
-	function* ({ advisoryXactLock, holdAdvisoryLock, sql, transact }) {
+	function* ({ advisoryXactLock, holdAdvisoryLock, sql, transact, waitingOn }) {
 		const key = crypto.randomUUID();
 		const [hashed] = yield* sql<{ key: string }>`select hashtextextended(${key}, 0)::text as key`;
 		if (hashed === undefined) {
@@ -61,7 +60,7 @@ postgres.it(
 postgres.it(
 	"interrupting the holding fiber releases its transaction advisory lock",
 	[],
-	function* ({ advisoryXactLock, holdAdvisoryLock, transact }) {
+	function* ({ advisoryXactLock, holdAdvisoryLock, transact, waitingOn }) {
 		const key = crypto.randomUUID();
 		const held = yield* holdAdvisoryLock(key);
 		const second = yield* advisoryXactLock(key).pipe(transact({ onSqlError: (error) => error }), Effect.forkScoped);
