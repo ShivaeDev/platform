@@ -2,7 +2,8 @@ import type { Document } from "#browser/document/schema.ts";
 import { DocumentView } from "#client/document/View.ts";
 import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
-import { DocumentCriteria } from "./DocumentCriteria.tsx";
+import { BodyCriteria, DocumentCriteria } from "./DocumentCriteria.tsx";
+import { OutlineMenu } from "./DocumentOutline.tsx";
 import { documentElements } from "./documentElements.tsx";
 import { GoalPage } from "./GoalPage.tsx";
 import { GoalProgressHeader } from "./GoalProgressHeader.tsx";
@@ -12,8 +13,14 @@ export function DocumentPage({ document, api }: { readonly document: Document; r
 	const projectContent = api ? <GoalPage api={api} document={document} /> : <DocumentCriteria document={document} />;
 	return (
 		<DocumentView
-			actions={<ItemActions document={document} />}
+			actions={
+				<>
+					<OutlineMenu document={document} />
+					<ItemActions document={document} />
+				</>
+			}
 			answer={<AnswerPanel document={document} />}
+			closing={<BodyCriteria document={document} />}
 			components={documentElements}
 			content={document.metadata.kind === "project" ? projectContent : undefined}
 			context={<DocumentContext document={document} />}
