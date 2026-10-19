@@ -17,9 +17,13 @@ export const resultProjection = Effect.fn("WorkBoard.resultProjection")(function
 	const criteria = resultTargets(result, data, document);
 	const questions = data.documents.flatMap((entry) => {
 		const question = questionFrom(entry);
-		return question && question.question.item === result.parsed.fields.id ? [question] : [];
+		return question && question.question.item === result.parsed.fields.id ? [{ file: entry.file, id: question.id }] : [];
 	});
-	const readings = yield* Effect.forEach(questions, (question) => Effect.result(readHistory(data, question.id, false)));
+	const readings = yield* Effect.forEach(questions, (question) =>
+		readHistory(data, question.id, false).pipe(
+			Effect.match({ onFailure: (failure) => ({ failed: { file: question.file, reason: failure.message } }), onSuccess: (history) => ({ history }) }),
+		),
+	);
 	function file(id: string) {
 		return data.model.ids.get(id)?.[0]?.file ?? `responses/${id}.md`;
 	}
@@ -33,21 +37,15 @@ export const resultProjection = Effect.fn("WorkBoard.resultProjection")(function
 			supersedesFile: response.response.supersedes ? file(response.response.supersedes) : undefined,
 		}));
 	}
-	const broken = [
-		...data.unavailable.map((path) => ({ file: path, reason: "The Board can't read this file." })),
-		...data.documents.filter(couldHoldFeedback(item, result, data)).flatMap((entry) => {
-			const reason = recordProblem(entry, data);
-			return reason ? [{ file: entry.file, reason }] : [];
-		}),
-	];
-	// A broken record also fails every history read, so a read failure is listed only when no file explains it.
-	const unreadableFeedback =
-		broken.length > 0
-			? broken
-			: readings.flatMap((entry, index) =>
-					entry._tag === "Failure" ? [{ file: file(questions[index]?.id ?? ""), reason: entry.failure.message }] : [],
-				);
-	const feedback = unreadableFeedback.length > 0 ? [] : readings.flatMap((entry) => (entry._tag === "Success" ? feedbackEntries(entry.success) : []));
+	const broken = data.documents.filter(couldHoldFeedback(item, result, data)).flatMap((entry) => {
+		const reason = recordProblem(entry, data);
+		return reason ? [{ file: entry.file, reason }] : [];
+	});
+	// A broken record makes the whole history unknown, so a failed read is listed only when no file explains it.
+	const unreadableFeedback = (broken.length > 0 ? broken : readings.flatMap((reading) => ("failed" in reading ? [reading.failed] : []))).sort(
+		(a, b) => a.file.localeCompare(b.file),
+	);
+	const feedback = unreadableFeedback.length > 0 ? [] : readings.flatMap((reading) => ("history" in reading ? feedbackEntries(reading.history) : []));
 	feedback.sort((a, b) => b.response.response.recordedAt - a.response.response.recordedAt || a.response.id.localeCompare(b.response.id));
 	return { document, feedback, item, revision, targets: criteria, unreadableFeedback };
 });

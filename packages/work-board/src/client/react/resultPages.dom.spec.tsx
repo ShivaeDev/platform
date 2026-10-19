@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import {
+	ambiguousQuestion,
 	answeredResult,
 	CHECKED_RESULT,
 	LONE_RESULT,
@@ -9,6 +10,7 @@ import {
 	QUIET_RESULT,
 	QUIET_TASK,
 	REVIEW_TASK,
+	relatedProblems,
 	reviewResult,
 	UNCHECKED_TASK,
 	unrelatedProblems,
@@ -192,17 +194,42 @@ screenStory.it(
 
 screenStory.it(
 	"names each feedback file that can't be read, says why and links to System's source problems",
-	[routedScreen({ ...result, "responses/broken.md": "---\nresponse: [unfinished\n" }, ITEM)],
+	[routedScreen({ ...result, ...relatedProblems(), "responses/broken.md": "---\nresponse: [unfinished\n" }, ITEM)],
 	function* ({ findElement, findElements, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#result-feedback [role='alert']")).not.toBeNull()));
 		expect(readText("#result-feedback [role='alert']")).toContain("Some feedback couldn't be read");
 		const files = findElements("[data-unreadable-feedback] li");
-		expect(files.map((file) => file.querySelector("a")?.getAttribute("href"))).toEqual(["/responses/broken.md"]);
-		expect(files.map((file) => file.textContent)).toEqual([expect.stringMatching(/^responses\/broken\.md: \S/u)]);
+		expect(files.map((file) => file.querySelector("a")?.getAttribute("href"))).toEqual([
+			"/responses/broken.md",
+			"/responses/no-record.md",
+			"/responses/question.edited.md",
+		]);
+		expect(files.map((file) => file.textContent)).toEqual([
+			expect.stringMatching(/^responses\/broken\.md: \S/u),
+			"responses/no-record.md: It's marked as a response but has no ID or response record.",
+			"responses/question.edited.md: It's marked as a question but its record doesn't match its text.",
+		]);
 		expect(findElement("#result-feedback [role='alert'] a[href='/_board/system#source-problems']")?.textContent).toBe(
 			"See source problems in System",
 		);
 		expect(readText("#result-review")).not.toContain("No feedback yet");
+	},
+);
+
+screenStory.it(
+	"names each question whose feedback can't be read when no broken file explains it",
+	[routedScreen({ ...HOME, ...ambiguousQuestion() }, ITEM)],
+	function* ({ findElement, findElements }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("[data-unreadable-feedback]")).not.toBeNull()));
+		expect(findElements("[data-unreadable-feedback] li a").map((link) => link.getAttribute("href"))).toEqual([
+			expect.stringMatching(/^\/questions\/copy-of-question\.[a-f\d]{64}\.md$/u),
+			expect.stringMatching(/^\/responses\/question\.[a-f\d]{64}\.md$/u),
+		]);
+		expect(findElements("[data-unreadable-feedback] li").map((file) => file.textContent?.replace(/^\S+: /u, ""))).toEqual([
+			"The registered question identity is ambiguous; response history is unknown.",
+			"The registered question identity is ambiguous; response history is unknown.",
+		]);
+		expect(findElement("#result-feedback article")).toBeNull();
 	},
 );
 

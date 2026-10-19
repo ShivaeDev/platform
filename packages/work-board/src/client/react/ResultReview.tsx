@@ -20,7 +20,7 @@ export function ItemResultReview({ api, item }: { readonly api: ShellApi; readon
 	const failure = Option.getOrUndefined(Option.flatMap(query.cause, Cause.findErrorOption));
 	return failure ? (
 		<p className="col-span-full text-muted-foreground text-sm" data-result-unavailable role="status">
-			Checks and feedback can't be shown. {failure._tag === "Conflict" ? failure.message : "Reload the page to try again."}
+			Checks and feedback can't be shown. Reload the page to try again.
 		</p>
 	) : null;
 }
@@ -75,8 +75,8 @@ function emptyLine(noReview: boolean, noChecks: boolean, noFeedback: boolean) {
 	if (missing.length === 0) {
 		return undefined;
 	}
-	const last = missing.pop() ?? "";
-	const sentence = missing.length > 0 ? `${missing.join(", ")} and ${last}` : last;
+	const leading = missing.slice(0, -1).join(", ");
+	const sentence = leading ? `${leading} and ${missing.slice(-1).join("")}` : missing.join("");
 	return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}.`;
 }
 

@@ -114,6 +114,18 @@ boardStory.it(
 );
 
 boardStory.it(
+	"answers the typed result query for an older result link as it does for the item page",
+	[aResultAwaitingReview(), responsesEnabled()],
+	function* ({ client }) {
+		const [current, older] = yield* Effect.promise(() =>
+			Promise.all([REVIEW_PATH, "/_board/result?item=result.keyboard"].map((url) => client.run(client.api.result.run({ url })))),
+		);
+		expect(older?.item).toBe("result.keyboard");
+		expect(older).toEqual(current);
+	},
+);
+
+boardStory.it(
 	"rejects ambiguous result identities and non-result work rather than guessing a reviewed item",
 	[aResultAwaitingReview(), responsesEnabled()],
 	function* ({ client, editFile }) {
