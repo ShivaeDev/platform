@@ -235,6 +235,12 @@
 	.reading-column blockquote {
 		@apply border-l-2 pl-4 text-muted-foreground;
 	}
+	.reading-column table:not([data-slot]) {
+		@apply block overflow-auto;
+	}
+	.reading-column :is(th, td):not([data-slot]) {
+		@apply border p-2;
+	}
 	.item-context {
 		@apply [overflow-wrap:anywhere];
 	}
