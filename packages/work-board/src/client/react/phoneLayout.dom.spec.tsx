@@ -80,12 +80,12 @@ screenStory.it(
 	"tells a phone reader when the connection is reconnecting or a refresh failed",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen()],
 	function* ({ click, findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("reconnecting")));
-		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("reconnecting");
+		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Reconnecting…")));
+		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("Reconnecting…");
 		expect(findElement(`${LIVE} svg`)).not.toBeNull();
 		click("[data-document]");
-		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("refresh failed")));
-		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("refresh failed");
+		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Couldn't update this page")));
+		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("Not updated");
 	},
 );
 
@@ -93,8 +93,8 @@ screenStory.it(
 	"tells a phone reader that updates are paused",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen("live", "paused")],
 	function* ({ readAttribute, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("updates paused · 0 pending updates")));
-		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("paused");
+		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Updates paused · 0 pending")));
+		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("Paused");
 		expect(readAttribute(LIVE, "data-state")).toBe("paused");
 	},
 );

@@ -57,7 +57,9 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				tell(`the reader follows ${href}`);
 				followLink(page(), href);
 			}),
+		heading: () => page().document.querySelector("#doc h1")?.textContent,
 		inboxCounts: () => ["inbox-count", "inbox-topbar-count"].map((id) => page().document.getElementById(id)?.textContent),
+		indexingProgress: () => page().document.querySelector('#doc [data-indexing] [data-slot="progress-label"]')?.textContent,
 		input: (name: string, value: string) => text(`[name="${name}"]`, value),
 		open: Effect.fn("Story.open")(function* (path: string, before?: Parameters<typeof openPage>[2]) {
 			tell(`the reader opens ${path}`);
@@ -68,12 +70,20 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			return opened;
 		}),
 		preview: () => formEvent(page(), () => click("response-preview")),
+		releaseRequest: (method: string) => {
+			tell(`the page sends its held ${method} requests`);
+			const hold = engine.heldRequests?.get(method);
+			if (!hold) {
+				throw new Error(`The page does not hold ${method} requests`);
+			}
+			hold.release();
+		},
 		requestsByMethod: Effect.fn("Story.requestsByMethod")(function* () {
 			tell("the reader waits for the page to settle and counts its RPC requests by method");
 			const opened = page();
 			yield* Effect.promise(() =>
 				waitFor(() => {
-					if (opened.document.getElementById("live")?.textContent !== "live") {
+					if (opened.document.getElementById("live")?.getAttribute("data-state") !== "live") {
 						throw new Error("The page is not live yet");
 					}
 				}),

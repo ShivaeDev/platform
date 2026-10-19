@@ -119,7 +119,7 @@ screenStory.it(
 	[screenFiles(files, { home: "home.md" }), screenRoute("/_board/goals/zzz"), sessionScreen("response")],
 	function* ({ readText }) {
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("Page not found")));
-		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("live")));
+		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("Live")));
 	},
 );
 

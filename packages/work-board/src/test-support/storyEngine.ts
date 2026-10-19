@@ -1,12 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Deferred, Effect } from "effect";
+import { type Deferred, Effect, type Semaphore } from "effect";
 import type { browserClient } from "#client/client.ts";
 import type { Sources } from "#diagnostics/source.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { responseFrom } from "#server/responses/records.ts";
 import { type FileSystemWrapper, type Folder, folder, type RunningBoard } from "./board.ts";
-import { type OpenPage, openPage } from "./browser.ts";
+import { type held, type OpenPage, openPage } from "./browser.ts";
 import { startProject } from "./servingEngine.ts";
 
 export interface BoardEngine {
@@ -16,6 +16,7 @@ export interface BoardEngine {
 	changeDelivery?: { dropped: boolean; loseNext: boolean; omitPath?: string };
 	connectionBoundary?: { readonly disconnect: () => void; readonly resume: () => void };
 	fleetPort?: number | undefined;
+	heldRequests?: Map<string, ReturnType<typeof held>>;
 	home?: string | undefined;
 	lastView?: ReturnType<typeof readerView>;
 	linked?: import("./linkedProject.ts").LinkedProject;
@@ -36,6 +37,7 @@ export interface BoardEngine {
 export interface WorkspaceReads {
 	readonly files: string[];
 	readonly gate?: Deferred.Deferred<void>;
+	readonly permits?: Semaphore.Semaphore;
 }
 
 export function wrapFilesystem(engine: BoardEngine, wrap?: FileSystemWrapper) {
@@ -76,12 +78,13 @@ export function* serveProject(engine: BoardEngine) {
 	yield* startProject(engine);
 }
 
-export function* openReader(engine: BoardEngine) {
+export function* openReader(engine: BoardEngine, ready = true) {
 	if (engine.live) {
 		return;
 	}
 	const { board, client } = served(engine);
-	const page = yield* openPage(board, engine.path, engine.beforeScripts);
+	const holds = new Map([...(engine.heldRequests ?? [])].map(([method, hold]) => [method, hold.gate]));
+	const page = yield* openPage(board, engine.path, engine.beforeScripts, { holds, ready });
 	engine.live = { board, client, page };
 	yield* rememberReader(engine);
 }
