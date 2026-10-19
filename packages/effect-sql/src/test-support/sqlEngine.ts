@@ -19,6 +19,7 @@ import { fixture } from "./fixture.ts";
 import type { generatedRows } from "./generatedRows.ts";
 import type { heldSeed } from "./heldSeed.ts";
 import { holdAdvisoryLock } from "./holdAdvisoryLock.ts";
+import type { insertSelect } from "./insertSelect.ts";
 import type { invoiceLines } from "./invoiceLines.ts";
 import type { jsonReceipts } from "./jsonReceipts.ts";
 import type { migrationTables } from "./migrationTables.ts";
@@ -47,6 +48,7 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 		constrainedItems: fixture<Effect.Success<typeof constrainedItems>>(),
 		generatedRows: fixture<Effect.Success<typeof generatedRows>>(),
 		heldSeed: fixture<Effect.Success<ReturnType<typeof heldSeed>>>(),
+		insertSelect: fixture<Effect.Success<typeof insertSelect>>(),
 		invoiceLines: fixture<Effect.Success<typeof invoiceLines>>(),
 		jsonReceipts: fixture<Effect.Success<typeof jsonReceipts>>(),
 		labels: fixture<Effect.Success<typeof labelsWithPrefix>>(),
@@ -85,6 +87,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		generatedRows: engine.generatedRows.get,
 		heldSeed: engine.heldSeed.get,
 		holdAdvisoryLock,
+		insertSelect: engine.insertSelect.get,
 		invalidateOnCommit,
 		invoiceLines: engine.invoiceLines.get,
 		isCommitting,
