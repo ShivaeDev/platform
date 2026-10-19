@@ -102,6 +102,7 @@ export default defineConfig({
 					"packages/quality/src/cli/program.ts",
 					"packages/quality/src/cli/runMain.ts",
 					"packages/quality/src/config.ts",
+					"packages/quality/src/config/resolve.ts",
 					"packages/quality/src/engine/violation.ts",
 					"packages/quality/src/imports/fences/dsl.ts",
 					"packages/quality/src/imports/fences/selectors.ts",

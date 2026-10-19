@@ -231,7 +231,7 @@ Automatic reconciliation refreshes eligible edited briefs in place. Explicit dis
 
 ### Read the generated heading board
 
-The CLI host writes `fleet/status.md` inside the Board folder. It derives Active, Waiting on maintainer, Waiting on orchestrator, Waiting on automation and Done columns from the same Fleet views, with one card per current unreleased item, retaining released items while a blocker remains. Cards link to the task's Board identity and its adopted PR when available. The file contains execution stages and blockers, not worker prompts, session receipts or authored task status.
+The CLI host writes `fleet/status.md` inside the Board folder. It derives Active, Waiting on maintainer, Waiting on orchestrator, Waiting on automation and Done columns from the same Fleet views, with one card per current unreleased item, retaining released items while a blocker remains. Done holds the same 50 most recently completed items as `work-fleet status`, newest first, so the file stays small as finished work accumulates. Cards link to the task's Board identity and its adopted PR when available. The file contains execution stages and blockers, not worker prompts, session receipts or authored task status.
 
 After the first scheduler cycle creates the file, select it as Work Board's home:
 

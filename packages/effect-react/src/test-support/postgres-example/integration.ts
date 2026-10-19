@@ -1,6 +1,6 @@
 import { Clock } from "effect";
 import { expect } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { isolate, wholeStack } from "#test/order-example/isolation.ts";
 import { hasPostgres, workerDatabase } from "#test/order-example/postgres.ts";
 import { createLiveEngine } from "./liveEngine.ts";

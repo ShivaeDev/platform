@@ -1,7 +1,7 @@
 import { Effect, Ref } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { edgeEngine } from "./edgeEngine.ts";
 import { localEngine } from "./localEngine.ts";
 import type { Note } from "./notes.ts";

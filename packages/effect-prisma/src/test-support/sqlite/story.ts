@@ -1,7 +1,7 @@
 // Register the call-through factory before the typed database module loads.
 import "#test/sqlite/initializationFault.ts";
 import { Effect, Layer } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clearQueryControls, queryControl, queryState } from "#test/queryControls.ts";
 import { queryProbes } from "#test/queryProbes.ts";
 import { relationProbes } from "#test/relationProbes.ts";

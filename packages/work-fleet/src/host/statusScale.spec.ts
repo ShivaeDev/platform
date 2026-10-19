@@ -30,6 +30,10 @@ host.it(
 				.toReversed()
 				.map((record) => record.workId),
 		);
+		const published = daemon.readBoard("fleet/status.md").split("\n## Done\n")[1] ?? "";
+		expect([...published.matchAll(/^### (?<workId>.+)$/gmu)].map((card) => card.groups?.workId)).toEqual(
+			overview.completed.map((record) => record.workId),
+		);
 		const encoded = JSON.stringify(overview);
 		for (const field of ["prompt", "boardContext", "output", "history", "publicationWork"]) {
 			expect(encoded).not.toContain(`"${field}":`);
@@ -37,8 +41,9 @@ host.it(
 		for (const text of ["Implement the approved synthetic change", "Synthetic Board context", "Synthetic worker progress"]) {
 			expect(encoded).not.toContain(text);
 		}
-		const detail = yield* daemon.requestStatus("item-0000");
-		expect(detail.record).toEqual(records[0]);
+		const detail = yield* daemon.queriesDuring(daemon.requestStatus("item-0000"));
+		expect(detail.value.record).toEqual(records[0]);
+		expect(new Set(detail.queries.filter((query) => /^\s*select/iu.test(query.text)).map((query) => query.parameters))).toEqual(new Set([1]));
 		expect((yield* daemon.requestStatus("item-0100")).record).toEqual(records[100]);
 		const successfulExit = 0;
 		const detailCli = yield* daemon.cli(["status", "item-0000", "--json"]);
@@ -47,7 +52,11 @@ host.it(
 		const cli = yield* daemon.cli(["status", "--json"]);
 		expect(cli.code).toBe(successfulExit);
 		expect(JSON.parse(cli.stdout).completed).toEqual(overview.completed);
-		yield* Effect.all([daemon.requestStatus(), daemon.subscribe(["item-0001"])], { concurrency: "unbounded" });
+		const subscribed = yield* daemon.queriesDuring(
+			Effect.all([daemon.requestStatus(), daemon.subscribe(["item-0001"])], { concurrency: "unbounded" }),
+		);
+		const attemptOutputs = subscribed.queries.filter((query) => query.text.includes('"output","publishedRecovery"'));
+		expect(attemptOutputs.map((query) => query.parameters)).toEqual([overview.active.length]);
 		yield* daemon.follow("watcher", "watch", ["item-0000"], { follow: true });
 		yield* Effect.all(
 			[daemon.requestStatus(), daemon.awaitOutput("watcher", "item-0000 needs-human (waiting on maintainer): Choose the synthetic storage option")],

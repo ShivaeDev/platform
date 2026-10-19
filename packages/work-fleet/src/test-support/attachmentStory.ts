@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { codexReportAttachments } from "#providers/codexReportAttachments.ts";
 import { connect, request } from "#providers/codexRpc.ts";
 import { codexTurns } from "#providers/codexTurns.ts";

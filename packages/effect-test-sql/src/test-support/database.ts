@@ -1,7 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { applicationVerbs } from "./applicationVerbs.ts";
 import { budgetVerbs } from "./budgetVerbs.ts";
 import { createDatabaseEngine } from "./databaseEngine.ts";

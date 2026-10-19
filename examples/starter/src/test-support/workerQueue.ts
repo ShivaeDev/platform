@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defaultClientFactory, type PgBossClient, type PgBossClientFactory } from "@shivaedev/effect-pg-boss/client.ts";
+import { defaultClientFactory, type PgBossClient, type PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
 
 type Complete = NonNullable<PgBossClient["complete"]>;
 

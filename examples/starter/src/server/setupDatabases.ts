@@ -1,5 +1,5 @@
 import { Config, Effect } from "effect";
-import { localPostgres } from "@shivaedev/local-postgres/localPostgres.ts";
+import { localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
 export const setupDatabases = Effect.fn("App.setupDatabases")(function* () {
 	const config = yield* Config.all({

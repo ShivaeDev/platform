@@ -1,6 +1,6 @@
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { Pause, Play } from "lucide-react";
-import type { BrowserClient } from "#client/client.ts";
+import type { BrowserClient } from "#browserClient.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { shellIds } from "./shellIds.ts";
 

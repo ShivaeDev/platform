@@ -1,5 +1,5 @@
 import { Deferred, Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createEngine, label, type Options } from "./engine.ts";
 import { type Change, Current, makeDatabase } from "./fakeDatabase.ts";
 import { verbs } from "./verbs.ts";

@@ -17,6 +17,12 @@ export function snapshotReads(host: FleetHost) {
 			return span;
 		},
 	});
+	function statements() {
+		return spans.flatMap((span) => {
+			const text = span.attributes.get("db.query.text");
+			return typeof text === "string" ? [text] : [];
+		});
+	}
 	function snapshots() {
 		return spans.filter((span) => {
 			const text = span.attributes.get("db.query.text");
@@ -42,6 +48,7 @@ export function snapshotReads(host: FleetHost) {
 		observe: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.withTracer(effect, tracer),
 		restoreIfBroken: Effect.suspend(() => (broken ? restoreReads : Effect.void)),
 		restoreReads,
+		statements,
 	};
 }
 

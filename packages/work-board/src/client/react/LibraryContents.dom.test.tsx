@@ -28,7 +28,7 @@ screenStory.it(
 	"orders Recently changed by file modification time, independent of title order",
 	[
 		boardScreen({}, (api) => (
-			<LibraryContents api={api} data={{ files, fleetCount: 0, folders: [], kinds: [], statuses: [] }} filters={{}} view="recently changed" />
+			<LibraryContents api={api} data={{ files, fleetCount: 0, folders: [], kinds: [], statuses: [] }} filters={{}} view="recently-changed" />
 		)),
 	],
 	({ findElements }) => {

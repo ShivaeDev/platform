@@ -108,7 +108,9 @@ it("accepts stories in a destructured suite and ignores callbacks inside their b
 });
 
 it("does not accept an unrelated object's it as a story kit", async () => {
-	const root = seedTree([spec('import { storyKit } from "@shivaedev/test-story/storyKit.ts"; const orders = { it() {} }; orders.it("plain", []);')]);
+	const root = seedTree([
+		spec('import { storyKit } from "@shivaedev/test-story/server/storyKit.ts"; const orders = { it() {} }; orders.it("plain", []);'),
+	]);
 
 	expect(await findingsIn(storySpecs, undefined, root)).toHaveLength(1);
 });
@@ -143,7 +145,7 @@ it("reports tests declared through a custom harness without a story kit", async 
 it("follows a local kit, a namespace factory and a destructured registrar", async () => {
 	const root = seedTree([
 		spec(
-			'import * as stories from "@shivaedev/test-story/storyKit.ts"; const app = stories.storyKit({}); const { it: scenario } = app; scenario("story", []);',
+			'import * as stories from "@shivaedev/test-story/server/storyKit.ts"; const app = stories.storyKit({}); const { it: scenario } = app; scenario("story", []);',
 		),
 	]);
 

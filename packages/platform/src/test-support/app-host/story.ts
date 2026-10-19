@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { close, start } from "./lifecycle.ts";
 import { emptyHost } from "./state.ts";
 import { hostVerbs } from "./verbs.ts";

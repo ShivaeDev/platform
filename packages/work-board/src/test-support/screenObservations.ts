@@ -1,4 +1,4 @@
-import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 function columnLayout(cells: readonly HTMLTableCellElement[]) {

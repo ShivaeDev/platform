@@ -13,14 +13,17 @@ export interface ReadOptions {
 	readonly namespace: string;
 }
 
+// Only executing work reports a relaunched turn, so other records skip their attempt rows and their worker output.
 export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* (options: ReadOptions, ids?: readonly string[]) {
+	const Summary = Schema.Struct(Struct.omit(State.fields, ["recovery"]));
 	const Snapshot = Schema.Struct({
-		...Struct.omit(State.fields, ["recovery"]),
+		...Summary.fields,
 		attempts: Schema.optional(Schema.Array(Schema.Struct({ output: Attempt.fields.output, publishedRecovery: Attempt.fields.publishedRecovery }))),
 	});
 	const shape = schemaShape(Snapshot);
 	class SnapshotRow extends Model.Class<SnapshotRow>("FleetSnapshot")({
 		...Object.fromEntries(Object.entries(shapeColumns(shape)).map(([name, kind]) => [name, columnSchema(kind)])),
+		stage: Schema.NullOr(Schema.String),
 		"work_id": Schema.String,
 	}) {}
 	const repository = yield* makeRepository(SnapshotRow, {
@@ -30,7 +33,18 @@ export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* 
 	});
 	const rows = yield* repository.findMany({ orderBy: { direction: "asc", field: "work_id" } });
 	const selected = rows.filter((row) => ids === undefined || ids.includes(row.work_id));
-	const states = yield* Schema.decodeUnknownEffect(Schema.Array(Snapshot))(yield* recordValues(selected, shape, options.namespace));
+	const executing = selected.filter((row) => row.stage === "executing");
+	const values = new Map(
+		[
+			...(yield* recordValues(executing, shape, options.namespace)),
+			...(yield* recordValues(
+				selected.filter((row) => row.stage !== "executing"),
+				schemaShape(Summary),
+				options.namespace,
+			)),
+		].map((value) => [value.workId, value]),
+	);
+	const states = yield* Schema.decodeUnknownEffect(Schema.Array(Snapshot))(selected.map((row) => values.get(row.work_id)));
 	return states.map(({ attempts, ...state }) => {
 		const recovery = recoveryStatus(attempts, state.stage);
 		return { ...state, ...(recovery === undefined ? {} : { recovery }), outcome: state.outcome ?? {} };

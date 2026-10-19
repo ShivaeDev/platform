@@ -1,9 +1,9 @@
 import { Context, Effect, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resolveHost } from "#host/config.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";

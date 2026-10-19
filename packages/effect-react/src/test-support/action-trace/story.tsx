@@ -1,8 +1,8 @@
 import { Config, Effect, Layer, Option, Redacted, Tracer } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { eventually } from "#client/testing.ts";
 import { clickButton, Screen } from "#test/Screen.ts";
 import { connect } from "./connect.ts";

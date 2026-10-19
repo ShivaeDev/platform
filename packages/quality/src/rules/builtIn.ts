@@ -34,6 +34,7 @@ import { noInline } from "#rules/suppressions/noInline.ts";
 import { testsColocated } from "#rules/test-names/colocated.ts";
 import { testsFollow } from "#rules/test-names/follow.ts";
 import { biome } from "./biome.ts";
+import { manifestsExportsShape } from "./manifestsExportsShape.ts";
 import { manifestsSorted } from "./manifestsSorted.ts";
 import { manifestsSourceFirst } from "./manifestsSourceFirst.ts";
 import { maxDepth } from "./maxDepth.ts";
@@ -66,6 +67,7 @@ export const builtInRules = [
 	noTestCode,
 	manifestsSorted,
 	manifestsSourceFirst,
+	manifestsExportsShape,
 	namedAfterExport,
 	folderNames,
 	distinctCase,

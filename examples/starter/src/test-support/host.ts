@@ -2,9 +2,9 @@ import { ConfigProvider, Effect, Layer, Logger, Redacted, References } from "eff
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { vi } from "vitest";
-import { makePgBossTesting } from "@shivaedev/effect-pg-boss/testing.ts";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { forwardingProxy } from "@shivaedev/test-story/forwardingProxy.ts";
+import { makePgBossTesting } from "@shivaedev/effect-pg-boss/server/testing.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { migrateDatabase } from "#server/migrateDatabase.ts";
 
 export const secret = Redacted.make("app-test-secret-with-at-least-32-characters");

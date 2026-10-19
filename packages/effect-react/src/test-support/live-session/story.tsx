@@ -1,6 +1,6 @@
 import { setTimeout } from "node:timers/promises";
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clickButton, Screen } from "#test/Screen.ts";
 import { App } from "./App.tsx";
 import { openHost } from "./openHost.ts";
