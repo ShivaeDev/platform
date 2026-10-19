@@ -48,7 +48,9 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 				}),
 				Layer.succeed(
 					DiagnosticsConfig,
-					provided._tag === "Some" ? { _tag: "Sources", sources: provided.value } : { _tag: "Read", read: daemonDiagnostics(options.fleetPort) },
+					provided._tag === "Some"
+						? { _tag: "Sources", sources: provided.value }
+						: { _tag: "Read", read: daemonDiagnostics(options.root, options.fleetPort) },
 				),
 			]),
 		),
