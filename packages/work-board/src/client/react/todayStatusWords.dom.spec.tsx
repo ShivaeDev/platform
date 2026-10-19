@@ -64,13 +64,19 @@ screenStory.it(
 	"names statuses in plain words in the All work status filter",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), screenRoute("/_board/work?view=board"), openScreen()],
 	function* ({ click, findElement, findElements, readText }) {
-		const status = () => labelledCombobox(findElements("main [role='combobox']"), "Status");
-		const options = () => findElements(`#${CSS.escape(status()?.getAttribute("aria-controls") ?? "")} [role="option"]`, document);
+		function status() {
+			return labelledCombobox(findElements("main [role='combobox']"), "Status");
+		}
+		function options() {
+			return findElements(`#${CSS.escape(status()?.getAttribute("aria-controls") ?? "")} [role="option"]`, document);
+		}
 		yield* Effect.promise(() => eventually(() => expect(status()).toBeDefined()));
 		click(status());
 		click(options().find((option) => option.textContent === "Needs you"));
 		yield* Effect.promise(() =>
-			eventually(() => expect(new URL(findElement<HTMLElement>("#doc")?.dataset.route ?? "", "http://board").searchParams.get("status")).toBe("value:needs-human")),
+			eventually(() =>
+				expect(new URL(findElement<HTMLElement>("#doc")?.dataset.route ?? "", "http://board").searchParams.get("status")).toBe("value:needs-human"),
+			),
 		);
 		yield* Effect.promise(() => eventually(() => expect(readText("[data-slot='select-value']", status())).toBe("Needs you")));
 		click(status());
@@ -110,16 +116,15 @@ screenStory.it(
 	"offers one All work status option for spellings that share a name and lists items of each",
 	[screenFiles(BOTH_SPELLINGS, { home: "home.md" }), screenRoute("/_board/work?view=board&status=value%3Aneeds-you"), openScreen()],
 	function* ({ click, findElements, readText }) {
-		const status = () => labelledCombobox(findElements("main [role='combobox']"), "Status");
+		function status() {
+			return labelledCombobox(findElements("main [role='combobox']"), "Status");
+		}
 		yield* Effect.promise(() => eventually(() => expect(status()).toBeDefined()));
 		expect(readText("[data-slot='select-value']", status())).toBe("Needs you");
 		click(status());
-		expect(findElements(`#${CSS.escape(status()?.getAttribute("aria-controls") ?? "")} [role="option"]`, document).map((option) => option.textContent)).toEqual([
-			"All statuses",
-			"Active",
-			"Needs you",
-			"Planned",
-		]);
+		expect(
+			findElements(`#${CSS.escape(status()?.getAttribute("aria-controls") ?? "")} [role="option"]`, document).map((option) => option.textContent),
+		).toEqual(["All statuses", "Active", "Needs you", "Planned"]);
 		expect(readText("main")).toContain("Review the landing copy");
 		expect(readText("main")).toContain("Ship the onboarding email");
 		expect(readText("main")).not.toContain("Write the install guide");

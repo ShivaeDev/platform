@@ -3,14 +3,13 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useMemo } from "react";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { type State, viewUrl } from "#browser/views/state.ts";
-import { sameStatus } from "#browser/views/statusLabel.ts";
 import { buttonVariants } from "#client/react/components/ui/button.tsx";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "#client/react/components/ui/table.tsx";
-import { StatusChip } from "#client/react/StatusChip.tsx";
+import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow } from "#client/react/components/ui/table.tsx";
 import { useVirtualRows } from "./useVirtualRows.ts";
-import { WorkItemTitle } from "./WorkItemTitle.tsx";
+import { WorkTableRow } from "./WorkTableRow.tsx";
 
 type WorkRow = WorkProjection["rows"][number];
+const ROW_HEIGHT = 64;
 const features = tableFeatures({ rowSortingFeature });
 const column = createColumnHelper<typeof features, WorkRow>();
 const columns = column.columns([
@@ -27,7 +26,8 @@ const widths: Readonly<Record<string, string>> = {
 	status: "w-[15%] max-md:w-[38%]",
 	title: "w-[36%] max-md:w-[62%]",
 };
-const ROW_HEIGHT = 64;
+const sortIcons = { asc: ArrowUp, desc: ArrowDown } as const;
+const ariaSorts = { asc: "ascending", desc: "descending" } as const;
 
 export function WorkTable({ data }: { readonly data: WorkProjection }) {
 	const { state } = data;
@@ -52,15 +52,15 @@ export function WorkTable({ data }: { readonly data: WorkProjection }) {
 				</TableHeader>
 				<TableBody>
 					{window.top > 0 && (
-						<tr aria-hidden="true">
+						<tr>
 							<td colSpan={columns.length} style={{ height: window.top, padding: 0 }} />
 						</tr>
 					)}
 					{rows.slice(window.start, window.end).map((row) => (
-						<WorkTableRow item={row.original} key={row.id} state={state} virtual={virtual} />
+						<WorkTableRow height={virtual ? ROW_HEIGHT : undefined} item={row.original} key={row.id} state={state} />
 					))}
 					{window.bottom > 0 && (
-						<tr aria-hidden="true">
+						<tr>
 							<td colSpan={columns.length} style={{ height: window.bottom, padding: 0 }} />
 						</tr>
 					)}
@@ -97,9 +97,9 @@ function SortableHead({ header, state }: { readonly header: Header<typeof featur
 			</TableHead>
 		);
 	}
-	const Icon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
+	const Icon = sorted ? sortIcons[sorted] : ArrowUpDown;
 	return (
-		<TableHead aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined} className={className} scope="col">
+		<TableHead aria-sort={sorted ? ariaSorts[sorted] : undefined} className={className} scope="col">
 			<a
 				className={buttonVariants({ className: "-ml-2 text-muted-foreground data-sorted:text-foreground", size: "sm", variant: "ghost" })}
 				data-sorted={sorted ? "" : undefined}
@@ -114,37 +114,4 @@ function SortableHead({ header, state }: { readonly header: Header<typeof featur
 
 function sortOf(id: string): State["sort"] | undefined {
 	return id === "title" || id === "kind" || id === "status" || id === "owner" ? id : undefined;
-}
-
-function WorkTableRow({ item, state, virtual }: { readonly item: WorkRow; readonly state: State; readonly virtual: boolean }) {
-	const selected = item.id === state.item;
-	const status = item.metadata.status;
-	return (
-		<TableRow
-			className="relative align-top has-[a:focus-visible]:bg-muted/50"
-			data-item={item.id}
-			data-selected={selected ? "true" : undefined}
-			data-state={selected ? "selected" : undefined}
-			style={virtual ? { height: ROW_HEIGHT } : undefined}
-		>
-			<TableHead className="h-auto whitespace-normal py-2.5 font-normal" scope="row">
-				<WorkItemTitle
-					className="font-medium text-foreground no-underline after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:underline"
-					item={item}
-					state={state}
-				/>
-				<span className="block break-all font-mono text-muted-foreground text-xs">{item.id}</span>
-				{Boolean(item.metadata.nextAction) && <span className="mt-1 block text-muted-foreground text-xs md:hidden">{item.metadata.nextAction}</span>}
-			</TableHead>
-			<TableCell className="whitespace-normal py-2.5 text-muted-foreground max-md:hidden">{item.metadata.kind ?? ""}</TableCell>
-			<TableCell className="whitespace-normal py-2.5">
-				<div className="flex flex-wrap gap-1">
-					{Boolean(item.waiting) && !(status && sameStatus(status, "needs-you")) && <StatusChip status="needs-you" />}
-					<StatusChip status={status} />
-				</div>
-			</TableCell>
-			<TableCell className="whitespace-normal break-words py-2.5 max-md:hidden">{item.metadata.owner ?? ""}</TableCell>
-			<TableCell className="whitespace-normal py-2.5 text-muted-foreground max-md:hidden">{item.metadata.nextAction ?? ""}</TableCell>
-		</TableRow>
-	);
 }

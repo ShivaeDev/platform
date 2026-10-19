@@ -25,9 +25,9 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 	);
 	const groups = Map.groupBy(data.rows, (item) => laneOf(item.metadata, items.get(item.id), item.fleetApproved, item.answered !== undefined));
 	const lanes = nowLanes.map((lane) => ({ lane, rows: (groups.get(lane) ?? []).filter((item) => lane !== DONE || recent.has(item.id)) }));
-	const lane = { fleet: items, state: data.state, virtual: data.rows.length > 200 };
-	const [chosen, choose] = useState<NowLane | undefined>(undefined);
-	const shown = chosen ?? lanes.find((lane) => lane.rows.length > 0)?.lane ?? nowLanes[0];
+	const shared = { fleet: items, state: data.state, virtual: data.rows.length > 200 };
+	const [chosen, setChosen] = useState<NowLane | undefined>(undefined);
+	const shown = chosen ?? lanes.find(({ rows }) => rows.length > 0)?.lane ?? nowLanes[0];
 	return (
 		<>
 			{!ready && (
@@ -38,11 +38,7 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 					</AlertDescription>
 				</Alert>
 			)}
-			{phone ? (
-				<PhoneLanes lanes={lanes} shown={shown} {...lane} onChoose={choose} />
-			) : (
-				<DesktopLanes lanes={lanes} {...lane} />
-			)}
+			{phone ? <PhoneLanes lanes={lanes} shown={shown} {...shared} onChoose={setChosen} /> : <DesktopLanes lanes={lanes} {...shared} />}
 		</>
 	);
 }

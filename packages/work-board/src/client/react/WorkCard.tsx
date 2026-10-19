@@ -33,7 +33,11 @@ export function WorkCard({
 		>
 			{kind !== undefined && <p className="work-kind m-0 text-muted-foreground text-xs uppercase tracking-wide">{kind}</p>}
 			<h3 className="m-0 font-medium text-sm leading-snug [overflow-wrap:anywhere]">
-				<WorkItemTitle className="text-foreground no-underline outline-none after:absolute after:inset-0 after:content-['']" item={item} state={state} />
+				<WorkItemTitle
+					className="text-foreground no-underline outline-none after:absolute after:inset-0 after:content-['']"
+					item={item}
+					state={state}
+				/>
 			</h3>
 			<div className="flex flex-wrap items-center gap-2">
 				<StatusChip status={status} title={answered ?? item.waiting} />
