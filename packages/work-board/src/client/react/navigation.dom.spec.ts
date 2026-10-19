@@ -64,12 +64,12 @@ describe("document navigation", () => {
 			page.document.body.dataset.visit = "kept";
 			reader.clickSelector('a[href="/_board/result?item=result.keyboard"]');
 			yield* Effect.promise(() => frame(page));
-			yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Review returned result · result.keyboard")));
-			expect(title(page)).toBe("Review returned result · result.keyboard");
+			yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Review result")));
+			expect(title(page)).toBe("Review result");
 			expect(page.document.body.dataset.visit).toBe("kept");
 			expect(page.window.location.pathname).toBe("/_board/result");
 			expect(page.window.location.search).toBe("?item=result.keyboard");
-			expect(page.document.getElementById("doc")?.textContent).toContain("source status: in-review");
+			expect(page.document.getElementById("doc")?.textContent).toContain("In review");
 		},
 	);
 
@@ -82,8 +82,8 @@ describe("document navigation", () => {
 			page.document.body.dataset.visit = "kept";
 			followLink(page, "/_board/start");
 			yield* Effect.promise(() => frame(page));
-			yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Project and report templates")));
-			expect(title(page)).toBe("Project and report templates");
+			yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Templates")));
+			expect(title(page)).toBe("Templates");
 			expect(page.document.body.dataset.visit).toBe("kept");
 			expect(page.window.location.pathname).toBe("/_board/start");
 			page.window.history.back();

@@ -36,8 +36,8 @@ boardStory.it(
 		reader.input("goal", "Fix focus");
 		yield* formEvent(page, () => reader.click("handoff-preview"));
 		yield* reader.submit("handoff-form");
-		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("handoff-status")?.textContent).toContain("Prepared:")));
-		expect(page.document.getElementById("handoff-status")?.textContent).toContain("execution and acceptance remain separate");
+		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("handoff-status")?.textContent).toContain("Saved handoffs/")));
+		expect(page.document.getElementById("handoff-status")?.textContent).toContain("Copy the prompt below into your agent session");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#handoff-prepared [data-handoff-copy]")).not.toBeNull()));
 		const button = page.document.querySelector("#handoff-prepared [data-handoff-copy]");
 		yield* formEvent(page, () => button?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true })));

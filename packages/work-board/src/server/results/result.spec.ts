@@ -18,14 +18,14 @@ boardStory.it(
 		const page = yield* Effect.promise(() => fetch(board.url + REVIEW_PATH));
 		expect(page.status).toBe(200);
 		const body = yield* readResult();
-		expect(body).toContain("Result status: <b>finished</b>");
-		expect(body).toContain("source status: in-review");
-		expect(body).not.toContain("No recorded evidence in this result naming this criterion");
-		expect(body).toContain("Observed time</dt><dd></dd>");
+		expect(body).toContain(">Finished</span>");
+		expect(body).toContain(">In review</span>");
+		expect(body).toContain("No evidence recorded");
+		expect(body).toContain("Not recorded");
 		expect(body).toContain("missing Markdown source");
-		expect(body).toContain("Evidence freshness is unknown");
-		expect(body).toContain("not compare them with the current checkout");
-		expect(yield* readResult()).toContain("Review returned result");
+		expect(body).toContain("can&#x27;t tell whether they are still current");
+		expect(body).toContain("doesn&#x27;t compare revisions with your checkout");
+		expect(body).toMatch(/>Review result<\/h1>/u);
 		expect(readdirSync(notes.root)).toEqual(before);
 		expect(readFileSync(join(notes.root, "items/task.md"), "utf8")).toBe(REVIEW_TASK);
 		expect(yield* Effect.promise(async () => (await fetch(`${board.url}/items/result.md`)).text())).toContain("data-board-react-root");
@@ -37,10 +37,12 @@ boardStory.it(
 	[aResultAwaitingReview(), responsesEnabled()],
 	function* ({ notes, editFile, readResult, reviewReport }) {
 		const first = yield* reviewReport("response.revise", "revision");
-		expect(yield* readResult()).toContain("Feedback on this exact result revision");
+		expect(yield* readResult()).toContain("Written for the version of the report shown here");
 		editFile("items/result.md", reviewResult("Second report: limitation clarified"));
 		yield* eventually(
-			Effect.flatMap(readResult(), (rendered) => Effect.try(() => expect(rendered).toContain("Earlier or moved result context"))),
+			Effect.flatMap(readResult(), (rendered) =>
+				Effect.try(() => expect(rendered).toContain("Written for an earlier or moved version of this report")),
+			),
 			{ interval: "50 millis", times: 20 },
 		);
 		const second = yield* reviewReport("response.accept", "accept", first.id);
@@ -48,14 +50,15 @@ boardStory.it(
 		expect(second.response.reviewedRevision).toBe(revisionOf(reviewResult("Second report: limitation clarified")));
 		expect(second.response.reviewedRevision).not.toBe(first.response.reviewedRevision);
 		expect(body).toContain("Accept this exact report version with the stated limitations");
-		expect(body).toContain("Explicitly supersedes");
-		expect(body).toContain("Feedback on this exact result revision");
-		expect(body).toContain("Earlier or moved result context");
-		expect(body).not.toContain("No recorded evidence in this result naming this criterion");
+		expect(body).toContain("Replaces earlier feedback");
+		expect(body).toContain("Written for the version of the report shown here");
+		expect(body).toContain("Written for an earlier or moved version of this report");
 		expect(readFileSync(join(notes.root, "items/task.md"), "utf8")).toBe(REVIEW_TASK);
 		editFile("items/result.md", reviewResult("Third report after acceptance"));
 		yield* eventually(
-			Effect.flatMap(readResult(), (rendered) => Effect.try(() => expect(rendered).not.toContain("Feedback on this exact result revision"))),
+			Effect.flatMap(readResult(), (rendered) =>
+				Effect.try(() => expect(rendered).not.toContain("Written for the version of the report shown here")),
+			),
 			{ interval: "50 millis", times: 20 },
 		);
 	},
@@ -69,7 +72,9 @@ boardStory.it(
 		renameSync(join(notes.root, "items/result.md"), join(notes.root, "items/moved-result.md"));
 		renameSync(join(notes.root, `responses/${saved.id}.md`), join(notes.root, "responses/moved-feedback.md"));
 		yield* eventually(
-			Effect.flatMap(readResult(), (rendered) => Effect.try(() => expect(rendered).toContain("Earlier or moved result context"))),
+			Effect.flatMap(readResult(), (rendered) =>
+				Effect.try(() => expect(rendered).toContain("Written for an earlier or moved version of this report")),
+			),
 			{ interval: "50 millis", times: 20 },
 		);
 		yield* eventually(
@@ -77,7 +82,7 @@ boardStory.it(
 			{ interval: "50 millis", times: 20 },
 		);
 		yield* reviewReport("response.followup", "accept", saved.id);
-		expect(yield* readResult()).toContain('Explicitly supersedes <a href="/responses/moved-feedback.md">');
+		expect(yield* readResult()).toContain('Replaces earlier feedback <a href="/responses/moved-feedback.md">');
 	},
 );
 
@@ -88,19 +93,19 @@ boardStory.it(
 		const saved = yield* reviewReport("response.valid", "accept");
 		editFile("responses/broken.md", "---\nresponse: [unfinished\n");
 		yield* eventually(
-			Effect.flatMap(readResult(), (rendered) => Effect.try(() => expect(rendered).toContain("Response history is unknown or ambiguous"))),
+			Effect.flatMap(readResult(), (rendered) => Effect.try(() => expect(rendered).toContain("Some feedback couldn&#x27;t be read"))),
 			{ interval: "50 millis", times: 20 },
 		);
-		expect(yield* readResult()).not.toContain("No readable response is recorded");
+		expect(yield* readResult()).not.toContain("No feedback yet");
 		// Re-establish readable history before introducing a duplicate identity.
 		editFile("responses/broken.md", "Ordinary Markdown without a response record.\n");
 		yield* eventually(
-			Effect.flatMap(readResult(), (rendered) => Effect.try(() => expect(rendered).toContain("Feedback on this exact result revision"))),
+			Effect.flatMap(readResult(), (rendered) => Effect.try(() => expect(rendered).toContain("Written for the version of the report shown here"))),
 			{ interval: "50 millis", times: 20 },
 		);
 		editFile("responses/broken.md", readFileSync(join(notes.root, `responses/${saved.id}.md`), "utf8"));
 		yield* eventually(
-			Effect.flatMap(readResult(), (rendered) => Effect.try(() => expect(rendered).toContain("Response history is unknown or ambiguous"))),
+			Effect.flatMap(readResult(), (rendered) => Effect.try(() => expect(rendered).toContain("Some feedback couldn&#x27;t be read"))),
 			{ interval: "50 millis", times: 20 },
 		);
 	},
@@ -143,7 +148,7 @@ boardStory.it(
 		expect(body).not.toContain('<form id="response-form">');
 		expect(body).not.toContain("<script>window.injected=true</script>");
 		expect(body).toContain("diagram-source");
-		expect(body).toContain("Review review");
+		expect(body).toContain('href="/_board/item/result.keyboard/#answer-card-review"');
 	},
 );
 
@@ -159,7 +164,7 @@ boardStory.it(
 		);
 		const saved = yield* reviewReport("response.crlf", "accept");
 		expect(saved.response.reviewedRevision).toBe(revisionOf(source));
-		expect(yield* readResult()).toContain("Feedback on this exact result revision");
+		expect(yield* readResult()).toContain("Written for the version of the report shown here");
 		expect(readFileSync(join(notes.root, "items/result.md"), "utf8")).toBe(source);
 	},
 );
@@ -171,7 +176,7 @@ boardStory.it(
 		editFile("items/task.md", REVIEW_TASK.replace("id: narrow", "id: focus"));
 		yield* eventually(
 			Effect.flatMap(readResult(), (rendered) =>
-				Effect.try(() => expect(rendered).toContain("criterion identity is ambiguous; evidence association unavailable")),
+				Effect.try(() => expect(rendered).toContain("Another check has the same ID, so evidence can&#x27;t be matched to this one")),
 			),
 			{ interval: "50 millis", times: 20 },
 		);

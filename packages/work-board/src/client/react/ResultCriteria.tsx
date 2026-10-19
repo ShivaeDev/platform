@@ -1,77 +1,130 @@
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#client/react/components/ui/table.tsx";
 import { keyed } from "./keyed.ts";
+import { SectionCard } from "./SectionCard.tsx";
+import { StatusChip } from "./StatusChip.tsx";
 import { shellIds } from "./shellIds.ts";
 
 type Target = ResultProjection["targets"][number];
 type Criterion = Target["criteria"][number];
 type Claim = Criterion["claims"][number];
+
 export function ResultCriteria({ data }: { readonly data: ResultProjection }) {
-	const targets = data.targets.map((target) => <TargetRow key={target.link.label} target={target} />);
+	const identity = data.document.identity;
+	const targets = data.targets.filter((target) => !(target.link.label === identity && target.available && target.criteria.length === 0));
 	return (
-		<section id={shellIds.resultCriteria}>
-			<h2 title="Only explicit relationships and criterion references are associated. Git revisions are authored records; Work Board does not compare them with the current checkout. Evidence freshness is unknown. This result does not change the linked work’s status.">
-				Criteria and this result’s claims
-			</h2>
-			{targets.length > 0 ? <ul>{targets}</ul> : <p>No explicitly linked work or criteria.</p>}
-		</section>
-	);
-}
-function TargetRow({ target }: { readonly target: Target }) {
-	const criteria = keyed(target.criteria, (entry) => entry.link.label).map(({ key, value }) => <CriterionRow criterion={value} key={key} />);
-	return (
-		<li>
-			<a href={target.link.href}>{target.link.label}</a>
-			{target.available ? (
-				<>
-					{Boolean(target.status) && <span> · source status: {target.status}</span>}
-					{criteria.length > 0 ? <ul>{criteria}</ul> : <p>No criteria declared in this source.</p>}
-				</>
+		<SectionCard
+			description="What the agent says it checked for each linked item. These are the agent's own claims: the Board doesn't verify them, can't tell whether they are still current, and doesn't compare revisions with your checkout. This result doesn't change the linked work's status."
+			id={shellIds.resultCriteria}
+			title="Checks and evidence"
+		>
+			{targets.length > 0 ? (
+				keyed(targets, (target) => target.link.label).map(({ key, value }) => <TargetChecks key={key} target={value} />)
 			) : (
-				" — criteria unavailable."
+				<p className="m-0 text-muted-foreground">This result isn't linked to any work with checks.</p>
 			)}
-		</li>
+		</SectionCard>
 	);
 }
-function CriterionRow({ criterion }: { readonly criterion: Criterion }) {
-	let evidence: ReactNode = null;
-	if (!criterion.link.href) {
-		evidence = <p>This criterion identity is ambiguous; evidence association unavailable.</p>;
-	} else if (criterion.claims.length > 0) {
-		const claims = keyed(criterion.claims, (entry) => entry.source.label).map(({ key, value }) => <ClaimRow claim={value} key={key} />);
-		evidence = (
-			<>
-				<p title="Recorded claims do not establish verified acceptance.">
-					{criterion.claims.length} recorded {criterion.claims.length === 1 ? "claim" : "claims"}
-				</p>
-				<ul>{claims}</ul>
-			</>
+
+function TargetChecks({ target }: { readonly target: Target }) {
+	let body: ReactNode;
+	if (!target.available) {
+		body = <p className="m-0 text-muted-foreground">This item can't be read, so its checks aren't shown.</p>;
+	} else if (target.criteria.length === 0) {
+		body = <p className="m-0 text-muted-foreground">This item lists no checks.</p>;
+	} else {
+		body = (
+			<Table aria-label={`Checks for ${target.link.label}`}>
+				<TableHeader>
+					<TableRow>
+						<TableHead>Check</TableHead>
+						<TableHead>Evidence</TableHead>
+						<TableHead>Outcome</TableHead>
+						<TableHead>Method</TableHead>
+						<TableHead>Revision checked</TableHead>
+						<TableHead>Observed</TableHead>
+					</TableRow>
+				</TableHeader>
+				<TableBody>
+					{keyed(target.criteria, (entry) => entry.link.label).map(({ key, value }) => (
+						<CriterionRows criterion={value} key={key} />
+					))}
+				</TableBody>
+			</Table>
 		);
 	}
 	return (
-		<li>
-			<a href={criterion.link.href}>{criterion.text}</a>
-			{evidence}
-		</li>
+		<section aria-label={target.link.label} className="min-w-0 space-y-2">
+			<div className="flex flex-wrap items-center gap-2">
+				<a className="font-medium font-mono text-xs" href={target.link.href}>
+					{target.link.label}
+				</a>
+				<StatusChip status={target.status} />
+			</div>
+			{body}
+		</section>
 	);
 }
-function ClaimRow({ claim }: { readonly claim: Claim }) {
-	const details = [
-		["Checked Git revision (reported)", claim.checkedRevision],
-		["Method", claim.method],
-		["Outcome (reported)", claim.outcome],
-		["Observed time", claim.observedAt],
-	].map(([label, value]) => (
-		<Fragment key={label}>
-			<dt>{label}</dt>
-			<dd>{value ?? ""}</dd>
-		</Fragment>
+
+function CriterionRows({ criterion }: { readonly criterion: Criterion }) {
+	const check = <CheckCell criterion={criterion} />;
+	if (!criterion.link.href) {
+		return (
+			<TableRow>
+				{check}
+				<TableCell className="whitespace-normal text-muted-foreground" colSpan={5}>
+					Another check has the same ID, so evidence can't be matched to this one.
+				</TableCell>
+			</TableRow>
+		);
+	}
+	if (criterion.claims.length === 0) {
+		return (
+			<TableRow>
+				{check}
+				<TableCell className="whitespace-normal text-muted-foreground" colSpan={5}>
+					No evidence recorded
+				</TableCell>
+			</TableRow>
+		);
+	}
+	return keyed(criterion.claims, (entry) => entry.source.label).map(({ key, value, index }) => (
+		<TableRow key={key}>
+			{index === 0 ? check : <TableCell />}
+			<ClaimCells claim={value} />
+		</TableRow>
 	));
+}
+
+function CheckCell({ criterion }: { readonly criterion: Criterion }) {
 	return (
-		<li>
-			<a href={claim.source.href}>{claim.source.label}</a>
-			{claim.problem}
-			<dl>{details}</dl>
-		</li>
+		<TableCell className="min-w-40 whitespace-normal">
+			{criterion.link.href ? <a href={criterion.link.href}>{criterion.text}</a> : criterion.text}
+		</TableCell>
+	);
+}
+
+function ClaimCells({ claim }: { readonly claim: Claim }) {
+	return (
+		<>
+			<TableCell className="min-w-32 whitespace-normal">
+				<a href={claim.source.href}>{claim.source.label}</a>
+				{claim.problem ? <span className="text-destructive">{claim.problem}</span> : null}
+			</TableCell>
+			<Reported value={claim.outcome} />
+			<Reported value={claim.method} />
+			<Reported mono value={claim.checkedRevision} />
+			<Reported value={claim.observedAt} />
+		</>
+	);
+}
+
+function Reported({ value, mono = false }: { readonly value: string | undefined; readonly mono?: boolean }) {
+	return value ? (
+		<TableCell className={mono ? "whitespace-normal break-all font-mono" : "whitespace-normal"}>{value}</TableCell>
+	) : (
+		<TableCell className="text-muted-foreground">Not recorded</TableCell>
 	);
 }

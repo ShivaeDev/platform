@@ -71,8 +71,7 @@ export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) 
 		created,
 		interaction,
 		"handoff",
-		(saved) =>
-			`Prepared: ${saved.file}. Receipt: ${saved.handoff.state}; execution and acceptance remain separate.${created.dirty ? " Your newer draft remains unsaved." : ""}`,
+		(saved) => `Saved ${saved.file}. Copy the prompt below into your agent session.${created.dirty ? " Your newer edits aren't saved yet." : ""}`,
 	);
 	return {
 		clear,

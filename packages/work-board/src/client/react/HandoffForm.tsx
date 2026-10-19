@@ -1,32 +1,55 @@
 import { Option } from "effect";
+import { CircleAlert, Lock } from "lucide-react";
 import type { HandoffPreview } from "#browser/handoffs/schema.ts";
 import type { HandoffProjection } from "#browser/views/remaining.ts";
+import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { FormField } from "./FormField.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
+import { SectionCard } from "./SectionCard.tsx";
 import { shellIds } from "./shellIds.ts";
 import { useFormFocus } from "./useFormFocus.ts";
 import { useHandoffForm } from "./useHandoffForm.ts";
+
 export function HandoffForm({ data }: { readonly data: HandoffProjection }) {
 	const source = data.source;
 	if (!source) {
-		return <p role="status">Source unavailable: {data.unavailable}. Existing handoffs remain readable.</p>;
+		return (
+			<Alert role="status">
+				<CircleAlert aria-hidden="true" />
+				<AlertTitle>Can't prepare a new handoff</AlertTitle>
+				<AlertDescription>{data.unavailable} Earlier handoffs are still listed below.</AlertDescription>
+			</Alert>
+		);
 	}
 	return <HandoffSession data={data} key={source.item} source={source} />;
 }
+
 function HandoffSession({ data, source }: { readonly data: HandoffProjection; readonly source: HandoffPreview }) {
 	const state = useHandoffForm(data, source);
 	const focus = useFormFocus(state.draft.key);
 	const saved = Option.getOrUndefined(state.created.created);
-	const writableStatus = typeof window === "undefined" ? "JavaScript is required to prepare a handoff." : state.status;
+	const server = typeof window === "undefined";
 	return (
-		<>
-			<details>
-				<summary>Exact source being reviewed</summary>
-				<pre>{source.context}</pre>
+		<SectionCard
+			description="The file includes the item's full source and its checks. Preparing it doesn't change the item or start the agent. Your draft stays in this browser for 7 days."
+			title="New handoff"
+		>
+			{!data.writable && (
+				<Alert>
+					<Lock aria-hidden="true" />
+					<AlertTitle>Read-only</AlertTitle>
+					<AlertDescription>
+						Start the Board with <code>--responses</code> to save handoffs.
+					</AlertDescription>
+				</Alert>
+			)}
+			<details className="rounded-md border px-3 py-2">
+				<summary className="cursor-pointer font-medium">Show the item's full source</summary>
+				<pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-xs">{source.context}</pre>
 			</details>
 			<form
-				className="space-y-4 [&_button]:mr-2 [&_button]:mb-2"
+				className="space-y-4"
 				{...focus}
 				data-item={source.item}
 				data-question={source.id}
@@ -43,38 +66,35 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 					}
 				}}
 			>
-				<FormField form={state.form} label="Recipient — local agent label" maxLength={200} name="recipient" required />
+				<FormField form={state.form} label="Agent name" maxLength={200} name="recipient" required />
 				<FormField form={state.form} label="Goal" maxLength={8192} name="goal" required rows={3} />
 				<FormField form={state.form} label="Constraints (optional)" maxLength={8192} name="constraints" rows={4} />
-				<FormField form={state.form} label="Next action" maxLength={8192} name="nextAction" required rows={3} />
-				<p>
-					The file includes the full reviewed source and its declared acceptance criteria. Preparing it does not change the item or start an agent.
-					Drafts stay in this browser for seven days after the last edit, with a 256 KiB limit per draft.
-				</p>
-				<Button
-					disabled={typeof window === "undefined" || state.created.saving}
-					id={shellIds.handoffPreview}
-					onClick={state.showPreview}
-					type="button"
+				<FormField form={state.form} label="Next step" maxLength={8192} name="nextAction" required rows={3} />
+				<div className="flex flex-wrap gap-2">
+					<Button disabled={server || state.created.saving} id={shellIds.handoffPreview} onClick={state.showPreview} type="button" variant="outline">
+						Preview file
+					</Button>
+					<Button disabled={!(data.writable && state.preview && state.valid) || state.created.saving} id={shellIds.handoffSubmit} type="submit">
+						Prepare handoff
+					</Button>
+					<Button disabled={server || state.created.saving} id={shellIds.handoffClear} onClick={state.clear} type="button" variant="ghost">
+						Clear draft
+					</Button>
+				</div>
+				<pre
+					className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-xs"
+					hidden={!state.preview}
+					id={shellIds.handoffPreviewContent}
 				>
-					Preview Markdown
-				</Button>
-				<pre hidden={!state.preview} id={shellIds.handoffPreviewContent}>
 					{state.preview}
 				</pre>
-				<Button disabled={!(data.writable && state.preview && state.valid) || state.created.saving} id={shellIds.handoffSubmit} type="submit">
-					Prepare handoff
-				</Button>
-				<Button disabled={typeof window === "undefined" || state.created.saving} id={shellIds.handoffClear} onClick={state.clear} type="button">
-					Clear draft
-				</Button>
-				<p id={shellIds.handoffStatus} role="status">
-					{data.writable ? writableStatus : `${state.status} Read-only mode. Restart with --responses to enable local writes.`}
+				<p className="m-0 text-muted-foreground" id={shellIds.handoffStatus} role="status">
+					{server ? "Turn on JavaScript to prepare a handoff." : state.status}
 				</p>
 				<section hidden={!saved} id={shellIds.handoffPrepared}>
 					{saved && <HandoffPrompt id={saved.id} prepared prompt={saved.prompt} />}
 				</section>
 			</form>
-		</>
+		</SectionCard>
 	);
 }
