@@ -27,6 +27,10 @@ export function pagedLibraryScreen(count: number, route = "/_board/library?view=
 	return routedScreen(pages, route);
 }
 
+export function nestedLibraryScreen() {
+	return routedScreen({ "notes/deep/plan.md": "# A nested plan\n", "notes/first.md": "# A first note\n" }, "/_board/library?view=folders");
+}
+
 export function libraryParams() {
 	const route = new URL(document.querySelector<HTMLElement>("#doc")?.dataset.route ?? "", "http://board");
 	return route.pathname === "/_board/library" ? Object.fromEntries(route.searchParams) : undefined;

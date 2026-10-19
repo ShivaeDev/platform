@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
-import { libraryParams, libraryScreen, libraryTitles, pagedLibraryScreen, pressedView } from "#test/libraryFixture.ts";
+import { libraryParams, libraryScreen, libraryTitles, nestedLibraryScreen, pagedLibraryScreen, pressedView } from "#test/libraryFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 
 expectNoReactWarnings();
@@ -90,5 +90,17 @@ screenStory.it(
 		expect(readText('#doc [role="status"]')).toBe("250 documents");
 		expect(libraryTitles().at(-1)).toBe("Document 249");
 		expect([...document.querySelectorAll("#doc button")].map((button) => button.textContent)).not.toContain("Show more");
+	},
+);
+
+screenStory.it(
+	"lists only folders at a root without documents and opens each folder's own documents",
+	[nestedLibraryScreen()],
+	function* ({ findElements, openDetails, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#library-results summary")).toBe("notes (2)")));
+		expect(findElements("#library-results ul")).toEqual([]);
+		openDetails("#library-results details");
+		yield* Effect.promise(() => eventually(() => expect(libraryTitles()).toEqual(["A first note"])));
+		expect(readText("#library-results details details summary")).toBe("deep (1)");
 	},
 );
