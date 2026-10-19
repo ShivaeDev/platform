@@ -11,6 +11,11 @@ export const FleetItemsProjection = Schema.Union([
 		items: Schema.Array(Schema.Struct({ ...FleetItem.fields, document: FleetDocument })),
 		state: Schema.Literal("ready"),
 	}),
-	Schema.Struct({ authored: Schema.optional(Schema.Array(AuthoredProgress)), reason: Schema.String, state: Schema.Literal("unavailable") }),
+	Schema.Struct({
+		authored: Schema.optional(Schema.Array(AuthoredProgress)),
+		reason: Schema.String,
+		startCommand: Schema.optionalKey(Schema.String),
+		state: Schema.Literal("unavailable"),
+	}),
 ]);
 export type FleetItemsProjection = typeof FleetItemsProjection.Type;

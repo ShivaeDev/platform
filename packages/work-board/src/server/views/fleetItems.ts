@@ -4,7 +4,7 @@ import { laneOf } from "#browser/views/now.ts";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
 import { inboxItems } from "#server/attention/inbox.ts";
 import { requestInbox } from "#server/attention/requestInbox.ts";
-import { daemonUnavailableReason, readDaemon } from "#server/diagnostics/daemon.ts";
+import { daemonUnavailable, readDaemon } from "#server/diagnostics/daemon.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { itemsOf } from "#server/views/items.ts";
 import { Workspace } from "#server/workspace.ts";
@@ -21,27 +21,31 @@ function authoredProgress(snapshot: Snapshot): readonly AuthoredProgress[] {
 	});
 }
 
-const fleetItemsUnavailable = Effect.fn("WorkBoard.fleetItemsUnavailable")(function* (reason: string) {
+const fleetItemsUnavailable = Effect.fn("WorkBoard.fleetItemsUnavailable")(function* (unavailable: {
+	readonly reason: string;
+	readonly startCommand?: string;
+}) {
 	const workspace = yield* Workspace;
 	const snapshot = yield* workspace.index().pipe(Effect.catch(() => Effect.succeed(undefined)));
 	const projection: FleetItemsProjection =
 		snapshot && snapshot.unavailable.length === 0
-			? { authored: authoredProgress(snapshot), reason, state: "unavailable" }
-			: { reason, state: "unavailable" };
+			? { ...unavailable, authored: authoredProgress(snapshot), state: "unavailable" }
+			: { ...unavailable, state: "unavailable" };
 	return projection;
 });
 
 export function fleetItems(fleetPort: number | null = DAEMON_PORT): Effect.Effect<FleetItemsProjection, never, Workspace> {
 	if (fleetPort === null) {
-		return fleetItemsUnavailable("Fleet daemon is not configured for this Board");
+		return fleetItemsUnavailable({ reason: "Fleet daemon is not configured for this Board" });
 	}
 	return Effect.gen(function* () {
 		const result = yield* readDaemon(fleetPort, (client) => client("daemon.fleetItems", {})).pipe(Effect.result);
+		const workspace = yield* Workspace;
 		if (result._tag === "Failure") {
-			return yield* fleetItemsUnavailable(daemonUnavailableReason(result.failure, fleetPort));
+			const { root } = yield* workspace.settings();
+			return yield* fleetItemsUnavailable(daemonUnavailable(result.failure, fleetPort, root));
 		}
 		const data = result.success;
-		const workspace = yield* Workspace;
 		const snapshot = yield* workspace.index().pipe(Effect.catch(() => Effect.succeed(undefined)));
 		if (!snapshot) {
 			return { reason: "Board documents could not be read for Fleet items", state: "unavailable" as const };

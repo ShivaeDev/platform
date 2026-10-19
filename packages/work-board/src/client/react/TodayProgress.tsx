@@ -1,17 +1,24 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { inProgress, type ProgressRow as Row } from "#browser/views/inProgress.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
+import { FleetStopped } from "./FleetStopped.tsx";
 
 export function TodayProgress({ data, failed }: { readonly data: FleetItemsProjection | undefined; readonly failed: boolean }) {
 	const progress = inProgress(data);
 	const source = progress?.source === "files" ? "Task file" : "Fleet";
 	return (
 		<div className="space-y-3">
-			{progress?.source !== "fleet" && (
-				<div className="text-muted-foreground text-sm" role="status">
-					<p className="m-0">{unavailable(data, failed)}</p>
-					{progress?.source === "files" && <p className="m-0">Status comes from the task files, not live Fleet.</p>}
-				</div>
+			{data?.state === "unavailable" && data.startCommand !== undefined ? (
+				<FleetStopped command={data.startCommand} reason={data.reason}>
+					{progress?.source === "files" && <p className="m-0 text-muted-foreground">Status comes from the task files, not live Fleet.</p>}
+				</FleetStopped>
+			) : (
+				progress?.source !== "fleet" && (
+					<div className="text-muted-foreground text-sm" role="status">
+						<p className="m-0">{unavailable(data, failed)}</p>
+						{progress?.source === "files" && <p className="m-0">Status comes from the task files, not live Fleet.</p>}
+					</div>
+				)
 			)}
 			{progress?.rows.length === 0 && (
 				<p className="text-muted-foreground text-sm">
