@@ -25,4 +25,4 @@ export type GithubLimits = typeof GithubLimits.Type;
 
 export type Observation<A> =
 	| { readonly state: "ready"; readonly observedAt: number; readonly value: A }
-	| { readonly state: "not-configured" | "error"; readonly observedAt: number; readonly cause: string };
+	| { readonly state: "not-configured" | "error"; readonly observedAt: number; readonly cause: string; readonly startCommand?: string };
