@@ -4,6 +4,7 @@ import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { Conflict, Forbidden, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import type { Handoff, HandoffInput } from "#browser/handoffs/schema.ts";
+import type { ResponseRejection } from "#rpc/rejections.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
 import { handoffFrom, handoffMarkdown, handoffPrompt, matchesHandoff } from "#server/handoffs/records.ts";
 import { handoffSource } from "#server/handoffs/source.ts";
@@ -60,7 +61,7 @@ export const HandoffsService = defineService({
 			return record;
 		});
 
-		function prepare(input: HandoffInput) {
+		function prepare(input: HandoffInput): Effect.Effect<Handoff, ResponseRejection, FileSystem.FileSystem | Path.Path> {
 			return lock.withPermit(
 				Effect.gen(function* () {
 					if (!options.writable) {

@@ -18,7 +18,26 @@ export type Question = typeof QuestionSchema.Type;
 export type Reading = typeof ReadingSchema.Type;
 export type RecordedResponse = typeof RecordedResponseSchema.Type;
 
-export const responses = {
+export interface ResponsesIntegration {
+	readonly currentResponses: typeof currentResponses;
+	readonly DraftInput: typeof DraftInputSchema;
+	readonly makeResponse: typeof makeResponse;
+	readonly publish: typeof publish;
+	readonly Question: typeof QuestionSchema;
+	readonly questionFrom: typeof questionFrom;
+	readonly questionId: typeof questionId;
+	readonly questionMarkdown: typeof questionMarkdown;
+	readonly Reading: typeof ReadingSchema;
+	readonly RecordedResponse: typeof RecordedResponseSchema;
+	readonly Responses: typeof Responses;
+	readonly readResponses: typeof readResponses;
+	readonly responseMarkdown: typeof responseMarkdown;
+	readonly revisionOf: typeof revisionOf;
+	readonly Workspace: typeof Workspace;
+	readonly WorkspaceConfig: typeof WorkspaceConfig;
+}
+
+export const responses: ResponsesIntegration = {
 	currentResponses,
 	DraftInput: DraftInputSchema,
 	makeResponse,
@@ -35,4 +54,4 @@ export const responses = {
 	revisionOf,
 	Workspace,
 	WorkspaceConfig,
-} as const;
+};
