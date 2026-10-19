@@ -1,7 +1,9 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
-import { fleetHolder } from "#browser/views/now.ts";
+import { fleetHolder, stageTime } from "#browser/views/now.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "#client/react/components/ui/card.tsx";
+import { EmptyState } from "./EmptyState.tsx";
+import { LoadingRows } from "./loading.tsx";
 
 export function SystemFleetLane({ data }: { readonly data: FleetItemsProjection | undefined }) {
 	const items = data?.state === "ready" ? data.items.filter((item) => !["completed", "released"].includes(item.stage)) : undefined;
@@ -22,11 +24,14 @@ export function SystemFleetLane({ data }: { readonly data: FleetItemsProjection 
 }
 
 function FleetItems({ data, items }: { readonly data: FleetItemsProjection | undefined; readonly items: readonly Item[] | undefined }) {
+	if (data?.state === "unavailable") {
+		return <p role="status">Fleet work unavailable. {data.reason}</p>;
+	}
 	if (items === undefined) {
-		return <p role="status">{data?.state === "unavailable" ? `Fleet work unavailable. ${data.reason}` : "Loading Fleet work…"}</p>;
+		return <LoadingRows framed={false} label="Loading Fleet work" />;
 	}
 	if (items.length === 0) {
-		return <p className="text-muted-foreground text-sm">No running or waiting Fleet work.</p>;
+		return <EmptyState title="No Fleet work">Fleet is not running or holding any work right now.</EmptyState>;
 	}
 	return (
 		<ul className="m-0 list-none divide-y p-0">
@@ -45,7 +50,7 @@ function FleetRow({ item }: { readonly item: Item }) {
 			<a className="min-w-0 flex-1 basis-40 font-medium text-sm [overflow-wrap:anywhere]" href={`/_board/item/${encodeURIComponent(item.workId)}/`}>
 				{title}
 			</a>
-			<Badge variant="outline">{item.stage}</Badge>
+			<Badge variant="outline">{stageTime(item.stage).label}</Badge>
 			<span className="text-muted-foreground text-xs">{fleetHolder(item)}</span>
 			{Boolean(item.prUrl) && (
 				<a aria-label={`Pull request for ${title}`} className="text-sm underline" href={item.prUrl}>

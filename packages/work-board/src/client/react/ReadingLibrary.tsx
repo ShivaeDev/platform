@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#client/react/components/ui/dialog.tsx";
+import { EmptyState } from "#client/react/EmptyState.tsx";
 import { LibraryContext, restoreLibrary } from "#client/react/LibraryContext.ts";
 import { useMainLocation } from "./MainLocationContext.ts";
 import { ReadingHistory } from "./ReadingHistory.tsx";
@@ -136,7 +137,7 @@ function HistoryDialog({
 						</p>
 					)}
 					{saved.notice === "" && saved.favorites.length + saved.recents.length === 0 && (
-						<p className="px-2 text-muted-foreground">No recent documents yet.</p>
+						<EmptyState title="No reading history">Documents you open appear here so you can return to them.</EmptyState>
 					)}
 				</div>
 			</DialogContent>

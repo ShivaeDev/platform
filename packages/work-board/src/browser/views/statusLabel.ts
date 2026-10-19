@@ -27,7 +27,11 @@ export function statusLabel(status: string): string {
 	if (Object.hasOwn(labels, status)) {
 		return labels[status] ?? status;
 	}
-	const words = status.replaceAll(/[-_\s]+/gu, " ").trim();
+	return sentenceLabel(status);
+}
+
+export function sentenceLabel(value: string): string {
+	const words = value.replaceAll(/[-_\s]+/gu, " ").trim();
 	return words.charAt(0).toUpperCase() + words.slice(1);
 }
 

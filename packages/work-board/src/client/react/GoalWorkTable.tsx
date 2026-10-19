@@ -2,6 +2,7 @@ import { useContext, useId } from "react";
 import { goalState, goalWorkGroups } from "#browser/views/goalWorkState.ts";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "#client/react/components/ui/table.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
+import { EmptyState } from "./EmptyState.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { type GoalWorkItem, goalGroup, goalRun, targetsGoal } from "./goalWork.ts";
 
@@ -16,6 +17,7 @@ export function GoalWorkTable({ criteria, goal, items }: Props) {
 	return (
 		<section aria-labelledby={headingId} data-goal-section="work">
 			<h2 id={headingId}>Linked work</h2>
+			{items.length === 0 && <EmptyState title="No linked work">Work items that name this goal in their Markdown appear here.</EmptyState>}
 			{goalWorkGroups.map((group) => {
 				const work = items.filter((item) => goalGroup(item, goalRun(item, fleet)) === group);
 				if (work.length === 0) {

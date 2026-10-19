@@ -1,3 +1,4 @@
+import { EmptyState } from "#client/react/EmptyState.tsx";
 import type { Item } from "#client/react/LibraryContext.ts";
 import { fileUrl } from "#files/url.ts";
 
@@ -19,8 +20,15 @@ export function ReadingLinks({ title, items, current }: { readonly title: string
 					</li>
 				))}
 			</ul>
-			{items.length === 0 && (
-				<p className="px-2 text-muted-foreground text-xs">{title === "Pinned" ? "Pin a document to keep it here." : "No recent documents."}</p>
+			{items.length === 0 && title === "Pinned" && (
+				<EmptyState compact title="No pinned documents">
+					Pin a document to keep it here.
+				</EmptyState>
+			)}
+			{items.length === 0 && title !== "Pinned" && (
+				<EmptyState compact title="No recent documents">
+					Documents you open appear here.
+				</EmptyState>
 			)}
 		</section>
 	);
