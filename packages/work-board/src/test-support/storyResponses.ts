@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import type { DraftInput } from "#browser/responses/schema.ts";
+import type { AnswerInput } from "#browser/responses/schema.ts";
 import type { browserClient } from "#client/client.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import type { Folder, RunningBoard } from "./board.ts";
@@ -34,10 +34,7 @@ export const reviewReport = Effect.fn("Story.reviewReport")(function* (
 	supersedes?: string,
 ) {
 	const preview = yield* Effect.promise(() => client.run(client.responses.question.run({ item: "result.keyboard", request: "review" })));
-	const question = yield* Effect.promise(() =>
-		client.mutate(client.responses.registerQuestion.run({ item: preview.item, request: preview.request, revision: preview.reviewedRevision })),
-	);
-	const draft: DraftInput = {
+	const draft: AnswerInput = {
 		answers: [
 			{
 				prompt: "verdict",
@@ -51,11 +48,13 @@ export const reviewReport = Effect.fn("Story.reviewReport")(function* (
 		author: "maintainer",
 		body: "Human review of the stated limitations.",
 		id,
-		question: question.id,
+		item: preview.item,
+		request: preview.request,
+		revision: preview.reviewedRevision,
 		...(supersedes ? { supersedes } : {}),
 		type: "answer",
 	};
-	return yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run(draft)));
+	return yield* Effect.promise(() => client.mutate(client.responses.answerQuestion.run(draft)));
 });
 
 export function savedInboxAnswer(notes: Folder) {

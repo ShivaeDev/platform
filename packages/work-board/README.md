@@ -456,7 +456,7 @@ export async function readReturnedResult(url: string, item: string) {
 }
 ```
 
-Pass a uniquely identified result, such as `result.keyboard`. Its declared review request still uses `responses.question`, `registerQuestion` and `recordResponse`, or the normal browser response controls; there is no separate acceptance writer.
+Pass a uniquely identified result, such as `result.keyboard`. Answer its declared review request like any other: read it with `responses.question`, then save with `answerQuestion` or the normal browser response controls; there is no separate acceptance writer.
 
 RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `NotFound` for missing context, `PreconditionFailed` for stale review, `Conflict` for incompatible content, `BadRequest` for unsupported input and `ServiceUnavailable` for unavailable reads. Unexpected handler failures become `InternalServerError` with a redacted public message and a server-only trace cause. These errors need no login middleware. `PublicationUncertain` means publication may already have produced a file; inspect the saved identity/content before retrying. `Unanswered` is the wait client’s deadline error.
 
