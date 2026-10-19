@@ -4,6 +4,7 @@ import { Conflict, Forbidden, PreconditionFailed, ServiceUnavailable } from "@sh
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import type { AnswerInput, DraftInput, RecordedResponse } from "#browser/responses/schema.ts";
 import type { ResponseRejection } from "#rpc/rejections.ts";
+import { refreshWritten } from "#server/files/changes.ts";
 import { awaitResponse } from "#server/responses/await.ts";
 import { responseHistory } from "#server/responses/history.ts";
 import { locate as locateQuestion } from "#server/responses/locate.ts";
@@ -80,7 +81,7 @@ export const Responses = defineService({
 						result.responses.reduce((time, saved) => Math.max(time, saved.response.recordedAt + 1), yield* Clock.currentTimeMillis),
 					);
 					yield* publish(options.root, options.realRoot, response.id, responseMarkdown(response)).pipe(
-						Effect.ensuring(options.changes.refresh?.([`responses/${response.id}.md`]) ?? Effect.void),
+						Effect.ensuring(refreshWritten(options.changes, [`responses/${response.id}.md`])),
 					);
 					return response;
 				}),

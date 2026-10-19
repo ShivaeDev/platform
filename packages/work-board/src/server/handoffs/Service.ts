@@ -4,6 +4,7 @@ import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { Conflict, Forbidden, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import type { Handoff, HandoffInput } from "#browser/handoffs/schema.ts";
+import { refreshWritten } from "#server/files/changes.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
 import { handoffFrom, handoffMarkdown, handoffPrompt, matchesHandoff } from "#server/handoffs/records.ts";
 import { handoffSource } from "#server/handoffs/source.ts";
@@ -95,7 +96,7 @@ export const HandoffsService = defineService({
 						prompt: handoffPrompt(join(options.realRoot, file)),
 					};
 					yield* publish(options.root, options.realRoot, record.id, handoffMarkdown(record.id, record.handoff, record.context), "handoffs").pipe(
-						Effect.ensuring(options.changes.refresh?.([file]) ?? Effect.void),
+						Effect.ensuring(refreshWritten(options.changes, [file])),
 					);
 					return record;
 				}),

@@ -12,10 +12,15 @@ export interface Changes {
 	readonly events: PubSub.PubSub<Change>;
 	readonly files: Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
 	readonly realRoot: string;
-	readonly refresh?: (paths: readonly string[]) => Effect.Effect<void>;
+	readonly refresh?: Effect.Effect<void>;
+	readonly refreshPaths?: (paths: readonly string[]) => Effect.Effect<void>;
 	readonly revision: Effect.Effect<number>;
 	readonly sequence?: Effect.Effect<number>;
 	readonly watching: Ref.Ref<boolean>;
+}
+
+export function refreshWritten(changes: Changes, paths: readonly string[]): Effect.Effect<void> {
+	return changes.refreshPaths?.(paths) ?? changes.refresh ?? Effect.void;
 }
 
 interface Cached {
@@ -109,7 +114,8 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 		events,
 		files,
 		realRoot,
-		refresh: (paths) => Effect.asVoid(invalidate(paths)),
+		refresh: Effect.asVoid(stale),
+		refreshPaths: (paths) => Effect.asVoid(invalidate(paths)),
 		revision: Ref.get(generation),
 		sequence: Ref.get(sequence),
 		watching,
