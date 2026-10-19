@@ -138,11 +138,11 @@ function SearchResult({
 						{!item.id && item.file ? ` · ${item.file}${item.line ? `:${item.line}` : ""}` : ""}
 					</small>
 				)}
-				{Boolean(item.snippet) && (
+				{item.snippet ? (
 					<p className="text-muted-foreground">
-						<Highlighted terms={terms} text={item.snippet ?? ""} />
+						<Highlighted terms={terms} text={item.snippet} />
 					</p>
-				)}
+				) : null}
 			</a>
 		</CommandItem>
 	);
