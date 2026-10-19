@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 
 const mermaidEngine = vi.hoisted(() => ({
-	initialize: vi.fn<(config: { themeVariables: { darkMode: boolean } }) => void>(),
+	initialize: vi.fn<(config: { themeVariables: Readonly<Record<string, unknown>> & { readonly darkMode: boolean } }) => void>(),
 	render: vi.fn(async (_id?: string, _source?: string) => ({ svg: '<svg role="img"><text>Question → Response → History</text></svg>' })),
 }));
 

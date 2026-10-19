@@ -2,6 +2,7 @@ import { createElement, useCallback, useContext, useEffect, useId, useRef, useSt
 import { ThemeContext } from "#client/react/ThemeContext.ts";
 import { errorMessage } from "#errorMessage.ts";
 import { mermaidColor } from "./mermaidColor.ts";
+import { mermaidThemeVariables } from "./mermaidThemeVariables.ts";
 
 const drawings = new Map<string, { readonly source: string; readonly svg: string }>();
 
@@ -32,24 +33,16 @@ export function Mermaid({ source }: { readonly source: string }) {
 		async function draw() {
 			try {
 				const { default: mermaid } = await import("mermaid");
-				function token(name: string) {
-					return name === "--sans" ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : mermaidColor(name);
-				}
 				mermaid.initialize({
 					securityLevel: "strict",
 					startOnLoad: false,
 					suppressErrorRendering: true,
 					theme: "base",
-					themeVariables: {
-						background: token("--bg"),
-						darkMode: theme === "dark",
-						fontFamily: token("--sans"),
-						lineColor: token("--muted-foreground"),
-						primaryBorderColor: token("--border"),
-						primaryColor: token("--surface"),
-						primaryTextColor: token("--text"),
-						textColor: token("--text"),
-					},
+					themeVariables: mermaidThemeVariables(
+						theme === "dark",
+						getComputedStyle(document.documentElement).getPropertyValue("--sans").trim(),
+						mermaidColor,
+					),
 				});
 				const { svg } = await mermaid.render(`document-diagram-${id}`, source);
 				if (current) {
