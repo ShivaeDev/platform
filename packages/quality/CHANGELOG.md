@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.28.2 - 2026-10-19
+
+### Changed
+
+- `testProjects()` sizes workers from a connection budget instead of CPU capacity. Set `connectionBudget` and `connectionsPerWorker` to match the repository's PostgreSQL usage, or set `maxWorkers` to override the calculation.
+
 ## 0.28.1 - 2026-10-19
 
 ### Fixed

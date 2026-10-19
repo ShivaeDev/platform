@@ -3,61 +3,74 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "effect-react-warnings-readout.md",
-				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- `captureReactWarnings` in `client/testing.ts` acquires a scoped, silent capture for story kits. Its `ReactWarnings` handle reads console calls and unexpected caught React errors as a `ReactWarningsReadout`, excludes declared caught errors, and restores `console.error` on scope closure, including failed stories. `expectNoReactWarnings` uses the same capture mechanism.\n"
+				"name": "effect-sql-advisory-lock.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- `advisoryXactLock(key: bigint | string)` takes a PostgreSQL transaction-scoped advisory lock inside `transact`, with string keys hashed by `hashtextextended(key, 0)`. `AdvisoryLockOutsideTransaction` is the typed failure when no transaction is active. `migratePostgres` uses the same lock function.\n"
 			},
 			{
-				"name": "quality-skip-worktrees.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Exclude `.worktrees` directories from all Vitest projects, repository discovery and Biome checks so worktree copies are not tested or linted from the parent checkout.\n"
+				"name": "platform-action-traces.md",
+				"text": "---\n\"@shivaedev/platform\": patch\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- effect-react exports `actionTrace(effect, name?)` from `actionTrace.ts` to group an action's RPC Effects under a fresh trace. Editor saves and create submissions automatically group their save Effects in a `ui.submit` trace. Native HTTP RPC clients send W3C trace context through the host to SQL and job enqueueing; pg-boss worker attempts retain their separate, linked traces.\n\n### Fixed\n\n- Platform appHost preserves incoming W3C `traceparent` context for RPC handling even without an installed tracer or exporter. Request ids stay annotated on the RPC span.\n"
 			},
 			{
-				"name": "release-starter-pins.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
-			},
-			{
-				"name": "test-story-proxy-address-hops.md",
-				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- `ForwardingProxyOptions.localAddress` selects the proxy's source socket address and rejects unavailable addresses during acquisition. `ForwardingProxyOptions.forwardedHops` appends visitor and edge hops after the client's `x-forwarded-for` chain instead of the caller address; fixed `headers` still override the generated chain.\n"
-			},
-			{
-				"name": "work-fleet-idle-priority.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- `fleet-priority: low` fills idle execution capacity after prepared normal-or-higher work, without interrupting running low work. Low work still respects held areas and dependencies. Pending low launch retries do not stop normal admission; new provider rejections still pace the scheduler.\n"
+				"name": "quality-connection-workers.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Changed\n\n- `testProjects()` sizes workers from a connection budget instead of CPU capacity. Set `connectionBudget` and `connectionsPerWorker` to match the repository's PostgreSQL usage, or set `maxWorkers` to override the calculation.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.1",
+				"from": "0.11.2",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.2"
+				"to": "0.11.3"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-react",
-				"from": "0.8.0",
+				"from": "0.9.0",
 				"name": "@shivaedev/effect-react",
-				"to": "0.9.0"
+				"to": "0.10.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-sql",
+				"from": "0.7.0",
+				"name": "@shivaedev/effect-sql",
+				"to": "0.8.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-test-sql",
+				"from": "0.7.0",
+				"name": "@shivaedev/effect-test-sql",
+				"to": "0.7.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/platform",
+				"from": "0.20.0",
+				"name": "@shivaedev/platform",
+				"to": "0.20.1"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/quality",
-				"from": "0.28.0",
+				"from": "0.28.1",
 				"name": "@shivaedev/quality",
-				"to": "0.28.1"
+				"to": "0.28.2"
 			},
 			{
-				"bump": "minor",
-				"directory": "packages/test-story",
-				"from": "0.12.0",
-				"name": "@shivaedev/test-story",
-				"to": "0.13.0"
+				"bump": "patch",
+				"directory": "packages/work-board",
+				"from": "0.21.1",
+				"name": "@shivaedev/work-board",
+				"to": "0.21.2"
 			},
 			{
-				"bump": "minor",
+				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.11.1",
+				"from": "0.12.0",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.12.0"
+				"to": "0.12.1"
 			}
 		]
 	}
