@@ -20,9 +20,10 @@ export function acceptedEncoding(header: string | undefined): Encoding | undefin
 }
 
 function compress(body: Uint8Array, encoding: Encoding) {
-	return Effect.callback<Uint8Array, Error>((resume) => {
+	return Effect.callback<Uint8Array>((resume) => {
+		// zlib rejects only invalid options or exhausted memory, neither of which a request can cause.
 		function done(error: Error | null, result: Uint8Array) {
-			resume(error ? Effect.fail(error) : Effect.succeed(result));
+			resume(error ? Effect.die(error) : Effect.succeed(result));
 		}
 		if (encoding === "br") {
 			// Quality 5 compresses a cold 1.5 MB bundle in about 200 ms; quality 11 takes about 20 s for 10% fewer bytes.
@@ -74,6 +75,5 @@ export const encodeResponse = Effect.fn("WorkBoard.encodeResponse")(function* (
 		Effect.map((bytes) =>
 			HttpServerResponse.setHeader(HttpServerResponse.setBody(varied, HttpBody.uint8Array(bytes, body.contentType)), "content-encoding", encoding),
 		),
-		Effect.orElseSucceed(() => varied),
 	);
 });

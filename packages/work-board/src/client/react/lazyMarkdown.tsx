@@ -8,14 +8,22 @@ function useMarkdownRenderers() {
 	return loadedMarkdownRenderers() ?? use(loadMarkdownRenderers());
 }
 
+function MarkdownUnavailable({ error }: { readonly error: string }) {
+	return (
+		<p data-markdown-error="" role="status">
+			Markdown could not be loaded: {error}. Reload the page to try again.
+		</p>
+	);
+}
+
 function LoadedDocumentView(props: DocumentProps) {
-	const { DocumentView } = useMarkdownRenderers();
-	return <DocumentView {...props} />;
+	const renderers = useMarkdownRenderers();
+	return "error" in renderers ? <MarkdownUnavailable error={renderers.error} /> : <renderers.DocumentView {...props} />;
 }
 
 function LoadedResponseMarkdown(props: ResponseProps) {
-	const { ResponseMarkdown } = useMarkdownRenderers();
-	return <ResponseMarkdown {...props} />;
+	const renderers = useMarkdownRenderers();
+	return "error" in renderers ? <MarkdownUnavailable error={renderers.error} /> : <renderers.ResponseMarkdown {...props} />;
 }
 
 export function LazyDocumentView(props: DocumentProps) {
