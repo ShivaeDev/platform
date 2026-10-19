@@ -1,6 +1,7 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { type ComponentProps, Suspense, use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#client/react/components/ui/dialog.tsx";
-import { SearchPalette } from "#client/react/SearchPalette.tsx";
+import { searchPaletteChunk } from "#client/react/lazyChunks.ts";
+import type { SearchPalette } from "#client/react/SearchPalette.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import { textControl, textSelection } from "#client/react/textSelection.ts";
@@ -26,6 +27,10 @@ export function SearchDialog({
 	const inputRef = useRef<HTMLInputElement>(null);
 	const navigatingRef = useRef(false);
 	const selectionRef = useRef<ReturnType<typeof textSelection>>(undefined);
+	// The dialog focuses the palette's input as it opens, so the palette has to be loaded before the reader can open it.
+	useEffect(() => {
+		void searchPaletteChunk.load();
+	}, []);
 	useLayoutEffect(() => {
 		if (open) {
 			navigatingRef.current = false;
@@ -55,22 +60,35 @@ export function SearchDialog({
 				<DialogHeader className="px-3 pt-3">
 					<DialogTitle>Find work</DialogTitle>
 				</DialogHeader>
-				<SearchPalette
-					api={api}
-					appearance={appearance}
-					close={(navigating) => {
-						navigatingRef.current = navigating;
-						close();
-					}}
-					input={input}
-					inputRef={inputRef}
-					records={records}
-					setInput={setInput}
-					setRecords={setRecords}
-					toggleSidebar={toggleSidebar}
-				/>
+				<Suspense fallback={null}>
+					<LoadedSearchPalette
+						api={api}
+						appearance={appearance}
+						close={(navigating) => {
+							navigatingRef.current = navigating;
+							close();
+						}}
+						input={input}
+						inputRef={inputRef}
+						records={records}
+						setInput={setInput}
+						setRecords={setRecords}
+						toggleSidebar={toggleSidebar}
+					/>
+				</Suspense>
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+function LoadedSearchPalette(props: ComponentProps<typeof SearchPalette>) {
+	const palette = searchPaletteChunk.loaded() ?? use(searchPaletteChunk.load());
+	return "error" in palette ? (
+		<p className="px-3 pb-3 text-sm" data-search-error="" role="status">
+			Search could not be loaded: {palette.error}. Reload the page to try again.
+		</p>
+	) : (
+		<palette.SearchPalette {...props} />
 	);
 }
 
