@@ -14,7 +14,7 @@ export function searchStatus(
 		return "Type to search this workspace, or choose a command.";
 	}
 	if (failed) {
-		return "Search could not be completed. Press Search to retry.";
+		return "Search could not be completed.";
 	}
 	if (pending || !data) {
 		return "Searching…";

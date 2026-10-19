@@ -11,6 +11,7 @@ import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
 import { githubPublication } from "#host/githubPublication.ts";
 import { githubResult } from "#host/githubResult.ts";
 import { MainSource } from "#host/mainSource.ts";
+import { mergePrediction } from "#host/mergePrediction.ts";
 import { reportRepository } from "#host/reportPublication.ts";
 import { FleetIntegrations } from "#policy.ts";
 
@@ -22,24 +23,24 @@ export function hostIntegrations(host: FleetHost) {
 	const HostIntegrations = defineService({
 		id: "Fleet/HostIntegrations",
 		initialize: Effect.all({ github: GithubApi, main: MainSource }),
-		methods: ({ github, main }) =>
-			FleetIntegrations.of({
+		methods: ({ github, main }) => {
+			const repository = reportRepository(main.repositoryRoot, host.repository.remote).pipe(Effect.provide(NodeServices.layer));
+			const prediction = main.mergeConflicts === undefined ? {} : { predict: mergePrediction(github, main, repository) };
+			return FleetIntegrations.of({
+				...prediction,
 				checks: (_work, result) =>
 					result.kind === "no-change"
 						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session", "no-change-checks-unconfigured")
 						: githubChecks(github, host.repository.branch)(result),
 				delivery: githubDelivery(readPullRequest(github.get)),
 				main: main.observe,
-				publication: githubPublication(
-					host,
-					github,
-					reportRepository(main.repositoryRoot, host.repository.remote).pipe(Effect.provide(NodeServices.layer)),
-				),
+				publication: githubPublication(host, github, repository),
 				result:
 					host.result === "github"
-						? githubResult(host, github, reportRepository(main.repositoryRoot, host.repository.remote).pipe(Effect.provide(NodeServices.layer)))
+						? githubResult(host, github, repository)
 						: () => unconfigured("Worker result adoption is not configured in this Fleet host; inspect the worker session"),
-			}),
+			});
+		},
 		requires: [MainSource, GithubApi],
 	});
 	return Layer.effect(FleetIntegrations)(HostIntegrations).pipe(Layer.provide(HostIntegrations.layer));

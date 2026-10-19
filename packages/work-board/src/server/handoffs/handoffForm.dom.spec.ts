@@ -3,10 +3,12 @@ import { expect } from "vitest";
 import { boardStory, readerAt } from "#test/boardStory.ts";
 import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
-import { waitForLibraryCount } from "#test/nativeRpc.ts";
+import { libraryCount } from "#test/nativeRpc.ts";
 import { aHandoffTask, anAnswerForm, clipboardUnavailable } from "#test/storyTraits.ts";
 
 const SOURCE = "---\nid: task.focus\nkind: task\nnext_action: Inspect focus\n---\n# Focus\n\nReviewed source.\n";
+
+const EXPECTED_LIBRARY_COUNT = 2;
 
 boardStory.it(
 	"preserves the owned handoff draft on live reads and requires preview after a changed reviewed source",
@@ -17,7 +19,7 @@ boardStory.it(
 		yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 		expect(page.document.querySelector('[name="goal"]')).toBe(goal);
 		editFile("unrelated.md", "# Another file\n");
-		yield* waitForLibraryCount(board, 2);
+		yield* Effect.promise(() => waitFor(async () => expect(await Effect.runPromise(libraryCount(board))).toBe(EXPECTED_LIBRARY_COUNT)));
 		expect(page.document.querySelector('[name="goal"]')).toBe(goal);
 		yield* formEvent(page, () => reader.click("handoff-preview"));
 		expect(page.document.getElementById("handoff-submit")?.hasAttribute("disabled")).toBe(false);

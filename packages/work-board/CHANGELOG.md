@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.21.3 - 2026-10-19
+
+### Changed
+
+- The search palette groups rows under **Go to**, **Appearance**, **Work** and **Documents** headings and drops the "command" subtitle from command rows.
+- **Include Fleet records** in the palette sets the new optional `records` search option; the `records:` query prefix keeps working.
+- The palette closes through the dialog's standard close control. The Search button is gone: Enter in the field still searches an unfinished query at once, and a failed search offers **Retry search**.
+
+### Fixed
+
+- Sidebar destinations, the Now / All work / Table switch and answer card links are announced as links instead of buttons, and the All work board shows one column per status name, so items spelled `needs-you` and `needs-human` share one Needs you column.
+- Search lists each item once: a document's title and the passages under it now share the document's row instead of adding a second row for the title anchor.
+- Search rows no longer repeat their title as the snippet; they show the next matching passage instead, or no snippet.
+
 ## 0.21.2 - 2026-10-19
 
 ### Changed

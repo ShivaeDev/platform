@@ -1,29 +1,20 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { boardStory, projectFiles, readerAt, responsesEnabled } from "#test/boardStory.ts";
-import { held, type openPage } from "#test/browser.ts";
+import { held } from "#test/browser.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
 import { enterField } from "#test/enterField.ts";
 import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
-import type { BoardReader } from "#test/readerVerbs.ts";
 import { rpcCall } from "#test/rpc.ts";
-
-function* open(reader: BoardReader, kind: "handoff" | "response", beforeScripts?: Parameters<typeof openPage>[2]) {
-	const page = yield* reader.open(
-		kind === "handoff" ? "/_board/handoff?item=item.edge" : "/_board/respond?item=item.edge&request=direction",
-		beforeScripts,
-	);
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById(`${kind}-preview`)?.hasAttribute("disabled")).toBe(false)));
-	return page;
-}
 
 boardStory.it(
 	"shows Schema field messages for handoff direction and clears them when corrected",
 	[readerAt("/"), projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled()],
 	function* ({ reader }) {
-		const page = yield* open(reader, "handoff");
+		const page = yield* reader.open("/_board/handoff?item=item.edge");
+		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("handoff-preview")?.hasAttribute("disabled")).toBe(false)));
 		yield* formEvent(page, () => enterField(page, "recipient", "agent-local"));
 		const goal = enterField(page, "goal", " ");
 		yield* formEvent(page, () => reader.click("handoff-preview"));
@@ -48,7 +39,7 @@ boardStory.it(
 	function* ({ reader }) {
 		const gate = held();
 		let reached = false;
-		const page = yield* open(reader, "response", (window) => {
+		const page = yield* reader.open("/_board/respond?item=item.edge&request=direction", (window) => {
 			const fetch = window.fetch.bind(window);
 			window.fetch = async (input, init) => {
 				const call = await rpcCall(window, input, init);
@@ -59,6 +50,7 @@ boardStory.it(
 				return fetch(input, init);
 			};
 		});
+		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false)));
 		yield* formEvent(page, () => enterField(page, "author", "reviewer"));
 		const body = enterField(page, "body", "First reviewed response");
 		yield* formEvent(page, () => reader.click("response-preview"));
@@ -93,7 +85,8 @@ for (const kind of ["handoff", "response"] as const) {
 		`retains the ${kind} form after persisted pageshow with the durable draft intact`,
 		[readerAt("/"), projectFiles({ "item.md": EDGE_ATTENTION_SOURCE }), responsesEnabled()],
 		function* ({ reader }) {
-			const page = yield* open(reader, kind);
+			const page = yield* reader.open(kind === "handoff" ? "/_board/handoff?item=item.edge" : "/_board/respond?item=item.edge&request=direction");
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById(`${kind}-preview`)?.hasAttribute("disabled")).toBe(false)));
 			yield* formEvent(page, () => enterField(page, kind === "handoff" ? "recipient" : "author", "local-label"));
 			yield* formEvent(page, () => enterField(page, kind === "handoff" ? "goal" : "body", "Direction before freezing"));
 			yield* formEvent(page, () => page.window.dispatchEvent(new page.window.Event("pagehide")));

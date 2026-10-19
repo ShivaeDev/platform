@@ -7,6 +7,20 @@ import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#t
 import { cliProcess } from "#test/fleetCli.ts";
 
 export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) => void) {
+	function cli(args: readonly string[]) {
+		return Effect.gen(function* () {
+			tell(`run work-fleet ${args.join(" ")}`);
+			let stderr = "";
+			const result = yield* Effect.promise(() =>
+				cliProcess([...args, "--port", String(engine.running.port)], {
+					onError: (chunk) => {
+						stderr += chunk;
+					},
+				}),
+			);
+			return { ...result, stderr };
+		});
+	}
 	return {
 		answer: (text: string, release = false, workId = "one") => {
 			tell(`record an answer for ${workId}`);
@@ -14,19 +28,8 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 		},
 		answerAndWait: (text: string, release = false, workId = "one") => answerAndWait(engine.running.client, { release, text, workId }),
 		applied: (workId = "one") => appliedAnswer(engine.running.client, workId),
-		cliAnswer: (workId: string, text: string, release = false) =>
-			Effect.gen(function* () {
-				tell(`answer ${workId} through the CLI`);
-				let stderr = "";
-				const result = yield* Effect.promise(() =>
-					cliProcess(["answer", workId, ...(release ? ["--release"] : [text]), "--port", String(engine.running.port)], {
-						onError: (chunk) => {
-							stderr += chunk;
-						},
-					}),
-				);
-				return { ...result, stderr };
-			}),
+		cliAnswer: (workId: string, text: string, release = false) => cli(["answer", workId, ...(release ? ["--release"] : [text])]),
+		cliRelease: (...workIds: readonly string[]) => cli(["release", ...workIds]),
 		dispatch: (workId = "one") => {
 			tell(`dispatch ${workId}`);
 			return dispatchAndWait(engine.running.client, workId);
