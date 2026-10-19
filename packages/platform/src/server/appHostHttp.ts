@@ -12,10 +12,14 @@ import { hostChanges } from "#server/hostChanges.ts";
 import type { HostOptions, HostPolicy } from "#server/hostOptions.ts";
 import type { MigrationOptions } from "#server/MigrationOptions.ts";
 import { otlpTracing } from "#server/otlpTracing.ts";
+import { RedactionPolicy } from "#server/RedactionPolicy.ts";
+import { redactingDiagnostics } from "#server/redactingDiagnostics.ts";
+import { redactingRpcSerialization } from "#server/redactingRpcSerialization.ts";
 import { localRpcGuard } from "#server/rpc-server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "#server/rpc-server/session.ts";
 import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { TrustedProxy } from "#server/rpc-server/trustedProxy.ts";
+import { schemaSensitiveKeys } from "#server/schemaSensitiveKeys.ts";
 import { tracedGroup } from "#server/tracedGroup.ts";
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
@@ -30,6 +34,7 @@ export function appHostHttp<
 	options: HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & HostPolicy<TSession>,
 	changesService: typeof AppChanges,
 ) {
+	const sensitive = schemaSensitiveKeys(options.group, options.config?.sensitiveKeys);
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const maxBodySize = options.config?.maxBodySize ?? (yield* Config.Int("MAX_BODY_SIZE").pipe(Config.withDefault(1024 * 1024)));
@@ -45,12 +50,14 @@ export function appHostHttp<
 			}
 			const middleware: Layer.Layer<RequestTracing> | Layer.Layer<Authenticated | MaybeAuthenticated | RequestTracing> =
 				options.policy === "loopback"
-					? requestTracingLayer()
-					: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), requestTracingLayer());
+					? requestTracingLayer({ sensitive })
+					: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), requestTracingLayer({ sensitive }));
 			const routes = HttpRouter.use((router) =>
 				Effect.gen(function* () {
-					const wire = yield* RpcSerialization.RpcSerialization;
-					const handler = yield* RpcServer.toHttpEffect(tracedGroup(options.group));
+					const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure);
+					const handler = yield* RpcServer.toHttpEffect(tracedGroup(options.group)).pipe(
+						Effect.provideService(RpcSerialization.RpcSerialization, wire),
+					);
 					const guarded = localRpcGuard(handler, trustedProxy);
 					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) =>
 						guarded.pipe(
@@ -88,7 +95,7 @@ export function appHostHttp<
 				Layer.provide(NodeServices.layer),
 			);
 		}),
-	).pipe(Layer.provide(otlpTracing));
+	).pipe(Layer.provide(redactingDiagnostics(sensitive)), Layer.provide(otlpTracing), Layer.provide(Layer.succeed(RedactionPolicy, sensitive)));
 }
 
 export function migratedHost<

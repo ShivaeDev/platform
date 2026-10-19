@@ -11,6 +11,7 @@ export type HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandle
 		readonly host?: string;
 		readonly trustedProxy?: string;
 		readonly maxBodySize?: number;
+		readonly sensitiveKeys?: readonly string[];
 		readonly disablePreemptiveShutdown?: boolean;
 	};
 	readonly group: RpcGroup.RpcGroup<TRpcs>;

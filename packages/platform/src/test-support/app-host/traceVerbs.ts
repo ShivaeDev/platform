@@ -16,6 +16,8 @@ export function traceVerbs(state: HostState) {
 				await runtime.runPromise(Option.getOrThrow(Context.getOption(context, OtlpExporter.Flusher)).flush);
 			}),
 		logs: () => state.logs,
+		nativeSpans: () => state.nativeSpans,
+		reportedCauses: () => state.reported,
 	};
 }
 

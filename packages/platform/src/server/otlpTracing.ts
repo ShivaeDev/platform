@@ -1,6 +1,8 @@
 import { Config, Effect, Layer, Schema } from "effect";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
 import { otlpHttpClient } from "#server/otlpHttpClient.ts";
+import { RedactionPolicy } from "#server/RedactionPolicy.ts";
+import { redactingTracer } from "#server/redactingTracer.ts";
 import { safeOtlpSerialization } from "#server/safeOtlpSerialization.ts";
 
 export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.unwrap(
@@ -41,7 +43,7 @@ export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.unwrap(
 		const exportInterval = yield* Config.Int("OTEL_BSP_SCHEDULE_DELAY").pipe(Config.withDefault(5000));
 		const maxBatchSize = yield* Config.Int("OTEL_BSP_MAX_EXPORT_BATCH_SIZE").pipe(Config.withDefault(1000));
 		const exportTimeout = yield* Config.Int("OTEL_BSP_EXPORT_TIMEOUT").pipe(Config.withDefault(3000));
-		return OtlpTracer.layer({
+		const tracer = OtlpTracer.layer({
 			exportInterval,
 			headers,
 			maxBatchSize,
@@ -54,5 +56,6 @@ export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.unwrap(
 			),
 			Layer.provide(otlpHttpClient(requestTimeout)),
 		);
+		return redactingTracer(yield* RedactionPolicy).pipe(Layer.provideMerge(tracer));
 	}),
 );

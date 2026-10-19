@@ -1,5 +1,6 @@
 import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientError, type HttpClientRequest } from "effect/http";
+import { RedactionPolicy } from "#server/RedactionPolicy.ts";
 import { redactOtlpText } from "#server/safeOtlpSerialization.ts";
 
 function timeoutError(request: HttpClientRequest.HttpClientRequest) {
@@ -13,6 +14,7 @@ export function otlpHttpClient(timeout = 10_000) {
 		HttpClient.HttpClient,
 		Effect.gen(function* () {
 			const client = yield* HttpClient.HttpClient;
+			const sensitive = yield* RedactionPolicy;
 			let warned = false;
 			function warnOnce(diagnostic: Effect.Effect<Record<string, unknown>>) {
 				return Effect.suspend(() => {
@@ -41,7 +43,7 @@ export function otlpHttpClient(timeout = 10_000) {
 					return warnOnce(
 						response.text.pipe(
 							Effect.orElseSucceed(() => "Unable to read collector response"),
-							Effect.map((body) => ({ "otlp.response": redactOtlpText(body), "otlp.status": response.status })),
+							Effect.map((body) => ({ "otlp.response": redactOtlpText(body, "", sensitive), "otlp.status": response.status })),
 						),
 					);
 				}),
