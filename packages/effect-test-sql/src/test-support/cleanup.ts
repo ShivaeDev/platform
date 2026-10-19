@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Exit, Layer, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { cleanupVerbs } from "./cleanupVerbs.ts";
 import { createDatabaseEngine } from "./databaseEngine.ts";
 import { limitedRole } from "./limitedRole.ts";

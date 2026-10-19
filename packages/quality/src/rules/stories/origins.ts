@@ -19,7 +19,7 @@ function moduleOrigin(from: string | undefined): Origin {
 	if (from === "vitest" || from === "@effect/vitest") {
 		return "vitest";
 	}
-	return from === "@shivaedev/test-story" || from === "@shivaedev/test-story/storyKit.ts" ? "stories" : undefined;
+	return from === "@shivaedev/test-story" || from === "@shivaedev/test-story/server/storyKit.ts" ? "stories" : undefined;
 }
 
 function imported(name: string, from: string | undefined): Origin {
@@ -97,7 +97,7 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 			return receiver;
 		}
 		const from = receiver === "vitest" ? "vitest" : undefined;
-		return imported(name, receiver === "stories" ? "@shivaedev/test-story/storyKit.ts" : from);
+		return imported(name, receiver === "stories" ? "@shivaedev/test-story/server/storyKit.ts" : from);
 	}
 
 	function identifier(node: ts.Identifier): Origin {

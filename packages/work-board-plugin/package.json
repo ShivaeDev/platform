@@ -10,9 +10,14 @@
 		"#types/*": "./types/*"
 	},
 	"exports": {
-		"./*.ts": "./src/*.ts"
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
 	},
 	"scripts": {
+		"build": "tsc --project tsconfig.build.json",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
 	},

@@ -2,7 +2,7 @@ import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { Effect, Exit, Scope } from "effect";
 import * as VitestNode from "vitest/node";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 function startRunner() {
 	return VitestNode.createVitest(

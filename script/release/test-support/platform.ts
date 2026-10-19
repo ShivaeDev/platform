@@ -3,7 +3,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Console, Effect, FileSystem } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { command } from "./command.ts";
 import { copyRepository } from "./copyRepository.ts";
 

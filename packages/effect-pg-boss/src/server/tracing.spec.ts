@@ -30,12 +30,26 @@ boss.it("carries an external parent span without exposing the transport envelope
 	const runtime = yield* boot([Queue.handle((payload) => Effect.sync(() => handled.push(payload)))]).pipe(Effect.withTracer(tracer));
 	yield* runtime.jobs.enqueue(Queue, { id: 7 }).pipe(Effect.withParentSpan(external));
 	const data = client.sendCalls[0]?.data;
+	expect(data).toMatchObject({ _tag: "@shivaedev/effect-pg-boss/TracedPayload", payload: { id: "7" } });
 	yield* dispatch(Queue.name, [job(Queue.name, data)]);
 	yield* runtime.stop;
 	expect(handled).toEqual([{ id: 7 }]);
 	expect(spans).toHaveLength(1);
 	expect(spans[0]?.parent).toEqual(Option.none());
 	expect(spans[0]?.links).toMatchObject([{ span: { sampled: false, spanId: external.spanId, traceId: external.traceId } }]);
+});
+
+boss.it("decodes queued envelopes with the persisted trace tag before running the handler", [], function* ({ boot, client, dispatch }) {
+	const Queue = defineQueue({ name: "persisted-trace", schema: Schema.Struct({ id: Schema.NumberFromString }) });
+	const span = { sampled: true, spanId: "0123456789abcdef", traceId: "0123456789abcdef0123456789abcdef" };
+	const { spans, tracer } = recordingTracer();
+	const handled: object[] = [];
+	const runtime = yield* boot([Queue.handle((payload) => Effect.sync(() => handled.push(payload)))]).pipe(Effect.withTracer(tracer));
+	yield* dispatch(Queue.name, [job(Queue.name, { _tag: "@shivaedev/effect-pg-boss/TracedPayload", payload: { id: "7" }, span })]);
+	yield* runtime.stop;
+	expect(handled).toEqual([{ id: 7 }]);
+	expect(client.failCalls).toEqual([]);
+	expect(spans[0]?.links).toMatchObject([{ span }]);
 });
 
 boss.it("records payload decoding failures on the job span before running the handler", [], function* ({ boot, client, dispatch }) {

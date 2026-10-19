@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
 import type { Findings, Rule } from "@shivaedev/quality/rule.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { scanned } from "#quality-fixtures/imports.ts";
 import type { SeedFile } from "#quality-fixtures/tree.ts";
 
@@ -32,6 +32,15 @@ export const ruleKit = storyKit({
 				}
 				engine.findings = await configured.check(await scanned(engine.root));
 				return engine.findings;
+			}),
+		writes: (...files: readonly SeedFile[]) =>
+			Effect.sync(() => {
+				for (const file of files) {
+					story.tell(`the author writes ${file.path}`);
+					const path = join(engine.root, file.path);
+					mkdirSync(dirname(path), { recursive: true });
+					writeFileSync(path, file.content);
+				}
 			}),
 	}),
 });

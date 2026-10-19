@@ -1,7 +1,7 @@
 import { LibraryPage } from "./LibraryPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
-import { routeQueryOptions } from "./routeQuery.ts";
+import { libraryQuery } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 export function LibraryMain({
 	api,
@@ -14,10 +14,10 @@ export function LibraryMain({
 }) {
 	return (
 		<ProjectionFrame
-			atom={api.library.query({}, routeQueryOptions)}
+			atom={libraryQuery(api, url)}
 			location={() => ({ file: "Library", status: 200, view: "library" })}
 			onPage={onPage}
-			render={() => <LibraryPage api={api} key={url} url={url} />}
+			render={(data) => <LibraryPage api={api} data={data} key={url} url={url} />}
 			route="library"
 			url={url}
 		/>

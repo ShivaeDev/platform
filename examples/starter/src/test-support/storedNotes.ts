@@ -2,7 +2,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { clientOptions } from "@shivaedev/effect-sql/clientOptions.ts";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import type { Note } from "#notes.ts";
 
 interface StoredNote extends Note {

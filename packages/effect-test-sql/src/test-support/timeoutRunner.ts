@@ -2,7 +2,7 @@ import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import * as VitestNode from "vitest/node";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { configured } from "./postgres.ts";
 
 export const timeoutRunner = storyKit({

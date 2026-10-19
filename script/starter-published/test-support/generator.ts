@@ -2,7 +2,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { command, writeJson } from "#package-check/io.ts";
 import { generateStarter } from "#starter-published/generate.ts";
 

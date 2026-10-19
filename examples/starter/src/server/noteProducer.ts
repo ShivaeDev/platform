@@ -1,4 +1,4 @@
-import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/client.ts";
+import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
 import { CountWords, NoteJobs } from "#server/noteJobs.ts";
 
 export function noteProducer(connectionString: string, migrate = false, clientFactory?: PgBossClientFactory) {

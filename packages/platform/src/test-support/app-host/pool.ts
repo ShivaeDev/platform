@@ -1,6 +1,6 @@
 import { Config, Context, Deferred, Effect, Fiber, Layer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase, appHost } from "#server/appHost.ts";
 import { Ping, pingHandlers } from "./ping.ts";
 

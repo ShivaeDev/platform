@@ -5,7 +5,7 @@ import { Model } from "effect/schema";
 import { Migrator, SqlClient } from "effect/sql";
 import { clientOptions } from "@shivaedev/effect-sql/clientOptions.ts";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { assertModelColumns } from "#assertModelColumns.ts";
 import { PostgresTestDatabase } from "#database.ts";
 import type { PostgresColumn } from "#migrationUpgrade.ts";

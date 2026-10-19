@@ -1,5 +1,5 @@
 import { Config, Effect, Layer, Redacted } from "effect";
-import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/client.ts";
+import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
 import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
 import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";

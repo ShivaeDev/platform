@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
 import { expect } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { changeset, git, makeFixture, run, write } from "./fixture.ts";
 import { installCommitGuard } from "./installCommitGuard.ts";
 export const workspace = storyKit({

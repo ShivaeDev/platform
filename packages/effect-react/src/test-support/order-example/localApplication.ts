@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Result } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { isolate, localRollback } from "./isolation.ts";
 import { hasPostgres, kitDatabases, StoryDatabase, workerDatabase } from "./postgres.ts";
 import { seedOrder } from "./seed.ts";

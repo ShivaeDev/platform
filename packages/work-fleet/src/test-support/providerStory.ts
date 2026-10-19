@@ -1,5 +1,5 @@
 import { Clock, Context, Duration, Effect, Exit, Layer, Queue, Result, Scope } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionTransport } from "#session/service.ts";
 import { codexConfiguration, codexServer, type WireRequest } from "#test/codex.ts";
 import { authFolder, cloudConfiguration, FUTURE_EXPIRY, PAST_EXPIRY, refreshingCli, syntheticToken } from "#test/codexCloud.ts";

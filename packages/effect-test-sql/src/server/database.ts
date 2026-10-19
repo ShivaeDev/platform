@@ -17,5 +17,5 @@ export interface PostgresTestDatabaseService {
 }
 
 export class PostgresTestDatabase extends Context.Service<PostgresTestDatabase, PostgresTestDatabaseService>()(
-	"@shivaedev/effect-test-sql/PostgresTestDatabase",
+	"@shivaedev/effect-test-sql/server/PostgresTestDatabase",
 ) {}

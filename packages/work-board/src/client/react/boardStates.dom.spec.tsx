@@ -116,16 +116,17 @@ screenStory.it("tells an empty Library what fills it", [routedScreen({}, "/_boar
 screenStory.it(
 	"lets the reader clear Library filters that match no document",
 	[routedScreen({ ...work, "notes.md": "---\nkind: note\nstatus: done\n---\n# Closed notes\n" }, "/_board/library")],
-	function* ({ chooseOption, click, findElement, findElements, readText }) {
+	function* ({ findElement, findElements, readText, roles }) {
 		yield* Effect.promise(() => eventually(() => expect(readText('#doc a[href="/task.md"]')).toBe("Build the page")));
 		expect(readText('#doc li:has(a[href="/task.md"]) p')).toBe("Task · Active");
-		const [kind, status] = findElements('#doc [role="combobox"]');
-		yield* Effect.promise(() => chooseOption(kind, "Task"));
-		yield* Effect.promise(() => chooseOption(status, "Done"));
+		yield* roles.click({ name: "Kind", role: "combobox" });
+		yield* roles.click({ name: "Task", role: "option" });
+		yield* roles.click({ name: "Status", role: "combobox" });
+		yield* roles.click({ name: "Done", role: "option" });
 		yield* Effect.promise(() => eventually(() => expect(readText('#doc [data-slot="empty-title"]')).toBe("No matching documents")));
-		click([...findElements('#doc [data-slot="empty"] button')].find((button) => button.textContent === "Show all documents"));
+		yield* roles.click({ name: "Show all documents", role: "link" });
 		yield* Effect.promise(() =>
-			eventually(() => expect(findElements("#doc li a").map((link) => link.getAttribute("href"))).toEqual(["/task.md", "/notes.md"])),
+			eventually(() => expect(findElements("#doc li a").map((link) => link.getAttribute("href"))).toEqual(["/notes.md", "/task.md"])),
 		);
 		expect(findElement('#doc [data-slot="empty"]')).toBeNull();
 	},

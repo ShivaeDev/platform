@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Layer } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardFolder } from "#test/boardFolder.ts";

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { type Context, Effect, Layer } from "effect";
 import * as shiki from "shiki";
 import { afterEach, vi } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import { renderMarkdown } from "#server/render/markdown.ts";
 import { type BoardEngine, createBoard } from "./storyEngine.ts";

@@ -14,7 +14,7 @@ const parser = {
 };
 const declaration = { files: [parser.path], reason: REASON, rules: ["comments/no-jsdoc", "biome/lint/suspicious/noExplicitAny"] };
 const overrides = {
-	extends: ["@shivaedev/quality/biome"],
+	extends: ["@shivaedev/quality/biome/preset.json"],
 	overrides: [{ includes: [parser.path], linter: { rules: { suspicious: { noExplicitAny: "off" } } } }],
 };
 

@@ -2,7 +2,7 @@ import { createMemoryHistory, createRootRoute, createRoute, createRouter, Outlet
 import { Effect } from "effect";
 import type { RootOptions } from "react-dom/client";
 import { vi } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { expectNoReactWarnings, type Rendered, render } from "#client/testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
