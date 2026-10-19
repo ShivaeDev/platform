@@ -48,8 +48,8 @@ export const createEngine = Effect.fn("FleetFixture.createEngine")(function* <TB
 	function fleetLayer(configuration = policy) {
 		return Fleet.layer.pipe(Layer.provide(Layer.mergeAll(base, session, integrations, Layer.succeed(FleetPolicy)(configuration))));
 	}
-	function foreign(owner: string) {
-		return store.reserveForeign(owner, { backlog: true, executing: false });
+	function foreign(owner: string, reservationAreas: readonly string[] = []) {
+		return store.reserveForeign(owner, { backlog: true, executing: false }, reservationAreas);
 	}
 	if (options.foreignBacklog) {
 		yield* foreign("foreign-pr");

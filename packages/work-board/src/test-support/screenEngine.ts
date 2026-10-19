@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
 import type { render } from "@shivaedev/effect-react/client/testing.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import type { FileSystemWrapper } from "./board.ts";
 import { browserStorage } from "./browserStorage.ts";
 import type { chrome } from "./chrome.ts";
 import type { mountDocument } from "./documentRendering.ts";
@@ -11,9 +12,11 @@ import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
 import type { mountSession } from "./mountSession.ts";
 import type { BoardTestApi, renderBoard } from "./react.tsx";
 import type { renderRouter } from "./renderRouter.tsx";
+import type { DiagramDrawing } from "./screenDiagrams.ts";
+import type { SessionTransport } from "./sessionTransport.ts";
 
 export interface ScreenEngine {
-	ageModified?: number;
+	age?: { readonly modified: number; readonly view: (modified: number) => ReactNode };
 	api?: BoardTestApi;
 	boardScreen?: Awaited<ReturnType<typeof renderBoard>>;
 	readonly cleanups: Array<() => Promise<void>>;
@@ -21,13 +24,17 @@ export interface ScreenEngine {
 	documentFailed?: boolean;
 	documentReads: string[];
 	documentView?: Awaited<ReturnType<typeof mountDocument>>;
+	drawings?: DiagramDrawing[];
 	files: Readonly<Record<string, string>>;
 	fleet?: FleetItemsProjection;
 	health?: boolean;
 	heldRead?: { readonly url: string; readonly gate: Deferred.Deferred<void>; started: boolean };
+	heldRefresh?: { readonly url: string; readonly gate: Deferred.Deferred<void>; readonly failed: boolean; started: boolean };
 	indexFailed?: boolean;
 	indexGate?: Deferred.Deferred<void>;
+	indexReads: number;
 	lastView?: ReturnType<typeof screenView>;
+	media?: Map<string, MediaQueryList>;
 	motion?: {
 		focus: MockInstance<HTMLElement["focus"]>;
 		passage: MockInstance<HTMLElement["scrollIntoView"]>;
@@ -42,6 +49,9 @@ export interface ScreenEngine {
 	router?: Awaited<ReturnType<typeof renderRouter>>["router"];
 	scrollPosition?: number;
 	session?: Effect.Success<ReturnType<typeof mountSession>>;
+	sessionFleetPort?: number;
+	sessionTransport?: SessionTransport;
+	sessionWrap?: FileSystemWrapper | undefined;
 	startupGate?: Deferred.Deferred<void>;
 	tell?: (line: string) => void;
 	updatesPaused?: Atom.Writable<boolean>;
@@ -54,18 +64,13 @@ export function* createScreen() {
 	window.sessionStorage.clear();
 	window.history.replaceState({}, "", "/");
 	const attributes = [...document.documentElement.attributes].map(({ name, value }) => [name, value] as const);
-	const engine: ScreenEngine = { cleanups: [], documentReads: [], files: {}, path: "/" };
+	const engine: ScreenEngine = { cleanups: [], documentReads: [], files: {}, indexReads: 0, path: "/" };
 	yield* Effect.addFinalizer(() =>
 		Effect.promise(async () => {
 			for (const close of engine.cleanups.reverse()) {
 				await close();
 			}
-			if (engine.indexGate) {
-				Effect.runSync(Deferred.succeed(engine.indexGate, undefined));
-			}
-			if (engine.startupGate) {
-				Effect.runSync(Deferred.succeed(engine.startupGate, undefined));
-			}
+			releaseScreenReads(engine);
 			window.dispatchEvent(new Event("pagehide"));
 			vi.restoreAllMocks();
 			vi.unstubAllGlobals();
@@ -81,6 +86,14 @@ export function* createScreen() {
 	return engine;
 }
 
+function releaseScreenReads(engine: ScreenEngine) {
+	for (const gate of [engine.indexGate, engine.startupGate, engine.heldRefresh?.gate]) {
+		if (gate) {
+			Effect.runSync(Deferred.succeed(gate, undefined));
+		}
+	}
+}
+
 export function screenView(engine: ScreenEngine) {
 	const root = engine.container ?? engine.view?.container ?? document.body;
 	return {
@@ -91,9 +104,17 @@ export function screenView(engine: ScreenEngine) {
 		})),
 		html: root.innerHTML,
 		location: engine.router?.state.location.href ?? window.location.href,
-		storage: Object.fromEntries(Object.keys(window.localStorage).map((key) => [key, window.localStorage.getItem(key)])),
+		storage: screenStorage(),
 		text: root.textContent,
 	};
+}
+
+function screenStorage() {
+	try {
+		return Object.fromEntries(Object.keys(window.localStorage).map((key) => [key, window.localStorage.getItem(key)]));
+	} catch {
+		return undefined;
+	}
 }
 
 export function trackScreen<T extends Awaited<ReturnType<typeof render>>>(engine: ScreenEngine, view: T, tell: (line: string) => void): T {

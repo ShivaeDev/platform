@@ -76,6 +76,12 @@ export function engineGithubVerbs(state: EngineStory, tell: (line: string) => vo
 			change("GitHub reads become unavailable", () => {
 				state.githubUnavailable = true;
 			}),
+		githubConditionalHits: () => {
+			if (state.github === undefined) {
+				throw new Error("No loopback GitHub provider is configured");
+			}
+			return [...state.github.conditionalHits];
+		},
 		githubRecovers: () =>
 			change("GitHub reads recover", () => {
 				state.githubUnavailable = false;

@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
+import { daemonRequest } from "#host/daemonClient.ts";
 import type { MainSnapshot } from "#host/mainSource.ts";
 import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
 import { cliProcess } from "#test/fleetCli.ts";
@@ -70,6 +71,10 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		reconcile: (workId: string) => {
 			tell(`reconcile ${workId} through the daemon`);
 			return engine.running.client("fleet.reconcile", { workId });
+		},
+		requestStatus: (workId?: string) => {
+			tell(`request ${workId === undefined ? "the overview" : workId} with the CLI timeout`);
+			return daemonRequest(engine.running.port, (client) => client("daemon.status", workId === undefined ? {} : { workId }), "status");
 		},
 		resolve: (workId: string, decisionId: string, responseId: string) => {
 			tell(`resolve ${workId}'s decision ${decisionId}`);

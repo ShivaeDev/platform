@@ -1,8 +1,9 @@
-import { Effect, Schema, SchemaIssue } from "effect";
+import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { FindMany } from "#repository.ts";
+import { makeFilter } from "#repositoryFilter.ts";
 
 type Key<TModel extends Model.Any> = Extract<keyof TModel["fields"] & keyof Row<TModel>, string>;
 type Row<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;
@@ -27,18 +28,7 @@ export function makeQueries<TModel extends Model.Any>(
 		readonly spanPrefix: string;
 	},
 ): Queries<TModel> {
-	function fieldAt(key: string) {
-		const field = Object.hasOwn(model.fields, key) ? model.fields[key] : undefined;
-		return field === undefined
-			? Effect.fail(new Schema.SchemaError(new SchemaIssue.Pointer([key], new SchemaIssue.UnexpectedKey(model.ast, key))))
-			: Effect.succeed(field);
-	}
-	function predicate(key: string, value: unknown) {
-		return Effect.map(
-			Effect.flatMap(fieldAt(key), (field) => Schema.encodeEffect(field)(value)),
-			(encoded) => (encoded === null ? sql`${sql(key)} is null` : sql`${sql(key)} = ${encoded}`),
-		);
-	}
+	const { fieldAt, where } = makeFilter(model, sql);
 	function orderClause(orderBy: FindMany<TModel, Key<TModel>>["orderBy"]) {
 		return orderBy === undefined
 			? Effect.succeed(sql``)
@@ -59,14 +49,11 @@ export function makeQueries<TModel extends Model.Any>(
 		return Effect.gen(function* () {
 			const keys = query.select ?? Object.keys(model.fields);
 			const fields = Object.fromEntries(yield* Effect.forEach(keys, (key) => Effect.map(fieldAt(key), (field) => [key, field] as const)));
-			const predicates = yield* Effect.forEach(
-				Object.entries(query.where ?? {}).filter(([, value]) => value !== undefined),
-				([key, value]) => predicate(key, value),
-			);
+			const predicate = yield* where(query.where);
 			const order = yield* orderClause(query.orderBy);
 			const limit = yield* limitClause(query.limit);
 			const rows =
-				yield* sql`select ${sql.csv(keys.map((key) => sql`${sql(key)}`))} from ${sql(options.tableName)} where ${sql.and(predicates)} ${order} ${limit}`;
+				yield* sql`select ${sql.csv(keys.map((key) => sql`${sql(key)}`))} from ${sql(options.tableName)} where ${predicate} ${order} ${limit}`;
 			return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(fields)))(rows);
 		}).pipe(Effect.withSpan(`${options.spanPrefix}.findMany`));
 	}

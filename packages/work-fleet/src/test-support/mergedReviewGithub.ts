@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { Effect } from "effect";
-import { BadRequest, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
 import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
 import { githubResult } from "#host/githubResult.ts";
+import { httpGithubApi } from "#test/githubApi.ts";
 import { BASE, HEAD, PR, resultFixture } from "#test/githubResult.ts";
 
 interface GithubState {
@@ -67,6 +69,7 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		unavailableReads: 0,
 	};
 	const requests: string[] = [];
+	const conditionalHits: string[] = [];
 	const server = createServer((request, response) => {
 		const path = request.url ?? "";
 		requests.push(path);
@@ -76,8 +79,18 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 			return;
 		}
 		const body = githubResponses(state)[path];
+		const json = JSON.stringify(body);
+		const etag = `"${createHash("sha256")
+			.update(json ?? "")
+			.digest("hex")}"`;
+		response.setHeader("ETag", etag);
+		if (body !== undefined && request.headers["if-none-match"] === etag) {
+			conditionalHits.push(path);
+			response.writeHead(304).end();
+			return;
+		}
 		response.setHeader("Content-Type", "application/json");
-		response.writeHead(body === undefined ? 404 : 200).end(JSON.stringify(body));
+		response.writeHead(body === undefined ? 404 : 200).end(json);
 	});
 	yield* Effect.promise(() => new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve)));
 	yield* Effect.addFinalizer(() => Effect.promise(() => new Promise<void>((resolve) => server.close(() => resolve()))));
@@ -86,23 +99,13 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		return yield* Effect.die(new Error("No synthetic GitHub server address"));
 	}
 	const origin = `http://127.0.0.1:${address.port}`;
-	function read(path: string) {
-		return Effect.tryPromise({
-			catch: () => new ServiceUnavailable({ message: "Synthetic GitHub read failed" }),
-			try: async () => {
-				const response = await fetch(`${origin}${path}`);
-				if (!response.ok) {
-					throw new Error("Unexpected synthetic GitHub request");
-				}
-				return response.text();
-			},
-		});
-	}
+	const api = yield* httpGithubApi(origin);
 	const { host } = resultFixture();
-	const github = { get: (endpoint: string) => read(`/${endpoint}`), pages: (endpoint: string) => read(`/${endpoint}`) };
+	const github = { get: api.get, pages: api.get };
 	const adopt = githubResult(host, github, Effect.succeed("example/repository"));
 	return {
 		checksQuery: makeGithubChecks(github.pages),
+		conditionalHits,
 		deliveryQuery: githubDelivery(readPullRequest(github.get)),
 		requests,
 		resultQuery: (...args: Parameters<typeof adopt>) =>

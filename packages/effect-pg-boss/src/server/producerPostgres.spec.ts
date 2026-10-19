@@ -31,3 +31,30 @@ postgresIt(
 		expect(yield* Effect.promise(() => client.findJobs(Queue.name))).toMatchObject([{ id: jobId, retryCount: 2, state: "failed" }]);
 	},
 );
+
+postgresIt(
+	"replaces administrator-terminated idle connections without an unhandled error",
+	[realPostgres],
+	function* ({ boot, admin, logs, terminateIdle, until, untilJobs }) {
+		const Queue = defineQueue({ name: "terminated-idle", schema: Schema.Struct({ id: Schema.NumberFromString }) });
+		const producer = yield* boot([Queue], { "application_name": "story-producer" });
+		const client = yield* admin({ "application_name": "story-admin" });
+		const backend = Effect.promise(() => client.getDb().executeSql("select pg_backend_pid() as pid")).pipe(
+			Effect.map(({ rows }) => Schema.decodeUnknownSync(Schema.Tuple([Schema.Struct({ pid: Schema.Number })]))(rows)[0].pid),
+		);
+		const idle = yield* backend;
+		const producerIdle = yield* terminateIdle("story-producer");
+		const adminIdle = yield* terminateIdle("story-admin");
+		expect(adminIdle).toContain(idle);
+		expect(producerIdle.length).toBeGreaterThan(0);
+		const terminations = Effect.sync(() =>
+			logs.filter(({ logLevel, message }) => logLevel === "Debug" && JSON.stringify(message).includes("administrator command")),
+		);
+		yield* until(terminations, (seen) => seen.length === producerIdle.length + adminIdle.length);
+		expect(adminIdle).not.toContain(yield* backend);
+		yield* Effect.promise(() => client.send(Queue.name, { id: "1" }));
+		yield* producer.jobs.enqueue(Queue, { id: 2 });
+		const jobs = yield* untilJobs<{ id: string }>(client, Queue.name, (found) => found.length === 2);
+		expect(jobs.map(({ data }) => data.id).sort()).toEqual(["1", "2"]);
+	},
+);

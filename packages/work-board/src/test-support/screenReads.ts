@@ -7,6 +7,15 @@ import type { ScreenEngine } from "./screenEngine.ts";
 export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOptions) {
 	const configured = {
 		...options,
+		afterRead: (url: string) =>
+			Effect.suspend(() => {
+				const read = engine.heldRefresh;
+				if (!read || read.started || url !== read.url) {
+					return options?.afterRead?.(url) ?? Effect.void;
+				}
+				read.started = true;
+				return Deferred.await(read.gate).pipe(Effect.andThen(read.failed ? Effect.die("Older read unavailable") : Effect.void));
+			}),
 		beforeIndex: () => indexAvailability(engine),
 		beforeRead: (kind: "document", url: string) => {
 			engine.documentReads.push(url);
@@ -38,6 +47,11 @@ export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOption
 }
 export function screenReadVerbs(engine: ScreenEngine, tell: (line: string) => void) {
 	return {
+		pauseRead: (url: string, failed = false) => {
+			tell(`the next completed document read for ${url} waits before delivery`);
+			engine.heldRefresh = { failed, gate: Deferred.makeUnsafe<void>(), started: false, url };
+		},
+
 		readDocumentReads: () => {
 			tell("the reader inspects document read requests");
 			return [...engine.documentReads];
@@ -46,12 +60,21 @@ export function screenReadVerbs(engine: ScreenEngine, tell: (line: string) => vo
 			tell("the reader checks whether the document read has started");
 			return engine.heldRead?.started ?? false;
 		},
+		refreshStarted: () => engine.heldRefresh?.started ?? false,
 		releaseRead: async () => {
 			const read = engine.heldRead;
 			if (!read) {
 				throw new Error("The story has no paused document read");
 			}
 			tell(`the document read for ${read.url} resumes`);
+			await act(() => Promise.resolve().then(() => Effect.runSync(Deferred.succeed(read.gate, undefined))));
+		},
+		releaseRefresh: async () => {
+			tell("the older document result arrives");
+			const read = engine.heldRefresh;
+			if (!read) {
+				throw new Error("No document refresh is paused");
+			}
 			await act(() => Promise.resolve().then(() => Effect.runSync(Deferred.succeed(read.gate, undefined))));
 		},
 	};

@@ -4,7 +4,7 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { BrowserClient } from "#client/client.ts";
-import { AgeTicker } from "./Age.tsx";
+import { AgeTicker } from "./AgeLabel.tsx";
 import { FleetMain } from "./FleetMain.tsx";
 import { FormContext } from "./FormContext.ts";
 import { Header } from "./Header.tsx";

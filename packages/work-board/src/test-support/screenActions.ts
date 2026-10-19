@@ -20,7 +20,7 @@ export function screenActions(tell: (line: string) => void) {
 		activate: async (selector: string) => {
 			tell(`the reader activates ${selector}`);
 			const element = control(selector, HTMLElement);
-			await act(() => element.click());
+			await act(async () => element.click());
 		},
 		answerInput: (name: string, value?: string) => {
 			if (value !== undefined) {
@@ -70,6 +70,20 @@ export function screenActions(tell: (line: string) => void) {
 			act(() => element.click());
 		},
 		control,
+		hover: async (target: string | Element | null | undefined) => {
+			tell(`the reader points at ${typeof target === "string" ? target : target?.textContent}`);
+			const element = typeof target === "string" ? control(target, HTMLElement) : target;
+			if (!(element instanceof HTMLElement)) {
+				throw new Error(`Missing hover target ${target}`);
+			}
+			await act(async () => {
+				for (const type of ["pointerover", "pointerenter", "mouseover", "mouseenter", "pointermove", "mousemove"]) {
+					const init = { bubbles: !type.endsWith("enter"), pointerType: "mouse" };
+					element.dispatchEvent(type.startsWith("pointer") ? new PointerEvent(type, init) : new MouseEvent(type, init));
+				}
+				await Promise.resolve();
+			});
+		},
 		input,
 		keyboard: (key: string, options: KeyboardEventInit = {}, target: EventTarget | string = document) => {
 			tell(`the reader presses ${key}`);
