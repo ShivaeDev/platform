@@ -1,11 +1,15 @@
-import { Deferred, Effect, Option } from "effect";
+import { Data, Deferred, Effect, Option } from "effect";
 import type { SendOptions } from "pg-boss";
+import type { PgBossService } from "#service.ts";
 import type { clientEngine } from "#test/clientEngine.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
 import type { testingEngine } from "#test/testingEngine.ts";
 
 type TestingState = ReturnType<typeof testingEngine> extends Generator<unknown, infer A, never> ? A : never;
+type JobPageOptions = Parameters<PgBossService["failedJobs"]>[1];
 type State = ReturnType<typeof clientEngine> & { testingState: TestingState };
+
+class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: number; readonly message: string }> {}
 
 export function* testingProducer(state: State) {
 	const testing = state.testingState;
@@ -32,9 +36,10 @@ export function* testingWorker(state: State) {
 	}
 	const worker = testing.queue.handle(({ id }) => {
 		testing.attempts.push(id);
-		return testing.paused
-			? Deferred.succeed(testing.entered, undefined).pipe(Effect.andThen(Deferred.await(testing.release)))
-			: Effect.fail(new Error("The worker fails this attempt"));
+		if (testing.paused) {
+			return Deferred.succeed(testing.entered, undefined).pipe(Effect.andThen(Deferred.await(testing.release)));
+		}
+		return testing.recovered ? Effect.void : Effect.fail(new WorkerRejected({ id, message: "The worker fails this attempt" }));
 	});
 	const runtime = yield* pgBossRuntime(state, () => undefined).boot([worker], {
 		clientCacheKey: testing.clientCacheKey,
@@ -46,11 +51,21 @@ export function* testingWorker(state: State) {
 }
 
 export function testingVerbs(state: TestingState) {
+	function jobs() {
+		return Option.getOrThrow(state.jobs);
+	}
 	return {
 		attempts: state.attempts,
+		deadLetteredJobs: (options: JobPageOptions) => jobs().deadLetteredJobs(state.queue, options),
+		failedJobs: (options: JobPageOptions) => jobs().failedJobs(state.queue, options),
 		queue: state.queue,
+		recoverWorker: Effect.sync(() => {
+			state.recovered = true;
+		}),
 		releaseWorker: Deferred.succeed(state.release, undefined),
-		send: (id: number, options?: SendOptions) => Option.getOrThrow(state.jobs).enqueue(state.queue, { id }, options),
+		retry: (id: string) => jobs().retry(state.queue, id),
+		send: (id: number, options?: SendOptions) => jobs().enqueue(state.queue, { id }, options),
+		service: jobs,
 		testing: state.testing,
 		testingClient: () => Option.getOrThrow(state.client),
 		workerStarted: Deferred.await(state.entered),

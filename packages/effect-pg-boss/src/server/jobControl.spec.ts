@@ -42,6 +42,8 @@ boss.it("maps missing custom client capabilities to operation-specific typed fai
 	const { jobs } = yield* boot([], { clientFactory: () => scriptedClient({}) });
 	for (const [operation, effect] of [
 		["counts", jobs.counts(Queue)],
+		["deadLetteredJobs", jobs.deadLetteredJobs(Queue, { limit: 1 })],
+		["failedJobs", jobs.failedJobs(Queue, { limit: 1 })],
 		["getJob", jobs.getJob(Queue, "id")],
 		["retry", jobs.retry(Queue, "id")],
 	] as const) {
