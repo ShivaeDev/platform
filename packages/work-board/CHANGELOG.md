@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.25.0 - 2026-10-19
+
+### Added
+
+- An item page leads with the open asks in other files that name it: "Waiting on you: <title>" in amber with an **Answer** button when the ask waits on you, and "Waiting on agents: <title>" in neutral colours when only agents can answer it.
+- On a phone, a question page shows an **Answer** button at the top that moves to the answer box and focuses it.
+- Item IDs and workspace paths in a next action show the named document's title as a link with its status chip. Words that name no document stay plain.
+- `#123` and `PR 123` in a next action link to the pull request when the workspace's `package.json` names a GitHub repository or its git checkout's `origin` remote is on GitHub, without Fleet running.
+
+### Changed
+
+- On a phone, Answer on Today opens a bottom sheet instead of a small popover, and its Answer and Record answer buttons are touch-sized. The phone navigation bar hides while you type in any text field, and the page fits above the on-screen keyboard.
+- Opening Answer on Today puts focus in the text box, or on the first option, instead of the question's context.
+
+### Fixed
+
+- Today's answer keeps what you typed after you close it, and shares one draft with the item page for the same question: start on Today, finish on the item page, or the other way round.
+- An option chosen on Today records the same response body as the item page, without a nested second copy of the recorded response.
+- An answer recorded on Today includes everything in the shared draft, such as a note, reply kind or replaced answer set on the item page. Today says when it sends any of those and links to the item page to review them.
+
 ## 0.24.0 - 2026-10-19
 
 ### Added
