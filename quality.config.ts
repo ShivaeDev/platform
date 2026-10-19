@@ -113,6 +113,7 @@ export default defineConfig({
 					"packages/test-story/src/server/screenDriver.ts",
 					"packages/test-story/src/server/storyKit.ts",
 					"packages/platform/src/server/appHost.ts",
+					"packages/platform/src/server/better-auth/testing.ts",
 					"packages/platform/src/rpc/identity.ts",
 					"packages/platform/src/rpc/middleware.ts",
 					"packages/platform/src/server/rpc-server/adapters/betterAuthSessions.ts",
