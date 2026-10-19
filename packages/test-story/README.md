@@ -241,6 +241,8 @@ Use `forwardingProxy` from `@shivaedev/test-story/forwardingProxy.ts` in the kit
 import { forwardingProxy } from "@shivaedev/test-story/forwardingProxy.ts";
 
 const proxy = yield* forwardingProxy(upstream, {
+  localAddress: "::1",
+  forwardedHops: ["203.0.113.9", "2001:db8::1"],
   headers: {
     host: "internal.test",
     "x-forwarded-host": "app.example",
@@ -249,7 +251,9 @@ const proxy = yield* forwardingProxy(upstream, {
 });
 ```
 
-Point story requests at `proxy.url`. The proxy listens on IPv4 and IPv6 loopback on the same allocated port, forwards the request's method, path, query, body and headers to `upstream`, and returns the host's status, headers and body. It appends the connecting caller's address to `x-forwarded-for`, preserving any existing chain. The optional `headers` map overrides incoming and generated headers, including `x-forwarded-for` when the story needs a fixed chain. The proxy returns 502 if it cannot connect to the host. Both listeners close with the story's Scope.
+Point story requests at `proxy.url`. The proxy listens on IPv4 and IPv6 loopback on the same allocated port, forwards the request's method, path, query, body and headers to `upstream`, and returns the host's status, headers and body. It appends the connecting caller's address to `x-forwarded-for`, preserving any existing chain. Set `forwardedHops` to append those addresses in order instead of the caller, so a client chain of `spoofed` with hops `visitor` and `edge` becomes `spoofed, visitor, edge`. The optional `headers` map overrides incoming and generated headers, including `x-forwarded-for` when the story needs a fixed chain.
+
+Set `localAddress` to choose the source socket address of the proxy's connection to the host. The upstream must accept that address family; for a hostname, the proxy resolves the matching family. Use `127.0.0.1` or `::1` for portable loopback stories. An unavailable local address fails acquisition with a message naming it. The proxy returns 502 if it cannot connect to the host. Both listeners close with the story's Scope.
 
 #### Reading OTLP exports
 
