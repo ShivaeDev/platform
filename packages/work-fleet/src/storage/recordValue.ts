@@ -9,6 +9,7 @@ export const recordValues = Effect.fn("FleetRow.recordValues")(function* (rows: 
 	const sql = yield* SqlClient.SqlClient;
 	const roots = rows.map(objectValue);
 	const children = new Map<string, readonly Row[]>();
+	const siblings = new Map<string, ReadonlyMap<string, readonly Row[]>>();
 	if (roots.length === 0) {
 		return [];
 	}
@@ -25,6 +26,15 @@ export const recordValues = Effect.fn("FleetRow.recordValues")(function* (rows: 
 		const found =
 			yield* sql<Row>`select ${sql.csv(columns.map((column) => sql`${sql(column)}`))} from ${sql(childTable(namespace, collection.path))} where ${sql.in("work_id", workIds)} order by ${sql.csv(positions(collection).map((column) => sql`${sql(column)}`))}`;
 		children.set(collection.path.join("."), found);
+		siblings.set(
+			collection.path.join("."),
+			Map.groupBy(found, (child) =>
+				siblingKey(
+					child.work_id,
+					collection.parents.map((_parent, depth) => child[`position${depth}`]),
+				),
+			),
+		);
 	}
 	function read(node: Shape, row: Row, path: readonly string[], prefix: readonly string[], indices: readonly number[]): unknown {
 		const name = prefix.join("__");
@@ -44,12 +54,16 @@ export const recordValues = Effect.fn("FleetRow.recordValues")(function* (rows: 
 		if (typeof node.array === "string") {
 			return row[name];
 		}
-		return (children.get(path.join(".")) ?? [])
-			.filter((child) => child.work_id === row.work_id && indices.every((position, index) => child[`position${index}`] === position))
-			.map((child) => read(node.array, child, path, [], [...indices, Number(child[`position${indices.length}`])]));
+		return (siblings.get(path.join("."))?.get(siblingKey(row.work_id, indices)) ?? []).map((child) =>
+			read(node.array, child, path, [], [...indices, Number(child[`position${indices.length}`])]),
+		);
 	}
 	return roots.map((row) => ({ ...objectValue(read(shape, row, [], [], [])), workId: row.work_id }));
 });
+
+function siblingKey(workId: unknown, indices: readonly unknown[]) {
+	return JSON.stringify([workId, ...indices]);
+}
 
 export function recordValue(row: object, shape: Shape, namespace: string) {
 	return recordValues([row], shape, namespace).pipe(Effect.map(([value]) => value));
