@@ -1,4 +1,4 @@
-import { type Cause, Duration, Effect } from "effect";
+import { type Cause, Clock, Duration, Effect } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
@@ -16,6 +16,7 @@ type Person = keyof typeof people;
 
 interface Engine {
 	readonly accounts: Map<string, GitHubAccount>;
+	readonly app: { sessionsOpen: boolean };
 	readonly cookies: Map<Person, string>;
 	readonly env: Record<string, string>;
 	readonly github: Effect.Success<ReturnType<typeof fakeGitHub>>;
@@ -39,7 +40,7 @@ export const signInPolicy = storyKit({
 	after: {
 		*policy(engine) {
 			const database = yield* PostgresTestDatabase;
-			engine.host.current = yield* policyHost(database.url, engine.env, engine.policy);
+			engine.host.current = yield* policyHost(database.url, engine.env, engine.policy, engine.app);
 		},
 	},
 	around: withIsolatedDatabase,
@@ -50,6 +51,7 @@ export const signInPolicy = storyKit({
 		yield* routeOutbound({ "api.github.com": github.url, "github.com": github.url });
 		const engine: Engine = {
 			accounts,
+			app: { sessionsOpen: true },
 			cookies: new Map(),
 			env: { "AUTH_RATE_LIMIT_ENABLED": "false" },
 			github,
@@ -77,6 +79,11 @@ export const signInPolicy = storyKit({
 					story.tell(`the operator sets AUTH_ALLOWED_ACCOUNTS to ${entries.join(",")}`);
 					engine.env.AUTH_ALLOWED_ACCOUNTS = entries.join(",");
 				}),
+			closeSessions: () =>
+				Effect.sync(() => {
+					story.tell("the application's own session hook stops admitting new sessions");
+					engine.app.sessionsOpen = false;
+				}),
 			leaveOrganization: (person: Person) =>
 				Effect.sync(() => {
 					story.tell(`${person} leaves the ${ORGANIZATION} organization on GitHub`);
@@ -94,7 +101,7 @@ export const signInPolicy = storyKit({
 				Effect.gen(function* () {
 					story.tell("the application restarts with the current configuration");
 					const database = yield* PostgresTestDatabase;
-					const restarted = yield* Effect.exit(policyHost(database.url, engine.env, engine.policy));
+					const restarted = yield* Effect.exit(policyHost(database.url, engine.env, engine.policy, engine.app));
 					if (restarted._tag === "Success") {
 						engine.host.current = restarted.value;
 					}
@@ -103,6 +110,14 @@ export const signInPolicy = storyKit({
 			revokeUnadmitted: () => {
 				story.tell("the operator revokes the sessions the current policy no longer admits");
 				return host().revokeUnadmitted;
+			},
+			seedGitHubUsers: (count: number) => {
+				story.tell(`${count} more GitHub users with one session each are already stored`);
+				return Effect.flatMap(Clock.currentTimeMillis, (now) => Effect.promise(() => host().seedGitHubUsers(count, new Date(now))));
+			},
+			sessionHolders: () => {
+				story.tell("read the users that still hold a session");
+				return Effect.promise(() => host().sessionHolders());
 			},
 			signIn: (person: Person) =>
 				Effect.promise(async () => {

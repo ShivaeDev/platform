@@ -20,10 +20,12 @@ export const policyHost = Effect.fnUntraced(function* (
 	databaseUrl: Redacted.Redacted<string>,
 	env: Record<string, string>,
 	signIn: SignInPolicy<Cause.UnknownError> | undefined,
+	app: { readonly sessionsOpen: boolean },
 ) {
 	const pool = yield* authDatabase(databaseUrl);
 	const options = {
 		database: pool,
+		databaseHooks: { session: { create: { before: async (session) => (app.sessionsOpen ? { data: session } : false) } } },
 		emailAndPassword: { enabled: true },
 		logger: { disabled: true },
 		secret: "sign-in-policy-story-secret-with-32-characters",
@@ -72,7 +74,33 @@ export const policyHost = Effect.fnUntraced(function* (
 			await Promise.all(users.map(async ({ email, id }) => [email, (await internalAdapter.listSessions(id)).length] as const)),
 		);
 	}
-	return { baseUrl, revokeUnadmitted: mounted.revokeUnadmitted, storedSessions, whoami };
+	async function seedGitHubUsers(count: number, now: Date) {
+		const { adapter } = await mounted.auth.$context;
+		for (let index = 0; index < count; index += 1) {
+			const user = await adapter.create<{ readonly id: string }>({
+				data: { createdAt: now, email: `seeded-${index}@github.test`, emailVerified: true, name: `seeded ${index}`, updatedAt: now },
+				model: "user",
+			});
+			await adapter.create({
+				data: { accountId: String(5000 + index), createdAt: now, providerId: "github", updatedAt: now, userId: user.id },
+				model: "account",
+			});
+			await adapter.create({
+				data: { createdAt: now, expiresAt: new Date(now.getTime() + 3_600_000), token: `seeded-${index}`, updatedAt: now, userId: user.id },
+				model: "session",
+			});
+		}
+	}
+	async function sessionHolders() {
+		const { adapter } = await mounted.auth.$context;
+		const held = await adapter.findMany<{ readonly userId: string }>({ limit: 1000, model: "session" });
+		const users = await adapter.findMany<{ readonly email: string }>({
+			model: "user",
+			where: [{ field: "id", operator: "in", value: held.map(({ userId }) => userId) }],
+		});
+		return users.map(({ email }) => email).sort();
+	}
+	return { baseUrl, revokeUnadmitted: mounted.revokeUnadmitted, seedGitHubUsers, sessionHolders, storedSessions, whoami };
 });
 
 export type PolicyHost = Effect.Success<ReturnType<typeof policyHost>>;

@@ -2,7 +2,7 @@ import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { Pool, type PoolClient } from "pg";
-import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
+import { type RevokeUnadmitted, revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
 import type { GetSession } from "#server/rpc-server/adapters/betterAuthSessions.ts";
@@ -84,15 +84,11 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 				}),
 			);
 	}
-	return {
-		admittedSessions,
-		auth,
-		revokeUnadmitted: Effect.provideContext(
-			revokeUnadmitted(gate, () => auth.$context),
-			context,
-		),
-		routes,
-	};
+	const revoke: RevokeUnadmitted<E> = Effect.provideContext(
+		revokeUnadmitted(gate, () => auth.$context),
+		context,
+	);
+	return { admittedSessions, auth, revokeUnadmitted: revoke, routes };
 });
 
 export const authDatabase = Effect.fn("Platform.authDatabase")(function* (url: Redacted.Redacted<string>) {

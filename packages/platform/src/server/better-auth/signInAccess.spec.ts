@@ -1,4 +1,4 @@
-import { Cause, Exit } from "effect";
+import { Cause, Effect, Exit } from "effect";
 import { expect } from "vitest";
 import { allowedList, organizationRule, signInPolicy } from "#test/sign-in-policy/story.ts";
 
@@ -9,6 +9,7 @@ signInPolicy.it(
 		expect(yield* signIn("alice")).toEqual({ signedIn: true });
 		expect(yield* whoami("alice")).toMatchObject({ _tag: "Success" });
 		expect(yield* signIn("bob")).toEqual({ error: "sign_in_refused", signedIn: false });
+		expect(yield* whoami("bob")).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
 		expect(yield* storedUsers()).toEqual(["alice@github.test"]);
 		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1 });
 	},
@@ -52,15 +53,17 @@ signInPolicy.it(
 );
 
 signInPolicy.it(
-	"an organization check outage answers AuthUnavailable and keeps the session",
+	"an organization check outage answers AuthUnavailable, keeps the session and creates no user",
 	[organizationRule("300 millis")],
-	function* ({ membershipOutage, signIn, storedSessions, waitForRecheck, whoami }) {
+	function* ({ membershipOutage, revokeUnadmitted, signIn, storedSessions, waitForRecheck, whoami }) {
 		expect(yield* signIn("alice")).toEqual({ signedIn: true });
 		yield* membershipOutage();
 		yield* waitForRecheck("300 millis");
 		expect(yield* whoami("alice")).toMatchObject({ _tag: "Failure", failure: { _tag: "AuthUnavailable" } });
-		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1 });
 		expect(yield* signIn("alice")).toEqual({ error: "sign_in_unavailable", signedIn: false });
+		expect(yield* signIn("carol")).toEqual({ error: "sign_in_unavailable", signedIn: false });
+		expect(yield* Effect.exit(revokeUnadmitted())).toMatchObject({ _tag: "Failure", cause: { reasons: [{ error: { _tag: "UnknownError" } }] } });
+		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1 });
 	},
 );
 
@@ -76,6 +79,42 @@ signInPolicy.it(
 		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1, "bob@github.test": 0, "carol@github.test": 0 });
 		expect(yield* whoami("alice")).toMatchObject({ _tag: "Success" });
 		expect(yield* revokeUnadmitted()).toEqual({ sessions: 0, users: 0 });
+	},
+);
+
+signInPolicy.it(
+	"revoking reaches every stored user beyond the first page it reads",
+	[allowedList("github:1001")],
+	function* ({ revokeUnadmitted, seedGitHubUsers, sessionHolders, signIn, whoami }) {
+		expect(yield* signIn("alice")).toEqual({ signedIn: true });
+		yield* seedGitHubUsers(120);
+		expect(yield* revokeUnadmitted()).toEqual({ sessions: 120, users: 120 });
+		expect(yield* sessionHolders()).toEqual(["alice@github.test"]);
+		expect(yield* whoami("alice")).toMatchObject({ _tag: "Success" });
+	},
+);
+
+signInPolicy.it(
+	"a list that turns malformed while running answers AuthUnavailable and stops the revocation",
+	[allowedList("github:1001")],
+	function* ({ allowOnly, revokeUnadmitted, signIn, storedSessions, whoami }) {
+		expect(yield* signIn("alice")).toEqual({ signedIn: true });
+		yield* allowOnly("github");
+		expect(yield* whoami("alice")).toMatchObject({ _tag: "Failure", failure: { _tag: "AuthUnavailable" } });
+		expect(yield* Effect.exit(revokeUnadmitted())).toMatchObject({ _tag: "Failure", cause: { reasons: [{ error: { _tag: "ConfigError" } }] } });
+		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1 });
+	},
+);
+
+signInPolicy.it(
+	"the application's own session hook still refuses a listed user under a policy",
+	[allowedList("github:1001")],
+	function* ({ closeSessions, signIn, storedSessions, whoami }) {
+		expect(yield* signIn("alice")).toEqual({ signedIn: true });
+		yield* closeSessions();
+		expect(yield* signIn("alice")).toMatchObject({ signedIn: false });
+		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1 });
+		expect(yield* whoami("alice")).toMatchObject({ _tag: "Success" });
 	},
 );
 

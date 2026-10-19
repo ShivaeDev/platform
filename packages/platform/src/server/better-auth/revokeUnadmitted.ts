@@ -1,4 +1,5 @@
-import { Effect } from "effect";
+import { type Config, Effect } from "effect";
+import type { AuthUnavailable } from "#errors/taxonomy.ts";
 import { fromStorage, type PolicyStorage, type SignInGate } from "#server/better-auth/signInGate.ts";
 
 export interface RevokedSessions {
@@ -6,9 +7,14 @@ export interface RevokedSessions {
 	readonly users: number;
 }
 
+export type RevokeUnadmitted<E> = Effect.Effect<RevokedSessions, E | Config.ConfigError | AuthUnavailable>;
+
 const PAGE_SIZE = 100;
 
-export const revokeUnadmitted = Effect.fnUntraced(function* <E>(gate: SignInGate<E>, storage: () => Promise<PolicyStorage>) {
+export const revokeUnadmitted = Effect.fnUntraced(function* <E>(
+	gate: SignInGate<E>,
+	storage: () => Promise<PolicyStorage>,
+): Effect.fn.Return<RevokedSessions, E | Config.ConfigError | AuthUnavailable> {
 	if (!gate.active) {
 		return { sessions: 0, users: 0 } satisfies RevokedSessions;
 	}
