@@ -20,6 +20,17 @@ export function validateReview(record: FleetRecord, review: Review, head: string
 		? Effect.void
 		: Effect.fail(new BadRequest({ message: "Independent review must bind evidence to the actual head" }));
 }
+export function reviewSatisfied(record: FleetRecord, head: string): boolean {
+	return record.reviewSkippedHead === head || (record.review?.verdict === "approved" && record.review.head === head);
+}
+export function validateReviewRequirement(record: FleetRecord, head: string) {
+	if (record.reviewSkippedHead === head) {
+		return Effect.void;
+	}
+	return record.review?.verdict === "approved"
+		? validateReview(record, record.review, head)
+		: Effect.fail(new BadRequest({ message: "Independent review has not approved the actual head" }));
+}
 export function validateChecks(checks: Checks, head: string) {
 	return checks.head === head && checks.passed && !checks.pending && checks.evidence.length > 0
 		? Effect.void

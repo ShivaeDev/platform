@@ -109,6 +109,7 @@ export interface FleetConfiguration {
 	readonly readGuidance?: (role: "worker" | "reviewer") => Effect.Effect<string | undefined, FleetError>;
 	readonly readRetryMs?: number;
 	readonly refreshQuota?: () => Effect.Effect<FleetConfiguration["quota"], FleetError>;
+	readonly review?: boolean;
 	readonly reviewerGuidance?: string;
 	readonly sharedEnvironment?: string;
 	readonly stallMinutes?: number;

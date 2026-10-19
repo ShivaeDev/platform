@@ -44,6 +44,7 @@ export const HostConfig = Schema.Struct({
 	readRetryMs: Schema.optional(Positive),
 	repository: Schema.optional(Schema.Struct({ branch: Text, remote: Text })),
 	result: Schema.optional(Schema.Literal("github")),
+	review: Schema.optional(Schema.Boolean),
 	stallMinutes: Schema.optional(Positive),
 	worker: Schema.optional(
 		Schema.Struct({
@@ -84,6 +85,7 @@ export interface FleetHost {
 	readonly readRetryMs: number;
 	readonly repository: NonNullable<HostConfig["repository"]>;
 	readonly result?: HostConfig["result"];
+	readonly review?: boolean;
 	readonly stallMinutes: number;
 	readonly worker: HostConfig["worker"];
 }
@@ -103,13 +105,18 @@ export function resolveHost(boardDir: string, config: HostConfig, configFile?: s
 		local: config.local,
 		maxConnections: config.database?.maxConnections ?? 20,
 		namespace: config.namespace ?? DEFAULT_NAMESPACE,
-		...(config.openPullRequests === undefined ? {} : { openPullRequests: { ...config.openPullRequests, floor: config.openPullRequests.floor ?? 0 } }),
+		...pullRequestSettings(config.openPullRequests),
 		provider: config.provider,
 		quota: config.quota ?? "codex",
 		readRetryMs: config.readRetryMs ?? DEFAULT_READ_RETRY_MS,
 		repository: config.repository ?? { branch: "main", remote: "origin" },
 		result: config.result,
+		review: config.review ?? true,
 		stallMinutes: config.stallMinutes ?? 30,
 		worker: config.worker,
 	};
+}
+
+function pullRequestSettings(curve: HostConfig["openPullRequests"]) {
+	return curve === undefined ? {} : { openPullRequests: { ...curve, floor: curve.floor ?? 0 } };
 }

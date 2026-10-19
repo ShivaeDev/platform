@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import type { AttentionOwner } from "#attention.ts";
+import { reviewSatisfied } from "#completion.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
@@ -33,8 +34,7 @@ export const observeDeliveryFailure = Effect.fn("Fleet.observeDeliveryFailure")(
 		failureCode(error) === "pr-head-moved"
 		&& failureContext(error).head !== undefined
 		&& !executing(record)
-		&& (["delivering", "reviewing", "validating"].includes(record.stage)
-			|| (record.review?.verdict === "approved" && record.review.head === result.head))
+		&& (["delivering", "reviewing", "validating"].includes(record.stage) || reviewSatisfied(record, result.head))
 	) {
 		const work = yield* state.board.get(record.workId);
 		current = yield* invalidateMergeReadiness(state, stored);

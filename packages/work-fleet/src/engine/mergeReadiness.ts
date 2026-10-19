@@ -28,12 +28,8 @@ export const awaitHumanMerge = Effect.fn("Fleet.awaitHumanMerge")(function* (sta
 	) {
 		return ready;
 	}
-	return yield* decision(
-		ready,
-		"reviewed-pr-ready",
-		(record.sweep?.length ?? 0) > 0 ? "Reviewed sweep PR is ready to merge" : "Reviewed PR is ready to merge",
-		"Merge the reviewed, green PR, or choose retry with an overall response to request changes on the same branch and PR",
-	);
+	const { reason, recommendation } = mergeReadinessText(record, head);
+	return yield* decision(ready, "reviewed-pr-ready", reason, recommendation);
 });
 
 export function expireMergeAreas({ save, current }: EngineState, stored: Versioned<FleetRecord>) {
@@ -42,4 +38,12 @@ export function expireMergeAreas({ save, current }: EngineState, stored: Version
 			? save(stored, { ...stored.value, mergeAreasReleased: true })
 			: Effect.succeed(stored),
 	);
+}
+
+function mergeReadinessText(record: FleetRecord, head: string) {
+	const reviewed = record.reviewSkippedHead !== head;
+	return {
+		reason: `${reviewed ? "Reviewed" : "Validated"}${(record.sweep?.length ?? 0) > 0 ? " sweep" : ""} PR is ready to merge`,
+		recommendation: `Merge the ${reviewed ? "reviewed, " : ""}green PR, or choose retry with an overall response to request changes on the same branch and PR`,
+	};
 }

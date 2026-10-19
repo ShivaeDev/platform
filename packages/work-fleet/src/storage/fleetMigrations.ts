@@ -81,5 +81,10 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 		"21_foreign_areas": sql`alter table ${sql(`${namespace}_foreign_reservations`)} add column areas text[] not null default '{}'`,
 		"22_sweeps": sweeps(namespace),
 		"23_predicted_conflicts": predictedConflicts(namespace),
+		"24_optional_review": Effect.gen(function* () {
+			for (const table of [`${namespace}_records`, childTable(namespace, ["history"])]) {
+				yield* sql`alter table ${sql(table)} add column "reviewSkippedHead" text`;
+			}
+		}),
 	});
 });

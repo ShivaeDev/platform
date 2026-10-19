@@ -1,0 +1,9 @@
+{"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
+{"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/style/useNamingConvention","count":2}
+{"path":"packages/effect-changes/src/commit.spec.ts","rule":"tests/named-values","count":1}
+{"path":"packages/effect-changes/src/frame.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
+{"path":"packages/effect-changes/src/observe.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
+{"path":"packages/effect-changes/src/publish.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
+{"path":"packages/effect-changes/src/seams.spec.ts","rule":"tests/named-values","count":1}
+{"path":"packages/effect-changes/src/test-support/engine.ts","rule":"tests/support-imports","count":4}
+{"path":"packages/effect-changes/src/test-support/frameVerbs.ts","rule":"tests/support-imports","count":1}

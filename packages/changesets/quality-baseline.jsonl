@@ -1,0 +1,13 @@
+{"path":"packages/changesets/src/apply.spec.ts","rule":"tests/named-values","count":6}
+{"path":"packages/changesets/src/applyFailures.spec.ts","rule":"tests/named-values","count":3}
+{"path":"packages/changesets/src/changelogGuards.spec.ts","rule":"tests/named-values","count":2}
+{"path":"packages/changesets/src/configValidation.spec.ts","rule":"tests/named-values","count":3}
+{"path":"packages/changesets/src/firstRelease.spec.ts","rule":"tests/named-values","count":2}
+{"path":"packages/changesets/src/history.spec.ts","rule":"tests/named-values","count":9}
+{"path":"packages/changesets/src/manifestFailures.spec.ts","rule":"tests/named-values","count":3}
+{"path":"packages/changesets/src/pending.spec.ts","rule":"tests/named-values","count":4}
+{"path":"packages/changesets/src/planning.spec.ts","rule":"tests/named-values","count":3}
+{"path":"packages/changesets/src/planning.spec.ts","rule":"tests/spec-helpers","count":1}
+{"path":"packages/changesets/src/releaseCheck.spec.ts","rule":"tests/named-values","count":7}
+{"path":"packages/changesets/src/test-support/manifestFaults.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/changesets/src/test-support/workspace.ts","rule":"tests/no-expect-in-support","count":1}

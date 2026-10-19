@@ -4,6 +4,20 @@ import { finishedDecisionFiles, finishedDecisionWork } from "#test/finishedDecis
 import { task } from "#test/fleetHost.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 
+host.it("the CLI closes an unanswered decision for dropped work", [boardWork({ "one.md": task("one") })], function* (fleet) {
+	const decision = yield* fleet.publishBoardDecision("one", {
+		id: "one.1",
+		links: [],
+		reason: "Choose how to continue",
+		recommendation: "Review the work",
+	});
+	fleet.writeBoard("one.md", task("one").replace("kind: task", "kind: task\nstatus: dropped"));
+	const closed = yield* fleet.cli(["close-finished-decisions"]);
+	expect(closed).toMatchObject({ code: 0 });
+	expect(fleet.readBoard(decision.sourcePath)).toContain("Closed because Board work one is dropped.");
+	expect(board.metadataParse(fleet.readBoard(decision.sourcePath)).fields.attention).toMatchObject([{ state: "closed" }]);
+});
+
 host.it(
 	"the CLI previews and closes only unanswered finished decisions, and a second sweep closes none",
 	[boardWork({ ...finishedDecisionFiles, "answered.md": task("answered") })],
@@ -28,13 +42,13 @@ host.it(
 		const original = publications.map(({ sourcePath }) => fleet.readBoard(sourcePath));
 		const preview = yield* fleet.cli(["close-finished-decisions", "--dry-run"]);
 		expect(preview, preview.stderr).toMatchObject({ code: 0 });
-		expect(preview.stdout).toContain("300 decision(s) would close.");
+		expect(preview.stdout).toContain("6 decision(s) would close.");
 		for (const [index, publication] of publications.entries()) {
 			expect(fleet.readBoard(publication.sourcePath)).toBe(original[index]);
 		}
 		const closed = yield* fleet.cli(["close-finished-decisions"]);
 		expect(closed, closed.stderr).toMatchObject({ code: 0 });
-		expect(closed.stdout).toContain("300 decision(s) closed.");
+		expect(closed.stdout).toContain("6 decision(s) closed.");
 		for (const [index, publication] of publications.entries()) {
 			const item = finishedDecisionWork[index];
 			const finished = item !== undefined && ["done", "deferred", "superseded"].includes(item.status);

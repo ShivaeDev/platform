@@ -101,9 +101,12 @@ describe("quality baseline migrate", { timeout: CLI_TIMEOUT }, () => {
 	it("moves a baseline in the earlier format to JSON Lines, after which lint passes", async () => {
 		const legacy = { "src/long.ts": { count: 1, measure: 4 }, "src/longer.ts": { count: 1, measure: 7 }, "src/short.ts": { count: 1, measure: 5 } };
 		const root = qualityTree(trees.dirty, [{ content: JSON.stringify({ "structure/max-lines": legacy }), path: "quality/baseline.json" }]);
-		expect(await runQuality(root, "lint")).toMatchObject({ status: 2, stderr: expect.stringContaining("Run `quality baseline migrate`") });
+		expect(await runQuality(root, "lint")).toMatchObject({
+			status: 2,
+			stderr: expect.stringContaining("Run `quality baseline migrate --from quality/baseline.json`"),
+		});
 		expect((await runQuality(root, "baseline", "migrate")).stdout).toBe(
-			"quality: moved 2 entries from quality/baseline.json to quality/baseline.jsonl, dropping 1 fixed entry.\n",
+			"quality: moved 2 entries from quality/baseline.json to quality-baseline.jsonl, dropping 1 fixed entry.\n",
 		);
 		expect(baseline(root)).toBe(
 			['{"path":"src/long.ts","rule":"structure/max-lines","count":1}', '{"path":"src/longer.ts","rule":"structure/max-lines","count":4}', ""].join(

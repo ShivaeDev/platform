@@ -11,7 +11,7 @@ export const releaseClosedPreparation = Effect.fn("Fleet.releaseClosedPreparatio
 	stored: Versioned<FleetRecord>,
 	work: BoardWork,
 ) {
-	if (!(["prepared", "needs-human"].includes(stored.value.stage) && ["done", "superseded", "deferred"].includes(work.status ?? ""))) {
+	if (!(["prepared", "needs-human"].includes(stored.value.stage) && ["done", "superseded", "deferred", "dropped"].includes(work.status ?? ""))) {
 		return undefined;
 	}
 	const settled = executing(stored.value)

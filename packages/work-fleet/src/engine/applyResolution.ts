@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { reviewSatisfied } from "#completion.ts";
 import { approveBrief } from "#engine/approveBrief.ts";
 import { authorizeBriefContext, isChangedBriefDecision } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
@@ -129,6 +130,7 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 function deliveryRetry(record: FleetRecord) {
 	return (
 		record.result?.kind === "change"
-		&& (record.decision?.code === "pr-head-moved" || (!executing(record) && record.review?.verdict === "approved" && record.checks?.passed === true))
+		&& (record.decision?.code === "pr-head-moved"
+			|| (!executing(record) && reviewSatisfied(record, record.result.head) && record.checks?.passed === true))
 	);
 }

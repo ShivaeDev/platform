@@ -56,7 +56,7 @@ describe("quality lint with the suppression rules", { timeout: CLI_TIMEOUT }, ()
 		writeFileSync(join(root, "quality/registry.json"), "[]\n");
 		expect(quality(formatTree(root), "baseline", "write")).toMatchObject({
 			status: 0,
-			stdout: "quality: recorded 3 entries in quality/baseline.jsonl.\n",
+			stdout: "quality: recorded 3 entries in quality-baseline.jsonl.\n",
 		});
 		expect(quality(root, "lint")).toMatchObject({ status: 0, stdout: expect.stringContaining("4 baselined violations not shown") });
 

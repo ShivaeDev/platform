@@ -5,7 +5,7 @@ import { engine } from "#test/engineStory.ts";
 import { workerTurnDisappears } from "#test/engineTurnTraits.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
 
-for (const status of ["done", "superseded", "deferred"]) {
+for (const status of ["done", "superseded", "deferred", "dropped"]) {
 	for (const lostAcknowledgement of [false, true]) {
 		engine.it(
 			`a legacy lost turn with ${lostAcknowledgement ? "a missing" : "a recorded"} receipt releases when its Board status is ${status}`,

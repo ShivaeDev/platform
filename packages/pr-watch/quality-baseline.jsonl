@@ -1,0 +1,14 @@
+{"path":"packages/pr-watch/src/checks.spec.ts","rule":"tests/named-values","count":1}
+{"path":"packages/pr-watch/src/io.spec.ts","rule":"tests/named-values","count":1}
+{"path":"packages/pr-watch/src/poll.spec.ts","rule":"tests/named-values","count":5}
+{"path":"packages/pr-watch/src/prune.spec.ts","rule":"tests/named-values","count":3}
+{"path":"packages/pr-watch/src/queue.spec.ts","rule":"tests/named-values","count":4}
+{"path":"packages/pr-watch/src/quota.test.ts","rule":"tests/story-specs","count":1}
+{"path":"packages/pr-watch/src/quota.ts","rule":"boundaries/http-status","count":2}
+{"path":"packages/pr-watch/src/startup.spec.ts","rule":"tests/named-values","count":2}
+{"path":"packages/pr-watch/src/test-support/engine.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/pr-watch/src/test-support/processVerbs.ts","rule":"tests/no-expect-in-support","count":2}
+{"path":"packages/pr-watch/src/test-support/processVerbs.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/pr-watch/src/test-support/server.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/pr-watch/src/test-support/services.ts","rule":"tests/support-imports","count":4}
+{"path":"packages/pr-watch/src/test-support/watcherVerbs.ts","rule":"tests/support-imports","count":1}
