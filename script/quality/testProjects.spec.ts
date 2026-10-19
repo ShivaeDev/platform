@@ -1,7 +1,14 @@
 import { expect } from "vitest";
-import { collectingCoverage, customCoverage, nodeOnly, projectKit } from "#quality/test-support/projectKit.ts";
+import { collectingCoverage, customCoverage, nodeOnly, projectKit, withWorktrees } from "#quality/test-support/projectKit.ts";
 
 const { it } = projectKit;
+const SUCCESS = 0;
+
+it("excludes worktree spec copies from every project", [withWorktrees], function* ({ run, testResults }) {
+	const result = yield* run("--project", "*");
+	expect(result.status, result.output).toBe(SUCCESS);
+	expect(testResults()).toEqual(["src/b.spec.ts passed"]);
+});
 
 it(
 	"runs Node tests and DOM specs with a separate Node host, without selecting slow or type tests",

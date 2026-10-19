@@ -99,3 +99,13 @@ export const nodeOnly = projectKit.trait("configured", "only Node specs are inst
 		rmSync(join(root, path));
 	}
 });
+
+export const withWorktrees = projectKit.trait("configured", "a spec sits beside copies in worktree folders", (root) => {
+	rmSync(join(root, "src"), { recursive: true });
+	rmSync(join(root, "e2e"), { recursive: true });
+	for (const path of ["src/b.spec.ts", ".worktrees/copy/src/a.spec.ts", ".worktrees/copy/src/a.dom.spec.ts", ".worktrees/copy/src/a.slow.spec.ts"]) {
+		const target = join(root, path);
+		mkdirSync(dirname(target), { recursive: true });
+		writeFileSync(target, 'import { it } from "vitest";\nit("runs", () => {});\n');
+	}
+});

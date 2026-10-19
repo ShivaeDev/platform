@@ -1,5 +1,10 @@
 [
 	{
+		"includes": ["**", "!**/.worktrees"],
+		"reason": "Worktrees are independent checkouts checked from their own roots; walking them from the parent repeats findings and fixes.",
+		"rule": "files/includes"
+	},
+	{
 		"includes": ["**"],
 		"reason": "TypeScript reports unused variables through noUnusedLocals in the shared tsconfig, so Biome would report each one twice.",
 		"rule": "lint/correctness/noUnusedVariables"

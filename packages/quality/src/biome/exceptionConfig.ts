@@ -58,7 +58,7 @@ export async function withExceptionConfig<TValue>(
 	const previousOverrides = Array.isArray(own.overrides) ? own.overrides : [];
 	const generated = {
 		...own,
-		files: { ...files, includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), `!${name}`] },
+		files: { ...files, includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), "!**/.worktrees", `!${name}`] },
 		overrides: [...previousOverrides, ...overrides],
 	};
 	try {

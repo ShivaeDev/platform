@@ -43,6 +43,7 @@ describe("Biome exception config", () => {
 					...(previous ?? ["**"]),
 					"!**/generated",
 					"!**/fixtures",
+					"!**/.worktrees",
 					`!${path.slice(root.length + 1)}`,
 				]);
 				return Promise.resolve();

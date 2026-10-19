@@ -12,7 +12,7 @@ function named(environment?: Environment): string {
 }
 
 function excluding(...patterns: readonly string[]): string[] {
-	return [...defaultExclude, named("typecheck"), TYPECHECK_ALONE, ...patterns];
+	return [...defaultExclude, "**/.worktrees/**", named("typecheck"), TYPECHECK_ALONE, ...patterns];
 }
 
 export interface TestProjectsOptions {

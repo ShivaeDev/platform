@@ -74,7 +74,7 @@ import { defineConfig } from "@shivaedev/quality/config.ts";
 export default defineConfig({ sources: ["src"] });
 ```
 
-When a config exists, its folder is the root for paths and hook scripts. Without one, the current directory is the root. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git and the `.git` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
+When a config exists, its folder is the root for paths and hook scripts. Without one, the current directory is the root. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git and the `.git`, `.worktrees` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
 
 Quality discovers each app’s `components.json` and resolves `aliases.ui` through its TypeScript paths or package imports. That folder belongs to the shadcn CLI: source rules and Biome lint, formatting and fixes skip it by default. Neighbouring authored folders stay checked. This leaves TypeScript’s inputs unchanged, so type checking still covers the stock components.
 
@@ -292,7 +292,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({ test: testProjects() });
 ```
 
-`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in test-story's DOM environment by default. The DOM environment keeps Node's host constructors separate from the happy-dom window, so DOM specs need no project remap. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input.
+`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in test-story's DOM environment by default. The DOM environment keeps Node's host constructors separate from the happy-dom window, so DOM specs need no project remap. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. Every project excludes `**/.worktrees/**` so a checkout does not collect specs from its worktrees.
 
 Coverage is opt-in: `testProjects({ coverage: true })` enables Vitest's V8 provider across the selected projects. Install `@vitest/coverage-v8` at the same version as Vitest. The report includes unvisited `src/**/*.ts` and `src/**/*.tsx` files and excludes declarations, tests, specs and `test-support`. To customize it, pass native Vitest coverage options, for example `testProjects({ coverage: { reporter: ["lcov", "text-summary"] } })`. No separate coverage config is needed.
 
