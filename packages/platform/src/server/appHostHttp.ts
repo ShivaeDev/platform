@@ -68,7 +68,7 @@ export function appHostHttp<
 					);
 				}),
 			).pipe(
-				Layer.provide(Layer.mergeAll(options.handlers, middleware, hostChanges(options.group, changesService))),
+				Layer.provide(Layer.merge(middleware, hostChanges(options.group, changesService).pipe(Layer.provideMerge(options.handlers)))),
 				Layer.provide(RpcSerialization.layerNdjson),
 			);
 			const assets =

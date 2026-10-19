@@ -43,7 +43,7 @@ screenStory.it(
 	[routedScreen({}, "/", { home: undefined })],
 	function* ({ readText }) {
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Today")));
-		expect(readText(".today-strip")).toBe("0 need you·0 in progress in task files·0 active goals");
+		expect(readText(".today-strip")).toBe("0 need you·0 marked in progress·0 active goals");
 		expect(readText(".today-page a[href='/_board/start']")).toBe("Getting started");
 	},
 );

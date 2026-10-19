@@ -103,7 +103,7 @@ test("RPC reassignment publishes maintainer ownership, supersedes the old questi
 				yield* fleet.dispatch("one");
 				const old = yield* askWorker(fixture);
 				const oldAnswer = yield* answerWorker(root, old.decision, "response.old");
-				const client = yield* RpcTest.makeClient(FleetContract, { flatten: true }).pipe(Effect.provide(fleetHandlers));
+				const client = yield* RpcTest.makeClient(FleetContract.omit("fleet.$changes"), { flatten: true }).pipe(Effect.provide(fleetHandlers));
 				const reassigned = yield* client("fleet.reassign", { attentionOwner: "maintainer", decisionId: old.decision.id, workId: "one" });
 				expect(reassigned.attentionOwner).toBe("maintainer");
 				expect(reassigned.decision?.id).not.toBe(old.decision.id);

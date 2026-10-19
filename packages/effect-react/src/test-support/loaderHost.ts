@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
@@ -18,6 +18,7 @@ export const loaderHost = Effect.fnUntraced(function* () {
 	const calls: string[] = [];
 	let response = Promise.withResolvers<{ readonly title: string }>();
 	const handlers = Notes.toLayer({
+		"loaderNotes.$changes": () => Stream.never,
 		"loaderNotes.get": () =>
 			Effect.suspend(() => {
 				calls.push("get");
