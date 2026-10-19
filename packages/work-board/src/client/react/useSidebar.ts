@@ -44,7 +44,7 @@ export function useSidebar(appearance: AppearanceControls) {
 			return;
 		}
 		function key(event: KeyboardEvent) {
-			if (document.querySelector("dialog[open], [data-slot=dialog-content]")) {
+			if (document.querySelector("[data-slot=dialog-content]")) {
 				return;
 			}
 			if (event.key === "Escape") {

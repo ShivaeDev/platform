@@ -11,3 +11,4 @@
 - The header's sidebar button is an icon button named Sidebar, and its Today link appears only while the desktop sidebar is hidden.
 - The document action to keep a document in Pinned is named Pin and Unpin.
 - The phone More sheet lists pinned and recent documents and opens reading history.
+- Inspecting an image or diagram opens the shared stock dialog, which Escape and Close dismiss back to the source.
