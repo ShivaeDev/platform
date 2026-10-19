@@ -20,6 +20,7 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 				Layer.provide([
 					Layer.succeed(MainSource)({
 						current: snapshot,
+						latest: snapshot,
 						observe: () => Effect.succeed(mainObservation()),
 						refresh: snapshot,
 						repositoryRoot: "/synthetic",

@@ -35,6 +35,10 @@ export function approvedWork(ids: readonly string[], body?: string) {
 	return boardWork(Object.fromEntries(ids.map((id) => [`${id}.md`, task(id, "approved", body)])));
 }
 
+export const localOnlyBoard = host.trait("configuration", "the Board lives in a Git-ignored folder that Cloud workers cannot read", (engine) => {
+	engine.localBoard = true;
+});
+
 // Recovery and status stories start from durable records that predate this daemon.
 export function storedWork(workId: string, stage: Parameters<typeof statusRecord>[1], fields: Readonly<Record<string, unknown>> = {}) {
 	return host.trait("configuration", `${workId} is stored in ${stage}`, (engine) => {
