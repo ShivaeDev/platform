@@ -1,18 +1,20 @@
 import type { ServerResponse } from "node:http";
 import { Effect } from "effect";
-import type { FakeHttpFault, FakeHttpReply } from "#fakeHttpService.ts";
+import type { FakeHttpFault, FakeHttpReply, FakeHttpRequest, FakeHttpScope, FakeHttpScriptOptions } from "#fakeHttpService.ts";
 import { fakeHttpGates } from "#internal/fakeHttpGates.ts";
+import { fakeHttpScripts } from "#internal/fakeHttpScripts.ts";
+import { fakeHttpSelection } from "#internal/fakeHttpSelection.ts";
 import { fakeHttpConnection, fakeHttpSend } from "#internal/fakeHttpSend.ts";
 
 export function fakeHttpControls(tell: (line: string) => void) {
-	const replies = new Map<string, FakeHttpReply[]>();
+	const scripts = fakeHttpScripts(tell);
 	const holds = fakeHttpGates(tell, "hold");
 	const stalls = fakeHttpGates(tell, "stall");
 	const arrivals = new Map<string, Set<() => void>>();
-	const active = new Map<ServerResponse, string>();
+	const active = new Map<ServerResponse, { route: string; request: FakeHttpRequest }>();
 	return {
-		arrive: (route: string, response: ServerResponse) => {
-			active.set(response, route);
+		arrive: (route: string, request: FakeHttpRequest, response: ServerResponse) => {
+			active.set(response, { request, route });
 			response.once("close", () => active.delete(response));
 			for (const release of arrivals.get(route) ?? []) {
 				release();
@@ -26,20 +28,23 @@ export function fakeHttpControls(tell: (line: string) => void) {
 			holds.close();
 			stalls.close();
 			arrivals.clear();
-			replies.clear();
+			scripts.clear();
 		},
-		fault: (route: string, fault: FakeHttpFault) =>
+		fault: (route: string, fault: FakeHttpFault, scope?: FakeHttpScope) =>
 			Effect.promise(async () => {
+				const selection = fakeHttpSelection(route, scope);
 				const response = [...active].find(
-					([candidate, name]) =>
-						name === route && !(candidate.destroyed || candidate.writableEnded) && candidate.headersSent === (fault.kind === "reset"),
+					([candidate, entry]) =>
+						selection.matches(entry.route, entry.request)
+						&& !(candidate.destroyed || candidate.writableEnded)
+						&& candidate.headersSent === (fault.kind === "reset"),
 				)?.[0];
 				if (!response) {
 					throw new Error(
 						`Fake HTTP route "${route}" has no request ready for a ${fault.kind} fault.\nhelp: Wait for a hold before a status or drop fault, or for response headers before a reset fault.`,
 					);
 				}
-				tell(`fake HTTP ${route} fault ${fault.kind}`);
+				tell(`fake HTTP ${selection.label} fault ${fault.kind}`);
 				if (fault.kind === "status") {
 					await fakeHttpSend(response, fault.reply);
 				} else {
@@ -51,12 +56,10 @@ export function fakeHttpControls(tell: (line: string) => void) {
 			await fakeHttpConnection(response).pause(holds.get(route)?.enter());
 			return !(response.destroyed || response.writableEnded || response.headersSent);
 		},
-		queue: (route: string, reply: FakeHttpReply) =>
+		queue: (route: string, reply: FakeHttpReply, scope?: FakeHttpScope) =>
 			Effect.sync(() => {
-				const queue = replies.get(route) ?? [];
-				queue.push(reply);
-				replies.set(route, queue);
-				tell(`fake HTTP ${route} will answer once with ${reply.status ?? 200}`);
+				scripts.make(route, { kind: "status", reply }, scope, false);
+				tell(`fake HTTP ${fakeHttpSelection(route, scope).label} will answer once with ${reply.status ?? 200}`);
 			}),
 		releaseOnArrival: (route: string, arrival: string) =>
 			Effect.sync(() => {
@@ -69,11 +72,12 @@ export function fakeHttpControls(tell: (line: string) => void) {
 				arrivals.set(arrival, releases);
 				tell(`fake HTTP ${route} will release when ${arrival} arrives`);
 			}),
-		stall: (route: string) => Effect.sync(() => stalls.make(route)),
-		stallBody: (route: string) => {
-			const stall = stalls.get(route);
+		scriptFault: (route: string, fault: FakeHttpFault, options?: FakeHttpScriptOptions) => Effect.sync(() => scripts.make(route, fault, options)),
+		stall: (route: string, scope?: FakeHttpScope) => Effect.sync(() => stalls.make(route, scope)),
+		stallBody: (route: string, request: FakeHttpRequest) => {
+			const stall = stalls.get(route, request);
 			return stall ? () => stall.enter() : undefined;
 		},
-		takeReply: (route: string) => replies.get(route)?.shift(),
+		takeFault: scripts.take,
 	};
 }

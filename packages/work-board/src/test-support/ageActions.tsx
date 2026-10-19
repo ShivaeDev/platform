@@ -17,6 +17,10 @@ export function ageActions(engine: ScreenEngine, tell: (line: string) => void) {
 				vi.useRealTimers();
 			}
 		},
+		readTimerCount: () => {
+			tell("the reader checks the timers still owned by the view");
+			return vi.getTimerCount();
+		},
 		refreshAge: async (millisecondsAgo: number) => {
 			tell(`the timestamp refreshes to ${millisecondsAgo} milliseconds earlier`);
 			if (!engine.view || engine.ageModified === undefined) {

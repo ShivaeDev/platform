@@ -1,4 +1,4 @@
-import { get } from "node:http";
+import { request as httpRequest, type RequestOptions } from "node:http";
 import { Effect } from "effect";
 
 function connectionError(error: Error) {
@@ -7,7 +7,7 @@ function connectionError(error: Error) {
 
 type ConnectionError = ReturnType<typeof connectionError>;
 
-export function httpProbe(url: string) {
+export function httpProbe(url: string, options: RequestOptions = {}, body?: string) {
 	const headers = Promise.withResolvers<
 		{ readonly kind: "headers"; readonly status: number | undefined; readonly headers: Record<string, unknown> } | ConnectionError
 	>();
@@ -20,7 +20,7 @@ export function httpProbe(url: string) {
 		ended = true;
 		pendingChunk?.(undefined);
 	}
-	const request = get(url, (response) => {
+	const request = httpRequest(url, options, (response) => {
 		headers.resolve({ headers: response.headers, kind: "headers", status: response.statusCode });
 		response.on("data", (chunk: Buffer) => {
 			chunks.push(chunk);
@@ -45,6 +45,7 @@ export function httpProbe(url: string) {
 		finished.resolve(connectionError(error));
 		finish();
 	});
+	request.end(body);
 	return {
 		abort: Effect.sync(() => request.destroy()),
 		finished: Effect.promise(() => finished.promise),

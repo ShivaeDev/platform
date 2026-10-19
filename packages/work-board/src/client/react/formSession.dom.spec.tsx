@@ -24,6 +24,9 @@ for (const kind of ["response", "handoff"] as const) {
 			yield* Effect.promise(() =>
 				eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Saved:" : "Saved handoffs/")),
 			);
+			if (kind === "response") {
+				expect(readText("#response-status")).toContain("not acceptance");
+			}
 			const records = readSessionFiles(kind === "response" ? "responses" : "handoffs");
 			expect(records.filter((source) => source.includes("Direction before replacement"))).toHaveLength(1);
 		},

@@ -3,11 +3,11 @@ import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
 import { Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { waitForResponse } from "#server/responses/waitFor.ts";
-import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
+import { aQuestionnaire, boardStory, deferredServing } from "#test/boardStory.ts";
 import { recordedEdgeResponse } from "#test/responseEdges.ts";
 import { waitReplies } from "#test/waitReplies.ts";
 
-boardStory.it("preserves a nonretryable external RPC rejection without polling it again", [], function* () {
+boardStory.it("preserves a nonretryable external RPC rejection without polling it again", [deferredServing], function* () {
 	const failure = new Conflict({ message: "The registered question identity is ambiguous; response history is unknown." });
 	const rpc = waitReplies([Effect.fail(failure)]);
 	expect(yield* Effect.flip(waitForResponse(rpc.read, () => undefined))).toMatchObject({ _tag: failure._tag, message: failure.message });
