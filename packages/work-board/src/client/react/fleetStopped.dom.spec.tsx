@@ -3,7 +3,7 @@ import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { health } from "#test/diagnostics.ts";
 import { fleetWorkspace } from "#test/fleetWorkspaceFixture.ts";
-import { fleetHealth, stoppedFleet } from "#test/screenEnvironment.ts";
+import { deniedClipboard, fleetHealth, stoppedFleet } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
@@ -12,7 +12,8 @@ import { todayIds } from "./todayIds.ts";
 expectNoReactWarnings();
 
 const STOPPED = "Fleet isn't running, so agent work and its health are unknown.";
-const command = /^work-fleet serve \S+ --port \d+$/u;
+const command = /^npx @shivaedev\/work-fleet serve \S+ --port \d+$/u;
+const COMMAND = "textarea[aria-label='Command to start Fleet']";
 
 screenStory.it(
 	"says once on Today that Fleet isn't running and keeps its start command behind one disclosure",
@@ -23,13 +24,11 @@ screenStory.it(
 		}
 		yield* Effect.promise(() => eventually(() => expect(stopped().map((status) => status.textContent)).toEqual([STOPPED])));
 		expect(readText()).not.toContain("127.0.0.1");
-		expect(readText()).not.toContain("work-fleet serve");
+		expect(findElements(COMMAND, document)).toEqual([]);
 		expect(findByRole("dialog", "Start Fleet", document)).toBeNull();
 		click(findByRole("button", "How to start Fleet"));
 		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Start Fleet", document)).not.toBeNull()));
-		const shown = findByRole("dialog", "Start Fleet", document)?.querySelector("code")?.textContent ?? "";
-		expect(shown).toMatch(command);
-		expect(document.body.textContent?.match(/work-fleet serve \S+ --port \d+/gu)).toEqual([shown]);
+		expect(findElements<HTMLTextAreaElement>(COMMAND, document).map((field) => field.value)).toEqual([expect.stringMatching(command)]);
 	},
 );
 
@@ -66,14 +65,12 @@ screenStory.it(
 		expect(readText('[data-slot="alert"]')).toBe(`Lanes show the status written in each file. ${STOPPED}How to start Fleet`);
 		click(findByRole("button", "How to start Fleet"));
 		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Start Fleet", document)).not.toBeNull()));
-		const shown = findByRole("dialog", "Start Fleet", document)?.querySelector("code")?.textContent ?? "";
-		expect(shown).toMatch(command);
-		expect(document.body.textContent?.match(/work-fleet serve \S+ --port \d+/gu)).toEqual([shown]);
+		expect(findElements<HTMLTextAreaElement>(COMMAND, document).map((field) => field.value)).toEqual([expect.stringMatching(command)]);
 	},
 );
 
 screenStory.it(
-	"lists task-file work below the Fleet isn't running panel on Today",
+	"lists work by the status written in each task below the Fleet isn't running panel on Today",
 	[
 		screenFiles(
 			{
@@ -87,9 +84,10 @@ screenStory.it(
 	],
 	function* ({ findByRole, findElements, readText }) {
 		const progress = `#${todayIds.progress}`;
-		yield* Effect.promise(() => eventually(() => expect(readText(`${progress} [data-progress-id="task.active"]`)).toContain("Task file · Active")));
+		yield* Effect.promise(() => eventually(() => expect(readText(`${progress} [data-progress-id="task.active"]`)).toContain("Active")));
+		expect(readText(`${progress} [data-progress-id="task.active"]`)).not.toContain("Task file");
 		const panel = findElements(`${progress} [role="status"]`).find((status) => status.textContent === STOPPED)?.parentElement;
-		expect(panel?.textContent).toContain("Status comes from the task files, not live Fleet.");
+		expect(panel?.textContent).toContain("These show the status written in each task, not what Fleet reports.");
 		expect(panel?.contains(findByRole("button", "How to start Fleet") ?? null)).toBe(true);
 		expect(readText(`${progress} [data-progress-source="files"] a`)).toBe("Active task");
 	},
@@ -110,5 +108,39 @@ screenStory.it(
 		expect(card?.dataset.state).toBe("ready");
 		expect(card?.textContent).toContain("Available");
 		expect(card?.textContent).not.toContain("Needs attention");
+	},
+);
+
+for (const [clipboard, traits, status] of [
+	["accepts it", [], "Copied."],
+	["refuses it", [deniedClipboard()], "Couldn't copy automatically. The command is selected, so copy it yourself."],
+] as const) {
+	screenStory.it(
+		`copies the Fleet start command, or selects it when the clipboard ${clipboard}`,
+		[...traits, screenFiles(fleetWorkspace, { home: "home.md" }), stoppedFleet(), openScreen()],
+		function* ({ click, findByRole, findElement, readFocus, readText }) {
+			yield* Effect.promise(() => eventually(() => expect(findByRole("button", "How to start Fleet")).not.toBeNull()));
+			click(findByRole("button", "How to start Fleet"));
+			yield* Effect.promise(() => eventually(() => expect(findElement(COMMAND, document)).not.toBeNull()));
+			const field = findElement<HTMLTextAreaElement>(COMMAND, document);
+			click(findByRole("button", "Copy the command to start Fleet", document));
+			yield* Effect.promise(() => eventually(() => expect(readText("[role='dialog'] [data-copy-status]", document)).toBe(status)));
+			if (traits.length === 0) {
+				expect(yield* Effect.promise(() => navigator.clipboard.readText())).toBe(field?.value);
+			} else {
+				expect(readFocus()).toBe(field);
+				expect([field?.selectionStart, field?.selectionEnd]).toEqual([0, field?.value.length]);
+			}
+		},
+	);
+}
+
+screenStory.it(
+	"tells System readers where Pause updates lives",
+	[screenFiles({ "home.md": "# Release plans\n" }, { home: "home.md" }), stoppedFleet(), screenRoute("/_board/system"), openScreen()],
+	function* ({ findByRole, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc [data-page-header]")).toContain("Pause updates")));
+		expect(readText("#doc [data-page-header]")).toContain("To stop that, open Settings, the gear at the top right, and choose Pause updates.");
+		expect(findByRole("button", "Settings", document)).not.toBeNull();
 	},
 );

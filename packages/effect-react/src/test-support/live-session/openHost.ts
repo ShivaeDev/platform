@@ -4,7 +4,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
-import { Api, notes } from "./Api.ts";
+import { Notes, notes } from "./notes.ts";
 
 export async function openHost() {
 	const state: { active: number; lookups: number; reads: number; session: string | undefined; title: string } = {
@@ -23,10 +23,10 @@ export async function openHost() {
 				state.active -= 1;
 			}),
 	);
-	const handlers = Api.toLayer(
+	const handlers = Notes.toLayer(
 		Effect.gen(function* () {
 			const live = yield* makeLiveServer;
-			return Api.of({
+			return Notes.of({
 				"liveSession.$changes": ({ keys }) => Stream.unwrap(Effect.as(connected, live.stream(keys))),
 				"liveSession.get": () =>
 					Effect.sync(() => {
@@ -39,7 +39,7 @@ export async function openHost() {
 	const runtime = ManagedRuntime.make(
 		appHost({
 			config: { port: 0 },
-			group: Api,
+			group: Notes,
 			handlers,
 			services: Reactivity.layer,
 			sessions: {

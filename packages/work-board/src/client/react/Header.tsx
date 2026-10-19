@@ -14,7 +14,8 @@ import { shellIds } from "./shellIds.ts";
 import type { AppearanceControls } from "./useAppearance.ts";
 import type { SidebarControls } from "./useSidebar.ts";
 export function InboxCount({ count, id }: { readonly count: number | null | undefined; readonly id: string }) {
-	return <NeedsYouBadge aria-label={inboxCountLabel(count)} count={count} id={id} role="status" />;
+	// At zero the badge stays for screen readers, so the drop to zero is still announced.
+	return <NeedsYouBadge aria-label={inboxCountLabel(count)} className={count === 0 ? "sr-only" : undefined} count={count} id={id} role="status" />;
 }
 function inboxCountLabel(count: number | null | undefined) {
 	if (count === undefined) {

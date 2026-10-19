@@ -1,4 +1,4 @@
-import { Deferred, Effect, Schema } from "effect";
+import { Deferred, Effect, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
@@ -43,6 +43,7 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 	const handlers = Items.toLayer(
 		Effect.succeed(
 			Items.of({
+				"items.$changes": () => Stream.never,
 				"items.count": () => (written ? Deferred.await(countGate) : Effect.succeed(0)),
 				"items.list": () =>
 					(written ? Deferred.await(listGate) : Effect.succeed(false)).pipe(Effect.map((enabled) => ids.map((id) => ({ enabled, id })))),

@@ -1,8 +1,7 @@
-import { Copy } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { StartProjection } from "#browser/views/remaining.ts";
-import { Button } from "#client/react/components/ui/button.tsx";
-import { copyText } from "./copyText.ts";
+import { CopyButton } from "#client/react/CopyButton.tsx";
+import { useCopy } from "#client/react/useCopy.ts";
 import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
 import { SectionCard } from "./SectionCard.tsx";
@@ -38,34 +37,18 @@ export function StartPage({ data }: { readonly data: StartProjection }) {
 
 function StartTemplate({ template }: { readonly template: Template }) {
 	const detailsRef = useRef<HTMLDetailsElement>(null);
-	const fieldRef = useRef<HTMLTextAreaElement>(null);
-	const [status, setStatus] = useState("");
-	async function handleCopy() {
-		if (await copyText(template.source)) {
-			setStatus(`Copied. Save it as ${template.file}.`);
-			return;
-		}
-		if (detailsRef.current) {
-			detailsRef.current.open = true;
-		}
-		fieldRef.current?.focus();
-		fieldRef.current?.select();
-		setStatus("Couldn't copy automatically. The template is selected, so copy it yourself.");
-	}
+	const { fieldRef, handleCopy, status } = useCopy<HTMLTextAreaElement>(template.source, {
+		copied: `Copied. Save it as ${template.file}.`,
+		reveal: () => {
+			if (detailsRef.current) {
+				detailsRef.current.open = true;
+			}
+		},
+		selected: "template",
+	});
 	return (
 		<SectionCard
-			action={
-				<Button
-					aria-label={`Copy ${template.label.toLowerCase()} template`}
-					data-template-copy={template.file}
-					onClick={handleCopy}
-					type="button"
-					variant="outline"
-				>
-					<Copy aria-hidden="true" data-icon="inline-start" />
-					Copy
-				</Button>
-			}
+			action={<CopyButton aria-label={`Copy ${template.label.toLowerCase()} template`} data-template-copy={template.file} onClick={handleCopy} />}
 			className="start-template"
 			description={
 				<>

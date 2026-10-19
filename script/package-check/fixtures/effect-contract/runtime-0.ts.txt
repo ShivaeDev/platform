@@ -1,11 +1,11 @@
 import { collection, invalidationKeys } from '@shivaedev/effect-contract/keys.ts';
 import { contract } from '@shivaedev/effect-contract/contract.ts';
 import { query } from '@shivaedev/effect-contract/operation.ts';
-import { Effect, Schema } from 'effect';
+import { Effect, Schema, Stream } from 'effect';
 import { RpcTest } from 'effect/rpc';
 const notes = collection('notes', Schema.Number);
 const Notes = contract('notes', { queries: [query('list', { success: Schema.Array(Schema.String), reads: () => [notes.list] })] });
-const layer = Notes.toLayer(Effect.succeed(Notes.of({ 'notes.list': () => Effect.succeed(['written']) })));
+const layer = Notes.toLayer(Effect.succeed(Notes.of({ 'notes.$changes': () => Stream.never, 'notes.list': () => Effect.succeed(['written']) })));
 const result = await Effect.runPromise(Effect.gen(function* () {
  const client = yield* RpcTest.makeClient(Notes);
  return yield* client['notes.list']();
@@ -16,11 +16,10 @@ const { stream } = await import('@shivaedev/effect-contract/operation.ts');
 const { bind } = await import('@shivaedev/effect-contract/bind.ts');
 const AtomRpc = await import('effect/reactivity/AtomRpc');
 const AtomRegistry = await import('effect/reactivity/AtomRegistry');
-const { Stream } = await import('effect');
 class Missing extends Schema.TaggedError<Missing>()('Missing', { id: Schema.Number }) {}
 const Subscribe = stream('subscribe', { payload: { id: Schema.Number }, success: Schema.String, rejections: { Missing }, reads: ({ id }) => [notes.item(id)] });
 const Feed = contract('feed', { streams: [Subscribe] });
-const handlers = Feed.toLayer({ 'feed.subscribe': ({ id }) => id > 0 ? Stream.make(`note:${id}`, 'done') : Stream.fromEffect(Subscribe.reject.Missing({ id })) });
+const handlers = Feed.toLayer({ 'feed.$changes': () => Stream.never, 'feed.subscribe': ({ id }) => id > 0 ? Stream.make(`note:${id}`, 'done') : Stream.fromEffect(Subscribe.reject.Missing({ id })) });
 class Client extends AtomRpc.Service<Client>()('packed/Stream', { group: Feed, makeEffect: RpcTest.makeClient(Feed, { flatten: true }), protocol: handlers }) {}
 const api = bind(Feed, Client);
 const registry = AtomRegistry.make();

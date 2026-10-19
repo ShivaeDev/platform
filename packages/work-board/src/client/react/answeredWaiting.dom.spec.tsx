@@ -10,9 +10,12 @@ import { screenFleet } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
 const url = `/_board/item/${decisionId}/`;
-const ANSWERED = "[aria-label='Answered, waiting for Fleet']";
+const ANSWERED = "[aria-label='Answered']";
 const NEXT_PASS = "You answered: Request changes. Fleet picks this up on its next pass.";
 const FLEET_DOWN = "You answered: Request changes. Fleet isn't running. It picks this up when it starts again.";
+const QUESTION = "Do you want changes before merging?";
+const ROW_NEXT_PASS = `${QUESTION} · You chose Request changes · Fleet picks this up on its next pass.`;
+const ROW_FLEET_DOWN = `${QUESTION} · You chose Request changes · Fleet isn't running. It picks this up when it starts again.`;
 const OPEN_ASK = {
 	"ask.md": `---\n${JSON.stringify({
 		attention: [
@@ -24,11 +27,11 @@ const OPEN_ASK = {
 };
 
 screenStory.it(
-	"moves an answered Fleet decision out of Needs you until Fleet's receipt settles it",
+	"moves an answered Fleet decision out of Needs you until Fleet's receipt settles its week-old answer",
 	[screenFleet(guideFleet), routedScreen(answeredDecisionFixture(), "/", { home: "home.md" })],
 	function* ({ editFile, findElement, findElements, readText, refreshInbox }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(`ul${ANSWERED}`)).not.toBeNull()));
-		expect([...findElements(`ul${ANSWERED} > li p`)].map((row) => row.getAttribute("title"))).toEqual([NEXT_PASS]);
+		expect([...findElements(`ul${ANSWERED} > li p`)].map((row) => row.getAttribute("title"))).toEqual([ROW_NEXT_PASS]);
 		expect(readText(`ul${ANSWERED} > li a`)).toBe("Publish the install guide");
 		expect(findElement(`ul${ANSWERED} [data-status-token]`)).toBeNull();
 		expect(findElement("ul[aria-label='Needs you']")).toBeNull();
@@ -48,7 +51,7 @@ screenStory.it(
 	[routedScreen(answeredDecisionFixture(), "/", { home: "home.md" })],
 	function* ({ findElement, findElements }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(`ul${ANSWERED}`)).not.toBeNull()));
-		expect([...findElements(`ul${ANSWERED} > li p`)].map((row) => row.getAttribute("title"))).toEqual([FLEET_DOWN]);
+		expect([...findElements(`ul${ANSWERED} > li p`)].map((row) => row.getAttribute("title"))).toEqual([ROW_FLEET_DOWN]);
 		expect(findElement("ul[aria-label='Needs you']")).toBeNull();
 	},
 );
@@ -59,7 +62,7 @@ screenStory.it(
 	function* ({ findElement, findElements }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(`ul${ANSWERED}`)).not.toBeNull()));
 		expect([...findElements(`ul${ANSWERED} > li p`)].map((row) => row.getAttribute("title"))).toEqual([
-			"Answered by orchestrator: Request changes. Fleet picks this up on its next pass.",
+			`${QUESTION} · orchestrator chose Request changes · Fleet picks this up on its next pass.`,
 		]);
 	},
 );
@@ -102,13 +105,13 @@ screenStory.it(
 );
 
 screenStory.it(
-	"moves a decision answered from the Today popover to Answered and keeps focus on its row",
+	"moves a decision answered from the Today popover to Answered, keeps focus on its row and says when Fleet applies it",
 	[
 		screenWorkspace("answered-today"),
 		screenFleet(guideFleet),
 		routedScreen({ ...readyDecisionFixture, "guide.md": ANSWERED_TASK }, "/", { home: "home.md", writable: true }),
 	],
-	function* ({ activate, click, findElement, readAttribute, readFocus }) {
+	function* ({ activate, click, editFile, findElement, readAttribute, readFocus, readResponses, refreshInbox }) {
 		const ask = "[data-attention-id='task.guide']";
 		yield* Effect.promise(() => eventually(() => expect(findElement(`${ask} button[aria-haspopup='dialog']`)).not.toBeNull()));
 		click(`${ask} button[aria-haspopup='dialog']`);
@@ -118,8 +121,17 @@ screenStory.it(
 		yield* Effect.promise(() => activate("[aria-label^='Options for'] button:not([data-slot='collapsible-trigger'])"));
 		yield* Effect.promise(() => eventually(() => expect(findElement("[data-answered-id='task.guide']")).not.toBeNull()));
 		expect(findElement(ask)).toBeNull();
-		expect(readAttribute("[data-answered-id='task.guide'] p", "title")).toBe(NEXT_PASS);
+		expect(readAttribute("[data-answered-id='task.guide'] p", "title")).toBe(ROW_NEXT_PASS);
 		expect(readFocus()).toBe(findElement("[data-answered-id='task.guide'] a"));
+		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
+		const [[receipt, content] = []] = Object.entries(appliedReceipt(saved.responses[0]?.id));
+		editFile(receipt ?? "", content ?? "");
+		yield* Effect.promise(refreshInbox);
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(readAttribute("[data-answered-id='task.guide'] p", "title")).toBe(`${QUESTION} · You chose Request changes · Fleet applied it.`),
+			),
+		);
 	},
 );
 

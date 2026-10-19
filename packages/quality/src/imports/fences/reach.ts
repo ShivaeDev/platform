@@ -8,7 +8,7 @@ export interface Reached {
 	readonly target: Endpoint;
 }
 
-interface Trail {
+export interface Trail {
 	readonly line: number;
 	readonly path: readonly string[];
 }
@@ -49,8 +49,13 @@ function follow(walk: Walk, before: Trail, edge: ImportEdge): void {
 	}
 }
 
+export interface Walked {
+	readonly reached: readonly Reached[];
+	readonly visited: ReadonlyMap<string, Trail>;
+}
+
 // A breadth-first walk that stops at each forbidden endpoint, so a finding names the shortest path to the first forbidden step.
-export function reachedFrom(start: string, edgesFrom: ReadonlyMap<string, readonly ImportEdge[]>, forbidden: Matcher): readonly Reached[] {
+export function walkFrom(start: string, edgesFrom: ReadonlyMap<string, readonly ImportEdge[]>, forbidden: Matcher): Walked {
 	const walk: Walk = { forbidden, queue: [start], reached: new Map(), trails: new Map([[start, { line: 0, path: [start] }]]) };
 	for (const node of walk.queue) {
 		const before = walk.trails.get(node) ?? { line: 0, path: [node] };
@@ -58,5 +63,9 @@ export function reachedFrom(start: string, edgesFrom: ReadonlyMap<string, readon
 			follow(walk, before, edge);
 		}
 	}
-	return [...walk.reached.values()];
+	return { reached: [...walk.reached.values()], visited: walk.trails };
+}
+
+export function reachedFrom(start: string, edgesFrom: ReadonlyMap<string, readonly ImportEdge[]>, forbidden: Matcher): readonly Reached[] {
+	return walkFrom(start, edgesFrom, forbidden).reached;
 }
