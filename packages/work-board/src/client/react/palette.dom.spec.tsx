@@ -3,6 +3,7 @@ import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { paletteFixture } from "#test/paletteFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
+import { chromeScreen } from "#test/screenTraits.ts";
 import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
@@ -55,7 +56,11 @@ screenStory.it(
 		}
 		input(QUERY, "workspace");
 		yield* Effect.promise(() => eventually(() => expect(readText("strong", rows()[0])).toBe("Go to A calmer workspace")));
-		expect(rows().findIndex((row) => readText("strong", row) === "A calmer workspace")).toBeGreaterThan(0);
+		expect(
+			rows()
+				.map((row) => readText("strong", row))
+				.filter((title) => title?.endsWith("A calmer workspace")),
+		).toEqual(["Go to A calmer workspace"]);
 		for (const query of ["project.workspace", "calmer"]) {
 			input(QUERY, query);
 			yield* Effect.promise(() => eventually(() => expect(readText("strong", rows()[0])).toBe("Go to A calmer workspace")));
@@ -71,5 +76,151 @@ screenStory.it(
 		click(rows()[0]?.querySelector("a"));
 		expect(readRootAttribute("data-theme")).toBe("dark");
 		expect(window.location.href).toBe(address);
+	},
+);
+
+const DUPLICATED = {
+	"questions/scale-tests.md":
+		"---\nid: question.scale-tests\nkind: question\nstatus: open\n---\n# Your pooling design for Fleet's scale tests\n\nFleet's scale tests wait for your pooling design.\n",
+	"tasks/scale-tests.md":
+		"---\nid: fleet.scale-tests\nkind: task\nstatus: planned\n---\n# Bring back Work Fleet's scale tests with sane connection use\n\nBring the scale tests back once connection pooling is designed.\n",
+};
+screenStory.it(
+	"lists each item once when its title and opening passage both match",
+	[searchScreen(DUPLICATED)],
+	function* ({ input, findElements, readText }) {
+		function titles() {
+			return [...findElements<HTMLElement>('#search-dialog [role="option"] strong', document)].map((title) => title.textContent);
+		}
+		for (const query of ["scale tests", "pooling"]) {
+			input(QUERY, query);
+			yield* Effect.promise(() => eventually(() => expect(readText('#search-dialog [role="status"]', document)).toBe("2 matches.")));
+			expect(titles()).toEqual(["Your pooling design for Fleet's scale tests", "Bring back Work Fleet's scale tests with sane connection use"]);
+		}
+	},
+);
+
+screenStory.it(
+	"shows the matching passage instead of repeating a row's title as its snippet",
+	[searchScreen({ ...DUPLICATED, "notes/connection-budget.md": "# Connection budget\n\nShared limits live elsewhere.\n" })],
+	function* ({ input, findElements, readText }) {
+		function snippets() {
+			return Object.fromEntries(
+				[...findElements<HTMLElement>('#search-dialog [role="option"]', document)].map((row) => [
+					readText("strong", row),
+					row.querySelector("p")?.textContent,
+				]),
+			);
+		}
+		input(QUERY, "pooling design");
+		yield* Effect.promise(() => eventually(() => expect(readText('#search-dialog [role="status"]', document)).toBe("2 matches.")));
+		expect(snippets()).toEqual({
+			"Bring back Work Fleet's scale tests with sane connection use": "Bring the scale tests back once connection pooling is designed.",
+			"Your pooling design for Fleet's scale tests": "Fleet's scale tests wait for your pooling design.",
+		});
+		input(QUERY, "connection budget");
+		yield* Effect.promise(() => eventually(() => expect(readText('#search-dialog [role="status"]', document)).toBe("1 matches.")));
+		expect(snippets()).toEqual({ "Connection budget": undefined });
+	},
+);
+
+screenStory.it(
+	"shows commands without a kind subtitle and keeps a goal's ID",
+	[searchScreen(paletteFixture())],
+	function* ({ findElements, readText }) {
+		function rows() {
+			return [...findElements<HTMLElement>('#search-dialog [role="option"]', document)];
+		}
+		yield* Effect.promise(() => eventually(() => expect(rows().map((row) => readText("strong", row))).toContain("Go to A calmer workspace")));
+		const subtitles = Object.fromEntries(rows().map((row) => [readText("strong", row), row.querySelector("small")?.textContent ?? ""]));
+		expect(subtitles).toEqual({
+			"Go to A calmer workspace": "project.workspace",
+			"Go to Goals": "",
+			"Go to Library": "",
+			"Go to Now": "",
+			"Go to System": "",
+			"Go to Today": "",
+			"Show or hide files": "",
+			"Toggle compact density": "",
+			"Toggle light or dark theme": "",
+		});
+	},
+);
+
+screenStory.it(
+	"groups views, appearance, work and documents under headings",
+	[searchScreen(paletteFixture())],
+	function* ({ input, findElements, roles }) {
+		function groups() {
+			return [...findElements<HTMLElement>('#search-dialog [role="listbox"] [role="group"]', document)].map((group) => ({
+				name: roles.accessible(group).name,
+				titles: [...group.querySelectorAll('[role="option"] strong')].map((title) => title.textContent),
+			}));
+		}
+		yield* Effect.promise(() => eventually(() => expect(groups().map((group) => group.name)).toEqual(["Go to", "Appearance"])));
+		yield* Effect.promise(() => eventually(() => expect(groups()[0]?.titles).toContain("Go to A calmer workspace")));
+		expect(groups()[1]?.titles).toEqual(["Show or hide files", "Toggle compact density", "Toggle light or dark theme"]);
+		input(QUERY, "inbox");
+		yield* Effect.promise(() => eventually(() => expect(groups().map((group) => group.name)).toEqual(["Work", "Documents"])));
+		expect(groups()[0]?.titles).toEqual(["Build the inbox"]);
+		expect(groups()[1]?.titles).toEqual(["Notes"]);
+	},
+);
+
+screenStory.it(
+	"includes Fleet records while the records toggle is on",
+	[searchScreen(paletteFixture())],
+	function* ({ input, findElements, findElement, keyboard, readAttribute, roles }) {
+		const recordsToggle = { name: "Include Fleet records", role: "checkbox" } as const;
+		function titles() {
+			return [...findElements<HTMLElement>('#search-dialog [role="option"] strong', document)].map((title) => title.textContent);
+		}
+		input(QUERY, "inbox");
+		yield* Effect.promise(() => eventually(() => expect(titles()).toContain("Build the inbox")));
+		expect(titles()).not.toContain("Inbox decision 9");
+		yield* roles.click(recordsToggle);
+		expect(readAttribute('#search-dialog [role="checkbox"]', "aria-checked", document)).toBe("true");
+		yield* Effect.promise(() => eventually(() => expect(titles()).toContain("Inbox decision 9")));
+		expect(titles()[0]).toBe("Build the inbox");
+		yield* roles.click(recordsToggle);
+		yield* Effect.promise(() => eventually(() => expect(titles()).not.toContain("Inbox decision 9")));
+		keyboard("Enter", { cancelable: true }, '#search-dialog [role="checkbox"]');
+		expect(findElement("#search-dialog", document)).not.toBeNull();
+	},
+);
+
+const toggled: Readonly<Record<string, (value: string | undefined) => string>> = {
+	"data-density": (value) => (value === "compact" ? "comfortable" : "compact"),
+	"data-sidebar": (value) => (value === "closed" ? "open" : "closed"),
+	"data-theme": (value) => (value === "dark" ? "light" : "dark"),
+};
+screenStory.it(
+	"applies each appearance command from the palette without leaving the page",
+	[chromeScreen({ "notes/plan.md": "# Plan\n\nShared phrase.\n" })],
+	function* ({ keyboard, input, location, readRootAttribute, findElement, readAttribute }) {
+		for (const [query, attribute] of [
+			["density", "data-density"],
+			["density", "data-density"],
+			["theme", "data-theme"],
+			["theme", "data-theme"],
+			["files", "data-sidebar"],
+			["files", "data-sidebar"],
+		] as const) {
+			const expected = toggled[attribute]?.(readRootAttribute(attribute) ?? undefined);
+			keyboard("k", { cancelable: true, ctrlKey: true }, document);
+			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).not.toBeNull()));
+			input(QUERY, query);
+			yield* Effect.promise(() =>
+				eventually(() =>
+					expect(readAttribute('#search-dialog [role="option"][aria-selected="true"]', "data-command", document)).toBe(
+						attribute.slice(5) === "sidebar" ? "sidebar-toggle" : attribute.slice(5),
+					),
+				),
+			);
+			keyboard("Enter", { cancelable: true }, QUERY);
+			yield* Effect.promise(() => eventually(() => expect(readRootAttribute(attribute)).toBe(expected)));
+			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
+			expect(location()?.pathname).toBe("/notes/plan.md");
+		}
 	},
 );

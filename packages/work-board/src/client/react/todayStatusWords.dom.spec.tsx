@@ -130,3 +130,16 @@ screenStory.it(
 		expect(readText("main")).not.toContain("Write the install guide");
 	},
 );
+
+screenStory.it(
+	"gives All work one column per status name holding items of each spelling",
+	[screenFiles(BOTH_SPELLINGS, { home: "home.md" }), screenRoute("/_board/work?view=board"), openScreen()],
+	function* ({ findByRole, findElements, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("main")).toContain("Review the landing copy")));
+		expect(findElements(".work-column > h2 [data-status-token]").map((chip) => chip.textContent)).toEqual(["Planned", "Active", "Needs you"]);
+		const needsYou = findByRole("region", "Needs you");
+		expect(readText("h2", needsYou)).toBe("Needs you2");
+		expect(needsYou?.textContent).toContain("Review the landing copy");
+		expect(needsYou?.textContent).toContain("Ship the onboarding email");
+	},
+);

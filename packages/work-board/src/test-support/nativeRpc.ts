@@ -2,9 +2,7 @@ import { NodeHttpClient } from "@effect/platform-node";
 import { Effect, Exit, Layer, Scope, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { expect } from "vitest";
 import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { documents } from "#rpc/keys.ts";
 import type { RunningBoard } from "#test/board.ts";
@@ -93,13 +91,10 @@ export const changesUntilShown = Effect.fn("Test.changesUntilShown")(function* <
 	}
 });
 
-export function waitForLibraryCount(board: RunningBoard, count: number) {
-	return eventually(
-		Effect.flatMap(
-			rpcCall(board, (client) => client("work-board.navigation", { current: "" }), true),
-			(data) => Effect.try(() => expect(data.counts.library).toBe(count)),
-		),
-		{ interval: "10 millis", times: 100 },
+export function libraryCount(board: RunningBoard) {
+	return Effect.map(
+		rpcCall(board, (client) => client("work-board.navigation", { current: "" }), true),
+		(data) => data.counts.library,
 	);
 }
 
