@@ -1,5 +1,5 @@
 import type { Agent } from "node:http";
-import { Effect, Layer } from "effect";
+import { type Cause, Effect, Layer, type Tracer } from "effect";
 import type { HttpRouter, HttpServer } from "effect/http";
 import type { PlatformRuntime } from "#server/runtime/types.ts";
 import { otlpHost } from "#test/otlpHost.ts";
@@ -16,15 +16,17 @@ export interface HostState {
 	build: (state: HostState) => Layer.Layer<HttpServer.HttpServer, unknown>;
 	calls: (string | Buffer)[];
 	cleanup: (() => void | Promise<void>)[];
-	config: { port?: number; host?: string; trustedProxy?: string; maxBodySize?: number };
+	config: { port?: number; host?: string; trustedProxy?: string; maxBodySize?: number; sensitiveKeys?: readonly string[] };
 	env: Record<string, string>;
 	expectBootFailure: boolean;
 	lifecycle: string[];
 	logs: { level: string; attempt: number; annotations: Record<string, unknown>; message: unknown }[];
 	lookups: string[];
 	loopback: boolean;
+	nativeSpans: Tracer.NativeSpan[];
 	proxy?: Awaited<ReturnType<typeof databaseProxy>>;
 	receiver?: Awaited<ReturnType<typeof otlpReceiver>>;
+	reported: Cause.Cause<unknown>[];
 	routes: Layer.Layer<never, never, HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>>;
 	rpcPath: HttpRouter.PathInput;
 	runtime?: PlatformRuntime<HttpServer.HttpServer, unknown>;
@@ -47,6 +49,8 @@ export function emptyHost(): HostState {
 		logs: [],
 		lookups: [],
 		loopback: true,
+		nativeSpans: [],
+		reported: [],
 		routes: Layer.empty,
 		rpcPath: "/rpc",
 		runtimeLifecycle: [],

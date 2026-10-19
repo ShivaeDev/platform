@@ -11,7 +11,12 @@ postgresIt(
 		const Payload = Schema.Struct({});
 		const Initial = defineQueue({ name, queue: { expireInSeconds: 10, retryDelayMax: 10, retryLimit: 1 }, schema: Payload });
 		const Changed = defineQueue({ name, queue: { expireInSeconds: 45, notify: true, retryDelayMax: 30, retryLimit: 5 }, schema: Payload });
-		const Immutable = defineQueue({ name, queue: { expireInSeconds: 60, partition: true, policy: "singleton" }, schema: Payload });
+		const Immutable = defineQueue({
+			key: () => "entity",
+			name,
+			queue: { expireInSeconds: 60, partition: true, policy: "singleton" },
+			schema: Payload,
+		});
 		const observer = yield* admin();
 		yield* register([Initial]);
 		expect(yield* Effect.promise(() => observer.getQueue(name))).toMatchObject({ expireInSeconds: 10, retryDelayMax: 10, retryLimit: 1 });

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.0 - 2026-10-18
+
+### Added
+
+- Board task metadata accepts a nonempty `sweep` list of repository-relative path globs, including `['*']` for all paths.
+- Fleet carries sweep paths in `BoardWork` and durable Fleet records. Sweeps block new implementers, hold matching reviewed PRs on automation, prioritize their own repairs, and send held PRs through one migration repair with the sweep brief after merging.
+- PostgreSQL admission also guards merge readiness. `StorageAdmission` can carry an exact-head sweep hold, so a sweep launching during a readiness observation records a durable hold before any ready decision can publish.
+
+### Fixed
+
+- A bounded scheduler pass observes active work before resuming queued continuations, so capacity released during the pass is available to them before the pass returns.
+
 ## 0.10.2 - 2026-10-18
 
 ### Changed

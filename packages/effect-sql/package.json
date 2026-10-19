@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-sql",
-	"version": "0.6.0",
+	"version": "0.7.0",
 	"description": "Schema-derived repositories over native Effect SQL",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-sql#readme",
 	"bugs": {

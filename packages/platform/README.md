@@ -441,18 +441,37 @@ export const save = storageSave.pipe(expose);
 
 Tracing logs declared failures with `RPC failure` and their tag, and defects with `RPC defect`. The diagnostic payload masks nested credential-shaped keys and Effect `Redacted` values. Credential-shaped strings, such as bearer tokens, URL passwords and sensitive `key=value` text, are masked too. Strings retain at most 2,048 characters before a truncation marker; collections retain at most 50 entries with a marker for the remainder, and binary values become size summaries.
 
-Defects are also redacted in the cause that reaches the client, server span and error reporters. An `Error` keeps its error shape with redacted fields and cause. Extend the sensitive-key rule explicitly:
+`appHost` derives sensitive field names from the served RPC group's payload, success, error, defect and middleware error schemas, including nested schemas. Use `Schema.Redacted(...)`, `Schema.RedactedFromValue(...)`, or annotate a field with `sensitive: true`. The host treats those names as sensitive throughout that app, even when a diagnostic contains an unwrapped value. Add other exact, case-sensitive names once in `config.sensitiveKeys`:
 
 ```ts
-import { isSensitiveKey } from "@shivaedev/platform/server/rpc-server/sensitive.ts";
-import { requestTracingLayer } from "@shivaedev/platform/server/rpc-server/tracing.ts";
+import { Schema } from "effect";
 
-export const Tracing = requestTracingLayer({
-  sensitive: (key) => isSensitiveKey(key) || key === "email",
+const Contact = Schema.Struct({
+  deliveryAddress: Schema.String.annotate({ sensitive: true }),
+  recoveryCode: Schema.RedactedFromValue(Schema.String),
+});
+
+const Server = appHost({
+  group: Api,
+  handlers: Handlers,
+  sessions,
+  config: { sensitiveKeys: ["customerReference"] },
 });
 ```
 
-The example adds `email` to the default policy. For reporting outside RPC, `redactingErrorReporter(reporter)` wraps an Effect error reporter and passes it a redacted cause while preserving reporting hints such as severity and redacted attributes.
+Use `Contact` in `Api`'s RPC schemas. A `sensitive: true` annotation also applies to a checked schema, such as `Schema.String.check(Schema.isMinLength(1)).annotate({ sensitive: true })`, and to checks or groups nested inside other check groups. Values under the declared names become `<redacted>` in host log messages and annotations, failure and defect payloads sent to RPC clients, causes passed to installed error reporters, and exported trace attributes, events, links and resource attributes. Nested structured values follow the same policy before trace serialization. A field containing sensitive array items or record values is masked as a whole. `Schema.encodeKeys` and other schema encoders carry sensitivity to their declared output names, including chains of renamed fields. The host collects all sensitive declarations before propagating encoded names and enclosing-field protection until the key set stops growing, so schema and RPC order do not change the policy. Sensitivity is checked throughout each transformation's source subtree, including fields named in `config.sensitiveKeys`. Policy derivation does not execute encoder callbacks: their field provenance is unknown, so every declared output field of a sensitive source is treated as sensitive, including every union branch, otherwise public fields and error discriminators. When a sensitive source encodes to a scalar, its enclosing field is masked as a whole. Sensitive error tags are masked before tracing copies them into the `rpc.failure` log annotation. Native RPC protocol tags remain intact. An `Error` retains its message, stack and cause in redacted form. If `message` or `name` is sensitive, its stack is masked too, including stack headers encoded by `Schema.Defect({ includeStack: true })`. Successful RPC responses retain their application data. Error schemas consumed by native clients must accept the redaction marker for sensitive fields; a constrained string, numeric or collection field may otherwise fail client decoding after masking.
+
+A sensitive error encoded to a top-level scalar or record has no fixed output field name to mask. The host replaces that entire failure value with `<redacted>`. This decision follows each RPC schema, so other methods' failures and successful results retain their application data. Client wire-error schemas must accept the string marker in place of that error. Wire masking preserves public collection entries, deeply nested values and long text; diagnostic collection, depth and string limits apply to logs and diagnostic copies, not client failure data.
+
+Diagnostic failure, defect and interruption reasons are rebuilt with sanitized annotations. When `stack` is sensitive, native `Cause.StackTrace` and `Cause.InterruptorStackTrace` annotations are omitted before reporters or trace exporters receive the cause. Other annotations and interruption identities are preserved. Public native stack frames keep callable stack suppliers and valid parent links; a truncated parent chain ends with `undefined` so reporters and trace exporters can still format it.
+
+The policy matches field names, not arbitrary occurrences of their values in prose. Free text uses only the existing credential-shaped string and key-assignment rules; it does not scan for personal data. Keep sensitive values out of ordinary prose and span names.
+
+For native RPC serialization, `schemaSensitiveKeys(group, extraKeys?)` returns a key predicate with `maskFailure(tag: string | undefined, reason: "Fail" | "Die")`. Pass both to `redactingRpcSerialization(wire, sensitive, sensitive.maskFailure)`. The serializer correlates request tags and response IDs, including batches, before masking a whole error or defect root. Unassociated defects use the conservative policy across the host's defect schemas.
+
+`redactWire(value, sensitive?)` applies the same sensitive-key and credential masking without diagnostic summaries or truncation. `redactText(text, sensitive, maxLength?)` keeps its default 2,048-character diagnostic limit; passing `Infinity` keeps complete public text.
+
+For a native RPC server composed without `appHost`, `requestTracingLayer({ sensitive })` accepts a key predicate; `isSensitiveKey` supplies the default credential rules. `redactingErrorReporter(reporter, sensitive?)` wraps an Effect error reporter and passes it redacted failure and defect causes while preserving reporting hints such as severity and redacted attributes.
 
 ### Promise callers: one application runtime
 
@@ -642,7 +661,9 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/rpc-server/transportHeaders.ts` | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision. |
 | `server/rpc-server/boundary.ts` | `rpcBoundary(schema, { unexpected, message? })`: declared failures pass through, unexpected failures become one declared rejection. |
 | `server/rpc-server/tracing.ts` | `requestTracingLayer({ header?, sensitive? })`. |
-| `server/rpc-server/redact.ts`, `server/rpc-server/redactCause.ts`, `server/rpc-server/sensitive.ts` | `redact`, `redactCause`, `redactDefect`, `redactingErrorReporter`, `isSensitiveKey`, `redactText`: diagnostic redaction. |
+| `server/rpc-server/redact.ts`, `server/rpc-server/redactCause.ts`, `server/rpc-server/sensitive.ts` | `redact`, `redactCause`, `redactDiagnosticCause`, `redactDefect`, `redactingErrorReporter`, `isSensitiveKey`, `redactText`: diagnostic redaction. |
+| `server/schemaSensitiveKeys.ts`, `server/RedactionPolicy.ts` | `schemaSensitiveKeys(group, extraKeys?)`, `RedactionPolicy`: derive and provide an app's diagnostic key predicate. |
+| `server/redactingDiagnostics.ts`, `server/redactingTracer.ts`, `server/redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactRecord(values, sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
 | `server/better-auth/mount.ts` | `betterAuthMount(options)`, `authDatabase(url)`: native auth routes and a scoped PostgreSQL pool. |
@@ -672,7 +693,7 @@ Install the optional peers for the selected integration:
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.
 - Without an `HttpServerRequest`, `transportHeaders` falls back to the supplied RPC headers. An application using another transport must decide what headers it can trust.
 - `appHost` adds tracing last on its server-side copy of the group. When composing a native RPC server directly, add `RequestTracing` last on the group so it wraps authentication too; see the [native-server example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/request-context.md#request-id-identity-and-logging). Middleware outside that tracing boundary is responsible for its own diagnostics.
-- Redaction recognizes common shapes. Keep secrets out of messages and extend the key predicate for application-specific sensitive fields.
+- Redaction recognizes declared field names and common credential shapes. Mark sensitive fields in RPC schemas and configure extra names once with `config.sensitiveKeys`. Keep sensitive values out of ordinary prose.
 - A development cache key is ignored when `NODE_ENV` is `production`. The application owns runtime disposal.
 - The Better Auth storage adapter's default model mapping capitalizes the model name. Supply `modelName` for a generated schema with another naming convention. Native Better Auth joins (`advanced.database.joins`) are rejected; leave that option off so Better Auth reads related rows with separate queries.
 

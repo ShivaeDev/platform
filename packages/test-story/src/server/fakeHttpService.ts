@@ -15,9 +15,12 @@ export interface FakeHttpRequest {
 
 export interface FakeHttpReply {
 	readonly body?: unknown;
+	readonly chunks?: Iterable<string | Uint8Array> | AsyncIterable<string | Uint8Array>;
 	readonly headers?: Readonly<Record<string, string>>;
 	readonly status?: number;
 }
+
+export type FakeHttpFault = { readonly kind: "status"; readonly reply: FakeHttpReply } | { readonly kind: "drop" | "reset" };
 
 export type FakeHttpRoute = {
 	readonly method?: string;
@@ -54,14 +57,22 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 		}
 	}
 	return {
-		failOnce: (route: string, reply: FakeHttpReply) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.failOnce(route, reply))),
+		failOnce: (route: string, reply: FakeHttpReply) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply))),
+		fault: (route: string, fault: FakeHttpFault) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.fault(route, fault))),
 		hold: (route: string) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.hold(route))),
 		narrate: (sink: (line: string) => void) => {
 			narrate = sink;
 		},
+		releaseOnArrival: (route: string, arrival: string) =>
+			Effect.sync(() => {
+				checkRoute(route);
+				checkRoute(arrival);
+			}).pipe(Effect.andThen(controls.releaseOnArrival(route, arrival))),
+		replyOnce: (route: string, reply: FakeHttpReply) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply))),
 		get requests(): readonly FakeHttpRequest[] {
 			return requests.slice();
 		},
+		stall: (route: string) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.stall(route))),
 		url,
 	};
 });

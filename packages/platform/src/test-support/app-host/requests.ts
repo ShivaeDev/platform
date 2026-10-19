@@ -2,6 +2,7 @@ import { request } from "node:http";
 import { call, post } from "./fixture.ts";
 import { directPing, ping } from "./ping.ts";
 import { postBody } from "./postBody.ts";
+import { callPublicFailure } from "./publicFailureRpc.ts";
 import { type HostState, io } from "./state.ts";
 
 export function requests(state: HostState, tell: (line: string) => void) {
@@ -37,6 +38,10 @@ export function requests(state: HostState, tell: (line: string) => void) {
 				return postBody(state.url, state.agent, chunks, options);
 			}),
 		postNdjson: (body: string, chunked: boolean) => io(() => postNdjson(state.url, body, chunked)),
+		publicFailure: (payload: Parameters<typeof callPublicFailure>[1]) => {
+			tell("the native RPC client receives a public application failure");
+			return io(() => callPublicFailure(state.url, payload));
+		},
 		request: (path = "/", init?: RequestInit) => {
 			tell(`${init?.method ?? "GET"} ${path}`);
 			return io(async () => {

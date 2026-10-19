@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 - 2026-10-18
+
+### Added
+
+- Generated notes apps use repository announcements, host subscriptions and session-owned live queries without application invalidation calls, channel configuration, subscription handlers or `live()` wiring.
+
 ## 0.10.2 - 2026-10-18
 
 ### Changed
