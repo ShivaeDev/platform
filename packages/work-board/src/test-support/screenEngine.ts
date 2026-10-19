@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
 import type { render } from "@shivaedev/effect-react/client/testing.ts";
 import { loadLazyChunks } from "#client/react/lazyChunks.ts";
+import type { CurrentFleet } from "#test/pullRequestsFixture.ts";
 import type { FileSystemWrapper } from "./board.ts";
 import { browserStorage } from "./browserStorage.ts";
 import type { chrome } from "./chrome.ts";
@@ -51,6 +52,7 @@ export interface ScreenEngine {
 	scrollPosition?: number;
 	serverStopped?: boolean;
 	session?: Effect.Success<ReturnType<typeof mountSession>>;
+	sessionFleet?: CurrentFleet;
 	sessionFleetPort?: number;
 	sessionTransport?: SessionTransport;
 	sessionWrap?: FileSystemWrapper | undefined;

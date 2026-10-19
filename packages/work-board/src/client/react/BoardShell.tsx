@@ -4,7 +4,8 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { BrowserClient } from "#browserClient.ts";
-import { FleetMain } from "./FleetMain.tsx";
+import { BoardMain } from "#client/react/BoardMain.tsx";
+import { FleetProvider } from "#client/react/FleetProvider.tsx";
 import { FormContext } from "./FormContext.ts";
 import { Header } from "./Header.tsx";
 import { useLiveRead } from "./liveReady.ts";
@@ -22,7 +23,6 @@ import { ShellLiveStatus } from "./ShellLiveStatus.tsx";
 import { Sidebar } from "./Sidebar.tsx";
 import { shellIds } from "./shellIds.ts";
 import { ThemeContext } from "./ThemeContext.ts";
-import { TimeTicker } from "./Time.tsx";
 import { UpdatesToggle } from "./UpdatesToggle.tsx";
 import { useAppearance } from "./useAppearance.ts";
 import { useBoardNavigation } from "./useBoardNavigation.ts";
@@ -91,7 +91,7 @@ function BoardWorkspace(
 	const inboxCount = useShownInboxCount(data, Option.isSome(query.cause));
 	const live = <ShellLiveStatus client={client} failed={Option.isSome(query.cause)} pending={query.pending} />;
 	const content = (
-		<TimeTicker>
+		<FleetProvider api={api}>
 			<ReadingLibrary api={api}>
 				<a className="sr-only rounded-md bg-background p-3 focus:not-sr-only focus:absolute focus:z-50" href="#doc">
 					Skip to content
@@ -129,7 +129,7 @@ function BoardWorkspace(
 							status={status}
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
-						{opened ? <FleetMain api={api} home={data?.home} onPage={onPage} url={url} /> : <OpeningView url={url} />}
+						{opened ? <BoardMain api={api} home={data?.home} onPage={onPage} url={url} /> : <OpeningView url={url} />}
 						<PhoneNavigation count={inboxCount ?? null} main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
 					</div>
 				</div>
@@ -144,7 +144,7 @@ function BoardWorkspace(
 					toggleSidebar={sidebar.toggle}
 				/>
 			</ReadingLibrary>
-		</TimeTicker>
+		</FleetProvider>
 	);
 	return client ? <FormContext.Provider value={client}>{content}</FormContext.Provider> : content;
 }
