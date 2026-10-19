@@ -55,9 +55,8 @@ export function useTodayAnswer(api: ShellApi, data: Document, preview: QuestionP
 		} else {
 			form.change("body", choice.text);
 		}
-		if (state.attempt(author.trim())) {
-			state.created.save();
-		}
+		state.attempt(author.trim());
+		state.created.save();
 	}
 	let status = Option.match(state.created.failure, { onNone: () => "", onSome: (failure) => saveFailure(failure, "response").text });
 	if (offline) {
@@ -70,6 +69,8 @@ export function useTodayAnswer(api: ShellApi, data: Document, preview: QuestionP
 		author,
 		choose,
 		hidden: hiddenDraft(values, prompt, inlineOptions(prompt)),
+		// The answer file caps a prompt's text below a whole body, as the item page does.
+		limit: prompt ? 8192 : 32_768,
 		locked: Boolean(offline) || !author.trim() || state.created.saving || Option.isSome(created),
 		setAuthor,
 		status,

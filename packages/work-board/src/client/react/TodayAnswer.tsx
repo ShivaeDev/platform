@@ -125,7 +125,7 @@ function TodayText({
 			<Textarea
 				disabled={answer.locked}
 				id={textId}
-				maxLength={32_768}
+				maxLength={answer.limit}
 				onChange={(event) => answer.write(event.currentTarget.value)}
 				ref={focusTarget(focusRef)}
 				value={answer.text}
