@@ -3,46 +3,65 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "board-reading-history.md",
-				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Reading history groups documents by the day you read them and shows when each was read, its kind and its status. Each entry has a remove button, and **Clear history** removes them all after an in-page confirmation while pinned documents stay. History now keeps the last 30 documents instead of 10.\n\n### Changed\n\n- The sidebar's and phone More sheet's Recent list leaves out pinned documents and the page you are on.\n- The palette command that toggles the sidebar reads **Show or hide sidebar**, and documents that list this one in a heading board appear under **Listed in**.\n"
+				"name": "board-result-page.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- A returned result is reviewed on its own item page: its review request, checks and evidence, and feedback sit above the report, and whatever is missing is said in one line. `/_board/result?item=<id>` links redirect to the item page, and the item no longer offers a separate **Review returned result** button.\n- Feedback says when the reviewed report version was received or reviewed instead of showing a shortened hash; the full SHA-256 stays under **Report as reviewed**.\n\n### Fixed\n\n- When feedback can't be read, the Board names each file and the reason, and links to System's source problems.\n- A broken question or response about other work no longer hides a result's feedback, and an authored question about a result no longer counts as a broken record.\n"
 			},
 			{
-				"name": "platform-await-database-disconnects.md",
-				"text": "---\n\"@shivaedev/platform\": patch\n---\n\n### Fixed\n\n- Wait for application database query and listener sockets to disconnect before host and worker scopes finish closing.\n"
+				"name": "pg-boss-testing-snapshot.md",
+				"text": "---\n\"@shivaedev/effect-pg-boss\": minor\n---\n\n### Added\n\n- The testing controller reads the unfinished jobs of several queues in one consistent snapshot with `snapshot(queues)`: created, retry, active and failed jobs with their queue, state, start-after time and decoded data, leaving completed jobs out and undecoded.\n- The testing controller's `waitForIdle` completes when its local workers hold no job in flight and none of their queues has a job ready to fetch. Jobs that start later do not hold it open, and it reads nothing while a fetched batch is still running, so a story kit settles with one read per idle.\n\n### Fixed\n\n- `waitForChange` no longer resumes at once when a waiter that a change resumed waits again in the same step; it waits for the next change.\n"
+			},
+			{
+				"name": "quality-local-dom-bindings.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Resolve DOM globals by scope when checking unit tests and their test-support fixtures, so local variables, parameters and destructured bindings named `document` pass while global DOM access is still reported.\n"
 			},
 			{
 				"name": "release-starter-pins.md",
 				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+			},
+			{
+				"name": "work-board-mermaid-colours.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Mermaid diagrams use the Board's neutral colours in light and dark, so notes, clusters, edge labels, Gantt bars, mind maps and branch labels stay readable and no diagram is painted amber.\n"
+			},
+			{
+				"name": "work-fleet-finished-decisions.md",
+				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- Close open Fleet decision requests with a recorded reason when their Board work is done, deferred or superseded, including work finished outside Fleet. Run `work-fleet close-finished-decisions` to close existing unanswered decisions in one pass, or preview them with `--dry-run`.\n- Markdown Board gateways expose optional `closeFinishedDecisions({ dryRun?, workId? })` with `CloseFinishedOptions` and the `ClosedDecision` schema, returning each decision source, linked work ID and closure reason.\n\n### Breaking\n\n- `writeCompletion` returns `Effect<boolean, ...>` instead of `Effect<void, ...>` so callers can confirm that the expected source was current and the completion content was written or already present. Consumers that need a void effect can apply `Effect.asVoid`.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.13",
+				"from": "0.11.14",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.14"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/platform",
-				"from": "0.23.0",
-				"name": "@shivaedev/platform",
-				"to": "0.23.1"
+				"to": "0.11.15"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/work-board",
-				"from": "0.26.0",
-				"name": "@shivaedev/work-board",
-				"to": "0.27.0"
+				"directory": "packages/effect-pg-boss",
+				"from": "0.14.0",
+				"name": "@shivaedev/effect-pg-boss",
+				"to": "0.15.0"
 			},
 			{
 				"bump": "patch",
+				"directory": "packages/quality",
+				"from": "0.31.0",
+				"name": "@shivaedev/quality",
+				"to": "0.31.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/work-board",
+				"from": "0.27.0",
+				"name": "@shivaedev/work-board",
+				"to": "0.27.1"
+			},
+			{
+				"bump": "minor",
 				"directory": "packages/work-fleet",
-				"from": "0.13.9",
+				"from": "0.13.10",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.13.10"
+				"to": "0.14.0"
 			}
 		]
 	}
