@@ -71,9 +71,16 @@ for (const [fleet, copy] of [
 	screenStory.it(
 		`queues the answered Now card for Fleet (Fleet ready=${fleet})`,
 		[...(fleet ? [screenFleet(guideFleet)] : []), routedScreen(answeredDecisionFixture(), "/_board/work", { home: "home.md" })],
-		function* ({ findElement, readAttribute, readText }) {
+		function* ({ findElement, findElements, readAttribute, readText }) {
 			const card = "[aria-label='Queued'] [data-item='task.guide']";
-			yield* Effect.promise(() => eventually(() => expect(findElement(card)).not.toBeNull()));
+			yield* Effect.promise(() =>
+				eventually(() => {
+					expect(findElement(card)).not.toBeNull();
+					expect([...findElements("[role='status']")].map((status) => status.textContent)).not.toContainEqual(
+						expect.stringContaining("Fleet data has not loaded."),
+					);
+				}),
+			);
 			expect(findElement("[aria-label='Waiting on a person'] [data-item='task.guide']")).toBeNull();
 			expect(readAttribute(`${card} [data-status-token]`, "data-status-token")).toBe("waiting-on-agents");
 			expect(readText(`${card} [data-status-token]`)).toBe("Waiting on agents");
