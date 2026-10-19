@@ -59,7 +59,7 @@ export function boardRoutes(options: BoardOptions, runtime: Effect.Success<Retur
 			yield* serve("/_board/result", (request) =>
 				Effect.succeed(HttpServerResponse.redirect(resultUrl(new URL(request.url, "http://127.0.0.1").searchParams.get("item")))),
 			);
-			for (const view of ["system", "start", "handoff", "library", "goals", "work"] as const) {
+			for (const view of ["system", "start", "handoff", "library", "goals", "work", "pull-requests"] as const) {
 				yield* serve(`/_board/${view}`, () => Effect.succeed(respond(shell(view, changes.realRoot), "text/html")));
 			}
 			const pages = page({ home, root: options.root, writable: options.responses === true }, changes, index);

@@ -1,5 +1,6 @@
 import { History } from "lucide-react";
 import { Button } from "#client/react/components/ui/button.tsx";
+import { MergeCount } from "#client/react/MergeCount.tsx";
 import { PinnedLinks, RecentLinks } from "#client/react/readingLinks.tsx";
 import { workspaceDestinations } from "#client/react/workspaceDestinations.ts";
 
@@ -33,6 +34,11 @@ function MoreDestinations({ current }: { readonly current: Destination | undefin
 					key={view}
 				>
 					{label}
+					{view === "pull-requests" && (
+						<span className="ml-auto">
+							<MergeCount />
+						</span>
+					)}
 				</a>
 			))}
 		</nav>

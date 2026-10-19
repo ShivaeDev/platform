@@ -30,6 +30,8 @@ function pageShape(url: string, board: boolean): { readonly label: string; reado
 		return { label: "Loading board", shape: "lanes" };
 	}
 	switch (pathname) {
+		case "/_board/pull-requests":
+			return { label: "Loading pull requests", shape: "rows" };
 		case "/":
 			return { label: "Loading Today", shape: "today" };
 		case "/_board/goals":

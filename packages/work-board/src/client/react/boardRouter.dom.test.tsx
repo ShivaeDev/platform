@@ -17,7 +17,7 @@ screenStory.it(
 	function* ({ readText, findElement, count }) {
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Review")));
 		expect(findElement("#files")).toBeNull();
-		expect(count("#primary-navigation a")).toBe(5);
+		expect(count("#primary-navigation a")).toBe(6);
 		expect(findElement("header")).not.toBeNull();
 	},
 );
