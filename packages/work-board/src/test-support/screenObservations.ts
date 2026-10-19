@@ -1,5 +1,24 @@
 import type { ScreenEngine } from "./screenEngine.ts";
 
+const implicitRoles: Readonly<Record<string, string>> = {
+	article: "article",
+	button: "button",
+	heading: "h1, h2, h3, h4, h5, h6",
+	link: "a[href]",
+};
+
+function accessibleName(element: Element) {
+	const labelledBy = element.getAttribute("aria-labelledby");
+	if (labelledBy) {
+		return labelledBy
+			.split(/\s+/u)
+			.map((id) => document.getElementById(id)?.textContent ?? "")
+			.join(" ")
+			.trim();
+	}
+	return (element.getAttribute("aria-label") ?? element.textContent ?? "").trim();
+}
+
 export function screenObservations(engine: ScreenEngine, tell: (line: string) => void) {
 	function root() {
 		return engine.container ?? engine.view?.container ?? document;
@@ -16,8 +35,15 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 		tell(`the reader reads the matching ${selector} elements`);
 		return [...(within?.querySelectorAll<E>(selector) ?? [])];
 	}
+	function byRole(role: string, name?: string, within: ParentNode = document) {
+		tell(`the reader finds the ${role}${name === undefined ? "" : ` named ${JSON.stringify(name)}`}`);
+		const selector = [`[role="${role}"]`, implicitRoles[role]].filter(Boolean).join(", ");
+		return [...within.querySelectorAll<HTMLElement>(selector)].filter((found) => name === undefined || accessibleName(found) === name);
+	}
 	return {
 		count: (selector: string, within?: ParentNode | null) => elements(selector, within).length,
+		findAllByRole: byRole,
+		findByRole: (role: string, name?: string, within?: ParentNode) => byRole(role, name, within).at(0) ?? null,
 		findElement: element,
 		findElements: elements,
 		location: () => {

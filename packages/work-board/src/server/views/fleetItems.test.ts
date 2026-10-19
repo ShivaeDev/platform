@@ -36,7 +36,7 @@ function snapshot() {
 boardStory.it(
 	"joins daemon items by unique ID and retains missing documents and recent completions",
 	[project, deferredServing],
-	function* ({ start, rpc }) {
+	function* ({ start, rpc, story }) {
 		let current = data;
 		const daemon = yield* diagnosticsDaemon(snapshot, 0, () => current);
 		yield* start({ fleetPort: daemon.port });
@@ -53,7 +53,8 @@ boardStory.it(
 		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({ completed: [], items: [], state: "ready" });
 		yield* daemon.stop();
 		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
-			reason: `No Fleet daemon is running at 127.0.0.1:${daemon.port}; start work-fleet serve <board-dir> --port ${daemon.port}`,
+			reason: "Fleet isn't running, so agent work and its health are unknown.",
+			startCommand: `work-fleet serve ${story.engine.notes.root} --port ${daemon.port}`,
 			state: "unavailable",
 		});
 		expect((yield* rpc((client) => client("work-board.work", { url: "/_board/work" }))).items.length).toBeGreaterThan(0);

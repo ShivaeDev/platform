@@ -40,7 +40,7 @@ boardStory.it(
 );
 
 boardStory.it(
-	"shows a stopped daemon despite an existing health file and recovers on its next HTTP refresh",
+	"shows one Fleet isn't running card for a stopped daemon despite an existing health file and recovers on its next HTTP refresh",
 	[daemonSnapshot(snapshot, true)],
 	function* ({ systemHtml, story, restartDiagnostics }) {
 		const port = story.engine.fleetPort;
@@ -48,10 +48,14 @@ boardStory.it(
 			throw new Error("Missing daemon port");
 		}
 		const stopped = yield* systemHtml();
-		for (const source of ["codex", "github", "fleet"]) {
-			expect(stopped).toContain(`data-source="${source}" data-state="error"`);
+		expect(stopped).toContain('data-source="fleet" data-state="stopped"');
+		for (const source of ["codex", "github"]) {
+			expect(stopped).not.toContain(`data-source="${source}"`);
 		}
-		expect(stopped).toContain(`No Fleet daemon is running at 127.0.0.1:${port}`);
+		expect(stopped).not.toContain(`127.0.0.1:${port}`);
+		expect(stopped).not.toContain('aria-label="Fleet work"');
+		expect(stopped).toContain("Fleet isn&#x27;t running, so agent work and its health are unknown.");
+		expect(stopped).toContain("How to start Fleet");
 		const recoveredAt = yield* Clock.currentTimeMillis;
 		yield* restartDiagnostics(snapshot(recoveredAt));
 		expect(yield* systemHtml()).toContain("3 / 8");
