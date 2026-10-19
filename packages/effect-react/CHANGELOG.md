@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.1 - 2026-10-19
+
+### Fixed
+
+- Wait for an active query loader before a newly mounted `useLoaderQuery` screen renders, so links to cached routes after invalidation show the changed data on their first render. Already mounted screens keep their data during refreshes.
+
 ## 0.10.0 - 2026-10-19
 
 ### Added
