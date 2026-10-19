@@ -98,6 +98,7 @@ export default defineConfig({
 					"packages/quality/src/inventory/collect.ts",
 					"packages/quality/src/rule.ts",
 					"packages/quality/src/rules/suppressions/biomeOverrides.ts",
+					"packages/quality/src/testProjects.ts",
 					"packages/test-story/src/server/fakeHttpService.ts",
 					"packages/test-story/src/server/forwardingProxy.ts",
 					"packages/test-story/src/server/storyKit.ts",

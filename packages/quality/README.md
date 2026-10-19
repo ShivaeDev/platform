@@ -294,6 +294,17 @@ export default defineConfig({ test: testProjects() });
 
 `testProjects` runs unit tests and specs in Node and `.dom` tests and specs in test-story's DOM environment by default. The DOM environment keeps Node's host constructors separate from the happy-dom window, so DOM specs need no project remap. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. Every project excludes `**/.worktrees/**` so a checkout does not collect specs from its worktrees.
 
+Worker concurrency comes from a configured PostgreSQL connection budget, independent of CPU count: `max(1, floor(connectionBudget / connectionsPerWorker))`. The defaults are 80 usable connections and 14 connections per worker, giving five workers. The budget leaves room on a typical 100-connection server for administration and other clients; the estimate allows for full-app tests with several pools. Set the budget from your server's `SHOW max_connections`, subtracting connections reserved for other clients and concurrent test processes. Quality does not query the server. If even one worker exceeds the budget, it still runs one worker; reduce that test's pool sizes or increase the server capacity.
+
+Set the per-worker estimate to the peak connections held by one test worker, and supply your usable budget or an explicit worker override:
+
+```ts
+testProjects({ connectionBudget: 84, connectionsPerWorker: 14 });
+testProjects({ maxWorkers: 4 });
+```
+
+The first configuration allows six workers, including on a two-CPU runner. `maxWorkers` takes precedence over the connection calculation. Counts and estimates must be positive safe integers. Vitest's native `--maxWorkers` CLI option can also override the returned configuration for a single run.
+
 Coverage is opt-in: `testProjects({ coverage: true })` enables Vitest's V8 provider across the selected projects. Install `@vitest/coverage-v8` at the same version as Vitest. The report includes unvisited `src/**/*.ts` and `src/**/*.tsx` files and excludes declarations, tests, specs and `test-support`. To customize it, pass native Vitest coverage options, for example `testProjects({ coverage: { reporter: ["lcov", "text-summary"] } })`. No separate coverage config is needed.
 
 Outside CI, `testProjects` sets `silent: "passed-only"` so local runs show logs only from failing tests. When `CI` is set to a nonempty value, it sets `silent: false` so CI keeps all test logs. It leaves `reporters` unset so Vitest can auto-detect its agent reporter. If a repository adds a reporter, spread `configDefaults.reporters` instead of replacing the defaults:
