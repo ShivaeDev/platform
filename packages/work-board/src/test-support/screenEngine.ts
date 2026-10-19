@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
 import type { render } from "@shivaedev/effect-react/client/testing.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import { loadMarkdownRenderers } from "#client/react/markdownLoader.ts";
 import { browserStorage } from "./browserStorage.ts";
 import type { chrome } from "./chrome.ts";
 import type { mountDocument } from "./documentRendering.ts";
@@ -11,7 +12,6 @@ import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
 import type { mountSession } from "./mountSession.ts";
 import type { BoardTestApi, renderBoard } from "./react.tsx";
 import type { renderRouter } from "./renderRouter.tsx";
-import { loadMarkdownRenderers } from "#client/react/markdownLoader.ts";
 
 export interface ScreenEngine {
 	ageModified?: number;

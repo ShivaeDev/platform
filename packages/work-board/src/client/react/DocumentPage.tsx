@@ -1,11 +1,11 @@
 import type { Document } from "#browser/document/schema.ts";
-import { LazyDocumentView } from "./lazyMarkdown.tsx";
 import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
 import { DocumentCriteria } from "./DocumentCriteria.tsx";
 import { GoalPage } from "./GoalPage.tsx";
 import { GoalProgressHeader } from "./GoalProgressHeader.tsx";
 import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
+import { LazyDocumentView } from "./lazyMarkdown.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 export function DocumentPage({ document, api }: { readonly document: Document; readonly api?: ShellApi | undefined }) {
 	const projectContent = api ? <GoalPage api={api} document={document} /> : <DocumentCriteria document={document} />;

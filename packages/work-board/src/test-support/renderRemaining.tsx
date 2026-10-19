@@ -6,6 +6,7 @@ import { HandoffPage } from "#client/react/HandoffPage.tsx";
 import { ResultPage } from "#client/react/ResultPage.tsx";
 import { StartPage } from "#client/react/StartPage.tsx";
 import { SystemPage } from "#client/react/SystemPage.tsx";
+
 // prerender waits for the lazily loaded Markdown renderers; dropping React's text and Suspense markers leaves static markup.
 async function staticMarkup(page: ReactNode) {
 	const { prelude } = await prerender(page);

@@ -2,9 +2,9 @@ import type { HandoffProjection } from "#browser/views/remaining.ts";
 import { fileUrl } from "#files/url.ts";
 import { HandoffForm } from "./HandoffForm.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
+import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
-import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 import { shellIds } from "./shellIds.ts";
 export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 	return (

@@ -302,20 +302,20 @@
 	position: fixed;
 	inset: auto 0 0;
 	height: calc(3.3125rem + max(0.25rem, env(safe-area-inset-bottom)));
-	border-top: 1px solid var(--border);
 	background: var(--background);
+	border-top: 1px solid var(--border);
 }
 @media (min-width: 768px) {
 	[data-board-skeleton] {
 		grid-template-columns: 248px minmax(0, 1fr);
 	}
 	[data-board-skeleton] > aside {
-		display: block;
 		position: sticky;
 		top: 0;
+		display: block;
 		height: 100dvh;
-		border-right: 1px solid var(--border);
 		background: var(--card);
+		border-right: 1px solid var(--border);
 	}
 	[data-board-skeleton] header {
 		height: 3.5rem;

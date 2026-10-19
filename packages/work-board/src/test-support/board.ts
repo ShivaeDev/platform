@@ -1,5 +1,5 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { Buffer } from "node:buffer";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { type IncomingHttpHeaders, request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
