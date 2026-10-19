@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { aQuestionnaire, boardStory, responsesEnabled } from "#test/boardStory.ts";
+import { waitFor } from "#test/live.ts";
 import { questionnaireAnswers, questionnaireSource } from "#test/questionnaire.ts";
 import { agentRequest } from "./agent.ts";
 
@@ -86,6 +87,9 @@ boardStory.it(
 					}),
 				),
 			).rejects.toThrow("moved"),
+		);
+		yield* Effect.promise(() =>
+			waitFor(() => expect(client.run(client.api.document.run({ url: "/moved.md" }))).resolves.toMatchObject({ file: "moved.md" })),
 		);
 		const next = yield* register();
 		const saved = yield* Effect.promise(() =>

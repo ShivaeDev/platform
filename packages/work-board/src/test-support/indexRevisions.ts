@@ -15,5 +15,15 @@ export function indexRevisions() {
 		...Object.fromEntries([...files].map((file, i) => [file, source(i)])),
 		"board.md": "---\nid: board\nkind: board\nitems: [item.0, item.1, item.2, missing]\n---\n# Board",
 	};
-	return { files, initialFiles, random, source };
+	function movedPaths(from: string, to: string) {
+		const changed: string[] = [];
+		for (const file of [...files].filter((candidate) => candidate.startsWith(`${from}/`))) {
+			const moved = `${to}/${file.slice(from.length + 1)}`;
+			files.delete(file);
+			files.add(moved);
+			changed.push(file, moved);
+		}
+		return changed;
+	}
+	return { files, initialFiles, movedPaths, random, source };
 }
