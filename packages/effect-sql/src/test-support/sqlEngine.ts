@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { dual } from "effect/Function";
 import { SqlClient } from "effect/sql";
+import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
 import { makeRepository } from "#repository.ts";
@@ -8,15 +9,17 @@ import { withChangeCoverage } from "#testing.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 import type { arraySamples } from "./arraySamples.ts";
 import { watchChanges } from "./changeObservation.ts";
+import { isCommitting } from "./commitObservation.ts";
 import type { compositeMeasurements } from "./compositeMeasurements.ts";
 import type { compositeReadings } from "./compositeReadings.ts";
 import type { conflictAccounts } from "./conflictAccounts.ts";
 import type { constrainedItems } from "./constrainedItems.ts";
 import { fixture } from "./fixture.ts";
 import type { generatedRows } from "./generatedRows.ts";
+import type { heldSeed } from "./heldSeed.ts";
+import { holdAdvisoryLock } from "./holdAdvisoryLock.ts";
 import type { invoiceLines } from "./invoiceLines.ts";
 import type { jsonReceipts } from "./jsonReceipts.ts";
-import { migrate } from "./migrationConcurrency.ts";
 import type { migrationTables } from "./migrationTables.ts";
 import type { notificationTable } from "./notificationTable.ts";
 import type { setupBatch } from "./postgresBatch.ts";
@@ -27,6 +30,7 @@ import type { setupVersioned } from "./postgresVersioned.ts";
 import { RecordedLogs } from "./RecordedLogs.ts";
 import type { labelsWithPrefix, setup as lines } from "./sqliteRepository.ts";
 import type { secondDatabase, setup as sqliteTransactions } from "./sqliteTransactions.ts";
+import { waitingOn } from "./waitingOn.ts";
 import type { wideRows } from "./wideRows.ts";
 export const sqlEngine = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -39,6 +43,7 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 		conflictAccounts: fixture<Effect.Success<typeof conflictAccounts>>(),
 		constrainedItems: fixture<Effect.Success<typeof constrainedItems>>(),
 		generatedRows: fixture<Effect.Success<typeof generatedRows>>(),
+		heldSeed: fixture<Effect.Success<ReturnType<typeof heldSeed>>>(),
 		invoiceLines: fixture<Effect.Success<typeof invoiceLines>>(),
 		jsonReceipts: fixture<Effect.Success<typeof jsonReceipts>>(),
 		labels: fixture<Effect.Success<typeof labelsWithPrefix>>(),
@@ -64,6 +69,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		return binding === undefined ? transaction : Effect.provideContext(transaction, binding);
 	});
 	return {
+		advisoryXactLock,
 		arraySamples: engine.arraySamples.get,
 		assertPostgresMigrations,
 		batchFixture: engine.batch.get,
@@ -72,12 +78,14 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		conflictAccounts: engine.conflictAccounts.get,
 		constrainedItems: engine.constrainedItems.get,
 		generatedRows: engine.generatedRows.get,
+		heldSeed: engine.heldSeed.get,
+		holdAdvisoryLock,
 		invalidateOnCommit,
 		invoiceLines: engine.invoiceLines.get,
+		isCommitting,
 		jsonReceipts: engine.jsonReceipts.get,
 		labels: engine.labels.get,
 		makeRepository,
-		migrate,
 		migratePostgres,
 		migrations: engine.migrations.get,
 		notifications: engine.notifications.get,
@@ -92,6 +100,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		transact: notifyTransact,
 		transactions: engine.transactions.get,
 		versions: engine.versions.get,
+		waitingOn,
 		watchChanges,
 		wideRows: engine.wideRows.get,
 		withChangeCoverage,

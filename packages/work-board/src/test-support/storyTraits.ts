@@ -1,7 +1,7 @@
 import { chmodSync } from "node:fs";
 import { join } from "node:path";
 import { Clock, Effect } from "effect";
-import { expect } from "vitest";
+import { vi } from "vitest";
 import type { RecordedResponse } from "#browser/responses/schema.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { responseMarkdown } from "#server/responses/records.ts";
@@ -9,7 +9,6 @@ import { boardStory, projectFiles, responsesEnabled } from "./boardStory.ts";
 import { diagnosticsDaemon, rawDiagnosticsDaemon } from "./diagnosticsDaemon.ts";
 import { enterField } from "./enterField.ts";
 import { inboxFixture, inboxQuestion } from "./inboxFixture.ts";
-import { waitFor } from "./live.ts";
 import { REVIEW_TASK, reviewResult } from "./resultReview.ts";
 import { connected, openReader } from "./storyEngine.ts";
 
@@ -45,7 +44,10 @@ export function anAnswerForm(prefix = "response") {
 	return boardStory.trait("reader", `the ${prefix} form is ready`, function* (engine) {
 		yield* openReader(engine);
 		yield* Effect.promise(() =>
-			waitFor(() => expect(connected(engine).page.document.getElementById(`${prefix}-preview`)?.hasAttribute("disabled")).toBe(false)),
+			vi.waitUntil(() => connected(engine).page.document.getElementById(`${prefix}-preview`)?.hasAttribute("disabled") === false, {
+				interval: 10,
+				timeout: 5000,
+			}),
 		);
 	});
 }

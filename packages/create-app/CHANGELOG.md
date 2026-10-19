@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.3 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.11.2 - 2026-10-19
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
 ## 0.11.1 - 2026-10-19
 
 ### Changed

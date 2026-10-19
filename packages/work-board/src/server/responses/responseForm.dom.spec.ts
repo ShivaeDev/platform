@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { boardStory, projectFiles, readerAt, responsesEnabled } from "#test/boardStory.ts";
 import { waitFor } from "#test/live.ts";
-import { waitForLibraryCount } from "#test/nativeRpc.ts";
+import { libraryCount } from "#test/nativeRpc.ts";
 import { anAnswerForm } from "#test/storyTraits.ts";
 
 const source = `---
@@ -20,6 +20,8 @@ attention:
 The exact reviewed proposal.
 `;
 
+const EXPECTED_LIBRARY_COUNT = 2;
+
 boardStory.it(
 	"keeps the same owned form and its draft during initial/live page reads, then exposes a changed revision without discarding input",
 	[
@@ -34,7 +36,7 @@ boardStory.it(
 		yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 		expect(page.document.querySelector('[name="body"]')).toBe(body);
 		editFile("other.md", "# Unrelated source addition");
-		yield* waitForLibraryCount(board, 2);
+		yield* Effect.promise(() => waitFor(async () => expect(await Effect.runPromise(libraryCount(board))).toBe(EXPECTED_LIBRARY_COUNT)));
 		expect(page.document.querySelector('[name="body"]')).toBe(body);
 		expect(body.value).toBe("Keep my conditions.");
 		editFile("item.md", source.replace("The exact reviewed proposal.", "Changed reviewed proposal."));
@@ -61,7 +63,7 @@ boardStory.it(
 		yield* Effect.promise(() =>
 			waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("No; use the simpler option.")),
 		);
-		yield* reader.waitForResponseStatus("Saved:");
+		yield* Effect.promise(() => waitFor(() => expect(reader.responseStatus()).toContain("Saved:")));
 		expect(reader.responseStatus()).toContain("not acceptance");
 	},
 );

@@ -39,7 +39,7 @@ const CODE = /\.[cm]?[jt]sx?$/u;
 
 const OtherNamesOptions = Schema.Struct({
 	content: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
-	toolOwned: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_TOOL_OWNED))),
+	toolOwned: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
 });
 
 function stylesheetMessage(path: string, stem: string, importedBy: readonly string[]): string | undefined {
@@ -85,7 +85,7 @@ export const otherNames = defineRule({
 		const context: Context = {
 			content: ignore().add([...options.content]),
 			stylesheets: await stylesheetImporters({ files, readText, sources }),
-			toolOwned: ignore().add([...options.toolOwned]),
+			toolOwned: ignore().add([...DEFAULT_TOOL_OWNED, ...options.toolOwned]),
 		};
 		return files.flatMap((path): readonly Finding[] => {
 			const message = messageFor(path, context);

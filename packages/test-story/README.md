@@ -581,7 +581,11 @@ verbs: ({ view, requests }, story) => screenDriver({
 
 `text(selector?)` returns rendered text from the selected element or the whole root. `value(selector)` returns the current input or textarea value. Both narrate what they read through `tell` and leave assertions to the spec. Entry narration omits the supplied value.
 
+`click`, `enter`, `submit`, `text` and `value` also accept a `ScreenTarget` object such as `{ role: "button", name: "Save" }` or `{ role: "textbox", name: /email/i }`. The role and computed accessible name must match exactly when strings are used; regular expressions match the name. Like Testing Library's role queries, these targets exclude hidden elements, including `aria-hidden` ancestors. Missing or ambiguous targets fail with the requested role, name and the visible candidates on screen. Narration names the role and name instead of a selector.
+
 `accessible(selector)` returns `{ name, role }` computed by `dom-accessibility-api`, including native roles and label references that take precedence over `aria-label`. It narrates the readout and uses the same single rendered target checks as other readouts. Assert on this result when checking a control's accessible name; reading its raw attributes does not compute that name. This DOM computation does not inspect a browser's accessibility tree or prove speech from a screen reader.
+
+`accessible(element)` uses the same computation on an `Element` the kit already holds and tells no story line.
 
 For React, pass `act: async (action) => { await act(action); }` using React's `act`. The adapter wraps each action and flushes renderer work before checking the pending signal, including while waiting for an asynchronous response. The [React driver stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/screenDriver.dom.spec.tsx) cover a native pending atom, a rendered response and a controlled field without React warnings. The driver itself has no renderer dependency.
 
@@ -597,7 +601,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `domFetch.ts` | `domFetch(baseUrl)` |
 | `seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
 | `routeOutbound.ts` | `routeOutbound(routes)` |
-| `screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver` |
+| `screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget` |
 | `domNavigate.ts` | `domNavigate(url?)` |
 | `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
 | `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |

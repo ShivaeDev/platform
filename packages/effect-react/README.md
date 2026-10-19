@@ -78,6 +78,26 @@ export function App({ session, recheck }: {
 
 A query that fails with a tagged `Unauthorized` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
 
+### Trace an action across RPCs
+
+Editor saves and create submissions automatically run their save Effect in a fresh `ui.submit` trace. For custom actions, wrap the Effect that performs the action with `actionTrace` before giving it to a native atom:
+
+```ts
+import { Effect } from "effect";
+import { actionTrace } from "@shivaedev/effect-react/actionTrace.ts";
+
+const save = OrdersClient.runtime.fn((input: OrderInput) =>
+  actionTrace(Effect.gen(function* () {
+    yield* api.validate.run(input);
+    return yield* api.save.run(input);
+  }), "ui.saveOrder"),
+);
+```
+
+`OrdersClient`, `OrderInput` and `api` belong to the application. Dispatch `save` with `useAction(save)`. `actionTrace(effect, name?)` preserves the Effect's result, typed error and service requirements; its default span name is `ui.action`. Each execution starts a fresh trace, and RPCs run inside that Effect share it, including across asynchronous boundaries. Native atoms continue to own execution and cancellation. `useAction` also accepts ordinary native action atoms; wrap composite action Effects to group their RPCs.
+
+Use native `RpcClient.layerProtocolHttp` with `FetchHttpClient.layer` for the browser RPC protocol. Effect sends the trace in the W3C `traceparent` HTTP header. Platform's appHost carries it into the RPC span and its SQL, and annotates the RPC span with `request.id`. Enqueued pg-boss jobs retain that span context; worker attempts start separate traces linked back to the sender.
+
 ### 2. Once per feature: native queries and actions
 
 The hooks accept native atoms directly. This complete component module shows query and action state without RPC setup:
@@ -257,7 +277,7 @@ export function App() {
 
 `useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. For a loader-backed editor, pass the loader value as `useEditor({ ...config, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
 
-`SessionBoundary` gives idle atoms the default 400 ms window used by atom-react’s default registry. `loadQuery` also mounts its atom until a component commits its `useQuery` or `useLoaderQuery` subscription, or the loader’s abort signal ends its route ownership. No per-query `timeToLive` is needed. Leaving an unread route releases that mount; a DOM story verifies the atom is gone after the idle window.
+`SessionBoundary` gives idle atoms the default 400 ms window used by atom-react’s default registry. `loadQuery` also mounts its atom until a component commits its `useQuery` or `useLoaderQuery` subscription, or the loader’s abort signal ends its route ownership. No per-query `timeToLive` is needed. Leaving an unread route releases that mount; a DOM story verifies the atom is gone after the idle window. A new `useLoaderQuery` reader suspends until its active `loadQuery` completes, so revisiting a cached route after invalidation renders the changed data on its first frame. Already mounted readers keep their data during refreshes.
 
 `loadQuery` waits through a native query refresh instead of returning its retained success. Typed failures are thrown directly, so the route can inspect `_tag` rather than an Effect fiber wrapper. Defects remain failed Promises. TanStack's loader `abortController` cancels the waiting subscription and rejects with `name: "AbortError"`; other readers of the same query can still complete. The application owns the registry's lifetime and disposes it when its client or session ends. Use the same registry for router context and `RegistryContext.Provider`.
 

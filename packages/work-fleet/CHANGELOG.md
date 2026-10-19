@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.12.1 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.12.0 - 2026-10-19
+
+### Added
+
+- `fleet-priority: low` fills idle execution capacity after prepared normal-or-higher work, without interrupting running low work. Low work still respects held areas and dependencies. Pending low launch retries do not stop normal admission; new provider rejections still pace the scheduler.
+
 ## 0.11.1 - 2026-10-19
 
 ### Changed

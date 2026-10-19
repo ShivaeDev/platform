@@ -2,18 +2,16 @@ import { Cause, Duration, Effect, Exit, Fiber } from "effect";
 import { Migrator } from "effect/sql";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-test/eventually.ts";
-import { heldSeed } from "#test/heldSeed.ts";
-import { waitingOn } from "#test/migrationConcurrency.ts";
 import { postgres } from "#test/sqlStory.ts";
-import { hasMigrationTables } from "#test/sqlTraits.ts";
+import { hasHeldSeed, hasMigrationTables } from "#test/sqlTraits.ts";
 
 postgres.it(
 	"migratePostgres serializes empty-database runners and applies each migration once",
-	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres }) {
+	[hasMigrationTables(), hasHeldSeed()],
+	function* ({ migrations, sql, migratePostgres, heldSeed, waitingOn }) {
 		const { ledger, orders } = migrations();
 
-		const held = yield* heldSeed(orders);
+		const held = heldSeed();
 		const options = {
 			loader: held.loader,
 			lockTimeout: "5 seconds",
@@ -39,11 +37,11 @@ postgres.it(
 
 postgres.it(
 	"migratePostgres fails with a typed lock timeout while another runner holds the migration lock",
-	[hasMigrationTables()],
-	function* ({ migrations, migratePostgres }) {
-		const { ledger, orders } = migrations();
+	[hasMigrationTables(), hasHeldSeed()],
+	function* ({ migrations, migratePostgres, heldSeed }) {
+		const { ledger } = migrations();
 
-		const held = yield* heldSeed(orders);
+		const held = heldSeed();
 		const first = yield* migratePostgres({
 			loader: held.loader,
 			lockTimeout: "5 seconds",
