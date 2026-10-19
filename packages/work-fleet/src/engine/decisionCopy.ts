@@ -5,6 +5,7 @@ import { serviceSituations } from "#engine/situations/service.ts";
 import { stopSituations } from "#engine/situations/stop.ts";
 import { workSituations } from "#engine/situations/work.ts";
 import type { Decision } from "#policy.ts";
+import { preparationStop } from "#preparation/compatibility.ts";
 
 export interface DecisionCopy {
 	readonly question?: {
@@ -67,8 +68,8 @@ export function decisionCopy(decision: Pick<Decision, "code" | "publicationWork"
 	};
 }
 
-export function releaseOnly(code: DecisionCode | undefined) {
-	const situation = code === undefined ? undefined : situations[code];
+export function releaseOnly(decision: Pick<Decision, "code" | "publicationWork" | "reason">) {
+	const situation = decision.code === undefined ? undefined : situationOf(decision);
 	return situation?.retry === undefined ? situation?.recommendation : undefined;
 }
 
@@ -79,7 +80,7 @@ function situationOf(decision: Pick<Decision, "code" | "publicationWork" | "reas
 	if (decision.code === "fleet-stale" && decision.reason === CHANGED_BRIEF_REASON) {
 		return decision.publicationWork === undefined ? handedOver : changedBrief;
 	}
-	if (decision.code === "incomplete-context" && decision.reason === decision.code) {
+	if (decision.code === "incomplete-context" && preparationStop(decision)) {
 		return movedMain;
 	}
 	return decision.code === undefined ? uncoded : situations[decision.code];

@@ -11,7 +11,7 @@ import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
 import { workerCwd } from "#host/providers.ts";
 import type { DispatchNow, FleetRecord } from "#model.ts";
 import { BoardGateway, type BoardWork } from "#policy.ts";
-import { coversRepository, rebasable } from "#preparation/compatibility.ts";
+import { coversRepository, preparationStop } from "#preparation/compatibility.ts";
 import type { Preparation } from "#preparation/schema.ts";
 import { workerPrompt } from "#prompt/worker.ts";
 import { LaunchSettings } from "#session/schema.ts";
@@ -63,7 +63,6 @@ function stalePreparation(record: FleetRecord, work: BoardWork, main: MainSnapsh
 	return record.stage === "prepared" && (unlaunched(record) || !changed) && (changed || record.preparation.baseRevision !== main.revision);
 }
 
-// Dispatch records the assessment code as the reason, which tells its stop apart from a local-only criterion that shares a code.
 function stoppedBehindMain(record: FleetRecord) {
 	const decision = record.decision;
 	return (
@@ -71,8 +70,7 @@ function stoppedBehindMain(record: FleetRecord) {
 		&& record.attempts.length === 0
 		&& decision !== undefined
 		&& decision.worker === undefined
-		&& decision.reason === decision.code
-		&& rebasable(decision.code)
+		&& preparationStop(decision)
 		&& coversRepository(record.preparation)
 	);
 }

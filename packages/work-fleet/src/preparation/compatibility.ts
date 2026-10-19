@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import type { DecisionCode } from "#DecisionCode.ts";
+import type { Decision } from "#policy.ts";
 import type { MainObservation, Preparation, PreparationAssessment } from "#preparation/schema.ts";
 
 export function pathsOverlap(left: string, right: string): boolean {
@@ -36,6 +37,11 @@ export function coversRepository(preparation: Preparation): boolean {
 
 export function rebasable(code: DecisionCode | undefined): boolean {
 	return code !== undefined && REBASABLE_CODES.includes(code);
+}
+
+// Dispatch stores the assessment reason, which is its code, so this tells its own stop apart from a launch check that shares the code.
+export function preparationStop(decision: Pick<Decision, "code" | "reason">): boolean {
+	return rebasable(decision.code) && decision.reason === decision.code;
 }
 
 export function rebasedPreparation(
