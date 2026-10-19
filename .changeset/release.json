@@ -3,80 +3,56 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "effect-react-loaded-navigation.md",
-				"text": "---\n\"@shivaedev/effect-react\": patch\n---\n\n### Fixed\n\n- Wait for an active query loader before a newly mounted `useLoaderQuery` screen renders, so links to cached routes after invalidation show the changed data on their first render. Already mounted screens keep their data during refreshes.\n"
+				"name": "effect-sql-bigint-composite-key.md",
+				"text": "---\n\"@shivaedev/effect-sql\": patch\n---\n\n### Fixed\n\n- Repository writes to a table whose composite key includes a `bigint` column no longer fail with \"Do not know how to serialize a BigInt\"; their item keys encode each `bigint` key value as its decimal string, the same way a single-column `bigint` key is encoded.\n"
 			},
 			{
-				"name": "quality-extend-tool-paths.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Breaking\n\n- `toolOwned` in `files/named-after-export` and `files/other-names` now extends the default tool-owned paths instead of replacing them. Remove copied defaults from your configured lists and keep only repository-specific additions.\n"
-			},
-			{
-				"name": "release-starter-pins.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
-			},
-			{
-				"name": "test-story-screen-roles.md",
-				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- `screenDriver` actions and text/value readouts accept `ScreenTarget` selectors or `{ role, name }` targets, with exact string or regular-expression accessible names, hidden-element exclusion, candidate diagnostics and role/name narration.\n- `screenDriver.accessible(element)` computes an existing element's accessible name and role without narration; `accessible(selector)` keeps its narrated readout.\n"
-			},
-			{
-				"name": "work-board-links-and-columns.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Sidebar destinations, the Now / All work / Table switch and answer card links are announced as links instead of buttons, and the All work board shows one column per status name, so items spelled `needs-you` and `needs-human` share one Needs you column.\n"
-			},
-			{
-				"name": "work-board-search-groups.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Search lists each item once: a document's title and the passages under it now share the document's row instead of adding a second row for the title anchor.\n- Search rows no longer repeat their title as the snippet; they show the next matching passage instead, or no snippet.\n\n### Changed\n\n- The search palette groups rows under **Go to**, **Appearance**, **Work** and **Documents** headings and drops the \"command\" subtitle from command rows.\n- **Include Fleet records** in the palette sets the new optional `records` search option; the `records:` query prefix keeps working.\n- The palette closes through the dialog's standard close control. The Search button is gone: Enter in the field still searches an unfinished query at once, and a failed search offers **Retry search**.\n"
-			},
-			{
-				"name": "work-fleet-predicted-conflict-hold.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- Predict conflicts against main and watched open PR heads with Git merge-tree, and hold the later PR before review and merge readiness until the earlier PR merges. Continue its worker once to merge main, even after area reservations expire.\n- Expose `MergePrediction` and `PredictedConflict` schemas, optional `FleetIntegrations.predict(pr, watchedPrs)` and `MainSource.mergeConflicts(head, otherHeads)` ports, and durable `mergePrediction` and `predictedConflictHold` record fields. Store conflict file names in typed PostgreSQL rows with UTC observation times through an additive migration.\n"
-			},
-			{
-				"name": "work-fleet-release-acknowledgement.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Acknowledge accepted daemon release commands within the client timeout while launches are busy, then apply their durable responses in the background.\n"
+				"name": "work-board-goal-progress.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Goal progress counts dropped work as done and ready work as planned, so ready items no longer inflate the in-progress count.\n- Linked work that Fleet holds for a person counts as \"needs you\" in goal progress and gets its own group on the goal page, instead of reading as in progress.\n\n### Changed\n\n- Goal cards, the sidebar and Today show goal progress on the stock shadcn progress bar, and goal cards align at the top instead of stretching to the tallest card.\n- The goal page charts linked work by state, overall and per criterion, with a stacked bar chart next to written counts.\n- Linked work on a goal page is a table with Work, Criteria, State and PR columns, and each whole row links to its item.\n- The goals query and the MCP goal summary report a `needs you` count beside `done`, `in progress` and `planned`.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.3",
+				"from": "0.11.4",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.4"
+				"to": "0.11.5"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-react",
-				"from": "0.10.0",
-				"name": "@shivaedev/effect-react",
-				"to": "0.10.1"
+				"directory": "packages/effect-sql",
+				"from": "0.8.0",
+				"name": "@shivaedev/effect-sql",
+				"to": "0.8.1"
 			},
 			{
-				"bump": "minor",
-				"directory": "packages/quality",
-				"from": "0.28.2",
-				"name": "@shivaedev/quality",
-				"to": "0.29.0"
+				"bump": "patch",
+				"directory": "packages/effect-test-sql",
+				"from": "0.7.1",
+				"name": "@shivaedev/effect-test-sql",
+				"to": "0.7.2"
 			},
 			{
-				"bump": "minor",
-				"directory": "packages/test-story",
-				"from": "0.13.0",
-				"name": "@shivaedev/test-story",
-				"to": "0.14.0"
+				"bump": "patch",
+				"directory": "packages/platform",
+				"from": "0.20.1",
+				"name": "@shivaedev/platform",
+				"to": "0.20.2"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.21.2",
+				"from": "0.21.3",
 				"name": "@shivaedev/work-board",
-				"to": "0.21.3"
+				"to": "0.21.4"
 			},
 			{
-				"bump": "minor",
+				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.12.1",
+				"from": "0.13.0",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.13.0"
+				"to": "0.13.1"
 			}
 		]
 	}
