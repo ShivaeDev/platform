@@ -1,4 +1,3 @@
-import { accessibleName } from "./accessibleRole.ts";
 import type { OpenPage } from "./browser.ts";
 
 export function pageActions(page: () => OpenPage, tell: (line: string) => void) {
@@ -12,10 +11,11 @@ export function pageActions(page: () => OpenPage, tell: (line: string) => void) 
 	return {
 		toggle: (group: string, option: string) => {
 			tell(`the reader chooses ${option} in ${group}`);
-			const button = [...page().document.querySelectorAll('[role="group"]')]
-				.filter((found) => accessibleName(found) === group)
+			const { document } = page();
+			const button = [...document.querySelectorAll('[role="group"][aria-labelledby]')]
+				.filter((found) => document.getElementById(found.getAttribute("aria-labelledby") ?? "")?.textContent === group)
 				.flatMap((found) => [...found.querySelectorAll("button")])
-				.find((found) => accessibleName(found) === option);
+				.find((found) => found.textContent === option);
 			if (!button) {
 				throw new Error(`Missing ${option} in ${group}`);
 			}

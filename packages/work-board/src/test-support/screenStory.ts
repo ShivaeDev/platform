@@ -16,6 +16,7 @@ import { screenClient, screenContent } from "./screenFeatures.tsx";
 import { screenInteractions } from "./screenInteractions.ts";
 import { screenObservations } from "./screenObservations.ts";
 import { screenOptions, screenReadVerbs } from "./screenReads.ts";
+import { screenRoles } from "./screenRoles.ts";
 import { sessionActions } from "./sessionActions.ts";
 
 export const screenStory = storyKit({
@@ -46,6 +47,7 @@ export const screenStory = storyKit({
 			...readingActions(story.tell),
 			...ageActions(engine, story.tell),
 			...screenObservations(engine, story.tell),
+			...screenRoles(story.tell),
 			...screenData(engine, story.tell),
 			...screenInteractions(engine, story.tell),
 			...sessionActions(engine, story.tell),

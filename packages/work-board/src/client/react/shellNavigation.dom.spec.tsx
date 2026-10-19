@@ -23,72 +23,75 @@ const reading = storedScreenState({
 	}),
 });
 
+const missing = /has 0 matches/u;
 screenStory.it(
 	"opens reading history as a dialog of labelled lists and closes it with Escape",
 	[screenWorkspace("shell-fixture"), reading, chromeScreen(files)],
-	function* ({ click, findByRole, keyboard, readFocus }) {
-		const opener = findByRole("button", "Reading history");
-		click(opener);
-		const dialog = findByRole("dialog", "Reading history", document);
-		expect(dialog).not.toBeNull();
-		const pinned = findByRole("list", "Pinned", dialog);
-		expect(findByRole("link", "First", pinned)?.getAttribute("href")).toBe("/notes/first.md");
-		const recent = findByRole("list", "Recent documents", dialog);
-		expect(findByRole("link", "Plan", recent)?.getAttribute("aria-current")).toBe("page");
-		expect(findByRole("link", "Next", recent)?.getAttribute("href")).toBe("/notes/next.md");
+	function* ({ findElements, keyboard, readFocus, roles }) {
+		yield* roles.click({ name: "Reading history", role: "button" });
+		expect(roles.text({ name: "Pinned", role: "list" })).toBe("First");
+		expect(roles.text({ name: "Recent documents", role: "list" })).toContain("Next");
+		expect(findElements(`[role="dialog"] a[href]`, document).map((link) => [roles.accessible(link).name, link.getAttribute("href"), link.getAttribute("aria-current")])).toEqual([
+			["First", "/notes/first.md", null],
+			["Plan", "/notes/plan.md", "page"],
+			["Next", "/notes/next.md", null],
+		]);
 		keyboard("Escape");
-		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Reading history", document)).toBeNull()));
-		yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(opener)));
+		yield* Effect.promise(() => eventually(() => expect(() => roles.text({ name: "Reading history", role: "dialog" })).toThrow(missing)));
+		yield* Effect.promise(() => eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "Reading history", role: "button" })));
 	},
 );
 
 screenStory.it(
 	"marks the clicked destination current at once and shows pending feedback only after the threshold",
 	[pausedDocument("/_board/item/note.next/"), routedScreen(files, "/_board/goals", { home: "home.md" })],
-	function* ({ findByRole, readAttribute, startNavigation, readStarted, releaseRead, finishNavigation, readText }) {
-		const workspace = findByRole("navigation", "Workspace");
-		yield* Effect.promise(() => eventually(() => expect(readAttribute('[aria-current="page"]', "aria-label", workspace)).toBe("Goals")));
+	function* ({ readAttribute, startNavigation, readStarted, releaseRead, finishNavigation, readText, roles }) {
+		const current = '[aria-label="Workspace"] [aria-current="page"]';
+		const progress = { name: "Opening page", role: "progressbar" } as const;
+		yield* Effect.promise(() => eventually(() => expect(readAttribute(current, "aria-label")).toBe("Goals")));
 		yield* Effect.promise(() => startNavigation("/_board/work?item=note.next"));
 		yield* Effect.promise(() => eventually(() => expect(readStarted()).toBe(true)));
-		expect(readAttribute('[aria-current="page"]', "aria-label", workspace)).toMatch(/^Now/u);
-		expect(findByRole("progressbar", "Opening page")).toBeNull();
-		yield* Effect.promise(() => eventually(() => expect(findByRole("progressbar", "Opening page")).not.toBeNull()));
+		expect(readAttribute(current, "aria-label")).toMatch(/^Now/u);
+		expect(() => roles.text(progress)).toThrow(missing);
+		yield* Effect.promise(() => eventually(() => expect(roles.text(progress)).toBe("")));
 		yield* Effect.promise(releaseRead);
 		yield* Effect.promise(finishNavigation);
 		yield* Effect.promise(() => eventually(() => expect(readText(".work-head h1")).toBe("Now")));
-		expect(findByRole("progressbar", "Opening page")).toBeNull();
-		expect(readAttribute('[aria-current="page"]', "aria-label", workspace)).toMatch(/^Now/u);
+		expect(() => roles.text(progress)).toThrow(missing);
+		expect(readAttribute(current, "aria-label")).toMatch(/^Now/u);
 	},
 );
 
 screenStory.it(
 	"pins and unpins the open document into the sidebar's Pinned list",
 	[screenWorkspace("shell-fixture"), chromeScreen(files)],
-	function* ({ click, findByRole }) {
-		const pinned = findByRole("region", "Pinned");
-		expect(findByRole("link", "Plan", pinned)).toBeNull();
-		click(findByRole("button", "Pin"));
-		yield* Effect.promise(() => eventually(() => expect(findByRole("link", "Plan", pinned)?.getAttribute("href")).toBe("/notes/plan.md")));
-		click(findByRole("button", "Unpin"));
-		yield* Effect.promise(() => eventually(() => expect(findByRole("link", "Plan", pinned)).toBeNull()));
-		expect(findByRole("button", "Pin")).not.toBeNull();
+	function* ({ roles }) {
+		const pinned = { name: "Pinned", role: "region" } as const;
+		expect(roles.text(pinned)).not.toContain("Plan");
+		yield* roles.click({ name: "Pin", role: "button" });
+		yield* Effect.promise(() => eventually(() => expect(roles.text(pinned)).toContain("Plan")));
+		yield* roles.click({ name: "Unpin", role: "button" });
+		yield* Effect.promise(() => eventually(() => expect(roles.text(pinned)).not.toContain("Plan")));
+		expect(roles.text({ name: "Pin", role: "button" })).toBe("Pin");
 	},
 );
 
 screenStory.it(
 	"offers pinned and recent documents and reading history from the phone's More sheet",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), screenWorkspace("shell-fixture"), reading, chromeScreen(files)],
-	function* ({ click, findByRole, keyboard, readFocus }) {
-		const more = findByRole("button", "More");
-		click(more);
-		const sheet = findByRole("dialog", "More", document);
-		expect(findByRole("link", "First", findByRole("region", "Pinned", sheet))?.getAttribute("href")).toBe("/notes/first.md");
-		expect(findByRole("link", "Next", findByRole("region", "Recent", sheet))?.getAttribute("href")).toBe("/notes/next.md");
-		click(findByRole("button", "Reading history", sheet));
-		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "More", document)).toBeNull()));
-		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Reading history", document)).not.toBeNull()));
+	function* ({ findElements, keyboard, readFocus, roles }) {
+		yield* roles.click({ name: "More", role: "button" });
+		expect(roles.text({ name: "More", role: "dialog" })).toContain("Reading history");
+		expect(findElements(`[role="dialog"] section a[href]`, document).map((link) => [roles.accessible(link).name, link.getAttribute("href"), link.getAttribute("aria-current")])).toEqual([
+			["First", "/notes/first.md", null],
+			["Plan", "/notes/plan.md", "page"],
+			["Next", "/notes/next.md", null],
+		]);
+		yield* roles.click({ name: "Reading history", role: "button" });
+		yield* Effect.promise(() => eventually(() => expect(() => roles.text({ name: "More", role: "dialog" })).toThrow(missing)));
+		yield* Effect.promise(() => eventually(() => expect(roles.text({ name: "Recent documents", role: "list" })).toContain("Next")));
 		keyboard("Escape");
-		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Reading history", document)).toBeNull()));
-		yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(more)));
+		yield* Effect.promise(() => eventually(() => expect(() => roles.text({ name: "Reading history", role: "dialog" })).toThrow(missing)));
+		yield* Effect.promise(() => eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "More", role: "button" })));
 	},
 );

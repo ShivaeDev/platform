@@ -43,24 +43,23 @@ screenStory.it(
 screenStory.it(
 	"opens Library and System through More and closes the sheet on navigation or dismissal",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen(todayFixture(), "/")],
-	function* ({ click, control, findByRole, findElement, findElements, location }) {
+	function* ({ click, control, findElement, findElements, location, roles }) {
 		for (const href of ["/_board/library", "/_board/system"]) {
 			click(`${PHONE} button[aria-controls="phone-more"]`);
 			expect(findElement("#phone-more", document)).not.toBeNull();
-			const destinations = findByRole("navigation", "More destinations", document);
-			expect([...findElements("a", destinations)].map((link) => link.textContent)).toEqual(["Library", "System"]);
+			expect(findElements('[aria-label="More destinations"] a', document).map((link) => roles.accessible(link).name)).toEqual(["Library", "System"]);
 			click(`#phone-more a[href="${href}"]`);
 			yield* Effect.promise(() => eventually(() => expect(location()?.pathname).toBe(href)));
 			yield* Effect.promise(() => eventually(() => expect(findElement("#phone-more", document)).toBeNull()));
 		}
 		click(`${PHONE} button[aria-controls="phone-more"]`);
-		click(findByRole("button", "Close", findElement("#phone-more", document)));
+		yield* roles.click({ name: "Close", role: "button" });
 		yield* Effect.promise(() => eventually(() => expect(findElement("#phone-more", document)).toBeNull()));
 		click("#sidebar-toggle");
 		expect(control("#sidebar", HTMLElement).hidden).toBe(false);
 		click("#sidebar-backdrop");
 		expect(control("#sidebar", HTMLElement).hidden).toBe(true);
 		click("#settings-open");
-		expect(findByRole("group", "Theme", document)?.closest('[role="dialog"]')).toHaveProperty("hidden", false);
+		expect(roles.text({ name: "Theme", role: "group" })).toContain("System");
 	},
 );
