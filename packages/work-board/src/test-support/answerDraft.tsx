@@ -21,6 +21,7 @@ export const answerDocument: Document = {
 	requests: [],
 	source: "Choose a direction.",
 	unavailable: [],
+	waitingOn: [],
 	writable: true,
 };
 export const answerPreview: QuestionPreview = {

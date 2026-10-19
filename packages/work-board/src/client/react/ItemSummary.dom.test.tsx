@@ -20,6 +20,7 @@ const document: Document = {
 	requests: [],
 	source: "# Readable task\n\nBody.",
 	unavailable: [],
+	waitingOn: [],
 	writable: false,
 };
 const fleet: FleetItemsProjection = {

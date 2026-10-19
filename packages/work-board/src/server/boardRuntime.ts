@@ -6,6 +6,7 @@ import { boardServices } from "#server/boardServices.ts";
 import { daemonDiagnostics } from "#server/diagnostics/daemon.ts";
 import { watchChanges } from "#server/files/changes.ts";
 import { homeIn } from "#server/files/home.ts";
+import { repositoryPulls } from "#server/files/repository.ts";
 import { checkBrowserAssets, mermaidRoot } from "#server/http/assets.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
@@ -17,6 +18,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 	const mermaid = yield* mermaidRoot();
 	yield* checkBrowserAssets();
 	const changes = yield* watchChanges(options.root);
+	const pullRequests = yield* repositoryPulls(options.root);
 	const platform = (yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>()).pipe(
 		Context.pick(Highlighter, FileSystem.FileSystem, Path.Path),
 	);
@@ -47,6 +49,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 					home,
 					index: Effect.provideContext(index, platform),
 					indexing: SubscriptionRef.changes(indexing),
+					pullRequests,
 					root: options.root,
 					writable: options.responses === true,
 				}),

@@ -91,6 +91,7 @@ const TASK: Document = {
 	requests: [],
 	source: "# Readable task\n",
 	unavailable: [],
+	waitingOn: [],
 	writable: false,
 };
 screenStory.it(

@@ -11,6 +11,7 @@ export interface WorkspaceOptions {
 	readonly home?: string | undefined;
 	readonly index: Effect.Effect<Snapshot, PlatformError.PlatformError>;
 	readonly indexing?: Stream.Stream<Indexing | undefined> | undefined;
+	readonly pullRequests?: string | undefined;
 	readonly root: string;
 	readonly writable: boolean;
 }
