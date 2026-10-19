@@ -33,6 +33,7 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 	const remaining = yield* remainingQueries;
 	return workRpcs
 		.toLayer({
+			"work-board.$changes": () => Stream.never,
 			"work-board.answerQuestion": (input) => Effect.suspend(() => responses.answer(input)).pipe(responseBoundary),
 			"work-board.awaitResponse": (input) => Effect.suspend(() => responses.awaitResponse(input)).pipe(responseBoundary),
 			"work-board.board": ({ url }) => Effect.suspend(() => projections.board(url)).pipe(documentBoundary),

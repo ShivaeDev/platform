@@ -39,6 +39,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 	const active = Effect.runSync(Ref.make(0));
 	const handlers = LiveNotes.toLayer({
 		...server.implementation,
+		"notes.$changes": ({ keys }) => hints.stream(keys),
 		"notes.get": ({ id }) =>
 			Effect.gen(function* () {
 				const local = yield* server.implementation["notes.get"]({ id });

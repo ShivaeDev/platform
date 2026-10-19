@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Ref, Schema } from "effect";
+import { Context, Effect, Layer, Ref, Schema, Stream } from "effect";
 import { RpcMiddleware } from "effect/rpc";
 import { contract } from "#contract.ts";
 import { collection } from "#keys.ts";
@@ -62,6 +62,7 @@ export const makeServer = Effect.gen(function* () {
 		);
 	}
 	const implementation = Notes.of({
+		"notes.$changes": () => Stream.never,
 		"notes.create": (draft) =>
 			draft.title === ""
 				? Create.reject.Invalid({ field: "title", message: "Enter a title" })
