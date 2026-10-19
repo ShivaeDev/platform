@@ -23,6 +23,7 @@ export function* testingEngine() {
 			worker: { batchSize: 2, pollingIntervalSeconds: 0.5 },
 		}),
 		readout,
+		recovered: false,
 		release: yield* Deferred.make<void>(),
 		revision: 0,
 		testing: makePgBossTesting({ retryPolicy: testRetryPolicy }),
