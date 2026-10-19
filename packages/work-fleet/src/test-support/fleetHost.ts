@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -47,6 +47,11 @@ function hostParts(boardDir: string, provider: EngineProvider["transport"]): Hos
 	};
 }
 
+function replaceFile(target: string, source: string) {
+	writeFileSync(`${target}.saving`, source);
+	renameSync(`${target}.saving`, target);
+}
+
 const makeHost = Effect.fn("FleetFixture.makeHost")(function* (
 	files: Readonly<Record<string, string>>,
 	config: Partial<HostConfig>,
@@ -74,7 +79,7 @@ const makeHost = Effect.fn("FleetFixture.makeHost")(function* (
 			host: resolveHost(boardDir, settings, configFile),
 			parts: hostParts(boardDir, provider.transport),
 			provider,
-			write: (file: string, source: string) => writeFileSync(join(boardDir, file), source),
+			write: (file: string, source: string) => replaceFile(join(boardDir, file), source),
 		};
 	});
 });
