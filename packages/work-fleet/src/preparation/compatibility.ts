@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { DecisionCode } from "#DecisionCode.ts";
 import type { MainObservation, Preparation, PreparationAssessment } from "#preparation/schema.ts";
 
 export function pathsOverlap(left: string, right: string): boolean {
@@ -24,6 +25,27 @@ function relevantPath(preparation: Preparation, observation: MainObservation, pa
 	return [preparation.sourcePaths, preparation.setupPaths, preparation.dependencyPaths, preparation.qualityPaths, preparation.baselinePaths].some(
 		(paths) => paths.some((context) => pathsOverlap(context, path)),
 	);
+}
+
+const REBASABLE_CODES: readonly DecisionCode[] = ["incomplete-context", "not-ancestor", "relevant-change"];
+
+// A preparation that owns the whole repository pins nothing but its base, so preparing it again means moving that base.
+export function coversRepository(preparation: Preparation): boolean {
+	return preparation.ownedPaths.includes(".");
+}
+
+export function rebasable(code: DecisionCode | undefined): boolean {
+	return code !== undefined && REBASABLE_CODES.includes(code);
+}
+
+export function rebasedPreparation(
+	preparation: Preparation,
+	assessment: PreparationAssessment,
+	observation: MainObservation,
+): Preparation | undefined {
+	return assessment._tag === "Reprepare" && rebasable(assessment.code) && coversRepository(preparation)
+		? { ...preparation, baseRevision: observation.revision, observedAt: observation.observedAt }
+		: undefined;
 }
 
 export const assessPreparation = Effect.fn("Preparation.assessPreparation")(

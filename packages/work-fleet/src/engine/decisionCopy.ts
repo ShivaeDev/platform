@@ -1,6 +1,6 @@
 import type { DecisionCode } from "#DecisionCode.ts";
 import { CHANGED_BRIEF_REASON } from "#engine/boardBrief.ts";
-import { blocked, type Choice, RELEASE, type Situation } from "#engine/situations/choices.ts";
+import { blocked, type Choice, RELEASE, type Situation, stopOnly } from "#engine/situations/choices.ts";
 import { serviceSituations } from "#engine/situations/service.ts";
 import { stopSituations } from "#engine/situations/stop.ts";
 import { workSituations } from "#engine/situations/work.ts";
@@ -40,6 +40,11 @@ const handedOver: Situation = {
 	},
 };
 
+const movedMain = stopOnly(
+	"The main branch moved after this task was prepared, and Fleet cannot carry this preparation forward by itself.",
+	"Stop here so the task can be prepared again on the current main branch.",
+);
+
 const uncoded = blocked("Fleet stopped and needs your decision.", "Check the details, then let Fleet try again, or stop here.");
 
 const WORKER =
@@ -73,6 +78,9 @@ function situationOf(decision: Pick<Decision, "code" | "publicationWork" | "reas
 	}
 	if (decision.code === "fleet-stale" && decision.reason === CHANGED_BRIEF_REASON) {
 		return decision.publicationWork === undefined ? handedOver : changedBrief;
+	}
+	if (decision.code === "incomplete-context" && decision.reason === decision.code) {
+		return movedMain;
 	}
 	return decision.code === undefined ? uncoded : situations[decision.code];
 }

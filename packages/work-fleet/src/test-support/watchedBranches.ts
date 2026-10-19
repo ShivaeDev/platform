@@ -13,6 +13,7 @@ export const watchedBranches = isolatedEngine.trait(
 		state.predictionRepository = repository;
 		const host = resolveHost(repository.cwd, { provider: "local" });
 		const main = Context.get(yield* Layer.build(gitMainSource(host)), MainSource);
+		state.predictionMain = main;
 		state.options = {
 			...state.options,
 			areaMergeWaitMs: 1000,

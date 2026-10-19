@@ -1,6 +1,7 @@
 import type { Deferred, Effect, Layer } from "effect";
 import type { BoardDecision } from "#board/schema.ts";
 import type { Fleet } from "#fleet.ts";
+import type { MainSource } from "#host/mainSource.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardGateway, WorkResult } from "#policy.ts";
 import { captureLogs } from "#test/captureLogs.ts";
@@ -26,6 +27,7 @@ export interface EngineStory extends EngineWorld {
 	logs: ReturnType<typeof captureLogs>;
 	markdown: boolean;
 	options: EngineOptions;
+	predictionMain?: typeof MainSource.Service;
 	predictionRepository?: PredictionRepository;
 	previousFleet?: typeof Fleet.Service;
 	readinessPublications?: BoardDecision[];
