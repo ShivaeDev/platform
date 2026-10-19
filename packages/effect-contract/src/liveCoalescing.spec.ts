@@ -130,3 +130,14 @@ postgresLive.it("serialized query atoms keep their HTTP values across live refre
 	test.restore();
 	expect(AsyncResult.getOrElse(test.registry.get(query), () => undefined)?.body).toBe("Saved for reload");
 });
+
+postgresLive.it("a query expires at its configured idle lifetime and reads the current HTTP value", [], function* (test) {
+	const query = test.shortLived();
+	const release = test.mount(query);
+	yield* eventually(() => expect(AsyncResult.getOrElse(test.registry.get(query), () => undefined)?.body).toBe("First"));
+	release();
+	yield* eventually(() => expect(test.registry.getNodes().has(query)).toBe(false));
+	yield* test.edit(1, "After expiry");
+	test.mount(query);
+	yield* eventually(() => expect(AsyncResult.getOrElse(test.registry.get(query), () => undefined)?.body).toBe("After expiry"));
+});

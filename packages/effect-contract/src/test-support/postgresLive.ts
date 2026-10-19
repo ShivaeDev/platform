@@ -95,6 +95,7 @@ export const postgresLive = storyKit({
 		},
 		resume: () => registry.set(client.resume, registry.get(client.resume) + 1),
 		serialized: () => client.api.get.query({ id: 1 }, { serializationKey: "note-one" }),
+		shortLived: () => client.api.get.query({ id: 1 }, { timeToLive: "1 second" }),
 		status: () => registry.get(client.status),
 		waiting: (id: number) => registry.get(client.api.get.query({ id })).waiting,
 	}),

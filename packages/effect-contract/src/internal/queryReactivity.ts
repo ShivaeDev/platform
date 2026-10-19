@@ -27,7 +27,10 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 		if (existing !== undefined) {
 			return existing;
 		}
-		const source = Atom.isSerializable(atom) ? Atom.readable(atom.read, atom.refresh) : atom;
+		const source = Atom.setIdleTTL(
+			Atom.readable((get) => atom.read(get), atom.refresh),
+			0,
+		);
 		let wrapped = Atom.transform(
 			source,
 			(get) => {
