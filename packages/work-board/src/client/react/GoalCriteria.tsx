@@ -52,8 +52,10 @@ function Criterion({ document, items, index, progress }: Props & { readonly inde
 			tabIndex={-1}
 		>
 			<CardHeader>
-				<CardTitle className="font-normal text-sm">
-					<LazyInlineMarkdown document={document} source={criterion.text} />
+				<CardTitle>
+					<h3 className="m-0 font-normal text-sm leading-normal">
+						<LazyInlineMarkdown document={document} source={criterion.text} />
+					</h3>
 				</CardTitle>
 				{counts && Object.values(counts).some((count) => count > 0) && <GoalProgressSummary counts={counts} />}
 			</CardHeader>

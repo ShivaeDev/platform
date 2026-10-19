@@ -42,7 +42,8 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 }
 
 function GoalSummary({ goal }: { readonly goal: GoalsProjection["goals"][number] }) {
-	const asks = goal.asks.length > 0 ? <GoalAsks asks={goal.asks} /> : null;
+	const [first, ...rest] = goal.asks;
+	const asks = first ? <GoalAsks asks={[first, ...rest]} /> : null;
 	if (goal.linked === 0) {
 		return (
 			<>

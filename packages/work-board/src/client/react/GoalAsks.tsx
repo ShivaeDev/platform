@@ -5,11 +5,8 @@ import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "#client/r
 type Ask = GoalsProjection["goals"][number]["asks"][number];
 const AMBER_LINK = "h-auto p-0 font-medium text-needs-you text-sm underline underline-offset-4";
 
-export function GoalAsks({ asks }: { readonly asks: readonly Ask[] }) {
+export function GoalAsks({ asks }: { readonly asks: readonly [Ask, ...Ask[]] }) {
 	const [only] = asks;
-	if (only === undefined) {
-		return null;
-	}
 	if (asks.length === 1) {
 		return (
 			<a className={AMBER_LINK} data-goal-open-asks="" href={only.href} title={only.reason}>

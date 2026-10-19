@@ -60,7 +60,7 @@ screenStory.it(
 		}
 		expect(findElement("[data-criterion-work]")).toBeNull();
 		expect(readText('[data-criterion="first"] [data-slot="collapsible-trigger"]')).toBe("2 linked items");
-		expect(findElement('[data-criterion="first"] [data-slot="card-title"]')?.className).toContain("font-normal");
+		expect(findElement('[data-criterion="first"] [data-slot="card-title"] h3')?.className).toContain("font-normal");
 	},
 );
 
