@@ -1,7 +1,13 @@
 import { expect } from "vitest";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { modifiedNotes } from "#test/readingTraits.ts";
-import { exactRankingFixture, fleetItemRankingFixture, identityRankingFixture, searchRankingFixture } from "#test/searchRankingFixture.ts";
+import {
+	crossGroupRankingFixture,
+	exactRankingFixture,
+	fleetItemRankingFixture,
+	identityRankingFixture,
+	searchRankingFixture,
+} from "#test/searchRankingFixture.ts";
 
 const fleet = fleetItemRankingFixture();
 boardStory.it(
@@ -74,5 +80,23 @@ boardStory.it(
 		}
 		const items = (yield* search("answer card")).results.filter((entry) => entry.kind === "document").map((entry) => entry.id);
 		expect(items).toEqual(["board.answer-card", "board.answer-card-polish", "quality.baseline"]);
+	},
+);
+
+boardStory.it(
+	"ranks an exact or multi-word prefix title match first even when it is a plain document behind many work items",
+	[projectFiles(crossGroupRankingFixture(45))],
+	function* ({ search }) {
+		const prefix = (yield* search("Work Board on client-rendered React")).results;
+		expect(prefix[0]).toMatchObject({ file: "plans/board-react.md", match: "prefix" });
+		expect(prefix.slice(1).every((entry) => entry.match === "text")).toBe(true);
+		expect((yield* search("work board on client rendered react slice plan")).results[0]).toMatchObject({
+			file: "plans/board-react.md",
+			match: "exact",
+		});
+		expect((yield* search("connection budget")).results.map((entry) => [entry.file, entry.match]).slice(0, 2)).toEqual([
+			["notes/budget.md", "exact"],
+			["boards/platform.md", "text"],
+		]);
 	},
 );
