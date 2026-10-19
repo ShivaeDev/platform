@@ -40,10 +40,7 @@ export async function loadBoardPage({ context: { shell }, location, abortControl
 			return undefined;
 		}
 		if (documentRoute(location.pathname, navigation.home)) {
-			const data = await loadQuery(registry, documentQuery(api, url), { abortController });
-			if (data.reading?.board) {
-				await loadProjection(registry, api, "board", url, abortController);
-			}
+			await loadQuery(registry, documentQuery(api, url), { abortController });
 			return undefined;
 		}
 		const remaining = remainingRoute(location.pathname);

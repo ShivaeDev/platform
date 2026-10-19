@@ -1,8 +1,9 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { unavailableWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { routedScreen } from "#test/screenTraits.ts";
+import { openScreen, routedScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
 import { sessionScreen } from "#test/sessionScreen.ts";
 
@@ -31,6 +32,35 @@ for (const { crumb, heading, link } of [
 		},
 	);
 }
+
+for (const { link, name } of [
+	{ link: "/_board/system", name: "System" },
+	{ link: "/_board/start", name: "Getting started" },
+	{ link: "/_board/handoff?item=task.plan", name: "Hand off to an agent" },
+]) {
+	screenStory.it(
+		`names ${name} in the breadcrumb and browser title when its data can't load`,
+		[screenFiles(files, { home: "home.md" }), screenRoute("/notes/plan.md"), sessionScreen("response")],
+		function* ({ follow, readText, readTitle, setSessionServer }) {
+			yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Plan")));
+			setSessionServer(false);
+			yield* Effect.promise(() => follow(link));
+			yield* Effect.promise(() => eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("The Board server isn't answering")));
+			yield* Effect.promise(() => eventually(() => expect(readText("#breadcrumbs")).toBe(`Workspace/ ${name}`)));
+			expect(readTitle()).toBe(`${name} · Work Board`);
+		},
+	);
+}
+
+screenStory.it(
+	"names Goals in the breadcrumb and browser title when its data can't load",
+	[screenFiles(files), screenRoute("/_board/goals"), unavailableWorkspace(), openScreen()],
+	function* ({ readText, readTitle }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("This page couldn't be opened")));
+		yield* Effect.promise(() => eventually(() => expect(readText("#breadcrumbs")).toBe("Workspace/ Goals")));
+		expect(readTitle()).toBe("Goals · Work Board");
+	},
+);
 
 screenStory.it(
 	"offers Retry and System when a document can't be read",

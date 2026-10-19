@@ -14,22 +14,14 @@ export function documentRoute(pathname: string, home: Navigation["home"]): boole
 
 export function itemRouteId(pathname: string) {
 	const id = /^\/_board\/item\/(?<id>[^/]+)\/?$/u.exec(pathname)?.groups?.id;
-	return id === undefined ? undefined : decoded(id);
+	return id === undefined ? undefined : decodeURIComponent(id);
 }
 
 export function decodedPath(pathname: string) {
-	return decoded(pathname.slice(1));
+	return decodeURIComponent(pathname.slice(1));
 }
 
 export function documentTitle(url: string) {
 	const pathname = new URL(url, "http://127.0.0.1").pathname;
 	return (itemRouteId(pathname) ?? decodedPath(pathname)) || undefined;
-}
-
-function decoded(value: string) {
-	try {
-		return decodeURIComponent(value);
-	} catch {
-		return value;
-	}
 }
