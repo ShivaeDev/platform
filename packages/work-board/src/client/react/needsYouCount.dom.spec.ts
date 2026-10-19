@@ -44,7 +44,7 @@ screenStory.it(
 				expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toEqual([
 					"Today, 3 need you",
 					"Goals",
-					"Now, 4 open tasks",
+					"Now, 3 open tasks",
 					"Library",
 					"System",
 				]),

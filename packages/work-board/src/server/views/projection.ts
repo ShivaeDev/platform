@@ -1,4 +1,5 @@
 import { isWork } from "#browser/views/now.ts";
+import { viewNames } from "#browser/views/state.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { filterItems, type Item, itemsOf } from "./items.ts";
 import type { State } from "./state.ts";
@@ -54,7 +55,7 @@ export function projectItems(snapshot: Snapshot, state: State): Projection {
 		rows,
 		selected,
 		selectedOutside: selected !== undefined && !rows.some((item) => item.id === selected.id),
-		title: board?.title ?? (state.view === "now" ? "Now" : "All work"),
+		title: board?.title ?? viewNames[state.view],
 		validBoard: !state.board || board !== undefined,
 	};
 }
