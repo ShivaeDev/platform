@@ -157,9 +157,7 @@ screenStory.it(
 		expect(readText('#sidebar [aria-label="Pinned"] [data-slot="empty-title"]')).toBe("No pinned documents");
 		expect(readText('#sidebar [aria-label="Pinned"] [data-slot="empty-description"]')).toBe("Pin a document to keep it here.");
 		click("#library-open");
-		yield* Effect.promise(() =>
-			eventually(() => expect(readText('#reading-library [data-slot="empty-title"]', document)).toBe("No reading history")),
-		);
+		yield* Effect.promise(() => eventually(() => expect(readText('#library-dialog [data-slot="empty-title"]', document)).toBe("No reading history")));
 	},
 );
 

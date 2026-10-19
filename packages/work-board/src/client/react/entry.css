@@ -119,9 +119,6 @@
 	--bg: var(--background);
 	--text: var(--foreground);
 	--surface: var(--secondary);
-	--link: var(--foreground);
-	--danger: var(--destructive);
-	--focus: var(--ring);
 	--status-needs-you: oklch(0.52 0.13 65);
 	--status-agent-working: oklch(0.48 0.06 240);
 	--status-waiting-on-agents: oklch(0.5 0.05 280);
@@ -145,7 +142,7 @@
 	--destructive: oklch(0.52 0.19 27);
 	--border: oklch(0.9 0.004 240);
 	--input: oklch(0.87 0.005 240);
-	--ring: oklch(0.7 0.15 70);
+	--ring: oklch(0.26 0.07 55);
 	--chart-1: oklch(0.86 0.11 85);
 	--chart-2: oklch(0.78 0.155 75);
 	--chart-3: oklch(0.66 0.15 65);
@@ -178,7 +175,7 @@
 	--destructive: oklch(0.72 0.16 25);
 	--border: oklch(0.31 0.005 240);
 	--input: oklch(0.34 0.005 240);
-	--ring: oklch(0.8 0.15 75);
+	--ring: oklch(0.86 0.14 80);
 	--chart-1: oklch(0.88 0.1 85);
 	--chart-2: oklch(0.8 0.15 75);
 	--chart-3: oklch(0.7 0.15 65);
@@ -193,6 +190,10 @@
 	}
 	* {
 		@apply border-border outline-ring/50;
+	}
+	/* Controls the Board draws itself get the stock ring; the ring token keeps it at 3:1 against the page at 50% opacity. */
+	:where(a[href], button, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+		@apply outline-none ring-3 ring-ring/50;
 	}
 	html,
 	body {
@@ -335,10 +336,10 @@
 	--document-leading-rows: 0;
 }
 .document-layout:has(> .document-lead),
-.document-layout:has(> .answer-cards) {
+.document-layout:has(> .answer-cards:not([data-after])) {
 	--document-leading-rows: 1;
 }
-.document-layout:has(> .document-lead):has(> .answer-cards) {
+.document-layout:has(> .document-lead):has(> .answer-cards:not([data-after])) {
 	--document-leading-rows: 2;
 }
 .document-layout > .document-lead {
@@ -350,13 +351,22 @@
 .document-layout > :is(article, .board) {
 	grid-row-start: calc(2 + var(--document-leading-rows));
 }
+.document-layout > .answer-cards[data-after] {
+	grid-row-start: calc(3 + var(--document-leading-rows));
+}
 .document-layout > aside {
 	grid-row-start: calc(3 + var(--document-leading-rows));
+}
+.document-layout:has(> [data-after]) > aside {
+	grid-row-start: calc(4 + var(--document-leading-rows));
 }
 
 @media (min-width: 1024px) {
 	.document-layout > aside {
 		grid-row-start: calc(2 + var(--document-leading-rows));
+	}
+	.document-layout:has(> [data-after]) > aside {
+		grid-row: calc(2 + var(--document-leading-rows)) / span 2;
 	}
 }
 
