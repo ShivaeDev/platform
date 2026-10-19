@@ -1,8 +1,9 @@
-import type { Deferred, Effect } from "effect";
+import type { Deferred, Effect, Layer } from "effect";
 import type { BoardDecision } from "#board/schema.ts";
 import type { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
-import type { WorkResult } from "#policy.ts";
+import type { BoardGateway, WorkResult } from "#policy.ts";
+import { captureLogs } from "#test/captureLogs.ts";
 import type { createEngine } from "#test/createEngine.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { type EngineWorld, worldDefaults } from "#test/EngineWorld.ts";
@@ -17,8 +18,12 @@ export interface SweepPullRequest {
 }
 
 export interface EngineStory extends EngineWorld {
+	board?: Layer.Layer<BoardGateway, unknown>;
+	checkCompletionEdit?: () => void;
+	commits: (readonly unknown[])[];
 	github?: Effect.Success<ReturnType<typeof mergedReviewGithub>>;
 	lastRecord?: FleetRecord;
+	logs: ReturnType<typeof captureLogs>;
 	markdown: boolean;
 	options: EngineOptions;
 	predictionRepository?: PredictionRepository;
@@ -34,7 +39,16 @@ export interface EngineStory extends EngineWorld {
 }
 
 export function newEngineState(): EngineStory {
-	const state: EngineStory = { ...worldDefaults(), markdown: false, options: {}, root: "", source: "", workId: "one" };
+	const state: EngineStory = {
+		...worldDefaults(),
+		commits: [],
+		logs: captureLogs(),
+		markdown: false,
+		options: {},
+		root: "",
+		source: "",
+		workId: "one",
+	};
 	state.options = { now: () => state.now };
 	return state;
 }

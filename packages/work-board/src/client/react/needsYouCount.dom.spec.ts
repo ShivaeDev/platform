@@ -3,9 +3,9 @@ import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { health } from "#test/diagnostics.ts";
 import { fleetWorkspace } from "#test/fleetWorkspaceFixture.ts";
-import { fleetHealth } from "#test/screenEnvironment.ts";
+import { fleetHealth, screenMedia } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { openScreen } from "#test/screenTraits.ts";
+import { chromeScreen, openScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
@@ -61,5 +61,32 @@ screenStory.it(
 		);
 		expect(readAttribute("#inbox-topbar", "aria-label")).toBe("Today, 3 need you");
 		expect(readAttribute("#inbox-count", "aria-label")).toBe("3 need you");
+	},
+);
+
+const PHONE_TODAY = 'nav[aria-label="Phone navigation"] a[href="/"]';
+screenStory.it(
+	"shows the sidebar's needs-you count as a badge on the phone's Today tab",
+	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), screenFiles(fleetWorkspace, { home: "home.md" }), openScreen()],
+	function* ({ findElement, readAttribute, readText, roles }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#inbox-count")).toBe("3")));
+		expect(roles.accessible(findElement(PHONE_TODAY) ?? document.body).name).toBe(readAttribute("#home-open", "aria-label"));
+		expect(readAttribute(PHONE_TODAY, "aria-label")).toBe("Today, 3 need you");
+		expect(readText(`${PHONE_TODAY} [data-slot="badge"]`)).toBe("3");
+		expect([readAttribute("#inbox-count", "data-variant"), readAttribute(`${PHONE_TODAY} [data-slot="badge"]`, "data-variant")]).toEqual([
+			"default",
+			"default",
+		]);
+	},
+);
+
+screenStory.it(
+	"leaves the phone's Today tab without a badge when nothing needs you",
+	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen({ "notes/plan.md": "# Plan\n" })],
+	function* ({ findElement, readAttribute, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#inbox-count")).toBe("0")));
+		expect(readAttribute(PHONE_TODAY, "aria-label")).toBe("Today, 0 need you");
+		expect(findElement(`${PHONE_TODAY} [data-slot="badge"]`)).toBeNull();
+		expect(readAttribute("#inbox-count", "data-variant")).toBe("secondary");
 	},
 );

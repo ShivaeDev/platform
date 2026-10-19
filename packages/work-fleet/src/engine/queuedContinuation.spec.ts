@@ -1,16 +1,16 @@
 import { expect } from "vitest";
 import { completedContinuation, continuationCapacity, fourApproved, needsHumanContinuation, singleSlot } from "#test/continuationCapacity.ts";
-import { fleetStory } from "#test/fleetStory.ts";
+import { isolatedEngine } from "#test/engineStory.ts";
 
 for (const stage of ["needs-human", "completed"] as const) {
 	const resultKind = stage === "needs-human" ? needsHumanContinuation : completedContinuation;
 
-	fleetStory.it(
+	isolatedEngine.it(
 		`a continuation of ${stage} work waits durably ahead of prepared work at full capacity`,
 		[continuationCapacity, resultKind, fourApproved],
 		function* (fleet) {
 			for (const id of ["one", "two", "three", "four"]) {
-				yield* fleet.prepare(id);
+				yield* fleet.prepareWork(id);
 			}
 			const first = (yield* fleet.dispatch("one")).value;
 			fleet.finishWorkers();
@@ -18,7 +18,7 @@ for (const stage of ["needs-human", "completed"] as const) {
 			expect(terminal.stage).toBe(stage);
 			yield* fleet.dispatch("two");
 			yield* fleet.dispatch("three");
-			const queued = (yield* fleet.continue("one", "Fix the remaining case")).value;
+			const queued = (yield* fleet.continueWork("one", "Fix the remaining case")).value;
 			expect(queued).toMatchObject({
 				attentionOwner: "automation",
 				blocker: "Continuation queued; execution capacity is occupied (limit 2)",
@@ -29,7 +29,7 @@ for (const stage of ["needs-human", "completed"] as const) {
 			expect(queued.result).toEqual(terminal.result);
 			expect(queued.review).toEqual(terminal.review);
 			expect(queued.history).toBeUndefined();
-			yield* fleet.rebuild();
+			yield* fleet.restart();
 			yield* fleet.schedule();
 			expect((yield* fleet.get("one")).value).toMatchObject({
 				attentionOwner: "automation",
@@ -64,15 +64,15 @@ for (const stage of ["needs-human", "completed"] as const) {
 	);
 }
 
-fleetStory.it("additional instructions join the queued continuation on the same worker thread", [singleSlot], function* (fleet) {
-	yield* fleet.prepare("one");
-	yield* fleet.prepare("two");
+isolatedEngine.it("additional instructions join the queued continuation on the same worker thread", [singleSlot], function* (fleet) {
+	yield* fleet.prepareWork("one");
+	yield* fleet.prepareWork("two");
 	const first = (yield* fleet.dispatch("one")).value;
 	yield* fleet.workerQuestion("one", "Which behavior should I implement?");
 	yield* fleet.reconcile("one");
 	yield* fleet.dispatch("two");
-	yield* fleet.continue("one", "Fix the remaining case");
-	const queued = (yield* fleet.continue("one", "Also cover empty inputs")).value;
+	yield* fleet.continueWork("one", "Fix the remaining case");
+	const queued = (yield* fleet.continueWork("one", "Also cover empty inputs")).value;
 	expect(queued.pendingContinuation).toBe("Fix the remaining case\n\nAlso cover empty inputs");
 	yield* fleet.finishWorker("two");
 	yield* fleet.reconcile("two");
@@ -83,19 +83,19 @@ fleetStory.it("additional instructions join the queued continuation on the same 
 	});
 });
 
-fleetStory.it("releasing a queued continuation cancels its request and lets prepared work launch", [singleSlot], function* (fleet) {
-	yield* fleet.prepare("one");
-	yield* fleet.prepare("two");
+isolatedEngine.it("releasing a queued continuation cancels its request and lets prepared work launch", [singleSlot], function* (fleet) {
+	yield* fleet.prepareWork("one");
+	yield* fleet.prepareWork("two");
 	yield* fleet.dispatch("one");
 	yield* fleet.workerQuestion("one", "Which behavior should I implement?");
 	yield* fleet.reconcile("one");
 	yield* fleet.dispatch("two");
-	yield* fleet.continue("one", "Fix the remaining case");
+	yield* fleet.continueWork("one", "Fix the remaining case");
 	expect((yield* fleet.answerDecision("one", "release")).value.pendingContinuation).toBeUndefined();
 	fleet.finishWorkers();
 	yield* fleet.reconcile("two");
-	fleet.dependencies("dependent", []);
-	yield* fleet.prepare("dependent");
+	fleet.setDependencies("dependent", []);
+	yield* fleet.prepareWork("dependent");
 	yield* fleet.schedule();
 	expect((yield* fleet.get("one")).value.stage).toBe("released");
 	expect((yield* fleet.get("one")).value.history ?? []).toHaveLength(0);

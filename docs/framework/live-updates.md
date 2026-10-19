@@ -21,7 +21,8 @@ protocol is required.
 ```ts
 const subscription = live(Client.runtime, {
   stream: api.subscribe.run(undefined),
-  resyncKeys: Subscribe.reads(undefined),
+  resyncKeys: [documents.item("one"), documents.item("two"), documents.list],
+  coalesceWindow: "20 millis",
   resume: resumeSignal({ window }),
 });
 const release = registry.mount(subscription.connection);
@@ -41,11 +42,32 @@ disposing the registry closes query and runtime resources too.
 | `Resync` | Invalidate the caller's explicit `resyncKeys`. |
 | First hint on a fresh/reconnected stream | Invalidate the full explicit scope, even if that hint is targeted. |
 
-Every query in this fixture declares `workspace.list` as well as its own reads.
-That common key allows full reconciliation. Invalidating `documents.list` alone
-does **not** invalidate separately registered document items. Full reconciliation
-uses the exact declared read keys, rather than broadening them through the
-item-to-list mutation convention.
+Declare reads per entity, and invalidate only what a command changes:
+
+```ts
+const Get = query("get", {
+  payload: { id: Schema.String },
+  success: Document,
+  reads: ({ id }) => [documents.item(id)],
+});
+const List = query("list", {
+  success: Schema.Array(Document),
+  reads: () => [documents.list],
+});
+const Edit = command("edit", {
+  payload: { id: Schema.String, body: Schema.String },
+  success: Document,
+  invalidates: ({ id }) => [documents.item(id)],
+});
+```
+
+An item invalidation refreshes that item and its collection list, leaving unrelated item queries alone. Each query reads its own item or list keys. Do not add one broad shared read key to every query: invalidating it refetches every reader. Full reconciliation instead uses the session's explicit `resyncKeys`, listing its item keys and list keys. Invalidating `documents.list` alone does not invalidate separately registered document items. Reconciliation uses exact read keys, without the item-to-list mutation convention. A function in `resyncKeys` can supply a changing session scope.
+
+## Coalescing commits
+
+Changed hints merge their keys over a fixed window that starts at the first hint. The default is 20 ms. Each affected bound query refetches at most once for that window. If a refetch is still in flight, further windows mark it dirty; it refetches once more after settling and reads the newest value. Native atoms continue to own values, query identity and disposal.
+
+Set `coalesceWindow` in `live()` using a native Duration, or set `liveCoalesceWindow` on React's `SessionBoundary` for its automatic connections. Explicit consumers can change the `coalesceWindow` atom through their registry. Zero restores immediate per-hint invalidation and its native interruption behavior. First-hint, `Resync`, reconnect, resume and unpause reconciliation stay immediate and clear queued changed keys. Disposing the connection cancels its window.
 
 Acquire the server subscription before emitting an initial `Resync`, so edits
 between catch-up and subscription registration cannot fall into a gap. The

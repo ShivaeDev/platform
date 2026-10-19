@@ -78,3 +78,36 @@ export function fleetItemRankingFixture() {
 		modified: new Map([...modified, ["decision-title.md", 500], ["decision-body.md", 10_000]]),
 	};
 }
+
+export function exactRankingFixture() {
+	function task(id: string, title: string, status: string, body = "") {
+		return `---\nid: ${id}\nkind: task\nstatus: ${status}\n---\n# ${title}\n\n${body}\n`;
+	}
+	return {
+		files: {
+			"answer-card-polish.md": task("board.answer-card-polish", "Polish the answer card", "done"),
+			"answer-card.md": task("board.answer-card", "Answering a decision is one obvious action on its page", "done"),
+			"baseline.md": task("quality.baseline", "work-fleet leaves the baseline", "planned", "The answer card helper moves into host stories."),
+		},
+		modified: new Map([
+			["answer-card.md", 1000],
+			["answer-card-polish.md", 2000],
+			["baseline.md", 3000],
+		]),
+	};
+}
+
+export function crossGroupRankingFixture(mentions = 1) {
+	const mention = "Work Board moves onto client-rendered React (plan in plans/board-react.md) and keeps the connection budget.";
+	return {
+		"boards/platform.md": `---\nid: platform.work\nkind: board\n---\n# Platform work\n\n${mention}\n`,
+		"notes/budget.md": "# Connection budget\n\nShared limits live elsewhere.\n",
+		"plans/board-react.md": "# Work Board on client-rendered React: slice plan\n\nSlice the move into small steps.\n",
+		...Object.fromEntries(
+			Array.from({ length: mentions }, (_, index) => [
+				`tasks/queries-${index}.md`,
+				`---\nid: framework.query-keeps-data-${index}\nkind: task\nstatus: done\n---\n# Queries keep their data while they refresh ${index}\n\n${mention}\n`,
+			]),
+		),
+	};
+}

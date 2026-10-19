@@ -2,8 +2,11 @@ import { Option } from "effect";
 import { useId } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
-import type { GoalCounts } from "#browser/views/GoalsProjection.ts";
+import type { GoalCounts, GoalsProjection } from "#browser/views/GoalsProjection.ts";
+import { statusLabel } from "#browser/views/statusLabel.ts";
 import { Skeleton } from "#client/react/components/ui/skeleton.tsx";
+import { EmptyState } from "./EmptyState.tsx";
+import { GoalAsks } from "./GoalAsks.tsx";
 import { GoalBreakdown } from "./GoalBreakdown.tsx";
 import { GoalProgress } from "./GoalProgress.tsx";
 import { goalCountOrder } from "./goalCounts.ts";
@@ -24,19 +27,7 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 			<h2 className="font-semibold text-xl" id={headingId}>
 				Progress
 			</h2>
-			{goal ? (
-				<>
-					<p>
-						{goal.linked} linked items ·{" "}
-						<span data-goal-open-asks>
-							{goal.openAsks} open {goal.openAsks === 1 ? "ask" : "asks"}
-						</span>
-					</p>
-					<GoalProgress counts={goal.counts} size="large" title="Linked work" />
-					<GoalCountList counts={goal.counts} />
-					<GoalBreakdown goal={goal} />
-				</>
-			) : null}
+			{goal ? <GoalSummary goal={goal} /> : null}
 			{goal === undefined && progress.pending ? (
 				<Loading className="space-y-3" label="Loading goal progress">
 					<Skeleton className="h-4 w-48" />
@@ -50,13 +41,44 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 	);
 }
 
+function GoalSummary({ goal }: { readonly goal: GoalsProjection["goals"][number] }) {
+	const [first, ...rest] = goal.asks;
+	const asks = first ? <GoalAsks asks={[first, ...rest]} /> : null;
+	if (goal.linked === 0) {
+		return (
+			<>
+				<EmptyState title="No linked work">Work items that name this goal in their Markdown appear here.</EmptyState>
+				{asks ? <p>{asks}</p> : null}
+			</>
+		);
+	}
+	return (
+		<>
+			<p>
+				{goal.linked} linked {goal.linked === 1 ? "item" : "items"}
+				{asks ? <> · {asks}</> : null}
+			</p>
+			<GoalProgress counts={goal.counts} size="large" title="Linked work" />
+			<GoalCountList counts={goal.counts} />
+			<GoalBreakdown goal={goal} />
+		</>
+	);
+}
+
 function GoalCountList({ counts }: { readonly counts: GoalCounts }) {
 	return (
 		<ul aria-label="Linked work by state" className="!p-0 !list-none flex flex-wrap gap-x-5 gap-y-2" data-goal-counts="">
 			{goalCountOrder.map((status) => (
 				<li className="flex items-center gap-2" data-count={counts[status]} data-status={status} key={status}>
-					<span aria-hidden="true" className={`size-2 rounded-full ${dots[status]}`} />
-					<strong className="tabular-nums">{counts[status]}</strong> <StatusChip status={status} />
+					<span aria-hidden="true" className={`size-2 rounded-full ${counts[status] > 0 ? dots[status] : "bg-muted-foreground/30"}`} />
+					<strong className="tabular-nums">{counts[status]}</strong>{" "}
+					{counts[status] > 0 ? (
+						<StatusChip status={status} />
+					) : (
+						<span className="text-muted-foreground text-xs" data-quiet-count="">
+							{statusLabel(status)}
+						</span>
+					)}
 				</li>
 			))}
 		</ul>

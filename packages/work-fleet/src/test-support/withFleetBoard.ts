@@ -1,5 +1,5 @@
 import { NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem, Layer, Path, type Scope } from "effect";
+import { Context, Effect, FileSystem, Layer, Path, type Scope } from "effect";
 import { markdownBoard } from "#board/markdown.ts";
 import type { Fleet } from "#fleet.ts";
 import { reportBoard } from "#host/reportBoard.ts";
@@ -42,3 +42,7 @@ export function withFleetBoard<A, E>(
 		return yield* withEngine(options, (fixture) => use(fixture, root, source).pipe(Effect.provide(NodeServices.layer), Effect.scoped), board);
 	}).pipe(Effect.provide(NodeServices.layer));
 }
+
+export const openFleetBoard = Effect.fn("Test.openFleetBoard")(function* (root: string) {
+	return Context.get(yield* Layer.build(Layer.fresh(markdownBoard(root))), BoardGateway);
+});

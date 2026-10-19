@@ -9,10 +9,11 @@ import { Label } from "#client/react/components/ui/label.tsx";
 import { SearchOutcome } from "#client/react/SearchOutcome.tsx";
 import { SearchResults } from "#client/react/SearchResults.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
-import { activateCommand, matchingCommands, type SearchItem } from "#client/react/searchCommands.ts";
+import { activateCommand, type SearchItem } from "#client/react/searchCommands.ts";
 import { searchStatus } from "#client/react/searchStatus.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import type { AppearanceControls } from "#client/react/useAppearance.ts";
+import { usePaletteCommands } from "#client/react/usePaletteCommands.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 
 export function SearchPalette({
@@ -41,8 +42,7 @@ export function SearchPalette({
 	const listRef = useRef<HTMLDivElement>(null);
 	const query = useQuery(api.search.query(records ? { query: text, records } : { query: text }));
 	const data = Option.getOrUndefined(query.data);
-	const goals = useQuery(api.goals.query());
-	const commands = matchingCommands(Option.getOrUndefined(goals.data)?.goals ?? [], text);
+	const commands = usePaletteCommands(api, text);
 	const editing = input.trim() !== text;
 	const destinations = new Set<string>();
 	const items = editing
@@ -133,7 +133,7 @@ export function SearchPalette({
 					</Button>
 				)}
 			</div>
-			<SearchResults activate={activate} items={items} listRef={listRef} />
+			<SearchResults activate={activate} items={items} listRef={listRef} query={text} />
 			<SearchOutcome
 				failed={failed}
 				found={items.length}
