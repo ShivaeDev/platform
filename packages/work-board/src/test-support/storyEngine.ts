@@ -13,6 +13,7 @@ export interface BoardEngine {
 	activeDiagnosticsPolls?: () => number;
 	beforeScripts?: Parameters<typeof openPage>[2];
 	changeDelivery?: { dropped: boolean; loseNext: boolean; omitPath?: string };
+	connectionBoundary?: { readonly disconnect: () => void; readonly resume: () => void };
 	fleetPort?: number | undefined;
 	home?: string | undefined;
 	lastView?: ReturnType<typeof readerView>;

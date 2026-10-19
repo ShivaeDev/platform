@@ -1,14 +1,14 @@
 import { expect } from "vitest";
 import { libraryData } from "#server/navigation/libraryData.ts";
 import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "#server/responses/records.ts";
-import { boardStory } from "#test/boardStory.ts";
+import { boardStory, deferredServing } from "#test/boardStory.ts";
 import { inboxFixture, inboxQuestion } from "#test/inboxFixture.ts";
 import { anInbox } from "#test/storyTraits.ts";
 import { fleetRecords, inboxItems } from "./inbox.ts";
 
 boardStory.it(
 	"collects human-owned next actions, open questions, needs-human work and managed Fleet requests once",
-	[anInbox()],
+	[deferredServing, anInbox()],
 	function* ({ readAttention }) {
 		const snapshot = yield* readAttention();
 		expect(inboxItems(snapshot).map((item) => item.id)).toEqual(["task.review", "question.storage", "task.fleet"]);
@@ -17,7 +17,7 @@ boardStory.it(
 
 boardStory.it(
 	"excludes closed questions, automation labels and missing actions while disclosing ambiguous identities",
-	[anInbox()],
+	[deferredServing, anInbox()],
 	function* ({ readAttention }) {
 		const files: Record<string, string> = { ...inboxFixture(), "question.md": inboxQuestion.replace("status: open", "status: closed") };
 		for (const owner of ["claude", "agent-navigation", "Fleet", "bot", "copilot", "orchestrator", "automation"]) {
@@ -35,7 +35,7 @@ boardStory.it(
 
 boardStory.it(
 	"removes only a uniquely recorded answer to the current question and groups the full Fleet record chain",
-	[anInbox()],
+	[deferredServing, anInbox()],
 	function* ({ readAttention }) {
 		const revision = revisionOf(inboxQuestion);
 		const id = questionId("question.storage", "answer", revision, "question.md");
@@ -111,7 +111,7 @@ boardStory.it(
 
 boardStory.it(
 	"links authored questions and managed requests directly to their source item's answer card",
-	[anInbox()],
+	[deferredServing, anInbox()],
 	function* ({ readAttention }) {
 		const items = inboxItems(yield* readAttention());
 		expect(items.find((item) => item.id === "question.storage")?.href).toBe("/_board/item/question.storage/#answer-card-answer");
