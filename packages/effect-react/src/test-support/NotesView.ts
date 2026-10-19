@@ -1,4 +1,4 @@
-import { Effect, Option, Ref, Schema } from "effect";
+import { Effect, Option, Ref, Schema, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { createElement } from "react";
@@ -16,6 +16,7 @@ const handlers = Notes.toLayer(
 	Effect.gen(function* () {
 		const stored = yield* Ref.make<readonly string[]>([]);
 		return Notes.of({
+			"notes.$changes": () => Stream.never,
 			"notes.add": ({ title }) => Ref.update(stored, (all) => [...all, title]),
 			"notes.list": () => Ref.get(stored).pipe(Effect.delay("20 millis")),
 		});

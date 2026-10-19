@@ -1,7 +1,7 @@
 import { type Cause, Duration, Effect, Option, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { invalidateLive } from "#internal/queryReactivity.ts";
+import { invalidateLive } from "#internal/liveInvalidation.ts";
 import { invalidationKeys, Key, readKeys } from "./keys.ts";
 
 export const LiveHint = Schema.Union([
@@ -50,19 +50,22 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 					clear();
 				});
 				function changed(changedKeys: readonly Key[]) {
-					const delay = Duration.toMillis(Duration.fromInputUnsafe(get.once(coalesceWindow)));
+					const window = get.once(coalesceWindow);
+					const keys = invalidationKeys(changedKeys);
+					invalidateLive(reactivity, keys, () => active && !get.once(paused), window);
+					const delay = Duration.toMillis(Duration.fromInputUnsafe(window));
 					if (delay === 0) {
-						reactivity.invalidateUnsafe(invalidationKeys(changedKeys));
+						invalidateLive(reactivity, keys, () => active && !get.once(paused));
 						return;
 					}
 					for (const key of invalidationKeys(changedKeys)) {
 						pending.add(key);
 					}
 					timer ??= setTimeout(() => {
-						const keys = [...pending];
+						const queued = [...pending];
 						clear();
 						if (!get.once(paused)) {
-							invalidateLive(reactivity, keys, () => active && !get.once(paused));
+							invalidateLive(reactivity, queued, () => active && !get.once(paused));
 						}
 					}, delay);
 				}

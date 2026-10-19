@@ -1,9 +1,8 @@
 import { Deferred, Effect, Layer, PubSub, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcGroup, RpcTest } from "effect/rpc";
+import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
-import { changesRpc } from "@shivaedev/effect-contract/serverMetadata.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/platform/rpc/middleware.ts";
@@ -43,6 +42,7 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 		return new Conflict({ message: "This note changed. Refresh and review your draft before trying again." });
 	}
 	const handlers = Notes.toLayer({
+		"notes.$changes": () => Stream.concat(Stream.make({ _tag: "Resync" } as const), Stream.fromPubSub(hints)),
 		"notes.create": ({ title }) =>
 			title.trim() === "reserved"
 				? Create.reject.Invalid({ field: "title", message: "Choose another title" })
@@ -97,12 +97,7 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 	class Client extends AtomRpc.Service<Client>()("app/NotesClient", {
 		group: Notes,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: Layer.merge(
-			handlers,
-			RpcGroup.make(changesRpc("notes")).toLayer({
-				"notes.$changes": () => Stream.concat(Stream.make({ _tag: "Resync" } as const), Stream.fromPubSub(hints)),
-			}),
-		).pipe(Layer.provideMerge(authentication)),
+		protocol: handlers.pipe(Layer.provideMerge(authentication)),
 	}) {}
 	const api = bind(Notes, Client);
 	function finishNote(id: number, wordCount: number) {

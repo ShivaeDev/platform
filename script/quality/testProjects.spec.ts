@@ -11,7 +11,7 @@ it("excludes worktree spec copies from every project", [withWorktrees], function
 });
 
 it(
-	"runs Node tests and DOM specs with a separate Node host, without selecting slow or type tests",
+	"runs Node tests, unit tests and DOM specs with a separate Node host, without selecting slow or type tests",
 	[],
 	function* ({ run, testResults, hasCoverage }) {
 		const result = yield* run();
@@ -19,6 +19,7 @@ it(
 		expect(testResults()).toEqual([
 			"e2e/smoke.spec.ts passed",
 			"src/document.dom.test.tsx passed",
+			"src/double.unit.test.ts passed",
 			"src/flow.spec.ts passed",
 			"src/host.dom.spec.tsx passed",
 			"src/unit.test.ts passed",
@@ -36,7 +37,7 @@ it("runs slow tests alone when requested", [], function* ({ run, testResults }) 
 it("runs Node-only repositories without installing the DOM plugin", [nodeOnly], function* ({ run, testResults }) {
 	const result = yield* run();
 	expect(result.status, result.output).toBe(0);
-	expect(testResults()).toEqual(["e2e/smoke.spec.ts passed", "src/flow.spec.ts passed", "src/unit.test.ts passed"]);
+	expect(testResults()).toEqual(["e2e/smoke.spec.ts passed", "src/double.unit.test.ts passed", "src/flow.spec.ts passed", "src/unit.test.ts passed"]);
 });
 
 it("collects executed and unvisited source coverage while leaving test fixtures out", [collectingCoverage], function* ({ run, coverageFiles }) {

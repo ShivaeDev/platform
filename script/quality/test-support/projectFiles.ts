@@ -30,6 +30,7 @@ export const projectFiles: readonly SeedFile[] = [
 		"src/unit.test.ts",
 		'import { double } from "./double.ts";\nit("doubles in Node", () => { expect(double(3)).toBe(6); expect(typeof document).toBe("undefined"); });',
 	),
+	spec("src/double.unit.test.ts", 'import { double } from "./double.ts";\nit("doubles as a unit", () => { expect(double(2)).toBe(4); });'),
 	spec(
 		"src/host.dom.spec.tsx",
 		`import { label } from "./label.ts";

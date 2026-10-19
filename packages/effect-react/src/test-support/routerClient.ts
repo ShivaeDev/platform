@@ -1,4 +1,4 @@
-import { Deferred, Effect, Schema } from "effect";
+import { Deferred, Effect, Schema, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
@@ -30,6 +30,7 @@ export function routerClient() {
 		Effect.sync(() => {
 			builds += 1;
 			return Notes.of({
+				"routerNotes.$changes": () => Stream.never,
 				"routerNotes.get": ({ id }) => {
 					calls.push(id);
 					return Deferred.await(gate(id));

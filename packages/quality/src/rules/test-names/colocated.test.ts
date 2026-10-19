@@ -36,4 +36,11 @@ describe("tests/colocated", () => {
 			},
 		]);
 	});
+
+	it("keeps a unit test's modifier in the name it suggests", async () => {
+		const findings = await checkRule(testsColocated, undefined, { files: ["src/tests/cart.unit.test.ts"] });
+		expect(findings.map((finding) => finding.message)).toEqual([
+			'Sits in the test folder "tests/". A test sits beside the file it covers, as cart.unit.test.ts beside cart.ts, or as a <behaviour>.unit.spec.ts in the folder it covers. A folder of tests that cover several packages is a suite in the "suites" option.',
+		]);
+	});
 });

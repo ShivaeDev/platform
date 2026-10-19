@@ -33,16 +33,6 @@ export default defineConfig({
 			"rules": ["biome/lint/correctness/noEmptyPattern"],
 		},
 		{
-			files: [
-				"packages/work-board-plugin/src/boardStream.spec.ts",
-				"packages/work-board-plugin/src/boardSummary.spec.ts",
-				"packages/work-board-plugin/src/toolAnswers.spec.ts",
-			],
-			reason:
-				"These specs cover the plugin's pure parsing and shaping functions, which have no engine behind them: the only engine is Claude Code, which test-story cannot drive.",
-			rules: ["tests/story-specs"],
-		},
-		{
 			files: ["packages/work-board-plugin/src/claude-code.d.ts"],
 			reason: "TypeScript looks up the JSX namespace by that exact name to type the plugin's JSX against Claude Code's elements.",
 			rules: ["biome/lint/style/useNamingConvention"],

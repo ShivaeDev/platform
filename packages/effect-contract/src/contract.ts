@@ -27,7 +27,7 @@ export interface Contract<
 	TName extends string,
 	TQueries extends readonly QueryShape[],
 	TCommands extends readonly CommandShape[],
-	TRpcs extends Rpc.Any = OperationRpc<TName, TQueries[number] | TCommands[number]>,
+	TRpcs extends Rpc.Any = OperationRpc<TName, TQueries[number] | TCommands[number]> | ReturnType<typeof changesRpc<TName>>,
 	TStreams extends readonly StreamShape[] = readonly [],
 > extends RpcGroup.RpcGroup<TRpcs> {
 	readonly declaration: Declared<TName, TQueries, TCommands, TStreams>;
@@ -89,7 +89,13 @@ export function contract<
 		readonly commands?: TCommands & Unique<[...TQueries, ...TCommands]>;
 		readonly streams?: TStreams & Unique<[...TQueries, ...TCommands, ...TStreams]>;
 	},
-): Contract<TName, TQueries, TCommands, OperationRpc<TName, TQueries[number] | TCommands[number] | TStreams[number]>, TStreams>;
+): Contract<
+	TName,
+	TQueries,
+	TCommands,
+	OperationRpc<TName, TQueries[number] | TCommands[number] | TStreams[number]> | ReturnType<typeof changesRpc<TName>>,
+	TStreams
+>;
 export function contract(
 	name: string,
 	operations: { readonly queries?: readonly QueryShape[]; readonly commands?: readonly CommandShape[]; readonly streams?: readonly StreamShape[] },
