@@ -53,7 +53,7 @@ for (const mode of ["fenced", "nested", "paragraphs"]) {
 				"Wait for reviewKeep the work blocked until another review.",
 			]);
 			expect(readText(".item-summary")).not.toContain(decisionId);
-			expect(readText('[aria-label="Document source"] pre')?.split(decisionId)).toHaveLength(2);
+			expect(readText("[data-document-source] pre")?.split(decisionId)).toHaveLength(2);
 			expect([...findElements("h1,h2,[title]")].every((element) => !/[a-f\d]{64}/u.test(element.textContent ?? ""))).toBe(true);
 		},
 	);
