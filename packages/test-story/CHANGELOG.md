@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 - 2026-10-19
+
+### Added
+
+- `ForwardingProxyOptions.localAddress` selects the proxy's source socket address and rejects unavailable addresses during acquisition. `ForwardingProxyOptions.forwardedHops` appends visitor and edge hops after the client's `x-forwarded-for` chain instead of the caller address; fixed `headers` still override the generated chain.
+
 ## 0.12.0 - 2026-10-18
 
 ### Added

@@ -3,53 +3,61 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "create-app-base-ui.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use stock shadcn Base UI components instead of Radix. In apps generated earlier, re-add badge, button, tabs and tooltip from the Base UI registry and replace `asChild` composition with the `render` prop (for example, `<Button render={<a href=\"/notes\" />}>Notes</Button>`). Use `TooltipProvider`'s `delay` prop instead of `delayDuration`.\n"
+				"name": "effect-react-warnings-readout.md",
+				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- `captureReactWarnings` in `client/testing.ts` acquires a scoped, silent capture for story kits. Its `ReactWarnings` handle reads console calls and unexpected caught React errors as a `ReactWarningsReadout`, excludes declared caught errors, and restores `console.error` on scope closure, including failed stories. `expectNoReactWarnings` uses the same capture mechanism.\n"
 			},
 			{
-				"name": "effect-test-sql-name-mapping.md",
-				"text": "---\n\"@shivaedev/effect-test-sql\": minor\n---\n\n### Added\n\n- `PostgresTestOptions` accepts effect-sql's `SqlNameTransforms`, including the options returned by `clientOptions`, for preparation, shared and isolated PostgreSQL clients. Reuse the app's client options without a test-only name mapping.\n- `assertModelColumns` uses the current PostgreSQL client's name transforms to compare database columns with model fields and report mismatches in model field names. Calls without a configured mapping retain literal column comparisons.\n"
+				"name": "quality-skip-worktrees.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Exclude `.worktrees` directories from all Vitest projects, repository discovery and Biome checks so worktree copies are not tested or linted from the parent checkout.\n"
 			},
 			{
-				"name": "platform-schema-diagnostics.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Expose `redactWire(value, sensitive?)` for native failure serialization without diagnostic collection, depth, binary or string summaries. `redactText(text, sensitive, maxLength?)` accepts an optional length limit; `Infinity` disables truncation while retaining the existing credential and key masking.\n- `appHost` accepts one `config.sensitiveKeys` list and derives sensitive field names from its RPC schemas' `Schema.Redacted`, `Schema.RedactedFromValue` and `sensitive: true` annotations. These names mask log annotations, RPC failure and defect payloads, reported causes and exported trace attributes, including nested structured data. Successful RPC results retain application data; free-text scanning keeps the existing credential and key rules.\n- Expose `RedactionPolicy`, `schemaSensitiveKeys`, `redactingDiagnostics`, `redactRecord`, `redactingTracer` and `redactingRpcSerialization` for native boundary composition. `redactOtlpText` accepts an optional third sensitive-key predicate. `redactDiagnosticCause` and `redactingErrorReporter` also redact typed failure diagnostics; `redactCause` retains typed failures for middleware composition.\n- The predicate returned by `schemaSensitiveKeys(group, extraKeys?)` exposes `maskFailure(tag: string | undefined, reason: \"Fail\" | \"Die\")`. Pass it as the optional third argument to `redactingRpcSerialization(wire, sensitive, maskFailure?)` to protect sensitive roots without fixed field names. Serialization correlates RPC responses with decoded request tags; an unassociated defect uses the host's conservative defect policy.\n\n### Fixed\n\n- Preserve public RPC failure collections, deeply nested values and long text after schema encoding, so client payloads are not changed by diagnostic output limits.\n- Apply failure masking to both native numeric and string request IDs, including sensitive root-schema policies.\n- Copy native cause stack frames with callable stack suppliers and valid parent links. Truncated parent chains end with `undefined`, so deep public stacks remain usable by error reporters and OTLP exception formatting.\n- Mask entire RPC failure values when a sensitive source encodes to a top-level scalar or record whose output keys cannot be named. Other RPC failures and successful results retain their application data.\n- Rebuild diagnostic failure, defect and interruption reasons with only sanitized annotations, so marking `stack` sensitive removes native `Cause.StackTrace` and `Cause.InterruptorStackTrace` metadata from reporter causes and exported traces.\n- Honor sensitive annotations on schema checks and nested check groups in logs, RPC failures and exported span attributes.\n- Apply the source `_tag` sensitivity before tracing copies an error tag into `rpc.failure`, so schema annotations and host-listed keys also protect the failure log.\n- Apply sensitive-key declarations to non-enumerable Error `cause`, `message`, `name` and `stack` fields in reported causes and exported exceptions. Mask stacks when the name or message is sensitive, so their native stack headers cannot repeat those values.\n- Apply the same stack masking recursively to Error values in log messages and annotations, reported causes and exported span attributes. Expose `redactErrorStack(error, sensitive)` for the shared native Error stack policy.\n- Carry sensitive field names through `Schema.encodeKeys` so renamed failure fields and diagnostics stay redacted. Collect declarations before propagating encoded names until stable, making direct and chained mappings independent of schema traversal order. Detect sensitive descendants throughout the transformation source, including app-listed keys, so flattening nested fields cannot lose their sensitivity. Derive policy without executing encoder callbacks and mask every declared encoded target field, including every union branch, because opaque callbacks cannot guarantee field provenance.\n- Mask the enclosing field when a sensitive source encodes to a scalar, including host-listed keys. Preserve native RPC protocol tags while masking application error fields.\n- Mask encoded Error stacks in RPC failure payloads when `message` or `name` is sensitive, including `Schema.Defect({ includeStack: true })`.\n\n### Breaking\n\n- Sensitive fields in RPC failure payloads now contain `<redacted>` after schema encoding. Client error schemas with sensitive fields must accept that marker (for example, union the field schema with `Schema.Literal(\"<redacted>\")`) or omit the field from the wire error schema. An encoder with a sensitive source masks all declared output fields, including otherwise public fields and error discriminators; client wire-error schemas must accept those markers too. Fields containing sensitive array items or record values are masked as a whole. If a sensitive error encodes to a scalar or record at the root, the entire error is replaced by the marker; client wire-error schemas must accept a string marker in place of that error. Successful responses keep their existing schemas and values.\n"
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+			},
+			{
+				"name": "test-story-proxy-address-hops.md",
+				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- `ForwardingProxyOptions.localAddress` selects the proxy's source socket address and rejects unavailable addresses during acquisition. `ForwardingProxyOptions.forwardedHops` appends visitor and edge hops after the client's `x-forwarded-for` chain instead of the caller address; fixed `headers` still override the generated chain.\n"
+			},
+			{
+				"name": "work-fleet-idle-priority.md",
+				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- `fleet-priority: low` fills idle execution capacity after prepared normal-or-higher work, without interrupting running low work. Low work still respects held areas and dependencies. Pending low launch retries do not stop normal admission; new provider rejections still pace the scheduler.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.0",
+				"from": "0.11.1",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.1"
+				"to": "0.11.2"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/effect-test-sql",
-				"from": "0.6.1",
-				"name": "@shivaedev/effect-test-sql",
-				"to": "0.7.0"
+				"directory": "packages/effect-react",
+				"from": "0.8.0",
+				"name": "@shivaedev/effect-react",
+				"to": "0.9.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/quality",
+				"from": "0.28.0",
+				"name": "@shivaedev/quality",
+				"to": "0.28.1"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/platform",
-				"from": "0.19.0",
-				"name": "@shivaedev/platform",
-				"to": "0.20.0"
+				"directory": "packages/test-story",
+				"from": "0.12.0",
+				"name": "@shivaedev/test-story",
+				"to": "0.13.0"
 			},
 			{
-				"bump": "patch",
-				"directory": "packages/work-board",
-				"from": "0.21.0",
-				"name": "@shivaedev/work-board",
-				"to": "0.21.1"
-			},
-			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/work-fleet",
-				"from": "0.11.0",
+				"from": "0.11.1",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.11.1"
+				"to": "0.12.0"
 			}
 		]
 	}

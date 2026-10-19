@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.28.1 - 2026-10-19
+
+### Fixed
+
+- Exclude `.worktrees` directories from all Vitest projects, repository discovery and Biome checks so worktree copies are not tested or linted from the parent checkout.
+
 ## 0.28.0 - 2026-10-18
 
 ### Added
