@@ -10,7 +10,7 @@ boardStory.it(
 		const data = yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "packages/form/README.md" })));
 		expect(data).toEqual({
 			counts: { goals: 0, library: 7, now: 0, system: expect.any(Number) },
-			home: { file: "packages/README.md" },
+			home: { file: "packages/README.md", title: "packages/README.md" },
 			inboxCount: 1,
 		});
 		const response = yield* get("/packages/form/README.md");

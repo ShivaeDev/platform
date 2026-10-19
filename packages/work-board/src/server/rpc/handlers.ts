@@ -10,6 +10,7 @@ import { libraryData } from "#server/navigation/libraryData.ts";
 import { navigationData } from "#server/navigation/model.ts";
 import { Responses } from "#server/Responses.ts";
 import { searchMatch } from "#server/search/match.ts";
+import type { Snapshot } from "#server/search/snapshot.ts";
 import { fleetItems } from "#server/views/fleetItems.ts";
 import { goals } from "#server/views/goals.ts";
 import { projectionQueries } from "#server/views/projectionQueries.ts";
@@ -24,7 +25,11 @@ const responseBoundary = rpcBoundary(ResponseRejection, { unexpected: (message) 
 
 export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: HandlerOptions = {}) {
 	const workspace = yield* Workspace;
-	const { changes, home } = yield* workspace.settings();
+	const { changes, home, root } = yield* workspace.settings();
+	const fleetFolder = options.fleetFolder ?? root;
+	function fleetOver(snapshot: Snapshot) {
+		return fleetItems(fleetFolder, options.fleetPort).pipe(Effect.provideService(Workspace, { ...workspace, index: () => Effect.succeed(snapshot) }));
+	}
 	const index = workspace.index();
 	const document = workspace.document;
 	const projections = yield* projectionQueries;
@@ -38,14 +43,11 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.board": ({ url }) => Effect.suspend(() => projections.board(url)).pipe(documentBoundary),
 			"work-board.diagnostics": () => remaining.diagnostics().pipe(readBoundary),
 			"work-board.document": ({ url }) => Effect.suspend(() => document(url)).pipe(documentBoundary),
-			"work-board.fleetItems": () => fleetItems(options.fleetPort).pipe(readBoundary),
+			"work-board.fleetItems": () => fleetItems(fleetFolder, options.fleetPort).pipe(readBoundary),
 			"work-board.goals": () =>
 				Effect.gen(function* () {
 					const snapshot = yield* index;
-					return goals(
-						snapshot,
-						yield* fleetItems(options.fleetPort).pipe(Effect.provideService(Workspace, { ...workspace, index: () => Effect.succeed(snapshot) })),
-					);
+					return goals(snapshot, yield* fleetOver(snapshot));
 				}).pipe(readBoundary),
 			"work-board.handoff": ({ url }) => remaining.handoff(url).pipe(documentBoundary),
 			"work-board.handoffSource": ({ item }) => Effect.suspend(() => handoffs.locate(item)).pipe(responseBoundary),
@@ -58,13 +60,7 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.navigation": () =>
 				Effect.gen(function* () {
 					const snapshot = yield* index;
-					const [work, fleet] = yield* Effect.all(
-						[
-							projections.work("/_board/work"),
-							fleetItems(options.fleetPort).pipe(Effect.provideService(Workspace, { ...workspace, index: () => Effect.succeed(snapshot) })),
-						],
-						{ concurrency: "unbounded" },
-					);
+					const [work, fleet] = yield* Effect.all([projections.work("/_board/work"), fleetOver(snapshot)], { concurrency: "unbounded" });
 					const now = openLaneCount(laneRows(work.rows, fleet, yield* Clock.currentTimeMillis).lanes);
 					return navigationData(yield* changes.files, home, snapshot, now);
 				}).pipe(readBoundary),

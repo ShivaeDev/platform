@@ -23,23 +23,19 @@ screenStory.it(
 );
 
 screenStory.it(
-	"counts In progress on Today from the task files while Fleet is unavailable and says where the status comes from",
+	"counts In progress on Today from the status written in each task while Fleet is unavailable and says so in plain words",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), openScreen()],
 	function* ({ findElements, readText }) {
 		yield* Effect.promise(() =>
 			eventually(() =>
-				expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual([
-					"3 need you",
-					"1 in progress in task files",
-					"0 active goals",
-				]),
+				expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual(["3 need you", "1 marked in progress", "0 active goals"]),
 			),
 		);
 		expect(findElements("[data-progress-id]").map((row) => row.getAttribute("data-progress-id"))).toEqual(["task.upload"]);
-		expect(readText("[data-progress-id='task.upload']")).toBe("Fix the flaky upload testTask file · Active");
+		expect(readText("[data-progress-id='task.upload']")).toBe("Fix the flaky upload testActive");
 		expect(findElements("#in-progress [role='status'] p").map((line) => line.textContent)).toEqual([
-			"Fleet unavailable. Fleet daemon is not configured for this Board",
-			"Status comes from the task files, not live Fleet.",
+			"Fleet isn't set up for this Board.",
+			"These show the status written in each task, not what Fleet reports.",
 		]);
 	},
 );
@@ -88,5 +84,23 @@ screenStory.it(
 		expect(readAttribute(PHONE_TODAY, "aria-label")).toBe("Today, 0 need you");
 		expect(findElement(`${PHONE_TODAY} [data-slot="badge"]`)).toBeNull();
 		expect(readAttribute("#inbox-count", "data-variant")).toBe("secondary");
+	},
+);
+
+screenStory.it(
+	"shows no needs-you badge in the sidebar or header when nothing needs you and keeps the count for screen readers",
+	[chromeScreen({ "notes/plan.md": "# Plan\n" })],
+	function* ({ findElements, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#inbox-count")).toBe("0")));
+		expect(
+			findElements("#inbox-count, #inbox-topbar-count").map((badge) => [
+				badge.id,
+				badge.getAttribute("aria-label"),
+				badge.classList.contains("sr-only"),
+			]),
+		).toEqual([
+			["inbox-count", "0 need you", true],
+			["inbox-topbar-count", "0 need you", true],
+		]);
 	},
 );

@@ -1,10 +1,9 @@
-import { Copy, MessageCircleX } from "lucide-react";
-import { useRef, useState } from "react";
-import { Button } from "#client/react/components/ui/button.tsx";
+import { MessageCircleX } from "lucide-react";
+import { CopyButton } from "#client/react/CopyButton.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Textarea } from "#client/react/components/ui/textarea.tsx";
+import { useCopy } from "#client/react/useCopy.ts";
 import { answerTextClass } from "./answerTextClass.ts";
-import { copyText } from "./copyText.ts";
 
 export interface ClosedDraft {
 	readonly id: string;
@@ -14,17 +13,7 @@ export interface ClosedDraft {
 }
 
 export function ClosedDraftCard({ draft }: { readonly draft: ClosedDraft }) {
-	const ref = useRef<HTMLTextAreaElement>(null);
-	const [status, setStatus] = useState("");
-	async function handleCopy() {
-		if (await copyText(draft.text)) {
-			setStatus("Copied.");
-			return;
-		}
-		ref.current?.focus();
-		ref.current?.select();
-		setStatus("Couldn't copy automatically. The draft is selected, so copy it yourself.");
-	}
+	const { fieldRef, handleCopy, status } = useCopy<HTMLTextAreaElement>(draft.text, { copied: "Copied.", selected: "draft" });
 	return (
 		<section
 			aria-labelledby={`answer-title-${draft.id}`}
@@ -44,13 +33,10 @@ export function ClosedDraftCard({ draft }: { readonly draft: ClosedDraft }) {
 				<Label className="font-normal" htmlFor={`closed-draft-${draft.id}`}>
 					Your unsent draft
 				</Label>
-				<Textarea className={answerTextClass(true)} id={`closed-draft-${draft.id}`} readOnly ref={ref} value={draft.text} />
+				<Textarea className={answerTextClass(true)} id={`closed-draft-${draft.id}`} readOnly ref={fieldRef} value={draft.text} />
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
-				<Button onClick={handleCopy} type="button" variant="outline">
-					<Copy aria-hidden="true" />
-					Copy draft
-				</Button>
+				<CopyButton onClick={handleCopy}>Copy draft</CopyButton>
 				<p className="m-0 text-muted-foreground text-xs" data-copy-status role="status">
 					{status}
 				</p>
