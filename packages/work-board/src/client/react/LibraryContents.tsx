@@ -1,49 +1,48 @@
 import { Option } from "effect";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
-import type { Library, LibraryFile } from "#browser/navigation/library.ts";
+import type { Library, LibraryFile, LibraryInput, LibraryView } from "#browser/navigation/library.ts";
 import { kindLabel, statusLabel } from "#browser/views/statusLabel.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { LinkButton } from "./LinkButton.tsx";
+import { type Paging, useLocalPaging } from "./libraryPaging.ts";
 import { LoadingRows } from "./loading.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 import { RowTime } from "./Time.tsx";
+
 export function LibraryContents({
 	api,
+	clearHref,
 	data,
 	filters,
-	onClear,
+	paging,
 	view,
 }: {
 	readonly api: ShellApi;
+	readonly clearHref?: string | undefined;
 	readonly data: Library;
-	readonly filters: Filters;
-	readonly onClear?: (() => void) | undefined;
-	readonly view: string;
+	readonly filters: LibraryInput;
+	readonly paging?: Paging | undefined;
+	readonly view: LibraryView;
 }) {
+	const files = useMemo(
+		() => (view === "recently-changed" ? data.files.toSorted((a, b) => b.modified - a.modified || a.path.localeCompare(b.path)) : data.files),
+		[data.files, view],
+	);
 	if (data.files.length === 0 && data.folders.length === 0) {
-		return <NoDocuments filtered={Boolean(filters.kind || filters.status)} onClear={onClear} />;
+		return <NoDocuments clearHref={clearHref} />;
 	}
 	if (view === "folders") {
 		return <FolderContents api={api} data={data} filters={filters} />;
 	}
-	const files = view === "recently changed" ? data.files.toSorted((a, b) => b.modified - a.modified || a.path.localeCompare(b.path)) : data.files;
-	return <DocumentList files={files} />;
+	return <DocumentList files={files} paging={paging} />;
 }
-function NoDocuments({ filtered, onClear }: { readonly filtered: boolean; readonly onClear?: (() => void) | undefined }) {
-	return filtered ? (
-		<EmptyState
-			action={
-				onClear ? (
-					<Button onClick={onClear} size="sm" type="button" variant="outline">
-						Show all documents
-					</Button>
-				) : undefined
-			}
-			title="No matching documents"
-		>
-			No document has the chosen kind and status.
+function NoDocuments({ clearHref }: { readonly clearHref: string | undefined }) {
+	return clearHref ? (
+		<EmptyState action={<LinkButton href={clearHref}>Show all documents</LinkButton>} title="No matching documents">
+			No document matches these filters.
 		</EmptyState>
 	) : (
 		<EmptyState action={<LinkButton href="/_board/start">Getting started</LinkButton>} title="No documents yet">
@@ -51,34 +50,56 @@ function NoDocuments({ filtered, onClear }: { readonly filtered: boolean; readon
 		</EmptyState>
 	);
 }
-function DocumentList({ files }: { readonly files: readonly LibraryFile[] }) {
-	return files.length === 0 ? null : (
-		<ul className="m-0 list-none divide-y p-0">
-			{files.map((file) => (
-				<li className="flex flex-wrap items-center justify-between gap-2 py-3" key={file.path}>
-					<div className="min-w-0">
-						<a className="break-words font-medium" href={file.href}>
-							{file.title}
-						</a>
-						<p className="m-0 text-muted-foreground text-xs">
-							{kindLabel(file.kind)}
-							{file.status ? ` · ${statusLabel(file.status)}` : ""}
-						</p>
-					</div>
-					<span className="shrink-0 text-muted-foreground text-xs" data-updated>
-						Updated <RowTime at={file.modified} />
-					</span>
-				</li>
-			))}
-		</ul>
+function DocumentList({ files, paging }: { readonly files: readonly LibraryFile[]; readonly paging?: Paging | undefined }) {
+	const local = useLocalPaging();
+	const { shown, showMore } = paging ?? local;
+	const listRef = useRef<HTMLUListElement>(null);
+	if (files.length === 0) {
+		return null;
+	}
+	return (
+		<>
+			<ul className="m-0 list-none divide-y p-0" ref={listRef}>
+				{files.slice(0, shown).map((file) => (
+					<DocumentRow file={file} key={file.path} />
+				))}
+			</ul>
+			{files.length > shown && (
+				<Button
+					className="mt-4"
+					onClick={() => {
+						flushSync(showMore);
+						listRef.current?.children[shown]?.querySelector("a")?.focus();
+					}}
+					size="sm"
+					type="button"
+					variant="outline"
+				>
+					Show more
+				</Button>
+			)}
+		</>
 	);
 }
-interface Filters {
-	readonly kind?: string;
-	readonly showFleet?: boolean;
-	readonly status?: string;
+function DocumentRow({ file }: { readonly file: LibraryFile }) {
+	return (
+		<li className="flex flex-wrap items-center justify-between gap-2 py-3">
+			<div className="min-w-0">
+				<a className="break-words font-medium" href={file.href}>
+					{file.title}
+				</a>
+				<p className="m-0 text-muted-foreground text-xs">
+					{kindLabel(file.kind)}
+					{file.status ? ` · ${statusLabel(file.status)}` : ""}
+				</p>
+			</div>
+			<span className="shrink-0 text-muted-foreground text-xs" data-updated>
+				Updated <RowTime at={file.modified} />
+			</span>
+		</li>
+	);
 }
-function FolderContents({ api, data, filters }: { readonly api: ShellApi; readonly data: Library; readonly filters: Filters }) {
+function FolderContents({ api, data, filters }: { readonly api: ShellApi; readonly data: Library; readonly filters: LibraryInput }) {
 	return (
 		<>
 			<DocumentList files={data.files} />
@@ -88,7 +109,15 @@ function FolderContents({ api, data, filters }: { readonly api: ShellApi; readon
 		</>
 	);
 }
-function LazyFolder({ api, folder, filters }: { readonly api: ShellApi; readonly folder: Library["folders"][number]; readonly filters: Filters }) {
+function LazyFolder({
+	api,
+	folder,
+	filters,
+}: {
+	readonly api: ShellApi;
+	readonly folder: Library["folders"][number];
+	readonly filters: LibraryInput;
+}) {
 	const [open, setOpen] = useState(false);
 	return (
 		<details className="my-3 border-l pl-4" onToggle={(event) => setOpen(event.currentTarget.open)} open={open}>
@@ -99,7 +128,7 @@ function LazyFolder({ api, folder, filters }: { readonly api: ShellApi; readonly
 		</details>
 	);
 }
-function ExpandedFolder({ api, filters, path }: { readonly api: ShellApi; readonly filters: Filters; readonly path: string }) {
+function ExpandedFolder({ api, filters, path }: { readonly api: ShellApi; readonly filters: LibraryInput; readonly path: string }) {
 	const query = useQuery(api.library.query({ ...filters, folder: path }, { timeToLive: 0 }), { keepPreviousData: true });
 	const data = Option.getOrUndefined(query.data);
 	return (

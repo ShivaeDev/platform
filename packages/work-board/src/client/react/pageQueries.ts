@@ -1,7 +1,7 @@
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { NOT_FOUND_PROJECTION } from "./mainLocation.ts";
-import { routeQueryOptions } from "./routeQuery.ts";
+import { libraryQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 export function pageQueries(api: ShellApi, kind: string, url: string): readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[] {
@@ -16,7 +16,7 @@ export function pageQueries(api: ShellApi, kind: string, url: string): readonly 
 		];
 	}
 	if (kind === "library") {
-		return [api.library.query({}, routeQueryOptions)];
+		return [libraryQuery(api, url)];
 	}
 	if (kind === "goals") {
 		return [api.goals.query(undefined, routeQueryOptions)];

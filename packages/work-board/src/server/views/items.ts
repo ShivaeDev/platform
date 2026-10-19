@@ -26,12 +26,11 @@ function matches(item: Item, state: State): boolean {
 	if (state.status && !statusMatches(state.status, fields.status)) {
 		return false;
 	}
-	const text = [item.id, item.title, fields.kind, fields.status, fields.owner, fields.nextAction]
-		.filter(Boolean)
-		.join(" ")
-		.normalize("NFKC")
-		.toLowerCase();
-	return state.query
+	return textMatches([item.id, item.title, fields.kind, fields.status, fields.owner, fields.nextAction], state.query);
+}
+export function textMatches(values: readonly (string | undefined)[], query: string): boolean {
+	const text = values.filter(Boolean).join(" ").normalize("NFKC").toLowerCase();
+	return query
 		.normalize("NFKC")
 		.toLowerCase()
 		.split(/\s+/u)

@@ -5,7 +5,7 @@ boardStory.it(
 	"lists readable indexed titles and real modification times and reveals receipts only on request",
 	[
 		projectFiles({
-			"nested/slug.md": "---\nkind: task\nstatus: active\n---\n# A readable title\n",
+			"nested/slug.md": "---\nid: notes.slug\nkind: task\nstatus: active\n---\n# A readable title\n",
 			"receipt.md": `---\nkind: result\nrequest_receipt:\n question: request\n disposition: superseded\n recordedAt: 0\n reviewedRevision: ${"a".repeat(64)}\n---\n# Receipt\n`,
 		}),
 	],
@@ -19,5 +19,8 @@ boardStory.it(
 		expect(root.files).toEqual([]);
 		expect(root.folders).toEqual([{ count: 1, name: "nested", path: "nested" }]);
 		expect((yield* rpc((client) => client("work-board.library", { folder: "nested", kind: "task", status: "active" }))).files).toEqual(result.files);
+		expect((yield* rpc((client) => client("work-board.library", { query: "TITLE readable" }))).files).toEqual(result.files);
+		expect((yield* rpc((client) => client("work-board.library", { query: "notes.slug" }))).files).toEqual(result.files);
+		expect((yield* rpc((client) => client("work-board.library", { query: "readable receipt" }))).files).toEqual([]);
 	},
 );
