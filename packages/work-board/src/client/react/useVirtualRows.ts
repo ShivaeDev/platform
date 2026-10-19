@@ -7,7 +7,10 @@ export function useVirtualRows(count: number, rowHeight: number, enabled = count
 	return {
 		bottom: (count - end) * rowHeight,
 		end,
-		onScroll: (event: UIEvent<HTMLElement>) => setScroll({ height: event.currentTarget.clientHeight, top: event.currentTarget.scrollTop }),
+		onScroll: (event: UIEvent<HTMLElement>) => {
+			const list = event.target instanceof HTMLElement ? event.target : event.currentTarget;
+			setScroll({ height: list.clientHeight, top: list.scrollTop });
+		},
 		start,
 		top: start * rowHeight,
 	};

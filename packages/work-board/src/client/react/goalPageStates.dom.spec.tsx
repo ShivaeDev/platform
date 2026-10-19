@@ -57,7 +57,7 @@ for (const status of ["completed", "closed"]) {
 			yield* Effect.promise(() => eventually(() => expect(readText('[data-goal-section="progress"]')).toContain("6 linked items")));
 			const data = yield* Effect.promise(readGoals);
 			const goal = data?.closedGoals.find((entry) => entry.id === "project.closed");
-			expect(data?.goals.map((entry) => entry.id)).toEqual(["project.empty", "project.example"]);
+			expect(data?.goals.map((entry) => entry.id)).toEqual(["project.example"]);
 			expect(goal?.counts).toEqual({ done: 2, "in progress": 1, "needs you": 0, planned: 3 });
 			const counts = Object.fromEntries(
 				[...findElements<HTMLElement>("[data-goal-counts] [data-count]")].map((segment) => [segment.dataset.status, Number(segment.dataset.count)]),

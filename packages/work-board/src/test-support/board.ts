@@ -1,7 +1,9 @@
+import { Buffer } from "node:buffer";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { request } from "node:http";
+import { type IncomingHttpHeaders, request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { brotliDecompressSync, gunzipSync } from "node:zlib";
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Exit, FileSystem, Layer, Path, Scope, Tracer } from "effect";
 import { HttpServer } from "effect/http";
@@ -108,6 +110,49 @@ export function rawPost(board: RunningBoard, path: string, headers: Readonly<Rec
 						text += chunk;
 					});
 					response.on("end", () => resolve({ body: text, status: response.statusCode ?? 0 }));
+				});
+				outgoing.on("error", reject);
+				outgoing.end(body);
+			}),
+	);
+}
+
+export interface Exchange {
+	readonly body: Uint8Array;
+	readonly headers: IncomingHttpHeaders;
+	readonly status: number;
+	readonly text: string;
+}
+
+function decoded(body: Buffer, encoding: string | undefined) {
+	if (encoding === "br") {
+		return brotliDecompressSync(body);
+	}
+	return encoding === "gzip" ? gunzipSync(body) : body;
+}
+
+export function rawExchange(
+	board: RunningBoard,
+	path: string,
+	headers: Readonly<Record<string, string>>,
+	method = "GET",
+	body = "",
+): Effect.Effect<Exchange> {
+	return Effect.promise(
+		() =>
+			new Promise<Exchange>((resolve, reject) => {
+				const outgoing = request({ headers, host: board.hostname, method, path, port: board.port }, (response) => {
+					const chunks: Buffer[] = [];
+					response.on("data", (chunk: Buffer) => chunks.push(chunk));
+					response.on("end", () => {
+						const raw = Buffer.concat(chunks);
+						resolve({
+							body: raw,
+							headers: response.headers,
+							status: response.statusCode ?? 0,
+							text: decoded(raw, response.headers["content-encoding"]).toString("utf8"),
+						});
+					});
 				});
 				outgoing.on("error", reject);
 				outgoing.end(body);

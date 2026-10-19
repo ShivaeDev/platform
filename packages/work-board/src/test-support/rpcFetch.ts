@@ -1,7 +1,7 @@
 import type { BrowserWindow } from "happy-dom";
 import type { PageRequests } from "./browser.ts";
 import { RpcStream } from "./RpcStream.ts";
-import { type RpcRequest, rpcRequest } from "./rpc.ts";
+import { type RpcRequest, rpcRequest, rpcRequests } from "./rpc.ts";
 
 type Request = InstanceType<BrowserWindow["Request"]>;
 type Response = InstanceType<BrowserWindow["Response"]>;
@@ -50,6 +50,7 @@ export async function rpcBefore(request: Request, window: BrowserWindow, path: s
 	if (!nativeRequest(request)) {
 		return undefined;
 	}
+	pageRequests.methods.push(...(await rpcRequests(request)).map(({ tag }) => tag));
 	const call = await rpcRequest(request);
 	if (call?.tag === "work-board.subscribe") {
 		streams[0] ??= new RpcStream();

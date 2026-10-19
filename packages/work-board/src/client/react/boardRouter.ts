@@ -34,6 +34,7 @@ export function boardRouter(options?: RouterShell, history?: RouterHistory) {
 	const router = createRouter({
 		...(history ? { history } : {}),
 		context: options ? { shell: options } : {},
+		// The shell owns pending feedback (navigationTarget.ts) because its pages render outside route matches; a router pending component would also hold every slow page for pendingMinMs.
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		defaultPreloadStaleTime: 0,
 		defaultStaleReloadMode: "blocking",

@@ -21,20 +21,7 @@ const context = answerContext(prompts);
 screenStory.it(
 	"retains new questionnaire choices, text and reviewed context after a save, refresh and reload",
 	[answerScreen(context.preview, 0, prompts, context.source)],
-	function* ({
-		answerInput,
-		responseClick,
-		answerPrompt,
-		check,
-		holdWorkspace,
-		releaseWorkspace,
-		readText,
-		readAttribute,
-		readFocus,
-		selectText,
-		refreshScreen,
-	}) {
-		answerInput("author", "reviewer");
+	function* ({ responseClick, answerPrompt, check, holdWorkspace, releaseWorkspace, readText, readAttribute, readFocus, selectText, refreshScreen }) {
 		check("local");
 		responseClick("preview");
 		holdWorkspace();

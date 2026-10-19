@@ -7,6 +7,7 @@ export function shell(title: string, workspace: string): string {
 		'<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">',
 		`<title>${escapeHtml(title)}</title><script src="${THEME_ROUTE}"></script>`,
 		'<link rel="stylesheet" href="/_board/react.css"><script type="module" src="/_board/react.js"></script>',
-		"</head><body><div data-board-react-root></div></body></html>",
+		'</head><body><div data-board-react-root><div aria-hidden="true" data-board-skeleton><aside></aside><div><header></header></div><nav></nav></div></div>',
+		"</body></html>",
 	].join("");
 }

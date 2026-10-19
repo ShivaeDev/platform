@@ -12,20 +12,17 @@ screenStory.it(
 	"restores an answer after the React tree and its registries are recreated",
 	[screenWorkspace("draft-fixture"), answerScreen()],
 	function* ({ render, answerInput, closeScreen }) {
-		answerInput("author", "reviewer");
 		answerInput("body", "Direction in progress");
 		yield* Effect.promise(() => closeScreen());
 		yield* Effect.promise(() => render(answerDraft()));
 
 		expect(answerInput("body").value).toBe("Direction in progress");
-		expect(answerInput("author").value).toBe("reviewer");
 	},
 );
 screenStory.it(
 	"retains an answer when a live update remounts the same item and request",
 	[screenWorkspace("draft-fixture"), answerScreen()],
 	function* ({ answerInput, draftKey, refreshScreen }) {
-		answerInput("author", "reviewer");
 		answerInput("body", "Direction in progress");
 		const key = draftKey();
 		yield* Effect.promise(() => refreshScreen(answerDraft({ ...answerPreview, context: "Fresh live context" }, 1)));
@@ -37,7 +34,6 @@ screenStory.it(
 	"retains an answer and refreshes its optional preview when its source revision changes",
 	[screenWorkspace("draft-fixture"), answerScreen()],
 	function* ({ responseClick, answerInput, findElement, readText, draftKey, refreshScreen }) {
-		answerInput("author", "reviewer");
 		answerInput("body", "Direction in progress");
 		responseClick("preview");
 		expect(findElement("#response-submit")).toHaveProperty("disabled", false);
@@ -57,7 +53,6 @@ screenStory.it(
 	"clears a successfully submitted answer from storage and the next mounted form",
 	[screenWorkspace("draft-fixture"), answerScreen()],
 	function* ({ readResponses, responseClick, answerInput, draftKey, stored, refreshScreen }) {
-		answerInput("author", "reviewer");
 		answerInput("body", "Direction in progress");
 		const key = draftKey();
 		expect(stored(key)).toContain("Direction in progress");
@@ -76,11 +71,9 @@ screenStory.it(
 	"clears only the current request draft",
 	[screenWorkspace("draft-fixture"), answerScreen()],
 	function* ({ responseClick, answerInput, draftKey, stored, refreshScreen }) {
-		answerInput("author", "reviewer");
 		answerInput("body", "Direction in progress");
 		const first = draftKey();
 		yield* Effect.promise(() => refreshScreen(answerDraft({ ...answerPreview, id: "question.other", request: "other" }, 1)));
-		answerInput("author", "reviewer");
 		answerInput("body", "Direction in progress");
 		const second = draftKey();
 		responseClick("clear");
@@ -94,7 +87,6 @@ screenStory.it(
 	"retains the body and caret while a refreshed request gains or loses questionnaire prompts",
 	[screenWorkspace("draft-fixture"), answerScreen()],
 	function* ({ answerInput, answerPrompt, responseClick, readFocus, findElement, selectText, refreshScreen }) {
-		answerInput("author", "reviewer");
 		answerInput("body", "Direction in progress");
 		const body = answerInput("body");
 		selectText(body, 4, 9, "backward");

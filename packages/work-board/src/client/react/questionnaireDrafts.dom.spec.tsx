@@ -19,7 +19,6 @@ screenStory.it(
 	"keeps questionnaire input and storage size stable through repeated revised-context remounts before preview",
 	[screenWorkspace("questionnaire-fixture"), answerScreen(answerPreview, 0, prompts)],
 	function* ({ render, answerInput, answerPrompt, findElement, closeScreen, readStoredDraft, readDraftRecovery }) {
-		answerInput("author", "reviewer");
 		answerInput("body", "Overall direction");
 		answerPrompt("direction", text);
 		answerPrompt("checks", checks);
@@ -50,10 +49,9 @@ screenStory.it(
 screenStory.it(
 	"does not create or persist recovery for untouched questionnaire answers",
 	[screenWorkspace("questionnaire-fixture"), answerScreen(answerPreview, 0, prompts)],
-	function* ({ answerInput, findElement, readDraftRecovery, readStoredDraft, refreshScreen }) {
+	function* ({ findElement, readDraftRecovery, readStoredDraft, refreshScreen }) {
 		expect(readDraftRecovery()).toBe("");
 		expect(readStoredDraft()).toBeNull();
-		answerInput("author", "reviewer");
 		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 1, prompts)));
 		expect(readDraftRecovery()).toBe("");
 		expect(findElement("#response-draft-recovery")).toHaveProperty("hidden", true);
@@ -62,8 +60,7 @@ screenStory.it(
 screenStory.it(
 	"updates one recovery entry per prior context when a context is revisited",
 	[screenWorkspace("questionnaire-fixture"), answerScreen(answerPreview, 0, prompts)],
-	function* ({ answerInput, answerPrompt, responseClick, readDraftRecovery, refreshScreen }) {
-		answerInput("author", "reviewer");
+	function* ({ answerPrompt, responseClick, readDraftRecovery, refreshScreen }) {
 		answerPrompt("direction", "First direction");
 		answerPrompt("checks", "First checks");
 		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 1, prompts)));
@@ -85,8 +82,7 @@ screenStory.it(
 screenStory.it(
 	"retains existing recovery strings without copying their duplicate snapshots",
 	[screenWorkspace("questionnaire-fixture"), answerScreen(answerPreview, 0, prompts)],
-	function* ({ answerInput, answerPrompt, readStoredDraft, rememberStored, readDraftRecovery, draftKey, refreshScreen }) {
-		answerInput("author", "reviewer");
+	function* ({ answerPrompt, readStoredDraft, rememberStored, readDraftRecovery, draftKey, refreshScreen }) {
 		answerPrompt("direction", "Existing direction");
 		answerPrompt("checks", "Existing checks");
 		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 1, prompts)));
@@ -111,8 +107,7 @@ const choices = [{ id: "direction", mode: "one" as const, options: [{ id: "local
 screenStory.it(
 	"retains new choices made against changed source through preview and reload",
 	[screenWorkspace("questionnaire-fixture"), answerScreen(answerPreview, 0, choices)],
-	function* ({ answerInput, answerPrompt, responseClick, findElement, readAttribute, readText, readFocus, selectText, check, refreshScreen }) {
-		answerInput("author", "reviewer");
+	function* ({ answerPrompt, responseClick, findElement, readAttribute, readText, readFocus, selectText, check, refreshScreen }) {
 		check("local");
 		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 0, choices)));
 		expect(readAttribute('[data-choice="local"]', "aria-checked")).toBe("false");

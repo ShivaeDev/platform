@@ -1,7 +1,8 @@
-import { Effect, Layer, Ref, Stream } from "effect";
+import { Clock, Effect, Layer, Ref, Stream } from "effect";
 import { InternalServerError, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import { requestTracingLayer } from "@shivaedev/platform/server/rpc-server/tracing.ts";
+import { laneRows, openLaneCount } from "#browser/views/nowLanes.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { DocumentRejection, ResponseRejection } from "#rpc/rejections.ts";
 import { HandoffsService } from "#server/handoffs/Service.ts";
@@ -53,9 +54,18 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 				Effect.gen(function* () {
 					return libraryData(yield* changes.files, yield* index, input);
 				}).pipe(readBoundary),
-			"work-board.navigation": ({ current }) =>
+			"work-board.navigation": () =>
 				Effect.gen(function* () {
-					return navigationData(yield* changes.files, current, home, yield* index);
+					const snapshot = yield* index;
+					const [work, fleet] = yield* Effect.all(
+						[
+							projections.work("/_board/work"),
+							fleetItems(options.fleetPort).pipe(Effect.provideService(Workspace, { ...workspace, index: () => Effect.succeed(snapshot) })),
+						],
+						{ concurrency: "unbounded" },
+					);
+					const now = openLaneCount(laneRows(work.rows, fleet, yield* Clock.currentTimeMillis).lanes);
+					return navigationData(yield* changes.files, home, snapshot, now);
 				}).pipe(readBoundary),
 			"work-board.prepareHandoff": (input) => Effect.suspend(() => handoffs.prepare(input)).pipe(responseBoundary),
 			"work-board.question": ({ item, request }) => Effect.suspend(() => responses.locate(item, request)).pipe(responseBoundary),

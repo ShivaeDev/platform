@@ -10,25 +10,27 @@ const Request = Schema.Struct({
 	tag: Schema.String,
 });
 export type RpcRequest = typeof Request.Type;
-async function decodeRequest(request: { clone: () => { text: () => Promise<string> } }): Promise<RpcRequest | undefined> {
+async function decodeRequests(request: { clone: () => { text: () => Promise<string> } }): Promise<readonly RpcRequest[]> {
 	const body = await request.clone().text();
-	const messages = RpcSerialization.ndjson.makeUnsafe().decode(body);
-	for (const message of messages) {
-		const result = Schema.decodeUnknownResult(Request)(message);
-		if (result._tag === "Success") {
-			return result.success;
-		}
-	}
-	return undefined;
+	return RpcSerialization.ndjson
+		.makeUnsafe()
+		.decode(body)
+		.flatMap((message) => {
+			const result = Schema.decodeUnknownResult(Request)(message);
+			return result._tag === "Success" ? [result.success] : [];
+		});
 }
-const requests = new WeakMap<object, Promise<RpcRequest | undefined>>();
-export function rpcRequest(request: { clone: () => { text: () => Promise<string> } }) {
+const requests = new WeakMap<object, Promise<readonly RpcRequest[]>>();
+export function rpcRequests(request: { clone: () => { text: () => Promise<string> } }) {
 	let decoded = requests.get(request);
 	if (decoded === undefined) {
-		decoded = decodeRequest(request);
+		decoded = decodeRequests(request);
 		requests.set(request, decoded);
 	}
 	return decoded;
+}
+export async function rpcRequest(request: { clone: () => { text: () => Promise<string> } }): Promise<RpcRequest | undefined> {
+	return (await rpcRequests(request))[0];
 }
 export function rpcResponse(window: BrowserWindow, request: RpcRequest, value: unknown) {
 	const message: FromServerEncoded = { _tag: "Exit", exit: { _tag: "Success", value }, requestId: request.id };

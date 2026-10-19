@@ -1,5 +1,6 @@
 import type { Metadata } from "#metadata/schema.ts";
 import type { FleetItemsProjection } from "./FleetItemsProjection.ts";
+import { closedStatus, deferredStatus } from "./workStatus.ts";
 
 export const nowLanes = ["Queued", "Executing", "Reviewing", "Delivering", "Waiting on a person", "Done in the last 7 days"] as const;
 export type NowLane = (typeof nowLanes)[number];
@@ -36,7 +37,7 @@ export function laneOf(metadata: Metadata, fleet: FleetWork | undefined, approve
 	if (fleet) {
 		return stages[fleet.stage];
 	}
-	if (["superseded", "deferred", "cancelled", "canceled", "done", "completed"].includes(metadata.status ?? "")) {
+	if (closedStatus(metadata.status) || deferredStatus(metadata.status)) {
 		return undefined;
 	}
 	return authoredLane(metadata.status, approved);

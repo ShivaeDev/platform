@@ -23,15 +23,24 @@ screenStory.it(
 );
 
 screenStory.it(
-	"says Fleet is unavailable on Today instead of showing an unknown in-progress count",
+	"counts In progress on Today from the task files while Fleet is unavailable and says where the status comes from",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), openScreen()],
 	function* ({ findElements, readText }) {
 		yield* Effect.promise(() =>
 			eventually(() =>
-				expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual(["3 need you", "Fleet unavailable", "0 active goals"]),
+				expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual([
+					"3 need you",
+					"1 in progress in task files",
+					"0 active goals",
+				]),
 			),
 		);
-		expect(readText(".today-strip")).not.toContain("?");
+		expect(findElements("[data-progress-id]").map((row) => row.getAttribute("data-progress-id"))).toEqual(["task.upload"]);
+		expect(readText("[data-progress-id='task.upload']")).toBe("Fix the flaky upload testTask file · Active");
+		expect(findElements("#in-progress [role='status'] p").map((line) => line.textContent)).toEqual([
+			"Fleet unavailable. Fleet daemon is not configured for this Board",
+			"Status comes from the task files, not live Fleet.",
+		]);
 	},
 );
 
@@ -44,7 +53,7 @@ screenStory.it(
 				expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toEqual([
 					"Today, 3 need you",
 					"Goals",
-					"Now, 4 open tasks",
+					"Now, 3 open tasks",
 					"Library",
 					"System",
 				]),

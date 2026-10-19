@@ -1,6 +1,6 @@
 [
 	{
-		"includes": ["**", "!**/.worktrees"],
+		"includes": ["**", "!.worktrees"],
 		"reason": "Worktrees are independent checkouts checked from their own roots; walking them from the parent repeats findings and fixes.",
 		"rule": "files/includes"
 	},

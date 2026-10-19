@@ -7,6 +7,14 @@ export function GoalsPage({ data }: { readonly data: GoalsProjection }) {
 		<div className="max-w-5xl space-y-6">
 			<PageHeader summary={goalsSummary(data)} title="Goals" />
 			<GoalCards goals={data.goals} />
+			{data.deferredGoals.length > 0 && (
+				<details>
+					<summary className="cursor-pointer text-muted-foreground text-sm">Deferred goals</summary>
+					<div className="mt-3">
+						<GoalCards goals={data.deferredGoals} />
+					</div>
+				</details>
+			)}
 			{data.closedGoals.length > 0 && (
 				<details>
 					<summary className="cursor-pointer text-muted-foreground text-sm">Closed goals</summary>

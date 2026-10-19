@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
+import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 
 export function AnswerMarkdown({ className, file, source }: { readonly className?: string; readonly file: string; readonly source: string }) {
 	return (
@@ -9,7 +9,7 @@ export function AnswerMarkdown({ className, file, source }: { readonly className
 				className,
 			)}
 		>
-			<ResponseMarkdown file={file} source={source} />
+			<LazyResponseMarkdown file={file} source={source} />
 		</div>
 	);
 }

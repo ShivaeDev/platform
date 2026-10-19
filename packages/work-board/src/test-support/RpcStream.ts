@@ -1,24 +1,21 @@
-import { ReadableStream, type ReadableStreamDefaultController, type ReadableStreamDefaultReader } from "node:stream/web";
+import { TransformStream, type TransformStreamDefaultController } from "node:stream/web";
 import { RpcSerialization } from "effect/rpc";
 import type { FromServerEncoded } from "effect/rpc/RpcMessage";
 import type { BrowserWindow } from "happy-dom";
 
 export class RpcStream {
 	blocked = false;
-	#reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
-	#controller: ReadableStreamDefaultController<Uint8Array> | undefined;
-	#fail: ((error: Error) => void) | undefined;
+	#controller: TransformStreamDefaultController<Uint8Array> | undefined;
 	#id: string | number = 0;
 	close() {
-		void this.#reader?.cancel().catch(() => undefined);
+		this.#controller?.terminate();
 	}
 	connect() {
 		this.blocked = false;
 	}
 	drop() {
 		this.blocked = true;
-		this.#fail?.(new Error("The subscription transport was dropped"));
-		this.close();
+		this.#controller?.error(new Error("The subscription transport was dropped"));
 	}
 	emit(name: string) {
 		if (name !== "change") {
@@ -38,48 +35,13 @@ export class RpcStream {
 		if (source === null) {
 			return response;
 		}
-		const reader = source.getReader();
-		this.#reader = reader;
 		this.#id = id;
-		let ended = false;
-		const pump = async () => {
-			try {
-				for (;;) {
-					const next = await reader.read();
-					if (ended) {
-						return;
-					}
-					if (next.done) {
-						ended = true;
-						this.#controller?.close();
-						return;
-					}
-					this.#controller?.enqueue(next.value);
-				}
-			} catch (error) {
-				if (!ended) {
-					ended = true;
-					this.#controller?.error(error);
-				}
-			}
-		};
-		const body = new ReadableStream<Uint8Array>({
-			cancel: () => {
-				ended = true;
-				return reader.cancel();
-			},
+		const relay = new TransformStream<Uint8Array, Uint8Array>({
 			start: (controller) => {
 				this.#controller = controller;
-				this.#fail = (error) => {
-					if (!ended) {
-						ended = true;
-						controller.error(error);
-					}
-				};
-
-				void pump();
 			},
 		});
-		return new window.Response(body, { headers: response.headers, status: response.status });
+		void source.pipeTo(relay.writable).catch(() => undefined);
+		return new window.Response(relay.readable, { headers: response.headers, status: response.status });
 	}
 }

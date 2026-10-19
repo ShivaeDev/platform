@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { openPage } from "./browser.ts";
-import { enterField } from "./enterField.ts";
 import { followLink } from "./followLink.ts";
 import { formEvent } from "./formEvent.ts";
+import { waitFor } from "./live.ts";
 import { pageActions } from "./pageActions.ts";
 import { setNativeValue } from "./setNativeValue.ts";
 import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "./storyEngine.ts";
@@ -48,11 +48,6 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			return currentReplies(engine);
 		},
 		enterAnswer: (value: string) => formEvent(page(), () => text("[data-answer-text]", value)),
-		enterAuthor: (value: string) =>
-			formEvent(page(), () => {
-				tell(`the reader signs as ${value}`);
-				enterField(page(), "author", value);
-			}),
 		fieldValue: (name: string) => {
 			const field = page().document.querySelector(`[name="${name}"]`);
 			return field instanceof page().window.HTMLTextAreaElement ? field.value : undefined;
@@ -73,6 +68,27 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			return opened;
 		}),
 		preview: () => formEvent(page(), () => click("response-preview")),
+		requestsByMethod: Effect.fn("Story.requestsByMethod")(function* () {
+			tell("the reader waits for the page to settle and counts its RPC requests by method");
+			const opened = page();
+			yield* Effect.promise(() =>
+				waitFor(() => {
+					if (opened.document.getElementById("live")?.textContent !== "live") {
+						throw new Error("The page is not live yet");
+					}
+				}),
+			);
+			let seen = -1;
+			while (seen !== opened.pageRequests.methods.length) {
+				seen = opened.pageRequests.methods.length;
+				yield* Effect.sleep("150 millis");
+			}
+			return Object.fromEntries(
+				Map.groupBy(opened.pageRequests.methods, (method) => method)
+					.entries()
+					.map(([method, calls]) => [method, calls.length]),
+			);
+		}),
 		responseStatus: () => page().document.getElementById("response-status")?.textContent,
 		savedResponses: () => savedResponseItems(engine),
 		submit: (form = "response-form") =>

@@ -1,4 +1,5 @@
 import { act } from "react";
+import { vi } from "vitest";
 import { control } from "./chrome.ts";
 
 export function readingActions(tell: (line: string) => void) {
@@ -7,6 +8,12 @@ export function readingActions(tell: (line: string) => void) {
 			tell(`the reader checks the caret in ${selector}`);
 			const field = control(selector, HTMLTextAreaElement);
 			return [field.selectionStart, field.selectionEnd, field.selectionDirection];
+		},
+		scrollDocument: (offset: number) => {
+			tell(`the reader scrolls the document ${offset} pixels past its top`);
+			const layout = control(".document-layout", HTMLElement);
+			vi.spyOn(layout, "getBoundingClientRect").mockReturnValue(new DOMRect(0, -offset, layout.clientWidth, layout.clientHeight));
+			act(() => window.dispatchEvent(new Event("scroll")));
 		},
 		selectPassage: (selector: string, start: number, end: number) => {
 			tell(`the reader selects characters ${start} to ${end} in ${selector}`);

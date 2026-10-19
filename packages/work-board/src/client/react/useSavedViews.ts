@@ -9,7 +9,7 @@ export function localView(value: string) {
 			return undefined;
 		}
 		for (const name of [...url.searchParams.keys()]) {
-			if (!["view", "board", "owner", "status", "q", "sort"].includes(name)) {
+			if (!["view", "board", "owner", "status", "q", "sort", "order"].includes(name)) {
 				url.searchParams.delete(name);
 			}
 		}

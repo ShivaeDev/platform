@@ -26,7 +26,11 @@ export const Overview = Schema.toCodecJson(
 			Schema.Struct({ items: FleetItemsProjection.members[0].fields.items, state: Schema.Literal("ready") }),
 			FleetItemsProjection.members[1],
 		]),
-		goals: Schema.Struct({ closedGoals: GoalsProjection.fields.closedGoals, goals: GoalsProjection.fields.goals }),
+		goals: Schema.Struct({
+			closedGoals: GoalsProjection.fields.closedGoals,
+			deferredGoals: GoalsProjection.fields.deferredGoals,
+			goals: GoalsProjection.fields.goals,
+		}),
 		needsYou: Schema.Struct({ ...Needs.fields, count: Schema.Number }),
 	}),
 );

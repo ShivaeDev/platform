@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { engineBoardVerbs } from "#test/engineBoardVerbs.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
+import { answerReport } from "#test/report.ts";
 import { openFleetBoard } from "#test/withFleetBoard.ts";
 
 export function engineDecisionVerbs(state: EngineStory, tell: (line: string) => void) {
@@ -14,6 +15,16 @@ export function engineDecisionVerbs(state: EngineStory, tell: (line: string) => 
 	}
 	const board = engineBoardVerbs(state, tell);
 	return {
+		answerPublishedDecision: (id: string, action: "retry" | "release") =>
+			Effect.gen(function* () {
+				const { fleet } = running(state);
+				const decision = (yield* fleet.get(id)).value.decision;
+				if (decision?.published === undefined) {
+					return yield* Effect.die("No published decision to answer");
+				}
+				tell(`the maintainer chooses ${action} on ${id}'s decision card`);
+				return yield* fleet.resolve(id, decision.id, answerReport(root(), decision.published, action));
+			}),
 		changeBriefWhenChecksFinish: () => {
 			tell("the brief will change when required checks finish");
 			state.checkCompletionEdit = () => board.writeBoardWork("one.md", `${state.source}\nChanged during validation.\n`);
