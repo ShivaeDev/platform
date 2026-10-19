@@ -1,9 +1,11 @@
 import { Schema } from "effect";
 
 const Selection = Schema.Struct({ a: Schema.Int, anchor: Schema.Array(Schema.Int), f: Schema.Int, focus: Schema.Array(Schema.Int) });
+const Focus = Schema.Struct({ label: Schema.String, path: Schema.Array(Schema.Int) });
 export const ReadingState = Schema.Struct({
 	context: Schema.optional(Schema.Boolean),
 	details: Schema.optional(Schema.Array(Schema.Boolean)),
+	focus: Schema.optional(Focus),
 	keyedDetails: Schema.optional(Schema.Record(Schema.String, Schema.Boolean)),
 	scroll: Schema.Tuple([Schema.Finite, Schema.Finite]),
 	selection: Schema.NullOr(Selection),
@@ -34,6 +36,28 @@ function details(root: Element) {
 		return [`${name}:${occurrence}`, detail] as const;
 	});
 }
+function focusLabel(element: Element) {
+	return element.getAttribute("href") ?? `${element.tagName}:${element.textContent?.trim().slice(0, 80)}`;
+}
+function focused() {
+	const active = document.activeElement;
+	const path = active && active !== document.body ? pathOf(active, document.body) : undefined;
+	return active && path ? { label: focusLabel(active), path } : undefined;
+}
+// A control that moved is still found by its link or text, as long as only one matches.
+function focusTarget({ label, path }: typeof Focus.Type) {
+	const atPath = nodeAt(path, document.body);
+	if (atPath instanceof HTMLElement && focusLabel(atPath) === label) {
+		return atPath;
+	}
+	const matches = [...document.body.querySelectorAll<HTMLElement>("a[href], button")].filter((element) => focusLabel(element) === label);
+	return matches.length === 1 ? matches[0] : undefined;
+}
+export function restoreFocus(state: ReadingState) {
+	if (state.focus) {
+		focusTarget(state.focus)?.focus({ preventScroll: true });
+	}
+}
 function inForm() {
 	return document.activeElement?.closest("[data-response-form], #response-form, #handoff-form");
 }
@@ -48,6 +72,7 @@ export function captureReading(): ReadingState | undefined {
 	return {
 		context: root.querySelector<HTMLDetailsElement>(".item-context")?.open,
 		details: details(root).map(([, detail]) => detail.open),
+		focus: focused(),
 		keyedDetails: Object.fromEntries(details(root).map(([key, detail]) => [key, detail.open])),
 		scroll: [scrollX, scrollY],
 		selection: anchor && focus && selection ? { a: selection.anchorOffset, anchor, f: selection.focusOffset, focus } : null,

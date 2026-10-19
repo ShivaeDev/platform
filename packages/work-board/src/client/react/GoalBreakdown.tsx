@@ -1,8 +1,9 @@
-import { Suspense, use, useId } from "react";
+import { Suspense, use } from "react";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { Skeleton } from "#client/react/components/ui/skeleton.tsx";
 import type { GoalChartRow } from "./GoalChart.tsx";
 import { goalChartChunk } from "./lazyChunks.ts";
+import { shellIds } from "./shellIds.ts";
 
 type Goal = GoalsProjection["goals"][number];
 type Criterion = Goal["criteria"][number];
@@ -25,22 +26,21 @@ function row(goal: Goal, criterion: Criterion, index: number): GoalChartRow {
 }
 
 export function GoalBreakdown({ goal }: { readonly goal: Goal }) {
-	const headingId = useId();
 	if (!goal.criteria.some((criterion) => criterion.linked > 0)) {
 		return null;
 	}
 	const rows = goal.criteria.map((criterion, index) => row(goal, criterion, index));
 	const height = rows.length * ROW_HEIGHT + LEGEND_HEIGHT;
 	return (
-		<section aria-labelledby={headingId} className="space-y-3 pt-4" data-goal-breakdown="">
-			<h3 className="!m-0 font-semibold text-base" id={headingId}>
+		<div className="space-y-3 pt-4" data-goal-breakdown="">
+			<h3 className="!m-0 font-semibold text-base" id={shellIds.goalBreakdown} tabIndex={-1}>
 				By criterion
 			</h3>
 			<p className="!m-0 text-muted-foreground text-sm">Linked work in each state, for each criterion.</p>
 			<Suspense fallback={<Skeleton style={{ height }} />}>
 				<LoadedGoalChart height={height} rows={rows} />
 			</Suspense>
-		</section>
+		</div>
 	);
 }
 

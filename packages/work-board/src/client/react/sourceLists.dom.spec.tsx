@@ -31,11 +31,11 @@ screenStory.it(
 	"collapses repeated titles in backlinks and relationships, retaining each source in its most specific group",
 	[routedScreen(sourceListsFixture(), "/task.md")],
 	function* ({ openDetails, findElement, readText, findElements }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[aria-label="Linked from"]')).not.toBeNull()));
-		const backlinks = findElement('[aria-label="Linked from"]');
+		yield* Effect.promise(() => eventually(() => expect(findElement('[data-context-group="linked-from"]')).not.toBeNull()));
+		const backlinks = findElement('[data-context-group="linked-from"]');
 		expect(readText("h3", backlinks)).toBe("Linked from");
-		expect(findElement('[aria-label="Related to backlinks"]', backlinks)).toBeNull();
-		for (const section of [backlinks, findElement('[aria-label="Links to"]')]) {
+		expect(findElement('[data-source-group="Related to"]', backlinks)).toBeNull();
+		for (const section of [backlinks, findElement('[data-context-group="links-to"]')]) {
 			const group = [...(findElements("details", section) ?? [])].find((entry) => readText("summary", entry) === "Fleet decisions (4)");
 			expect(group).toHaveProperty("open", false);
 			expect(findElements("a", group)).toHaveLength(0);

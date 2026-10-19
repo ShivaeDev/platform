@@ -7,7 +7,7 @@ export function DocumentSource({ document }: { readonly document: Document }) {
 	const reading = document.reading;
 	const hashed = /[a-f\d]{64}/iu.test(document.file);
 	return (
-		<section aria-label="Document source" className="space-y-4">
+		<div className="space-y-4" data-document-source="">
 			<p>
 				Source:{" "}
 				{hashed ? (
@@ -28,6 +28,6 @@ export function DocumentSource({ document }: { readonly document: Document }) {
 			)}
 			<DocumentAttention document={document} />
 			<DocumentRecords document={document} />
-		</section>
+		</div>
 	);
 }
