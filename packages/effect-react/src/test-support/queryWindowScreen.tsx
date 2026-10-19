@@ -2,11 +2,10 @@ import { Effect, PubSub, Schema, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { vi } from "vitest";
-import { LiveConnection } from "@shivaedev/effect-contract/automaticLive.ts";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
-import { type LiveHint, live } from "@shivaedev/effect-contract/live.ts";
+import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { query } from "@shivaedev/effect-contract/operation.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
@@ -26,8 +25,15 @@ export const queryWindowScreen = storyKit({
 		let value = 0;
 		let connections = 0;
 		const handlers = Notes.toLayer(
-			Notes.of({
-				"notes.get": ({ id }) =>
+			Effect.succeed({
+				"notes.$changes": () =>
+					Stream.unwrap(
+						Effect.sync(() => {
+							connections += 1;
+							return Stream.fromPubSub(hints);
+						}),
+					),
+				"notes.get": ({ id }: typeof Get.payload.Type) =>
 					Effect.sync(() => {
 						reads.set(id, (reads.get(id) ?? 0) + 1);
 						return value;
@@ -40,19 +46,11 @@ export const queryWindowScreen = storyKit({
 			protocol: handlers,
 		}) {}
 		const api = bind(Notes, Client);
-		const updates = live(Client.runtime, {
-			resyncKeys: [notes.list],
-			stream: Stream.unwrap(
-				Effect.sync(() => {
-					connections += 1;
-					return Stream.fromPubSub(hints);
-				}),
-			),
-		});
 		const detail = api.get.query({ id: "detail" });
 		const dashboard = api.get.query({ id: "dashboard" });
 		const inherited = api.get.query({ id: "inherited" });
 		return {
+			api,
 			connections: () => connections,
 			hints,
 			queries: { dashboard, detail, inherited },
@@ -61,7 +59,6 @@ export const queryWindowScreen = storyKit({
 			setValue: (next: number) => {
 				value = next;
 			},
-			updates,
 		};
 	},
 	inspect: (engine) => ({ connections: engine.connections(), reads: Object.fromEntries(engine.reads), ...engine.screen.inspect() }),
@@ -86,13 +83,7 @@ export const queryWindowScreen = storyKit({
 			observe: (check: () => void) => engine.screen.observe("the query values settle", check),
 			open: () =>
 				engine.screen.open(
-					<SessionBoundary
-						connect={() => ({ [LiveConnection]: engine.updates })}
-						identify={(id) => id}
-						liveCoalesceWindow="500 millis"
-						recheck={() => undefined}
-						session="ada"
-					>
+					<SessionBoundary connect={() => engine.api} identify={(id) => id} liveCoalesceWindow="500 millis" recheck={() => undefined} session="ada">
 						{() => <QueryWindowPage {...engine.queries} />}
 					</SessionBoundary>,
 				),
