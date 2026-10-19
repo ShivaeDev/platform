@@ -31,3 +31,15 @@ export function tracingDeclaration(position: "omitted" | "first" | "last") {
 		state.build = build;
 	});
 }
+
+export const traceEcho = host.trait("configured", "a loopback handler returns its trace without an installed exporter", (state) => {
+	function build() {
+		return appHost({
+			config: state.config,
+			group: Ping,
+			handlers: Ping.toLayer({ ping: () => Effect.map(Effect.currentParentSpan, (span) => span.traceId).pipe(Effect.orDie) }),
+			policy: "loopback",
+		});
+	}
+	state.build = build;
+});

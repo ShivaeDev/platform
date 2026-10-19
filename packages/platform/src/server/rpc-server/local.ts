@@ -1,5 +1,5 @@
 import { Effect, Option } from "effect";
-import { HttpServerRequest, HttpServerResponse } from "effect/http";
+import { HttpServerRequest, HttpServerResponse, HttpTraceContext } from "effect/http";
 import { RpcSerialization } from "effect/rpc";
 import { proxyAddresses, proxyMatches, proxyRanges } from "./trustedProxy.ts";
 
@@ -72,7 +72,16 @@ export function localRpcGuard<E, R>(effect: Effect.Effect<HttpServerResponse.Htt
 		const local = loopbackHost(request.headers.host) && Option.exists(request.remoteAddress, loopbackAddress);
 		const contentType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
 		return ((local && sameOrigin(request)) || proxyOrigin(request, isTrustedProxy)) && contentType === serialization.contentType
-			? yield* effect
+			? yield* continueHttpTrace(effect, request)
 			: HttpServerResponse.text("Local same-origin requests only", { status: 403 });
 	});
 }
+
+const continueHttpTrace = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>, request: HttpServerRequest.HttpServerRequest) {
+	const incoming = HttpTraceContext.w3c(request.headers);
+	if (Option.isNone(incoming)) {
+		return yield* effect;
+	}
+	const parent = Option.getOrElse(yield* Effect.option(Effect.currentParentSpan), () => incoming.value);
+	return yield* Effect.withParentSpan(effect, parent);
+});

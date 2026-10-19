@@ -348,6 +348,10 @@ const routes = HttpRouter.use((router) =>
 
 Session resolution reads `HttpServerRequest`: the HTTP POST or WebSocket upgrade request. Credentials and Origin supplied inside an RPC message cannot replace those transport headers. An application-owned middleware can use `transportHeaders(rpcHeaders)` for the same source of headers.
 
+effect-react’s `actionTrace` groups an action’s RPC Effects under one browser trace; editor saves and create submissions group their save Effects automatically. Native `RpcClient.layerProtocolHttp` with `FetchHttpClient.layer` sends W3C `traceparent` on each request. appHost continues that HTTP trace for RPC handling, including without an installed tracer or exporter. Each RPC span records `request.id` and `rpc.method`; native SQL spans executed by the handler inherit that trace.
+
+When a handler enqueues through effect-pg-boss, the job stores the current span context. Wrap enqueueing in an application-named producer span with `Effect.withSpan("Receipt.enqueue", { kind: "producer" })` to show the enqueue operation in the action trace. Worker attempts run in their own trace, linked back to the captured sender span. A trace viewer can follow that link between the action and its job.
+
 Tracing uses the RPC headers for correlation. `requestTracingLayer()` accepts `x-request-id`; `{ header: "x-correlation-id" }` changes the name. Missing, malformed or oversized values receive generated 32-character lowercase hexadecimal ids. A request id reaches the `RequestId` service, log annotations as `requestId`, and the server span as `request.id`; the RPC method reaches both as `rpc.method`.
 
 Caller-chosen request ids are correlation data. Keep authorization tied to the authenticated identity.

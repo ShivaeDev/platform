@@ -70,6 +70,15 @@ export default defineConfig({
 		"tests/support-imports": {
 			options: {
 				modules: [
+					"packages/effect-react/src/actionTrace.ts",
+					"packages/effect-react/src/client/create.ts",
+					"packages/effect-react/src/client/editor.ts",
+					"packages/effect-react/src/client/resultState.ts",
+					"packages/effect-pg-boss/src/server/client.ts",
+					"packages/effect-pg-boss/src/server/definition.ts",
+					"packages/effect-pg-boss/src/server/schema.ts",
+					"packages/effect-pg-boss/src/server/service.ts",
+					"packages/effect-test-sql/src/server/postgres.ts",
 					"packages/effect-react/src/client/testing.ts",
 					"packages/effect-sql/src/clientOptions.ts",
 					"packages/effect-sql/src/repository.ts",
