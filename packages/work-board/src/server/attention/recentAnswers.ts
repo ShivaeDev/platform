@@ -3,7 +3,7 @@ import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
 import type { Question } from "#browser/responses/schema.ts";
 import type { RecentAnswer, RecentAnswerState } from "#browser/views/schema.ts";
 import { responseUrl } from "#responses/url.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
+import { documentSource, type MetadataDocument, type MetadataModel } from "#server/metadata/model.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { plainText } from "#server/search/snippet.ts";
@@ -34,7 +34,7 @@ function stateOf(question: Question, document: MetadataDocument, request: Reques
 	if (managed?._tag === "Settled") {
 		return managed.receipt.disposition;
 	}
-	if (question.question.source !== document.file || question.context !== (document.parsed.raw ?? "") + document.parsed.body) {
+	if (question.question.source !== document.file || question.context !== documentSource(document)) {
 		return "changed";
 	}
 	return managed ? "fleet" : "waiting";

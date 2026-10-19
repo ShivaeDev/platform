@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { Document } from "#browser/document/schema.ts";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
+import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
 import { readResponses } from "#server/responses/read.ts";
 import { malformedResponse, questionFrom, revisionOf } from "#server/responses/records.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
@@ -12,7 +12,7 @@ export const resultProjection = Effect.fn("WorkBoard.resultProjection")(function
 	data: Snapshot,
 	document: Document,
 ): Effect.fn.Return<ResultProjection> {
-	const revision = revisionOf((result.parsed.raw ?? "") + result.parsed.body);
+	const revision = revisionOf(documentSource(result));
 	const criteria = resultTargets(result, data, document);
 	const questions = data.documents.flatMap((entry) => {
 		const question = questionFrom(entry);
