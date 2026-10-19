@@ -2,7 +2,7 @@ import { Option } from "effect";
 import { useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Library, LibraryFile } from "#browser/navigation/library.ts";
-import { sentenceLabel, statusLabel } from "#browser/views/statusLabel.ts";
+import { kindLabel, statusLabel } from "#browser/views/statusLabel.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { LinkButton } from "./LinkButton.tsx";
@@ -61,7 +61,7 @@ function DocumentList({ files }: { readonly files: readonly LibraryFile[] }) {
 							{file.title}
 						</a>
 						<p className="m-0 text-muted-foreground text-xs">
-							{sentenceLabel(file.kind)}
+							{kindLabel(file.kind)}
 							{file.status ? ` · ${statusLabel(file.status)}` : ""}
 						</p>
 					</div>

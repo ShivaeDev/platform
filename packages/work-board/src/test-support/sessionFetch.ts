@@ -15,6 +15,9 @@ export async function sessionFetch(...args: Parameters<Window["fetch"]>) {
 	}
 	const { engine, transport } = current;
 	transport.happyDOM.setURL(origin);
+	if (engine.serverStopped) {
+		throw new TypeError("Failed to fetch");
+	}
 	const boundary = engine.sessionTransport;
 	if (boundary) {
 		const call = await rpcCall(transport, ...args);

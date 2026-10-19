@@ -39,7 +39,7 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 	}
 	expect(decision.code).toBe(scenario.code);
 	const document = readFileSync(join(context.root, decision.published.sourcePath), "utf8");
-	const explanation = decision.worker === undefined ? releaseOnly(decision.code) : undefined;
+	const explanation = decision.worker === undefined ? releaseOnly(decision) : undefined;
 	if (decision.worker === undefined) {
 		expect(document).toContain(':::option{id="release"}');
 		expect(document.includes(':::option{id="retry"}')).toBe(explanation === undefined);

@@ -1,19 +1,9 @@
 import type { Ref } from "react";
+import { kindLabel } from "#browser/views/statusLabel.ts";
 import { CommandGroup, CommandItem, CommandList } from "#client/react/components/ui/command.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import type { SearchItem } from "./searchCommands.ts";
-
-const GROUPS = ["Needs you", "Go to", "Appearance", "Work", "Documents"] as const;
-
-function groupOf(item: SearchItem): (typeof GROUPS)[number] {
-	if (item.kind === "needs-you") {
-		return "Needs you";
-	}
-	if (item.kind === "command") {
-		return item.command ? "Appearance" : "Go to";
-	}
-	return item.itemKind ? "Work" : "Documents";
-}
+import { searchGroups } from "./searchGroups.ts";
 
 function searchTerms(query: string): readonly string[] {
 	const phrase = query.normalize("NFKC").toLowerCase().trim();
@@ -65,15 +55,8 @@ export function SearchResults({
 	}
 	return (
 		<CommandList className="max-h-[min(420px,calc(100dvh-280px))] px-1 pb-1 [scrollbar-width:thin]!" label="Search results" ref={listRef}>
-			{GROUPS.map((heading) => (
-				<SearchGroup
-					activate={activate}
-					heading={heading}
-					items={items.filter((item) => groupOf(item) === heading)}
-					key={heading}
-					resultKey={resultKey}
-					terms={terms}
-				/>
+			{searchGroups(items, query).map((group) => (
+				<SearchGroup activate={activate} heading={group.heading} items={group.items} key={group.heading} resultKey={resultKey} terms={terms} />
 			))}
 		</CommandList>
 	);
@@ -132,7 +115,7 @@ function SearchResult({
 				<strong className="font-medium">{item.title}</strong>
 				{(!command || Boolean(item.id)) && (
 					<small className="flex flex-wrap items-center gap-1.5 text-muted-foreground">
-						{!command && (item.itemKind ?? item.kind)}
+						{!command && kindLabel(item.itemKind ?? item.kind)}
 						{Boolean(item.id) && <code className="font-mono">{item.id}</code>}
 						{Boolean(item.status) && <StatusChip status={item.status} />}
 						{!item.id && item.file ? ` · ${item.file}${item.line ? `:${item.line}` : ""}` : ""}

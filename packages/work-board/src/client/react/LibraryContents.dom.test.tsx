@@ -35,3 +35,22 @@ screenStory.it(
 		expect([...findElements("a")].map((link) => link.textContent)).toEqual(["Newest title", "Middle title", "Alphabetical first"]);
 	},
 );
+
+screenStory.it(
+	"names goals Goal in the library list and its kind filter",
+	[
+		routedScreen(
+			{ "goal.md": "---\nid: project.calm\nkind: project\nstatus: active\n---\n# A calm workspace\n", "note.md": "# Note" },
+			"/_board/library",
+		),
+	],
+	function* ({ findElements, readText, roles }) {
+		const goalRow = '#doc li:has(a[href="/goal.md"]) p';
+		yield* Effect.promise(() => eventually(() => expect(readText(goalRow)).toBe("Goal · Active")));
+		yield* roles.click({ name: "Kind", role: "combobox" });
+		yield* roles.click({ name: "Goal", role: "option" });
+		yield* Effect.promise(() =>
+			eventually(() => expect([...findElements("#doc li a")].map((link) => link.textContent)).toEqual(["A calm workspace"])),
+		);
+	},
+);

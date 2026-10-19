@@ -35,7 +35,7 @@ test("retry of receiptless preparation cannot authorize an edited brief", () =>
 		}),
 	));
 
-test("a quota increase cannot authorize a changed brief or consume the worker's pending answer", () =>
+test("an edited brief is approved while its worker answer waits for quota", () =>
 	withFleetBoard({ quota: 1 }, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -47,16 +47,17 @@ test("a quota increase cannot authorize a changed brief or consume the worker's 
 			boardHttpFiles(root).write("one.md", current);
 			const waiting = yield* fleet.reconcile("one");
 			expect(waiting.value.stage).toBe("needs-human");
-			expect(waiting.value.boardContext).toBe(source);
+			expect(waiting.value.boardContext).toBe(current);
 			expect(waiting.value.responses).toBeUndefined();
 			yield* fixture.restart(
 				Effect.gen(function* () {
 					const continued = yield* (yield* Fleet).reconcile("one");
-					expect(continued.value.stage).toBe("needs-human");
-					expect(continued.value.decision?.reason).toBe("Board context changed");
-					expect(continued.value.boardContext).toBe(source);
-					expect(continued.value.responses).toBeUndefined();
-					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
+					expect(continued.value.stage).toBe("executing");
+					expect(continued.value.decision).toBeUndefined();
+					expect(continued.value.boardContext).toBe(current);
+					expect(continued.value.responses).toMatchObject([{ action: "continue", boardAcknowledged: true }]);
+					expect(continued.value.attempts.at(-1)?.prompt).toContain(current);
+					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
 					expect(boardHttpFiles(root).receipts()).toHaveLength(1);
 				}),
 				(policy) => ({ ...policy, quota: { ...policy.quota, available: 100 } }),

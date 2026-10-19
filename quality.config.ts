@@ -70,6 +70,7 @@ export default defineConfig({
 		"tests/support-imports": {
 			options: {
 				modules: [
+					"packages/effect-contract/src/automaticLive.ts",
 					"packages/effect-contract/src/contract.ts",
 					"packages/effect-contract/src/keys.ts",
 					"packages/effect-contract/src/live.ts",
@@ -81,6 +82,7 @@ export default defineConfig({
 					"packages/effect-react/src/client/create.ts",
 					"packages/effect-react/src/client/editor.ts",
 					"packages/effect-react/src/client/resultState.ts",
+					"packages/effect-react/src/client/sessionBoundary.ts",
 					"packages/effect-pg-boss/src/server/client.ts",
 					"packages/effect-pg-boss/src/server/definition.ts",
 					"packages/effect-pg-boss/src/server/schema.ts",
@@ -111,6 +113,11 @@ export default defineConfig({
 					"packages/test-story/src/server/screenDriver.ts",
 					"packages/test-story/src/server/storyKit.ts",
 					"packages/platform/src/server/appHost.ts",
+					"packages/platform/src/server/better-auth/testing.ts",
+					"packages/platform/src/rpc/identity.ts",
+					"packages/platform/src/rpc/middleware.ts",
+					"packages/platform/src/server/rpc-server/adapters/betterAuthSessions.ts",
+					"packages/platform/src/server/rpc-server/session.ts",
 					"packages/platform/src/errors/taxonomy.ts",
 					"packages/work-fleet/src/host/config.ts",
 					"packages/work-fleet/src/host/mainSource.ts",
