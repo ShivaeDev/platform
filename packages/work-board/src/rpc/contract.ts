@@ -7,6 +7,7 @@ import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { Document } from "#browser/document/schema.ts";
 import { Navigation } from "#browser/Navigation.ts";
 import { Library, LibraryInput } from "#browser/navigation/library.ts";
+import { searchMatches } from "#browser/search/nameMatch.ts";
 import { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { ResultProjection } from "#browser/views/ResultProjection.ts";
@@ -28,6 +29,7 @@ const Entry = Schema.Struct({
 	itemKind: Schema.optional(Schema.String),
 	kind: Schema.Literals(["document", "heading", "passage"]),
 	line: Schema.optional(Schema.Number),
+	match: Schema.Literals(searchMatches),
 	snippet: Schema.String,
 	status: Schema.optional(Schema.String),
 	text: Schema.String,
