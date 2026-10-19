@@ -196,7 +196,20 @@ The application creates `readings` with `PRIMARY KEY (source, sequence)`; `seque
 
 All four methods encode with the model's insert schema and retain its codec services. `upsert` and `upsertMany` require a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. Only those columns take their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in every encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
 
-These methods use `ON CONFLICT (...) DO NOTHING` or `DO UPDATE SET ...` and `RETURNING`. Use native `SqlClient` and `SqlSchema` for partial-index conflict predicates, SQL expressions or other conflict policies.
+For a partial unique index such as `CREATE UNIQUE INDEX ON entries (a, b) WHERE kind = 'x'`, add `conflictWhere` beside `conflictColumns`:
+
+```ts
+const entries = yield* makeRepository(Entry, {
+  tableName: "entries",
+  idColumn: "id",
+  conflictColumns: ["a", "b"],
+  conflictWhere: { kind: "x" },
+  spanPrefix: "Entry",
+});
+const inserted = yield* entries.insertManyOrIgnore(inputs);
+```
+
+All four conflict methods use this target, producing `ON CONFLICT (a, b) WHERE kind = $n` before `DO NOTHING` or `DO UPDATE SET ...`, followed by `RETURNING`. `conflictWhere` uses the same typed equality filter as `findMany.where`: decoded field values pass through their field codecs and remain bound parameters. Rows outside the index predicate can insert with the same key. A target that matches no unique index fails with native `SqlError` in the error channel. Use native `SqlClient` and `SqlSchema` for SQL expressions or other conflict policies.
 
 Conflict writes belong to unversioned repositories. They cannot be combined with `versionColumn`, whose writes must compare the version read by the caller. `versionColumn` takes a scalar `idColumn`.
 
@@ -377,7 +390,7 @@ Import the module that defines the name; there is no root entry.
 | Module | Export | Input or role |
 | --- | --- | --- |
 | `@shivaedev/effect-sql/clientOptions.ts` | `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` | Add default native name transforms to driver or app host options; opt out with `snakeCase: false`. |
-| `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn` or `conflictColumns`; requires native `SqlClient`. |
+| `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn` or `conflictColumns` with optional `conflictWhere`; requires native `SqlClient`. |
 | `@shivaedev/effect-sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`. |
 | `@shivaedev/effect-sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |
 | `@shivaedev/effect-sql/transact.ts` | `invalidateOnCommit(keys)` | Records keys for its client, or invalidates immediately outside a transaction. |

@@ -22,6 +22,7 @@ import type { invoiceLines } from "./invoiceLines.ts";
 import type { jsonReceipts } from "./jsonReceipts.ts";
 import type { migrationTables } from "./migrationTables.ts";
 import type { notificationTable } from "./notificationTable.ts";
+import type { partialConflicts } from "./partialConflicts.ts";
 import type { setupBatch } from "./postgresBatch.ts";
 import type { setup as payments } from "./postgresCodecs.ts";
 import type { startNotifications } from "./postgresNotify.ts";
@@ -53,6 +54,7 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 		notifications: fixture<Effect.Success<ReturnType<typeof startNotifications>>>(),
 		notificationTable: fixture<Effect.Success<typeof notificationTable>>(),
 		observer: fixture<Effect.Success<typeof secondPool>>(),
+		partialConflicts: fixture<Effect.Success<typeof partialConflicts>>(),
 		payments: fixture<Effect.Success<typeof payments>>(),
 		secondSqlite: fixture<Effect.Success<typeof secondDatabase>>(),
 		sql,
@@ -91,6 +93,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		notifications: engine.notifications.get,
 		notificationTable: engine.notificationTable.get,
 		observerPool: engine.observer.get,
+		partialConflicts: engine.partialConflicts.get,
 		paymentFixture: engine.payments.get,
 		recordedLogs: () => engine.logs,
 		secondSqliteDatabase: engine.secondSqlite.get,
