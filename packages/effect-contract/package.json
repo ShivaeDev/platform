@@ -28,6 +28,7 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
+		"./internal/*": null,
 		"./package.json": "./package.json"
 	},
 	"files": [
@@ -52,6 +53,7 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/effect-test": "workspace:*",
+		"@shivaedev/effect-test-sql": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

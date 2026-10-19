@@ -1,9 +1,9 @@
-import { Predicate } from "effect";
+import { type Duration, Predicate } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { LiveConnection } from "@shivaedev/effect-contract/automaticLive.ts";
 
-export function mountLive(registry: AtomRegistry.AtomRegistry, client: unknown) {
+export function mountLive(registry: AtomRegistry.AtomRegistry, client: unknown, coalesceWindow?: Duration.Input) {
 	const releases: Array<() => void> = [];
 	const found = new Set<unknown>();
 	function mount(value: unknown) {
@@ -12,6 +12,14 @@ export function mountLive(registry: AtomRegistry.AtomRegistry, client: unknown) 
 		}
 		const live = value[LiveConnection];
 		if (Predicate.hasProperty(live, "connection") && Atom.isAtom(live.connection) && !found.has(live.connection)) {
+			if (
+				coalesceWindow !== undefined
+				&& Predicate.hasProperty(live, "coalesceWindow")
+				&& Atom.isAtom(live.coalesceWindow)
+				&& Atom.isWritable(live.coalesceWindow)
+			) {
+				registry.set(live.coalesceWindow, coalesceWindow);
+			}
 			found.add(live.connection);
 			releases.push(registry.mount(live.connection));
 		}

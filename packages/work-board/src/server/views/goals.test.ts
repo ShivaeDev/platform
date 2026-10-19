@@ -19,8 +19,8 @@ for (const status of ["closed", "done", "dropped", "superseded", "completed", "c
 		function* ({ rpc }) {
 			const data = yield* rpc((client) => client("work-board.goals", undefined));
 			const goal = data.closedGoals.find((entry) => entry.id === "project.closed");
-			expect(goal?.counts).toEqual({ done: 3, "in progress": 1, "needs you": 0, planned: 2 });
-			expect(goal?.criteria[0]?.counts).toEqual({ done: 2, "in progress": 1, "needs you": 0, planned: 0 });
+			expect(goal?.counts).toEqual({ done: 3, "in progress": 0, "needs you": 2, planned: 1 });
+			expect(goal?.criteria[0]?.counts).toEqual({ done: 2, "in progress": 0, "needs you": 1, planned: 0 });
 			expect(goal?.criteria[1]?.counts).toEqual({ done: 0, "in progress": 0, "needs you": 0, planned: 0 });
 			expect(goal?.linked).toBe(6);
 			expect(data.goals.map((entry) => entry.id)).toEqual(["project.example"]);

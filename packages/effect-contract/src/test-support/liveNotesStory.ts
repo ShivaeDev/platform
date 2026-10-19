@@ -1,4 +1,4 @@
-import { Effect, Ref, Stream, SubscriptionRef } from "effect";
+import { type Duration, Effect, Ref, Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { expect } from "vitest";
@@ -137,5 +137,11 @@ export function watchingNotes() {
 			expect(AsyncResult.getOrElse(engine.registry.get(two), () => undefined)?.body).toBe("Second");
 			expect([engine.registry.get(one).waiting, engine.registry.get(two).waiting, engine.registry.get(list).waiting]).toEqual([false, false, false]);
 		});
+	});
+}
+
+export function coalescing(window: Duration.Input) {
+	return liveNotesStory.trait("consumer", "the consumer chooses its coalescing window", (engine) => {
+		engine.registry.set(engine.client.coalesceWindow, window);
 	});
 }

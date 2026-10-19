@@ -141,9 +141,13 @@ screenStory.it(
 		),
 	],
 	function* ({ readText, findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(readText('[data-goal-section="work"] [data-slot="empty-title"]')).toBe("No linked work")));
+		yield* Effect.promise(() =>
+			eventually(() => expect(readText('[data-goal-section="progress"] [data-slot="empty-title"]')).toBe("No linked work")),
+		);
 		expect(readText('[data-goal-section="criteria"] [data-slot="empty-title"]')).toBe("No criteria");
-		expect(findElement('[data-goal-section="work"] table')).toBeNull();
+		expect(findElement('[data-goal-section="progress"] [data-goal-counts], [data-goal-section="progress"] [role="progressbar"]')).toBeNull();
+		expect(readText('[data-goal-section="progress"]')).not.toContain("linked items");
+		expect(findElement('[data-goal-section="work"]')).toBeNull();
 	},
 );
 
