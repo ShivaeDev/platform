@@ -20,8 +20,10 @@ export function searchStatus(
 		return "Searching…";
 	}
 	let message = "No document matches.";
-	if (data.total) {
-		message = `${data.total > data.results.length ? `Showing ${data.results.length} of ` : ""}${data.total} matches.`;
+	if (data.total > data.results.length) {
+		message = `Showing ${data.results.length} of ${data.total} matches. Add words or an ID to narrow the list.`;
+	} else if (data.total) {
+		message = `${data.total} matches.`;
 	}
 	if (data.unavailable.length > 0) {
 		message += ` Could not read ${data.unavailable.length} files; results are incomplete.`;

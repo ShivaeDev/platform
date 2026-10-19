@@ -4,11 +4,13 @@ import * as Atom from "effect/reactivity/Atom";
 import { useMemo } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { BrowserClient } from "#browserClient.ts";
+import { CompactLiveStatus } from "#client/react/CompactLiveStatus.tsx";
 import { activeRead } from "./activeRead.ts";
 import { useLiveRead } from "./liveReady.ts";
 import { liveStatus } from "./liveStatus.ts";
 import { useMainLocation } from "./MainLocationContext.ts";
 import { shellIds } from "./shellIds.ts";
+import { useMedia } from "./useMedia.ts";
 
 const opening = Atom.make({ failed: false, pending: true });
 export function LiveControls({
@@ -20,6 +22,7 @@ export function LiveControls({
 	readonly navigationPending: boolean;
 	readonly navigationFailed: boolean;
 }) {
+	const narrow = useMedia("(max-width: 767px)");
 	const status = useAtomValue(client.updates.status);
 	const paused = useAtomValue(client.updates.paused);
 	const watcher = useQuery(useLiveRead(client.updates, client.api.watcher.query()));
@@ -37,6 +40,9 @@ export function LiveControls({
 		waiting: navigationPending || reading.pending,
 		watching,
 	});
+	if (narrow) {
+		return <CompactLiveStatus state={displayed.state} text={displayed.text} />;
+	}
 	return (
 		<span
 			className="font-mono text-muted-foreground text-xs data-[state=down]:text-destructive data-[state=stale]:text-destructive"

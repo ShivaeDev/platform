@@ -59,10 +59,10 @@ screenStory.it(
 		expect(readText(".today-strip")).toContain("1 active goal");
 		expect(readText(".today-strip")).not.toContain("1 active goals");
 		expect(readText("#later")).toContain("Later: design the admin system");
-		yield* Effect.promise(() => eventually(() => expect(readText('section[aria-label="Active goals"]')).toContain("Launch")));
-		expect(readText('section[aria-label="Active goals"]')).not.toContain("Admin system");
 		yield* Effect.promise(() => navigate("/_board/goals"));
 		yield* Effect.promise(() => eventually(() => expect(readText("[data-page-summary]")).toBe("1 active goal")));
+		yield* Effect.promise(() => eventually(() => expect(readText('section[aria-label="Active goals"]')).toContain("Launch")));
+		expect(readText('section[aria-label="Active goals"]')).not.toContain("Admin system");
 		expect(readText("details summary")).toBe("Deferred goals");
 		expect(findElements("details [data-goal-id]").map((card) => card.getAttribute("data-goal-id"))).toEqual(["goal.admin"]);
 	},
