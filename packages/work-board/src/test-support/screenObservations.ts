@@ -48,6 +48,11 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 			}
 			return copy.textContent;
 		},
+		readDisabled: (control: Element) => {
+			tell("the reader checks whether the control is disabled");
+			// happy-dom leaves a control in a disabled fieldset enabled, which browsers do not.
+			return control.matches(":disabled") || control.closest("fieldset")?.disabled === true;
+		},
 		readFocus: () => {
 			tell("the reader checks keyboard focus");
 			return document.activeElement;

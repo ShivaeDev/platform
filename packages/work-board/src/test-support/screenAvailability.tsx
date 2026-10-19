@@ -20,17 +20,21 @@ export function indexAvailability(engine: ScreenEngine, files: readonly string[]
 	});
 }
 
+async function setConnection(engine: ScreenEngine, connection: "live" | "reconnecting") {
+	if (!(engine.api && engine.view)) {
+		throw new Error("The screen has no Board client");
+	}
+	const { api, view } = engine;
+	const status = api.forms.updates.status;
+	await act(() => view.registry.set(status, { ...view.registry.get(status), connection }));
+}
+
 export function availabilityActions(engine: ScreenEngine, tell: (line: string) => void) {
 	return {
 		answerRefreshStarted: () => engine.heldAnswerRefresh?.started ?? false,
-		dropLiveConnection: async () => {
+		dropLiveConnection: () => {
 			tell("the Board's live connection drops and starts reconnecting");
-			if (!(engine.api && engine.view)) {
-				throw new Error("The screen has no Board client");
-			}
-			const { api, view } = engine;
-			const status = api.forms.updates.status;
-			await act(() => view.registry.set(status, { ...view.registry.get(status), connection: "reconnecting" }));
+			return setConnection(engine, "reconnecting");
 		},
 		failWorkspace: () => {
 			tell("workspace indexing becomes unavailable");
@@ -47,6 +51,10 @@ export function availabilityActions(engine: ScreenEngine, tell: (line: string) =
 		readIndexReads: () => {
 			tell("the reader checks how many workspace index reads ran");
 			return engine.indexReads;
+		},
+		reconnectLive: () => {
+			tell("the Board's live connection comes back");
+			return setConnection(engine, "live");
 		},
 		recoverWorkspace: () => {
 			tell("the workspace becomes readable again");
