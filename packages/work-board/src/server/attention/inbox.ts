@@ -46,9 +46,16 @@ function attentionReason(document: MetadataDocument, model: MetadataModel, maint
 		return fields.nextAction ?? "A question needs your answer";
 	}
 	if (fields.owner && fields.nextAction && !automation.test(fields.owner.trim())) {
-		return `${fields.owner}: ${fields.nextAction}`;
+		const note = personNote(fields.nextAction, fields.status);
+		return fields.owner.trim() === maintainer ? note : `${fields.owner.trim()} notes: ${note}`;
 	}
 	return undefined;
+}
+
+function personNote(action: string, status: string | undefined): string {
+	const echo = status?.trim().toLowerCase();
+	const note = echo && action.toLowerCase().startsWith(`${echo}:`) ? action.slice(echo.length + 1).trim() : action;
+	return note ? note.charAt(0).toUpperCase() + note.slice(1) : action;
 }
 
 function identityProblem(document: MetadataDocument, model: MetadataModel): string | undefined {

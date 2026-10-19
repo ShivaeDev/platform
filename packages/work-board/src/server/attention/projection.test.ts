@@ -47,7 +47,7 @@ boardStory.it("preserves a person's next action when an agent request targets th
 	const files = attentionLanesFixture();
 	files["orchestrator.md"] = files["orchestrator.md"]?.replace("unblocks: [decision.orchestrator]", "unblocks: [task.person]") ?? "";
 	const data = attentionProjection(yield* readAttention(files));
-	expect(data.you.find((item) => item.id === "task.person")?.reason).toBe("Casey: Read the evidence");
+	expect(data.you.find((item) => item.id === "task.person")?.reason).toBe("Casey notes: Read the evidence");
 	expect(data.agents.find((item) => item.id === "task.person")?.responseFrom).toEqual(["orchestrator"]);
 });
 

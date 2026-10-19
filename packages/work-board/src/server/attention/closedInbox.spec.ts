@@ -12,7 +12,7 @@ boardStory.it("keeps only the latest ask for open work and the authored question
 	const rows = inboxItems(snapshot);
 	expect(rows).toHaveLength(2);
 	expect(rows.map((row) => row.id)).toEqual(["question.storage", "task.planned"]);
-	expect(rows[1]?.reason).toBe("Managed decision: planned ask 2");
+	expect(rows[1]?.reason).toBe("Fleet asks: planned ask 2");
 	expect(rows[1]?.earlierAsks).toBe(1);
 	expect(rows[1]?.href).toBe("/_board/item/decision.planned.2/#answer-card-approval");
 	expect(inboxCount(snapshot)).toBe(2);
@@ -45,7 +45,7 @@ boardStory.it("uses source modification time to select the newest ask regardless
 	const snapshot = yield* readAttention(closedInboxFixture());
 	const modified = new Map([...snapshot.modified, ["asks/planned-1.md", 100_000] as const]);
 	const item = inboxItems({ ...snapshot, modified }).find((row) => row.id === "task.planned");
-	expect(item?.reason).toBe("Managed decision: planned ask 1");
+	expect(item?.reason).toBe("Fleet asks: planned ask 1");
 	expect(item?.earlierAsks).toBe(1);
 });
 
@@ -60,7 +60,7 @@ boardStory.it("counts separate requests in one source and groups criterion refer
 		) ?? "";
 	const items = inboxItems(yield* readAttention(files));
 	expect(items).toHaveLength(2);
-	expect(items[1]?.reason).toBe("Managed decision: Later request in the same source");
+	expect(items[1]?.reason).toBe("Fleet asks: Later request in the same source");
 	expect(items[1]?.earlierAsks).toBe(1);
 	expect(items[1]?.href).toBe("/_board/item/decision.planned.1/#answer-card-later");
 });

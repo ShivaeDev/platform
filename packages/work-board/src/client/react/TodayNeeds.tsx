@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
@@ -63,26 +64,23 @@ function TodayRow({
 }) {
 	const text = detail ?? item.problem ?? item.reason;
 	return (
-		<div className="today-row flex h-full min-w-0 items-center gap-2 px-2" data-attention-row={attention ? "" : undefined}>
-			<div className="min-w-0 flex-1">
-				<div className="flex min-w-0 items-baseline gap-2">
-					<a className="truncate font-medium text-sm" href={item.href} title={item.title}>
-						{item.title}
-					</a>
-					<span className="shrink-0 font-mono text-[10px] text-muted-foreground max-sm:hidden">{item.id}</span>
-				</div>
-				<p className="m-0 truncate text-muted-foreground text-xs" title={text}>
-					<span className="inline-block max-w-24 truncate align-bottom font-mono text-[10px] sm:hidden" title={item.id}>
-						{item.id}
-					</span>
-					<span className="sm:hidden"> · </span>
-					{text}
-				</p>
-			</div>
-			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
+		<div
+			className={cn(
+				"today-row grid h-full min-w-0 content-center items-center gap-x-2 px-2",
+				children ? "grid-cols-[minmax(0,1fr)_auto_auto]" : "grid-cols-[minmax(0,1fr)_auto]",
+			)}
+			data-attention-row={attention ? "" : undefined}
+		>
+			<a className="truncate font-medium text-sm" href={item.href} title={item.title}>
+				{item.title}
+			</a>
+			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums sm:row-span-2">
 				{item.modified === undefined ? "Age ?" : <Age modified={item.modified} short />}
 			</span>
-			{children}
+			{children ? <div className="sm:row-span-2">{children}</div> : null}
+			<p className="col-span-full m-0 truncate text-muted-foreground text-xs sm:col-span-1 sm:col-start-1 sm:row-start-2" title={text}>
+				{text}
+			</p>
 		</div>
 	);
 }

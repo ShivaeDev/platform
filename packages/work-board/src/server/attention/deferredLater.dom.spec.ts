@@ -11,7 +11,7 @@ boardStory.it(
 	[readerAt("/"), projectFiles({ "goals/admin.md": PLANNED }, "a person owns planned work with a next action")],
 	function* ({ editFile, page, reader }) {
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live")));
-		expect(reader.todayRows("Needs you")).toEqual([{ detail: "Casey: Later: design the admin system", title: "Admin system" }]);
+		expect(reader.todayRows("Needs you")).toEqual([{ detail: "Casey notes: Later: design the admin system", title: "Admin system" }]);
 		expect(page.document.getElementById("later")).toBeNull();
 		editFile("goals/admin.md", PLANNED.replace("status: planned", "status: deferred"));
 		yield* Effect.promise(() =>
