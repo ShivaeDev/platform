@@ -12,11 +12,28 @@ function resultType(entry: Entry): number {
 	return entry.record ? 2 : 1;
 }
 
+function words(text: string): string {
+	return normalize(text)
+		.replace(/[^\p{L}\p{N}]+/gu, " ")
+		.trim();
+}
+
+function exactMatch(entry: Entry, phrase: string): boolean {
+	const wanted = words(phrase);
+	const names = [entry.title, entry.id ?? "", entry.id?.split(".").at(-1) ?? ""];
+	return Boolean(wanted) && names.some((name) => words(name) === wanted);
+}
+
 function relevance(entry: Entry, terms: readonly string[], phrase: string, text: string) {
 	const identity = normalize(`${entry.title} ${entry.id ?? ""}`);
-	const titleMatch = entry.kind === "document" && terms.every((term) => identity.includes(term));
+	const document = entry.kind === "document";
+	const titleMatch = document && terms.every((term) => identity.includes(term));
 	const ranks = { document: 2, heading: 4, passage: 6 };
-	return { rank: (entry.record ? 10 : 0) + ranks[entry.kind] + (text.includes(phrase) ? 0 : 1), title: titleMatch ? 0 : 1 };
+	return {
+		exact: document && exactMatch(entry, phrase) ? 0 : 1,
+		rank: (entry.record ? 10 : 0) + ranks[entry.kind] + (text.includes(phrase) ? 0 : 1),
+		title: titleMatch ? 0 : 1,
+	};
 }
 
 function located(entry: Entry) {
@@ -54,8 +71,9 @@ export function searchMatch(entries: readonly Entry[], query: string, modified: 
 		.sort(
 			(left, right) =>
 				left.type - right.type
-				|| left.group - right.group
+				|| left.exact - right.exact
 				|| left.title - right.title
+				|| left.group - right.group
 				|| right.modified - left.modified
 				|| left.rank - right.rank
 				|| left.order - right.order,

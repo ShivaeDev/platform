@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { attentionFixture } from "#test/attentionFixture.ts";
 import { paletteFixture } from "#test/paletteFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
@@ -222,5 +223,56 @@ screenStory.it(
 			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 			expect(location()?.pathname).toBe("/notes/plan.md");
 		}
+	},
+);
+
+screenStory.it("marks the searched words in each snippet", [searchScreen(DUPLICATED)], function* ({ input, findElements, readText }) {
+	input(QUERY, "Pooling design");
+	yield* Effect.promise(() => eventually(() => expect(readText('#search-dialog [role="status"]', document)).toBe("2 matches.")));
+	const marks = [...findElements<HTMLElement>('#search-dialog [role="option"]', document)].map((row) =>
+		[...row.querySelectorAll("p mark")].map((mark) => mark.textContent),
+	);
+	expect(marks).toEqual([
+		["pooling", "design"],
+		["pooling", "design"],
+	]);
+});
+
+screenStory.it(
+	"tells the reader how to narrow a result list that was cut short",
+	[searchScreen(Object.fromEntries(Array.from({ length: 45 }, (_, index) => [`notes/${index}.md`, `# Note ${index}\n\nA shared needle.\n`])))],
+	function* ({ input, readText }) {
+		input(QUERY, "needle");
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(readText('#search-dialog [role="status"]', document)).toBe("Showing 40 of 45 matches. Add words or an ID to narrow the list."),
+			),
+		);
+	},
+);
+
+screenStory.it(
+	"lists what needs you first in the empty palette and opens it with Enter",
+	[chromeScreen(attentionFixture())],
+	function* ({ input, keyboard, findElement, findElements, location, readAttribute, roles }) {
+		function groups() {
+			return [...findElements<HTMLElement>('#search-dialog [role="listbox"] [role="group"]', document)].map((group) => ({
+				name: roles.accessible(group).name,
+				titles: [...group.querySelectorAll('[role="option"] strong')].map((title) => title.textContent),
+			}));
+		}
+		keyboard("k", { cancelable: true, ctrlKey: true }, document);
+		yield* Effect.promise(() => eventually(() => expect(groups()[0]?.name).toBe("Needs you")));
+		expect(groups()[0]?.titles).toEqual(["Deterministic search", "Arbitrary source labels", "Search the workspace"]);
+		expect(groups()[1]?.name).toBe("Go to");
+		input(QUERY, "keyboard");
+		yield* Effect.promise(() => eventually(() => expect(groups().map((group) => group.name)).not.toContain("Needs you")));
+		input(QUERY, "");
+		yield* Effect.promise(() => eventually(() => expect(groups()[0]?.name).toBe("Needs you")));
+		const href = readAttribute('#search-dialog [role="option"][aria-selected="true"] a', "href", document);
+		expect(href).toBe(findElement('#search-dialog [role="group"] [role="option"] a', document)?.getAttribute("href"));
+		keyboard("Enter", { cancelable: true }, QUERY);
+		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
+		expect(`${location()?.pathname}${location()?.hash ? `#${location()?.hash}` : ""}`).toBe(href);
 	},
 );

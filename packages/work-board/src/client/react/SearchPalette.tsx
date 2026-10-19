@@ -6,9 +6,10 @@ import { Button } from "#client/react/components/ui/button.tsx";
 import { Checkbox } from "#client/react/components/ui/checkbox.tsx";
 import { Command, CommandInput } from "#client/react/components/ui/command.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
+import { routeQueryOptions } from "#client/react/routeQuery.ts";
 import { SearchResults } from "#client/react/SearchResults.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
-import { activateCommand, matchingCommands, type SearchItem } from "#client/react/searchCommands.ts";
+import { activateCommand, matchingCommands, needsYouCommands, type SearchItem } from "#client/react/searchCommands.ts";
 import { searchStatus } from "#client/react/searchStatus.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import type { AppearanceControls } from "#client/react/useAppearance.ts";
@@ -41,12 +42,14 @@ export function SearchPalette({
 	const query = useQuery(api.search.query(records ? { query: text, records } : { query: text }));
 	const data = Option.getOrUndefined(query.data);
 	const goals = useQuery(api.goals.query());
+	const inbox = useQuery(api.inbox.query(undefined, routeQueryOptions));
+	const needsYou = text ? [] : needsYouCommands(Option.getOrUndefined(inbox.data));
 	const commands = matchingCommands(Option.getOrUndefined(goals.data)?.goals ?? [], text);
 	const editing = input.trim() !== text;
 	const destinations = new Set<string>();
 	const items = editing
 		? []
-		: [...commands, ...(text && data ? data.results : [])].filter((item: SearchItem) => {
+		: [...needsYou, ...commands, ...(text && data ? data.results : [])].filter((item: SearchItem) => {
 				const destination = item.href ?? item.command;
 				if (!destination) {
 					return true;
@@ -132,7 +135,7 @@ export function SearchPalette({
 					</Button>
 				)}
 			</div>
-			<SearchResults activate={activate} items={items} listRef={listRef} />
+			<SearchResults activate={activate} items={items} listRef={listRef} query={text} />
 			<ActiveDescendant inputRef={inputRef} listRef={listRef} />
 		</Command>
 	);
