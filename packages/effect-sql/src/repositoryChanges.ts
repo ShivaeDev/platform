@@ -28,7 +28,12 @@ export const repositoryChanges = Effect.fnUntraced(function* (sql: SqlClient.Sql
 			return Effect.void;
 		}
 		const ids = rows.map((row) =>
-			columns.length === 1 ? row[columns[0] ?? ""] : JSON.stringify(columns.map((column) => row[column]), encodeKeyValue),
+			columns.length === 1
+				? row[columns[0] ?? ""]
+				: JSON.stringify(
+						columns.map((column) => row[column]),
+						encodeKeyValue,
+					),
 		);
 		return provide(invalidateOnCommit({ [table]: ids }));
 	}
