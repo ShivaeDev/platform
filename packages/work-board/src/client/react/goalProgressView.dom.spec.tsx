@@ -10,7 +10,7 @@ import { DocumentMain } from "./DocumentMain.tsx";
 const files = goalPageFixture();
 
 screenStory.it(
-	"shows goal progress on the stock progress bar and charts each state overall and per criterion under its own heading",
+	"shows goal progress on the stock progress bar and charts each criterion by its text, with counts on the bars and empty criteria kept",
 	[screenChartLayout(), boardScreen(files, (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ findElement, findElements, readAttribute, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-section="progress"] [data-slot="chart"]')).not.toBeNull()));
@@ -26,18 +26,21 @@ screenStory.it(
 		yield* Effect.promise(() =>
 			eventually(() => {
 				expect(readText(`${progress} [data-goal-breakdown] h3`)).toBe("By criterion");
-				expect([...findElements(`${progress} .recharts-yAxis-tick-labels text`)].map((tick) => tick.textContent)).toEqual(["All work", "first"]);
-				expect(
-					[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [
-						bar.getAttribute("name"),
-						bar.getAttribute("fill"),
-						bar.getAttribute("width"),
-					]),
-				).toEqual([
-					["All work", "var(--color-done)", "112.8"],
-					["All work", "var(--color-planned)", "451.2"],
-					["first", "var(--color-planned)", "564"],
+				const labels = [...findElements(`${progress} [data-goal-criterion-label] a`)];
+				expect(labels.map((label) => [label.textContent, label.getAttribute("href")])).toEqual([
+					["First criterion", "#criterion-first"],
+					["Second criterion", "#criterion-second"],
 				]);
+				for (const label of labels) {
+					expect(findElement(`${decodeURIComponent(label.getAttribute("href") ?? "")} h3`)?.textContent).toBe(label.textContent);
+				}
+				expect(
+					[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("fill"), bar.getAttribute("width")]),
+				).toEqual([
+					["var(--color-planned)", "508"],
+					["var(--muted)", "508"],
+				]);
+				expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => label.textContent)).toEqual(["2", "No linked work"]);
 				expect([...findElements(`${progress} .recharts-legend-wrapper > div > div`)].map((entry) => entry.textContent)).toEqual([
 					"Done",
 					"Needs you",
@@ -46,6 +49,41 @@ screenStory.it(
 				]);
 			}),
 		);
+		expect(readText(`${progress} [data-goal-breakdown]`)).not.toContain("All work");
+	},
+);
+
+screenStory.it(
+	"leaves a count off a bar segment too narrow to hold it",
+	[
+		screenChartLayout(),
+		boardScreen(
+			{
+				...files,
+				...Object.fromEntries(
+					Array.from({ length: 100 }, (_, index) => [
+						`extra-${index}.md`,
+						`---\nid: task.extra-${index}\nkind: task\nstatus: done\nrelationships:\n - kind: implements\n   target: project.example#first\n---\n# Extra ${index}`,
+					]),
+				),
+			},
+			(api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />,
+		),
+	],
+	function* ({ findElements }) {
+		const progress = '[data-goal-section="progress"]';
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(
+					[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("fill"), bar.getAttribute("width")]),
+				).toEqual([
+					["var(--color-done)", expect.any(String)],
+					["var(--color-planned)", expect.any(String)],
+					["var(--muted)", "508"],
+				]),
+			),
+		);
+		expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => label.textContent)).toEqual(["100", "No linked work"]);
 	},
 );
 
