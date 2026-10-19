@@ -9,7 +9,10 @@ export default defineConfig({
 		...testProjects(),
 		projects: testProjects().projects?.map((project) =>
 			typeof project === "object" && "test" in project && project.test?.name === "dom"
-				? { ...project, test: { ...project.test, environment: fileURLToPath(import.meta.resolve("@shivaedev/test-story/domEnvironment.config.ts")) } }
+				? {
+						...project,
+						test: { ...project.test, environment: fileURLToPath(import.meta.resolve("@shivaedev/test-story/server/domEnvironment.config.ts")) },
+					}
 				: project,
 		),
 	},

@@ -1,4 +1,5 @@
-import { Effect, Option, Ref, Semaphore } from "effect";
+import { Effect, Option, Ref, Semaphore, SubscriptionRef } from "effect";
+import type { Indexing } from "#rpc/Indexing.ts";
 import type { Changes } from "#server/files/changes.ts";
 import { invalidationsSince } from "#server/files/invalidations.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
@@ -9,6 +10,7 @@ import { type IndexedDocument, readDocument } from "./readDocument.ts";
 import { updateEntries } from "./updateEntries.ts";
 
 const READ_CONCURRENCY = 16;
+const PROGRESS_STEPS = 100;
 
 export interface Snapshot {
 	readonly documents: readonly MetadataDocument[];
@@ -34,11 +36,31 @@ function shouldRead(
 	);
 }
 
+const settledListing = Effect.fn("WorkBoard.settledListing")(function* (changes: Changes) {
+	let revision = yield* changes.revision;
+	let files = yield* changes.files;
+	while ((yield* changes.revision) !== revision) {
+		revision = yield* changes.revision;
+		files = yield* changes.files;
+	}
+	return { files, revision };
+});
+
+function fileCounter(total: number, report: (progress: Indexing) => Effect.Effect<void>) {
+	const step = Math.max(1, Math.ceil(total / PROGRESS_STEPS));
+	let read = 0;
+	return Effect.suspend(() => {
+		read += 1;
+		return read % step === 0 || read === total ? report({ _tag: "Indexing", read, total }) : Effect.void;
+	});
+}
+
 export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 	root: string,
 	home: string | undefined,
 	changes: Changes,
 	maintainer = "maintainer",
+	indexing?: SubscriptionRef.SubscriptionRef<Indexing | undefined>,
 ) {
 	const cached = yield* Ref.make<Snapshot | undefined>(undefined);
 	const semaphore = yield* Semaphore.make(1);
@@ -51,14 +73,14 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 			? Effect.map(Effect.option(readDocument(root, changes.realRoot, file.path, home, file.modified, previous)), Option.getOrUndefined)
 			: Effect.succeed(previous);
 	}
-	const read = Effect.gen(function* () {
-		let revision = yield* changes.revision;
-		let files = yield* changes.files;
-		while ((yield* changes.revision) !== revision) {
-			revision = yield* changes.revision;
-			files = yield* changes.files;
-		}
-		const hit = yield* Ref.get(cached);
+	function report(progress: Indexing | undefined) {
+		return indexing ? SubscriptionRef.set(indexing, progress) : Effect.void;
+	}
+	const buildSnapshot = Effect.fn("WorkBoard.buildSnapshot")(function* (hit: Snapshot | undefined) {
+		// Only a build without a previous snapshot reads the whole workspace; later builds reread the files that changed.
+		const progress = hit === undefined ? report : () => Effect.void;
+		yield* progress({ _tag: "Indexing", read: 0 });
+		const { files, revision } = yield* settledListing(changes);
 		const watching = yield* Ref.get(changes.watching);
 		if (hit?.revision === revision && hit.unavailable.length === 0 && watching) {
 			return hit;
@@ -67,7 +89,9 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 		const next = new Map<string, IndexedDocument>();
 		const documents: MetadataDocument[] = [];
 		const unavailable: string[] = [];
-		const indexed = yield* Effect.forEach(files, (file) => find(file, dirty), { concurrency: READ_CONCURRENCY });
+		yield* progress({ _tag: "Indexing", read: 0, total: files.length });
+		const counted = fileCounter(files.length, progress);
+		const indexed = yield* Effect.forEach(files, (file) => Effect.tap(find(file, dirty), counted), { concurrency: READ_CONCURRENCY });
 		for (const [position, file] of files.entries()) {
 			const found = indexed[position];
 			if (found) {
@@ -86,5 +110,7 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 		yield* Ref.set(cached, snapshot);
 		return snapshot;
 	});
-	return semaphore.withPermit(read);
+	return semaphore.withPermit(
+		Effect.flatMap(Ref.get(cached), (hit) => (hit === undefined ? Effect.ensuring(buildSnapshot(hit), report(undefined)) : buildSnapshot(hit))),
+	);
 });

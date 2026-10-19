@@ -50,9 +50,10 @@ export function useBoardNavigation(shell: RouterShell, onCurrentDestination?: ()
 				return;
 			}
 			const previousFailure = failure;
-			failure = navigationFailure(mainRef.current.status);
-			if (failure) {
-				setStatus(failure);
+			const pageFailure = navigationFailure(mainRef.current);
+			failure = pageFailure ?? "";
+			if (pageFailure !== undefined) {
+				setStatus(pageFailure);
 				return;
 			}
 			setStatus((current) => (current === previousFailure ? "" : current));

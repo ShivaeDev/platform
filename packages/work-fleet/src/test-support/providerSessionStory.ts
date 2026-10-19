@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Layer } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resolveHost } from "#host/config.ts";
 import { hostProvider } from "#host/providers.ts";
 import type { CodexCloudConfiguration } from "#providers/codexCloud.ts";

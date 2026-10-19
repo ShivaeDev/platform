@@ -7,7 +7,7 @@ Make development and integration tests share one persistent local PostgreSQL ser
 A setup command should make a machine ready to work without erasing the work already on it. Reimplementing PostgreSQL startup in every repository makes that promise harder to keep. This package gives a setup script one place to prepare the service and its databases:
 
 ```ts
-import { localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
+import { localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
 const development = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
 localPostgres(process.env).prepareDatabases([development]);
@@ -34,7 +34,7 @@ There are three separate responsibilities:
 When database names come from the application's configured URLs, pass those URLs directly to preparation:
 
 ```ts
-import { localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
+import { localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
 const development = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
 const tests = process.env.TEST_DATABASE_URL ?? `${localServer}/example_test`;
@@ -47,7 +47,7 @@ Generated applications use this configuration-driven approach. An allowlist buil
 Use `assertLocalDatabase` when the setup script owns a fixed set of database names, as this repository's `script/setup-database.ts` does. Its allowlist restricts configuration to the names the script intends to touch:
 
 ```ts
-import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
+import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
 const development = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
 const tests = process.env.TEST_DATABASE_URL ?? `${localServer}/example_test`;
@@ -68,7 +68,7 @@ After `prepareDatabases`, run the application's own schema or migration entry po
 ### 3. In daily setup: prepare again and inspect with SQL
 
 ```ts
-import { localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
+import { localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
 const database = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
 
@@ -81,11 +81,11 @@ The version query returns the string `18.6`. `sql` also accepts a `URL` and retu
 
 `startPostgres(connection)` prepares the service without choosing an application database to create. Its connection defaults to `localServer`. Prefer `prepareDatabases` when the setup script needs named databases as well.
 
-On each start, setup reads `SHOW max_connections`. When the shared container allows fewer than 500 connections, setup applies `ALTER SYSTEM SET max_connections = 500`, restarts that same container, waits for readiness and confirms the setting. Existing data stays in place. A limit of 500 or higher causes no setting change or restart. If the setting cannot be applied, setup throws `PostgresSettingError` from `localConnections.ts`, with `_tag`, `container`, `setting` and the original `cause`.
+On each start, setup reads `SHOW max_connections`. When the shared container allows fewer than 500 connections, setup applies `ALTER SYSTEM SET max_connections = 500`, restarts that same container, waits for readiness and confirms the setting. Existing data stays in place. A limit of 500 or higher causes no setting change or restart. If the setting cannot be applied, setup throws `PostgresSettingError` from `@shivaedev/local-postgres/server/localConnections.ts`, with `_tag`, `container`, `setting` and the original `cause`.
 
 ### API
 
-Import the setup API from `@shivaedev/local-postgres/localPostgres.ts`:
+Import the setup API from `@shivaedev/local-postgres/server/localPostgres.ts`:
 
 | Export | Purpose |
 | --- | --- |
@@ -98,7 +98,7 @@ Import the setup API from `@shivaedev/local-postgres/localPostgres.ts`:
 
 The last three functions are members of the object returned by `localPostgres`, not module-level exports. They throw on failure; they are synchronous Node functions rather than Effects.
 
-The module export pattern also exposes the lower-level Docker and container command functions in `localDocker.ts` and `localContainer.ts`. Use `localPostgres.ts` for application preparation.
+The module export pattern also exposes the lower-level Docker and container command functions in `@shivaedev/local-postgres/server/localDocker.ts` and `@shivaedev/local-postgres/server/localContainer.ts`. Use `@shivaedev/local-postgres/server/localPostgres.ts` for application preparation.
 
 ### Install and machine setup
 
@@ -114,7 +114,7 @@ The shared baseline is PostgreSQL 18.6 on loopback port 55432. Docker preparatio
 postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
 ```
 
-A newly created container uses username and password `postgres`; connection URLs supply credentials for client commands. Setup refuses a running version other than 18.6 with `PostgresVersionMismatch` from `@shivaedev/local-postgres/PostgresVersionMismatch.ts`. The error carries `_tag: "PostgresVersionMismatch"`, `expectedVersion` and `observedVersion`. A running PostgreSQL 17 service is refused without losing its existing rows; upgrading it while preserving its data is your job. Container preparation and container-client fallback also check the managed image; a successful host-`psql` version probe does not inspect that image.
+A newly created container uses username and password `postgres`; connection URLs supply credentials for client commands. Setup refuses a running version other than 18.6 with `PostgresVersionMismatch` from `@shivaedev/local-postgres/server/PostgresVersionMismatch.ts`. The error carries `_tag: "PostgresVersionMismatch"`, `expectedVersion` and `observedVersion`. A running PostgreSQL 17 service is refused without losing its existing rows; upgrading it while preserving its data is your job. Container preparation and container-client fallback also check the managed image; a successful host-`psql` version probe does not inspect that image.
 
 Pass the process's actual Docker settings to `localPostgres`, as `process.env` in the examples does. With `DOCKER_CONTEXT`, endpoint validation uses that context and ignores `DOCKER_HOST`; otherwise it validates `DOCKER_HOST` or the active context. Remote endpoints are rejected before a Docker operation. Docker subprocesses inherit the process environment. Supplying a different object does not configure those subprocesses.
 

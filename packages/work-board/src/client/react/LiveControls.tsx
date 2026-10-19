@@ -3,7 +3,7 @@ import { Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useMemo } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
-import type { BrowserClient } from "#client/client.ts";
+import type { BrowserClient } from "#browserClient.ts";
 import { CompactLiveStatus } from "#client/react/CompactLiveStatus.tsx";
 import { activeRead } from "./activeRead.ts";
 import { useLiveRead } from "./liveReady.ts";
@@ -45,7 +45,7 @@ export function LiveControls({
 	}
 	return (
 		<span
-			className="font-mono text-muted-foreground text-xs data-[state=down]:text-destructive data-[state=stale]:text-destructive"
+			className="text-muted-foreground text-xs data-[state=down]:text-destructive data-[state=stale]:text-destructive"
 			data-state={displayed.state}
 			id={shellIds.live}
 			role="status"

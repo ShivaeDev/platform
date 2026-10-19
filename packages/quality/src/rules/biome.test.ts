@@ -14,7 +14,7 @@ function biome(content: string): SeedFile {
 	return { content: `${content}\n`, path: "biome.json" };
 }
 
-const preset = biome('{ "extends": ["@shivaedev/quality/biome"] }');
+const preset = biome('{ "extends": ["@shivaedev/quality/biome/preset.json"] }');
 
 const looseType: SeedFile = { content: "export function parse(text: string): any {\n\treturn JSON.parse(text);\n}\n", path: "src/parse.ts" };
 
@@ -61,13 +61,15 @@ describe("the biome rule", { timeout: CLI_TIMEOUT }, () => {
 		const root = repository(biome('{ "extends": [] }'), looseType);
 		const result = await runQuality(root, "lint");
 		expect(result.status).toBe(1);
-		expect(result.stdout).toContain('error biome/preset (1)\n  biome.json  Extend "@shivaedev/quality/biome" from the root Biome config.');
+		expect(result.stdout).toContain(
+			'error biome/preset (1)\n  biome.json  Extend "@shivaedev/quality/biome/preset.json" from the root Biome config.',
+		);
 	});
 
 	it("honours a reasoned warning exception only for its declared file", async () => {
 		const root = repository(
 			biome(
-				'{ "extends": ["@shivaedev/quality/biome"], "overrides": [{ "includes": ["src/parse.ts"], "linter": { "rules": { "suspicious": { "noExplicitAny": "warn" } } } }] }',
+				'{ "extends": ["@shivaedev/quality/biome/preset.json"], "overrides": [{ "includes": ["src/parse.ts"], "linter": { "rules": { "suspicious": { "noExplicitAny": "warn" } } } }] }',
 			),
 			looseType,
 		);
@@ -80,7 +82,7 @@ describe("the biome rule", { timeout: CLI_TIMEOUT }, () => {
 
 	it("exits 2 with Biome's message when Biome cannot read its config", async () => {
 		const result = await runQuality(
-			repository(biome('{ "extends": ["@shivaedev/quality/biome"], "linter": { "unknownKey": true } }'), looseType),
+			repository(biome('{ "extends": ["@shivaedev/quality/biome/preset.json"], "linter": { "unknownKey": true } }'), looseType),
 			"lint",
 		);
 		expect(result.status).toBe(2);

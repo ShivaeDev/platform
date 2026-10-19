@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { activityProbe } from "./activityProbe.tsx";
 import { activityRegistry } from "./activityRegistry.ts";
 import { mountProbe, probeOptions } from "./lifecycleScreen.ts";

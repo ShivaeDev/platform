@@ -75,7 +75,7 @@
 		},
 		"files": {
 			".gitignore": "node_modules/\n",
-			"biome.json": "{ \"extends\": [\"@shivaedev/quality/biome\"] }\n",
+			"biome.json": "{ \"extends\": [\"@shivaedev/quality/biome/preset.json\"] }\n",
 			"quality.config.ts": "export default { rules: { \"structure/max-lines\": { options: { source: 1 } } }, sources: [\"sample\"] };\n",
 			"sample/a.ts": "export function parse(text: string): any {\n\treturn JSON.parse(text);\n}\n\nexport function now(): number {\n\treturn Date.now();\n}\n"
 		},

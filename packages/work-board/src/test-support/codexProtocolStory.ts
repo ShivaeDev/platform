@@ -1,7 +1,7 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import process from "node:process";
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { codexRateLimits } from "#server/diagnostics/codexRateLimits.ts";
 
 export const codexProtocolStory = storyKit({

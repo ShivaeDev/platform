@@ -1,4 +1,4 @@
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { layer } from "./migrationUpgrade.ts";
 import { narrated } from "./narrated.ts";

@@ -1,5 +1,5 @@
 import { act } from "react";
-import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 
 export function screenRoles(tell: (line: string) => void) {
 	return {

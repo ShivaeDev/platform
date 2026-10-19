@@ -6,7 +6,7 @@ import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeR
 import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#conflictWrites.ts";
 import { makeInsertFromSelect, type SelectWrites } from "#insertFromSelect.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
-import type { RepositoryFilter } from "#repositoryFilter.ts";
+import type { FindManyFilter, RepositoryFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
 import { type IdColumn, makeVersionedWrites, type NativeRepository, type VersionColumn, type VersionedWrites } from "#versionedRepository.ts";
 
@@ -20,7 +20,7 @@ export interface FindMany<TModel extends Model.Any, TKey extends Key<TModel>> {
 		readonly direction: "asc" | "desc";
 	};
 	readonly select?: readonly [TKey, ...TKey[]];
-	readonly where?: RepositoryFilter<TModel>;
+	readonly where?: FindManyFilter<TModel>;
 }
 
 export class OptimisticConcurrencyError extends Data.TaggedError("OptimisticConcurrencyError")<{

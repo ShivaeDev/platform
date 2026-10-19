@@ -1,7 +1,7 @@
 import { Deferred, Effect, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 import { PgBoss } from "pg-boss";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#database.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { setup } from "./postgres.ts";

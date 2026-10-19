@@ -8,7 +8,7 @@ interface Observer {
 	readonly listeners: Set<Listener>;
 }
 
-const key = Symbol.for("@shivaedev/effect-pg-boss/error-observers");
+const key = Symbol.for("@shivaedev/effect-pg-boss/server/error-observers");
 const shared: unknown = Reflect.get(globalThis, key);
 const observers: WeakMap<WeakKey, unknown> = shared instanceof WeakMap ? shared : new WeakMap<WeakKey, unknown>();
 Reflect.set(globalThis, key, observers);

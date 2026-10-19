@@ -1,7 +1,7 @@
 import { Clock, Console, Effect, Layer } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import * as TestConsole from "effect/testing/TestConsole";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const consoleEnvironment = storyKit({
 	create: () => Effect.void,

@@ -24,9 +24,9 @@
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/server/*.ts",
-			"types": "./dist/server/*.d.ts",
-			"default": "./dist/server/*.js"
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
 		},
 		"./package.json": "./package.json"
 	},

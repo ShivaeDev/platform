@@ -5,9 +5,8 @@ import { join } from "node:path"
 import { NodeServices } from "@effect/platform-node"
 import { Layer, Schema } from "effect"
 import { HttpRouter } from "effect/http"
+import { browserClient } from "@shivaedev/work-board/browserClient.ts"
 import { boardLayer } from "@shivaedev/work-board/server/board.ts"
-import { browserClient } from "@shivaedev/work-board/client/client.ts"
-import { DocumentView } from "@shivaedev/work-board/client/document/View.ts"
 import { Document } from "@shivaedev/work-board/browser/document/schema.ts"
 import { Navigation } from "@shivaedev/work-board/browser/Navigation.ts"
 import { HandoffInput } from "@shivaedev/work-board/browser/handoffs/schema.ts"
@@ -17,8 +16,10 @@ import { FleetItems } from "@shivaedev/work-board/diagnostics/fleetItems.ts"
 import { workContract } from "@shivaedev/work-board/rpc/contract.ts"
 import { serveBoard } from "@shivaedev/work-board/server/serve.ts"
 
+for (const path of ["client/client.ts", "client/document/View.ts"]) {
+  await assert.rejects(import(`@shivaedev/work-board/${path}`), { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" })
+}
 assert.equal(typeof browserClient, "function")
-assert.equal(typeof DocumentView, "function")
 assert.equal(typeof serveBoard, "function")
 assert.equal("listenOn" in await import("@shivaedev/work-board/server/serve.ts"), false)
 const removedRpcPath = "@shivaedev/work-board/server/rpc/server.ts"

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { Config, Effect } from "effect";
-import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
+import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
 import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 
 if (Effect.runSync(Config.String("NODE_ENV").pipe(Config.withDefault(""))) === "production") {

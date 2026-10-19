@@ -2,7 +2,7 @@ import { useAtomValue } from "@effect/atom-react";
 import * as Atom from "effect/reactivity/Atom";
 import { createElement } from "react";
 import { vi } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Rendered } from "#client/testing.ts";
 import { NotesView } from "./NotesView.ts";
 import { clickButton } from "./Screen.ts";

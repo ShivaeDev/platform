@@ -6,7 +6,7 @@ import { RpcTest } from "effect/rpc";
 import type { ReactNode } from "react";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { render } from "@shivaedev/effect-react/client/testing.ts";
-import type { BrowserClient, Reader } from "#client/client.ts";
+import type { BrowserClient, Reader } from "#browserClient.ts";
 import { FormContext } from "#client/react/FormContext.ts";
 import { workContract, workRpcs } from "#rpc/contract.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";

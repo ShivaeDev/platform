@@ -33,7 +33,7 @@ for (const path of ["/_board/attachment/shots/review.png", "/_board/unsupported"
 }
 
 screenStory.it(
-	"keeps a deleted favorite visible and explains its missing target",
+	"keeps a deleted favorite visible and leaves explaining its missing target to the page",
 	[screenWorkspace("missing-favorite"), chromeScreen(files)],
 	function* ({ click, navigate, deleteFile, refreshDocument, readText }) {
 		click("#favorite-toggle");
@@ -44,8 +44,12 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readText('#reading-library a[href="/notes/plan.md"]', document)).toContain("missing")));
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
 		click('#reading-library a[href="/notes/plan.md"]');
-		yield* Effect.promise(() => eventually(() => expect(readText("#navigation-status")).toContain("missing or was renamed")));
-		expect(readText("#doc [data-slot=empty-description]")).toBe("No Markdown file at notes/plan.md. It may have been moved or deleted.");
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(readText("#doc [data-slot=empty-description]")).toBe("No Markdown file at notes/plan.md. It may have been moved or deleted."),
+			),
+		);
+		expect(readText("#navigation-status")).toBe("");
 	},
 );
 
@@ -78,13 +82,14 @@ screenStory.it(
 );
 
 screenStory.it(
-	"retries the same route after its document request fails",
+	"retries the same route after its document request fails, which the page explains on its own",
 	[fallibleDocument(), chromeScreen(files)],
 	function* ({ failDocument, recoverDocument, follow, navigate, readText, readAttribute }) {
 		failDocument();
 		yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
-		yield* Effect.promise(() => eventually(() => expect(readText("#navigation-status")).toContain("Could not open")));
+		yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-status")).toBe("503")));
 		expect(readAttribute("#doc", "data-route")).toBe("/notes/deep/proof.md");
+		expect(readText("#navigation-status")).toBe("");
 		recoverDocument();
 		yield* Effect.promise(() => follow("/notes/deep/proof.md"));
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Proof")));

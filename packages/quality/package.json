@@ -28,7 +28,7 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"./biome": "./biome/preset.json",
+		"./biome/preset.json": "./biome/preset.json",
 		"./tsconfig/base.json": "./tsconfig/base.json",
 		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json",

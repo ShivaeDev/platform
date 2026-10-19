@@ -1,4 +1,4 @@
 {
-	"extends": ["@shivaedev/quality/biome"],
+	"extends": ["@shivaedev/quality/biome/preset.json"],
 	"root": true
 }

@@ -236,11 +236,17 @@
 	.reading-column blockquote {
 		@apply border-l-2 pl-4 text-muted-foreground;
 	}
-	.reading-column table:not([data-slot]) {
-		@apply block overflow-auto;
+	/* Edge shadows show that a wide table scrolls; covers that scroll with the content hide each shadow at its end. */
+	[data-slot="table-container"]:has(> [data-markdown-table]) {
+		--table-shadow: color-mix(in oklch, var(--foreground) 30%, transparent);
+		background:
+			linear-gradient(to right, var(--table-surface, var(--background)) 40%, transparent) left / 2rem 100% no-repeat local,
+			linear-gradient(to left, var(--table-surface, var(--background)) 40%, transparent) right / 2rem 100% no-repeat local,
+			radial-gradient(farthest-side at 0 50%, var(--table-shadow), transparent) left / 1rem 100% no-repeat scroll,
+			radial-gradient(farthest-side at 100% 50%, var(--table-shadow), transparent) right / 1rem 100% no-repeat scroll;
 	}
-	.reading-column :is(th, td):not([data-slot]) {
-		@apply border p-2;
+	.bg-card {
+		--table-surface: var(--card);
 	}
 	.item-context {
 		@apply [overflow-wrap:anywhere];

@@ -7,13 +7,20 @@ import { KeyboardHints } from "./KeyboardHints.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { NeedsYouBadge } from "./NeedsYouBadge.tsx";
+import { REFRESH_FAILURE } from "./navigationLocation.ts";
 import { useCurrentDestination, useNavigationPending } from "./navigationTarget.ts";
 import { SettingsPopover } from "./SettingsPopover.tsx";
 import { shellIds } from "./shellIds.ts";
 import type { AppearanceControls } from "./useAppearance.ts";
 import type { SidebarControls } from "./useSidebar.ts";
-export function InboxCount({ count, id }: { readonly count: number | null; readonly id: string }) {
-	return <NeedsYouBadge aria-label={count === null ? "Needs you unavailable" : `${count} need you`} count={count} id={id} role="status" />;
+export function InboxCount({ count, id }: { readonly count: number | null | undefined; readonly id: string }) {
+	return <NeedsYouBadge aria-label={inboxCountLabel(count)} count={count} id={id} role="status" />;
+}
+function inboxCountLabel(count: number | null | undefined) {
+	if (count === undefined) {
+		return "Counting what needs you";
+	}
+	return count === null ? "Needs you unavailable" : `${count} need you`;
 }
 export function Header({
 	main,
@@ -26,7 +33,7 @@ export function Header({
 	status,
 }: {
 	readonly main: MainLocation;
-	readonly count: number | null;
+	readonly count: number | null | undefined;
 	readonly appearance: AppearanceControls;
 	readonly sidebar: SidebarControls;
 	readonly openSearch: () => void;
@@ -85,9 +92,15 @@ export function Header({
 				</KeyboardHints>
 			</Button>
 			<div className="shrink-0">{live}</div>
-			<span className="shrink-0 text-destructive" id={shellIds.navigationStatus} role="status" title={status}>
-				{Boolean(status) && <AlertCircle aria-hidden="true" className="size-4" />}
-				<span className="sr-only">{status}</span>
+			<span
+				className="shrink-0 text-muted-foreground text-xs data-[state=failed]:text-destructive"
+				data-state={status === REFRESH_FAILURE ? "failed" : undefined}
+				id={shellIds.navigationStatus}
+				role="status"
+				title={status}
+			>
+				{Boolean(status) && <AlertCircle aria-hidden="true" className="size-4 md:hidden" />}
+				<span className="max-md:sr-only">{status}</span>
 			</span>
 			<SettingsPopover appearance={appearance} updates={updates} />
 			{pending && (

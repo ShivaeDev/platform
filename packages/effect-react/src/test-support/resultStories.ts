@@ -1,5 +1,5 @@
 import { Cause, Data, Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resultSession } from "./resultSession.ts";
 import { screenKit } from "./screenKit.ts";
 

@@ -3,7 +3,7 @@ import { Effect, Schema } from "effect";
 import { identity } from "effect/Function";
 import { Model } from "effect/schema";
 import { Migrator, SqlClient } from "effect/sql";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clientOptions } from "#clientOptions.ts";
 import { migratePostgres } from "#migrations.ts";
 import { makeRepository } from "#repository.ts";

@@ -20,6 +20,12 @@ class Row extends Model.Class<Row>("FilteredRow")({
 const program = Effect.gen(function* () {
 	const options = { conflictColumns: ["id"], idColumn: "id", spanPrefix: "Row", tableName: "rows" } as const;
 	const plain = yield* makeRepository(Row, options);
+	expectTypeOf<Effect.Services<ReturnType<typeof plain.findMany>>>().toEqualTypeOf<FilterEncoding>();
+	plain.findMany({ where: { id: { in: [1, 2] }, kind: "x", value: { in: [1, 2] } } });
+	// @ts-expect-error List entries use decoded field values.
+	plain.findMany({ where: { value: { in: ["1"] } } });
+	// @ts-expect-error List entries must name model fields.
+	plain.findMany({ where: { missing: { in: [1] } } });
 	expectTypeOf<Effect.Services<ReturnType<typeof plain.insertOrIgnore>>>().toEqualTypeOf<never>();
 	const filtered = yield* makeRepository(Row, { ...options, conflictWhere: { kind: "x", value: 1 } });
 	expectTypeOf<Effect.Services<ReturnType<typeof filtered.insertOrIgnore>>>().toEqualTypeOf<FilterEncoding>();

@@ -12,17 +12,16 @@ export function liveStatus(value: LiveState) {
 	const state = connectionState(value, failure);
 	return {
 		state,
-		text:
-			state === "paused" ? `updates paused · ${value.pending}${value.pending === 256 ? "+" : ""} pending updates` : failure || connectionText(state),
+		text: state === "paused" ? `Updates paused · ${value.pending}${value.pending === 256 ? "+" : ""} pending` : statusText(state, value, failure),
 		title: `Connection: ${value.connection}; last observed source watcher: ${watcherText(value.watching)}; ${readStatus(value, failure)}`,
 	};
 }
 function failureText(failed: boolean, navigationFailed: boolean) {
 	if (failed) {
-		return "refresh failed";
+		return "Couldn't update this page";
 	}
 	if (navigationFailed) {
-		return "navigation refresh failed";
+		return "Couldn't update the sidebar";
 	}
 	return "";
 }
@@ -41,8 +40,22 @@ function connectionState(value: LiveState, failure: string) {
 	}
 	return value.waiting ? "refreshing" : "live";
 }
-function connectionText(state: string) {
-	return state === "down" ? "reconnecting" : state;
+function statusText(state: ReturnType<typeof connectionState>, value: LiveState, failure: string) {
+	if (value.connection === "reconnecting" && (state === "down" || state === "stale")) {
+		return "Can't reach the Board server";
+	}
+	switch (state) {
+		case "stale":
+			return failure;
+		case "down":
+			return "Reconnecting…";
+		case "connecting":
+			return "Connecting…";
+		case "refreshing":
+			return "Updating…";
+		default:
+			return "Live";
+	}
 }
 function readStatus(value: LiveState, failure: string) {
 	if (value.paused) {

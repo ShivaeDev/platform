@@ -1,6 +1,6 @@
 import { Effect, Layer, Option, Schema, Stream } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AuthUnavailable, Unauthorized } from "#errors/taxonomy.ts";
 import { Identity, SessionUserWithProviderAccounts } from "#rpc/identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "#rpc/middleware.ts";

@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { defineQueue } from "@shivaedev/effect-pg-boss/definition.ts";
-import { makePgBoss } from "@shivaedev/effect-pg-boss/service.ts";
+import { defineQueue } from "@shivaedev/effect-pg-boss/server/definition.ts";
+import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
 
 export const CountWords = defineQueue({
 	name: "count-note-words",

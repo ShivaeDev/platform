@@ -1,7 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
 import * as Atom from "effect/reactivity/Atom";
 import { createElement } from "react";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Rendered } from "#client/testing.ts";
 import { resumeSignal } from "#resumeSignal.ts";
 import { counted, syntheticNative, syntheticWindow } from "./resumeSources.ts";

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { domFetch } from "@shivaedev/test-story/domFetch.ts";
+import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
 import { makeAuth } from "#client/auth.ts";
 import { startHost } from "#test-support/host.ts";
 

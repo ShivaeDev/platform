@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { NodeHttpServer, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
-import { browserClient } from "@shivaedev/work-board/client/client.ts";
+import { browserClient } from "@shivaedev/work-board/browserClient.ts";
 import { boardLayer } from "@shivaedev/work-board/server/board.ts";
 
 export const boardHttp = Effect.fn("BoardStory.boardHttp")(function* (root: string, home?: string, maintainer?: string, fleetPort?: number) {

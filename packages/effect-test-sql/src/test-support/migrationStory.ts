@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { Migrator } from "effect/sql";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrationSteps } from "#migrationSteps.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { loaderResourcesAreScoped } from "./loaderResourcesAreScoped.ts";

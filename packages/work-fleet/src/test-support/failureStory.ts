@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { FleetError } from "#errors.ts";
 import { exposeFailure } from "#exposeFailure.ts";
 

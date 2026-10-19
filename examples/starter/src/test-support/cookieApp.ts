@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { seedCookies } from "@shivaedev/test-story/seedCookies.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { mintUser } from "./sessionPrecondition.ts";

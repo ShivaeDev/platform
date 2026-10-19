@@ -2,7 +2,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { getMigrations } from "better-auth/db/migration";
 import { Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
-import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
+import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
 import { createProvider } from "./harness.ts";
 
