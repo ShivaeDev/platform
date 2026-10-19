@@ -6,6 +6,7 @@ import { daemonResources } from "#test/daemonResources.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import type { Follower } from "#test/followerProcess.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
+import { localBoardHost } from "#test/localBoardHost.ts";
 import { movingMainSource } from "#test/mainSource.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
 import { type SnapshotReads, snapshotReads } from "#test/snapshotReads.ts";
@@ -17,6 +18,8 @@ export class HostStoryEngine {
 	config: Partial<HostConfig> = {};
 	stored: Record<string, Readonly<Record<string, unknown>>> = {};
 	main: MainSnapshot | undefined;
+	localBoard = false;
+	repositoryRoot: string | undefined;
 	briefParseCount: (() => number) | undefined;
 	readonly followers = new Map<string, Follower>();
 	readonly snapshots: unknown[] = [];
@@ -58,7 +61,13 @@ export class HostStoryEngine {
 	deploy() {
 		const engine = this;
 		return Effect.gen(function* () {
-			engine.#fixture = yield* hostFixture(engine.files, engine.config);
+			if (engine.localBoard) {
+				const local = localBoardHost(yield* hostFixture({}, engine.config));
+				engine.repositoryRoot = local.repositoryRoot;
+				engine.#fixture = local.fixture(engine.files);
+			} else {
+				engine.#fixture = yield* hostFixture(engine.files, engine.config);
+			}
 			for (const [workId, record] of Object.entries(engine.stored)) {
 				yield* engine.store(workId, record);
 			}
@@ -81,7 +90,7 @@ export class HostStoryEngine {
 			}
 			const parts = { ...engine.fixture.parts, provider: resources.provider };
 			if (engine.main !== undefined) {
-				parts.main = movingMainSource(() => engine.observedMain);
+				parts.main = movingMainSource(() => engine.observedMain, engine.repositoryRoot);
 			}
 			engine.#subscribed = Promise.withResolvers<void>();
 			engine.#runtime = yield* reads.observe(
