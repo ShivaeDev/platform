@@ -77,6 +77,9 @@ screenStory.it(
 		expect(readText("article.item p", board)).toBe("Readers open the source first.");
 		expect(readText("[data-page-summary] .counts")).toBe("1 plan · 1 done");
 		expect(readText("[data-page-summary]")).toMatch(/updated \d+[smhd] ago/u);
+		expect([...findElements("[data-page-summary] time[data-modified]")].map((time) => time.parentElement?.hasAttribute("data-item-updated"))).toEqual(
+			[true],
+		);
 	},
 );
 

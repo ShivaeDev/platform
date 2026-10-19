@@ -16,13 +16,24 @@ export function ItemId({ id, href }: { readonly id: string; readonly href: strin
 	}
 	return (
 		<span className="inline-flex items-center gap-0.5 text-muted-foreground">
-			<a className="select-all font-mono text-xs hover:text-foreground" href={href}>
+			<a
+				className="pointer-coarse:inline-flex pointer-coarse:min-h-11 select-all pointer-coarse:items-center font-mono text-xs hover:text-foreground"
+				href={href}
+			>
 				{id}
 			</a>
 			<Tooltip>
 				<TooltipTrigger
 					render={
-						<Button aria-label={label} onBlur={() => setCopy("idle")} onClick={handleCopy} size="icon-xs" type="button" variant="ghost">
+						<Button
+							aria-label={label}
+							className="pointer-coarse:size-11"
+							onBlur={() => setCopy("idle")}
+							onClick={handleCopy}
+							size="icon-xs"
+							type="button"
+							variant="ghost"
+						>
 							{copy === "copied" ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
 						</Button>
 					}

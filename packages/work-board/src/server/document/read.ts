@@ -10,6 +10,7 @@ import type { Snapshot } from "#server/search/snapshot.ts";
 import type { WorkspaceSettings } from "#server/workspace.ts";
 import { answerBody } from "./answerBody.ts";
 import { readingContext } from "./readingContext.ts";
+import { requestOutcome } from "./requestOutcome.ts";
 import { documentRequests } from "./requests.ts";
 import { documentTargets } from "./targets.ts";
 
@@ -68,7 +69,8 @@ export function readDocument({ changes, home, root, realRoot, writable }: Worksp
 		const referenceDetails = Object.fromEntries(
 			Object.keys(targets.references).flatMap((target) => {
 				const referenced = model.ids.get(target.split("#")[0] ?? "")?.[0];
-				return referenced ? [[target, { status: referenced.parsed.fields.status, title: titles.get(referenced.file) ?? referenced.file }]] : [];
+				const { kind, status } = referenced?.parsed.fields ?? {};
+				return referenced ? [[target, { kind, status, title: titles.get(referenced.file) ?? referenced.file }]] : [];
 			}),
 		);
 		const requests = documentRequests(document, source, current.snapshot);
@@ -82,6 +84,7 @@ export function readDocument({ changes, home, root, realRoot, writable }: Worksp
 			questionActions: Object.fromEntries(questionActions ?? []),
 			reading,
 			referenceDetails,
+			requestOutcome: requestOutcome(document, current.snapshot),
 			requests,
 			source: answerBody(document, requests),
 			unavailable: snapshot.unavailable,

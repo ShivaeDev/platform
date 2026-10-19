@@ -1,11 +1,13 @@
-import { Ban, Check, Circle, CircleHelp, CirclePause, CircleX, Clock, Inbox, LoaderCircle, MessageCircle, Users } from "lucide-react";
+import { Ban, Check, Circle, CircleHelp, CircleMinus, CirclePause, CircleX, Clock, Inbox, LoaderCircle, MessageCircle, Users } from "lucide-react";
 import { statusLabel } from "#browser/views/statusLabel.ts";
 
 const statuses = {
 	active: { icon: LoaderCircle, token: "agent-working" },
 	adopting: { icon: LoaderCircle, token: "agent-working" },
 	"agent-working": { icon: LoaderCircle, token: "agent-working" },
+	answered: { icon: Check, token: "done" },
 	blocked: { icon: Ban, token: "blocked" },
+	closed: { icon: CircleMinus, token: "deferred" },
 	completed: { icon: Check, token: "done" },
 	deferred: { icon: CirclePause, token: "deferred" },
 	delivering: { icon: LoaderCircle, token: "agent-working" },
