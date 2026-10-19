@@ -7,6 +7,7 @@ import { fleetHealth, stoppedFleet } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
+import { todayIds } from "./todayIds.ts";
 
 expectNoReactWarnings();
 
@@ -29,6 +30,29 @@ screenStory.it(
 		const shown = findByRole("dialog", "Start Fleet", document)?.querySelector("code")?.textContent ?? "";
 		expect(shown).toMatch(command);
 		expect(document.body.textContent?.match(/work-fleet serve \S+ --port \d+/gu)).toEqual([shown]);
+	},
+);
+
+screenStory.it(
+	"lists task-file work below the Fleet isn't running panel on Today",
+	[
+		screenFiles(
+			{
+				"active.md": "---\nid: task.active\nkind: task\nstatus: active\n---\n# Active task",
+				"home.md": "# Workspace notes\n",
+			},
+			{ home: "home.md" },
+		),
+		stoppedFleet(),
+		openScreen(),
+	],
+	function* ({ findByRole, findElements, readText }) {
+		const progress = `#${todayIds.progress}`;
+		yield* Effect.promise(() => eventually(() => expect(readText(`${progress} [data-progress-id="task.active"]`)).toContain("Task file · Active")));
+		const panel = findElements(`${progress} [role="status"]`).find((status) => status.textContent === STOPPED)?.parentElement;
+		expect(panel?.textContent).toContain("Status comes from the task files, not live Fleet.");
+		expect(panel?.contains(findByRole("button", "How to start Fleet") ?? null)).toBe(true);
+		expect(readText(`${progress} [data-progress-source="files"] a`)).toBe("Active task");
 	},
 );
 
