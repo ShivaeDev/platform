@@ -1,11 +1,12 @@
 import { chosenLabels } from "#browser/responses/cardContext.ts";
 import type { AnswerSummary } from "#browser/responses/schema.ts";
+import { documentSource } from "#server/metadata/model.ts";
 import { questionTemplate } from "#server/responses/template.ts";
 import type { AttentionEntry } from "./requests.ts";
 
 export function requestPrompts(entry: AttentionEntry) {
 	try {
-		return questionTemplate((entry.document.parsed.raw ?? "") + entry.document.parsed.body, entry.request.id, entry.document.file).prompts;
+		return questionTemplate(documentSource(entry.document), entry.request.id, entry.document.file).prompts;
 	} catch {
 		return [];
 	}
