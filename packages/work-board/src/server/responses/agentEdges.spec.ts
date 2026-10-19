@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { agentRequest } from "#server/responses/agent.ts";
-import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
+import { aQuestionnaire, boardStory, deferredServing } from "#test/boardStory.ts";
 import { questionnaireAnswers } from "#test/questionnaire.ts";
 
-boardStory.it("rejects unsafe agent server URLs through the typed error channel before creating any HTTP request", [], function* () {
+boardStory.it("rejects unsafe agent server URLs through the typed error channel before creating any HTTP request", [deferredServing], function* () {
 	for (const url of [
 		"not a URL",
 		"https://127.0.0.1:4747",

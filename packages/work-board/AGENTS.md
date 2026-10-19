@@ -13,3 +13,5 @@ When goals conflict, they win in this order:
 5. **Structure earns its cost.** Keep plain Markdown and heading boards useful. Add metadata, controls or integrations only for a demonstrated reader need.
 
 Use practical draft retention, revision checks and clear save outcomes. Rare outside-editor races are an accepted best-effort boundary, not permission to hide ordinary failures. A passive question wait and a prepared handoff do not launch an agent. Keep ordinary receipt edits separate from execution and acceptance, including in optional integrations.
+
+Bundle stories are smoke tests for critical paths, and every behavior is proven in-process.

@@ -14,6 +14,7 @@ import { fixtureSnapshot } from "./fixtureSnapshot.ts";
 import { memoryFiles } from "./memoryFiles.ts";
 
 export interface BoardFixtureOptions {
+	readonly afterRead?: (url: string) => Effect.Effect<void>;
 	readonly beforeIndex?: () => Effect.Effect<void, PlatformError.PlatformError>;
 	readonly beforeRead?: (kind: "document", url: string) => Effect.Effect<void>;
 	readonly beforeStart?: Effect.Effect<void>;
@@ -68,7 +69,10 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 				Effect.map(Workspace, (service) => ({
 					...service,
 					document: (url: string) =>
-						Effect.suspend(() => configuration?.beforeRead?.("document", url) ?? Effect.void).pipe(Effect.andThen(service.document(url))),
+						Effect.suspend(() => configuration?.beforeRead?.("document", url) ?? Effect.void).pipe(
+							Effect.andThen(service.document(url)),
+							Effect.tap(() => configuration?.afterRead?.(url) ?? Effect.void),
+						),
 				})),
 			).pipe(Layer.provide(Workspace.layer));
 			return boardServices({ fleetPort }).pipe(

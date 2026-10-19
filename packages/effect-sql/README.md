@@ -183,7 +183,7 @@ const ingest = Effect.gen(function* () {
 });
 ```
 
-The application creates `readings` with `PRIMARY KEY (source, sequence)`; `sequence` and `amount` are text columns for these codecs. Composite keys contain at least two model fields. `findById` and `delete` take an object containing every key field and encode each through its field schema. `update` and `updateVoid` use the full key from the model's update input and leave the key columns unchanged. Missing key fields fail with `SchemaError` before SQL runs. A scalar `idColumn` keeps native CRUD signatures.
+The application creates `readings` with `PRIMARY KEY (source, sequence)`; `sequence` and `amount` are text columns for these codecs. Composite keys contain at least two model fields. `findById` and `delete` take an object containing every key field and encode each through its field schema. `update` and `updateVoid` use the full key from the model's update input and leave the key columns unchanged. Missing key fields fail with `SchemaError` before SQL runs. A scalar `idColumn` keeps native CRUD signatures. Writes announce a composite row as the table name, a colon and a JSON array of the returned key values in `idColumn` order, such as `readings:["meter","1"]`; a PostgreSQL `bigint` key value appears as its decimal string.
 
 `conflictColumns` is a nonempty tuple of inserted model fields backed by a database unique constraint or primary key. It can differ from the primary key, including a unique external key beside a generated ID. Declaring it adds these methods:
 

@@ -7,6 +7,41 @@ import { routedScreen } from "#test/screenTraits.ts";
 expectNoReactWarnings();
 const files = { "home.md": "# Home\n\n## Plans\n", "notes/first.md": "# First\n", "notes/next.md": "---\nid: note.next\n---\n# Next\n" };
 
+for (const { kind, url } of [
+	{ kind: "board", url: "/home.md" },
+	{ kind: "work", url: "/_board/work?view=table" },
+]) {
+	for (const failed of [false, true]) {
+		screenStory.it(
+			`keeps same-URL ${kind} navigation on its projection (failed: ${failed})`,
+			[routedScreen(files, "/notes/first.md", { home: "home.md" })],
+			function* ({ follow, failWorkspace, recoverWorkspace, readAttribute, readDocumentReads, readIndexReads, findElement }) {
+				yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/notes/first.md")));
+				if (failed) {
+					failWorkspace();
+				}
+				yield* Effect.promise(() => follow(url));
+				yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-status")).toBe(failed ? "503" : "200")));
+				expect(readAttribute("#doc", "data-projection")).toBe(kind);
+				const before = readDocumentReads();
+				const beforeIndex = readIndexReads();
+				const projection = findElement("[data-react-projection]");
+				recoverWorkspace();
+				yield* Effect.promise(() => follow(url));
+				yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-status")).toBe("200")));
+				expect(readAttribute("#doc", "data-route")).toBe(url);
+				expect(readIndexReads()).toBe(beforeIndex + (failed ? 1 : 0));
+				expect(readDocumentReads().filter((read) => read === url)).toHaveLength(
+					before.filter((read) => read === url).length + (failed && kind === "board" ? 1 : 0),
+				);
+				if (!failed) {
+					expect(findElement("[data-react-projection]")).toBe(projection);
+				}
+			},
+		);
+	}
+}
+
 const routes: ReadonlyArray<{ readonly url: string; readonly kind: "document" | "board" | "work" | "today" }> = [
 	{ kind: "document", url: "/notes/next.md" },
 	{ kind: "document", url: "/_board/item/note.next/" },

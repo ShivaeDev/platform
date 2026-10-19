@@ -1,9 +1,9 @@
 import { expect } from "vitest";
-import { boardStory } from "#test/boardStory.ts";
+import { boardStory, deferredServing } from "#test/boardStory.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
 import { questionTemplate } from "./template.ts";
 
-boardStory.it("reads a rich packet with stable prompt/option identities without treating code examples as controls", [], () => {
+boardStory.it("reads a rich packet with stable prompt/option identities without treating code examples as controls", [deferredServing], () => {
 	const template = questionTemplate(`${questionnaireSource}\n\`\`\`markdown\n::::question{id="example"}\n\`\`\`\n`, "direction");
 	expect(template.prompts.map((prompt) => [prompt.id, prompt.mode, prompt.options.map((option) => option.id)])).toEqual([
 		["display", "one", ["latest", "history"]],
@@ -13,7 +13,7 @@ boardStory.it("reads a rich packet with stable prompt/option identities without 
 	expect(template.context).toContain('::::question{id="example"}');
 	expect(template.context).not.toContain('::::question{id="display"');
 });
-boardStory.it("rejects ambiguous, nested and malformed controls rather than silently dropping part of a packet", [], () => {
+boardStory.it("rejects ambiguous, nested and malformed controls rather than silently dropping part of a packet", [deferredServing], () => {
 	for (const source of [
 		questionnaireSource.replace('id="checks"', 'id="display"'),
 		questionnaireSource.replace('id="history"', 'id="latest"'),
@@ -25,7 +25,7 @@ boardStory.it("rejects ambiguous, nested and malformed controls rather than sile
 		expect(() => questionTemplate(source, "direction")).toThrow();
 	}
 });
-boardStory.it("scopes question packets explicitly when a document has several open requests", [], () => {
+boardStory.it("scopes question packets explicitly when a document has several open requests", [deferredServing], () => {
 	const source = questionnaireSource.replace(
 		"---\n#",
 		"  - id: other\n    kind: review\n    state: open\n    response_from: [maintainer]\n    reason: Other review\n    unblocks: [investigation.choices]\n---\n#",
@@ -36,15 +36,23 @@ boardStory.it("scopes question packets explicitly when a document has several op
 	expect(questionTemplate(explicit, "other").prompts).toHaveLength(0);
 	expect(questionTemplate("# Ordinary Markdown", "direction").prompts).toHaveLength(0);
 });
-boardStory.it("keeps reference links and images readable after the response is saved in another folder, and supports open text prompts", [], () => {
-	const source = `${questionnaireSource}\n::::question{id="next" select="text"}\nWhat is the **next action**? See [work][target] and ![screen](shots/first.png).\n::::\n\n[target]: ../task.md "Affected work"\n`;
-	const template = questionTemplate(source, "direction", "proposals/design.md");
-	expect(template.prompts[2]?.mode).toBe("text");
-	expect(template.prompts[2]?.source).toContain("</proposals/shots/first.png>");
-	expect(template.prompts[2]?.source).toContain("/task.md");
-});
-boardStory.it("normalizes derived template descriptions so CRLF sources produce the same browser preview and recorded body", [], () => {
-	expect(questionTemplate(questionnaireSource.replaceAll("\n", "\r\n"), "direction", "proposal.md")).toEqual(
-		questionTemplate(questionnaireSource, "direction", "proposal.md"),
-	);
-});
+boardStory.it(
+	"keeps reference links and images readable after the response is saved in another folder, and supports open text prompts",
+	[deferredServing],
+	() => {
+		const source = `${questionnaireSource}\n::::question{id="next" select="text"}\nWhat is the **next action**? See [work][target] and ![screen](shots/first.png).\n::::\n\n[target]: ../task.md "Affected work"\n`;
+		const template = questionTemplate(source, "direction", "proposals/design.md");
+		expect(template.prompts[2]?.mode).toBe("text");
+		expect(template.prompts[2]?.source).toContain("</proposals/shots/first.png>");
+		expect(template.prompts[2]?.source).toContain("/task.md");
+	},
+);
+boardStory.it(
+	"normalizes derived template descriptions so CRLF sources produce the same browser preview and recorded body",
+	[deferredServing],
+	() => {
+		expect(questionTemplate(questionnaireSource.replaceAll("\n", "\r\n"), "direction", "proposal.md")).toEqual(
+			questionTemplate(questionnaireSource, "direction", "proposal.md"),
+		);
+	},
+);

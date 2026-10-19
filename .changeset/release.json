@@ -3,74 +3,56 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "effect-sql-advisory-lock.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- `advisoryXactLock(key: bigint | string)` takes a PostgreSQL transaction-scoped advisory lock inside `transact`, with string keys hashed by `hashtextextended(key, 0)`. `AdvisoryLockOutsideTransaction` is the typed failure when no transaction is active. `migratePostgres` uses the same lock function.\n"
+				"name": "effect-sql-bigint-composite-key.md",
+				"text": "---\n\"@shivaedev/effect-sql\": patch\n---\n\n### Fixed\n\n- Repository writes to a table whose composite key includes a `bigint` column no longer fail with \"Do not know how to serialize a BigInt\"; their item keys encode each `bigint` key value as its decimal string, the same way a single-column `bigint` key is encoded.\n"
 			},
 			{
-				"name": "platform-action-traces.md",
-				"text": "---\n\"@shivaedev/platform\": patch\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- effect-react exports `actionTrace(effect, name?)` from `actionTrace.ts` to group an action's RPC Effects under a fresh trace. Editor saves and create submissions automatically group their save Effects in a `ui.submit` trace. Native HTTP RPC clients send W3C trace context through the host to SQL and job enqueueing; pg-boss worker attempts retain their separate, linked traces.\n\n### Fixed\n\n- Platform appHost preserves incoming W3C `traceparent` context for RPC handling even without an installed tracer or exporter. Request ids stay annotated on the RPC span.\n"
-			},
-			{
-				"name": "quality-connection-workers.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Changed\n\n- `testProjects()` sizes workers from a connection budget instead of CPU capacity. Set `connectionBudget` and `connectionsPerWorker` to match the repository's PostgreSQL usage, or set `maxWorkers` to override the calculation.\n"
+				"name": "work-board-goal-progress.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Goal progress counts dropped work as done and ready work as planned, so ready items no longer inflate the in-progress count.\n- Linked work that Fleet holds for a person counts as \"needs you\" in goal progress and gets its own group on the goal page, instead of reading as in progress.\n\n### Changed\n\n- Goal cards, the sidebar and Today show goal progress on the stock shadcn progress bar, and goal cards align at the top instead of stretching to the tallest card.\n- The goal page charts linked work by state, overall and per criterion, with a stacked bar chart next to written counts.\n- Linked work on a goal page is a table with Work, Criteria, State and PR columns, and each whole row links to its item.\n- The goals query and the MCP goal summary report a `needs you` count beside `done`, `in progress` and `planned`.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.2",
+				"from": "0.11.4",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.3"
+				"to": "0.11.5"
 			},
 			{
-				"bump": "minor",
-				"directory": "packages/effect-react",
-				"from": "0.9.0",
-				"name": "@shivaedev/effect-react",
-				"to": "0.10.0"
-			},
-			{
-				"bump": "minor",
+				"bump": "patch",
 				"directory": "packages/effect-sql",
-				"from": "0.7.0",
+				"from": "0.8.0",
 				"name": "@shivaedev/effect-sql",
-				"to": "0.8.0"
+				"to": "0.8.1"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/effect-test-sql",
-				"from": "0.7.0",
+				"from": "0.7.1",
 				"name": "@shivaedev/effect-test-sql",
-				"to": "0.7.1"
+				"to": "0.7.2"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/platform",
-				"from": "0.20.0",
+				"from": "0.20.1",
 				"name": "@shivaedev/platform",
-				"to": "0.20.1"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/quality",
-				"from": "0.28.1",
-				"name": "@shivaedev/quality",
-				"to": "0.28.2"
+				"to": "0.20.2"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.21.1",
+				"from": "0.21.3",
 				"name": "@shivaedev/work-board",
-				"to": "0.21.2"
+				"to": "0.21.4"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.12.0",
+				"from": "0.13.0",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.12.1"
+				"to": "0.13.1"
 			}
 		]
 	}
