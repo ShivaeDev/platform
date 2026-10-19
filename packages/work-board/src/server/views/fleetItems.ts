@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
-import { daemonUnavailableReason, readDaemon } from "#server/diagnostics/daemon.ts";
+import { daemonUnavailable, readDaemon } from "#server/diagnostics/daemon.ts";
 import { itemsOf } from "#server/views/items.ts";
 import { Workspace } from "#server/workspace.ts";
 
@@ -11,11 +11,12 @@ export function fleetItems(fleetPort: number | null = DAEMON_PORT): Effect.Effec
 	}
 	return Effect.gen(function* () {
 		const result = yield* readDaemon(fleetPort, (client) => client("daemon.fleetItems", {})).pipe(Effect.result);
+		const workspace = yield* Workspace;
 		if (result._tag === "Failure") {
-			return { reason: daemonUnavailableReason(result.failure, fleetPort), state: "unavailable" as const };
+			const { root } = yield* workspace.settings();
+			return { ...daemonUnavailable(result.failure, fleetPort, root), state: "unavailable" as const };
 		}
 		const data = result.success;
-		const workspace = yield* Workspace;
 		const snapshot = yield* workspace.index().pipe(Effect.catch(() => Effect.succeed(undefined)));
 		if (!snapshot) {
 			return { reason: "Board documents could not be read for Fleet items", state: "unavailable" as const };
