@@ -16,7 +16,7 @@ export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: En
 		["completed", "released"].includes(stored.value.stage)
 		|| (!ready && (stored.value.stage === "needs-human" || stored.value.decision !== undefined))
 		|| !work.approved
-		|| ["done", "superseded", "deferred"].includes(work.status ?? "")
+		|| ["done", "superseded", "deferred", "dropped"].includes(work.status ?? "")
 		|| !changed
 	) {
 		return stored;

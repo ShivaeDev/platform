@@ -61,7 +61,7 @@ export function acknowledgeDecision(root: string, realRoot: string, snapshot: Ef
 function supersededReason(documents: readonly BoardDocument[], workId: string) {
 	const work = documents.filter((document) => document.parsed.fields.id === workId);
 	const status = work.length === 1 ? work[0]?.parsed.fields.status : undefined;
-	return ["done", "deferred", "superseded"].includes(status ?? "")
+	return ["done", "deferred", "superseded", "dropped"].includes(status ?? "")
 		? `Closed because Board work ${workId} is ${status}.`
 		: "Closed because this Fleet decision was superseded.";
 }

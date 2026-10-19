@@ -52,7 +52,7 @@ engine.it(
 		expect(providerStarts()).toHaveLength(starts);
 	},
 );
-for (const status of ["done", "superseded", "deferred"]) {
+for (const status of ["done", "superseded", "deferred", "dropped"]) {
 	engine.it(
 		`launch bypasses the scheduler snapshot when Markdown status becomes ${status} during assessment`,
 		[workClosesDuringAssessment(), markdownWork()],

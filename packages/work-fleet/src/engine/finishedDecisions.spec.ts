@@ -21,7 +21,7 @@ engine.it("finishing work through Fleet closes its unanswered decision in the so
 	expect(fleet.readBoardWork(waiting.sourcePath)).toContain("Closed because Board work one is done.");
 });
 
-for (const status of ["done", "deferred", "superseded"]) {
+for (const status of ["done", "deferred", "superseded", "dropped"]) {
 	engine.it(
 		`reconciliation closes an unanswered decision after work becomes ${status} outside Fleet`,
 		[githubPullRequest({}), markdownWork()],
