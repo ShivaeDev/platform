@@ -13,7 +13,7 @@ const files = { "notes/plan.md": "# Plan\n\nShared phrase.\n" };
 screenStory.it(
 	"retains the search query and refreshed results after dismissal and reopening",
 	[chromeScreen(files)],
-	function* ({ click, input, control, keyboard, refreshQuery, editFile, findElement }) {
+	function* ({ click, input, control, keyboard, refreshQuery, editFile, findElement, roles }) {
 		click("#search-open");
 		input(QUERY, "Shared phrase");
 		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase.")));
@@ -25,7 +25,7 @@ screenStory.it(
 		editFile("notes/plan.md", "# Plan\n\nShared phrase changed.\n");
 		yield* Effect.promise(() => refreshQuery("search", { query: "Shared phrase" }));
 		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase changed.")));
-		click("#search-close");
+		yield* roles.click({ name: "Close", role: "button" });
 		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 		click("#search-open");
 		expect(control(QUERY, HTMLInputElement).value).toBe("Shared phrase");

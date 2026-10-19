@@ -12,7 +12,7 @@ const PHONE = 'nav[aria-label="Phone navigation"]';
 screenStory.it(
 	"keeps primary destinations and Search available from Today, Now, goals and documents",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen(todayFixture(), "/")],
-	function* ({ click, navigate, readAttribute, findElements, findElement, readText }) {
+	function* ({ click, navigate, readAttribute, findElements, findElement, readText, roles }) {
 		for (const url of ["/", "/_board/work", "/_board/item/project.alpha/", "/home.md"]) {
 			yield* Effect.promise(() => navigate(url));
 			yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe(url)));
@@ -25,7 +25,7 @@ screenStory.it(
 			expect(findElement("#search-dialog", document)).not.toBeNull();
 			expect(findElement("#search-dialog kbd", document)).toBeNull();
 			expect(readText("#search-dialog", document)).not.toContain("Enter to open");
-			click("#search-close");
+			yield* roles.click({ name: "Close", role: "button" });
 			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
 		}
 		for (const [href, title] of [
