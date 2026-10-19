@@ -96,3 +96,18 @@ export function exactRankingFixture() {
 		]),
 	};
 }
+
+export function crossGroupRankingFixture(mentions = 1) {
+	const mention = "Work Board moves onto client-rendered React (plan in plans/board-react.md) and keeps the connection budget.";
+	return {
+		"boards/platform.md": `---\nid: platform.work\nkind: board\n---\n# Platform work\n\n${mention}\n`,
+		"notes/budget.md": "# Connection budget\n\nShared limits live elsewhere.\n",
+		"plans/board-react.md": "# Work Board on client-rendered React: slice plan\n\nSlice the move into small steps.\n",
+		...Object.fromEntries(
+			Array.from({ length: mentions }, (_, index) => [
+				`tasks/queries-${index}.md`,
+				`---\nid: framework.query-keeps-data-${index}\nkind: task\nstatus: done\n---\n# Queries keep their data while they refresh ${index}\n\n${mention}\n`,
+			]),
+		),
+	};
+}

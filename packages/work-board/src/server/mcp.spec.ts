@@ -55,7 +55,7 @@ boardStory.it(
 			},
 			goals: {
 				goals: expect.arrayContaining([
-					expect.objectContaining({ counts: { done: 1, "in progress": 2, "needs you": 0, planned: 2 }, id: "project.example" }),
+					expect.objectContaining({ counts: { done: 1, "in progress": 1, "needs you": 2, planned: 1 }, id: "project.example" }),
 				]),
 			},
 			needsYou: { count: 4, you: expect.arrayContaining([expect.objectContaining({ id: "task.first", reason: "Choose the next step" })]) },
