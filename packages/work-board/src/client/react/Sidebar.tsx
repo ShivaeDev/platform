@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { PanelsTopLeft } from "lucide-react";
+import { History, PanelsTopLeft } from "lucide-react";
 import { type ReactNode, useContext, useEffect } from "react";
 import type { Navigation } from "#browser/Navigation.ts";
 import { ActiveGoals } from "#client/react/ActiveGoals.tsx";
@@ -7,13 +7,14 @@ import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { destinationName } from "#client/react/destinationName.ts";
 import { InboxCount } from "#client/react/Header.tsx";
-import { type Item, LibraryContext } from "#client/react/LibraryContext.ts";
+import { LibraryContext } from "#client/react/LibraryContext.ts";
 import type { MainLocation } from "#client/react/mainLocation.ts";
+import { useCurrentDestination } from "#client/react/navigationTarget.ts";
+import { ReadingLinks } from "#client/react/ReadingLinks.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import type { SidebarControls } from "#client/react/useSidebar.ts";
 import { workspaceDestinations } from "#client/react/workspaceDestinations.ts";
-import { fileUrl } from "#files/url.ts";
 
 export function Sidebar({
 	api,
@@ -22,7 +23,6 @@ export function Sidebar({
 	home,
 	controls,
 	navigated,
-	openLibrary,
 }: {
 	readonly api: ShellApi;
 	readonly data: Navigation | undefined;
@@ -30,9 +30,9 @@ export function Sidebar({
 	readonly home: boolean;
 	readonly controls: SidebarControls;
 	readonly navigated: boolean;
-	readonly openLibrary: () => void;
 }) {
 	const reading = useContext(LibraryContext);
+	const current = useCurrentDestination(main);
 	const counts = {
 		today: data?.inboxCount,
 		work: data?.counts.now,
@@ -75,22 +75,31 @@ export function Sidebar({
 			</a>
 			<nav aria-label="Workspace" className="grid shrink-0 gap-1" data-inbox-count={String(data?.inboxCount ?? "?")} id={shellIds.primaryNavigation}>
 				{workspaceDestinations.map(({ label, href, view, id }) => (
-					<WorkspaceLink current={view === "today" ? home : main.view === view} href={href} id={id} key={view} name={name(view, label)}>
+					<WorkspaceLink current={current === view} href={href} id={id} key={view} name={name(view, label)}>
 						<span>{label}</span>
 						{view === "today" && <InboxCount count={counts.today ?? null} id={shellIds.inboxCount} />}
 						{view === "work" && workCount}
 					</WorkspaceLink>
 				))}
 			</nav>
-			<ReadingSection current={main.file} items={reading.favorites} title="Pinned" />
+			<ReadingLinks current={main.file} items={reading.favorites} title="Pinned" />
 			<section aria-label="Active goals">
 				<h2 className="mb-2 px-2 font-semibold text-muted-foreground text-xs">Active goals</h2>
 				{navigated ? <ActiveGoals api={api} /> : null}
 			</section>
-			<ReadingSection current={main.file} items={reading.recents.slice(0, 5)} title="Recent" />
-			<button className="mt-auto text-left text-muted-foreground text-xs" id={shellIds.libraryOpen} onClick={() => openLibrary()} type="button">
+			<ReadingLinks current={main.file} items={reading.recents.slice(0, 5)} title="Recent" />
+			<Button
+				aria-haspopup="dialog"
+				className="mt-auto justify-start text-muted-foreground"
+				id={shellIds.libraryOpen}
+				onClick={(event) => reading.openHistory(event.currentTarget)}
+				size="sm"
+				type="button"
+				variant="ghost"
+			>
+				<History aria-hidden="true" />
 				Reading history
-			</button>
+			</Button>
 		</aside>
 	);
 }
@@ -116,24 +125,5 @@ function WorkspaceLink({
 		>
 			{children}
 		</Button>
-	);
-}
-function ReadingSection({ title, items, current }: { readonly title: string; readonly items: readonly Item[]; readonly current: string }) {
-	return (
-		<section aria-label={title}>
-			<h2 className="mb-2 px-2 font-semibold text-muted-foreground text-xs">{title}</h2>
-			<ul className="m-0 grid list-none gap-2 p-0">
-				{items.map((item) => (
-					<li className="min-w-0 px-2 text-sm" key={item.file}>
-						<a aria-current={item.file === current ? "page" : undefined} className="block truncate" href={fileUrl(item.file)} title={item.title}>
-							{item.title}
-						</a>
-					</li>
-				))}
-			</ul>
-			{items.length === 0 && (
-				<p className="px-2 text-muted-foreground text-xs">{title === "Pinned" ? "Pin a document to keep it here." : "No recent documents."}</p>
-			)}
-		</section>
 	);
 }

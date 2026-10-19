@@ -122,7 +122,7 @@ describe("document navigation", () => {
 			yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 			reader.clickSelector("#favorite-toggle");
 			yield* Effect.promise(() => frame(page));
-			expect(page.document.getElementById("favorite-toggle")?.getAttribute("aria-pressed")).toBe("true");
+			expect(page.document.getElementById("favorite-toggle")?.textContent).toBe("Unpin");
 			followLink(page, "/flow.md");
 			yield* Effect.promise(() => frame(page));
 			yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Flow")));
@@ -232,12 +232,15 @@ boardStory.it(
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
 		reader.clickSelector("#favorite-toggle");
 		yield* Effect.promise(() => frame(page));
-		expect(page.document.getElementById("favorite-toggle")?.getAttribute("aria-pressed")).toBe("true");
+		expect(page.document.getElementById("favorite-toggle")?.textContent).toBe("Unpin");
 		followLink(page, "/flow.md");
 		yield* Effect.promise(() => frame(page));
 		yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Flow")));
 		expect(page.document.querySelector('section[aria-label="Pinned"] a[href="/plan.md"]')?.textContent).toBe("Plan");
-		expect(page.document.querySelector(".library-status")?.textContent).toContain("this page only");
+		reader.clickSelector("#library-open");
+		yield* Effect.promise(() =>
+			waitFor(() => expect(page.document.querySelector('#library-dialog [role="status"]')?.textContent).toContain("this page only")),
+		);
 	},
 );
 

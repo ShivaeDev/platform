@@ -43,10 +43,10 @@ expectNoReactWarnings();
 	screenStory.it(
 		"saves appearance and sidebar choices through a document refresh and reload",
 		[screenWorkspace("reading-fixture"), chromeScreen(files)],
-		function* ({ chrome, click, choose, control, refreshDocument, editFile, readRootAttribute, closeScreen }) {
+		function* ({ chrome, click, control, findByRole, refreshDocument, editFile, readRootAttribute, closeScreen }) {
 			click("#settings-open");
-			choose("#theme", "dark");
-			choose("#density", "compact");
+			click(findByRole("button", "Dark", findByRole("group", "Theme", document)));
+			click(findByRole("button", "Compact", findByRole("group", "Density", document)));
 			click("#sidebar-toggle");
 			editFile("notes/plan.md", `${files["notes/plan.md"]}\nRefreshed source.\n`);
 			yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
@@ -56,8 +56,8 @@ expectNoReactWarnings();
 			yield* Effect.promise(() => closeScreen());
 			yield* Effect.promise(() => chrome());
 			click("#settings-open");
-			expect(control("#theme", HTMLSelectElement).value).toBe("dark");
-			expect(control("#density", HTMLSelectElement).value).toBe("compact");
+			expect(findByRole("button", "Dark", findByRole("group", "Theme", document))?.getAttribute("aria-pressed")).toBe("true");
+			expect(findByRole("button", "Compact", findByRole("group", "Density", document))?.getAttribute("aria-pressed")).toBe("true");
 			expect(control("#sidebar-toggle", HTMLButtonElement).getAttribute("aria-expanded")).toBe("false");
 		},
 	);
@@ -72,6 +72,7 @@ expectNoReactWarnings();
 			click,
 			control,
 			navigate,
+			findByRole,
 			findElements,
 			findElement,
 			refreshDocument,
@@ -100,10 +101,10 @@ expectNoReactWarnings();
 			rememberHistory({ workBoard: { id: state?.key } });
 			yield* Effect.promise(() => chrome());
 			yield* Effect.promise(() => eventually(() => expect(control("article details", HTMLDetailsElement).open).toBe(true)));
-			expect(control("#favorite-toggle", HTMLButtonElement).getAttribute("aria-pressed")).toBe("true");
+			expect(findByRole("button", "Unpin")).not.toBeNull();
 			click("#library-open");
-			expect([...findElements("#reading-library h2")].map((heading) => heading.textContent)).toEqual(["Favorites", "Recent documents"]);
-			expect(findElement('#reading-library a[href="/notes/deep/proof.md"]')).not.toBeNull();
+			expect([...findElements("#reading-library h3", document)].map((heading) => heading.textContent)).toEqual(["Pinned", "Recent documents"]);
+			expect(findElement('#reading-library a[href="/notes/deep/proof.md"]', document)).not.toBeNull();
 		},
 	);
 }

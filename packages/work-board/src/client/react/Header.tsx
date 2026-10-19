@@ -5,6 +5,7 @@ import { Button, buttonVariants } from "#client/react/components/ui/button.tsx";
 import { destinationName } from "#client/react/destinationName.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 import type { MainLocation } from "./mainLocation.ts";
+import { useCurrentDestination, useNavigationPending } from "./navigationTarget.ts";
 import { SettingsPopover } from "./SettingsPopover.tsx";
 import { shellIds } from "./shellIds.ts";
 import type { AppearanceControls } from "./useAppearance.ts";
@@ -35,6 +36,8 @@ export function Header({
 	readonly updates: ReactNode;
 	readonly status: string;
 }) {
+	const current = useCurrentDestination(main);
+	const pending = useNavigationPending();
 	return (
 		<header
 			className="sticky top-0 z-20 flex h-12 min-w-0 items-center gap-2 border-b bg-background px-3 text-sm md:h-14 md:px-6 print:hidden"
@@ -43,23 +46,23 @@ export function Header({
 			<Button
 				aria-controls="sidebar"
 				aria-expanded={sidebar.open}
-				aria-label="Files"
+				aria-label="Sidebar"
 				id={shellIds.sidebarToggle}
 				onClick={() => sidebar.toggle()}
-				size="sm"
+				size="icon"
 				type="button"
 				variant="ghost"
 			>
 				<PanelLeft aria-hidden="true" />
-				<span className="hidden sm:inline">Files</span>
 			</Button>
 			<span className="min-w-0 flex-1 truncate font-medium md:hidden">{main.title ?? main.file}</span>
 			<Breadcrumbs file={main.title ?? main.file} />
 			<a
-				aria-current={main.view === "today" ? "page" : undefined}
+				aria-current={current === "today" ? "page" : undefined}
 				aria-label={destinationName("Today", count, "need you")}
 				className={buttonVariants({ className: "hidden md:inline-flex", size: "sm", variant: "ghost" })}
 				data-slot="link-button"
+				hidden={sidebar.open}
 				href="/"
 				id={shellIds.inboxTopbar}
 			>
@@ -89,6 +92,11 @@ export function Header({
 				<span className="sr-only">{status}</span>
 			</span>
 			<SettingsPopover appearance={appearance} updates={updates} />
+			{pending && (
+				<div aria-label="Opening page" className="absolute inset-x-0 -bottom-px h-0.5 overflow-hidden" role="progressbar">
+					<div className="h-full w-full animate-pulse bg-primary motion-reduce:animate-none" />
+				</div>
+			)}
 		</header>
 	);
 }

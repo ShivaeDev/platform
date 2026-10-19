@@ -1,3 +1,4 @@
+import { accessibleName } from "./accessibleRole.ts";
 import type { OpenPage } from "./browser.ts";
 
 export function pageActions(page: () => OpenPage, tell: (line: string) => void) {
@@ -9,14 +10,16 @@ export function pageActions(page: () => OpenPage, tell: (line: string) => void) 
 		return found;
 	}
 	return {
-		choose: (selector: string, value: string) => {
-			tell(`the reader chooses ${value} in ${selector}`);
-			const field = element(selector);
-			if (!(field instanceof page().window.HTMLSelectElement)) {
-				throw new Error(`Missing select ${selector}`);
+		toggle: (group: string, option: string) => {
+			tell(`the reader chooses ${option} in ${group}`);
+			const button = [...page().document.querySelectorAll('[role="group"]')]
+				.filter((found) => accessibleName(found) === group)
+				.flatMap((found) => [...found.querySelectorAll("button")])
+				.find((found) => accessibleName(found) === option);
+			if (!button) {
+				throw new Error(`Missing ${option} in ${group}`);
 			}
-			field.value = value;
-			field.dispatchEvent(new (page().window.Event)("change", { bubbles: true }));
+			button.dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true, button: 0, cancelable: true }));
 		},
 		clickSelector: (selector: string) => {
 			tell(`the reader clicks ${selector}`);

@@ -30,9 +30,8 @@ for (const width of [1440, 390]) {
 				expect(page.document.querySelector('section[aria-label="Recent"] a[aria-current="page"]')?.getAttribute("href")).toBe(
 					`/notes/topic-${index}.md`,
 				);
-				expect(element(page, "library-dialog").hasAttribute("open")).toBe(false);
+				expect(page.document.getElementById("library-dialog")).toBeNull();
 			}
-			expect(element(page, "sidebar").contains(element(page, "reading-library"))).toBe(false);
 			expect(page.document.querySelectorAll('section[aria-label="Recent"] a')).toHaveLength(5);
 			if (width === 390) {
 				reader.clickSelector("#sidebar-toggle");
@@ -40,12 +39,12 @@ for (const width of [1440, 390]) {
 			}
 			reader.clickSelector("#library-open");
 			yield* Effect.promise(() => frame(page));
-			expect(element(page, "library-dialog").hasAttribute("open")).toBe(true);
+			expect(element(page, "library-dialog").getAttribute("role")).toBe("dialog");
+			expect(element(page, "sidebar").contains(element(page, "reading-library"))).toBe(false);
 			expect(element(page, "reading-library").querySelectorAll("a")).toHaveLength(6);
-			reader.clickSelector("#library-close");
-			yield* Effect.promise(() => frame(page));
-			expect(element(page, "library-dialog").hasAttribute("open")).toBe(false);
-			expect(page.document.activeElement).toBe(element(page, "library-open"));
+			reader.clickSelector('#library-dialog [data-slot="dialog-close"]');
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("library-dialog")).toBeNull()));
+			yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement).toBe(element(page, "library-open"))));
 		},
 	);
 }

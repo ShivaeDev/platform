@@ -22,8 +22,8 @@ describe("workspace preferences", () => {
 			expect(page.document.getElementById("sidebar-toggle")?.getAttribute("aria-expanded")).toBe("false");
 			page.document.getElementById("sidebar-toggle")?.dispatchEvent(new page.window.Event("click", { bubbles: true }));
 			reader.clickSelector("#settings-open");
-			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("theme")).not.toBeNull()));
-			reader.choose("#density", "comfortable");
+			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[role="group"]')).not.toBeNull()));
+			reader.toggle("Density", "Comfortable");
 			yield* Effect.promise(() => frame(page));
 			notes.write("plan.md", "# A new plan\n\nChanged by an agent.");
 			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#doc h1")?.textContent).toBe("A new plan")));
@@ -60,8 +60,8 @@ describe("workspace preferences", () => {
 		});
 		yield* Effect.promise(() => waitFor(() => expect(page.document.documentElement.dataset.theme).toBeDefined()));
 		reader.clickSelector("#settings-open");
-		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("theme")).not.toBeNull()));
-		reader.choose("#theme", "dark");
+		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[role="group"]')).not.toBeNull()));
+		reader.toggle("Theme", "Dark");
 		yield* Effect.promise(() => frame(page));
 		expect(page.document.documentElement.dataset.scheme).toBe("dark");
 		expect(page.document.getElementById("preference-status")?.textContent).toContain("this page only");
@@ -76,20 +76,20 @@ describe("workspace preferences", () => {
 			yield* Effect.promise(() => waitFor(() => expect(page.document.documentElement.dataset.theme).toBeDefined()));
 			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("figure svg")?.getAttribute("data-dark")).toBe("false")));
 			reader.clickSelector("#settings-open");
-			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("theme")).not.toBeNull()));
-			reader.choose("#theme", "dark");
+			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[role="group"]')).not.toBeNull()));
+			reader.toggle("Theme", "Dark");
 			yield* Effect.promise(() => frame(page));
 			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("figure svg")?.getAttribute("data-dark")).toBe("true")));
 			const count = page.mermaid.calls.length;
-			reader.choose("#density", "compact");
+			reader.toggle("Density", "Compact");
 			yield* Effect.promise(() => frame(page));
 			expect(page.mermaid.calls).toHaveLength(count);
-			reader.choose("#theme", "light");
+			reader.toggle("Theme", "Light");
 			yield* Effect.promise(() => frame(page));
 			page.prefer("dark");
 			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("figure svg")?.getAttribute("data-dark")).toBe("false")));
 			expect(page.document.documentElement.dataset.scheme).toBe("light");
-			reader.choose("#theme", "system");
+			reader.toggle("Theme", "System");
 			yield* Effect.promise(() => frame(page));
 			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("figure svg")?.getAttribute("data-dark")).toBe("true")));
 		},

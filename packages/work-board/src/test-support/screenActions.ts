@@ -34,17 +34,6 @@ export function screenActions(tell: (line: string) => void) {
 			}
 			return answerPrompt(name, value);
 		},
-		choose: (selector: string | HTMLSelectElement | null | undefined, value: string) => {
-			tell(`the reader chooses ${JSON.stringify(value)} in ${selector}`);
-			act(() => {
-				const field = typeof selector === "string" ? control(selector, HTMLSelectElement) : selector;
-				if (!(field instanceof HTMLSelectElement)) {
-					throw new Error(`Missing select ${selector}`);
-				}
-				field.value = value;
-				field.dispatchEvent(new Event("change", { bubbles: true }));
-			});
-		},
 		chooseOption: async (trigger: string | Element | null | undefined, label: string) => {
 			const combobox = typeof trigger === "string" ? document.querySelector(trigger) : trigger;
 			if (!(combobox instanceof HTMLElement && combobox.getAttribute("role") === "combobox")) {
