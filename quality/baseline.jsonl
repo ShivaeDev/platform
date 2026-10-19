@@ -324,7 +324,6 @@
 {"path":"packages/effect-react/src/test-support/automatic/openScreen.tsx","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-react/src/test-support/automatic/screen.tsx","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-react/src/test-support/automatic/worker.ts","rule":"tests/support-imports","count":3}
-{"path":"packages/effect-react/src/test-support/caughtErrorScreen.tsx","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-react/src/test-support/createDraftFields.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-react/src/test-support/draftFields.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-react/src/test-support/draftStories.ts","rule":"tests/support-imports","count":1}

@@ -65,7 +65,7 @@ screenStory.it(
 );
 
 screenStory.it(
-	"shows who holds in-progress work and when it last changed",
+	"shows who holds in-progress work and when it last changed, without adding a Tab stop to its row",
 	[
 		boardScreen({ ...quiet, "first.md": quiet["first.md"]?.replace("kind: task", "kind: task\nowner: codex") ?? "" }, (api) => (
 			<FleetItemsContext.Provider
@@ -75,11 +75,12 @@ screenStory.it(
 			</FleetItemsContext.Provider>
 		)),
 	],
-	function* ({ findElement, readText }) {
+	function* ({ findElement, findElements, readTabStops, readText }) {
 		yield* Effect.promise(() =>
 			eventually(() => expect(findElement('[data-goal-group="In progress"] [data-goal-item="task.first"]')).not.toBeNull()),
 		);
 		expect(readText('[data-goal-item="task.first"] [data-goal-owner]')).toBe("codex");
 		expect(findElement('[data-goal-item="task.first"] [data-goal-updated] time')?.getAttribute("data-modified")).toBe(String(RUN_UPDATED));
+		expect(readTabStops('[data-goal-item="task.first"]')).toEqual(findElements('[data-goal-item="task.first"] a[href]'));
 	},
 );
