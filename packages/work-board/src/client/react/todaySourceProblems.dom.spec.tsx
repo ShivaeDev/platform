@@ -20,7 +20,7 @@ screenStory.it(
 	[screenFiles({ ...fleetWorkspace, ...brokenSources }, { home: "home.md" }), openScreen()],
 	function* ({ findElement, readAttribute, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(LINE)).not.toBeNull()));
-		expect(readText(".today-strip")).toBe("3 need you·Fleet unavailable·0 active goals·2 files have problems");
+		expect(readText(".today-strip")).toBe("3 need you·1 in progress in task files·0 active goals·2 files have problems");
 		expect(readAttribute(LINE, "href")).toBe("/_board/system#source-problems");
 	},
 );
@@ -33,7 +33,7 @@ screenStory.it(
 		editFile("notes/extra.md", FIXED_SOURCE);
 		yield* Effect.promise(refreshInbox);
 		yield* Effect.promise(() => eventually(() => expect(findElement(LINE)).toBeNull()));
-		expect(readText(".today-strip")).toBe("3 need you·Fleet unavailable·0 active goals");
+		expect(readText(".today-strip")).toBe("3 need you·1 in progress in task files·0 active goals");
 	},
 );
 

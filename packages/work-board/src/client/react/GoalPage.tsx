@@ -12,7 +12,7 @@ export function GoalPage({ api, document }: { readonly api: ShellApi; readonly d
 	const progress = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
 	const data = Option.getOrUndefined(progress.data);
 	const id = document.identity;
-	const goal = data?.goals.find((entry) => entry.id === id) ?? data?.closedGoals.find((entry) => entry.id === id);
+	const goal = [...(data?.goals ?? []), ...(data?.deferredGoals ?? []), ...(data?.closedGoals ?? [])].find((entry) => entry.id === id);
 	const items = data?.items.filter((item) => id !== undefined && targetsGoal(item, id));
 	const criteria = (document.metadata.criteria ?? []).map((criterion) => criterion.id);
 	return (

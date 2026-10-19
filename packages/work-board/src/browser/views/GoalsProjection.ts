@@ -18,6 +18,7 @@ const Goal = Schema.Struct({
 });
 export const GoalsProjection = Schema.Struct({
 	closedGoals: Schema.Array(Goal),
+	deferredGoals: Schema.Array(Goal),
 	goals: Schema.Array(Goal),
 	items: Schema.Array(WorkItem),
 });

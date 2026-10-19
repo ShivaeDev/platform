@@ -25,7 +25,7 @@ boardStory.it(
 	},
 );
 
-for (const status of ["closed", "done", "superseded", "completed", "cancelled", "canceled", "resolved", "released"]) {
+for (const status of ["closed", "done", "dropped", "superseded", "completed", "cancelled", "canceled", "resolved", "released"]) {
 	boardStory.it(
 		`resolves managed asks when all targets are ${status}, including criterion references`,
 		[deferredServing, anInbox()],

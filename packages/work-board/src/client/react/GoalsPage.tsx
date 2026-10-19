@@ -12,8 +12,16 @@ export function GoalsPage({ data }: { readonly data: GoalsProjection }) {
 				<GoalCards goals={data.goals} />
 			) : (
 				<EmptyState action={<LinkButton href="/_board/start">Getting started</LinkButton>} title="No active goals">
-					A goal appears here when a file in this workspace declares one{data.closedGoals.length > 0 ? ". Closed goals are listed below." : "."}
+					A goal appears here when a file in this workspace declares one{listedBelow(data)}
 				</EmptyState>
+			)}
+			{data.deferredGoals.length > 0 && (
+				<details>
+					<summary className="cursor-pointer text-muted-foreground text-sm">Deferred goals</summary>
+					<div className="mt-3">
+						<GoalCards goals={data.deferredGoals} />
+					</div>
+				</details>
 			)}
 			{data.closedGoals.length > 0 && (
 				<details>
@@ -25,6 +33,16 @@ export function GoalsPage({ data }: { readonly data: GoalsProjection }) {
 			)}
 		</div>
 	);
+}
+
+function listedBelow({ closedGoals, deferredGoals }: GoalsProjection) {
+	if (deferredGoals.length > 0 && closedGoals.length > 0) {
+		return ". Deferred and closed goals are listed below.";
+	}
+	if (deferredGoals.length > 0) {
+		return ". Deferred goals are listed below.";
+	}
+	return closedGoals.length > 0 ? ". Closed goals are listed below." : ".";
 }
 
 function goalsSummary(data: GoalsProjection) {
