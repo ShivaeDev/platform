@@ -6,6 +6,7 @@ import { screenStory } from "#test/screenStory.ts";
 import { openScreen, routedScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
 import { sessionScreen } from "#test/sessionScreen.ts";
+import { sessionDiagnostics } from "#test/sessionTransport.ts";
 
 expectNoReactWarnings();
 
@@ -32,6 +33,15 @@ for (const { crumb, heading, link } of [
 		},
 	);
 }
+
+screenStory.it(
+	"reaches the Board while the Board server reads the Fleet daemon at the same moment",
+	[sessionDiagnostics(() => null), screenFiles(files, { home: "home.md" }), screenRoute("/notes/plan.md"), sessionScreen("response")],
+	function* ({ readPageBesideDaemon, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Plan")));
+		expect(yield* Effect.promise(readPageBesideDaemon)).toBe("read");
+	},
+);
 
 for (const { link, name } of [
 	{ link: "/_board/system", name: "System" },

@@ -23,6 +23,23 @@ export function sessionTransportActions(engine: ScreenEngine, tell: (line: strin
 				transport.release = resolve;
 			});
 		},
+		readPageBesideDaemon: async () => {
+			tell("the page reads the Board while the Board server reads the Fleet daemon");
+			if (!engine.session || engine.sessionFleetPort === undefined) {
+				throw new Error("The session has no story Fleet daemon");
+			}
+			const origin = engine.session.environment.location.origin;
+			let outcome = "unsettled";
+			await act(async () => {
+				const page = fetch(`${origin}/`);
+				await fetch(`http://127.0.0.1:${engine.sessionFleetPort}/`).catch(() => undefined);
+				outcome = await page.then(
+					(response) => (response.ok ? "read" : `answered ${response.status}`),
+					(error: unknown) => String(error),
+				);
+			});
+			return outcome;
+		},
 		releaseCommand: async () => {
 			tell("the native command reaches the server");
 			const transport = boundary();
