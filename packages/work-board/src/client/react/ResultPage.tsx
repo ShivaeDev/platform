@@ -4,9 +4,9 @@ import { fileUrl } from "#files/url.ts";
 import { responseUrl } from "#responses/url.ts";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
 import { LinkButton } from "./LinkButton.tsx";
+import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
-import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 import { ResultCriteria } from "./ResultCriteria.tsx";
 import { ResultFeedback } from "./ResultFeedback.tsx";
 import { SectionCard } from "./SectionCard.tsx";
@@ -30,7 +30,7 @@ export function ResultPage({ data }: { readonly data: ResultProjection }) {
 					Report
 				</h2>
 				<div className="reading-column max-w-[68ch] text-base leading-[1.65] [&>:first-child]:mt-0 [&_h1]:text-2xl">
-					<ResponseMarkdown file={document.file} source={document.source} />
+					<LazyResponseMarkdown file={document.file} source={document.source} />
 				</div>
 			</section>
 			<ResultFeedback data={data} />

@@ -28,3 +28,18 @@ for (const [saved, system, expected] of [
 		},
 	);
 }
+
+for (const [saved, sidebar] of [
+	['{"closed":true}', "closed"],
+	['{"closed":false}', "open"],
+	['{"closed":"yes"}', "open"],
+] as const) {
+	screenStory.it(
+		`outlines the ${sidebar} sidebar before React when the reader saved ${saved}`,
+		[screenWorkspace("initial-appearance"), storedScreenState({ "work-board:appearance:initial-appearance": saved })],
+		({ initializeAppearance, readRootAttribute }) => {
+			initializeAppearance(INITIAL_THEME_SCRIPT);
+			expect(readRootAttribute("data-sidebar")).toBe(sidebar);
+		},
+	);
+}

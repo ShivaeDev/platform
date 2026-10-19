@@ -17,7 +17,7 @@ const routes = [
 	{ kind: "board", selector: ".board .item", text: "Read task", url: "/home.md" },
 	{ kind: "board", selector: ".board .item", text: "Read task", url: "/_board/item/board.fixture/" },
 	{ kind: "work", selector: ".work-card[data-item='task.fixture']", text: "A task", url: "/_board/work?view=board" },
-	{ kind: "work", selector: ".work-table", text: "A task", url: "/_board/work?view=table&owner=value%3Areader&q=task&item=task.fixture" },
+	{ kind: "work", selector: "#work-results table", text: "A task", url: "/_board/work?view=table&owner=value%3Areader&q=task&item=task.fixture" },
 ];
 for (const { url, selector, text, kind } of routes) {
 	screenStory.it(
@@ -37,7 +37,7 @@ for (const { url, selector, text, kind } of routes) {
 				expect(findElement(".item a[href='/task.md']")).not.toBeNull();
 			}
 			if (url.includes("item=task.fixture")) {
-				expect(findElements(".work-table tbody tr")).toHaveLength(1);
+				expect(findElements("#work-results tbody tr")).toHaveLength(1);
 				yield* Effect.promise(() => eventually(() => expect(readText("#work-detail article.doc")).toContain("Task details")));
 				expect(readText("#work-detail .item-summary")).toContain("Read evidence");
 			}

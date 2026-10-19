@@ -1,12 +1,12 @@
 import { Fragment } from "react";
 import type { BoardProjection } from "#browser/views/schema.ts";
-import { DocumentView } from "#client/document/View.ts";
 import { Age } from "./Age.tsx";
 import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
 import { OutlineMenu } from "./DocumentOutline.tsx";
 import { documentElements } from "./documentElements.tsx";
 import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
+import { LazyDocumentView } from "./lazyMarkdown.tsx";
 
 const SEPARATOR = " · ";
 
@@ -28,7 +28,7 @@ function BoardCounts({ counts }: { readonly counts: BoardProjection["counts"] })
 
 export function HomeBoard({ data }: { readonly data: BoardProjection }) {
 	return (
-		<DocumentView
+		<LazyDocumentView
 			actions={
 				<>
 					<OutlineMenu document={data.document} />

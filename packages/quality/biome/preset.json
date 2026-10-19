@@ -39,7 +39,7 @@
 		}
 	},
 	"files": {
-		"includes": ["**", "!**/.worktrees"]
+		"includes": ["**", "!.worktrees"]
 	},
 	"formatter": {
 		"attributePosition": "auto",

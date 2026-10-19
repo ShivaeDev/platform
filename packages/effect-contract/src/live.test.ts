@@ -52,6 +52,18 @@ liveNotesStory.it("defers resume reconciliation while paused until the consumer 
 	yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.body).toBe("Changed while paused"));
 	expect(test.status()).toMatchObject({ needsResync: false, pending: 0 });
 });
+liveNotesStory.it("reads the pause flag while connecting without reconciling loaded reads", [liveSession()], function* (test) {
+	const registry = test.registry;
+	const one = test.query(1);
+	registry.mount(one);
+	yield* eventually(() => expect(test.body(one)).toBe("First"));
+	test.connect();
+	expect(test.isPaused()).toBe(false);
+	expect(registry.get(one).waiting).toBe(false);
+	yield* eventually(() => expect(test.status()).toMatchObject({ connection: "live", needsResync: false }));
+	yield* eventually(() => expect(registry.get(one).waiting).toBe(false));
+	expect(test.reads().filter((id) => id === "get:1")).toHaveLength(2);
+});
 liveNotesStory.it(
 	"continues native HTTP live updates when the optional resume signal is omitted",
 	[liveSession(), withoutResume()],

@@ -39,6 +39,7 @@ const components: Components = {
 
 export interface DocumentViewProps {
 	readonly actions?: ReactNode;
+	readonly after?: ReactNode;
 	readonly answer?: ReactNode;
 	readonly board?: readonly { readonly count: number; readonly title: string }[];
 	readonly closing?: ReactNode;
@@ -58,6 +59,7 @@ export function DocumentView({
 	content,
 	introduction,
 	board,
+	after,
 	answer,
 	lead,
 	actions,
@@ -90,7 +92,20 @@ export function DocumentView({
 			{ key: states.identity, value: states.values },
 			createElement(
 				LayoutContext.Provider,
-				{ value: { actions, answer, closing, content, context, file: document.file, identified: Boolean(document.metadata.id), introduction, lead } },
+				{
+					value: {
+						actions,
+						after,
+						answer,
+						closing,
+						content,
+						context,
+						file: document.file,
+						identified: Boolean(document.metadata.id),
+						introduction,
+						lead,
+					},
+				},
 				createElement(
 					MarkdownHooks,
 					{

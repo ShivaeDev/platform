@@ -13,10 +13,10 @@ export interface MermaidControl {
 
 export interface PageRequests {
 	answered: number;
-	beforeReact?: { readonly scheme: string | undefined; readonly dark: boolean };
 	count: number;
 	failWith: number | "network" | undefined;
 	gate: Promise<void>;
+	readonly methods: string[];
 	responseGate?: Promise<void> | undefined;
 }
 
@@ -47,7 +47,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	) => void | Promise<void> | Effect.Effect<void, unknown, Scope.Scope> = async (): Promise<void> => undefined,
 ) {
 	const mermaidRequests: string[] = [];
-	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };
+	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve(), methods: [] };
 	const streams: RpcStream[] = [];
 	const response = yield* rawGet(board, path);
 	const resolved = new URL(response.location ?? path, board.url);

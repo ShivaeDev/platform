@@ -12,20 +12,28 @@ import { WorkTools } from "#client/react/WorkTools.tsx";
 export function WorkPage({ data, api }: { readonly data: WorkProjection; readonly api?: ShellApi | undefined }) {
 	const { state } = data;
 	const source = `/_board/item/${encodeURIComponent(state.board)}/`;
+	const options = (
+		<>
+			<WorkControls data={data} key={viewUrl(state)} />
+			<SavedViews url={viewUrl(state, { item: "" })} />
+		</>
+	);
 	return (
 		<>
 			<PageHeader
 				actions={Boolean(state.board) && data.validBoard && <LinkButton href={source}>Board source</LinkButton>}
 				className="work-head mb-6"
-				summary={state.view !== "now" && <p className="work-eyebrow m-0">WORK · {state.view.toUpperCase()} VIEW</p>}
 				title={data.validBoard ? data.title : "Board unavailable"}
 			/>
 			<WorkTools state={state} />
-			<details className="work-options mb-4" open={state.view !== "now"}>
-				<summary className="cursor-pointer text-muted-foreground text-sm">Filter</summary>
-				<SavedViews url={viewUrl(state, { item: "" })} />
-				<WorkControls data={data} key={viewUrl(state)} />
-			</details>
+			{state.view === "now" ? (
+				<details className="work-options mb-4">
+					<summary className="cursor-pointer text-muted-foreground text-sm">Filter</summary>
+					<div className="mt-3 grid gap-3">{options}</div>
+				</details>
+			) : (
+				<div className="work-options mb-4 grid gap-3">{options}</div>
+			)}
 			{data.validBoard ? (
 				<WorkContent api={api} data={data} />
 			) : (
@@ -48,12 +56,12 @@ function WorkContent({ data, api }: { readonly data: WorkProjection; readonly ap
 				</details>
 			)}
 			{data.state.view !== "now" && (
-				<p className="work-total" role="status">
+				<p className="work-total mb-2 text-muted-foreground text-xs" role="status">
 					{data.rows.length} shown · {data.items.length} items in this view
 				</p>
 			)}
 			<div className={data.state.item ? "work-layout has-detail" : "work-layout"}>
-				<section aria-label="Work items" id={shellIds.workResults} tabIndex={-1}>
+				<section aria-label="Work items" className="min-w-0" id={shellIds.workResults} tabIndex={-1}>
 					{data.items.length === 0 && (
 						<p className="empty">
 							No identified work is declared here. Keep reading ordinary files, or add item IDs and explicit board membership in their Markdown

@@ -11,7 +11,7 @@ for (const [storyCase, View] of [WorkNow, WorkCards, WorkTable].entries()) {
 		[nowScreen(1500, View)],
 		({ scrollList, findElements, findElement, readAttribute }) => {
 			expect(findElements("[data-item]").length).toBeLessThan(300);
-			const list = findElement<HTMLDivElement>(View === WorkTable ? ".work-table-wrap" : ".work-card-list");
+			const list = findElement<HTMLDivElement>(View === WorkTable ? "[data-slot=table-container]" : ".work-card-list");
 			expect(list).not.toBeNull();
 			const before = readAttribute("[data-item]", "data-item", list);
 			scrollList(list, 22_400);

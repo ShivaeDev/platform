@@ -21,13 +21,13 @@ for (const initiallyDrawn of [false, true]) {
 			gatedDiagrams(),
 			chromeScreen({ "notes/plan.md": `# Diagram${diagram(`Theme${initiallyDrawn}-->Drawing`)}` }),
 		],
-		function* ({ drawings, finishDiagram, click, choose, readAttribute, findElements, frame, setMediaMatch }) {
+		function* ({ drawings, finishDiagram, click, readAttribute, findElements, frame, setMediaMatch, roles }) {
 			yield* Effect.promise(() => eventually(() => expect(drawings()).toHaveLength(ONE_DIAGRAM)));
 			if (initiallyDrawn) {
 				yield* Effect.promise(() => finishDiagram(0));
 			}
 			click("#settings-open");
-			choose("#theme", "dark");
+			yield* roles.click({ name: "Dark", role: "button" });
 			yield* Effect.promise(() => eventually(() => expect(drawings()).toHaveLength(LIGHT_AND_DARK_DRAWINGS)));
 			if (initiallyDrawn) {
 				expect(readAttribute("figure svg", "data-dark")).toBe("false");
@@ -38,9 +38,9 @@ for (const initiallyDrawn of [false, true]) {
 			yield* Effect.promise(() => frame());
 			expect(readAttribute("figure svg", "data-dark")).toBe("true");
 			expect(findElements("svg[data-source]")).toHaveLength(ONE_DIAGRAM);
-			choose("#density", "compact");
+			yield* roles.click({ name: "Compact", role: "button" });
 			expect(drawings()).toHaveLength(LIGHT_AND_DARK_DRAWINGS);
-			choose("#theme", "light");
+			yield* roles.click({ name: "Light", role: "button" });
 			yield* Effect.promise(() => eventually(() => expect(drawings()).toHaveLength(initiallyDrawn ? 2 : 3)));
 			if (!initiallyDrawn) {
 				yield* Effect.promise(() => finishDiagram(2));
@@ -48,7 +48,7 @@ for (const initiallyDrawn of [false, true]) {
 			expect(readAttribute("figure svg", "data-dark")).toBe("false");
 			setMediaMatch("(prefers-color-scheme: dark)", true);
 			expect(readAttribute("figure svg", "data-dark")).toBe("false");
-			choose("#theme", "system");
+			yield* roles.click({ name: "System", role: "button" });
 			expect(readAttribute("figure svg", "data-dark")).toBe("true");
 		},
 	);

@@ -13,14 +13,15 @@ expectNoReactWarnings();
 for (const kind of ["response", "handoff"] as const) {
 	const command = kind === "response" ? "work-board.recordResponse" : "work-board.prepareHandoff";
 	const field = kind === "response" ? '[name="body"]' : '[name="goal"]';
-	const author = kind === "response" ? '[name="author"]' : '[name="recipient"]';
 	for (const failure of ["rejection", "transport"] as const) {
 		screenStory.it(
 			`classifies ${kind} ${failure} and retries its retained identity over native HTTP`,
 			[sessionBoundary(command, silentWatch), sessionScreen(kind)],
 			function* ({ input, activate, submit, findElement, readText, setSessionOffline, editSessionFile, sessionCommands }) {
 				yield* Effect.promise(() => eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false)));
-				input(author, "local-reviewer");
+				if (kind === "handoff") {
+					input('[name="recipient"]', "local-reviewer");
+				}
 				const draft = input(field, "Keep this direction");
 				yield* Effect.promise(() => activate(`#${kind}-preview`));
 				const identity = readText(`#${kind}-preview-content`)?.match(/\b(?:response|handoff)\.[\da-f-]{36}/u)?.[0];
@@ -60,7 +61,9 @@ for (const kind of ["response", "handoff"] as const) {
 		[sessionBoundary(command), sessionScreen(kind)],
 		function* ({ input, activate, submit, findElement, readText, pauseCommand, releaseCommand, sessionCommands, readSessionFiles, stored }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false)));
-			input(author, "local-reviewer");
+			if (kind === "handoff") {
+				input('[name="recipient"]', "local-reviewer");
+			}
 			const draft = input(field, "First reviewed direction");
 			yield* Effect.promise(() => activate(`#${kind}-preview`));
 			pauseCommand();

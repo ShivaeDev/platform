@@ -5,6 +5,7 @@ import { useCompactHeader } from "./useCompactHeader.ts";
 
 export const LayoutContext = createContext<{
 	readonly actions: ReactNode;
+	readonly after: ReactNode;
 	readonly answer: ReactNode;
 	readonly closing: ReactNode;
 	readonly context: ReactNode;
@@ -13,12 +14,25 @@ export const LayoutContext = createContext<{
 	readonly lead: ReactNode;
 	readonly file: string;
 	readonly identified: boolean;
-}>({ actions: null, answer: null, closing: null, content: null, context: null, file: "", identified: false, introduction: null, lead: null });
+}>({
+	actions: null,
+	after: null,
+	answer: null,
+	closing: null,
+	content: null,
+	context: null,
+	file: "",
+	identified: false,
+	introduction: null,
+	lead: null,
+});
 export const layoutElements: Components = { article: LayoutArticle, header: LayoutHeader };
 function LayoutArticle({ node, children, ...props }: ComponentProps<"article"> & ExtraProps) {
-	const { closing, content } = useContext(LayoutContext);
-	const source = node?.properties.dataSource !== undefined;
-	return createElement("article", props, source ? content : null, children, source ? closing : null);
+	const { after, closing, content } = useContext(LayoutContext);
+	if (node?.properties.dataSource === undefined) {
+		return createElement("article", props, children);
+	}
+	return createElement(Fragment, null, createElement("article", props, content, children, closing), after);
 }
 function LayoutHeader({ node: _node, children, ...props }: ComponentProps<"header"> & ExtraProps) {
 	const { actions, answer, context, introduction, lead, file, identified } = useContext(LayoutContext);
