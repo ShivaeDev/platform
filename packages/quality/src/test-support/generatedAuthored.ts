@@ -4,7 +4,7 @@ import { config, linkPackage, seedTree } from "./tree.ts";
 export function generatedAuthored() {
 	const root = seedTree([
 		config('{ sources: ["src"] }'),
-		{ content: '{ "extends": ["@shivaedev/quality/biome"] }', path: "biome.json" },
+		{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }', path: "biome.json" },
 		{ content: "src/generated/\n", path: ".gitignore" },
 		{
 			content: `import "./missing.ts";\n// @ts-ignore\ndebugger;\nexport const actual = 1;\n${"\n".repeat(150)}`,

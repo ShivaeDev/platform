@@ -2,7 +2,7 @@ import { Effect, Option, Schema, Tracer } from "effect";
 import type { Job } from "pg-boss";
 
 const TracedPayload = Schema.Struct({
-	_tag: Schema.Literal("@shivaedev/effect-pg-boss/TracedPayload"),
+	_tag: Schema.Literal("@shivaedev/effect-pg-boss/server/TracedPayload"),
 	payload: Schema.Unknown,
 	span: Schema.Struct({ sampled: Schema.Boolean, spanId: Schema.String, traceId: Schema.String }),
 });
@@ -14,7 +14,7 @@ export function capturePayload(payload: object): Effect.Effect<object> {
 		Option.isNone(span)
 			? payload
 			: ({
-					_tag: "@shivaedev/effect-pg-boss/TracedPayload",
+					_tag: "@shivaedev/effect-pg-boss/server/TracedPayload",
 					payload,
 					span: { sampled: span.value.sampled, spanId: span.value.spanId, traceId: span.value.traceId },
 				} satisfies typeof TracedPayload.Type),

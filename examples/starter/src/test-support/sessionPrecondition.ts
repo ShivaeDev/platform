@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { Effect, Redacted } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { authTestUtils, signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
 import { authOptions } from "#server/authOptions.ts";

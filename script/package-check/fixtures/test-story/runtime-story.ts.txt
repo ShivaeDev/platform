@@ -1,5 +1,5 @@
 import { PassThrough } from "node:stream"
-import { genreTags } from "@shivaedev/test-story/genreTags.ts"
+import { genreTags } from "@shivaedev/test-story/server/genreTags.ts"
 import { createVitest } from "vitest/node"
 
 const vitest = await createVitest(

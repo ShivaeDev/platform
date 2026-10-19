@@ -23,7 +23,21 @@
 		"#test/*": "./src/test-support/*"
 	},
 	"exports": {
-		"./package.json": "./package.json"
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"./package.json": "./package.json",
+		"./CreateAppError.ts": null,
+		"./appFiles.ts": null,
+		"./cli.ts": null,
+		"./createApp.ts": null,
+		"./initializeGit.ts": null,
+		"./pack.ts": null,
+		"./packTemplate.ts": null,
+		"./template.ts": null,
+		"./test-support/*": null
 	},
 	"bin": {
 		"create-app": "./dist/cli.js"

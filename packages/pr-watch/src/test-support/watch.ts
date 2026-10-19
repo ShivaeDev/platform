@@ -1,4 +1,4 @@
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeEngine, nativeIo } from "./engine.ts";
 import { github } from "./fixtures.ts";
 import { processVerbs } from "./processVerbs.ts";

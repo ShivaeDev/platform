@@ -1,5 +1,5 @@
 import { Effect, Exit, Scope } from "effect";
-import { otlpReceiver as makeReceiver } from "@shivaedev/test-story/otlpReceiver.ts";
+import { otlpReceiver as makeReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 
 export async function otlpReceiver(
 	status: number | ((attempt: number) => number | undefined) = 200,

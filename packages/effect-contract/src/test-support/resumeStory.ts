@@ -2,7 +2,7 @@ import { Effect, Ref } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { expect } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resumeSignal } from "#resume.ts";
 import { eventually } from "./eventually.ts";
 import { localEngine } from "./localEngine.ts";

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Deferred, Effect } from "effect";
-import type { browserClient } from "#client/client.ts";
+import type { browserClient } from "#browserClient.ts";
 import type { Sources } from "#diagnostics/source.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { responseFrom } from "#server/responses/records.ts";

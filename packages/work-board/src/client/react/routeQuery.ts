@@ -1,4 +1,4 @@
-import type { BrowserClient } from "#client/client.ts";
+import type { BrowserClient } from "#browserClient.ts";
 
 interface PageApi {
 	readonly document: Pick<BrowserClient["api"]["document"], "query">;

@@ -1,5 +1,5 @@
 import { Deferred, Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { draftStorage } from "./draftStorage.ts";
 import { persistedCreateView } from "./persistedCreateView.tsx";
 import { screenKit } from "./screenKit.ts";

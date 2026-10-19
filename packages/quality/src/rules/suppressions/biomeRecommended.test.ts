@@ -8,12 +8,12 @@ const RECOMMENDED = ["a11y/useAltText", "suspicious/noDebugger", "suspicious/noE
 
 const REASON = "TypeScript reports it already.";
 
-const EXTENDING = { "biome.json": '{ "extends": ["@shivaedev/quality/biome"] }\n' };
+const EXTENDING = { "biome.json": '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n' };
 
 function presetTexts(rules: unknown, declarations?: unknown): Readonly<Record<string, string>> {
 	return {
 		...EXTENDING,
-		[`${PACKAGE}/package.json`]: JSON.stringify({ exports: { "./biome": "./biome/preset.json" }, name: "@shivaedev/quality" }),
+		[`${PACKAGE}/package.json`]: JSON.stringify({ exports: { "./biome/preset.json": "./biome/preset.json" }, name: "@shivaedev/quality" }),
 		[`${PACKAGE}/biome/preset.json`]: JSON.stringify({ linter: { rules } }, null, "\t"),
 		...(declarations === undefined ? {} : { [`${PACKAGE}/biome/declarations.json`]: JSON.stringify(declarations) }),
 	};
@@ -82,17 +82,17 @@ describe("suppressions/biome-recommended", () => {
 	])("reports a resolved preset that cannot be read: %s", async (text, reason) => {
 		const texts = Object.fromEntries(Object.entries(presetTexts(allAtError)).filter(([path]) => path !== `${PACKAGE}/biome/preset.json`));
 		expect(await check({ ...texts, ...(text === undefined ? {} : { [`${PACKAGE}/biome/preset.json`]: text }) })).toEqual([
-			`${PACKAGE}/biome/preset.json Cannot read the preset "@shivaedev/quality/biome": ${reason}.`,
+			`${PACKAGE}/biome/preset.json Cannot read the preset "@shivaedev/quality/biome/preset.json": ${reason}.`,
 		]);
 	});
 
 	it("reports a preset it cannot resolve or declarations it cannot read", async () => {
 		expect(await check(EXTENDING)).toEqual([
-			'biome.json Cannot resolve "@shivaedev/quality/biome" from node_modules. Install @shivaedev/quality at the repository root.',
+			'biome.json Cannot resolve "@shivaedev/quality/biome/preset.json" from node_modules. Install @shivaedev/quality at the repository root.',
 		]);
 		expect(await check(presetTexts(allAtError, [{ includes: ["**"], reason: " ", rule: "lint/suspicious/noDebugger" }]))).toEqual([
 			expect.stringMatching(
-				/^node_modules\/@shivaedev\/quality\/biome\/declarations\.json Cannot read the declarations shipped with "@shivaedev\/quality\/biome": /u,
+				/^node_modules\/@shivaedev\/quality\/biome\/declarations\.json Cannot read the declarations shipped with "@shivaedev\/quality\/biome\/preset\.json": /u,
 			),
 		]);
 	});

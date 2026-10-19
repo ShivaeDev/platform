@@ -69,7 +69,7 @@ export function hookRepository({
 				: [
 						CONFIG,
 						{ content: "node_modules/\n", path: ".gitignore" },
-						{ content: '{ "extends": ["@shivaedev/quality/biome"] }\n', path: "biome.json" },
+						{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },
 					]),
 			{ content: "loglevel=silent\n", path: ".npmrc" },
 			{ content: `${JSON.stringify(sortPackageJson({ scripts, type: "module" }), null, "\t")}\n`, path: "package.json" },

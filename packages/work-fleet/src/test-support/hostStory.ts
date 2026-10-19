@@ -1,7 +1,7 @@
 import { NodeServices } from "@effect/platform-node";
 import { Layer } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { HostConfig } from "#host/config.ts";
 import { task } from "#test/fleetHost.ts";
 import { HostStoryEngine } from "#test/HostStoryEngine.ts";

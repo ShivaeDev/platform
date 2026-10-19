@@ -1,5 +1,5 @@
 import { Effect, type Path, type Tracer } from "effect";
-import { browserClient } from "#client/client.ts";
+import { browserClient } from "#browserClient.ts";
 import type { Sources } from "#diagnostics/source.ts";
 import { type FileSystemWrapper, type RunningBoard, startBoard } from "./board.ts";
 import type { BoardEngine } from "./storyEngine.ts";

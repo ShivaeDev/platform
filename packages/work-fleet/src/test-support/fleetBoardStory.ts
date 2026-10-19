@@ -1,7 +1,7 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, FileSystem, Layer } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { boardDocuments } from "#board/documents.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { Fleet } from "#fleet.ts";

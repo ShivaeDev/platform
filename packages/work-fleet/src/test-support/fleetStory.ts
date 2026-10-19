@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Context, Effect, FileSystem, Layer, Option } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Fleet } from "#fleet.ts";
 import { createEngine } from "#test/createEngine.ts";
 import { type FleetStoryState, fleetStoryState } from "#test/fleetStoryState.ts";

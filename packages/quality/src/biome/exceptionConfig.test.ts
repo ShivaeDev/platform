@@ -66,7 +66,7 @@ describe("Biome exception config", () => {
 
 	it.each([false, true])("keeps the root config and removes the temporary config, including on failure (%s)", async (fail) => {
 		const native = {
-			extends: ["@shivaedev/quality/biome"],
+			extends: ["@shivaedev/quality/biome/preset.json"],
 			formatter: { lineWidth: 150 },
 			overrides: [{ formatter: { lineWidth: 100 }, includes: ["src/other.ts"] }],
 			plugins: ["./imports.grit"],

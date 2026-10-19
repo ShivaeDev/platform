@@ -1,4 +1,4 @@
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { connectCli, createPostgres } from "#test/postgresEngine.ts";
 import { postgresVerbs } from "#test/postgresVerbs.ts";
 

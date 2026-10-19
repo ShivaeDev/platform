@@ -1,6 +1,6 @@
 import { Config, Effect, Option, Redacted } from "effect";
 import { Migrator } from "effect/sql";
-import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
+import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
 
 const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL"))));
 const ci = Effect.runSync(Config.String("CI").pipe(Config.withDefault("")));

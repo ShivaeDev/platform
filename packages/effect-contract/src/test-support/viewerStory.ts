@@ -1,5 +1,5 @@
 import { Effect, Ref, Stream } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Key } from "#keys.ts";
 import type { LiveHint } from "#live.ts";
 import { viewerEngine } from "./viewerEngine.ts";

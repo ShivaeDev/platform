@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { browserClient } from "#client/client.ts";
+import { browserClient } from "#browserClient.ts";
 import { FormContext } from "#client/react/FormContext.ts";
 import { HandoffPage } from "#client/react/HandoffPage.tsx";
 import { ResultPage } from "#client/react/ResultPage.tsx";

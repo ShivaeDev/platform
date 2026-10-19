@@ -1,4 +1,4 @@
-import type { BrowserClient } from "#client/client.ts";
+import type { BrowserClient } from "#browserClient.ts";
 import { LiveControls } from "./LiveControls.tsx";
 import { shellIds } from "./shellIds.ts";
 

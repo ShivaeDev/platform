@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync, readlinkSync, realpathSync, stat
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appFolder, runCli } from "./cli.ts";
 import { createEngine } from "./createEngine.ts";
 import { appScript, installDatabaseProbe } from "./environment.ts";

@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Layer, Stream } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { homeIn } from "#server/files/home.ts";
 import { listMarkdown } from "#server/files/list.ts";
 import { watchDirectories } from "#server/files/watchDirectories.ts";

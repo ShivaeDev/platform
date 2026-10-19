@@ -1,8 +1,8 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Layer } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
-import { withTestTransaction } from "@shivaedev/effect-test-sql/withTestTransaction.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { withTestTransaction } from "@shivaedev/effect-test-sql/server/withTestTransaction.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Fleet } from "#fleet.ts";
 import { createEngine } from "#test/createEngine.ts";
 import { type EngineStory, newEngineState, running } from "#test/engineState.ts";

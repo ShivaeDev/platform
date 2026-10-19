@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Redacted } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { batchBudget } from "#test/batchBudget.ts";
 import { budgetVerbs } from "#test/budgetVerbs.ts";
 import { clientEngine } from "#test/clientEngine.ts";

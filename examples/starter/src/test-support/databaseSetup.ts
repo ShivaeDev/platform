@@ -1,6 +1,6 @@
 import { ConfigProvider, Effect } from "effect";
-import { localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { setupDatabases } from "#server/setupDatabases.ts";
 
 export const databaseSetup = storyKit({

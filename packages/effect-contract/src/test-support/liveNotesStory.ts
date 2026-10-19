@@ -2,7 +2,7 @@ import { Effect, Ref, Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { expect } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { liveClient } from "#test/live/client.ts";
 import { eventually } from "./eventually.ts";
 import { liveEngine, liveSnapshot, streamRunner } from "./liveEngine.ts";
