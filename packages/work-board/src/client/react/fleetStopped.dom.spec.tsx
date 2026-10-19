@@ -34,6 +34,45 @@ screenStory.it(
 );
 
 screenStory.it(
+	"keeps Now's Done lane free of guesses, keeps authored lane counts and points to the one Fleet start path while Fleet isn't running",
+	[
+		screenFiles(
+			{
+				...fleetWorkspace,
+				"tasks/delivery.md": "---\nid: task.delivery\nkind: task\nstatus: delivering\nowner: codex\n---\n# Deliver the release notes\n",
+				"tasks/shipped.md": "---\nid: task.shipped\nkind: task\nstatus: done\nowner: codex\n---\n# Ship the changelog\n",
+			},
+			{ home: "home.md" },
+		),
+		stoppedFleet(),
+		screenRoute("/_board/work"),
+		openScreen(),
+	],
+	function* ({ click, findByRole, findElement, findElements, readText }) {
+		const done = 'section[aria-label="Done in the last 7 days"]';
+		yield* Effect.promise(() => eventually(() => expect(readText(done)).toBe("Done in the last 7 daysNeeds Fleet to show finished work.")));
+		expect(findElement(`${done} [data-item]`)).toBeNull();
+		expect(findElement(`${done} [aria-expanded]`)).toBeNull();
+		expect(findElements(".work-column").map((lane) => [lane.getAttribute("aria-label"), lane.querySelector(".work-count")?.textContent])).toEqual([
+			["Queued", "1"],
+			["Executing", "1"],
+			["Reviewing", "0"],
+			["Delivering", "1"],
+			["Waiting on a person", "1"],
+			["Done in the last 7 days", undefined],
+		]);
+		expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toContain("Today, 3 need you");
+		expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toContain("Now, 4 open tasks");
+		expect(readText('[data-slot="alert"]')).toBe(`Lanes show the status written in each file. ${STOPPED}How to start Fleet`);
+		click(findByRole("button", "How to start Fleet"));
+		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Start Fleet", document)).not.toBeNull()));
+		const shown = findByRole("dialog", "Start Fleet", document)?.querySelector("code")?.textContent ?? "";
+		expect(shown).toMatch(command);
+		expect(document.body.textContent?.match(/work-fleet serve \S+ --port \d+/gu)).toEqual([shown]);
+	},
+);
+
+screenStory.it(
 	"lists task-file work below the Fleet isn't running panel on Today",
 	[
 		screenFiles(

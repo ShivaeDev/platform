@@ -1,9 +1,10 @@
-import { Effect, Option, Schema, SchemaAST, SchemaIssue } from "effect";
+import { Effect, Option, Schema } from "effect";
 import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { type InsertMany, makeInsertMany } from "#batchWrites.ts";
-import { makeFilter } from "#repositoryFilter.ts";
+import { type InsertFromSelect, makeInsertFromSelect } from "#insertFromSelect.ts";
+import { makeConflictClause } from "#makeConflictClause.ts";
 import type { RepositoryChanges } from "./repositoryChanges.ts";
 
 export type InsertColumn<TModel extends Model.Any> = Extract<keyof TModel["insert"]["Type"] & keyof TModel["fields"], string>;
@@ -15,6 +16,7 @@ interface UpdateOptions<TModel extends Model.Any, TExcluded extends PropertyKey>
 	];
 }
 export interface ConflictWrites<TModel extends Model.Any, TExcluded extends PropertyKey, TFilterServices = never> {
+	readonly insertFromSelectOrIgnore: InsertFromSelect<TModel, TFilterServices>;
 	readonly insertManyOrIgnore: InsertMany<TModel, TFilterServices>;
 	readonly insertOrIgnore: (
 		input: TModel["insert"]["Type"],
@@ -49,43 +51,11 @@ export function makeConflictWrites(
 		readonly idColumns: readonly string[];
 	},
 ) {
-	const { tableName, spanPrefix, conflictColumns, idColumns } = options;
-	const filter = makeFilter(model, sql);
+	const { tableName, spanPrefix } = options;
 	const encode = Schema.encodeEffect(model.insert);
 	const decode = Schema.decodeUnknownEffect(model);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
-	const updateFields = SchemaAST.isObjects(model.update.ast) ? model.update.ast.propertySignatures.map((field) => field.name) : [];
-	const immutable = Object.keys(model.fields).filter((column) => !updateFields.includes(column));
-	function invalid(column: string) {
-		return Effect.fail(new Schema.SchemaError(new SchemaIssue.Pointer([column], new SchemaIssue.UnexpectedKey(model.ast, column))));
-	}
-	function validateColumns(encoded: Readonly<Record<string, unknown>>, columns: readonly string[], excluded: readonly string[] = []) {
-		return Effect.gen(function* () {
-			if (columns.length === 0) {
-				return yield* invalid("");
-			}
-			for (const column of columns) {
-				if (!(Object.hasOwn(model.fields, column) && Object.hasOwn(encoded, column)) || excluded.includes(column)) {
-					return yield* invalid(column);
-				}
-			}
-		});
-	}
-	function clause(encoded: Readonly<Record<string, unknown>>, updateColumns?: readonly string[]) {
-		return Effect.gen(function* () {
-			yield* validateColumns(encoded, conflictColumns);
-			if (updateColumns !== undefined) {
-				yield* validateColumns(encoded, updateColumns, [...idColumns, ...conflictColumns, ...immutable]);
-			}
-			const conflict = sql.csv(conflictColumns.map((column) => sql`${sql(column)}`));
-			const where = options.conflictWhere === undefined ? sql`` : sql`where ${yield* filter.where(options.conflictWhere)}`;
-			const action =
-				updateColumns === undefined
-					? sql`do nothing`
-					: sql`do update set ${sql.csv(updateColumns.map((column) => sql`${sql(column)} = excluded.${sql(column)}`))}`;
-			return sql`on conflict (${conflict}) ${where} ${action}`;
-		});
-	}
+	const clause = makeConflictClause(model, sql, options);
 	function statement(input: unknown, updateColumns?: readonly string[]) {
 		return Effect.gen(function* () {
 			const encoded = yield* record(yield* encode(input));
@@ -94,6 +64,9 @@ export function makeConflictWrites(
 		});
 	}
 	return {
+		insertFromSelectOrIgnore: makeInsertFromSelect(model, sql, options, "insertFromSelectOrIgnore", (columns) =>
+			clause(Object.fromEntries(columns.map((key) => [key, undefined]))),
+		),
 		insertManyOrIgnore: makeInsertMany(model, sql, options, "insertManyOrIgnore", (row) => clause(row)),
 		insertOrIgnore: (input: unknown) =>
 			Effect.gen(function* () {

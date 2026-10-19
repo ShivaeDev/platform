@@ -1,13 +1,11 @@
 import type { Document } from "#browser/document/schema.ts";
 import { DocumentEvidence } from "./DocumentEvidence.tsx";
-import { DocumentRelationships } from "./DocumentRelationships.tsx";
 import { keyed } from "./keyed.ts";
 export function DocumentWorkMetadata({ document }: { readonly document: Document }) {
 	return (
 		<section aria-label="Work details" className="work-meta">
 			<MetadataLead document={document} />
 			<DocumentEvidence document={document} />
-			<DocumentRelationships document={document} />
 		</section>
 	);
 }

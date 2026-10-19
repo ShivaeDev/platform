@@ -1,5 +1,6 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { viewUrl } from "#browser/views/state.ts";
+import { EmptyState } from "#client/react/EmptyState.tsx";
 import { LinkButton } from "#client/react/LinkButton.tsx";
 import { PageHeader } from "#client/react/PageHeader.tsx";
 import { SavedViews } from "#client/react/SavedViews.tsx";
@@ -62,16 +63,21 @@ function WorkContent({ data, api }: { readonly data: WorkProjection; readonly ap
 			)}
 			<div className={data.state.item ? "work-layout has-detail" : "work-layout"}>
 				<section aria-label="Work items" className="min-w-0" id={shellIds.workResults} tabIndex={-1}>
-					{data.items.length === 0 && (
-						<p className="empty">
-							No identified work is declared here. Keep reading ordinary files, or add item IDs and explicit board membership in their Markdown
-							sources.
-						</p>
-					)}
-					<WorkResults data={data} />
+					{data.items.length === 0 ? <NoWork data={data} /> : <WorkResults data={data} />}
 				</section>
 				<WorkDetail api={api} data={data} />
 			</div>
 		</>
+	);
+}
+function NoWork({ data: { state } }: { readonly data: WorkProjection }) {
+	return state.board ? (
+		<EmptyState action={<LinkButton href={viewUrl(state, { board: "" })}>All work</LinkButton>} title="No work on this board">
+			This board lists no work items yet. Work joins a board when its Markdown names the board.
+		</EmptyState>
+	) : (
+		<EmptyState action={<LinkButton href="/_board/start">Getting started</LinkButton>} title="No work yet">
+			Work appears here when a file in this workspace gives a task an ID and a status.
+		</EmptyState>
 	);
 }

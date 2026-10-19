@@ -4,6 +4,8 @@ import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.t
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { answeredCopy } from "#client/responses/answeredCopy.ts";
 import { Age } from "./Age.tsx";
+import { EmptyState } from "./EmptyState.tsx";
+import { LinkButton } from "./LinkButton.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 import { TodayOptions } from "./TodayOptions.tsx";
 
@@ -23,7 +25,9 @@ export function TodayNeeds({ api, data }: { readonly api: ShellApi; readonly dat
 			))}
 		</ul>
 	) : (
-		<p className="text-muted-foreground text-sm">All quiet — nothing needs you.</p>
+		<EmptyState action={<LinkButton href="/_board/start">Getting started</LinkButton>} title="Nothing needs you">
+			Questions and reviews from your agents appear here when they need your answer.
+		</EmptyState>
 	);
 }
 

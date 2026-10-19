@@ -53,8 +53,15 @@ for (const ready of [false, true]) {
 	screenStory.it(
 		`distinguishes loading Fleet work from an available empty list (${ready})`,
 		[componentScreen(<TodayProgress data={progress} failed={false} />)],
-		({ readText, findElement }) => {
-			expect(readText()).toContain(ready ? "Fleet holds no work" : "Loading Fleet work");
+		({ readText, findElement, findElements }) => {
+			if (ready) {
+				expect(readText('[data-slot="empty-title"]')).toBe("No work in progress");
+				expect(findElement("[data-loading]")).toBeNull();
+			} else {
+				expect(readText('[role="status"][aria-busy="true"]')).toBe("Loading work in progress");
+				expect(findElements('[data-loading] [data-slot="skeleton"]').length).toBeGreaterThan(0);
+				expect(findElement('[data-slot="empty"]')).toBeNull();
+			}
 			expect(findElement('a[href="/_board/work"]')).not.toBeNull();
 		},
 	);

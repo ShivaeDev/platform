@@ -99,7 +99,7 @@ screenStory.it(
 	"marks empty Now lanes and keeps Done closed until the reader opens it",
 	[nowScreen(6, WorkNow, nowFleet(3, Effect.runSync(Clock.currentTimeMillis)))],
 	function* ({ findElements, readText, roles }) {
-		expect(readText('section[aria-label="Delivering"]')).toBe("Delivering0Nothing here");
+		expect(readText('section[aria-label="Delivering"]')).toBe("Delivering0Nothing deliveringWork that Fleet is merging appears here.");
 		expect(findElements(".work-columns > section").map((lane) => lane.getAttribute("aria-label"))).toEqual([
 			"Queued",
 			"Executing",
@@ -127,7 +127,7 @@ screenStory.it(
 	[nowScreen(6, WorkNow, { reason: "Fleet is offline.", state: "unavailable" })],
 	({ findElements }) => {
 		expect(findElements('[role="status"][data-slot="alert"]').map((alert) => alert.textContent)).toEqual([
-			"Fleet is unavailable. Lanes use authored status. Fleet is offline.",
+			"Lanes show the status written in each file. Fleet is offline.",
 		]);
 	},
 );

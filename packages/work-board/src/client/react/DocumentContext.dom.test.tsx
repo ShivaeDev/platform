@@ -9,7 +9,7 @@ expectNoReactWarnings();
 
 for (const { file, source, explanation } of recordSourceFixture) {
 	screenStory.it(
-		`keeps ${file} record explanations in the initially hidden Source tab`,
+		`keeps ${file} record explanations in the Source tab, hidden until the reader opens it and again after Details`,
 		[routedScreen({ [file]: source }, `/${file}`)],
 		function* ({ control, click, findElement, findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement('[aria-label="Document source"]')).not.toBeNull()));
@@ -20,6 +20,9 @@ for (const { file, source, explanation } of recordSourceFixture) {
 			const sourceTab = [...findElements<HTMLButtonElement>('.item-context [role="tab"]')].find((tab) => tab.textContent === "Source");
 			click(sourceTab);
 			expect(records.closest("[hidden]")).toBeNull();
+			click([...findElements<HTMLButtonElement>('.item-context [role="tab"]')].find((tab) => tab.textContent === "Details"));
+			expect(control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).textContent).toBe("Details");
+			expect(records.closest("[hidden]")).not.toBeNull();
 		},
 	);
 }

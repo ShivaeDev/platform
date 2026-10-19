@@ -263,7 +263,7 @@
 	.document-lead [id],
 	.item-context [id],
 	.reading-column [id] {
-		scroll-margin-top: calc(var(--board-header-height, 0px) + 15rem);
+		scroll-margin-top: calc(var(--board-header-height, 0px) + 5rem);
 	}
 	.item-introduction .heading-anchor,
 	.reading-column .heading-anchor {
@@ -284,6 +284,30 @@
 	[data-board-workspace] {
 		--board-header-height: 3.5rem;
 	}
+}
+
+@media (min-width: 1024px) {
+	.document-outline {
+		position: sticky;
+		top: calc(var(--board-header-height, 0px) + 4.5rem);
+		max-height: calc(100vh - var(--board-header-height, 0px) - 6rem);
+		overflow-y: auto;
+	}
+}
+
+/* Unlayered, so the scrolled header overrides the utility classes it renders with. */
+[data-page-header][data-compact] {
+	padding-bottom: 0.75rem;
+}
+[data-page-header][data-compact] > h1 {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 1.125rem;
+	line-height: 1.75rem;
+	white-space: nowrap;
+}
+[data-page-header][data-compact] > :is([data-page-summary], [data-page-actions]) {
+	display: none;
 }
 
 /* The served shell outlines BoardShell's header, sidebar and phone navigation with these rules, so the first paint holds the layout until React replaces it. */
