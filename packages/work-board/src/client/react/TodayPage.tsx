@@ -1,9 +1,9 @@
-import { Option } from "effect";
-import { useEffect, useRef } from "react";
+import { Clock, Effect, Option } from "effect";
+import { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { inProgress } from "#browser/views/inProgress.ts";
-import type { InboxProjection } from "#browser/views/schema.ts";
+import type { InboxProjection, RecentAnswer } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { LinkButton } from "./LinkButton.tsx";
 import { LoadingCards } from "./loading.tsx";
@@ -27,11 +27,12 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 	const navigation = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const home = Option.getOrUndefined(navigation.data)?.home;
 	const answering = useSavedAnswers(data, Option.getOrUndefined(navigation.data));
-	useArrivalFocus(data.answered);
+	const answered = useMemo(() => recentRows(data.recent), [data.recent]);
+	useArrivalFocus(answered);
 	return (
 		<div className="today-page min-w-0 space-y-3 md:space-y-6">
 			<PageHeader
-				actions={home !== undefined && <LinkButton href={fileUrl(home.file)}>Workspace notes</LinkButton>}
+				actions={home !== undefined && <LinkButton href={fileUrl(home.file)}>{home.title ?? home.file}</LinkButton>}
 				summary={
 					<TodaySummary
 						goals={goals?.goals.length}
@@ -47,10 +48,8 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 			/>
 			<div className="today-grid grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<div className="min-w-0 space-y-6">
-					<TodayNeedsYou answering={answering} api={api} complete={data.complete} />
-					{data.complete && data.answered.length > 0 && (
-						<Answered fleet={Option.isSome(fleetQuery.cause) ? undefined : fleet} items={data.answered} />
-					)}
+					<TodayNeedsYou answering={answering} api={api} complete={data.complete} identified={data.identified} />
+					{data.complete && answered.length > 0 && <Answered fleet={Option.isSome(fleetQuery.cause) ? undefined : fleet} rows={answered} />}
 					<section className="min-w-0" id={todayIds.progress}>
 						<h2 className="mt-0 mb-3 font-semibold text-lg">In progress</h2>
 						<TodayProgress data={fleet} failed={Option.isSome(fleetQuery.cause)} />
@@ -69,20 +68,28 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 	);
 }
 
-function Answered({ fleet, items }: { readonly fleet: FleetItemsProjection | undefined; readonly items: InboxProjection["answered"] }) {
+const WEEK = 604_800_000;
+
+// An answer still waiting on its agent stays whatever its age; one the agent acted on stays a week as a trail.
+function recentRows(rows: readonly RecentAnswer[]) {
+	const since = Effect.runSync(Clock.currentTimeMillis) - WEEK;
+	return rows.filter((row) => row.state === "waiting" || row.state === "fleet" || row.answeredAt >= since);
+}
+
+function Answered({ fleet, rows }: { readonly fleet: FleetItemsProjection | undefined; readonly rows: readonly RecentAnswer[] }) {
 	return (
 		<section className="min-w-0" id={todayIds.answered}>
-			<h2 className="mt-0 mb-3 font-semibold text-lg">Answered, waiting for Fleet</h2>
-			<TodayAnswered fleet={fleet} items={items} />
+			<h2 className="mt-0 mb-3 font-semibold text-lg">Answered</h2>
+			<TodayAnswered fleet={fleet} rows={rows} />
 		</section>
 	);
 }
 
-function useArrivalFocus(items: InboxProjection["answered"]) {
-	const seenRef = useRef(new Set(items.map((item) => item.id)));
+function useArrivalFocus(items: readonly RecentAnswer[]) {
+	const seenRef = useRef(new Set(items.map((item) => item.answer.response)));
 	useEffect(() => {
-		const arrived = items.find((item) => !seenRef.current.has(item.id));
-		seenRef.current = new Set(items.map((item) => item.id));
+		const arrived = items.find((item) => !seenRef.current.has(item.answer.response));
+		seenRef.current = new Set(items.map((item) => item.answer.response));
 		const resting =
 			document.activeElement === null || document.activeElement === document.body || document.activeElement.id === todayIds.needsHeading;
 		if (arrived !== undefined && resting) {

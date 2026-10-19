@@ -1,13 +1,25 @@
-import { type Duration, Predicate } from "effect";
+import { Cause, type Duration, Option, Predicate } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { LiveConnection } from "@shivaedev/effect-contract/automaticLive.ts";
+import { type LiveBound, LiveConnection } from "@shivaedev/effect-contract/automaticLive.ts";
+import { recheckUnauthorized } from "#internal/sessionRecheck.ts";
+
+function isLiveBound(value: unknown): value is LiveBound {
+	return Predicate.hasProperty(value, LiveConnection);
+}
+
+function recheckFailure(registry: AtomRegistry.AtomRegistry, failure: Option.Option<Cause.Cause<unknown>>) {
+	const error = Option.flatMap(failure, Cause.findErrorOption);
+	if (Option.isSome(error)) {
+		void recheckUnauthorized(registry, error.value);
+	}
+}
 
 export function mountLive(registry: AtomRegistry.AtomRegistry, client: unknown, coalesceWindow?: Duration.Input) {
 	const releases: Array<() => void> = [];
 	const found = new Set<unknown>();
 	function mount(value: unknown) {
-		if (!Predicate.hasProperty(value, LiveConnection)) {
+		if (!isLiveBound(value)) {
 			return;
 		}
 		const live = value[LiveConnection];
@@ -21,6 +33,13 @@ export function mountLive(registry: AtomRegistry.AtomRegistry, client: unknown, 
 				registry.set(live.coalesceWindow, coalesceWindow);
 			}
 			found.add(live.connection);
+			releases.push(
+				registry.subscribe(
+					Atom.map(live.status, (status) => status.failure),
+					(failure) => recheckFailure(registry, failure),
+					{ immediate: true },
+				),
+			);
 			releases.push(registry.mount(live.connection));
 		}
 	}
