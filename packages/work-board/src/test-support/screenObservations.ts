@@ -1,10 +1,11 @@
-import { accessibleName, accessibleRole } from "./accessibleRole.ts";
+import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 export function screenObservations(engine: ScreenEngine, tell: (line: string) => void) {
 	function root() {
 		return engine.container ?? engine.view?.container ?? document;
 	}
+	const { accessible } = screenDriver({ pending: () => false, root: () => document.body, tell });
 	function element<TTag extends keyof HTMLElementTagNameMap>(selector: TTag, within?: ParentNode | null): HTMLElementTagNameMap[TTag] | null;
 	function element<E extends Element = HTMLElement>(selector: string, within?: ParentNode | null): E | null;
 	function element<E extends Element = HTMLElement>(selector: string, within: ParentNode | null = root()) {
@@ -19,12 +20,14 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 	}
 	return {
 		count: (selector: string, within?: ParentNode | null) => elements(selector, within).length,
+		accessible,
 		findByRole: (role: string, name: string | RegExp, within: ParentNode | null = root()) => {
 			tell(`the reader finds the ${role} named ${name}`);
 			return (
-				[...(within?.querySelectorAll<HTMLElement>("*") ?? [])].find(
-					(candidate) => accessibleRole(candidate) === role && (typeof name === "string" ? accessibleName(candidate) === name : name.test(accessibleName(candidate))),
-				) ?? null
+				[...(within?.querySelectorAll<HTMLElement>("*") ?? [])].find((candidate) => {
+					const found = accessible(candidate);
+					return found.role === role && (typeof name === "string" ? found.name === name : name.test(found.name));
+				}) ?? null
 			);
 		},
 		findElement: element,

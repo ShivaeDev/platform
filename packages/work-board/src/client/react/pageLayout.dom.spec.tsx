@@ -2,12 +2,10 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
-import { accessibleRole } from "#test/accessibleRole.ts";
 import { answeredDecisionFixture } from "#test/answeredDecisionFixture.ts";
 import { attentionFixture } from "#test/attentionFixture.ts";
 import { observedBrowserMotion } from "#test/browserMotion.ts";
 import { fleetWorkspace } from "#test/fleetWorkspaceFixture.ts";
-import { roleOf } from "#test/pageObservation.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen, openScreen, routedScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
@@ -69,15 +67,15 @@ for (const { name, files, url, open, actions } of [
 	screenStory.it(
 		`shows the actions on ${name} as links that navigate and buttons that act in place`,
 		[routedScreen(files, url)],
-		function* ({ click, findElement, findElements }) {
+		function* ({ accessible, click, findElement, findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
 			click(open);
-			const controls = findElements(ACTION_CONTROLS).map((element) => [accessibleRole(element), element.textContent?.trim()]);
+			const controls = findElements(ACTION_CONTROLS).map((element) => [accessible(element).role, element.textContent?.trim()]);
 			for (const action of actions) {
 				expect(controls).toContainEqual(action);
 			}
-			for (const element of findElements(ACTION_CONTROLS).filter((candidate) => accessibleRole(candidate) === "link")) {
-				expect(element.getAttribute("href")).toMatch(/^(\/|https:\/\/)/u);
+			for (const element of findElements(ACTION_CONTROLS).filter((candidate) => accessible(candidate).role === "link")) {
+				expect(element.getAttribute("href")).toMatch(/^(?:\/|https:\/\/)/u);
 			}
 		},
 	);
@@ -100,7 +98,7 @@ screenStory.it(
 screenStory.it(
 	"offers the sidebar destinations and the Now, All work and Table switch as links",
 	[chromeScreen(todayFixture(), "/_board/work")],
-	function* ({ findByRole }) {
+	({ findByRole }) => {
 		const sidebar = findByRole("complementary", "Workspace navigation");
 		for (const [name, href] of [
 			[/^Today/u, "/"],
