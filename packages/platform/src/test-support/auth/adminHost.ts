@@ -1,7 +1,7 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { admin } from "better-auth/plugins";
-import { Effect, Layer, Redacted } from "effect";
+import { Duration, Effect, Layer, Redacted } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Migrator } from "effect/sql";
@@ -11,7 +11,7 @@ import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { appHost } from "#server/appHost.ts";
 import { authTestUtils } from "#server/better-auth/testing.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
-import { authenticatedUserLayer } from "#server/rpc-server/session.ts";
+import { authenticatedAdminLayer, authenticatedOwnerLayer } from "#server/rpc-server/roles.ts";
 import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
 
 export const startAdminHost = Effect.gen(function* () {
@@ -35,12 +35,16 @@ export const startAdminHost = Effect.gen(function* () {
 		table: "auth_migrations",
 	});
 	const auth = betterAuth(options);
-	const sessions = { origin: () => true, provider: betterAuthSessions((headers) => auth.api.getSession({ headers })) };
+	const sessions = {
+		origin: () => true,
+		provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
+		streamRevalidationInterval: Duration.millis(100),
+	};
 	const context = yield* Layer.build(
 		appHost({
 			config: { port: 0 },
 			group: AdminApi,
-			handlers: adminHandlers.pipe(Layer.provideMerge(authenticatedUserLayer(sessions))),
+			handlers: adminHandlers.pipe(Layer.provideMerge(Layer.merge(authenticatedAdminLayer(sessions), authenticatedOwnerLayer(sessions)))),
 			routes: adminRoutes(sessions),
 			sessions,
 		}),
