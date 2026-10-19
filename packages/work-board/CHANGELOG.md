@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.26.0 - 2026-10-19
+
+### Added
+
+- A closed decision or question opens with an **Outcome** block before its body: the chosen option or recorded answer, who answered and when. A closed decision without a recorded answer says so.
+- `Changes` accepts an optional `refreshPaths` that rereads only the given files. Board writes use it when present and fall back to `refresh`.
+
+### Changed
+
+- Fleet decision pages are titled "Fleet decision:" followed by the task title in their heading, the browser tab, sources and search, so they no longer share the task's title.
+- Fleet decision pages wrap their fenced decision and recommendation text and hide sections with nothing in them, such as an empty "Relevant links".
+- On item pages, screen readers and the Tab key reach the main content before the side panel with details and the outline. The layout on screen does not change.
+- Goal sections link as `#progress`, `#criteria`, `#linked-work` and `#by-criterion`, so outline links and shared links keep working on every goal.
+- Only Progress, Criteria, Linked work and the item context are named page regions. Link groups in the side panel are plain lists under headings.
+- A plain Markdown file without front matter shows no empty Details card.
+- Now cards call held work **In progress** instead of naming its stage, and Today's In progress rows from Fleet say **Fleet** without the stage; Now's lane titles still name the stage. Today's In progress also lists Fleet work that is validating or delivering.
+
+### Fixed
+
+- Going back focuses the link that opened the page when that link is still there, and the page otherwise.
+- An empty Details panel is no longer a Tab stop.
+- Tasks whose files say `status: review` appear in Now's Reviewing lane, count as in progress on Today and in the Now count, and land in the same group on their goal page. One status vocabulary now drives Now, Today, the navigation count and goal pages.
+- Fleet-approved tasks with `status: ready` appear in Now's Queued lane while Fleet is unavailable, and `approved` work counts as planned on goal pages instead of in progress.
+- A task, or an item that implements a goal, whose status the Board does not know is listed on System as a file problem instead of being dropped from Now or counted as in progress on its goal page.
+- The sidebar's Now count reads **1 open task** in the singular.
+- Today's text box for a question's prompt stops at the 8,192 characters such an answer can hold, as the item page does, instead of accepting a longer answer that then cannot be saved.
+- Saving an answer, registering a question or preparing a handoff updates the index for the file it wrote instead of rereading the whole workspace, so the saved answer is confirmed and reaches open pages sooner.
+- A new or removed folder, such as the response folder an answer lands in, is listed on its own instead of listing the whole workspace again.
+- Startup lists the workspace once instead of twice before the first index.
+
 ## 0.25.0 - 2026-10-19
 
 ### Added

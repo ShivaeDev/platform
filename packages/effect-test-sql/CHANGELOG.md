@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.2 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.8.1 - 2026-10-19
 
 ### Changed
