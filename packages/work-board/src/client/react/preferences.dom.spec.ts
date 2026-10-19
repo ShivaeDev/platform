@@ -1,23 +1,10 @@
-import { realpathSync } from "node:fs";
 import { Effect } from "effect";
 import { describe, expect } from "vitest";
-import type { Folder } from "#test/board.ts";
 import { boardStory } from "#test/boardStory.ts";
-import type { OpenPage } from "#test/browser.ts";
 import { waitFor } from "#test/live.ts";
+import { frame } from "#test/pageObservation.ts";
+import { preferencesKey } from "#test/pageStorage.ts";
 import { samplePages } from "#test/pageTraits.ts";
-
-function ready(page: OpenPage) {
-	return waitFor(() => expect(page.document.documentElement.dataset.theme).toBeDefined());
-}
-
-function settingsOpen(page: OpenPage) {
-	return waitFor(() => expect(page.document.getElementById("theme")).not.toBeNull());
-}
-
-function key(notes: Folder) {
-	return `work-board:appearance:${realpathSync(notes.root)}`;
-}
 
 describe("workspace preferences", () => {
 	boardStory.it(
@@ -26,33 +13,37 @@ describe("workspace preferences", () => {
 		function* ({ notes, reader, page: initialPage }) {
 			let page = initialPage;
 			page = yield* reader.open("/plan.md", (window) => {
-				window.localStorage.setItem(key(notes), JSON.stringify({ closed: true, density: "compact", theme: "dark" }));
+				window.localStorage.setItem(preferencesKey(notes), JSON.stringify({ closed: true, density: "compact", theme: "dark" }));
 			});
-			yield* Effect.promise(() => ready(page));
+			yield* Effect.promise(() => waitFor(() => expect(page.document.documentElement.dataset.theme).toBeDefined()));
 			expect(page.document.documentElement.dataset.scheme).toBe("dark");
 			expect(page.document.documentElement.dataset.density).toBe("compact");
 			expect(page.document.getElementById("sidebar")?.hasAttribute("hidden")).toBe(true);
 			expect(page.document.getElementById("sidebar-toggle")?.getAttribute("aria-expanded")).toBe("false");
 			page.document.getElementById("sidebar-toggle")?.dispatchEvent(new page.window.Event("click", { bubbles: true }));
 			reader.clickSelector("#settings-open");
-			yield* Effect.promise(() => settingsOpen(page));
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("theme")).not.toBeNull()));
 			reader.choose("#density", "comfortable");
 			yield* Effect.promise(() => frame(page));
 			notes.write("plan.md", "# A new plan\n\nChanged by an agent.");
 			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#doc h1")?.textContent).toBe("A new plan")));
 			expect(page.document.documentElement.dataset.scheme).toBe("dark");
 			expect(page.document.getElementById("sidebar")?.hasAttribute("hidden")).toBe(false);
-			expect(JSON.parse(page.window.localStorage.getItem(key(notes)) ?? "null")).toEqual({ closed: false, density: "comfortable", theme: "dark" });
+			expect(JSON.parse(page.window.localStorage.getItem(preferencesKey(notes)) ?? "null")).toEqual({
+				closed: false,
+				density: "comfortable",
+				theme: "dark",
+			});
 		},
 	);
 
 	boardStory.it("ignores another workspace's choices and invalid saved values", [samplePages()], function* ({ notes, reader, page: initialPage }) {
 		let page = initialPage;
 		page = yield* reader.open("/", (window) => {
-			window.localStorage.setItem(`${key(notes)}-other`, JSON.stringify({ theme: "dark" }));
-			window.localStorage.setItem(key(notes), JSON.stringify({ closed: "yes", density: "tiny", theme: "unknown" }));
+			window.localStorage.setItem(`${preferencesKey(notes)}-other`, JSON.stringify({ theme: "dark" }));
+			window.localStorage.setItem(preferencesKey(notes), JSON.stringify({ closed: "yes", density: "tiny", theme: "unknown" }));
 		});
-		yield* Effect.promise(() => ready(page));
+		yield* Effect.promise(() => waitFor(() => expect(page.document.documentElement.dataset.theme).toBeDefined()));
 		expect(page.document.documentElement.dataset.theme).toBe("system");
 		expect(page.document.documentElement.dataset.density).toBe("comfortable");
 		expect(page.document.getElementById("sidebar")?.hasAttribute("hidden")).toBe(false);
@@ -67,9 +58,9 @@ describe("workspace preferences", () => {
 				},
 			});
 		});
-		yield* Effect.promise(() => ready(page));
+		yield* Effect.promise(() => waitFor(() => expect(page.document.documentElement.dataset.theme).toBeDefined()));
 		reader.clickSelector("#settings-open");
-		yield* Effect.promise(() => settingsOpen(page));
+		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("theme")).not.toBeNull()));
 		reader.choose("#theme", "dark");
 		yield* Effect.promise(() => frame(page));
 		expect(page.document.documentElement.dataset.scheme).toBe("dark");
@@ -82,10 +73,10 @@ describe("workspace preferences", () => {
 		function* ({ reader, page: initialPage }) {
 			let page = initialPage;
 			page = yield* reader.open("/flow.md");
-			yield* Effect.promise(() => ready(page));
+			yield* Effect.promise(() => waitFor(() => expect(page.document.documentElement.dataset.theme).toBeDefined()));
 			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("figure svg")?.getAttribute("data-dark")).toBe("false")));
 			reader.clickSelector("#settings-open");
-			yield* Effect.promise(() => settingsOpen(page));
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("theme")).not.toBeNull()));
 			reader.choose("#theme", "dark");
 			yield* Effect.promise(() => frame(page));
 			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("figure svg")?.getAttribute("data-dark")).toBe("true")));
@@ -104,7 +95,3 @@ describe("workspace preferences", () => {
 		},
 	);
 });
-
-function frame(page: OpenPage) {
-	return new Promise<void>((resolve) => page.window.requestAnimationFrame(() => resolve()));
-}

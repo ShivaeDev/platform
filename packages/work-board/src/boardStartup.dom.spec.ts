@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit } from "effect";
 import { expect } from "vitest";
-import { boardStory, projectFiles, readerAt } from "./boardStory.ts";
+import { boardStory, projectFiles, readerAt } from "#test/boardStory.ts";
 
 const SOURCE = "# Page-free reading\n\nThe server still reads project documents.";
 
