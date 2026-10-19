@@ -18,10 +18,10 @@ import { storeState } from "#test/storeState.ts";
 export class HostStoryEngine {
 	files: Record<string, string> = {};
 	config: Partial<HostConfig> = {};
-	integrations: HostFixture["parts"]["integrations"];
-	github: Effect.Success<ReturnType<typeof mergedReviewGithub>> | undefined;
 	stored: Record<string, Readonly<Record<string, unknown>>> = {};
 	main: MainSnapshot | undefined;
+	integrations: HostFixture["parts"]["integrations"];
+	pullRequest: Effect.Success<ReturnType<typeof mergedReviewGithub>> | undefined;
 	localBoard = false;
 	repositoryRoot: string | undefined;
 	briefParseCount: (() => number) | undefined;
@@ -94,12 +94,10 @@ export class HostStoryEngine {
 				return yield* Effect.die("Deploy the host before starting it");
 			}
 			const board = questionPublicationBoard(engine);
-			const parts = {
-				...engine.fixture.parts,
-				...(engine.integrations === undefined ? {} : { integrations: engine.integrations }),
-				...(board === undefined ? {} : { board }),
-				provider: resources.provider,
-			};
+			const parts = { ...engine.fixture.parts, ...(board === undefined ? {} : { board }), provider: resources.provider };
+			if (engine.integrations !== undefined) {
+				parts.integrations = engine.integrations;
+			}
 			if (engine.main !== undefined) {
 				parts.main = movingMainSource(() => engine.observedMain, engine.repositoryRoot);
 			}

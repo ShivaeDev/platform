@@ -12,19 +12,12 @@ export function hostConfigVerbs(engine: HostStoryEngine, tell: (line: string) =>
 				Object.assign(engine.config, settings);
 				engine.fixture.write(basename(engine.fixture.configFile), JSON.stringify({ ...engine.fixture.host.config, ...engine.config }));
 			}),
-		mergePullRequest: () => {
-			if (engine.github === undefined) {
-				throw new Error("Configure the GitHub pull request before merging it");
-			}
-			tell("a human merges the pull request");
-			engine.github.state.status = "MERGED";
-		},
 		setChecksPending: (pending: boolean) => {
-			if (engine.github === undefined) {
+			if (engine.pullRequest === undefined) {
 				throw new Error("Configure the GitHub pull request before changing checks");
 			}
 			tell(`GitHub checks become ${pending ? "pending" : "green"}`);
-			engine.github.state.pending = pending;
+			engine.pullRequest.state.pending = pending;
 		},
 		waitForConfig: (ready: Parameters<ReloadDaemon["config"]>[0]) =>
 			Effect.gen(function* () {

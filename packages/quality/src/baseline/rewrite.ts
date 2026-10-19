@@ -6,7 +6,6 @@ interface Row {
 	readonly text: string;
 }
 
-// An untouched entry keeps its exact line and a new one goes before the first line that sorts after it, so two branches conflict only on the same or neighbouring entries.
 export function rewriteBaseline(raw: string | undefined, before: readonly BaselineEntry[], after: readonly BaselineEntry[]): string {
 	const wanted = new Map(after.map((entry) => [keyOf(entry.rule, entry.file), entry]));
 	const lines = linesOf(raw);

@@ -13,6 +13,7 @@ const pages: Readonly<Record<string, readonly string[]>> = {
 	"/_board/goals": shell,
 	"/_board/item/task.intro": [...shell, "document"],
 	"/_board/library": [...shell, "library"],
+	"/_board/pull-requests": shell,
 	"/_board/system": [...shell, "diagnostics", "inbox"],
 	"/_board/work": [...shell, "work"],
 	"/plan.md": [...shell, "document"],

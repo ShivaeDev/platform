@@ -9,6 +9,7 @@ import { destinationName } from "#client/react/destinationName.ts";
 import { InboxCount } from "#client/react/Header.tsx";
 import { LibraryContext } from "#client/react/LibraryContext.ts";
 import { LinkButton } from "#client/react/LinkButton.tsx";
+import { MergeCount } from "#client/react/MergeCount.tsx";
 import type { MainLocation } from "#client/react/mainLocation.ts";
 import { useCurrentDestination } from "#client/react/navigationTarget.ts";
 import { PinnedLinks, RecentLinks } from "#client/react/readingLinks.tsx";
@@ -81,6 +82,7 @@ export function Sidebar({
 						<span>{label}</span>
 						{view === "today" && <InboxCount count={counts.today} id={shellIds.inboxCount} />}
 						{view === "work" && workCount}
+						{view === "pull-requests" && <MergeCount />}
 					</WorkspaceLink>
 				))}
 			</nav>

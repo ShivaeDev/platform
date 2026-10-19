@@ -1,0 +1,10 @@
+{"path":"packages/local-postgres/src/server/localPostgres.ts","rule":"biome/plugin","count":1}
+{"path":"packages/local-postgres/src/server/localPostgresErrors.spec.ts","rule":"tests/story-specs","count":1}
+{"path":"packages/local-postgres/src/server/localPostgresLifecycle.spec.ts","rule":"tests/named-values","count":1}
+{"path":"packages/local-postgres/src/test-support/createConnectionEngine.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/local-postgres/src/test-support/dockerReadiness.ts","rule":"tests/no-expect-in-support","count":10}
+{"path":"packages/local-postgres/src/test-support/dockerScript.ts","rule":"tests/no-expect-in-support","count":2}
+{"path":"packages/local-postgres/src/test-support/postgresEngine.ts","rule":"tests/no-expect-in-support","count":3}
+{"path":"packages/local-postgres/src/test-support/postgresEngine.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/local-postgres/src/test-support/postgresVerbs.ts","rule":"tests/support-imports","count":3}
+{"path":"packages/local-postgres/src/test-support/realPostgres.ts","rule":"tests/support-imports","count":3}

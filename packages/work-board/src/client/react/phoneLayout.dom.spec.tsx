@@ -42,13 +42,17 @@ screenStory.it(
 );
 
 screenStory.it(
-	"opens Library and System through More and closes the sheet on navigation or dismissal",
+	"opens pull requests, Library and System through More and closes the sheet on navigation or dismissal",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen(todayFixture(), "/")],
 	function* ({ click, control, findElement, findElements, location, roles }) {
-		for (const href of ["/_board/library", "/_board/system"]) {
+		for (const href of ["/_board/pull-requests", "/_board/library", "/_board/system"]) {
 			click(`${PHONE} button[aria-controls="phone-more"]`);
 			expect(findElement("#phone-more", document)).not.toBeNull();
-			expect(findElements('[aria-label="More destinations"] a', document).map((link) => roles.accessible(link).name)).toEqual(["Library", "System"]);
+			expect(findElements('[aria-label="More destinations"] a', document).map((link) => roles.accessible(link).name)).toEqual([
+				"Pull requests",
+				"Library",
+				"System",
+			]);
 			click(`#phone-more a[href="${href}"]`);
 			yield* Effect.promise(() => eventually(() => expect(location()?.pathname).toBe(href)));
 			yield* Effect.promise(() => eventually(() => expect(findElement("#phone-more", document)).toBeNull()));

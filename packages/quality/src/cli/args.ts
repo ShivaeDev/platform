@@ -6,6 +6,8 @@ export type Command =
 	| { readonly _tag: "Lint"; readonly config: string | undefined }
 	| { readonly _tag: "ExceptionsMigrate"; readonly config: string | undefined; readonly from: string | undefined }
 	| { readonly _tag: "Fix"; readonly config: string | undefined }
+	| { readonly _tag: "BaselineMerge"; readonly base: string; readonly ours: string; readonly theirs: string }
+	| { readonly _tag: "BaselineInstallDriver" }
 	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: readonly string[] }
 	| { readonly _tag: "BaselinePrune"; readonly config: string | undefined; readonly against: string | undefined }
 	| { readonly _tag: "BaselineTighten"; readonly config: string | undefined; readonly staged: boolean }
@@ -45,6 +47,7 @@ type Option = Exclude<keyof Values, "config" | "help">;
 const COMMAND_OPTIONS: readonly Option[] = ["against", "force", "from", "rule", "staged"];
 
 const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
+	"baseline install-driver": [],
 	"baseline migrate": ["from"],
 	"baseline prune": ["against"],
 	"baseline tighten": ["staged"],
@@ -77,6 +80,8 @@ function commandFor(name: string, values: Values): Parsed {
 			return parsed({ _tag: "ExceptionsMigrate", config, from: values.from });
 		case "fix":
 			return parsed({ _tag: "Fix", config });
+		case "baseline install-driver":
+			return parsed({ _tag: "BaselineInstallDriver" });
 		case "baseline write":
 			return parsed({ _tag: "BaselineWrite", config, rules: values.rule ?? [] });
 		case "baseline prune":
@@ -108,6 +113,12 @@ export function parseCommand(args: readonly string[]): Parsed {
 	const [command = "lint", ...rest] = positionals;
 	if (values.help === true || command === "help") {
 		return parsed({ _tag: "Help" });
+	}
+	if (command === "baseline" && rest[0] === "merge") {
+		const [, base, ours, theirs] = rest;
+		return rest.length === 4 && base !== undefined && ours !== undefined && theirs !== undefined
+			? parsed({ _tag: "BaselineMerge", base, ours, theirs })
+			: usage("baseline merge takes <ancestor> <current> <other>.");
 	}
 	const name = [command, ...rest].join(" ");
 	if (ACCEPTS[name] === undefined) {

@@ -21,6 +21,9 @@ export function pageQueries(api: ShellApi, kind: string, url: string): readonly 
 	if (kind === "goals") {
 		return [api.goals.query(undefined, routeQueryOptions)];
 	}
+	if (kind === "pull-requests") {
+		return [api.fleetItems.query(undefined, routeQueryOptions)];
+	}
 	if (kind === "start") {
 		return [api.start.query(undefined, routeQueryOptions)];
 	}

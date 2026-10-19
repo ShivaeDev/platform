@@ -4,7 +4,10 @@ import { testProjects } from "#testProjects.ts";
 
 export default defineConfig({
 	resolve: {
-		alias: { "#exports-story": fileURLToPath(new URL("../../script/quality/test-support/exportsStory.ts", import.meta.url)) },
+		alias: {
+			"#baseline-workspace": fileURLToPath(new URL("../../script/quality/test-support/baselineWorkspace.ts", import.meta.url)),
+			"#exports-story": fileURLToPath(new URL("../../script/quality/test-support/exportsStory.ts", import.meta.url)),
+		},
 		conditions: ["source", "module", "browser", "development|production"],
 	},
 	ssr: { resolve: { conditions: ["source", "node", "development|production"] } },

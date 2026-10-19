@@ -2,11 +2,12 @@ import { expect } from "@effect/vitest";
 import { task } from "#test/fleetHost.ts";
 import { REPORT } from "#test/githubResult.ts";
 import { boardWork, host } from "#test/hostStory.ts";
+import { humanDelivery } from "#test/humanDelivery.ts";
 import { pullRequestWithPendingChecks } from "#test/pullRequestWithPendingChecks.ts";
 
 host.it(
 	"disabling review before delivery goes straight to checks and human merge readiness",
-	[boardWork({ "one.md": task("one", "approved") }), pullRequestWithPendingChecks()],
+	[boardWork({ "one.md": task("one", "approved") }), humanDelivery, pullRequestWithPendingChecks()],
 	function* ({
 		reconcile,
 		dispatch,
@@ -53,6 +54,7 @@ for (const review of [true, undefined]) {
 		`enabling review with ${review === undefined ? "the default" : "true"} launches an independent reviewer`,
 		[
 			boardWork({ "one.md": task("one", "approved"), "two.md": task("two", "approved") }, { concurrency: 1, review: false }),
+			humanDelivery,
 			pullRequestWithPendingChecks(),
 		],
 		function* ({ reconcile, dispatch, editConfig, waitForConfig, finishTurn, waitForRecord, providerStarts }) {

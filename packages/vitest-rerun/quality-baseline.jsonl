@@ -1,0 +1,5 @@
+{"path":"packages/vitest-rerun/src/flakyReport.spec.ts","rule":"tests/named-values","count":7}
+{"path":"packages/vitest-rerun/src/freshRerun.spec.ts","rule":"tests/named-values","count":6}
+{"path":"packages/vitest-rerun/src/freshRerun.spec.ts","rule":"tests/spec-helpers","count":1}
+{"path":"packages/vitest-rerun/src/test-support/kit.ts","rule":"tests/support-imports","count":1}
+{"path":"packages/vitest-rerun/src/test-support/suite.ts","rule":"tests/support-imports","count":4}

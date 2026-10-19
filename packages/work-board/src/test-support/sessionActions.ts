@@ -1,7 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { Clock, Effect } from "effect";
 import { act } from "react";
 import { session } from "#client/session.ts";
+import { mergedPullRequest } from "#test/pullRequestsFixture.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 export function sessionActions(engine: ScreenEngine, tell: (line: string) => void) {
@@ -12,6 +14,13 @@ export function sessionActions(engine: ScreenEngine, tell: (line: string) => voi
 		return engine.session;
 	}
 	return {
+		mergeSessionPullRequest: (workId: string) => {
+			tell(`Fleet observes the merge of ${workId}`);
+			if (!engine.sessionFleet) {
+				throw new Error("The session has no Fleet work items");
+			}
+			engine.sessionFleet = mergedPullRequest(engine.sessionFleet, workId, Effect.runSync(Clock.currentTimeMillis));
+		},
 		readSession: () => {
 			tell("the reader checks the active session");
 			return session(current().environment);

@@ -31,7 +31,7 @@ The work has three parts: connect the repository to the shared tools once; descr
 
 ### 1. Once per repository: connect the shared policy
 
-A new repository needs no `quality.config.ts`. Quality checks sources from the current directory with every built-in rule at its default error level. The default baseline path is `quality/baseline.jsonl`; permanent exceptions belong in `quality.config.ts`.
+A new repository needs no `quality.config.ts`. Quality checks sources from the current directory with every built-in rule at its default error level. Baseline entries for `packages/<package>/...` live in `packages/<package>/quality-baseline.jsonl`; entries outside packages live in the root `quality-baseline.jsonl`. A package with no entries has no shard file. Permanent exceptions belong in `quality.config.ts`.
 
 Create a root `biome.json`:
 
@@ -174,7 +174,7 @@ When you fix debt, lower the entries of changed files:
 quality baseline tighten
 ```
 
-`tighten` lowers entries for files changed since `HEAD`; `--staged` restricts those updates to staged files. `prune` considers every baseline entry. Both only lower or remove counts and can carry entries when git detects tracked moves.
+`tighten` lowers entries for files changed since `HEAD`; `--staged` restricts those updates to staged files. `prune` considers every baseline entry. Both read all shards, only lower or remove counts and carry entries to the destination shard when git detects tracked moves. They also remove empty shards left by content merges. Unchanged entries stay in their existing shards, with unrelated lines preserved.
 
 When a Quality upgrade adds a check, or a reviewed change needs to record one rule's findings again:
 
@@ -183,6 +183,19 @@ quality baseline write --rule tests/story-setup
 ```
 
 Keep the default error level. The command replaces that rule's entries and leaves other rules' entries alone. Any new or raised count belongs in the review and the pull request's Callouts. The [debt and hook guide](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/debt-and-hooks.md) covers the baseline format, exception subjects, limit changes, renames and commit checks.
+
+### Baseline merges
+
+Register the driver in `.gitattributes`:
+
+```gitattributes
+/quality-baseline.jsonl merge=quality-baseline
+/packages/*/quality-baseline.jsonl merge=quality-baseline
+```
+
+Run `quality baseline install-driver` from your checkout's setup script. It sets only repository-local `merge.quality-baseline.driver`; it leaves other Git settings alone. Platform's `pnpm run setup` includes this step. Each checkout needs the setting because Git does not copy local configuration when cloning.
+
+Git calls `quality baseline merge <ancestor> <current> <other>`. Entries are keyed by path and rule. Removing an ancestor entry on either side removes it from the result; retained counts take the minimum of the two sides, and entries newly added on either side survive. The command writes the result to `<current>`, so parallel reductions of neighbouring entries merge without a text conflict.
 
 ### What the rules check
 
@@ -218,7 +231,7 @@ Import names from their defining module; there is no root entry. The package's `
 | --- | --- | --- |
 | `sources` | `["."]` | Directories or files the source rules check, relative to the repository root. |
 | `extensions` | `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs` | Source extensions. |
-| `baseline` | `quality/baseline.jsonl` | Counts of existing findings. |
+| `baseline` | `quality-baseline.jsonl` | Root shard for paths outside packages; package shards use `packages/<package>/quality-baseline.jsonl`. |
 | `exceptions` | `[]` | Permanent exceptions as `{ files, rules, reason, subject? }`. |
 | `registry` | `quality/registry.json` | Legacy input for upgrades; run `quality exceptions migrate`. |
 | `local` | `[]` | Exposed extension API for rules made with `defineRule`; not required for adoption. |
@@ -249,6 +262,8 @@ Register it with `defineConfig({ local: [noLog] })`. Its check receives `root`, 
 quality lint [--config <file>]
 quality fix [--config <file>]
 quality exceptions migrate [--config <file>] [--from <registry>]
+quality baseline merge <ancestor> <current> <other>
+quality baseline install-driver
 quality baseline write [--config <file>] [--rule <id>]...
 quality baseline prune [--config <file>] [--against <ref>]
 quality baseline tighten [--config <file>] [--staged]
@@ -259,7 +274,7 @@ quality hooks status
 quality hooks pre-commit [--config <file>]
 ```
 
-`quality` alone runs lint. The commands above use the default error-level policy. `prune --against` follows renames since the target's merge base; without a target it tries `origin/HEAD`, `origin/main`, then `origin/master`, and prunes without following moves when no merge base is available. An explicit target with unavailable history fails; fetch the needed history before rerunning. `migrate` converts a JSON baseline into the current JSON Lines format.
+`quality` alone runs lint. The commands above use the default error-level policy. `prune --against` follows renames since the target's merge base; without a target it tries `origin/HEAD`, `origin/main`, then `origin/master`, and prunes without following moves when no merge base is available. An explicit target with unavailable history fails; fetch the needed history before rerunning. `migrate` splits a single JSON Lines baseline into shards, or converts an earlier JSON baseline into sharded JSON Lines. Use `--from quality/baseline.jsonl` for an existing single-file baseline. It removes the source after writing the shards.
 
 | Exit code | Meaning |
 | --- | --- |

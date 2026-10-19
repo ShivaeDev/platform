@@ -11,6 +11,8 @@ export function loadRemaining(
 	abortController: AbortController,
 ) {
 	switch (route) {
+		case "pull-requests":
+			return loadQuery(registry, api.fleetItems.query(undefined, routeQueryOptions), { abortController });
 		case "library":
 			return loadQuery(registry, libraryQuery(api, url), { abortController });
 		case "goals":

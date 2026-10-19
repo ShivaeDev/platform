@@ -18,7 +18,7 @@ effectIt.layer(NodeFileSystem.layer)("config loading", (it) => {
 		const root = seedTree([config("{}")]);
 		const loaded = yield* loadConfig(root, undefined);
 		expect(loaded).toMatchObject({
-			baseline: "quality/baseline.jsonl",
+			baseline: "quality-baseline.jsonl",
 			exclude: [],
 			file: join(root, "quality.config.ts"),
 			registry: "quality/registry.json",
@@ -37,7 +37,7 @@ effectIt.layer(NodeFileSystem.layer)("config loading", (it) => {
 		const root = seedTree([]);
 		const loaded = yield* loadConfig(root, undefined);
 		expect(loaded).toMatchObject({
-			baseline: "quality/baseline.jsonl",
+			baseline: "quality-baseline.jsonl",
 			exclude: [],
 			file: join(root, "quality.config.ts"),
 			registry: "quality/registry.json",
