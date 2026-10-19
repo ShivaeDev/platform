@@ -1,4 +1,5 @@
 import { Context, Effect, Layer } from "effect";
+import { CommittedSink } from "@shivaedev/effect-sql/transact.ts";
 import type { Story } from "@shivaedev/test-story/storyKit.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet, type PrepareWork } from "#fleet.ts";
@@ -6,6 +7,7 @@ import type { FleetRecord } from "#model.ts";
 import type { EngineFixture } from "#test/engine.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { engineBoardVerbs } from "#test/engineBoardVerbs.ts";
+import { engineDecisionVerbs } from "#test/engineDecisionVerbs.ts";
 import { engineEvidence } from "#test/engineEvidence.ts";
 import { engineGithubVerbs } from "#test/engineGithubVerbs.ts";
 import { engineLaunchVerbs } from "#test/engineLaunchVerbs.ts";
@@ -13,6 +15,7 @@ import { engineLostTurnVerbs } from "#test/engineLostTurnVerbs.ts";
 import { enginePredictionVerbs } from "#test/enginePredictionVerbs.ts";
 import { engineProviderVerbs } from "#test/engineProviderVerbs.ts";
 import { engineRpcVerbs } from "#test/engineRpcVerbs.ts";
+import { engineSchedulingVerbs } from "#test/engineSchedulingVerbs.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { engineStatusVerbs } from "#test/engineStatusVerbs.ts";
 import { engineSweepVerbs } from "#test/engineSweepVerbs.ts";
@@ -78,7 +81,9 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 			observe(
 				"reconcile",
 				workId,
-				Effect.suspend(() => running(state).fleet.reconcile(workId)),
+				Effect.suspend(() => running(state).fleet.reconcile(workId)).pipe(
+					Effect.provideService(CommittedSink, (changes) => Effect.sync(() => state.commits.push(changes))),
+				),
 			),
 		resolve: (workId: string, decisionId: string, responseId: string) =>
 			observe(
@@ -108,6 +113,8 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		...engineProviderVerbs(running(state).fixture, story.tell),
 		...enginePredictionVerbs(state, story.tell),
 		...engineEvidence(state),
+		...engineSchedulingVerbs(state, story.tell),
+		...engineDecisionVerbs(state, story.tell),
 		...engineBoardVerbs(state, story.tell),
 		...engineWorldVerbs(state, story.tell),
 		...engineGithubVerbs(state, story.tell),
@@ -129,7 +136,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		schedule: () =>
 			Effect.suspend(() => {
 				story.tell("run one Fleet scheduler cycle");
-				return provideFleet(cycle);
+				return provideFleet(cycle).pipe(Effect.provide(state.logs.layer));
 			}),
 	};
 }
