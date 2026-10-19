@@ -13,8 +13,8 @@ export function TodayProgress({ data, failed }: { readonly data: FleetItemsProje
 			{data?.state === "unavailable" && data.startCommand !== undefined ? (
 				<FleetStopped command={data.startCommand} reason={data.reason} />
 			) : (
-				items === undefined &&
-				(data !== undefined || failed) && (
+				items === undefined
+				&& (data !== undefined || failed) && (
 					<p className="text-muted-foreground text-sm" role="status">
 						{unavailable(data)}
 					</p>
