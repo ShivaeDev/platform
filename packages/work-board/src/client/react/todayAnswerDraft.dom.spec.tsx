@@ -151,3 +151,61 @@ screenStory.it(
 		expect(saved.responses[0]?.body).toContain("## Overall response\n\nCheck the date with the team.");
 	},
 );
+
+const PROMPT_TEXT_LIMIT = 8192;
+const BODY_LIMIT = 32_768;
+screenStory.it(
+	"limits a Today answer to the length its response file accepts, shorter for a question's prompt than for a whole reply",
+	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
+	function* ({ findElements, keyboard, roles }) {
+		for (const [title, label, limit] of [
+			["Name the next release", "What should the release be called?", PROMPT_TEXT_LIMIT],
+			[READER, "Your answer", BODY_LIMIT],
+		] as const) {
+			yield* Effect.promise(() => eventually(() => expect(roles.text({ name: `Answer ${title}`, role: "button" })).toBe("Answer")));
+			yield* roles.click({ name: `Answer ${title}`, role: "button" });
+			const box = findElements(`${DIALOG} textarea`, document).find((element) => roles.accessible(element).name === label);
+			expect(box?.getAttribute("maxlength")).toBe(String(limit));
+			keyboard("Escape");
+			yield* Effect.promise(() => eventually(() => expect(findElements(DIALOG, document)).toEqual([])));
+		}
+	},
+);
+
+screenStory.it(
+	"records the earlier answer the item page chose to replace, and names it on Today first",
+	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
+	function* ({ chooseOption, findElement, findElements, navigate, openDetails, readResponses, readText, roles }) {
+		const reader = { name: `Answer ${READER}`, role: "button" };
+		yield* Effect.promise(() => eventually(() => expect(roles.text(reader)).toBe("Answer")));
+		yield* Effect.promise(() => navigate("/_board/item/decision.reader/"));
+		const body = { name: "Your answer", role: "textbox" };
+		yield* Effect.promise(() => eventually(() => expect(roles.value(body)).toBe("")));
+		yield* roles.enter(body, "Ask me after the release.");
+		openDetails("[data-key='response-details']");
+		yield* Effect.promise(() => chooseOption(findElement("#response-form [role='combobox']"), "Not now (it keeps waiting for you)"));
+		yield* roles.click({ name: "Record answer", role: "button" });
+		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Answer saved")));
+		const [earlier] = (yield* Effect.promise(() => readResponses("decision.reader", "direction"))).responses;
+		function replacing() {
+			return findElements("#response-form [role='combobox']").find(
+				(element) => document.querySelector(`label[for="${CSS.escape(element.id)}"]`)?.textContent === "Replace an earlier answer?",
+			);
+		}
+		yield* Effect.promise(() => eventually(() => expect(replacing()).toBeDefined()));
+		yield* Effect.promise(() => chooseOption(replacing(), "Yes, replace your answer"));
+		yield* Effect.promise(() => navigate("/"));
+		yield* Effect.promise(() => eventually(() => expect(roles.text(reader)).toBe("Answer")));
+		yield* roles.click(reader);
+		expect(readText(`${DIALOG} [data-hidden-draft]`, document)).toBe(
+			"Also sends the earlier answer it replaces from the item page. Review it on the item page",
+		);
+		yield* roles.enter(body, "Publish the guide on Monday.");
+		yield* roles.click({ name: "Record answer", role: "button" });
+		yield* Effect.promise(() => eventually(() => expect(findElements(DIALOG, document)).toEqual([])));
+		const saved = yield* Effect.promise(() => readResponses("decision.reader", "direction"));
+		expect(saved.responses.map((entry) => [entry.body, entry.response.supersedes])).toEqual(
+			expect.arrayContaining([["Publish the guide on Monday.", earlier?.id]]),
+		);
+	},
+);
