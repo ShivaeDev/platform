@@ -3,56 +3,50 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "effect-sql-bigint-composite-key.md",
-				"text": "---\n\"@shivaedev/effect-sql\": patch\n---\n\n### Fixed\n\n- Repository writes to a table whose composite key includes a `bigint` column no longer fail with \"Do not know how to serialize a BigInt\"; their item keys encode each `bigint` key value as its decimal string, the same way a single-column `bigint` key is encoded.\n"
+				"name": "local-postgres-version-error.md",
+				"text": "---\n\"@shivaedev/local-postgres\": minor\n---\n\n### Added\n\n- `PostgresVersionMismatch` from `@shivaedev/local-postgres/PostgresVersionMismatch.ts` identifies a refused running version through `_tag`, `expectedVersion` and `observedVersion`, retaining the existing error message.\n"
 			},
 			{
-				"name": "work-board-goal-progress.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Goal progress counts dropped work as done and ready work as planned, so ready items no longer inflate the in-progress count.\n- Linked work that Fleet holds for a person counts as \"needs you\" in goal progress and gets its own group on the goal page, instead of reading as in progress.\n\n### Changed\n\n- Goal cards, the sidebar and Today show goal progress on the stock shadcn progress bar, and goal cards align at the top instead of stretching to the tallest card.\n- The goal page charts linked work by state, overall and per criterion, with a stacked bar chart next to written counts.\n- Linked work on a goal page is a table with Work, Criteria, State and PR columns, and each whole row links to its item.\n- The goals query and the MCP goal summary report a `needs you` count beside `done`, `in progress` and `planned`.\n"
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+			},
+			{
+				"name": "test-story-scoped-http-faults.md",
+				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- Scope `fakeHttpService` stalls, immediate faults and one-shot replies by decoded path parameters with `FakeHttpScope`.\n- Script future status, drop and reset faults with `scriptFault` and `FakeHttpScriptOptions`, optionally repeat until the returned `FakeHttpScript.lift` control or strike after the route's reply applies its effects.\n- Declare per-route guards alongside the service guard; rejected requests receive 401 before holds, arrival scripts or faults are consumed.\n"
+			},
+			{
+				"name": "work-fleet-released-pr-observation.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Keep observing reserved PRs after release or renewed preparation and free their areas when they merge or close. Reuse conditional GitHub requests for unchanged PRs, and keep legacy closure decisions from reserving their areas again on release.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.4",
+				"from": "0.11.5",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.5"
+				"to": "0.11.6"
 			},
 			{
-				"bump": "patch",
-				"directory": "packages/effect-sql",
-				"from": "0.8.0",
-				"name": "@shivaedev/effect-sql",
-				"to": "0.8.1"
+				"bump": "minor",
+				"directory": "packages/local-postgres",
+				"from": "0.4.2",
+				"name": "@shivaedev/local-postgres",
+				"to": "0.5.0"
 			},
 			{
-				"bump": "patch",
-				"directory": "packages/effect-test-sql",
-				"from": "0.7.1",
-				"name": "@shivaedev/effect-test-sql",
-				"to": "0.7.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/platform",
-				"from": "0.20.1",
-				"name": "@shivaedev/platform",
-				"to": "0.20.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/work-board",
-				"from": "0.21.3",
-				"name": "@shivaedev/work-board",
-				"to": "0.21.4"
+				"bump": "minor",
+				"directory": "packages/test-story",
+				"from": "0.14.0",
+				"name": "@shivaedev/test-story",
+				"to": "0.15.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.13.0",
+				"from": "0.13.1",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.13.1"
+				"to": "0.13.2"
 			}
 		]
 	}
