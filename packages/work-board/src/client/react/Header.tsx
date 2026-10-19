@@ -1,23 +1,19 @@
 import { AlertCircle, Inbox, PanelLeft, Search } from "lucide-react";
 import type { ReactNode } from "react";
-import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { Progress } from "#client/react/components/ui/progress.tsx";
 import { destinationName } from "#client/react/destinationName.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import type { MainLocation } from "./mainLocation.ts";
+import { NeedsYouBadge } from "./NeedsYouBadge.tsx";
 import { useCurrentDestination, useNavigationPending } from "./navigationTarget.ts";
 import { SettingsPopover } from "./SettingsPopover.tsx";
 import { shellIds } from "./shellIds.ts";
 import type { AppearanceControls } from "./useAppearance.ts";
 import type { SidebarControls } from "./useSidebar.ts";
 export function InboxCount({ count, id }: { readonly count: number | null; readonly id: string }) {
-	return (
-		<Badge aria-label={count === null ? "Needs you unavailable" : `${count} need you`} id={id} role="status" variant="secondary">
-			{count ?? "?"}
-		</Badge>
-	);
+	return <NeedsYouBadge aria-label={count === null ? "Needs you unavailable" : `${count} need you`} count={count} id={id} role="status" />;
 }
 export function Header({
 	main,
@@ -88,7 +84,7 @@ export function Header({
 					<kbd className="hidden text-muted-foreground text-xs lg:inline">⌘/Ctrl K</kbd>
 				</KeyboardHints>
 			</Button>
-			<div className="hidden shrink-0 md:block">{live}</div>
+			<div className="shrink-0">{live}</div>
 			<span className="shrink-0 text-destructive" id={shellIds.navigationStatus} role="status" title={status}>
 				{Boolean(status) && <AlertCircle aria-hidden="true" className="size-4" />}
 				<span className="sr-only">{status}</span>

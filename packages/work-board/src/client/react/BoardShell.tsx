@@ -128,7 +128,7 @@ function BoardWorkspace(
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
 						{opened ? <FleetMain api={api} home={data?.home} onPage={onPage} url={url} /> : <OpeningView url={url} />}
-						<PhoneNavigation main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
+						<PhoneNavigation count={data?.inboxCount ?? null} main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
 					</div>
 				</div>
 				{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}

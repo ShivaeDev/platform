@@ -78,3 +78,21 @@ export function fleetItemRankingFixture() {
 		modified: new Map([...modified, ["decision-title.md", 500], ["decision-body.md", 10_000]]),
 	};
 }
+
+export function exactRankingFixture() {
+	function task(id: string, title: string, status: string, body = "") {
+		return `---\nid: ${id}\nkind: task\nstatus: ${status}\n---\n# ${title}\n\n${body}\n`;
+	}
+	return {
+		files: {
+			"answer-card-polish.md": task("board.answer-card-polish", "Polish the answer card", "done"),
+			"answer-card.md": task("board.answer-card", "Answering a decision is one obvious action on its page", "done"),
+			"baseline.md": task("quality.baseline", "work-fleet leaves the baseline", "planned", "The answer card helper moves into host stories."),
+		},
+		modified: new Map([
+			["answer-card.md", 1000],
+			["answer-card-polish.md", 2000],
+			["baseline.md", 3000],
+		]),
+	};
+}

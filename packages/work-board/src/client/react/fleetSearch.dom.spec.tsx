@@ -9,7 +9,7 @@ expectNoReactWarnings();
 
 const { files, modified } = fleetItemRankingFixture();
 screenStory.it(
-	"puts open body matches and done items before headings, includes Fleet status and reports only with records:, and keeps anchors unique",
+	"puts title matches before open body matches and both before headings, includes Fleet status and reports only with records:, and keeps anchors unique",
 	[searchScreen(files, { home: undefined, modified })],
 	function* ({ findElements, findElement, readText, typeText }) {
 		function rows() {
@@ -26,11 +26,11 @@ screenStory.it(
 		for (const query of ["watch", "records: watch"]) {
 			type(query);
 			const records = query.startsWith("records:");
-			yield* Effect.promise(() => eventually(() => expect(readText("code", rows()[0])).toBe(records ? "decision.watch" : "task.review")));
+			yield* Effect.promise(() => eventually(() => expect(readText("code", rows()[0])).toBe(records ? "decision.watch" : "task.watch-done")));
 			const work = rows().filter((row) => readText("code", row)?.startsWith("task."));
-			expect(work.slice(0, 2).map((row) => readText("strong", row))).toEqual(["Keep reviews visible", "Done watch"]);
-			expect(work.slice(0, 2).map((row) => readText("[data-status-token]", row))).toEqual(["Active", "Done"]);
-			expect(readText("p", work[0])).toBe("The watch keeps running.");
+			expect(work.slice(0, 2).map((row) => readText("strong", row))).toEqual(["Done watch", "Keep reviews visible"]);
+			expect(work.slice(0, 2).map((row) => readText("[data-status-token]", row))).toEqual(["Done", "Active"]);
+			expect(readText("p", work[1])).toBe("The watch keeps running.");
 			expect(rows().some((row) => readText("strong", row) === "Watch notes")).toBe(true);
 			const hrefs = rows().map((row) => row.getAttribute("href"));
 			expect(new Set(hrefs).size).toBe(hrefs.length);
@@ -40,8 +40,8 @@ screenStory.it(
 					rows()
 						.slice(0, 4)
 						.map((row) => readText("strong", row)),
-				).toEqual(["Watch decision", "Review policy", "Keep reviews visible", "Done watch"]);
-				expect(readText("p", rows()[1])).toBe("The watch needs a policy.");
+				).toEqual(["Watch decision", "Done watch", "Review policy", "Keep reviews visible"]);
+				expect(readText("p", rows()[2])).toBe("The watch needs a policy.");
 				expect(recordRows.length).toBeGreaterThan(0);
 				expect(hrefs.findIndex((href) => href?.startsWith("/responses/fleet-report."))).toBeGreaterThan(1);
 				expect(hrefs.findIndex((href) => href?.startsWith("/fleet/status.md"))).toBeGreaterThan(1);

@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
 import type { render } from "@shivaedev/effect-react/client/testing.ts";
-import { loadMarkdownRenderers } from "#client/react/markdownLoader.ts";
+import { loadLazyChunks } from "#client/react/lazyChunks.ts";
 import type { FileSystemWrapper } from "./board.ts";
 import { browserStorage } from "./browserStorage.ts";
 import type { chrome } from "./chrome.ts";
@@ -64,7 +64,7 @@ export function* createScreen() {
 	window.sessionStorage.clear();
 	window.history.replaceState({}, "", "/");
 	// Screens render inside synchronous act(), which rejects a suspending first load; the served-bundle stories cover the lazy load itself.
-	yield* Effect.promise(loadMarkdownRenderers);
+	yield* Effect.promise(loadLazyChunks);
 	const attributes = [...document.documentElement.attributes].map(({ name, value }) => [name, value] as const);
 	const engine: ScreenEngine = { cleanups: [], documentReads: [], files: {}, indexReads: 0, path: "/" };
 	yield* Effect.addFinalizer(() =>

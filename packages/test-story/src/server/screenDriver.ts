@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schedule } from "effect";
 import { withLive } from "@shivaedev/effect-test/withLive.ts";
 import { accessibility, targetName } from "#internal/screenAccessibility.ts";
 import { screenElements } from "#internal/screenElements.ts";
@@ -46,6 +46,23 @@ export function screenDriver({ root, pending, tell, act = (action) => action(), 
 		}
 		return withLive(wait.pipe(Effect.timeoutOrElse({ duration: limit, orElse: timedOut })));
 	}
+	function find(target: ScreenTarget, options: { readonly timeout?: number } = {}) {
+		return withLive(
+			Effect.gen(function* () {
+				tell(`find ${targetName(target)}`);
+				return yield* Effect.tryPromise(async () => {
+					await act(async () => undefined);
+					return elements.element(target);
+				}).pipe(
+					Effect.retry(Schedule.spaced(10)),
+					Effect.timeoutOrElse({
+						duration: options.timeout ?? timeoutMs,
+						orElse: () => Effect.sync(() => elements.element(target)),
+					}),
+				);
+			}),
+		);
+	}
 	return {
 		accessible: (selector: string | Element) => {
 			if (typeof selector !== "string") {
@@ -64,6 +81,7 @@ export function screenDriver({ root, pending, tell, act = (action) => action(), 
 				element.click();
 			}),
 		enter: (selector: ScreenTarget, value: string) => perform(`enter a value in ${targetName(selector)}`, () => elements.enter(selector, value)),
+		find,
 		settle,
 		submit: (selector: ScreenTarget = "form") => perform(`submit ${targetName(selector)}`, () => elements.form(selector).requestSubmit()),
 		text: (selector?: ScreenTarget) => {
