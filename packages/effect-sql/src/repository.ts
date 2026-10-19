@@ -4,6 +4,7 @@ import { SqlClient } from "effect/sql";
 import { type BatchWrites, makeInsertMany } from "#batchWrites.ts";
 import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeRepository.ts";
 import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#conflictWrites.ts";
+import { makeInsertFromSelect, type SelectWrites } from "#insertFromSelect.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
 import type { RepositoryFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
@@ -61,6 +62,7 @@ export function makeRepository<
 ): Effect.Effect<
 	Repository<TModel, TId> &
 		BatchWrites<TModel> &
+		SelectWrites<TModel> &
 		Queries<TModel> &
 		ConflictWrites<
 			TModel,
@@ -73,7 +75,7 @@ export function makeRepository<
 export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel>>(
 	model: TModel,
 	options: RepositoryOptions<TId> & { readonly versionColumn?: never; readonly conflictColumns?: never; readonly conflictWhere?: never },
-): Effect.Effect<Repository<TModel, TId> & BatchWrites<TModel> & Queries<TModel>, never, SqlClient.SqlClient>;
+): Effect.Effect<Repository<TModel, TId> & BatchWrites<TModel> & SelectWrites<TModel> & Queries<TModel>, never, SqlClient.SqlClient>;
 export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
 	model: TModel,
 	options: RepositoryOptions<TId | readonly [TId, TId, ...TId[]]> & {
@@ -89,15 +91,16 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		const idColumns = (composite ? options.idColumn : [options.idColumn]).map(String);
 		const changes = yield* repositoryChanges(sql, options.tableName, idColumns);
 		const crud = makeCompositeCrud(model, sql, { ...options, columns: idColumns }, changes);
-		const { findMany } = makeQueries(model, sql, options);
+		const queries = makeQueries(model, sql, options);
 		return options.versionColumn === undefined
 			? {
 					...crud,
+					insertFromSelect: makeInsertFromSelect(model, sql, { ...options, changes }, "insertFromSelect"),
 					insertMany: makeInsertMany(model, sql, { ...options, changes }, "insertMany"),
 					...(options.conflictColumns === undefined
 						? {}
 						: makeConflictWrites(model, sql, { ...options, changes, conflictColumns: options.conflictColumns, idColumns })),
-					findMany,
+					...queries,
 				}
 			: {
 					...crud,
@@ -108,7 +111,7 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 						idColumn,
 						versionColumn: options.versionColumn,
 					}),
-					findMany,
+					...queries,
 				};
 	})();
 }

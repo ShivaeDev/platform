@@ -5,6 +5,7 @@ import { compositeReadings } from "./compositeReadings.ts";
 import { conflictAccounts } from "./conflictAccounts.ts";
 import { constrainedItems } from "./constrainedItems.ts";
 import { generatedRows } from "./generatedRows.ts";
+import { insertSelect } from "./insertSelect.ts";
 import { invoiceLines } from "./invoiceLines.ts";
 import { jsonReceipts } from "./jsonReceipts.ts";
 import { partialConflicts } from "./partialConflicts.ts";
@@ -63,5 +64,11 @@ export function hasWideRows() {
 export function hasJsonReceipts() {
 	return postgres.trait("schema", "json receipts have their database schema", function* (engine) {
 		engine.jsonReceipts.set(yield* jsonReceipts);
+	});
+}
+
+export function hasInsertSelectRows() {
+	return postgres.trait("schema", "source and target rows have their database schemas", function* (engine) {
+		engine.insertSelect.set(yield* insertSelect);
 	});
 }

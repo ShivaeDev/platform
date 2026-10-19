@@ -1,4 +1,5 @@
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
+import type { InboxProjection } from "#browser/views/schema.ts";
 import type { AppearanceControls } from "#client/react/useAppearance.ts";
 
 export interface SearchItem {
@@ -31,6 +32,12 @@ export function goalCommands(goals: GoalsProjection["goals"]): readonly SearchIt
 		kind: "command",
 		title: `Go to ${goal.title}`,
 	}));
+}
+export function needsYouCommands(inbox: InboxProjection | undefined): readonly SearchItem[] {
+	if (!inbox?.complete) {
+		return [];
+	}
+	return inbox.you.map((item) => ({ href: item.href, kind: "needs-you", snippet: item.problem ?? item.reason, title: item.title }));
 }
 export function matchingCommands(goals: GoalsProjection["goals"], query: string): readonly SearchItem[] {
 	const terms = query.normalize("NFKC").toLowerCase().split(/\s+/u).filter(Boolean);

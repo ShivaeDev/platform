@@ -127,7 +127,7 @@ screenStory.it(
 	[nowScreen(6, WorkNow, { reason: "Fleet is offline.", state: "unavailable" })],
 	({ findElements }) => {
 		expect(findElements('[role="status"][data-slot="alert"]').map((alert) => alert.textContent)).toEqual([
-			"Fleet is unavailable. Lanes use authored status. Fleet is offline.",
+			"Lanes show the status written in each file. Fleet is offline.",
 		]);
 	},
 );

@@ -9,28 +9,29 @@ expectNoReactWarnings();
 
 const STATUS_LABELS: Readonly<Record<string, string>> = { active: "Active", deferred: "Deferred", done: "Done", planned: "Planned" };
 
-for (const { fixture, first, id, queries, status } of [
-	{ first: "A running watch sees reviews finish", fixture: searchRankingFixture(), id: "", queries: ["watch"], status: "planned" },
-	...["active", "done", "deferred"].map((itemStatus) => ({
-		first: "Inbox triage",
-		fixture: identityRankingFixture(itemStatus, itemStatus),
-		id: "task.inbox",
-		queries: ["inbox", "task.inbox"],
-		status: itemStatus,
-	})),
-	...["planned", "active"].flatMap((passageStatus) =>
-		["done", "deferred"].map((titleStatus) => ({
-			first: "Captured notes",
+for (const { fixture, first, id, name, queries, status } of [
+	{
+		first: "A running watch sees reviews finish",
+		fixture: searchRankingFixture(),
+		id: "",
+		name: "titles before passages",
+		queries: ["watch"],
+		status: "planned",
+	},
+	...["active", "done", "deferred"].flatMap((titleStatus) =>
+		["planned", titleStatus].map((passageStatus) => ({
+			first: "Inbox triage",
 			fixture: identityRankingFixture(titleStatus, passageStatus),
-			id: "task.notes",
+			id: "task.inbox",
+			name: `a ${titleStatus} title/ID match above a newer ${passageStatus} passage match`,
 			queries: ["inbox", "task.inbox"],
-			status: passageStatus,
+			status: titleStatus,
 		})),
 	),
 ]) {
 	const { files, modified } = fixture;
 	screenStory.it(
-		`ranks status first, then title/ID relevance and recency (${status}, ${id})`,
+		`ranks ${name}`,
 		[searchScreen(files, { home: undefined, modified })],
 		function* ({ findElement, readText, findElements, typeText }) {
 			const field = findElement<HTMLInputElement>('#search-dialog [role="combobox"]', document);
@@ -49,10 +50,10 @@ for (const { fixture, first, id, queries, status } of [
 						"Watch needs you",
 						"Active watch",
 						"Held watch",
-						"Keep reviews visible",
 						"Done watch",
 						"Deferred watch",
 						"Superseded watch",
+						"Keep reviews visible",
 						"Finished",
 					]);
 				} else {

@@ -1,10 +1,11 @@
 import { useRouter } from "@tanstack/react-router";
-import { CalendarDays, Ellipsis, Flag, History, Search, Zap } from "lucide-react";
+import { CalendarDays, Ellipsis, Flag, type LucideIcon, Search, Zap } from "lucide-react";
 import { useContext, useEffect, useRef } from "react";
-import { Button } from "#client/react/components/ui/button.tsx";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "#client/react/components/ui/sheet.tsx";
+import { destinationName } from "#client/react/destinationName.ts";
 import { LibraryContext } from "#client/react/LibraryContext.ts";
-import { ReadingLinks } from "#client/react/ReadingLinks.tsx";
+import { NeedsYouBadge } from "#client/react/NeedsYouBadge.tsx";
+import { PhoneMore } from "#client/react/PhoneMore.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { useCurrentDestination } from "./navigationTarget.ts";
 import { shellIds } from "./shellIds.ts";
@@ -16,11 +17,13 @@ const TAB_CLASS =
 	"flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md border-0 bg-transparent p-0 text-foreground text-xs no-underline outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground";
 
 export function PhoneNavigation({
+	count,
 	main,
 	more,
 	onMoreChange,
 	openSearch,
 }: {
+	readonly count: number | null;
 	readonly main: MainLocation;
 	readonly more: boolean;
 	readonly onMoreChange: (open: boolean) => void;
@@ -44,15 +47,16 @@ export function PhoneNavigation({
 				aria-label="Phone navigation"
 				className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t bg-background px-2 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] md:hidden print:hidden"
 			>
-				{workspaceDestinations.slice(0, 3).map(({ label, href, view }, index) => {
-					const Icon = icons[index] ?? CalendarDays;
-					return (
-						<a aria-current={current === view ? "page" : undefined} className={TAB_CLASS} href={href} key={view}>
-							<Icon aria-hidden="true" className="size-5" />
-							{label}
-						</a>
-					);
-				})}
+				{workspaceDestinations.slice(0, 3).map(({ label, href, view }, index) => (
+					<PhoneTab
+						count={view === "today" ? count : null}
+						current={current === view}
+						href={href}
+						icon={icons[index] ?? CalendarDays}
+						key={view}
+						label={label}
+					/>
+				))}
 				<button aria-haspopup="dialog" className={TAB_CLASS} onClick={() => openSearch()} type="button">
 					<Search aria-hidden="true" className="size-5" />
 					Search
@@ -84,9 +88,9 @@ export function PhoneNavigation({
 					<SheetHeader>
 						<SheetTitle>More</SheetTitle>
 					</SheetHeader>
-					<MoreDestinations current={current} />
-					<MoreReading
-						current={main.file}
+					<PhoneMore
+						current={current}
+						file={main.file}
 						onOpenHistory={() => {
 							historyRef.current = true;
 							onMoreChange(false);
@@ -99,33 +103,26 @@ export function PhoneNavigation({
 	);
 }
 
-function MoreDestinations({ current }: { readonly current: string | undefined }) {
+function PhoneTab({
+	count,
+	current,
+	href,
+	icon: Icon,
+	label,
+}: {
+	readonly count: number | null;
+	readonly current: boolean;
+	readonly href: string;
+	readonly icon: LucideIcon;
+	readonly label: string;
+}) {
 	return (
-		<nav aria-label="More destinations" className="grid gap-1 px-4">
-			{workspaceDestinations.slice(3).map(({ href, label, view }) => (
-				<a
-					aria-current={current === view ? "page" : undefined}
-					className="flex min-h-12 items-center rounded-md px-3 text-foreground no-underline outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground"
-					href={href}
-					key={view}
-				>
-					{label}
-				</a>
-			))}
-		</nav>
-	);
-}
-
-function MoreReading({ current, onOpenHistory }: { readonly current: string; readonly onOpenHistory: () => void }) {
-	const reading = useContext(LibraryContext);
-	return (
-		<div className="grid gap-4 px-4">
-			<ReadingLinks current={current} items={reading.favorites} title="Pinned" />
-			<ReadingLinks current={current} items={reading.recents.slice(0, 5)} title="Recent" />
-			<Button className="justify-start" onClick={onOpenHistory} type="button" variant="ghost">
-				<History aria-hidden="true" />
-				Reading history
-			</Button>
-		</div>
+		<a aria-current={current ? "page" : undefined} aria-label={destinationName(label, count, "need you")} className={TAB_CLASS} href={href}>
+			<span className="relative">
+				<Icon aria-hidden="true" className="size-5" />
+				{count ? <NeedsYouBadge aria-hidden="true" className="absolute -top-1.5 left-3.5" count={count} /> : null}
+			</span>
+			{label}
+		</a>
 	);
 }

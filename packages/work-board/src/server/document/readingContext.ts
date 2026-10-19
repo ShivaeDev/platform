@@ -1,10 +1,9 @@
-import { specificSources } from "#browser/document/sourceGroups.ts";
+import { backlinkLabel, specificSources } from "#browser/document/sourceGroups.ts";
 import { fileUrl } from "#files/url.ts";
 import { managedRequestReceipt } from "#server/attention/managedRequestReceipt.ts";
 import { backlinksOf } from "#server/metadata/backlinks.ts";
 import { referenceTarget } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
-import { relationshipLabel } from "#server/metadata/relationshipLabel.ts";
 import { sourceFile, sourceHref } from "#server/metadata/sourceLinks.ts";
 
 export function readingContext(document: MetadataDocument, model: MetadataModel, board: boolean, titles: ReadonlyMap<string, string> = new Map()) {
@@ -15,7 +14,7 @@ export function readingContext(document: MetadataDocument, model: MetadataModel,
 		backlinks: specificSources(
 			backlinks.map((link) => ({
 				href: documentReference(link.file, model),
-				kind: relationshipLabel(link.kind),
+				kind: backlinkLabel(link.kind),
 				label: link.file + (link.line === undefined ? "" : `:${link.line}`),
 				status: sources.get(link.file)?.parsed.fields.status,
 				title: titles.get(link.file) ?? link.file,

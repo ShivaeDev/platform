@@ -153,6 +153,25 @@ The filters are equality conditions joined together. A null filter matches SQL `
 
 If a field codec requires a service, provide it for the query. Filter encoding and selected-row decoding retain their required services in the Effect environment.
 
+To copy a query directly into another table, prepare a select and map each target insert field to a projected source field:
+
+```ts
+const copied = yield* archive.insertFromSelect(
+  lines.select({
+    where: { amount: 52 },
+    select: ["name", "amount", "note"],
+    orderBy: { field: "name", direction: "asc" },
+    limit: 20,
+  }),
+  { name: "name", amount: "amount", note: "note" },
+);
+```
+
+Here `archive` is another unversioned `InvoiceLine` repository with its own table. `select` takes the same query options as `findMany` and prepares an Effect SQL fragment without reading rows into the application. `insertFromSelect(source, columns)` executes one `INSERT ... SELECT ... RETURNING` statement and returns Schema-decoded target model instances, including generated fields. The mapping requires all required target insert fields, allows optional insert fields, and checks source projection names plus decoded and encoded field types. Values move within SQL, so source decoding and target input encoding do not run; compatible schemas must describe compatible database storage.
+
+A repository configured with `conflictColumns` also exposes `insertFromSelectOrIgnore(source, columns)`. It uses the same conflict columns and optional `conflictWhere` predicate as `insertOrIgnore`, skips existing keys, and returns only inserted rows. An empty source returns `[]`. Both writes join `transact` and roll back with it. Source filter encoding services and target result decoding services remain in the write's Effect environment.
+
+
 ### Composite keys and idempotent writes
 
 A generated app can ingest the same reading more than once. Declare the table's primary key with an `idColumn` tuple and its unique conflict key with `conflictColumns`:

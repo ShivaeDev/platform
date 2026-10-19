@@ -9,16 +9,22 @@ export function FleetStopped({ children, command, reason }: { readonly children?
 				{reason}
 			</p>
 			{children}
-			<Popover>
-				<PopoverTrigger render={<Button type="button" variant="outline" />}>How to start Fleet</PopoverTrigger>
-				<PopoverContent align="start" className="w-[min(36rem,calc(100vw-2rem))] text-sm">
-					<PopoverTitle>Start Fleet</PopoverTitle>
-					<PopoverDescription>Run this in a terminal to start Fleet for this Board.</PopoverDescription>
-					<pre className="m-0 overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-muted p-2 text-foreground text-xs">
-						<code className="select-all">{command}</code>
-					</pre>
-				</PopoverContent>
-			</Popover>
+			<FleetStartHelp command={command} />
 		</div>
+	);
+}
+
+export function FleetStartHelp({ command }: { readonly command: string }) {
+	return (
+		<Popover>
+			<PopoverTrigger render={<Button type="button" variant="outline" />}>How to start Fleet</PopoverTrigger>
+			<PopoverContent align="start" className="w-[min(36rem,calc(100vw-2rem))] text-sm">
+				<PopoverTitle>Start Fleet</PopoverTitle>
+				<PopoverDescription>Run this in a terminal to start Fleet for this Board.</PopoverDescription>
+				<pre className="m-0 overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-muted p-2 text-foreground text-xs">
+					<code className="select-all">{command}</code>
+				</pre>
+			</PopoverContent>
+		</Popover>
 	);
 }

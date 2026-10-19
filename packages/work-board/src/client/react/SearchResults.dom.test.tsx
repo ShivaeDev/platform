@@ -33,3 +33,19 @@ screenStory.it(
 		expectRows([alpha, other, gamma]);
 	},
 );
+
+screenStory.it(
+	"names a plain document's file and its line when the line is known",
+	[
+		searchResultScreen([
+			{ file: "notes.md", href: "/notes.md#heading-shared", kind: "passage", line: 3, title: "Shared" },
+			{ file: "other.md", href: "/other.md", kind: "document", title: "Other" },
+		]),
+	],
+	function* ({ findElements, readText }) {
+		expect([...findElements<HTMLElement>('[role="option"]')].map((row) => readText("small", row))).toEqual([
+			"passage · notes.md:3",
+			"document · other.md",
+		]);
+	},
+);
