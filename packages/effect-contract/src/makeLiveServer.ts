@@ -1,8 +1,8 @@
 import { Effect, Queue, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { makeHintPolicy } from "#internal/makeHintPolicy.ts";
 import { type Key, readKeys } from "./keys.ts";
 import type { LiveHint } from "./live.ts";
-import { ReadPolicy } from "./readPolicy.ts";
 
 export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
@@ -10,8 +10,10 @@ export const makeLiveServer = Effect.gen(function* () {
 	function stream(keys: readonly Key[]) {
 		return Stream.unwrap(
 			Effect.gen(function* () {
-				const canRead = yield* ReadPolicy;
 				const queue = yield* Queue.unbounded<LiveHint>();
+				const allowedKeys = yield* makeHintPolicy(keys.length, (retryKeys) =>
+					Queue.offer(queue, { _tag: "Changed", keys: retryKeys }).pipe(Effect.asVoid),
+				);
 				const pending = new Map<string, Key>();
 				let scheduled = false;
 				let resync = false;
@@ -56,7 +58,7 @@ export const makeLiveServer = Effect.gen(function* () {
 					Stream.mapEffect((hint) =>
 						hint._tag === "Resync"
 							? Effect.succeed(hint)
-							: Effect.map(Effect.filter(hint.keys, canRead), (allowed): LiveHint => ({ _tag: "Changed", keys: allowed })),
+							: Effect.map(allowedKeys(hint.keys), (allowed): LiveHint => ({ _tag: "Changed", keys: allowed })),
 					),
 					Stream.filter((hint) => hint._tag === "Resync" || hint.keys.length > 0),
 				);

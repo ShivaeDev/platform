@@ -28,12 +28,41 @@ for (const [status, token, icon, label] of [
 		({ findElement, readAttribute }) => {
 			const chip = findElement("[data-status-token]");
 			expect(chip?.getAttribute("data-status-token")).toBe(token);
-			expect(chip?.classList.contains(`text-${token}`)).toBe(true);
+			expect(chip?.classList.contains(token === "needs-you" ? "text-primary-foreground" : `[--tone:var(--color-${token})]`)).toBe(true);
 			expect(chip?.textContent).toBe(label);
 			expect(readAttribute(`svg.lucide-${icon}`, "aria-hidden", chip)).toBe("true");
 		},
 	);
 }
+
+screenStory.it(
+	"renders needs-you as the one solid amber chip and every other state as a quiet tint mixed over the card, all at 12px",
+	[
+		componentScreen(
+			["needs-you", "agent-working", "waiting-on-agents", "blocked", "done", "deferred"].map((status) => <StatusChip key={status} status={status} />),
+		),
+	],
+	({ findElements }) => {
+		const chips = findElements("[data-status-token]");
+		expect(chips.map((chip) => [chip.getAttribute("data-status-token"), chip.getAttribute("data-variant")])).toEqual([
+			["needs-you", "default"],
+			["agent-working", "outline"],
+			["waiting-on-agents", "outline"],
+			["blocked", "outline"],
+			["done", "outline"],
+			["deferred", "outline"],
+		]);
+		expect(chips.filter((chip) => chip.classList.contains("bg-primary")).map((chip) => chip.getAttribute("data-status-token"))).toEqual([
+			"needs-you",
+		]);
+		expect(
+			chips
+				.filter((chip) => chip.classList.contains("bg-[color-mix(in_oklab,var(--tone)_10%,var(--color-card))]"))
+				.map((chip) => chip.getAttribute("data-status-token")),
+		).toEqual(["agent-working", "waiting-on-agents", "blocked", "done", "deferred"]);
+		expect(chips.every((chip) => chip.classList.contains("text-xs") && !chip.classList.contains("text-[0.625rem]"))).toBe(true);
+	},
+);
 
 for (const status of [undefined, ""]) {
 	screenStory.it(`omits absent status chips (${status})`, [componentScreen(<StatusChip status={status} />)], ({ readText, findElement }) => {

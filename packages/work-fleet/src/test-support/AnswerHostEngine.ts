@@ -7,6 +7,7 @@ import { type ApprovedPrFixture, approvedPrFixture, schedulerReady } from "#test
 import { type HostFixture, hostFixture, task } from "#test/fleetHost.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
+import { resolutionHold } from "#test/resolutionHold.ts";
 import { spanCounts } from "#test/spanCounts.ts";
 import { type HostDaemon, startHostDaemon } from "#test/startHostDaemon.ts";
 
@@ -14,6 +15,7 @@ export class AnswerHostEngine {
 	files: Record<string, string> = { "one.md": task("one", "approved") };
 	config: Partial<HostConfig> = {};
 	approvedPr = false;
+	readonly resolution = resolutionHold();
 	readonly spans = spanCounts();
 	#fixture: HostFixture | undefined;
 	#pr: ApprovedPrFixture | undefined;
@@ -58,7 +60,8 @@ export class AnswerHostEngine {
 				if (engine.#runtime !== undefined) {
 					return yield* Effect.die("The daemon is already running");
 				}
-				const { host, parts } = engine.host;
+				const { host, parts: fixtureParts } = engine.host;
+				const parts = fixtureParts.board === undefined ? fixtureParts : { ...fixtureParts, board: engine.resolution.board(fixtureParts.board) };
 				const previous = engine.#pr === undefined ? undefined : yield* fleetHealth(host.boardDir).pipe(Effect.option);
 				const layer = engine.#pr === undefined ? readDaemonLayer(host, { parts }) : daemonLayer(host, engine.#pr.parts, 0);
 				engine.#runtime = yield* startHostDaemon(layer);

@@ -1,4 +1,4 @@
-import { Effect, Stream, SubscriptionRef } from "effect";
+import { type Duration, Effect, Stream, SubscriptionRef } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import { type Key, readKeys } from "./keys.ts";
@@ -10,7 +10,11 @@ declare const window: ResumeWindow | undefined;
 
 export const LiveConnection = Symbol.for("@shivaedev/effect-contract/LiveConnection");
 export interface LiveBound {
-	readonly [LiveConnection]: { readonly connection: Atom.Atom<unknown>; readonly status: Atom.Atom<LiveStatus<unknown>> };
+	readonly [LiveConnection]: {
+		readonly coalesceWindow: Atom.Writable<Duration.Input>;
+		readonly connection: Atom.Atom<unknown>;
+		readonly status: Atom.Atom<LiveStatus<unknown>>;
+	};
 }
 
 export type ChangesClient = AtomRpc.AtomRpcClient<unknown, string, ReturnType<typeof changesRpc>>;

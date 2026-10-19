@@ -11,7 +11,16 @@ import { SystemFleetLane } from "./SystemFleetLane.tsx";
 import { SystemFleetStopped } from "./SystemFleetStopped.tsx";
 import { SystemHealth } from "./SystemHealth.tsx";
 import { SystemSourceProblems } from "./SystemSourceProblems.tsx";
-export function SystemPage({
+import { TimeAsOf } from "./Time.tsx";
+export function SystemPage(props: Parameters<typeof SystemView>[0]) {
+	return (
+		<TimeAsOf now={props.data.now}>
+			<SystemView {...props} />
+		</TimeAsOf>
+	);
+}
+
+function SystemView({
 	data,
 	needsYou,
 	sourceProblems,
@@ -55,7 +64,7 @@ function FleetSources({
 						&& [data.codex.value.primary, data.codex.value.secondary].some((window) => window !== null && window.usedPercent >= 90)
 					}
 					name="Codex"
-					render={(value) => <DiagnosticsWindows now={now} value={value} />}
+					render={(value) => <DiagnosticsWindows value={value} />}
 					source={data.codex}
 					title="Codex usage"
 				/>

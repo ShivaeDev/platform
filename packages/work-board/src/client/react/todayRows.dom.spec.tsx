@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -45,11 +45,18 @@ screenStory.it(
 );
 
 screenStory.it(
-	"gives each Needs you row one action: Answer opens the question inline, Open links to the item page",
-	[routedScreen(todayRowsFixture(), "/", { home: "home.md" })],
-	function* ({ findElements, location, roles }) {
+	"gives each Needs you row one action: Answer opens the question inline, Open links to the item page, and its age adds no Tab stop",
+	[
+		routedScreen(todayRowsFixture(), "/", {
+			home: "home.md",
+			modified: new Map(Object.keys(todayRowsFixture()).map((path) => [path, Effect.runSync(Clock.currentTimeMillis) - 2 * 60 * 60 * 1000])),
+		}),
+	],
+	function* ({ findElement, findElements, location, readTabStops, roles }) {
 		yield* Effect.promise(() => eventually(() => expect(roles.text({ name: "Answer Ship the upload fix", role: "button" })).toBe("Answer")));
 		for (const row of findElements("ul[aria-label='Needs you'] > li")) {
+			expect(findElement("time", row)?.textContent).toBe("2h ago");
+			expect(readTabStops(row)).toEqual(findElements("a, button", row));
 			const [heading, ...actions] = findElements("a, button", row);
 			const title = heading ? roles.accessible(heading).name : "";
 			const label = actions[0]?.textContent;

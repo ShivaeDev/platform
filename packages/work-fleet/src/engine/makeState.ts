@@ -39,9 +39,12 @@ export const makeState = Effect.gen(function* () {
 			);
 	}
 	const current = policy.current ?? Effect.succeed(policy);
-	function save(stored: Versioned<FleetRecord>, value: FleetRecord, admission?: LaunchAdmission) {
+	function save(stored: Versioned<FleetRecord>, value: FleetRecord, admission?: LaunchAdmission): ReturnType<typeof store.compareAndSet> {
 		const record = { ...value, attentionOwner: waitingOwner(value) };
 		if (admission === undefined) {
+			if (stored.value.stage === "needs-human" && JSON.stringify(record) === JSON.stringify(stored.value)) {
+				return Effect.succeed(stored);
+			}
 			return store.compareAndSet(value.workId, stored.version, record);
 		}
 		return Effect.flatMap(current, (applied) => store.compareAndSet(value.workId, stored.version, record, launchLimits(applied, admission)));

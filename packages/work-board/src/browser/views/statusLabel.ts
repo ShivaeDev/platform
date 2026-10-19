@@ -35,6 +35,10 @@ export function sentenceLabel(value: string): string {
 	return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+export function kindLabel(kind: string): string {
+	return sentenceLabel(kind === "project" ? "goal" : kind);
+}
+
 export function sameStatus(left: string, right: string): boolean {
 	return statusLabel(left) === statusLabel(right);
 }
