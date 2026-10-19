@@ -213,7 +213,7 @@
 	.reading-column h3 {
 		@apply text-lg;
 	}
-	.reading-column :is(p, ul, ol, blockquote, pre, table) {
+	.reading-column :is(p, ul, ol, blockquote, pre, [data-slot="table-container"]) {
 		@apply my-4;
 	}
 	.reading-column :is(ul, ol) {
@@ -234,12 +234,6 @@
 	}
 	.reading-column blockquote {
 		@apply border-l-2 pl-4 text-muted-foreground;
-	}
-	.reading-column table {
-		@apply block overflow-auto;
-	}
-	.reading-column :is(th, td) {
-		@apply border p-2;
 	}
 	.item-context {
 		@apply [overflow-wrap:anywhere];

@@ -30,7 +30,7 @@ for (const { kind, url, selector, text } of routes) {
 }
 screenStory.it(
 	"updates answer card context while retaining answer text, node and caret",
-	[routedScreen({ ...files }, "/_board/item/task.fixture/")],
+	[routedScreen({ ...files }, "/_board/item/task.fixture/", { writable: true })],
 	function* ({ refreshDocument, selectText, editFile, findElement, readText, readFocus, typeText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form textarea")).not.toBeNull()));
 		const body = findElement<HTMLTextAreaElement>("#response-form textarea");

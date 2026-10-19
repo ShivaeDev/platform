@@ -7,6 +7,7 @@ import { answeredCopy } from "#client/responses/answeredCopy.ts";
 import { AnswerContext } from "./AnswerContext.tsx";
 import { AnswerForm } from "./AnswerForm.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
+import { AnswerOff } from "./AnswerOff.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { ResponseHistory } from "./ResponseHistory.tsx";
 
@@ -81,8 +82,11 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 					<AnswerContext preview={preview} />
 				</>
 			)}
-			{request.open && preview && !unavailable && answered === undefined && <AnswerForm document={source} preview={preview} request={request} />}
-			{preview && !unavailable && answered !== undefined && (
+			{request.open && preview && !unavailable && answered === undefined && data.writable && (
+				<AnswerForm document={source} preview={preview} request={request} />
+			)}
+			{request.open && preview && !unavailable && answered === undefined && !data.writable && <AnswerOff document={source} request={request} />}
+			{preview && !unavailable && answered !== undefined && data.writable && (
 				<details className="group/change space-y-4" data-key="change-answer">
 					<Button
 						className="w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden"

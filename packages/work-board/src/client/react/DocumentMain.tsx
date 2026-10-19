@@ -1,8 +1,11 @@
 import { Cause, Option } from "effect";
+import { FileQuestion } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "#client/react/components/ui/empty.tsx";
 import { DocumentPage } from "./DocumentPage.tsx";
+import { LinkButton } from "./LinkButton.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionMain } from "./ProjectionMain.tsx";
 import { RemainingMain } from "./RemainingMain.tsx";
@@ -42,11 +45,11 @@ export function DocumentMain({
 	return (
 		<>
 			<main className="document-view min-w-0 p-4 md:p-8" data-file="" data-react-document data-url="" id={shellIds.doc} ref={hostRef} tabIndex={-1}>
-				{data ? (
-					<DocumentPage api={api} document={data} key={data.identity ?? data.file} />
-				) : (
+				{data && <DocumentPage api={api} document={data} key={data.identity ?? data.file} />}
+				{!data && failure?._tag === "NotFound" && <MissingPage url={url} />}
+				{!(data || failure?._tag === "NotFound") && (
 					<p className="empty" role="status">
-						{loadingMessage(failure?._tag, Option.isSome(query.cause), url)}
+						{loadingMessage(failure?._tag, Option.isSome(query.cause))}
 					</p>
 				)}
 			</main>
@@ -63,15 +66,32 @@ function readStatus(tag: string | undefined, failed: boolean) {
 	}
 	return failed ? "503" : "200";
 }
-function loadingMessage(tag: string | undefined, failed: boolean, url: string) {
+function loadingMessage(tag: string | undefined, failed: boolean) {
 	if (tag === "Conflict") {
 		return "The document identity is duplicated. No document was selected. Inspect the project files to resolve the duplicate ID.";
 	}
-	if (tag === "NotFound" && /^\/_board\/item\/[^/]+\/?$/u.test(new URL(url, "http://127.0.0.1").pathname)) {
-		return "No item with this id is available. It may be missing, renamed, or invalid.";
-	}
-	if (tag === "NotFound" && /\.md$/iu.test(new URL(url, "http://127.0.0.1").pathname)) {
-		return `No markdown file at ${decodeURIComponent(new URL(url, "http://127.0.0.1").pathname.slice(1))}.`;
-	}
 	return failed ? "This document could not be opened. Retry the link or reload the page." : "Opening document…";
+}
+function MissingPage({ url }: { readonly url: string }) {
+	const pathname = new URL(url, "http://127.0.0.1").pathname;
+	const item = /^\/_board\/item\/[^/]+\/?$/u.test(pathname);
+	return (
+		<Empty className="mx-auto mt-8 max-w-xl border">
+			<EmptyHeader role="status">
+				<EmptyMedia variant="icon">
+					<FileQuestion />
+				</EmptyMedia>
+				<EmptyTitle>{item ? "Item not found" : "File not found"}</EmptyTitle>
+				<EmptyDescription>
+					{item
+						? `No item has the ID ${decodeURIComponent(pathname.split("/")[3] ?? "")}. It may be missing, renamed, or invalid.`
+						: `No Markdown file at ${decodeURIComponent(pathname.slice(1))}. It may have been moved or deleted.`}
+				</EmptyDescription>
+			</EmptyHeader>
+			<EmptyContent className="flex-row justify-center">
+				<LinkButton href="/">Back to Today</LinkButton>
+				<LinkButton href="/_board/library">Browse the Library</LinkButton>
+			</EmptyContent>
+		</Empty>
+	);
 }

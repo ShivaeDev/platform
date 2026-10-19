@@ -22,17 +22,16 @@ boardStory.it(
 );
 
 boardStory.it(
-	"shows an answer card with recording disabled in read-only mode",
+	"shows an answer card that says answering is turned off in read-only mode",
 	[
 		projectFiles({ "decision.md": questionnaireSource, "task.md": "# Affected work" }, "a project source awaits direction"),
 		readerAt("/_board/item/investigation.choices/"),
 	],
 	({ page }) => {
-		expect(page.document.querySelectorAll("#answer-card-direction fieldset")).toHaveLength(2);
-		expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
-		expect(page.document.getElementById("response-status")?.textContent).toBe(
-			"This Board is read-only. Start it with --responses to record answers.",
-		);
+		const card = page.document.querySelector("#answer-card-direction");
+		expect([...(card?.querySelectorAll("[data-prompt]") ?? [])].map((prompt) => prompt.getAttribute("data-prompt"))).toEqual(["display", "checks"]);
+		expect([...(card?.querySelectorAll("form, input, textarea, button") ?? [])]).toEqual([]);
+		expect(card?.querySelector('[role="status"]')?.textContent).toBe("Answering is turned off on this Board.");
 	},
 );
 

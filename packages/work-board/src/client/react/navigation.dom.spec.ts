@@ -190,7 +190,7 @@ describe("document navigation", () => {
 			yield* Effect.promise(() =>
 				waitFor(() => expect(page.document.getElementById("navigation-status")?.textContent).toContain("missing or was renamed")),
 			);
-			expect(page.document.getElementById("doc")?.textContent).toContain("No markdown file at plan.md.");
+			expect(page.document.getElementById("doc")?.textContent).toContain("No Markdown file at plan.md.");
 		},
 	);
 });

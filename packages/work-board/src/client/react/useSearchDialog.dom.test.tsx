@@ -40,6 +40,7 @@ for (const modifier of ["ctrlKey", "metaKey"] as const) {
 			chromeScreen(
 				{ "question.md": "---\nid: question.fixture\nkind: question\nstatus: open\n---\n# A choice\n\nChoose a direction.\n" },
 				"/question.md",
+				{ writable: true },
 			),
 			selectionResetOnFocus(),
 		],
