@@ -31,7 +31,7 @@ A **queue definition** names a pg-boss queue and the Schema of its payload. Appl
 
 A **schedule definition** describes a queue with a cron trigger. `schedule.run(effect)` pairs it with an Effect that needs no payload. Queue workers and scheduled workers are **registrations**: the values you put in the jobs Layer's `jobs` list.
 
-The application creates one jobs service with `makePgBoss(identifier)`. Its Layer starts a client, registers the job list and captures the services those workers need. The Layer's scope owns its client reference and releases it when the scope ends; the final reference closes the client. Callers use the jobs service to enqueue a decoded payload, look up or retry a job, or read queue health and live counts.
+The application creates one jobs service with `makePgBoss(identifier)`. Its Layer starts a client, registers the job list and captures the services those workers need. The Layer's scope owns its client reference and releases it when the scope ends; the final reference closes the client. Callers use the jobs service to enqueue a decoded payload, look up or retry a job, read queue health and live counts, or list failed and dead-lettered jobs.
 
 Use a distinct literal identifier for each jobs service. The service and its Layer keep that identifier in their types, so providing a Layer for a different identifier leaves the required jobs service unprovided at compile time.
 
@@ -318,6 +318,33 @@ export const inspectEmail = (id: string) => Effect.gen(function* () {
 
 `getJob(queue, id)` returns `None` when the ID is absent, or `Some` pg-boss job metadata with `data` decoded by the queue's Schema. Invalid stored data fails with `PgBossPayloadError`, and the Effect requires the Schema's decoding services. `retry(queue, id)` reuses the original ID: it makes a failed job eligible for another attempt and pulls a retry-waiting job forward to run now. Missing IDs and jobs in other states are left unchanged. It does not remove an earlier copy from the dead-letter queue.
 
+### List failed and dead-lettered jobs
+
+```ts
+import { Effect, Option } from "effect";
+import { SendEmail } from "./jobs.ts";
+import { Jobs } from "./services.ts";
+
+export const failedEmails = (cursor?: string) => Effect.gen(function* () {
+  const jobs = yield* Jobs;
+  const failed = yield* jobs.failedJobs(SendEmail, { cursor, limit: 20 });
+  const deadLettered = yield* jobs.deadLetteredJobs(SendEmail, { limit: 20 });
+  return {
+    deadLettered: deadLettered.jobs.map((job) => ({ id: job.id, original: Option.getOrNull(job.sourceId), error: job.sourceOutput })),
+    failed: failed.jobs.map((job) => ({ id: job.id, attempt: job.attempt, error: job.output, userId: job.data.userId })),
+    next: Option.getOrUndefined(failed.next),
+  };
+});
+```
+
+`health` and `counts` say how many jobs failed; these two listings say which ones and why. `failedJobs(queue, options)` lists the queue's jobs in the `failed` state, the ones that used up their retries. `deadLetteredJobs(queue, options)` lists every job in the queue's dead-letter queue. Dead-letter entries live in the `-dlq` queue: each is a new job with its own ID that pg-boss copied there when the original failed for good. Both listings read pg-boss's `job` table on each call, through the jobs Layer's own pg-boss connection and in its configured schema, so applications never query pg-boss tables themselves. A custom client needs the native `getDb` capability for them.
+
+Each page holds at most `limit` jobs, newest first by creation time; a dead-letter copy is created when its original fails for good. `limit` must be a positive integer. When more jobs remain, `next` is `Some` opaque cursor; pass it back as `cursor` for the following page, and stop when `next` is `None`. Paging continues from the last job it returned, so jobs that fail while you page appear in a fresh listing instead of shifting later pages, and no job appears twice. A malformed cursor or limit fails with `PgBossError` whose `operation` names the listing.
+
+An entry carries the job's `id`, `queue`, native `state`, `retryCount`, `retryLimit` and `attempt`, the one-based number of its last started attempt (zero for a job that never started). `createdOn` is a UTC `DateTime`; `startedOn` and `completedOn` are `Option`s of UTC `DateTime`s. `output` is the job's stored output as pg-boss recorded it: for a failed job, the error its last attempt failed with, and `null` when pg-boss stored none. `data` is decoded by the queue's Schema, including traced payloads; invalid stored data fails the listing with `PgBossPayloadError`, as `getJob` does, and the Effect requires the Schema's decoding services. A dead-letter entry adds `sourceId`, the original job's ID as an `Option`, and `sourceOutput`, the error the original failed with. The copy has not run, so its own `output` stays `null` and its `attempt` is zero.
+
+Pass a failed entry's `id` to `retry(queue, id)` to run that job again under its original ID; once it completes it leaves the failed listing. Dead-letter IDs belong to the `-dlq` queue, so `retry(queue, id)` does not find them and leaves them unchanged.
+
 ### Queue settings on startup
 
 `queue` accepts pg-boss `Queue` options except `name` and `deadLetter`, which the definition and adapter own, plus the adapter’s `maxDeferrals` limit. For prompt delivery, set `queue: { notify: true }` and enable `useListenNotify: true` in the worker Layer's constructor options.
@@ -441,14 +468,14 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/effect-pg-boss/server/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
 | `@shivaedev/effect-pg-boss/server/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
 | `@shivaedev/effect-pg-boss/server/schema.ts` | `installPgBossSchema`; `PgBossSchemaOptions` |
-| `@shivaedev/effect-pg-boss/server/health.ts` | `deadLetterQueueName`; `JobsHealth`, `QueueCounts`, `QueueHealth` |
+| `@shivaedev/effect-pg-boss/server/health.ts` | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth` |
 | `@shivaedev/effect-pg-boss/server/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
 | `@shivaedev/effect-pg-boss/server/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
 | `@shivaedev/effect-pg-boss/server/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions` |
 
 The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, with literal `QueuePolicy` values and `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 
-`Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus the adapter's own options. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Producer-only clients do not need them. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts, deferral and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent.
+`Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus the adapter's own options. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Producer-only clients do not need them. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and listings, deferral and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent.
 
 `onError` handles pg-boss client `error` events using the services captured by the Layer. Only the owning jobs service is supplied automatically; a handler using another jobs definition still requires that definition's Layer.
 
