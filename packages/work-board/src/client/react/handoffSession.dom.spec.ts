@@ -79,6 +79,6 @@ screenStory.it(
 		expect(prompt?.value).toContain("Record receipt");
 		expect([prompt?.selectionStart, prompt?.selectionEnd]).toEqual([0, prompt?.value.length]);
 		yield* Effect.promise(() => eventually(() => expect(findElement("#handoff-history article time[data-modified]")).not.toBeNull()));
-		expect(readText("#handoff-history article header")).toMatch(/prepared \d+[smhd] ago/u);
+		expect(readText("#handoff-history article header")).toContain("prepared just now");
 	},
 );

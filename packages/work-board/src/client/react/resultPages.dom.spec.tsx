@@ -59,7 +59,7 @@ screenStory.it(
 		);
 		expect(followUp?.getAttribute("href")).toBe("/_board/handoff?item=work.keyboard");
 		expect(findElement("[data-result-summary] time[data-modified]")).not.toBeNull();
-		expect(readText("[data-result-summary] time")).toMatch(/^updated \d+[smhd] ago$/u);
+		expect(readText("[data-result-summary] span:has(time)")).toBe(`updated ${readText("[data-result-summary] time")}`);
 	},
 );
 
@@ -127,13 +127,14 @@ screenStory.it(
 screenStory.it(
 	"summarizes a single response written for an earlier report version",
 	[routedScreen(answeredResult(true), "/_board/result?item=result.keyboard")],
-	function* ({ findElements, readText }) {
+	function* ({ findElement, findElements, readText }) {
 		yield* Effect.promise(() =>
 			eventually(() => expect(findElements("#result-feedback article h3").map((author) => author.textContent)).toEqual(["first-reader"])),
 		);
-		expect(readText("[data-feedback-summary]")).toMatch(
-			/^Feedback: 1 response\. Latest: first-reader asked back \d+[smhd] ago on an earlier version\. Jump to feedback$/u,
+		expect(readText("[data-feedback-summary]")).toBe(
+			`Feedback: 1 response. Latest: first-reader asked back ${readText("[data-feedback-summary] time")} on an earlier version. Jump to feedback`,
 		);
+		expect(findElement("[data-feedback-summary] time")?.getAttribute("datetime")).toBe("1970-01-01T00:00:02.000Z");
 	},
 );
 
@@ -146,7 +147,10 @@ screenStory.it(
 				expect(findElements("#result-feedback article h3").map((author) => author.textContent)).toEqual(["second-reader", "first-reader"]),
 			),
 		);
-		expect(readText("[data-feedback-summary]")).toMatch(/^Feedback: 2 responses\. Latest: second-reader answered \d+[smhd] ago\. Jump to feedback$/u);
+		expect(readText("[data-feedback-summary]")).toBe(
+			`Feedback: 2 responses. Latest: second-reader answered ${readText("[data-feedback-summary] time")}. Jump to feedback`,
+		);
+		expect(findElement("[data-feedback-summary] time")?.getAttribute("datetime")).toBe("1970-01-01T00:00:03.000Z");
 		expect(findElement("[data-feedback-summary] a")?.getAttribute("href")).toBe("#result-feedback");
 		const report = findElement("#result-report");
 		expect(report && findElement("[data-feedback-summary]")?.compareDocumentPosition(report)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);

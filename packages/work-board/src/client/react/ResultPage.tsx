@@ -3,7 +3,6 @@ import type { Document } from "#browser/document/schema.ts";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { fileUrl } from "#files/url.ts";
 import { responseUrl } from "#responses/url.ts";
-import { Age } from "./Age.tsx";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
@@ -16,6 +15,7 @@ import { resultChecks } from "./resultChecks.ts";
 import { SectionCard } from "./SectionCard.tsx";
 import { StatusChip } from "./StatusChip.tsx";
 import { shellIds } from "./shellIds.ts";
+import { Time } from "./Time.tsx";
 import { Version } from "./Version.tsx";
 
 export function ResultPage({ data }: { readonly data: ResultProjection }) {
@@ -69,7 +69,9 @@ function ResultSummary({ data }: { readonly data: ResultProjection }) {
 				<span className="text-muted-foreground text-xs">
 					Version <Version revision={data.revision} />
 				</span>
-				<Age modified={document.modified} />
+				<span className="text-muted-foreground text-xs">
+					updated <Time at={document.modified} />
+				</span>
 			</div>
 			{linked.length > 0 && (
 				<ul className="list-none space-y-2" data-result-linked>

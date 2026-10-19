@@ -7,8 +7,9 @@ import { ensurePublication } from "#engine/ensurePublication.ts";
 import { launchPrompt } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { briefSteerIntent, steerBrief } from "#engine/steerBrief.ts";
-import { executing, type FleetRecord } from "#model.ts";
+import { allAttempts, executing, type FleetRecord } from "#model.ts";
 import type { BoardWork, DecisionResponse } from "#policy.ts";
+import { briefEditPrompt } from "#prompt/briefEdit.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function approveBrief(state: EngineState) {
@@ -17,14 +18,15 @@ export function approveBrief(state: EngineState) {
 		work: BoardWork,
 		prompt?: string,
 		responses?: readonly DecisionResponse[],
+		preserveDecision = false,
 	) {
 		yield* authorizeBrief(work);
 		const stored = yield* ensurePublication(state)(input).pipe(Effect.flatMap((current) => abandonStalled(state, current)));
 		const record = stored.value;
-		const published = record.decision?.published;
 		const approvedPrompt = prompt ?? revisedPrompt(record, work);
 		const updated: FleetRecord = {
 			...record,
+			...approvedDecision(record, state.policy.now(), preserveDecision),
 			areas: work.areas,
 			attempts: record.attempts.map((attempt) =>
 				attempt.role === "reviewer" && attempt.reviewRevision === undefined
@@ -36,21 +38,14 @@ export function approveBrief(state: EngineState) {
 			boardRevision: work.revision,
 			boardSourcePath: work.sourcePath,
 			checks: undefined,
-			decision: undefined,
-			decisionAcknowledged: undefined,
-			decisionPublished: undefined,
 			launchRetry: revisedRetry(record, approvedPrompt, state.policy.workerGuidance),
 			mergeAreasReleased: undefined,
 			mergeReadyAt: undefined,
 			mergeReadyHead: undefined,
+			pendingAnswers: revisedAnswers(record, work),
 			prompt: approvedPrompt,
 			responses: responses ?? record.responses,
 			review: undefined,
-			stage: resumedStage(record),
-			supersededDecisions:
-				published === undefined
-					? record.supersededDecisions
-					: [...(record.supersededDecisions ?? []), { published, supersededAt: state.policy.now() }],
 			sweep: record.attempts.length === 0 ? work.sweep : (record.sweep ?? work.sweep),
 		};
 		const approved = yield* state.save(stored, briefSteerIntent(record, updated, state.policy.now())).pipe(Effect.flatMap(closeDecisions(state)));
@@ -97,4 +92,26 @@ function revisedRetry(record: FleetRecord, prompt: string, guidance?: string) {
 				...record.launchRetry,
 				prompt: launchPrompt(record, prompt, undefined, guidance),
 			};
+}
+
+function revisedAnswers(record: FleetRecord, work: BoardWork) {
+	const hasWorkerTurn = allAttempts(record).some((attempt) => attempt.role !== "reviewer" && attempt.receipt !== undefined);
+	return briefChanged(record, work) && !executing(record) && hasWorkerTurn
+		? [...(record.pendingAnswers ?? []), briefEditPrompt(record.boardContext, work.context)]
+		: record.pendingAnswers;
+}
+
+function approvedDecision(record: FleetRecord, now: number, preserve: boolean) {
+	if (preserve) {
+		return {};
+	}
+	const published = record.decision?.published;
+	return {
+		decision: undefined,
+		decisionAcknowledged: undefined,
+		decisionPublished: undefined,
+		stage: resumedStage(record),
+		supersededDecisions:
+			published === undefined ? record.supersededDecisions : [...(record.supersededDecisions ?? []), { published, supersededAt: now }],
+	};
 }

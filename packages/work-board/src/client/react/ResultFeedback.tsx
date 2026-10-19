@@ -5,12 +5,12 @@ import { statusLabel } from "#browser/views/statusLabel.ts";
 import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { fileUrl } from "#files/url.ts";
-import { Age } from "./Age.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 import { responseKinds } from "./responseKinds.ts";
 import { SectionCard } from "./SectionCard.tsx";
 import { shellIds } from "./shellIds.ts";
+import { Time } from "./Time.tsx";
 import { Version } from "./Version.tsx";
 
 export function ResultFeedback({ data }: { readonly data: ResultProjection }) {
@@ -51,7 +51,8 @@ export function ResultFeedbackSummary({ data }: { readonly data: ResultProjectio
 		summary = (
 			<>
 				{count === 1 ? "1 response" : `${count} responses`}. Latest: {latest.response.response.author} {responseKinds[latest.response.response.type]}{" "}
-				<Age modified={latest.response.response.recordedAt} short /> ago{latest.matching ? "" : " on an earlier version"}.
+				<Time at={latest.response.response.recordedAt} />
+				{latest.matching ? "" : " on an earlier version"}.
 			</>
 		);
 	}

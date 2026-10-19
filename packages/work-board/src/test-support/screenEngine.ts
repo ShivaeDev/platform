@@ -16,7 +16,6 @@ import type { DiagramDrawing } from "./screenDiagrams.ts";
 import type { SessionTransport } from "./sessionTransport.ts";
 
 export interface ScreenEngine {
-	age?: { readonly modified: number; readonly view: (modified: number) => ReactNode };
 	api?: BoardTestApi;
 	boardScreen?: Awaited<ReturnType<typeof renderBoard>>;
 	readonly cleanups: Array<() => Promise<void>>;
@@ -55,6 +54,7 @@ export interface ScreenEngine {
 	sessionWrap?: FileSystemWrapper | undefined;
 	startupGate?: Deferred.Deferred<void>;
 	tell?: (line: string) => void;
+	time?: { readonly at: number; readonly view: (at: number) => ReactNode };
 	updatesPaused?: Atom.Writable<boolean>;
 	view?: Awaited<ReturnType<typeof render>>;
 }

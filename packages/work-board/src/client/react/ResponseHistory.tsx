@@ -1,11 +1,11 @@
 import type { DocumentRequest } from "#browser/document/schema.ts";
 import { chosenLabels } from "#browser/responses/cardContext.ts";
 import type { RecordedResponse } from "#browser/responses/schema.ts";
-import { Age } from "./Age.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { responseKinds } from "./responseKinds.ts";
 import { shellIds } from "./shellIds.ts";
+import { RowTime } from "./Time.tsx";
 
 export function ResponseHistory({
 	request,
@@ -48,7 +48,7 @@ function ResponseEntry({
 					{record.response.author}
 				</a>
 				<span className="text-muted-foreground">{responseKinds[record.response.type]}</span>
-				<Age modified={record.response.recordedAt} short />
+				<RowTime at={record.response.recordedAt} className="text-muted-foreground text-xs" />
 			</h3>
 			{answers === undefined ? (
 				<AnswerMarkdown file={`responses/${record.id}.md`} source={record.body} />

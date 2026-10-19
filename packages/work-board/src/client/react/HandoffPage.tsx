@@ -4,7 +4,6 @@ import { statusLabel } from "#browser/views/statusLabel.ts";
 import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { fileUrl } from "#files/url.ts";
-import { Age } from "./Age.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { HandoffForm } from "./HandoffForm.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
@@ -14,6 +13,7 @@ import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
 import { SectionCard } from "./SectionCard.tsx";
 import { shellIds } from "./shellIds.ts";
+import { RowTime } from "./Time.tsx";
 import { Version } from "./Version.tsx";
 
 type HandoffRecord = HandoffProjection["reading"]["records"][number];
@@ -76,7 +76,7 @@ function HandoffEntry({ record, current }: { readonly record: HandoffRecord; rea
 				<h3 className="m-0 font-semibold text-sm">{h.recipient}</h3>
 				<Badge variant="outline">{statusLabel(h.state)}</Badge>
 				<span className="text-muted-foreground text-xs">
-					prepared <Age modified={h.preparedAt} short /> ago
+					prepared <RowTime at={h.preparedAt} />
 				</span>
 				<a className="ml-auto text-muted-foreground text-xs" href={fileUrl(record.file)}>
 					Open file
