@@ -1,7 +1,6 @@
 import { defineConfig } from "@shivaedev/quality/config.ts";
 import { catalogOnly } from "#quality/catalogOnly.ts";
 import { catalogOverrides } from "#quality/catalogOverrides.ts";
-import { codecovComponents } from "#quality/codecovComponents.ts";
 import { exactCatalogVersion } from "#quality/exactCatalogVersion.ts";
 import { migrationConvention } from "#quality/migrationConvention.ts";
 import { unreadable } from "#quality/unreadable.ts";
@@ -52,7 +51,7 @@ export default defineConfig({
 			rules: ["biome/lint/correctness/noUndeclaredDependencies"],
 		},
 	],
-	local: [catalogOnly, catalogOverrides, codecovComponents, exactCatalogVersion, migrationConvention, unreadable, workspaceSection],
+	local: [catalogOnly, catalogOverrides, exactCatalogVersion, migrationConvention, unreadable, workspaceSection],
 	rules: {
 		"boundaries/auth-sql": { options: { owners: ["packages/platform/src/server/better-auth/**"] } },
 		"boundaries/http-status": { options: { edge: ["packages/platform/src/server/rpc-server/**", "packages/platform/src/server/node-http/**"] } },
