@@ -6,14 +6,15 @@ import { flushSync } from "react-dom";
 import { fileUrl } from "#files/url.ts";
 import { LoadingPage } from "./LoadingPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
+import { ProjectionFailure } from "./PageFailure.tsx";
+import { pageTitle } from "./pageTitle.ts";
 import { projectionChanges, type RenderedProjection } from "./projectionChanges.ts";
 import type { ProjectionRoute } from "./projectionRoute.ts";
 import type { RemainingRoute } from "./remainingRoute.ts";
 import { shellIds } from "./shellIds.ts";
 import { useProjectionData } from "./useProjectionData.ts";
-import { ViewStatus } from "./ViewStatus.tsx";
 
-export function ProjectionFrame<A, E>({
+export function ProjectionFrame<A, E extends { readonly _tag: string; readonly message: string }>({
 	atom,
 	location,
 	onPage,
@@ -64,7 +65,7 @@ export function ProjectionFrame<A, E>({
 						projection: route,
 						route: url,
 						status: main.status,
-						title: mainElement.querySelector("h1")?.textContent?.trim(),
+						title: mainElement.querySelector("h1")?.textContent?.trim() ?? pageTitle(route, url),
 						view: main.view,
 					}),
 				);
@@ -105,7 +106,11 @@ export function ProjectionFrame<A, E>({
 				tabIndex={-1}
 			>
 				{data === undefined
-					&& (query.pending ? <LoadingPage board={route === "board"} url={url} /> : <ViewStatus>{failureMessage(missing, failure)}</ViewStatus>)}
+					&& (failed ? (
+						<ProjectionFailure conflict={conflict} failure={failure} missing={missing} onRetry={query.refresh} retrying={query.pending} />
+					) : (
+						<LoadingPage board={route === "board"} url={url} />
+					))}
 				<div className={data === undefined ? "hidden" : "contents"} hidden={data === undefined}>
 					{content === undefined ? null : render(content)}
 				</div>
@@ -113,13 +118,6 @@ export function ProjectionFrame<A, E>({
 			{data !== undefined && Option.isSome(query.cause) && <p role="status">Refresh failed. Your displayed view is retained.</p>}
 		</>
 	);
-}
-
-function failureMessage(missing: boolean, failure: unknown) {
-	if (typeof failure === "object" && failure !== null && "message" in failure && typeof failure.message === "string") {
-		return failure.message;
-	}
-	return missing ? "The board source is missing." : "This view could not be opened. Retry the link or reload the page.";
 }
 
 function projectionView(route: ProjectionRoute | RemainingRoute) {
