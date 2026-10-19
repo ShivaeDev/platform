@@ -7,6 +7,7 @@ import { answeredDecisionFixture } from "#test/answeredDecisionFixture.ts";
 import { attentionFixture } from "#test/attentionFixture.ts";
 import { observedBrowserMotion } from "#test/browserMotion.ts";
 import { fleetWorkspace } from "#test/fleetWorkspaceFixture.ts";
+import { roleOf } from "#test/pageObservation.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen, openScreen, routedScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";

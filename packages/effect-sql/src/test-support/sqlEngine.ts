@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { dual } from "effect/Function";
 import { SqlClient } from "effect/sql";
+import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
 import { makeRepository } from "#repository.ts";
@@ -14,6 +15,7 @@ import type { conflictAccounts } from "./conflictAccounts.ts";
 import type { constrainedItems } from "./constrainedItems.ts";
 import { fixture } from "./fixture.ts";
 import type { generatedRows } from "./generatedRows.ts";
+import { holdAdvisoryLock } from "./holdAdvisoryLock.ts";
 import type { invoiceLines } from "./invoiceLines.ts";
 import type { jsonReceipts } from "./jsonReceipts.ts";
 import { migrate } from "./migrationConcurrency.ts";
@@ -64,6 +66,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		return binding === undefined ? transaction : Effect.provideContext(transaction, binding);
 	});
 	return {
+		advisoryXactLock,
 		arraySamples: engine.arraySamples.get,
 		assertPostgresMigrations,
 		batchFixture: engine.batch.get,
@@ -72,6 +75,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		conflictAccounts: engine.conflictAccounts.get,
 		constrainedItems: engine.constrainedItems.get,
 		generatedRows: engine.generatedRows.get,
+		holdAdvisoryLock,
 		invalidateOnCommit,
 		invoiceLines: engine.invoiceLines.get,
 		jsonReceipts: engine.jsonReceipts.get,

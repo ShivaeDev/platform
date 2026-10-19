@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 - 2026-10-19
+
+### Added
+
+- `advisoryXactLock(key: bigint | string)` takes a PostgreSQL transaction-scoped advisory lock inside `transact`, with string keys hashed by `hashtextextended(key, 0)`. `AdvisoryLockOutsideTransaction` is the typed failure when no transaction is active. `migratePostgres` uses the same lock function.
+
 ## 0.7.0 - 2026-10-18
 
 ### Added

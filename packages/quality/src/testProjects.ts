@@ -16,12 +16,34 @@ function excluding(...patterns: readonly string[]): string[] {
 }
 
 export interface TestProjectsOptions {
+	readonly connectionBudget?: number;
+	readonly connectionsPerWorker?: number;
 	readonly coverage?: boolean | NonNullable<TestUserConfig["coverage"]>;
+	readonly maxWorkers?: number;
 }
 
-export function testProjects({ coverage = false }: TestProjectsOptions = {}): TestUserConfig {
+function positiveInteger(name: string, value: number): number {
+	if (!Number.isSafeInteger(value) || value < 1) {
+		throw new RangeError(`${name} must be a positive safe integer`);
+	}
+	return value;
+}
+
+function workerCount({ connectionBudget = 80, connectionsPerWorker = 14, maxWorkers }: TestProjectsOptions): number {
+	if (maxWorkers !== undefined) {
+		return positiveInteger("maxWorkers", maxWorkers);
+	}
+	return Math.max(
+		1,
+		Math.floor(positiveInteger("connectionBudget", connectionBudget) / positiveInteger("connectionsPerWorker", connectionsPerWorker)),
+	);
+}
+
+export function testProjects(options: TestProjectsOptions = {}): TestUserConfig {
+	const { coverage = false } = options;
 	const ci = Effect.runSync(Config.String("CI").pipe(Config.withDefault("")).parse(ConfigProvider.fromEnv()));
 	return {
+		maxWorkers: workerCount(options),
 		...(coverage === false
 			? {}
 			: {

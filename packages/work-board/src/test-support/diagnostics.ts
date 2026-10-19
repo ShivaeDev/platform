@@ -61,3 +61,11 @@ export function syntheticSources(overrides: Partial<Sources> = {}): Sources {
 		...overrides,
 	};
 }
+
+export function diagnosticsSnapshot(observedAt: number) {
+	return {
+		codex: { observedAt, state: "ready" as const, value: codexResponse.rateLimits },
+		fleet: { observedAt, state: "ready" as const, value: { ...health, observedAt } },
+		github: { observedAt, state: "ready" as const, value: githubObservations },
+	};
+}
