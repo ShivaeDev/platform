@@ -7,9 +7,9 @@ import { fileUrl } from "#files/url.ts";
 import { HandoffForm } from "./HandoffForm.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
 import { LinkButton } from "./LinkButton.tsx";
+import { LazyResponseMarkdown } from "./lazyMarkdown.tsx";
 import { PageHeader } from "./PageHeader.tsx";
 import { ReadingPanel } from "./ReadingPanel.tsx";
-import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 import { SectionCard } from "./SectionCard.tsx";
 import { shellIds } from "./shellIds.ts";
 import { Version } from "./Version.tsx";
@@ -43,7 +43,7 @@ export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 			{Boolean(data.source) && (
 				<SectionCard title="About this item">
 					<div className="response-context reading-column [&>:first-child]:mt-0 [&>:last-child]:mb-0">
-						<ResponseMarkdown file={data.source?.source ?? ""} source={data.background} />
+						<LazyResponseMarkdown file={data.source?.source ?? ""} source={data.background} />
 					</div>
 				</SectionCard>
 			)}
@@ -89,15 +89,15 @@ function HandoffEntry({ record, current }: { readonly record: HandoffRecord; rea
 			<dl className="m-0 grid gap-x-4 gap-y-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
 				<dt className="font-medium">Goal</dt>
 				<dd className="reading-column m-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0">
-					<ResponseMarkdown file={h.source} source={h.goal} />
+					<LazyResponseMarkdown file={h.source} source={h.goal} />
 				</dd>
 				<dt className="font-medium">Constraints</dt>
 				<dd className="reading-column m-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0">
-					{h.constraints ? <ResponseMarkdown file={h.source} source={h.constraints} /> : <p className="text-muted-foreground">None</p>}
+					{h.constraints ? <LazyResponseMarkdown file={h.source} source={h.constraints} /> : <p className="text-muted-foreground">None</p>}
 				</dd>
 				<dt className="font-medium">Next step</dt>
 				<dd className="reading-column m-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0">
-					<ResponseMarkdown file={h.source} source={h.nextAction} />
+					<LazyResponseMarkdown file={h.source} source={h.nextAction} />
 				</dd>
 			</dl>
 			<HandoffPrompt id={record.id} prompt={record.prompt} />

@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
 import type { render } from "@shivaedev/effect-react/client/testing.ts";
-import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import { loadMarkdownRenderers } from "#client/react/markdownLoader.ts";
 import type { FileSystemWrapper } from "./board.ts";
 import { browserStorage } from "./browserStorage.ts";
 import type { chrome } from "./chrome.ts";
@@ -26,7 +26,7 @@ export interface ScreenEngine {
 	documentView?: Awaited<ReturnType<typeof mountDocument>>;
 	drawings?: DiagramDrawing[];
 	files: Readonly<Record<string, string>>;
-	fleet?: FleetItemsProjection;
+	fleet?: BoardFixtureOptions["fleet"];
 	health?: boolean;
 	heldRead?: { readonly url: string; readonly gate: Deferred.Deferred<void>; started: boolean };
 	heldRefresh?: { readonly url: string; readonly gate: Deferred.Deferred<void>; readonly failed: boolean; started: boolean };
@@ -63,6 +63,8 @@ export function* createScreen() {
 	browserStorage();
 	window.sessionStorage.clear();
 	window.history.replaceState({}, "", "/");
+	// Screens render inside synchronous act(), which rejects a suspending first load; the served-bundle stories cover the lazy load itself.
+	yield* Effect.promise(loadMarkdownRenderers);
 	const attributes = [...document.documentElement.attributes].map(({ name, value }) => [name, value] as const);
 	const engine: ScreenEngine = { cleanups: [], documentReads: [], files: {}, indexReads: 0, path: "/" };
 	yield* Effect.addFinalizer(() =>
