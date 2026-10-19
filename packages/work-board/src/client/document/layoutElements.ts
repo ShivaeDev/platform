@@ -10,7 +10,6 @@ export const LayoutContext = createContext<{
 	readonly body: ReactNode;
 	readonly closing: ReactNode;
 	readonly complete: boolean;
-	readonly context: ReactNode;
 	readonly content: ReactNode;
 	readonly introduction: ReactNode;
 	readonly lead: ReactNode;
@@ -24,7 +23,6 @@ export const LayoutContext = createContext<{
 	closing: null,
 	complete: true,
 	content: null,
-	context: null,
 	file: "",
 	identified: false,
 	introduction: null,
@@ -41,7 +39,7 @@ function LayoutArticle({ node, children, ...props }: ComponentProps<"article"> &
 	return createElement(Fragment, null, createElement("article", article, content, children, body, closing), after);
 }
 function LayoutHeader({ node: _node, children, ...props }: ComponentProps<"header"> & ExtraProps) {
-	const { actions, answer, context, introduction, lead, file, identified } = useContext(LayoutContext);
+	const { actions, answer, introduction, lead, file, identified } = useContext(LayoutContext);
 	const introducing = props.className?.split(" ").includes("item-introduction") ?? false;
 	const { compact, gap, ref } = useCompactHeader(introducing && identified);
 	if (!introducing) {
@@ -67,6 +65,5 @@ function LayoutHeader({ node: _node, children, ...props }: ComponentProps<"heade
 		}),
 		lead,
 		answer,
-		context,
 	);
 }

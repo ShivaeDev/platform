@@ -233,6 +233,10 @@
 	.reading-column pre {
 		@apply overflow-auto rounded-lg bg-muted p-4 text-sm;
 	}
+	/* Fleet fences its decision text to keep it verbatim, not because it is code. */
+	[data-decision-packet] .reading-column pre:not([class]) {
+		@apply whitespace-pre-wrap;
+	}
 	.reading-column blockquote {
 		@apply border-l-2 pl-4 text-muted-foreground;
 	}

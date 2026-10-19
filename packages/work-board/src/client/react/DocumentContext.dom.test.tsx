@@ -12,8 +12,8 @@ for (const { file, source, explanation } of recordSourceFixture) {
 		`keeps ${file} record explanations in the Source tab, hidden until the reader opens it and again after Details`,
 		[routedScreen({ [file]: source }, `/${file}`)],
 		function* ({ control, click, findElement, findElements }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement('[aria-label="Document source"]')).not.toBeNull()));
-			const records = control('[aria-label="Document source"]', HTMLElement);
+			yield* Effect.promise(() => eventually(() => expect(findElement("[data-document-source]")).not.toBeNull()));
+			const records = control("[data-document-source]", HTMLElement);
 			expect(records.textContent).toContain(explanation);
 			expect(records.closest("[hidden]")).not.toBeNull();
 			expect(control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).textContent).toBe("Details");

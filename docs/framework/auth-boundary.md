@@ -26,6 +26,19 @@ The provider owns cookie verification, session lookup and expiry. The middleware
 
 The provider's Promise API is wrapped once with `Effect.tryPromise`. A missing or invalid session becomes the declared `Unauthorized` failure. Provider failures become a separate `AuthUnavailable` failure instead of silently treating an outage as a signed-out user. Neither failure serializes provider exception details to the client.
 
+## Sign-in policy
+
+An application that admits only some provider accounts passes a sign-in policy to `betterAuthMount` and wraps its lookup as `betterAuthSessions(mounted.admittedSessions((headers) => auth.api.getSession({ headers })))`; see [deciding who may sign in](../../packages/platform/README.md#decide-who-may-sign-in). The list of allowed accounts comes from Effect Config and the optional rule is an application Effect, such as an organization membership check through the provider.
+
+```text
+OAuth callback → validateUserInfo: provider account on the list and admitted by the rule?
+              → session.create.before: a stored account still admitted?
+native RPC request → getSession → admittedSessions: still admitted?
+                                 → no: delete the user's sessions, Unauthorized
+```
+
+Better Auth's hooks refuse a sign-in before it creates a user or session. A removal from the list takes effect on the user's next RPC request once the application reads the new Config value, which with environment variables means after a restart; a rule's answer is reused for the policy's `recheckInterval`, five minutes by default. `revokeUnadmitted` deletes the sessions of every user the current policy no longer admits, for example at startup.
+
 ## Application decisions
 
 Immediate revocation is a property of database-backed sessions with Better Auth's cookie cache disabled, as in the starter; a cookie cache or secondary storage may delay when a revoked session stops working, and no test covers that delay.

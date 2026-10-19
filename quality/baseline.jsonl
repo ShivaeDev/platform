@@ -125,11 +125,9 @@
 {"path":"packages/effect-contract/src/test-support/live/contract.ts","rule":"tests/support-imports","count":4}
 {"path":"packages/effect-contract/src/test-support/live/hintStream.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/effect-contract/src/test-support/live/notesContract.ts","rule":"tests/support-imports","count":3}
-{"path":"packages/effect-contract/src/test-support/live/server.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/effect-contract/src/test-support/liveNotesStory.ts","rule":"tests/no-expect-in-support","count":5}
 {"path":"packages/effect-contract/src/test-support/liveNotesStory.ts","rule":"tests/support-imports","count":2}
-{"path":"packages/effect-contract/src/test-support/localEngine.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-contract/src/test-support/notes.ts","rule":"tests/support-imports","count":4}
+{"path":"packages/effect-contract/src/test-support/notes.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-contract/src/test-support/resumeSources.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-contract/src/test-support/resumeStory.ts","rule":"tests/no-expect-in-support","count":1}
 {"path":"packages/effect-contract/src/test-support/resumeStory.ts","rule":"tests/support-imports","count":1}
@@ -162,7 +160,6 @@
 {"path":"packages/effect-form/src/test-support/formEngine.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-form/src/test-support/formStories.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/effect-form/src/test-support/formVerbs.ts","rule":"tests/support-imports","count":2}
-{"path":"packages/effect-pg-boss/src/server/batchExpiry.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/effect-pg-boss/src/server/batchExpiryPostgres.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/effect-pg-boss/src/server/clientErrorRetention.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-pg-boss/src/server/edgeCases.spec.ts","rule":"tests/named-values","count":3}
@@ -474,8 +471,6 @@
 {"path":"packages/effect-test-sql/src/test-support/migrationSteps.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-test-sql/src/test-support/migrationStory.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-test-sql/src/test-support/migrationUpgrade.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-test-sql/src/test-support/model.ts","rule":"tests/no-expect-in-support","count":4}
-{"path":"packages/effect-test-sql/src/test-support/model.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-test-sql/src/test-support/poolVerbs.ts","rule":"tests/no-expect-in-support","count":10}
 {"path":"packages/effect-test-sql/src/test-support/poolVerbs.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-test-sql/src/test-support/postgres.ts","rule":"tests/support-imports","count":1}
@@ -600,7 +595,6 @@
 {"path":"packages/platform/src/test-support/otlpReceiver.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/platform/src/test-support/public-config/fixture.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/platform/src/test-support/rpc/api.ts","rule":"tests/support-imports","count":7}
-{"path":"packages/platform/src/test-support/rpc/boundaryStory.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/platform/src/test-support/rpc/defectFixture.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/platform/src/test-support/rpc/postgres.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/platform/src/test-support/rpc/profile.ts","rule":"tests/support-imports","count":5}
@@ -743,7 +737,7 @@
 {"path":"packages/work-board/src/server/responses/publicationHttp.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/work-board/src/server/responses/publicationRecovery.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-board/src/server/responses/response.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/work-board/src/server/responses/waitEdges.spec.ts","rule":"tests/named-values","count":5}
+{"path":"packages/work-board/src/server/responses/waitEdges.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/work-board/src/server/results/result.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-board/src/server/rpc/goalProgress.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/work-board/src/server/rpc/native.spec.ts","rule":"tests/named-values","count":8}
@@ -831,9 +825,8 @@
 {"path":"packages/work-board/src/test-support/servingEngine.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-board/src/test-support/sessionActions.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-board/src/test-support/storyEngine.ts","rule":"tests/support-imports","count":4}
-{"path":"packages/work-board/src/test-support/storyReplies.ts","rule":"tests/support-imports","count":4}
 {"path":"packages/work-board/src/test-support/storyResponses.ts","rule":"tests/support-imports","count":3}
-{"path":"packages/work-board/src/test-support/storyTraits.ts","rule":"tests/support-imports","count":3}
+{"path":"packages/work-board/src/test-support/storyTraits.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-board/src/test-support/timeScreen.tsx","rule":"tests/support-imports","count":1}
 {"path":"packages/work-board/src/test-support/todayFleetFixture.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-board/src/test-support/todaySummaryScreen.tsx","rule":"tests/support-imports","count":1}

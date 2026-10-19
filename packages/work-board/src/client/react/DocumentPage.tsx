@@ -1,5 +1,6 @@
 import type { Document } from "#browser/document/schema.ts";
 import { AnswerPanel } from "./AnswerPanel.tsx";
+import { DecisionOutcome } from "./DecisionOutcome.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
 import { BodyCriteria, DocumentCriteria } from "./DocumentCriteria.tsx";
 import { OutlineMenu } from "./DocumentOutline.tsx";
@@ -36,7 +37,7 @@ export function DocumentPage({ document, api }: { readonly document: Document; r
 			}
 			closing={<BodyCriteria document={document} />}
 			components={documentElements}
-			content={document.metadata.kind === "project" ? projectContent : undefined}
+			content={document.metadata.kind === "project" ? projectContent : <DecisionOutcome document={document} />}
 			context={<DocumentContext document={document} />}
 			document={document}
 			introduction={<ItemSummary document={document} />}

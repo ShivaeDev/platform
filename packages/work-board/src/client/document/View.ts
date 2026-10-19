@@ -81,7 +81,6 @@ export function DocumentView({
 						closing,
 						complete,
 						content,
-						context,
 						file: document.file,
 						identified: Boolean(document.metadata.id),
 						introduction,
@@ -91,5 +90,7 @@ export function DocumentView({
 				separate ? first : sections,
 			),
 		),
+		// The context follows the content in reading and Tab order, and waits for the first section so its readiness report sees the page's headings.
+		first === undefined ? null : context,
 	);
 }

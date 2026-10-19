@@ -22,6 +22,15 @@ const program = Effect.gen(function* () {
 	const plain = yield* makeRepository(Row, options);
 	expectTypeOf<Effect.Services<ReturnType<typeof plain.findMany>>>().toEqualTypeOf<FilterEncoding>();
 	plain.findMany({ where: { id: { in: [1, 2] }, kind: "x", value: { in: [1, 2] } } });
+	const deleted = plain.delete({ id: { in: [1, 2] }, kind: "x", value: { in: [1, 2] } });
+	expectTypeOf<Effect.Services<typeof deleted>>().toEqualTypeOf<FilterEncoding>();
+	expectTypeOf<Effect.Success<typeof deleted>>().toEqualTypeOf<void>();
+	expectTypeOf<Effect.Services<ReturnType<typeof plain.delete>>>().toEqualTypeOf<FilterEncoding>();
+	plain.delete(1);
+	// @ts-expect-error Delete list entries use decoded field values.
+	plain.delete({ value: { in: ["1"] } });
+	// @ts-expect-error Delete filters must name model fields.
+	plain.delete({ missing: { in: [1] } });
 	plain.findMany({ orderBy: { direction: "asc", field: "id" } });
 	const orderBy = [
 		{ direction: "asc", field: "kind" },

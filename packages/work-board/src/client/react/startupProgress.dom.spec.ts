@@ -2,6 +2,7 @@ import { Effect, Fiber } from "effect";
 import { describe, expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { boardStory, heldRequest, projectFiles, readerArrivesEarly } from "#test/boardStory.ts";
+import { linkedProject } from "#test/linkedProject.ts";
 import { heldWorkspaceListing, readsOneByOne, slowRepositoryLookup } from "#test/readTraits.ts";
 
 const project = projectFiles({
@@ -49,8 +50,8 @@ describe("startup", () => {
 	);
 
 	boardStory.it(
-		"says it is reading the workspace before it knows how many files there are",
-		[project, heldWorkspaceListing(), readerArrivesEarly("/")],
+		"says it is reading a workspace with a linked folder before it knows how many files there are",
+		[project, linkedProject, heldWorkspaceListing(), readerArrivesEarly("/")],
 		function* ({ reader, releaseReads }) {
 			yield* Effect.promise(() => eventually(() => expect(reader.indexingProgress()).toBe("Reading the workspace…")));
 			yield* releaseReads();

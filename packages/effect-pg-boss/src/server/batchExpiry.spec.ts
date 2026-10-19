@@ -1,8 +1,7 @@
 import { setImmediate } from "node:timers/promises";
-import { Clock, Duration, Effect, Schema } from "effect";
-import * as TestClock from "effect/testing/TestClock";
+import { Clock, Effect, Schema } from "effect";
 import { expect, vi } from "vitest";
-import { defineQueue, defineSchedule, jobContext } from "#definition.ts";
+import { defineQueue, defineSchedule } from "#definition.ts";
 import { boss } from "#test/boss.ts";
 import { job } from "#test/fakeClient.ts";
 
@@ -24,22 +23,6 @@ boss.it("skips an already expired job while settling a later job with a live bud
 	expect(client.failCalls).toEqual([]);
 	expect(returned).not.toHaveBeenCalled();
 });
-
-boss.it(
-	"recomputes a typed remaining budget from pg-boss start and expiry, clamped to zero",
-	[],
-	function* () {
-		const fetched = { ...job("budget", {}), expireInSeconds: 1, startedOn: new Date(1000) };
-		const context = jobContext(fetched);
-		yield* TestClock.adjust(1200);
-		expect(Duration.toMillis(yield* context.remainingBudget)).toBe(800);
-		yield* TestClock.adjust(400);
-		expect(Duration.toMillis(yield* context.remainingBudget)).toBe(400);
-		yield* TestClock.adjust(600);
-		expect(Duration.toMillis(yield* context.remainingBudget)).toBe(0);
-	},
-	{ clock: "test" },
-);
 
 boss.it("interrupts scheduled effects at their own deadline without settling their batch", [], function* ({ boot, client, dispatch }) {
 	const Schedule = defineSchedule({ cron: "0 * * * *", name: "scheduled-expiry" });

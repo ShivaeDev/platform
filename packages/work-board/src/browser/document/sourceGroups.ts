@@ -17,7 +17,7 @@ const outgoing: Readonly<Record<NonNullable<Metadata["relationships"]>[number]["
 const incoming = new Map([
 	["agent handoff", "Agent handoff"],
 	["attention target", "Attention request"],
-	["board member", "Listed on board"],
+	["board member", "Listed in"],
 	["criterion evidence", "Criterion evidence"],
 	["depends_on", "Needed by"],
 	["evidence source", "Cited as evidence by"],
@@ -42,7 +42,7 @@ const specificity = [
 	"Needed by",
 	"Informs",
 	"Informed by",
-	"Listed on board",
+	"Listed in",
 	"Related to",
 	"Markdown link",
 ];
@@ -73,7 +73,7 @@ export function specificSources<T extends SourceLink>(links: readonly T[]): read
 
 export function sourceGroups<T extends SourceLink>(links: readonly T[]) {
 	return [...Map.groupBy(links, (link) => link.title ?? link.label)].map(([title, sources]) => ({
-		label: `${title.startsWith("Fleet decision for ") ? "Fleet decisions" : title} (${sources.length})`,
+		label: `${/^Fleet decision(?: for |: )/u.test(title) ? "Fleet decisions" : title} (${sources.length})`,
 		sources,
 		title,
 	}));

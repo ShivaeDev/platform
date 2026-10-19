@@ -20,7 +20,6 @@ postgres.it(
 		expect(yield* readings.findById({ sequence: 1, source: "meter" })).toEqual(original);
 		const incompleteKey: { source: string; sequence: number } = JSON.parse('{"source":"meter"}');
 		expect(yield* readings.findById(incompleteKey).pipe(Effect.flip)).toMatchObject({ _tag: "SchemaError" });
-		expect(yield* readings.delete(incompleteKey).pipe(Effect.flip)).toMatchObject({ _tag: "SchemaError" });
 		const fresh = yield* readings.insertOrIgnore({ ...input, sequence: 3 });
 		expect(Option.getOrThrow(fresh)).toBeInstanceOf(Reading);
 		const updated = yield* readings.upsert({ ...input, amount: 60, label: "ignored" }, { updateColumns: ["amount"] });

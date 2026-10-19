@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Layer, PlatformError, PubSub, Ref } from "effect";
 import type { Change, Changes } from "#server/files/changes.ts";
 import { registerInvalidations, trackInvalidations } from "#server/files/invalidations.ts";
-import { listMarkdown } from "#server/files/list.ts";
+import { updateFiles } from "#server/files/update.ts";
 import { searchSnapshot } from "#server/search/snapshot.ts";
 import { fullIndex } from "./fullIndex.ts";
 
@@ -26,9 +26,21 @@ export const incrementalIndex = Effect.fn("Test.incrementalIndex")(function* (ro
 	const revision = yield* Ref.make(0);
 	const watching = yield* Ref.make(true);
 	const tracker = trackInvalidations();
+	let listed: { readonly files: Effect.Success<ReturnType<typeof updateFiles>>; readonly revision: number } | undefined;
+	const files = Effect.gen(function* () {
+		const now = yield* Ref.get(revision);
+		const current = yield* Ref.get(watching);
+		if (current && listed?.revision === now) {
+			return listed.files;
+		}
+		const dirty = listed && current ? tracker.since(listed.revision) : undefined;
+		const next = yield* updateFiles(root, root, listed?.files ?? [], dirty);
+		listed = { files: next, revision: now };
+		return next;
+	});
 	const changes: Changes = {
 		events: yield* PubSub.unbounded<Change>(),
-		files: listMarkdown(root, root).pipe(Effect.provide(context)),
+		files: files.pipe(Effect.provide(context)),
 		realRoot: root,
 		revision: Ref.get(revision),
 		watching,

@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "#client/react/componen
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
 import { DocumentOutline } from "./DocumentOutline.tsx";
 import { DocumentSource } from "./DocumentSource.tsx";
+import { hasDocumentMetadata } from "./metadataParts.ts";
 import { ReadingReadyContext } from "./ReadingReadyContext.ts";
 import { Time } from "./Time.tsx";
 import { OUTLINE_HEADINGS, useDocumentOutline } from "./useDocumentOutline.ts";
@@ -13,6 +14,7 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 	const contextRef = useRef<HTMLElement>(null);
 	const headings = useDocumentOutline(contextRef, data);
 	const [tab, setTab] = useState("details");
+	const details = hasDocumentMetadata(data);
 
 	useLayoutEffect(() => {
 		const context = contextRef.current;
@@ -29,23 +31,26 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 	return (
 		<aside
 			aria-label="Item context"
-			className="item-context row-start-3 flex min-w-0 flex-col gap-6 self-start text-sm lg:col-start-2 lg:row-start-2 lg:self-stretch"
+			className="item-context row-start-3 flex min-w-0 flex-col gap-6 self-start text-sm empty:hidden lg:col-start-2 lg:row-start-2 lg:self-stretch"
 			data-key="item-context"
 			ref={contextRef}
 		>
-			<div className="rounded-lg border border-border p-4">
-				<Tabs onValueChange={setTab} value={tab}>
-					<TabsList aria-label="Item context" className="w-full">
-						<TabsTrigger value="details">Details</TabsTrigger>
-						<TabsTrigger value="source">Source</TabsTrigger>
-					</TabsList>
-					<TabsContent hidden={tab !== "details"} keepMounted value="details" />
-					<TabsContent className="pt-2" hidden={tab !== "source"} keepMounted value="source">
-						<SourcePanel document={data} />
-					</TabsContent>
-				</Tabs>
-				<DocumentMetadata document={data} />
-			</div>
+			{(details || data.reading?.raw !== undefined) && (
+				<div className="rounded-lg border border-border p-4">
+					<Tabs onValueChange={setTab} value={tab}>
+						<TabsList aria-label="Item context" className="w-full">
+							<TabsTrigger value="details">Details</TabsTrigger>
+							<TabsTrigger value="source">Source</TabsTrigger>
+						</TabsList>
+						<TabsContent className="text-sm" hidden={tab !== "details"} keepMounted value="details" {...(details ? {} : { tabIndex: -1 })}>
+							<DocumentMetadata document={data} />
+						</TabsContent>
+						<TabsContent className="pt-2" hidden={tab !== "source"} keepMounted value="source">
+							<SourcePanel document={data} />
+						</TabsContent>
+					</Tabs>
+				</div>
+			)}
 			<DocumentOutline headings={headings} />
 		</aside>
 	);

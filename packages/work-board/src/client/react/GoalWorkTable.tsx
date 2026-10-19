@@ -1,12 +1,13 @@
 import { cn } from "cn";
 import { ChevronRight } from "lucide-react";
-import { type ReactNode, useContext, useId } from "react";
+import { type ReactNode, useContext } from "react";
 import { goalWorkGroups } from "#browser/views/goalWorkState.ts";
 import { buttonVariants } from "#client/react/components/ui/button.tsx";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#client/react/components/ui/collapsible.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { GoalWorkGroup } from "./GoalWorkGroup.tsx";
 import { type GoalWorkItem, goalGroup, goalRun } from "./goalWork.ts";
+import { shellIds } from "./shellIds.ts";
 
 const QUIET_GROUPS: ReadonlySet<string> = new Set(["Planned", "Done"]);
 interface Props {
@@ -15,14 +16,15 @@ interface Props {
 	readonly items: readonly GoalWorkItem[];
 }
 export function GoalWorkTable({ criteria, goal, items }: Props) {
-	const headingId = useId();
 	const fleet = useContext(FleetItemsContext);
 	if (items.length === 0) {
 		return null;
 	}
 	return (
-		<section aria-labelledby={headingId} data-goal-section="work">
-			<h2 id={headingId}>Linked work</h2>
+		<section aria-labelledby={shellIds.goalLinkedWork} data-goal-section="work">
+			<h2 id={shellIds.goalLinkedWork} tabIndex={-1}>
+				Linked work
+			</h2>
 			{goalWorkGroups.map((group) => {
 				const work = items.filter((item) => goalGroup(item, goalRun(item, fleet)) === group);
 				return work.length === 0 ? null : (

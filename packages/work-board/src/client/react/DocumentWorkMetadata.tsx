@@ -3,10 +3,10 @@ import { DocumentEvidence } from "./DocumentEvidence.tsx";
 import { keyed } from "./keyed.ts";
 export function DocumentWorkMetadata({ document }: { readonly document: Document }) {
 	return (
-		<section aria-label="Work details" className="work-meta">
+		<div className="work-meta" data-context-group="work">
 			<MetadataLead document={document} />
 			<DocumentEvidence document={document} />
-		</section>
+		</div>
 	);
 }
 

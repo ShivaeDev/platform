@@ -1,6 +1,6 @@
 import { flushSync } from "react-dom";
 import { passageStatus, revealPassage, scrollToPassage } from "#client/react/readingPassage.ts";
-import { type captureReading, restoreReading } from "#client/react/readingState.ts";
+import { type captureReading, restoreFocus, restoreReading } from "#client/react/readingState.ts";
 export function scheduleReading(
 	doc: HTMLElement,
 	reading: ReturnType<typeof captureReading> | null,
@@ -13,12 +13,16 @@ export function scheduleReading(
 		if (!active()) {
 			return;
 		}
-		if (focus && !document.activeElement?.closest("[data-response-form], #response-form, #handoff-form")) {
+		const moveFocus = focus && !document.activeElement?.closest("[data-response-form], #response-form, #handoff-form");
+		if (moveFocus) {
 			doc.focus({ preventScroll: true });
 		}
 		const passage = hash ? `#${hash}` : "";
 		if (reading) {
 			restoreReading(reading);
+			if (moveFocus) {
+				restoreFocus(reading);
+			}
 		}
 		// Readiness can arrive from a React effect; reveal the target before scrolling or focusing it.
 		queueMicrotask(() => {

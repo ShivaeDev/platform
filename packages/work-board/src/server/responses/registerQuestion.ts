@@ -1,6 +1,7 @@
 import { Clock, Effect } from "effect";
 import { Conflict, Forbidden, PreconditionFailed, type ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { Question } from "#browser/responses/schema.ts";
+import { refreshWritten } from "#server/files/changes.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import type { WorkspaceSettings } from "#server/workspace.ts";
 import type { locate as locateQuestion } from "./locate.ts";
@@ -50,7 +51,7 @@ export function registerQuestion(
 			},
 		};
 		yield* publish(options.root, options.realRoot, question.id, questionMarkdown(question)).pipe(
-			Effect.ensuring(options.changes.refresh ?? Effect.void),
+			Effect.ensuring(refreshWritten(options.changes, [`responses/${question.id}.md`])),
 		);
 		return question;
 	});

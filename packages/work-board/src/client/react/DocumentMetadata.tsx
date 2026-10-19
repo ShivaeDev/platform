@@ -1,19 +1,15 @@
 import type { Document } from "#browser/document/schema.ts";
-import { specificSources } from "#browser/document/sourceGroups.ts";
 import { Separator } from "#client/react/components/ui/separator.tsx";
 import { DocumentRelationships } from "./DocumentRelationships.tsx";
 import { DocumentWorkMetadata } from "./DocumentWorkMetadata.tsx";
+import { metadataParts } from "./metadataParts.ts";
 import { SourceSection } from "./SourceSection.tsx";
 
 export function DocumentMetadata({ document }: { readonly document: Document }) {
-	const reading = document.reading;
-	const backlinks = specificSources(reading?.backlinks ?? []).filter(
-		(link) => document.metadata.kind !== "project" || link.kind !== "Implemented by",
-	);
-	const linksTo = (document.metadata.relationships?.length ?? 0) + (document.metadata.items?.length ?? 0) > 0;
+	const { backlinks, linksTo, work } = metadataParts(document);
 	return (
 		<>
-			{(reading?.raw !== undefined || document.diagnostics.length > 0) && <DocumentWorkMetadata document={document} />}
+			{work ? <DocumentWorkMetadata document={document} /> : null}
 			<DocumentRelationships document={document} />
 			{linksTo && (backlinks.length > 0 || document.unavailable.length > 0) && <Separator className="my-4" />}
 			{document.unavailable.length > 0 && (
@@ -22,12 +18,12 @@ export function DocumentMetadata({ document }: { readonly document: Document }) 
 				</p>
 			)}
 			{backlinks.length > 0 && (
-				<section aria-label="Linked from" className="work-context">
+				<div className="work-context" data-context-group="linked-from">
 					<h3 title="These are explicit source links, not inferred blockers or workflow rules.">Linked from</h3>
 					{[...Map.groupBy(backlinks, (link) => link.kind)].map(([kind, links]) => (
-						<SourceSection key={kind} label={`${kind} (${links.length})`} links={links} name={`${kind} backlinks`} />
+						<SourceSection group={kind} key={kind} label={`${kind} (${links.length})`} links={links} />
 					))}
-				</section>
+				</div>
 			)}
 		</>
 	);

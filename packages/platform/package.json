@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.22.0",
+	"version": "0.22.1",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {
@@ -61,6 +61,7 @@
 		"@prisma-next/sql-orm-client": "catalog:",
 		"@prisma-next/target-postgres": "catalog:",
 		"@shivaedev/effect-prisma": "workspace:*",
+		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/effect-test-sql": "workspace:*",
 		"@shivaedev/effect-trpc": "workspace:*",
 		"@shivaedev/quality": "workspace:*",

@@ -2,7 +2,7 @@ import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.t
 
 export function todayFleetFixture(): FleetItemsProjection {
 	const stages = ["executing", "reviewing", "repairing", "adopting"] as const;
-	const excluded = ["prepared", "validating", "delivering", "needs-human", "released"] as const;
+	const otherStages = ["prepared", "validating", "delivering", "needs-human", "released"] as const;
 	return {
 		completed: [{ completedAt: 100, document: null, stage: "completed", stageEnteredAt: 0, updatedAt: 100, workId: "task.delivered" }],
 		items: [
@@ -18,7 +18,7 @@ export function todayFleetFixture(): FleetItemsProjection {
 				updatedAt: 100,
 				workId: `task.sample.${index}`,
 			})),
-			...excluded.map((stage) => ({ document: null, stage, stageEnteredAt: 0, updatedAt: 100, workId: `task.${stage}` })),
+			...otherStages.map((stage) => ({ document: null, stage, stageEnteredAt: 0, updatedAt: 100, workId: `task.${stage}` })),
 		],
 		state: "ready",
 	};

@@ -2,12 +2,12 @@ import { useState } from "react";
 import { type SourceLink, sourceGroups } from "#browser/document/sourceGroups.ts";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 
-export function SourceSection({ label, links, name }: { readonly label: string; readonly links: readonly SourceLink[]; readonly name?: string }) {
+export function SourceSection({ group, label, links }: { readonly group?: string; readonly label: string; readonly links: readonly SourceLink[] }) {
 	return (
-		<section aria-label={name ?? label}>
+		<div data-source-group={group ?? label}>
 			<h4 className="mt-4 mb-1 font-medium text-muted-foreground text-xs">{label}</h4>
 			<SourceList links={links} />
-		</section>
+		</div>
 	);
 }
 

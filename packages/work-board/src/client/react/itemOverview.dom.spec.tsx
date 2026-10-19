@@ -28,24 +28,24 @@ screenStory.it(
 		expect(criterion?.closest("[hidden]")).toBeNull();
 		expect(readText(".item-introduction h1")).toBe("Readable task");
 		expect(findElement(".item-introduction")?.classList.contains("sticky")).toBe(true);
-		const relationships = findElement('[aria-label="Links to"]');
+		const relationships = findElement('[data-context-group="links-to"]');
 		expect(relationships?.textContent).toContain("Ship the feature");
 		expect(readText("[data-status-token]", relationships)).toBe("Blocked");
 		expect(readAttribute("a", "href", relationships)).toBe("/_board/item/goal.fixture/#criterion-design");
 		expect([...findElements(".work-context h4")].map((node) => node.textContent).sort((a, b) => (a ?? "").localeCompare(b ?? ""))).toEqual([
 			"Informed by (2)",
-			"Listed on board (1)",
+			"Listed in (1)",
 			"Markdown link (1)",
 		]);
-		const backlinks = findElement('[aria-label="Informed by backlinks"]');
+		const backlinks = findElement('[data-context-group="linked-from"] [data-source-group="Informed by"]');
 		expect([...(findElements("a", backlinks) ?? [])].map((node) => node.textContent)).toEqual(["One", "Two"]);
 		expect([...(findElements("[data-status-token]", backlinks) ?? [])].map((node) => node.textContent)).toEqual(["Done", "Planned"]);
 		expect(readAttribute("a", "title", backlinks)).toBe("one.md:6");
-		expect(readText('[aria-label="Markdown link backlinks"] a')).toBe("Notes");
+		expect(readText('[data-context-group="linked-from"] [data-source-group="Markdown link"] a')).toBe("Notes");
 		expect(readText()).not.toContain("Context and tools");
 		expect(readText()).not.toContain("Status (source)");
 		expect(readText()).not.toContain("Recorded work ·");
-		const source = findElement('[aria-label="Document source"]');
+		const source = findElement("[data-document-source]");
 		expect(source?.closest("[hidden]")).not.toBeNull();
 		click(findElement<HTMLButtonElement>('[role="tab"]:nth-child(2)'));
 		expect(source?.closest("[hidden]")).toBeNull();

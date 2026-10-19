@@ -1,6 +1,6 @@
 import { type ReactNode, useContext } from "react";
 import { EmptyState } from "#client/react/EmptyState.tsx";
-import { type Item, LibraryContext } from "#client/react/LibraryContext.ts";
+import { type Item, LibraryContext, otherRecents } from "#client/react/LibraryContext.ts";
 import { fileUrl } from "#files/url.ts";
 
 export function PinnedLinks({ current }: { readonly current: string }) {
@@ -29,7 +29,7 @@ export function RecentLinks({ current }: { readonly current: string }) {
 					Documents you open appear here.
 				</EmptyState>
 			}
-			items={reading.recents.slice(0, 5)}
+			items={otherRecents(reading, current).slice(0, 5)}
 			title="Recent"
 		/>
 	);

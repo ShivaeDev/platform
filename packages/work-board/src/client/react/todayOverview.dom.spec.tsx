@@ -29,7 +29,7 @@ screenStory.it(
 				expect(next).toBeNull();
 			}
 		}
-		expect(readText(".today-strip")).toBe(`${inbox.you.length} need you·9 in progress·${goals.goals.length} active goals·2 files have problems`);
+		expect(readText(".today-strip")).toBe(`${inbox.you.length} need you·11 in progress·${goals.goals.length} active goals·2 files have problems`);
 		expect([...findElements(".today-strip a")].map((link) => link.getAttribute("href"))).toEqual([
 			"#needs-you",
 			"#in-progress",
