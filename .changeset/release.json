@@ -3,50 +3,121 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "local-postgres-version-error.md",
-				"text": "---\n\"@shivaedev/local-postgres\": minor\n---\n\n### Added\n\n- `PostgresVersionMismatch` from `@shivaedev/local-postgres/PostgresVersionMismatch.ts` identifies a refused running version through `_tag`, `expectedVersion` and `observedVersion`, retaining the existing error message.\n"
+				"name": "board-cold-open-reads.md",
+				"text": "---\n\"@shivaedev/effect-contract\": patch\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- effect-contract's `live` coordinator no longer reconciles its read scope when `paused` is read for the first time; a component that showed the pause state while connecting used to make every loaded query read again.\n- Opening a Board page sends each read once. The page starts its reads after the live connection's first update, which used to read navigation and watcher state a second time, and a failed connection does not hold the page.\n- A file event that changes neither the bytes nor the modification time no longer refreshes open Board pages. A file saved with the same bytes and a new modification time still refreshes them.\n"
 			},
 			{
-				"name": "release-starter-pins.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+				"name": "effect-contract-viewer-hints.md",
+				"text": "---\n\"@shivaedev/effect-contract\": minor\n---\n\n### Added\n\n- `authorizeReads(effect, request, policy, denied)` and `ReadPolicy` in `readPolicy.ts` share a key authorization policy between query reads and live hints. `QueryReads` in `serverMetadata.ts` exposes the declared query read keys to server middleware.\n- `changesRpc(name)` retains the literal contract name for typed native clients.\n\n### Fixed\n\n- Live streams filter changed keys with the viewer's read policy and suppress empty hints, while preserving independently allowed list hints.\n"
 			},
 			{
-				"name": "test-story-scoped-http-faults.md",
-				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- Scope `fakeHttpService` stalls, immediate faults and one-shot replies by decoded path parameters with `FakeHttpScope`.\n- Script future status, drop and reset faults with `scriptFault` and `FakeHttpScriptOptions`, optionally repeat until the returned `FakeHttpScript.lift` control or strike after the route's reply applies its effects.\n- Declare per-route guards alongside the service guard; rejected requests receive 401 before holds, arrival scripts or faults are consumed.\n"
+				"name": "effect-sql-partial-conflicts.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- `makeRepository` accepts `conflictWhere` alongside `conflictColumns` to target partial unique indexes for `insertOrIgnore`, `insertManyOrIgnore`, `upsert` and `upsertMany`. Predicates use the existing typed equality filter, encode decoded field values and bind parameters; unmatched indexes fail with native `SqlError`.\n- `repositoryFilter.ts` exports the shared `RepositoryFilter` type and `makeFilter` builder used by query and conflict predicates.\n"
 			},
 			{
-				"name": "work-fleet-released-pr-observation.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Keep observing reserved PRs after release or renewed preparation and free their areas when they merge or close. Reuse conditional GitHub requests for unchanged PRs, and keep legacy closure decisions from reserving their areas again on release.\n"
+				"name": "quality-biome-worktrees.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Lint, fix and the pre-commit hook run Biome over every file of a linked worktree inside a `.worktrees` folder. The preset and the generated exception config exclude only the `.worktrees` folder at the root, because Biome also matched `!**/.worktrees` against the folders above the root and checked no file there.\n- A Biome run that exits with a failure but reports no error finding, such as one whose config leaves no file to check, fails lint and fix with Biome's message instead of passing.\n"
+			},
+			{
+				"name": "work-board-answer-card.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- A standalone question shows its answer card after its own text, so its context reads before the answer box. The answer box grows with the answer up to most of the screen height.\n- Following a link to an answer card puts focus on the first option of a choice question, or in the answer box.\n- The answer card no longer shows the local author label; it records under the label the browser remembers, or `maintainer`. **More options** names the kind of reply and the choice to replace an earlier answer in plain words, and offers that choice only when an earlier answer exists.\n\n### Fixed\n\n- When a question closes while you write, its answer card stays with your unsent draft read-only, a **Copy draft** button and what closed it, instead of disappearing.\n"
+			},
+			{
+				"name": "work-board-documents.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- Markdown tables in documents use the Board's table styling, wrap at word boundaries and scroll sideways inside their own box when they are wider than the page.\n- Workspace notes show the board's introduction and its heading columns as readable text in the main column, with item cards under each column and the counts and last update in the header.\n- Hovering an age such as \"3h\" shows the exact date and time.\n- Item headers lead with the title, kind and status; the item ID follows in small muted type with a button that copies it.\n- A missing file or unknown item ID shows an empty state with links back to Today and the Library.\n- On a Board started without `--responses`, answer cards list the question and its options as text and say \"Answering is turned off on this Board.\" with no form controls.\n"
+			},
+			{
+				"name": "work-board-fast-load.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- The Board compresses its scripts, stylesheet, page shell and RPC answers with Brotli or gzip when the browser accepts them.\n- Content-hashed bundle chunks and Mermaid chunks are cached for a year as immutable; `react.js`, `react.css`, `theme.js` and the Mermaid entry revalidate with an ETag, so a rebuilt bundle is never served stale, and the HTML shell stays `no-store`.\n- The first bundle no longer carries Markdown rendering and Shiki highlighting; they load when a page first shows Markdown, which cuts the first-load JavaScript from 1.52 MB to 1.0 MB before compression. If that chunk cannot be fetched, the page says Markdown could not be loaded and asks for a reload, while the rest of the Board keeps working.\n- The HTML shell paints an outline of the header, sidebar and phone navigation in the saved theme before any script runs.\n"
+			},
+			{
+				"name": "work-board-fleet-status-copy.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- When the Fleet daemon is not running, Today's In progress section says \"Fleet isn't running, so agent work and its health are unknown.\" instead of a CLI hint, and System shows one Fleet card marked Not running instead of separate Codex, GitHub, Fleet and Fleet work cards. Both pages keep the exact `work-fleet serve <board> --port <port>` command, with this Board's folder and Fleet port, in a \"How to start Fleet\" popover. The unavailable Fleet items projection and the error diagnostics observation carry that command as an optional `startCommand`.\n- The System Fleet card's state reflects only Fleet health (capacity and clock). Fleet's own waiting counts no longer mark it as needing attention, so the only needs-you number on System is the Board's count shown on Today and in the sidebar.\n"
+			},
+			{
+				"name": "work-board-result-pages.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- The result review, agent handoff and getting-started pages now look like the rest of the Board: the shared page header, cards, badges, alerts and the Board's colours and spacing.\n- These pages use plain words. A result shows its status as a status chip, its checks and evidence in a table that says \"No evidence recorded\" or \"Not recorded\" instead of leaving gaps, and a warning when some feedback can't be read.\n- The handoff page links back to its item, asks for an agent name and next step, says when the Board is read-only, and labels its copy button **Copy prompt**.\n- Each getting-started template has a **Copy** button, so you no longer have to select the text by hand.\n"
+			},
+			{
+				"name": "work-board-shell.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- Reading history opens as a dialog with Pinned and Recent documents lists, and closes with Escape.\n- A clicked sidebar or phone destination is marked current at once, and the header shows a progress bar when a page takes longer than 150 ms to open.\n- Settings choose Theme (System, Light, Dark) and Density (Comfortable, Compact) with toggle groups.\n- Keyboard focus shows a 3 px ring that meets 3:1 contrast against the page in light and dark themes.\n- The header's sidebar button is an icon button named Sidebar, and its Today link appears only while the desktop sidebar is hidden.\n- The document action to keep a document in Pinned is named Pin and Unpin.\n- The phone More sheet lists pinned and recent documents and opens reading history.\n- Inspecting an image or diagram opens the shared stock dialog, which Escape and Close dismiss back to the source.\n"
+			},
+			{
+				"name": "work-board-today-rows.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- Today's Needs you rows drop the item ID, which the item page still shows. Each row has one primary button: **Answer** opens a popover with the request's options or a text answer and an **Open question** link, and **Open** links to the item page when a request can't be answered inline. On a phone the reason gets its own full-width line.\n- Needs you reasons read as plain sentences. Fleet decisions start with \"Fleet asks:\" and their question, and a person's note drops the raw `owner:` and status prefixes.\n- The Today popover says \"Answering is turned off on this Board.\" when the Board runs without `--responses`.\n"
+			},
+			{
+				"name": "work-board-work-table.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- The Table view is a sortable data table: click a column header to sort by it, click again to reverse, and each row is headed by a link to the item with its ID underneath. Saved views keep the sort direction.\n- All work and Table share one toolbar with a search box and Status, Owner, Board and Sort menus, plus a Reset link while a filter applies.\n- All work heads each status group with a count badge.\n- Now lanes mark empty lanes, keep Done collapsed until opened, show Fleet outages in one notice, and on a phone show one lane at a time behind lane tabs. Long card lists now scroll inside their lane instead of leaving blank space.\n- The sidebar's Now count is the number of open cards on the Now page: queued, executing, reviewing, delivering and waiting work, using Fleet stages when Fleet is available.\n- Done in the last 7 days sits under the lanes as a one-line disclosure.\n- The work page heading names the selected view: Now, All work or Table.\n- Filter links drop empty parameters, so shared URLs stay short.\n"
+			},
+			{
+				"name": "work-fleet-status-summary.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Keep daemon status overviews responsive with 2,000 stored records by reading operator fields without prompts, Board context, archived cycles or worker output. Show at most 50 completed items, newest first, while retaining all active and waiting work. Targeted `status <id> --json` includes the full stored record in `record`.\n\n### Breaking\n\n- Overview decisions omit `publicationWork` and `published`, and completed work is limited to the newest 50 items. Consumers that need full decision context or older completed records should request `daemon.status` with `workId` and read `record` (or use `fleet.get`).\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.5",
+				"from": "0.11.6",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.6"
+				"to": "0.11.7"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/local-postgres",
-				"from": "0.4.2",
-				"name": "@shivaedev/local-postgres",
-				"to": "0.5.0"
+				"directory": "packages/effect-contract",
+				"from": "0.6.0",
+				"name": "@shivaedev/effect-contract",
+				"to": "0.7.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-react",
+				"from": "0.10.1",
+				"name": "@shivaedev/effect-react",
+				"to": "0.10.2"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/test-story",
-				"from": "0.14.0",
-				"name": "@shivaedev/test-story",
-				"to": "0.15.0"
+				"directory": "packages/effect-sql",
+				"from": "0.8.1",
+				"name": "@shivaedev/effect-sql",
+				"to": "0.9.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-test-sql",
+				"from": "0.7.2",
+				"name": "@shivaedev/effect-test-sql",
+				"to": "0.7.3"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/platform",
+				"from": "0.20.2",
+				"name": "@shivaedev/platform",
+				"to": "0.20.3"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/quality",
+				"from": "0.29.0",
+				"name": "@shivaedev/quality",
+				"to": "0.29.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/work-board",
+				"from": "0.21.4",
+				"name": "@shivaedev/work-board",
+				"to": "0.21.5"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.13.1",
+				"from": "0.13.2",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.13.2"
+				"to": "0.13.3"
 			}
 		]
 	}
