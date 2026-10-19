@@ -5,6 +5,7 @@ import { todayIds } from "./todayIds.ts";
 export function TodaySummary({
 	needs,
 	progress,
+	progressFromFiles,
 	progressUnavailable,
 	goals,
 	goalsFailed,
@@ -12,6 +13,7 @@ export function TodaySummary({
 }: {
 	readonly needs: number | undefined;
 	readonly progress: number | undefined;
+	readonly progressFromFiles: boolean;
 	readonly progressUnavailable: boolean;
 	readonly goals: number | undefined;
 	readonly goalsFailed: boolean;
@@ -21,7 +23,7 @@ export function TodaySummary({
 		<nav aria-label="Today summary" className="today-strip flex flex-wrap items-center gap-1 whitespace-nowrap tabular-nums sm:gap-2">
 			<a href={`#${todayIds.needs}`}>{needs === undefined ? "Needs you unavailable" : `${needs} need you`}</a>
 			<span aria-hidden="true">·</span>
-			<a href={`#${todayIds.progress}`}>{progressSummary(progress, progressUnavailable)}</a>
+			<a href={`#${todayIds.progress}`}>{progressSummary(progress, progressFromFiles, progressUnavailable)}</a>
 			<span aria-hidden="true">·</span>
 			<a href={`#${todayIds.goals}`}>{goalsSummary(goals, goalsFailed)}</a>
 			{issues.length > 0 && (
@@ -36,16 +38,16 @@ export function TodaySummary({
 	);
 }
 
-function progressSummary(count: number | undefined, unavailable: boolean) {
+function progressSummary(count: number | undefined, fromFiles: boolean, unavailable: boolean) {
 	if (count !== undefined) {
-		return `${count} in progress`;
+		return fromFiles ? `${count} in progress in task files` : `${count} in progress`;
 	}
 	return unavailable ? "Fleet unavailable" : "Loading Fleet…";
 }
 
 function goalsSummary(count: number | undefined, failed: boolean) {
 	if (count !== undefined) {
-		return `${count} active goals`;
+		return `${count} active ${count === 1 ? "goal" : "goals"}`;
 	}
 	return failed ? "Goals unavailable" : "Loading goals…";
 }
