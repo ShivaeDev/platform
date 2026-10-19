@@ -9,24 +9,25 @@ import { screenFiles, screenFleet, screenRoute } from "#test/screenWorkspaceTrai
 expectNoReactWarnings();
 
 screenStory.it(
-	"says in plain words who holds each Now card and how long it has been in its stage",
+	"says in plain words who holds each Now card and how long it has been in its stage, leaving its links as the only Tab stops",
 	[
 		screenFiles(fleetWorkspace, { home: "home.md" }),
 		screenFleet(fleetWorkspaceItems(Effect.runSync(Clock.currentTimeMillis))),
 		screenRoute("/_board/work"),
 		openScreen(),
 	],
-	function* ({ findElement, findElements, readText }) {
+	function* ({ findElement, findElements, readTabStops, readText }) {
 		function card(id: string) {
 			const found = findElement(`[data-item="${id}"]`);
 			return { owner: readText(".work-owner", found), stage: readText(".work-stage", found) };
 		}
 		yield* Effect.promise(() =>
-			eventually(() => expect(card("task.upload")).toEqual({ owner: "Fleet is working on this", stage: "Executing for 4h" })),
+			eventually(() => expect(card("task.upload")).toEqual({ owner: "Fleet is working on this", stage: "Executing, started 4h ago" })),
 		);
-		expect(card("task.guide")).toEqual({ owner: "Queued for Fleet", stage: "Queued for 4h" });
-		expect(card("task.email")).toEqual({ owner: "Needs you", stage: "Waiting for 4h" });
+		expect(card("task.guide")).toEqual({ owner: "Queued for Fleet", stage: "Queued 4h ago" });
+		expect(card("task.email")).toEqual({ owner: "Needs you", stage: "Waiting, started 4h ago" });
 		expect(card("task.pricing")).toEqual({ owner: "Assigned to you", stage: undefined });
 		expect(findElements(".work-now .work-kind")).toHaveLength(0);
+		expect(readTabStops('[data-item="task.upload"]')).toEqual(findElements('[data-item="task.upload"] a[href]'));
 	},
 );

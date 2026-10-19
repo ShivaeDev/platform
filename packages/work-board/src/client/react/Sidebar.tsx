@@ -14,7 +14,7 @@ import { useCurrentDestination } from "#client/react/navigationTarget.ts";
 import { PinnedLinks, RecentLinks } from "#client/react/readingLinks.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
-import { shownInboxCount } from "#client/react/shownInboxCount.ts";
+import { useShownInboxCount } from "#client/react/useShownInboxCount.ts";
 import type { SidebarControls } from "#client/react/useSidebar.ts";
 import { workspaceDestinations } from "#client/react/workspaceDestinations.ts";
 
@@ -36,7 +36,7 @@ export function Sidebar({
 	const reading = useContext(LibraryContext);
 	const current = useCurrentDestination(main);
 	const counts = {
-		today: data?.inboxCount,
+		today: useShownInboxCount(data, navigated),
 		work: data?.counts.now,
 	};
 	const workCount =
@@ -75,11 +75,11 @@ export function Sidebar({
 				<PanelsTopLeft aria-hidden="true" className="size-5 text-primary" />
 				work board
 			</a>
-			<nav aria-label="Workspace" className="grid shrink-0 gap-1" data-inbox-count={String(data?.inboxCount ?? "?")} id={shellIds.primaryNavigation}>
+			<nav aria-label="Workspace" className="grid shrink-0 gap-1" data-inbox-count={String(counts.today ?? "?")} id={shellIds.primaryNavigation}>
 				{workspaceDestinations.map(({ label, href, view, id }) => (
 					<WorkspaceLink current={current === view} href={href} id={id} key={view} name={name(view, label)}>
 						<span>{label}</span>
-						{view === "today" && <InboxCount count={shownInboxCount(data, navigated)} id={shellIds.inboxCount} />}
+						{view === "today" && <InboxCount count={counts.today} id={shellIds.inboxCount} />}
 						{view === "work" && workCount}
 					</WorkspaceLink>
 				))}

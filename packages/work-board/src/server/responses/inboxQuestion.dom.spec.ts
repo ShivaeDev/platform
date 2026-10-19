@@ -11,7 +11,7 @@ boardStory.it(
 		yield* reader.chooseOption("option-1");
 		expect(page.document.querySelector('[data-choice="option-1"]')?.getAttribute("aria-checked")).toBe("true");
 		yield* reader.submit();
-		yield* Effect.promise(() => waitFor(() => expect(reader.responseStatus()).toContain("Saved:")));
+		yield* Effect.promise(() => waitFor(() => expect(reader.responseStatus()).toContain("Answer saved")));
 		yield* Effect.promise(() => waitFor(() => expect(reader.inboxCounts()).toEqual(["0", "0"])));
 		const response = savedAnswer();
 		expect(response.fields.kind).toBe("response");

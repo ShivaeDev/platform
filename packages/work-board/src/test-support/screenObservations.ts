@@ -48,6 +48,11 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 			}
 			return copy.textContent;
 		},
+		readDisabled: (control: Element) => {
+			tell("the reader checks whether the control is disabled");
+			// happy-dom leaves a control in a disabled fieldset enabled, which browsers do not.
+			return control.matches(":disabled") || control.closest("fieldset")?.disabled === true;
+		},
 		readFocus: () => {
 			tell("the reader checks keyboard focus");
 			return document.activeElement;
@@ -62,6 +67,13 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 		readRootAttribute: (name: string) => {
 			tell(`the reader checks browser ${name}`);
 			return document.documentElement.getAttribute(name);
+		},
+		readTabStops: (target: string | Element | null | undefined) => {
+			tell(`the reader tabs through ${typeof target === "string" ? target : target?.textContent}`);
+			const within = typeof target === "string" ? element(target) : target;
+			return [...(within?.querySelectorAll<HTMLElement>("*") ?? [])].filter(
+				(candidate) => candidate.tabIndex >= 0 && !candidate.matches(":disabled") && candidate.closest("[inert]") === null,
+			);
 		},
 		readText: (selector?: string, within?: ParentNode | null) => {
 			tell(`the reader reads ${selector ?? "the screen"}`);

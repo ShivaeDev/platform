@@ -1,8 +1,9 @@
-import { Clock, Effect, FileSystem, Path, Schema, Semaphore } from "effect";
+import { Clock, Effect, Fiber, FiberSet, FileSystem, Path, Schema, Semaphore } from "effect";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { Conflict, Forbidden, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
-import type { DraftInput } from "#browser/responses/schema.ts";
+import type { AnswerInput, DraftInput, RecordedResponse } from "#browser/responses/schema.ts";
+import type { ResponseRejection } from "#rpc/rejections.ts";
 import { awaitResponse } from "#server/responses/await.ts";
 import { responseHistory } from "#server/responses/history.ts";
 import { locate as locateQuestion } from "#server/responses/locate.ts";
@@ -26,9 +27,15 @@ export const Responses = defineService({
 	id: "WorkBoard/Responses",
 	initialize: Effect.gen(function* () {
 		const workspace = yield* Workspace;
-		return { fs: yield* FileSystem.FileSystem, lock: yield* Semaphore.make(1), options: yield* workspace.settings(), workspace };
+		return {
+			fs: yield* FileSystem.FileSystem,
+			lock: yield* Semaphore.make(1),
+			options: yield* workspace.settings(),
+			saves: yield* FiberSet.make<RecordedResponse, ResponseRejection>(),
+			workspace,
+		};
 	}),
-	methods: ({ options, fs, lock, workspace }) => {
+	methods: ({ options, fs, lock, saves, workspace }) => {
 		const snapshot = workspace.index().pipe(
 			rpcBoundary(ServiceUnavailable, {
 				message: "The workspace could not be indexed.",
@@ -90,7 +97,13 @@ export const Responses = defineService({
 				}),
 			);
 		}
+		function answer({ item, request, revision, ...draft }: AnswerInput) {
+			const save = Effect.flatMap(lock.withPermit(register({ item, request, revision })), (question) => record({ ...draft, question: question.id }));
+			// A browser that closes mid-save interrupts its request; the save runs in the service scope so the question never lands without its answer.
+			return Effect.flatMap(FiberSet.run(saves, save), Fiber.join);
+		}
 		return {
+			answer,
 			awaitResponse: awaitResponse(read),
 			history,
 			locate,

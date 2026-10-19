@@ -1,10 +1,10 @@
 import type { DocumentRequest } from "#browser/document/schema.ts";
 import { chosenLabels } from "#browser/responses/cardContext.ts";
 import type { RecordedResponse } from "#browser/responses/schema.ts";
-import { Age } from "./Age.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { shellIds } from "./shellIds.ts";
+import { RowTime } from "./Time.tsx";
 
 const KINDS = { "answer": "answered", "clarify": "asked back", "not_now": "said not now" } as const;
 
@@ -19,9 +19,9 @@ export function ResponseHistory({
 	const preview = request?.preview;
 	return (
 		<section className="space-y-3 border-t pt-4" id={id}>
-			<h2 className="font-medium text-sm">Recorded responses</h2>
+			<h2 className="font-medium text-sm">Answers so far</h2>
 			{records.length === 0 ? (
-				<EmptyState title="No responses yet">Answers recorded for this question appear here.</EmptyState>
+				<EmptyState title="No answers yet">Answers recorded for this question appear here.</EmptyState>
 			) : (
 				records.map((record) => (
 					<ResponseEntry current={record.response.question === preview?.id} key={record.id} record={record} request={request} />
@@ -49,7 +49,7 @@ function ResponseEntry({
 					{record.response.author}
 				</a>
 				<span className="text-muted-foreground">{KINDS[record.response.type]}</span>
-				<Age modified={record.response.recordedAt} short />
+				<RowTime at={record.response.recordedAt} className="text-muted-foreground text-xs" />
 			</h3>
 			{answers === undefined ? (
 				<AnswerMarkdown file={`responses/${record.id}.md`} source={record.body} />

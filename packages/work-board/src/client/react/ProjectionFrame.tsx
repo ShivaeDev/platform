@@ -76,8 +76,7 @@ export function ProjectionFrame<A, E extends { readonly _tag: string; readonly m
 				records.some(
 					(record) =>
 						record.target instanceof Element
-						&& (record.target.matches(".document-layout, .board[data-source]") || record.target.closest("article.doc, .item-introduction"))
-						&& !record.target.closest(".age"),
+						&& (record.target.matches(".document-layout, .board[data-source]") || record.target.closest("article.doc, .item-introduction")),
 				)
 			) {
 				announce();

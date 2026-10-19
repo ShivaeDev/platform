@@ -18,7 +18,11 @@ screenStory.it(
 		expect(readAttribute(trigger, "aria-expanded")).toBe("false");
 		click(trigger);
 		yield* Effect.promise(() =>
-			eventually(() => expect(readText("[aria-label='Options for question.storage'] button", document)).toContain("Keep local files · Recommended")),
+			eventually(() =>
+				expect(readText("[aria-label='Options for Where should the project documents live?'] button", document)).toContain(
+					"Keep local files · Recommended",
+				),
+			),
 		);
 		expect(readFocus()?.textContent).toContain("Keep local files · Recommended");
 		keyboard("Escape");
@@ -26,7 +30,7 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(findElement(trigger))));
 		click(trigger);
 		yield* Effect.promise(() => eventually(() => expect(findElement(DIALOG, document)).not.toBeNull()));
-		yield* Effect.promise(() => activate("[aria-label='Options for question.storage'] button"));
+		yield* Effect.promise(() => activate("[aria-label='Options for Where should the project documents live?'] button"));
 		yield* Effect.promise(() => eventually(() => expect(findElement(ASK)).toBeNull()));
 		const saved = yield* Effect.promise(() => readResponses("question.storage", "answer"));
 		expect(saved.responses).toHaveLength(1);

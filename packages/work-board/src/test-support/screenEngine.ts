@@ -16,7 +16,6 @@ import type { DiagramDrawing } from "./screenDiagrams.ts";
 import type { SessionTransport } from "./sessionTransport.ts";
 
 export interface ScreenEngine {
-	age?: { readonly modified: number; readonly view: (modified: number) => ReactNode };
 	api?: BoardTestApi;
 	boardScreen?: Awaited<ReturnType<typeof renderBoard>>;
 	readonly cleanups: Array<() => Promise<void>>;
@@ -28,6 +27,7 @@ export interface ScreenEngine {
 	files: Readonly<Record<string, string>>;
 	fleet?: BoardFixtureOptions["fleet"];
 	health?: boolean;
+	heldAnswerRefresh?: { readonly gate: Deferred.Deferred<void>; started: boolean };
 	heldRead?: { readonly url: string; readonly gate: Deferred.Deferred<void>; started: boolean };
 	heldRefresh?: { readonly url: string; readonly gate: Deferred.Deferred<void>; readonly failed: boolean; started: boolean };
 	indexFailed?: boolean;
@@ -55,6 +55,7 @@ export interface ScreenEngine {
 	sessionWrap?: FileSystemWrapper | undefined;
 	startupGate?: Deferred.Deferred<void>;
 	tell?: (line: string) => void;
+	time?: { readonly at: number; readonly view: (at: number) => ReactNode };
 	updatesPaused?: Atom.Writable<boolean>;
 	view?: Awaited<ReturnType<typeof render>>;
 }
@@ -90,7 +91,7 @@ export function* createScreen() {
 }
 
 function releaseScreenReads(engine: ScreenEngine) {
-	for (const gate of [engine.indexGate, engine.startupGate, engine.heldRefresh?.gate]) {
+	for (const gate of [engine.indexGate, engine.startupGate, engine.heldRefresh?.gate, engine.heldAnswerRefresh?.gate]) {
 		if (gate) {
 			Effect.runSync(Deferred.succeed(gate, undefined));
 		}

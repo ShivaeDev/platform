@@ -1,26 +1,8 @@
 import type { CodexLimits, GithubLimits, GithubWindow, UsageWindow } from "#browser/diagnostics/schema.ts";
 import { sentenceLabel } from "#browser/views/statusLabel.ts";
-import { resetLabel } from "#diagnostics/resetLabel.ts";
+import { Time } from "./Time.tsx";
 export function ObservedTime({ at }: { readonly at: number | null }) {
-	return at === null ? (
-		"Not reported"
-	) : (
-		<time dateTime={new Date(at).toISOString()}>
-			{new Date(at)
-				.toISOString()
-				.replace("T", " ")
-				.replace(/\.\d{3}Z$/u, " UTC")}
-		</time>
-	);
-}
-function Reset({ at, now }: { readonly at: number | null; readonly now: number }) {
-	return at === null ? (
-		"Not reported"
-	) : (
-		<time data-reset dateTime={new Date(at).toISOString()}>
-			{resetLabel(at, now)}
-		</time>
-	);
+	return at === null ? "Not reported" : <Time at={at} />;
 }
 function windowLabel(name: string, minutes: number | null) {
 	if (minutes === null) {
@@ -39,7 +21,7 @@ function windowLabel(name: string, minutes: number | null) {
 	}
 	return `${minutes}-minute limit`;
 }
-function Usage({ name, window, now }: { readonly name: string; readonly window: UsageWindow | null; readonly now: number }) {
+function Usage({ name, window }: { readonly name: string; readonly window: UsageWindow | null }) {
 	if (!window) {
 		return (
 			<li>
@@ -58,17 +40,15 @@ function Usage({ name, window, now }: { readonly name: string; readonly window: 
 			<meter aria-label={`${label} percent used`} max={100} min={0} value={Math.min(window.usedPercent, 100)}>
 				{window.usedPercent}%
 			</meter>
-			<p>
-				Resets <Reset at={window.resetsAt === null ? null : window.resetsAt * 1000} now={now} />
-			</p>
+			<p>Resets {window.resetsAt === null ? "Not reported" : <Time at={window.resetsAt * 1000} />}</p>
 		</li>
 	);
 }
-export function DiagnosticsWindows({ value, now }: { readonly value: CodexLimits; readonly now: number }) {
+export function DiagnosticsWindows({ value }: { readonly value: CodexLimits }) {
 	return (
 		<ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 [&_meter]:w-full">
-			<Usage name="Short limit" now={now} window={value.primary} />
-			<Usage name="Long limit" now={now} window={value.secondary} />
+			<Usage name="Short limit" window={value.primary} />
+			<Usage name="Long limit" window={value.secondary} />
 		</ul>
 	);
 }
@@ -98,14 +78,14 @@ function GithubResource({ window, now }: { readonly window: GithubWindow; readon
 			</dd>
 			{window.limitedUntil !== null && window.limitedUntil > now ? (
 				<dd>
-					<strong>{GITHUB_PAUSES[window.limitedBy ?? "rate-limit"]}</strong>. Resumes <Reset at={window.limitedUntil} now={now} />
+					<strong>{GITHUB_PAUSES[window.limitedBy ?? "rate-limit"]}</strong>. Resumes <Time at={window.limitedUntil} />
 				</dd>
 			) : null}
 			<dd>
-				Resets <Reset at={window.reset * 1000} now={now} />
+				Resets <Time at={window.reset * 1000} />
 			</dd>
 			<dd>
-				Checked <time dateTime={new Date(window.observedAt).toISOString()}>{resetLabel(window.observedAt, now)}</time>
+				Checked <Time at={window.observedAt} />
 			</dd>
 		</div>
 	);

@@ -1,7 +1,7 @@
 import { act } from "react";
 import { vi } from "vitest";
 import type { ScreenEngine } from "./screenEngine.ts";
-export function ageActions(engine: ScreenEngine, tell: (line: string) => void) {
+export function timeActions(engine: ScreenEngine, tell: (line: string) => void) {
 	return {
 		advanceTime: async (milliseconds: number) => {
 			tell(`time advances ${milliseconds} milliseconds`);
@@ -20,12 +20,12 @@ export function ageActions(engine: ScreenEngine, tell: (line: string) => void) {
 			tell("the reader checks the timers still owned by the view");
 			return vi.getTimerCount();
 		},
-		refreshAge: async (millisecondsAgo: number) => {
+		refreshTime: async (millisecondsAgo: number) => {
 			tell(`the timestamp refreshes to ${millisecondsAgo} milliseconds earlier`);
-			if (!engine.view || engine.age === undefined) {
-				throw new Error("The age screen has not opened");
+			if (!engine.view || engine.time === undefined) {
+				throw new Error("The time screen has not opened");
 			}
-			await engine.view.render(engine.age.view(engine.age.modified - millisecondsAgo));
+			await engine.view.render(engine.time.view(engine.time.at - millisecondsAgo));
 		},
 	};
 }

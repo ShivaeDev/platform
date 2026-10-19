@@ -3,23 +3,35 @@ import type { ReactNode } from "react";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { answeredCopy } from "#client/responses/answeredCopy.ts";
-import { Age } from "./Age.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import type { ShellApi } from "./ShellApi.ts";
+import { RowTime } from "./Time.tsx";
 import { TodayOptions } from "./TodayOptions.tsx";
+import { todayKey } from "./todayKey.ts";
 
 type Item = InboxProjection["you"][number];
-export function TodayNeeds({ api, data }: { readonly api: ShellApi; readonly data: InboxProjection }) {
-	if (!data.complete) {
+
+export function TodayNeeds({
+	api,
+	complete,
+	items,
+	onSaved,
+}: {
+	readonly api: ShellApi;
+	readonly complete: boolean;
+	readonly items: readonly Item[];
+	readonly onSaved: (item: Item) => void;
+}) {
+	if (!complete) {
 		return <p role="status">Workspace incomplete. Needs-you membership and counts are unavailable.</p>;
 	}
-	return data.you.length > 0 ? (
+	return items.length > 0 ? (
 		<ul aria-label="Needs you" className="m-0 list-none divide-y rounded-lg border border-border p-0">
-			{data.you.map((item) => (
-				<li className="min-h-12 sm:h-12 sm:max-h-12" data-attention-id={item.id} key={`${item.file}:${item.href}`}>
+			{items.map((item) => (
+				<li className="min-h-12 sm:h-12 sm:max-h-12" data-attention-id={item.id} key={todayKey(item)}>
 					<TodayRow attention item={item}>
-						<TodayOptions api={api} item={item} />
+						<TodayOptions api={api} item={item} onSaved={() => onSaved(item)} />
 					</TodayRow>
 				</li>
 			))}
@@ -47,7 +59,7 @@ export function TodayAnswered({ fleet, items }: { readonly fleet: FleetItemsProj
 	return (
 		<ul aria-label="Answered, waiting for Fleet" className="m-0 list-none divide-y rounded-lg border border-border p-0">
 			{items.map((item) => (
-				<li className="min-h-12 sm:h-12 sm:max-h-12" data-answered-id={item.id} key={`${item.file}:${item.href}`}>
+				<li className="min-h-12 sm:h-12 sm:max-h-12" data-answered-id={item.id} key={todayKey(item)}>
 					<TodayRow detail={item.answered && answeredCopy(item.answered, fleet)} item={item} />
 				</li>
 			))}
@@ -79,7 +91,7 @@ function TodayRow({
 				{item.title}
 			</a>
 			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums max-sm:self-start max-sm:leading-6 sm:row-span-2">
-				{item.modified === undefined ? "Age ?" : <Age modified={item.modified} short />}
+				{item.modified === undefined ? "Age ?" : <RowTime at={item.modified} />}
 			</span>
 			{children ? <div className="max-sm:self-start sm:row-span-2">{children}</div> : null}
 			<p className="col-span-full m-0 truncate text-muted-foreground text-xs sm:col-span-1 sm:col-start-1 sm:row-start-2" title={text}>
