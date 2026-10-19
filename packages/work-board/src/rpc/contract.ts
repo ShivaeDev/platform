@@ -13,6 +13,7 @@ import { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { DiagnosticsProjection, HandoffProjection, StartProjection } from "#browser/views/remaining.ts";
 import { BoardProjection, InboxProjection, WorkProjection } from "#browser/views/schema.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
+import { Indexing } from "#rpc/Indexing.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 import { index, navigation, watcher, workspace } from "./keys.ts";
 import { PageUrl } from "./PageUrl.ts";
@@ -95,7 +96,11 @@ const ReadWatcher = query("watcher", {
 	rejections: { InternalServerError },
 	success: Schema.Struct({ watching: Schema.Boolean }),
 });
-export const Subscribe = stream("subscribe", { reads: () => [workspace.list], rejections: { InternalServerError }, success: LiveHint });
+export const Subscribe = stream("subscribe", {
+	reads: () => [workspace.list],
+	rejections: { InternalServerError },
+	success: Schema.Union([LiveHint, Indexing]),
+});
 export const workContract = contract("work-board", {
 	queries: [
 		ReadServer,

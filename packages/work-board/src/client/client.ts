@@ -1,7 +1,7 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
-import type * as Atom from "effect/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
@@ -14,6 +14,7 @@ import { type ResumeOptions, resumeSignal } from "@shivaedev/effect-contract/res
 import type { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Subscribe, workContract, workRpcs } from "#rpc/contract.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
+import type { Indexing } from "#rpc/Indexing.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 
 export interface Reader {
@@ -27,6 +28,7 @@ type BoundContract<TContract> =
 export interface BrowserClient {
 	readonly api: BoundContract<typeof workContract>;
 	readonly handoffs: BoundContract<typeof handoffContract>;
+	readonly indexing: Atom.Atom<Indexing | undefined>;
 	readonly mutate: <A, E>(effect: Effect.Effect<A, E, Reader | Reactivity.Reactivity>, signal?: AbortSignal) => Promise<A>;
 	readonly read: <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, signal?: AbortSignal) => Promise<A>;
 	readonly registry: AtomRegistry.AtomRegistry;
@@ -43,10 +45,15 @@ export function browserClient(url: string, options: ResumeOptions = {}): Browser
 	}) {}
 	const api = bind(workContract, Client);
 	const registry = AtomRegistry.make({ "defaultIdleTTL": 0, timeoutResolution: 1 });
+	const indexing = Atom.make<Indexing | undefined>(undefined);
 	const updates = live(Client.runtime, {
 		resume: resumeSignal(options),
 		resyncKeys: Subscribe.reads(undefined),
-		stream: api.subscribe.run(undefined),
+		stream: api.subscribe.run(undefined).pipe(
+			Stream.tap((item) => Effect.sync(() => registry.set(indexing, item._tag === "Indexing" ? item : undefined))),
+			Stream.filter((item) => item._tag !== "Indexing"),
+			Stream.ensuring(Effect.sync(() => registry.set(indexing, undefined))),
+		),
 	});
 	registry.mount(updates.connection);
 	async function read<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, signal?: AbortSignal) {
@@ -86,5 +93,5 @@ export function browserClient(url: string, options: ResumeOptions = {}): Browser
 		return result.success;
 	}
 	const responses = bind(responseContract, Client);
-	return { api, handoffs: bind(handoffContract, Client), mutate, read, registry, responses, run, runtime: Client.runtime, updates };
+	return { api, handoffs: bind(handoffContract, Client), indexing, mutate, read, registry, responses, run, runtime: Client.runtime, updates };
 }

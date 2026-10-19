@@ -14,6 +14,7 @@ import { useCurrentDestination } from "#client/react/navigationTarget.ts";
 import { PinnedLinks, RecentLinks } from "#client/react/readingLinks.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
+import { shownInboxCount } from "#client/react/shownInboxCount.ts";
 import type { SidebarControls } from "#client/react/useSidebar.ts";
 import { workspaceDestinations } from "#client/react/workspaceDestinations.ts";
 
@@ -78,7 +79,7 @@ export function Sidebar({
 				{workspaceDestinations.map(({ label, href, view, id }) => (
 					<WorkspaceLink current={current === view} href={href} id={id} key={view} name={name(view, label)}>
 						<span>{label}</span>
-						{view === "today" && <InboxCount count={counts.today ?? null} id={shellIds.inboxCount} />}
+						{view === "today" && <InboxCount count={shownInboxCount(data, navigated)} id={shellIds.inboxCount} />}
 						{view === "work" && workCount}
 					</WorkspaceLink>
 				))}

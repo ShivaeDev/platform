@@ -14,8 +14,8 @@ export function ShellLiveStatus({
 	return client ? (
 		<LiveControls client={client} navigationFailed={failed} navigationPending={pending} />
 	) : (
-		<span className="font-mono text-muted-foreground text-xs max-md:hidden" id={shellIds.live} role="status">
-			connecting
+		<span className="text-muted-foreground text-xs max-md:hidden" data-state="connecting" id={shellIds.live} role="status">
+			Connecting…
 		</span>
 	);
 }

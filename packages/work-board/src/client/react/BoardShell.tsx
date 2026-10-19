@@ -22,6 +22,7 @@ import type { ShellApi } from "./ShellApi.ts";
 import { ShellLiveStatus } from "./ShellLiveStatus.tsx";
 import { Sidebar } from "./Sidebar.tsx";
 import { shellIds } from "./shellIds.ts";
+import { shownInboxCount } from "./shownInboxCount.ts";
 import { ThemeContext } from "./ThemeContext.ts";
 import { UpdatesToggle } from "./UpdatesToggle.tsx";
 import { useAppearance } from "./useAppearance.ts";
@@ -87,6 +88,7 @@ function BoardWorkspace(
 			ready?.();
 		}
 	}, [ready, data, main, element]);
+	const inboxCount = shownInboxCount(data, Option.isSome(query.cause));
 	const live = <ShellLiveStatus client={client} failed={Option.isSome(query.cause)} pending={query.pending} />;
 	const content = (
 		<AgeTicker>
@@ -119,7 +121,7 @@ function BoardWorkspace(
 					<div className="min-w-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" data-board-page inert={sidebar.narrow && sidebar.open}>
 						<Header
 							appearance={appearance}
-							count={data?.inboxCount ?? null}
+							count={inboxCount}
 							live={live}
 							main={main}
 							openSearch={search.show}
@@ -128,7 +130,7 @@ function BoardWorkspace(
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
 						{opened ? <FleetMain api={api} home={data?.home} onPage={onPage} url={url} /> : <OpeningView url={url} />}
-						<PhoneNavigation count={data?.inboxCount ?? null} main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
+						<PhoneNavigation count={inboxCount ?? null} main={main} more={phoneOpen} onMoreChange={setPhoneOpen} openSearch={search.show} />
 					</div>
 				</div>
 				{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}
