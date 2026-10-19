@@ -1,9 +1,13 @@
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
+import { NOT_FOUND_PROJECTION } from "./mainLocation.ts";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 export function pageQueries(api: ShellApi, kind: string, url: string): readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[] {
+	if (kind === NOT_FOUND_PROJECTION) {
+		return [];
+	}
 	if (kind === "today") {
 		return [
 			api.inbox.query(undefined, routeQueryOptions),

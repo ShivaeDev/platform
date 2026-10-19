@@ -1,4 +1,4 @@
-import { Context, Effect } from "effect";
+import { type Clock, Context, Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import type { HostConfig } from "#host/config.ts";
 import type { MainSnapshot } from "#host/mainSource.ts";
@@ -8,6 +8,7 @@ import type { Follower } from "#test/followerProcess.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
 import { localBoardHost } from "#test/localBoardHost.ts";
 import { movingMainSource } from "#test/mainSource.ts";
+import { questionPublicationBoard } from "#test/questionPublicationVerbs.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
 import { type SnapshotReads, snapshotReads } from "#test/snapshotReads.ts";
 import { type HostDaemon, startHostDaemon } from "#test/startHostDaemon.ts";
@@ -21,6 +22,7 @@ export class HostStoryEngine {
 	localBoard = false;
 	repositoryRoot: string | undefined;
 	briefParseCount: (() => number) | undefined;
+	questionRegistrationClock: Clock.Clock | undefined;
 	readonly followers = new Map<string, Follower>();
 	readonly snapshots: unknown[] = [];
 	reads: SnapshotReads | undefined;
@@ -88,7 +90,8 @@ export class HostStoryEngine {
 			if (resources === undefined || reads === undefined) {
 				return yield* Effect.die("Deploy the host before starting it");
 			}
-			const parts = { ...engine.fixture.parts, provider: resources.provider };
+			const board = questionPublicationBoard(engine);
+			const parts = { ...engine.fixture.parts, ...(board === undefined ? {} : { board }), provider: resources.provider };
 			if (engine.main !== undefined) {
 				parts.main = movingMainSource(() => engine.observedMain, engine.repositoryRoot);
 			}

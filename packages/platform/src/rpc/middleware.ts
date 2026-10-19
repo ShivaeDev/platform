@@ -21,7 +21,7 @@ export class MaybeAuthenticated extends RpcMiddleware.Service<
 	{
 		provides: OptionalIdentity;
 	}
->()("@shivaedev/platform/rpc/MaybeAuthenticated", { error: Schema.Union([AuthUnavailable, Forbidden]) }) {}
+>()("@shivaedev/platform/rpc/MaybeAuthenticated", { error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden]) }) {}
 export class AuthenticatedUser extends RpcMiddleware.Service<
 	AuthenticatedUser,
 	{

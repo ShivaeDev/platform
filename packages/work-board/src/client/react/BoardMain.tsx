@@ -2,6 +2,7 @@ import type { Navigation } from "#browser/Navigation.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
 import { documentRoute } from "./documentRoute.ts";
 import type { MainLocation } from "./mainLocation.ts";
+import { NotFoundMain } from "./NotFoundPage.tsx";
 import { ProjectionMain } from "./ProjectionMain.tsx";
 import { projectionRoute } from "./projectionRoute.ts";
 import { RemainingMain } from "./RemainingMain.tsx";
@@ -26,5 +27,9 @@ export function BoardMain({
 	if (documentRoute(pathname, home)) {
 		return <DocumentMain api={api} onPage={onPage} url={url} />;
 	}
-	return <RemainingMain api={api} onPage={onPage} route={remainingRoute(pathname) ?? "start"} url={url} />;
+	const remaining = remainingRoute(pathname);
+	if (remaining) {
+		return <RemainingMain api={api} onPage={onPage} route={remaining} url={url} />;
+	}
+	return <NotFoundMain onPage={onPage} url={url} />;
 }
