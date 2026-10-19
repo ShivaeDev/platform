@@ -10,4 +10,5 @@
 ### Fixed
 
 - A task with an open ask for you, linked through `attention.unblocks`, sits in **Waiting on a person** and its card reads "Waiting on your answer". Asks only for agents and questions that only relate to a task leave it where it was.
-- All work cards name a goal's kind "Goal" instead of "PROJECT".
+- An item's header says "Needs you" only when an open ask is for you, and "Waiting on agents" when only agents can answer it, matching Now and Today.
+- All work cards and the table's Kind column name a goal's kind "Goal" instead of "PROJECT" or "project".

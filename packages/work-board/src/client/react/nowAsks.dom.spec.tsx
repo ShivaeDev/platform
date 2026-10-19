@@ -23,11 +23,16 @@ screenStory.it(
 	},
 );
 
-screenStory.it(
-	"shows the same open ask in the task's header as on its Now card",
-	[routedScreen(nowAsksFixture, "/_board/item/task.yours/", { home: "home.md" })],
-	function* ({ findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(".answer-cards")).not.toBeNull()));
-		expect(readText(".item-summary [data-status-token]")).toBe("Needs you");
-	},
-);
+for (const [task, chip] of [
+	["task.yours", "Needs you"],
+	["task.agent", "Waiting on agents"],
+] as const) {
+	screenStory.it(
+		`splits the header chip of ${task} by who answers its open ask, like Now and Today`,
+		[routedScreen(nowAsksFixture, `/_board/item/${task}/`, { home: "home.md" })],
+		function* ({ findElement, readText }) {
+			yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary [data-status-token]")).not.toBeNull()));
+			expect(readText(".item-summary [data-status-token]")).toBe(chip);
+		},
+	);
+}

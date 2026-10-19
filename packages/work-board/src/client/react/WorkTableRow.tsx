@@ -1,6 +1,6 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
-import { sameStatus } from "#browser/views/statusLabel.ts";
+import { kindLabel, sameStatus } from "#browser/views/statusLabel.ts";
 import { TableCell, TableHead, TableRow } from "#client/react/components/ui/table.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import { WorkItemTitle } from "./WorkItemTitle.tsx";
@@ -33,7 +33,9 @@ export function WorkTableRow({
 				<span className="block break-all font-mono text-muted-foreground text-xs">{item.id}</span>
 				{Boolean(item.metadata.nextAction) && <span className="mt-1 block text-muted-foreground text-xs md:hidden">{item.metadata.nextAction}</span>}
 			</TableHead>
-			<TableCell className="whitespace-normal py-2.5 text-muted-foreground max-md:hidden">{item.metadata.kind ?? ""}</TableCell>
+			<TableCell className="work-kind whitespace-normal py-2.5 text-muted-foreground max-md:hidden">
+				{item.metadata.kind === undefined ? "" : kindLabel(item.metadata.kind)}
+			</TableCell>
 			<TableCell className="whitespace-normal py-2.5">
 				<div className="flex flex-wrap gap-1">
 					{Boolean(item.waiting) && !(status && sameStatus(status, "needs-you")) && <StatusChip status="needs-you" />}

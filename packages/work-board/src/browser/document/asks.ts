@@ -14,11 +14,10 @@ export function itemAsks<TRequest extends RequestState>(item: AskedItem<TRequest
 }
 
 export function askStatus(item: AskedItem<RequestState>): "needs-you" | "waiting-on-agents" | undefined {
-	const asks = itemAsks(item);
-	if (asks.length === 0) {
-		return undefined;
+	if (waitsOnYou(item)) {
+		return "needs-you";
 	}
-	return asks.some((request) => request.answered === undefined) ? "needs-you" : "waiting-on-agents";
+	return itemAsks(item).length > 0 ? "waiting-on-agents" : undefined;
 }
 
 // Today splits asks by who answers them; an open ask only for agents does not wait on the reader.

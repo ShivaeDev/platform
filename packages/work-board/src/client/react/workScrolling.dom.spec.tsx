@@ -64,20 +64,21 @@ screenStory.it(
 	},
 );
 
-screenStory.it(
-	"names a goal's kind on its All work card the way search and the item header do",
-	[
-		componentScreen(
-			<WorkCards
-				data={(() => {
-					const data = nowWork(1);
-					const rows = data.rows.map((item) => ({ ...item, metadata: { ...item.metadata, kind: "project" as const } }));
-					return { ...data, items: rows, rows };
-				})()}
-			/>,
-		),
-	],
-	({ readText }) => {
-		expect(readText(".work-kind")).toBe("Goal");
-	},
-);
+const goalWork = (() => {
+	const data = nowWork(1);
+	const rows = data.rows.map((item) => ({ ...item, metadata: { ...item.metadata, kind: "project" as const } }));
+	return { ...data, items: rows, rows };
+})();
+
+for (const [name, View] of [
+	["All work card", WorkCards],
+	["Table row", WorkTable],
+] as const) {
+	screenStory.it(
+		`names a goal's kind in its ${name} the way search and the item header do`,
+		[componentScreen(<View data={goalWork} />)],
+		({ readText }) => {
+			expect(readText(".work-kind")).toBe("Goal");
+		},
+	);
+}
