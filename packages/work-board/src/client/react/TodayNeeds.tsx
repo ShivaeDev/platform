@@ -61,8 +61,8 @@ export function TodayAnswered({ fleet, rows }: { readonly fleet: FleetItemsProje
 	return (
 		<ul aria-label="Answered" className="m-0 list-none divide-y rounded-lg border border-border p-0">
 			{rows.map((row) => (
-				<li className="min-h-12 sm:h-12 sm:max-h-12" data-answer-state={row.state} data-answered-id={row.id} key={row.answer.response}>
-					<TodayRow detail={recentAnswerCopy(row, fleet)} item={{ ...row, modified: row.answeredAt }} />
+				<li className="min-h-12" data-answer-state={row.state} data-answered-id={row.id} key={row.answer.response}>
+					<TodayRow detail={recentAnswerCopy(row, fleet)} item={{ ...row, modified: row.answeredAt }} wrapDetail />
 				</li>
 			))}
 		</ul>
@@ -74,11 +74,13 @@ function TodayRow({
 	children,
 	detail,
 	item,
+	wrapDetail = false,
 }: {
 	readonly attention?: boolean;
 	readonly children?: ReactNode;
 	readonly detail?: string | undefined;
 	readonly item: Pick<Item, "href" | "modified" | "title"> & Partial<Pick<Item, "problem" | "reason">>;
+	readonly wrapDetail?: boolean;
 }) {
 	const text = detail ?? item.problem ?? item.reason;
 	return (
@@ -96,7 +98,13 @@ function TodayRow({
 				{item.modified === undefined ? "Age unknown" : <RowTime at={item.modified} />}
 			</span>
 			{children ? <div className="max-sm:self-start sm:row-span-2">{children}</div> : null}
-			<p className="col-span-full m-0 truncate text-muted-foreground text-xs sm:col-span-1 sm:col-start-1 sm:row-start-2" title={text}>
+			<p
+				className={cn(
+					"col-span-full m-0 text-muted-foreground text-xs sm:col-span-1 sm:col-start-1 sm:row-start-2",
+					wrapDetail ? "line-clamp-2" : "truncate",
+				)}
+				title={text}
+			>
 				{text}
 			</p>
 		</div>
