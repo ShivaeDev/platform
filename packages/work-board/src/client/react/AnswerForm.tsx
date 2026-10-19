@@ -10,8 +10,6 @@ import { shellIds } from "./shellIds.ts";
 import { useFormFocus } from "./useFormFocus.ts";
 import { useResponseForm } from "./useResponseForm.ts";
 
-const READ_ONLY = "This Board is read-only. Start it with --responses to record answers.";
-
 interface AnswerProps {
 	readonly document: Document;
 	readonly preview: QuestionPreview;
@@ -44,7 +42,6 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 			showErrors={state.attempted}
 		/>
 	);
-	const writableStatus = typeof window === "undefined" ? "JavaScript is required to record a response." : state.status;
 	return (
 		<form
 			{...focus}
@@ -54,7 +51,6 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 			data-request={preview.request}
 			data-response-form
 			data-revision={preview.reviewedRevision}
-			data-writable={data.writable}
 			id={id(shellIds.responseForm)}
 			noValidate
 			onChange={state.edit}
@@ -73,7 +69,7 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 						invalid?.focus();
 					});
 				}
-				if (data.writable && valid && !state.created.saving) {
+				if (valid && !state.created.saving) {
 					state.created.save();
 				}
 			}}
@@ -88,14 +84,13 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 			/>
 			{prompts.length === 0 && body}
 			<div className="flex flex-wrap items-center gap-3">
-				<Button disabled={!data.writable || state.created.saving} id={id(shellIds.responseSubmit)} type="submit">
+				<Button disabled={state.created.saving} id={id(shellIds.responseSubmit)} type="submit">
 					Record answer
 				</Button>
 			</div>
 			<p
 				className={cn(
 					"flex items-start gap-2 text-sm empty:hidden",
-					!data.writable && "text-muted-foreground",
 					state.outcome === "saved" && "rounded-md border border-done/40 bg-done/10 px-3 py-2",
 					(state.outcome === "rejected" || state.outcome === "uncertain") && "rounded-md border border-destructive/40 px-3 py-2 text-destructive",
 				)}
@@ -104,7 +99,7 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 				role="status"
 			>
 				{state.outcome === "saved" && <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-done" />}
-				{data.writable ? writableStatus : `${state.status} ${READ_ONLY}`.trim()}
+				{typeof window === "undefined" ? "JavaScript is required to record a response." : state.status}
 			</p>
 			<AnswerMore body={prompts.length > 0 ? body : undefined} id={id} request={request} state={state} />
 		</form>

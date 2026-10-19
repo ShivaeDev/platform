@@ -1,7 +1,7 @@
 import { Equal, Schema } from "effect";
 import { type FleetHost, HostConfig } from "#host/config.ts";
 import type { AppliedConfig } from "#host/liveConfig.ts";
-import { FleetViews } from "#model.ts";
+import { FleetRecord, FleetViews } from "#model.ts";
 
 // A running daemon applies these settings from an edited file; every other setting waits for a restart.
 export const RELOADABLE_SETTINGS = [
@@ -27,7 +27,7 @@ export const ConfigStatus = Schema.Struct({
 });
 export type ConfigStatus = typeof ConfigStatus.Type;
 
-export const DaemonStatus = Schema.Struct({ ...FleetViews.fields, config: Schema.optional(ConfigStatus) });
+export const DaemonStatus = Schema.Struct({ ...FleetViews.fields, config: Schema.optional(ConfigStatus), record: Schema.optional(FleetRecord) });
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);

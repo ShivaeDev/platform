@@ -21,7 +21,9 @@ for (const kind of ["response", "handoff"] as const) {
 			expect(findElement(field)).toHaveProperty("value", "Direction before replacement");
 			click(`#${kind}-preview`);
 			submit(`#${kind}-form`);
-			yield* Effect.promise(() => eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Saved:" : "Prepared:")));
+			yield* Effect.promise(() =>
+				eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Saved:" : "Saved handoffs/")),
+			);
 			if (kind === "response") {
 				expect(readText("#response-status")).toContain("not acceptance");
 			}

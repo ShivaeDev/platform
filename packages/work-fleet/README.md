@@ -91,6 +91,8 @@ The daemon watches its `fleet.config.json` (or the `--config` file) and applies 
 
 An edit that fails validation, is partly written, cannot be read, or names an unreadable guidance file keeps the last good config. The daemon logs a `HostConfigRejected` warning that names the failing field, and the next valid edit applies. A rejected edit never stops the daemon or drops tracked work.
 
+`work-fleet status` lists all active and waiting work with its stage, blocker, attention owner, links and PR, followed by at most 50 completed items, newest first by completion time (falling back to update time, then work id). The overview reads operator fields without prompts, Board context, archived cycles or worker output. Overview decisions omit `publicationWork` and `published`; request `work-fleet status <id> --json` (RPC `daemon.status` with `workId`) for the full record in `record`, including older completed work. The filtered view sections remain available beside that record.
+
 `work-fleet status` ends with the config the daemon applies now: when and from which file it was loaded, the provider and the reloadable settings with their defaults filled in, the paths waiting for a restart and the last rejected edit. `--json` carries the same view as `config`, with the database URL left out.
 
 ### Approve work and override launch settings

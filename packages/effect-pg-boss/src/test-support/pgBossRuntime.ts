@@ -2,6 +2,7 @@ import { Context, Effect, Exit, Layer, Logger, References, Scope } from "effect"
 import type { Job, JobInsert } from "pg-boss";
 import { type ConstructorOptions, PgBoss } from "pg-boss";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition } from "#definition.ts";
+import { logClientError, observeClientErrors } from "#internal/clientErrors.ts";
 import { expireAttempt } from "#internal/expireAttempt.ts";
 import { makePgBoss, type PgBossLayerOptions } from "#service.ts";
 import type { clientEngine } from "#test/clientEngine.ts";
@@ -11,12 +12,17 @@ import { constructorOptions } from "#test/fakeClient.ts";
 export const Jobs = makePgBoss("@test/PgBossStory");
 
 export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (line: string) => void) {
+	const logger = Logger.layer([Logger.make(({ logLevel, message }) => state.logs.push({ logLevel, message }))]);
+	function logged<A, E, R>(effect: Effect.Effect<A, E, R>) {
+		return effect.pipe(Effect.provide(logger), Effect.provideService(References.MinimumLogLevel, "Debug"));
+	}
 	function native(options?: ConstructorOptions) {
 		return new PgBoss({ ...constructorOptions, connectionString: state.connectionString, ...options });
 	}
 	function start(client: PgBoss) {
 		return Effect.acquireRelease(
 			Effect.promise(async () => {
+				observeClientErrors(client, (error) => Effect.runFork(logged(logClientError(error))));
 				await client.start();
 				return client;
 			}),
@@ -35,18 +41,24 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 	function boot<const T extends readonly JobRegistration[], R = never>(jobs: T, options?: Partial<PgBossLayerOptions<T, R>>) {
 		return Effect.gen(function* () {
 			tell(`start the jobs runtime with ${jobs.length} registrations`);
-			const logger = Logger.layer([Logger.make(({ logLevel, message }) => state.logs.push({ logLevel, message }))]);
 			const parent = yield* Scope.Scope;
 			const scope = yield* Scope.fork(parent);
-			const context = yield* Layer.build(layer(jobs, options)).pipe(
-				Effect.provideService(Scope.Scope, scope),
-				Effect.provide(logger),
-				Effect.provideService(References.MinimumLogLevel, "Debug"),
-			);
+			const context = yield* logged(Layer.build(layer(jobs, options)).pipe(Effect.provideService(Scope.Scope, scope)));
 			return {
 				jobs: Context.get(context, Jobs),
-				stop: Scope.close(scope, Exit.void).pipe(Effect.provide(logger), Effect.provideService(References.MinimumLogLevel, "Debug")),
+				stop: logged(Scope.close(scope, Exit.void)),
 			};
+		});
+	}
+	function terminateIdle(applicationName: string) {
+		return Effect.gen(function* () {
+			const sql = state.sql;
+			if (sql === undefined) {
+				return yield* Effect.die(new Error("Terminating idle connections needs the real PostgreSQL trait"));
+			}
+			const rows = yield* sql<{ pid: number; terminated: boolean }>`select pid, pg_terminate_backend(pid) as terminated from pg_stat_activity
+				where datname = current_database() and application_name = ${applicationName} and state = 'idle'`;
+			return rows.filter((row) => row.terminated).map((row) => row.pid);
 		});
 	}
 	return {
@@ -77,5 +89,6 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 					return ids;
 				});
 			}),
+		terminateIdle,
 	};
 }

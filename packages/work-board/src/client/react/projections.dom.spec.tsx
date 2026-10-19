@@ -47,7 +47,7 @@ for (const { url, selector, text, kind } of routes) {
 
 screenStory.it(
 	"retains inline answer edits and selected detail through a Work projection refresh",
-	[routedScreen({ ...files }, "/_board/work?view=board&item=question.fixture&q=task")],
+	[routedScreen({ ...files }, "/_board/work?view=board&item=question.fixture&q=task", { writable: true })],
 	function* ({ refreshQuery, selectText, findElement, readText, typeText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form textarea")).not.toBeNull()));
 		expect(readText(".detail-notice")).toContain("outside the current board or filters");

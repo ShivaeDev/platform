@@ -1,15 +1,20 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
+import { FleetStopped } from "./FleetStopped.tsx";
 import { inProgressItems } from "./inProgressItems.ts";
 
 export function TodayProgress({ data, failed }: { readonly data: FleetItemsProjection | undefined; readonly failed: boolean }) {
 	const items = inProgressItems(data);
 	return (
 		<div className="space-y-3">
-			{items === undefined && (
-				<p className="text-muted-foreground text-sm" role="status">
-					{unavailable(data, failed)}
-				</p>
+			{data?.state === "unavailable" && data.startCommand !== undefined ? (
+				<FleetStopped command={data.startCommand} reason={data.reason} />
+			) : (
+				items === undefined && (
+					<p className="text-muted-foreground text-sm" role="status">
+						{unavailable(data, failed)}
+					</p>
+				)
 			)}
 			{items?.length === 0 && <p className="text-muted-foreground text-sm">Fleet holds no work in progress.</p>}
 			{items !== undefined && items.length > 0 && (

@@ -328,6 +328,24 @@ Call the release functions and dispose the registry when the application's root 
 
 Import `makeLiveServer` from `@shivaedev/effect-contract/makeLiveServer.ts` and create it once with the server's `Reactivity` service. After application authorization, return `hints.stream([orders.item(id)])` from the native streaming RPC handler. Each subscription starts with `Resync`; invalidating its read keys produces `Changed` with those declared keys. `hints.resync` sends `Resync` to every live stream owned by that helper, including streams for otherwise unrelated keys. Independent helpers keep their resync scopes separate even when they share Reactivity. The native stream owns registration and interruption. Keep this server helper separate from the browser's `live` coordinator.
 
+For viewer-scoped hints, call `authorizeReads` once in the application's native authorization middleware, after resolving the session:
+
+```ts
+import { authorizeReads } from "@shivaedev/effect-contract/readPolicy.ts";
+
+const guard = Layer.succeed(Guard, (effect, request) =>
+  Effect.flatMap(resolveSession(request.headers), (session) =>
+    authorizeReads(effect, request, (key) => canRead(session, key), Effect.fail(new Denied())).pipe(
+      Effect.provideService(Session, session),
+    ),
+  ),
+);
+```
+
+The application supplies `resolveSession`, `canRead` and its middleware's `Denied` failure. Apply this middleware to the contract, including its reserved change stream. The policy returns an Effect boolean for a key. `authorizeReads` checks every declared query read key before running its handler and supplies the same policy to `makeLiveServer` streams, with the request's Effect context. Queries need no additional authorization declaration. A denied query returns the supplied failure.
+
+Each changed hint checks its keys against that viewer's policy before delivery and omits denied keys. An empty hint is suppressed. Item and list keys are checked independently: allow a list key when the viewer may read that list, even when a changed item is private to another viewer. The list query still selects its visible rows. Without a supplied `ReadPolicy`, streams keep the default of allowing their subscribed keys; applications own the policy.
+
 ### API by module
 
 Import the module that defines the name; the package has no root entry.
@@ -341,6 +359,8 @@ Import the module that defines the name; the package has no root entry.
 | `bind.ts` | `bind(contract, atomRpcService)`, exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
 | `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, resume?, retryDelay? })`, exposing `connection`, `paused` and `status`. |
 | `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
+| `readPolicy.ts` | `authorizeReads(effect, request, policy, denied)`; `ReadPolicy`, the request-local key policy used by server hint streams. |
+| `serverMetadata.ts` | `QueryReads`, `CommandInvalidation` and `changesRpc(name)` for server adapters. |
 | `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
 
 A query atom takes native query options as its optional second argument, for example `api.get.query({ id: 1 }, { timeToLive: "1 minute" })`. A native resume source receives a callback and returns a cleanup function.

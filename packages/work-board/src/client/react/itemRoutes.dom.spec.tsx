@@ -16,10 +16,10 @@ const files = {
 const items = [
 	{ id: "task.fixture", selector: "[data-react-document] .item-introduction h1", text: "Task details" },
 	{ id: "home.fixture", selector: "[data-react-projection] .board-head h1", text: "Project board" },
-	{ id: "missing.fixture", selector: "main [role=status]", text: "No item with this id" },
+	{ id: "missing.fixture", selector: "main [role=status]", text: "No item has the ID missing.fixture" },
 	{ id: "standalone.md", selector: "[data-react-document] .item-introduction h1", text: "Standalone identity" },
 	{ id: "source.md", selector: "[data-react-document] .item-introduction h1", text: "Identified source" },
-	{ id: "missing.md", selector: "main [role=status]", text: "No item with this id" },
+	{ id: "missing.md", selector: "main [role=status]", text: "No item has the ID missing.md" },
 ];
 const routes = items.flatMap((item) =>
 	["", "/"].flatMap((slash) => ["direct", "navigation"].map((mode) => ({ ...item, mode, url: `/_board/item/${item.id}${slash}` }))),

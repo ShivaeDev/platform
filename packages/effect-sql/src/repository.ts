@@ -5,6 +5,7 @@ import { type BatchWrites, makeInsertMany } from "#batchWrites.ts";
 import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeRepository.ts";
 import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#conflictWrites.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
+import type { RepositoryFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
 import { type IdColumn, makeVersionedWrites, type NativeRepository, type VersionColumn, type VersionedWrites } from "#versionedRepository.ts";
 
@@ -18,7 +19,7 @@ export interface FindMany<TModel extends Model.Any, TKey extends Key<TModel>> {
 		readonly direction: "asc" | "desc";
 	};
 	readonly select?: readonly [TKey, ...TKey[]];
-	readonly where?: { readonly [TField in keyof Row<TModel>]?: Row<TModel>[TField] | undefined };
+	readonly where?: RepositoryFilter<TModel>;
 }
 
 export class OptimisticConcurrencyError extends Data.TaggedError("OptimisticConcurrencyError")<{
@@ -35,32 +36,50 @@ interface RepositoryOptions<TId> {
 
 export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
 	model: TModel,
-	options: RepositoryOptions<TId> & { readonly versionColumn: VersionColumn<TModel, TId>; readonly conflictColumns?: never },
+	options: RepositoryOptions<TId> & {
+		readonly versionColumn: VersionColumn<TModel, TId>;
+		readonly conflictColumns?: never;
+		readonly conflictWhere?: never;
+	},
 ): Effect.Effect<
 	Omit<NativeRepository<TModel, TId>, keyof VersionedWrites<TModel, TId>> & VersionedWrites<TModel, TId> & Queries<TModel>,
 	never,
 	SqlClient.SqlClient
 >;
-export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel>, const TConflict extends ConflictColumns<TModel>>(
+export function makeRepository<
+	TModel extends Model.Any,
+	const TId extends PrimaryKey<TModel>,
+	const TConflict extends ConflictColumns<TModel>,
+	const TWhere extends keyof RepositoryFilter<TModel> = never,
+>(
 	model: TModel,
-	options: RepositoryOptions<TId> & { readonly versionColumn?: never; readonly conflictColumns: TConflict },
+	options: RepositoryOptions<TId> & {
+		readonly versionColumn?: never;
+		readonly conflictColumns: TConflict;
+		readonly conflictWhere?: Pick<RepositoryFilter<TModel>, TWhere>;
+	},
 ): Effect.Effect<
 	Repository<TModel, TId> &
 		BatchWrites<TModel> &
 		Queries<TModel> &
-		ConflictWrites<TModel, TConflict[number] | (TId extends readonly PropertyKey[] ? TId[number] : TId)>,
+		ConflictWrites<
+			TModel,
+			TConflict[number] | (TId extends readonly PropertyKey[] ? TId[number] : TId),
+			TModel["fields"][Extract<TWhere, keyof TModel["fields"]>]["EncodingServices"]
+		>,
 	never,
 	SqlClient.SqlClient
 >;
 export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel>>(
 	model: TModel,
-	options: RepositoryOptions<TId> & { readonly versionColumn?: never; readonly conflictColumns?: never },
+	options: RepositoryOptions<TId> & { readonly versionColumn?: never; readonly conflictColumns?: never; readonly conflictWhere?: never },
 ): Effect.Effect<Repository<TModel, TId> & BatchWrites<TModel> & Queries<TModel>, never, SqlClient.SqlClient>;
 export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
 	model: TModel,
 	options: RepositoryOptions<TId | readonly [TId, TId, ...TId[]]> & {
 		readonly versionColumn?: string;
 		readonly conflictColumns?: readonly string[];
+		readonly conflictWhere?: Readonly<Record<string, unknown>>;
 	},
 ): Effect.Effect<unknown, never, SqlClient.SqlClient> {
 	return Effect.fnUntraced(function* () {

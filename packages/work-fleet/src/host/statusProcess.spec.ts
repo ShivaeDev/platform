@@ -15,6 +15,7 @@ host.it("--board loads the host file and status filters stored work as text or J
 	expect(JSON.parse(json.stdout)).toEqual({
 		active: [expect.objectContaining({ stage: "executing", workId: "a" })],
 		completed: [],
+		record: expect.objectContaining({ prompt: expect.any(String), stage: "executing", workId: "a" }),
 		waiting: { automation: [], maintainer: [], orchestrator: [] },
 	});
 });
