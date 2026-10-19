@@ -6,7 +6,6 @@ import type { Findings, Rule } from "@shivaedev/quality/rule.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { scanned } from "#quality-fixtures/imports.ts";
 import type { SeedFile } from "#quality-fixtures/tree.ts";
-import { resolveRules } from "#quality-internal/config/resolve.ts";
 
 interface RuleEngine {
 	findings: Findings;
@@ -32,20 +31,6 @@ export const ruleKit = storyKit({
 					throw new Error(configured.issues.join("; "));
 				}
 				engine.findings = await configured.check(await scanned(engine.root));
-				return engine.findings;
-			}),
-		checksDefault: (id: string) =>
-			Effect.gen(function* () {
-				story.tell(`the author checks the default ${id} rule`);
-				const resolved = yield* resolveRules({});
-				if (resolved._tag === "Invalid") {
-					throw new Error(resolved.issues.join("; "));
-				}
-				const active = resolved.value.active.find((rule) => rule.id === id);
-				if (active === undefined) {
-					throw new Error(`No default rule named ${id}`);
-				}
-				engine.findings = yield* Effect.promise(async () => active.check(await scanned(engine.root)));
 				return engine.findings;
 			}),
 		writes: (...files: readonly SeedFile[]) =>
