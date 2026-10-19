@@ -8,7 +8,7 @@ const FleetDocument = Schema.NullOr(Schema.Struct({ file: Schema.String, metadat
 export const FleetItemsProjection = Schema.Union([
 	Schema.Struct({
 		completed: Schema.Array(Schema.Struct({ ...CompletedFleetItem.fields, document: FleetDocument })),
-		items: Schema.Array(Schema.Struct({ ...FleetItem.fields, document: FleetDocument })),
+		items: Schema.Array(Schema.Struct({ ...FleetItem.fields, document: FleetDocument, readyToMerge: Schema.optionalKey(Schema.Boolean) })),
 		state: Schema.Literal("ready"),
 	}),
 	Schema.Struct({

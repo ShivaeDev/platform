@@ -1,3 +1,4 @@
+import { PullRequestsPage } from "#client/react/PullRequestsPage.tsx";
 import { GoalsPage } from "./GoalsPage.tsx";
 import { HandoffPage } from "./HandoffPage.tsx";
 import { LibraryMain } from "./LibraryMain.tsx";
@@ -21,6 +22,15 @@ export function RemainingMain({
 }) {
 	const options = { onPage, route, url };
 	switch (route) {
+		case "pull-requests":
+			return (
+				<ProjectionFrame
+					{...options}
+					atom={api.fleetItems.query(undefined, routeQueryOptions)}
+					location={() => ({ file: "Pull requests", status: 200, view: "pull-requests" })}
+					render={(data) => <PullRequestsPage data={data} />}
+				/>
+			);
 		case "library":
 			return <LibraryMain api={api} onPage={onPage} url={url} />;
 		case "goals":

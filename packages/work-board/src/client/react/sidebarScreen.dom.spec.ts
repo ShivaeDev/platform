@@ -16,7 +16,7 @@ for (const phone of [false, true]) {
 		[screenMedia(phone ? ["(max-width: 767px)", "(any-pointer: coarse)"] : []), chromeScreen(sidebarWorkspace(), "/notes/topic-1.md")],
 		function* ({ findElement, findElements, control, navigate, readAttribute, readFocus, click, roles }) {
 			const rows = findElements("#primary-navigation > *");
-			expect(rows.map((row) => row.id)).toEqual(["home-open", "goals-open", "work-open", "documents-open", "diagnostics-open"]);
+			expect(rows.map((row) => row.id)).toEqual(["home-open", "goals-open", "work-open", "pull-requests-open", "documents-open", "diagnostics-open"]);
 			for (let index = 2; index <= 6; index += 1) {
 				yield* Effect.promise(() => navigate(`/notes/topic-${index}.md`));
 				yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-file")).toBe(`notes/topic-${index}.md`)));

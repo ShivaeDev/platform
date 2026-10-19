@@ -4,6 +4,8 @@ import type { RemainingRoute } from "./remainingRoute.ts";
 
 export function pageTitle(route: ProjectionRoute | RemainingRoute, url: string) {
 	switch (route) {
+		case "pull-requests":
+			return "Pull requests";
 		case "board":
 			return documentTitle(url);
 		case "today":

@@ -23,6 +23,7 @@ screenStory.it(
 			"Today",
 			"Goals",
 			"Now",
+			"Pull requests",
 			"Library",
 			"System",
 		]);

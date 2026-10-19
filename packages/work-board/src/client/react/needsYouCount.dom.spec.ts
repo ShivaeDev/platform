@@ -50,6 +50,7 @@ screenStory.it(
 					"Today, 3 need you",
 					"Goals",
 					"Now, 3 open tasks",
+					"Pull requests",
 					"Library",
 					"System",
 				]),
