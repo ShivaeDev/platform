@@ -19,9 +19,9 @@ for (const status of ["closed", "done", "superseded", "completed", "cancelled", 
 		function* ({ rpc }) {
 			const data = yield* rpc((client) => client("work-board.goals", undefined));
 			const goal = data.closedGoals.find((entry) => entry.id === "project.closed");
-			expect(goal?.counts).toEqual({ done: 3, "in progress": 1, planned: 2 });
-			expect(goal?.criteria[0]?.counts).toEqual({ done: 2, "in progress": 1, planned: 0 });
-			expect(goal?.criteria[1]?.counts).toEqual({ done: 0, "in progress": 0, planned: 0 });
+			expect(goal?.counts).toEqual({ done: 3, "in progress": 1, "needs you": 0, planned: 2 });
+			expect(goal?.criteria[0]?.counts).toEqual({ done: 2, "in progress": 1, "needs you": 0, planned: 0 });
+			expect(goal?.criteria[1]?.counts).toEqual({ done: 0, "in progress": 0, "needs you": 0, planned: 0 });
 			expect(goal?.linked).toBe(6);
 			expect(data.goals.map((entry) => entry.id)).toEqual(["project.empty", "project.example"]);
 			expect((yield* rpc((client) => client("work-board.navigation", { current: "" }))).counts.goals).toBe(2);
@@ -48,3 +48,30 @@ boardStory.it(
 		expect((yield* rpc((client) => client("work-board.navigation", { current: "" }))).inboxCount).toBeNull();
 	},
 );
+
+for (const [status, group] of [
+	["dropped", "done"],
+	["ready", "planned"],
+	["planned", "planned"],
+	["active", "in progress"],
+] as const) {
+	boardStory.it(
+		`counts ${status} linked work as ${group}`,
+		[
+			projectFiles({
+				"goal.md": "---\nid: project.counting\nkind: project\nstatus: active\n---\n# Counting goal",
+				"work.md": `---\nid: task.counted\nkind: task\nstatus: ${status}\nrelationships:\n - kind: implements\n   target: project.counting\n---\n# Counted work`,
+			}),
+		],
+		function* ({ rpc }) {
+			const data = yield* rpc((client) => client("work-board.goals", undefined));
+			expect(data.goals.find((goal) => goal.id === "project.counting")?.counts).toEqual({
+				done: 0,
+				"in progress": 0,
+				"needs you": 0,
+				planned: 0,
+				[group]: 1,
+			});
+		},
+	);
+}

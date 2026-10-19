@@ -10,6 +10,7 @@ import { invalidateOnCommit, transact } from "#transact.ts";
 import type { arraySamples } from "./arraySamples.ts";
 import { watchChanges } from "./changeObservation.ts";
 import { isCommitting } from "./commitObservation.ts";
+import type { compositeLedger } from "./compositeLedger.ts";
 import type { compositeMeasurements } from "./compositeMeasurements.ts";
 import type { compositeReadings } from "./compositeReadings.ts";
 import type { conflictAccounts } from "./conflictAccounts.ts";
@@ -38,6 +39,7 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 	return {
 		arraySamples: fixture<Effect.Success<typeof arraySamples>>(),
 		batch: fixture<Effect.Success<typeof setupBatch>>(),
+		compositeLedger: fixture<Effect.Success<typeof compositeLedger>>(),
 		compositeMeasurements: fixture<Effect.Success<typeof compositeMeasurements>>(),
 		compositeReadings: fixture<Effect.Success<typeof compositeReadings>>(),
 		conflictAccounts: fixture<Effect.Success<typeof conflictAccounts>>(),
@@ -73,6 +75,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		arraySamples: engine.arraySamples.get,
 		assertPostgresMigrations,
 		batchFixture: engine.batch.get,
+		compositeLedger: engine.compositeLedger.get,
 		compositeMeasurements: engine.compositeMeasurements.get,
 		compositeReadings: engine.compositeReadings.get,
 		conflictAccounts: engine.conflictAccounts.get,

@@ -33,7 +33,7 @@ screenStory.it(
 		expect(readText('section[aria-label="Pinned"] a')).toBe("Document title 0");
 		yield* Effect.promise(() =>
 			eventually(() =>
-				expect(readAttribute('section[aria-label="Active goals"] [role="img"][aria-label^="Example goal"]', "aria-label")).toBe(
+				expect(readAttribute('section[aria-label="Active goals"] [role="progressbar"][aria-label^="Example goal"]', "aria-label")).toBe(
 					"Example goal: 2 of 5 done",
 				),
 			),

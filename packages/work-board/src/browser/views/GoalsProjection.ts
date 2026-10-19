@@ -1,7 +1,8 @@
 import { Schema } from "effect";
 import { WorkItem } from "./schema.ts";
 
-const Counts = Schema.Struct({ done: Schema.Number, "in progress": Schema.Number, planned: Schema.Number });
+const Counts = Schema.Struct({ done: Schema.Number, "in progress": Schema.Number, "needs you": Schema.Number, planned: Schema.Number });
+export type GoalCounts = typeof Counts.Type;
 const Criterion = Schema.Struct({ counts: Counts, evidence: Schema.Number, id: Schema.String, linked: Schema.Number, text: Schema.String });
 const Goal = Schema.Struct({
 	counts: Counts,
