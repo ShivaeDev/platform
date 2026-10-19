@@ -47,7 +47,7 @@ function progressSummary(count: number | undefined, fromFiles: boolean) {
 	if (count === undefined) {
 		return "Fleet unavailable";
 	}
-	return fromFiles ? `${count} in progress in task files` : `${count} in progress`;
+	return fromFiles ? `${count} marked in progress` : `${count} in progress`;
 }
 
 function goalsSummary(count: number | undefined) {

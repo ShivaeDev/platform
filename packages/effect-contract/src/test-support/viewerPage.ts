@@ -5,12 +5,12 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { readKeys } from "#keys.ts";
 import { live } from "#live.ts";
-import { notes, ViewerRpcs, type viewerEngine } from "./viewerEngine.ts";
+import { Notes, notes, type viewerEngine } from "./viewerEngine.ts";
 
 export const viewerPage = Effect.fnUntraced(function* (engine: Effect.Success<typeof viewerEngine>, viewer: string, id: number) {
 	class Client extends AtomRpc.Service<Client>()("test/ViewerPage", {
-		group: ViewerRpcs,
-		makeEffect: RpcTest.makeClient(ViewerRpcs, { flatten: true }),
+		group: Notes,
+		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
 		protocol: engine.layer,
 	}) {}
 	const registry = yield* Effect.acquireRelease(

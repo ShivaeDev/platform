@@ -1,8 +1,8 @@
 import { cn } from "cn";
 import type { ReactNode } from "react";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
-import type { InboxProjection } from "#browser/views/schema.ts";
-import { answeredCopy } from "#client/responses/answeredCopy.ts";
+import type { InboxProjection, RecentAnswer } from "#browser/views/schema.ts";
+import { recentAnswerCopy } from "#client/responses/answeredCopy.ts";
 import { EmptyState } from "./EmptyState.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import type { ShellApi } from "./ShellApi.ts";
@@ -15,16 +15,18 @@ type Item = InboxProjection["you"][number];
 export function TodayNeeds({
 	api,
 	complete,
+	identified,
 	items,
 	onSaved,
 }: {
 	readonly api: ShellApi;
 	readonly complete: boolean;
+	readonly identified: boolean;
 	readonly items: readonly Item[];
 	readonly onSaved: (item: Item) => void;
 }) {
 	if (!complete) {
-		return <p role="status">Workspace incomplete. Needs-you membership and counts are unavailable.</p>;
+		return <p role="status">Some files couldn't be read, so what needs you is unknown.</p>;
 	}
 	return items.length > 0 ? (
 		<ul aria-label="Needs you" className="m-0 list-none divide-y rounded-lg border border-border p-0">
@@ -37,7 +39,7 @@ export function TodayNeeds({
 			))}
 		</ul>
 	) : (
-		<EmptyState action={<LinkButton href="/_board/start">Getting started</LinkButton>} title="Nothing needs you">
+		<EmptyState action={identified ? undefined : <LinkButton href="/_board/start">Getting started</LinkButton>} title="Nothing needs you">
 			Questions and reviews from your agents appear here when they need your answer.
 		</EmptyState>
 	);
@@ -55,12 +57,12 @@ export function TodayLater({ items }: { readonly items: readonly Item[] }) {
 	);
 }
 
-export function TodayAnswered({ fleet, items }: { readonly fleet: FleetItemsProjection | undefined; readonly items: readonly Item[] }) {
+export function TodayAnswered({ fleet, rows }: { readonly fleet: FleetItemsProjection | undefined; readonly rows: readonly RecentAnswer[] }) {
 	return (
-		<ul aria-label="Answered, waiting for Fleet" className="m-0 list-none divide-y rounded-lg border border-border p-0">
-			{items.map((item) => (
-				<li className="min-h-12 sm:h-12 sm:max-h-12" data-answered-id={item.id} key={todayKey(item)}>
-					<TodayRow detail={item.answered && answeredCopy(item.answered, fleet)} item={item} />
+		<ul aria-label="Answered" className="m-0 list-none divide-y rounded-lg border border-border p-0">
+			{rows.map((row) => (
+				<li className="min-h-12" data-answer-state={row.state} data-answered-id={row.id} key={row.answer.response}>
+					<TodayRow detail={recentAnswerCopy(row, fleet)} item={{ ...row, modified: row.answeredAt }} wrapDetail />
 				</li>
 			))}
 		</ul>
@@ -72,11 +74,13 @@ function TodayRow({
 	children,
 	detail,
 	item,
+	wrapDetail = false,
 }: {
 	readonly attention?: boolean;
 	readonly children?: ReactNode;
 	readonly detail?: string | undefined;
-	readonly item: Item;
+	readonly item: Pick<Item, "href" | "modified" | "title"> & Partial<Pick<Item, "problem" | "reason">>;
+	readonly wrapDetail?: boolean;
 }) {
 	const text = detail ?? item.problem ?? item.reason;
 	return (
@@ -91,10 +95,16 @@ function TodayRow({
 				{item.title}
 			</a>
 			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums max-sm:self-start max-sm:leading-6 sm:row-span-2">
-				{item.modified === undefined ? "Age ?" : <RowTime at={item.modified} />}
+				{item.modified === undefined ? "Age unknown" : <RowTime at={item.modified} />}
 			</span>
 			{children ? <div className="max-sm:self-start sm:row-span-2">{children}</div> : null}
-			<p className="col-span-full m-0 truncate text-muted-foreground text-xs sm:col-span-1 sm:col-start-1 sm:row-start-2" title={text}>
+			<p
+				className={cn(
+					"col-span-full m-0 text-muted-foreground text-xs sm:col-span-1 sm:col-start-1 sm:row-start-2",
+					wrapDetail ? "line-clamp-2" : "truncate",
+				)}
+				title={text}
+			>
 				{text}
 			</p>
 		</div>

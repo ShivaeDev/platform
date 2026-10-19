@@ -27,8 +27,8 @@ expectTypeOf(api.subscribe.run).parameter(0).toEqualTypeOf<{ readonly id: number
 expectTypeOf(api.subscribe.run).returns.toEqualTypeOf<Stream.Stream<string, NoteMissing | Denied | RpcClientError, Client>>();
 expectTypeOf(Subscribe.reject.NoteMissing({ id: 1 })).toEqualTypeOf<Effect.Effect<never, NoteMissing>>();
 expectTypeOf(Subscribe.reads).parameter(0).toEqualTypeOf<{ readonly id: number }>();
-expectTypeOf(Notes.requests.get("notes.subscribe")?.successSchema).toEqualTypeOf<
-	RpcSchema.Stream<Schema.String, typeof Subscribe.error> | undefined
+expectTypeOf<Rpc.SuccessSchema<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Notes>, "notes.subscribe">>>().toEqualTypeOf<
+	RpcSchema.Stream<Schema.String, typeof Subscribe.error>
 >();
 
 // @ts-expect-error A stream has no query atom member.
@@ -42,7 +42,7 @@ contract("duplicate", { streams: [Subscribe, Subscribe] });
 // @ts-expect-error The element schema is required.
 stream("missing", { reads: () => [] });
 // @ts-expect-error A stream handler cannot return an undeclared rejection.
-Notes.of({ "notes.subscribe": () => Stream.fail(new Denied()) });
+Notes.of({ "notes.$changes": () => Stream.never, "notes.subscribe": () => Stream.fail(new Denied()) });
 
 const Unary = RpcGroup.make(
 	Rpc.make("notes.subscribe", { error: Subscribe.error, payload: Subscribe.payload, success: Subscribe.success }),

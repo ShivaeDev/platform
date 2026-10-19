@@ -33,7 +33,7 @@ function SystemView({
 	return (
 		<div className="space-y-6">
 			<PageHeader
-				summary="How much agent and GitHub capacity is left, how Fleet is doing, and which files the Board could not read. The page updates every 15 seconds while it is open. Use Pause updates to stop this."
+				summary="How much agent and GitHub capacity is left, how Fleet is doing, and which files the Board could not read. The page updates every 15 seconds while it is open. To stop that, open Settings, the gear at the top right, and choose Pause updates."
 				title="System"
 			/>
 			{fleet.state === "error" && fleet.startCommand !== undefined ? (

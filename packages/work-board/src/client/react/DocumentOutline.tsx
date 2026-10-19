@@ -1,18 +1,28 @@
+import { cn } from "cn";
 import { TableOfContents } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "#client/react/components/ui/popover.tsx";
-import { type OutlineEntry, useDocumentOutline } from "./useDocumentOutline.ts";
+import { type OutlineEntry, useCurrentHeading, useDocumentOutline } from "./useDocumentOutline.ts";
 
-const indents: Readonly<Record<number, string>> = { 3: "pl-3", 4: "pl-6", 5: "pl-9", 6: "pl-9" };
+const indents: Readonly<Record<number, string>> = { 3: "pl-6", 4: "pl-9", 5: "pl-12", 6: "pl-12" };
 
 function OutlineLinks({ headings, onNavigate }: { readonly headings: readonly OutlineEntry[]; readonly onNavigate?: () => void }) {
+	const current = useCurrentHeading(headings);
 	return (
-		<ol className="m-0 list-none space-y-1.5 p-0">
+		<ol className="m-0 list-none space-y-0.5 border-border border-l p-0">
 			{headings.map((heading) => (
-				<li className={indents[heading.depth]} data-depth={heading.depth} key={heading.id}>
-					<a className="text-muted-foreground hover:text-foreground hover:underline" href={`#${heading.id}`} onClick={onNavigate}>
+				<li data-depth={heading.depth} key={heading.id}>
+					<a
+						aria-current={heading.id === current ? "location" : undefined}
+						className={cn(
+							"-ml-px block border-transparent border-l-2 py-0.5 pl-3 text-muted-foreground hover:text-foreground hover:underline aria-[current=location]:border-foreground aria-[current=location]:font-medium aria-[current=location]:text-foreground",
+							indents[heading.depth],
+						)}
+						href={`#${heading.id}`}
+						onClick={onNavigate}
+					>
 						{heading.title || "Section"}
 					</a>
 				</li>

@@ -35,10 +35,10 @@ export const viewerStory = storyKit({
 			return engine.client("notes.rename", { id, title }, { headers: { viewer } });
 		},
 		resync: () => engine.live.resync,
-		watch: (viewer: string, keys: readonly Key[], received: LiveHint[]) => {
+		watch: (viewer: string | undefined, keys: readonly Key[], received: LiveHint[]) => {
 			story.tell(`${viewer} subscribes to change hints`);
 			return engine
-				.client("notes.$changes", { keys }, { headers: { viewer } })
+				.client("notes.$changes", { keys }, { headers: viewer === undefined ? {} : { viewer } })
 				.pipe(Stream.runForEach((hint) => Effect.sync(() => received.push(hint))));
 		},
 	}),
