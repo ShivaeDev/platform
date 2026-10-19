@@ -7,6 +7,7 @@ import { Label } from "#client/react/components/ui/label.tsx";
 import { Textarea } from "#client/react/components/ui/textarea.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 import { TodayContext } from "./TodayContext.tsx";
+import { TodayHiddenDraft } from "./TodayHiddenDraft.tsx";
 import { TodayOptionButton } from "./TodayOptionButton.tsx";
 import { type Inline, inlineReason } from "./todayInline.ts";
 import { type TodayChoice, useTodayAnswer } from "./useTodayAnswer.ts";
@@ -15,6 +16,7 @@ export function TodayAnswer({
 	api,
 	document: data,
 	focusRef,
+	href,
 	inline,
 	onSaved,
 	title,
@@ -22,6 +24,7 @@ export function TodayAnswer({
 	readonly api: ShellApi;
 	readonly document: Document;
 	readonly focusRef: RefObject<HTMLElement | null>;
+	readonly href: string;
 	readonly inline: Inline;
 	readonly onSaved: () => void;
 	readonly title: string;
@@ -38,6 +41,7 @@ export function TodayAnswer({
 			) : (
 				<TodayText answer={answer} focusRef={focusRef} heading={heading} />
 			)}
+			<TodayHiddenDraft href={href} text={answer.hidden} />
 			<details className="text-muted-foreground text-xs">
 				<summary className="cursor-pointer">More options</summary>
 				<div className="mt-2 flex items-center gap-2">

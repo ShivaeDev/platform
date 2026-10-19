@@ -121,3 +121,33 @@ screenStory.it(
 		expect(body).not.toContain("## Overall response");
 	},
 );
+
+screenStory.it(
+	"records the item page's note and reply kind with an option chosen on Today, and says so before the reader chooses",
+	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
+	function* ({ chooseOption, findElement, findElements, navigate, openDetails, readAttribute, readResponses, readText, roles }) {
+		const venue = { name: "Answer Pick a venue for the launch", role: "button" };
+		yield* Effect.promise(() => eventually(() => expect(roles.text(venue)).toBe("Answer")));
+		yield* Effect.promise(() => navigate("/_board/item/decision.venue/"));
+		const optionNote = { name: "Add a note or answer in your own words (optional)", role: "textbox" };
+		yield* Effect.promise(() => eventually(() => expect(roles.value(optionNote)).toBe("")));
+		yield* roles.enter(optionNote, "The hall has parking.");
+		openDetails("[data-key='response-details']");
+		yield* roles.enter({ name: "Anything else to add (optional)", role: "textbox" }, "Check the date with the team.");
+		yield* Effect.promise(() => chooseOption(findElement("#response-form [role='combobox']"), "A question back (it keeps waiting for you)"));
+		yield* Effect.promise(() => navigate("/"));
+		yield* Effect.promise(() => eventually(() => expect(roles.text(venue)).toBe("Answer")));
+		yield* roles.click(venue);
+		expect(readText(`${DIALOG} [data-hidden-draft]`, document)).toBe(
+			"Also sends your note, your reply kind, a question back from the item page. Review it on the item page",
+		);
+		expect(readAttribute(`${DIALOG} [data-hidden-draft] a`, "href", document)).toBe("/_board/item/decision.venue/#answer-card-direction");
+		yield* roles.click({ name: "Hall Choose hall.", role: "button" });
+		yield* Effect.promise(() => eventually(() => expect(findElements(DIALOG, document)).toEqual([])));
+		const saved = yield* Effect.promise(() => readResponses("decision.venue", "direction"));
+		expect(saved.responses.map((entry) => [entry.response.type, entry.response.answers])).toEqual([
+			["clarify", [{ prompt: "venue", selected: ["hall"], text: "The hall has parking." }]],
+		]);
+		expect(saved.responses[0]?.body).toContain("## Overall response\n\nCheck the date with the team.");
+	},
+);

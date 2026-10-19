@@ -5,6 +5,7 @@ import type { Document } from "#browser/document/schema.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
 import { authorLabel } from "#client/responses/authorLabel.ts";
+import type { ResponseInput } from "#client/responses/formSchema.ts";
 import { saveFailure } from "#client/saveFailure.ts";
 import { fileUrl } from "#files/url.ts";
 import { documentQuery, navigationQuery, routeQueryOptions } from "./routeQuery.ts";
@@ -38,6 +39,7 @@ export function useTodayAnswer(api: ShellApi, data: Document, preview: QuestionP
 		}
 	}, [created, api, registry, data.file, label]);
 	const [prompt] = prompts;
+	const note = state.answers?.[0]?.text ?? "";
 	function write(text: string) {
 		if (prompt) {
 			state.editAnswers(0, { prompt: prompt.id, selected: [], text });
@@ -46,16 +48,13 @@ export function useTodayAnswer(api: ShellApi, data: Document, preview: QuestionP
 			state.edit();
 		}
 	}
-	// Today records only what it shows, so draft fields edited on the item page but hidden here are left out.
 	function choose(choice: TodayChoice) {
-		form.values.set({
-			...form.values.value,
-			answerContext: JSON.stringify([preview.id, preview.reviewedRevision]),
-			answers: prompt ? [{ prompt: prompt.id, selected: [...choice.selected], text: choice.text }] : undefined,
-			body: prompt ? "" : choice.text,
-			supersedes: undefined,
-			type: "answer",
-		});
+		if (prompt) {
+			form.change("answers", [{ prompt: prompt.id, selected: [...choice.selected], text: choice.selected.length > 0 ? note : choice.text }]);
+			form.change("answerContext", JSON.stringify([preview.id, preview.reviewedRevision]));
+		} else {
+			form.change("body", choice.text);
+		}
 		if (state.attempt(author.trim())) {
 			state.created.save();
 		}
@@ -70,10 +69,30 @@ export function useTodayAnswer(api: ShellApi, data: Document, preview: QuestionP
 	return {
 		author,
 		choose,
+		hidden: hiddenDraft(values, prompt, inlineOptions(prompt)),
 		locked: Boolean(offline) || !author.trim() || state.created.saving || Option.isSome(created),
 		setAuthor,
 		status,
-		text: prompt ? (state.answers?.[0]?.text ?? "") : values.body,
+		text: prompt ? note : values.body,
 		write,
 	};
+}
+
+const KINDS = new Map([
+	["clarify", "a question back"],
+	["not_now", "not now"],
+]);
+
+function inlineOptions(prompt: Prompt | undefined) {
+	return prompt !== undefined && prompt.mode !== "text";
+}
+
+// Today sends the whole shared draft, so it names the parts only the item page shows.
+function hiddenDraft(values: ResponseInput, prompt: Prompt | undefined, options: boolean) {
+	const parts = [
+		(prompt && values.body.trim()) || (options && values.answers?.[0]?.text.trim()) ? "your note" : "",
+		KINDS.has(values.type) ? `your reply kind, ${KINDS.get(values.type)}` : "",
+		values.supersedes ? "the earlier answer it replaces" : "",
+	].filter(Boolean);
+	return parts.length > 0 ? `Also sends ${parts.join(", ")} from the item page.` : "";
 }

@@ -51,6 +51,7 @@ export function TodayOptions({
 					api={api}
 					document={data}
 					focusRef={focusRef}
+					href={item.href}
 					inline={inline}
 					key={inline.preview.reviewedRevision}
 					onSaved={() => {

@@ -11,3 +11,4 @@
 
 - Today's answer keeps what you typed after you close it, and shares one draft with the item page for the same question: start on Today, finish on the item page, or the other way round.
 - An option chosen on Today records the same response body as the item page, without a nested second copy of the recorded response.
+- An answer recorded on Today includes everything in the shared draft, such as a note, reply kind or replaced answer set on the item page. Today says when it sends any of those and links to the item page to review them.
