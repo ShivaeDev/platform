@@ -42,6 +42,8 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 					reactivity.invalidateUnsafe(readKeys(typeof options.resyncKeys === "function" ? options.resyncKeys() : options.resyncKeys));
 					update({ needsResync: false, pending: 0 });
 				}
+				// A subscription alone does not build the flag, so its first read would otherwise announce a change.
+				get.once(paused);
 				get.subscribe(paused, (value) => {
 					if (!value) {
 						resync();

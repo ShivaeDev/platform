@@ -8,6 +8,7 @@ import { AgeTicker } from "./AgeLabel.tsx";
 import { FleetMain } from "./FleetMain.tsx";
 import { FormContext } from "./FormContext.ts";
 import { Header } from "./Header.tsx";
+import { useLiveRead } from "./liveReady.ts";
 import { MainLocationContext, useMainLocation } from "./MainLocationContext.ts";
 import { emptyMainLocation, type MainLocation } from "./mainLocation.ts";
 import { OpeningView } from "./OpeningView.tsx";
@@ -76,7 +77,7 @@ function BoardWorkspace(
 	const search = useSearchDialog();
 	const [libraryOpen, setLibraryOpen] = useState(false);
 	const location = useRouterState({ select: (state) => state.location });
-	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
+	const query = useQuery(useLiveRead(client?.updates, navigationQuery(api)), { keepPreviousData: true });
 	const opened = useOpened(options.opening);
 	const data = Option.getOrUndefined(query.data);
 	const { element } = useContext(ReadingReadyContext);
