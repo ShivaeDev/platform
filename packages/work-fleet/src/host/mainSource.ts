@@ -4,6 +4,7 @@ import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
+import { mergeTreeConflicts, predictionGit } from "#host/gitMergeTree.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 
 export interface MainSnapshot {
@@ -11,10 +12,11 @@ export interface MainSnapshot {
 	readonly revision: string;
 }
 
-// One snapshot per scheduler pass keeps preparation and dispatch on the same main revision.
+// Preparation and dispatch share the latest fetched main revision.
 export class MainSource extends Context.Service<
 	MainSource,
 	{
+		readonly mergeConflicts?: (head: string, otherHeads: readonly string[]) => Effect.Effect<readonly (readonly string[])[], FleetError>;
 		readonly current: Effect.Effect<MainSnapshot, FleetError>;
 		readonly observe: (preparation: Preparation) => Effect.Effect<MainObservation, FleetError>;
 		readonly refresh: Effect.Effect<MainSnapshot, FleetError>;
@@ -50,6 +52,11 @@ export function gitMainSource(host: FleetHost) {
 		}),
 		methods: ({ root, current, refresh }) => ({
 			current: () => current,
+			mergeConflicts: (head: string, otherHeads: readonly string[]) =>
+				Effect.gen(function* () {
+					yield* predictionGit(root, ["fetch", "--quiet", host.repository.remote, ...new Set([head, ...otherHeads])]);
+					return yield* Effect.forEach(otherHeads, (other) => mergeTreeConflicts(root, head, other));
+				}),
 			observe: (preparation: Preparation) =>
 				Effect.gen(function* () {
 					const main = yield* current;
@@ -79,7 +86,13 @@ export function gitMainSource(host: FleetHost) {
 	return Layer.effect(MainSource)(
 		Effect.gen(function* () {
 			const main = yield* GitMainSource;
-			return MainSource.of({ current: main.current(), observe: main.observe, refresh: main.refresh(), repositoryRoot: yield* main.repositoryRoot() });
+			return MainSource.of({
+				current: main.current(),
+				mergeConflicts: main.mergeConflicts,
+				observe: main.observe,
+				refresh: main.refresh(),
+				repositoryRoot: yield* main.repositoryRoot(),
+			});
 		}),
 	).pipe(Layer.provide(GitMainSource.layer));
 }

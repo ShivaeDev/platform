@@ -449,12 +449,11 @@
 {"path":"packages/effect-sql/src/test-support/generatedRows.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/invoiceLines.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/jsonReceipts.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-sql/src/test-support/migrationConcurrency.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/postgresBatch.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/postgresCodecs.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/postgresNotify.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/postgresVersioned.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-sql/src/test-support/sqlEngine.ts","rule":"tests/support-imports","count":4}
+{"path":"packages/effect-sql/src/test-support/sqlEngine.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/effect-sql/src/test-support/sqliteRepository.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/transaction.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-sql/src/test-support/wideRows.ts","rule":"tests/support-imports","count":1}
