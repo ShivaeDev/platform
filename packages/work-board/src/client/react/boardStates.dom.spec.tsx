@@ -148,9 +148,9 @@ screenStory.it(
 );
 
 screenStory.it(
-	"shows a search empty state that can widen the search to Fleet records",
+	"shows a search empty state that can widen the search to files Fleet writes",
 	[searchScreen({ "notes.md": "# Notes\n\nPlain text." }, { home: undefined })],
-	function* ({ click, findElement, readAttribute, readText, typeText }) {
+	function* ({ click, findByRole, findElement, readAttribute, readText, typeText }) {
 		const field = findElement<HTMLInputElement>('#search-dialog [role="combobox"]', document);
 		if (!field) {
 			throw new Error("Missing palette input");
@@ -160,6 +160,8 @@ screenStory.it(
 		expect(readText('#search-dialog [data-slot="empty-description"]', document)).toBe(
 			"Nothing in this workspace matches “zzzz”. Try fewer or different words.",
 		);
+		expect(readText('#search-dialog [data-slot="empty"] button', document)).toBe("Include files Fleet writes");
+		expect(findByRole("checkbox", "Include files Fleet writes", document)).not.toBeNull();
 		click(findElement('#search-dialog [data-slot="empty"] button', document));
 		yield* Effect.promise(() => eventually(() => expect(readAttribute('#search-dialog [role="checkbox"]', "aria-checked", document)).toBe("true")));
 	},

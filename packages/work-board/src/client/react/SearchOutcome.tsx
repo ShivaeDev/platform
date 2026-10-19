@@ -25,7 +25,7 @@ export function SearchOutcome({
 	}
 	const action = onIncludeRecords && (
 		<Button onClick={onIncludeRecords} onKeyDown={onKeyDown} size="xs" variant="outline">
-			Include Fleet records
+			Include files Fleet writes
 		</Button>
 	);
 	return (

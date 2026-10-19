@@ -36,7 +36,7 @@ for (const url of ["/notes/task.md", "/_board/item/task.fixture/"]) {
 
 for (const url of ["/missing.md", "/_board/item/missing/"]) {
 	screenStory.it(
-		`shows a failed initial document read at ${url} in React`,
+		`shows an empty state with a way back for a missing page at ${url}`,
 		[
 			boardScreen(files, (api, registry) => {
 				const router = boardRouter({ api, registry });
@@ -44,12 +44,15 @@ for (const url of ["/missing.md", "/_board/item/missing/"]) {
 				return <RouterProvider router={router} />;
 			}),
 		],
-		function* ({ readText }) {
-			yield* Effect.promise(() =>
-				eventually(() =>
-					expect(readText("main [role=status]")).toContain(url.endsWith(".md") ? "No markdown file at missing.md." : "No item with this id"),
-				),
-			);
+		function* ({ findElement, findElements, readText }) {
+			yield* Effect.promise(() => eventually(() => expect(findElement("main [data-slot=empty]")).not.toBeNull()));
+			const empty = findElement("main [data-slot=empty]");
+			expect(readText("[data-slot=empty-title]", empty)).toBe(url.endsWith(".md") ? "File not found" : "Item not found");
+			expect(readText("[role=status]", empty)).toContain(url.endsWith(".md") ? "No Markdown file at missing.md." : "No item has the ID missing.");
+			expect(findElements("a", empty).map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+				["Back to Today", "/"],
+				["Browse the Library", "/_board/library"],
+			]);
 		},
 	);
 }

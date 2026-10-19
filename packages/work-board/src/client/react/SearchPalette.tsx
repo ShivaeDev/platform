@@ -119,7 +119,7 @@ export function SearchPalette({
 				<div className="flex items-center gap-2">
 					<Checkbox checked={records} id={recordsId} onCheckedChange={setRecords} onKeyDown={handleControlKeyDown} />
 					<Label className="font-normal text-muted-foreground" htmlFor={recordsId}>
-						Include Fleet records
+						Include files Fleet writes
 					</Label>
 				</div>
 			</div>

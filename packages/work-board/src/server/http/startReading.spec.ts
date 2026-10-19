@@ -4,8 +4,8 @@ import { boardStory } from "#test/boardStory.ts";
 boardStory.it("offers copyable source without writing project files or hiding missing documents", [], function* ({ get, rpc, viewHtml, files }) {
 	expect((yield* get("/")).status).toBe(200);
 	const html = yield* viewHtml("/_board/start");
-	expect(html).toContain("Start your local workspace");
-	expect(html).toContain("this viewer does not write project files");
+	expect(html).toMatch(/>Start your workspace<\/h1>/u);
+	expect(html).toContain("never writes them for you");
 	const start = yield* rpc((client) => client("work-board.start", undefined));
 	expect(start.empty).toBe(true);
 	expect(start.templates.some((template) => template.source.includes("example.result"))).toBe(true);
@@ -27,7 +27,7 @@ boardStory.it(
 		const result = yield* readDocument("result.md");
 		expect(result.diagnostics).toEqual([]);
 		expect(result.metadata.evidence).toBeUndefined();
-		expect(yield* viewHtml("/_board/start")).toContain("Project and report templates");
+		expect(yield* viewHtml("/_board/start")).toMatch(/>Templates<\/h1>/u);
 		expect((yield* rpc((client) => client("work-board.start", undefined))).empty).toBe(false);
 	},
 );

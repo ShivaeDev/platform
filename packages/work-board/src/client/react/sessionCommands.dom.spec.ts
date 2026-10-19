@@ -45,7 +45,9 @@ for (const kind of ["response", "handoff"] as const) {
 				setSessionOffline(false);
 				yield* Effect.promise(() => activate(`#${kind}-preview`));
 				submit(`#${kind}-form`);
-				yield* Effect.promise(() => eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Saved:" : "Prepared:")));
+				yield* Effect.promise(() =>
+					eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Saved:" : "Saved handoffs/")),
+				);
 				expect(sessionCommands().length).toBe(failure === "transport" || kind === "handoff" ? 2 : 1);
 				for (const call of sessionCommands()) {
 					expect(call.payload).toMatchObject({ id: identity });

@@ -90,7 +90,8 @@ for (const [storyCase, value] of [undefined, { reason: "Not configured", state: 
 			expect(header?.textContent).toContain("Owner: reader · Next action: Review the proof");
 			expect(readText("[data-status-token]", header)).toBe("Active");
 			expect(findElement("svg.lucide-clipboard-list", header)).not.toBeNull();
-			expect(readText("button")).toBe("Save favorite");
+			expect(findElement('button[aria-label="Copy item ID"]', header)).not.toBeNull();
+			expect(readText('[data-slot="button"]:not([aria-label])')).toBe("Save favorite");
 			expect(findElement('a[href^="/_board/handoff"]')).not.toBeNull();
 			expect(header?.textContent?.includes("Fleet · reviewing")).toBe(value === fleet);
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', header) !== null).toBe(value === fleet);

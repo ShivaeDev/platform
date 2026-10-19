@@ -10,7 +10,7 @@ import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import type { GithubObservation } from "#host/githubRateLimit.ts";
-import { executing } from "#model.ts";
+import { executing, type FleetRecord } from "#model.ts";
 
 const { SourceFailure } = diagnosticsApi;
 
@@ -101,7 +101,7 @@ export function statusLayer(
 }
 
 function fleetHealth(
-	records: Parameters<typeof views>[0],
+	records: readonly FleetRecord[],
 	observations: readonly GithubObservation[],
 	observed: Pick<FleetHealth, "concurrency" | "lastCapacityRejection" | "lastSchedulerPass" | "staleAfterMs">,
 	observedAt: number,

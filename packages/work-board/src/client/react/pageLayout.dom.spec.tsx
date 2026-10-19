@@ -66,7 +66,7 @@ for (const { name, files, url, open, actions } of [
 ] as const) {
 	screenStory.it(
 		`shows the actions on ${name} as links that navigate and buttons that act in place`,
-		[routedScreen(files, url)],
+		[routedScreen(files, url, { writable: true })],
 		function* ({ accessible, click, findElement, findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
 			click(open);

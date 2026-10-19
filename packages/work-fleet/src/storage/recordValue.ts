@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { childTable, objectValue } from "#storage/recordChildren.ts";
-import { collections, type Shape } from "#storage/recordShape.ts";
+import { childTable, objectValue, positions } from "#storage/recordChildren.ts";
+import { collections, type Shape, shapeColumns } from "#storage/recordShape.ts";
 
 type Row = Readonly<Record<string, unknown>>;
 
@@ -21,8 +21,9 @@ export const recordValues = Effect.fn("FleetRow.recordValues")(function* (rows: 
 		if (workIds.length === 0) {
 			continue;
 		}
+		const columns = ["work_id", ...positions(collection), ...Object.keys(shapeColumns(collection.shape))];
 		const found =
-			yield* sql<Row>`select * from ${sql(childTable(namespace, collection.path))} where ${sql.in("work_id", workIds)} order by ${sql.csv(Array.from({ length: collection.parents.length + 1 }, (_unused, index) => sql`${sql(`position${index}`)}`))}`;
+			yield* sql<Row>`select ${sql.csv(columns.map((column) => sql`${sql(column)}`))} from ${sql(childTable(namespace, collection.path))} where ${sql.in("work_id", workIds)} order by ${sql.csv(positions(collection).map((column) => sql`${sql(column)}`))}`;
 		children.set(collection.path.join("."), found);
 	}
 	function read(node: Shape, row: Row, path: readonly string[], prefix: readonly string[], indices: readonly number[]): unknown {

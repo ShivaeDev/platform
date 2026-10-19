@@ -11,7 +11,9 @@ screenStory.it(
 	"moves deferred person-owned work out of Needs you into collapsed Later",
 	[routedScreen({ "goals/admin.md": PLANNED, "home.md": "# Home" }, "/")],
 	function* ({ editFile, refreshToday, refreshDocument, readText, findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(readText('ul[aria-label="Needs you"]')).toContain("Casey: Later: design the admin system")));
+		yield* Effect.promise(() =>
+			eventually(() => expect(readText('ul[aria-label="Needs you"]')).toContain("Casey notes: Later: design the admin system")),
+		);
 		expect(findElement("#later")).toBeNull();
 		editFile("goals/admin.md", PLANNED.replace("status: planned", "status: deferred"));
 		yield* Effect.promise(() => refreshToday());
