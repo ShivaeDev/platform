@@ -12,6 +12,7 @@ const ACTIVE = [
 	"agent-working",
 	"blocked",
 	"needs-human",
+	"needs you",
 	"executing",
 	"reviewing",
 	"repairing",
