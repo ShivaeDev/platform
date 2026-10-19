@@ -1,40 +1,27 @@
 import { useId, useState } from "react";
-import type { Document, DocumentRequest } from "#browser/document/schema.ts";
-import { promptHeading } from "#browser/responses/cardContext.ts";
-import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
+import type { Document } from "#browser/document/schema.ts";
+import type { Prompt } from "#browser/responses/Prompt.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { Input } from "#client/react/components/ui/input.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Textarea } from "#client/react/components/ui/textarea.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 import { TodayOptionButton } from "./TodayOptionButton.tsx";
+import { type Inline, inlineReason } from "./todayInline.ts";
 import { type TodayChoice, useTodayAnswer } from "./useTodayAnswer.ts";
 
-export type InlineMode = "options" | "text";
-
-const READ_ONLY = "Answering is turned off on this Board.";
-
-export function TodayAnswer({
-	api,
-	document: data,
-	mode,
-	request,
-}: {
-	readonly api: ShellApi;
-	readonly document: Document;
-	readonly mode: InlineMode;
-	readonly request: DocumentRequest;
-}) {
+export function TodayAnswer({ api, document: data, inline }: { readonly api: ShellApi; readonly document: Document; readonly inline: Inline }) {
 	const authorId = useId();
-	const answer = useTodayAnswer(api, data, request);
-	const reason = reasonMarkdown(request.preview?.reason ?? "").split("\n")[0];
-	const prompt = request.prompts?.[0];
-	const heading = prompt && promptHeading(prompt.source).title;
+	const answer = useTodayAnswer(api, data, inline.preview, inline.prompt ? [inline.prompt] : []);
+	const { heading, reason } = inlineReason(inline);
 	return (
-		<fieldset aria-label={`${mode === "options" ? "Options" : "Answer"} for ${data.identity}`} className="m-0 min-w-0 space-y-3 border-0 px-2 pb-1">
+		<fieldset
+			aria-label={`${inline.mode === "options" ? "Options" : "Answer"} for ${data.identity}`}
+			className="m-0 min-w-0 space-y-3 border-0 px-2 pb-1"
+		>
 			{Boolean(reason) && <p className="m-0 font-medium text-sm">{reason}</p>}
-			{mode === "options" ? (
-				<TodayChoices choose={answer.choose} document={data} heading={heading} locked={answer.locked} request={request} />
+			{inline.mode === "options" ? (
+				<TodayChoices choose={answer.choose} document={data} heading={heading} locked={answer.locked} prompt={inline.prompt} />
 			) : (
 				<TodayText choose={answer.choose} heading={heading} locked={answer.locked} />
 			)}
@@ -53,7 +40,6 @@ export function TodayAnswer({
 					/>
 				</div>
 			</details>
-			{!data.writable && <p className="m-0 text-muted-foreground text-xs">{READ_ONLY}</p>}
 			{Boolean(answer.status) && (
 				<p className="m-0 text-xs" role="status">
 					{answer.status}
@@ -68,23 +54,23 @@ function TodayChoices({
 	document: data,
 	heading,
 	locked,
-	request,
+	prompt,
 }: {
 	readonly choose: (choice: TodayChoice) => void;
 	readonly document: Document;
 	readonly heading: string | undefined;
 	readonly locked: boolean;
-	readonly request: DocumentRequest;
+	readonly prompt: Prompt;
 }) {
 	return (
 		<>
 			<p className="m-0 text-muted-foreground text-xs">{heading ?? "Choose one option."}</p>
 			<div className="grid gap-2">
-				{request.prompts?.[0]?.options.map((option, index) => (
+				{prompt.options.map((option, index) => (
 					<TodayOptionButton
 						disabled={locked}
 						key={option.id}
-						onChoose={() => choose({ option: option.id })}
+						onChoose={() => choose({ selected: [option.id], text: "" })}
 						option={option}
 						recommended={data.metadata.recommended}
 						source={data.metadata.options?.[index]}
@@ -111,7 +97,7 @@ function TodayText({
 			className="grid gap-2"
 			onSubmit={(event) => {
 				event.preventDefault();
-				choose({ text });
+				choose({ selected: [], text });
 			}}
 		>
 			<Label className="font-normal text-muted-foreground text-xs" htmlFor={textId}>

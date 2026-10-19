@@ -15,7 +15,7 @@ export function TodayNeeds({ api, data }: { readonly api: ShellApi; readonly dat
 	return data.you.length > 0 ? (
 		<ul aria-label="Needs you" className="m-0 list-none divide-y rounded-lg border border-border p-0">
 			{data.you.map((item) => (
-				<li className="h-12 max-h-12" data-attention-id={item.id} key={`${item.file}:${item.href}`}>
+				<li className="min-h-12 sm:h-12 sm:max-h-12" data-attention-id={item.id} key={`${item.file}:${item.href}`}>
 					<TodayRow attention item={item}>
 						<TodayOptions api={api} item={item} />
 					</TodayRow>
@@ -31,7 +31,7 @@ export function TodayLater({ items }: { readonly items: readonly Item[] }) {
 	return (
 		<ul aria-label="Later" className="m-0 list-none divide-y rounded-lg border border-border p-0">
 			{items.map((item) => (
-				<li className="h-12 max-h-12" key={item.file}>
+				<li className="min-h-12 sm:h-12 sm:max-h-12" key={item.file}>
 					<TodayRow item={item} />
 				</li>
 			))}
@@ -43,7 +43,7 @@ export function TodayAnswered({ fleet, items }: { readonly fleet: FleetItemsProj
 	return (
 		<ul aria-label="Answered, waiting for Fleet" className="m-0 list-none divide-y rounded-lg border border-border p-0">
 			{items.map((item) => (
-				<li className="h-12 max-h-12" data-answered-id={item.id} key={`${item.file}:${item.href}`}>
+				<li className="min-h-12 sm:h-12 sm:max-h-12" data-answered-id={item.id} key={`${item.file}:${item.href}`}>
 					<TodayRow detail={item.answered && answeredCopy(item.answered, fleet)} item={item} />
 				</li>
 			))}
@@ -66,18 +66,18 @@ function TodayRow({
 	return (
 		<div
 			className={cn(
-				"today-row grid h-full min-w-0 content-center items-center gap-x-2 px-2",
+				"today-row grid h-full min-h-12 min-w-0 content-center items-center gap-x-2 px-2 max-sm:py-1.5",
 				children ? "grid-cols-[minmax(0,1fr)_auto_auto]" : "grid-cols-[minmax(0,1fr)_auto]",
 			)}
 			data-attention-row={attention ? "" : undefined}
 		>
-			<a className="truncate font-medium text-sm" href={item.href} title={item.title}>
+			<a className="font-medium text-sm max-sm:line-clamp-2 sm:truncate" href={item.href} title={item.title}>
 				{item.title}
 			</a>
-			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums sm:row-span-2">
+			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums max-sm:self-start max-sm:leading-6 sm:row-span-2">
 				{item.modified === undefined ? "Age ?" : <Age modified={item.modified} short />}
 			</span>
-			{children ? <div className="sm:row-span-2">{children}</div> : null}
+			{children ? <div className="max-sm:self-start sm:row-span-2">{children}</div> : null}
 			<p className="col-span-full m-0 truncate text-muted-foreground text-xs sm:col-span-1 sm:col-start-1 sm:row-start-2" title={text}>
 				{text}
 			</p>

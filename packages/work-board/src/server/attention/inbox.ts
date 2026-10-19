@@ -3,12 +3,11 @@ import { responseUrl } from "#responses/url.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { ownerNote } from "./ownerNote.ts";
 import { answeredQuestion } from "./questionState.ts";
 import { requestInbox } from "./requestInbox.ts";
 import { isMaintainerRequest } from "./requests.ts";
 import { closedItem, deferredItem } from "./status.ts";
-
-const automation = /^(?:codex|claude|fleet|orchestrator|agent|automation|bot|copilot)(?:$|[-_. /])/iu;
 
 export function openItem(document: MetadataDocument): boolean {
 	return !closedItem(document);
@@ -45,17 +44,7 @@ function attentionReason(document: MetadataDocument, model: MetadataModel, maint
 	if (authoredQuestion(document)) {
 		return fields.nextAction ?? "A question needs your answer";
 	}
-	if (fields.owner && fields.nextAction && !automation.test(fields.owner.trim())) {
-		const note = personNote(fields.nextAction, fields.status);
-		return fields.owner.trim() === maintainer ? note : `${fields.owner.trim()} notes: ${note}`;
-	}
-	return undefined;
-}
-
-function personNote(action: string, status: string | undefined): string {
-	const echo = status?.trim().toLowerCase();
-	const note = echo && action.toLowerCase().startsWith(`${echo}:`) ? action.slice(echo.length + 1).trim() : action;
-	return note ? note.charAt(0).toUpperCase() + note.slice(1) : action;
+	return ownerNote(fields, maintainer);
 }
 
 function identityProblem(document: MetadataDocument, model: MetadataModel): string | undefined {
