@@ -34,7 +34,7 @@ screenStory.it(
 		expect(readAttribute("a", "href", relationships)).toBe("/_board/item/goal.fixture/#criterion-design");
 		expect([...findElements(".work-context h4")].map((node) => node.textContent).sort((a, b) => (a ?? "").localeCompare(b ?? ""))).toEqual([
 			"Informed by (2)",
-			"Listed on board (1)",
+			"Listed in (1)",
 			"Markdown link (1)",
 		]);
 		const backlinks = findElement('[aria-label="Informed by backlinks"]');

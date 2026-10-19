@@ -44,8 +44,9 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(findElement("#phone-more", document)).toBeNull()));
 		editFile("notes/plan.md", "# Revised plan");
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-		yield* Effect.promise(() => eventually(() => expect(readText('section[aria-label="Recent"] a[aria-current="page"]')).toBe("Revised plan")));
-		expect(readTitle()).toBe("Revised plan · Work Board");
+		yield* Effect.promise(() => eventually(() => expect(readTitle()).toBe("Revised plan · Work Board")));
+		yield* Effect.promise(() => navigate("/other.md"));
+		yield* Effect.promise(() => eventually(() => expect(readText('section[aria-label="Recent"] a[href="/notes/plan.md"]')).toBe("Revised plan")));
 	},
 );
 

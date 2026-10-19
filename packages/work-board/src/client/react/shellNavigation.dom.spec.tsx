@@ -29,8 +29,9 @@ screenStory.it(
 	[screenWorkspace("shell-fixture"), reading, chromeScreen(files)],
 	function* ({ findElements, keyboard, readFocus, roles }) {
 		yield* roles.click({ name: "Reading history", role: "button" });
-		expect(roles.text({ name: "Pinned", role: "list" })).toBe("First");
-		expect(roles.text({ name: "Recent documents", role: "list" })).toContain("Next");
+		expect(roles.text({ name: "Pinned", role: "list" })).toMatch(/^First/u);
+		expect(roles.text({ name: "Today", role: "list" })).toMatch(/^Plan/u);
+		expect(roles.text({ name: "Earlier", role: "list" })).toMatch(/^Next/u);
 		expect(
 			findElements(`[role="dialog"] a[href]`, document).map((link) => [
 				roles.accessible(link).name,
@@ -85,7 +86,7 @@ screenStory.it(
 );
 
 screenStory.it(
-	"offers pinned and recent documents and reading history from the phone's More sheet",
+	"offers pinned and other recent documents and reading history from the phone's More sheet",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), screenWorkspace("shell-fixture"), reading, chromeScreen(files)],
 	function* ({ findElements, keyboard, readFocus, roles }) {
 		yield* roles.click({ name: "More", role: "button" });
@@ -98,12 +99,11 @@ screenStory.it(
 			]),
 		).toEqual([
 			["First", "/notes/first.md", null],
-			["Plan", "/notes/plan.md", "page"],
 			["Next", "/notes/next.md", null],
 		]);
 		yield* roles.click({ name: "Reading history", role: "button" });
 		yield* Effect.promise(() => eventually(() => expect(() => roles.text({ name: "More", role: "dialog" })).toThrow(missing)));
-		yield* Effect.promise(() => eventually(() => expect(roles.text({ name: "Recent documents", role: "list" })).toContain("Next")));
+		yield* Effect.promise(() => eventually(() => expect(roles.text({ name: "Earlier", role: "list" })).toContain("Next")));
 		keyboard("Escape");
 		yield* Effect.promise(() => eventually(() => expect(() => roles.text({ name: "Reading history", role: "dialog" })).toThrow(missing)));
 		yield* Effect.promise(() => eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "More", role: "button" })));

@@ -141,7 +141,7 @@ screenStory.it(
 			"Go to Now": "",
 			"Go to System": "",
 			"Go to Today": "",
-			"Show or hide files": "",
+			"Show or hide sidebar": "",
 			"Toggle compact density": "",
 			"Toggle light or dark theme": "",
 		});
@@ -160,7 +160,7 @@ screenStory.it(
 		}
 		yield* Effect.promise(() => eventually(() => expect(groups().map((group) => group.name)).toEqual(["Go to", "Appearance"])));
 		yield* Effect.promise(() => eventually(() => expect(groups()[0]?.titles).toContain("Go to A calmer workspace")));
-		expect(groups()[1]?.titles).toEqual(["Show or hide files", "Toggle compact density", "Toggle light or dark theme"]);
+		expect(groups()[1]?.titles).toEqual(["Show or hide sidebar", "Toggle compact density", "Toggle light or dark theme"]);
 		input(QUERY, "inbox");
 		yield* Effect.promise(() => eventually(() => expect(groups().map((group) => group.name)).toEqual(["Work", "Documents"])));
 		expect(groups()[0]?.titles).toEqual(["Build the inbox"]);
@@ -204,8 +204,8 @@ screenStory.it(
 			["density", "data-density"],
 			["theme", "data-theme"],
 			["theme", "data-theme"],
-			["files", "data-sidebar"],
-			["files", "data-sidebar"],
+			["sidebar", "data-sidebar"],
+			["sidebar", "data-sidebar"],
 		] as const) {
 			const expected = toggled[attribute]?.(readRootAttribute(attribute) ?? undefined);
 			keyboard("k", { cancelable: true, ctrlKey: true }, document);

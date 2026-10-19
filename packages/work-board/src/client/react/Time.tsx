@@ -1,13 +1,8 @@
 import { cn } from "cn";
-import { Clock, Effect } from "effect";
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "#client/react/components/ui/popover.tsx";
+import { currentTime, NowContext, useNow } from "./now.ts";
 import { exactTime, timeLabel } from "./timeLabel.ts";
-
-function currentTime() {
-	return Effect.runSync(Clock.currentTimeMillis);
-}
-const NowContext = createContext(currentTime());
 
 export function TimeTicker({ children }: { readonly children: ReactNode }) {
 	const [now, setNow] = useState(currentTime);
@@ -33,7 +28,7 @@ function TimeElement({
 }) {
 	return (
 		<time className={className} data-modified={at} dateTime={new Date(at).toISOString()} title={title}>
-			{timeLabel(at, useContext(NowContext))}
+			{timeLabel(at, useNow())}
 		</time>
 	);
 }

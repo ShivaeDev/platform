@@ -1,7 +1,7 @@
 import { Option, Schema } from "effect";
 import { createContext } from "react";
 
-const Item = Schema.Struct({ file: Schema.NonEmptyString, title: Schema.String });
+const Item = Schema.Struct({ at: Schema.optional(Schema.Number), file: Schema.NonEmptyString, title: Schema.String });
 export type Item = typeof Item.Type;
 const Saved = Schema.Struct({ favorites: Schema.optional(Schema.Unknown), recents: Schema.optional(Schema.Unknown) });
 function valid(value: unknown): Item[] {
@@ -22,3 +22,7 @@ interface LibraryState {
 	readonly toggle: (file: string, title: string) => void;
 }
 export const LibraryContext = createContext<LibraryState>({ favorites: [], openHistory: () => undefined, recents: [], toggle: () => undefined });
+export function otherRecents(library: Pick<LibraryState, "favorites" | "recents">, current: string): readonly Item[] {
+	const pinned = new Set(library.favorites.map((item) => item.file));
+	return library.recents.filter((item) => item.file !== current && !pinned.has(item.file));
+}
