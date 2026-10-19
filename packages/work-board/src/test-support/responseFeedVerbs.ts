@@ -61,8 +61,9 @@ export function responseFeedVerbs(engine: BoardEngine, tell: (line: string) => v
 				tell(`the maintainer records ${id} for ${item}/${request}`);
 				const client = served(engine).client;
 				const preview = await client.run(client.responses.question.run({ item, request }));
-				const question = await client.mutate(client.responses.registerQuestion.run({ item, request, revision: preview.reviewedRevision }));
-				return client.mutate(client.responses.recordResponse.run({ author: "maintainer", body, id, question: question.id, type }));
+				return client.mutate(
+					client.responses.answerQuestion.run({ author: "maintainer", body, id, item, request, revision: preview.reviewedRevision, type }),
+				);
 			}),
 	};
 }
