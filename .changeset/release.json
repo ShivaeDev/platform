@@ -3,76 +3,46 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "board-decision-outcome.md",
-				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- A closed decision or question opens with an **Outcome** block before its body: the chosen option or recorded answer, who answered and when. A closed decision without a recorded answer says so.\n\n### Changed\n\n- Fleet decision pages are titled \"Fleet decision:\" followed by the task title in their heading, the browser tab, sources and search, so they no longer share the task's title.\n- Fleet decision pages wrap their fenced decision and recommendation text and hide sections with nothing in them, such as an empty \"Relevant links\".\n"
+				"name": "board-reading-history.md",
+				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Reading history groups documents by the day you read them and shows when each was read, its kind and its status. Each entry has a remove button, and **Clear history** removes them all after an in-page confirmation while pinned documents stay. History now keeps the last 30 documents instead of 10.\n\n### Changed\n\n- The sidebar's and phone More sheet's Recent list leaves out pinned documents and the page you are on.\n- The palette command that toggles the sidebar reads **Show or hide sidebar**, and documents that list this one in a heading board appear under **Listed in**.\n"
 			},
 			{
-				"name": "board-reading-order.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- On item pages, screen readers and the Tab key reach the main content before the side panel with details and the outline. The layout on screen does not change.\n- Goal sections link as `#progress`, `#criteria`, `#linked-work` and `#by-criterion`, so outline links and shared links keep working on every goal.\n- Only Progress, Criteria, Linked work and the item context are named page regions. Link groups in the side panel are plain lists under headings.\n- A plain Markdown file without front matter shows no empty Details card.\n\n### Fixed\n\n- Going back focuses the link that opened the page when that link is still there, and the page otherwise.\n- An empty Details panel is no longer a Tab stop.\n"
+				"name": "platform-await-database-disconnects.md",
+				"text": "---\n\"@shivaedev/platform\": patch\n---\n\n### Fixed\n\n- Wait for application database query and listener sockets to disconnect before host and worker scopes finish closing.\n"
 			},
 			{
-				"name": "board-status-vocabulary.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Tasks whose files say `status: review` appear in Now's Reviewing lane, count as in progress on Today and in the Now count, and land in the same group on their goal page. One status vocabulary now drives Now, Today, the navigation count and goal pages.\n- Fleet-approved tasks with `status: ready` appear in Now's Queued lane while Fleet is unavailable, and `approved` work counts as planned on goal pages instead of in progress.\n- A task, or an item that implements a goal, whose status the Board does not know is listed on System as a file problem instead of being dropped from Now or counted as in progress on its goal page.\n- The sidebar's Now count reads **1 open task** in the singular.\n\n### Changed\n\n- Now cards call held work **In progress** instead of naming its stage, and Today's In progress rows from Fleet say **Fleet** without the stage; Now's lane titles still name the stage. Today's In progress also lists Fleet work that is validating or delivering.\n"
-			},
-			{
-				"name": "board-today-answer-limit.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Today's text box for a question's prompt stops at the 8,192 characters such an answer can hold, as the item page does, instead of accepting a longer answer that then cannot be saved.\n"
-			},
-			{
-				"name": "effect-sql-delete-filters.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Repositories without a version column accept `delete(where: FindManyFilter<Model>)` with model-typed equality and `{ in: [...] }` filters alongside existing primary-key deletes. List values use field codecs, empty lists delete nothing, and deleted row keys are announced only after commit.\n"
-			},
-			{
-				"name": "sign-in-policy.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- `betterAuthMount(options, { signIn })` takes a sign-in policy: provider accounts allowed through `allowedAccounts`, which reads `AUTH_ALLOWED_ACCOUNTS` (such as `github:1001,github:1002`) through Effect Config and the `AllowedAccounts` Schema, and an optional application rule Effect such as an organization membership check. Better Auth's `validateUserInfo` and `session.create.before` hooks refuse a sign-in the policy does not admit with `sign_in_refused`, before a user or session exists.\n- The mount returns `admittedSessions(getSession)`, which rechecks the policy for each resolved session: a user it no longer admits is refused with `Unauthorized` on the next request and loses every stored session. Rule answers are reused for `recheckInterval`, five minutes by default.\n- The mount returns `revokeUnadmitted`, an Effect that revokes the sessions of every user the current policy no longer admits and reports `{ users, sessions }`.\n"
-			},
-			{
-				"name": "work-board-path-updates.md",
-				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- `Changes` accepts an optional `refreshPaths` that rereads only the given files. Board writes use it when present and fall back to `refresh`.\n\n### Fixed\n\n- Saving an answer, registering a question or preparing a handoff updates the index for the file it wrote instead of rereading the whole workspace, so the saved answer is confirmed and reaches open pages sooner.\n- A new or removed folder, such as the response folder an answer lands in, is listed on its own instead of listing the whole workspace again.\n- Startup lists the workspace once instead of twice before the first index.\n"
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.12",
+				"from": "0.11.13",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.13"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-sql",
-				"from": "0.12.0",
-				"name": "@shivaedev/effect-sql",
-				"to": "0.13.0"
+				"to": "0.11.14"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-test-sql",
-				"from": "0.8.1",
-				"name": "@shivaedev/effect-test-sql",
-				"to": "0.8.2"
-			},
-			{
-				"bump": "minor",
 				"directory": "packages/platform",
-				"from": "0.22.1",
+				"from": "0.23.0",
 				"name": "@shivaedev/platform",
-				"to": "0.23.0"
+				"to": "0.23.1"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/work-board",
-				"from": "0.25.0",
+				"from": "0.26.0",
 				"name": "@shivaedev/work-board",
-				"to": "0.26.0"
+				"to": "0.27.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.13.8",
+				"from": "0.13.9",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.13.9"
+				"to": "0.13.10"
 			}
 		]
 	}
