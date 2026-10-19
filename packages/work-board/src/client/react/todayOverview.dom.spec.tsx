@@ -37,7 +37,7 @@ screenStory.it(
 			"/_board/system#source-problems",
 		]);
 		expect(readText("[data-goal-id='project.example']")).toContain("51 linked · 1 with evidence");
-		expect(readText("[data-goal-id='project.empty']")).toContain("0 of 0 done");
+		expect(findElement("[data-goal-id='project.empty']")).toBeNull();
 		expect(readText("#today-goals")).not.toContain("not linked");
 		expect(readText("#today-goals")).not.toContain("%");
 		expect(readText("#doc")).not.toContain("Resolved elsewhere");

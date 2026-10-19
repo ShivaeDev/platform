@@ -7,6 +7,7 @@ import { fleetHealth, stoppedFleet } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
+import { todayIds } from "./todayIds.ts";
 
 expectNoReactWarnings();
 
@@ -33,10 +34,14 @@ screenStory.it(
 );
 
 screenStory.it(
-	"keeps Now's Done lane free of guesses and points to the one Fleet start path while Fleet isn't running",
+	"keeps Now's Done lane free of guesses, keeps authored lane counts and points to the one Fleet start path while Fleet isn't running",
 	[
 		screenFiles(
-			{ ...fleetWorkspace, "tasks/shipped.md": "---\nid: task.shipped\nkind: task\nstatus: done\nowner: codex\n---\n# Ship the changelog\n" },
+			{
+				...fleetWorkspace,
+				"tasks/delivery.md": "---\nid: task.delivery\nkind: task\nstatus: delivering\nowner: codex\n---\n# Deliver the release notes\n",
+				"tasks/shipped.md": "---\nid: task.shipped\nkind: task\nstatus: done\nowner: codex\n---\n# Ship the changelog\n",
+			},
 			{ home: "home.md" },
 		),
 		stoppedFleet(),
@@ -52,18 +57,41 @@ screenStory.it(
 			["Queued", "1"],
 			["Executing", "1"],
 			["Reviewing", "0"],
-			["Delivering", "0"],
+			["Delivering", "1"],
 			["Waiting on a person", "1"],
 			["Done in the last 7 days", undefined],
 		]);
 		expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toContain("Today, 3 need you");
-		expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toContain("Now, 3 open tasks");
+		expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toContain("Now, 4 open tasks");
 		expect(readText('[data-slot="alert"]')).toBe(`Lanes show the status written in each file. ${STOPPED}How to start Fleet`);
 		click(findByRole("button", "How to start Fleet"));
 		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Start Fleet", document)).not.toBeNull()));
 		const shown = findByRole("dialog", "Start Fleet", document)?.querySelector("code")?.textContent ?? "";
 		expect(shown).toMatch(command);
 		expect(document.body.textContent?.match(/work-fleet serve \S+ --port \d+/gu)).toEqual([shown]);
+	},
+);
+
+screenStory.it(
+	"lists task-file work below the Fleet isn't running panel on Today",
+	[
+		screenFiles(
+			{
+				"active.md": "---\nid: task.active\nkind: task\nstatus: active\n---\n# Active task",
+				"home.md": "# Workspace notes\n",
+			},
+			{ home: "home.md" },
+		),
+		stoppedFleet(),
+		openScreen(),
+	],
+	function* ({ findByRole, findElements, readText }) {
+		const progress = `#${todayIds.progress}`;
+		yield* Effect.promise(() => eventually(() => expect(readText(`${progress} [data-progress-id="task.active"]`)).toContain("Task file · Active")));
+		const panel = findElements(`${progress} [role="status"]`).find((status) => status.textContent === STOPPED)?.parentElement;
+		expect(panel?.textContent).toContain("Status comes from the task files, not live Fleet.");
+		expect(panel?.contains(findByRole("button", "How to start Fleet") ?? null)).toBe(true);
+		expect(readText(`${progress} [data-progress-source="files"] a`)).toBe("Active task");
 	},
 );
 

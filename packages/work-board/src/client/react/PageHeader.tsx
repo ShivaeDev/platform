@@ -2,15 +2,17 @@ import type { ComponentProps, ReactNode } from "react";
 
 export interface PageHeaderProps extends Omit<ComponentProps<"header">, "title"> {
 	readonly actions?: ReactNode;
+	readonly compact?: boolean;
 	readonly summary?: ReactNode;
 	readonly title: ReactNode;
 	readonly titleProps?: Omit<ComponentProps<"h1">, "children">;
 }
 
-export function PageHeader({ title, titleProps, summary, actions, className, ...props }: PageHeaderProps) {
+export function PageHeader({ title, titleProps, summary, actions, compact, className, ...props }: PageHeaderProps) {
 	return (
 		<header
 			className={classes("grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-x-6 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto]", className)}
+			data-compact={compact ? "" : undefined}
 			data-page-header
 			{...props}
 		>

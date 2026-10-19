@@ -40,7 +40,7 @@ screenStory.it(
 		expect(rows).toContain("Casey notes: Read the evidence");
 		expect(rows).not.toContain("Managed decision");
 		expect(rows).not.toContain("maintainer:");
-		expect(rows).not.toContain("Dropped:");
+		expect(rows).not.toContain("Planned:");
 	},
 );
 
