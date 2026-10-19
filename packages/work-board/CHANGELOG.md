@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.21.4 - 2026-10-19
+
+### Changed
+
+- Goal cards, the sidebar and Today show goal progress on the stock shadcn progress bar, and goal cards align at the top instead of stretching to the tallest card.
+- The goal page charts linked work by state, overall and per criterion, with a stacked bar chart next to written counts.
+- Linked work on a goal page is a table with Work, Criteria, State and PR columns, and each whole row links to its item.
+- The goals query and the MCP goal summary report a `needs you` count beside `done`, `in progress` and `planned`.
+
+### Fixed
+
+- Goal progress counts dropped work as done and ready work as planned, so ready items no longer inflate the in-progress count.
+- Linked work that Fleet holds for a person counts as "needs you" in goal progress and gets its own group on the goal page, instead of reading as in progress.
+
+## 0.21.3 - 2026-10-19
+
+### Changed
+
+- The search palette groups rows under **Go to**, **Appearance**, **Work** and **Documents** headings and drops the "command" subtitle from command rows.
+- **Include Fleet records** in the palette sets the new optional `records` search option; the `records:` query prefix keeps working.
+- The palette closes through the dialog's standard close control. The Search button is gone: Enter in the field still searches an unfinished query at once, and a failed search offers **Retry search**.
+
+### Fixed
+
+- Sidebar destinations, the Now / All work / Table switch and answer card links are announced as links instead of buttons, and the All work board shows one column per status name, so items spelled `needs-you` and `needs-human` share one Needs you column.
+- Search lists each item once: a document's title and the passages under it now share the document's row instead of adding a second row for the title anchor.
+- Search rows no longer repeat their title as the snippet; they show the next matching passage instead, or no snippet.
+
+## 0.21.2 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.21.1 - 2026-10-19
 
 ### Changed

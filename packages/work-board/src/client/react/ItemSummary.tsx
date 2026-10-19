@@ -5,6 +5,7 @@ import { Badge } from "#client/react/components/ui/badge.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import { Favorite } from "./Favorite.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
+import { ItemId } from "./ItemId.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import { PrChip } from "./PrChip.tsx";
 
@@ -12,7 +13,7 @@ const icons = { board: PanelsTopLeft, goal: Flag, project: Flag, question: Messa
 function kindIcon(kind: string) {
 	return Object.entries(icons).find(([name]) => name === kind)?.[1] ?? FileText;
 }
-function visibleIdentity(id: string | undefined) {
+function visibleIdentity(id: string | undefined): id is string {
 	return Boolean(id) && !/[a-f\d]{64}/iu.test(id ?? "");
 }
 export function ItemSummary({ document }: { readonly document: Document }) {
@@ -26,14 +27,12 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 			<div className="flex flex-wrap items-center gap-2">
 				<Icon aria-hidden="true" className="size-4" />
 				<span>{fields.kind ?? "Document"}</span>
-				{visibleIdentity(fields.id) && (
-					<a className="font-mono text-xs" href={document.identity ? `/_board/item/${encodeURIComponent(document.identity)}/` : undefined}>
-						{fields.id}
-					</a>
-				)}
 				<ItemStatus answering={answering} document={document} />
 				{item !== undefined && <Badge variant="outline">Fleet · {item.stage}</Badge>}
 				{item !== undefined && <PrChip url={item.prUrl} />}
+				{visibleIdentity(fields.id) && (
+					<ItemId href={document.identity ? `/_board/item/${encodeURIComponent(document.identity)}/` : undefined} id={fields.id} />
+				)}
 			</div>
 			<ItemFields fields={fields} />
 		</section>

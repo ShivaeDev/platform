@@ -1,7 +1,11 @@
 import { Effect, Option } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { invalidateOnCommit, transact } from "./transact.ts";
+import { invalidateOnCommit, transact } from "#transact.ts";
+
+function encodeKeyValue(_key: string, value: unknown) {
+	return typeof value === "bigint" ? String(value) : value;
+}
 
 export type RepositoryChanges = Effect.Success<ReturnType<typeof repositoryChanges>>;
 
@@ -23,7 +27,14 @@ export const repositoryChanges = Effect.fnUntraced(function* (sql: SqlClient.Sql
 		if (rows.length === 0) {
 			return Effect.void;
 		}
-		const ids = rows.map((row) => (columns.length === 1 ? row[columns[0] ?? ""] : JSON.stringify(columns.map((column) => row[column]))));
+		const ids = rows.map((row) =>
+			columns.length === 1
+				? row[columns[0] ?? ""]
+				: JSON.stringify(
+						columns.map((column) => row[column]),
+						encodeKeyValue,
+					),
+		);
 		return provide(invalidateOnCommit({ [table]: ids }));
 	}
 	function write<A, E, R>(effect: Effect.Effect<A, E, R>) {

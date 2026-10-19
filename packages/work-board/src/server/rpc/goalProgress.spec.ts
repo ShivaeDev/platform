@@ -14,10 +14,10 @@ boardStory.it(
 		const release = client.registry.mount(atom);
 		const result = yield* Effect.promise(() => client.read(atom));
 		expect(result.goals.find((goal) => goal.id === "project.example")).toMatchObject({
-			counts: { done: 2, "in progress": 0, planned: 3 },
+			counts: { done: 2, "in progress": 0, "needs you": 0, planned: 3 },
 			criteria: [
-				{ counts: { done: 1, "in progress": 0, planned: 1 }, evidence: 2, linked: 2 },
-				{ counts: { done: 0, "in progress": 0, planned: 1 }, evidence: 1, linked: 1 },
+				{ counts: { done: 1, "in progress": 0, "needs you": 0, planned: 1 }, evidence: 2, linked: 2 },
+				{ counts: { done: 0, "in progress": 0, "needs you": 0, planned: 1 }, evidence: 1, linked: 1 },
 			],
 			linked: 5,
 			openAsks: 2,
@@ -35,6 +35,7 @@ boardStory.it(
 				expect(updated._tag === "Success" && updated.value.goals.find((goal) => goal.id === "project.example")?.counts).toEqual({
 					done: 2,
 					"in progress": 1,
+					"needs you": 0,
 					planned: 2,
 				});
 			}),
@@ -47,6 +48,7 @@ boardStory.it(
 				expect(updated._tag === "Success" && updated.value.closedGoals.find((goal) => goal.id === "project.example")?.counts).toEqual({
 					done: 2,
 					"in progress": 1,
+					"needs you": 0,
 					planned: 2,
 				});
 			}),

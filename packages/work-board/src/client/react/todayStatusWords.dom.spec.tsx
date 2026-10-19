@@ -9,16 +9,13 @@ import { screenFiles, screenRoute, todayScreen } from "#test/screenWorkspaceTrai
 expectNoReactWarnings();
 
 screenStory.it(
-	"leaves status chips off Today rows whose heading already names their state, keeping id, age and Answer",
+	"leaves status chips off Today rows whose heading already names their state, keeping their age",
 	[todayScreen(), openScreen()],
-	function* ({ findElement, findElements, readText }) {
+	function* ({ findElements, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElements("ul[aria-label='Needs you'] > li").length).toBeGreaterThan(0)));
 		expect(findElements(".today-row [data-status-token]")).toHaveLength(0);
 		for (const row of findElements("ul[aria-label='Needs you'] > li")) {
-			const id = row.dataset.attentionId ?? "";
-			expect(readText(".font-mono", row)).toBe(id);
 			expect(readText(".tabular-nums", row)).not.toBe("");
-			expect(findElement("[aria-label^='Answer ']", row)?.textContent).toBe("Answer");
 		}
 		expect(readText("#needs-you")).not.toContain("needs-you");
 	},
@@ -116,5 +113,18 @@ screenStory.it(
 		expect(readText("main")).toContain("Review the landing copy");
 		expect(readText("main")).toContain("Ship the onboarding email");
 		expect(readText("main")).not.toContain("Write the install guide");
+	},
+);
+
+screenStory.it(
+	"gives All work one column per status name holding items of each spelling",
+	[screenFiles(BOTH_SPELLINGS, { home: "home.md" }), screenRoute("/_board/work?view=board"), openScreen()],
+	function* ({ findByRole, findElements, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("main")).toContain("Review the landing copy")));
+		expect(findElements(".work-column > h2 [data-status-token]").map((chip) => chip.textContent)).toEqual(["Planned", "Active", "Needs you"]);
+		const needsYou = findByRole("region", "Needs you");
+		expect(readText("h2", needsYou)).toBe("Needs you2");
+		expect(needsYou?.textContent).toContain("Review the landing copy");
+		expect(needsYou?.textContent).toContain("Ship the onboarding email");
 	},
 );

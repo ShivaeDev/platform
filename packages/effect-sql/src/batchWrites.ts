@@ -5,20 +5,20 @@ import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
 import type { RepositoryChanges } from "./repositoryChanges.ts";
 
-export type InsertMany<TModel extends Model.Any> = (
+export type InsertMany<TModel extends Model.Any, TServices = never> = (
 	inputs: readonly TModel["insert"]["Type"][],
-) => Effect.Effect<TModel["Type"][], SqlError | Schema.SchemaError, TModel["insert"]["EncodingServices"] | TModel["DecodingServices"]>;
+) => Effect.Effect<TModel["Type"][], SqlError | Schema.SchemaError, TModel["insert"]["EncodingServices"] | TModel["DecodingServices"] | TServices>;
 
 export interface BatchWrites<TModel extends Model.Any> {
 	readonly insertMany: InsertMany<TModel>;
 }
 
-export function makeInsertMany(
+export function makeInsertMany<TServices = never>(
 	model: Model.Any,
 	sql: SqlClient.SqlClient,
 	options: { readonly tableName: string; readonly spanPrefix: string; readonly changes: RepositoryChanges },
 	operation: string,
-	prepare: (row: Readonly<Record<string, unknown>>) => Effect.Effect<Fragment, Schema.SchemaError> = () => Effect.succeed(sql``),
+	prepare: (row: Readonly<Record<string, unknown>>) => Effect.Effect<Fragment, Schema.SchemaError, TServices> = () => Effect.succeed(sql``),
 ) {
 	const encode = Schema.encodeEffect(model.insert);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
@@ -51,11 +51,13 @@ export function makeInsertMany(
 			for (const row of rows) {
 				const value = sql`(${sql.csv(columns.map((column) => (Object.hasOwn(row, column) ? sql`${row[column]}` : sql`default`)))})`;
 				const size = value.compile()[1].length;
+				const prepared = yield* prepare(row);
+				const suffixSize = sql`${prepared}`.compile()[1].length;
 				// Bound native fragment size as well as PostgreSQL's 65,535 bind parameters.
-				if (chunk.length > 0 && (chunk.length === chunkSize || parameters + size > 10_000)) {
+				if (chunk.length > 0 && (chunk.length === chunkSize || parameters + size + suffixSize > 10_000)) {
 					yield* flush;
 				}
-				suffix = yield* prepare(row);
+				suffix = prepared;
 				chunk.push(value);
 				parameters += size;
 			}

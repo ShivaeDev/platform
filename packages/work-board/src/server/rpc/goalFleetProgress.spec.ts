@@ -4,9 +4,13 @@ import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { goalFleetFixture, goalPageFixture } from "#test/goalPageFixture.ts";
 
-for (const stage of ["executing", "reviewing", "needs-human"] as const) {
+for (const [stage, group] of [
+	["executing", "in progress"],
+	["reviewing", "in progress"],
+	["needs-human", "needs you"],
+] as const) {
 	boardStory.it(
-		`counts Fleet ${stage} as in progress through the goals RPC`,
+		`counts Fleet ${stage} as ${group} through the goals RPC`,
 		[projectFiles(goalPageFixture()), deferredServing],
 		function* ({ start, connectClient }) {
 			const missing = { cause: "Not configured for fixture", observedAt: 0, state: "not-configured" as const };
@@ -20,9 +24,10 @@ for (const stage of ["executing", "reviewing", "needs-human"] as const) {
 			const client = connectClient();
 			const result = yield* Effect.promise(() => client.read(client.api.goals.query()));
 			const goal = result.goals.find((entry) => entry.id === "project.example");
-			expect(goal?.counts).toEqual({ done: 2, "in progress": 1, planned: 2 });
-			expect(goal?.criteria[0]?.counts).toEqual({ done: 1, "in progress": 1, planned: 0 });
-			expect(goal?.criteria[1]?.counts).toEqual({ done: 0, "in progress": 0, planned: 0 });
+			const held = { "in progress": 0, "needs you": 0, [group]: 1 };
+			expect(goal?.counts).toEqual({ done: 2, ...held, planned: 2 });
+			expect(goal?.criteria[0]?.counts).toEqual({ done: 1, ...held, planned: 0 });
+			expect(goal?.criteria[1]?.counts).toEqual({ done: 0, "in progress": 0, "needs you": 0, planned: 0 });
 		},
 	);
 }

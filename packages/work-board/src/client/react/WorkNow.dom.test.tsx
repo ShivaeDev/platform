@@ -85,11 +85,11 @@ for (const sort of ["title", "owner", "status"] as const) {
 		[componentScreen(<WorkCards data={{ ...data, rows: sorted }} />)],
 		({ findElements }) => {
 			expect([...findElements(".work-column")].map((lane) => lane.getAttribute("aria-label"))).toEqual([
-				"planned",
-				"active",
-				"blocked",
-				"done",
-				"custom",
+				"Planned",
+				"Active",
+				"Blocked",
+				"Done",
+				"Custom",
 				"",
 			]);
 			expect(compareStatuses("done", "planned")).toBeGreaterThan(0);

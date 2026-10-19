@@ -85,7 +85,7 @@ const ReadNavigation = query("navigation", {
 	success: Navigation,
 });
 const ReadSearch = query("search", {
-	payload: { query: Schema.String.check(Schema.isMaxLength(8192)) },
+	payload: { query: Schema.String.check(Schema.isMaxLength(8192)), records: Schema.optional(Schema.Boolean) },
 	reads: () => [workspace.list, index.list],
 	rejections: { InternalServerError },
 	success: Schema.Struct({ results: Schema.Array(Entry), total: Schema.Number, unavailable: Schema.Array(Schema.String) }),

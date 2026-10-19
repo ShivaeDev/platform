@@ -7,10 +7,12 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { query } from "@shivaedev/effect-contract/operation.ts";
+import { command, query } from "@shivaedev/effect-contract/operation.ts";
 
-const Get = query("get", { reads: () => [], success: Schema.Struct({ title: Schema.String }) });
-const Notes = contract("loaderNotes", { queries: [Get] });
+const notes = { _tag: "List", collection: "loaderNotes" } as const;
+const Get = query("get", { reads: () => [notes], success: Schema.Struct({ title: Schema.String }) });
+const Rename = command("rename", { invalidates: () => [notes], payload: { title: Schema.String } });
+const Notes = contract("loaderNotes", { commands: [Rename], queries: [Get] });
 
 export const loaderHost = Effect.fnUntraced(function* () {
 	const calls: string[] = [];
@@ -20,6 +22,11 @@ export const loaderHost = Effect.fnUntraced(function* () {
 			Effect.suspend(() => {
 				calls.push("get");
 				return Effect.promise(() => response.promise);
+			}),
+		"loaderNotes.rename": ({ title }) =>
+			Effect.sync(() => {
+				response = Promise.withResolvers();
+				response.resolve({ title });
 			}),
 	});
 	const routes = RpcServer.layerHttp({ group: Notes, path: "/rpc", protocol: "http" }).pipe(Layer.provide([handlers, RpcSerialization.layerJson]));
@@ -46,6 +53,7 @@ export const loaderHost = Effect.fnUntraced(function* () {
 		next: () => {
 			response = Promise.withResolvers();
 		},
+		rename: (title: string) => Client.runtime.atom(api.rename.run({ title })),
 		respond: (title: string) => response.resolve({ title }),
 		source: atom.initialValueTarget,
 	};

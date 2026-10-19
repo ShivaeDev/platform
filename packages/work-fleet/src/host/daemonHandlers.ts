@@ -1,8 +1,10 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Fiber, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
+import { Forbidden, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { databaseAddress } from "@shivaedev/platform/server/databaseAddress.ts";
 import { exposeFailure } from "#exposeFailure.ts";
+import { answerRecords } from "#host/answerRecords.ts";
 import { answerRequests } from "#host/answerRequests.ts";
 import { answerWork } from "#host/answerWork.ts";
 import type { FleetHost } from "#host/config.ts";
@@ -15,7 +17,8 @@ import { fleetStatus } from "#host/fleetStatus.ts";
 import { reserveForeignPr } from "#host/foreignReservations.ts";
 import { LiveConfig } from "#host/liveConfig.ts";
 import { nameStoredThreads } from "#host/nameThreads.ts";
-import { decisionResponses, releaseItems } from "#host/releaseWork.ts";
+import { decisionResponses } from "#host/releaseWork.ts";
+import { executing } from "#model.ts";
 
 export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* (host: FleetHost) {
 	const scope = yield* Effect.scope;
@@ -43,6 +46,19 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 		(workId, options) => withResponses(answerWork(host, workId, { ...options, background: true })),
 		receipts,
 	);
+	const acceptRelease = Effect.fn("FleetDaemon.acceptRelease")(function* (workId: string) {
+		const current = (yield* read(answerRecords(host.namespace, workId)))[0];
+		if (current === undefined) {
+			return yield* new NotFound({ message: `Unknown Board work ${workId}` });
+		}
+		if (current.stage === "released") {
+			return current;
+		}
+		if (current.stage !== "needs-human" || executing(current)) {
+			return yield* new Forbidden({ message: "Only terminal needs-human work can be released" });
+		}
+		return yield* answers(workId, "Release Fleet ownership.", true);
+	});
 	// A client that stops waiting closes its request; the answer it asked for must still be recorded and applied.
 	function settle<A, E, R>(effect: Effect.Effect<A, E, R>) {
 		return effect.pipe(Effect.forkIn(scope), Effect.flatMap(Fiber.join));
@@ -57,8 +73,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 					"daemon.dispatch-status": ({ workId }) => exposeFailure(dispatch.get(workId)),
 					"daemon.follow": ({ workIds, follow: continuous }) => follow(workIds, continuous),
 					"daemon.name-threads": () => exposeFailure(nameStoredThreads(host)),
-					"daemon.release": ({ workIds }) =>
-						exposeFailure(settle(withResponses(releaseItems(host, workIds, true))).pipe(Effect.map((records) => records.map(({ value }) => value)))),
+					"daemon.release": ({ workIds }) => exposeFailure(settle(Effect.forEach(workIds, acceptRelease))),
 					"daemon.reserve-pr": ({ areas, pr }) => exposeFailure(settle(reserveForeignPr(host, pr, areas))),
 					"daemon.status": ({ workId }) => exposeFailure(workId === undefined ? status : read(fleetStatus(host, workId))),
 				}),

@@ -71,8 +71,7 @@ boardStory.it("indexes declared IDs/status/owner and criteria at exact source lo
 	expect(criteria.results[0]?.href).toBe("/_board/item/work.search/");
 	expect(criteria.results.find((result) => result.href.endsWith("#criterion-keyboard"))?.line).toBe(8);
 	const prose = yield* rpcSearch(board, "Readable project prose");
-	expect(prose.results[0]?.href).toBe("/_board/item/work.search/");
-	expect(prose.results.find((result) => result.kind === "passage")?.line).toBe(25);
+	expect(prose.results[0]).toMatchObject({ href: "/_board/item/work.search/", line: 25 });
 });
 
 boardStory.it("does not claim unique identity when part of the workspace cannot be read", readingProject, function* ({ board, start, get }) {

@@ -1,3 +1,4 @@
+import type { ExecFileSyncOptionsWithStringEncoding } from "node:child_process";
 import { execFileSync } from "node:child_process";
 import { Effect } from "effect";
 import { expect, vi } from "vitest";
@@ -14,6 +15,7 @@ export interface PostgresEngine {
 	calls: string[][];
 	contextEndpoint: string;
 	environment: { "DOCKER_CONTEXT"?: string | undefined; "DOCKER_HOST"?: string | undefined };
+	hostClient?: (args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding) => string;
 	manager: ReturnType<typeof localPostgres>;
 	mode: "script" | "real" | "readiness";
 	plan: Parameters<typeof dockerScript>[0][number][];
@@ -60,7 +62,7 @@ export function connectCli(engine: PostgresEngine) {
 		expect(options?.encoding).toBe("utf8");
 		const strings = { ...options, encoding: "utf8" } as const;
 		if (engine.mode === "real") {
-			return engine.realExec(file, cliArgs, strings);
+			return realCommand(engine, file, cliArgs, strings);
 		}
 		if (engine.startup) {
 			return engine.startup.run(file, cliArgs, strings);
@@ -87,4 +89,8 @@ export function connectCli(engine: PostgresEngine) {
 
 export function configureReadiness(engine: PostgresEngine, attempts: number) {
 	engine.manager = localPostgres(engine.environment, { attempts, delayMillis: 0 });
+}
+
+function realCommand(engine: PostgresEngine, file: string, args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding) {
+	return file === "psql" && engine.hostClient ? engine.hostClient(args, options) : engine.realExec(file, args, options);
 }

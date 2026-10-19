@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { dual } from "effect/Function";
 import { SqlClient } from "effect/sql";
+import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
 import { makeRepository } from "#repository.ts";
@@ -8,17 +9,21 @@ import { withChangeCoverage } from "#testing.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 import type { arraySamples } from "./arraySamples.ts";
 import { watchChanges } from "./changeObservation.ts";
+import { isCommitting } from "./commitObservation.ts";
+import type { compositeLedger } from "./compositeLedger.ts";
 import type { compositeMeasurements } from "./compositeMeasurements.ts";
 import type { compositeReadings } from "./compositeReadings.ts";
 import type { conflictAccounts } from "./conflictAccounts.ts";
 import type { constrainedItems } from "./constrainedItems.ts";
 import { fixture } from "./fixture.ts";
 import type { generatedRows } from "./generatedRows.ts";
+import type { heldSeed } from "./heldSeed.ts";
+import { holdAdvisoryLock } from "./holdAdvisoryLock.ts";
 import type { invoiceLines } from "./invoiceLines.ts";
 import type { jsonReceipts } from "./jsonReceipts.ts";
-import { migrate } from "./migrationConcurrency.ts";
 import type { migrationTables } from "./migrationTables.ts";
 import type { notificationTable } from "./notificationTable.ts";
+import type { partialConflicts } from "./partialConflicts.ts";
 import type { setupBatch } from "./postgresBatch.ts";
 import type { setup as payments } from "./postgresCodecs.ts";
 import type { startNotifications } from "./postgresNotify.ts";
@@ -27,6 +32,7 @@ import type { setupVersioned } from "./postgresVersioned.ts";
 import { RecordedLogs } from "./RecordedLogs.ts";
 import type { labelsWithPrefix, setup as lines } from "./sqliteRepository.ts";
 import type { secondDatabase, setup as sqliteTransactions } from "./sqliteTransactions.ts";
+import { waitingOn } from "./waitingOn.ts";
 import type { wideRows } from "./wideRows.ts";
 export const sqlEngine = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -34,11 +40,13 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 	return {
 		arraySamples: fixture<Effect.Success<typeof arraySamples>>(),
 		batch: fixture<Effect.Success<typeof setupBatch>>(),
+		compositeLedger: fixture<Effect.Success<typeof compositeLedger>>(),
 		compositeMeasurements: fixture<Effect.Success<typeof compositeMeasurements>>(),
 		compositeReadings: fixture<Effect.Success<typeof compositeReadings>>(),
 		conflictAccounts: fixture<Effect.Success<typeof conflictAccounts>>(),
 		constrainedItems: fixture<Effect.Success<typeof constrainedItems>>(),
 		generatedRows: fixture<Effect.Success<typeof generatedRows>>(),
+		heldSeed: fixture<Effect.Success<ReturnType<typeof heldSeed>>>(),
 		invoiceLines: fixture<Effect.Success<typeof invoiceLines>>(),
 		jsonReceipts: fixture<Effect.Success<typeof jsonReceipts>>(),
 		labels: fixture<Effect.Success<typeof labelsWithPrefix>>(),
@@ -48,6 +56,7 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 		notifications: fixture<Effect.Success<ReturnType<typeof startNotifications>>>(),
 		notificationTable: fixture<Effect.Success<typeof notificationTable>>(),
 		observer: fixture<Effect.Success<typeof secondPool>>(),
+		partialConflicts: fixture<Effect.Success<typeof partialConflicts>>(),
 		payments: fixture<Effect.Success<typeof payments>>(),
 		secondSqlite: fixture<Effect.Success<typeof secondDatabase>>(),
 		sql,
@@ -64,25 +73,30 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		return binding === undefined ? transaction : Effect.provideContext(transaction, binding);
 	});
 	return {
+		advisoryXactLock,
 		arraySamples: engine.arraySamples.get,
 		assertPostgresMigrations,
 		batchFixture: engine.batch.get,
+		compositeLedger: engine.compositeLedger.get,
 		compositeMeasurements: engine.compositeMeasurements.get,
 		compositeReadings: engine.compositeReadings.get,
 		conflictAccounts: engine.conflictAccounts.get,
 		constrainedItems: engine.constrainedItems.get,
 		generatedRows: engine.generatedRows.get,
+		heldSeed: engine.heldSeed.get,
+		holdAdvisoryLock,
 		invalidateOnCommit,
 		invoiceLines: engine.invoiceLines.get,
+		isCommitting,
 		jsonReceipts: engine.jsonReceipts.get,
 		labels: engine.labels.get,
 		makeRepository,
-		migrate,
 		migratePostgres,
 		migrations: engine.migrations.get,
 		notifications: engine.notifications.get,
 		notificationTable: engine.notificationTable.get,
 		observerPool: engine.observer.get,
+		partialConflicts: engine.partialConflicts.get,
 		paymentFixture: engine.payments.get,
 		recordedLogs: () => engine.logs,
 		secondSqliteDatabase: engine.secondSqlite.get,
@@ -92,6 +106,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		transact: notifyTransact,
 		transactions: engine.transactions.get,
 		versions: engine.versions.get,
+		waitingOn,
 		watchChanges,
 		wideRows: engine.wideRows.get,
 		withChangeCoverage,

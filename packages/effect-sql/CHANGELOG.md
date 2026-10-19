@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.1 - 2026-10-19
+
+### Fixed
+
+- Repository writes to a table whose composite key includes a `bigint` column no longer fail with "Do not know how to serialize a BigInt"; their item keys encode each `bigint` key value as its decimal string, the same way a single-column `bigint` key is encoded.
+
+## 0.8.0 - 2026-10-19
+
+### Added
+
+- `advisoryXactLock(key: bigint | string)` takes a PostgreSQL transaction-scoped advisory lock inside `transact`, with string keys hashed by `hashtextextended(key, 0)`. `AdvisoryLockOutsideTransaction` is the typed failure when no transaction is active. `migratePostgres` uses the same lock function.
+
 ## 0.7.0 - 2026-10-18
 
 ### Added

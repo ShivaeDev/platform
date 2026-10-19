@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.29.0 - 2026-10-19
+
+### Breaking
+
+- `toolOwned` in `files/named-after-export` and `files/other-names` now extends the default tool-owned paths instead of replacing them. Remove copied defaults from your configured lists and keep only repository-specific additions.
+
+## 0.28.2 - 2026-10-19
+
+### Changed
+
+- `testProjects()` sizes workers from a connection budget instead of CPU capacity. Set `connectionBudget` and `connectionsPerWorker` to match the repository's PostgreSQL usage, or set `maxWorkers` to override the calculation.
+
 ## 0.28.1 - 2026-10-19
 
 ### Fixed

@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.13.2 - 2026-10-19
+
+### Fixed
+
+- Keep observing reserved PRs after release or renewed preparation and free their areas when they merge or close. Reuse conditional GitHub requests for unchanged PRs, and keep legacy closure decisions from reserving their areas again on release.
+
+## 0.13.1 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.13.0 - 2026-10-19
+
+### Added
+
+- Predict conflicts against main and watched open PR heads with Git merge-tree, and hold the later PR before review and merge readiness until the earlier PR merges. Continue its worker once to merge main, even after area reservations expire.
+- Expose `MergePrediction` and `PredictedConflict` schemas, optional `FleetIntegrations.predict(pr, watchedPrs)` and `MainSource.mergeConflicts(head, otherHeads)` ports, and durable `mergePrediction` and `predictedConflictHold` record fields. Store conflict file names in typed PostgreSQL rows with UTC observation times through an additive migration.
+
+### Fixed
+
+- Acknowledge accepted daemon release commands within the client timeout while launches are busy, then apply their durable responses in the background.
+
+## 0.12.1 - 2026-10-19
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.12.0 - 2026-10-19
 
 ### Added

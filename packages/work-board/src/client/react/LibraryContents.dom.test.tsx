@@ -1,10 +1,23 @@
+import { Clock, Effect } from "effect";
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { boardScreen } from "#test/screenTraits.ts";
+import { boardScreen, routedScreen } from "#test/screenTraits.ts";
 import { LibraryContents } from "./LibraryContents.tsx";
 
 expectNoReactWarnings();
+screenStory.it(
+	"shows how long ago each listed document changed",
+	[
+		routedScreen({ "home.md": "# Home", "note.md": "# Note" }, "/_board/library?view=recently-changed", {
+			home: "home.md",
+			modified: new Map([["note.md", Effect.runSync(Clock.currentTimeMillis) - 2 * 60 * 60 * 1000]]),
+		}),
+	],
+	function* ({ readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText('#doc li:has(a[href="/note.md"]) [data-modified]')).toBe("updated 2h ago")));
+	},
+);
 const files = [
 	{ href: "/a.md", kind: "document", modified: 1000, path: "a.md", status: "not recorded", title: "Alphabetical first" },
 	{ href: "/z.md", kind: "document", modified: 3000, path: "z.md", status: "not recorded", title: "Newest title" },

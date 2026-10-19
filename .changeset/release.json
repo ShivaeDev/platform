@@ -3,61 +3,50 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "effect-react-warnings-readout.md",
-				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- `captureReactWarnings` in `client/testing.ts` acquires a scoped, silent capture for story kits. Its `ReactWarnings` handle reads console calls and unexpected caught React errors as a `ReactWarningsReadout`, excludes declared caught errors, and restores `console.error` on scope closure, including failed stories. `expectNoReactWarnings` uses the same capture mechanism.\n"
-			},
-			{
-				"name": "quality-skip-worktrees.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Exclude `.worktrees` directories from all Vitest projects, repository discovery and Biome checks so worktree copies are not tested or linted from the parent checkout.\n"
+				"name": "local-postgres-version-error.md",
+				"text": "---\n\"@shivaedev/local-postgres\": minor\n---\n\n### Added\n\n- `PostgresVersionMismatch` from `@shivaedev/local-postgres/PostgresVersionMismatch.ts` identifies a refused running version through `_tag`, `expectedVersion` and `observedVersion`, retaining the existing error message.\n"
 			},
 			{
 				"name": "release-starter-pins.md",
 				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			},
 			{
-				"name": "test-story-proxy-address-hops.md",
-				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- `ForwardingProxyOptions.localAddress` selects the proxy's source socket address and rejects unavailable addresses during acquisition. `ForwardingProxyOptions.forwardedHops` appends visitor and edge hops after the client's `x-forwarded-for` chain instead of the caller address; fixed `headers` still override the generated chain.\n"
+				"name": "test-story-scoped-http-faults.md",
+				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- Scope `fakeHttpService` stalls, immediate faults and one-shot replies by decoded path parameters with `FakeHttpScope`.\n- Script future status, drop and reset faults with `scriptFault` and `FakeHttpScriptOptions`, optionally repeat until the returned `FakeHttpScript.lift` control or strike after the route's reply applies its effects.\n- Declare per-route guards alongside the service guard; rejected requests receive 401 before holds, arrival scripts or faults are consumed.\n"
 			},
 			{
-				"name": "work-fleet-idle-priority.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- `fleet-priority: low` fills idle execution capacity after prepared normal-or-higher work, without interrupting running low work. Low work still respects held areas and dependencies. Pending low launch retries do not stop normal admission; new provider rejections still pace the scheduler.\n"
+				"name": "work-fleet-released-pr-observation.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Keep observing reserved PRs after release or renewed preparation and free their areas when they merge or close. Reuse conditional GitHub requests for unchanged PRs, and keep legacy closure decisions from reserving their areas again on release.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.1",
+				"from": "0.11.5",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.2"
+				"to": "0.11.6"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/effect-react",
-				"from": "0.8.0",
-				"name": "@shivaedev/effect-react",
-				"to": "0.9.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/quality",
-				"from": "0.28.0",
-				"name": "@shivaedev/quality",
-				"to": "0.28.1"
+				"directory": "packages/local-postgres",
+				"from": "0.4.2",
+				"name": "@shivaedev/local-postgres",
+				"to": "0.5.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/test-story",
-				"from": "0.12.0",
+				"from": "0.14.0",
 				"name": "@shivaedev/test-story",
-				"to": "0.13.0"
+				"to": "0.15.0"
 			},
 			{
-				"bump": "minor",
+				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.11.1",
+				"from": "0.13.1",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.12.0"
+				"to": "0.13.2"
 			}
 		]
 	}

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { GithubTransport, ghTransport } from "#host/githubTransport.ts";
 import { githubCli } from "#test/githubCli.ts";
@@ -100,3 +101,20 @@ export function unslurped(responses: ReadonlyMap<string, string>) {
 		}),
 	);
 }
+
+export const httpGithubApi = Effect.fn("Test.httpGithubApi")(function* (origin: string) {
+	const transport = Layer.succeed(GithubTransport, (args: readonly string[]) =>
+		Effect.tryPromise({
+			catch: () => new ServiceUnavailable({ message: "Synthetic GitHub read failed" }),
+			try: async () => {
+				const etag = conditionalEtag(args);
+				const response = await fetch(`${origin}/${args.at(-1)}`, { headers: etag === undefined ? {} : { "If-None-Match": etag } });
+				return {
+					exitCode: response.ok ? 0 : 1,
+					output: httpOutput(response.status, Object.fromEntries(response.headers), await response.text()),
+				};
+			},
+		}),
+	);
+	return Context.get(yield* Layer.build(GithubApi.layer.pipe(Layer.provide(transport))), GithubApi);
+});

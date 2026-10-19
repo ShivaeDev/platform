@@ -16,15 +16,17 @@ const command = /^work-fleet serve \S+ --port \d+$/u;
 screenStory.it(
 	"says once on Today that Fleet isn't running and keeps its start command behind one disclosure",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), stoppedFleet(), openScreen()],
-	function* ({ click, findAllByRole, findByRole, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findByRole("status", STOPPED)).not.toBeNull()));
-		expect(findAllByRole("status", STOPPED).map((status) => status.textContent)).toEqual([STOPPED]);
+	function* ({ click, findByRole, findElements, readText }) {
+		function stopped() {
+			return findElements('[role="status"]', document).filter((status) => status.textContent === STOPPED);
+		}
+		yield* Effect.promise(() => eventually(() => expect(stopped().map((status) => status.textContent)).toEqual([STOPPED])));
 		expect(readText()).not.toContain("127.0.0.1");
 		expect(readText()).not.toContain("work-fleet serve");
-		expect(findByRole("dialog", "Start Fleet")).toBeNull();
+		expect(findByRole("dialog", "Start Fleet", document)).toBeNull();
 		click(findByRole("button", "How to start Fleet"));
-		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Start Fleet")).not.toBeNull()));
-		const shown = findByRole("dialog", "Start Fleet")?.querySelector("code")?.textContent ?? "";
+		yield* Effect.promise(() => eventually(() => expect(findByRole("dialog", "Start Fleet", document)).not.toBeNull()));
+		const shown = findByRole("dialog", "Start Fleet", document)?.querySelector("code")?.textContent ?? "";
 		expect(shown).toMatch(command);
 		expect(document.body.textContent?.match(/work-fleet serve \S+ --port \d+/gu)).toEqual([shown]);
 	},

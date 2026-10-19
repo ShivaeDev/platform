@@ -19,7 +19,7 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly decisions: readonly string[];
 	readonly dependencies: (workId: string, references: readonly string[]) => void;
 	readonly editWork: (workId: string, revision: string) => void;
-	readonly foreign: (owner: string) => Effect.Effect<void, unknown>;
+	readonly foreign: (owner: string, areas?: readonly string[]) => Effect.Effect<void, unknown>;
 	readonly foreignReservations: () => Effect.Effect<readonly ForeignReservation[], unknown>;
 	readonly merged: readonly string[];
 	readonly occupy: (owner: string) => Effect.Effect<void, unknown>;

@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { FakeHttpReply, FakeHttpRequest, FakeHttpRoute, FakeHttpServiceOptions } from "#fakeHttpService.ts";
+import type { FakeHttpRequest, FakeHttpRoute, FakeHttpServiceOptions } from "#fakeHttpService.ts";
+import { fakeHttpAnswer } from "#internal/fakeHttpAnswer.ts";
 import type { fakeHttpControls } from "#internal/fakeHttpControls.ts";
 import { fakeHttpSend } from "#internal/fakeHttpSend.ts";
 
@@ -33,17 +34,6 @@ function decodeParams(params: Record<string, string>) {
 	} catch {
 		return false;
 	}
-}
-
-function pageReply(route: FakeHttpRoute, request: FakeHttpRequest): FakeHttpReply {
-	if (route.reply) {
-		return route.reply(request);
-	}
-	const page = Number(request.query.get("page") ?? "1");
-	if (!Number.isInteger(page) || page < 1) {
-		return { body: { error: "page must be a positive integer" }, status: 400 };
-	}
-	return { body: { items: route.pages[page - 1] ?? [], next: page < route.pages.length ? page + 1 : null } };
 }
 
 export async function fakeHttpReceive(
@@ -82,7 +72,7 @@ export async function fakeHttpReceive(
 			await fakeHttpSend(response, { status: 400 });
 			return;
 		}
-		if (options.guard && !options.guard(request)) {
+		if ((options.guard && !options.guard(request)) || (found?.route.guard && !found.route.guard(request))) {
 			tell(`fake HTTP rejected ${method} ${path} with 401`);
 			await fakeHttpSend(response, { status: 401 });
 			return;
@@ -92,13 +82,7 @@ export async function fakeHttpReceive(
 			await fakeHttpSend(response, { status: 404 });
 			return;
 		}
-		controls.arrive(found.name, response);
-		if (!(await controls.pause(found.name, response))) {
-			return;
-		}
-		const reply = controls.takeReply(found.name) ?? pageReply(found.route, request);
-		tell(`fake HTTP answered ${method} ${path} with ${reply.status ?? 200}`);
-		await fakeHttpSend(response, reply, controls.stallBody(found.name));
+		await fakeHttpAnswer(found.name, found.route, request, response, controls, tell);
 	} catch (error) {
 		tell(`fake HTTP could not answer: ${String(error)}`);
 		if (response.headersSent) {
