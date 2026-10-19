@@ -11,6 +11,7 @@ import {
 	REVIEW_TASK,
 	reviewResult,
 	UNCHECKED_TASK,
+	unrelatedProblems,
 } from "#test/resultReview.ts";
 import { failingRead } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -202,6 +203,19 @@ screenStory.it(
 			"See source problems in System",
 		);
 		expect(readText("#result-review")).not.toContain("No feedback yet");
+	},
+);
+
+screenStory.it(
+	"keeps showing feedback when only files about other work are broken, leaving them to System",
+	[routedScreen({ ...HOME, ...answeredResult(), ...unrelatedProblems() }, ITEM)],
+	function* ({ findElement, findElements }) {
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements("#result-feedback article h3").map((author) => author.textContent)).toEqual(["second-reader", "first-reader"]),
+			),
+		);
+		expect(findElement("[data-unreadable-feedback]")).toBeNull();
 	},
 );
 

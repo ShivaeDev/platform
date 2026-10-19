@@ -3,7 +3,7 @@ import type { Document } from "#browser/document/schema.ts";
 import type { Reading } from "#browser/responses/schema.ts";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
-import { readResponses } from "#server/responses/read.ts";
+import { readHistory } from "#server/responses/read.ts";
 import { malformedResponse, questionFrom, revisionOf } from "#server/responses/records.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { resultTargets } from "./resultTargets.ts";
@@ -19,8 +19,7 @@ export const resultProjection = Effect.fn("WorkBoard.resultProjection")(function
 		const question = questionFrom(entry);
 		return question && question.question.item === result.parsed.fields.id ? [question] : [];
 	});
-	const read = readResponses(Effect.succeed(data));
-	const readings = yield* Effect.forEach(questions, (question) => Effect.result(read(question.id)));
+	const readings = yield* Effect.forEach(questions, (question) => Effect.result(readHistory(data, question.id, false)));
 	function file(id: string) {
 		return data.model.ids.get(id)?.[0]?.file ?? `responses/${id}.md`;
 	}
@@ -36,7 +35,7 @@ export const resultProjection = Effect.fn("WorkBoard.resultProjection")(function
 	}
 	const broken = [
 		...data.unavailable.map((path) => ({ file: path, reason: "The Board can't read this file." })),
-		...data.documents.flatMap((entry) => {
+		...data.documents.filter(couldHoldFeedback(item, result, data)).flatMap((entry) => {
 			const reason = recordProblem(entry, data);
 			return reason ? [{ file: entry.file, reason }] : [];
 		}),
@@ -60,9 +59,29 @@ function recordProblem(entry: MetadataDocument, data: Snapshot) {
 			?? "It's marked as a response but has no ID or response record."
 		);
 	}
-	if (entry.parsed.fields.kind === "question" && !questionFrom(entry)) {
+	if (entry.parsed.fields.kind === "question" && entry.parsed.fields.question && !questionFrom(entry)) {
 		return "It's marked as a question but its record doesn't match its text.";
 	}
 	const id = entry.parsed.fields.kind === "response" ? entry.parsed.fields.id : undefined;
 	return id && (data.model.ids.get(id)?.length ?? 0) > 1 ? `Another file uses the same response ID, ${id}.` : undefined;
+}
+
+// Problems in files about other work stay on System; only a file that could answer this result's questions makes its feedback incomplete.
+function couldHoldFeedback(item: string, result: MetadataDocument, data: Snapshot) {
+	const targets = new Set([item, ...(result.parsed.fields.relationships ?? []).map((link) => link.target.replace(/#.*$/u, ""))]);
+	const questions = new Set(
+		data.documents.flatMap(({ parsed: { fields } }) =>
+			fields.kind === "question" && fields.id && fields.question && targets.has(fields.question.item) ? [fields.id] : [],
+		),
+	);
+	return (entry: MetadataDocument) => {
+		const { kind, question, relationships, response } = entry.parsed.fields;
+		if (relationships?.some((link) => targets.has(link.target.replace(/#.*$/u, "")))) {
+			return true;
+		}
+		if (kind === "question") {
+			return question !== undefined && targets.has(question.item);
+		}
+		return response ? questions.has(response.question) : malformedResponse(entry);
+	};
 }
