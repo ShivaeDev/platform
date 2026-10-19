@@ -29,11 +29,11 @@ function repair(path: readonly string[]): string {
 		: `split ${first}: move the pure code under test into its own module that reaches no engine, and test that module in the .unit file.`;
 }
 
-function reachFinding(file: string, reached: Reached): Finding {
+function reachFinding(file: string, reached: Reached<string>): Finding {
 	return {
 		file,
 		line: reached.line,
-		message: `Is a unit test but reaches ${engineOf(reached.target) ?? "an engine"} (${labelOf(reached.target)}) through ${reached.path.join(" -> ")}. A unit test reaches no engine, directly or through what it imports. ${KIT} ${repair(reached.path)}`,
+		message: `Is a unit test but reaches ${reached.match} (${labelOf(reached.target)}) through ${reached.path.join(" -> ")}. A unit test reaches no engine, directly or through what it imports. ${KIT} ${repair(reached.path)}`,
 	};
 }
 
@@ -76,7 +76,7 @@ export function unitTests(graph: ImportGraph, sources: readonly SourceFile[]): (
 	const edgesFrom = runtimeEdges(graph);
 	const byPath = new Map(sources.map((source) => [source.path, source]));
 	return (file) => {
-		const walked = walkFrom(file, edgesFrom, (endpoint) => engineOf(endpoint) !== undefined);
+		const walked = walkFrom(file, edgesFrom, engineOf);
 		const checked = [...walked.visited].filter(([module]) => module === file || isTestSupport(module));
 		return [
 			...[...walked.reached].sort((a, b) => a.line - b.line).map((reached) => reachFinding(file, reached)),
