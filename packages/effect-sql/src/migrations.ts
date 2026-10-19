@@ -1,6 +1,7 @@
 import { Duration, Effect, Option } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
+import { advisoryXactLock } from "./advisoryXactLock.ts";
 import { transact } from "./transact.ts";
 
 export interface PostgresMigrationOptions<R> {
@@ -23,7 +24,7 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
 	const timeout = millis === Number.POSITIVE_INFINITY ? "0" : `${Math.max(1, Math.ceil(millis))}ms`;
 	return yield* Effect.gen(function* () {
 		yield* sql`select set_config('lock_timeout', ${timeout}, true)`;
-		yield* sql`select pg_advisory_xact_lock(hashtextextended(${`effect_sql_migrations:${table}`}, 0))`;
+		yield* advisoryXactLock(`effect_sql_migrations:${table}`).pipe(Effect.catchTag("AdvisoryLockOutsideTransaction", Effect.die));
 		yield* sql`create table if not exists ${sql(table)} (
   migration_id integer primary key,
   created_at timestamp with time zone not null default now(),

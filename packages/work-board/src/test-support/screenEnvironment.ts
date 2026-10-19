@@ -23,6 +23,17 @@ export function screenMedia(matches: readonly string[], touchPoints = 0) {
 	});
 }
 
+export function screenChartLayout(width = 640) {
+	return screenStory.trait("workspace", `the browser lays charts out ${width} pixels wide at their styled height`, () => {
+		const measure = HTMLElement.prototype.getBoundingClientRect;
+		vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+			return this.classList.contains("recharts-responsive-container")
+				? new DOMRect(0, 0, width, Number.parseFloat(this.parentElement?.style.height ?? "") || 0)
+				: measure.call(this);
+		});
+	});
+}
+
 export function screenHistory(state: unknown, path = "/") {
 	return screenStory.trait("workspace", `the browser remembers history at ${path}`, () => window.history.replaceState(state, "", path));
 }

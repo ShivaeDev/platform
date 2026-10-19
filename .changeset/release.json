@@ -3,61 +3,80 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "effect-react-warnings-readout.md",
-				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- `captureReactWarnings` in `client/testing.ts` acquires a scoped, silent capture for story kits. Its `ReactWarnings` handle reads console calls and unexpected caught React errors as a `ReactWarningsReadout`, excludes declared caught errors, and restores `console.error` on scope closure, including failed stories. `expectNoReactWarnings` uses the same capture mechanism.\n"
+				"name": "effect-react-loaded-navigation.md",
+				"text": "---\n\"@shivaedev/effect-react\": patch\n---\n\n### Fixed\n\n- Wait for an active query loader before a newly mounted `useLoaderQuery` screen renders, so links to cached routes after invalidation show the changed data on their first render. Already mounted screens keep their data during refreshes.\n"
 			},
 			{
-				"name": "quality-skip-worktrees.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Exclude `.worktrees` directories from all Vitest projects, repository discovery and Biome checks so worktree copies are not tested or linted from the parent checkout.\n"
+				"name": "quality-extend-tool-paths.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Breaking\n\n- `toolOwned` in `files/named-after-export` and `files/other-names` now extends the default tool-owned paths instead of replacing them. Remove copied defaults from your configured lists and keep only repository-specific additions.\n"
 			},
 			{
 				"name": "release-starter-pins.md",
 				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			},
 			{
-				"name": "test-story-proxy-address-hops.md",
-				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- `ForwardingProxyOptions.localAddress` selects the proxy's source socket address and rejects unavailable addresses during acquisition. `ForwardingProxyOptions.forwardedHops` appends visitor and edge hops after the client's `x-forwarded-for` chain instead of the caller address; fixed `headers` still override the generated chain.\n"
+				"name": "test-story-screen-roles.md",
+				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- `screenDriver` actions and text/value readouts accept `ScreenTarget` selectors or `{ role, name }` targets, with exact string or regular-expression accessible names, hidden-element exclusion, candidate diagnostics and role/name narration.\n- `screenDriver.accessible(element)` computes an existing element's accessible name and role without narration; `accessible(selector)` keeps its narrated readout.\n"
 			},
 			{
-				"name": "work-fleet-idle-priority.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- `fleet-priority: low` fills idle execution capacity after prepared normal-or-higher work, without interrupting running low work. Low work still respects held areas and dependencies. Pending low launch retries do not stop normal admission; new provider rejections still pace the scheduler.\n"
+				"name": "work-board-links-and-columns.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Sidebar destinations, the Now / All work / Table switch and answer card links are announced as links instead of buttons, and the All work board shows one column per status name, so items spelled `needs-you` and `needs-human` share one Needs you column.\n"
+			},
+			{
+				"name": "work-board-search-groups.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Search lists each item once: a document's title and the passages under it now share the document's row instead of adding a second row for the title anchor.\n- Search rows no longer repeat their title as the snippet; they show the next matching passage instead, or no snippet.\n\n### Changed\n\n- The search palette groups rows under **Go to**, **Appearance**, **Work** and **Documents** headings and drops the \"command\" subtitle from command rows.\n- **Include Fleet records** in the palette sets the new optional `records` search option; the `records:` query prefix keeps working.\n- The palette closes through the dialog's standard close control. The Search button is gone: Enter in the field still searches an unfinished query at once, and a failed search offers **Retry search**.\n"
+			},
+			{
+				"name": "work-fleet-predicted-conflict-hold.md",
+				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- Predict conflicts against main and watched open PR heads with Git merge-tree, and hold the later PR before review and merge readiness until the earlier PR merges. Continue its worker once to merge main, even after area reservations expire.\n- Expose `MergePrediction` and `PredictedConflict` schemas, optional `FleetIntegrations.predict(pr, watchedPrs)` and `MainSource.mergeConflicts(head, otherHeads)` ports, and durable `mergePrediction` and `predictedConflictHold` record fields. Store conflict file names in typed PostgreSQL rows with UTC observation times through an additive migration.\n"
+			},
+			{
+				"name": "work-fleet-release-acknowledgement.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Acknowledge accepted daemon release commands within the client timeout while launches are busy, then apply their durable responses in the background.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.1",
+				"from": "0.11.3",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.2"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-react",
-				"from": "0.8.0",
-				"name": "@shivaedev/effect-react",
-				"to": "0.9.0"
+				"to": "0.11.4"
 			},
 			{
 				"bump": "patch",
+				"directory": "packages/effect-react",
+				"from": "0.10.0",
+				"name": "@shivaedev/effect-react",
+				"to": "0.10.1"
+			},
+			{
+				"bump": "minor",
 				"directory": "packages/quality",
-				"from": "0.28.0",
+				"from": "0.28.2",
 				"name": "@shivaedev/quality",
-				"to": "0.28.1"
+				"to": "0.29.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/test-story",
-				"from": "0.12.0",
+				"from": "0.13.0",
 				"name": "@shivaedev/test-story",
-				"to": "0.13.0"
+				"to": "0.14.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/work-board",
+				"from": "0.21.2",
+				"name": "@shivaedev/work-board",
+				"to": "0.21.3"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/work-fleet",
-				"from": "0.11.1",
+				"from": "0.12.1",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.12.0"
+				"to": "0.13.0"
 			}
 		]
 	}

@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { Button } from "#client/react/components/ui/button.tsx";
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "#client/react/components/ui/dialog.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#client/react/components/ui/dialog.tsx";
 import { SearchPalette } from "#client/react/SearchPalette.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
@@ -23,6 +22,7 @@ export function SearchDialog({
 	readonly returnFocus?: HTMLElement | undefined;
 }) {
 	const [input, setInput] = useState("");
+	const [records, setRecords] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const navigatingRef = useRef(false);
 	const selectionRef = useRef<ReturnType<typeof textSelection>>(undefined);
@@ -51,13 +51,9 @@ export function SearchDialog({
 				finalFocus={false}
 				id={shellIds.searchDialog}
 				initialFocus={inputRef}
-				showCloseButton={false}
 			>
-				<DialogHeader className="flex-row items-center justify-between px-3 pt-3">
+				<DialogHeader className="px-3 pt-3">
 					<DialogTitle>Find work</DialogTitle>
-					<DialogClose aria-label="Close search" id={shellIds.searchClose} render={<Button size="sm" variant="ghost" />}>
-						Close
-					</DialogClose>
 				</DialogHeader>
 				<SearchPalette
 					api={api}
@@ -68,7 +64,9 @@ export function SearchDialog({
 					}}
 					input={input}
 					inputRef={inputRef}
+					records={records}
 					setInput={setInput}
+					setRecords={setRecords}
 					toggleSidebar={toggleSidebar}
 				/>
 			</DialogContent>

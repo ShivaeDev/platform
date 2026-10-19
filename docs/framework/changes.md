@@ -22,6 +22,12 @@ Contracts include a framework subscription named `<contract>.$changes`. Platform
 
 A changed hint contains only keys that actually fired and belong to the subscription. An item query should read its item key; add a list key only when changes to the whole collection should refetch it. Query handlers still enforce access policy and return authoritative data.
 
+## Query read keys
+
+Declare each query's dependencies with `reads(payload)`. For a query joining several tables, include each table's collection key so a write to either table refreshes it. Item keys give a narrower dependency when the query reads a specific row. Raw SQL and views need the same explicit declarations.
+
+PostgreSQL's `pg_stat_xact_user_tables` scan counters cannot identify a query's dependencies from one snapshot at the end of a read-only transaction. On PostgreSQL 18.6 with `track_counts` enabled, `seq_scan` and `idx_scan` can retain reads from earlier committed transactions on the same connection until PostgreSQL flushes its pending statistics. Treating every positive counter as a dependency would subscribe later queries to tables they did not read. Read keys therefore come from the contract, with no extra SQL statement for automatic read tracking.
+
 ## Catch uncovered SQL in stories
 
 The effect-sql story kit exposes `withChangeCoverage(body)`, also exported from `@shivaedev/effect-sql/testing.ts`. It runs the body inside `transact`, compares `pg_stat_xact_user_tables` counters before and after it, and fails with `UnannouncedWrites` if any written table lacks a recorded table key. The check happens before commit, so its failure rolls the body back. It checks table coverage, not whether every changed row was named; recorded keys from rolled-back savepoints count because PostgreSQL's transaction statistics retain those writes too.

@@ -155,4 +155,10 @@ describe("Fleet items and goals", () => {
 			goalsOf({ goals: [{ counts: { accepted: 1, blocked: 1, done: 2, "in progress": 3, planned: 4, superseded: "?" }, id: "goal.a" }] }).items,
 		).toEqual([{ active: 4, done: 3, id: "goal.a", title: "goal.a", total: 11 }]);
 	});
+
+	it("counts work that needs you as started, not done, and in the total", () => {
+		expect(goalsOf({ goals: [{ counts: { done: 2, "in progress": 1, "needs you": 3, planned: 4 }, id: "goal.b" }] }).items).toEqual([
+			{ active: 4, done: 2, id: "goal.b", title: "goal.b", total: 10 },
+		]);
+	});
 });

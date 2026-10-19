@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardFilesystem, boardStory, projectFiles } from "./boardStory.ts";
-import { directoryNotifications } from "./directoryNotifications.ts";
-import { changesUntil, rpcDocument } from "./nativeRpc.ts";
+import { boardFilesystem, boardStory, projectFiles } from "#test/boardStory.ts";
+import { directoryNotifications } from "#test/directoryNotifications.ts";
+import { changesUntil, rpcDocument } from "#test/nativeRpc.ts";
 
 for (const first of ["filesystem", "notifications"]) {
 	const notifications = directoryNotifications(true);
@@ -30,7 +30,8 @@ for (const first of ["filesystem", "notifications"]) {
 			expect(yield* changesUntil(events, "notes/log.md")).toMatchObject({ _tag: "Changed" });
 			expect((yield* rpcDocument(board, "/notes/log.md")).source).toBe("# After");
 			expect(reads).toBeGreaterThan(before);
-			expect(notifications.watchStarts()).toBe(1);
+			const singleWatcher = 1;
+			expect(notifications.watchStarts()).toBe(singleWatcher);
 			yield* events.close();
 		},
 	);

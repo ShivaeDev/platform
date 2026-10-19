@@ -1,10 +1,8 @@
 import { Effect } from "effect";
-import { expect } from "vitest";
 import { openPage } from "./browser.ts";
 import { enterField } from "./enterField.ts";
 import { followLink } from "./followLink.ts";
 import { formEvent } from "./formEvent.ts";
-import { waitFor } from "./live.ts";
 import { pageActions } from "./pageActions.ts";
 import { setNativeValue } from "./setNativeValue.ts";
 import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "./storyEngine.ts";
@@ -64,6 +62,7 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				tell(`the reader follows ${href}`);
 				followLink(page(), href);
 			}),
+		inboxCounts: () => ["inbox-count", "inbox-topbar-count"].map((id) => page().document.getElementById(id)?.textContent),
 		input: (name: string, value: string) => text(`[name="${name}"]`, value),
 		open: Effect.fn("Story.open")(function* (path: string, before?: Parameters<typeof openPage>[2]) {
 			tell(`the reader opens ${path}`);
@@ -115,20 +114,6 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		view: () => {
 			page();
 			return readerView(engine);
-		},
-		waitForInbox: (count: number) => {
-			tell(`the reader waits for ${count} waiting in both Inbox counts`);
-			return Effect.promise(() =>
-				waitFor(() => {
-					for (const id of ["inbox-count", "inbox-topbar-count"]) {
-						expect(page().document.getElementById(id)?.textContent).toBe(String(count));
-					}
-				}),
-			);
-		},
-		waitForResponseStatus: (status: string) => {
-			tell(`the reader waits for response status ${JSON.stringify(status)}`);
-			return Effect.promise(() => waitFor(() => expect(page().document.getElementById("response-status")?.textContent).toContain(status)));
 		},
 	};
 }

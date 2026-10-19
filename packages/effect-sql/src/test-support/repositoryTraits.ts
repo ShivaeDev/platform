@@ -1,4 +1,5 @@
 import { arraySamples } from "./arraySamples.ts";
+import { compositeLedger } from "./compositeLedger.ts";
 import { compositeMeasurements } from "./compositeMeasurements.ts";
 import { compositeReadings } from "./compositeReadings.ts";
 import { conflictAccounts } from "./conflictAccounts.ts";
@@ -21,6 +22,11 @@ export function hasArraySamples() {
 export function hasCompositeReadings() {
 	return postgres.trait("schema", "composite readings have their database schema", function* (engine) {
 		engine.compositeReadings.set(yield* compositeReadings);
+	});
+}
+export function hasCompositeLedger() {
+	return postgres.trait("schema", "a ledger keyed by account and bigint sequence has its database schema", function* (engine) {
+		engine.compositeLedger.set(yield* compositeLedger);
 	});
 }
 export function hasConflictAccounts() {
