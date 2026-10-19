@@ -47,6 +47,16 @@
 			"types": "./dist/client/react/components/ui/input-group.d.ts",
 			"default": "./dist/client/react/components/ui/input-group.js"
 		},
+		"#client/react/components/ui/label": {
+			"source": "./src/client/react/components/ui/label.tsx",
+			"types": "./dist/client/react/components/ui/label.d.ts",
+			"default": "./dist/client/react/components/ui/label.js"
+		},
+		"#client/react/components/ui/separator": {
+			"source": "./src/client/react/components/ui/separator.tsx",
+			"types": "./dist/client/react/components/ui/separator.d.ts",
+			"default": "./dist/client/react/components/ui/separator.js"
+		},
 		"#client/react/components/ui/textarea": {
 			"source": "./src/client/react/components/ui/textarea.tsx",
 			"types": "./dist/client/react/components/ui/textarea.d.ts",
@@ -134,6 +144,7 @@
 		"@shivaedev/work-board-plugin": "workspace:*",
 		"@tailwindcss/vite": "catalog:",
 		"@tanstack/react-router": "catalog:",
+		"@tanstack/react-table": "catalog:",
 		"@types/hast": "catalog:",
 		"@types/mdast": "catalog:",
 		"@types/node": "catalog:",
@@ -148,6 +159,7 @@
 		"esbuild": "catalog:",
 		"happy-dom": "catalog:",
 		"lucide-react": "catalog:",
+		"recharts": "catalog:",
 		"tailwindcss": "catalog:",
 		"tw-animate-css": "catalog:",
 		"typescript": "catalog:compiler-api",

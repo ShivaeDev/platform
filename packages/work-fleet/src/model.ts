@@ -4,6 +4,7 @@ import { AttemptProgress } from "#AttemptProgress.ts";
 import { AttentionOwner } from "#attention.ts";
 import { BoardReport } from "#board/schema.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";
+import { MergePrediction } from "#MergePrediction.ts";
 import { Checks, Decision, DecisionResponse, Delivery, Review, SupersededDecision, WorkResult } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
 import { LaunchSettings, SessionObservation, SessionReceipt } from "#session/schema.ts";
@@ -66,10 +67,12 @@ const cycleFields = {
 	),
 	mergeAreasReleased: Schema.optional(Schema.Boolean),
 	mergedDelivery: Schema.optional(Schema.Struct({ ...Delivery.fields, revision: Schema.optional(Schema.String) })),
+	mergePrediction: Schema.optional(MergePrediction),
 	mergeReadyAt: Schema.optional(Schema.Number),
 	mergeReadyHead: Schema.optional(Schema.String),
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),
 	pendingAnswers: Schema.optional(Schema.Array(Schema.String)),
+	predictedConflictHold: Schema.optional(Schema.Struct({ head: Schema.String, prs: Schema.Array(Schema.String) })),
 	preparation: Preparation,
 	prompt: Schema.String,
 	releaseReason: Schema.optional(Schema.String),

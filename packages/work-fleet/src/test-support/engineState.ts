@@ -7,6 +7,7 @@ import type { createEngine } from "#test/createEngine.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { type EngineWorld, worldDefaults } from "#test/EngineWorld.ts";
 import type { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
+import type { PredictionRepository } from "#test/predictionRepository.ts";
 
 export interface SweepPullRequest {
 	checksFailed?: boolean;
@@ -20,6 +21,7 @@ export interface EngineStory extends EngineWorld {
 	lastRecord?: FleetRecord;
 	markdown: boolean;
 	options: EngineOptions;
+	predictionRepository?: PredictionRepository;
 	previousFleet?: typeof Fleet.Service;
 	readinessPublications?: BoardDecision[];
 	resultObservation?: { value: WorkResult; unavailable: boolean };
