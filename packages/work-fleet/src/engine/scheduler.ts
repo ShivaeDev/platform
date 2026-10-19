@@ -13,6 +13,7 @@ import type { Versioned } from "#storage/model.ts";
 const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: readonly Versioned<FleetRecord>[]) {
 	const fleet = yield* Fleet;
 	const prepared = yield* fleet.admissionOrder(records);
+	const previous = new Map(prepared.map(({ value }) => [value.workId, value]));
 	const dispatched: Result.Result<Effect.Success<ReturnType<typeof fleet.dispatch>>, Effect.Error<ReturnType<typeof fleet.dispatch>>>[] = [];
 	for (const { value } of prepared) {
 		const result = yield* fleet.dispatch(value.workId).pipe(Effect.result);
@@ -20,7 +21,18 @@ const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: r
 		if (Result.isFailure(result)) {
 			yield* Effect.logWarning("Fleet dispatch failed", Cause.fail(result.failure)).pipe(Effect.annotateLogs({ workId: value.workId }));
 		}
-		if ((Result.isSuccess(result) && result.success.value.launchRetry !== undefined) || (yield* fleet.hasLaunchRetry())) {
+		if (
+			(Result.isSuccess(result) && result.success.value.launchRetry !== undefined)
+			|| ((yield* fleet.hasLaunchRetry())
+				&& (yield* fleet.list()).some(({ value: current }) => {
+					const before = previous.get(current.workId);
+					return (
+						current.launchRetry !== undefined
+						&& (before?.launchRetry?.rejections !== current.launchRetry.rejections
+							|| before?.attempts.at(-1)?.operationId !== current.attempts.at(-1)?.operationId)
+					);
+				}))
+		) {
 			break;
 		}
 	}

@@ -41,7 +41,7 @@ const MarkdownBoard = defineService({
 			}
 			const priority = fleetPriority(found.parsed);
 			if (priority !== undefined && !Schema.is(Priority)(priority)) {
-				return yield* Effect.fail(new BoardFailure({ message: "Invalid fleet-priority; use urgent, high or normal, or omit the field." }));
+				return yield* Effect.fail(new BoardFailure({ message: "Invalid fleet-priority; use urgent, high, normal or low, or omit the field." }));
 			}
 			return {
 				approved: fleetApproved(found.parsed),

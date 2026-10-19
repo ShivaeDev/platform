@@ -5,7 +5,7 @@ import type { FleetRecord } from "#model.ts";
 import type { Priority } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
-const ranks: Readonly<Record<Priority, number>> = { high: 1, normal: 2, urgent: 0 };
+const ranks: Readonly<Record<Priority, number>> = { high: 1, low: 3, normal: 2, urgent: 0 };
 
 export function admissionOrder(state: EngineState) {
 	return Effect.fn("Fleet.admissionOrder")(function* (records: readonly Versioned<FleetRecord>[]) {
@@ -19,7 +19,12 @@ export function admissionOrder(state: EngineState) {
 					),
 		);
 		return ranked
-			.sort((left, right) => (right.entry.value.launchRetry?.retryAt ?? 0) - (left.entry.value.launchRetry?.retryAt ?? 0) || left.rank - right.rank)
+			.sort(
+				(left, right) =>
+					Number(left.rank === ranks.low) - Number(right.rank === ranks.low)
+					|| (right.entry.value.launchRetry?.retryAt ?? 0) - (left.entry.value.launchRetry?.retryAt ?? 0)
+					|| left.rank - right.rank,
+			)
 			.map(({ entry }) => entry);
 	});
 }
