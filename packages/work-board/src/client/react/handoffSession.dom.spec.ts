@@ -50,10 +50,10 @@ screenStory.it(
 		submit("#handoff-form");
 		yield* Effect.promise(() => eventually(() => expect(readText("#handoff-status")).toContain("Saved handoffs/")));
 		expect(readSessionFiles("handoffs").map((source) => source.includes("Changed premise."))).toEqual([true]);
-		yield* Effect.promise(() => eventually(() => expect(findElement("#handoff-history article")).not.toBeNull()));
 		yield* Effect.promise(() => activate("#handoff-prepared [data-handoff-copy]"));
 		expect(readText("#handoff-status")).toBe("Copied. Paste it into your agent session.");
 		expect(yield* Effect.promise(() => navigator.clipboard.readText())).toBe(findElement<HTMLTextAreaElement>("#handoff-prepared textarea")?.value);
+		yield* Effect.promise(() => eventually(() => expect(findElement("#handoff-history article")).not.toBeNull()));
 	},
 );
 

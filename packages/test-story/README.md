@@ -604,6 +604,8 @@ verbs: ({ view, requests }, story) => screenDriver({
 
 `click`, `enter`, `submit`, `text` and `value` also accept a `ScreenTarget` object such as `{ role: "button", name: "Save" }` or `{ role: "textbox", name: /email/i }`. The role and computed accessible name must match exactly when strings are used; regular expressions match the name. Like Testing Library's role queries, these targets exclude hidden elements, including `aria-hidden` ancestors. Missing or ambiguous targets fail with the requested role, name and the visible candidates on screen. Narration names the role and name instead of a selector.
 
+`find(target, { timeout }?)` returns an Effect that waits for exactly one matching rendered element and returns that `HTMLElement`. It accepts the same selectors and role/name targets as the actions, narrates the lookup, and uses the driver's live-time `timeoutMs` limit unless `timeout` overrides it in milliseconds. If no unique element appears before the limit, it fails with the same target diagnostics as the actions, including visible candidates for role/name targets.
+
 `accessible(selector)` returns `{ name, role }` computed by `dom-accessibility-api`, including native roles and label references that take precedence over `aria-label`. It narrates the readout and uses the same single rendered target checks as other readouts. Assert on this result when checking a control's accessible name; reading its raw attributes does not compute that name. This DOM computation does not inspect a browser's accessibility tree or prove speech from a screen reader.
 
 `accessible(element)` uses the same computation on an `Element` the kit already holds and tells no story line.

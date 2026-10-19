@@ -6,9 +6,11 @@ import { withDecisionResponses } from "#host/releaseWork.ts";
 import type { Decision } from "#policy.ts";
 import { boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
+import { questionPublicationVerbs } from "#test/questionPublicationVerbs.ts";
 
 export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
+		...questionPublicationVerbs(engine, tell),
 		boardExists: (file: string) => existsSync(join(engine.fixture.host.boardDir, file)),
 		boardHttp: () => {
 			tell("open Board HTTP against the running Fleet daemon");

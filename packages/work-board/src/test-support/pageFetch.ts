@@ -22,12 +22,14 @@ export default {
 `;
 
 export function pageFetch({
+	chunkRequests,
 	path,
 	pageRequests,
 	mermaidRequests,
 	streams,
 	theme,
 }: {
+	readonly chunkRequests: string[];
 	readonly path: string;
 	readonly pageRequests: PageRequests;
 	readonly mermaidRequests: string[];
@@ -44,6 +46,9 @@ export function pageFetch({
 			const native = await rpcBefore(request, window, path, pageRequests, streams);
 			if (native !== undefined) {
 				return native;
+			}
+			if (requested.startsWith("/_board/react-assets/") && requested.endsWith(".js")) {
+				chunkRequests.push(requested);
 			}
 			if (!requested.startsWith("/_board/mermaid/")) {
 				return undefined;

@@ -28,6 +28,7 @@ export interface LiveStream {
 }
 
 export interface OpenPage {
+	readonly chunkRequests: readonly string[];
 	readonly close: () => Promise<void>;
 	readonly document: BrowserWindow["document"];
 	readonly mermaid: MermaidControl;
@@ -46,6 +47,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		mermaid: MermaidControl,
 	) => void | Promise<void> | Effect.Effect<void, unknown, Scope.Scope> = async (): Promise<void> => undefined,
 ) {
+	const chunkRequests: string[] = [];
 	const mermaidRequests: string[] = [];
 	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve(), methods: [] };
 	const streams: RpcStream[] = [];
@@ -57,7 +59,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	const browser = new Browser({
 		settings: {
 			enableJavaScriptEvaluation: true,
-			fetch: { interceptor: pageFetch({ mermaidRequests, pageRequests, path: activePath, streams, theme }) },
+			fetch: { interceptor: pageFetch({ chunkRequests, mermaidRequests, pageRequests, path: activePath, streams, theme }) },
 			suppressInsecureJavaScriptEnvironmentWarning: true,
 		},
 	});
@@ -101,7 +103,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		browser.settings.device.prefersColorScheme = scheme;
 		window.dispatchEvent(new window.Event("resize"));
 	}
-	return { close, document: window.document, mermaid, mermaidRequests, pageRequests, prefer, streams, window };
+	return { chunkRequests, close, document: window.document, mermaid, mermaidRequests, pageRequests, prefer, streams, window };
 });
 
 export function held(): { readonly gate: Promise<void>; readonly release: () => void } {

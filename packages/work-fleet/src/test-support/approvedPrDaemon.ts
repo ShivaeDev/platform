@@ -9,11 +9,12 @@ import { daemonLayer } from "#host/daemon.ts";
 import type { FleetRecord } from "#model.ts";
 import { FleetIntegrations } from "#policy.ts";
 import { until } from "#test/cloudRestart.ts";
+import { dispatchAndWait } from "#test/daemonActions.ts";
 import { daemonClient } from "#test/daemonClient.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { HEAD, PR, REPORT } from "#test/githubResult.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
-import { mainObservation, prepared } from "#test/preparation.ts";
+import { mainObservation } from "#test/preparation.ts";
 
 export type PrDaemonClient = Effect.Success<ReturnType<typeof daemonClient>>;
 
@@ -68,13 +69,7 @@ export function approvedPrFixture(fixture: HostFixture, github: Effect.Success<R
 	}
 	const ready = Effect.fn("ApprovedPrTest.ready")(function* (client: PrDaemonClient) {
 		fixture.write("one.md", task("one", "approved"));
-		yield* client("fleet.prepare", {
-			cwd: "/synthetic-repository",
-			preparation: prepared({ ownedPaths: ["src/one.ts"] }),
-			prompt: "Implement the approved changes",
-			workId: "one",
-		});
-		yield* client("fleet.dispatch", { workId: "one" });
+		yield* dispatchAndWait(client, "one");
 		finishWorker(yield* started(client, "worker"));
 		yield* until(() => client("fleet.reconcile", { workId: "one" }).pipe(Effect.map((record) => record.decision?.code === "reviewed-pr-ready")));
 		return yield* client("fleet.get", { workId: "one" });

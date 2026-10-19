@@ -28,16 +28,16 @@ screenStory.it(
 		expect(criterion?.closest("[hidden]")).toBeNull();
 		expect(readText(".item-introduction h1")).toBe("Readable task");
 		expect(findElement(".item-introduction")?.classList.contains("sticky")).toBe(true);
-		const relationships = findElement('[aria-label="Relationships"]');
+		const relationships = findElement('[aria-label="Links to"]');
 		expect(relationships?.textContent).toContain("Ship the feature");
 		expect(readText("[data-status-token]", relationships)).toBe("Blocked");
 		expect(readAttribute("a", "href", relationships)).toBe("/_board/item/goal.fixture/#criterion-design");
 		expect([...findElements(".work-context h4")].map((node) => node.textContent).sort((a, b) => (a ?? "").localeCompare(b ?? ""))).toEqual([
-			"Board membership (1)",
-			"Informs (2)",
+			"Informed by (2)",
+			"Listed on board (1)",
 			"Markdown link (1)",
 		]);
-		const backlinks = findElement('[aria-label="Informs backlinks"]');
+		const backlinks = findElement('[aria-label="Informed by backlinks"]');
 		expect([...(findElements("a", backlinks) ?? [])].map((node) => node.textContent)).toEqual(["One", "Two"]);
 		expect([...(findElements("[data-status-token]", backlinks) ?? [])].map((node) => node.textContent)).toEqual(["Done", "Planned"]);
 		expect(readAttribute("a", "title", backlinks)).toBe("one.md:6");

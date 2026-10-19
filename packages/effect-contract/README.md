@@ -236,32 +236,19 @@ For a custom transport or explicit pause/status controls, the native live APIs r
 
 Declare subscriptions with `stream` in the same contract. Its `success` schema describes each element, and its `rejections` become the native stream error schema. `bind` exposes `run(payload)` as a native `Stream`, preserving declared rejections, middleware errors and RPC client errors. Completion and client interruption release the server subscription. The compiler rejects a unary client for a streaming operation.
 
-Every query that should reconcile together must read the same explicit scope. This variant of the feature adds `workspace.list` alongside each query's item or list key:
+Each item query reads its own item key, and each list query reads its list key. Commands invalidate the keys they change; an item invalidation also refreshes its collection list. Reuse the feature's `Get`, `List`, `Rename` and `Create` declarations:
 
 ```ts
-import { Schema } from "effect";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { LiveHint } from "@shivaedev/effect-contract/live.ts";
-import { query, stream } from "@shivaedev/effect-contract/operation.ts";
+import { stream } from "@shivaedev/effect-contract/operation.ts";
 import { Create, Get, List, notes, Rename } from "./notes.ts";
 
-export const workspace = collection("workspace", Schema.String);
-const LiveGet = query("get", {
-  payload: Get.payload,
-  success: Get.success,
-  rejections: Get.rejections,
-  reads: ({ id }) => [notes.item(id), workspace.list],
-});
-const LiveList = query("list", {
-  success: List.success,
-  reads: () => [notes.list, workspace.list],
-});
-export const Subscribe = stream("subscribe", { reads: () => [workspace.list], success: LiveHint });
-export const LiveNotes = contract("notes", { queries: [LiveGet, LiveList], commands: [Rename, Create], streams: [Subscribe] });
+export const Subscribe = stream("subscribe", { reads: () => [notes.list], success: LiveHint });
+export const LiveNotes = contract("notes", { queries: [Get, List], commands: [Rename, Create], streams: [Subscribe] });
 ```
 
-Save the shared module as `live-notes.ts`. A collection list key alone does not cover its item queries. The common `workspace.list` key expresses that the caller intends to reconcile all queries that read it.
+Save the shared module as `live-notes.ts`. Keep full reconciliation in the session's explicit `resyncKeys`: enumerate the item keys the session reads and its list keys. A list key alone does not cover separately registered item queries. Having every query read a broad shared key makes every invalidation of that key refetch them all.
 
 Use `LiveNotes` as the server group and implement `notes.subscribe` with a native Stream. For streaming HTTP, use `RpcSerialization.layerNdjson` on both sides. This client mounts live coordination alongside its queries:
 
@@ -274,7 +261,8 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { live } from "@shivaedev/effect-contract/live.ts";
 import { resumeSignal } from "@shivaedev/effect-contract/resume.ts";
-import { LiveNotes, Subscribe } from "./live-notes.ts";
+import { LiveNotes } from "./live-notes.ts";
+import { notes } from "./notes.ts";
 
 class Client extends AtomRpc.Service<Client>()("app/LiveNotes", {
   group: LiveNotes,
@@ -286,7 +274,7 @@ const api = bind(LiveNotes, Client);
 const registry = AtomRegistry.make();
 const updates = live(Client.runtime, {
   stream: api.subscribe.run(undefined),
-  resyncKeys: Subscribe.reads(undefined),
+  resyncKeys: [notes.item(1), notes.item(2), notes.list],
   resume: resumeSignal({ window }),
   retryDelay: "100 millis",
 });
@@ -294,13 +282,15 @@ const releaseQuery = registry.mount(api.get.query({ id: 1 }));
 const releaseConnection = registry.mount(updates.connection);
 ```
 
-`LiveNotes` supplies both the declaration for binding and the native RPC group for transport. Stream read keys describe its dependencies; `run` does not mount query atoms or trigger automatic invalidation. Here the caller uses `Subscribe.reads(undefined)` as the explicit live reconciliation scope. `bind` also accepts a larger native client group that preserves the contract RPC types. The [live updates guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/live-updates.md) shows server and client composition, and the [HTTP fixture](https://github.com/ShivaeDev/platform/tree/main/packages/effect-contract/src/test-support/live) supplies a complete working server.
+`LiveNotes` supplies both the declaration for binding and the native RPC group for transport. Stream read keys describe its dependencies; `run` does not mount query atoms or trigger automatic invalidation. Here the caller explicitly reconciles two items and their list. `bind` also accepts a larger native client group that preserves the contract RPC types. The [live updates guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/live-updates.md) shows server and client composition, and the [HTTP fixture](https://github.com/ShivaeDev/platform/tree/main/packages/effect-contract/src/test-support/live) supplies a complete working server.
 
 | Observation | Invalidation |
 | --- | --- |
 | `Changed` with keys after the first hint | Affected items and their lists. |
 | `Resync` | The exact `resyncKeys` read scope. |
 | First hint on a new or reconnected stream | The full explicit scope, even if the hint is targeted. |
+
+Changed hints share a fixed 20 ms window by default. Their keys merge, and each affected bound query refetches once per window. A bound query already fetching keeps its request and refetches once more after it settles if further hints arrive. Set `coalesceWindow` in `live()` to a native Duration, or set `SessionBoundary`'s `liveCoalesceWindow` for automatic session connections. Zero restores immediate per-hint invalidation, including interruption of in-flight reads. Full reconciliation on first hint, reconnect, resume and unpause stays immediate. Registry teardown cancels a pending window.
 
 `LiveHint` and `Key` are schemas. Decoding rejects unknown hint tags and item keys with an invalid ID type.
 
@@ -357,7 +347,7 @@ Import the module that defines the name; the package has no root entry.
 | `rejection.ts` | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations. |
 | `keys.ts` | `collection(name, idSchema)`; `Key` schema; `readKeys(keys)` and `invalidationKeys(keys)`. |
 | `bind.ts` | `bind(contract, atomRpcService)`, exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
-| `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, resume?, retryDelay? })`, exposing `connection`, `paused` and `status`. |
+| `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`. |
 | `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
 | `readPolicy.ts` | `authorizeReads(effect, request, policy, denied)`; `ReadPolicy`, the request-local key policy used by server hint streams. |
 | `serverMetadata.ts` | `QueryReads`, `CommandInvalidation` and `changesRpc(name)` for server adapters. |

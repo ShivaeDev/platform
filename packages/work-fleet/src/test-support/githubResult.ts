@@ -39,6 +39,7 @@ export function resultFixture(options: ResultOptions = {}) {
 	const snapshot = { observedAt: 1, revision: options.mainHead ?? HEAD };
 	const main = MainSource.of({
 		current: Effect.succeed({ ...snapshot, revision: BASE }),
+		latest: Effect.succeed(snapshot),
 		observe: (preparation) => Effect.succeed(unchanged(preparation.baseRevision, snapshot)),
 		refresh: Effect.sync(() => {
 			refreshes += 1;

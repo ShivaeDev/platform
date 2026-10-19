@@ -7,4 +7,6 @@ export interface MainLocation {
 	readonly view: string;
 }
 
+export const NOT_FOUND_PROJECTION = "not-found";
+
 export const emptyMainLocation: MainLocation = { file: "", projection: "document", route: "", status: 200, view: "" };

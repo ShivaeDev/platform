@@ -36,7 +36,7 @@ export const remainingQueries = Effect.gen(function* () {
 					source,
 					status: parsed.fields.status,
 					title,
-					unavailable: result._tag === "Failure" ? String(result.failure) : undefined,
+					unavailable: result._tag === "Failure" ? result.failure.message : undefined,
 					writable: writable === true,
 				};
 			}),
@@ -48,7 +48,9 @@ export const remainingQueries = Effect.gen(function* () {
 				const result = matches?.length === 1 ? matches[0] : undefined;
 				if (result?.parsed.fields.kind !== "result" || data.unavailable.length > 0) {
 					return yield* Effect.fail(
-						new Conflict({ message: "Choose one uniquely identified, readable result. Missing or ambiguous work is not accepted." }),
+						new Conflict({
+							message: "No single result has this ID. It may be missing, share its ID with another file, or sit in a file the Board can't read.",
+						}),
 					);
 				}
 				return yield* resultProjection(item, result, data, yield* read(identityUrl(item)));
