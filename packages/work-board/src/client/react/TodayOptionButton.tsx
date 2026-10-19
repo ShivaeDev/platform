@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { optionText } from "#browser/responses/cardContext.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
 
@@ -6,12 +7,14 @@ export function TodayOptionButton({
 	onChoose,
 	option,
 	recommended,
+	ref,
 	source,
 }: {
 	readonly disabled: boolean;
 	readonly onChoose: () => void;
 	readonly option: { readonly id: string; readonly source: string };
 	readonly recommended: string | undefined;
+	readonly ref?: Ref<HTMLButtonElement> | undefined;
 	readonly source: { readonly label: string; readonly description: string } | undefined;
 }) {
 	const authored = optionText(option.id, option.source);
@@ -22,6 +25,7 @@ export function TodayOptionButton({
 			className="h-auto w-full flex-col items-start gap-0.5 whitespace-normal px-3 py-2 text-left"
 			disabled={disabled}
 			onClick={onChoose}
+			ref={ref}
 			size="sm"
 			type="button"
 			variant="outline"
