@@ -1,7 +1,8 @@
 import type { Document } from "#browser/document/schema.ts";
 import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
-import { DocumentCriteria } from "./DocumentCriteria.tsx";
+import { BodyCriteria, DocumentCriteria } from "./DocumentCriteria.tsx";
+import { OutlineMenu } from "./DocumentOutline.tsx";
 import { documentElements } from "./documentElements.tsx";
 import { GoalPage } from "./GoalPage.tsx";
 import { GoalProgressHeader } from "./GoalProgressHeader.tsx";
@@ -13,9 +14,15 @@ export function DocumentPage({ document, api }: { readonly document: Document; r
 	const question = document.metadata.kind === "question";
 	return (
 		<LazyDocumentView
-			actions={<ItemActions document={document} />}
+			actions={
+				<>
+					<OutlineMenu document={document} />
+					<ItemActions document={document} />
+				</>
+			}
 			after={question ? <AnswerPanel after document={document} /> : undefined}
 			answer={question ? undefined : <AnswerPanel document={document} />}
+			closing={<BodyCriteria document={document} />}
 			components={documentElements}
 			content={document.metadata.kind === "project" ? projectContent : undefined}
 			context={<DocumentContext document={document} />}

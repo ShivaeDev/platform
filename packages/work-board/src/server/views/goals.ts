@@ -2,6 +2,7 @@ import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.t
 import type { GoalCounts, GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { goalWorkGroup } from "#browser/views/goalWorkState.ts";
 import { inboxItems, openItem } from "#server/attention/inbox.ts";
+import { deferredItem } from "#server/attention/status.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { type Item, itemsOf } from "./items.ts";
 
@@ -55,7 +56,8 @@ export function goals(snapshot: Snapshot, fleet?: FleetItemsProjection): GoalsPr
 	}
 	return {
 		closedGoals: projects.filter((item) => !openItem(item.document)).map(toGoal),
-		goals: projects.filter((item) => openItem(item.document)).map(toGoal),
+		deferredGoals: projects.filter((item) => deferredItem(item.document)).map(toGoal),
+		goals: projects.filter((item) => openItem(item.document) && !deferredItem(item.document)).map(toGoal),
 		items: items
 			.filter((item) => item.document.parsed.fields.relationships?.some((link) => link.kind === "implements"))
 			.map(({ document, id, title }) => ({ file: document.file, id, metadata: document.parsed.fields, title })),

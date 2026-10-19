@@ -1,15 +1,10 @@
+import { closedStatus, deferredStatus } from "#browser/views/workStatus.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 
-const closed = new Set(["closed", "done", "superseded", "completed", "cancelled", "canceled", "resolved", "released"]);
-
-function statusOf(document: MetadataDocument): string {
-	return document.parsed.fields.status?.trim().toLowerCase() ?? "";
-}
-
 export function closedItem(document: MetadataDocument): boolean {
-	return closed.has(statusOf(document));
+	return closedStatus(document.parsed.fields.status);
 }
 
 export function deferredItem(document: MetadataDocument): boolean {
-	return statusOf(document) === "deferred";
+	return deferredStatus(document.parsed.fields.status);
 }

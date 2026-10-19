@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.21.5 - 2026-10-19
+
+### Changed
+
+- A standalone question shows its answer card after its own text, so its context reads before the answer box. The answer box grows with the answer up to most of the screen height.
+- Following a link to an answer card puts focus on the first option of a choice question, or in the answer box.
+- The answer card no longer shows the local author label; it records under the label the browser remembers, or `maintainer`. **More options** names the kind of reply and the choice to replace an earlier answer in plain words, and offers that choice only when an earlier answer exists.
+- Markdown tables in documents use the Board's table styling, wrap at word boundaries and scroll sideways inside their own box when they are wider than the page.
+- Workspace notes show the board's introduction and its heading columns as readable text in the main column, with item cards under each column and the counts and last update in the header.
+- Hovering an age such as "3h" shows the exact date and time.
+- Item headers lead with the title, kind and status; the item ID follows in small muted type with a button that copies it.
+- A missing file or unknown item ID shows an empty state with links back to Today and the Library.
+- On a Board started without `--responses`, answer cards list the question and its options as text and say "Answering is turned off on this Board." with no form controls.
+- The Board compresses its scripts, stylesheet, page shell and RPC answers with Brotli or gzip when the browser accepts them.
+- Content-hashed bundle chunks and Mermaid chunks are cached for a year as immutable; `react.js`, `react.css`, `theme.js` and the Mermaid entry revalidate with an ETag, so a rebuilt bundle is never served stale, and the HTML shell stays `no-store`.
+- The first bundle no longer carries Markdown rendering and Shiki highlighting; they load when a page first shows Markdown, which cuts the first-load JavaScript from 1.52 MB to 1.0 MB before compression. If that chunk cannot be fetched, the page says Markdown could not be loaded and asks for a reload, while the rest of the Board keeps working.
+- The HTML shell paints an outline of the header, sidebar and phone navigation in the saved theme before any script runs.
+- When the Fleet daemon is not running, Today's In progress section says "Fleet isn't running, so agent work and its health are unknown." instead of a CLI hint, and System shows one Fleet card marked Not running instead of separate Codex, GitHub, Fleet and Fleet work cards. Both pages keep the exact `work-fleet serve <board> --port <port>` command, with this Board's folder and Fleet port, in a "How to start Fleet" popover. The unavailable Fleet items projection and the error diagnostics observation carry that command as an optional `startCommand`.
+- The System Fleet card's state reflects only Fleet health (capacity and clock). Fleet's own waiting counts no longer mark it as needing attention, so the only needs-you number on System is the Board's count shown on Today and in the sidebar.
+- The result review, agent handoff and getting-started pages now look like the rest of the Board: the shared page header, cards, badges, alerts and the Board's colours and spacing.
+- These pages use plain words. A result shows its status as a status chip, its checks and evidence in a table that says "No evidence recorded" or "Not recorded" instead of leaving gaps, and a warning when some feedback can't be read.
+- The handoff page links back to its item, asks for an agent name and next step, says when the Board is read-only, and labels its copy button **Copy prompt**.
+- Each getting-started template has a **Copy** button, so you no longer have to select the text by hand.
+- Reading history opens as a dialog with Pinned and Recent documents lists, and closes with Escape.
+- A clicked sidebar or phone destination is marked current at once, and the header shows a progress bar when a page takes longer than 150 ms to open.
+- Settings choose Theme (System, Light, Dark) and Density (Comfortable, Compact) with toggle groups.
+- Keyboard focus shows a 3 px ring that meets 3:1 contrast against the page in light and dark themes.
+- The header's sidebar button is an icon button named Sidebar, and its Today link appears only while the desktop sidebar is hidden.
+- The document action to keep a document in Pinned is named Pin and Unpin.
+- The phone More sheet lists pinned and recent documents and opens reading history.
+- Inspecting an image or diagram opens the shared stock dialog, which Escape and Close dismiss back to the source.
+- Today's Needs you rows drop the item ID, which the item page still shows. Each row has one primary button: **Answer** opens a popover with the request's options or a text answer and an **Open question** link, and **Open** links to the item page when a request can't be answered inline. On a phone the reason gets its own full-width line.
+- Needs you reasons read as plain sentences. Fleet decisions start with "Fleet asks:" and their question, and a person's note drops the raw `owner:` and status prefixes.
+- The Today popover says "Answering is turned off on this Board." when the Board runs without `--responses`.
+- The Table view is a sortable data table: click a column header to sort by it, click again to reverse, and each row is headed by a link to the item with its ID underneath. Saved views keep the sort direction.
+- All work and Table share one toolbar with a search box and Status, Owner, Board and Sort menus, plus a Reset link while a filter applies.
+- All work heads each status group with a count badge.
+- Now lanes mark empty lanes, keep Done collapsed until opened, show Fleet outages in one notice, and on a phone show one lane at a time behind lane tabs. Long card lists now scroll inside their lane instead of leaving blank space.
+- The sidebar's Now count is the number of open cards on the Now page: queued, executing, reviewing, delivering and waiting work, using Fleet stages when Fleet is available.
+- Done in the last 7 days sits under the lanes as a one-line disclosure.
+- The work page heading names the selected view: Now, All work or Table.
+- Filter links drop empty parameters, so shared URLs stay short.
+
+### Fixed
+
+- effect-contract's `live` coordinator no longer reconciles its read scope when `paused` is read for the first time; a component that showed the pause state while connecting used to make every loaded query read again.
+- Opening a Board page sends each read once. The page starts its reads after the live connection's first update, which used to read navigation and watcher state a second time, and a failed connection does not hold the page.
+- A file event that changes neither the bytes nor the modification time no longer refreshes open Board pages. A file saved with the same bytes and a new modification time still refreshes them.
+- When a question closes while you write, its answer card stays with your unsent draft read-only, a **Copy draft** button and what closed it, instead of disappearing.
+
 ## 0.21.4 - 2026-10-19
 
 ### Changed
