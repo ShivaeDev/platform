@@ -1,7 +1,9 @@
-import { computeAccessibleName, getRole } from "dom-accessibility-api";
 import { Effect } from "effect";
 import { withLive } from "@shivaedev/effect-test/withLive.ts";
+import { accessibility, targetName } from "#internal/screenAccessibility.ts";
 import { screenElements } from "#internal/screenElements.ts";
+
+export type ScreenTarget = string | { readonly role: string; readonly name: string | RegExp };
 
 export interface ScreenDriverOptions {
 	readonly act?: (action: () => Promise<void>) => PromiseLike<void>;
@@ -45,30 +47,33 @@ export function screenDriver({ root, pending, tell, act = (action) => action(), 
 		return withLive(wait.pipe(Effect.timeoutOrElse({ duration: limit, orElse: timedOut })));
 	}
 	return {
-		accessible: (selector: string) => {
+		accessible: (selector: string | Element) => {
+			if (typeof selector !== "string") {
+				return accessibility(selector);
+			}
 			const element = elements.element(selector);
-			const accessible = { name: computeAccessibleName(element), role: getRole(element) };
+			const accessible = accessibility(element);
 			tell(`read the accessibility of ${selector}: ${JSON.stringify(accessible)}`);
 			return accessible;
 		},
-		click: (selector: string) =>
-			perform(`click ${selector}`, () => {
+		click: (selector: ScreenTarget) =>
+			perform(`click ${targetName(selector)}`, () => {
 				const element = elements.element(selector);
 				elements.enabled(element, selector);
 				element.focus();
 				element.click();
 			}),
-		enter: (selector: string, value: string) => perform(`enter a value in ${selector}`, () => elements.enter(selector, value)),
+		enter: (selector: ScreenTarget, value: string) => perform(`enter a value in ${targetName(selector)}`, () => elements.enter(selector, value)),
 		settle,
-		submit: (selector = "form") => perform(`submit ${selector}`, () => elements.form(selector).requestSubmit()),
-		text: (selector?: string) => {
+		submit: (selector: ScreenTarget = "form") => perform(`submit ${targetName(selector)}`, () => elements.form(selector).requestSubmit()),
+		text: (selector?: ScreenTarget) => {
 			const text = (selector === undefined ? elements.rendered(currentRoot(), "root") : elements.element(selector)).innerText;
-			tell(`read ${selector ?? "the screen"}: ${JSON.stringify(text)}`);
+			tell(`read ${selector === undefined ? "the screen" : targetName(selector)}: ${JSON.stringify(text)}`);
 			return text;
 		},
-		value: (selector: string) => {
+		value: (selector: ScreenTarget) => {
 			const value = elements.input(selector).value;
-			tell(`read the value in ${selector}: ${JSON.stringify(value)}`);
+			tell(`read the value in ${targetName(selector)}: ${JSON.stringify(value)}`);
 			return value;
 		},
 	};
