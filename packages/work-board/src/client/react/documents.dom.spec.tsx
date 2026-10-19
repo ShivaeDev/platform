@@ -64,7 +64,7 @@ screenStory.it(
 	[routedScreen({ ...files, "question.md": QUESTION }, "/question.md", undefined)],
 	function* ({ readText, findElement }) {
 		yield* Effect.promise(() => eventually(() => expect(readText(".response-panel")).toContain("Use top-level question containers")));
-		expect(readText("#response-history")).toContain("No response is recorded");
+		expect(readText("#response-history")).toContain("No responses yet");
 		expect(findElement("#response-form")).toBeNull();
 	},
 );

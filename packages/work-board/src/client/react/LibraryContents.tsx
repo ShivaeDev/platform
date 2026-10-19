@@ -2,30 +2,57 @@ import { Option } from "effect";
 import { useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Library, LibraryFile } from "#browser/navigation/library.ts";
-import { statusLabel } from "#browser/views/statusLabel.ts";
+import { sentenceLabel, statusLabel } from "#browser/views/statusLabel.ts";
+import { Button } from "#client/react/components/ui/button.tsx";
 import { Age } from "./Age.tsx";
+import { EmptyState } from "./EmptyState.tsx";
+import { LinkButton } from "./LinkButton.tsx";
+import { LoadingRows } from "./loading.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 export function LibraryContents({
 	api,
 	data,
 	filters,
+	onClear,
 	view,
 }: {
 	readonly api: ShellApi;
 	readonly data: Library;
 	readonly filters: Filters;
+	readonly onClear?: (() => void) | undefined;
 	readonly view: string;
 }) {
+	if (data.files.length === 0 && data.folders.length === 0) {
+		return <NoDocuments filtered={Boolean(filters.kind || filters.status)} onClear={onClear} />;
+	}
 	if (view === "folders") {
 		return <FolderContents api={api} data={data} filters={filters} />;
 	}
 	const files = view === "recently changed" ? data.files.toSorted((a, b) => b.modified - a.modified || a.path.localeCompare(b.path)) : data.files;
 	return <DocumentList files={files} />;
 }
-function DocumentList({ files }: { readonly files: readonly LibraryFile[] }) {
-	return files.length === 0 ? (
-		<p className="text-muted-foreground">No documents in this view.</p>
+function NoDocuments({ filtered, onClear }: { readonly filtered: boolean; readonly onClear?: (() => void) | undefined }) {
+	return filtered ? (
+		<EmptyState
+			action={
+				onClear ? (
+					<Button onClick={onClear} size="sm" type="button" variant="outline">
+						Show all documents
+					</Button>
+				) : undefined
+			}
+			title="No matching documents"
+		>
+			No document has the chosen kind and status.
+		</EmptyState>
 	) : (
+		<EmptyState action={<LinkButton href="/_board/start">Getting started</LinkButton>} title="No documents yet">
+			Markdown files in this workspace appear here as soon as they are saved.
+		</EmptyState>
+	);
+}
+function DocumentList({ files }: { readonly files: readonly LibraryFile[] }) {
+	return files.length === 0 ? null : (
 		<ul className="m-0 list-none divide-y p-0">
 			{files.map((file) => (
 				<li className="flex flex-wrap items-center justify-between gap-2 py-3" key={file.path}>
@@ -34,7 +61,7 @@ function DocumentList({ files }: { readonly files: readonly LibraryFile[] }) {
 							{file.title}
 						</a>
 						<p className="m-0 text-muted-foreground text-xs">
-							{file.kind}
+							{sentenceLabel(file.kind)}
 							{file.status ? ` · ${statusLabel(file.status)}` : ""}
 						</p>
 					</div>
@@ -75,7 +102,7 @@ function ExpandedFolder({ api, filters, path }: { readonly api: ShellApi; readon
 	const data = Option.getOrUndefined(query.data);
 	return (
 		<>
-			{query.pending ? <p role="status">Loading folder…</p> : null}
+			{data === undefined && query.pending ? <LoadingRows framed={false} label="Loading folder" rows={2} /> : null}
 			{Option.isSome(query.cause) && <p role="alert">This folder could not be loaded.</p>}
 			{data ? <FolderContents api={api} data={data} filters={filters} /> : null}
 		</>

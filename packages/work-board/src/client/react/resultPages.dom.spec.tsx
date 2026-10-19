@@ -30,7 +30,7 @@ screenStory.it(
 		expect(findElement("#result-actions a")?.getAttribute("href")).toBe("/_board/item/result.keyboard/#answer-card-review");
 		expect(readText("#result-actions")).toContain("Review this exact result and its limitations.");
 		expect(readText("#result-criteria")).toContain("the Board doesn't verify them");
-		expect(readText("#result-feedback")).toContain("No feedback yet.");
+		expect(readText('#result-feedback [data-slot="empty-title"]')).toBe("No feedback yet");
 		expect(readText("main")).not.toMatch(/SHA-256|Result status|source status/u);
 	},
 );
@@ -74,7 +74,7 @@ screenStory.it(
 	function* ({ findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#result-feedback [role='alert']")).not.toBeNull()));
 		expect(readText("#result-feedback [role='alert']")).toContain("Some feedback couldn't be read");
-		expect(readText("#result-feedback")).not.toContain("No feedback yet.");
+		expect(readText("#result-feedback")).not.toContain("No feedback yet");
 	},
 );
 
@@ -101,7 +101,7 @@ screenStory.it(
 		]);
 		expect(readText("#handoff-status")).toBe("Preview the file, then prepare the handoff.");
 		expect(findElement("main [role='alert']")).toBeNull();
-		expect(readText("#handoff-history")).toContain("No handoffs yet.");
+		expect(readText('#handoff-history [data-slot="empty-title"]')).toBe("No handoffs yet");
 	},
 );
 
