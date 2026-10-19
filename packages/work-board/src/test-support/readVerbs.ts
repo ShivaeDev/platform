@@ -26,5 +26,12 @@ export function readVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			const { gate } = reads();
 			return gate ? Deferred.succeed(gate, undefined) : Effect.void;
 		},
+		releaseRepositoryLookup: () => {
+			tell("the repository lookup continues");
+			if (!engine.repositoryLookup) {
+				throw new Error("The story does not hold the repository lookup");
+			}
+			return Deferred.succeed(engine.repositoryLookup, undefined);
+		},
 	};
 }

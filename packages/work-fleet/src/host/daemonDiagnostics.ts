@@ -17,9 +17,9 @@ export const daemonDiagnostics = Effect.gen(function* () {
 	};
 	const read = yield* diagnostics(sources);
 	const items = yield* fleetItems;
-	return DiagnosticsContract.toLayer(
+	return DiagnosticsContract.omit("daemon.$changes").toLayer(
 		Effect.succeed(
-			DiagnosticsContract.of({
+			DiagnosticsContract.omit("daemon.$changes").of({
 				"daemon.diagnostics": () => read,
 				"daemon.fleetItems": () => items.pipe(Effect.mapError((error) => new ServiceUnavailable({ message: failureMessage(error) }))),
 			}),

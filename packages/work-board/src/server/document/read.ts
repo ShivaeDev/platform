@@ -4,15 +4,18 @@ import type { Document } from "#browser/document/schema.ts";
 import { currentDocument } from "#server/currentDocument.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
+import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { locate } from "#server/responses/locate.ts";
 import { readingActions } from "#server/responses/readingActions.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import type { WorkspaceSettings } from "#server/workspace.ts";
 import { answerBody } from "./answerBody.ts";
+import { type DocumentMention, documentMentions } from "./mentions.ts";
 import { readingContext } from "./readingContext.ts";
 import { requestOutcome } from "./requestOutcome.ts";
 import { documentRequests } from "./requests.ts";
 import { documentTargets } from "./targets.ts";
+import { waitingOn } from "./waitingOn.ts";
 
 const selected = Effect.fn("WorkBoard.selected")(function* (
 	url: string,
@@ -39,7 +42,26 @@ const selected = Effect.fn("WorkBoard.selected")(function* (
 	return { file, item };
 });
 
-export function readDocument({ changes, home, root, realRoot, writable }: WorkspaceSettings) {
+function referenceDetails(
+	references: Readonly<Record<string, string>>,
+	mentions: readonly DocumentMention[],
+	model: MetadataModel,
+	titles: ReadonlyMap<string, string>,
+) {
+	function details(referenced: MetadataDocument) {
+		const { kind, status } = referenced.parsed.fields;
+		return { kind, status, title: titles.get(referenced.file) ?? referenced.file };
+	}
+	return Object.fromEntries([
+		...mentions.map((mention) => [mention.token, details(mention.target)] as const),
+		...Object.keys(references).flatMap((target) => {
+			const referenced = model.ids.get(target.split("#")[0] ?? "")?.[0];
+			return referenced ? [[target, details(referenced)] as const] : [];
+		}),
+	]);
+}
+
+export function readDocument({ changes, home, pullRequests, root, realRoot, writable }: WorkspaceSettings) {
 	return Effect.fn("WorkBoard.document")(function* (url: string, snapshot: Snapshot) {
 		const files = yield* changes.files;
 		const { file, item } = yield* selected(url, snapshot, files, home);
@@ -66,14 +88,9 @@ export function readDocument({ changes, home, root, realRoot, writable }: Worksp
 			model,
 			Object.values(reading.receipts).map((receipt) => receipt.question),
 		);
-		const referenceDetails = Object.fromEntries(
-			Object.keys(targets.references).flatMap((target) => {
-				const referenced = model.ids.get(target.split("#")[0] ?? "")?.[0];
-				const { kind, status } = referenced?.parsed.fields ?? {};
-				return referenced ? [[target, { kind, status, title: titles.get(referenced.file) ?? referenced.file }]] : [];
-			}),
-		);
+		const mentions = documentMentions(parsed.fields.nextAction, document, model);
 		const requests = documentRequests(document, source, current.snapshot);
+		const pulls = yield* pullRequests ?? Effect.succeed(undefined);
 		return {
 			...targets,
 			diagnostics: model.diagnostics.get(file.path) ?? parsed.diagnostics,
@@ -81,13 +98,16 @@ export function readDocument({ changes, home, root, realRoot, writable }: Worksp
 			...(identity ? { identity } : {}),
 			metadata: parsed.fields,
 			modified: file.modified,
+			pullRequests: pulls,
 			questionActions: Object.fromEntries(questionActions ?? []),
 			reading,
-			referenceDetails,
+			referenceDetails: referenceDetails(targets.references, mentions, model, titles),
+			references: { ...Object.fromEntries(mentions.map((mention) => [mention.token, mention.href])), ...targets.references },
 			requestOutcome: requestOutcome(document, current.snapshot),
 			requests,
 			source: answerBody(document, requests),
 			unavailable: snapshot.unavailable,
+			waitingOn: waitingOn(document, current.snapshot),
 			writable,
 		} satisfies Document;
 	});

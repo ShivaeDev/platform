@@ -1,4 +1,4 @@
-import { Context, Deferred, Effect, Layer, Schema } from "effect";
+import { Context, Deferred, Effect, Layer, Schema, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcMiddleware, RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
@@ -81,6 +81,7 @@ export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 		control.saves += 1;
 	}).pipe(Effect.andThen(admitted));
 	const handlers = InvoiceLines.toLayer({
+		"invoiceLines.$changes": () => Stream.never,
 		"invoiceLines.create": (draft) =>
 			counted.pipe(
 				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => CreateInvoiceLine.reject.InvoiceLineRejected(rejection)))),

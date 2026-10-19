@@ -10,6 +10,7 @@ import type { MainLocation } from "./mainLocation.ts";
 import { useCurrentDestination } from "./navigationTarget.ts";
 import { shellIds } from "./shellIds.ts";
 import { useMedia } from "./useMedia.ts";
+import { useTextFocus } from "./useTextFocus.ts";
 import { workspaceDestinations } from "./workspaceDestinations.ts";
 
 const icons = [CalendarDays, Flag, Zap];
@@ -31,6 +32,7 @@ export function PhoneNavigation({
 }) {
 	const router = useRouter();
 	const narrow = useMedia("(max-width: 767px)");
+	const typing = useTextFocus();
 	const current = useCurrentDestination(main);
 	const reading = useContext(LibraryContext);
 	const openerRef = useRef<HTMLButtonElement>(null);
@@ -46,6 +48,7 @@ export function PhoneNavigation({
 			<nav
 				aria-label="Phone navigation"
 				className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t bg-background px-2 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] md:hidden print:hidden"
+				hidden={typing}
 			>
 				{workspaceDestinations.slice(0, 3).map(({ label, href, view }, index) => (
 					<PhoneTab

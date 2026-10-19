@@ -32,6 +32,13 @@ export const DocumentRequest = Schema.Struct({
 	unavailable: Schema.optional(Schema.String),
 });
 export type DocumentRequest = typeof DocumentRequest.Type;
+export const WaitingAsk = Schema.Struct({
+	answer: Schema.String,
+	audience: RequestState.fields.audience,
+	href: Schema.String,
+	title: Schema.String,
+});
+export type WaitingAsk = typeof WaitingAsk.Type;
 export const Document = Schema.Struct({
 	diagnostics: Schema.Array(Schema.Struct({ field: Schema.optional(Schema.String), line: Schema.Number, message: Schema.String })),
 	file: Schema.String,
@@ -39,6 +46,7 @@ export const Document = Schema.Struct({
 	links: Schema.Record(Schema.String, Schema.String),
 	metadata: Metadata,
 	modified: Schema.Number,
+	pullRequests: Schema.optional(Schema.String),
 	questionActions: Schema.Record(Schema.String, Schema.String),
 	reading: Schema.optional(ReadingContext),
 	referenceDetails: Schema.optional(
@@ -52,6 +60,7 @@ export const Document = Schema.Struct({
 	requests: Schema.Array(DocumentRequest),
 	source: Schema.String,
 	unavailable: Schema.Array(Schema.String),
+	waitingOn: Schema.optional(Schema.Array(WaitingAsk)),
 	writable: Schema.Boolean,
 });
 export type Document = typeof Document.Type;

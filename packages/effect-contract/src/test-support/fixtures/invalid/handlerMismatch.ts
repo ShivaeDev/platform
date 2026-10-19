@@ -1,7 +1,8 @@
-import { Effect } from "effect";
+import { Effect, Stream } from "effect";
 import { Notes } from "#test/notes.ts";
 
 Notes.of({
+	"notes.$changes": () => Stream.never,
 	"notes.create": (draft) => Effect.succeed({ id: 1, ...draft }),
 	"notes.get": ({ id }) => Effect.succeed({ id: String(id) }),
 	"notes.list": () => Effect.succeed([]),

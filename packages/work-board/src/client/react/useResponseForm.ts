@@ -118,9 +118,9 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const summary = responseSummary(values, prompts, answers(values), attempted);
 	return {
 		answers: answers(values),
-		attempt: () => {
+		attempt: (author = authorOf(label)) => {
 			setAttempted(true);
-			form.change("author", authorOf(label));
+			form.change("author", author);
 			showPreview();
 			return Schema.is(schema)(form.values.value);
 		},

@@ -36,6 +36,13 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 	}
 	return {
 		accessible,
+		answeredRows: () => {
+			tell("the reader reads the Answered list on Today");
+			return elements("ul[aria-label='Answered'] > li").map((row) => [
+				row.querySelector("a")?.textContent,
+				row.querySelector("p")?.getAttribute("title"),
+			]);
+		},
 		count: (selector: string, within?: ParentNode | null) => elements(selector, within).length,
 		findByRole: (role: string, name: string | RegExp, within: ParentNode | null = root()) => {
 			tell(`the reader finds the ${role} named ${name}`);

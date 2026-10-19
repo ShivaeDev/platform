@@ -1,4 +1,4 @@
-function plainText(markdown: string): string {
+export function plainText(markdown: string): string {
 	return markdown
 		.replace(/!?\[(?<label>[^\]\n]*)\]\([^)\n]*\)/gu, "$<label>")
 		.replace(/(?<fence>`+)(?<code>.+?)\k<fence>/gu, "$<code>")

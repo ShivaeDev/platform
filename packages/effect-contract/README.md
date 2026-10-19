@@ -105,7 +105,7 @@ const missing = Get.reject.NoteMissing({ id: 9 });
 Implement the contract with native `of` and `toLayer`:
 
 ```ts
-import { Effect, Ref } from "effect";
+import { Effect, Ref, Stream } from "effect";
 import { Create, Get, Note, Notes, Rename } from "./notes.ts";
 
 export const NotesHandlers = Notes.toLayer(Effect.gen(function* () {
@@ -119,6 +119,7 @@ export const NotesHandlers = Notes.toLayer(Effect.gen(function* () {
   });
   const save = (note: Note) => Ref.update(stored, (all) => new Map([...all, [note.id, note]])).pipe(Effect.as(note));
   return Notes.of({
+    "notes.$changes": () => Stream.never,
     "notes.get": ({ id }) => find(id),
     "notes.list": () => Effect.map(Ref.get(stored), (all) => [...all.values()]),
     "notes.rename": ({ id, title }) => title.trim() === ""
@@ -131,7 +132,7 @@ export const NotesHandlers = Notes.toLayer(Effect.gen(function* () {
 }));
 ```
 
-Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions.
+Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions. This in-memory server keeps the reserved change stream open without publishing hints. When a Platform host supplies that handler, build application handlers from `Notes.omit("notes.$changes")` and keep `Notes` as the host and client group.
 
 Native `.middleware(M)` returns a contract that retains its declarations. For example, a native middleware service can supply request identity:
 
@@ -191,6 +192,8 @@ const readOnce = api.get.run({ id: 1 });
 const rename = api.rename.run({ id: 1, title: "Uno" });
 ```
 
+`queryCoalesceWindow(query)` from `@shivaedev/effect-contract/queryCoalesceWindow.ts` returns a writable native atom for that bound query's live changed-hint window. Set it through the query's registry to a Duration, or `undefined` to use the live connection's default. Changing it does not refetch or reconnect; the next window uses the new value. React consumers can set it with `useQuery(query, { coalesceWindow: "2 seconds" })`.
+
 `one` and `list` are native query atoms. `readOnce` and `rename` are Effects for individual calls. A query's Effect requires `NotesClient`; a command's Effect also requires native `Reactivity`. Commands expose `run`, and have no `query` member.
 
 Mount the atoms and run commands through the service's atom runtime in the same registry:
@@ -231,6 +234,20 @@ Client invalidation follows RPC success. Platform database hosts also publish de
 ### 4. Live invalidation and resume
 
 Platform database hosts serve the contract's reserved `<contract>.$changes` stream automatically. With NDJSON transport, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
+
+For a direct subscription, configure the server and `NotesClient` with `RpcSerialization.layerNdjson` and use the client already typed from `Notes`:
+
+```ts
+import { Effect, Stream } from "effect";
+import { NotesClient } from "./client.ts";
+import { notes } from "./notes.ts";
+
+const changes = Stream.unwrap(NotesClient.use((client) =>
+  Effect.succeed(client("notes.$changes", { keys: [notes.item(1)] })),
+));
+```
+
+The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption.
 
 For a custom transport or explicit pause/status controls, the native live APIs remain available:
 

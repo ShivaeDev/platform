@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Stream } from "effect";
 import { contract } from "#contract.ts";
 import { command, query } from "#operation.ts";
 import { notes } from "#test/notes.ts";
@@ -9,6 +9,7 @@ const Inline = contract("inline", {
 });
 
 Inline.of({
+	"inline.$changes": () => Stream.never,
 	"inline.list": () => Effect.void,
 	"inline.touch": () => Effect.succeed(5),
 });

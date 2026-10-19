@@ -5,6 +5,7 @@ import { testName } from "#naming/testName.ts";
 import { defineRule } from "#rule.ts";
 import { storyOrigins } from "./origins.ts";
 import { storyPrerequisites } from "./prerequisites.ts";
+import { unitTests } from "./unitTests.ts";
 
 function namesTest(node: ts.Expression): boolean {
 	if (ts.isIdentifier(node)) {
@@ -57,8 +58,12 @@ export const storySpecs = defineRule({
 		const graph = await importGraph(inputs);
 		const exempt = await storyPrerequisites(inputs, graph.packages);
 		const origins = storyOrigins(inputs, graph);
+		const unit = unitTests(graph, inputs.sources);
 		return inputs.sources.flatMap((file) => {
 			const name = testName(file.path);
+			if (name?.modifiers.includes("unit") === true) {
+				return unit(file.path);
+			}
 			const owner = packageOf(graph.packages, file.path);
 			if (name === undefined || name.modifiers.includes("typecheck") || exempt.has(owner?.directory ?? "")) {
 				return [];
@@ -81,13 +86,12 @@ export const storySpecs = defineRule({
 				{
 					file: file.path,
 					line: source.getLineAndCharacterOfPosition(plain.getStart(source)).line + 1,
-					message:
-						"Declares tests without a test-story story kit. Build the package's kit with storyKit from @shivaedev/test-story/server/storyKit.ts in src/test-support, and declare every test through the kit's it. See https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.",
+					message: `Declares tests without a test-story story kit. Drive the engine through the package's story kit: build it with storyKit from @shivaedev/test-story/server/storyKit.ts in src/test-support, and declare every test through the kit's it. If the code under test is pure, move the test to ${name.stem}.unit.${name.kind}${name.extension}, which reaches no engine and mocks nothing. See https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.`,
 				},
 			];
 		});
 	},
 	description:
-		"Every package tests its real engine through its own test-story kit. Typecheck tests and test-story's workspace prerequisites are exempt.",
+		"Every package tests its real engine through its own test-story kit, and a plain test lives only in a .unit file that reaches no engine and mocks nothing. Typecheck tests and test-story's workspace prerequisites need no kit.",
 	id: "tests/story-specs",
 });
