@@ -79,6 +79,32 @@ function answered(file: string, id: string, title: string, { author = "maintaine
 	};
 }
 
+function laterAnswer(file: string, id: string, title: string, recordedAt: number) {
+	const revision = revisionOf(question(id, title, "open"));
+	return {
+		[`responses/response.${id}.later.md`]: responseMarkdown({
+			body: "",
+			id: `response.${id}.later`,
+			response: {
+				answers: [{ prompt: "answer", selected: ["option-2"], text: "" }],
+				author: "maintainer",
+				question: questionId(id, "answer", revision, file),
+				recordedAt,
+				reviewedRevision: revision,
+				type: "answer",
+			},
+		}),
+	};
+}
+
+export function answeredTwiceFixture(now: number): Record<string, string> {
+	return {
+		"home.md": "# Release plans\n",
+		...answered("questions/both.md", "question.both", "Keep the beta flag?", { author: "reviewer", daysAgo: 2, now, status: "open" }),
+		...laterAnswer("questions/both.md", "question.both", "Keep the beta flag?", now - DAY),
+	};
+}
+
 interface AnswerOptions {
 	readonly author?: string;
 	readonly daysAgo: number;

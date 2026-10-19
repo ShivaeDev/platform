@@ -2,7 +2,7 @@ import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
-import { recentAnswersFixture, sharedHeadingFixture } from "#test/responseRecords.ts";
+import { answeredTwiceFixture, recentAnswersFixture, sharedHeadingFixture } from "#test/responseRecords.ts";
 import { unreadableHome } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen, routedScreen } from "#test/screenTraits.ts";
@@ -119,5 +119,13 @@ screenStory.it(
 				]),
 			),
 		);
+	},
+);
+
+screenStory.it(
+	"shows the latest answer when two people answered the same question",
+	[routedScreen(answeredTwiceFixture(Effect.runSync(Clock.currentTimeMillis)), "/", { home: "home.md" })],
+	function* ({ answeredRows }) {
+		yield* Effect.promise(() => eventually(() => expect(answeredRows()).toEqual([["Keep the beta flag?", "You chose No · Waiting on the agent."]])));
 	},
 );
