@@ -32,17 +32,18 @@ export const actions = storyKit({
 	stages: ["screen"],
 	verbs: (engine, story) => {
 		engine.screen.tell = story.tell;
+		function view() {
+			const rendered = engine.screen.roots[0];
+			if (!rendered) {
+				throw new Error("Missing action screen");
+			}
+			return rendered.container;
+		}
 		return {
-			click: () =>
-				engine.screen.act("click Write", () => {
-					const view = engine.screen.roots[0];
-					if (!view) {
-						throw new Error("Missing action screen");
-					}
-					clickButton(view.container, "Write");
-				}),
+			click: () => engine.screen.act("click Write", () => clickButton(view(), "Write")),
 			headers: () => engine.headers,
 			observe: (line: string, check: () => void) => engine.screen.observe(line, check),
+			ready: () => view().querySelector("button")?.disabled === false,
 			spans: () => engine.spans.filter((span) => span.status._tag === "Ended"),
 			stored: engine.stored,
 			work: () =>

@@ -6,17 +6,19 @@ for (const mode of ["action", "create", "editor"] as const) {
 	actions.it(
 		`a click on the ${mode} screen carries one trace through RPC, SQL and enqueue to a linked worker`,
 		[screen(mode)],
-		function* ({ click, headers, observe, spans, stored, work }) {
+		function* ({ click, headers, observe, ready, spans, stored, work }) {
 			const rpcsPerAction = 2;
 			const totalRpcs = rpcsPerAction * 2;
 			yield* click();
-			yield* observe("the first action finishes two RPCs", () =>
-				expect(spans().filter(({ name }) => name === "Action.enqueue")).toHaveLength(rpcsPerAction),
-			);
+			yield* observe("the first action finishes two RPCs and Write is ready again", () => {
+				expect(spans().filter(({ name }) => name === "Action.enqueue")).toHaveLength(rpcsPerAction);
+				expect(ready()).toBe(true);
+			});
 			yield* click();
-			yield* observe("the second action finishes two RPCs", () =>
-				expect(spans().filter(({ name }) => name === "Action.enqueue")).toHaveLength(totalRpcs),
-			);
+			yield* observe("the second action finishes two RPCs and Write is ready again", () => {
+				expect(spans().filter(({ name }) => name === "Action.enqueue")).toHaveLength(totalRpcs);
+				expect(ready()).toBe(true);
+			});
 			const calls = headers();
 			expect(calls).toHaveLength(totalRpcs);
 			for (const header of calls) {
