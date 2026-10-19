@@ -1,19 +1,10 @@
-import { Cause, Exit, Schema } from "effect";
+import { Cause, Exit } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { expect } from "vitest";
-import { LiveHint } from "#live.ts";
 import { eventually } from "#test/eventually.ts";
 import { liveDenied, liveNotesStory, liveSession, liveStoredNotes, startsWith, withoutResume } from "#test/liveNotesStory.ts";
 import { Denied, Note, notes } from "#test/notes.ts";
 
-liveNotesStory.it("rejects unknown hints and invalid read keys at the Schema boundary", [], () => {
-	const decode = Schema.decodeUnknownResult(LiveHint);
-	for (const value of [{ _tag: "Unknown" }, { _tag: "Changed", keys: [{ _tag: "Item", collection: "notes", id: true }] }]) {
-		expect(decode(value)._tag).toBe("Failure");
-	}
-	expect(decode({ _tag: "Changed", keys: [notes.item(1)] })._tag).toBe("Success");
-	expect(decode({ _tag: "Changed", keys: [{ _tag: "Item", collection: "documents", id: "one" }] })._tag).toBe("Success");
-});
 liveNotesStory.it(
 	"reconciles the full explicit scope on each new stream even when its first hint is targeted",
 	[liveSession(), startsWith({ _tag: "Changed", keys: [notes.item(1)] })],

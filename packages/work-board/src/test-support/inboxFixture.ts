@@ -48,19 +48,19 @@ export function inboxSnapshot(files: Readonly<Record<string, string>> = inboxFix
 	const documents = Object.entries(files).map(([file, source], index) => ({ file, modified: index * 1000, parsed: metadataParse(source) }));
 	return {
 		documents,
-		entries: documents.map((document) => ({
-			file: document.file,
-			href: `/${document.file}`,
+		entries: documents.map((entry) => ({
+			file: entry.file,
+			href: `/${entry.file}`,
 			kind: "document",
 			text: "",
 			title:
-				document.parsed.body
+				entry.parsed.body
 					.split("\n")
 					.find((line) => line.startsWith("# "))
-					?.slice(2) ?? document.file,
+					?.slice(2) ?? entry.file,
 		})),
 		model: metadataModel(documents, unavailable),
-		modified: new Map(documents.map((document) => [document.file, document.modified])),
+		modified: new Map(documents.map((entry) => [entry.file, entry.modified])),
 		revision: 1,
 		unavailable,
 	};
