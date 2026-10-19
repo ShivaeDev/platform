@@ -1,11 +1,11 @@
 import { Fragment } from "react";
 import type { BoardProjection } from "#browser/views/schema.ts";
-import { LazyDocumentView } from "./lazyMarkdown.tsx";
 import { Age } from "./Age.tsx";
 import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
 import { documentElements } from "./documentElements.tsx";
 import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
+import { LazyDocumentView } from "./lazyMarkdown.tsx";
 
 const SEPARATOR = " · ";
 
