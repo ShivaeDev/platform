@@ -51,6 +51,7 @@ export const screenStory = storyKit({
 			...ageActions(engine, story.tell),
 			...appearanceActions(story.tell),
 			...screenObservations(engine, story.tell),
+			...screenRoles(story.tell),
 			...screenData(engine, story.tell),
 			...diagramActions(engine, story.tell),
 			...screenInteractions(engine, story.tell),

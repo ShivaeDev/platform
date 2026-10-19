@@ -28,9 +28,9 @@ screenStory.it(
 screenStory.it(
 	"keeps appearance controls usable when storage is blocked",
 	[screenWorkspace("blocked-choices"), blockedStorage(), chromeScreen(chromeFixture())],
-	({ click, choose, readRootAttribute, readText }) => {
+	function* ({ click, readRootAttribute, readText, roles }) {
 		click("#settings-open");
-		choose("#theme", "dark");
+		yield* roles.click({ name: "Dark", role: "button" });
 		expect(readRootAttribute("data-scheme")).toBe("dark");
 		expect(readText("#preference-status", document)).toContain("this page only");
 	},

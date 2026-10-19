@@ -75,7 +75,6 @@ function BoardWorkspace(
 	}, [sidebar.close]);
 	const status = useBoardNavigation(options, closeCurrentDestination);
 	const search = useSearchDialog();
-	const [libraryOpen, setLibraryOpen] = useState(false);
 	const location = useRouterState({ select: (state) => state.location });
 	const query = useQuery(useLiveRead(client?.updates, navigationQuery(api)), { keepPreviousData: true });
 	const opened = useOpened(options.opening);
@@ -90,7 +89,7 @@ function BoardWorkspace(
 	const live = <ShellLiveStatus client={client} failed={Option.isSome(query.cause)} pending={query.pending} />;
 	const content = (
 		<AgeTicker>
-			<ReadingLibrary api={api} close={() => setLibraryOpen(false)} open={libraryOpen}>
+			<ReadingLibrary api={api}>
 				<a className="sr-only rounded-md bg-background p-3 focus:not-sr-only focus:absolute focus:z-50" href="#doc">
 					Skip to content
 				</a>
@@ -106,10 +105,9 @@ function BoardWorkspace(
 						home={location.pathname === "/"}
 						main={main}
 						navigated={data !== undefined || Option.isSome(query.cause)}
-						openLibrary={() => setLibraryOpen(true)}
 					/>
 					<button
-						aria-label="Close files"
+						aria-label="Close sidebar"
 						className="fixed inset-0 z-30 hidden border-0 bg-black/45 p-0 data-[open=true]:block md:hidden"
 						data-open={sidebar.narrow && sidebar.open}
 						hidden={!(sidebar.narrow && sidebar.open)}

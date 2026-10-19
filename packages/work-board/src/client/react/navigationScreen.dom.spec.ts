@@ -41,7 +41,7 @@ screenStory.it(
 		deleteFile("notes/plan.md");
 		yield* Effect.promise(() => refreshDocument());
 		click("#library-open");
-		yield* Effect.promise(() => eventually(() => expect(readText('#reading-library a[href="/notes/plan.md"]')).toContain("missing")));
+		yield* Effect.promise(() => eventually(() => expect(readText('#reading-library a[href="/notes/plan.md"]', document)).toContain("missing")));
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
 		click('#reading-library a[href="/notes/plan.md"]');
 		yield* Effect.promise(() => eventually(() => expect(readText("#navigation-status")).toContain("missing or was renamed")));
@@ -52,13 +52,13 @@ screenStory.it(
 screenStory.it(
 	"keeps favorites usable across navigation with blocked storage",
 	[screenWorkspace("blocked-favorites"), blockedStorage(), chromeScreen(files)],
-	function* ({ click, navigate, readAttribute, readText }) {
+	function* ({ click, navigate, readText }) {
 		click("#favorite-toggle");
-		expect(readAttribute("#favorite-toggle", "aria-pressed")).toBe("true");
+		expect(readText("#favorite-toggle")).toBe("Unpin");
 		yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
 		expect(readText('section[aria-label="Pinned"] a[href="/notes/plan.md"]')).toBe("Plan");
 		click("#library-open");
-		expect(readText(".library-status", document)).toContain("this page only");
+		expect(readText('#library-dialog [role="status"]', document)).toContain("this page only");
 	},
 );
 
