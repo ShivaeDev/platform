@@ -1,4 +1,5 @@
-import type { SeedFile } from "#quality-fixtures/tree.ts";
+import type { Findings } from "#rule.ts";
+import type { SeedFile } from "./tree.ts";
 
 export const ordersPackage: SeedFile = { content: '{"name":"@example/orders","type":"module"}', path: "package.json" };
 
@@ -14,4 +15,8 @@ export const orders: SeedFile = {
 
 export function unitSpec(content: string): SeedFile {
 	return { content, path: "src/orders.unit.test.ts" };
+}
+
+export function headlines(findings: Findings): readonly (readonly [number | undefined, string])[] {
+	return findings.map((finding) => [finding.line, finding.message.slice(0, finding.message.indexOf(". "))]);
 }
