@@ -39,9 +39,16 @@ export function makeQueries<TModel extends Model.Any>(
 ): Queries<TModel> {
 	const { fieldAt, where } = makeFilter(model, sql);
 	function orderClause(orderBy: FindMany<TModel, Key<TModel>>["orderBy"]) {
-		return orderBy === undefined
-			? Effect.succeed(sql``)
-			: Effect.as(fieldAt(orderBy.field), sql`order by ${sql(orderBy.field)} ${sql.literal(orderBy.direction === "desc" ? "desc" : "asc")}`);
+		if (orderBy === undefined) {
+			return Effect.succeed(sql``);
+		}
+		const entries = "field" in orderBy ? [orderBy] : orderBy;
+		return Effect.map(
+			Effect.forEach(entries, ({ field, direction }) =>
+				Effect.as(fieldAt(field), sql`${sql(field)} ${sql.literal(direction === "desc" ? "desc" : "asc")}`),
+			),
+			(columns) => sql`order by ${sql.csv(columns)}`,
+		);
 	}
 	function limitClause(limit: number | undefined) {
 		return limit === undefined ? Effect.succeed(sql``) : Effect.map(Schema.decodeUnknownEffect(Limit)(limit), (count) => sql`limit ${count}`);
