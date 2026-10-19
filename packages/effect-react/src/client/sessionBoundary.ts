@@ -1,4 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
+import type { Duration } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createContext, createElement, Fragment, type ReactNode, useContext, useEffect, useState } from "react";
 import { DraftSessionContext } from "@shivaedev/effect-form/client/react.ts";
@@ -9,6 +10,7 @@ export interface SessionBoundaryProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
 	readonly connect: (session: TSession) => TClient;
 	readonly identify: (session: TSession) => string;
+	readonly liveCoalesceWindow?: Duration.Input | undefined;
 	readonly recheck: () => void;
 	readonly session: TSession | undefined;
 	readonly signedOut?: ReactNode;
@@ -46,15 +48,16 @@ function hidden<TClient>(client: TClient): Owned<TClient> {
 interface GenerationProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
 	readonly connect: (session: TSession) => TClient;
+	readonly liveCoalesceWindow?: Duration.Input | undefined;
 	readonly recheck: () => void;
 	readonly session: TSession;
 }
-function Generation<TSession, TClient>({ session, connect, recheck, children }: GenerationProps<TSession, TClient>): ReactNode {
+function Generation<TSession, TClient>({ session, connect, recheck, children, liveCoalesceWindow }: GenerationProps<TSession, TClient>): ReactNode {
 	const [owned, own] = useState(() => owning(connect(session)));
 	useEffect(() => registerSessionRecheck(owned.registry, recheck), [owned, recheck]);
 	useEffect(() => {
 		owned.mounted += 1;
-		const stopLive = mountLive(owned.registry, owned.client);
+		const stopLive = mountLive(owned.registry, owned.client, liveCoalesceWindow);
 		return () => {
 			stopLive();
 			owned.mounted -= 1;
@@ -66,7 +69,7 @@ function Generation<TSession, TClient>({ session, connect, recheck, children }: 
 				own((current) => (current === owned ? hidden(owned.client) : current));
 			});
 		};
-	}, [owned]);
+	}, [owned, liveCoalesceWindow]);
 	return createElement(
 		RecheckContext.Provider,
 		{ value: recheck },
@@ -75,6 +78,7 @@ function Generation<TSession, TClient>({ session, connect, recheck, children }: 
 }
 export function SessionBoundary<TSession, TClient>({
 	session,
+	liveCoalesceWindow,
 	identify,
 	connect,
 	recheck,
@@ -88,6 +92,6 @@ export function SessionBoundary<TSession, TClient>({
 		: createElement(
 				DraftSessionContext.Provider,
 				{ value: current },
-				createElement(Generation<TSession, TClient>, { children, connect, key: id, recheck, session }),
+				createElement(Generation<TSession, TClient>, { children, connect, key: id, liveCoalesceWindow, recheck, session }),
 			);
 }
