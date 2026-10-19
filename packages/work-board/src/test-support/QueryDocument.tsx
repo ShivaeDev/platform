@@ -11,3 +11,11 @@ export function QueryDocument({ api, url, plain = false }: { readonly api: Board
 		onSome: (data) => (plain ? <DocumentView document={data} /> : <DocumentPage document={data} />),
 	});
 }
+
+export function QueryPlainBoard({ api, url }: { readonly api: BoardTestApi; readonly url: string }) {
+	const query = useQuery(api.board.query({ url }));
+	return Option.match(query.data, {
+		onNone: () => null,
+		onSome: (data) => <DocumentView board={data.counts} document={data.document} />,
+	});
+}

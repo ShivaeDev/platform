@@ -1,9 +1,9 @@
 import { useContext } from "react";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "#client/react/components/ui/table.tsx";
-import { Age } from "./Age.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { GoalWorkStatus } from "./GoalWorkStatus.tsx";
 import { type GoalRun, type GoalWorkItem, goalRun, targetsGoal } from "./goalWork.ts";
+import { RowTime } from "./Time.tsx";
 
 interface Props {
 	readonly criteria: readonly string[];
@@ -77,8 +77,8 @@ function WorkRow({ columns, row }: { readonly columns: Columns; readonly row: Ro
 				</TableCell>
 			) : null}
 			{columns.holder ? (
-				<TableCell className="relative z-10 whitespace-nowrap" data-goal-updated="">
-					{row.updated === undefined ? null : <Age modified={row.updated} short />}
+				<TableCell className="whitespace-nowrap" data-goal-updated="">
+					{row.updated === undefined ? null : <RowTime at={row.updated} />}
 				</TableCell>
 			) : null}
 			{columns.pr ? (

@@ -1,12 +1,12 @@
 import { Fragment } from "react";
 import type { BoardProjection } from "#browser/views/schema.ts";
-import { Age } from "./Age.tsx";
 import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
 import { OutlineMenu } from "./DocumentOutline.tsx";
 import { documentElements } from "./documentElements.tsx";
 import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
 import { LazyDocumentView } from "./lazyMarkdown.tsx";
+import { Time } from "./Time.tsx";
 
 const SEPARATOR = " · ";
 
@@ -45,7 +45,7 @@ export function HomeBoard({ data }: { readonly data: BoardProjection }) {
 					<ItemSummary document={data.document} />
 					<p className="mt-2">
 						{data.counts.length > 0 && <BoardCounts counts={data.counts} />}
-						updated <Age modified={data.document.modified} short /> ago
+						updated <Time at={data.document.modified} />
 					</p>
 				</>
 			}

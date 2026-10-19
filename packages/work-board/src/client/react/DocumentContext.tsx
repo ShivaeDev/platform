@@ -1,11 +1,11 @@
 import { useContext, useLayoutEffect, useRef, useState } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#client/react/components/ui/tabs.tsx";
-import { Age } from "./Age.tsx";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
 import { DocumentOutline } from "./DocumentOutline.tsx";
 import { DocumentSource } from "./DocumentSource.tsx";
 import { ReadingReadyContext } from "./ReadingReadyContext.ts";
+import { Time } from "./Time.tsx";
 import { OUTLINE_HEADINGS, useDocumentOutline } from "./useDocumentOutline.ts";
 
 export function DocumentContext({ document: data }: { readonly document: Document }) {
@@ -55,7 +55,9 @@ function SourcePanel({ document }: { readonly document: Document }) {
 	return (
 		<>
 			<DocumentSource document={document} />
-			<Age modified={document.modified} />
+			<p className="text-muted-foreground text-xs" data-updated>
+				Updated <Time at={document.modified} />
+			</p>
 		</>
 	);
 }

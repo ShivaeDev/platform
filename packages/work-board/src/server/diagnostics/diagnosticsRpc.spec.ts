@@ -25,7 +25,7 @@ boardStory.it(
 	function* ({ systemHtml }) {
 		const body = yield* systemHtml();
 		expect(body).toContain('data-source="fleet" data-state="stale"');
-		expect(body).toContain(`Last checked <time dateTime="${new Date(old).toISOString()}"`);
+		expect(body).toContain(`dateTime="${new Date(old).toISOString()}">2m ago</time>`);
 		expect(body).toContain("Stale snapshot");
 	},
 );

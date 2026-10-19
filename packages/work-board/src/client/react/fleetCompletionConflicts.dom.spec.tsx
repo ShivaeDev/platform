@@ -35,7 +35,7 @@ for (const status of ["superseded", "deferred", "done", "completed", "cancelled"
 		({ click, findElement, findElements, readText }) => {
 			expect(findElement("[data-item]")).toBeNull();
 			expect(findElement(".work-total")).toBeNull();
-			click(findElement<HTMLButtonElement>('[aria-expanded="false"]'));
+			click(findElement<HTMLButtonElement>('[data-slot="collapsible-trigger"][aria-expanded="false"]'));
 			const cards = findElements('[aria-label="Done in the last 7 days"] [data-item]');
 			expect([...cards].map((card) => card.getAttribute("data-item"))).toEqual(["task-0"]);
 			expect(findElements("[data-status-token]", cards[0])).toHaveLength(1);
