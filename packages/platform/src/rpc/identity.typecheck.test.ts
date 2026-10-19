@@ -2,12 +2,12 @@ import { Effect, type Layer, Option, Schema } from "effect";
 import { Headers } from "effect/http";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expectTypeOf } from "vitest";
-import { AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
+import { AuthUnavailable, type Forbidden, Unauthorized } from "#errors/taxonomy.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
+import { authenticatedAdminLayer, authenticatedOwnerLayer } from "#server/rpc-server/roles.ts";
 import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer } from "#server/rpc-server/session.ts";
 import { Identity, type ProviderAccountValue, SessionUser, SessionUserWithProviderAccounts } from "./identity.ts";
-import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "./middleware.ts";
-import { requireAdmin } from "./requireAdmin.ts";
+import { Authenticated, AuthenticatedAdmin, AuthenticatedOwner, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "./middleware.ts";
 
 const Profile = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String })).middleware(AuthenticatedUser);
 const handlers: Layer.Layer<never> = Profile.toLayer({
@@ -18,18 +18,26 @@ const IdOnly = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String })).mid
 const missing: Layer.Layer<never> = IdOnly.toLayer({ Whoami: () => Effect.map(SessionUser, (user) => user.email) });
 void missing;
 
-const AdminTools = Rpc.make("AdminTools", { error: Schema.Union([Unauthorized, Forbidden]), success: Schema.String });
-const adminHandlers: Layer.Layer<never> = RpcGroup.make(AdminTools)
-	.middleware(AuthenticatedUser)
-	.toLayer({
-		AdminTools: () => Effect.map(requireAdmin, (user) => user.email),
-	});
-void adminHandlers;
-// @ts-expect-error Admin handlers require a profile from authentication middleware.
-const unauthenticatedAdmin: Layer.Layer<never> = RpcGroup.make(AdminTools).toLayer({
-	AdminTools: () => Effect.map(requireAdmin, (user) => user.email),
+const AdminTools = Rpc.make("AdminTools", { success: Schema.String });
+const adminHandlers: Layer.Layer<never> = RpcGroup.make(AdminTools.middleware(AuthenticatedAdmin)).toLayer({
+	AdminTools: () => Effect.map(SessionUser, (user) => user.email),
 });
-void unauthenticatedAdmin;
+const ownerHandlers: Layer.Layer<never> = RpcGroup.make(AdminTools.middleware(AuthenticatedOwner)).toLayer({
+	AdminTools: () => Effect.map(SessionUser, (user) => user.email),
+});
+// @ts-expect-error Role checks run in middleware, so an RPC without it has no profile to read.
+const unguardedAdmin: Layer.Layer<never> = RpcGroup.make(AdminTools).toLayer({ AdminTools: () => Effect.map(SessionUser, (user) => user.email) });
+void [adminHandlers, ownerHandlers, unguardedAdmin];
+const adminPolicy = {
+	origin: () => true,
+	provider: { get: () => Effect.succeed(Option.some({ user: { email: "a@example.test", id: "a", name: "A" } })) },
+};
+Effect.gen(function* () {
+	const client = yield* RpcTest.makeClient(RpcGroup.make(AdminTools.middleware(AuthenticatedAdmin)));
+	const failure = yield* Effect.flip(client.AdminTools());
+	expectTypeOf(failure).toEqualTypeOf<Unauthorized | AuthUnavailable | Forbidden>();
+}).pipe(Effect.provide(adminHandlers), Effect.provide(authenticatedAdminLayer(adminPolicy)), Effect.scoped);
+authenticatedOwnerLayer(adminPolicy);
 
 authenticatedUserLayer({
 	origin: () => true,

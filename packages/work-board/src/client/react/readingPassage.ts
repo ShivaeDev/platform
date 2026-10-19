@@ -20,6 +20,10 @@ export function scrollToPassage(hash: string) {
 	if (!target) {
 		return MISSING_PASSAGE;
 	}
+	if (target.matches('[data-scroll="if-needed"]') && startsInView(target)) {
+		target.focus({ preventScroll: true });
+		return "";
+	}
 	if (!target.matches('[id^="answer-card-"]')) {
 		target.scrollIntoView();
 		target.focus({ preventScroll: true });
@@ -35,6 +39,12 @@ export function scrollToPassage(hash: string) {
 		target.focus({ preventScroll: true });
 	}
 	return "";
+}
+// A layout switch keeps the page still while its results already start in the top three quarters of the view, so the controls stay where the reader clicked.
+function startsInView(target: HTMLElement) {
+	const header = Math.max(0, ...[...document.querySelectorAll("[data-workspace-header]")].map((element) => element.getBoundingClientRect().bottom));
+	const { top } = target.getBoundingClientRect();
+	return top >= header && top <= window.innerHeight * 0.75;
 }
 function answerControl(card: HTMLElement) {
 	const active = document.activeElement;

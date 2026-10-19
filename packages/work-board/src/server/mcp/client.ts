@@ -5,6 +5,7 @@ import { Effect, Layer, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { RpcClientError } from "effect/rpc/RpcClientError";
+import { errorMessage } from "#errorMessage.ts";
 import { workContract } from "#rpc/contract.ts";
 import { RPC_PATH } from "#server/http/rpcPolicy.ts";
 
@@ -19,7 +20,7 @@ function toolError(directory: string, error: unknown) {
 	if (error instanceof RpcClientError || (error instanceof Error && "_tag" in error && error._tag === "TimeoutError")) {
 		return new BoardToolError({ message: `No board answers in ${directory}. Start one with: work-board '${directory.replaceAll("'", "'\\''")}'` });
 	}
-	return new BoardToolError({ message: error instanceof Error ? error.message : String(error) });
+	return new BoardToolError({ message: errorMessage(error) });
 }
 
 export function readBoard<A, E>(directory: string, read: (client: BoardClient) => Effect.Effect<A, E>) {

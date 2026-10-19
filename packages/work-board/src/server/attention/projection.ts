@@ -1,6 +1,7 @@
 import type { InboxProjection } from "#browser/views/schema.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { inboxItems, laterItems } from "./inbox.ts";
+import { recentAnswers } from "./recentAnswers.ts";
 import { requestInbox } from "./requestInbox.ts";
 import { attentionRequests } from "./requests.ts";
 
@@ -23,10 +24,12 @@ export function attentionProjection(snapshot: Snapshot): InboxProjection {
 		agents: requests.items.filter((item) => !item.responseFrom.includes(snapshot.maintainer ?? "maintainer")).map(project),
 		answered: requests.answered.map(project),
 		complete: snapshot.unavailable.length === 0,
+		identified: snapshot.model.ids.size > 0,
 		issues,
 		items: you,
 		later: laterItems(snapshot).map(project),
 		parked: requests.parked.map(project),
+		recent: recentAnswers(snapshot),
 		resolved: requests.resolved.map(project),
 		sourceIssues: issues.length > 0,
 		you,

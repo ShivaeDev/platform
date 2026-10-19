@@ -93,6 +93,7 @@ function DesktopLanes({ lanes, done, ...lane }: Lanes) {
 					.filter(({ lane: name }) => name !== doneLane)
 					.map(({ lane: name, rows }) => (
 						<WorkLane
+							bounded
 							className={rows.length > 0 ? "min-w-44 flex-[2] basis-0" : "min-w-28 flex-1 basis-0"}
 							collapsed={false}
 							key={name}

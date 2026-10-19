@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { act } from "react";
+import { vi } from "vitest";
 import type { Document } from "#browser/document/schema.ts";
 import { formDraft } from "#client/formDraft.ts";
 import { control } from "./chrome.ts";
@@ -68,6 +69,13 @@ export function screenInteractions(engine: ScreenEngine, tell: (line: string) =>
 			tell("the reader reads draft recovery guidance");
 			return document.getElementById("response-draft-recovery")?.textContent ?? "";
 		},
+		readInnerScrollers: (selector: string) => {
+			tell(`the reader checks for height-bounded scrollers inside ${selector}`);
+			return [...target(selector).querySelectorAll<HTMLElement>("*")].filter((element) => {
+				const classes = [...element.classList];
+				return classes.some((name) => /max-h-|(?:^|:)h-\[/u.test(name)) && classes.some((name) => /overflow(?:-y)?-(?:auto|scroll)/u.test(name));
+			});
+		},
 		readStoredDraft: () => {
 			tell("the reader checks the current stored draft");
 			const form = control("#response-form", HTMLFormElement);
@@ -98,6 +106,12 @@ export function screenInteractions(engine: ScreenEngine, tell: (line: string) =>
 				list.scrollTop = top;
 				list.dispatchEvent(new Event("scroll", { bubbles: true }));
 			});
+		},
+		scrollPage: (selector: string | HTMLElement | null, offset: number) => {
+			tell(`the reader scrolls the page ${offset} pixels past the top of a list`);
+			const list = target(selector);
+			vi.spyOn(list, "getBoundingClientRect").mockReturnValue(new DOMRect(0, -offset, list.clientWidth, list.clientHeight));
+			act(() => window.dispatchEvent(new Event("scroll")));
 		},
 		selectText: (selector: string | HTMLElement, start: number, end: number, direction: "forward" | "backward" | "none" = "none") => {
 			tell(`the reader selects characters ${start} to ${end}`);

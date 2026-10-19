@@ -31,9 +31,7 @@ screenStory.it(
 		const left = String(asked - ANSWERED);
 		expect([String(findElements("#needs-you li").length), ...COUNTS.map((selector) => readText(selector))]).toEqual([left, left, left, left]);
 		yield* Effect.promise(releaseRefreshAfterAnswer);
-		yield* Effect.promise(() =>
-			eventually(() => expect(roles.text({ name: "Answered, waiting for Fleet", role: "list" })).toContain("Question for reader")),
-		);
+		yield* Effect.promise(() => eventually(() => expect(roles.text({ name: "Answered", role: "list" })).toContain("Question for reader")));
 		expect(roles.text(NEEDS)).not.toContain("Question for reader");
 		expect(readFocus()?.textContent).toBe("Question for reader");
 		expect(COUNTS.map((selector) => readText(selector))).toEqual([left, left, left]);

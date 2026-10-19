@@ -17,7 +17,7 @@ export function authoredQuestion(document: MetadataDocument): boolean {
 	return document.parsed.fields.kind === "question" && document.parsed.fields.question === undefined;
 }
 
-function addressedElsewhere(document: MetadataDocument, maintainer: string): boolean {
+export function addressedElsewhere(document: MetadataDocument, maintainer: string): boolean {
 	const open = document.parsed.fields.attention?.filter((request) => request.state === "open") ?? [];
 	return open.length > 0 && !open.some((request) => isMaintainerRequest(request, maintainer));
 }

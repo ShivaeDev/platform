@@ -85,6 +85,11 @@ const RequiresDecode = defineQueue({
 });
 const lookup = Effect.flatMap(Jobs, (jobs) => jobs.getJob(RequiresDecode, "id"));
 expectTypeOf<Effect.Services<typeof lookup>>().toEqualTypeOf<"@test/TypedJobs" | HandlerDependency>();
+const failedListing = Effect.flatMap(Jobs, (jobs) => jobs.failedJobs(RequiresDecode, { limit: 10 }));
+expectTypeOf<Effect.Services<typeof failedListing>>().toEqualTypeOf<"@test/TypedJobs" | HandlerDependency>();
+expectTypeOf<Effect.Success<typeof failedListing>["jobs"][number]["data"]>().toEqualTypeOf<{ readonly value: string }>();
+const deadLetterListing = Effect.flatMap(Jobs, (jobs) => jobs.deadLetteredJobs(RequiresDecode, { limit: 10 }));
+expectTypeOf<Effect.Services<typeof deadLetterListing>>().toEqualTypeOf<"@test/TypedJobs" | HandlerDependency>();
 
 const followUpLayer = Jobs.layer({
 	connectionString: "postgresql://compile-only",

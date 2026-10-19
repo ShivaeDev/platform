@@ -1,6 +1,17 @@
 import { Data, Redacted } from "effect";
 
-export type PgBossOperation = "counts" | "enqueue" | "getJob" | "health" | "install" | "register" | "retry" | "start" | "stop";
+export type PgBossOperation =
+	| "counts"
+	| "deadLetteredJobs"
+	| "enqueue"
+	| "failedJobs"
+	| "getJob"
+	| "health"
+	| "install"
+	| "register"
+	| "retry"
+	| "start"
+	| "stop";
 
 export class PgBossError extends Data.TaggedError("PgBossError")<{
 	readonly operation: PgBossOperation;
