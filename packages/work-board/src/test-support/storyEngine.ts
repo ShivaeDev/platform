@@ -11,6 +11,7 @@ import { startProject } from "./servingEngine.ts";
 
 export interface BoardEngine {
 	activeDiagnosticsPolls?: () => number;
+	announcedChanges?: string[][];
 	beforeScripts?: Parameters<typeof openPage>[2];
 	changeDelivery?: { dropped: boolean; loseNext: boolean; omitPath?: string };
 	fleetPort?: number | undefined;

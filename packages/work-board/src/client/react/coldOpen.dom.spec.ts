@@ -28,7 +28,7 @@ describe("cold open", () => {
 	boardStory.it(
 		"opens the page when the live subscription is refused",
 		[project, readerWithoutSubscription("/plan.md")],
-		function* ({ liveStatus, reader }) {
+		({ liveStatus, reader }) => {
 			expect(reader.view().text).toContain("A plain document.");
 			expect(liveStatus()).toBe("reconnecting");
 		},

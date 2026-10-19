@@ -34,11 +34,7 @@ export async function loadBoardPage({ context: { shell }, location, abortControl
 	const { api, registry } = shell;
 	const url = location.pathname + location.searchStr;
 	try {
-		const live = awaitLiveReady(registry, shell.client?.updates, abortController.signal);
-		if (live) {
-			await live;
-		}
-		const navigation = await loadQuery(registry, navigationQuery(api), { abortController });
+		const navigation = await loadNavigation(shell, abortController);
 		const projection = projectionRoute(location.pathname, navigation.home);
 		if (projection) {
 			await loadProjection(registry, api, projection, url, abortController);
@@ -66,6 +62,14 @@ export async function loadBoardPage({ context: { shell }, location, abortControl
 		// The mounted page owns failure wording and retained-data rendering.
 		return { error };
 	}
+}
+
+function loadNavigation({ api, client, registry }: RouterShell, abortController: AbortController) {
+	function read() {
+		return loadQuery(registry, navigationQuery(api), { abortController });
+	}
+	const live = awaitLiveReady(registry, client?.updates, abortController.signal);
+	return live === undefined ? read() : live.then(read);
 }
 
 function mustRethrow(controller: AbortController, error: unknown) {

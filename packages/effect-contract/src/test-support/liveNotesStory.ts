@@ -38,15 +38,15 @@ export const liveNotesStory = storyKit({
 			},
 			emit: (hint: Parameters<typeof server.emit>[0]) => Effect.promise(() => server.emit(hint)),
 			gateReads: (gate: Effect.Effect<void>) => Ref.set(server.gate, gate),
-			isPaused: () => {
-				story.tell("the consumer reads whether live reads are paused");
-				return registry.get(client.paused);
-			},
 			get: (id: number) => {
 				story.tell(`read live note ${id}`);
 				return run(client.api.get.run({ id }));
 			},
 			invalidate: (keys: Parameters<typeof server.reactivity.invalidate>[0]) => server.reactivity.invalidate(keys),
+			isPaused: () => {
+				story.tell("the consumer reads whether live reads are paused");
+				return registry.get(client.paused);
+			},
 			list: client.api.list.query(undefined),
 			mount: <A>(atom: Atom.Atom<A>) => registry.mount(atom),
 			one: client.api.get.query({ id: 1 }),

@@ -20,7 +20,7 @@ export function hints() {
 					sequence = change.sequence;
 					let hint: LiveHint = { _tag: "Resync" };
 					if (contiguous && change._tag === "Changed" && previous._tag === "Some" && current._tag === "Some") {
-						const keys = affected(previous.value.model, current.value.model, change.paths);
+						const keys = affected(previous.value, current.value, change.paths);
 						if (keys !== undefined) {
 							hint = { _tag: "Changed", keys };
 						}
