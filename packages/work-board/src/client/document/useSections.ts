@@ -28,9 +28,12 @@ interface Rendering {
 	readonly layout: boolean;
 }
 
-type SectionsView =
-	| { readonly key: string; readonly sections: readonly ReactElement[]; readonly complete: boolean }
-	| { readonly key: string; readonly error: unknown };
+interface SectionsView {
+	readonly complete: boolean;
+	readonly error?: unknown;
+	readonly key: string;
+	readonly sections: readonly ReactElement[];
+}
 
 function sectionPlugins({ board, document, idPrefix, layout }: Rendering, index: number, used: Set<string>): PluggableList {
 	const sourceId = documentSourceId(document);
@@ -109,18 +112,16 @@ export function useSections(rendering: Rendering) {
 		function show(next: SectionsView) {
 			startTransition(() => setView(next));
 		}
-		renderSections(current, { cancelled: () => cancelled, key, replacing: shown !== undefined && "complete" in shown && shown.complete, show }).catch(
-			(error: unknown) => {
-				if (!cancelled) {
-					setView({ error, key });
-				}
-			},
-		);
+		renderSections(current, { cancelled: () => cancelled, key, replacing: shown?.complete === true, show }).catch((error: unknown) => {
+			if (!cancelled) {
+				setView({ complete: false, error, key, sections: [] });
+			}
+		});
 		return () => {
 			cancelled = true;
 		};
 	}, [key]);
-	if (view && "error" in view) {
+	if (view?.error !== undefined) {
 		throw view.error;
 	}
 	return view ?? { complete: false, key, sections: [] };
