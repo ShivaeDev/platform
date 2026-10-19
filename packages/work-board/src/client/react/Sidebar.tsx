@@ -11,7 +11,7 @@ import { LibraryContext } from "#client/react/LibraryContext.ts";
 import { LinkButton } from "#client/react/LinkButton.tsx";
 import type { MainLocation } from "#client/react/mainLocation.ts";
 import { useCurrentDestination } from "#client/react/navigationTarget.ts";
-import { ReadingLinks } from "#client/react/ReadingLinks.tsx";
+import { PinnedLinks, RecentLinks } from "#client/react/readingLinks.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import type { SidebarControls } from "#client/react/useSidebar.ts";
@@ -83,12 +83,14 @@ export function Sidebar({
 					</WorkspaceLink>
 				))}
 			</nav>
-			<ReadingLinks current={main.file} items={reading.favorites} title="Pinned" />
-			<section aria-label="Active goals">
-				<h2 className="mb-2 px-2 font-semibold text-muted-foreground text-xs">Active goals</h2>
-				{navigated ? <ActiveGoals api={api} /> : null}
-			</section>
-			<ReadingLinks current={main.file} items={reading.recents.slice(0, 5)} title="Recent" />
+			<PinnedLinks current={main.file} />
+			{current === "today" ? null : (
+				<section aria-label="Active goals">
+					<h2 className="mb-2 px-2 font-semibold text-muted-foreground text-xs">Active goals</h2>
+					{navigated ? <ActiveGoals api={api} /> : null}
+				</section>
+			)}
+			<RecentLinks current={main.file} />
 			<Button
 				aria-haspopup="dialog"
 				className="mt-auto justify-start text-muted-foreground"
