@@ -24,6 +24,7 @@ export function WorkLane({
 	state,
 	fleet,
 	virtual,
+	bounded,
 	collapsed,
 	className,
 	unavailable,
@@ -33,6 +34,7 @@ export function WorkLane({
 	readonly state: State;
 	readonly fleet: ReadonlyMap<string, FleetWork>;
 	readonly virtual: boolean;
+	readonly bounded?: boolean | undefined;
 	readonly collapsed: boolean;
 	readonly className?: string | undefined;
 	readonly unavailable?: string | undefined;
@@ -44,7 +46,7 @@ export function WorkLane({
 	);
 	const list =
 		unavailable === undefined ? (
-			<LaneCards fleet={fleet} lane={lane} rows={rows} state={state} virtual={virtual} />
+			<LaneCards bounded={bounded} fleet={fleet} lane={lane} rows={rows} state={state} virtual={virtual} />
 		) : (
 			<p className="m-0 text-muted-foreground text-xs">{unavailable}</p>
 		);
@@ -83,6 +85,7 @@ function LaneCards({
 	readonly state: State;
 	readonly fleet: ReadonlyMap<string, FleetWork>;
 	readonly virtual: boolean;
+	readonly bounded: boolean | undefined;
 }) {
 	if (rows.length === 0) {
 		return (

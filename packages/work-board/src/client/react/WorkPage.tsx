@@ -62,7 +62,13 @@ function WorkContent({ data, api }: { readonly data: WorkProjection; readonly ap
 				</p>
 			)}
 			<div className={data.state.item ? "work-layout has-detail" : "work-layout"}>
-				<section aria-label="Work items" className="min-w-0" id={shellIds.workResults} tabIndex={-1}>
+				<section
+					aria-label="Work items"
+					className="min-w-0 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+					data-scroll="if-needed"
+					id={shellIds.workResults}
+					tabIndex={-1}
+				>
 					{data.items.length === 0 ? <NoWork data={data} /> : <WorkResults data={data} />}
 				</section>
 				<WorkDetail api={api} data={data} />

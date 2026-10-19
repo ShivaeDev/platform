@@ -35,6 +35,8 @@ export function boardRouter(options?: RouterShell, history?: RouterHistory) {
 		...(history ? { history } : {}),
 		context: options ? { shell: options } : {},
 		// The shell owns pending feedback (navigationTarget.ts) because its pages render outside route matches; a router pending component would also hold every slow page for pendingMinMs.
+		// The shell scrolls to a link's passage once the page is ready to read (scheduleReading.ts); a second router scroll would move the page before that decision.
+		defaultHashScrollIntoView: false,
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		defaultPreloadStaleTime: 0,
 		defaultStaleReloadMode: "blocking",
