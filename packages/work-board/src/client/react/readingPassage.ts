@@ -42,7 +42,7 @@ export function scrollToPassage(hash: string) {
 }
 // A layout switch keeps the page still while its results already start in the top three quarters of the view, so the controls stay where the reader clicked.
 function startsInView(target: HTMLElement) {
-	const header = document.querySelector("[data-workspace-header]")?.getBoundingClientRect().bottom ?? 0;
+	const header = Math.max(0, ...[...document.querySelectorAll("[data-workspace-header]")].map((element) => element.getBoundingClientRect().bottom));
 	const { top } = target.getBoundingClientRect();
 	return top >= header && top <= window.innerHeight * 0.75;
 }
