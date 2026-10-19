@@ -3,6 +3,7 @@ import { attention } from "@shivaedev/work-board/server/integration/attention.ts
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { closePublishedDecision } from "#board/closePublishedDecision.ts";
+import type { BoardDocument } from "#board/documents.ts";
 import { type BoardSnapshot, recordBoardSource } from "#board/readPass.ts";
 import { BoardAcknowledgementStale, type BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
@@ -51,7 +52,16 @@ export function acknowledgeDecision(root: string, realRoot: string, snapshot: Ef
 		);
 		yield* recordBoardSource(realRoot, file, content, receiptDocument.parsed);
 		if (input.disposition === "superseded") {
-			yield* closePublishedDecision(root, realRoot, source);
+			const reason = supersededReason(all, decision.workId);
+			yield* closePublishedDecision(root, realRoot, source, reason);
 		}
 	});
+}
+
+function supersededReason(documents: readonly BoardDocument[], workId: string) {
+	const work = documents.filter((document) => document.parsed.fields.id === workId);
+	const status = work.length === 1 ? work[0]?.parsed.fields.status : undefined;
+	return ["done", "deferred", "superseded"].includes(status ?? "")
+		? `Closed because Board work ${workId} is ${status}.`
+		: "Closed because this Fleet decision was superseded.";
 }

@@ -3,13 +3,14 @@ import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
 import { briefRevision } from "#board/briefRevision.ts";
+import { closeFinishedDecisions } from "#board/closeFinishedDecisions.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
 import { decisionReading } from "#board/decisionReading.ts";
 import { boundSnapshot, refreshSnapshotDocument, snapshotDocument } from "#board/documents.ts";
 import { fleetApproved, fleetDeliverable, fleetPriority } from "#board/fleetField.ts";
 import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
-import { workMetadata } from "#board/readPass.ts";
+import { recordBoardSource, workMetadata } from "#board/readPass.ts";
 import { upgradeDecisionClosure } from "#board/upgradeDecisionClosure.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { writeCompletion } from "#board/writeCompletion.ts";
@@ -25,7 +26,8 @@ const MarkdownBoard = defineService({
 		const fs = yield* FileSystem.FileSystem;
 		const path = yield* Path.Path;
 		const realRoot = yield* fs.realPath(root);
-		const snapshot = boundSnapshot(root, realRoot, fs, path).pipe(Effect.tap((current) => upgradeDecisionClosure(root, realRoot, current, fs)));
+		const sources = boundSnapshot(root, realRoot, fs, path);
+		const snapshot = sources.pipe(Effect.tap((current) => upgradeDecisionClosure(root, realRoot, current, fs)));
 		const documents = snapshot.pipe(Effect.map((current) => current.documents.filter((document) => !current.problems.has(document.file))));
 		const get = Effect.fn("FleetBoard.get")(function* (workId: string, options?: { readonly fresh?: boolean }) {
 			const current = yield* snapshot;
@@ -58,11 +60,12 @@ const MarkdownBoard = defineService({
 			};
 		});
 		const publish = publishBoard(root, realRoot, documents);
-		return { documents, get, path, publish, realRoot, root, snapshot };
+		return { documents, get, path, publish, realRoot, root, snapshot, sources };
 	}),
-	methods: ({ root, realRoot, documents, get, publish, path, snapshot }) =>
-		BoardGateway.of({
+	methods: ({ root, realRoot, documents, get, publish, path, snapshot, sources }) => ({
+		...BoardGateway.of({
 			acknowledgeDecision: acknowledgeDecision(root, realRoot, snapshot),
+			closeFinishedDecisions: closeFinishedDecisions(root, realRoot, sources),
 			complete: Effect.fn("FleetBoard.complete")(function* (workId, sourcePath, nextAction) {
 				const work = yield* get(workId);
 				if (work.sourcePath !== sourcePath) {
@@ -76,9 +79,12 @@ const MarkdownBoard = defineService({
 				if (parsed.fields.id !== workId || parsed.diagnostics.length > 0 || briefRevision(parsed) !== work.revision) {
 					return yield* Effect.fail(new BoardFailure({ message: "Completion bookkeeping would change authored Board context or identity." }));
 				}
-				yield* writeCompletion(root, realRoot, path.relative(realRoot, sourcePath), work.context, content).pipe(
+				const written = yield* writeCompletion(root, realRoot, path.relative(realRoot, sourcePath), work.context, content).pipe(
 					Effect.mapError((error) => new BoardFailure({ message: error.message })),
 				);
+				if (written) {
+					yield* recordBoardSource(realRoot, path.relative(realRoot, sourcePath), content, parsed);
+				}
 			}),
 			decision: Effect.fn("FleetBoard.decision")(function* (workId, input, originalContext) {
 				const work = originalContext ?? (yield* get(workId));
@@ -102,6 +108,7 @@ const MarkdownBoard = defineService({
 			readDecision: decisionReading(documents),
 			report: publishReport(root, realRoot, documents),
 		}),
+	}),
 	requires: [BoardRoot, FileSystem.FileSystem, Path.Path],
 });
 

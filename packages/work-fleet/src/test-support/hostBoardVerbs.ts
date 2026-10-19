@@ -4,12 +4,17 @@ import { Effect } from "effect";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { withDecisionResponses } from "#host/releaseWork.ts";
 import type { Decision } from "#policy.ts";
+import { BoardGateway } from "#policy.ts";
 import { boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { questionPublicationVerbs } from "#test/questionPublicationVerbs.ts";
 
 export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
+		publishBoardDecision: (workId: string, decision: Decision) => {
+			tell(`publish a Fleet decision for ${workId}`);
+			return Effect.flatMap(BoardGateway, (board) => board.decision(workId, decision)).pipe(Effect.provideContext(engine.running.context));
+		},
 		...questionPublicationVerbs(engine, tell),
 		boardExists: (file: string) => existsSync(join(engine.fixture.host.boardDir, file)),
 		boardHttp: () => {
