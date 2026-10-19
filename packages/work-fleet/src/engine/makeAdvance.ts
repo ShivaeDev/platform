@@ -6,12 +6,12 @@ import { makeAdopt } from "#engine/makeAdopt.ts";
 import { makeDeliver } from "#engine/makeDeliver.ts";
 import { makeHuman } from "#engine/makeHuman.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
-import { makeObserve } from "#engine/makeObserve.ts";
 import { makeReview } from "#engine/makeReview.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { makeValidate } from "#engine/makeValidate.ts";
+import { observeExecution } from "#engine/observeExecution.ts";
+import { holdPredictedReview, reconcilePrediction } from "#engine/reconcilePrediction.ts";
 import { holdPendingReady } from "#engine/reconcileSweepHold.ts";
-import { missingAcceptedTurn, recoverMissingTurn } from "#engine/recoverMissingTurn.ts";
 import { reconcileBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { observeReleasedDeliveries } from "#engine/releasedDeliveries.ts";
@@ -29,31 +29,20 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 		if (["completed", "released"].includes(stored.value.stage)) {
 			return stored;
 		}
+		stored = yield* reconcilePrediction(state, stored);
+		if (stored.value.predictedConflictHold !== undefined) {
+			return stored;
+		}
 		if (stored.value.stage === "needs-human") {
 			stored = yield* makeDeliver(state)(stored);
 			stored = (yield* releaseClosedPreparation(state, stored, yield* state.board.get(workId))) ?? stored;
 		}
 		stored = yield* makeHuman(state)(stored);
-		if (stored.value.stage === "executing" && stored.value.attempts.at(-1)?.receipt === undefined) {
-			stored = yield* reconcileBrief(state, stored);
-			if (stored.value.stage === "needs-human") {
-				return stored;
-			}
+		const observed = yield* observeExecution(state, stored);
+		if (observed.stopped) {
+			return observed.stored;
 		}
-		stored = yield* makeObserve(state)(stored).pipe(
-			Effect.catch((error) =>
-				Effect.gen(function* () {
-					const current = yield* state.load(workId);
-					if (missingAcceptedTurn(error) && current.value.stage !== "needs-human") {
-						const recovered = yield* recoverMissingTurn(state, current, undefined, error.threadIdle);
-						if (recovered !== undefined) {
-							return recovered;
-						}
-					}
-					return yield* Effect.fail(error);
-				}),
-			),
-		);
+		stored = observed.stored;
 		const answered = yield* deliverPendingAnswers(state, launch, stored);
 		if (answered !== undefined) {
 			return answered;
@@ -82,24 +71,45 @@ function advanceExecution(state: EngineState, launch: ReturnType<typeof makeLaun
 		}
 		const work = yield* state.board.get(stored.value.workId);
 		yield* authorizeBriefContext(stored.value, work);
-		stored = yield* makeAdopt(state)(stored, work);
+		if (stored.value.stage === "adopting") {
+			stored = yield* makeAdopt(state)(stored, work);
+			stored = yield* reconcilePrediction(state, stored);
+		}
+		if (stored.value.predictedConflictHold !== undefined) {
+			return stored;
+		}
 		stored = yield* makeDeliver(state)(stored);
 		stored = yield* makeReview(state)(stored, work);
-		if (stored.value.stage === "repairing") {
-			stored = yield* makeDeliver(state)(stored);
-			if (stored.value.stage === "released") {
-				return stored;
-			}
-			return yield* launch(stored, "repair", stored.value.checks?.repairPrompt ?? stored.value.review?.repairPrompt ?? stored.value.prompt);
+		stored = yield* holdPredictedReview(state, stored);
+		if (stored.value.predictedConflictHold !== undefined) {
+			return stored;
+		}
+		const repair = yield* advanceRepair(state, launch, stored, "review");
+		if (repair !== undefined) {
+			return repair;
 		}
 		stored = yield* makeValidate(state)(stored, work);
-		if (stored.value.stage === "repairing") {
-			stored = yield* makeDeliver(state)(stored);
-			if (stored.value.stage === "released") {
-				return stored;
-			}
-			return yield* launch(stored, "repair", stored.value.checks?.repairPrompt ?? "Fix required checks");
+		const checkRepair = yield* advanceRepair(state, launch, stored, "checks");
+		if (checkRepair !== undefined) {
+			return checkRepair;
 		}
 		return yield* makeDeliver(state)(stored).pipe(Effect.flatMap(closeDecisions(state)));
 	});
 }
+
+const advanceRepair = Effect.fn("Fleet.advanceRepair")(function* (
+	state: EngineState,
+	launch: ReturnType<typeof makeLaunch>,
+	input: Versioned<FleetRecord>,
+	source: "review" | "checks",
+) {
+	if (input.value.stage !== "repairing") {
+		return undefined;
+	}
+	const stored = yield* makeDeliver(state)(input);
+	const prompt =
+		source === "review"
+			? (stored.value.checks?.repairPrompt ?? stored.value.review?.repairPrompt ?? stored.value.prompt)
+			: (stored.value.checks?.repairPrompt ?? "Fix required checks");
+	return stored.value.stage === "released" ? stored : yield* launch(stored, "repair", prompt);
+});

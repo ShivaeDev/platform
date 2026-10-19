@@ -3,35 +3,22 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { describe, expect } from "vitest";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
-import type { Folder } from "#test/board.ts";
 import { boardStory } from "#test/boardStory.ts";
-import { held, type OpenPage } from "#test/browser.ts";
+import { held } from "#test/browser.ts";
 import { followLink } from "#test/followLink.ts";
 import { settle, waitFor } from "#test/live.ts";
+import { frame, title } from "#test/pageObservation.ts";
+import { navigationKey } from "#test/pageStorage.ts";
 import { navigationWorkspace } from "#test/pageTraits.ts";
-import type { BoardReader } from "#test/readerVerbs.ts";
 import { rpcCall, rpcFailure } from "#test/rpc.ts";
-
-function key(notes: Folder) {
-	return `work-board:library:${realpathSync(notes.root)}`;
-}
-
-function* open(reader: BoardReader, path = "/plan.md") {
-	const page = yield* reader.open(path);
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
-	yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
-	return page;
-}
-
-function title(page: OpenPage) {
-	return page.document.querySelector("#doc h1")?.textContent;
-}
 
 describe("document navigation", () => {
 	for (const path of ["/_board/attachment/shots/review.png", "/_board/unsupported"]) {
 		boardStory.it(`leaves non-document links to browser navigation (${path})`, [navigationWorkspace()], function* ({ reader, page: initialPage }) {
 			let page = initialPage;
-			page = yield* open(reader);
+			page = yield* reader.open("/plan.md");
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
+			yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 			const requests = page.pageRequests.count;
 			const link = page.document.createElement("a");
 			link.id = "browser-link";
@@ -60,7 +47,9 @@ describe("document navigation", () => {
 		[navigationWorkspace()],
 		function* ({ reader, page: initialPage }) {
 			let page = initialPage;
-			page = yield* open(reader, "/items/result.md");
+			page = yield* reader.open("/items/result.md");
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
+			yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 			page.document.body.dataset.visit = "kept";
 			reader.clickSelector('a[href="/_board/result?item=result.keyboard"]');
 			yield* Effect.promise(() => frame(page));
@@ -78,7 +67,9 @@ describe("document navigation", () => {
 		[navigationWorkspace()],
 		function* ({ reader, page: initialPage }) {
 			let page = initialPage;
-			page = yield* open(reader);
+			page = yield* reader.open("/plan.md");
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
+			yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 			page.document.body.dataset.visit = "kept";
 			followLink(page, "/_board/start");
 			yield* Effect.promise(() => frame(page));
@@ -96,7 +87,9 @@ describe("document navigation", () => {
 		[navigationWorkspace()],
 		function* ({ reader, page: initialPage }) {
 			let page = initialPage;
-			page = yield* open(reader);
+			page = yield* reader.open("/plan.md");
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
+			yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 			page.window.document.body.dataset.visit = "kept";
 			const details = page.document.querySelector("article details");
 			details?.setAttribute("open", "");
@@ -124,14 +117,16 @@ describe("document navigation", () => {
 		[navigationWorkspace()],
 		function* ({ notes, reader, page: initialPage }) {
 			let page = initialPage;
-			page = yield* open(reader);
+			page = yield* reader.open("/plan.md");
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
+			yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 			reader.clickSelector("#favorite-toggle");
 			yield* Effect.promise(() => frame(page));
 			expect(page.document.getElementById("favorite-toggle")?.getAttribute("aria-pressed")).toBe("true");
 			followLink(page, "/flow.md");
 			yield* Effect.promise(() => frame(page));
 			yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Flow")));
-			const saved = JSON.parse(page.window.localStorage.getItem(key(notes)) ?? "null");
+			const saved = JSON.parse(page.window.localStorage.getItem(navigationKey(notes)) ?? "null");
 			expect(saved.favorites).toEqual([{ file: "plan.md", title: "Plan" }]);
 			expect(saved.recents.map((item: { file: string }) => item.file)).toEqual(["flow.md", "plan.md"]);
 			notes.write("flow.md", "# New flow\n\nUpdated evidence.");
@@ -150,7 +145,9 @@ describe("document navigation", () => {
 			[navigationWorkspace()],
 			function* ({ reader, page: initialPage }) {
 				let page = initialPage;
-				page = yield* open(reader);
+				page = yield* reader.open("/plan.md");
+				yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
+				yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 				const response = held();
 				const reads = page.pageRequests.count;
 				page.pageRequests.gate = response.gate;
@@ -174,7 +171,9 @@ describe("document navigation", () => {
 		[navigationWorkspace()],
 		function* ({ notes, reader, page: initialPage }) {
 			let page = initialPage;
-			page = yield* open(reader);
+			page = yield* reader.open("/plan.md");
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
+			yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 			reader.clickSelector("#favorite-toggle");
 			yield* Effect.promise(() => frame(page));
 			followLink(page, "/flow.md");
@@ -201,9 +200,9 @@ boardStory.it(
 	function* ({ notes, reader, page: initialPage }) {
 		let page = initialPage;
 		page = yield* reader.open("/plan.md", (window) => {
-			window.localStorage.setItem(`${key(notes)}-other`, JSON.stringify({ favorites: [{ file: "twins.md", title: "Twins" }] }));
+			window.localStorage.setItem(`${navigationKey(notes)}-other`, JSON.stringify({ favorites: [{ file: "twins.md", title: "Twins" }] }));
 			window.localStorage.setItem(
-				key(notes),
+				navigationKey(notes),
 				JSON.stringify({ favorites: [{ file: "flow.md", title: "Flow" }, { file: "twins.md" }], recents: "invalid" }),
 			);
 			window.history.replaceState({ workBoard: { id: "restored" } }, "");
@@ -286,7 +285,3 @@ boardStory.it("retries the same route after a navigation request fails", [naviga
 	yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Flow")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("navigation-status")?.textContent).toBe("")));
 });
-
-function frame(page: OpenPage) {
-	return new Promise<void>((resolve) => page.window.requestAnimationFrame(() => resolve()));
-}

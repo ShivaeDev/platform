@@ -1,5 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
-import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider, useRouterState } from "@tanstack/react-router";
+import { createMemoryHistory, createRootRoute, createRoute, createRouter, Link, RouterProvider, useRouterState } from "@tanstack/react-router";
 import { Effect } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, type ReactNode, useContext, useState } from "react";
@@ -10,6 +10,7 @@ import { expectNoReactWarnings, render } from "#client/testing.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import { loadQuery } from "#loadQuery.ts";
 import { loaderHost } from "./loaderHost.ts";
+import { loaderResponses } from "./loaderResponses.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -30,6 +31,8 @@ export const loaderScreen = storyKit({
 			const pending = useRouterState({ select: (state) => state.isLoading });
 			return (
 				<main>
+					<Link to="/">Home</Link>
+					<Link to="/note">Note</Link>
 					<output data-pending>{String(pending)}</output>
 					{children}
 				</main>
@@ -105,7 +108,7 @@ export const loaderScreen = storyKit({
 			act: async (action) => {
 				await act(action);
 			},
-			pending: () => router.state.isLoading || refreshing(),
+			pending: () => router.state.isLoading || router.state.matches.some((match) => match.isFetching) || refreshing(),
 			root: view.container,
 			tell: story.tell,
 		}),
@@ -130,15 +133,11 @@ export const loaderScreen = storyKit({
 				story.tell("wait for the loader result before the delayed mount");
 				await act(async () => loaded.promise);
 			}),
-		next: () =>
-			Effect.sync(() => {
-				story.tell("hold the next response");
-				host.next();
-			}),
-		respond: (title: string) =>
+		...loaderResponses(host, registry, story.tell),
+		unmounted: () =>
 			Effect.promise(async () => {
-				story.tell(`the server responds: ${title}`);
-				await act(async () => host.respond(title));
+				story.tell("let the unmounted query wrapper become idle");
+				await act(async () => new Promise<void>((resolve) => setTimeout(resolve, 20)));
 			}),
 	}),
 });

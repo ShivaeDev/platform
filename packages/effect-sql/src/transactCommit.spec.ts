@@ -2,7 +2,6 @@ import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-test/eventually.ts";
-import { isCommitting } from "#test/commitObservation.ts";
 import { onSqlError } from "#test/postgresTransact.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { commitsSlowly, hasObserverPool, hasTransactionTables, subscriberThrows } from "#test/sqlTraits.ts";
@@ -10,7 +9,7 @@ import { commitsSlowly, hasObserverPool, hasTransactionTables, subscriberThrows 
 postgres.it(
 	"an interruption while COMMIT is in flight publishes exactly what a second connection sees committed",
 	[hasTransactionTables(), commitsSlowly(1), hasObserverPool()],
-	function* ({ transactions, sql, transact, invalidateOnCommit, observerPool }) {
+	function* ({ transactions, sql, transact, invalidateOnCommit, observerPool, isCommitting }) {
 		const { events, insert, orderIds } = transactions();
 		const observer = observerPool();
 		const backend = yield* Deferred.make<number>();

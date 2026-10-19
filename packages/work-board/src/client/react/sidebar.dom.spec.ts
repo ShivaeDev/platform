@@ -1,29 +1,10 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { boardStory } from "#test/boardStory.ts";
-import type { OpenPage } from "#test/browser.ts";
 import { followLink } from "#test/followLink.ts";
 import { waitFor } from "#test/live.ts";
+import { element, frame } from "#test/pageObservation.ts";
 import { sidebarPages } from "#test/pageTraits.ts";
-import type { BoardReader } from "#test/readerVerbs.ts";
-
-function* open(reader: BoardReader, width: number) {
-	const page = yield* reader.open("/notes/topic-1.md", (window) => {
-		window.innerWidth = width;
-		window.innerHeight = 1000;
-	});
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live")));
-	page.window.dispatchEvent(new page.window.Event("resize"));
-	return page;
-}
-
-function element(page: OpenPage, id: string) {
-	const found = page.document.getElementById(id);
-	if (!(found instanceof page.window.HTMLElement)) {
-		throw new Error(`Missing ${id}`);
-	}
-	return found;
-}
 
 for (const width of [1440, 390]) {
 	boardStory.it(
@@ -31,7 +12,12 @@ for (const width of [1440, 390]) {
 		[sidebarPages()],
 		function* ({ reader, page: initialPage }) {
 			let page = initialPage;
-			page = yield* open(reader, width);
+			page = yield* reader.open("/notes/topic-1.md", (window) => {
+				window.innerWidth = width;
+				window.innerHeight = 1000;
+			});
+			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live")));
+			page.window.dispatchEvent(new page.window.Event("resize"));
 			const navigation = element(page, "primary-navigation");
 			const rows = [...navigation.children];
 			expect(rows.map((row) => row.id)).toEqual(["home-open", "goals-open", "work-open", "documents-open", "diagnostics-open"]);
@@ -69,7 +55,12 @@ boardStory.it(
 	[sidebarPages()],
 	function* ({ reader, page: initialPage }) {
 		let page = initialPage;
-		page = yield* open(reader, 390);
+		page = yield* reader.open("/notes/topic-1.md", (window) => {
+			window.innerWidth = 390;
+			window.innerHeight = 1000;
+		});
+		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live")));
+		page.window.dispatchEvent(new page.window.Event("resize"));
 		const sidebar = element(page, "sidebar");
 		const opener = element(page, "sidebar-toggle");
 		yield* Effect.promise(() => waitFor(() => expect(sidebar.hidden).toBe(true)));
@@ -90,7 +81,7 @@ boardStory.it(
 			}
 			yield* Effect.promise(() => waitFor(() => expect(sidebar.hidden).toBe(true)));
 			expect(opener.getAttribute("aria-expanded")).toBe("false");
-			yield* Effect.promise(() => focusReturned(page));
+			yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement).toBe(opener)));
 		}
 		page.window.innerWidth = 1440;
 		page.window.dispatchEvent(new page.window.Event("resize"));
@@ -101,11 +92,3 @@ boardStory.it(
 		yield* Effect.promise(() => waitFor(() => expect(sidebar.hidden).toBe(true)));
 	},
 );
-
-function frame(page: OpenPage) {
-	return new Promise<void>((resolve) => page.window.requestAnimationFrame(() => resolve()));
-}
-
-function focusReturned(page: OpenPage) {
-	return waitFor(() => expect(page.document.activeElement).toBe(element(page, "sidebar-toggle")));
-}

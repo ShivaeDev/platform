@@ -14,7 +14,7 @@ import { responseServiceVerbs } from "./responseServiceVerbs.ts";
 import { serverVerbs } from "./serverVerbs.ts";
 import { servingVerbs } from "./servingVerbs.ts";
 import { connected, createBoard, inspectBoard, openReader, served, serveProject, wrapFilesystem } from "./storyEngine.ts";
-import { handoffInput, resultHtml, reviewReport, saveInboxAnswer } from "./storyResponses.ts";
+import { handoffInput, resultHtml, reviewReport, savedInboxAnswer } from "./storyResponses.ts";
 import { workspaceAccess } from "./workspaceAccess.ts";
 
 export const boardStory = storyKit({
@@ -81,7 +81,10 @@ export const boardStory = storyKit({
 			story.tell(`the reader records ${choice} as ${id}${supersedes ? `, superseding ${supersedes}` : ""}`);
 			return reviewReport(served(engine).client, id, choice, supersedes);
 		},
-		saveAnswer: () => saveInboxAnswer({ notes: engine.notes, page: connected(engine).page }, readerVerbs(engine, story.tell)),
+		savedAnswer: () => {
+			story.tell("the reader reads the recorded answer file");
+			return savedInboxAnswer(engine.notes);
+		},
 		workspace: workspaceAccess(engine, story.tell),
 	}),
 });
