@@ -70,10 +70,10 @@ export default defineConfig({
 		"tests/support-imports": {
 			options: {
 				modules: [
-					"packages/effect-sql/src/advisoryXactLock.ts",
 					"packages/effect-sql/src/clientOptions.ts",
 					"packages/effect-sql/src/repository.ts",
 					"packages/effect-sql/src/transact.ts",
+					"packages/effect-sql/src/advisoryXactLock.ts",
 					"packages/effect-test-sql/src/server/assertModelColumns.ts",
 					"packages/effect-test-sql/src/server/database.ts",
 					"packages/effect-test-sql/src/server/migrationUpgrade.ts",
