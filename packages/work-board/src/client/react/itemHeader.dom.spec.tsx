@@ -6,6 +6,7 @@ import { questionId, revisionOf } from "#server/responses/records.ts";
 import { answerCardFixture, decisionFile, decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
 import { answeredDecisionFixture } from "#test/answeredDecisionFixture.ts";
 import { ACTIVE_GUIDE, closedDecision, GOALS, unansweredDecision } from "#test/itemHeaderFixture.ts";
+import { deniedClipboard } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 import { screenFleet } from "#test/screenWorkspaceTraits.ts";
@@ -149,3 +150,22 @@ screenStory.it(
 		expect(large).toEqual(Object.values(controls).map(() => true));
 	},
 );
+
+for (const [clipboard, copied] of [
+	["allows the copy", "Copied item ID"],
+	["refuses the copy", "Copy failed; select the ID instead"],
+] as const) {
+	screenStory.it(
+		`tells the reader the ID copy result until they move on when the clipboard ${clipboard}`,
+		[...(clipboard === "refuses the copy" ? [deniedClipboard()] : []), routedScreen(GOALS, "/_board/item/task.part/", { home: "home.md" })],
+		function* ({ click, findElement, focus, readAttribute }) {
+			yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
+			const copy = `${HEADER} button[aria-label]`;
+			focus(copy);
+			click(copy);
+			yield* Effect.promise(() => eventually(() => expect(readAttribute(copy, "aria-label")).toBe(copied)));
+			focus("#favorite-toggle");
+			expect(readAttribute(copy, "aria-label")).toBe("Copy item ID");
+		},
+	);
+}
