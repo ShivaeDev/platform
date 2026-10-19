@@ -16,7 +16,11 @@ export function CriterionAxis({ rowHeight, rows }: { readonly rowHeight: number;
 			axisLine={false}
 			dataKey="key"
 			interval={0}
-			tick={({ index, y }: YAxisTickContentProps) => <CriterionLabel height={rowHeight} row={rows[index]} width={width - LABEL_GAP} y={Number(y)} />}
+			tick={({ index, y }: YAxisTickContentProps) =>
+				rows
+					.slice(index, index + 1)
+					.map((row) => <CriterionLabel height={rowHeight} key={row.key} row={row} width={width - LABEL_GAP} y={Number(y)} />)
+			}
 			tickLine={false}
 			type="category"
 			width={width}
@@ -32,13 +36,10 @@ function CriterionLabel({
 	y,
 }: {
 	readonly height: number;
-	readonly row: GoalChartRow | undefined;
+	readonly row: GoalChartRow;
 	readonly width: number;
 	readonly y: number;
 }) {
-	if (!row) {
-		return null;
-	}
 	return (
 		<foreignObject className="overflow-visible" height={height} width={width} x={0} y={y - height / 2}>
 			<div className="flex h-full items-center text-foreground text-sm" data-goal-criterion-label="">
@@ -59,7 +60,7 @@ function CriterionLabel({
 export function CountLabel({ height, value, width, x, y }: LabelProps) {
 	const count = Number(value);
 	const box = { height: Number(height), width: Number(width), x: Number(x), y: Number(y) };
-	if (!(count > 0) || box.width < String(count).length * COUNT_DIGIT_WIDTH + COUNT_PADDING) {
+	if (box.width < String(count).length * COUNT_DIGIT_WIDTH + COUNT_PADDING) {
 		return null;
 	}
 	return (
@@ -75,10 +76,7 @@ export function CountLabel({ height, value, width, x, y }: LabelProps) {
 	);
 }
 
-export function EmptyLabel({ height, value, x, y }: LabelProps) {
-	if (Number(value) !== 1) {
-		return null;
-	}
+export function EmptyLabel({ height, x, y }: LabelProps) {
 	return (
 		<text className="fill-muted-foreground text-xs" dominantBaseline="central" x={Number(x) + COUNT_PADDING} y={Number(y) + Number(height) / 2}>
 			No linked work

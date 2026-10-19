@@ -2,7 +2,7 @@ import { Suspense, use, useId } from "react";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { Skeleton } from "#client/react/components/ui/skeleton.tsx";
 import type { GoalChartRow } from "./GoalChart.tsx";
-import { loadedGoalChart, loadGoalChart } from "./goalChartLoader.ts";
+import { goalChartChunk } from "./lazyChunks.ts";
 
 type Goal = GoalsProjection["goals"][number];
 type Criterion = Goal["criteria"][number];
@@ -45,7 +45,7 @@ export function GoalBreakdown({ goal }: { readonly goal: Goal }) {
 }
 
 function LoadedGoalChart({ height, rows }: { readonly height: number; readonly rows: readonly GoalChartRow[] }) {
-	const chart = loadedGoalChart() ?? use(loadGoalChart());
+	const chart = goalChartChunk.loaded() ?? use(goalChartChunk.load());
 	return "error" in chart ? (
 		<p className="!m-0" data-goal-chart-error="" role="status">
 			The chart could not be loaded: {chart.error}. Reload the page to try again.

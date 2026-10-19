@@ -12,7 +12,7 @@ const files = goalPageFixture();
 screenStory.it(
 	"shows goal progress on the stock progress bar and charts each criterion by its text, with counts on the bars and empty criteria kept",
 	[screenChartLayout(), boardScreen(files, (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
-	function* ({ findElement, findElements, readAttribute, readText }) {
+	function* ({ findElement, findElements, keyboard, readAttribute, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-section="progress"] [data-slot="chart"]')).not.toBeNull()));
 		const progress = '[data-goal-section="progress"]';
 		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe("1 of 5 done");
@@ -50,6 +50,10 @@ screenStory.it(
 			}),
 		);
 		expect(readText(`${progress} [data-goal-breakdown]`)).not.toContain("All work");
+		keyboard("ArrowRight", {}, findElement(`${progress} .recharts-surface`) ?? document);
+		yield* Effect.promise(() =>
+			eventually(() => expect(findElement(`${progress} .recharts-tooltip-wrapper [class*="font-medium"]`)?.textContent).toBe("Second criterion")),
+		);
 	},
 );
 
