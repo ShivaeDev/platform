@@ -4,6 +4,7 @@ import { addShapeColumns } from "#storage/addShapeColumns.ts";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import { mergedDeliveries } from "#storage/mergedDeliveries.ts";
 import { modelTables } from "#storage/modelTables.ts";
+import { predictedConflicts } from "#storage/predictedConflicts.ts";
 import { pruneEmptyCycles } from "#storage/pruneEmptyCycles.ts";
 import { childTable } from "#storage/recordChildren.ts";
 import { recordTimeColumns } from "#storage/recordTimes.ts";
@@ -79,5 +80,6 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 		"20_merged_deliveries": mergedDeliveries(namespace),
 		"21_foreign_areas": sql`alter table ${sql(`${namespace}_foreign_reservations`)} add column areas text[] not null default '{}'`,
 		"22_sweeps": sweeps(namespace),
+		"23_predicted_conflicts": predictedConflicts(namespace),
 	});
 });

@@ -1,17 +1,11 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { boardStory } from "#test/boardStory.ts";
-import type { OpenPage } from "#test/browser.ts";
 import { waitFor } from "#test/live.ts";
+import { frame } from "#test/pageObservation.ts";
 import { searchablePage } from "#test/pageTraits.ts";
 
 const QUERY = '#search-dialog [role="combobox"]';
-function input(page: OpenPage) {
-	return page.document.querySelector(QUERY);
-}
-function options(page: OpenPage) {
-	return [...page.document.querySelectorAll('#search-dialog [role="option"]')];
-}
 
 boardStory.it(
 	"opens with keyboard, chooses a typed passage, and navigates to its duplicate heading",
@@ -25,7 +19,7 @@ boardStory.it(
 		}
 		reader.keyboard("k", true, "body");
 		yield* Effect.promise(() => frame(page));
-		yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement).toBe(input(page))));
+		yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement).toBe(page.document.querySelector(QUERY))));
 		reader.text(QUERY, "second phrase");
 		yield* Effect.promise(() =>
 			waitFor(() =>
@@ -50,10 +44,14 @@ boardStory.it(
 			opener.focus();
 		}
 		reader.clickSelector("#search-open");
-		yield* Effect.promise(() => waitFor(() => expect(options(page)[0]?.getAttribute("aria-selected")).toBe("true")));
+		yield* Effect.promise(() =>
+			waitFor(() => expect([...page.document.querySelectorAll('#search-dialog [role="option"]')][0]?.getAttribute("aria-selected")).toBe("true")),
+		);
 		reader.keyboard("ArrowDown");
 		yield* Effect.promise(() => frame(page));
-		expect(input(page)?.getAttribute("aria-activedescendant")).toBe(options(page)[1]?.id);
+		expect(page.document.querySelector(QUERY)?.getAttribute("aria-activedescendant")).toBe(
+			[...page.document.querySelectorAll('#search-dialog [role="option"]')][1]?.id,
+		);
 		expect(page.document.querySelector('#search-dialog [aria-selected="true"] a')?.getAttribute("href")).toBe("/_board/goals");
 		reader.text(QUERY, "files");
 		yield* Effect.promise(() =>
@@ -78,7 +76,3 @@ boardStory.it(
 		yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("search-open")));
 	},
 );
-
-function frame(page: OpenPage) {
-	return new Promise<void>((resolve) => page.window.requestAnimationFrame(() => resolve()));
-}

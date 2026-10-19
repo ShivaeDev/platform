@@ -1,13 +1,10 @@
 import { join } from "node:path";
 import { expect } from "vitest";
 import { inboxItems } from "#server/attention/inbox.ts";
+import { indexedQuestion } from "#test/indexedQuestion.ts";
 import { indexState } from "#test/indexState.ts";
 import { indexedFiles, indexStory } from "#test/indexStory.ts";
 import { searchMatch } from "./match.ts";
-
-function source(id: string) {
-	return `---\nid: ${id}\nkind: question\nstatus: open\n---\n# ${id}`;
-}
 
 indexStory.it(
 	"reads and parses only the edited or added file, removes deleted records and reindexes renamed paths",
@@ -72,7 +69,7 @@ indexStory.it(
 	"carries source modification times into Inbox order and age while retaining unchanged document identity",
 	[
 		indexedFiles(
-			{ "a.md": source("a"), "b.md": source("b") },
+			{ "a.md": indexedQuestion("a"), "b.md": indexedQuestion("b") },
 			new Map([
 				["a.md", 1000],
 				["b.md", 2000],
@@ -83,7 +80,7 @@ indexStory.it(
 		const before = yield* readIndex();
 		expect(inboxItems(before).map((item) => item.id)).toEqual(["a", "b"]);
 		expect(searchMatch(before.entries, "question", before.modified).results.map((entry) => entry.id)).toEqual(["b", "a"]);
-		writeFile("a.md", `${source("a")}\nChanged context`);
+		writeFile("a.md", `${indexedQuestion("a")}\nChanged context`);
 		setTimestamp("a.md", 10, 10);
 		yield* invalidate(["a.md"]);
 		const edited = yield* readIndex();

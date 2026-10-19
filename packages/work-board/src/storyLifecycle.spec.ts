@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
 import { Effect, Exit } from "effect";
 import { expect } from "vitest";
-import { inboxQuestion } from "./inboxFixture.ts";
-import type { BoardEngine } from "./storyEngine.ts";
-import { storyEngineStory } from "./storyEngineStory.ts";
+import { inboxQuestion } from "#test/inboxFixture.ts";
+import type { BoardEngine } from "#test/storyEngine.ts";
+import { storyEngineStory } from "#test/storyEngineStory.ts";
 
 for (const fails of [false, true]) {
 	storyEngineStory.it(
