@@ -61,14 +61,6 @@ export function aRememberedAuthor(author: string) {
 	});
 }
 
-export function clipboardUnavailable() {
-	return boardStory.trait("project", "clipboard access is denied", (engine) => {
-		engine.beforeScripts = (window) => {
-			Object.defineProperty(window.navigator, "clipboard", { value: { writeText: () => Promise.reject(new Error("Denied")) } });
-		};
-	});
-}
-
 export function fleetReports(items: FleetItems) {
 	return boardStory.trait("project", `Fleet reports ${items.items.map((item) => `${item.workId} ${item.stage}`).join(", ")}`, function* (engine) {
 		const missing = { cause: "Not configured for the story", observedAt: 0, state: "not-configured" as const };

@@ -20,7 +20,7 @@ export function screenActions(tell: (line: string) => void) {
 		activate: async (selector: string) => {
 			tell(`the reader activates ${selector}`);
 			const element = control(selector, HTMLElement);
-			await act(() => element.click());
+			await act(async () => element.click());
 		},
 		answerInput: (name: string, value?: string) => {
 			if (value !== undefined) {

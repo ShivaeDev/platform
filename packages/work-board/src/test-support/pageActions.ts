@@ -19,17 +19,5 @@ export function pageActions(page: () => OpenPage, tell: (line: string) => void) 
 				new (page().window.KeyboardEvent)("keydown", { bubbles: true, cancelable: true, ctrlKey, key }),
 			);
 		},
-		toggle: (group: string, option: string) => {
-			tell(`the reader chooses ${option} in ${group}`);
-			const { document } = page();
-			const button = [...document.querySelectorAll('[role="group"][aria-labelledby]')]
-				.filter((found) => document.getElementById(found.getAttribute("aria-labelledby") ?? "")?.textContent === group)
-				.flatMap((found) => [...found.querySelectorAll("button")])
-				.find((found) => found.textContent === option);
-			if (!button) {
-				throw new Error(`Missing ${option} in ${group}`);
-			}
-			button.dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true, button: 0, cancelable: true }));
-		},
 	};
 }

@@ -1,5 +1,5 @@
 import type { ServerResponse } from "node:http";
-import type { FakeHttpReply } from "#fakeHttpService.ts";
+import type { FakeHttpFault, FakeHttpReply } from "#fakeHttpService.ts";
 
 export function fakeHttpConnection(response: ServerResponse) {
 	const closed = new Promise<undefined>((resolve) => response.once("close", () => resolve(undefined)));
@@ -52,4 +52,13 @@ export async function fakeHttpSend(response: ServerResponse, reply: FakeHttpRepl
 	if (!(response.destroyed || response.writableEnded)) {
 		response.end(body);
 	}
+}
+
+export async function fakeHttpStrike(response: ServerResponse, fault: Exclude<FakeHttpFault, { kind: "status" }>, reply: FakeHttpReply = {}) {
+	if (fault.kind === "reset") {
+		response.writeHead(reply.status ?? 200, { "content-type": "application/json", ...reply.headers });
+		response.flushHeaders();
+		await new Promise<void>((resolve) => response.write("", () => resolve()));
+	}
+	response.destroy();
 }

@@ -288,7 +288,7 @@ const api = yield* fakeHttpService({
 });
 ```
 
-Point the application's real HTTP client at `api.url`, or use the kit's `outbound` map to route its external hostname there. A service-wide `guard` returns a boolean; a missing or wrong credential gets 401 before holds or scripted replies are consumed. Omit the guard for a public fake. Unmatched paths and methods get 404.
+Point the application's real HTTP client at `api.url`, or use the kit's `outbound` map to route its external hostname there. A service-wide `guard` returns a boolean; a missing or wrong credential gets 401 before holds or scripted replies are consumed. Each route can also declare a `guard(request)`; both guards must accept the request before holds, arrival scripts or faults run. A route's guard applies only to that route, so an installation token check can sit beside public routes. Omit the guard for a public fake. Unmatched paths and methods get 404.
 
 In `verbs`, bind `api.narrate(story.tell)` to tell received requests, replies, rejections and hold controls through the story. An optional `tell` callback can also be supplied at acquisition. The service keeps request headers and bytes in its log; narration of normal requests includes only method, path and status.
 
@@ -321,6 +321,27 @@ const bytes = yield* Fiber.join(pending);
 `stall(route)` sends the reply's status and headers, then pauses its body. Its `waiting` effect completes at that pause. Its `release` lets the body continue; a client that gives up also stops waiting on the server. Like a hold, a stall remains installed for matching requests until released. Holds pause before headers. `releaseOnArrival(heldRoute, arrivingRoute)` releases the current hold when an authorized request reaches the named route; script it before that arrival. Rejected requests do not trigger release.
 
 `fault(route, fault)` acts on an arrived request in the required phase. `{ kind: "status", reply: { status: 503, body: { error: "unavailable" } } }` replaces a held reply before headers. `{ kind: "drop" }` drops a connection before headers. `{ kind: "reset" }` terminates a reply after headers, including after body chunks have arrived. Wait for the hold, stall or client observation before injecting the fault. A fault fails with guidance when no request is in the required phase; it does not queue a failure for a future call. `failOnce` continues to queue a status reply for the next request.
+
+`stall(route, scope)`, `fault(route, fault, scope)`, `failOnce(route, reply, scope)` and `replyOnce(route, reply, scope)` accept an optional `{ params: { number: "7" } }`. Every supplied parameter must equal the decoded request parameter. Other resources on the same named route answer normally and do not consume the scoped reply. A scoped stall still returns `waiting` and `release`.
+
+Use `scriptFault(route, fault, options)` to install a fault for future authorized matching requests. It returns a control with a narrated `lift` effect. The default strikes once before the route's reply runs; `{ repeat: true }` keeps it installed until lifted. Status faults can repeat too.
+
+```ts
+const outage = yield* api.scriptFault("pull", { kind: "drop" }, {
+  params: { number: "7" },
+  repeat: true,
+});
+yield* application.loadPull("7");
+yield* outage.lift;
+
+yield* api.scriptFault("comment", {
+  kind: "status",
+  reply: { status: 503, body: { error: "try later" } },
+}, { params: { number: "7" }, phase: "after" });
+yield* application.postComment("7", "Ready for review");
+```
+
+With `phase: "after"`, the route's reply function runs and applies its effects before the fault strikes. A status fault replaces the reply, a drop closes before headers, and a reset sends the route's status and headers then closes its unfinished body. The comment therefore exists even though the client sees a failure. This lets an application story check retry behavior after a side effect. The default `phase: "before"` skips the reply function when the fault strikes.
 
 All controls validate route names and narrate through the service's story sink. Closing the scope closes active connections and releases holds, stalls and arrival scripts.
 
@@ -605,7 +626,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `domNavigate.ts` | `domNavigate(url?)` |
 | `genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
 | `domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
-| `fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpFault`, `FakeHttpHold`, `FakeHttpServiceOptions` |
+| `fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpFault`, `FakeHttpHold`, `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
 | `forwardingProxy.ts` | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions` |
 | `otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
 

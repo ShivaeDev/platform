@@ -13,6 +13,7 @@ for (const count of [0, 4, null]) {
 			expect(roles.accessible(`#${shellIds.sidebarToggle}`)).toEqual({ name: "Sidebar", role: "button" });
 			expect(roles.text({ name: "Sidebar", role: "button" })).toBe("");
 			expect(() => roles.text({ name: "Files", role: "button" })).toThrow(/has 0 matches/u);
+			expect(control(`#${shellIds.inboxTopbarCount}`, HTMLElement).textContent).toBe(count === null ? "?" : String(count));
 			expect(control(`#${shellIds.inboxTopbar}`, HTMLAnchorElement).hasAttribute("role")).toBe(false);
 			expect(control(`#${shellIds.inboxTopbar}`, HTMLAnchorElement).getAttribute("aria-label")).toBe(
 				count === null ? "Today" : `Today, ${count} need you`,

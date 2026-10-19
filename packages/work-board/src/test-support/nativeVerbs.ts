@@ -16,6 +16,13 @@ export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			}
 			return engine.changeDelivery.dropped;
 		},
+		disconnectTransport: () => {
+			tell("the native HTTP connection goes offline");
+			if (!engine.connectionBoundary) {
+				throw new Error("No native connection boundary was prepared");
+			}
+			engine.connectionBoundary.disconnect();
+		},
 		loseNextChange: () => {
 			tell("the live delivery boundary drops the next server change");
 			if (!engine.changeDelivery) {
@@ -29,6 +36,13 @@ export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				throw new Error("No delivery fault was prepared");
 			}
 			engine.changeDelivery.omitPath = path;
+		},
+		resumeTransport: () => {
+			tell("the native HTTP connection returns");
+			if (!engine.connectionBoundary) {
+				throw new Error("No native connection boundary was prepared");
+			}
+			engine.connectionBoundary.resume();
 		},
 		waitForConnection: () => {
 			tell("the reader waits for its native live connection");
