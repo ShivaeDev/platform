@@ -19,12 +19,12 @@ export function edgeEngine(registry: AtomRegistry.AtomRegistry) {
 	class PlainClient extends AtomRpc.Service<PlainClient>()("test/PlainClient", {
 		group: Plain,
 		makeEffect: RpcTest.makeClient(Plain, { flatten: true }),
-		protocol: Plain.toLayer(Effect.succeed(Plain.of({ "plain.list": () => Effect.succeed([]) }))),
+		protocol: Plain.toLayer(Effect.succeed(Plain.of({ "plain.$changes": () => Stream.never, "plain.list": () => Effect.succeed([]) }))),
 	}) {}
 	class FeedClient extends AtomRpc.Service<FeedClient>()("test/FeedClient", {
 		group: Feed,
 		makeEffect: RpcTest.makeClient(Feed, { flatten: true }),
-		protocol: Feed.toLayer({ "feed.follow": ({ id }) => Stream.make(`note:${id}`, "done") }),
+		protocol: Feed.toLayer({ "feed.$changes": () => Stream.never, "feed.follow": ({ id }) => Stream.make(`note:${id}`, "done") }),
 	}) {}
 	return {
 		follow: (id: number) => AtomRegistry.getResult(registry, FeedClient.runtime.atom(Stream.runCollect(bind(Feed, FeedClient).follow.run({ id })))),

@@ -10,7 +10,7 @@ export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | 
 	const publications: string[] = [];
 	const delivered: Array<readonly Pick<Order, "name" | "quantity">[]> = [];
 	const reads: number[] = [];
-	const handlers = LiveOrders.toLayer(
+	const handlers = LiveOrders.omit("orders.$changes").toLayer(
 		Effect.gen(function* () {
 			const service = yield* OrderService;
 			const reactivity = yield* Reactivity.Reactivity;
@@ -25,7 +25,7 @@ export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | 
 					delivered.push(rows);
 				});
 			}
-			return LiveOrders.of({
+			return LiveOrders.omit("orders.$changes").of({
 				"orders.get": ({ id }) =>
 					Effect.gen(function* () {
 						reads.push(id);
