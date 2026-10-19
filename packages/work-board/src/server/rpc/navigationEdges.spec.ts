@@ -1,10 +1,7 @@
-import { chmodSync } from "node:fs";
-import { join } from "node:path";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
-import { waitFor } from "#test/live.ts";
 
 boardStory.it(
 	"returns empty destination counts with a known zero Inbox count for an empty workspace",
@@ -21,20 +18,12 @@ boardStory.it(
 boardStory.it(
 	"retains listed files with an unknown Inbox count when a source cannot be indexed",
 	[projectFiles({ "note.md": "# Note", "question.md": inboxQuestion }), deferredServing],
-	function* ({ notes, start, connectClient }) {
+	function* ({ permissions, start, connectClient }) {
+		permissions("note.md", 0o000);
 		yield* start();
 		const client = connectClient();
-		chmodSync(join(notes.root, "note.md"), 0o000);
-		try {
-			yield* Effect.promise(() =>
-				waitFor(async () => {
-					const data = await client.run(client.api.navigation.run({ current: "note.md" }));
-					expect(data.inboxCount).toBeNull();
-					expect(data.counts.library).toBe(2);
-				}),
-			);
-		} finally {
-			chmodSync(join(notes.root, "note.md"), 0o644);
-		}
+		const data = yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "note.md" })));
+		expect(data.inboxCount).toBeNull();
+		expect(data.counts.library).toBe(2);
 	},
 );

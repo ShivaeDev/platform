@@ -1,7 +1,10 @@
 import { useContext } from "react";
-import { cardStatus, type FleetWork, holderOf, stageTime } from "#browser/views/now.ts";
+import { waitsOnYou } from "#browser/document/asks.ts";
+import type { FleetWork } from "#browser/views/now.ts";
+import { cardStatus, holderOf, stageTime } from "#browser/views/nowCard.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
+import { kindLabel } from "#browser/views/statusLabel.ts";
 import { Card } from "#client/react/components/ui/card.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import { answeredCopy } from "#client/responses/answeredCopy.ts";
@@ -20,8 +23,9 @@ export function WorkCard({
 	readonly fleet: FleetWork | undefined;
 }) {
 	const fleetItems = useContext(FleetItemsContext);
-	const holder = holderOf(item.metadata, fleet, item.answered !== undefined);
-	const status = cardStatus(item.metadata, fleet, item.waiting, item.answered !== undefined);
+	const asked = waitsOnYou(item);
+	const holder = holderOf(item.metadata, fleet, item.answered !== undefined, asked);
+	const status = cardStatus(item.metadata, fleet, item.waiting, item.answered !== undefined, asked);
 	const answered = status === "waiting-on-agents" && item.answered ? answeredCopy(item.answered, fleetItems) : undefined;
 	const kind = item.metadata.kind === "task" ? undefined : item.metadata.kind;
 	return (
@@ -31,7 +35,7 @@ export function WorkCard({
 			data-selected={item.id === state.item ? "true" : undefined}
 			size="sm"
 		>
-			{kind !== undefined && <p className="work-kind m-0 text-muted-foreground text-xs uppercase tracking-wide">{kind}</p>}
+			{kind !== undefined && <p className="work-kind m-0 text-muted-foreground text-xs">{kindLabel(kind)}</p>}
 			<h3 className="m-0 font-medium text-sm leading-snug [overflow-wrap:anywhere]">
 				<WorkItemTitle
 					className="text-foreground no-underline outline-none after:absolute after:inset-0 after:content-['']"

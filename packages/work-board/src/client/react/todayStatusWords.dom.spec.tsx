@@ -41,7 +41,7 @@ for (const [route, expected] of [
 screenStory.it(
 	"names Library statuses in plain words in its rows and status filter",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), screenRoute("/_board/library"), openScreen()],
-	function* ({ chooseOption, findElements, readText }) {
+	function* ({ findElements, readText, roles }) {
 		yield* Effect.promise(() => eventually(() => expect(readText("main")).toContain("Ship the onboarding email")));
 		function rows() {
 			return findElements("main li p").map((row) => row.textContent);
@@ -49,10 +49,8 @@ screenStory.it(
 		expect(rows()).toContain("Task · Needs you");
 		expect(rows()).toContain("Task · Active");
 		expect(readText("main")).not.toMatch(/needs-human|needs-you/u);
-		const status = findElements("main [role='combobox']").find(
-			(trigger) => document.querySelector(`label[for="${trigger.id}"]`)?.textContent === "Status",
-		);
-		yield* Effect.promise(() => chooseOption(status, "Needs you"));
+		yield* roles.click({ name: "Status", role: "combobox" });
+		yield* roles.click({ name: "Needs you", role: "option" });
 		yield* Effect.promise(() => eventually(() => expect(rows()).toEqual(["Task · Needs you"])));
 	},
 );
@@ -89,23 +87,22 @@ const BOTH_SPELLINGS = {
 
 screenStory.it(
 	"offers one Library status option for spellings that share a name and lists items of each",
-	[screenFiles(BOTH_SPELLINGS, { home: "home.md" }), screenRoute("/_board/library"), openScreen()],
-	function* ({ chooseOption, click, findElements, readText }) {
+	[screenFiles(BOTH_SPELLINGS, { home: "home.md" }), screenRoute("/_board/library?view=titles"), openScreen()],
+	function* ({ findElements, readText, roles }) {
 		yield* Effect.promise(() => eventually(() => expect(readText("main")).toContain("Review the landing copy")));
-		const status = findElements("main [role='combobox']").find(
-			(trigger) => document.querySelector(`label[for="${trigger.id}"]`)?.textContent === "Status",
-		);
-		yield* Effect.promise(() => chooseOption(status, "Needs you"));
+		yield* roles.click({ name: "Status", role: "combobox" });
+		yield* roles.click({ name: "Needs you", role: "option" });
 		yield* Effect.promise(() =>
 			eventually(() =>
 				expect(findElements("main li a").map((link) => link.textContent)).toEqual(["Review the landing copy", "Ship the onboarding email"]),
 			),
 		);
-		click(status);
+		yield* roles.click({ name: "Status", role: "combobox" });
+		const status = labelledCombobox(findElements("main [role='combobox']"), "Status");
 		const options = findElements(`#${CSS.escape(status?.getAttribute("aria-controls") ?? "")} [role="option"]`, document).map(
 			(option) => option.textContent,
 		);
-		expect(options).toEqual(["All", "Active", "Needs you", "Planned"]);
+		expect(options).toEqual(["All statuses", "Active", "Needs you", "Planned"]);
 	},
 );
 

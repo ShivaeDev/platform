@@ -3,7 +3,7 @@ import type { ConstructorOptions, JobWithMetadata, SendOptions, StopOptions } fr
 import type { PgBossClientFactory } from "#client.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#definition.ts";
 import type { PgBossError, PgBossPayloadError, PgBossQueueOptionsError } from "#error.ts";
-import type { JobsHealth, QueueCounts } from "#health.ts";
+import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#health.ts";
 import { logClientError, subscribeClientErrors } from "#internal/clientErrors.ts";
 import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
 import { registerJobs, registrationName } from "#internal/register.ts";
@@ -11,11 +11,19 @@ import { makeService } from "#internal/service.ts";
 
 export interface PgBossService {
 	readonly counts: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<QueueCounts, PgBossError>;
+	readonly deadLetteredJobs: <const TName extends string, const TPayload extends JobPayloadSchema>(
+		queue: QueueDefinition<TName, TPayload>,
+		options: JobPageOptions,
+	) => Effect.Effect<JobPage<DeadLetteredJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
 	readonly enqueue: <const TName extends string, const TPayload extends JobPayloadSchema, const TQueue extends QueueDefinition<TName, TPayload>>(
 		queue: QueueDefinition<TName, TPayload> & TQueue,
 		payload: NoInfer<Schema.Schema.Type<TPayload>>,
 		options?: NoInfer<TQueue["key"] extends undefined ? SendOptions : Omit<SendOptions, "singletonKey"> & { readonly singletonKey?: never }>,
 	) => Effect.Effect<Option.Option<string>, PgBossError | PgBossPayloadError, TPayload["EncodingServices"]>;
+	readonly failedJobs: <const TName extends string, const TPayload extends JobPayloadSchema>(
+		queue: QueueDefinition<TName, TPayload>,
+		options: JobPageOptions,
+	) => Effect.Effect<JobPage<ListedJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
 	readonly getJob: <const TName extends string, const TPayload extends JobPayloadSchema>(
 		queue: QueueDefinition<TName, TPayload>,
 		id: string,

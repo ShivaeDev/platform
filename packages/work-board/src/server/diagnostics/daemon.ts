@@ -11,11 +11,12 @@ type DaemonClient = Effect.Success<ReturnType<typeof makeDaemonClient>>;
 
 const FLEET_STOPPED = "Fleet isn't running, so agent work and its health are unknown.";
 
-export function daemonUnavailable(error: unknown, port: number, root: string): { readonly reason: string; readonly startCommand?: string } {
+// npx runs the project's own @shivaedev/work-fleet, because the bare work-fleet command is rarely on PATH.
+export function daemonUnavailable(error: unknown, port: number, folder: string): { readonly reason: string; readonly startCommand?: string } {
 	const stopped = error instanceof RpcClientError && error.reason._tag === "HttpError" && error.reason.kind === "TransportError";
 	return stopped
-		? { reason: FLEET_STOPPED, startCommand: `work-fleet serve ${shellWord(root)} --port ${port}` }
-		: { reason: `Fleet daemon communication failed at 127.0.0.1:${port}` };
+		? { reason: FLEET_STOPPED, startCommand: `npx @shivaedev/work-fleet serve ${shellWord(folder)} --port ${port}` }
+		: { reason: `Fleet on port ${port} didn't answer as expected, so agent work and its health are unknown.` };
 }
 
 function shellWord(value: string) {
@@ -38,11 +39,11 @@ export function readDaemon<A, E>(port: number, read: (client: DaemonClient) => E
 	);
 }
 
-export function daemonDiagnostics(root: string, port: number | null = DAEMON_PORT) {
+export function daemonDiagnostics(folder: string, port: number | null = DAEMON_PORT) {
 	if (port === null) {
 		return Effect.gen(function* () {
 			const observation = {
-				cause: "Fleet daemon is not configured for this Board",
+				cause: "Fleet isn't set up for this Board.",
 				observedAt: yield* Clock.currentTimeMillis,
 				state: "not-configured" as const,
 			};
@@ -53,7 +54,7 @@ export function daemonDiagnostics(root: string, port: number | null = DAEMON_POR
 		Effect.flatMap(decodeSnapshot),
 		Effect.catch((error) =>
 			Effect.gen(function* () {
-				const { reason, ...start } = daemonUnavailable(error, port, root);
+				const { reason, ...start } = daemonUnavailable(error, port, folder);
 				const observation = { cause: reason, observedAt: yield* Clock.currentTimeMillis, state: "error" as const, ...start };
 				return { codex: observation, fleet: observation, github: observation } satisfies DiagnosticsSnapshot;
 			}),

@@ -1,5 +1,6 @@
 import { Hourglass, MessageCircleQuestion } from "lucide-react";
 import { useContext, useEffect, useRef } from "react";
+import { itemAsks } from "#browser/document/asks.ts";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
 import { answeredCopy } from "#client/responses/answeredCopy.ts";
@@ -8,7 +9,6 @@ import { AnswerControls } from "./AnswerControls.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { ClosedDraftCard } from "./ClosedDraftCard.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
-import { itemAsks } from "./itemStatus.ts";
 import { ResponseHistory } from "./ResponseHistory.tsx";
 import { useClosedDrafts } from "./useClosedDrafts.ts";
 

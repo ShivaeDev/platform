@@ -51,6 +51,7 @@ boardStory.it(
 		if (document) {
 			expect(documentRequests(document, questionnaireSource, snapshot)).toEqual([
 				{
+					audience: "you",
 					id: "direction",
 					open: false,
 					sourceOpen: true,

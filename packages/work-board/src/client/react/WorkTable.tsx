@@ -34,18 +34,16 @@ export function WorkTable({ data }: { readonly data: WorkProjection }) {
 	const sorting = useMemo(() => [{ desc: state.order === "desc", id: state.sort }], [state.order, state.sort]);
 	const table = useTable({ columns, data: data.rows, features, manualSorting: true, state: { sorting } });
 	const rows = table.getRowModel().rows;
-	const window = useVirtualRows(rows.length, ROW_HEIGHT);
+	const window = useVirtualRows<HTMLDivElement>(rows.length, ROW_HEIGHT);
 	const virtual = rows.length > 200;
 	return (
-		<div
-			className="overflow-hidden rounded-lg border bg-card [&>[data-slot=table-container]]:max-h-[min(72dvh,60rem)] [&>[data-slot=table-container]]:overflow-y-auto"
-			onScrollCapture={window.onScroll}
-		>
+		// The fixed layout never needs a horizontal scroller, so the header can stick below the workspace header while the page scrolls.
+		<div className="overflow-clip rounded-lg border bg-card [&>[data-slot=table-container]]:overflow-visible" ref={window.ref}>
 			<Table className="table-fixed text-sm">
 				<TableCaption className="sr-only">
 					Identified work, sorted by {state.sort} {state.order === "desc" ? "descending" : "ascending"}
 				</TableCaption>
-				<TableHeader className="sticky top-0 z-10 bg-card shadow-[inset_0_-1px_0_var(--border)] [&_tr]:border-0">
+				<TableHeader className="sticky top-(--board-header-height) z-10 bg-card shadow-[inset_0_-1px_0_var(--border)] [&_tr]:border-0">
 					{table.getHeaderGroups().map((group) => (
 						<HeaderRow headers={group.headers} key={group.id} state={state} />
 					))}

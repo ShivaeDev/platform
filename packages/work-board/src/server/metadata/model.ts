@@ -4,6 +4,10 @@ import { metadataProblems } from "./problems.ts";
 export type MetadataDocument = PublicMetadataDocument;
 export type MetadataModel = PublicMetadataModel;
 
+export function documentSource(document: MetadataDocument): string {
+	return (document.parsed.raw ?? "") + document.parsed.body;
+}
+
 export function metadataModel(documents: readonly MetadataDocument[], unavailable: readonly string[] = [], rootFile?: string): MetadataModel {
 	const ids = new Map<string, MetadataDocument[]>();
 	for (const document of documents) {

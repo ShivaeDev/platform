@@ -17,8 +17,11 @@ export function snapshotReads(host: FleetHost) {
 			return span;
 		},
 	});
-	function statements() {
+	function statements(traceId?: string) {
 		return spans.flatMap((span) => {
+			if (traceId !== undefined && span.traceId !== traceId) {
+				return [];
+			}
 			const text = span.attributes.get("db.query.text");
 			return typeof text === "string" ? [text] : [];
 		});
