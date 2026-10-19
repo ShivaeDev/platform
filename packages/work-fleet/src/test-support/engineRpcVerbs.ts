@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { RpcTest } from "effect/rpc";
 import { Fleet } from "#fleet.ts";
 import { FleetContract, fleetHandlers } from "#operations.ts";
-import { boardHttp } from "#test/boardHttp.ts";
+import { boardAskFiles, boardHttp } from "#test/boardHttp.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 
 type BoardClient = Effect.Success<ReturnType<typeof boardHttp>>["client"];
@@ -22,6 +22,13 @@ export function engineRpcVerbs(state: EngineStory, tell: (line: string) => void)
 		);
 	}
 	return {
+		boardInboxFiles: () => {
+			if (state.root === "") {
+				throw new Error("No Markdown Board is configured");
+			}
+			tell("read Board inbox files over HTTP");
+			return boardAskFiles(state.root);
+		},
 		recordBoardResponse: (answer: BoardAnswer) =>
 			Effect.gen(function* () {
 				tell(`record Board response ${answer.id}`);

@@ -33,7 +33,7 @@ export const makeService = (client: PgBossClient, names: readonly string[], sche
 					Effect.flatMap((data) =>
 						Effect.tryPromise({
 							catch: (error) => toPgBossError("enqueue", error, queue.name),
-							try: () => client.send(queue.name, data, options),
+							try: () => client.send(queue.name, data, queue.key === undefined ? options : { ...options, singletonKey: queue.key(payload) }),
 						}),
 					),
 					Effect.map(Option.fromNullishOr),

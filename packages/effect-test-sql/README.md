@@ -79,6 +79,20 @@ const layer = makePostgresTestLayer({
 });
 ```
 
+### Reuse the app's SQL name mapping
+
+`PostgresTestOptions` accepts effect-sql's native `transformQueryNames` and `transformResultNames`. Spread the same options returned by `clientOptions` that the app host uses; the test layer carries them into preparation, the shared database, `withIsolatedDatabase` and story clones:
+
+```ts
+const layer = makePostgresTestLayer({
+  ...appClientOptions,
+  url: testDatabaseUrl,
+  migrations: appMigrations,
+});
+```
+
+Declare the mapping once in `appClientOptions`, for example with `clientOptions(config, { snakeCase: true })`. The test URL selects the administrative database independently of the app's database URL. Omitting transforms preserves SQL names.
+
 ### Budget PostgreSQL connections
 
 Each database pool opens connections on demand, with a default maximum of **two**: the shared database can use two, and each active per-test or per-story clone can use another two. Preparation uses the same limit and closes before tests start. An administrative connection exists only during a create or drop operation and closes as soon as that operation finishes; idle workers keep no administrative connection. Set `maxConnections` on `makePostgresTestLayer` to override the limit for the suite's preparation, shared and isolated pools:
@@ -202,6 +216,8 @@ yield* assertModelColumns(columns, Item, {
 
 Use `prepare: false` when preparing the test Layer, and `withIsolatedDatabase` for the upgrade test. The helper requires the native `SqlClient`; loader dependencies remain Effect requirements. Unknown starting ids, populated ledgers and wrapping transactions fail with `MigrationError`. Native loader and SQL failures retain their failure channel.
 
+With a PostgreSQL client in the current Context, the assertion compares names through that client's query and result name transforms and reports problems in model field terms. Without a client or configured transforms it compares literal names.
+
 The assertion uses the SQL `Model`'s selected database fields, including generated ids and excluding JSON-only fields. Supply an exact PostgreSQL type for every field: schemas such as `Schema.Number` do not determine whether storage is `integer`, `numeric` or `double precision`. It fails with a typed `ModelColumnMismatch` containing all detected missing, extra and wrongly typed column problems. The type map is checked against the model both by TypeScript and at runtime. This check covers names and types; it does not check defaults, nullability, constraints or application data transformations.
 
 ### API
@@ -210,7 +226,7 @@ Import each name from the module that defines it. The package has no root entry.
 
 | Module | Exports |
 | --- | --- |
-| `@shivaedev/effect-test-sql/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures?, maxConnections?, prepare? })`, `PostgresTestOptions`, `PostgresTestLoader` |
+| `@shivaedev/effect-test-sql/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures?, maxConnections?, prepare?, transformQueryNames?, transformResultNames? })`, `PostgresTestOptions`, `PostgresTestLoader` |
 | `@shivaedev/effect-test-sql/withTestTransaction.ts` | `withTestTransaction(effect)` |
 | `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect, { template? }?)` |
 | `@shivaedev/effect-test-sql/database.ts` | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices`, `PostgresTestTemplate` |

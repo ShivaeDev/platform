@@ -2,6 +2,7 @@ import type { Deferred, Effect } from "effect";
 import type { BoardDecision } from "#board/schema.ts";
 import type { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
+import type { WorkResult } from "#policy.ts";
 import type { createEngine } from "#test/createEngine.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { type EngineWorld, worldDefaults } from "#test/EngineWorld.ts";
@@ -19,7 +20,9 @@ export interface EngineStory extends EngineWorld {
 	lastRecord?: FleetRecord;
 	markdown: boolean;
 	options: EngineOptions;
+	previousFleet?: typeof Fleet.Service;
 	readinessPublications?: BoardDecision[];
+	resultObservation?: { value: WorkResult; unavailable: boolean };
 	root: string;
 	runtime?: Effect.Success<ReturnType<typeof createEngine<unknown>>> & { fleet: typeof Fleet.Service };
 	source: string;
