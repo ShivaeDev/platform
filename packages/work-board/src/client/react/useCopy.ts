@@ -14,12 +14,20 @@ export function useCopy<TField extends HTMLInputElement | HTMLTextAreaElement>(
 	{
 		copied,
 		initial = "",
+		onStatus,
 		reveal,
 		selected,
-	}: { readonly copied: string; readonly initial?: string; readonly reveal?: () => void; readonly selected: string },
+	}: {
+		readonly copied: string;
+		readonly initial?: string;
+		readonly onStatus?: ((text: string) => void) | undefined;
+		readonly reveal?: () => void;
+		readonly selected: string;
+	},
 ) {
 	const fieldRef = useRef<TField>(null);
-	const [status, setStatus] = useState(initial);
+	const [status, setState] = useState(initial);
+	const setStatus = onStatus ?? setState;
 	async function handleCopy() {
 		if (await copyText(text)) {
 			setStatus(copied);

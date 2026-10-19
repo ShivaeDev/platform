@@ -30,7 +30,7 @@ describe("cold open", () => {
 		[project, readerWithoutSubscription("/plan.md")],
 		({ liveStatus, reader }) => {
 			expect(reader.view().text).toContain("A plain document.");
-			expect(liveStatus()).toBe("reconnecting");
+			expect(liveStatus()).toBe("Can't reach the Board server");
 		},
 	);
 });

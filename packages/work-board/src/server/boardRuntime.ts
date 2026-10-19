@@ -1,5 +1,6 @@
-import { Context, Effect, FileSystem, Layer, Path, type PlatformError } from "effect";
+import { Context, Effect, FileSystem, Layer, Path, type PlatformError, SubscriptionRef } from "effect";
 import { DiagnosticsConfig, DiagnosticsSources } from "#diagnostics/source.ts";
+import type { Indexing } from "#rpc/Indexing.ts";
 import type { BoardOptions } from "#server/board.ts";
 import { boardServices } from "#server/boardServices.ts";
 import { daemonDiagnostics } from "#server/diagnostics/daemon.ts";
@@ -21,11 +22,13 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 	const platform = (yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>()).pipe(
 		Context.pick(Highlighter, FileSystem.FileSystem, Path.Path),
 	);
+	const indexing = yield* SubscriptionRef.make<Indexing | undefined>(undefined);
 	const index: Effect.Effect<Snapshot, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path> = yield* searchSnapshot(
 		options.root,
 		home,
 		changes,
 		options.maintainer,
+		indexing,
 	);
 	yield* Effect.forkScoped(
 		index.pipe(
@@ -46,6 +49,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 					changes,
 					home,
 					index: Effect.provideContext(index, platform),
+					indexing: SubscriptionRef.changes(indexing),
 					root: options.root,
 					writable: options.responses === true,
 				}),

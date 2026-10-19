@@ -70,7 +70,7 @@ screenStory.it(
 screenStory.it(
 	"clears only the current request draft",
 	[screenWorkspace("draft-fixture"), answerScreen()],
-	function* ({ responseClick, answerInput, draftKey, stored, refreshScreen }) {
+	function* ({ responseClick, answerInput, draftKey, stored, refreshScreen, readText }) {
 		answerInput("body", "Direction in progress");
 		const first = draftKey();
 		yield* Effect.promise(() => refreshScreen(answerDraft({ ...answerPreview, id: "question.other", request: "other" }, 1)));
@@ -78,6 +78,7 @@ screenStory.it(
 		const second = draftKey();
 		responseClick("clear");
 		expect(answerInput("body").value).toBe("");
+		expect(readText("#response-status")).toBe("Draft cleared. Saved responses are unchanged.");
 		expect(stored(second)).toBeNull();
 		expect(stored(first)).toContain("Direction in progress");
 	},

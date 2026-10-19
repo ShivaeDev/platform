@@ -7,7 +7,7 @@ import { renderBoard } from "./react.tsx";
 import { trackScreen } from "./screenEngine.ts";
 import { screenStory } from "./screenStory.ts";
 
-export function headerScreen(count: number | null, updates = false) {
+export function headerScreen(count: number | null | undefined, updates = false) {
 	return screenStory.trait("screen", "the reader opens the header controls", function* (engine) {
 		const paused = updates ? Atom.make(false) : undefined;
 		if (paused) {

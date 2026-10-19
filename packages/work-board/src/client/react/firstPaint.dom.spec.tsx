@@ -36,7 +36,7 @@ screenStory.it(
 	"reads connecting before the first live update instead of reporting a lost connection",
 	[hostedHealthScreen("connecting")],
 	function* ({ readAttribute, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("connecting")));
+		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("Connecting…")));
 		expect(readAttribute("#live", "data-state")).toBe("connecting");
 	},
 );
@@ -45,7 +45,7 @@ screenStory.it(
 	"reads connecting while the stream is live but the source watcher has not answered yet",
 	[startingBoard(), hostedHealthScreen("live")],
 	function* ({ readAttribute, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("connecting")));
+		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("Connecting…")));
 		expect(readAttribute("#live", "title")).toContain("last observed source watcher: not yet observed");
 	},
 );

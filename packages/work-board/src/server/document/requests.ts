@@ -75,7 +75,7 @@ function sourceRequests(document: MetadataDocument, source: string, snapshot: Sn
 	});
 }
 
-function requestOpenInSource(document: MetadataDocument, id: string): boolean {
+export function requestOpenInSource(document: MetadataDocument, id: string): boolean {
 	if (authoredQuestion(document) && id === "answer") {
 		return openItem(document);
 	}

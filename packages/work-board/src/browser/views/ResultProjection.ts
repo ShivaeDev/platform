@@ -24,6 +24,7 @@ export const ResultProjection = Schema.Struct({
 		}),
 	),
 	feedbackUnknown: Schema.Boolean,
+	item: Schema.String,
 	revision: Schema.String,
 	targets: Schema.Array(
 		Schema.Struct({

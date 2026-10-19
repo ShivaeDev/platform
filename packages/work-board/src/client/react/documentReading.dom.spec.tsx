@@ -5,6 +5,7 @@ import type { Document } from "#browser/document/schema.ts";
 import { answerCardFixture } from "#test/answerCardFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen, routedScreen } from "#test/screenTraits.ts";
+import { WIDE_TABLE, WIDE_TABLE_LAYOUT } from "#test/wideTableFixture.ts";
 import { ItemSummary } from "./ItemSummary.tsx";
 
 expectNoReactWarnings();
@@ -15,28 +16,15 @@ kind: report
 ---
 # Wide comparison
 
-| Package | Role and cohesion assessment | Source |
-| --- | --- | --- |
-| effect-service | Service factory preserves declared requirements and identifier across every layer it builds. | define-service.ts |
-`;
+${WIDE_TABLE}`;
 screenStory.it(
-	"renders a Markdown table with the stock table styling inside its own scrolling container",
+	"keeps prose columns of a wide document table at a readable width and short columns on one line, scrolling inside its own box",
 	[routedScreen({ "home.md": "# Home", "report.md": REPORT }, "/report.md")],
-	function* ({ findElement, findElements, readText }) {
+	function* ({ findElement, findElements, readTableLayout }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("article.doc table")).not.toBeNull()));
-		const container = findElement("article.doc table")?.parentElement;
-		expect(container?.dataset.slot).toBe("table-container");
-		expect(container?.classList.contains("overflow-x-auto")).toBe(true);
-		expect([...findElements("article.doc th")].map((head) => [head.dataset.slot, head.textContent])).toEqual([
-			["table-head", "Package"],
-			["table-head", "Role and cohesion assessment"],
-			["table-head", "Source"],
-		]);
-		const cell = findElements("article.doc td")[1];
-		expect(cell?.dataset.slot).toBe("table-cell");
-		expect(cell?.classList.contains("[overflow-wrap:normal]")).toBe(true);
-		expect(cell?.classList.contains("whitespace-normal")).toBe(true);
-		expect(readText("article.doc td")).toBe("effect-service");
+		expect(readTableLayout("article.doc table")).toEqual(WIDE_TABLE_LAYOUT);
+		expect(findElements("article.doc th").map((head) => head.dataset.slot)).toEqual(["table-head", "table-head", "table-head", "table-head"]);
+		expect(findElements("article.doc td").every((cell) => cell.classList.contains("[overflow-wrap:normal]"))).toBe(true);
 	},
 );
 
@@ -74,9 +62,10 @@ screenStory.it(
 		]);
 		expect(readText("article.item p", board)).toBe("Readers open the source first.");
 		expect(readText("[data-page-summary] .counts")).toBe("1 plan · 1 done");
-		expect(readText("[data-page-summary]")).toMatch(/· updated \S/u);
+		expect(readText("[data-page-summary]")).toMatch(/updated \S/u);
 		const updated = findElement("[data-page-summary] time");
 		expect(updated?.getAttribute("datetime")).toBe(new Date(Number(updated?.getAttribute("data-modified"))).toISOString());
+		expect([...findElements("[data-page-summary] time[data-modified]")].map((time) => time.closest("[data-item-updated]") !== null)).toEqual([true]);
 	},
 );
 

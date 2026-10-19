@@ -8,6 +8,7 @@ export function Favorite({ file, title }: { readonly file: string; readonly titl
 	const pinned = library.favorites.some((item) => item.file === file);
 	return (
 		<Button
+			className="pointer-coarse:h-11"
 			id={shellIds.favoriteToggle}
 			onClick={() => library.toggle(file, document.getElementById("doc")?.querySelector("h1")?.textContent?.trim() || title)}
 			size="sm"

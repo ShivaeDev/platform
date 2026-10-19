@@ -6,23 +6,19 @@ import { OutlineMenu } from "./DocumentOutline.tsx";
 import { documentElements } from "./documentElements.tsx";
 import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
 import { LazyDocumentView } from "./lazyMarkdown.tsx";
-import { Time } from "./Time.tsx";
 
 const SEPARATOR = " · ";
 
 function BoardCounts({ counts }: { readonly counts: BoardProjection["counts"] }) {
 	return (
-		<>
-			<span className="counts">
-				{counts.map((column, index) => (
-					<Fragment key={column.title}>
-						{index > 0 && SEPARATOR}
-						<b className="font-medium text-foreground">{column.count}</b> {column.title.toLowerCase()}
-					</Fragment>
-				))}
-			</span>
-			{SEPARATOR}
-		</>
+		<span className="counts">
+			{counts.map((column, index) => (
+				<Fragment key={column.title}>
+					{index > 0 && SEPARATOR}
+					<b className="font-medium text-foreground">{column.count}</b> {column.title.toLowerCase()}
+				</Fragment>
+			))}
+		</span>
 	);
 }
 
@@ -43,10 +39,11 @@ export function HomeBoard({ data }: { readonly data: BoardProjection }) {
 			introduction={
 				<>
 					<ItemSummary document={data.document} />
-					<p className="mt-2">
-						{data.counts.length > 0 && <BoardCounts counts={data.counts} />}
-						updated <Time at={data.document.modified} />
-					</p>
+					{data.counts.length > 0 && (
+						<p className="mt-2">
+							<BoardCounts counts={data.counts} />
+						</p>
+					)}
 				</>
 			}
 		/>

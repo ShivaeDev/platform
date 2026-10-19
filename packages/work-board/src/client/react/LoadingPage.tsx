@@ -1,4 +1,5 @@
 import { Skeleton } from "#client/react/components/ui/skeleton.tsx";
+import { IndexingProgress } from "./IndexingProgress.tsx";
 import { Loading } from "./loading.tsx";
 import { SkeletonCards, SkeletonDocument, SkeletonLanes, SkeletonRows, SkeletonSection, SkeletonTable } from "./skeletons.tsx";
 
@@ -9,13 +10,16 @@ const documentPage = { label: "Loading page", shape: "document" } as const;
 export function LoadingPage({ board = false, url }: { readonly board?: boolean; readonly url?: string }) {
 	const { label, shape } = url === undefined ? documentPage : pageShape(url, board);
 	return (
-		<Loading className="space-y-6" label={label}>
-			<div className="space-y-2">
-				<Skeleton className="h-7 w-40" />
-				<Skeleton className="h-4 w-64 max-w-full" />
-			</div>
-			<PageBody shape={shape} />
-		</Loading>
+		<div className="space-y-6">
+			<IndexingProgress />
+			<Loading className="space-y-6" label={label}>
+				<div className="space-y-2">
+					<Skeleton className="h-7 w-40" />
+					<Skeleton className="h-4 w-64 max-w-full" />
+				</div>
+				<PageBody shape={shape} />
+			</Loading>
+		</div>
 	);
 }
 

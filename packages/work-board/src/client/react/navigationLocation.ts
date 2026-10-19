@@ -1,12 +1,14 @@
 import type { AnyRouter } from "@tanstack/react-router";
 import { readingEntry } from "#client/react/storedReadings.ts";
 
-export function navigationFailure(status: number) {
-	const code = status;
-	if (code < 400) {
-		return "";
+export const REFRESH_FAILURE = "Couldn't refresh this page";
+
+// A page without a document already explains its failure in the body, so only a retained document needs the header to say it is out of date.
+export function navigationFailure({ file, status }: { readonly file: string; readonly status: number }) {
+	if (status < 400) {
+		return undefined;
 	}
-	return code === 404 ? "This document is missing or was renamed." : "Could not open this document. Retry the link or reload the page.";
+	return file === "" ? "" : REFRESH_FAILURE;
 }
 export function currentEntry(state: object, displayed: string, initial: ReturnType<typeof readingEntry>) {
 	const current = readingEntry(Reflect.get(state, "workBoard"));

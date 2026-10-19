@@ -22,6 +22,8 @@ export function byFolder(left: string, right: string): number {
 	return folderOf(left).localeCompare(folderOf(right)) || left.localeCompare(right);
 }
 
+const SCAN_CONCURRENCY = 16;
+
 type Listing = Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
 
 export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (root: string, realRoot: string) {
@@ -62,6 +64,7 @@ export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (root:
 			const found = yield* Effect.forEach(
 				names.filter((name) => !name.startsWith(".") && name !== "node_modules"),
 				(name) => entry(relative === "" ? name : `${relative}/${name}`, boundary, branch, real),
+				{ concurrency: SCAN_CONCURRENCY },
 			);
 			return found.flat();
 		});

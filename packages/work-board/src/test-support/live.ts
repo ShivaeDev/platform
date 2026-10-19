@@ -45,7 +45,9 @@ export function settle() {
 
 export const openLive = Effect.fn("Test.openLive")(function* (board: RunningBoard, path: string, beforeScripts?: Parameters<typeof openPage>[2]) {
 	const page = yield* openPage(board, path, beforeScripts);
-	yield* Effect.promise(() => vi.waitUntil(() => page.document.getElementById("live")?.textContent === "live", { interval: 10, timeout: 5000 }));
+	yield* Effect.promise(() =>
+		vi.waitUntil(() => page.document.getElementById("live")?.getAttribute("data-state") === "live", { interval: 10, timeout: 5000 }),
+	);
 	yield* Effect.promise(() => vi.waitUntil(() => page.pageRequests.answered >= 1, { interval: 10, timeout: 5000 }));
 	yield* Effect.promise(() => new Promise((resolve) => setTimeout(resolve, 20)));
 	return page;
