@@ -3,10 +3,9 @@ import { chosenLabels } from "#browser/responses/cardContext.ts";
 import type { RecordedResponse } from "#browser/responses/schema.ts";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { EmptyState } from "./EmptyState.tsx";
+import { responseKinds } from "./responseKinds.ts";
 import { shellIds } from "./shellIds.ts";
 import { RowTime } from "./Time.tsx";
-
-const KINDS = { "answer": "answered", "clarify": "asked back", "not_now": "said not now" } as const;
 
 export function ResponseHistory({
 	request,
@@ -48,7 +47,7 @@ function ResponseEntry({
 				<a className="font-medium underline-offset-4 hover:underline" href={`/responses/${record.id}.md`}>
 					{record.response.author}
 				</a>
-				<span className="text-muted-foreground">{KINDS[record.response.type]}</span>
+				<span className="text-muted-foreground">{responseKinds[record.response.type]}</span>
 				<RowTime at={record.response.recordedAt} className="text-muted-foreground text-xs" />
 			</h3>
 			{answers === undefined ? (
