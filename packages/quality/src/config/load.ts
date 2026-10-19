@@ -49,7 +49,7 @@ function biomeDeclarations(config: ConfigInput): readonly Declaration[] {
 function resolved(root: string, file: string, config: ConfigInput, rules: ResolvedRules): ResolvedConfig {
 	return {
 		...rules,
-		baseline: config.baseline ?? "quality/baseline.jsonl",
+		baseline: config.baseline ?? "quality-baseline.jsonl",
 		biomeDeclarations: biomeDeclarations(config),
 		exceptions: config.exceptions ?? [],
 		exclude: [],

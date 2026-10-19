@@ -16,7 +16,7 @@ describe("quality baseline tighten", { timeout: CLI_TIMEOUT }, () => {
 		const root = await shrunkTwice();
 		git(root, "add", "src/long.ts");
 		expect((await runQuality(root, "baseline", "tighten", "--staged")).stdout).toBe(
-			"quality: removed 1 entry and lowered 0 entries in quality/baseline.jsonl.\n",
+			"quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n",
 		);
 		expect(baseline(root)).toBe('{"path":"src/longer.ts","rule":"structure/max-lines","count":3}\n');
 		expect((await runQuality(root, "lint")).status).toBe(CLI_EXIT.passed);
@@ -24,7 +24,7 @@ describe("quality baseline tighten", { timeout: CLI_TIMEOUT }, () => {
 
 	it("without --staged, covers every file changed since HEAD", async () => {
 		const root = await shrunkTwice();
-		expect((await runQuality(root, "baseline", "tighten")).stdout).toBe("quality: removed 1 entry and lowered 1 entry in quality/baseline.jsonl.\n");
+		expect((await runQuality(root, "baseline", "tighten")).stdout).toBe("quality: removed 1 entry and lowered 1 entry in quality-baseline.jsonl.\n");
 		expect(baseline(root)).toBe('{"path":"src/longer.ts","rule":"structure/max-lines","count":2}\n');
 	});
 
@@ -32,7 +32,7 @@ describe("quality baseline tighten", { timeout: CLI_TIMEOUT }, () => {
 		const root = await shrunkTwice();
 		git(root, "rm", "--quiet", "--force", "src/longer.ts");
 		expect((await runQuality(root, "baseline", "tighten", "--staged")).stdout).toBe(
-			"quality: removed 1 entry and lowered 0 entries in quality/baseline.jsonl.\n",
+			"quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n",
 		);
 	});
 
@@ -40,7 +40,7 @@ describe("quality baseline tighten", { timeout: CLI_TIMEOUT }, () => {
 		const root = qualityTree(trees.dirty);
 		await runQuality(root, "baseline", "write");
 		branchOff(root);
-		expect((await runQuality(root, "baseline", "tighten", "--staged")).stdout).toBe("quality: quality/baseline.jsonl is current.\n");
+		expect((await runQuality(root, "baseline", "tighten", "--staged")).stdout).toBe("quality: quality-baseline.jsonl is current.\n");
 	});
 });
 
@@ -52,7 +52,7 @@ describe("quality baseline prune", { timeout: CLI_TIMEOUT }, () => {
 		git(root, "mv", "src/longer.ts", "src/a-longer.ts");
 		commitAll(root, "Move");
 		expect((await runQuality(root, "baseline", "prune", "--against", "main")).stdout).toBe(
-			"quality: removed 0 entries, lowered 0 entries and carried 1 entry to moved files in quality/baseline.jsonl.\n",
+			"quality: removed 0 entries, lowered 0 entries and carried 1 entry to moved files in quality-baseline.jsonl.\n",
 		);
 		expect(baseline(root)).toBe(
 			['{"path":"src/a-longer.ts","rule":"structure/max-lines","count":3}', '{"path":"src/long.ts","rule":"structure/max-lines","count":1}', ""].join(
@@ -66,7 +66,7 @@ describe("quality baseline prune", { timeout: CLI_TIMEOUT }, () => {
 		await runQuality(root, "baseline", "write");
 		writeFileSync(join(root, "src/long.ts"), "String(1);\n");
 		const result = await runQuality(root, "baseline", "prune");
-		expect(result).toMatchObject({ status: 0, stdout: "quality: removed 1 entry and lowered 0 entries in quality/baseline.jsonl.\n" });
+		expect(result).toMatchObject({ status: 0, stdout: "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n" });
 		expect(result.stderr).toContain("quality: moved files are not followed:");
 	});
 });

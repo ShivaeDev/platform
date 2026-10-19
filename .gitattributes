@@ -1,0 +1,2 @@
+/quality-baseline.jsonl merge=quality-baseline
+/packages/*/quality-baseline.jsonl merge=quality-baseline

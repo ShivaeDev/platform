@@ -5,7 +5,7 @@ import { branchOff } from "#test/git.ts";
 import { qualityTree } from "#test/qualityTree.ts";
 
 export function baseline(root: string): string {
-	return readFileSync(join(root, "quality/baseline.jsonl"), "utf8");
+	return readFileSync(join(root, "quality-baseline.jsonl"), "utf8");
 }
 
 export async function shrunkTwice(): Promise<string> {

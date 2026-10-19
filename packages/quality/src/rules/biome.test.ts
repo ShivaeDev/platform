@@ -38,9 +38,9 @@ describe("the biome rule", { timeout: CLI_TIMEOUT }, () => {
 		const root = repository(preset, looseType);
 		expect(await runQuality(root, "baseline", "write")).toMatchObject({
 			status: 0,
-			stdout: "quality: recorded 1 entry in quality/baseline.jsonl.\n",
+			stdout: "quality: recorded 1 entry in quality-baseline.jsonl.\n",
 		});
-		expect(readFileSync(join(root, "quality/baseline.jsonl"), "utf8")).toBe(
+		expect(readFileSync(join(root, "quality-baseline.jsonl"), "utf8")).toBe(
 			'{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n',
 		);
 		expect((await runQuality(root, "lint")).status).toBe(0);
@@ -53,7 +53,7 @@ describe("the biome rule", { timeout: CLI_TIMEOUT }, () => {
 	it("records every Biome rule again through the biome name", async () => {
 		const root = repository(preset, looseType);
 		expect((await runQuality(root, "baseline", "write", "--rule", "biome")).status).toBe(0);
-		expect(readFileSync(join(root, "quality/baseline.jsonl"), "utf8")).toContain('"rule":"biome/lint/suspicious/noExplicitAny"');
+		expect(readFileSync(join(root, "quality-baseline.jsonl"), "utf8")).toContain('"rule":"biome/lint/suspicious/noExplicitAny"');
 		expect((await runQuality(root, "lint")).status).toBe(0);
 	});
 

@@ -84,7 +84,7 @@ describe("quality baseline", { timeout: CLI_TIMEOUT }, () => {
 		const root = qualityTree(trees.dirty);
 		expect(await runQuality(root, "baseline", "write")).toMatchObject({
 			status: 0,
-			stdout: "quality: recorded 2 entries in quality/baseline.jsonl.\n",
+			stdout: "quality: recorded 2 entries in quality-baseline.jsonl.\n",
 		});
 		expect(await runQuality(root, "lint")).toMatchObject({ status: 0, stdout: expect.stringContaining("2 baselined violations not shown") });
 
@@ -97,16 +97,16 @@ describe("quality baseline", { timeout: CLI_TIMEOUT }, () => {
 		writeFileSync(join(root, "src/long.ts"), "String(0);\n");
 		const improved = await runQuality(root, "lint");
 		expect(improved.status).toBe(0);
-		expect(improved.stdout).toContain("note quality/baseline.jsonl: 2 stale entries");
+		expect(improved.stdout).toContain("note quality-baseline.jsonl: 2 stale entries");
 		expect(improved.stdout).toContain("structure/max-lines src/long.ts has no violations left.");
 		expect(improved.stdout).toContain("structure/max-lines src/longer.ts allows more than is left");
 
-		expect((await runQuality(root, "baseline", "prune")).stdout).toBe("quality: removed 1 entry and lowered 1 entry in quality/baseline.jsonl.\n");
+		expect((await runQuality(root, "baseline", "prune")).stdout).toBe("quality: removed 1 entry and lowered 1 entry in quality-baseline.jsonl.\n");
 		expect(await runQuality(root, "lint")).toMatchObject({ status: 0, stdout: expect.not.stringContaining("note") });
 	});
 
 	it("refuses to regenerate an existing baseline without naming a rule", async () => {
-		const root = qualityTree(trees.dirty, [{ content: "", path: "quality/baseline.jsonl" }]);
+		const root = qualityTree(trees.dirty, [{ content: "", path: "quality-baseline.jsonl" }]);
 		const result = await runQuality(root, "baseline", "write");
 		expect(result.status).toBe(2);
 		expect(result.stderr).toContain("a baseline exists. Record a rule with --rule <id>");
@@ -122,11 +122,11 @@ describe("quality exits 2 when it cannot run", { timeout: CLI_TIMEOUT }, () => {
 			"rules.structure/max-line: no built-in or local rule has this id",
 		],
 		["with a missing source", [config('{ sources: ["srcc"] }')], 'source "srcc" does not exist'],
-		["with an unreadable baseline", [config("{}"), { content: "[]", path: "quality/baseline.jsonl" }], "quality/baseline.jsonl is invalid"],
+		["with an unreadable baseline", [config("{}"), { content: "[]", path: "quality-baseline.jsonl" }], "quality-baseline.jsonl is invalid"],
 		[
 			"with only a baseline in the earlier format",
 			[config("{}"), { content: "{}\n", path: "quality/baseline.json" }],
-			"Run `quality baseline migrate` to move it to quality/baseline.jsonl",
+			"Run `quality baseline migrate --from quality/baseline.json` to move it to quality-baseline.jsonl",
 		],
 		[
 			"when a rule throws",

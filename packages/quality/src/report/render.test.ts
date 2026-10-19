@@ -7,7 +7,7 @@ const known = levels({ "local/todo": "error", "structure/max-lines": "error" });
 
 function context(overrides: Partial<ReportContext> = {}): ReportContext {
 	return {
-		baseline: "quality/baseline.jsonl",
+		baseline: "quality-baseline.jsonl",
 		checked: 12,
 		descriptions: new Map([["structure/max-lines", "Keep each module to one job."]]),
 		registry: "quality/registry.json",
@@ -79,8 +79,8 @@ describe("report", () => {
 		);
 		expect(render(outcome, context())).toBe(
 			[
-				"error quality/baseline.jsonl: 1 stale entry\n  An entry for an unknown rule covers nothing. Run `quality baseline prune` to drop it.\n  local/typo src/a.ts names no known rule.",
-				"note quality/baseline.jsonl: 1 stale entry\n  These pass, and `quality baseline tighten` lowers them when their files change. `quality baseline prune` lowers them all.\n  structure/max-lines src/gone.ts has no violations left.",
+				"error quality-baseline.jsonl: 1 stale entry\n  An entry for an unknown rule covers nothing. Run `quality baseline prune` to drop it.\n  local/typo src/a.ts names no known rule.",
+				"note quality-baseline.jsonl: 1 stale entry\n  These pass, and `quality baseline tighten` lowers them when their files change. `quality baseline prune` lowers them all.\n  structure/max-lines src/gone.ts has no violations left.",
 				"error quality/registry.json: 1 stale entry\n  Every registered exception must still apply. Remove the entries whose exception is gone.\n  local/todo src/a.ts (legacy) matches no violation.",
 				"quality: failed with 2 stale entries. 12 source files checked.",
 			].join("\n\n"),
