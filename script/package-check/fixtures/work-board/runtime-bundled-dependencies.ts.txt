@@ -11,10 +11,12 @@ for (const name of [
   "@shivaedev/effect-form",
   "@shivaedev/effect-react",
   "@tanstack/react-router",
+  "@tanstack/react-table",
   "class-variance-authority",
   "cmdk",
   "cn",
   "lucide-react",
+  "recharts",
   "tw-animate-css",
 ]) {
   assert(!(name in manifest.dependencies), `${name} must not be a runtime dependency`)

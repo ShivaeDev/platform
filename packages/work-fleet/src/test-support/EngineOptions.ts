@@ -11,6 +11,7 @@ import type {
 	Checks,
 	Delivery,
 	FleetConfiguration,
+	FleetIntegrations,
 	WorkPublication,
 	WorkResult,
 } from "#policy.ts";
@@ -48,6 +49,7 @@ export interface EngineOptions {
 	readonly now?: () => number;
 	readonly openPullRequests?: FleetConfiguration["openPullRequests"];
 	readonly operationCollision?: boolean;
+	readonly predict?: typeof FleetIntegrations.Service.predict;
 	readonly publicationQuery?: (work: BoardWork) => Effect.Effect<WorkPublication, FleetError>;
 	readonly publishFailure?: boolean;
 	readonly publishGate?: Effect.Effect<void>;
