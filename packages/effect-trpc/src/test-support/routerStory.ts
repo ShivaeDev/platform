@@ -1,4 +1,4 @@
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { emptyEngine, serve } from "./routerEngine.ts";
 import { routerVerbs } from "./routerVerbs.ts";
 

@@ -1,7 +1,7 @@
 import { Effect, Exit, Scope } from "effect";
 import type { ReactNode } from "react";
 import { render } from "@shivaedev/effect-react/client/testing.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { mountSession } from "./mountSession.ts";
 import { createScreen, type ScreenEngine, trackScreen } from "./screenEngine.ts";
 

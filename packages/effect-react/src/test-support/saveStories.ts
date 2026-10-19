@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clickButton, typeInput } from "./Screen.ts";
 import { saveSession } from "./saveSession.ts";
 import { screenKit } from "./screenKit.ts";

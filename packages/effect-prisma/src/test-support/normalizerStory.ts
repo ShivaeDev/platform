@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { generatedContractFile, removeGeneratedContractFiles, runNormalizeContract } from "#test/normalizeContractCommand.ts";
 
 export const normalizerStory = storyKit({

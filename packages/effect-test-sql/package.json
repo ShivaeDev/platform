@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-test-sql",
-	"version": "0.7.4",
+	"version": "0.7.5",
 	"description": "PostgreSQL rollback and real-commit test isolation for Effect",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-test-sql#readme",
 	"bugs": {
@@ -24,12 +24,12 @@
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/server/*.ts",
-			"types": "./dist/server/*.d.ts",
-			"default": "./dist/server/*.js"
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
 		},
-		"./internal/*": null,
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./server/internal/*": null
 	},
 	"files": [
 		"dist",

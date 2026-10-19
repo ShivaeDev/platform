@@ -19,7 +19,7 @@ try {
   mkdirSync(join(root, "src"));
   symlinkSync(join(process.cwd(), "node_modules"), join(root, "node_modules"), "dir");
   writeFileSync(join(root, ".gitignore"), "node_modules/\n");
-  writeFileSync(join(root, "biome.json"), '{ "extends": ["@shivaedev/quality/biome"] }\n');
+  writeFileSync(join(root, "biome.json"), '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n');
   writeFileSync(join(root, "quality.config.ts"), `export default ${JSON.stringify(policy)};\n`);
   writeFileSync(join(root, "src/parse.ts"), "/** External format. */\nexport function parse(text: string): any {\n\treturn JSON.parse(text);\n}\n");
   for (const command of ["fix", "lint"]) {

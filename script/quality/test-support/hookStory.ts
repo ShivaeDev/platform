@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, readFileSync, realpathSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { qualityArgs } from "#quality-fixtures/cli.ts";
 import { ISOLATED_ENV } from "#quality-fixtures/git.ts";
 import { checksLog, hookRepository, logs, withScripts, writes } from "#quality-fixtures/hookRepository.ts";

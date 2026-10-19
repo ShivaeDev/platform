@@ -1,5 +1,5 @@
 import { Deferred, Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Rendered } from "#client/testing.ts";
 import { loaderSession, type Unauthorized, type Unavailable } from "./loaderSession.ts";
 import { clickButton } from "./Screen.ts";

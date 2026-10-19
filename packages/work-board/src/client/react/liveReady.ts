@@ -3,7 +3,7 @@ import { Effect, Option, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { BrowserClient } from "#client/client.ts";
+import type { BrowserClient } from "#browserClient.ts";
 
 type Updates = Pick<BrowserClient["updates"], "paused" | "status">;
 

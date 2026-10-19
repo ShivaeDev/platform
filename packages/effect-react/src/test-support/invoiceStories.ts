@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { InvoiceLine } from "#test/invoice-line-editor/backend.ts";
 import { creating, editing, switching } from "./invoiceScreens.tsx";
 import { screenKit } from "./screenKit.ts";

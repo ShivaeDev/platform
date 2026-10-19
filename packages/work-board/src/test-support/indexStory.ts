@@ -2,7 +2,7 @@ import { existsSync, renameSync, statSync, unlinkSync, utimesSync } from "node:f
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Ref } from "effect";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { searchSnapshot } from "#server/search/snapshot.ts";
 import { type Folder, folder } from "./board.ts";
 import { incrementalIndex } from "./incrementalIndex.ts";

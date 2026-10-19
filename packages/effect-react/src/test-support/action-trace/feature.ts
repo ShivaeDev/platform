@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { defineQueue } from "@shivaedev/effect-pg-boss/definition.ts";
-import { installPgBossSchema } from "@shivaedev/effect-pg-boss/schema.ts";
-import { makePgBoss } from "@shivaedev/effect-pg-boss/service.ts";
+import { defineQueue } from "@shivaedev/effect-pg-boss/server/definition.ts";
+import { installPgBossSchema } from "@shivaedev/effect-pg-boss/server/schema.ts";
+import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
 
 export const Work = defineQueue({ name: "action-work", schema: Schema.Struct({ id: Schema.Number }), worker: { pollingIntervalSeconds: 0.5 } });
 export const Jobs = makePgBoss("action-story/Jobs");

@@ -2,7 +2,7 @@ import { Effect, Layer, ManagedRuntime, Schema, Stream } from "effect";
 import { FetchHttpClient, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#server/appHost.ts";
 
 const Watching = RpcGroup.make(Rpc.make("watch", { stream: true, success: Schema.String }));

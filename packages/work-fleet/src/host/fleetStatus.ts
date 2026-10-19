@@ -1,6 +1,6 @@
 import { Effect, Schema, Struct } from "effect";
 import { SqlClient } from "effect/sql";
-import { views } from "#engine/views.ts";
+import { newestCompletion, RECENT_COMPLETED, views } from "#engine/views.ts";
 import { answerRecords, withAnswerRequests } from "#host/answerRecords.ts";
 import type { FleetHost } from "#host/config.ts";
 import { Attempt, FleetRecord } from "#model.ts";
@@ -58,12 +58,8 @@ const statusRecords = Effect.fn("FleetHost.statusRecords")(function* (namespace:
 			const selectedIds = new Set(selected.map((row) => row.work_id));
 			const finished = rows
 				.filter((row) => row.stage === "completed" && !selectedIds.has(row.work_id))
-				.sort(
-					(left, right) =>
-						Number(right.completedAt ?? right.updatedAt ?? 0) - Number(left.completedAt ?? left.updatedAt ?? 0)
-						|| String(right.work_id).localeCompare(String(left.work_id)),
-				)
-				.slice(0, 50);
+				.sort(newestCompletion((row) => String(row.work_id)))
+				.slice(0, RECENT_COMPLETED);
 			const records = yield* Schema.decodeUnknownEffect(Schema.Array(StatusRecord))(
 				yield* recordValues([...selected, ...finished], shape, namespace),
 			);

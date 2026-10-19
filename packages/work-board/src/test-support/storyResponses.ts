@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import type { DraftInput } from "#browser/responses/schema.ts";
-import type { browserClient } from "#client/client.ts";
+import type { browserClient } from "#browserClient.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import type { Folder, RunningBoard } from "./board.ts";
 import { renderRemaining } from "./renderRemaining.tsx";

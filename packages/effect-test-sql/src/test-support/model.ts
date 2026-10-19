@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { expect } from "vitest";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { assertModelColumns } from "#assertModelColumns.ts";
 
 class Row extends Model.Class<Row>("Row")({ id: Model.GeneratedByDb(Schema.Number), title: Schema.String }) {}

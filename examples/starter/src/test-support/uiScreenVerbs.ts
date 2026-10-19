@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { screenDriver } from "@shivaedev/test-story/screenDriver.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { type ScreenSurface, screenView } from "./screenState.ts";
 
 export function uiScreenVerbs(engine: ScreenSurface, tell: (line: string) => void) {

@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.22.0 - 2026-10-19
+
+### Added
+
+- `client.responses.answerQuestion` saves an answer in one command: it registers the question for the reviewed revision and records the response together.
+- The item header shows when the item last changed, after its ID.
+- When the file changes while the page is open and the status changes with it, the header says so, for example "Status changed: Active → In review". Screen readers announce it politely. The first load is not announced.
+- An item that implements a goal links to it from the header as "Part of <goal title>".
+- Header controls (the ID link, the copy button, the goal link, the PR chip, **On this page**, **Pin** and the page actions) are at least 44px tall on touch screens. The desktop header keeps its height.
+
+### Changed
+
+- The handoff page is titled with the item, starts the agent name as the item's owner and keeps it after saving. A done or dropped item's next step starts empty with a placeholder instead of its old `next_action`.
+- **Prepare handoff** saves directly; **Preview file** is optional. When the item changed under a draft, the first **Prepare handoff** binds the draft to the new version and a second one saves it. Preparing moves focus to the prompt, and one status line reports the save and the copy. **Prepare handoff** and **Copy prompt** use neutral buttons instead of the amber one.
+- Earlier handoffs show how long ago they were prepared.
+- The result page names each linked item by title with its status chip and offers **Prepare follow-up handoff**, and shows how long ago the report changed. An empty review and empty checks collapse into one line, and a feedback summary with a link to the feedback sits above the report.
+- Answering from Today closes the popover as soon as the server saves the answer. The row leaves Needs you at once and "Answer saved" appears beside the heading while the Board refreshes in the background. The popover says "Saving your answer…" while it waits.
+- The Today popover shows the options or recommendation from the question's body in a collapsed section, and its link reads "Read the full question".
+- Today and the item page use the same words: "Your answer", "Answers so far" and "More options".
+- The Today popover and the item page's answer card disable their answer controls while the Board's live connection is reconnecting, and say why. A draft on the item page stays in place.
+- Screen readers name the popover's answer group after the question's title instead of its IDs.
+- The Board's answer forms save through `answerQuestion` instead of calling `registerQuestion` and then `recordResponse`.
+- While the server reads the workspace, the loading page says how far it has got, such as "Reading 1,240 of 3,936 files…", and "Reading the workspace…" before the count is known.
+- Pages start their reads as soon as the Board is live instead of waiting for the sidebar's navigation read.
+- The header names its state in plain words, such as "Connecting…", "Updating…" and "Can't reach the Board server", and the Needs you badge shows a spinner while its count is still loading.
+- The header no longer repeats a failure that the page already explains, and says "Couldn't refresh this page" when it keeps showing an older copy.
+
+### Fixed
+
+- An answer whose browser closes mid-save is still saved in full, so a registered question never lands without its response.
+- An item page's status chip shows **Needs you** whenever a request on that item is open and unanswered, for every kind of item. Before, only decisions and questions did, so a task waiting on you said **Active**. Once someone answers, the chip shows **Waiting on agents**.
+- Decisions and questions with no open request show **Answered** or **Closed** instead of no status.
+- The item header on goal pages names the kind **Goal** instead of "project".
+- **Prepare an agent handoff** is no longer offered on finished or dropped items or on goals.
+- Server startup lists the workspace concurrently, which cuts listing a workspace of about 4,000 files from several seconds to under half a second.
+- Wide Markdown tables stay readable. Prose columns keep a readable width instead of shrinking to a word or two per line, short columns such as IDs, statuses and numbers stay on one line, and a table wider than the page scrolls sideways in its own box. A soft shadow at the edge shows that more of the table is hidden.
+- Tables in answer cards and result reports now look and behave like tables in documents.
+
 ## 0.21.6 - 2026-10-19
 
 ### Added

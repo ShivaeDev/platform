@@ -1,0 +1,9 @@
+{
+	"compilerOptions": {
+		"lib": ["ESNext", "DOM"],
+		"outDir": "dist",
+		"rootDir": "src"
+	},
+	"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"],
+	"extends": ["./tsconfig.json", "@shivaedev/quality/tsconfig/package.json"]
+}

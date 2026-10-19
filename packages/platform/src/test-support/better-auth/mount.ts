@@ -3,7 +3,7 @@ import { NodeHttpServer } from "@effect/platform-node";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 
 interface Engine {

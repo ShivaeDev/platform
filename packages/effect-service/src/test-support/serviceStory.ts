@@ -1,4 +1,4 @@
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { genericService, requiredService, scopedService, serviceEngine } from "./serviceEngine.ts";
 import { serviceVerbs } from "./serviceVerbs.ts";
 

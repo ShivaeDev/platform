@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import type * as Atom from "effect/reactivity/Atom";
 import { useContext, useEffect } from "react";
-import type { BrowserClient } from "#client/client.ts";
+import type { BrowserClient } from "#browserClient.ts";
 
 export function useDiagnosticsPolling<A, TFleet>(
 	client: (Pick<BrowserClient, "registry"> & { readonly updates: Pick<BrowserClient["updates"], "paused"> }) | undefined,

@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/work-board",
-	"version": "0.21.6",
+	"version": "0.22.0",
 	"description": "Serve a folder of markdown files as a live local page that updates in place when a file changes",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-board#readme",
 	"bugs": {
@@ -75,16 +75,6 @@
 			"default": "./dist/*.js"
 		},
 		"./client/*": null,
-		"./client/client.ts": {
-			"source": "./src/client/client.ts",
-			"types": "./dist/client/client.d.ts",
-			"default": "./dist/client/client.js"
-		},
-		"./client/document/View.ts": {
-			"source": "./src/client/document/View.ts",
-			"types": "./dist/client/document/View.d.ts",
-			"default": "./dist/client/document/View.js"
-		},
 		"./package.json": "./package.json"
 	},
 	"bin": {

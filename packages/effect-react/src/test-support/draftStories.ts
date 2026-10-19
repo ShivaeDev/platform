@@ -1,7 +1,7 @@
 import { Clock, Deferred, Effect } from "effect";
 import { vi } from "vitest";
 import type { BrowserDraftConfig } from "@shivaedev/effect-form/client/react.ts";
-import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Row, Save, ViewEditor } from "./draftFields.ts";
 import { draftStorage } from "./draftStorage.ts";
 import { persistedDraftView } from "./persistedDraftView.tsx";
