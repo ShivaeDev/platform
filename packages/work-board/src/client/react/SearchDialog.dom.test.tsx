@@ -1,13 +1,14 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { unavailableWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
 const QUERY = '#search-dialog [role="combobox"]';
 const OPTIONS = '#search-dialog [role="option"]';
-const SEARCH = '#search-dialog button[type="submit"]';
+const STATUS = '#search-dialog [role="status"]';
 const SELECTED = '#search-dialog [role="option"][aria-selected="true"] a';
 screenStory.it(
 	"names and opens the remaining result when a query refresh removes the selected third result",
@@ -34,7 +35,7 @@ screenStory.it(
 		editFile("notes/third.md", "# Third\n\nNo match.");
 		yield* Effect.promise(() => refreshSearch("Shared phrase"));
 		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(1)));
-		yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/first.md#heading-first")));
+		yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/first.md")));
 		yield* Effect.promise(() =>
 			eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[0]?.id)),
 		);
@@ -46,7 +47,7 @@ screenStory.it(
 
 for (const { initial, previous } of [
 	{ initial: "", previous: "/" },
-	{ initial: "First phrase", previous: "/notes/first.md#heading-first" },
+	{ initial: "First phrase", previous: "/notes/first.md" },
 ]) {
 	screenStory.it(
 		`searches instead of activating '${initial}' options when Enter follows a query edit before debounce`,
@@ -63,7 +64,7 @@ for (const { initial, previous } of [
 				keyboard("Enter", { cancelable: true }, QUERY);
 			});
 			expect(findElement("#search-dialog", document)).not.toBeNull();
-			yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/second.md#heading-second")));
+			yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/second.md")));
 			expect(count(OPTIONS, document)).toBe(1);
 			keyboard("Enter", { cancelable: true }, QUERY);
 			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
@@ -72,18 +73,15 @@ for (const { initial, previous } of [
 }
 
 screenStory.it(
-	"reruns the query instead of opening the selected result when Enter activates the Search button",
-	[searchScreen({ "notes/first.md": "# First\n\nShared phrase one.", "notes/second.md": "# Second\n\nShared phrase two." })],
-	function* ({ input, keyboard, click, editFile, count, readAttribute, findElement }) {
+	"retries a failed search from its status",
+	[searchScreen({ "notes/first.md": "# First\n\nShared phrase one." }), unavailableWorkspace()],
+	function* ({ input, recoverWorkspace, count, readText, roles }) {
 		input(QUERY, "Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(2)));
-		editFile("notes/second.md", "# Second\n\nNo match.");
-		const enter = keyboard("Enter", { cancelable: true }, SEARCH);
-		expect(enter.defaultPrevented).toBe(false);
-		click(findElement(SEARCH, document));
+		yield* Effect.promise(() => eventually(() => expect(readText(STATUS, document)).toBe("Search could not be completed.")));
+		recoverWorkspace();
+		yield* roles.click({ name: "Retry search", role: "button" });
 		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(1)));
-		expect(readAttribute(SELECTED, "href", document)).toBe("/notes/first.md#heading-first");
-		expect(findElement("#search-dialog", document)).not.toBeNull();
+		expect(readText(STATUS, document)).toBe("1 matches.");
 	},
 );
 

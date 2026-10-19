@@ -1,4 +1,5 @@
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
+import type { AppearanceControls } from "#client/react/useAppearance.ts";
 
 export interface SearchItem {
 	readonly command?: string;
@@ -37,4 +38,16 @@ export function matchingCommands(goals: GoalsProjection["goals"], query: string)
 		const text = `${item.title} ${item.id ?? ""}`.normalize("NFKC").toLowerCase();
 		return terms.every((term) => text.includes(term));
 	});
+}
+
+export function activateCommand(command: string | undefined, appearance: AppearanceControls, toggleSidebar: () => void) {
+	if (command === "sidebar-toggle") {
+		toggleSidebar();
+	}
+	if (command === "density") {
+		appearance.change({ density: appearance.density === "compact" ? "comfortable" : "compact" });
+	}
+	if (command === "theme") {
+		appearance.change({ theme: appearance.theme === "dark" ? "light" : "dark" });
+	}
 }
