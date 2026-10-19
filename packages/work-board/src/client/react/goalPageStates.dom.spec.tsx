@@ -32,7 +32,7 @@ screenStory.it(
 		expect(findElement('[data-goal-group="In progress"]')).toBeNull();
 		expect(readText('[data-goal-item="task.first"] [data-status-token]')).toBe("Planned");
 		expect(readText("#criterion-first [data-criterion-progress]")).toContain("2 planned");
-		expect(readText('[data-goal-item="task.fifth"] td')).toBe("");
+		expect(readText('[data-goal-item="task.fifth"] td:nth-of-type(2)')).toBe("");
 		expect(findElement('[data-goal-item="task.fifth"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Planned");
 		expect(findElement('[data-goal-item="task.third"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Deferred");
 	},
@@ -58,13 +58,13 @@ for (const status of ["completed", "closed"]) {
 			const data = yield* Effect.promise(readGoals);
 			const goal = data?.closedGoals.find((entry) => entry.id === "project.closed");
 			expect(data?.goals.map((entry) => entry.id)).toEqual(["project.empty", "project.example"]);
-			expect(goal?.counts).toEqual({ done: 2, "in progress": 1, planned: 3 });
+			expect(goal?.counts).toEqual({ done: 2, "in progress": 1, "needs you": 0, planned: 3 });
 			const counts = Object.fromEntries(
 				[...findElements<HTMLElement>("[data-goal-counts] [data-count]")].map((segment) => [segment.dataset.status, Number(segment.dataset.count)]),
 			);
 			expect(counts).toEqual(goal?.counts);
 			expect(readText("[data-goal-open-asks]")).toBe(`${goal?.openAsks} open asks`);
-			expect(goal?.criteria[0]?.counts).toEqual({ done: 1, "in progress": 1, planned: 1 });
+			expect(goal?.criteria[0]?.counts).toEqual({ done: 1, "in progress": 1, "needs you": 0, planned: 1 });
 			expect(readText("#criterion-first [data-criterion-progress]")).toBe("1 done · 1 in progress · 1 planned");
 			expect(readText("#criterion-second")).toBe("Second criterion");
 			expect(findElements("[data-goal-item]")).toHaveLength(goal?.linked ?? 0);
