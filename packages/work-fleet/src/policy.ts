@@ -9,6 +9,7 @@ import {
 } from "#board/schema.ts";
 import { DecisionCode } from "#DecisionCode.ts";
 import type { FleetError } from "#errors.ts";
+import type { MergePrediction } from "#MergePrediction.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { type LaunchSettings, SessionReceipt } from "#session/schema.ts";
@@ -139,6 +140,7 @@ export interface WorkPublication {
 export class FleetIntegrations extends Context.Service<
 	FleetIntegrations,
 	{
+		readonly predict?: (pr: string, watchedPrs: readonly string[]) => Effect.Effect<MergePrediction, FleetError>;
 		readonly publication?: (work: BoardWork) => Effect.Effect<WorkPublication, FleetError>;
 		readonly main: (preparation: Preparation) => Effect.Effect<MainObservation, FleetError>;
 		readonly result: (work: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetError>;

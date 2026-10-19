@@ -42,6 +42,8 @@ export default [
 					"class-variance-authority",
 					"cmdk",
 					"lucide-react",
+					"@tanstack/react-table",
+					"recharts",
 				),
 			),
 		)
