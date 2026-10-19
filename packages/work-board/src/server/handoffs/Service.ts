@@ -95,7 +95,7 @@ export const HandoffsService = defineService({
 						prompt: handoffPrompt(join(options.realRoot, file)),
 					};
 					yield* publish(options.root, options.realRoot, record.id, handoffMarkdown(record.id, record.handoff, record.context), "handoffs").pipe(
-						Effect.ensuring(options.changes.refresh ?? Effect.void),
+						Effect.ensuring(options.changes.refresh?.([file]) ?? Effect.void),
 					);
 					return record;
 				}),

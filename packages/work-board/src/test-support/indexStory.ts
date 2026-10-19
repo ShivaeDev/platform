@@ -1,4 +1,4 @@
-import { renameSync, statSync, unlinkSync, utimesSync } from "node:fs";
+import { existsSync, renameSync, statSync, unlinkSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Ref } from "effect";
@@ -71,6 +71,12 @@ export const indexStory = storyKit({
 		moveFile: (from: string, to: string) => {
 			story.tell(`an editor moves ${from} to ${to}`);
 			renameSync(join(engine.notes.root, from), join(engine.notes.root, to));
+		},
+		moveFolder: (from: string, to: string) => {
+			story.tell(`an editor moves the folder ${from} to ${to} when it exists`);
+			if (existsSync(join(engine.notes.root, from))) {
+				renameSync(join(engine.notes.root, from), join(engine.notes.root, to));
+			}
 		},
 		readIndex: () => {
 			story.tell("the reader requests the current board index");

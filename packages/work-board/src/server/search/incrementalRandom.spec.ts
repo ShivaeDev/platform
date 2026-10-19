@@ -4,13 +4,13 @@ import { indexState } from "#test/indexState.ts";
 import { indexedFiles, indexStory } from "#test/indexStory.ts";
 
 indexStory.it(
-	"matches a fresh full index after seeded random edits, additions, deletions and renames, including ambiguous and unresolved references",
+	"matches a fresh full index after seeded random edits, additions, deletions, renames and folder moves, including ambiguous and unresolved references",
 	[indexedFiles(indexRevisions().initialFiles)],
-	function* ({ readIndex, freshIndex, invalidate, writeFile, removeFile, moveFile }) {
-		const { files, random, source } = indexRevisions();
+	function* ({ readIndex, freshIndex, invalidate, writeFile, removeFile, moveFile, moveFolder }) {
+		const { files, movedPaths, random, source } = indexRevisions();
 		yield* readIndex();
 		for (let step = 0; step < 80; step += 1) {
-			const operation = random(4);
+			const operation = random(5);
 			const selected = [...files][random(files.size)] ?? "empty.md";
 			let changed: string[] = [];
 			if (operation === 0) {
@@ -26,6 +26,9 @@ indexStory.it(
 				removeFile(selected);
 				files.delete(selected);
 				changed = [selected];
+			} else if (operation === 4) {
+				moveFolder("nested", `folder-${step}`);
+				changed = movedPaths("nested", `folder-${step}`);
 			} else {
 				const moved = `nested/moved-${step}.md`;
 				writeFile(moved, "");

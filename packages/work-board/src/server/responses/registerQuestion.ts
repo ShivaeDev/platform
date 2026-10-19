@@ -50,7 +50,7 @@ export function registerQuestion(
 			},
 		};
 		yield* publish(options.root, options.realRoot, question.id, questionMarkdown(question)).pipe(
-			Effect.ensuring(options.changes.refresh ?? Effect.void),
+			Effect.ensuring(options.changes.refresh?.([`responses/${question.id}.md`]) ?? Effect.void),
 		);
 		return question;
 	});

@@ -1,9 +1,8 @@
 import { Deferred, Effect, FileSystem, Option, Path, Stream } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { attachmentType } from "#path/attachment.ts";
-import { isMarkdown, scanMarkdown } from "./list.ts";
-
-const SETTLE = "100 millis";
+import { isMarkdown, type MarkdownFile, scanMarkdown } from "./list.ts";
+import { folderEvents, SETTLE, watchedScan } from "./watchedScan.ts";
 
 type WatchRoots = readonly { readonly real: string; readonly relative: string }[];
 
@@ -37,21 +36,29 @@ function recordFile(contents: Map<string, number>, relative: string, info: Optio
 	}
 }
 
+export interface WatchHooks {
+	readonly listed: (files: readonly MarkdownFile[]) => Effect.Effect<unknown>;
+	readonly observed?: Effect.Effect<void>;
+	readonly publish: (paths: readonly string[]) => Effect.Effect<unknown>;
+	readonly settled?: Effect.Effect<unknown>;
+	readonly setWatching: (watching: boolean) => Effect.Effect<unknown>;
+	readonly stale: Effect.Effect<unknown>;
+}
+
 export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function* (
 	root: string,
 	realRoot: string,
-	stale: Effect.Effect<void>,
-	setWatching: (watching: boolean) => Effect.Effect<unknown>,
-	publish: (paths: readonly string[]) => Effect.Effect<unknown>,
-	observed: Effect.Effect<void> = Effect.void,
-	settled: Effect.Effect<unknown> = Effect.void,
+	{ listed, observed = Effect.void, publish, setWatching, settled = Effect.void, stale }: WatchHooks,
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const cycle = Effect.scoped(
 		Effect.gen(function* () {
-			const { files, roots } = yield* scanMarkdown(root, realRoot);
+			const { files, listing, rootEvents, roots } = yield* watchedScan(root, realRoot);
 			let contents = new Map(files.map((file) => [file.path, file.modified]));
+			if (listing) {
+				yield* listed(listing);
+			}
 			const topology = yield* Deferred.make<void>();
 			// Node's recursive watcher can miss replacement of directory symlinks.
 			const parents = yield* Effect.forEach(
@@ -59,15 +66,16 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 				(folder) =>
 					Effect.map(fs.realPath(path.dirname(path.join(root, folder.relative))), (real) => ({ real, relative: path.dirname(folder.relative) })),
 			);
-			const watched = [...roots.map((folder) => ({ ...folder, recursive: true })), ...parents.map((folder) => ({ ...folder, recursive: false }))];
-			const streams = watched.map((folder) =>
-				fs.watch(folder.real, { recursive: folder.recursive }).pipe(
-					Stream.map((event) => {
-						const local = path.isAbsolute(event.path) ? path.relative(folder.real, event.path) : event.path;
-						return path.join(folder.relative, local).split(path.sep).join("/");
-					}),
-				),
-			);
+			const streams = [
+				rootEvents,
+				...(yield* Effect.forEach(
+					[
+						...roots.filter((folder) => folder.relative !== "").map((folder) => ({ ...folder, recursive: true })),
+						...parents.map((folder) => ({ ...folder, recursive: false })),
+					],
+					folderEvents,
+				)),
+			];
 			// A removed root can be reported without any descendant file events.
 			streams.push(
 				fs.watch(path.dirname(realRoot)).pipe(
@@ -77,13 +85,6 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 			);
 			const pending = new Set<string>();
 			let rescan = false;
-			const queueRescan = Effect.gen(function* () {
-				if (rescan) {
-					return;
-				}
-				rescan = true;
-				yield* stale;
-			});
 			const changedPath = Effect.fn("WorkBoard.changedPath")(function* (relative: string) {
 				const relevant = isMarkdown(relative) || attachmentType(relative) !== undefined;
 				if (relevant) {
@@ -94,7 +95,7 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 					if (!relevant) {
 						yield* observed;
 					}
-					yield* queueRescan;
+					rescan = true;
 					return true;
 				}
 				recordFile(contents, relative, info);
@@ -136,7 +137,7 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 					),
 				),
 			);
-			yield* Effect.forkScoped(Effect.delay(setWatching(true), SETTLE));
+			yield* Effect.forkScoped(listing ? setWatching(true) : Effect.delay(Effect.andThen(stale, setWatching(true)), SETTLE));
 			yield* watch;
 			yield* setWatching(false);
 		}),

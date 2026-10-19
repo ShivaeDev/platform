@@ -80,7 +80,7 @@ export const Responses = defineService({
 						result.responses.reduce((time, saved) => Math.max(time, saved.response.recordedAt + 1), yield* Clock.currentTimeMillis),
 					);
 					yield* publish(options.root, options.realRoot, response.id, responseMarkdown(response)).pipe(
-						Effect.ensuring(options.changes.refresh ?? Effect.void),
+						Effect.ensuring(options.changes.refresh?.([`responses/${response.id}.md`]) ?? Effect.void),
 					);
 					return response;
 				}),

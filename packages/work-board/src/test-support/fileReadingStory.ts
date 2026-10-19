@@ -40,13 +40,12 @@ export const fileReadingStory = storyKit({
 		},
 		watchDirectory: () => {
 			story.tell("the host starts watching the workspace");
-			return watchDirectories(
-				engine.notes.root,
-				engine.notes.root,
-				Effect.void,
-				() => Effect.void,
-				() => Effect.void,
-			).pipe(Effect.provide(engine.services));
+			return watchDirectories(engine.notes.root, engine.notes.root, {
+				listed: () => Effect.void,
+				publish: () => Effect.void,
+				setWatching: () => Effect.void,
+				stale: Effect.void,
+			}).pipe(Effect.provide(engine.services));
 		},
 	}),
 });
