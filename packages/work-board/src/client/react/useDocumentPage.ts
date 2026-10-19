@@ -9,11 +9,13 @@ export function useDocumentPage({
 	pending,
 	status,
 	onPage,
+	title,
 	url,
 }: {
 	readonly data: Document | undefined;
 	readonly pending: boolean;
 	readonly status: string;
+	readonly title?: string | undefined;
 	readonly url: string;
 	readonly onPage: (location: MainLocation) => void;
 }) {
@@ -38,7 +40,7 @@ export function useDocumentPage({
 				if (!(active && contentReady(main, data, status, pending))) {
 					return;
 				}
-				publishPage(main, data, status, url, onPage);
+				publishPage(main, data, status, url, title, onPage);
 			});
 		}
 		const observer = new MutationObserver((records) => {
@@ -52,7 +54,7 @@ export function useDocumentPage({
 			observer.disconnect();
 			active = false;
 		};
-	}, [data, pending, status, onPage, url]);
+	}, [data, pending, status, onPage, title, url]);
 	return hostRef;
 }
 
@@ -62,7 +64,14 @@ function contentReady(main: HTMLElement, data: Document | undefined, status: str
 	}
 	return !data || main.querySelector<HTMLElement>("article.doc")?.dataset.source === documentSourceId(data);
 }
-function publishPage(main: HTMLElement, data: Document | undefined, status: string, url: string, onPage: (location: MainLocation) => void) {
+function publishPage(
+	main: HTMLElement,
+	data: Document | undefined,
+	status: string,
+	url: string,
+	title: string | undefined,
+	onPage: (location: MainLocation) => void,
+) {
 	main.dataset.file = data?.file ?? "";
 	main.dataset.url = data ? fileUrl(data.file) : url;
 	if (data?.identity) {
@@ -78,7 +87,7 @@ function publishPage(main: HTMLElement, data: Document | undefined, status: stri
 			projection: "document",
 			route: url,
 			status: Number(status),
-			title: main.querySelector("h1")?.textContent?.trim(),
+			title: main.querySelector("h1")?.textContent?.trim() ?? title,
 			view: "",
 		}),
 	);
