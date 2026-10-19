@@ -28,23 +28,25 @@ export function readResponses(snapshot: Effect.Effect<Snapshot, ResponseRejectio
 		if (data.unavailable.length > 0) {
 			return yield* Effect.fail(new ServiceUnavailable({ message: "The workspace index is incomplete; no response can be selected safely." }));
 		}
-		const question = yield* registeredQuestion(data.model.ids.get(id), data.model);
-		if (new TextEncoder().encode(question.context).length > 256 * 1024) {
-			return yield* Effect.fail(new BadRequest({ message: "The registered context exceeds the 256 KiB limit." }));
-		}
-		const index = responseIndex(data.model);
-		if (index.malformed) {
-			return yield* Effect.fail(
-				new ServiceUnavailable({ message: "A response record is malformed; response history cannot be established safely." }),
-			);
-		}
-		const result: Reading = { question, responses: [...index.responsesFor(question).responses] };
-		if (result.responses.some((candidate) => candidate.body.length > 32_768)) {
-			return yield* Effect.fail(new BadRequest({ message: "A recorded response exceeds the supported text limit; read its source file directly." }));
-		}
-		if (result.responses.some((candidate) => data.model.ids.get(candidate.id)?.length !== 1)) {
-			return yield* Effect.fail(new Conflict({ message: "A response identity is duplicated; no answer is selected." }));
-		}
-		return result;
+		return yield* readHistory(data, id, true);
 	});
 }
+// The result view checks the files that could hold its own feedback, so it reads without the workspace-wide malformed gate.
+export const readHistory = Effect.fn("WorkBoard.readHistory")(function* (data: Snapshot, id: string, requireWellFormed: boolean) {
+	const question = yield* registeredQuestion(data.model.ids.get(id), data.model);
+	if (new TextEncoder().encode(question.context).length > 256 * 1024) {
+		return yield* Effect.fail(new BadRequest({ message: "The registered context exceeds the 256 KiB limit." }));
+	}
+	const index = responseIndex(data.model);
+	if (requireWellFormed && index.malformed) {
+		return yield* Effect.fail(new ServiceUnavailable({ message: "A response record is malformed; response history cannot be established safely." }));
+	}
+	const result: Reading = { question, responses: [...index.responsesFor(question).responses] };
+	if (result.responses.some((candidate) => candidate.body.length > 32_768)) {
+		return yield* Effect.fail(new BadRequest({ message: "A recorded response exceeds the supported text limit; read its source file directly." }));
+	}
+	if (result.responses.some((candidate) => data.model.ids.get(candidate.id)?.length !== 1)) {
+		return yield* Effect.fail(new Conflict({ message: "A response identity is duplicated; no answer is selected." }));
+	}
+	return result;
+});

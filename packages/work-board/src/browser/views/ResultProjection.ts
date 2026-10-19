@@ -23,7 +23,6 @@ export const ResultProjection = Schema.Struct({
 			supersedesFile: Schema.optional(Schema.String),
 		}),
 	),
-	feedbackUnknown: Schema.Boolean,
 	item: Schema.String,
 	revision: Schema.String,
 	targets: Schema.Array(
@@ -34,5 +33,6 @@ export const ResultProjection = Schema.Struct({
 			status: Schema.optional(Schema.String),
 		}),
 	),
+	unreadableFeedback: Schema.Array(Schema.Struct({ file: Schema.String, reason: Schema.String })),
 });
 export type ResultProjection = typeof ResultProjection.Type;

@@ -1,6 +1,7 @@
 import { isRedirect, type LoaderFnContext, redirect } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
+import { resultUrl } from "#responses/url.ts";
 import type { ShellOptions } from "./BoardShell.tsx";
 import { documentRoute } from "./documentRoute.ts";
 import { awaitLiveReady } from "./liveReady.ts";
@@ -66,6 +67,9 @@ function mustRethrow(controller: AbortController, error: unknown) {
 function redirectLegacy(pathname: string, search: string) {
 	if (pathname === "/_board/respond") {
 		throw redirect({ href: pathname + search, reloadDocument: true });
+	}
+	if (pathname === "/_board/result") {
+		throw redirect({ href: resultUrl(new URLSearchParams(search).get("item")), replace: true });
 	}
 	const retired: Readonly<Record<string, string>> = {
 		"/_board/changes": "/_board/library?view=recently-changed",

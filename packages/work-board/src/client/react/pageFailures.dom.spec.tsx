@@ -134,19 +134,6 @@ screenStory.it(
 );
 
 screenStory.it(
-	"explains in plain words when a result link names no single result",
-	[routedScreen(files, "/_board/result?item=result.missing")],
-	function* ({ findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("Can't show this page")));
-		expect(readText("#doc [data-slot=empty-description]")).toBe(
-			"No single result has this ID. It may be missing, share its ID with another file, or sit in a file the Board can't read.",
-		);
-		expect(findElements("#doc [data-slot=empty] a").map((link) => [link.textContent, link.getAttribute("href")])).toEqual([["Back to Today", "/"]]);
-		yield* Effect.promise(() => eventually(() => expect(readText("#breadcrumbs")).toBe("Workspace/ Review result")));
-	},
-);
-
-screenStory.it(
 	"says why a handoff can't be prepared without the error's type name",
 	[routedScreen(files, "/_board/handoff?item=task.missing")],
 	function* ({ readText }) {

@@ -367,19 +367,27 @@
 }
 
 .document-layout {
-	--document-leading-rows: 0;
+	--document-lead-row: 0;
+	--document-answer-row: 0;
+	--document-review-row: 0;
+	--document-leading-rows: calc(var(--document-lead-row) + var(--document-answer-row) + var(--document-review-row));
 }
-.document-layout:has(> .document-lead),
+.document-layout:has(> .document-lead) {
+	--document-lead-row: 1;
+}
 .document-layout:has(> .answer-cards:not([data-after])) {
-	--document-leading-rows: 1;
+	--document-answer-row: 1;
 }
-.document-layout:has(> .document-lead):has(> .answer-cards:not([data-after])) {
-	--document-leading-rows: 2;
+.document-layout:has(> :is([data-result-review], [data-result-unavailable])) {
+	--document-review-row: 1;
 }
 .document-layout > .document-lead {
 	grid-row-start: 2;
 }
 .document-layout > .answer-cards {
+	grid-row-start: calc(1 + var(--document-lead-row) + var(--document-answer-row));
+}
+.document-layout > :is([data-result-review], [data-result-unavailable]) {
 	grid-row-start: calc(1 + var(--document-leading-rows));
 }
 .document-layout > :is(article, .board) {

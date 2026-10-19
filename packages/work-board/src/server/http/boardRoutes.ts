@@ -2,7 +2,7 @@ import { Effect, type FileSystem, type Path, type Scope } from "effect";
 import { HttpRouter, type HttpServerRequest, HttpServerResponse } from "effect/http";
 import { loopbackOnly } from "@shivaedev/platform/server/rpc-server/local.ts";
 import type { Diagnostics } from "#diagnostics/source.ts";
-import { responseUrl } from "#responses/url.ts";
+import { responseUrl, resultUrl } from "#responses/url.ts";
 import type { BoardOptions } from "#server/board.ts";
 import type { boardRuntime } from "#server/boardRuntime.ts";
 import type { HandoffsService } from "#server/handoffs/Service.ts";
@@ -56,7 +56,10 @@ export function boardRoutes(options: BoardOptions, runtime: Effect.Success<Retur
 					return HttpServerResponse.redirect(responseUrl(preview.item, preview.request));
 				}).pipe(Effect.catch(() => Effect.succeed(respond("Response unavailable", "text/html", 409)))),
 			);
-			for (const view of ["system", "start", "handoff", "result", "library", "goals", "work"] as const) {
+			yield* serve("/_board/result", (request) =>
+				Effect.succeed(HttpServerResponse.redirect(resultUrl(new URL(request.url, "http://127.0.0.1").searchParams.get("item")))),
+			);
+			for (const view of ["system", "start", "handoff", "library", "goals", "work"] as const) {
 				yield* serve(`/_board/${view}`, () => Effect.succeed(respond(shell(view, changes.realRoot), "text/html")));
 			}
 			const pages = page({ home, root: options.root, writable: options.responses === true }, changes, index);
