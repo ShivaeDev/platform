@@ -1,5 +1,5 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
-import { fleetHolder, stageTime } from "#browser/views/now.ts";
+import { fleetHolder, stageTime } from "#browser/views/nowCard.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "#client/react/components/ui/card.tsx";
 import { EmptyState } from "./EmptyState.tsx";

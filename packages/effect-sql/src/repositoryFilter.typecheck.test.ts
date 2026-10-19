@@ -22,6 +22,27 @@ const program = Effect.gen(function* () {
 	const plain = yield* makeRepository(Row, options);
 	expectTypeOf<Effect.Services<ReturnType<typeof plain.findMany>>>().toEqualTypeOf<FilterEncoding>();
 	plain.findMany({ where: { id: { in: [1, 2] }, kind: "x", value: { in: [1, 2] } } });
+	plain.findMany({ orderBy: { direction: "asc", field: "id" } });
+	const orderBy = [
+		{ direction: "asc", field: "kind" },
+		{ direction: "desc", field: "id" },
+	] as const;
+	const ordered = plain.findMany({ orderBy, select: ["value"] });
+	expectTypeOf<Effect.Success<typeof ordered>>().toEqualTypeOf<Array<{ readonly value: number }>>();
+	plain.findMany({ orderBy: [{ direction: "desc", field: "id" }] });
+	// @ts-expect-error Ordering lists must be nonempty.
+	plain.findMany({ orderBy: [] });
+	// @ts-expect-error Single ordering objects must name model fields.
+	plain.findMany({ orderBy: { direction: "asc", field: "missing" } });
+	plain.findMany({
+		orderBy: [
+			{ direction: "asc", field: "id" },
+			// @ts-expect-error Every ordering list entry must name a model field.
+			{ direction: "desc", field: "missing" },
+		],
+	});
+	// @ts-expect-error Ordering directions remain asc or desc.
+	plain.findMany({ orderBy: [{ direction: "ascending", field: "id" }] });
 	// @ts-expect-error List entries use decoded field values.
 	plain.findMany({ where: { value: { in: ["1"] } } });
 	// @ts-expect-error List entries must name model fields.

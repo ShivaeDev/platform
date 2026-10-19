@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import { cardStatus } from "#browser/views/now.ts";
+import { cardStatus } from "#browser/views/nowCard.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { responseUrl } from "#responses/url.ts";

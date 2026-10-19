@@ -1,17 +1,21 @@
-import { Effect, Schema } from "effect";
+import { Effect, Schema, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { Forbidden, Unauthorized } from "#errors/taxonomy.ts";
 import { SessionUser } from "#rpc/identity.ts";
-import { AuthenticatedUser } from "#rpc/middleware.ts";
+import { AuthenticatedAdmin, AuthenticatedOwner } from "#rpc/middleware.ts";
 import { requireAdmin } from "#rpc/requireAdmin.ts";
 import { type SessionPolicy, type UserSessionShape, withSessionUser } from "#server/rpc-server/session.ts";
 
-export const AdminApi = RpcGroup.make(Rpc.make("adminTools", { error: Schema.Union([Unauthorized, Forbidden]), success: Schema.String })).middleware(
-	AuthenticatedUser,
+export const AdminApi = RpcGroup.make(
+	Rpc.make("adminTools", { success: Schema.String }).middleware(AuthenticatedAdmin),
+	Rpc.make("adminFeed", { stream: true, success: Schema.String }).middleware(AuthenticatedAdmin),
+	Rpc.make("ownerTools", { success: Schema.String }).middleware(AuthenticatedOwner),
 );
-const tools = Effect.map(requireAdmin, (user) => `Admin tools for ${user.email}`);
-export const adminHandlers = AdminApi.toLayer({ adminTools: () => tools });
+export const adminHandlers = AdminApi.toLayer({
+	adminFeed: () => Stream.concat(Stream.fromEffect(Effect.map(SessionUser, (user) => `Admin feed for ${user.email}`)), Stream.never),
+	adminTools: () => Effect.map(SessionUser, (user) => `Admin tools for ${user.email}`),
+	ownerTools: () => Effect.map(SessionUser, (user) => `Owner tools for ${user.email}`),
+});
 
 const routeErrors = {
 	AuthUnavailable: () => Effect.succeed(HttpServerResponse.empty({ status: 503 })),
@@ -23,7 +27,11 @@ export function adminRoutes(sessions: SessionPolicy<UserSessionShape>) {
 	return HttpRouter.use((router) =>
 		Effect.all([
 			router.add("GET", "/admin-tools", (request) =>
-				tools.pipe(withSessionUser(sessions, request.headers, "admin-tools"), Effect.map(HttpServerResponse.text), Effect.catchTags(routeErrors)),
+				Effect.map(requireAdmin, (user) => `Admin tools for ${user.email}`).pipe(
+					withSessionUser(sessions, request.headers, "admin-tools"),
+					Effect.map(HttpServerResponse.text),
+					Effect.catchTags(routeErrors),
+				),
 			),
 			router.add("GET", "/profile", (request) =>
 				SessionUser.pipe(

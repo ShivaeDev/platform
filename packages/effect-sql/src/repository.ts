@@ -13,12 +13,14 @@ import { type IdColumn, makeVersionedWrites, type NativeRepository, type Version
 type Key<TModel extends Model.Any> = Extract<keyof TModel["fields"] & keyof Row<TModel>, string>;
 type Row<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;
 
+interface OrderBy<TModel extends Model.Any> {
+	readonly direction: "asc" | "desc";
+	readonly field: Key<TModel>;
+}
+
 export interface FindMany<TModel extends Model.Any, TKey extends Key<TModel>> {
 	readonly limit?: number;
-	readonly orderBy?: {
-		readonly field: Key<TModel>;
-		readonly direction: "asc" | "desc";
-	};
+	readonly orderBy?: OrderBy<TModel> | readonly [OrderBy<TModel>, ...OrderBy<TModel>[]];
 	readonly select?: readonly [TKey, ...TKey[]];
 	readonly where?: FindManyFilter<TModel>;
 }
