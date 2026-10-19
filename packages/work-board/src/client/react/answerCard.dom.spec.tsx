@@ -31,8 +31,7 @@ for (const mode of ["fenced", "nested", "paragraphs"]) {
 		[screenWorkspace("answer-card-fixture"), routedScreen(files, url, { home: "home.md", writable: true })],
 		function* ({ findElement, readAttribute, readText, findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
-			expect(readAttribute('[name="author"]', "aria-invalid")).toBe("false");
-			expect(readText(".response-panel")).not.toContain("Add your local author label.");
+			expect(findElement('[name="author"]')).toBeNull();
 			const header = findElement(".item-introduction");
 			expect(readText("h1", header)).toBe("Publish the install guide");
 			expect(readText('[aria-label="File location"]')).toContain("Publish the install guide");
@@ -61,22 +60,13 @@ for (const mode of ["fenced", "nested", "paragraphs"]) {
 
 screenStory.it(
 	"retains an option and free text through a document query refresh and records through the existing response action",
-	[screenWorkspace("answer-card-fixture"), routedScreen({ ...answerCardFixture }, url, { home: "home.md", writable: true })],
-	function* ({
-		refreshDocument,
-		selectText,
-		readResponses,
-		answerInput,
-		click,
-		answerPrompt,
-		responseClick,
-		findElement,
-		readAttribute,
-		readFocus,
-		readText,
-	}) {
+	[
+		screenWorkspace("answer-card-fixture"),
+		storedScreenState({ "work-board:author:answer-card-fixture": "Reviewer" }),
+		routedScreen({ ...answerCardFixture }, url, { home: "home.md", writable: true }),
+	],
+	function* ({ refreshDocument, selectText, readResponses, click, answerPrompt, responseClick, findElement, readAttribute, readFocus, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(".question-choice")).not.toBeNull()));
-		answerInput("author", "Reviewer");
 		click(".question-choice label");
 		const input = answerPrompt("answer", "Use the reviewed version.");
 		selectText(input, 4, 7);
@@ -102,7 +92,7 @@ screenStory.it(
 );
 
 screenStory.it(
-	"opens a Today ask directly on the item and focuses its answer card",
+	"opens a Today ask on a read-only Board directly on the item and focuses its answer card",
 	[screenWorkspace("answer-card-fixture"), routedScreen(answerCardFixture, "/")],
 	function* ({ click, findElement, readFocus, location }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("[data-attention-row] a[title]")).not.toBeNull()));
@@ -136,13 +126,9 @@ screenStory.it(
 );
 
 screenStory.it(
-	"puts the recommendation and primary PR action above secondary human choices without initial author errors",
-	[
-		screenWorkspace("answer-card-fixture"),
-		storedScreenState({ "work-board:author:answer-card-fixture": "Last reviewer" }),
-		routedScreen(readyDecisionFixture, url, { home: "home.md", writable: true }),
-	],
-	function* ({ answerInput, responseClick, findElement, readText, findElements, readAttribute, submit }) {
+	"puts the recommendation and primary PR action above secondary human choices",
+	[screenWorkspace("answer-card-fixture"), routedScreen(readyDecisionFixture, url, { home: "home.md", writable: true })],
+	function* ({ findElement, readText, findElements, readAttribute }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
 		const card = findElement(".response-panel");
 		expect(readText(".answer-recommendation", card)).toBe("Merge the reviewed PR on GitHub.");
@@ -155,19 +141,9 @@ screenStory.it(
 			"Request changes",
 			"Stop and hand back",
 		]);
-		expect(findElement<HTMLInputElement>('[name="author"]', card)?.value).toBe("Last reviewer");
-		expect(readAttribute('[name="author"]', "aria-invalid", card)).toBe("false");
-		expect(card?.textContent).not.toContain("Add your local author label.");
 		expect(readText(".item-summary")).not.toContain("Not recorded");
 		expect(readAttribute(".item-summary [data-status-token]", "data-status-token")).toBe("needs-you");
 		expect(readText("article.doc")).not.toContain("Publish the reviewed guide");
-		answerInput("author", "");
-		responseClick("preview");
-		expect(card?.textContent).not.toContain("Add your local author label.");
-		submit("#response-form");
-		yield* Effect.promise(() => eventually(() => expect(readAttribute('[name="author"]', "aria-invalid", card)).toBe("true")));
-		yield* Effect.promise(() => eventually(() => expect(findElement('details[data-key="response-details"]', card)).toHaveProperty("open", true)));
-		expect(card?.textContent).toContain("Add your local author label.");
 	},
 );
 
@@ -201,11 +177,10 @@ screenStory.it(
 screenStory.it(
 	"moves a single answer with arrow keys from one tab stop and records the chosen option",
 	[screenWorkspace("answer-keyboard"), routedScreen(readyDecisionFixture, url, { home: "home.md", writable: true })],
-	function* ({ answerInput, findElement, focus, press, readAttribute, readFocus, readResponses, readText, responseClick }) {
+	function* ({ findElement, focus, press, readAttribute, readFocus, readResponses, readText, responseClick }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("[role='radiogroup']")).not.toBeNull()));
 		expect(readAttribute("[role='radiogroup']", "aria-labelledby")).toBe(findElement("fieldset legend")?.id);
 		expect([readAttribute("[data-choice='retry']", "tabindex"), readAttribute("[data-choice='release']", "tabindex")]).toEqual(["0", "-1"]);
-		answerInput("author", "maintainer");
 		focus("[data-choice='retry']");
 		yield* Effect.promise(() => press("ArrowDown"));
 		expect(readFocus()).toBe(findElement("[data-choice='release']"));
@@ -225,10 +200,9 @@ screenStory.it(
 screenStory.it(
 	"toggles several answers with Space and records them in the order they were chosen",
 	[screenWorkspace("answer-keyboard-many"), routedScreen(files, url, { home: "home.md", writable: true })],
-	function* ({ answerInput, findElement, focus, press, readAttribute, readResponses, readText, responseClick }) {
+	function* ({ findElement, focus, press, readAttribute, readResponses, readText, responseClick }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("[data-choice='retry']")).not.toBeNull()));
 		expect([readAttribute("[data-choice='retry']", "tabindex"), readAttribute("[data-choice='release']", "tabindex")]).toEqual(["0", "0"]);
-		answerInput("author", "maintainer");
 		focus("[data-choice='release']");
 		yield* Effect.promise(() => press(" "));
 		focus("[data-choice='retry']");

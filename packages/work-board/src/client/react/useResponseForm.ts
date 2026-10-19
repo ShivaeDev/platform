@@ -9,6 +9,7 @@ import { formDraft } from "#client/formDraft.ts";
 import { type DraftInteraction, formStatus, responseSaved } from "#client/formStatus.ts";
 import { answerRecovery, recoveryText } from "#client/responses/answerRecovery.ts";
 import { authorLabel } from "#client/responses/authorLabel.ts";
+import { draftText } from "#client/responses/draftText.ts";
 import { type ResponseInput, responseFormSchema } from "#client/responses/formSchema.ts";
 import { initialResponse } from "#client/responses/initial.ts";
 import { responsePreview } from "#client/responses/preview.ts";
@@ -19,6 +20,10 @@ import type { Metadata } from "#metadata/schema.ts";
 import { createResponse } from "./createResponse.ts";
 import { useFormClient } from "./FormContext.ts";
 
+function authorOf(label: ReturnType<typeof authorLabel>) {
+	return label.read("") || "maintainer";
+}
+
 export function useResponseForm(source: QuestionPreview, prompts: readonly Prompt[], options?: Metadata["options"], supersedes?: string) {
 	const client = useFormClient();
 	const schema = responseFormSchema(prompts.length > 0);
@@ -28,7 +33,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const [label] = useState(() =>
 		authorLabel(() => window.localStorage, typeof document === "undefined" ? undefined : document.documentElement.dataset.workspace),
 	);
-	const [initial] = useState(() => initialResponse(prompts, label.read("") || "maintainer", supersedes));
+	const [initial] = useState(() => initialResponse(prompts, authorOf(label), supersedes));
 	const draft = formDraft("response", source.item, source.request);
 	const created = useCreate({
 		create: (submission) => createResponse(client, source, submission),
@@ -42,7 +47,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const values = useAtomRef(form.values);
 	useEffect(() => {
 		if (Option.isSome(created.created)) {
-			form.receive({ ...initial, author: label.read("") || "maintainer" });
+			form.receive({ ...initial, author: authorOf(label) });
 			if (created.dirty) {
 				retainContext(form, created.created.value);
 			}
@@ -95,7 +100,6 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 			form.change("question", source.id);
 			form.change("revision", source.reviewedRevision);
 		}
-		label.save(form.values.value.author);
 		setPreview(undefined);
 		if (!created.saving) {
 			setInteraction("draft");
@@ -116,10 +120,12 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		answers: answers(values),
 		attempt: () => {
 			setAttempted(true);
+			form.change("author", authorOf(label));
 			showPreview();
 			return Schema.is(schema)(form.values.value);
 		},
 		attempted,
+		author: authorOf(label),
 		clear,
 		created: {
 			...created,
@@ -137,5 +143,6 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		recovery: recoveryText(recovery),
 		showPreview,
 		status: [stale ? sourceChanged() : "", responseFeedback(status, outcome, summary)].filter(Boolean).join(" "),
+		text: draftText(prompts, answers(values), values.body, options),
 	};
 }

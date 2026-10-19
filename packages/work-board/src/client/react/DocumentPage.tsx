@@ -10,10 +10,12 @@ import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 export function DocumentPage({ document, api }: { readonly document: Document; readonly api?: ShellApi | undefined }) {
 	const projectContent = api ? <GoalPage api={api} document={document} /> : <DocumentCriteria document={document} />;
+	const question = document.metadata.kind === "question";
 	return (
 		<DocumentView
 			actions={<ItemActions document={document} />}
-			answer={<AnswerPanel document={document} />}
+			after={question ? <AnswerPanel after document={document} /> : undefined}
+			answer={question ? undefined : <AnswerPanel document={document} />}
 			components={documentElements}
 			content={document.metadata.kind === "project" ? projectContent : undefined}
 			context={<DocumentContext document={document} />}

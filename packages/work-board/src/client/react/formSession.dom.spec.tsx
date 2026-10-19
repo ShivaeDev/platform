@@ -13,7 +13,9 @@ for (const kind of ["response", "handoff"] as const) {
 			const first = readSession();
 			yield* Effect.promise(() => eventually(() => expect(findElement(`#${kind}-form`)).not.toBeNull()));
 			const field = kind === "response" ? '[name="body"]' : '[name="goal"]';
-			input(kind === "response" ? '[name="author"]' : '[name="recipient"]', "local-reviewer");
+			if (kind === "handoff") {
+				input('[name="recipient"]', "local-reviewer");
+			}
 			input(field, "Direction before replacement");
 			restoreSession();
 			expect(readSession()).not.toBe(first);

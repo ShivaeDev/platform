@@ -13,14 +13,9 @@ export function responseSummary(values: ResponseInput, prompts: readonly Prompt[
 					return !(answer?.text.trim() || answer?.selected.length);
 				})
 			: [];
-	return [
-		values.author.trim() ? "" : "Add your local author label.",
-		missing.length > 0
-			? `Unanswered: ${missing.map((prompt) => `“${promptHeading(prompt.source).title ?? `Question ${prompts.indexOf(prompt) + 1}`}”`).join(", ")}.`
-			: "",
-	]
-		.filter(Boolean)
-		.join(" ");
+	return missing.length > 0
+		? `Unanswered: ${missing.map((prompt) => `“${promptHeading(prompt.source).title ?? `Question ${prompts.indexOf(prompt) + 1}`}”`).join(", ")}.`
+		: "";
 }
 
 export function responseFeedback(status: string, outcome: string | undefined, summary: string) {
