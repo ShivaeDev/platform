@@ -1,4 +1,5 @@
 import type { InboxProjection } from "#browser/views/schema.ts";
+import { LoadingText } from "./loading.tsx";
 import { SOURCE_PROBLEMS_ID, sourceProblemsSummary } from "./sourceProblems.ts";
 import { todayIds } from "./todayIds.ts";
 
@@ -23,9 +24,13 @@ export function TodaySummary({
 		<nav aria-label="Today summary" className="today-strip flex flex-wrap items-center gap-1 whitespace-nowrap tabular-nums sm:gap-2">
 			<a href={`#${todayIds.needs}`}>{needs === undefined ? "Needs you unavailable" : `${needs} need you`}</a>
 			<span aria-hidden="true">·</span>
-			<a href={`#${todayIds.progress}`}>{progressSummary(progress, progressFromFiles, progressUnavailable)}</a>
+			{progress === undefined && !progressUnavailable ? (
+				<LoadingText label="Loading work in progress" />
+			) : (
+				<a href={`#${todayIds.progress}`}>{progressSummary(progress, progressFromFiles)}</a>
+			)}
 			<span aria-hidden="true">·</span>
-			<a href={`#${todayIds.goals}`}>{goalsSummary(goals, goalsFailed)}</a>
+			{goals === undefined && !goalsFailed ? <LoadingText label="Loading goals" /> : <a href={`#${todayIds.goals}`}>{goalsSummary(goals)}</a>}
 			{issues.length > 0 && (
 				<>
 					<span aria-hidden="true">·</span>
@@ -38,16 +43,13 @@ export function TodaySummary({
 	);
 }
 
-function progressSummary(count: number | undefined, fromFiles: boolean, unavailable: boolean) {
-	if (count !== undefined) {
-		return fromFiles ? `${count} in progress in task files` : `${count} in progress`;
+function progressSummary(count: number | undefined, fromFiles: boolean) {
+	if (count === undefined) {
+		return "Fleet unavailable";
 	}
-	return unavailable ? "Fleet unavailable" : "Loading Fleet…";
+	return fromFiles ? `${count} in progress in task files` : `${count} in progress`;
 }
 
-function goalsSummary(count: number | undefined, failed: boolean) {
-	if (count !== undefined) {
-		return `${count} active ${count === 1 ? "goal" : "goals"}`;
-	}
-	return failed ? "Goals unavailable" : "Loading goals…";
+function goalsSummary(count: number | undefined) {
+	return count === undefined ? "Goals unavailable" : `${count} active ${count === 1 ? "goal" : "goals"}`;
 }

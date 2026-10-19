@@ -47,8 +47,11 @@ screenStory.it(
 	},
 );
 
-screenStory.it("omits an empty closed section and keeps the empty active state", [goalsScreen({})], ({ read, findElement }) => {
-	expect(read().text).toContain("No active goals.");
+screenStory.it("omits an empty closed section and keeps the empty active state", [goalsScreen({})], ({ findElement, readText }) => {
+	expect(readText('[data-slot="empty-title"]')).toBe("No active goals");
+	expect(readText('[data-slot="empty-description"]')).toBe("A goal appears here when a file in this workspace declares one.");
+	expect(readText('[data-slot="empty"] a[href="/_board/start"]')).toBe("Getting started");
+	expect(findElement("[data-page-summary]")).toBeNull();
 	expect(findElement("details")).toBeNull();
 });
 

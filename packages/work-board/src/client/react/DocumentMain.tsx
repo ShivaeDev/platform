@@ -6,6 +6,7 @@ import type { Document } from "#browser/document/schema.ts";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "#client/react/components/ui/empty.tsx";
 import { DocumentPage } from "./DocumentPage.tsx";
 import { LinkButton } from "./LinkButton.tsx";
+import { LoadingPage } from "./LoadingPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionMain } from "./ProjectionMain.tsx";
 import { RemainingMain } from "./RemainingMain.tsx";
@@ -45,12 +46,10 @@ export function DocumentMain({
 	return (
 		<>
 			<main className="document-view min-w-0 p-4 md:p-8" data-file="" data-react-document data-url="" id={shellIds.doc} ref={hostRef} tabIndex={-1}>
-				{data ? <DocumentPage api={api} document={data} key={data.identity ?? data.file} /> : null}
-				{!data && failure?._tag === "NotFound" && <MissingPage url={url} />}
-				{!(data || failure?._tag === "NotFound") && (
-					<p className="empty" role="status">
-						{loadingMessage(failure?._tag, Option.isSome(query.cause))}
-					</p>
+				{data ? (
+					<DocumentPage api={api} document={data} key={data.identity ?? data.file} />
+				) : (
+					<NoDocument failed={Option.isSome(query.cause)} tag={failure?._tag} url={url} />
 				)}
 			</main>
 			{data !== undefined && Option.isSome(query.cause) && <p role="status">Refresh failed. Your displayed page is retained.</p>}
@@ -66,11 +65,20 @@ function readStatus(tag: string | undefined, failed: boolean) {
 	}
 	return failed ? "503" : "200";
 }
-function loadingMessage(tag: string | undefined, failed: boolean) {
-	if (tag === "Conflict") {
-		return "The document identity is duplicated. No document was selected. Inspect the project files to resolve the duplicate ID.";
+function NoDocument({ failed, tag, url }: { readonly failed: boolean; readonly tag: string | undefined; readonly url: string }) {
+	if (tag === "NotFound") {
+		return <MissingPage url={url} />;
 	}
-	return failed ? "This document could not be opened. Retry the link or reload the page." : "Opening document…";
+	if (!failed) {
+		return <LoadingPage />;
+	}
+	return (
+		<p className="empty" role="status">
+			{tag === "Conflict"
+				? "The document identity is duplicated. No document was selected. Inspect the project files to resolve the duplicate ID."
+				: "This document could not be opened. Retry the link or reload the page."}
+		</p>
+	);
 }
 function MissingPage({ url }: { readonly url: string }) {
 	const pathname = new URL(url, "http://127.0.0.1").pathname;

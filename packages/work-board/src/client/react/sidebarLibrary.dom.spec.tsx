@@ -77,9 +77,9 @@ screenStory.it(
 		yield* Effect.promise(() => navigate("/_board/library"));
 		yield* Effect.promise(() => eventually(() => expect(readText('#doc a[href="/notes/slug.md"]')).toBe("A readable title")));
 		expect(findElement('#doc a[href="/responses/decision.md"]')).toBeNull();
-		expect(readText("#doc")).toContain("Show Fleet records (1)");
+		expect(readText("#doc")).toContain("Include files Fleet writes (1)");
 		const [kind, status] = findElements('#doc [role="combobox"]');
-		yield* Effect.promise(() => chooseOption(kind, "task"));
+		yield* Effect.promise(() => chooseOption(kind, "Task"));
 		yield* Effect.promise(() => eventually(() => expect(findElement('#doc a[href="/question.md"]')).toBeNull()));
 		yield* Effect.promise(() => chooseOption(status, "Active"));
 		yield* Effect.promise(() => eventually(() => expect(findElements("#doc li a")).toHaveLength(1)));
@@ -88,7 +88,7 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(findElement('#doc a[href="/question.md"]')).not.toBeNull()));
 		click('#doc [role="checkbox"]');
 		yield* Effect.promise(() => eventually(() => expect(readText('#doc a[href="/responses/decision.md"]')).toBe("Fleet delivery decision")));
-		click([...findElements('#doc [role="group"] button')].find((button) => button.textContent === "Folders"));
+		click([...findElements('#doc [role="group"] button')].find((button) => button.textContent === "By folder"));
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc summary")).toContain("notes")));
 		expect(findElement('#doc a[href="/notes/slug.md"]')).toBeNull();
 		openDetails("#doc details");

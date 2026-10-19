@@ -1,15 +1,38 @@
-import { useContext } from "react";
+import { type ReactNode, useContext } from "react";
+import { EmptyState } from "#client/react/EmptyState.tsx";
 import { type Item, LibraryContext } from "#client/react/LibraryContext.ts";
 import { fileUrl } from "#files/url.ts";
 
 export function PinnedLinks({ current }: { readonly current: string }) {
 	const reading = useContext(LibraryContext);
-	return <ReadingLinks current={current} empty="Pin a document to keep it here." items={reading.favorites} title="Pinned" />;
+	return (
+		<ReadingLinks
+			current={current}
+			empty={
+				<EmptyState compact title="No pinned documents">
+					Pin a document to keep it here.
+				</EmptyState>
+			}
+			items={reading.favorites}
+			title="Pinned"
+		/>
+	);
 }
 
 export function RecentLinks({ current }: { readonly current: string }) {
 	const reading = useContext(LibraryContext);
-	return <ReadingLinks current={current} empty="No recent documents." items={reading.recents.slice(0, 5)} title="Recent" />;
+	return (
+		<ReadingLinks
+			current={current}
+			empty={
+				<EmptyState compact title="No recent documents">
+					Documents you open appear here.
+				</EmptyState>
+			}
+			items={reading.recents.slice(0, 5)}
+			title="Recent"
+		/>
+	);
 }
 
 function ReadingLinks({
@@ -19,7 +42,7 @@ function ReadingLinks({
 	current,
 }: {
 	readonly title: string;
-	readonly empty: string;
+	readonly empty: ReactNode;
 	readonly items: readonly Item[];
 	readonly current: string;
 }) {
@@ -40,7 +63,7 @@ function ReadingLinks({
 					</li>
 				))}
 			</ul>
-			{items.length === 0 && <p className="px-2 text-muted-foreground text-xs">{empty}</p>}
+			{items.length === 0 && empty}
 		</section>
 	);
 }

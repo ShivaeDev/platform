@@ -2,6 +2,7 @@ import { useId } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { CriterionClaims } from "./DocumentCriteria.tsx";
+import { EmptyState } from "./EmptyState.tsx";
 import { GoalProgressSummary } from "./GoalProgressSummary.tsx";
 import { GoalWorkLink, GoalWorkStatus } from "./GoalWorkTable.tsx";
 import { type GoalWorkItem, targetsGoal } from "./goalWork.ts";
@@ -18,7 +19,9 @@ export function GoalCriteria({ document, items, progress }: Props) {
 	return (
 		<section aria-labelledby={headingId} data-goal-section="criteria">
 			<h2 id={headingId}>Criteria and recorded evidence</h2>
-			{criteria.length === 0 && <p>No criteria recorded.</p>}
+			{criteria.length === 0 && (
+				<EmptyState title="No criteria">This goal lists no criteria yet. Add them to the goal file to track evidence for each one.</EmptyState>
+			)}
 			{keyed(criteria, (criterion) => criterion.id).map(({ key, index }) => (
 				<Criterion document={document} index={index} items={items} key={key} progress={progress} />
 			))}

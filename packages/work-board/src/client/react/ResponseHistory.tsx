@@ -3,6 +3,7 @@ import { chosenLabels } from "#browser/responses/cardContext.ts";
 import type { RecordedResponse } from "#browser/responses/schema.ts";
 import { Age } from "./Age.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
+import { EmptyState } from "./EmptyState.tsx";
 import { shellIds } from "./shellIds.ts";
 
 const KINDS = { "answer": "answered", "clarify": "asked back", "not_now": "said not now" } as const;
@@ -20,7 +21,7 @@ export function ResponseHistory({
 		<section className="space-y-3 border-t pt-4" id={id}>
 			<h2 className="font-medium text-sm">Recorded responses</h2>
 			{records.length === 0 ? (
-				<p className="text-muted-foreground text-sm">No response is recorded yet.</p>
+				<EmptyState title="No responses yet">Answers recorded for this question appear here.</EmptyState>
 			) : (
 				records.map((record) => (
 					<ResponseEntry current={record.response.question === preview?.id} key={record.id} record={record} request={request} />

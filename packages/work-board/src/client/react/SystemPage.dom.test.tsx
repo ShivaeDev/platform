@@ -22,7 +22,7 @@ import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 			expect(findElement('[data-source="github"]')).not.toBeNull();
 			expect(readText('[data-fleet-id="task.sample.0"]')).toContain("Workspace task 0");
 			expect(readAttribute('[aria-label="Pull request for Workspace task 0"]', "href")).toBe("https://github.com/example/project/pull/1");
-			for (const stage of ["prepared", "executing", "adopting", "reviewing", "repairing", "validating", "delivering", "needs-human"]) {
+			for (const stage of ["Queued", "Executing", "Adopting", "Reviewing", "Repairing", "Validating", "Delivering", "Waiting"]) {
 				expect(readText('[aria-label="Fleet work"]')).toContain(stage);
 			}
 			expect(readText('[data-fleet-id="task.needs-human"]')).toContain("Needs you");
@@ -42,7 +42,7 @@ import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 		({ read, findElement, findElements }) => {
 			const row = findElement('[data-fleet-id="task.sample.0"]');
 			expect(row?.textContent).toContain("Workspace task 0");
-			expect(row?.textContent).toContain("executing");
+			expect(row?.textContent).toContain("Executing");
 			expect(findElements("a", row)).toHaveLength(1);
 			expect(findElement('[aria-label^="Pull request"]')).toBeNull();
 			expect(read().text).not.toMatch(/not recorded/iu);
@@ -61,12 +61,14 @@ for (const fleet of [
 			const lane = findElement('[aria-label="Fleet work"]');
 			let message = "Loading Fleet work";
 			if (fleet?.state === "ready") {
-				message = "No running or waiting";
+				message = "No Fleet work";
 			}
 			if (fleet?.state === "unavailable") {
 				message = "Daemon disconnected";
 			}
 			expect(lane?.textContent).toContain(message);
+			expect(findElements('[data-slot="skeleton"]', lane).length > 0).toBe(fleet === undefined);
+			expect(findElement('[data-slot="empty"]', lane) !== null).toBe(fleet?.state === "ready");
 			expect(findElements("[data-fleet-id]", lane)).toHaveLength(0);
 		},
 	);

@@ -1,29 +1,33 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { inProgress, type ProgressRow as Row } from "#browser/views/inProgress.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
+import { EmptyState } from "./EmptyState.tsx";
 import { FleetStopped } from "./FleetStopped.tsx";
+import { LoadingRows } from "./loading.tsx";
 
 export function TodayProgress({ data, failed }: { readonly data: FleetItemsProjection | undefined; readonly failed: boolean }) {
 	const progress = inProgress(data);
 	const source = progress?.source === "files" ? "Task file" : "Fleet";
 	return (
 		<div className="space-y-3">
+			{data === undefined && !failed && <LoadingRows label="Loading work in progress" />}
 			{data?.state === "unavailable" && data.startCommand !== undefined ? (
 				<FleetStopped command={data.startCommand} reason={data.reason}>
 					{progress?.source === "files" && <p className="m-0 text-muted-foreground">Status comes from the task files, not live Fleet.</p>}
 				</FleetStopped>
 			) : (
-				progress?.source !== "fleet" && (
+				progress?.source !== "fleet"
+				&& (data !== undefined || failed) && (
 					<div className="text-muted-foreground text-sm" role="status">
-						<p className="m-0">{unavailable(data, failed)}</p>
+						<p className="m-0">{unavailable(data)}</p>
 						{progress?.source === "files" && <p className="m-0">Status comes from the task files, not live Fleet.</p>}
 					</div>
 				)
 			)}
 			{progress?.rows.length === 0 && (
-				<p className="text-muted-foreground text-sm">
-					{progress.source === "files" ? "No task file marks work in progress." : "Fleet holds no work in progress."}
-				</p>
+				<EmptyState title="No work in progress">
+					{progress.source === "files" ? "No task file marks work in progress." : "Fleet is not working on anything right now."}
+				</EmptyState>
 			)}
 			{progress !== undefined && progress.rows.length > 0 && (
 				<ul aria-label="In progress" className="m-0 list-none divide-y rounded-lg border border-border p-0" data-progress-source={progress.source}>
@@ -62,9 +66,9 @@ function ProgressRow({ item, source }: { readonly item: Row; readonly source: st
 	);
 }
 
-function unavailable(data: FleetItemsProjection | undefined, failed: boolean) {
+function unavailable(data: FleetItemsProjection | undefined) {
 	if (data?.state === "unavailable") {
 		return `Fleet unavailable. ${data.reason}`;
 	}
-	return failed ? "Fleet work unavailable." : "Loading Fleet work…";
+	return "Fleet work unavailable.";
 }
