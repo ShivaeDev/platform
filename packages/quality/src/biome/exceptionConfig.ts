@@ -56,9 +56,10 @@ export async function withExceptionConfig<TValue>(
 	}
 	const previousIncludes = Array.isArray(files.includes) ? files.includes : ["**"];
 	const previousOverrides = Array.isArray(own.overrides) ? own.overrides : [];
+	// Biome also matches a wildcard-led glob such as `!**/.worktrees` against the folders above the root, which ignores a whole linked worktree.
 	const generated = {
 		...own,
-		files: { ...files, includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), "!**/.worktrees", `!${name}`] },
+		files: { ...files, includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), "!.worktrees", `!${name}`] },
 		overrides: [...previousOverrides, ...overrides],
 	};
 	try {
