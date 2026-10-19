@@ -1,3 +1,4 @@
+import { matchOrder, nameMatch, type SearchMatch } from "#browser/search/nameMatch.ts";
 import type { Entry } from "./entries.ts";
 import { searchSnippet } from "./snippet.ts";
 
@@ -12,16 +13,8 @@ function resultType(entry: Entry): number {
 	return entry.record ? 2 : 1;
 }
 
-function words(text: string): string {
-	return normalize(text)
-		.replace(/[^\p{L}\p{N}]+/gu, " ")
-		.trim();
-}
-
-function exactMatch(entry: Entry, phrase: string): boolean {
-	const wanted = words(phrase);
-	const names = [entry.title, entry.id ?? "", entry.id?.split(".").at(-1) ?? ""];
-	return Boolean(wanted) && names.some((name) => words(name) === wanted);
+function nameFirst(match: SearchMatch): number {
+	return Math.min(matchOrder(match), matchOrder("title"));
 }
 
 function relevance(entry: Entry, terms: readonly string[], phrase: string, text: string) {
@@ -29,11 +22,8 @@ function relevance(entry: Entry, terms: readonly string[], phrase: string, text:
 	const document = entry.kind === "document";
 	const titleMatch = document && terms.every((term) => identity.includes(term));
 	const ranks = { document: 2, heading: 4, passage: 6 };
-	return {
-		exact: document && exactMatch(entry, phrase) ? 0 : 1,
-		rank: (entry.record ? 10 : 0) + ranks[entry.kind] + (text.includes(phrase) ? 0 : 1),
-		title: titleMatch ? 0 : 1,
-	};
+	const match: SearchMatch = (document ? nameMatch(entry.title, entry.id, phrase) : undefined) ?? (titleMatch ? "title" : "text");
+	return { match, rank: (entry.record ? 10 : 0) + ranks[entry.kind] + (text.includes(phrase) ? 0 : 1) };
 }
 
 function located(entry: Entry) {
@@ -59,20 +49,24 @@ export function searchMatch(entries: readonly Entry[], query: string, modified: 
 			const source = entry.kind === "document" ? entry.title : entry.text;
 			const snippet = searchSnippet(source, terms[0] ?? "");
 			const item = entry.kind === "document" ? undefined : items.get(entry.file);
-			return (item ? [item, entry] : [entry]).map((result) => ({
-				...relevance(result, terms, phrase, text),
-				entry: { ...result, ...located(entry), snippet: normalize(source) === normalize(result.title) ? "" : snippet },
-				group: result.inactive ? 1 : 0,
-				modified: modified.get(result.file) ?? 0,
-				order,
-				type: resultType(result),
-			}));
+			return (item ? [item, entry] : [entry]).map((result) => {
+				const { match, rank } = relevance(result, terms, phrase, text);
+				return {
+					entry: { ...result, ...located(entry), match, snippet: normalize(source) === normalize(result.title) ? "" : snippet },
+					group: result.inactive ? 1 : 0,
+					match,
+					modified: modified.get(result.file) ?? 0,
+					order,
+					rank,
+					type: resultType(result),
+				};
+			});
 		})
 		.sort(
 			(left, right) =>
-				left.type - right.type
-				|| left.exact - right.exact
-				|| left.title - right.title
+				nameFirst(left.match) - nameFirst(right.match)
+				|| left.type - right.type
+				|| matchOrder(left.match) - matchOrder(right.match)
 				|| left.group - right.group
 				|| right.modified - left.modified
 				|| left.rank - right.rank

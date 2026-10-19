@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { useId, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
-import { sentenceLabel, statusLabel } from "#browser/views/statusLabel.ts";
+import { kindLabel, statusLabel } from "#browser/views/statusLabel.ts";
 import { Checkbox } from "#client/react/components/ui/checkbox.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#client/react/components/ui/select.tsx";
@@ -27,7 +27,7 @@ export function LibraryPage({ api, url = "/_board/library" }: { readonly api: Sh
 		<div className="max-w-5xl">
 			<PageHeader summary="Every document in this workspace. Filter by kind or status, or browse by folder." title="Library" />
 			<div className="my-6 flex flex-wrap items-end gap-4">
-				<Filter label="Kind" name={sentenceLabel} onChange={setKind} options={data?.kinds ?? []} value={kind} />
+				<Filter label="Kind" name={kindLabel} onChange={setKind} options={data?.kinds ?? []} value={kind} />
 				<Filter label="Status" name={statusLabel} onChange={setStatus} options={data?.statuses ?? []} value={status} />
 				<ViewToggle onChange={setView} view={view} />
 				<div className="flex h-7 items-center gap-2">
