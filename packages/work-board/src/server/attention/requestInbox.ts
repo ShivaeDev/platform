@@ -1,9 +1,19 @@
+import { promptHeading } from "#browser/responses/cardContext.ts";
 import { responseUrl } from "#responses/url.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
-import { answerSummary } from "./answerSummary.ts";
+import { answerSummary, requestPrompts } from "./answerSummary.ts";
 import { answeredQuestion } from "./questionState.ts";
 import { type AttentionEntry, attentionRequests, isMaintainerRequest } from "./requests.ts";
 import { closedItem, deferredItem } from "./status.ts";
+
+function fleetAsks(entry: AttentionEntry): string {
+	const [prompt, ...others] = requestPrompts(entry);
+	const question = prompt && others.length === 0 ? promptHeading(prompt.source).title : undefined;
+	if (!question) {
+		return `Fleet asks: ${entry.request.reason}`;
+	}
+	return `Fleet asks: ${/^\p{Lu}\p{Ll}/u.test(question) ? question.charAt(0).toLowerCase() + question.slice(1) : question}`;
+}
 
 function activeKey(entry: AttentionEntry, ids: readonly string[], maintainer = "maintainer"): string {
 	const audience = isMaintainerRequest(entry.request, maintainer) ? "you" : "agents";
@@ -49,7 +59,7 @@ function collectInbox(snapshot: Snapshot) {
 			id: target?.parsed.fields.id ?? entry.itemId,
 			modified: snapshot.modified.get(entry.document.file),
 			problem: entry.problem,
-			reason: entry.request.managed ? `Managed decision: ${entry.request.reason}` : entry.request.reason,
+			reason: entry.request.managed ? fleetAsks(entry) : entry.request.reason,
 			request: entry.request.id,
 			responseFrom: entry.request.responseFrom,
 			title: (target ? titles.get(target.file) : undefined) ?? entry.title,

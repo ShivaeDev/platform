@@ -33,6 +33,7 @@ screenStory.it(
 		chromeScreen(
 			{ "home.md": "# Home", "other.md": inboxQuestion.replace("question.storage", "question.backup"), "question.md": inboxQuestion },
 			"/question.md",
+			{ writable: true },
 		),
 	],
 	function* ({ findElement, findElements, navigate }) {

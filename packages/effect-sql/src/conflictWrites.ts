@@ -3,6 +3,7 @@ import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { type InsertMany, makeInsertMany } from "#batchWrites.ts";
+import { makeFilter } from "#repositoryFilter.ts";
 import type { RepositoryChanges } from "./repositoryChanges.ts";
 
 export type InsertColumn<TModel extends Model.Any> = Extract<keyof TModel["insert"]["Type"] & keyof TModel["fields"], string>;
@@ -13,16 +14,27 @@ interface UpdateOptions<TModel extends Model.Any, TExcluded extends PropertyKey>
 		...Exclude<InsertColumn<TModel> & keyof TModel["update"]["Type"], TExcluded>[],
 	];
 }
-export interface ConflictWrites<TModel extends Model.Any, TExcluded extends PropertyKey> {
-	readonly insertManyOrIgnore: InsertMany<TModel>;
+export interface ConflictWrites<TModel extends Model.Any, TExcluded extends PropertyKey, TFilterServices = never> {
+	readonly insertManyOrIgnore: InsertMany<TModel, TFilterServices>;
 	readonly insertOrIgnore: (
 		input: TModel["insert"]["Type"],
-	) => Effect.Effect<Option.Option<TModel["Type"]>, SqlError | Schema.SchemaError, TModel["insert"]["EncodingServices"] | TModel["DecodingServices"]>;
+	) => Effect.Effect<
+		Option.Option<TModel["Type"]>,
+		SqlError | Schema.SchemaError,
+		TModel["insert"]["EncodingServices"] | TModel["DecodingServices"] | TFilterServices
+	>;
 	readonly upsert: (
 		input: TModel["insert"]["Type"],
 		options: UpdateOptions<TModel, TExcluded>,
-	) => Effect.Effect<TModel["Type"], SqlError | Schema.SchemaError, TModel["insert"]["EncodingServices"] | TModel["DecodingServices"]>;
-	readonly upsertMany: (inputs: readonly TModel["insert"]["Type"][], options: UpdateOptions<TModel, TExcluded>) => ReturnType<InsertMany<TModel>>;
+	) => Effect.Effect<
+		TModel["Type"],
+		SqlError | Schema.SchemaError,
+		TModel["insert"]["EncodingServices"] | TModel["DecodingServices"] | TFilterServices
+	>;
+	readonly upsertMany: (
+		inputs: readonly TModel["insert"]["Type"][],
+		options: UpdateOptions<TModel, TExcluded>,
+	) => ReturnType<InsertMany<TModel, TFilterServices>>;
 }
 
 export function makeConflictWrites(
@@ -33,10 +45,12 @@ export function makeConflictWrites(
 		readonly tableName: string;
 		readonly spanPrefix: string;
 		readonly conflictColumns: readonly string[];
+		readonly conflictWhere?: Readonly<Record<string, unknown>>;
 		readonly idColumns: readonly string[];
 	},
 ) {
 	const { tableName, spanPrefix, conflictColumns, idColumns } = options;
+	const filter = makeFilter(model, sql);
 	const encode = Schema.encodeEffect(model.insert);
 	const decode = Schema.decodeUnknownEffect(model);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
@@ -64,11 +78,12 @@ export function makeConflictWrites(
 				yield* validateColumns(encoded, updateColumns, [...idColumns, ...conflictColumns, ...immutable]);
 			}
 			const conflict = sql.csv(conflictColumns.map((column) => sql`${sql(column)}`));
+			const where = options.conflictWhere === undefined ? sql`` : sql`where ${yield* filter.where(options.conflictWhere)}`;
 			const action =
 				updateColumns === undefined
 					? sql`do nothing`
 					: sql`do update set ${sql.csv(updateColumns.map((column) => sql`${sql(column)} = excluded.${sql(column)}`))}`;
-			return sql`on conflict (${conflict}) ${action}`;
+			return sql`on conflict (${conflict}) ${where} ${action}`;
 		});
 	}
 	function statement(input: unknown, updateColumns?: readonly string[]) {

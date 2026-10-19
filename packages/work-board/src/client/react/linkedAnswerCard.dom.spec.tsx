@@ -50,17 +50,15 @@ for (const url of ["/guide.md", "/_board/item/task.guide/"]) {
 }
 
 screenStory.it(
-	"uses the decision's authored options on the task page and shows one read-only instruction",
-	[routedScreen(answerCardFixture, "/guide.md")],
-	function* ({ findElement, findElements, readText }) {
+	"uses the decision's authored options on the task page",
+	[routedScreen(answerCardFixture, "/guide.md", { home: "home.md", writable: true })],
+	function* ({ findElement, findElements }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
 		expect([...findElements(".question-choice")].map((button) => button.textContent)).toEqual([
 			"Publish nowRecommendedShip the reviewed guide with this release.",
 			"Wait for reviewKeep the work blocked until another review.",
 		]);
-		expect(readText("#response-status")).toBe("This Board is read-only. Start it with --responses to record answers.");
-		expect(findElement("#response-submit")).toHaveProperty("disabled", true);
-		expect(findElements('.response-panel [role="status"]')).toHaveLength(1);
+		expect(findElement("#response-submit")).toHaveProperty("disabled", false);
 	},
 );
 

@@ -10,16 +10,13 @@ import { labelledCombobox } from "#test/workScreens.ts";
 expectNoReactWarnings();
 
 screenStory.it(
-	"leaves status chips off Today rows whose heading already names their state, keeping id, age and Answer",
+	"leaves status chips off Today rows whose heading already names their state, keeping their age",
 	[todayScreen(), openScreen()],
-	function* ({ findElement, findElements, readText }) {
+	function* ({ findElements, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElements("ul[aria-label='Needs you'] > li").length).toBeGreaterThan(0)));
 		expect(findElements(".today-row [data-status-token]")).toHaveLength(0);
 		for (const row of findElements("ul[aria-label='Needs you'] > li")) {
-			const id = row.dataset.attentionId ?? "";
-			expect(readText(".font-mono", row)).toBe(id);
 			expect(readText(".tabular-nums", row)).not.toBe("");
-			expect(findElement("[aria-label^='Answer ']", row)?.textContent).toBe("Answer");
 		}
 		expect(readText("#needs-you")).not.toContain("needs-you");
 	},

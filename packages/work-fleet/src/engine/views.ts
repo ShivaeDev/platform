@@ -1,7 +1,15 @@
 import { waitingOwner } from "#attention.ts";
 import { recoveryStatus } from "#engine/recoveryStatus.ts";
 import type { Attempt, FleetRecord, FleetViews } from "#model.ts";
-export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
+
+type ViewAttempt = Pick<Attempt, "receipt" | "briefSteers" | "stallRecovery" | "progress" | "overLimit" | "status" | "publishedRecovery" | "output">;
+type ViewRecord = Pick<FleetRecord, "workId" | "stage" | "attentionOwner" | "blocker" | "decision" | "outcome" | "launchRetry" | "result"> & {
+	readonly attempts: readonly ViewAttempt[];
+	readonly checks?: Pick<NonNullable<FleetRecord["checks"]>, "pending"> | undefined;
+	readonly report?: Pick<NonNullable<FleetRecord["report"]>, "sourcePath"> | undefined;
+};
+
+export function views(records: readonly ViewRecord[]): typeof FleetViews.Type {
 	const items = records
 		.filter((record) => record.stage !== "released" || waitingOwner(record) !== undefined)
 		.map((record) => ({
@@ -30,7 +38,7 @@ export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 	};
 }
 
-function sessionView(attempt: Attempt) {
+function sessionView(attempt: ViewAttempt) {
 	return attempt.receipt === undefined
 		? []
 		: [
@@ -45,6 +53,6 @@ function sessionView(attempt: Attempt) {
 			];
 }
 
-function launchedOverLimit(record: FleetRecord) {
+function launchedOverLimit(record: ViewRecord) {
 	return record.attempts.some((attempt) => attempt.overLimit === true && ["submitting", "accepted", "running"].includes(attempt.status));
 }

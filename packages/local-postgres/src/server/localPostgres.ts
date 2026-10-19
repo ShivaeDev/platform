@@ -3,6 +3,7 @@ import { env } from "node:process";
 import { ensureConnections } from "./localConnections.ts";
 import { sqlInContainer, startContainer } from "./localContainer.ts";
 import { type DockerEnvironment, docker } from "./localDocker.ts";
+import { PostgresVersionMismatch } from "./PostgresVersionMismatch.ts";
 
 export const localServer = "postgresql://postgres:postgres@127.0.0.1:55432";
 
@@ -80,7 +81,7 @@ export function localPostgres(environment: DockerEnvironment, { attempts = 30, d
 		}
 		function confirmVersion(observed: string | undefined) {
 			if (observed !== "18.6") {
-				throw new Error("Expected local PostgreSQL 18.6. Check the existing service; setup never removes containers or data.");
+				throw new PostgresVersionMismatch(observed);
 			}
 		}
 		let version: string | undefined;

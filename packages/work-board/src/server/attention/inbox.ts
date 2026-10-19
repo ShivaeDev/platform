@@ -3,12 +3,11 @@ import { responseUrl } from "#responses/url.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { ownerNote } from "./ownerNote.ts";
 import { answeredQuestion } from "./questionState.ts";
 import { requestInbox } from "./requestInbox.ts";
 import { isMaintainerRequest } from "./requests.ts";
 import { closedItem, deferredItem } from "./status.ts";
-
-const automation = /^(?:codex|claude|fleet|orchestrator|agent|automation|bot|copilot)(?:$|[-_. /])/iu;
 
 export function openItem(document: MetadataDocument): boolean {
 	return !closedItem(document);
@@ -45,10 +44,7 @@ function attentionReason(document: MetadataDocument, model: MetadataModel, maint
 	if (authoredQuestion(document)) {
 		return fields.nextAction ?? "A question needs your answer";
 	}
-	if (fields.owner && fields.nextAction && !automation.test(fields.owner.trim())) {
-		return `${fields.owner}: ${fields.nextAction}`;
-	}
-	return undefined;
+	return ownerNote(fields, maintainer);
 }
 
 function identityProblem(document: MetadataDocument, model: MetadataModel): string | undefined {

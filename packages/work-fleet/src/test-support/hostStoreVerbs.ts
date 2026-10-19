@@ -3,6 +3,7 @@ import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { FleetRecord } from "#model.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
+import { storeRecords } from "#test/storeState.ts";
 
 export function hostStoreVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
@@ -33,5 +34,9 @@ export function hostStoreVerbs(engine: HostStoryEngine, tell: (line: string) => 
 			return engine.store(workId, record);
 		},
 		storedRecord: (workId: string) => engine.fleet.get(workId),
+		storeRecords: (records: readonly FleetRecord[]) => {
+			tell(`store ${records.length} durable work records`);
+			return storeRecords(engine.fixture.host, records).pipe(Effect.provideContext(engine.running.context));
+		},
 	};
 }

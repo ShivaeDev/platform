@@ -114,7 +114,7 @@ The shared baseline is PostgreSQL 18.6 on loopback port 55432. Docker preparatio
 postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
 ```
 
-A newly created container uses username and password `postgres`; connection URLs supply credentials for client commands. Setup stops when a running service reports a version other than 18.6 and never replaces it; upgrading it while preserving its data is your job. No test covers that running-version check. Container preparation and container-client fallback also check the managed image; a successful host-`psql` version probe does not inspect that image.
+A newly created container uses username and password `postgres`; connection URLs supply credentials for client commands. Setup refuses a running version other than 18.6 with `PostgresVersionMismatch` from `@shivaedev/local-postgres/PostgresVersionMismatch.ts`. The error carries `_tag: "PostgresVersionMismatch"`, `expectedVersion` and `observedVersion`. A running PostgreSQL 17 service is refused without losing its existing rows; upgrading it while preserving its data is your job. Container preparation and container-client fallback also check the managed image; a successful host-`psql` version probe does not inspect that image.
 
 Pass the process's actual Docker settings to `localPostgres`, as `process.env` in the examples does. With `DOCKER_CONTEXT`, endpoint validation uses that context and ignores `DOCKER_HOST`; otherwise it validates `DOCKER_HOST` or the active context. Remote endpoints are rejected before a Docker operation. Docker subprocesses inherit the process environment. Supplying a different object does not configure those subprocesses.
 

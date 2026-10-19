@@ -17,7 +17,15 @@ export const authorizeResolution = Effect.fn("Fleet.authorizeResolution")(functi
 	if (executing(record)) {
 		return yield* Effect.fail(new Forbidden({ message: "Confirm terminal execution before releasing ownership" }));
 	}
-	if (record.result?.kind === "change" && record.decision?.code !== "pr-closed") {
+	if (record.result?.kind === "change" && !closedPrDecision(record)) {
 		yield* state.store.reserveForeign(record.result.pr, { backlog: true, executing: false });
 	}
 });
+
+function closedPrDecision(record: FleetRecord): boolean {
+	return (
+		record.decision?.code === "pr-closed"
+		|| (record.decision?.code === "fleet-invalid"
+			&& record.decision.reason === "PR was closed without merging; inspect the closed PR before retrying or releasing this work")
+	);
+}

@@ -28,7 +28,7 @@ for (const mode of ["fenced", "nested", "paragraphs"]) {
 	}
 	screenStory.it(
 		`renders a managed decision with a ${mode} reason once below its header and uses the unblocked item's title`,
-		[screenWorkspace("answer-card-fixture"), routedScreen(files, url)],
+		[screenWorkspace("answer-card-fixture"), routedScreen(files, url, { home: "home.md", writable: true })],
 		function* ({ findElement, readAttribute, readText, findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
 			expect(readAttribute('[name="author"]', "aria-invalid")).toBe("false");
@@ -140,7 +140,7 @@ screenStory.it(
 	[
 		screenWorkspace("answer-card-fixture"),
 		storedScreenState({ "work-board:author:answer-card-fixture": "Last reviewer" }),
-		routedScreen(readyDecisionFixture, url),
+		routedScreen(readyDecisionFixture, url, { home: "home.md", writable: true }),
 	],
 	function* ({ answerInput, responseClick, findElement, readText, findElements, readAttribute, submit }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
@@ -175,7 +175,7 @@ for (const heading of ["### Release ownership", ""]) {
 	const files = { ...readyDecisionFixture, [decisionFile]: (readyDecisionFixture[decisionFile] ?? "").replace("### Stop and hand back", heading) };
 	screenStory.it(
 		`uses an option heading or capitalised id: ${heading}`,
-		[screenWorkspace("answer-card-fixture"), routedScreen(files, url)],
+		[screenWorkspace("answer-card-fixture"), routedScreen(files, url, { home: "home.md", writable: true })],
 		function* ({ findElements }) {
 			yield* Effect.promise(() => eventually(() => expect(findElements(".question-choice strong")).toHaveLength(2)));
 			expect(findElements(".question-choice strong")[1]?.textContent).toBe(heading ? "Release ownership" : "Release");
@@ -186,7 +186,7 @@ for (const heading of ["### Release ownership", ""]) {
 const files = { ...readyDecisionFixture, [decisionFile]: (readyDecisionFixture[decisionFile] ?? "").replace('select="one"', 'select="many"') };
 screenStory.it(
 	"toggles option checkboxes when several choices are allowed",
-	[screenWorkspace("answer-card-fixture"), routedScreen(files, url)],
+	[screenWorkspace("answer-card-fixture"), routedScreen(files, url, { home: "home.md", writable: true })],
 	function* ({ click, findElement, readAttribute }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(".question-choice")).not.toBeNull()));
 		expect(findElement("[role='radio']")).toBeNull();

@@ -11,7 +11,7 @@ boardStory.it(
 		for (const path of ["/plan.md", "/evidence.md"]) {
 			expect((yield* get(path)).body).toContain("data-board-react-root");
 		}
-		expect(yield* viewHtml("/_board/start")).toContain("Project and report templates");
+		expect(yield* viewHtml("/_board/start")).toMatch(/>Templates<\/h1>/u);
 		for (const path of ["/plan.md", "/_board/react.js"]) {
 			expect((yield* get(path, "untrusted.example")).status).toBe(403);
 		}
