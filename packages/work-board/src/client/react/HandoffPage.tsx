@@ -4,6 +4,7 @@ import { statusLabel } from "#browser/views/statusLabel.ts";
 import { Alert, AlertDescription, AlertTitle } from "#client/react/components/ui/alert.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { fileUrl } from "#files/url.ts";
+import { Age } from "./Age.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { HandoffForm } from "./HandoffForm.tsx";
 import { HandoffPrompt } from "./HandoffPrompt.tsx";
@@ -39,7 +40,7 @@ export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 						</p>
 					</div>
 				}
-				title="Hand off to an agent"
+				title={`Hand off: ${data.title}`}
 			/>
 			{Boolean(data.source) && (
 				<SectionCard title="About this item">
@@ -74,6 +75,9 @@ function HandoffEntry({ record, current }: { readonly record: HandoffRecord; rea
 			<header className="flex flex-wrap items-center gap-2">
 				<h3 className="m-0 font-semibold text-sm">{h.recipient}</h3>
 				<Badge variant="outline">{statusLabel(h.state)}</Badge>
+				<span className="text-muted-foreground text-xs">
+					prepared <Age modified={h.preparedAt} short /> ago
+				</span>
 				<a className="ml-auto text-muted-foreground text-xs" href={fileUrl(record.file)}>
 					Open file
 				</a>

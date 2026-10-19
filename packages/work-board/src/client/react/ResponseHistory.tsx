@@ -4,9 +4,8 @@ import type { RecordedResponse } from "#browser/responses/schema.ts";
 import { Age } from "./Age.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { EmptyState } from "./EmptyState.tsx";
+import { responseKinds } from "./responseKinds.ts";
 import { shellIds } from "./shellIds.ts";
-
-const KINDS = { "answer": "answered", "clarify": "asked back", "not_now": "said not now" } as const;
 
 export function ResponseHistory({
 	request,
@@ -48,7 +47,7 @@ function ResponseEntry({
 				<a className="font-medium underline-offset-4 hover:underline" href={`/responses/${record.id}.md`}>
 					{record.response.author}
 				</a>
-				<span className="text-muted-foreground">{KINDS[record.response.type]}</span>
+				<span className="text-muted-foreground">{responseKinds[record.response.type]}</span>
 				<Age modified={record.response.recordedAt} short />
 			</h3>
 			{answers === undefined ? (

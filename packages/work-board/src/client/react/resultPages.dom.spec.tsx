@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
-import { REVIEW_TASK, reviewResult } from "#test/resultReview.ts";
+import { answeredResult, QUIET_RESULT, QUIET_TASK, REVIEW_TASK, reviewResult } from "#test/resultReview.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
@@ -31,7 +31,54 @@ screenStory.it(
 		expect(readText("#result-actions")).toContain("Review this exact result and its limitations.");
 		expect(readText("#result-criteria")).toContain("the Board doesn't verify them");
 		expect(readText('#result-feedback [data-slot="empty-title"]')).toBe("No feedback yet");
+		expect(readText("[data-feedback-summary]")).toBe("Feedback: No feedback yet.");
+		expect(findElement("[data-feedback-summary] a")).toBeNull();
 		expect(readText("main")).not.toMatch(/SHA-256|Result status|source status/u);
+	},
+);
+
+screenStory.it(
+	"names the linked work with its title and status, dates the report and offers a follow-up handoff",
+	[routedScreen(result, "/_board/result?item=result.keyboard")],
+	function* ({ findElement, findElements, readText, roles }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("[data-result-linked]")).not.toBeNull()));
+		expect(readText("[data-result-linked] a[href='/_board/item/work.keyboard/']")).toBe("Keyboard work");
+		expect(readText("[data-result-linked] [data-status-token]")).toBe("In review");
+		const followUp = findElements("[data-result-linked] a").find((link) => roles.accessible(link).name === "Prepare follow-up handoff");
+		expect(followUp?.getAttribute("href")).toBe("/_board/handoff?item=work.keyboard");
+		expect(findElement("[data-result-summary] time[data-modified]")).not.toBeNull();
+		expect(readText("[data-result-summary] time")).toMatch(/^updated \d+[smhd] ago$/u);
+	},
+);
+
+screenStory.it(
+	"collapses an empty review and empty checks into one line before the report",
+	[routedScreen({ "items/result.md": QUIET_RESULT, "items/task.md": QUIET_TASK }, "/_board/result?item=result.quiet")],
+	function* ({ findElement, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(findElement("[data-result-empty]")).not.toBeNull()));
+		expect(readText("[data-result-empty]")).toBe("No review requested and no checks listed.");
+		expect(findElement("#result-actions")).toBeNull();
+		expect(findElement("#result-criteria")).toBeNull();
+		const report = findElement("#result-report");
+		expect(report && findElement("[data-result-empty]")?.compareDocumentPosition(report)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		expect(readText("[data-result-linked] a")).toBe("Quiet work");
+		expect(readText("[data-result-linked] [data-status-token]")).toBe("Done");
+	},
+);
+
+screenStory.it(
+	"summarizes feedback above the report and links down to it",
+	[routedScreen(answeredResult(), "/_board/result?item=result.keyboard")],
+	function* ({ findElement, findElements, readText }) {
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements("#result-feedback article h3").map((author) => author.textContent)).toEqual(["second-reader", "first-reader"]),
+			),
+		);
+		expect(readText("[data-feedback-summary]")).toMatch(/^Feedback: 2 responses\. Latest: second-reader answered \d+[smhd] ago\. Jump to feedback$/u);
+		expect(findElement("[data-feedback-summary] a")?.getAttribute("href")).toBe("#result-feedback");
+		const report = findElement("#result-report");
+		expect(report && findElement("[data-feedback-summary]")?.compareDocumentPosition(report)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 	},
 );
 
@@ -40,9 +87,10 @@ screenStory.it(
 	[routedScreen(result, "/_board/result?item=result.keyboard")],
 	function* ({ findElement, findElements, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#result-criteria table")).not.toBeNull()));
-		expect(findElements("#result-criteria section[aria-label]").map((section) => section.getAttribute("aria-label"))).toEqual(["work.keyboard"]);
-		expect(readText("#result-criteria section[aria-label='work.keyboard'] [data-status-token]")).toBe("In review");
-		expect(findElement("#result-criteria section[aria-label='work.keyboard'] [data-status-token] svg.lucide-loader-circle")).not.toBeNull();
+		expect(findElements("#result-criteria section[aria-label]").map((section) => section.getAttribute("aria-label"))).toEqual(["Keyboard work"]);
+		expect(readText("#result-criteria section[aria-label='Keyboard work'] a")).toBe("Keyboard work");
+		expect(readText("#result-criteria section[aria-label='Keyboard work'] [data-status-token]")).toBe("In review");
+		expect(findElement("#result-criteria section[aria-label='Keyboard work'] [data-status-token] svg.lucide-loader-circle")).not.toBeNull();
 		expect(findElements("#result-criteria th").map((cell) => cell.textContent)).toEqual([
 			"Check",
 			"Evidence",
@@ -75,6 +123,7 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(findElement("#result-feedback [role='alert']")).not.toBeNull()));
 		expect(readText("#result-feedback [role='alert']")).toContain("Some feedback couldn't be read");
 		expect(readText("#result-feedback")).not.toContain("No feedback yet");
+		expect(readText("[data-feedback-summary]")).toBe("Feedback: Some feedback couldn't be read. Jump to feedback");
 	},
 );
 
@@ -82,7 +131,7 @@ screenStory.it(
 	"prepares a handoff in plain words, linking back to the item and keeping its actions as buttons",
 	[routedScreen(task, "/_board/handoff?item=task.focus", { writable: true })],
 	function* ({ findElement, findElements, readText, roles }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off to an agent")));
+		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: Focus")));
 		expect(findElements("[data-page-actions] :is(a, button)").map((control) => roles.accessible(control))).toEqual([
 			{ name: "Back to item", role: "link" },
 		]);
@@ -95,13 +144,34 @@ screenStory.it(
 			"Next step",
 		]);
 		expect(findElements("#handoff-form button").map((control) => roles.accessible(control))).toEqual([
-			{ name: "Preview file", role: "button" },
 			{ name: "Prepare handoff", role: "button" },
+			{ name: "Preview file", role: "button" },
 			{ name: "Clear draft", role: "button" },
 		]);
-		expect(readText("#handoff-status")).toBe("Preview the file, then prepare the handoff.");
+		yield* Effect.promise(() => eventually(() => expect(findElement("#handoff-submit")).toHaveProperty("disabled", false)));
+		expect(findElement("#handoff-submit")?.classList.contains("bg-primary")).toBe(false);
+		expect(readText("#handoff-status")).toBe("");
+		expect(findElement<HTMLInputElement>('[name="nextAction"]')?.value).toBe("Inspect focus");
 		expect(findElement("main [role='alert']")).toBeNull();
 		expect(readText('#handoff-history [data-slot="empty-title"]')).toBe("No handoffs yet");
+	},
+);
+
+screenStory.it(
+	"names the item's owner as the agent and leaves a done item's old next step empty",
+	[
+		routedScreen(
+			{ "task.md": "---\nid: task.shipped\nkind: task\nstatus: done\nowner: codex\nnext_action: Done; PR #395 merged.\n---\n# Shipped work\n" },
+			"/_board/handoff?item=task.shipped",
+			{ writable: true },
+		),
+	],
+	function* ({ findElement, readText }) {
+		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: Shipped work")));
+		expect(findElement<HTMLInputElement>('[name="recipient"]')?.value).toBe("codex");
+		const next = findElement<HTMLTextAreaElement>('[name="nextAction"]');
+		expect(next?.value).toBe("");
+		expect(next?.placeholder).toBe("What should the agent do first?");
 	},
 );
 

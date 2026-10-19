@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export const REVIEW_TASK =
 	"---\r\nid: work.keyboard\r\nkind: task\r\nstatus: in-review\r\ncriteria:\r\n  - id: focus\r\n    text: Escape restores focus\r\n  - id: narrow\r\n    text: Narrow layout stays readable\r\n---\r\n# Keyboard work\r\n";
 
@@ -45,4 +47,30 @@ Accept this exact report version with the stated limitations.
 :::
 ::::
 `;
+}
+
+export const QUIET_RESULT =
+	"---\nid: result.quiet\nkind: result\nstatus: received\nrelationships:\n  - kind: informs\n    target: work.quiet\n---\n# Quiet report\n\nThe report body.\n";
+export const QUIET_TASK = "---\nid: work.quiet\nkind: task\nstatus: done\n---\n# Quiet work\n";
+
+function sha256(text: string) {
+	return createHash("sha256").update(text).digest("hex");
+}
+
+function responseFile(id: string, question: string, revision: string, author: string, type: string, recordedAt: number) {
+	return `---\nid: ${id}\nkind: response\nresponse:\n  author: ${author}\n  question: ${question}\n  recordedAt: ${recordedAt}\n  reviewedRevision: ${revision}\n  type: ${type}\n---\nFeedback from ${author}.\n`;
+}
+
+export function answeredResult(): Record<string, string> {
+	const file = "items/result.md";
+	const source = reviewResult();
+	const revision = sha256(source);
+	const question = `question.${sha256(JSON.stringify(["result.keyboard", "review", revision, file]))}`;
+	return {
+		[file]: source,
+		"items/task.md": REVIEW_TASK,
+		[`responses/${question}.md`]: `---\nid: ${question}\nkind: question\nquestion:\n  deadline: 9000\n  item: result.keyboard\n  reason: Review it\n  registeredAt: 1000\n  request: review\n  reviewedRevision: ${revision}\n  source: ${file}\n---\n${source}`,
+		"responses/response.first.md": responseFile("response.first", question, revision, "first-reader", "clarify", 2000),
+		"responses/response.second.md": responseFile("response.second", question, revision, "second-reader", "answer", 3000),
+	};
 }

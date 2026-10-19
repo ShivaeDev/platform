@@ -25,13 +25,17 @@ export const remainingQueries = Effect.gen(function* () {
 				const result = yield* Effect.result(service.locate(item));
 				const source = result._tag === "Success" ? result.success : undefined;
 				const parsed = metadataParse(source?.context ?? "");
+				const title = /^#\s+(?<title>.+)$/mu.exec(parsed.body)?.groups?.title ?? item;
 				return {
 					background: parsed.body,
-					goal: /^#\s+(?<title>.+)$/mu.exec(parsed.body)?.groups?.title ?? item,
+					goal: title,
 					item,
 					nextAction: parsed.fields.nextAction ?? "",
+					owner: parsed.fields.owner,
 					reading: yield* service.read(item),
 					source,
+					status: parsed.fields.status,
+					title,
 					unavailable: result._tag === "Failure" ? String(result.failure) : undefined,
 					writable: writable === true,
 				};

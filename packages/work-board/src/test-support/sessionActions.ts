@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act } from "react";
 import { session } from "#client/session.ts";
@@ -24,6 +24,9 @@ export function sessionActions(engine: ScreenEngine, tell: (line: string) => voi
 		readSessionFiles: (namespace: "responses" | "handoffs") => {
 			tell(`the reader inspects recorded ${namespace}`);
 			const directory = join(current().notes.root, namespace);
+			if (!existsSync(directory)) {
+				return [];
+			}
 			return readdirSync(directory)
 				.filter((file) => file.endsWith(".md"))
 				.map((file) => readFileSync(join(directory, file), "utf8"));

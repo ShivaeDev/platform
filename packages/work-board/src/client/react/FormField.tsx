@@ -18,6 +18,7 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	rows,
 	options,
 	className,
+	placeholder,
 	showErrors = true,
 }: {
 	readonly form: Form<TFields, A, E, TRuntimeError>;
@@ -28,6 +29,7 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	readonly rows?: number;
 	readonly options?: readonly { readonly value: string; readonly label: string }[];
 	readonly className?: string;
+	readonly placeholder?: string;
 	readonly showErrors?: boolean;
 }) {
 	const field = useField(form, name);
@@ -79,6 +81,7 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 				maxLength={maxLength}
 				name={name}
 				onInput={(event) => change(event.currentTarget.value)}
+				placeholder={placeholder}
 				required={required}
 				rows={rows}
 				value={value}
@@ -86,7 +89,15 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 		);
 	} else {
 		control = (
-			<Input {...props} maxLength={maxLength} name={name} onInput={(event) => change(event.currentTarget.value)} required={required} value={value} />
+			<Input
+				{...props}
+				maxLength={maxLength}
+				name={name}
+				onInput={(event) => change(event.currentTarget.value)}
+				placeholder={placeholder}
+				required={required}
+				value={value}
+			/>
 		);
 	}
 	return (
