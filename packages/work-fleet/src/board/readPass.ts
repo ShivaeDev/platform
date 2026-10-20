@@ -3,6 +3,7 @@ import { Context, Effect, type FileSystem, type Path, type Scope } from "effect"
 import type { MetadataModel, ParsedMetadata } from "@shivaedev/work-board/server/integration/board.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import type { BoardDocument } from "#board/documents.ts";
+import { sharedRead } from "#board/sharedRead.ts";
 import type { BoardFailure, BoardWork } from "#policy.ts";
 
 const { metadataModel } = boardApi;
@@ -31,14 +32,15 @@ export class BoardSnapshot {
 type Read = Effect.Effect<BoardSnapshot, BoardFailure>;
 interface Pass {
 	active: boolean;
+	readonly fresh: boolean;
 	readonly publications: Set<Effect.Effect<void>>;
 	readonly reads: Map<string, Read>;
 }
 const ReadPass = Context.Reference<Pass | undefined>("@shivaedev/work-fleet/board/ReadPass", { defaultValue: () => undefined });
 
-export function withBoardReadPass<A, E, R>(effect: Effect.Effect<A, E, R>) {
+export function withBoardReadPass<A, E, R>(effect: Effect.Effect<A, E, R>, options?: { readonly fresh?: boolean }) {
 	return Effect.suspend(() => {
-		const pass: Pass = { active: true, publications: new Set(), reads: new Map() };
+		const pass: Pass = { active: true, fresh: options?.fresh === true, publications: new Set(), reads: new Map() };
 		return effect.pipe(
 			Effect.provideService(ReadPass, pass),
 			Effect.ensuring(
@@ -66,13 +68,14 @@ export const readSnapshot = Effect.fn("FleetBoard.readSnapshot")(function* (
 	read: Effect.Effect<BoardSnapshot, BoardFailure, FileSystem.FileSystem | Path.Path>,
 ) {
 	const pass = yield* ReadPass;
+	const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
+	const shared = sharedRead(realRoot, read.pipe(Effect.provideContext(services)), pass?.active === true && pass.fresh);
 	if (pass?.active !== true) {
-		return yield* read;
+		return yield* shared;
 	}
 	let cached = pass.reads.get(realRoot);
 	if (cached === undefined) {
-		const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
-		const next = yield* Effect.cached(read.pipe(Effect.provideContext(services)));
+		const next = yield* Effect.cached(shared);
 		cached = pass.reads.get(realRoot) ?? next;
 		pass.reads.set(realRoot, cached);
 	}

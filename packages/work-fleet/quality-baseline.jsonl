@@ -477,7 +477,7 @@
 {"path":"packages/work-fleet/src/test-support/engineVerbs.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/work-fleet/src/test-support/exhaustReadRetries.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/failureStory.ts","rule":"tests/support-imports","count":2}
-{"path":"packages/work-fleet/src/test-support/fleetHost.ts","rule":"tests/support-imports","count":7}
+{"path":"packages/work-fleet/src/test-support/fleetHost.ts","rule":"tests/support-imports","count":4}
 {"path":"packages/work-fleet/src/test-support/fleetItemStore.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/follower.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/foreignAreaStory.ts","rule":"tests/support-imports","count":5}
@@ -517,7 +517,7 @@
 {"path":"packages/work-fleet/src/test-support/queueRecovery.ts","rule":"tests/support-imports","count":4}
 {"path":"packages/work-fleet/src/test-support/quotaRecovery.ts","rule":"tests/no-expect-in-support","count":10}
 {"path":"packages/work-fleet/src/test-support/quotaRecovery.ts","rule":"tests/support-imports","count":5}
-{"path":"packages/work-fleet/src/test-support/readDaemon.ts","rule":"tests/support-imports","count":4}
+{"path":"packages/work-fleet/src/test-support/readDaemon.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/work-fleet/src/test-support/readDecisionRecords.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/reconnectingCodex.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/recoveryActiveTurnCase.ts","rule":"tests/no-expect-in-support","count":4}

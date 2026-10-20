@@ -4,7 +4,7 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import type { HostParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
-import { daemonHostOptions, daemonHttpLayer } from "#host/daemon.ts";
+import { daemonHostOptions, daemonHttpLayer, daemonLayer } from "#host/daemon.ts";
 import { ClientContract } from "#host/daemonContract.ts";
 import { engineProvider } from "#test/engineProvider.ts";
 import { cliProcess } from "#test/fleetCli.ts";
@@ -71,4 +71,8 @@ function observeSnapshots(handlers: ReturnType<typeof daemonHostOptions>["handle
 		}),
 	);
 	return observed.pipe(Layer.provideMerge(handlers));
+}
+
+export function scheduledDaemonLayer(host: FleetHost, parts: HostParts) {
+	return daemonLayer(host, parts, 0);
 }

@@ -10,6 +10,7 @@ import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostParts } from "#host/commands.ts";
 import { type FleetHost, type HostConfig, resolveHost } from "#host/config.ts";
 import { CONFIG_FILE } from "#host/defaults.ts";
+import { BoardGateway } from "#policy.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
 import { fixedMainSource } from "#test/mainSource.ts";
@@ -98,4 +99,11 @@ export function withHost<A, E, R>(
 	use: (fixture: HostFixture) => Effect.Effect<A, E, R>,
 ) {
 	return withIsolatedDatabase(Effect.acquireUseRelease(makeHost(files, config), use, closeHost));
+}
+
+export function readHostWork(fixture: HostFixture, workId: string) {
+	return Effect.flatMap(BoardGateway, (board) => board.get(workId)).pipe(
+		Effect.provide(markdownBoard(fixture.host.boardDir)),
+		Effect.provide(NodeServices.layer),
+	);
 }
