@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.3 - 2026-10-20
+
+### Fixed
+
+- Continue reconciling a worker's finished result when Codex rejects a late steer with `NoActiveTurn`, without requiring a human decision.
+
 ## 0.15.2 - 2026-10-20
 
 ### Changed
