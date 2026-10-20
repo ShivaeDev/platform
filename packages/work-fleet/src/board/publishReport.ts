@@ -15,7 +15,7 @@ const { metadataModel } = board;
 const { publish, revisionOf } = responses;
 
 export function publishReport(root: string, realRoot: string, documents: Effect.Effect<readonly BoardDocument[], BoardFailure>) {
-	return Effect.fn("FleetBoard.report")(function* (work: BoardWork, observation: SessionObservation) {
+	return Effect.fn("FleetBoard.report")(function* (work: BoardWork, observation: SessionObservation, kind?: "review") {
 		const all = yield* documents;
 		const matches = metadataModel(all).ids.get(work.workId);
 		const source = all.find((document) => document.file === relative(realRoot, work.sourcePath));
@@ -33,7 +33,7 @@ export function publishReport(root: string, realRoot: string, documents: Effect.
 			return yield* Effect.fail(new BoardFailure({ message: "Report needs nonempty completed output and the exact current Board context." }));
 		}
 		const { itemId } = reportIdentity(work, observation.receipt);
-		const content = yield* reportContent(work, observation);
+		const content = yield* reportContent(work, observation, kind);
 		yield* publish(root, realRoot, itemId, content).pipe(
 			Effect.mapError(() => new BoardFailure({ message: "The worker report could not be recorded on Board; retry the same completed attempt." })),
 		);

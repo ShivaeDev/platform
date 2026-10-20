@@ -13,12 +13,14 @@ export function reviewerObservation(options: EngineOptions, prompt: string, rece
 	reviews.push(result.head);
 	return {
 		execution: options.reviewExecution ?? (options.reviewRunning ? "running" : "completed"),
-		output: `FLEET_REVIEW: ${JSON.stringify({
-			evidence: ["Independent code review"],
-			findings: changes ? ["Repair the implementation to meet the task criteria"] : [],
-			head: options.wrongHead === "review" ? "wrong-head" : result.head,
-			verdict: changes ? "changes" : "approve",
-		})}`,
+		output: `## TL;DR\n\nVerdict: ${changes ? "request changes\n- Repair the implementation to meet the task criteria." : "approve. No findings worth raising."}\n\n## Details\n\n${changes ? "Claim: Missing behavior. Evidence: Exact diff. Likelihood in real use: likely. Impact: Task incomplete. Suggested fix: Implement the missing behavior." : "None."}\n\nFLEET_REVIEW: ${JSON.stringify(
+			{
+				evidence: ["Independent code review"],
+				findings: changes ? ["Repair the implementation to meet the task criteria"] : [],
+				head: options.wrongHead === "review" ? "wrong-head" : result.head,
+				verdict: changes ? "changes" : "approve",
+			},
+		)}`,
 		provisioning: "ready",
 		receipt,
 	};

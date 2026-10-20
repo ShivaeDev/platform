@@ -18,5 +18,5 @@ export interface BoardGatewayService {
 	readonly decision: (workId: string, decision: Decision, original?: BoardWork) => Effect.Effect<BoardDecision, BoardFailure>;
 	readonly get: (workId: string, options?: { readonly fresh?: boolean }) => Effect.Effect<BoardWork, BoardFailure>;
 	readonly readDecision: (decision: BoardDecision) => Effect.Effect<BoardDecisionReading, BoardFailure>;
-	readonly report: (work: BoardWork, observation: SessionObservation) => Effect.Effect<BoardReport, BoardFailure>;
+	readonly report: (work: BoardWork, observation: SessionObservation, kind?: "review") => Effect.Effect<BoardReport, BoardFailure>;
 }

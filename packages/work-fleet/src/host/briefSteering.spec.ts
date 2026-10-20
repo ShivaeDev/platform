@@ -4,6 +4,7 @@ import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
 import { renderStatus } from "#host/renderStatus.ts";
+import { taskPrompt } from "#prompt/task.ts";
 import { codexServer, type WireRequest } from "#test/codex.ts";
 import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { daemonClient } from "#test/daemonClient.ts";
@@ -115,7 +116,7 @@ function daemonStory(fixture: HostFixture, requests: readonly WireRequest[], cur
 			),
 		);
 		expect(reviewing.value.stage).toBe("reviewing");
-		expect(reviewing.value.attempts.at(-1)?.prompt).toContain(current.trim());
+		expect(reviewing.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
 		expect(steers()).toHaveLength(1);
 	}).pipe(Effect.scoped);
 }

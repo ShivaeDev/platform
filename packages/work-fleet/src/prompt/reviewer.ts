@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";
-import type { Review, WorkResult } from "#policy.ts";
+import type { Checks, Review, WorkResult } from "#policy.ts";
 import { cloudStartup } from "#prompt/worker.ts";
 import type { SessionReceipt } from "#session/schema.ts";
 
@@ -16,6 +16,7 @@ export const ReviewerVerdict = Schema.Struct({
 
 export function reviewerPrompt(input: {
 	readonly task: string;
+	readonly checks?: Checks | { readonly unavailable: string };
 	readonly result: WorkResult;
 	readonly reviewerGuidance?: string;
 	readonly sharedEnvironment?: string;
@@ -30,6 +31,8 @@ export function reviewerPrompt(input: {
 		"---",
 		"",
 		`Review target: ${JSON.stringify(input.result)}`,
+		`Diff summary: ${input.result.kind === "change" ? input.result.paths.join(", ") : "No changed files"}`,
+		`Check results: ${JSON.stringify(input.checks ?? "Inspect exact-head checks using the read-only tools below")}`,
 		"",
 		"Read root and package AGENTS.md. Inspect only the exact target head, using existing repository objects or read-only repository tools. The checkout may be a different revision; never review that revision in its place.",
 		"You have no worker conversation. Judge the implementation and acceptance evidence independently.",
@@ -39,7 +42,12 @@ export function reviewerPrompt(input: {
 		"`main` is protected by a merge queue that re-runs CI against the latest main before merging. A branch behind main without conflicts is not a reason to request changes, repeat review or re-run validation; judge the exact target head and its checks. Workers merge main only when GitHub reports a conflict or the change needs something that landed there.",
 		...(input.reviewerGuidance === undefined ? [] : ["Repository reviewer guidance:", input.reviewerGuidance]),
 		"If the exact head, diff or check results cannot be inspected, report that limitation. Request changes for concrete implementation or validation gaps; unavailable job logs or artifacts alone are not such a gap.",
-		"End with exactly one machine-readable line, with no Markdown fencing:",
+		"Write a review document with exactly these sections, in this order:",
+		"## TL;DR",
+		"Verdict: approve or request changes. Follow with at most five one-line findings, most important first. If there are no findings, say so in one line.",
+		"## Details",
+		"For each finding give its claim, evidence, likelihood in real use (likely or possible), impact, and a suggested fix. Omit remote findings. With no findings, write None.",
+		"After Details, end with exactly one machine-readable line, with no Markdown fencing:",
 		`${REVIEW_MARKER} ${JSON.stringify({ evidence: ["Evidence you inspected"], findings: [], head: input.result.head, verdict: "approve" })}`,
 		'Use verdict "changes" with nonempty findings that give concrete repair guidance. Use "approve" only with no findings. Evidence must be nonempty for either verdict.',
 	].join("\n");

@@ -1,5 +1,7 @@
 import { expect } from "@effect/vitest";
+import { REPORT } from "#test/githubResult.ts";
 import { boardWork, host, localOnlyBoard } from "#test/hostStory.ts";
+import { humanDelivery } from "#test/humanDelivery.ts";
 import { cloudWorker, goal, navigationTask, planningGoal, REPOSITORY_PURPOSE, repositoryReadme } from "#test/workerBrief.ts";
 
 const context = [
@@ -88,3 +90,27 @@ for (const change of ["replace", "remove"] as const) {
 		}
 	});
 }
+
+host.it(
+	"reviewers receive the worker product context before readable criteria, PR paths and checks",
+	[...context, humanDelivery],
+	function* (daemon) {
+		yield* daemon.approve("task.navigation");
+		const worker = yield* daemon.get("task.navigation");
+		daemon.finishTurn(worker, REPORT);
+		yield* daemon.reconcile("task.navigation");
+		yield* daemon.waitForRecord("task.navigation", (record) => record.review !== undefined);
+		const prompt = daemon.providerStarts().find((start) => start.access === "read-only")?.prompt ?? "";
+		expect(prompt).toContain(REPOSITORY_PURPOSE);
+		expect(prompt).toContain(goal.slice(goal.indexOf("# People")).trim());
+		expect(prompt).toContain(planningGoal.slice(planningGoal.indexOf("# Daily")).trim());
+		expect(prompt).toContain("Acceptance criteria:\n\n- The sidebar groups tasks");
+		expect(prompt).not.toContain("fleet-priority:");
+		expect(prompt.indexOf(REPOSITORY_PURPOSE)).toBeLessThan(prompt.indexOf("# People can navigate"));
+		expect(prompt.indexOf("# Daily work")).toBeLessThan(prompt.indexOf("Approved task:"));
+		expect(prompt.indexOf("Acceptance criteria:")).toBeLessThan(prompt.indexOf("Review target:"));
+		expect(prompt).toContain("Diff summary: src/one.ts");
+		expect(prompt).toContain('Check results: {"evidence":');
+		expect(prompt).toContain('"passed":true');
+	},
+);

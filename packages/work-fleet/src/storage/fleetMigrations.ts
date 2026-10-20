@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { addShapeColumns } from "#storage/addShapeColumns.ts";
+import { advisoryReviews } from "#storage/advisoryReviews.ts";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import { mergedDeliveries } from "#storage/mergedDeliveries.ts";
 import { modelTables } from "#storage/modelTables.ts";
@@ -86,5 +87,6 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 				yield* sql`alter table ${sql(table)} add column "reviewSkippedHead" text`;
 			}
 		}),
+		"25_advisory_reviews": advisoryReviews(namespace),
 	});
 });

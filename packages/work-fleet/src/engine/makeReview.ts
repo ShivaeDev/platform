@@ -102,6 +102,9 @@ function finishReview(state: EngineState) {
 		if (refreshed.value.result?.head !== review.head || refreshed.value.stage !== "reviewing") {
 			return refreshed;
 		}
-		return yield* save(refreshed, { ...refreshed.value, stage: review.verdict === "changes" ? "repairing" : "validating" });
+		return yield* save(refreshed, {
+			...refreshed.value,
+			stage: review.verdict === "changes" && stored.value.reviewAdvisoryHead !== result.head ? "repairing" : "validating",
+		});
 	});
 }

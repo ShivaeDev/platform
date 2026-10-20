@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import { Effect } from "effect";
 import { task } from "#test/fleetHost.ts";
 import { REPORT } from "#test/githubResult.ts";
 import { boardWork, host } from "#test/hostStory.ts";
@@ -74,3 +75,32 @@ for (const review of [true, undefined]) {
 		},
 	);
 }
+
+host.it(
+	"hot-reloads advisory review without a daemon restart",
+	[boardWork({ "one.md": task("one", "approved") }, { review: false }), humanDelivery],
+	function* ({ dispatch, editConfig, waitForConfig, finishTurn, reconcile, waitForRecord, readBoard, boardHttp, cli }) {
+		const worker = yield* dispatch("one");
+		yield* editConfig({ review: "advisory" });
+		const config = yield* waitForConfig((current) => current.settings.review === "advisory");
+		expect(config.restartRequired).toEqual([]);
+		finishTurn(worker, REPORT);
+		yield* reconcile("one");
+		const ready = yield* waitForRecord("one", (record) => record.decision?.code === "reviewed-pr-ready");
+		expect(ready.reviewAdvisoryHead).toBe(ready.result?.head);
+		expect(ready.review?.document).toBeDefined();
+		expect(readBoard(ready.review?.document?.publication.sourcePath ?? "missing")).toContain("## TL;DR");
+		yield* cli(["reassign", "one", ready.decision?.id ?? "missing", "maintainer"]);
+		const board = yield* boardHttp();
+		const list = yield* Effect.tryPromise(() => board.client.run(board.client.api.fleetItems.run(undefined)));
+		expect(list).toMatchObject({
+			items: [
+				expect.objectContaining({
+					readyToMerge: true,
+					review: { sourcePath: ready.review?.document?.publication.sourcePath, tldr: ready.review?.document?.tldr },
+				}),
+			],
+			state: "ready",
+		});
+	},
+);

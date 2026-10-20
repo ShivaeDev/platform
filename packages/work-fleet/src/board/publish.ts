@@ -50,7 +50,9 @@ function decisionSource(itemId: string, work: BoardWork, input: Decision, copy: 
 		relationships: [{ kind: "relates_to", target: work.workId }],
 	};
 	const answer = decisionAnswer(copy);
-	return `---\n${JSON.stringify(metadata)}\n---\n# Fleet decision for ${work.workId}\n\n## Decision\n\n${quoted(copy.reason)}\n\n## Recommendation\n\n${quoted(copy.recommendation)}\n\n## Relevant links\n\n${input.links.map(linked).join("\n\n")}\n\n${answer === undefined ? "" : `${answer}\n\n`}## Reviewed Board work\n\n${quoted(work.context)}\n`;
+	const review =
+		input.review === undefined ? "" : `## Review\n\n[Review document](/${input.review.publication.sourcePath})\n\n${input.review.tldr}\n\n`;
+	return `---\n${JSON.stringify(metadata)}\n---\n# Fleet decision for ${work.workId}\n\n## Decision\n\n${quoted(copy.reason)}\n\n## Recommendation\n\n${quoted(copy.recommendation)}\n\n## Relevant links\n\n${input.links.map(linked).join("\n\n")}\n\n${review}${answer === undefined ? "" : `${answer}\n\n`}## Reviewed Board work\n\n${quoted(work.context)}\n`;
 }
 
 export function publishBoard(root: string, realRoot: string, documents: Effect.Effect<readonly BoardDocument[], BoardFailure>) {

@@ -18,6 +18,9 @@ export function pullRequestsFixture(at: number) {
 		attentionOwner,
 		document: null,
 		prUrl: `https://github.com/example/project/pull/${number}`,
+		...(name === "ready"
+			? { review: { sourcePath: "responses/review.ready.md", tldr: "Verdict: request changes\n- New users need a next action." } }
+			: {}),
 		stage,
 		stageEnteredAt: at - 5 * 60_000,
 		updatedAt: at,

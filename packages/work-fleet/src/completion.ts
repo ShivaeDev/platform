@@ -21,13 +21,16 @@ export function validateReview(record: FleetRecord, review: Review, head: string
 		: Effect.fail(new BadRequest({ message: "Independent review must bind evidence to the actual head" }));
 }
 export function reviewSatisfied(record: FleetRecord, head: string): boolean {
-	return record.reviewSkippedHead === head || (record.review?.verdict === "approved" && record.review.head === head);
+	return (
+		record.reviewSkippedHead === head
+		|| (record.review?.head === head && (record.review.verdict === "approved" || record.reviewAdvisoryHead === head))
+	);
 }
 export function validateReviewRequirement(record: FleetRecord, head: string) {
 	if (record.reviewSkippedHead === head) {
 		return Effect.void;
 	}
-	return record.review?.verdict === "approved"
+	return record.review !== undefined && (record.review.verdict === "approved" || record.reviewAdvisoryHead === head)
 		? validateReview(record, record.review, head)
 		: Effect.fail(new BadRequest({ message: "Independent review has not approved the actual head" }));
 }

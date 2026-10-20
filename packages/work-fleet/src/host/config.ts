@@ -44,7 +44,7 @@ export const HostConfig = Schema.Struct({
 	readRetryMs: Schema.optional(Positive),
 	repository: Schema.optional(Schema.Struct({ branch: Text, remote: Text })),
 	result: Schema.optional(Schema.Literal("github")),
-	review: Schema.optional(Schema.Boolean),
+	review: Schema.optional(Schema.Union([Schema.Boolean, Schema.Literal("advisory")])),
 	stallMinutes: Schema.optional(Positive),
 	worker: Schema.optional(
 		Schema.Struct({
@@ -85,7 +85,7 @@ export interface FleetHost {
 	readonly readRetryMs: number;
 	readonly repository: NonNullable<HostConfig["repository"]>;
 	readonly result?: HostConfig["result"];
-	readonly review?: boolean;
+	readonly review?: boolean | "advisory";
 	readonly stallMinutes: number;
 	readonly worker: HostConfig["worker"];
 }

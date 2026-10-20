@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
 import { renderStatus } from "#host/renderStatus.ts";
+import { taskPrompt } from "#prompt/task.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
@@ -71,7 +72,7 @@ function briefSteering(failure: boolean) {
 				finishWorkers(fixture);
 				const reviewing = yield* fleet.reconcile("one");
 				expect(reviewing.value.stage).toBe("reviewing");
-				expect(reviewing.value.attempts.at(-1)?.prompt).toContain(current.trim());
+				expect(reviewing.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
 				files.write("one.md", `${current}\nChanged during review.\n`);
 				yield* fleet.reconcile("one");
 				expect(calls).toBe(2);

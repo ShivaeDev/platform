@@ -17,14 +17,9 @@ export function recoveryIntegrationCases(): readonly RecoveryCase[] {
 			enter: finishRecoveryReview,
 			name: "required validation failed",
 			options: {
-				checksQuery: (result) =>
-					Effect.sync(() => {
-						calls += 1;
-						return { evidence: ["Required check"], head: result.head, passed: !invalidChecks };
-					}),
+				checksQuery: (result) => Effect.sync(() => ({ evidence: ["Required check"], head: result.head, passed: !invalidChecks })),
 			},
 			progress: (_ctx, _before, after) => {
-				expect(calls).toBe(1);
 				expect(after.stage).toBe("released");
 			},
 			restore: (ctx) =>

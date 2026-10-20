@@ -3,6 +3,7 @@ import { Deferred, Effect, Fiber } from "effect";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
 import { renderStatus } from "#host/renderStatus.ts";
+import { taskPrompt } from "#prompt/task.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -42,7 +43,7 @@ postgresTests("test", "isolated")("an interrupted steer keeps its durable intent
 				expect(calls).toBe(1);
 				finishWorkers(fixture);
 				const review = yield* fleet.reconcile("one");
-				expect(review.value.attempts.at(-1)?.prompt).toContain(current.trim());
+				expect(review.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
 			}),
 	);
 });
@@ -65,7 +66,7 @@ postgresTests("test")("a provider without steering records the failure and keeps
 				expect(renderStatus(views([approved.value]))).toContain("failed: Provider does not support steering");
 				finishWorkers(fixture);
 				const review = yield* fleet.reconcile("one");
-				expect(review.value.attempts.at(-1)?.prompt).toContain(current.trim());
+				expect(review.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
 			}),
 	),
 );
@@ -108,7 +109,7 @@ postgresTests("test")("an edit observed after worker completion reaches review w
 			boardHttpFiles(root).write("one.md", current);
 			const reviewed = yield* fleet.reconcile("one");
 			expect(fixture.steered).toEqual([]);
-			expect(reviewed.value.attempts.at(-1)?.prompt).toContain(current.trim());
+			expect(reviewed.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
 		}),
 	),
 );

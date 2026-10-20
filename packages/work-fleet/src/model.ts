@@ -81,6 +81,7 @@ const cycleFields = {
 	result: Schema.optional(WorkResult),
 	resultObservations: Schema.optional(Schema.Array(WorkResult)),
 	review: Schema.optional(Review),
+	reviewAdvisoryHead: Schema.optional(Schema.String),
 	reviewSkippedHead: Schema.optional(Schema.String),
 	stage: diagnostics.FleetStage,
 	stageEnteredAt: Schema.optional(diagnostics.FleetTimestamp),

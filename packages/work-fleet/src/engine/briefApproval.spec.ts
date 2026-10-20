@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { Fleet } from "#fleet.ts";
+import { taskPrompt } from "#prompt/task.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -55,7 +56,7 @@ test("approval retains an adopted PR and observes the old reviewer before review
 			expect(obsolete.value.checks).toBeUndefined();
 			const revised = yield* fleet.reconcile("one");
 			expect(revised.value.stage).toBe("reviewing");
-			expect(revised.value.attempts.at(-1)?.prompt).toContain(current.trim());
+			expect(revised.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
 			expect(revised.value.result).toEqual(original.value.result);
 			expect(fixture.starts.filter((entry) => entry.access !== "read-only")).toHaveLength(1);
 			expect(revised.value.history ?? []).toEqual([]);
@@ -105,7 +106,7 @@ for (const action of ["dispatch", "retry"] as const) {
 				expect(reviewing.value.stage).toBe("reviewing");
 				expect(reviewing.value.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
 				expect(reviewing.value.attempts[0]?.receipt).toEqual(worker.value.attempts[0]?.receipt);
-				expect(reviewing.value.attempts[1]?.prompt).toContain(current.trim());
+				expect(reviewing.value.attempts[1]?.prompt).toContain(taskPrompt(current));
 				expect(fixture.starts.filter((entry) => entry.access !== "read-only")).toHaveLength(1);
 				finishWorkers(fixture);
 				const repairing = yield* fleet.reconcile("one");

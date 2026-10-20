@@ -1,7 +1,7 @@
 import { Context, type Effect, Schema } from "effect";
 import { AttentionOwner } from "#attention.ts";
 import type { BoardGatewayService } from "#board/GatewayService.ts";
-import { BoardDecision } from "#board/schema.ts";
+import { BoardDecision, BoardReport } from "#board/schema.ts";
 import { DecisionCode } from "#DecisionCode.ts";
 import type { FleetError } from "#errors.ts";
 import type { MergePrediction } from "#MergePrediction.ts";
@@ -25,6 +25,7 @@ export const BoardWork = Schema.Struct({
 	workId: Schema.String,
 });
 export type BoardWork = typeof BoardWork.Type;
+export const ReviewDocument = Schema.Struct({ publication: BoardReport, tldr: Schema.String });
 export const Decision = Schema.Struct({
 	attentionOwner: Schema.optional(AttentionOwner),
 	boardAcknowledgementDisposition: Schema.optional(Schema.Literal("superseded")),
@@ -35,6 +36,7 @@ export const Decision = Schema.Struct({
 	published: Schema.optional(BoardDecision),
 	reason: Schema.String,
 	recommendation: Schema.String,
+	review: Schema.optional(ReviewDocument),
 	worker: Schema.optional(SessionReceipt),
 });
 export type Decision = typeof Decision.Type;
@@ -75,12 +77,13 @@ export const NoChangeResult = Schema.Struct({ evidence: Schema.Array(Schema.Stri
 export const WorkResult = Schema.Union([ChangeResult, NoChangeResult]);
 export type WorkResult = typeof WorkResult.Type;
 export const Review = Schema.Struct({
+	document: Schema.optional(ReviewDocument),
 	evidence: Schema.Array(Schema.String),
 	findings: Schema.optional(Schema.Array(Schema.String)),
 	head: Schema.String,
 	receipt: SessionReceipt,
 	repairPrompt: Schema.String,
-	verdict: Schema.Literals(["approved", "changes"]),
+	verdict: Schema.Literals(["approved", "changes", "unavailable"]),
 });
 export type Review = typeof Review.Type;
 export const Checks = Schema.Struct({
@@ -109,7 +112,7 @@ export interface FleetConfiguration {
 	readonly readGuidance?: (role: "worker" | "reviewer") => Effect.Effect<string | undefined, FleetError>;
 	readonly readRetryMs?: number;
 	readonly refreshQuota?: () => Effect.Effect<FleetConfiguration["quota"], FleetError>;
-	readonly review?: boolean;
+	readonly review?: boolean | "advisory";
 	readonly reviewerGuidance?: string;
 	readonly sharedEnvironment?: string;
 	readonly stallMinutes?: number;
@@ -129,7 +132,7 @@ export class FleetIntegrations extends Context.Service<
 		readonly publication?: (work: BoardWork) => Effect.Effect<WorkPublication, FleetError>;
 		readonly main: (preparation: Preparation) => Effect.Effect<MainObservation, FleetError>;
 		readonly result: (work: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetError>;
-		readonly checks: (work: BoardWork, result: WorkResult) => Effect.Effect<Checks, FleetError>;
+		readonly checks: (work: BoardWork, result: WorkResult, purpose?: "review") => Effect.Effect<Checks, FleetError>;
 		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetError>;
 	}
 >()("@shivaedev/work-fleet/FleetIntegrations") {}
