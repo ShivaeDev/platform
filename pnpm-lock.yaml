@@ -244,8 +244,8 @@ catalogs:
       specifier: 4.3.3
       version: 4.3.3
     '@tanstack/react-router':
-      specifier: 1.170.43
-      version: 1.170.43
+      specifier: 1.170.44
+      version: 1.170.44
     '@tanstack/react-table':
       specifier: 9.3.1
       version: 9.3.1
@@ -480,7 +480,7 @@ importers:
         version: link:../../packages/platform
       '@tanstack/react-router':
         specifier: 'catalog:'
-        version: 1.170.43(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 1.170.44(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tanstack/react-table':
         specifier: 'catalog:'
         version: 9.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -924,7 +924,7 @@ importers:
         version: link:../test-story
       '@tanstack/react-router':
         specifier: 'catalog:'
-        version: 1.170.43(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 1.170.44(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -1529,7 +1529,7 @@ importers:
         version: 4.3.3(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
       '@tanstack/react-router':
         specifier: 'catalog:'
-        version: 1.170.43(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 1.170.44(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tanstack/react-table':
         specifier: 'catalog:'
         version: 9.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -3146,8 +3146,8 @@ packages:
     resolution: {integrity: sha512-w1+YvwmTkwt5n8yUqEH3IWZ9DsmorCZW/EQ3KYHnqEgIkOZpH54NvW6/Epq3Dzb8H0ifIeYX8PExvrNLIH5FIA==}
     engines: {node: '>=20.19'}
 
-  '@tanstack/react-router@1.170.43':
-    resolution: {integrity: sha512-vvQt3pofq7fLneaYlwU80BokcMTiPRYjDQv+KDDfe+mI7A+KSTkTDBV2599LQ3YC4JgHVKd7SsRYoLXz27jgTw==}
+  '@tanstack/react-router@1.170.44':
+    resolution: {integrity: sha512-uIIZ3CHU1yWlkMkmbnGFX3WIfZozF+tNrOMMEoM9lo+jzPInCRq80LBqW3DH9ixNHWjB3TM/cNIvr05uGIlP3A==}
     engines: {node: '>=20.19'}
     peerDependencies:
       react: '>=18.0.0 || >=19.0.0'
@@ -3165,8 +3165,8 @@ packages:
     peerDependencies:
       react: '>=18'
 
-  '@tanstack/router-core@1.171.36':
-    resolution: {integrity: sha512-MfPv7En0Zs+ugb/BEyQYmMr/9/gORu6gcIxiRUO8WNAh2MbCn1Zhwq2y25CrKOF0QCW43o//ffnRmOz9a4BhwQ==}
+  '@tanstack/router-core@1.171.37':
+    resolution: {integrity: sha512-11Le36++mHNeeFIABz4C3PdTWyJ1ilOmGmANOQOypknZwC1xN674al5BUqWuimKasWane1/XSNcEx8NYNHh0+A==}
     engines: {node: '>=20.19'}
 
   '@tanstack/store@0.11.2':
@@ -6797,11 +6797,11 @@ snapshots:
 
   '@tanstack/history@1.162.5': {}
 
-  '@tanstack/react-router@1.170.43(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@tanstack/react-router@1.170.44(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@tanstack/history': 1.162.5
       '@tanstack/react-store': 0.11.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@tanstack/router-core': 1.171.36
+      '@tanstack/router-core': 1.171.37
       isbot: 5.2.2
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
@@ -6821,7 +6821,7 @@ snapshots:
     transitivePeerDependencies:
       - react-dom
 
-  '@tanstack/router-core@1.171.36':
+  '@tanstack/router-core@1.171.37':
     dependencies:
       '@tanstack/history': 1.162.5
       cookie-es: 3.1.1
