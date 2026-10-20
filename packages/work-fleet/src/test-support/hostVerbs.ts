@@ -4,6 +4,7 @@ import { cycle } from "#engine/scheduler.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
 import type { MainSnapshot } from "#host/mainSource.ts";
+import { retainedBoardSnapshots } from "#test/boardReadStory.ts";
 import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
@@ -82,6 +83,7 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			tell(`resolve ${workId}'s decision ${decisionId}`);
 			return engine.running.client("fleet.resolve", { decisionId, responseId, workId });
 		},
+		retainedBoardSnapshots: () => retainedBoardSnapshots,
 		schedule: () => {
 			tell("run one host scheduler cycle");
 			return cycle.pipe(Effect.provideContext(engine.running.context));
@@ -100,5 +102,6 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			return engine.stop();
 		},
 		waitForRecord: (workId: string, ready: Parameters<typeof waitForRecord>[2]) => waitForRecord(engine.running.client, workId, ready),
+		workerContextCount: () => engine.workerContexts?.length ?? 0,
 	};
 }

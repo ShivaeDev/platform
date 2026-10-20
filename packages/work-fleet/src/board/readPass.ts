@@ -44,7 +44,11 @@ export function withBoardReadPass<A, E, R>(effect: Effect.Effect<A, E, R>) {
 			Effect.ensuring(
 				Effect.gen(function* () {
 					pass.active = false;
-					for (const publication of pass.publications) {
+					// Worker contexts can outlive the pass that owns these snapshots.
+					pass.reads.clear();
+					const publications = [...pass.publications];
+					pass.publications.clear();
+					for (const publication of publications) {
 						yield* publication;
 					}
 				}),

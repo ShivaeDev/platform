@@ -1,7 +1,8 @@
+import { queryObjects } from "node:v8";
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, FileSystem, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { publishAfterBoardPass } from "#board/readPass.ts";
+import { BoardSnapshot, publishAfterBoardPass } from "#board/readPass.ts";
 import { writeStatus } from "#board/writeStatus.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardReads } from "#test/boardReads.ts";
@@ -79,3 +80,7 @@ export function hasBoardItems(count: number) {
 		}
 	});
 }
+
+export const retainedBoardSnapshots = Effect.promise(() => new Promise<void>((resolve) => setImmediate(resolve))).pipe(
+	Effect.andThen(Effect.sync(() => queryObjects(BoardSnapshot, { format: "count" }))),
+);
