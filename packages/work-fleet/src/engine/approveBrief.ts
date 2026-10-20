@@ -6,10 +6,12 @@ import { closeDecisions } from "#engine/closeDecisions.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import { launchPrompt } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { revisedPrompt } from "#engine/revisedPrompt.ts";
 import { briefSteerIntent, steerBrief } from "#engine/steerBrief.ts";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
 import type { BoardWork, DecisionResponse } from "#policy.ts";
 import { briefEditPrompt } from "#prompt/briefEdit.ts";
+import { workerBriefText } from "#prompt/task.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function approveBrief(state: EngineState) {
@@ -23,7 +25,7 @@ export function approveBrief(state: EngineState) {
 		yield* authorizeBrief(work);
 		const stored = yield* ensurePublication(state)(input).pipe(Effect.flatMap((current) => abandonStalled(state, current)));
 		const record = stored.value;
-		const approvedPrompt = prompt ?? revisedPrompt(record, work);
+		const approvedPrompt = prompt ?? (yield* revisedPrompt(record, work, state.board.get));
 		const updated: FleetRecord = {
 			...record,
 			...approvedDecision(record, state.policy.now(), preserveDecision),
@@ -42,7 +44,7 @@ export function approveBrief(state: EngineState) {
 			mergeAreasReleased: undefined,
 			mergeReadyAt: undefined,
 			mergeReadyHead: undefined,
-			pendingAnswers: revisedAnswers(record, work),
+			pendingAnswers: revisedAnswers(record, work, approvedPrompt),
 			prompt: approvedPrompt,
 			responses: responses ?? record.responses,
 			review: undefined,
@@ -51,12 +53,6 @@ export function approveBrief(state: EngineState) {
 		const approved = yield* state.save(stored, briefSteerIntent(record, updated, state.policy.now())).pipe(Effect.flatMap(closeDecisions(state)));
 		return yield* steerBrief(state, approved, record);
 	});
-}
-
-function revisedPrompt(record: FleetRecord, work: BoardWork) {
-	return record.boardContext && record.prompt.includes(record.boardContext)
-		? record.prompt.replace(record.boardContext, () => work.context)
-		: work.context;
 }
 
 function resumedStage(record: FleetRecord): FleetRecord["stage"] {
@@ -94,10 +90,10 @@ function revisedRetry(record: FleetRecord, prompt: string, guidance?: string) {
 			};
 }
 
-function revisedAnswers(record: FleetRecord, work: BoardWork) {
+function revisedAnswers(record: FleetRecord, work: BoardWork, prompt: string) {
 	const hasWorkerTurn = allAttempts(record).some((attempt) => attempt.role !== "reviewer" && attempt.receipt !== undefined);
 	return briefChanged(record, work) && !executing(record) && hasWorkerTurn
-		? [...(record.pendingAnswers ?? []), briefEditPrompt(record.boardContext, work.context)]
+		? [...(record.pendingAnswers ?? []), briefEditPrompt(record.boardContext, work.context, workerBriefText(prompt, work.context))]
 		: record.pendingAnswers;
 }
 

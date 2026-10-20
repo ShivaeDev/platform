@@ -4,7 +4,7 @@ import { PULL_REQUEST_MARKER, reportedPullRequest, reportedQuestion, reportPromp
 const prompt = workerPrompt({
 	branch: "synthetic/sidebar-tree",
 	sharedEnvironment: "/workspace/.synthetic/env.sh",
-	task: "---\nid: synthetic.task\n---\n# Make the sidebar a tree\n",
+	task: "# Make the sidebar a tree\n",
 	workId: "synthetic.task",
 });
 describe("workerPrompt", () => {

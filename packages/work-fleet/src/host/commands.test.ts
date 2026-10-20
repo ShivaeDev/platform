@@ -121,10 +121,10 @@ describe("work-fleet host against PostgreSQL", () => {
 					{ effort: "high", model: "task-model", serviceTier: "fast" },
 				]);
 				const [prompt] = prompts(fixture.provider);
-				expect(prompt).toMatch(/^Work Board task: a\n/u);
-				expect(prompt).toContain("create fleet/a from that exact current revision");
-				expect(prompt).toContain("source /workspace/env.sh once in that command and say so in the final message");
-				expect(prompt).toContain("run `./script/update` with escalation");
+				expect(prompt).toMatch(/^Approved task:\n\n# a\n/u);
+				expect(prompt).toContain("create fleet/a at that revision");
+				expect(prompt).toContain("source /workspace/env.sh once and report it");
+				expect(prompt).toContain("run `./script/update` with require_escalated");
 				expect(prompt).toContain("Report the main revision.");
 				const invalid = yield* dispatchWork(fixture.host, "b", fixture.parts).pipe(Effect.flip);
 				expect(invalid).toMatchObject({ message: "b has an invalid fleet-launch; use model, effort and serviceTier strings" });

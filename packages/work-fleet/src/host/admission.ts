@@ -9,11 +9,11 @@ import type { FleetHost } from "#host/config.ts";
 import { refreshForeignReservations } from "#host/foreignReservations.ts";
 import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
 import { workerCwd } from "#host/providers.ts";
+import { launchPrompt } from "#host/workerBrief.ts";
 import type { DispatchNow, FleetRecord } from "#model.ts";
 import { BoardGateway, type BoardWork } from "#policy.ts";
 import { coversRepository, preparationStop } from "#preparation/compatibility.ts";
 import type { Preparation } from "#preparation/schema.ts";
-import { workerPrompt } from "#prompt/worker.ts";
 import { sweepMerged } from "#scheduling/sweeps.ts";
 import { LaunchSettings } from "#session/schema.ts";
 
@@ -32,18 +32,6 @@ function preparation(main: MainSnapshot): Preparation {
 		sourcePaths: [],
 		validation: [],
 	};
-}
-
-function launchPrompt(host: FleetHost, work: BoardWork): string {
-	return host.provider === "cloud" && host.worker !== undefined
-		? workerPrompt({
-				branch: `${host.worker.branchPrefix}${work.workId}`,
-				deliverable: work.deliverable,
-				sharedEnvironment: host.worker.sharedEnvironment,
-				task: work.context,
-				workId: work.workId,
-			})
-		: work.context;
 }
 
 const taskLaunch = Effect.fn("FleetHost.taskLaunch")(function* (work: BoardWork) {
@@ -102,7 +90,7 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 		cwd: workerCwd(host, main.repositoryRoot),
 		launch: yield* taskLaunch(work),
 		preparation: preparation(snapshot),
-		prompt: launchPrompt(host, work),
+		prompt: yield* launchPrompt(host, work),
 		workId: work.workId,
 	});
 });
@@ -146,5 +134,5 @@ export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function
 	if (existing === undefined || ["completed", "released"].includes(existing.stage) || unlaunched(existing) || !briefChanged(existing, work)) {
 		yield* prepareApproved(host, work, existing, "explicit");
 	}
-	return yield* fleet.dispatch(workId, launchPrompt(host, work), now);
+	return yield* fleet.dispatch(workId, yield* launchPrompt(host, work), now);
 }, inBoardReadPass);
