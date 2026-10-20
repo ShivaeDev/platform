@@ -3,17 +3,24 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "fleet-shared-board-reads.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Share in-flight Board scans across daemon readers so concurrent reconciliation reads at most one Board at a time and releases finished snapshots.\n"
+				"name": "fleet-advisory-review.md",
+				"text": "---\n\"@shivaedev/work-fleet\": minor\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Fleet supports advisory reviews with the worker’s product context. Completed reviews are saved as linked Board result documents, and their TL;DR appears in ready-to-merge decisions and the Board’s ready list without sending reviewer findings back to the worker.\n\n### Breaking\n\n- `@shivaedev/work-fleet`’s `Review.verdict` also allows `\"unavailable\"` for an advisory reply without a parseable verdict. Consumers that exhaustively handle verdicts must handle this value and read the retained document for the original reply.\n"
 			}
 		],
 		"releases": [
 			{
-				"bump": "patch",
+				"bump": "minor",
+				"directory": "packages/work-board",
+				"from": "0.28.0",
+				"name": "@shivaedev/work-board",
+				"to": "0.29.0"
+			},
+			{
+				"bump": "minor",
 				"directory": "packages/work-fleet",
-				"from": "0.15.3",
+				"from": "0.15.4",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.15.4"
+				"to": "0.16.0"
 			}
 		]
 	}
