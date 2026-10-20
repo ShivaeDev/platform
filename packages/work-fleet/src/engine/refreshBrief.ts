@@ -5,8 +5,10 @@ import { briefChanged, stopChangedBrief } from "#engine/boardBrief.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { requestRework } from "#engine/requestRework.ts";
+import { revisedPrompt } from "#engine/revisedPrompt.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
+import { workerBriefText } from "#prompt/task.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork) {
@@ -42,7 +44,7 @@ export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: En
 				sweep: published.value.sweep ?? work.sweep,
 			},
 		},
-		work.context,
+		workerBriefText(yield* revisedPrompt(stored.value, work, state.board.get), work.context),
 	);
 });
 

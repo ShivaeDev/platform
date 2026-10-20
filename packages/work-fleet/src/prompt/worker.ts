@@ -17,10 +17,7 @@ const GUIDANCE_HEADING =
 const GUIDANCE_END = "End repository worker guidance.";
 const QUESTION_INSTRUCTIONS = [
 	"When you need a decision:",
-	"- Do not ask about anything covered by Repository worker guidance; follow its standing answers.",
-	`- Stop the turn with \`${QUESTION_MARKER} <question>\`, including the context and choices needed to answer. Do not report a PR or no-change outcome while waiting for an answer.`,
-	`- Questions go to the orchestrator by default. Only when a decision requires maintainer authority, use \`${MAINTAINER_QUESTION_MARKER} <question>\` instead.`,
-	"- Fleet publishes the question on the Board and continues this same thread with the recorded answer. Treat that answer as task input; repository rules and runtime authority still apply.",
+	`- Stop with \`${QUESTION_MARKER} <question>\` and the context and choices; use \`${MAINTAINER_QUESTION_MARKER} <question>\` only for maintainer authority. Await Fleet's answer in this thread before reporting an outcome.`,
 ].join("\n");
 const REPORT_INSTRUCTIONS = [
 	"Report deliverable:",
@@ -31,61 +28,45 @@ const REPORT_INSTRUCTIONS = [
 	"- Return the whole report as your final message, with evidence for each acceptance criterion and any remaining uncertainty.",
 ].join("\n");
 
-// Codex Cloud cannot run startup steps; without this block workers spend minutes probing a provisioning sandbox.
+// Codex Cloud cannot run startup steps before the worker receives its prompt.
 export function cloudStartup({ sharedEnvironment }: CloudStartup, access?: "read-only") {
 	return [
 		"Cloud startup:",
-		"- Your workspace may still be provisioning when this message arrives. If the cloud-environment runtime skill offers wait_for_environment, call it and wait calmly until the environment is ready; this usually takes about 90 seconds. Do not explore the snapshot or retry commands while waiting. Your instructions below stay valid.",
-		"- Default login shells activate the pinned Node, pnpm, Bun, gh and psql and every shared environment export through the profile hook, including the proxy, CA trust, caches and database settings.",
-		`- If \`node -v\` does not report the repository's \`.node-version\`, source ${sharedEnvironment} once in that command and say so in the final message.`,
-		...(access === "read-only"
-			? []
-			: [
-					"- Request escalation (require_escalated) from the FIRST network-dependent command, such as git fetch or dependency installation, instead of waiting for it to fail.",
-				]),
+		"- If provisioning, use the runtime skill's wait_for_environment before repository commands.",
+		`- Login shells load the shared tools and exports. If Node differs from .node-version, source ${sharedEnvironment} once and report it.`,
+		...(access === "read-only" ? [] : ["- Use require_escalated for network commands, starting with the first."]),
 	].join("\n");
 }
 
 export function workerPrompt(input: WorkerPrompt) {
-	if (input.deliverable === "report") {
-		return [
-			`Work Board task: ${input.workId}`,
-			"",
-			cloudStartup(input),
-			"- Before executing repository commands, run `./script/update` with escalation (require_escalated), since it installs dependencies.",
-			"",
-			reportPrompt(input.task.trim()),
-		].join("\n");
-	}
+	const task = input.task.trim();
 	return [
-		`Work Board task: ${input.workId}`,
+		task,
 		"",
 		cloudStartup(input),
-		`- Fetch origin/main and create ${input.branch} from that exact current revision, not from the environment snapshot. Use the supplied checkout and leave unrelated state alone.`,
-		"- Immediately after fetching origin/main and creating the branch, run `./script/update` with escalation (require_escalated), since it installs dependencies, before any other command or task work.",
+		...(input.deliverable === "report"
+			? ["- Run `./script/update` with require_escalated before task work."]
+			: [
+					`- Fetch origin/main, create ${input.branch} at that revision in the supplied checkout, then immediately run \`./script/update\` with require_escalated. Leave unrelated state alone.`,
+				]),
 		"",
-		"Implement this approved Board task:",
-		"---",
-		input.task.trim(),
-		"---",
-		"",
-		"Evidence rules:",
-		"- Read the root and package AGENTS.md before editing, and follow the repository's documentation and pull request skills.",
-		"- Run focused tests while working, then `pnpm ready` before handing off. Never bypass or skip hooks, and never raise the quality baseline.",
-		"- Open exactly ONE pull request for human review. Do not merge it and do not launch other workers.",
-		"- Keep Board IDs, environment IDs, prompts and other private identifiers out of source, docs and pull request metadata.",
-		"- After every push, watch your PR's CI until all checks finish. Fix failures on the same branch, push again and repeat.",
-		"- `main` is protected by a merge queue that re-runs CI against the latest main before merging. Merge main only when GitHub reports a conflict or your change needs something that landed there. A branch behind main without conflicts does not need a merge, fresh review or revalidation. Never wait for main to stop moving or request a merge freeze.",
-		"- If you merge main or otherwise change the head, run `pnpm ready`, push and watch CI again for the new head. Report once all checks are green for your exact head, or when genuinely blocked. If blocked, explain why and identify the failed or pending checks.",
-		"",
-		QUESTION_INSTRUCTIONS,
-		"",
-		"Final report:",
-		"- The pull request URL, its head SHA and base, the changed paths and the exact commands you ran with their results.",
-		"- A short result against each acceptance criterion, separating proven behavior from anything still pending.",
-		"- State the CI result for the exact head SHA you report, including any failed or pending checks and why you are blocked. Put the CI result before the final `FLEET_PR:` line.",
-		"- Before the final PR line, include one line `FLEET_HEAD: <sha>` with the full 40-character PR head SHA, or the exact checked main SHA when no change was needed.",
-		`- End with one line \`${PULL_REQUEST_MARKER} <url>\` naming the pull request, or \`${PULL_REQUEST_MARKER} none\` when no change was needed.`,
+		...(input.deliverable === "report"
+			? [reportPrompt("")]
+			: [
+					"Evidence rules:",
+					"- Follow root and package AGENTS.md and repository skills.",
+					"- Open one PR for human review; do not merge or launch workers. Keep internal identifiers and prompts out of committed content and PR text.",
+					"- After every push, watch CI to completion and repair failures on this branch.",
+					"- Merge main only for a GitHub-reported conflict or a required change there; the merge queue validates current main.",
+					"",
+					QUESTION_INSTRUCTIONS,
+					"",
+					"Final report:",
+					"- Give PR URL, head and base, changed paths, validation commands and results, evidence or gaps for each criterion, and exact-head CI (identify failed or pending checks if blocked).",
+					"- Finish with these two lines (full 40-character head SHA; use the checked main SHA and none for no change):",
+					"FLEET_HEAD: <sha>",
+					`${PULL_REQUEST_MARKER} <url or none>`,
+				]),
 	].join("\n");
 }
 

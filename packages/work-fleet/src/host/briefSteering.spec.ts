@@ -81,11 +81,12 @@ function daemonStory(fixture: HostFixture, requests: readonly WireRequest[], cur
 		function steers() {
 			return requests.filter((request) => request.method === "turn/steer");
 		}
+		const brief = "Full new brief:\n\nApproved task:\n\n# synthetic-work\n\nOriginal scope.\n\nAcceptance criteria:\n\n- Changed behavior.";
 		expect(steers()).toEqual([
 			expect.objectContaining({
 				params: {
 					expectedTurnId: worker.attempts[0]?.receipt?.turnId,
-					input: [{ text: expect.stringContaining(`Full new brief:\n\n${current}`), "text_elements": [], type: "text" }],
+					input: [{ text: expect.stringContaining(brief), "text_elements": [], type: "text" }],
 					threadId: worker.attempts[0]?.receipt?.sessionId,
 				},
 			}),
