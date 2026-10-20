@@ -31,8 +31,8 @@ export const storyDatabase = Effect.fnUntraced(function* <A, E, R>(effect: Effec
 				Effect.gen(function* () {
 					lifetime.scopeAtAppClose = databaseScope?.state._tag;
 					lifetime.connectionAtAppClose = yield* sql<{ readonly available: number }>`select 1 as available`.pipe(Effect.orDie);
-					lifetime.connectionsAtAppClose = yield* sql<{ readonly pid: number; readonly state: string }>`
-						select pid, state from pg_stat_activity
+					lifetime.connectionsAtAppClose = yield* sql<{ readonly pid: number; readonly state: string; readonly owner: string }>`
+						select pid, state, application_name as owner from pg_stat_activity
 						where datname = current_database() and backend_type = 'client backend' and pid <> pg_backend_pid()
 					`.pipe(Effect.orDie);
 					lifetime.teardownDuration = performance.now() - teardownStartedAt;

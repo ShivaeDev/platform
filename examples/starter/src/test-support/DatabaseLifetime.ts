@@ -2,7 +2,7 @@ import { Context } from "effect";
 
 export interface DatabaseLifetimeReadout {
 	connectionAtAppClose: readonly { readonly available: number }[];
-	connectionsAtAppClose: readonly { readonly pid: number; readonly state: string }[];
+	connectionsAtAppClose: readonly { readonly pid: number; readonly state: string; readonly owner: string }[];
 	name: string;
 	scopeAtAppClose: string | undefined;
 	teardownDuration: number | undefined;

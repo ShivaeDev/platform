@@ -3,6 +3,7 @@ import type {
 	FindJobsOptions,
 	Job,
 	JobWithMetadata,
+	PgBoss,
 	Queue,
 	QueueResult,
 	ScheduleOptions,
@@ -10,7 +11,7 @@ import type {
 	StopOptions,
 	WorkOptions,
 } from "pg-boss";
-import { PgBoss } from "pg-boss";
+import { nativeClient } from "#internal/nativeClient.ts";
 
 export interface PgBossClient {
 	readonly complete?: PgBoss["complete"];
@@ -36,4 +37,4 @@ export interface PgBossClient {
 
 export type PgBossClientFactory = (options: ConstructorOptions) => PgBossClient;
 
-export const defaultClientFactory: PgBossClientFactory = (options) => new PgBoss(options);
+export const defaultClientFactory: PgBossClientFactory = nativeClient;
