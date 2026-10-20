@@ -1,56 +1,19 @@
 {
-	"date": "2026-10-19",
+	"date": "2026-10-20",
 	"plan": {
 		"changesets": [
 			{
-				"name": "optional-fleet-review.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- Set `review: false` in Fleet configuration to send delivered PRs straight to required checks and human merge readiness. The setting reloads for results that have not entered review; enabled or omitted keeps independent review.\n"
-			},
-			{
-				"name": "quality-baseline-shards.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Changed\n\n- Store baseline debt in package shards and a root `quality-baseline.jsonl`, remove empty shards, and keep tighten, prune and lint on the same records. Migrate a single-file baseline with `quality baseline migrate --from quality/baseline.jsonl`.\n- Merge baseline entries by path and rule: removals win, retained counts take the minimum and additions from both sides survive. Configure the checkout with `quality baseline install-driver` and register `merge=quality-baseline` for shard files in `.gitattributes`. The source exports are `mergeBaseline(base, ours, theirs)` in `baseline/merge.ts`, `installDriver(cwd, launch)` in `baseline/installDriver.ts`, and `SHARD_NAME`, `Shard`, `shardOf(file, rootFile)`, `shardPaths(config)` and `saveShards(config, before, entries)` in `baseline/shards.ts`.\n\n### Breaking\n\n- `BaselineFile` from `engine/baselineFile.ts` exposes `files: ReadonlyMap<string, Shard>` instead of a single `raw` string. Read each shard's `raw` and `entries` from `files`; the combined `entries` field remains available.\n"
-			},
-			{
-				"name": "release-starter-pins.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
-			},
-			{
-				"name": "work-board-pull-requests.md",
-				"text": "---\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- A Pull requests page groups Fleet's current PRs with ready-to-merge work first, links PR numbers and Board task titles, and shows time in each state. Its navigation badge counts PRs waiting for a merge and updates with Fleet's live state.\n- Board's Fleet item projection exposes an optional `readyToMerge` flag derived from Fleet's current published merge decision.\n"
-			},
-			{
-				"name": "work-fleet-closed-released.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Treat dropped Board tasks as closed when releasing prepared or stopped work, refreshing briefs and closing decisions; never admit closed tasks.\n- Re-admit released tasks without a merged delivery on the next admission pass while they remain approved and open, preserving prior cycles and PR reservations so their dependents can proceed after delivery.\n"
+				"name": "bounded-fleet-publication.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Coalesce daemon status and health publication behind one background worker and one pending refresh, so repeated reconciliations do not retain an ever-growing queue of publication fibers while a write is delayed. Scheduler and shutdown flushes still publish current state.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
-				"directory": "packages/create-app",
-				"from": "0.11.15",
-				"name": "@shivaedev/create-app",
-				"to": "0.11.16"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/quality",
-				"from": "0.31.1",
-				"name": "@shivaedev/quality",
-				"to": "0.32.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/work-board",
-				"from": "0.27.1",
-				"name": "@shivaedev/work-board",
-				"to": "0.28.0"
-			},
-			{
-				"bump": "minor",
 				"directory": "packages/work-fleet",
-				"from": "0.14.0",
+				"from": "0.15.0",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.15.0"
+				"to": "0.15.1"
 			}
 		]
 	}
