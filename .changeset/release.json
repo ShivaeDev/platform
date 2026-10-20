@@ -3,17 +3,17 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "fleet-ended-steer.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Continue reconciling a worker's finished result when Codex rejects a late steer with `NoActiveTurn`, without requiring a human decision.\n"
+				"name": "fleet-shared-board-reads.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Share in-flight Board scans across daemon readers so concurrent reconciliation reads at most one Board at a time and releases finished snapshots.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.15.2",
+				"from": "0.15.3",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.15.3"
+				"to": "0.15.4"
 			}
 		]
 	}
