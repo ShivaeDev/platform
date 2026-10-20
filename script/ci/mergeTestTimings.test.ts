@@ -7,8 +7,11 @@ const run = { count: 2, jobs: workflowJobs({ build: 900, "tests (1)": 300, "test
 
 it("merges native Vitest results into portable project-aware timings sized by the test jobs' wall time", () => {
 	const reports = [
-		JSON.stringify({ results: [["quality:unit:packages/quality/src/cli.test.ts", { duration: 20_000, failed: false }]], version: "4.1.11" }),
-		JSON.stringify({ results: [["quality:dom:packages/quality/src/cli.test.ts", { duration: 5000, failed: false }]], version: "4.1.11" }),
+		JSON.stringify({
+			projects: { "quality:unit": { files: { "packages/quality/src/cli.test.ts": { duration: 20_000, failed: false } } } },
+			version: 1,
+		}),
+		JSON.stringify({ projects: { "quality:dom": { files: { "packages/quality/src/cli.test.ts": { duration: 5000, failed: false } } } }, version: 1 }),
 	];
 	const snapshot = mergeTestTimings(reports, run);
 	assert.equal(snapshot.runId, "42");
@@ -23,6 +26,6 @@ it("merges native Vitest results into portable project-aware timings sized by th
 	assert.throws(() => mergeTestTimings(reports.slice(0, 1), run), /every shard/u);
 	assert.throws(() => mergeTestTimings([reports[0] ?? "", reports[0] ?? ""], run), /Duplicate/u);
 	assert.throws(() => mergeTestTimings(reports, { ...run, jobs: workflowJobs({ "tests (1)": 300 }) }), /every/u);
-	const failed = JSON.stringify({ results: [["unit:failed.test.ts", { duration: 100, failed: true }]], version: "4.1.11" });
+	const failed = JSON.stringify({ projects: { unit: { files: { "failed.test.ts": { duration: 100, failed: true } } } }, version: 1 });
 	assert.throws(() => mergeTestTimings([failed], { ...run, count: 1 }), /Invalid successful/u);
 });

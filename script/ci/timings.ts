@@ -86,22 +86,28 @@ export function durationEstimates(snapshot: TimingSnapshot): Readonly<Record<str
 
 export function decodeVitestTimingReport(report: string): Timing[] {
 	const cache: unknown = JSON.parse(report);
-	if (!record(cache) || typeof cache.version !== "string" || !Array.isArray(cache.results)) {
+	if (!record(cache) || cache.version !== 1 || !record(cache.projects)) {
 		throw new Error("Invalid Vitest timing report");
 	}
-	return cache.results.map((entry: unknown) => {
-		if (
-			!Array.isArray(entry)
-			|| entry.length !== 2
-			|| typeof entry[0] !== "string"
-			|| !record(entry[1])
-			|| entry[1].failed !== false
-			|| typeof entry[1].duration !== "number"
-			|| !Number.isFinite(entry[1].duration)
-			|| entry[1].duration < 0
-		) {
-			throw new Error("Invalid successful test timing");
+	const results = Object.entries(cache.projects).flatMap(([project, value]) => {
+		if (!(record(value) && record(value.files))) {
+			throw new Error("Invalid Vitest timing report");
 		}
-		return { durationMs: Math.max(1, entry[1].duration), name: entry[0] };
+		return Object.entries(value.files).map(([file, result]) => {
+			if (
+				!record(result)
+				|| result.failed !== false
+				|| typeof result.duration !== "number"
+				|| !Number.isFinite(result.duration)
+				|| result.duration < 0
+			) {
+				throw new Error("Invalid successful test timing");
+			}
+			return { durationMs: Math.max(1, result.duration), name: `${project}:${file}` };
+		});
 	});
+	if (results.length === 0) {
+		throw new Error("Invalid Vitest timing report");
+	}
+	return results;
 }
