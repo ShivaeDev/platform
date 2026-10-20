@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1 - 2026-10-20
+
+### Fixed
+
+- Wait for PostgreSQL transports to disconnect when the default or testing jobs client closes, so its owning scope finishes cleanup before an isolated application database is dropped.
+
 ## 0.15.0 - 2026-10-19
 
 ### Added

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.2 - 2026-10-20
+
+### Changed
+
+- Cloud workers receive repository purpose, linked goal titles and bodies, and readable task content before a shorter Fleet protocol, with Board bookkeeping omitted and work revision checks preserved.
+
+### Fixed
+
+- Release cached Board documents when a scheduler read pass ends, even when worker callback contexts outlive the pass.
+
 ## 0.15.1 - 2026-10-20
 
 ### Fixed
