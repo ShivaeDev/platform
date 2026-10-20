@@ -28,7 +28,7 @@ catalog:
   reselect: 5.3.0
   railway: 3.15.0
   "@tailwindcss/vite": 4.3.3
-  "@tanstack/react-router": 1.170.42
+  "@tanstack/react-router": 1.170.43
   "@vitejs/plugin-react": 6.1.2
   vite: 8.3.4
   tailwindcss: 4.3.3
@@ -91,8 +91,8 @@ catalog:
   shiki: 4.5.0
   typescript: 7.0.2
   yaml: 2.9.1
-  vitest: 5.0.3
-  "@vitest/coverage-v8": 5.0.3
+  vitest: 5.0.4
+  "@vitest/coverage-v8": 5.0.4
   "@vercel/detect-agent": 1.2.3
 
 catalogs:
