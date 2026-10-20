@@ -4,7 +4,19 @@ import type { FleetHost } from "#host/config.ts";
 import { SessionTransport } from "#session/service.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
 
-export const daemonResources = Effect.fn("DaemonTest.daemonResources")(function* (source: Layer.Layer<SessionTransport, unknown>, host?: FleetHost) {
+function observeContexts(transport: typeof SessionTransport.Service, contexts: Context.Context<never>[]) {
+	const observe = Effect.fnUntraced(function* (receipt: Parameters<typeof transport.observe>[0]) {
+		contexts.push(yield* Effect.context<never>());
+		return yield* transport.observe(receipt);
+	});
+	return { ...transport, observe };
+}
+
+export const daemonResources = Effect.fn("DaemonTest.daemonResources")(function* (
+	source: Layer.Layer<SessionTransport, unknown>,
+	host?: FleetHost,
+	workerContexts?: Context.Context<never>[],
+) {
 	let providers = 0;
 	let releases = 0;
 	const provider = Layer.effect(SessionTransport)(
@@ -15,9 +27,10 @@ export const daemonResources = Effect.fn("DaemonTest.daemonResources")(function*
 					releases += 1;
 				}),
 			);
-			return yield* SessionTransport;
-		}).pipe(Effect.provide(source)),
-	);
+			const transport = yield* SessionTransport;
+			return workerContexts === undefined ? transport : observeContexts(transport, workerContexts);
+		}),
+	).pipe(Layer.provide(source));
 	const control = host === undefined ? undefined : Context.get(yield* Layer.build(hostDatabase(host, "work-fleet-test", 1)), SqlClient.SqlClient);
 	// PostgreSQL itself reports the daemon's open sessions, whatever client library opened them.
 	const connections = Effect.gen(function* () {

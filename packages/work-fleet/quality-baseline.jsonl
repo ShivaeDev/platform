@@ -424,7 +424,7 @@
 {"path":"packages/work-fleet/src/test-support/boardHttp.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/boardReadRetry.ts","rule":"tests/no-expect-in-support","count":34}
 {"path":"packages/work-fleet/src/test-support/boardReadRetry.ts","rule":"tests/support-imports","count":2}
-{"path":"packages/work-fleet/src/test-support/boardReadStory.ts","rule":"tests/support-imports","count":3}
+{"path":"packages/work-fleet/src/test-support/boardReadStory.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/boardReads.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/boardScheduler.ts","rule":"tests/support-imports","count":4}
 {"path":"packages/work-fleet/src/test-support/boardWork.ts","rule":"tests/support-imports","count":1}
@@ -444,7 +444,7 @@
 {"path":"packages/work-fleet/src/test-support/createEngine.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/work-fleet/src/test-support/daemonActions.ts","rule":"tests/support-imports","count":4}
 {"path":"packages/work-fleet/src/test-support/daemonClient.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/work-fleet/src/test-support/daemonResources.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/work-fleet/src/test-support/daemonResources.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/daemonResync.ts","rule":"tests/no-expect-in-support","count":2}
 {"path":"packages/work-fleet/src/test-support/daemonResync.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/daemonStartup.ts","rule":"tests/support-imports","count":2}

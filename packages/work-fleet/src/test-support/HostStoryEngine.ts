@@ -21,6 +21,8 @@ export class HostStoryEngine {
 	stored: Record<string, Readonly<Record<string, unknown>>> = {};
 	main: MainSnapshot | undefined;
 	integrations: HostFixture["parts"]["integrations"];
+	provider: HostFixture["parts"]["provider"] | undefined;
+	workerContexts: Context.Context<never>[] | undefined;
 	pullRequest: Effect.Success<ReturnType<typeof mergedReviewGithub>> | undefined;
 	localBoard = false;
 	repositoryRoot: string | undefined;
@@ -76,7 +78,7 @@ export class HostStoryEngine {
 			for (const [workId, record] of Object.entries(engine.stored)) {
 				yield* engine.store(workId, record);
 			}
-			engine.resources = yield* daemonResources(engine.fixture.parts.provider);
+			engine.resources = yield* daemonResources(engine.provider ?? engine.fixture.parts.provider, undefined, engine.workerContexts);
 			engine.reads = snapshotReads(engine.fixture.host);
 			yield* engine.start();
 		});
