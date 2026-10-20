@@ -42,7 +42,7 @@ export const createEngine = Effect.fn("FleetFixture.createEngine")(function* <TB
 			? Effect.fail(new BoardFailure({ message: "Board work unavailable" }))
 			: Effect.succeed(boardWork(id, approved, revisions, dependencies, areas, statuses, priorities)),
 	);
-	const base = Layer.mergeAll(Layer.succeed(FleetRepository)(store), boardOverride ?? scripted.layer, provider.transport);
+	const base = Layer.mergeAll(Layer.succeed(FleetRepository)(store), boardOverride ?? scripted.layer, options.transportLayer ?? provider.transport);
 	const session = SessionService.layer.pipe(Layer.provide(Layer.merge(base, fleetSessionJournal.pipe(Layer.provide(base)))));
 	const integrations = engineIntegrations(options, merged);
 	function fleetLayer(configuration = policy) {
