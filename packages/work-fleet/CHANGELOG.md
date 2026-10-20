@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.4 - 2026-10-20
+
+### Fixed
+
+- Share in-flight Board scans across daemon readers so concurrent reconciliation reads at most one Board at a time and releases finished snapshots.
+
 ## 0.15.3 - 2026-10-20
 
 ### Fixed
