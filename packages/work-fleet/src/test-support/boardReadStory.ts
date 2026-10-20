@@ -54,6 +54,10 @@ export const boardReadStory = storyKit({
 			},
 			fixture: {
 				...fixture,
+				pauseReads: () => {
+					story.tell("pause document reads after capturing their source");
+					return fixture.pauseReads;
+				},
 				remove: (file: string) => {
 					story.tell(`remove Board file ${file}`);
 					return fixture.remove(file);

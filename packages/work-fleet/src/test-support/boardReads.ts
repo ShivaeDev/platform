@@ -1,5 +1,5 @@
 import { NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem, Layer, Path, PlatformError } from "effect";
+import { Deferred, Effect, FileSystem, Layer, Path, PlatformError } from "effect";
 import { markdownBoard } from "#board/markdown.ts";
 
 export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: number) {
@@ -9,6 +9,7 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 	const reads = new Map<string, number>();
 	const unreadable = new Set<string>();
 	let scans = 0;
+	let afterRead = Effect.void;
 	const tracked: FileSystem.FileSystem = {
 		...fs,
 		readDirectory: (folder) =>
@@ -30,6 +31,7 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 						? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
 						: fs.readFileString(file, options),
 				),
+				Effect.tap(() => afterRead),
 			),
 	};
 	function source(id: string, approved = true, body = "Useful work.") {
@@ -44,6 +46,12 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 	const services = Layer.mergeAll(Layer.succeed(FileSystem.FileSystem)(tracked), Layer.succeed(Path.Path)(path));
 	return {
 		board: markdownBoard(root).pipe(Layer.provide(services)),
+		pauseReads: Effect.gen(function* () {
+			const entered = yield* Deferred.make<void>();
+			const release = yield* Deferred.make<void>();
+			afterRead = Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(release)));
+			return { entered: Deferred.await(entered), release: Deferred.succeed(release, undefined) };
+		}),
 		reads,
 		remove: (file: string) => fs.remove(path.join(root, file)),
 		root,

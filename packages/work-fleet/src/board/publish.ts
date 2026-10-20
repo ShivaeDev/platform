@@ -104,7 +104,7 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 			Effect.as(candidate),
 			Effect.catchTag("Conflict", (cause) =>
 				Effect.gen(function* () {
-					const saved = (yield* withBoardReadPass(documents)).find((document) => questionFrom(document)?.id === id);
+					const saved = (yield* withBoardReadPass(documents, { fresh: true })).find((document) => questionFrom(document)?.id === id);
 					if (saved === undefined || questionFrom(saved)?.context !== context) {
 						return yield* Effect.fail(cause);
 					}
