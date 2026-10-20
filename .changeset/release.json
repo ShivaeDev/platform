@@ -3,43 +3,17 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "jobs-await-database-disconnects.md",
-				"text": "---\n\"@shivaedev/effect-pg-boss\": patch\n---\n\n### Fixed\n\n- Wait for PostgreSQL transports to disconnect when the default or testing jobs client closes, so its owning scope finishes cleanup before an isolated application database is dropped.\n"
-			},
-			{
-				"name": "release-board-read-passes.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Release cached Board documents when a scheduler read pass ends, even when worker callback contexts outlive the pass.\n"
-			},
-			{
-				"name": "release-starter-pins.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
-			},
-			{
-				"name": "workers-read-product-context.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Changed\n\n- Cloud workers receive repository purpose, linked goal titles and bodies, and readable task content before a shorter Fleet protocol, with Board bookkeeping omitted and work revision checks preserved.\n"
+				"name": "fleet-ended-steer.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Continue reconciling a worker's finished result when Codex rejects a late steer with `NoActiveTurn`, without requiring a human decision.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
-				"directory": "packages/create-app",
-				"from": "0.11.16",
-				"name": "@shivaedev/create-app",
-				"to": "0.11.17"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-pg-boss",
-				"from": "0.15.0",
-				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.15.1"
-			},
-			{
-				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.15.1",
+				"from": "0.15.2",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.15.2"
+				"to": "0.15.3"
 			}
 		]
 	}
