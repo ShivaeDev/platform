@@ -76,7 +76,10 @@ const ReportBoard = defineService({
 			yield* reportContent(work, { ...observation, output });
 			return yield* reportPayload(root, work, observation).save({ files: attachments.files, output });
 		});
-		const report = Effect.fn("Fleet.report")(function* (work: BoardWork, observation: SessionObservation) {
+		const report = Effect.fn("Fleet.report")(function* (work: BoardWork, observation: SessionObservation, kind?: "review") {
+			if (kind === "review") {
+				return yield* board.report(work, observation, kind);
+			}
 			const { itemId } = reportIdentity(work, observation.receipt);
 			const existing = yield* reportPayload(root, work, observation).read;
 			const payload = existing ?? (yield* collect(work, observation));

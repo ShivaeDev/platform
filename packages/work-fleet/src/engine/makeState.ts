@@ -3,6 +3,7 @@ import { NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { type AttentionOwner, waitingOwner } from "#attention.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
+import { decisionEvidence } from "#engine/decisionEvidence.ts";
 import { originalWork } from "#engine/originalWork.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { FleetRepository } from "#engine/repository.ts";
@@ -63,7 +64,7 @@ export const makeState = Effect.gen(function* () {
 			code,
 			id: `${stored.value.workId}.${stored.version}`,
 			...(publicationWork === undefined ? {} : { publicationWork }),
-			links: stored.value.result?.kind === "change" ? [stored.value.result.pr] : [],
+			...decisionEvidence(stored.value, code),
 			reason,
 			recommendation,
 			...(worker === undefined ? {} : { worker }),

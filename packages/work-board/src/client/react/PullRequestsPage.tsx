@@ -56,6 +56,14 @@ function PullRequestRow({ item }: { readonly item: PullRequestItem }) {
 			<div className="min-w-0 flex-1 basis-48 [overflow-wrap:anywhere]">
 				{item.document ? <a href={fileUrl(item.document.file)}>{item.document.title}</a> : <span>{item.workId}</span>}
 				<p className="text-muted-foreground text-xs">{item.workId}</p>
+				{item.readyToMerge && item.review ? (
+					<div className="mt-2 space-y-1 text-sm">
+						<a className="text-primary" href={fileUrl(item.review.sourcePath)}>
+							Review document
+						</a>
+						<p className="whitespace-pre-line">{item.review.tldr}</p>
+					</div>
+				) : null}
 			</div>
 			<span className="text-muted-foreground text-sm">
 				{item.stageEnteredAt === null ? "State age unknown" : <StateAge at={item.stageEnteredAt} />}

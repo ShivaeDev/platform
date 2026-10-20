@@ -61,7 +61,16 @@ export function scriptedBoard(options: EngineOptions, decisions: string[], getWo
 				const response = responses.get(receipt.questionId);
 				return response === undefined ? { _tag: "Pending" as const } : { _tag: "Response" as const, response };
 			}),
-		report: () => Effect.fail(new BoardFailure({ message: "Use a Markdown Board to record reports" })),
+		report: (work, observation, kind) =>
+			kind === "review"
+				? Effect.succeed({
+						itemId: `review.${observation.receipt.turnId}`,
+						receipt: observation.receipt,
+						revision: "review-revision",
+						sourcePath: `responses/review.${observation.receipt.turnId}.md`,
+						workRevision: work.revision,
+					})
+				: Effect.fail(new BoardFailure({ message: "Use a Markdown Board to record reports" })),
 	});
 	function respond(decisionId: string, action: "retry" | "release", type: "answer" | "clarify" | "not_now" = "answer") {
 		const receipt = publications.get(decisionId);

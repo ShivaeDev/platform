@@ -28,6 +28,9 @@ screenStory.it(
 		expect(row?.querySelector('a[href="https://github.com/example/project/pull/12"]')?.textContent).toBe("#12");
 		expect(row?.querySelector('a[href="/tasks/ready.md"]')?.textContent).toBe("Deliver ready");
 		expect(row?.textContent).toContain("task.ready");
+		expect(row?.querySelector('a[href="/responses/review.ready.md"]')?.textContent).toBe("Review document");
+		expect(row?.textContent).toContain("Verdict: request changes");
+		expect(row?.textContent).toContain("New users need a next action.");
 		expect(row?.querySelector("time")?.textContent).toBe("5m in this state");
 		expect(findElement("#pull-requests-open [role='status']")?.getAttribute("aria-label")).toBe("2 ready to merge");
 		yield* Effect.promise(() => navigate("/tasks/ready.md"));

@@ -7,6 +7,11 @@ function item(record: FleetRecord) {
 	return {
 		attentionOwner: waitingOwner(record),
 		prUrl: record.result?.kind === "change" ? record.result.pr : undefined,
+		...(record.review?.document && record.review.head === record.result?.head
+			? {
+					review: { sourcePath: record.review.document.publication.sourcePath, tldr: record.review.document.tldr },
+				}
+			: {}),
 		stage: record.stage,
 		stageEnteredAt: record.stageEnteredAt ?? null,
 		updatedAt: record.updatedAt ?? null,

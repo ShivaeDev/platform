@@ -402,7 +402,7 @@
 {"path":"packages/work-fleet/src/storage/reservationFlow.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/work-fleet/src/storage/typedMigration.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/test-support/AnswerHostEngine.ts","rule":"tests/support-imports","count":4}
-{"path":"packages/work-fleet/src/test-support/EngineOptions.ts","rule":"tests/support-imports","count":8}
+{"path":"packages/work-fleet/src/test-support/EngineOptions.ts","rule":"tests/support-imports","count":6}
 {"path":"packages/work-fleet/src/test-support/EngineWorld.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/HostStoryEngine.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/acceptDependency.ts","rule":"tests/support-imports","count":1}
@@ -463,9 +463,7 @@
 {"path":"packages/work-fleet/src/test-support/engineCheckTraits.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/engineDeliveryTraits.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/work-fleet/src/test-support/engineEvidence.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/work-fleet/src/test-support/engineIntegrations.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/engineLostTurnTraits.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/work-fleet/src/test-support/enginePolicy.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/engineProvider.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/engineProviderVerbs.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/work-fleet/src/test-support/engineReviewFaultTraits.ts","rule":"tests/support-imports","count":2}
@@ -591,11 +589,10 @@
 {"path":"packages/work-fleet/src/test-support/retryInterrupted.ts","rule":"tests/support-imports","count":4}
 {"path":"packages/work-fleet/src/test-support/reviewerNetwork.ts","rule":"tests/no-expect-in-support","count":6}
 {"path":"packages/work-fleet/src/test-support/reviewerNetwork.ts","rule":"tests/support-imports","count":4}
-{"path":"packages/work-fleet/src/test-support/reviewerObservation.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/reviewerReply.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/runRecoveryCase.ts","rule":"tests/no-expect-in-support","count":22}
 {"path":"packages/work-fleet/src/test-support/runRecoveryCase.ts","rule":"tests/support-imports","count":3}
-{"path":"packages/work-fleet/src/test-support/scriptedBoard.ts","rule":"tests/support-imports","count":3}
+{"path":"packages/work-fleet/src/test-support/scriptedBoard.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/session.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/sessionNaming.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/work-fleet/src/test-support/sessionStory.ts","rule":"tests/support-imports","count":1}

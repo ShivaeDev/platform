@@ -4,6 +4,7 @@ import type { EngineOptions } from "#test/EngineOptions.ts";
 export function enginePolicy(options: EngineOptions): FleetConfiguration {
 	let operationCount = 0;
 	return {
+		...(options.review === undefined ? {} : { review: options.review }),
 		...(options.areaMergeWaitMs === undefined ? {} : { areaMergeWaitMs: options.areaMergeWaitMs }),
 		deliveryBacklog: options.backlog ?? 2,
 		executionConcurrency: options.concurrency ?? 2,

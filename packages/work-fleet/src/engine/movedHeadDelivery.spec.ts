@@ -33,7 +33,7 @@ for (const legacy of [false, true]) {
 			finishWorkers();
 			const approved = yield* fleet.reconcile("one");
 			expect(approved.value.decision?.reason).toBe("Reviewed PR is ready to merge");
-			const original = approved.value.review;
+			const original = legacy && approved.value.review !== undefined ? { ...approved.value.review, document: undefined } : approved.value.review;
 			const decisionId = approved.value.decision?.id ?? "missing";
 			if (legacy) {
 				yield* replaceStoredRecord({
@@ -49,6 +49,7 @@ for (const legacy of [false, true]) {
 						reason: MOVED_PR_HEAD_REASON,
 						recommendation: "Retry",
 					},
+					review: original,
 				});
 				yield* upgradeDecisionCodes();
 				expect((yield* fleet.get("one")).value.decision?.code).toBe("pr-head-moved");

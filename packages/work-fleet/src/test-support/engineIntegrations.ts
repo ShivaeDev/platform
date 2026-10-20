@@ -11,14 +11,14 @@ export function engineIntegrations(options: EngineOptions, merged: string[]) {
 			const counts = new Map<string, number>();
 			let checksFailed = false;
 			let deliveryFailed = false;
-			const checkResult = Effect.fnUntraced(function* (result: WorkResult) {
+			const checkResult = Effect.fnUntraced(function* (result: WorkResult, purpose?: "review") {
 				const checks: Checks = yield* options.checksQuery?.(result)
 					?? Effect.gen(function* () {
-						if (options.checksGate !== undefined) {
+						if (purpose !== "review" && options.checksGate !== undefined) {
 							yield* options.checksGate;
 						}
 						const passed = !(options.checksFailure && !checksFailed);
-						checksFailed = true;
+						checksFailed ||= purpose !== "review";
 						return {
 							evidence: ["Required test and build checks passed"],
 							head: options.wrongHead === "checks" ? "wrong-head" : result.head,
@@ -26,7 +26,7 @@ export function engineIntegrations(options: EngineOptions, merged: string[]) {
 							...(options.checkRepair ? { repairPrompt: "Fix the failed required check" } : {}),
 						};
 					});
-				if (checks.passed && !checks.pending && checks.head === result.head) {
+				if (purpose !== "review" && passedChecks(checks, result.head)) {
 					green.add(result.head);
 				}
 				return checks;
@@ -34,7 +34,7 @@ export function engineIntegrations(options: EngineOptions, merged: string[]) {
 			return {
 				...(options.predict === undefined ? {} : { predict: options.predict }),
 				...(options.publicationQuery === undefined ? {} : { publication: options.publicationQuery }),
-				checks: (_board, result) => checkResult(result),
+				checks: (_board, result, purpose) => checkResult(result, purpose),
 				delivery: (result) =>
 					options.deliveryQuery?.(result)
 					?? Effect.gen(function* () {
@@ -83,4 +83,8 @@ function fixtureResult(options: EngineOptions, board: BoardWork, count: number):
 		paths: [`src/${board.workId}.ts`],
 		pr: `https://example.invalid/pr/${board.workId}`,
 	};
+}
+
+function passedChecks(checks: Checks, head: string) {
+	return checks.passed && !checks.pending && checks.head === head;
 }

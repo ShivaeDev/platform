@@ -86,3 +86,7 @@ export function reviewerUsesHostSettings(launch: NonNullable<EngineOptions["laun
 export function reviewFollowUpAcknowledgementLost() {
 	return engineConfiguration("the provider loses the review follow-up acknowledgement", () => ({ lostReviewContinuationAcknowledgement: true }));
 }
+
+export function advisoryReviews() {
+	return engineConfiguration("reviews are advisory", () => ({ review: "advisory" }));
+}

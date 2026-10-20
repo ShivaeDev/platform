@@ -1,16 +1,18 @@
-import { Effect, Result } from "effect";
+import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import { workRevision } from "#board/workRevision.ts";
-import { validateReview } from "#completion.ts";
 import { areaWaiters } from "#engine/areaWaiters.ts";
 import { launchObservationRetries } from "#engine/launchObservationRetries.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
+import { reviewChecks } from "#engine/reviewChecks.ts";
+import { reviewContext } from "#engine/reviewContext.ts";
+import { invalidPriorReview, stalledReviewRetry } from "#engine/reviewRetry.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
 import { policyGuidance } from "#policyGuidance.ts";
-import { readReviewerVerdict, reviewerPrompt } from "#prompt/reviewer.ts";
+import { reviewerPrompt } from "#prompt/reviewer.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function obtainReview(state: EngineState) {
@@ -44,7 +46,8 @@ export function obtainReview(state: EngineState) {
 				result,
 				...(reviewerGuidance === undefined ? {} : { reviewerGuidance }),
 				...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
-				task: work.context,
+				checks: yield* reviewChecks(state, work, result),
+				task: yield* reviewContext(stored.value, work, board.get),
 			});
 
 		const settings = { ...policy.launch };
@@ -105,22 +108,6 @@ function reviewAttemptHead(record: FleetRecord, attempt: Attempt | undefined) {
 	return attempt?.reviewHead ?? reviewedHead;
 }
 
-const invalidPriorReview = Effect.fn("Fleet.invalidPriorReview")(function* (record: FleetRecord, previous: Attempt | undefined, head: string) {
-	if (
-		record.responses?.at(-1)?.action !== "retry"
-		|| previous?.status !== "completed"
-		|| previous.role !== "reviewer"
-		|| previous.receipt === undefined
-	) {
-		return false;
-	}
-	const parsed = yield* readReviewerVerdict(previous.output ?? "", previous.receipt).pipe(
-		Effect.tap((review) => validateReview(record, review, head)),
-		Effect.result,
-	);
-	return Result.isFailure(parsed);
-});
-
 export function reviewMatchesBrief(attempt: Attempt | undefined, work: BoardWork): boolean {
 	return attempt?.reviewRevision === undefined || attempt.reviewRevision === workRevision(work.revision, work.context);
 }
@@ -138,13 +125,4 @@ function reusableReview(
 		&& (previous.status !== "completed" || reviewMatchesBrief(previous, work))
 		&& (previousHead === undefined || previousHead === head)
 	);
-}
-
-function stalledReviewRetry(previous: Attempt | undefined, now: number) {
-	return previous?.role === "reviewer"
-		&& previous.status === "interrupted"
-		&& previous.stallRecovery?.interruptRequestedAt !== undefined
-		&& previous.receipt !== undefined
-		? { prompt: previous.prompt ?? "Continue the review", sessionId: previous.receipt.sessionId, stallRecovery: { count: 2, lastActionAt: now } }
-		: undefined;
 }

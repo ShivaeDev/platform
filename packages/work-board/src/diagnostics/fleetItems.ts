@@ -16,6 +16,7 @@ export const FleetTimestamp = Schema.Number.check(Schema.isFinite(), Schema.isGr
 export const FleetItem = Schema.Struct({
 	attentionOwner: Schema.optional(Schema.Literals(["maintainer", "orchestrator", "automation"])),
 	prUrl: Schema.optional(Schema.String),
+	review: Schema.optional(Schema.Struct({ sourcePath: Schema.String, tldr: Schema.String })),
 	stage: FleetStage,
 	stageEnteredAt: Schema.NullOr(FleetTimestamp),
 	updatedAt: Schema.NullOr(FleetTimestamp),
