@@ -35,9 +35,23 @@ export function recorder() {
 
 export const createProvider = Effect.fnUntraced(function* (url: Redacted.Redacted<string>) {
 	const database = new Pool({ connectionString: Redacted.value(url), max: 2 });
+	const disconnected = new Set<Promise<void>>();
+	database.on("connect", (client) => {
+		const closed = new Promise<void>((resolve) =>
+			client.once("end", () => {
+				disconnected.delete(closed);
+				resolve();
+			}),
+		);
+		disconnected.add(closed);
+	});
 	let closing: Promise<void> | undefined;
 	function close() {
-		closing ??= database.end();
+		closing ??= (async () => {
+			// pg-pool can finish ending before its idle clients disconnect.
+			await database.end();
+			await Promise.all(disconnected);
+		})();
 		return closing;
 	}
 	yield* Effect.addFinalizer(() => Effect.promise(close));
