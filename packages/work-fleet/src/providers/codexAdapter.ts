@@ -68,6 +68,11 @@ export function codexAdapter(rpc: CodexRequest, dialect: CodexDialect): typeof S
 					threadId: receipt.sessionId,
 				},
 				true,
-			).pipe(Effect.asVoid),
+			).pipe(
+				Effect.asVoid,
+				Effect.catch((error) =>
+					error.reason === "rejected" && error.message.endsWith("failed to steer turn: NoActiveTurn") ? Effect.void : Effect.fail(error),
+				),
+			),
 	};
 }

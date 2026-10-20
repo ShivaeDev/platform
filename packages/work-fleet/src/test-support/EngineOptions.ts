@@ -1,4 +1,4 @@
-import type { Effect } from "effect";
+import type { Effect, Layer } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import type { BoardAcknowledgementStale, BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { FleetError } from "#errors.ts";
@@ -70,6 +70,7 @@ export interface EngineOptions {
 	readonly sameReviewer?: boolean;
 	readonly sessionAcknowledgementGate?: Effect.Effect<void, SessionFailure>;
 	readonly submissionFailure?: (call: "session" | "turn") => SessionFailure | undefined;
+	readonly transportLayer?: Layer.Layer<SessionTransport>;
 	readonly unavailableTurn?: boolean;
 	readonly unknownQuota?: boolean;
 	readonly workerGuidance?: string;
