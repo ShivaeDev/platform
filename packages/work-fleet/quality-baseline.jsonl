@@ -547,8 +547,8 @@
 {"path":"packages/work-fleet/src/test-support/recoveryGithubDeliveryCases.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/recoveryHostCases.ts","rule":"tests/no-expect-in-support","count":4}
 {"path":"packages/work-fleet/src/test-support/recoveryHostCases.ts","rule":"tests/support-imports","count":6}
-{"path":"packages/work-fleet/src/test-support/recoveryIntegrationCases.ts","rule":"tests/no-expect-in-support","count":7}
-{"path":"packages/work-fleet/src/test-support/recoveryIntegrationCases.ts","rule":"tests/support-imports","count":2}
+{"path":"packages/work-fleet/src/test-support/recoveryIntegrationCases.ts","rule":"tests/no-expect-in-support","count":6}
+{"path":"packages/work-fleet/src/test-support/recoveryIntegrationCases.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/recoveryJournalCases.ts","rule":"tests/no-expect-in-support","count":2}
 {"path":"packages/work-fleet/src/test-support/recoveryJournalCases.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/recoveryPreparationCases.ts","rule":"tests/support-imports","count":1}
