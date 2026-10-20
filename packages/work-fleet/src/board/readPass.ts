@@ -108,6 +108,7 @@ export const workMetadata = Effect.fn("FleetBoard.workMetadata")(function* (work
 export const publishAfterBoardPass = Effect.fn("FleetBoard.publishAfterBoardPass")(function* (
 	publication: Effect.Effect<void>,
 	backgroundScope?: Scope.Scope,
+	backgroundPublication: Effect.Effect<void> = publication,
 ) {
 	const pass = yield* ReadPass;
 	if (pass?.active === true) {
@@ -115,6 +116,6 @@ export const publishAfterBoardPass = Effect.fn("FleetBoard.publishAfterBoardPass
 	} else if (backgroundScope === undefined) {
 		yield* publication;
 	} else {
-		yield* publication.pipe(Effect.forkIn(backgroundScope));
+		yield* backgroundPublication.pipe(Effect.forkIn(backgroundScope));
 	}
 });

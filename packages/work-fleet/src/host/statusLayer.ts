@@ -1,4 +1,4 @@
-import { Clock, Console, Context, Effect, FileSystem, Layer, type Option, Ref, Semaphore } from "effect";
+import { Clock, Console, Context, Effect, FileSystem, Layer, type Option, Queue, Ref, Semaphore } from "effect";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import type { FleetHealth } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
@@ -53,15 +53,19 @@ export function statusLayer(
 			if (healthConfig !== undefined) {
 				yield* publish;
 			}
+			let schedule = publish;
 			if (background) {
 				// Shutdown flushes what is already committed instead of queueing behind admission held elsewhere.
 				yield* Effect.addFinalizer(() => publishFrom(fleet.listSnapshot));
+				const pending = yield* Queue.dropping<void>(1);
+				yield* Queue.take(pending).pipe(Effect.andThen(publish), Effect.forever, Effect.forkScoped);
+				schedule = Queue.offer(pending, undefined).pipe(Effect.asVoid);
 			}
-			return { fleet, publicationScope, publish, snapshot };
+			return { fleet, publicationScope, publish, schedule, snapshot };
 		}),
-		methods: ({ fleet, publicationScope, publish, snapshot }) => {
+		methods: ({ fleet, publicationScope, publish, schedule, snapshot }) => {
 			function after<A, E, R>(effect: Effect.Effect<A, E, R>) {
-				return effect.pipe(Effect.ensuring(publishAfterBoardPass(publish, publicationScope)));
+				return effect.pipe(Effect.ensuring(publishAfterBoardPass(publish, publicationScope, schedule)));
 			}
 			return {
 				...fleet,

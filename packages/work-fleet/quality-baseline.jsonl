@@ -439,7 +439,7 @@
 {"path":"packages/work-fleet/src/test-support/completionEdit.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/work-fleet/src/test-support/configReload.ts","rule":"tests/support-imports","count":5}
 {"path":"packages/work-fleet/src/test-support/continuationEvidence.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/work-fleet/src/test-support/controlPublication.ts","rule":"tests/support-imports","count":3}
+{"path":"packages/work-fleet/src/test-support/controlPublication.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/work-fleet/src/test-support/controlPublicationHost.ts","rule":"tests/support-imports","count":6}
 {"path":"packages/work-fleet/src/test-support/createEngine.ts","rule":"tests/support-imports","count":3}
 {"path":"packages/work-fleet/src/test-support/daemonActions.ts","rule":"tests/support-imports","count":4}

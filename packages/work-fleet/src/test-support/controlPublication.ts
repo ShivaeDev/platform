@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { queryObjects } from "node:v8";
 import { Context, Deferred, Effect, Fiber } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -7,6 +8,7 @@ import { HealthPublication } from "#engine/health.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
 import { controlPublicationHost } from "#test/controlPublicationHost.ts";
 import { dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
+import { task } from "#test/fleetHost.ts";
 import { MAIN } from "#test/mainSource.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
@@ -83,12 +85,18 @@ export const controlPublication = storyKit({
 				});
 				return yield* engine.client("fleet.reconcile", { workId: "one" });
 			}),
+		// Per-iteration narration captures diagnostic stacks that retain completed fibers.
+		reconcile: () => engine.client("fleet.reconcile", { workId: "one" }),
 		release: () => {
 			story.tell("release the waiting work");
 			return daemonRequest(engine.port, (client) => client("daemon.release", { workIds: ["one"] }), "release one", 1500);
 		},
 		releaseCleanup: () => engine.archive.release,
 		releasePublication: () => Deferred.succeed(engine.release, undefined),
+		retainedFiberCount: () =>
+			Effect.promise(() => new Promise<void>((resolve) => setImmediate(resolve))).pipe(
+				Effect.andThen(Effect.withFiber((fiber) => Effect.sync(() => queryObjects(fiber.constructor, { format: "count" })))),
+			),
 		status: () => readFileSync(join(engine.fixture.host.boardDir, "fleet/status.md"), "utf8"),
 		stop: () => engine.close,
 		turns: () => engine.fixture.provider.settings.filter((call) => call.call === "turn"),
@@ -96,3 +104,13 @@ export const controlPublication = storyKit({
 			waitForRecord(engine.client, "one", (record) => record.stage === "released" && record.attempts[0]?.sessionCleanupComplete === true),
 	}),
 });
+
+export function largePublicationBoard(count: number) {
+	return controlPublication.trait("host", `the Board has ${count} tasks`, (engine) =>
+		Effect.sync(() => {
+			for (let index = 2; index < count; index += 1) {
+				engine.fixture.write(`task-${index}.md`, task(`task.${index}`));
+			}
+		}),
+	);
+}
