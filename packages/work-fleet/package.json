@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/work-fleet",
-	"version": "0.15.0",
+	"version": "0.15.1",
 	"description": "Optional Board-backed execution, review and authorized delivery",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-fleet#readme",
 	"bugs": {

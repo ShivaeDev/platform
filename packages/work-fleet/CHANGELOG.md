@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1 - 2026-10-20
+
+### Fixed
+
+- Coalesce daemon status and health publication behind one background worker and one pending refresh, so repeated reconciliations do not retain an ever-growing queue of publication fibers while a write is delayed. Scheduler and shutdown flushes still publish current state.
+
 ## 0.15.0 - 2026-10-19
 
 ### Added
