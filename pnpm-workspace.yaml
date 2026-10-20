@@ -85,7 +85,7 @@ catalog:
   esbuild: 0.28.2
   better-auth: 1.7.7
   pg: 8.23.0
-  pg-boss: 12.37.1
+  pg-boss: 12.38.0
   "@pg-boss/dashboard": 1.11.0
   satteri: 0.10.5
   shiki: 4.5.0
