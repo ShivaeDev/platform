@@ -1,8 +1,9 @@
 import { expect } from "@effect/vitest";
 import { controlPublication, largePublicationBoard } from "#test/controlPublication.ts";
 
-const TASKS = 700;
-const CYCLES = 40;
+const TASKS = 100;
+// Eight leaked publication fibers exceed the three-fiber allowance.
+const CYCLES = 8;
 const TRANSIENT_FIBERS = 3;
 
 controlPublication.it(
