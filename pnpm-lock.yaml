@@ -196,8 +196,8 @@ catalogs:
       specifier: 5.3.0
       version: 5.3.0
     '@pg-boss/dashboard':
-      specifier: 1.11.0
-      version: 1.11.0
+      specifier: 1.12.0
+      version: 1.12.0
     '@prisma-next/adapter-postgres':
       specifier: 0.16.0
       version: 0.16.0
@@ -453,7 +453,7 @@ importers:
         version: 4.0.4(effect@4.0.4)
       '@pg-boss/dashboard':
         specifier: 'catalog:'
-        version: 1.11.0(typescript@7.0.2)
+        version: 1.12.0(typescript@7.0.2)
       '@shivaedev/effect-contract':
         specifier: workspace:*
         version: link:../../packages/effect-contract
@@ -2174,8 +2174,8 @@ packages:
   '@oxc-project/types@0.152.0':
     resolution: {integrity: sha512-oM/5rLBm2tPkg0iBgkH/FOeR3PCDpY19GTgAZjMFM8h9WI9VW7cLgzp6nwtarYKmovavIQZ+Fe/RKX/8C8O/Rw==}
 
-  '@pg-boss/dashboard@1.11.0':
-    resolution: {integrity: sha512-dmkS8KcoG4N3lQEH7fzFWj1hoX/KR0UbXWTLExrafG8tt6FTFh2pdTAnHmr7+fJS89T2Fj32VJSOurW3QuykqQ==}
+  '@pg-boss/dashboard@1.12.0':
+    resolution: {integrity: sha512-oVmlUJh3Kkerzi3Fot1vA0eUB4sB5AygADgf+PRQbmPjNmETaBkcCDCRwqnWMyDIgNDAcpKaeOqc8tEzJIG/5g==}
     engines: {node: '>=22.12.0'}
     hasBin: true
 
@@ -5775,7 +5775,7 @@ snapshots:
 
   '@oxc-project/types@0.152.0': {}
 
-  '@pg-boss/dashboard@1.11.0(typescript@7.0.2)':
+  '@pg-boss/dashboard@1.12.0(typescript@7.0.2)':
     dependencies:
       '@hono/node-server': 2.1.4(hono@4.13.13)
       '@react-router/node': 8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@7.0.2)
