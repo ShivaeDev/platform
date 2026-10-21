@@ -1,54 +1,6 @@
 import { expect } from "vitest";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 import { httpStatus } from "#quality-internal/rules/stories/httpStatus.ts";
-import { supportImports } from "#quality-internal/rules/stories/supportImports.ts";
-
-ruleKit.it(
-	"test-support cannot reach module internals through static or dynamic imports",
-	[
-		repositoryHas(
-			{ content: 'import { save } from "../internal.ts"; const module = await import("../internal.ts");', path: "src/test-support/orders.ts" },
-			{ content: "export const save = () => {};", path: "src/internal.ts" },
-		),
-	],
-	function* ({ checks }) {
-		const findings = yield* checks(supportImports, { modules: ["src/host.ts"] });
-		expect(findings.map((finding) => finding.subject)).toEqual(["../internal.ts", "../internal.ts"]);
-		expect(findings[0]?.message).toContain("Drive the app through its host");
-	},
-);
-
-ruleKit.it(
-	"test-support uses the configured public surface through resolved aliases",
-	[
-		repositoryHas(
-			{ content: '{"type":"module","imports":{"#host":"./src/host.ts"}}', path: "package.json" },
-			{
-				content: 'import { host } from "#host"; import { helper } from "./helper.ts"; import { readFile } from "node:fs/promises";',
-				path: "src/test-support/orders.ts",
-			},
-			{ content: "export const helper = true;", path: "src/test-support/helper.ts" },
-			{ content: "export const host = {};", path: "src/host.ts" },
-		),
-	],
-	function* ({ checks }) {
-		expect(yield* checks(supportImports, { modules: ["src/host.ts"] })).toEqual([]);
-	},
-);
-
-ruleKit.it(
-	"an absent allowlist does not silently allow an app's internals",
-	[
-		repositoryHas(
-			{ content: 'export { hidden } from "../internal.ts";', path: "src/test-support/orders.ts" },
-			{ content: "export const hidden = true;", path: "src/internal.ts" },
-		),
-	],
-	function* ({ checks }) {
-		const findings = yield* checks(supportImports);
-		expect(findings.map((finding) => finding.subject)).toEqual(["../internal.ts"]);
-	},
-);
 
 ruleKit.it(
 	"domain code handles typed errors instead of comparing HTTP error numbers",

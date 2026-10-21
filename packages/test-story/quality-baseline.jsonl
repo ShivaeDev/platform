@@ -17,6 +17,5 @@
 {"path":"packages/test-story/src/test-support/failingStories.ts","rule":"tests/no-expect-in-support","count":6}
 {"path":"packages/test-story/src/test-support/genreStories.ts","rule":"tests/no-expect-in-support","count":2}
 {"path":"packages/test-story/src/test-support/onlyStories.ts","rule":"tests/no-expect-in-support","count":1}
-{"path":"packages/test-story/src/test-support/proxyHost.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/test-story/src/test-support/scopedStories.ts","rule":"tests/no-expect-in-support","count":1}
 {"path":"packages/test-story/src/test-support/skippedStories.ts","rule":"tests/no-expect-in-support","count":1}
