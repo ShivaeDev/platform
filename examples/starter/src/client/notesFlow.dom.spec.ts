@@ -50,7 +50,7 @@ notesApp.it(
 		yield* Effect.promise(() => eventually(() => expect(heading()).toBe("Edit note")));
 		yield* Effect.promise(() => eventually(() => expect(draft()).toBe("First note")));
 		const ids = yield* storedNoteIds;
-		expect(ids).toHaveLength(1);
+		expect(ids).toEqual([{ id: expect.any(Number) }]);
 		expect(route()).toBe(`/notes/${ids[0]?.id}`);
 		expect(yield* storedNotes).toEqual([{ email: "alice@app.test", title: "First note", version: 0 }]);
 		yield* enter("  Revised note  ");
@@ -67,7 +67,7 @@ notesApp.it(
 		yield* openListedNote();
 		yield* Effect.promise(() => eventually(() => expect(draft()).toBe("Revised note")));
 		const reopenedIds = yield* storedNoteIds;
-		expect(reopenedIds).toHaveLength(1);
+		expect(reopenedIds).toEqual(ids);
 		expect(route()).toBe(`/notes/${reopenedIds[0]?.id}`);
 		yield* click("Delete note");
 		yield* Effect.promise(() => eventually(() => expect(route()).toBe("/")));

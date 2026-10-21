@@ -4,6 +4,8 @@ import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { notesScreen, screens, signedOutNotesRoute } from "#test-support/screens.ts";
 
+const EXPECTED_SIGN_OUT_REQUESTS = 1;
+
 screens.it(
 	"shows the protected route's typed Unauthorized failure and links to sign-in",
 	[signedOutNotesRoute()],
@@ -44,7 +46,7 @@ screens.it(
 	[notesScreen("Could not sign out")],
 	function* ({ closeScreen, consoleErrors, click, signOutCalls, alert }) {
 		yield* click("Sign out");
-		yield* Effect.promise(() => eventually(() => expect(signOutCalls()).toBe(1)));
+		yield* Effect.promise(() => eventually(() => expect(signOutCalls()).toBe(EXPECTED_SIGN_OUT_REQUESTS)));
 		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Could not sign out")));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);

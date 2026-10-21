@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { act } from "react";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { authTestDatabase } from "@shivaedev/platform/server/better-auth/testDatabase.ts";
 import { signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
 import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
 import { domNavigate } from "@shivaedev/test-story/server/domNavigate.ts";
@@ -105,8 +106,8 @@ export const socialApp = storyKit({
 						throw new Error(`Sign-out failed: ${response.status}`);
 					}
 				}),
-			storedSessions: () => Effect.promise(async () => (await pool.query('select count(*)::int as count from "session"')).rows),
-			storedUsers: () => Effect.promise(async () => (await pool.query('select "email" from "user"')).rows),
+			storedSessions: () => authTestDatabase(pool).sessions.pipe(Effect.map((sessions) => [{ count: sessions.length }])),
+			storedUsers: () => authTestDatabase(pool).users.pipe(Effect.map((users) => users.map(({ email }) => ({ email })))),
 		};
 	},
 });

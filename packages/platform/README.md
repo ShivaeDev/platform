@@ -631,6 +631,8 @@ Without `signIn`, the mount installs no hooks, `admittedSessions` returns the lo
 
 Use `authTestUtils()` from `@shivaedev/platform/server/better-auth/testing.ts` in a test-only Better Auth instance with the host's database, secret and cookie policy. The wrapper preserves the plugin's typed `$context.test` under `exactOptionalPropertyTypes`. Keep the plugin out of production auth options.
 
+Use `authTestDatabase(pool)` from `@shivaedev/platform/server/better-auth/testDatabase.ts` when a story needs observations or faults in the default Better Auth PostgreSQL schema. It returns Effect readouts `users` (IDs and emails) and `sessions` (IDs, user IDs and emails), plus the test-only faults `expireSessions` and `omitImageColumn`. It never returns tokens, password hashes or provider credentials. These fixtures assume the default table and column mappings and operate on the supplied pool; use only an isolated test database. Application stories keep their auth SQL in this provider-owned boundary.
+
 ```ts
 import { betterAuth } from "better-auth";
 import { authTestUtils, signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
@@ -747,6 +749,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/better-auth/allowedAccounts.ts` | `AllowedAccounts`, `allowedAccounts`: the provider-account list Schema and its `AUTH_ALLOWED_ACCOUNTS` Config. |
 | `server/better-auth/signInGate.ts` | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy. |
 | `server/better-auth/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation. |
+| `server/better-auth/testDatabase.ts` | `authTestDatabase(pool)`: test-only identity/session readouts and faults for the default PostgreSQL auth schema. |
 | `server/better-auth/testing.ts` | `authTestUtils(options?)`, `signedInUser(auth, fields)`: test-only typed Better Auth helpers and minted user sessions. |
 | `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, options?)`: a Better Auth adapter over Effect Prisma; `modelName` maps model names. |
 | `server/testing/makePlatformIt.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |

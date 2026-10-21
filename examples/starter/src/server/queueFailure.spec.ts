@@ -2,6 +2,9 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { app, rejectedNoteCommits, signedIn } from "#test-support/application.ts";
 
+const EXPECTED_ENQUEUE_FAILURES = 2;
+const EXPECTED_WORKER_RUNS = 1;
+
 app.it("saves and edits notes when the queue client rejects enqueueing", [signedIn()], function* ({ actor, storedNotes, logs, failNextNoteJob }) {
 	const { notes } = actor();
 	yield* failNextNoteJob();
@@ -31,7 +34,7 @@ app.it("saves and edits notes when the queue client rejects enqueueing", [signed
 					(message) => typeof message === "object" && message !== null && "event" in message && message.event === "note_enqueue_failed",
 				),
 		),
-	).toHaveLength(2);
+	).toHaveLength(EXPECTED_ENQUEUE_FAILURES);
 });
 
 app.it(
@@ -49,7 +52,9 @@ app.it(
 				.poll(() => Effect.runPromise(actor().notes.get({ id: control.id })), { timeout: 8000 })
 				.toEqual({ ...control, version: 1, wordCount: 2 }),
 		);
-		yield* Effect.promise(() => expect.poll(() => receiver.spans.filter((span) => span.name === "CountWords"), { timeout: 8000 }).toHaveLength(1));
+		yield* Effect.promise(() =>
+			expect.poll(() => receiver.spans.filter((span) => span.name === "CountWords"), { timeout: 8000 }).toHaveLength(EXPECTED_WORKER_RUNS),
+		);
 		yield* stopWorker;
 		expect(receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code)).toEqual([1]);
 	},

@@ -3,13 +3,16 @@ import { expect } from "vitest";
 import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
 import { app, signedIn } from "#test-support/application.ts";
 
+const INITIAL_VERSION = 0;
+const EXPECTED_WORKER_RUNS = 2;
+
 app.it(
 	"opens, edits and deletes notes while preserving saved changes after rejected writes",
 	[signedIn()],
 	function* ({ actor, storedNotes, collector }) {
 		const { notes: client } = actor();
 		const original = yield* client.create({ title: "Original" });
-		expect(original.version).toBe(0);
+		expect(original.version).toBe(INITIAL_VERSION);
 		expect(yield* client.get({ id: original.id })).toEqual(original);
 		const saved = yield* client.update({ ...original, title: "  Saved note  " });
 		expect(saved).toEqual({ ...original, title: "Saved note", version: 1 });
@@ -23,7 +26,9 @@ app.it(
 		yield* Effect.promise(() =>
 			expect.poll(() => Effect.runPromise(client.get({ id: saved.id })), { timeout: 8000 }).toEqual({ ...saved, version: 2, wordCount: 2 }),
 		);
-		yield* Effect.promise(() => expect.poll(() => receiver.spans.filter((span) => span.name === "CountWords"), { timeout: 8000 }).toHaveLength(2));
+		yield* Effect.promise(() =>
+			expect.poll(() => receiver.spans.filter((span) => span.name === "CountWords"), { timeout: 8000 }).toHaveLength(EXPECTED_WORKER_RUNS),
+		);
 		yield* stopWorker;
 		expect(receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code)).toEqual([1, 1]);
 		const counted = yield* client.get({ id: saved.id });
