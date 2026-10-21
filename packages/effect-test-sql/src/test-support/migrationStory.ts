@@ -5,7 +5,6 @@ import { migrationSteps } from "#migrationSteps.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { loaderResourcesAreScoped } from "./loaderResourcesAreScoped.ts";
 import { layer, migrations, seedContacts } from "./migrationSteps.ts";
-import { narrated } from "./narrated.ts";
 import { configured } from "./postgres.ts";
 import { createSteps, stepsVerbs } from "./stepsVerbs.ts";
 
@@ -17,19 +16,7 @@ export const app = storyKit({
 	name: "backfill",
 	runIf: configured,
 	stages: ["loader", "schema", "data"],
-	verbs: (engine, story) => {
-		const verbs = { ...stepsVerbs(engine), loaderResourcesAreScoped };
-		return {
-			backfill: narrated(story.tell, "backfill", verbs.backfill),
-			backfillCommitsEachStep: narrated(story.tell, "backfill commits each step", verbs.backfillCommitsEachStep),
-			emailsArePreserved: narrated(story.tell, "emails are preserved", verbs.emailsArePreserved),
-			loaderResourcesAreScoped: narrated(story.tell, "loader resources are scoped", verbs.loaderResourcesAreScoped),
-			stepsResumeAndRejectGoingBackwards: narrated(story.tell, "steps resume and reject going backwards", verbs.stepsResumeAndRejectGoingBackwards),
-			targetIsRejected: narrated(story.tell, "target is rejected", verbs.targetIsRejected),
-			targetStopsAtBackfill: narrated(story.tell, "target stops at backfill", verbs.targetStopsAtBackfill),
-			wrappingTransactionsAreRejected: narrated(story.tell, "wrapping transactions are rejected", verbs.wrappingTransactionsAreRejected),
-		};
-	},
+	verbs: (engine) => ({ ...stepsVerbs(engine), loaderResourcesAreScoped }),
 });
 
 export const oldSchema = app.trait("schema", "contacts still have an email column", (engine) => engine.steps.migrateTo("1_create_contacts"));

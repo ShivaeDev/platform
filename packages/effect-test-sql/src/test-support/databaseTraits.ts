@@ -1,7 +1,6 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted, Schedule, Scope } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { expect } from "vitest";
 import { database } from "./database.ts";
 import { databasePressure } from "./databasePressure.ts";
 import { limitedRole } from "./limitedRole.ts";
@@ -70,12 +69,7 @@ export function databasesUnderPressure(count: number) {
 	return database.trait("activity", `${count} clones reserve more connections than their pool allows`, function* (engine) {
 		const sessions = engine.admin<{ count: number }>`select count(*)::int as count from pg_stat_activity where application_name = ${engine.marker}`;
 		// Native client finalizers send Terminate before PostgreSQL removes their sessions.
-		const closed = yield* sessions.pipe(
-			Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: ([row]) => row?.count !== 0 }),
-			Effect.timeout("5 seconds"),
-		);
-		expect(closed).toEqual([{ count: 0 }]);
-		engine.pressureCount = count;
+		yield* sessions.pipe(Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: ([row]) => row?.count !== 0 }), Effect.timeout("5 seconds"));
 		engine.pressure = yield* engine
 			.run(databasePressure(count, engine.options.maxConnections ?? 2))
 			.pipe(Effect.provideService(Scope.Scope, engine.scope));

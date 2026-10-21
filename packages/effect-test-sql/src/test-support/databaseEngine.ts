@@ -16,7 +16,6 @@ export class DatabaseEngine {
 	idleClock = false;
 	marker = `story_${crypto.randomUUID()}`;
 	pressure: Effect.Success<ReturnType<typeof databasePressure>> | undefined;
-	pressureCount = 0;
 
 	readonly admin: SqlClient.SqlClient;
 	readonly scope: Scope.Closeable;

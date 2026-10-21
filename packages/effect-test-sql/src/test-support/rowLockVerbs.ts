@@ -1,11 +1,10 @@
 import { Deferred, Effect, Fiber } from "effect";
 import { SqlClient } from "effect/sql";
-import { expect } from "vitest";
 import { withTestTransaction } from "#withTestTransaction.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { values } from "./postgres.ts";
 
-const rollbackReleasesRowLock = Effect.gen(function* () {
+const contendForRow = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const entered = yield* Deferred.make<number>();
 	const release = yield* Deferred.make<void>();
@@ -20,9 +19,9 @@ const rollbackReleasesRowLock = Effect.gen(function* () {
 	const pid = yield* Deferred.await(entered);
 	const second = yield* withTestTransaction(
 		Effect.gen(function* () {
-			expect(yield* values).toEqual([{ value: "seed" }]);
+			const before = yield* values;
 			yield* sql`update items set value = 'second' where id = 1`;
-			expect(yield* values).toEqual([{ value: "second" }]);
+			return { after: yield* values, before };
 		}),
 	).pipe(Effect.forkScoped);
 	while (true) {
@@ -36,12 +35,12 @@ const rollbackReleasesRowLock = Effect.gen(function* () {
 	}
 	yield* Deferred.succeed(release, undefined);
 	yield* Fiber.join(first);
-	yield* Fiber.join(second);
-	expect(yield* values).toEqual([{ value: "seed" }]);
+	const secondResult = yield* Fiber.join(second);
+	return { ...secondResult, rolledBack: yield* values };
 }).pipe(Effect.timeout("5 seconds"));
 
 export function rowLockVerbs(engine: DatabaseEngine) {
 	return {
-		rollbackReleasesRowLock: () => engine.run(rollbackReleasesRowLock),
+		contendForRow: () => engine.run(contendForRow),
 	};
 }

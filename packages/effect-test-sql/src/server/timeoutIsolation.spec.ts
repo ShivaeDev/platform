@@ -12,11 +12,23 @@ timeoutRunner.it(
 		expect(outcome.stories).toEqual([
 			{
 				errors: [expect.stringContaining("Test timed out in 10000ms.")],
+				meta: expect.objectContaining({ items: [{ value: "seed" }, { value: "before timeout" }] }),
 				name: "Timeout App Story: times out with a running worker",
 				state: "failed",
 			},
-			{ errors: [], name: "Timeout App Story: writes in the next isolated database", state: "passed" },
+			{
+				errors: [],
+				meta: expect.objectContaining({
+					isolation: { closedBeforeSetup: [expect.any(String)], databases: [expect.any(String), expect.any(String)], name: expect.any(String) },
+					items: [{ value: "seed" }, { value: "after timeout" }],
+				}),
+				name: "Timeout App Story: writes in the next isolated database",
+				state: "passed",
+			},
 		]);
+		const isolation = outcome.stories[1]?.meta.isolation;
+		expect(isolation?.closedBeforeSetup).toEqual([isolation?.databases[0]]);
+		expect(isolation?.name).not.toBe(isolation?.databases[0]);
 	},
 	60_000,
 );
