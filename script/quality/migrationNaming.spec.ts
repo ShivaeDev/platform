@@ -1,12 +1,12 @@
 import { afterEach, expect } from "vitest";
-import { migrationNaming, namingFiles } from "#quality/test-support/migrationNaming.ts";
+import { migrationFiles, namingFiles } from "#quality/test-support/migrationFiles.ts";
 import { removeSeededTrees } from "#quality-fixtures/tree.ts";
 
 afterEach(removeSeededTrees);
 
 const SOURCE = "export function applySchema(): number { return 1; }\n";
 
-migrationNaming.it(
+migrationFiles.it(
 	"accepts numbered migrations in root and nested apps without configuration",
 	[
 		namingFiles([
@@ -20,7 +20,7 @@ migrationNaming.it(
 	},
 );
 
-migrationNaming.it(
+migrationFiles.it(
 	"still reports authored files and folders beside migrations and outside the convention",
 	[
 		namingFiles([

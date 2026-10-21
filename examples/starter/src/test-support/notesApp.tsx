@@ -3,7 +3,10 @@ import { Effect } from "effect";
 import { FetchHttpClient, HttpClient } from "effect/http";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { SqlClient } from "effect/sql";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
+import { authTestDatabase } from "@shivaedev/platform/server/better-auth/testDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { App } from "#client/App.tsx";
 import { makeAuth } from "#client/auth.ts";
@@ -25,10 +28,12 @@ export const notesApp = storyKit({
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const host = yield* createCookieHost();
+		const database = yield* PostgresTestDatabase;
+		const authStorage = authTestDatabase(yield* authDatabase(database.url));
 		const signIn = heldSignIn(host.fetch);
 		const auth = makeAuth({ baseUrl: host.baseUrl, fetchOptions: { customFetchImpl: signIn.fetch } });
 		const screen: ScreenSurface = { view: undefined };
-		return { ...host, ...screen, auth, history: createMemoryHistory({ initialEntries: ["/sign-in"] }), signIn };
+		return { ...host, ...screen, auth, authStorage, history: createMemoryHistory({ initialEntries: ["/sign-in"] }), signIn };
 	},
 	inspect: ({ history, view }) => ({ route: history.location.pathname, text: view?.container.textContent }),
 	layer: postgres,
@@ -62,15 +67,19 @@ export const notesApp = storyKit({
 		}),
 		storedNotes: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
-			return yield* sql`select n.title, n.version, u.email from notes n left join "user" u on u.id = n.owner_id order by n.id`;
+			const users = yield* engine.authStorage.users;
+			const notes = yield* sql<{
+				title: string;
+				version: number;
+				ownerId: string;
+			}>`select title, version, owner_id as "ownerId" from notes order by id`.withoutTransform;
+			return notes.map(({ title, version, ownerId }) => ({ email: users.find(({ id }) => id === ownerId)?.email ?? null, title, version }));
 		}),
 		storedSessions: Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			return yield* sql`select u.email from "session" s join "user" u on u.id = s."userId"`;
+			return (yield* engine.authStorage.sessions).map(({ email }) => ({ email }));
 		}),
 		storedUsers: Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			return yield* sql`select email from "user"`;
+			return (yield* engine.authStorage.users).map(({ email }) => ({ email }));
 		}),
 	}),
 });

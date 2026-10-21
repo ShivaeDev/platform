@@ -1,12 +1,12 @@
+import { getMigrations } from "better-auth/db/migration";
+import { admin } from "better-auth/plugins";
 import { Effect } from "effect";
-import { SqlClient } from "effect/sql";
+import { AuthMigrationDatabase } from "#server/AuthMigrationDatabase.ts";
 
 export default Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	yield* sql`alter table "user"
-		add column role text,
-		add column banned boolean default false,
-		add column "banReason" text,
-		add column "banExpires" timestamptz`;
-	yield* sql`alter table "session" add column "impersonatedBy" text`;
+	const database = yield* AuthMigrationDatabase;
+	yield* Effect.tryPromise(async () => {
+		const migration = await getMigrations({ database, emailAndPassword: { enabled: true }, plugins: [admin()] });
+		await migration.runMigrations();
+	});
 });

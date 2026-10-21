@@ -5,6 +5,7 @@ import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "e
 import * as NetAddress from "effect/net/NetAddress";
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
+import { authTestDatabase } from "@shivaedev/platform/server/better-auth/testDatabase.ts";
 import { authTestUtils } from "@shivaedev/platform/server/better-auth/testing.ts";
 import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
@@ -38,7 +39,7 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* (databas
 			async (headers) => {
 				accountLookups += 1;
 				if (expireBeforeAccounts) {
-					await pool.query(`update "session" set "expiresAt" = now() - interval '1 second'`);
+					await Effect.runPromise(authTestDatabase(pool).expireSessions);
 				}
 				if (accountLookupFails) {
 					throw new Error("Account storage unavailable");

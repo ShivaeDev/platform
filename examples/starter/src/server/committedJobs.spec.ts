@@ -2,6 +2,8 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { app, signedIn } from "#test-support/application.ts";
 
+const EXPECTED_WORKER_RUNS = 3;
+
 app.it(
 	"keeps jobs after an outer rollback and refreshes live notes after the worker counts committed titles",
 	[signedIn()],
@@ -26,7 +28,9 @@ app.it(
 				{ ...note, version: 1, wordCount: 4 },
 			]),
 		);
-		yield* Effect.promise(() => expect.poll(() => receiver.spans.filter((span) => span.name === "CountWords"), { timeout: 8000 }).toHaveLength(3));
+		yield* Effect.promise(() =>
+			expect.poll(() => receiver.spans.filter((span) => span.name === "CountWords"), { timeout: 8000 }).toHaveLength(EXPECTED_WORKER_RUNS),
+		);
 		yield* Effect.promise(() =>
 			expect
 				.poll(() => Effect.runPromise(wordCountCompletions()), { timeout: 8000 })
