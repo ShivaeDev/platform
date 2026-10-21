@@ -1,4 +1,4 @@
-import { Context, Effect, Scope } from "effect";
+import { Context, Data, Deferred, Effect, Layer, Scope } from "effect";
 import { defineService } from "#defineService.ts";
 import { genericMethod } from "#genericMethod.ts";
 import type { ServiceRequirements } from "#ServiceRequirements.ts";
@@ -102,4 +102,93 @@ export interface ServiceEngine {
 export function* serviceEngine(): Effect.fn.Return<ServiceEngine, never, Scope.Scope> {
 	const scope = yield* Scope.fork(yield* Effect.scope);
 	return { built: { kind: "unbuilt" }, counts: serviceCounts(), declaration: { kind: "undeclared" }, scope };
+}
+
+class InitializationFailed extends Data.TaggedError("InitializationFailed") {}
+class MethodFailed extends Data.TaggedError("MethodFailed") {}
+class Prefix extends Context.Service<Prefix, string>()("story/FailurePrefix") {}
+
+export function failureEngine() {
+	const counts = { factoryCalls: 0, finalized: 0 };
+	const initializationFailure = new InitializationFailed();
+	const methodFailure = new MethodFailed();
+	const defect = new Error("method defect");
+	const failedInitialization = defineService({
+		id: "story/FailedInitialization",
+		initialize: Effect.gen(function* () {
+			yield* Effect.addFinalizer(() =>
+				Effect.sync(() => {
+					counts.finalized += 1;
+				}),
+			);
+			return yield* Effect.fail(initializationFailure);
+		}),
+		methods: () => {
+			counts.factoryCalls += 1;
+			return { run: () => Effect.void };
+		},
+		requires: [],
+	});
+	const failedMethod = defineService({
+		id: "story/MethodFailure",
+		initialize: Effect.sync(() => ({ calls: 0 })),
+		methods: (state) => ({
+			run: Effect.fn("MethodFailure.run")(function* (fail: boolean) {
+				const prefix = yield* Prefix;
+				state.calls += 1;
+				if (fail) {
+					return yield* Effect.fail(methodFailure);
+				}
+				return `${prefix}${state.calls}`;
+			}),
+		}),
+		requires: [Prefix],
+	});
+	const defectiveMethod = defineService({
+		id: "story/MethodDefect",
+		initialize: Effect.void,
+		methods: () => ({ crash: () => Effect.die(defect) }),
+		requires: [],
+	});
+	const methodLayer = failedMethod.layer.pipe(Layer.provide(Layer.succeed(Prefix, "call ")));
+	return { counts, defect, defectiveMethod, failedInitialization, failedMethod, initializationFailure, methodFailure, methodLayer };
+}
+
+class Resource extends Context.Service<Resource, string>()("story/InterruptedResource") {}
+
+export function* lifetimeEngine() {
+	const acquired = yield* Deferred.make<void>();
+	const started = yield* Deferred.make<void>();
+	const counts = { finalized: 0, released: 0 };
+	const initialization = { wait: false };
+	const scope = yield* Scope.fork(yield* Effect.scope);
+	const service = defineService({
+		id: "story/ServiceLifetime",
+		initialize: Effect.gen(function* () {
+			yield* Effect.addFinalizer(() =>
+				Effect.sync(() => {
+					counts.finalized += 1;
+				}),
+			);
+			yield* Deferred.succeed(started, undefined);
+			if (initialization.wait) {
+				yield* Effect.never;
+			}
+		}),
+		methods: () => ({
+			read: () => Effect.map(Resource, (resource) => resource),
+			wait: Effect.fn("ServiceLifetime.wait")(function* () {
+				yield* Effect.acquireRelease(Resource, () =>
+					Effect.sync(() => {
+						counts.released += 1;
+					}),
+				);
+				yield* Deferred.succeed(acquired, undefined);
+				return yield* Effect.never;
+			}),
+		}),
+		requires: [Resource],
+	});
+	const layer = service.layer.pipe(Layer.provide(Layer.succeed(Resource, "resource")));
+	return { acquired, counts, initialization, layer, scope, service, started };
 }

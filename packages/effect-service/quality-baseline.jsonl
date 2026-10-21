@@ -1,17 +1,10 @@
-{"path":"packages/effect-service/src/RequirementProof.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-service/src/serviceFailures.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/effect-service/src/serviceFailures.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-service/src/serviceInterruption.spec.ts","rule":"tests/named-values","count":8}
-{"path":"packages/effect-service/src/serviceInterruption.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-service/src/serviceScope.spec.ts","rule":"tests/named-values","count":6}
-{"path":"packages/effect-service/src/serviceScope.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-service/src/test-support/fixtures/invalid/callerRequirement.ts","rule":"tests/support-imports","count":1}
 {"path":"packages/effect-service/src/test-support/fixtures/invalid/fake.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-service/src/test-support/fixtures/invalid/generic.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-service/src/test-support/fixtures/invalid/generic.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-service/src/test-support/fixtures/invalid/genericDeclaredRequirement.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-service/src/test-support/fixtures/invalid/genericDeclaredRequirement.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-service/src/test-support/fixtures/invalid/genericMarkerOverloaded.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-service/src/test-support/fixtures/invalid/initializerRequirement.ts","rule":"tests/support-imports","count":1}
