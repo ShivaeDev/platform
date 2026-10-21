@@ -1,6 +1,6 @@
 import { type HookCommand, shellWords } from "./command.ts";
 
-const OWNER = "# Installed by @shivaedev/quality: `quality hooks install` writes it, `quality hooks uninstall` removes it.";
+export const OWNER = "# Installed by @shivaedev/quality: `quality hooks install` writes it, `quality hooks uninstall` removes it.";
 
 export function isHookShim(text: string): boolean {
 	return text.split("\n").includes(OWNER);
@@ -14,6 +14,8 @@ export function hookShim(directory: string, command: HookCommand): string {
 	return [
 		"#!/bin/sh",
 		OWNER,
+		'if [ -n "$QUALITY_PRE_COMMIT_ACTIVE" ]; then exit 0; fi',
+		"export QUALITY_PRE_COMMIT_ACTIVE=1",
 		'top="$(git rev-parse --show-toplevel)" || exit 2',
 		'if [ -n "$GIT_DIR" ] && [ -z "$GIT_WORK_TREE" ]; then export GIT_WORK_TREE="$top"; fi',
 		'cd "$top" || exit 2',

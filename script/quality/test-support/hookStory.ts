@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, readFileSync, realpathSync, renameSync } from "node:fs";
+import { chmodSync, existsSync, readFileSync, realpathSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { qualityArgs } from "#quality-fixtures/cli.ts";
@@ -31,13 +31,25 @@ export const hookStory = storyKit({
 			git: {
 				commit: () => run("git", ["commit", "--allow-empty", "-m", "Checked"]),
 				config: (...args: string[]) => run("git", ["config", ...args]),
+				push: () => run("git", ["push", join(repository.global, "remote.git"), "HEAD:refs/heads/main"]),
+				runHook: (name: string, args: readonly string[], input: string) => {
+					writes(repository.global, "stdin", input);
+					return run("git", ["hook", "run", `--to-stdin=${join(repository.global, "stdin")}`, name, "--", ...args]);
+				},
 			},
 			hooks: {
 				run: (...args: string[]) => run("node", qualityArgs(["hooks", ...args]), join(repository.root, repository.folder)),
+				writeGlobal: (name: string, script: string) => {
+					const path = run("git", ["config", "--global", "--type=path", "--get", "core.hooksPath"]).stdout.trim();
+					writes(resolve(repository.root, path), name, script);
+					chmodSync(resolve(repository.root, path, name), 0o755);
+				},
 			},
 			recorded: {
 				globalConfig: () => readFileSync(env.GIT_CONFIG_GLOBAL, "utf8"),
 				globalLog: () => checksLog(repository.root),
+				hookLog: (name: string) =>
+					existsSync(join(repository.root, `${name}.log`)) ? readFileSync(join(repository.root, `${name}.log`), "utf8") : "",
 				qualityLog: () => checksLog(join(repository.root, repository.folder)),
 			},
 		};

@@ -6,6 +6,7 @@ import { SetupFailure } from "#failure.ts";
 import { gitOrFail } from "#git/command.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
 import { commandWords, hookCommand, type Launch, shellWords } from "./command.ts";
+import { globalHooksPath, installForwarding } from "./forwarding.ts";
 import { hookLocation } from "./location.ts";
 import { hookShim, isHookShim } from "./shim.ts";
 import { globalHookStatus } from "./status.ts";
@@ -61,7 +62,8 @@ export const installHook = Effect.fn("Hooks.installHook")(function* (install: Ho
 		const done = foreign ? `replaced ${location.file}, which was not quality's hook` : `installed the pre-commit hook at ${location.file}`;
 		yield* Console.log(`quality: ${done}; each commit runs \`${words}\`.`);
 	}
-	const hooks = dirname(location.file);
+	const hooks =
+		(yield* globalHooksPath(config.root)) === "" ? dirname(location.file) : yield* installForwarding(location.file).pipe(Effect.mapError(failed));
 	yield* gitOrFail(config.root, ["config", "--local", "core.hooksPath", hooks]);
 	yield* Console.log(`quality: set repository-local core.hooksPath to ${hooks}.`);
 	yield* globalHookStatus(location);
