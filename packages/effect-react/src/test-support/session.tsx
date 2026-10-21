@@ -2,7 +2,8 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { Rendered } from "#client/testing.ts";
-import { makeOrderEditor } from "#test/order-example/frontend.tsx";
+import { Editor } from "#test/order-example/Editor.tsx";
+import { makeClient } from "#test/order-example/makeClient.ts";
 import { clickButton, typeInput } from "./Screen.ts";
 import { RegistryProbe } from "./sessionProbes.ts";
 
@@ -18,16 +19,16 @@ export function shell(url: string, view: Rendered) {
 	function show(session: Session | undefined, id: number) {
 		return view.render(
 			<SessionBoundary
-				connect={(current) => makeOrderEditor({ token: current.token, url })}
+				connect={(current) => makeClient({ token: current.token, url })}
 				identify={(current) => current.id}
 				recheck={() => rechecks.push(session?.id ?? "none")}
 				session={session}
 				signedOut={<p>Signed out</p>}
 			>
-				{({ Editor }) => (
+				{(client) => (
 					<>
 						<RegistryProbe registries={registries} />
-						<Editor id={id} />
+						<Editor client={client} id={id} />
 					</>
 				)}
 			</SessionBoundary>,

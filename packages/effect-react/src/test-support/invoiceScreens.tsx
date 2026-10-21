@@ -3,7 +3,7 @@ import { act } from "react";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { Rendered } from "#client/testing.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
-import { makeInvoiceLineViews } from "#test/invoice-line-editor/frontend.ts";
+import { InvoiceLineCreate, InvoiceLineScreen } from "#test/invoice-line-editor/Screen.ts";
 import { clickButton, typeInput } from "./Screen.ts";
 import { RegistryProbe } from "./sessionProbes.ts";
 export const stapler = new InvoiceLine({ id: 1, name: "Stapler", quantity: 150 });
@@ -27,13 +27,12 @@ function controls(root: Rendered) {
 }
 export async function editing(root: Rendered, id = 1) {
 	const server = makeInvoiceLineServer([stapler, notebook]);
-	const { InvoiceLineEditor } = makeInvoiceLineViews(server);
 	const view = controls(root);
 	const release = server.hold();
 	function show(current: number) {
 		return root.render(
 			<SessionBoundary connect={() => undefined} identify={(session) => session} recheck={() => undefined} session="s1">
-				{() => <InvoiceLineEditor id={current} />}
+				{() => <InvoiceLineScreen id={current} server={server} />}
 			</SessionBoundary>,
 		);
 	}
@@ -42,11 +41,10 @@ export async function editing(root: Rendered, id = 1) {
 }
 export async function creating(root: Rendered) {
 	const server = makeInvoiceLineServer([stapler]);
-	const { InvoiceLineCreate } = makeInvoiceLineViews(server);
 	const view = controls(root);
 	await root.render(
 		<SessionBoundary connect={() => undefined} identify={(session) => session} recheck={() => undefined} session="s1">
-			{() => <InvoiceLineCreate />}
+			{() => <InvoiceLineCreate server={server} />}
 		</SessionBoundary>,
 	);
 	return { server, view };
@@ -62,16 +60,16 @@ export function switching(root: Rendered) {
 	function show(session: "alice" | "bob" | undefined) {
 		return root.render(
 			<SessionBoundary
-				connect={(user) => makeInvoiceLineViews(servers[user])}
+				connect={(user) => servers[user]}
 				identify={(user) => user}
 				recheck={() => rechecks.push(session ?? "none")}
 				session={session}
 				signedOut="Signed out"
 			>
-				{({ InvoiceLineEditor }) => (
+				{(server) => (
 					<>
 						<RegistryProbe registries={registries} />
-						<InvoiceLineEditor id={stapler.id} />
+						<InvoiceLineScreen id={stapler.id} server={server} />
 					</>
 				)}
 			</SessionBoundary>,
