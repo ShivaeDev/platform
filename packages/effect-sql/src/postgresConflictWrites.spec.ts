@@ -17,7 +17,7 @@ postgres.it(
 					const original = Option.getOrThrow(yield* accounts.insertOrIgnore(input));
 					expect(original).toBeInstanceOf(Account);
 					expect(original.createdAt).toBeInstanceOf(Date);
-					expect(original.id).toBe(1);
+					expect(original).toMatchObject({ id: 1 });
 					expect(yield* accounts.insertOrIgnore({ ...input, amount: 99 })).toEqual(Option.none());
 					const updated = yield* accounts.upsert({ ...input, amount: 60, origin: "changed" }, { updateColumns: ["amount"] });
 					expect(updated).toEqual({ ...original, amount: 60 });

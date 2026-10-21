@@ -1,4 +1,4 @@
-import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
+import { Cause, Deferred, Effect, Exit, Fiber, Option } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { onClient, onSqlError, Rejected, Unavailable } from "#test/postgresTransact.ts";
@@ -9,7 +9,7 @@ postgres.it(
 	"a committed transaction invalidates its marked keys once, after the body finishes",
 	[hasTransactionTables()],
 	function* ({ transactions, transact, invalidateOnCommit }) {
-		const { events, insert, count } = transactions();
+		const { events, insert, orderIds, sql } = transactions();
 		yield* Effect.gen(function* () {
 			yield* insert(1);
 			yield* invalidateOnCommit({ orders: [1] });
@@ -17,7 +17,7 @@ postgres.it(
 			events.push("body finished");
 		}).pipe(transact({ onSqlError }));
 		expect(events).toEqual(["body finished", "orders", "orders:1"]);
-		expect(yield* count).toBe(1);
+		expect(yield* orderIds(sql)).toEqual([1]);
 	},
 );
 
@@ -25,7 +25,7 @@ postgres.it(
 	"a typed failure or an interruption rolls back without invalidating",
 	[hasTransactionTables()],
 	function* ({ transactions, transact, invalidateOnCommit }) {
-		const { events, insert, count } = transactions();
+		const { events, insert, orderIds, sql } = transactions();
 		const failed = yield* Effect.gen(function* () {
 			yield* insert(1);
 			yield* invalidateOnCommit({ orders: [1] });
@@ -46,7 +46,7 @@ postgres.it(
 		expect(Exit.isFailure(interrupted) && Cause.hasInterrupts(interrupted.cause)).toBe(true);
 
 		expect(events).toEqual([]);
-		expect(yield* count).toBe(0);
+		expect(yield* orderIds(sql)).toEqual([]);
 	},
 );
 
@@ -73,7 +73,7 @@ postgres.it(
 	"nested transactions flush once at the outermost commit and discard keys from a rolled-back savepoint",
 	[hasTransactionTables()],
 	function* ({ transactions, transact, invalidateOnCommit }) {
-		const { events, insert, count } = transactions();
+		const { events, insert, orderIds, sql } = transactions();
 		yield* Effect.gen(function* () {
 			yield* insert(1);
 			yield* invalidateOnCommit({ orders: [1] });
@@ -89,7 +89,7 @@ postgres.it(
 			}).pipe(transact({ onSqlError }), Effect.ignore);
 		}).pipe(transact({ onSqlError }));
 		expect(events).toEqual(["orders", "orders:1"]);
-		expect(yield* count).toBe(2);
+		expect(yield* orderIds(sql)).toEqual([1, 2]);
 	},
 );
 
@@ -126,7 +126,7 @@ postgres.it(
 	"a transaction on another pool inside a transaction announces its own commit even when the outer one rolls back",
 	[hasTransactionTables(), hasObserverPool()],
 	function* ({ transactions, transact, invalidateOnCommit, observerPool }) {
-		const { events, insert, count, otherIds, insertOther } = transactions();
+		const { events, insert, orderIds, sql, otherIds, insertOther } = transactions();
 		const other = observerPool();
 		const failed = yield* Effect.gen(function* () {
 			yield* insert(1);
@@ -140,7 +140,7 @@ postgres.it(
 		}).pipe(transact({ onSqlError }), Effect.flip);
 		expect(failed).toBeInstanceOf(Rejected);
 		expect(events).toEqual(["orders", "orders:2"]);
-		expect(yield* count).toBe(0);
+		expect(yield* orderIds(sql)).toEqual([]);
 		expect(yield* otherIds(other)).toEqual([2]);
 	},
 );
@@ -173,7 +173,7 @@ postgres.it(
 	"a transaction re-entered on a pool inside a transaction on another pool joins its own outer transaction",
 	[hasTransactionTables(), hasObserverPool()],
 	function* ({ transactions, transact, invalidateOnCommit, observerPool }) {
-		const { events, insert, count, otherIds, insertOther } = transactions();
+		const { events, insert, orderIds, sql, otherIds, insertOther } = transactions();
 		const main = yield* SqlClient.SqlClient;
 		const other = observerPool();
 		const failed = yield* Effect.gen(function* () {
@@ -191,7 +191,7 @@ postgres.it(
 		}).pipe(transact({ onSqlError }), onClient(other), Effect.flip);
 		expect(failed).toBeInstanceOf(Rejected);
 		expect(events).toEqual(["orders", "orders:1"]);
-		expect(yield* count).toBe(1);
+		expect(yield* orderIds(sql)).toEqual([1]);
 		expect(yield* otherIds(other)).toEqual([]);
 	},
 );
@@ -200,7 +200,7 @@ postgres.it(
 	"keys follow the pool that wrote them, not the innermost transaction",
 	[hasTransactionTables(), hasObserverPool()],
 	function* ({ transactions, transact, invalidateOnCommit, observerPool }) {
-		const { events, insert, count, otherIds, insertOther } = transactions();
+		const { events, insert, orderIds, sql, otherIds, insertOther } = transactions();
 		const main = yield* SqlClient.SqlClient;
 		const other = observerPool();
 		const failed = yield* Effect.gen(function* () {
@@ -214,7 +214,26 @@ postgres.it(
 		}).pipe(transact({ onSqlError }), onClient(other), Effect.flip);
 		expect(failed).toBeInstanceOf(Rejected);
 		expect(events).toEqual([]);
-		expect(yield* count).toBe(1);
+		expect(yield* orderIds(sql)).toEqual([1]);
 		expect(yield* otherIds(other)).toEqual([]);
+	},
+);
+
+postgres.it(
+	"Transact.transact spans the native transaction until its write commits",
+	[hasTransactionTables(), hasObserverPool()],
+	function* ({ transactions, transact, observerPool }) {
+		const { insert, orderIds } = transactions();
+		const observer = observerPool();
+		const transactionSpan = yield* Effect.gen(function* () {
+			yield* insert(1);
+			expect(yield* orderIds(observer)).toEqual([]);
+			const span = yield* Effect.currentSpan;
+			expect(span.name).toBe("sql.transaction");
+			expect(Option.getOrThrow(span.parent)).toMatchObject({ name: "Transact.transact", status: { _tag: "Started" } });
+			return span;
+		}).pipe(transact({ onSqlError }));
+		expect(Option.getOrThrow(transactionSpan.parent)).toMatchObject({ name: "Transact.transact", status: { _tag: "Ended" } });
+		expect(yield* orderIds(observer)).toEqual([1]);
 	},
 );

@@ -21,7 +21,7 @@ postgres.it(
 		expect(yield* migratePostgres({ ...options, loader: Migrator.fromRecord({ "1_seed": seed }) }).pipe(Effect.provideContext(binding))).toEqual([
 			[1, "seed"],
 		]);
-		yield* eventually(Effect.try(() => expect(state.payloads).toHaveLength(1)));
+		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:1`]])));
 		const rejected = yield* migratePostgres({
 			...options,
 			loader: Migrator.fromRecord({

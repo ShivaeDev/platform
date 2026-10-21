@@ -24,11 +24,13 @@ postgres.it(
 			const listeners = sql<{
 				pid: number;
 			}>`select pid from pg_stat_activity where query = ${`LISTEN "${state.channel}"`}`;
-			expect(yield* listeners).toHaveLength(1);
+			const originalListeners = yield* listeners;
+			expect(originalListeners).toEqual([{ pid: expect.any(Number) }]);
 			state.muted = true;
 			yield* eventually(Effect.try(() => expect(state.resyncs).toBeGreaterThanOrEqual(2))).pipe(Effect.timeout("2 seconds"));
-			expect(state.connections).toBe(1);
-			expect(closing()).toBe(1);
+			const initialListenerCount = originalListeners.length;
+			expect(state.connections).toBe(initialListenerCount);
+			expect(closing()).toBe(initialListenerCount);
 			state.muted = false;
 			yield* eventually(
 				Effect.try(() => {
@@ -36,11 +38,12 @@ postgres.it(
 					expect(state.resyncs).toBeGreaterThanOrEqual(3);
 				}),
 			).pipe(Effect.timeout("5 seconds"));
-			expect(yield* listeners).toHaveLength(1);
+			expect(yield* listeners).toEqual([{ pid: expect.any(Number) }]);
 			yield* invalidateOnCommit(["orders:1"]).pipe(transact({ onSqlError }));
-			yield* eventually(Effect.try(() => expect(changes).toHaveLength(1))).pipe(Effect.timeout("5 seconds"));
+			yield* eventually(Effect.try(() => expect(changes).toEqual(["orders:1"]))).pipe(Effect.timeout("5 seconds"));
 			yield* close;
-			expect(closing()).toBe(2);
+			const closedListenerCount = 2;
+			expect(closing()).toBe(closedListenerCount);
 		} finally {
 			release();
 		}

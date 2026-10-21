@@ -13,8 +13,7 @@ postgres.it("PostgreSQL repository preserves model codecs and ambient transactio
 		note: null,
 	});
 	expect(consulting).toBeInstanceOf(InvoiceLine);
-	expect(consulting.id).toBe(1);
-	expect(consulting.amount).toBe(52);
+	expect(consulting).toMatchObject({ amount: 52, id: 1 });
 	expect(yield* sql`select amount from ${sql(tableName)}`).toEqual([{ amount: "52" }]);
 	yield* lines.insert({ amount: 57, name: "Hosting", note: "annual" });
 	const selected = yield* lines.findMany({
@@ -56,8 +55,7 @@ postgres.it("PostgreSQL repository preserves model codecs and ambient transactio
 		amount: 60,
 		name: "Revised",
 	});
-	expect(updated.name).toBe("Revised");
-	expect(updated.amount).toBe(60);
+	expect(updated).toMatchObject({ amount: 60, name: "Revised" });
 	yield* lines.updateVoid({ ...updated, name: "Final" });
 	expect((yield* lines.findById(consulting.id)).name).toBe("Final");
 	yield* lines.delete(consulting.id);

@@ -9,7 +9,7 @@ import { transaction } from "#test/transaction.ts";
 postgres.it("PostgreSQL inserts initialize versions and updates return the incremented model", [hasVersionedDocuments()], function* ({ versions }) {
 	const { documents } = versions();
 	const original = yield* documents.insert({ name: "Draft" });
-	expect(original.lockVersion).toBe(0);
+	expect(original).toMatchObject({ lockVersion: 0, name: "Draft" });
 	const updated = yield* documents.update({ ...original, name: "Published" });
 	expect(updated).toBeInstanceOf(Document);
 	expect(updated).toEqual({ ...original, lockVersion: 1, name: "Published" });
@@ -44,11 +44,10 @@ postgres.it("PostgreSQL concurrent writers produce exactly one winner and one ty
 	});
 	const winners = outcomes.filter(Result.isSuccess);
 	const losers = outcomes.filter(Result.isFailure);
-	expect(winners).toHaveLength(1);
-	expect(losers).toHaveLength(1);
-	expect(losers[0]?.failure).toBeInstanceOf(OptimisticConcurrencyError);
-	expect(losers[0]?.failure).toMatchObject({ expectedVersion: 0, id: original.id, tableName });
-	expect(winners[0]?.success.lockVersion).toBe(1);
+	expect(winners.map(({ success }) => success)).toEqual([{ ...original, lockVersion: 1, name: expect.stringMatching(/^Writer [01]$/u) }]);
+	expect(losers.map(({ failure }) => failure)).toEqual([
+		expect.objectContaining({ _tag: "OptimisticConcurrencyError", expectedVersion: original.lockVersion, id: original.id, tableName }),
+	]);
 	expect(yield* documents.findById(original.id)).toEqual(winners[0]?.success);
 });
 
@@ -75,7 +74,7 @@ postgres.it(
 		const { documents, tableName } = versions();
 		yield* documents.insertVoid({ name: "Draft" });
 		const original = yield* documents.findById(1);
-		expect(original.lockVersion).toBe(0);
+		expect(original).toMatchObject({ lockVersion: 0, name: "Draft" });
 		yield* documents.updateVoid({ ...original, name: "Published" });
 		expect(yield* documents.findById(1)).toEqual({ ...original, lockVersion: 1, name: "Published" });
 		const stale = yield* documents.updateVoid(original).pipe(Effect.flip);

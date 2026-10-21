@@ -29,9 +29,9 @@ postgres.it(
 		expect(yield* readings.upsert({ ...input, sequence: 4 }, { updateColumns: ["amount"] })).toEqual({ ...input, sequence: 4 });
 		yield* readings.updateVoid({ ...input, amount: 70, sequence: 2 });
 		expect(yield* readings.update({ ...input, amount: 80, sequence: 2 })).toEqual({ ...input, amount: 80, sequence: 2 });
-		expect((yield* readings.findById({ sequence: 1, source: "other" })).amount).toBe(52);
+		expect(yield* readings.findById({ sequence: 1, source: "other" })).toMatchObject({ amount: input.amount });
 		yield* readings.delete({ sequence: 1, source: "meter" });
-		expect((yield* readings.findById({ sequence: 2, source: "meter" })).amount).toBe(80);
+		expect(yield* readings.findById({ sequence: 2, source: "meter" })).toEqual({ ...input, amount: 80, sequence: 2 });
 		expect(yield* readings.findById({ sequence: 1, source: "meter" }).pipe(Effect.flip)).toMatchObject({ _tag: "NoSuchElementError" });
 		yield* readings.delete({ sequence: 1, source: "meter" });
 		const rollback = yield* transaction(
@@ -42,7 +42,7 @@ postgres.it(
 			}),
 		).pipe(Effect.result);
 		expect(rollback._tag).toBe("Failure");
-		expect((yield* readings.findById({ sequence: 2, source: "meter" })).amount).toBe(80);
+		expect(yield* readings.findById({ sequence: 2, source: "meter" })).toEqual({ ...input, amount: 80, sequence: 2 });
 		expect(yield* readings.findMany({ where: { sequence: 5 } })).toEqual([]);
 	},
 );
