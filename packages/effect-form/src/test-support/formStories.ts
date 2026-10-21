@@ -1,7 +1,7 @@
 import { Deferred, Effect, type Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { draftSession } from "#draftSession.ts";
-import { make } from "#form.ts";
+import { form } from "#form.ts";
 import type { Config, Decoded, Encoded, FieldFailure, Fields, Name, Path } from "#shape.ts";
 import { checkGate } from "./checkGate.ts";
 import { draftStorage } from "./draftStorage.ts";
@@ -24,7 +24,7 @@ export function formStories<TFields extends Fields, A = Decoded<TFields>, E = ne
 						return handler(values, submitter, submitted);
 					},
 				};
-				state.current = make(state.schema, state.config);
+				state.current = form(state.schema, state.config);
 				state.registry.mount(state.current.dirty);
 				state.mounted.add(state.current.dirty);
 			},
@@ -100,7 +100,7 @@ export function formStories<TFields extends Fields, A = Decoded<TFields>, E = ne
 		withStoredDraft: (baseline: Encoded<TFields>, values: Encoded<TFields>) =>
 			kit.trait("setup", "an earlier editing session stored a draft", (state) => {
 				state.config = { ...state.config, persistedDraft: state.storage.config };
-				const previous = make(state.schema, { ...state.config, initialValues: baseline });
+				const previous = form(state.schema, { ...state.config, initialValues: baseline });
 				previous.values.set(values);
 			}),
 		withValues: (initialValues: Encoded<TFields>) =>

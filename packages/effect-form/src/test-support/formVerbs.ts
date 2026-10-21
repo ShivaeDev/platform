@@ -3,7 +3,7 @@ import { Deferred, Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { vi } from "vitest";
-import { make } from "#form.ts";
+import { form } from "#form.ts";
 import type { Encoded, Fields, Form, Name, Path } from "#shape.ts";
 import type { FormEngine } from "./formEngine.ts";
 
@@ -28,7 +28,7 @@ export function formVerbs<TFields extends Fields, A, E, R, TRuntimeError>(
 		state.observed.set(path, atom);
 		return read(atom);
 	}
-	const form: Form<TFields, A, E, TRuntimeError> = {
+	const currentForm: Form<TFields, A, E, TRuntimeError> = {
 		blur: (name) => {
 			story.tell(`blur ${name}`);
 			current().blur(name);
@@ -94,13 +94,13 @@ export function formVerbs<TFields extends Fields, A, E, R, TRuntimeError>(
 			story.tell("the server answers the save");
 			return Deferred.succeed(state.release, undefined);
 		},
-		form,
+		form: currentForm,
 		read,
 		reject: () => Effect.flip(result()),
 		reload: (initialValues: Encoded<TFields>) => {
 			story.tell(`reload with server values ${JSON.stringify(initialValues)}`);
-			state.current = make(state.schema, { ...state.config, initialValues });
-			return form;
+			state.current = form(state.schema, { ...state.config, initialValues });
+			return currentForm;
 		},
 		result,
 		saved: state.storage.saved,

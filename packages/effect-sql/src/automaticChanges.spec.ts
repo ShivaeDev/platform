@@ -19,10 +19,13 @@ postgres.it(
 			yield* rows.delete(3);
 			expect(state.payloads).toEqual([]);
 		}).pipe(transact({ onSqlError: (error) => error }));
-		yield* eventually(Effect.try(() => expect(state.payloads).toHaveLength(1)));
-		expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([
-			[tableName, ...Array.from({ length: 30 }, (_, id) => `${tableName}:${id}`)],
-		]);
+		yield* eventually(
+			Effect.try(() =>
+				expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([
+					[tableName, ...Array.from({ length: 30 }, (_, id) => `${tableName}:${id}`)],
+				]),
+			),
+		);
 	},
 );
 
@@ -35,8 +38,8 @@ postgres.it(
 		const rows = yield* makeRepository(AnnouncedRow, { conflictColumns: ["id"], idColumn: "id", spanPrefix: "Rows", tableName });
 		const inputs = Array.from({ length: 30 }, (_, id) => ({ id, parent: null }));
 		yield* rows.insertMany(inputs).pipe((body) => Effect.provideContext(body, notifications().binding));
-		yield* eventually(Effect.try(() => expect(state.payloads).toHaveLength(1)));
-		expect(JSON.parse(state.payloads[0] ?? "null")).toEqual([tableName, ...inputs.map(({ id }) => `${tableName}:${id}`)]);
+		const announcedKeys = [tableName, ...inputs.map(({ id }) => `${tableName}:${id}`)];
+		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([announcedKeys])));
 		yield* rows.insertManyOrIgnore(inputs).pipe(transact({ onSqlError: (error) => error }));
 		yield* rows
 			.upsertMany(
@@ -44,8 +47,7 @@ postgres.it(
 				{ updateColumns: ["parent"] },
 			)
 			.pipe(transact({ onSqlError: (error) => error }));
-		yield* eventually(Effect.try(() => expect(state.payloads).toHaveLength(2)));
-		expect(JSON.parse(state.payloads[1] ?? "null")).toEqual([tableName, ...inputs.map(({ id }) => `${tableName}:${id}`)]);
+		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([announcedKeys, announcedKeys])));
 	},
 );
 
@@ -66,8 +68,7 @@ postgres.it(
 				.insert({ id: 3, parent: null })
 				.pipe(Effect.andThen(Effect.fail("savepoint")), transact({ onSqlError: (error) => error }), Effect.ignore);
 		}).pipe(transact({ onSqlError: (error) => error }));
-		yield* eventually(Effect.try(() => expect(state.payloads).toHaveLength(1)));
-		expect(JSON.parse(state.payloads[0] ?? "null")).toEqual([tableName, `${tableName}:2`]);
+		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:2`]])));
 		expect(yield* sql`select id from ${sql(tableName)}`).toEqual([{ id: 2 }]);
 	},
 );
@@ -95,9 +96,12 @@ postgres.it(
 		yield* rows.updateVoid({ id: 41, parent: 41 }).pipe(transact({ onSqlError: (error) => error }));
 		yield* rows.delete(41).pipe(transact({ onSqlError: (error) => error }));
 		yield* rows.delete(41).pipe(transact({ onSqlError: (error) => error }));
-		yield* eventually(Effect.try(() => expect(notifications().state.payloads).toHaveLength(3)));
-		expect(notifications().state.payloads.map((payload) => JSON.parse(payload))).toEqual(
-			Array.from({ length: 3 }, () => [tableName, `${tableName}:41`]),
+		yield* eventually(
+			Effect.try(() =>
+				expect(notifications().state.payloads.map((payload) => JSON.parse(payload))).toEqual(
+					Array.from({ length: 3 }, () => [tableName, `${tableName}:41`]),
+				),
+			),
 		);
 	},
 );

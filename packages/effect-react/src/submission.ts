@@ -1,6 +1,6 @@
 import type { Effect, Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
-import { make } from "@shivaedev/effect-form/form.ts";
+import { form } from "@shivaedev/effect-form/form.ts";
 import type { PersistedDraftConfig } from "@shivaedev/effect-form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form/shape.ts";
 import { actionTrace } from "#actionTrace.ts";
@@ -26,7 +26,7 @@ export function submission<TFields extends Fields, A, E, R, TRuntimeError>(
 	const { fields, initialValues, runtime } = config;
 	const save = rejecting(fields, config.save, config.rejectField);
 	let submitted: Encoded<TFields> | undefined;
-	const form: Form<TFields, A, E | FieldFailure, TRuntimeError> = make(fields, {
+	const currentForm: Form<TFields, A, E | FieldFailure, TRuntimeError> = form(fields, {
 		initialValues,
 		onSubmit: (values, submitter, snapshot) => {
 			submitted = snapshot;
@@ -35,5 +35,5 @@ export function submission<TFields extends Fields, A, E, R, TRuntimeError>(
 		persistedDraft: config.persistedDraft,
 		runtime,
 	});
-	return { form, submitted: () => submitted };
+	return { form: currentForm, submitted: () => submitted };
 }

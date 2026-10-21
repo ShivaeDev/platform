@@ -13,8 +13,11 @@ postgres.it(
 		yield* generated.insertVoid({}).pipe(transact({ onSqlError: (error) => error }));
 		const [row] = yield* generated.findMany();
 		expect(row).toBeDefined();
-		yield* eventually(Effect.try(() => expect(notifications().state.payloads).toHaveLength(1)));
-		expect(notifications().state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:${row?.id}`]]);
+		yield* eventually(
+			Effect.try(() =>
+				expect(notifications().state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:${row?.id}`]]),
+			),
+		);
 	},
 );
 
@@ -27,9 +30,12 @@ postgres.it(
 		const row = yield* documents.findById(1);
 		yield* documents.updateVoid({ ...row, name: "Published" }).pipe(transact({ onSqlError: (error) => error }));
 		yield* documents.delete(row.id, 1).pipe(transact({ onSqlError: (error) => error }));
-		yield* eventually(Effect.try(() => expect(notifications().state.payloads).toHaveLength(3)));
-		expect(notifications().state.payloads.map((payload) => JSON.parse(payload))).toEqual(
-			Array.from({ length: 3 }, () => [tableName, `${tableName}:${row.id}`]),
+		yield* eventually(
+			Effect.try(() =>
+				expect(notifications().state.payloads.map((payload) => JSON.parse(payload))).toEqual(
+					Array.from({ length: 3 }, () => [tableName, `${tableName}:${row.id}`]),
+				),
+			),
 		);
 	},
 );
@@ -44,7 +50,10 @@ postgres.it(
 			yield* readings.updateVoid({ ...row, amount: 8 });
 			yield* readings.delete({ sequence: 1, source: "meter" });
 		}).pipe(transact({ onSqlError: (error) => error }));
-		yield* eventually(Effect.try(() => expect(notifications().state.payloads).toHaveLength(1)));
-		expect(notifications().state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:["meter","1"]`]]);
+		yield* eventually(
+			Effect.try(() =>
+				expect(notifications().state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:["meter","1"]`]]),
+			),
+		);
 	},
 );

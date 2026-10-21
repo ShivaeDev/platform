@@ -37,11 +37,9 @@ postgres.it("PostgreSQL batch upserts update only selected columns and insert ne
 	const { readings, statements } = batchFixture();
 	const batch = inputs(1001);
 	yield* readings.insertMany(batch);
-	const updated = yield* readings.upsertMany(
-		[...batch.map((row) => ({ ...row, amount: row.amount + 10, label: "ignored" })), { amount: 5, label: "new", source: "new" }],
-		{ updateColumns: ["amount"] },
-	);
-	expect(updated).toHaveLength(1002);
+	const changes = [...batch.map((row) => ({ ...row, amount: row.amount + 10, label: "ignored" })), { amount: 5, label: "new", source: "new" }];
+	const updated = yield* readings.upsertMany(changes, { updateColumns: ["amount"] });
+	expect(updated.map(({ source }) => source)).toEqual(changes.map(({ source }) => source));
 	expect(updated.every((row) => row instanceof Reading)).toBe(true);
 	expect(updated[0]).toMatchObject({ amount: 10, label: "original", source: "meter-0" });
 	expect(updated[1000]).toMatchObject({ amount: 1010, label: "original", source: "meter-1000" });
@@ -54,7 +52,7 @@ postgres.it(
 	"a later PostgreSQL batch failure rolls back earlier chunks without a caller transaction",
 	[hasBatchReadings()],
 	function* ({ batchFixture, sql }) {
-		const { readings, plain, count, statements, calls } = batchFixture();
+		const { readings, plain, statements, calls } = batchFixture();
 		const batch = [...inputs(1000), { amount: -1, label: "invalid", source: "invalid" }];
 		for (const write of [
 			() => plain.insertMany(batch),
@@ -63,7 +61,7 @@ postgres.it(
 		]) {
 			const failure = yield* write().pipe(Effect.flip);
 			expect(failure).toBeInstanceOf(SqlError);
-			expect(yield* count).toBe(0);
+			expect(yield* readings.findMany()).toEqual([]);
 			expect(yield* statements).toEqual([]);
 		}
 		expect(yield* sql`select last_value::int as calls from ${sql(calls)}`).toEqual([{ calls: 3 }]);
@@ -83,7 +81,8 @@ postgres.it("empty PostgreSQL batches return no rows and execute no write statem
 
 postgres.it("wide PostgreSQL batches stay under the bind limit before reaching the row cap", [hasWideRows()], function* ({ wideRows }) {
 	const { repository, values } = wideRows();
-	const inserted = yield* repository.insertMany(Array.from({ length: 1001 }, (_, id) => ({ ...values, id })));
-	expect(inserted).toHaveLength(1001);
+	const batch = Array.from({ length: 1001 }, (_, id) => ({ ...values, id }));
+	const inserted = yield* repository.insertMany(batch);
+	expect(inserted).toEqual(batch);
 	expect(yield* repository.findById(1000)).toEqual({ ...values, id: 1000 });
 });

@@ -70,7 +70,7 @@ it("includes the supporting modules documented by the framework READMEs", async 
 		"@shivaedev/effect-trpc/rejectionDecoding.ts",
 		"@shivaedev/effect-form/draft.ts",
 		"@shivaedev/effect-form/refs.ts",
-		"@shivaedev/effect-form/status.ts",
+		"@shivaedev/effect-form/statusOf.ts",
 	]) {
 		assert.ok(
 			entries.some((entry) => entry.specifier === specifier),

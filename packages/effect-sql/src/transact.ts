@@ -22,7 +22,7 @@ function flatten(keys: InvalidationKeys): readonly unknown[] {
 	return isList(keys) ? keys : Object.entries(keys).flatMap(([name, ids]) => [name, ...ids.map((id) => `${name}:${hashOf(id)}`)]);
 }
 
-const nativeTransactionWithoutTransact = Effect.fn("Transact.guard")(function* () {
+const guard = Effect.fn("Transact.guard")(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const native = yield* Effect.serviceOption(sql.transactionService);
 	if (native._tag === "Some") {
@@ -36,7 +36,7 @@ const invalidations = makeChannel<unknown, SqlClient.SqlClient | Reactivity.Reac
 	name: "@shivaedev/effect-sql/transact",
 	owner: Effect.map(SqlClient.SqlClient, (sql) => sql.transactionService),
 	publish: (keys) => Reactivity.invalidate(keys),
-	unowned: nativeTransactionWithoutTransact(),
+	unowned: guard(),
 });
 
 export const ChangeObserver = invalidations.Observer;
@@ -47,23 +47,24 @@ export const invalidateOnCommit = Effect.fn("Transact.invalidateOnCommit")(funct
 	yield* invalidations.record(flatten(keys));
 });
 
-export interface TransactOptions<E2> {
-	readonly onSqlError: (error: SqlError) => E2;
+export interface TransactOptions<TError> {
+	readonly onSqlError: (error: SqlError) => TError;
 }
 
-const run = Effect.fn("Transact.transact")(function* <A, E, R, E2>(effect: Effect.Effect<A, E, R>, options: TransactOptions<E2>) {
-	const sql = yield* SqlClient.SqlClient;
-	return yield* invalidations
-		.within(sql.withTransaction)(effect)
-		.pipe(Effect.catchIf(isSqlError, (error) => Effect.fail(options.onSqlError(error))));
-});
-
 export const transact: {
-	<E2>(
-		options: TransactOptions<E2>,
-	): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, Exclude<E, SqlError> | E2, R | SqlClient.SqlClient | Reactivity.Reactivity>;
-	<A, E, R, E2>(
+	<TError>(
+		options: TransactOptions<TError>,
+	): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, Exclude<E, SqlError> | TError, R | SqlClient.SqlClient | Reactivity.Reactivity>;
+	<A, E, R, TError>(
 		effect: Effect.Effect<A, E, R>,
-		options: TransactOptions<E2>,
-	): Effect.Effect<A, Exclude<E, SqlError> | E2, R | SqlClient.SqlClient | Reactivity.Reactivity>;
-} = dual(2, run);
+		options: TransactOptions<TError>,
+	): Effect.Effect<A, Exclude<E, SqlError> | TError, R | SqlClient.SqlClient | Reactivity.Reactivity>;
+} = dual(
+	2,
+	Effect.fn("Transact.transact")(function* <A, E, R, TError>(effect: Effect.Effect<A, E, R>, options: TransactOptions<TError>) {
+		const sql = yield* SqlClient.SqlClient;
+		return yield* invalidations
+			.within(sql.withTransaction)(effect)
+			.pipe(Effect.catchIf(isSqlError, (error) => Effect.fail(options.onSqlError(error))));
+	}),
+);
