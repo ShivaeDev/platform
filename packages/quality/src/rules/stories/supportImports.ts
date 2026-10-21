@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { importGraph } from "#imports/graph.ts";
+import { publicModules } from "#imports/publicModules.ts";
 import { isTestSupport } from "#naming/testName.ts";
 import { defineRule } from "#rule.ts";
 import { matchesAny } from "./matchesAny.ts";
@@ -14,18 +15,24 @@ export const supportImports = defineRule({
 			return [];
 		}
 		const graph = await importGraph(inputs);
+		const exported = await publicModules(inputs, graph);
 		return graph.edges
 			.filter(
-				(edge) => isTestSupport(edge.from) && edge.to.kind === "file" && !isTestSupport(edge.to.path) && !matchesAny(edge.to.path, options.modules),
+				(edge) =>
+					isTestSupport(edge.from)
+					&& edge.to.kind === "file"
+					&& !isTestSupport(edge.to.path)
+					&& !exported.has(edge.to.path)
+					&& !matchesAny(edge.to.path, options.modules),
 			)
 			.map((edge) => ({
 				file: edge.from,
 				line: edge.line,
-				message: `Test-support imports "${edge.specifier}" outside its allowed public surface. Drive the app through its host, schemas or queue definitions; list those public module paths in tests/support-imports.options.modules in the repository's quality config.`,
+				message: `Test-support imports "${edge.specifier}" outside its allowed public surface. Drive the app through its host, schemas or queue definitions, or a workspace package's exports; list additional internal module paths in tests/support-imports.options.modules in the repository's quality config.`,
 				subject: edge.specifier,
 			}));
 	},
-	description: "Test-support reaches repository modules only through the public surface named by the repository's module allowlist.",
+	description: "Test-support reaches repository modules through workspace package exports and the repository's additional module allowlist.",
 	id: "tests/support-imports",
 	options: Schema.toStandardSchemaV1(SupportImportsOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 });

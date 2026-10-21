@@ -1,6 +1,0 @@
-{"path":"packages/heavy-lock/src/test-support/acquisition.ts","rule":"tests/support-imports","count":4}
-{"path":"packages/heavy-lock/src/test-support/clock.ts","rule":"tests/support-imports","count":3}
-{"path":"packages/heavy-lock/src/test-support/kit.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/heavy-lock/src/test-support/lock.ts","rule":"tests/support-imports","count":3}
-{"path":"packages/heavy-lock/src/test-support/protocol.ts","rule":"tests/support-imports","count":2}
-{"path":"packages/heavy-lock/src/test-support/runningCommand.ts","rule":"tests/support-imports","count":2}

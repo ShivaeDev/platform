@@ -1,4 +1,2 @@
 {"path":"packages/effect-changes/src/commit.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-changes/src/seams.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/effect-changes/src/test-support/engine.ts","rule":"tests/support-imports","count":4}
-{"path":"packages/effect-changes/src/test-support/frameVerbs.ts","rule":"tests/support-imports","count":1}

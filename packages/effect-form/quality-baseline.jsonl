@@ -10,7 +10,3 @@
 {"path":"packages/effect-form/src/nestedErrors.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-form/src/nestedRejections.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-form/src/persistence.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-form/src/test-support/draftStorage.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-form/src/test-support/formEngine.ts","rule":"tests/support-imports","count":2}
-{"path":"packages/effect-form/src/test-support/formStories.ts","rule":"tests/support-imports","count":3}
-{"path":"packages/effect-form/src/test-support/formVerbs.ts","rule":"tests/support-imports","count":2}

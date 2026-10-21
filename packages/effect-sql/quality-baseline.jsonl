@@ -1,3 +1,0 @@
-{"path":"packages/effect-sql/src/test-support/clientNames.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-sql/src/test-support/postgresNotify.ts","rule":"tests/support-imports","count":1}
-{"path":"packages/effect-sql/src/test-support/sqlEngine.ts","rule":"tests/support-imports","count":3}
