@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { Effect } from "effect";
 import type { Findings, Rule } from "@shivaedev/quality/rule.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { scanned } from "#quality-fixtures/imports.ts";
+import { linkWorkspace, scanned } from "#quality-fixtures/imports.ts";
 import type { SeedFile } from "#quality-fixtures/tree.ts";
 
 interface RuleEngine {
@@ -32,6 +32,11 @@ export const ruleKit = storyKit({
 				}
 				engine.findings = await configured.check(await scanned(engine.root));
 				return engine.findings;
+			}),
+		linksWorkspace: (name: string, directory: string) =>
+			Effect.sync(() => {
+				story.tell(`the workspace links ${name} to ${directory}`);
+				linkWorkspace(engine.root, name, directory);
 			}),
 		writes: (...files: readonly SeedFile[]) =>
 			Effect.sync(() => {
