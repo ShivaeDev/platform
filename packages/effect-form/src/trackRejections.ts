@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { asPath, keySelector, retainedPath } from "./paths.ts";
 import { FieldFailure, type Holder } from "./shape.ts";
-import type { statusOf } from "./status.ts";
+import type { statusOf } from "./statusOf.ts";
 
 export function trackRejections(values: Holder, selectors: Readonly<Record<string, unknown>> | undefined, status: ReturnType<typeof statusOf>) {
 	const keys = new Map(Object.entries(selectors ?? {}).map(([name, select]) => [name, keySelector(select)]));

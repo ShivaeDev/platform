@@ -7,7 +7,7 @@ Keep input values, decoded submissions and fresh server data in one form. Define
 An input gives you a string; your service needs a number. Meanwhile, fresh server data can arrive beside an unsaved edit. Repeating those conversions and merge rules in components makes every form another state machine. Here, the schema owns the conversion and the form owns the editing session:
 
 ```ts
-const order = make(Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString }), {
+const order = form(Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString }), {
   initialValues: { name: "Paper", quantity: "300" },
   onSubmit: Effect.succeed,
   runtime,
@@ -31,7 +31,7 @@ Keep one form instance for one editing session. Use a new instance for a differe
 
 ### Once per application: supply the runtime and registry
 
-`make` takes an atom runtime. Build its Layer from the services your submit handler and field checks need. A handler that reads a service outside that runtime's declared dependencies does not compile. The handler's type also permits the native `Scope`, `AtomRegistry` and `Reactivity` services.
+`form` takes an atom runtime. Build its Layer from the services your submit handler and field checks need. A handler that reads a service outside that runtime's declared dependencies does not compile. The handler's type also permits the native `Scope`, `AtomRegistry` and `Reactivity` services.
 
 Use an `AtomRegistry` to mount and read atoms and write the submit atom. Own its lifetime at the application boundary. In React, provide that registry through `RegistryContext` from `@effect/atom-react`.
 
@@ -41,7 +41,7 @@ Use an `AtomRegistry` to mount and read atoms and write the submit atom. Own its
 import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { make } from "@shivaedev/effect-form/form.ts";
+import { form } from "@shivaedev/effect-form/form.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const fields = Schema.Struct({
@@ -49,7 +49,7 @@ const fields = Schema.Struct({
   quantity: Schema.NumberFromString,
 });
 
-const order = make(fields, {
+const order = form(fields, {
   initialValues: { name: "Paper", quantity: "300" },
   onSubmit: (values, submitter) =>
     values.name === "reserved"
@@ -87,22 +87,22 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
-import { make } from "@shivaedev/effect-form/form.ts";
+import { form } from "@shivaedev/effect-form/form.ts";
 import { useDirty, useField, useSubmit } from "@shivaedev/effect-form/client/react.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const fields = Schema.Struct({ name: Schema.NonEmptyString, quantity: Schema.NumberFromString });
 
 function OrderEditor() {
-  const [form] = useState(() => make(fields, {
+  const [order] = useState(() => form(fields, {
     initialValues: { name: "Paper", quantity: "300" },
     onSubmit: Effect.succeed,
     runtime,
   }));
-  const name = useField(form, "name");
-  const quantity = useField(form, "quantity");
-  const submit = useSubmit(form);
-  const dirty = useDirty(form);
+  const name = useField(order, "name");
+  const quantity = useField(order, "quantity");
+  const submit = useSubmit(order);
+  const dirty = useDirty(order);
 
   return <form onSubmit={(event) => {
     event.preventDefault();
@@ -115,7 +115,7 @@ function OrderEditor() {
       onChange={(event) => quantity.onChange(event.target.value)} /></label>
     {quantity.error && <p role="alert">{quantity.error}</p>}
     <button disabled={submit.submitting}>Save</button>
-    <button type="button" onClick={form.revert}>Revert</button>
+    <button type="button" onClick={order.revert}>Revert</button>
     <p role="status">{submit.submitting ? "Saving…" : dirty ? "Unsaved changes" : "Saved"}</p>
   </form>;
 }
@@ -159,7 +159,7 @@ Opt in with `persistedDraft`. The application chooses a key for one logical edit
 For a core form, supply the storage provider explicitly:
 
 ```ts
-const order = make(fields, {
+const order = form(fields, {
   initialValues: { name: "Paper", quantity: "300" },
   onSubmit: Effect.succeed,
   persistedDraft: { key: "order:123", storage: () => window.localStorage },
@@ -175,7 +175,7 @@ import { usePersistedDraft } from "@shivaedev/effect-form/client/react.ts";
 
 function OrderEditor() {
   const persistedDraft = usePersistedDraft({ key: "order:123" });
-  const [form] = useState(() => make(fields, {
+  const [order] = useState(() => form(fields, {
     initialValues: { name: "Paper", quantity: "300" },
     onSubmit: Effect.succeed,
     persistedDraft,
@@ -200,7 +200,7 @@ An untouched invalid field initially has no visible message. Invalid submission 
 For `Schema.NonEmptyString`, an empty input's message is `Required`. Longer minimum-length checks retain Schema's message.
 
 ```ts
-const profile = make(Schema.Struct({ name: Schema.String }), {
+const profile = form(Schema.Struct({ name: Schema.String }), {
   checks: {
     name: (value) => Effect.succeed(value === "taken" ? "Name is taken" : undefined),
   },
@@ -220,7 +220,7 @@ For a nested value held in one top-level field, `errorAt(["answers", index, "tex
 Pass a path tuple to `submitter.fail` to reject one element or a property inside it. Paths use indices in the submitted encoded snapshot. Optional `arrayKeys` selectors receive encoded elements of top-level array fields and return their stable, unique keys:
 
 ```ts
-const answers = make(Schema.Struct({
+const answers = form(Schema.Struct({
   answers: Schema.Array(Schema.Struct({ id: Schema.String, text: Schema.NonEmptyString })),
 }), {
   arrayKeys: { answers: answer => answer.id },
@@ -241,7 +241,7 @@ Without a selector for an array, handler errors fall back to index paths. They r
 
 ```ts
 import { Schema } from "effect";
-import { emptyAsNull } from "@shivaedev/effect-form/optional.ts";
+import { emptyAsNull } from "@shivaedev/effect-form/emptyAsNull.ts";
 
 const fields = Schema.Struct({
   visibility: Schema.Literals(["private", "public"]),
@@ -249,7 +249,7 @@ const fields = Schema.Struct({
 });
 ```
 
-For a form made with these fields, `form.choices("visibility")` returns the encoded literals `"private"` and `"public"`. Choices also stay encoded when the field's codec transforms those literals. `emptyAsNull` decodes `""` to `null` and uses the inner codec for populated input; encoding `null` gives `""`.
+For a form made with these fields, `order.choices("visibility")` returns the encoded literals `"private"` and `"public"`. Choices also stay encoded when the field's codec transforms those literals. `emptyAsNull` decodes `""` to `null` and uses the inner codec for populated input; encoding `null` gives `""`.
 
 ### API
 
@@ -257,13 +257,13 @@ Import the module that defines a name; there is no root entry.
 
 | Module | Application-facing exports |
 | --- | --- |
-| `@shivaedev/effect-form/form.ts` | `make(schema, config)` |
+| `@shivaedev/effect-form/form.ts` | `form(schema, config)` |
 | `@shivaedev/effect-form/shape.ts` | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use |
 | `@shivaedev/effect-form/client/react.ts` | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext` |
 | `@shivaedev/effect-form/draftSession.ts` | `draftSession(id)` |
-| `@shivaedev/effect-form/optional.ts` | `emptyAsNull` |
+| `@shivaedev/effect-form/emptyAsNull.ts` | `emptyAsNull` |
 
-`make` takes a `Schema.Struct` and this configuration:
+`form` takes a `Schema.Struct` and this configuration:
 
 | Option | Type or role |
 | --- | --- |
@@ -294,7 +294,7 @@ The returned form exposes:
 
 `F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains the top-level string `path`, `message` and optional submitted path `segments`; `Invalid` contains `messages`, a `FieldMessages` record.
 
-The lower-level `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`) and `status.ts` (`statusOf`) modules hold the machinery the form composes; the examples use the form API instead.
+The lower-level `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`) and `statusOf.ts` (`statusOf`) modules hold the machinery the form composes; the examples use the form API instead.
 
 ### Install and limits
 

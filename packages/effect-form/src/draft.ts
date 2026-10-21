@@ -5,9 +5,9 @@ import type { Persistence } from "./persistence.ts";
 
 type Entries = Readonly<Record<string, unknown>>;
 
-interface Draft<Values> {
-	readonly baseline: Values;
-	readonly current: Values;
+interface Draft<TValues> {
+	readonly baseline: TValues;
+	readonly current: TValues;
 	readonly settled: Entries;
 }
 
@@ -21,7 +21,7 @@ function changed(held: Draft<Entries>): boolean {
 	return Object.keys({ ...held.baseline, ...held.current }).some((name) => !untouched(held, name));
 }
 
-function merged<Values>(held: Draft<Values>, incoming: Values): Values;
+function merged<TValues>(held: Draft<TValues>, incoming: TValues): TValues;
 function merged(held: Draft<Entries>, incoming: Entries): unknown {
 	const result: Record<string, unknown> = {};
 	for (const name of Object.keys({ ...held.current, ...incoming })) {
@@ -41,14 +41,14 @@ function matching(current: Entries, submitted: Entries): Entries {
 	);
 }
 
-export const draft = <Values extends Entries>(initial: Values, persistence?: Persistence<Values>) => {
+export function draft<TValues extends Entries>(initial: TValues, persistence?: Persistence<TValues>) {
 	const restored = persistence?.read();
 	const loaded = {
 		baseline: restored?.baseline ?? initial,
 		current: restored?.values ?? initial,
 		settled: restored ? Object.fromEntries(Object.entries(restored.values).filter(([name]) => !restored.edited.includes(name))) : none,
 	};
-	const state = AtomRef.make<Draft<Values>>({
+	const state = AtomRef.make<Draft<TValues>>({
 		baseline: initial,
 		current: restored ? merged(loaded, initial) : initial,
 		settled: none,
@@ -68,7 +68,7 @@ export const draft = <Values extends Entries>(initial: Values, persistence?: Per
 			get.addFinalizer(state.subscribe((value) => get.setSelf(changed(value))));
 			return changed(state.value);
 		}),
-		receive: (incoming: Values): void => {
+		receive: (incoming: TValues): void => {
 			state.update((held) => ({
 				baseline: incoming,
 				current: changed(held) ? merged(held, incoming) : incoming,
@@ -95,4 +95,4 @@ export const draft = <Values extends Entries>(initial: Values, persistence?: Per
 		},
 		values: state.prop("current"),
 	};
-};
+}
