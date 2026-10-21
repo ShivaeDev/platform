@@ -1,12 +1,3 @@
-{"path":"script/ci/TestSequencer.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/ci/mainShardPlan.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/ci/mergeConsumerTimings.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/ci/mergeTestTimings.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/ci/shard.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/ci/shardCount.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/ci/testPackages.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/ci/timings.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/ci/workspaceCoverage.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"script/package-check/archives.test.ts","rule":"tests/story-setup","count":4}
 {"path":"script/package-check/archives.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/package-check/server.test.ts","rule":"tests/story-specs","count":1}

@@ -1,28 +1,13 @@
-import assert from "node:assert/strict";
-import { test as it } from "node:test";
+import { expect } from "vitest";
 import { discoveryWorkspace } from "#ci/test-support/discoveryWorkspace.ts";
-import { testPackages } from "./testPackages.ts";
+import { planning } from "#ci/test-support/planning.ts";
 
-it("workspace discovery includes new test packages and refuses to omit a test package without a config", () => {
-	const workspace = discoveryWorkspace();
-	const { root } = workspace;
-	try {
-		workspace.package("new-package", { test: "vitest run" });
-		workspace.package("type-only", {});
-		assert.throws(() => testPackages(root), /new-package: add a Vitest config/u);
-		workspace.configured("packages", "new-package");
-		assert.deepEqual(
-			testPackages(root).map((pkg) => pkg.name),
-			["new-package"],
-		);
-		workspace.example("starter");
-		assert.throws(() => testPackages(root), /starter: add a Vitest config/u);
-		workspace.configured("examples", "starter");
-		assert.deepEqual(
-			testPackages(root).map((pkg) => pkg.name),
-			["starter", "new-package"],
-		);
-	} finally {
-		workspace.close();
-	}
+planning.it("discovers new test packages and requires their Vitest configs", [discoveryWorkspace], ({ discover, configure, addExample }) => {
+	expect(discover).toThrow(/new-package: add a Vitest config/u);
+	configure("packages", "new-package");
+	expect(discover()).toEqual(["new-package"]);
+	addExample("starter");
+	expect(discover).toThrow(/starter: add a Vitest config/u);
+	configure("examples", "starter");
+	expect(discover()).toEqual(["starter", "new-package"]);
 });

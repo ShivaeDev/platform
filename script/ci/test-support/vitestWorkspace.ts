@@ -1,33 +1,7 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import * as VitestNode from "vitest/node";
-import { TestSequencer } from "#ci/TestSequencer.ts";
-import type { TimingSnapshot } from "#ci/timings.ts";
+import { Effect } from "effect";
+import { planning } from "./planning.ts";
+import { vitestFixture } from "./vitestFixture.ts";
 
-export async function vitestWorkspace() {
-	const root = mkdtempSync(join(tmpdir(), "platform-test-sequencer-"));
-	for (const file of ["heavy.test.ts", "shared.test.ts", "small.test.ts", "new.test.ts"]) {
-		writeFileSync(join(root, file), "");
-	}
-	const vitest = await VitestNode.createVitest({
-		config: false,
-		projects: [
-			{ root, test: { include: ["*.test.ts"], name: "fixture:unit" } },
-			{ root, test: { include: ["shared.test.ts"], name: "fixture:dom" } },
-		],
-		root,
-	});
-	return {
-		async close() {
-			await vitest.close();
-			rmSync(root, { force: true, recursive: true });
-		},
-		sequencer: new TestSequencer(vitest),
-		vitest,
-		withTimings(snapshot: TimingSnapshot) {
-			mkdirSync(join(root, ".ci/test-balancing"), { recursive: true });
-			writeFileSync(join(root, ".ci/test-balancing/test-durations.json"), JSON.stringify(snapshot));
-		},
-	};
-}
+export const vitestWorkspace = planning.trait("workspace", "Vitest discovers shared, measured and new files", function* (engine) {
+	engine.vitest = yield* Effect.acquireRelease(Effect.promise(vitestFixture), (fixture) => Effect.promise(() => fixture.close()));
+});
