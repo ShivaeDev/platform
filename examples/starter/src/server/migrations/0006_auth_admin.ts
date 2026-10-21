@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { AuthMigrationDatabase } from "#server/AuthMigrationDatabase.ts";
 import { authOptions } from "#server/authOptions.ts";
 
-export const authAdmin = Effect.gen(function* () {
+export default Effect.gen(function* () {
 	const database = yield* AuthMigrationDatabase;
 	yield* Effect.tryPromise(async () => {
 		const migration = await getMigrations(authOptions(database));

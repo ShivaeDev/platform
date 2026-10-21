@@ -6,9 +6,9 @@ The shared declaration belongs in `src/bookmarks.ts`, persistence and services i
 
 ## 1. Add the migration
 
-In `src/server/migrations.ts`, append the next numbered entry to `Migrator.fromRecord`. Create `starter_bookmarks` with `id serial primary key`, `title text not null` and `"ownerId" text not null`. Preserve the existing entries and the `app_migrations` ledger: an existing app upgrades by running a new entry, rather than by editing a migration it has already run.
+Add the next numbered file to `src/server/migrations/`, such as `0008_create_bookmarks.ts`, and default-export its migration Effect; [`migrations.ts`](../../examples/starter/src/server/migrations.ts) discovers the folder, so there is no import list to update. Create `starter_bookmarks` with `id serial primary key`, `title text not null` and `owner_id text not null`. Preserve the existing files and the `app_migrations` ledger: an existing app upgrades by running a new migration, rather than by editing a migration it has already run.
 
-Follow [`migrations.ts`](../../examples/starter/src/server/migrations.ts): `001_create_notes` creates the table, and later entries add owner and word-count columns. Your new table can include its owner column from the start. [`databaseOptions.ts`](../../examples/starter/src/server/databaseOptions.ts) passes this loader to the host with `mode: "check"`, so startup asserts that its migrations are recorded in the ledger. Run `pnpm migrate` to apply the new migration before starting the host, as in the [quickstart](./quickstart.md). The [migration guide](./postgres-migrations.md) explains runner ownership and locks.
+Follow the [notes migrations](../../examples/starter/src/server/migrations/): `0001_create_notes.ts` creates the table, and later files add owner and word-count columns. Your new table can include its owner column from the start. [`databaseOptions.ts`](../../examples/starter/src/server/databaseOptions.ts) passes this loader to the host with `mode: "check"`, so startup asserts that its migrations are recorded in the ledger. Run `pnpm migrate` to apply the new migration before starting the host, as in the [quickstart](./quickstart.md). The [migration guide](./postgres-migrations.md) explains runner ownership and locks.
 
 ## 2. Define the Model
 
