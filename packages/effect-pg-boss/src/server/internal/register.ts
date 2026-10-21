@@ -106,22 +106,22 @@ async function registerSchedule(
 	await client.schedule(schedule.name, schedule.cron, null, schedule.scheduleOptions);
 }
 
-export const registrationNames = (registrations: readonly JobRegistration[]): readonly string[] => {
+export function registrationNames(registrations: readonly JobRegistration[]): readonly string[] {
 	const names = registrations.map(registrationName);
 	if (new Set(names).size !== names.length) {
 		throw new TypeError("pg-boss job names must be unique");
 	}
 	return names;
-};
+}
 
-export const registerJobs = <R>(
+export function registerJobs<R>(
 	client: PgBossClient,
 	registrations: readonly JobRegistration[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
 	schema = "pgboss",
-): Effect.Effect<void, PgBossError | PgBossQueueOptionsError, Scope.Scope> =>
-	Effect.flatMap(Effect.scope, (scope) =>
+): Effect.Effect<void, PgBossError | PgBossQueueOptionsError, Scope.Scope> {
+	return Effect.flatMap(Effect.scope, (scope) =>
 		Effect.tryPromise({
 			catch: (error) => (error instanceof PgBossQueueOptionsError || error instanceof PgBossError ? error : toPgBossError("register", error)),
 			try: async () => {
@@ -138,3 +138,4 @@ export const registerJobs = <R>(
 			},
 		}),
 	);
+}

@@ -54,9 +54,10 @@ export class PgBossTestingError extends Data.TaggedError("PgBossTestingError")<{
 	readonly queue?: string | undefined;
 }> {}
 
-export const toPgBossError = (operation: PgBossOperation, error: unknown, queue?: string): PgBossError =>
-	new PgBossError({
+export function toPgBossError(operation: PgBossOperation, error: unknown, queue?: string): PgBossError {
+	return new PgBossError({
 		operation,
 		original: Redacted.make(error),
 		queue,
 	});
+}

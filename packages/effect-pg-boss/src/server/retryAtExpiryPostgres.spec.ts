@@ -11,7 +11,14 @@ for (const cause of ["expiry", "heartbeat"] as const) {
 		function* ({ boot, admin, expireClaim, until, untilJob }) {
 			const Queue = defineQueue({
 				name: `retry-at-${cause}`,
-				queue: { heartbeatSeconds: 10, maxDeferrals: 1, retryBackoff: false, retryDelay: 0, retryLimit: 2 },
+				queue: {
+					expireInSeconds: cause === "expiry" ? 1 : 900,
+					heartbeatSeconds: 10,
+					maxDeferrals: 1,
+					retryBackoff: false,
+					retryDelay: 0,
+					retryLimit: 2,
+				},
 				schema: Schema.Struct({}),
 				worker: { batchSize: 1, pollingIntervalSeconds: 0.5 },
 			});
@@ -23,7 +30,7 @@ for (const cause of ["expiry", "heartbeat"] as const) {
 			const id = Option.getOrThrow(yield* first.jobs.enqueue(Queue, {}));
 			yield* until(testing.deferred(Queue), (waiting) => waiting.length === 1);
 			yield* first.stop;
-			const client = yield* admin({ supervise: false });
+			const client = yield* admin({ monitorIntervalSeconds: 1, supervise: false });
 			yield* Effect.promise(() => client.update(Queue.name, {}, { id, startAfter: 0 }));
 			const claimed = yield* Effect.promise(() => client.fetch(Queue.name, { includeMetadata: true }));
 			const claim = claimed[0];

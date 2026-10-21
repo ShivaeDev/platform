@@ -3,8 +3,8 @@ import type { PgBossClient } from "#client.ts";
 import { toPgBossError } from "#error.ts";
 import { deadLetterQueueName, type JobsHealth, type QueueHealth } from "#health.ts";
 
-export const healthFor = (client: PgBossClient, names: readonly string[]): Effect.Effect<JobsHealth, import("#error.ts").PgBossError> =>
-	Effect.forEach(
+export function healthFor(client: PgBossClient, names: readonly string[]): Effect.Effect<JobsHealth, import("#error.ts").PgBossError> {
+	return Effect.forEach(
 		names,
 		(name) =>
 			Effect.tryPromise({
@@ -32,3 +32,4 @@ export const healthFor = (client: PgBossClient, names: readonly string[]): Effec
 			readyTotal: jobs.reduce((sum, job) => sum + job.readyCount, 0),
 		})),
 	);
+}
