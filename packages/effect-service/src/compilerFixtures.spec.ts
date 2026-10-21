@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { compileInvalidFixtures, compileValidFixture } from "#test/compilerFixtures.ts";
+import { describe, expect } from "vitest";
+import { compilerStory } from "#test/compilerFixtures.ts";
 
 const COMPILER_TIMEOUT = 60_000;
 
 describe("service definition compiler fixtures", { timeout: COMPILER_TIMEOUT }, () => {
-	it("emits only the initialized public service surface", () => {
-		const declaration = compileValidFixture();
+	compilerStory.it("emits only the initialized public service surface", [], function* ({ declarations }) {
+		const declaration = yield* declarations();
 		expect(declaration).toContain("...arguments_: number[]");
 		expect(declaration).toContain("Effect.Effect<number, MethodFailure, never>");
 		expect(declaration).toContain("Scope.Scope");
@@ -31,11 +31,11 @@ describe("service definition compiler fixtures", { timeout: COMPILER_TIMEOUT }, 
 		overloadedHiddenRequirement: "GenericOrStructurallyOverloadedMethodsAreUnsupported",
 		privateState: "Property 'secret' does not exist",
 		requirementFreeOrdinaryRequirement: "MethodHasUndeclaredServiceRequirements",
-		scopeRequirement: "ScopeCannotBeDeclaredAsAServiceRequirement",
+		scopeRequirement: "ScopeCannotBeDeclaredAsServiceRequirement",
 	} as const;
 
-	it("rejects each invalid service definition", () => {
-		const result = compileInvalidFixtures(Object.keys(invalidFixtures));
+	compilerStory.it("rejects each invalid service definition", [], function* ({ invalid }) {
+		const result = yield* invalid(Object.keys(invalidFixtures));
 		expect(result.status).not.toBe(0);
 		for (const [fixture, expectedDiagnostic] of Object.entries(invalidFixtures)) {
 			expect(result.diagnostics[fixture], fixture).toContain(expectedDiagnostic);
