@@ -196,8 +196,8 @@ catalogs:
       specifier: 5.3.0
       version: 5.3.0
     '@pg-boss/dashboard':
-      specifier: 1.11.0
-      version: 1.11.0
+      specifier: 1.12.0
+      version: 1.12.0
     '@prisma-next/adapter-postgres':
       specifier: 0.16.0
       version: 0.16.0
@@ -322,8 +322,8 @@ catalogs:
       specifier: 8.23.0
       version: 8.23.0
     pg-boss:
-      specifier: 12.37.1
-      version: 12.37.1
+      specifier: 12.38.0
+      version: 12.38.0
     prisma:
       specifier: 7.10.0
       version: 7.10.0
@@ -453,7 +453,7 @@ importers:
         version: 4.0.4(effect@4.0.4)
       '@pg-boss/dashboard':
         specifier: 'catalog:'
-        version: 1.11.0(typescript@7.0.2)
+        version: 1.12.0(typescript@7.0.2)
       '@shivaedev/effect-contract':
         specifier: workspace:*
         version: link:../../packages/effect-contract
@@ -504,7 +504,7 @@ importers:
         version: 8.23.0
       pg-boss:
         specifier: 'catalog:'
-        version: 12.37.1(@opentelemetry/api@1.9.1)
+        version: 12.38.0(@opentelemetry/api@1.9.1)
       react:
         specifier: 'catalog:'
         version: 19.3.0
@@ -796,7 +796,7 @@ importers:
         version: 4.0.4
       pg-boss:
         specifier: 'catalog:'
-        version: 12.37.1(@opentelemetry/api@1.9.1)
+        version: 12.38.0(@opentelemetry/api@1.9.1)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1064,7 +1064,7 @@ importers:
         version: 4.0.4
       pg-boss:
         specifier: 'catalog:'
-        version: 12.37.1(@opentelemetry/api@1.9.1)
+        version: 12.38.0(@opentelemetry/api@1.9.1)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -2174,8 +2174,8 @@ packages:
   '@oxc-project/types@0.152.0':
     resolution: {integrity: sha512-oM/5rLBm2tPkg0iBgkH/FOeR3PCDpY19GTgAZjMFM8h9WI9VW7cLgzp6nwtarYKmovavIQZ+Fe/RKX/8C8O/Rw==}
 
-  '@pg-boss/dashboard@1.11.0':
-    resolution: {integrity: sha512-dmkS8KcoG4N3lQEH7fzFWj1hoX/KR0UbXWTLExrafG8tt6FTFh2pdTAnHmr7+fJS89T2Fj32VJSOurW3QuykqQ==}
+  '@pg-boss/dashboard@1.12.0':
+    resolution: {integrity: sha512-oVmlUJh3Kkerzi3Fot1vA0eUB4sB5AygADgf+PRQbmPjNmETaBkcCDCRwqnWMyDIgNDAcpKaeOqc8tEzJIG/5g==}
     engines: {node: '>=22.12.0'}
     hasBin: true
 
@@ -3771,8 +3771,8 @@ packages:
   cose-base@2.2.0:
     resolution: {integrity: sha512-AzlgcsCbUMymkADOJtQm3wO9S3ltPfYOFD5033keQn9NJzIbtnZj+UdBJe7DYml/8TdbtHJW3j58SOnKhWY/5g==}
 
-  cron-parser@5.10.1:
-    resolution: {integrity: sha512-pKRrRagItwk9rGIStcUyMxFX34x56zoX3KDf9HJ4ttwkXIK1qxK63EvXvEDmlxI9AdPJ+Y7TEKRftRlW5eSS7A==}
+  cron-parser@5.10.2:
+    resolution: {integrity: sha512-JfAYMY0LZaWQTuict8PhtF/ksSnq8xefSDmQUnnoqvkPYkU/y3UP0DTWzJKFBz0P1IXsDG8q0vY3zHkoFZOhvw==}
     engines: {node: '>=18'}
 
   cross-spawn@7.0.6:
@@ -4683,8 +4683,8 @@ packages:
   perfect-debounce@2.1.0:
     resolution: {integrity: sha512-LjgdTytVFXeUgtHZr9WYViYSM/g8MkcTPYDlPa3cDqMirHjKiSZPYd6DoL7pK8AJQr+uWkQvCjHNdiMqsrJs+g==}
 
-  pg-boss@12.37.1:
-    resolution: {integrity: sha512-LghWeOIbMCiLcTY3+8MInXaJ0wk0AOkbeUZ8oE+cGO0uoheGSW3GK57eDqEbrDGpwTIpX9BVphvdvWEDYTcJ9A==}
+  pg-boss@12.38.0:
+    resolution: {integrity: sha512-felA3fyPSJwWk5cb/VwAgnudCAzWEdgBjjf+eukXm8pExlwkhjdBbOMukMyG5s8uZHO6fZZZcaIaTa3oKpfSCg==}
     engines: {node: '>=22.12.0'}
     hasBin: true
     peerDependencies:
@@ -5775,7 +5775,7 @@ snapshots:
 
   '@oxc-project/types@0.152.0': {}
 
-  '@pg-boss/dashboard@1.11.0(typescript@7.0.2)':
+  '@pg-boss/dashboard@1.12.0(typescript@7.0.2)':
     dependencies:
       '@hono/node-server': 2.1.4(hono@4.13.13)
       '@react-router/node': 8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@7.0.2)
@@ -7381,7 +7381,7 @@ snapshots:
     dependencies:
       layout-base: 2.0.1
 
-  cron-parser@5.10.1:
+  cron-parser@5.10.2:
     dependencies:
       luxon: 3.7.2
 
@@ -8535,10 +8535,10 @@ snapshots:
 
   perfect-debounce@2.1.0: {}
 
-  pg-boss@12.37.1(@opentelemetry/api@1.9.1):
+  pg-boss@12.38.0(@opentelemetry/api@1.9.1):
     dependencies:
       '@opentelemetry/api': 1.9.1
-      cron-parser: 5.10.1
+      cron-parser: 5.10.2
       pg: 8.23.1
       rrule-temporal: 2.2.8
       serialize-error: 13.0.2
