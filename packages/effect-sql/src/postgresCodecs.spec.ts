@@ -14,7 +14,7 @@ postgres.it(
 		const { payments, tableName } = paymentFixture();
 		const inserted = yield* payments.insert(input);
 		expect(inserted).toBeInstanceOf(Payment);
-		expect(inserted.id).toBe(1);
+		expect(inserted).toMatchObject({ id: 1 });
 		expect(inserted.created_at).toBeInstanceOf(Date);
 		expect(Number.isFinite(inserted.created_at.getTime())).toBe(true);
 		expect(BigDecimal.format(inserted.amount)).toBe("9007199254740993.123456789012");

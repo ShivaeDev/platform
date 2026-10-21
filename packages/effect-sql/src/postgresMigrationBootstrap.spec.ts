@@ -58,7 +58,10 @@ postgres.it(
 			reason: { _tag: "LockTimeoutError" },
 		});
 		yield* held.release;
-		expect(yield* Fiber.join(first)).toHaveLength(2);
+		expect(yield* Fiber.join(first)).toEqual([
+			[1, "create_orders"],
+			[2, "seed_orders"],
+		]);
 	},
 	15_000,
 );
