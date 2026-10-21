@@ -7,4 +7,6 @@ export type Observation<A> =
 
 export type Observer<A> = (observation: Observation<A>) => Effect.Effect<void>;
 
-export const unobserved = (_observation: unknown): Effect.Effect<void> => Effect.void;
+export function unobserved(_observation: unknown): Effect.Effect<void> {
+	return Effect.void;
+}

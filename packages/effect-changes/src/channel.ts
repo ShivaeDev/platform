@@ -17,20 +17,22 @@ export interface ChannelOptions<A, R, E = never> {
 
 export interface Channel<A, R, THookError = never> {
 	readonly BeforeCommit: Context.Reference<BeforeCommit<A, THookError, R>>;
-	readonly batch: <X, E, TBodyRequirements>(body: Effect.Effect<X, E, TBodyRequirements>) => Effect.Effect<X, E, R | TBodyRequirements>;
+	readonly batch: <TValue, E, TBodyRequirements>(
+		body: Effect.Effect<TValue, E, TBodyRequirements>,
+	) => Effect.Effect<TValue, E, R | TBodyRequirements>;
 	readonly CommittedSink: Context.Reference<Publish<A, R> | undefined>;
 	readonly Observer: Context.Reference<Observer<A>>;
 	readonly open: Effect.Effect<CommitFrame<THookError>, never, R>;
 	readonly record: (changes: Iterable<A>) => Effect.Effect<void, never, R>;
 	readonly Sink: Context.Reference<Publish<A, R>>;
-	readonly within: <X, E, TBodyRequirements, TNativeError, TNativeRequirements>(
-		native: (body: Effect.Effect<X, E | THookError, TBodyRequirements>) => Effect.Effect<X, TNativeError, TNativeRequirements>,
-	) => (body: Effect.Effect<X, E, TBodyRequirements>) => Effect.Effect<X, TNativeError, R | TNativeRequirements>;
+	readonly within: <TValue, E, TBodyRequirements, TNativeError, TNativeRequirements>(
+		native: (body: Effect.Effect<TValue, E | THookError, TBodyRequirements>) => Effect.Effect<TValue, TNativeError, TNativeRequirements>,
+	) => (body: Effect.Effect<TValue, E, TBodyRequirements>) => Effect.Effect<TValue, TNativeError, R | TNativeRequirements>;
 }
 
 let channels = 0;
 
-export const makeChannel = <A, R = never, THookError = never>(options: ChannelOptions<A, R, THookError>): Channel<A, R, THookError> => {
+export function makeChannel<A, R = never, THookError = never>(options: ChannelOptions<A, R, THookError>): Channel<A, R, THookError> {
 	const { name } = options;
 	const prefix = `@shivaedev/effect-changes/${name}/${channels}`;
 	channels += 1;
@@ -129,4 +131,4 @@ export const makeChannel = <A, R = never, THookError = never>(options: ChannelOp
 		);
 
 	return { BeforeCommit, batch, CommittedSink, Observer: CurrentObserver, open, record, Sink: CurrentSink, within };
-};
+}
