@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Schema, SchemaParser } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { emptyAsNull } from "#optional.ts";
+import { emptyAsNull } from "#emptyAsNull.ts";
 
 it.effect("empty inputs decode to null and populated inputs retain their codec", function* () {
 	const schema = emptyAsNull(Schema.NumberFromString);

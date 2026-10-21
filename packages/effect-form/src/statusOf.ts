@@ -12,7 +12,7 @@ interface State {
 	readonly touched: Readonly<Record<string, true>>;
 }
 
-export const statusOf = () => {
+export function statusOf() {
 	const state = AtomRef.make<State>({
 		failures: [],
 		submitted: false,
@@ -67,4 +67,4 @@ export const statusOf = () => {
 		},
 		touched: fromRef(state.prop("touched")),
 	};
-};
+}

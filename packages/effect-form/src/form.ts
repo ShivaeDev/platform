@@ -22,10 +22,13 @@ import {
 	type Name,
 	type Submitter,
 } from "./shape.ts";
-import { statusOf } from "./status.ts";
+import { statusOf } from "./statusOf.ts";
 import { trackRejections } from "./trackRejections.ts";
 
-export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, config: Config<F, A, E, R, ER>): Form<F, A, E, ER> => {
+export function form<TFields extends Fields, TValue, TError, TServices, TRuntimeError>(
+	schema: Schema.Struct<TFields>,
+	config: Config<TFields, TValue, TError, TServices, TRuntimeError>,
+): Form<TFields, TValue, TError, TRuntimeError> {
 	const { initialValues, onSubmit, runtime } = config;
 	const debounce = config.debounce ?? "300 millis";
 	const checks: ReadonlyMap<string, unknown> = new Map(Object.entries(config.checks ?? {}));
@@ -59,8 +62,8 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 	const decoded = runtime.atom((get) =>
 		decode(get(valuesAtom)).pipe(
 			Effect.match({
-				onFailure: (issue): Result.Result<Decoded<F>, SchemaIssue.Issue> => Result.fail(issue),
-				onSuccess: (value): Result.Result<Decoded<F>, SchemaIssue.Issue> => Result.succeed(value),
+				onFailure: (issue): Result.Result<Decoded<TFields>, SchemaIssue.Issue> => Result.fail(issue),
+				onSuccess: (value): Result.Result<Decoded<TFields>, SchemaIssue.Issue> => Result.succeed(value),
 			}),
 		),
 	);
@@ -76,7 +79,7 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 		const settled = Atom.debounce(current, debounce);
 		const answered = runtime.atom((get) => {
 			const input = get(settled);
-			return Effect.map(checkOf<R>(check)(input), (message) => ({
+			return Effect.map(checkOf<TServices>(check)(input), (message) => ({
 				input,
 				message,
 			}));
@@ -97,7 +100,7 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 		}),
 	);
 
-	const submitter: Submitter<Name<F>> = {
+	const submitter: Submitter<Name<TFields>> = {
 		fail: (path, message) => Effect.fail(new FieldFailure(typeof path === "string" ? { message, path } : { message, path: path[0], segments: path })),
 	};
 
@@ -120,20 +123,20 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 			refFor(name).set(value);
 			status.touch(name);
 		},
-		choices: <K extends Name<F>>(name: K) => choicesOf<Encoded<F>[K]>(offered.get(name)),
+		choices: <TName extends Name<TFields>>(name: TName) => choicesOf<Encoded<TFields>[TName]>(offered.get(name)),
 		dirty: editing.dirty,
 		error,
-		errorAt: Atom.family((path: readonly [Name<F>, ...PropertyKey[]]) => {
+		errorAt: Atom.family((path: readonly [Name<TFields>, ...PropertyKey[]]) => {
 			const message = schemaErrors.at(path);
 			return Atom.readable((get) =>
 				get(status.touched)[path[0]] === true || get(status.submitted) ? (pathMessageAt(get(status.paths), path) ?? get(message)) : undefined,
 			);
 		}),
-		field: <K extends Name<F>>(name: K) => fieldOf<Encoded<F>[K]>(refFor(name)),
+		field: <TName extends Name<TFields>>(name: TName) => fieldOf<Encoded<TFields>[TName]>(refFor(name)),
 		receive: editing.receive,
 		revert: editing.revert,
 		submit,
 		submitting: Atom.map(submit, AsyncResult.isWaiting),
 		values,
 	};
-};
+}

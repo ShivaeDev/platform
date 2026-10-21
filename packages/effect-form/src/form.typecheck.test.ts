@@ -2,13 +2,13 @@ import { Context, Effect, Layer, Schema, Scope } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { make } from "#form.ts";
+import { form } from "#form.ts";
 import { FieldFailure } from "#shape.ts";
 
 const runtime = Atom.runtime(Layer.empty);
-const fields = Schema.Struct({ name: Schema.String });
+const Fields = Schema.Struct({ name: Schema.String });
 
-make(fields, {
+form(Fields, {
 	initialValues: { name: "" },
 	onSubmit: (values) =>
 		Effect.gen(function* () {
@@ -22,14 +22,14 @@ make(fields, {
 
 class Secret extends Context.Service<Secret, { readonly value: string }>()("test/Secret") {}
 
-make(fields, {
+form(Fields, {
 	initialValues: { name: "" },
 	// @ts-expect-error The native runtime services do not provide application dependencies.
 	onSubmit: () => Secret,
 	runtime,
 });
 
-const nested = make(fields, { initialValues: { name: "" }, onSubmit: Effect.succeed, runtime });
+const nested = form(Fields, { initialValues: { name: "" }, onSubmit: Effect.succeed, runtime });
 const message: Atom.Atom<string | undefined> = nested.errorAt(["name"]);
 void message;
 // @ts-expect-error Nested feedback must begin with a top-level schema field.
@@ -39,7 +39,7 @@ const legacyFailure = new FieldFailure({ message: "Rejected", path: "name" });
 const legacyPath: string = legacyFailure.path;
 void legacyPath;
 
-make(Schema.Struct({ answers: Schema.Array(Schema.Struct({ count: Schema.NumberFromString, id: Schema.String })) }), {
+form(Schema.Struct({ answers: Schema.Array(Schema.Struct({ count: Schema.NumberFromString, id: Schema.String })) }), {
 	arrayKeys: {
 		answers: (answer) => {
 			const encoded: string = answer.count;
@@ -59,7 +59,7 @@ make(Schema.Struct({ answers: Schema.Array(Schema.Struct({ count: Schema.NumberF
 	runtime,
 });
 
-make(fields, {
+form(Fields, {
 	arrayKeys: {
 		// @ts-expect-error Only array fields accept key selectors.
 		name: () => "key",

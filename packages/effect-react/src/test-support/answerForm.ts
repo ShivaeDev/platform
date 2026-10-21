@@ -1,6 +1,6 @@
 import { Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { make } from "@shivaedev/effect-form/form.ts";
+import { form } from "@shivaedev/effect-form/form.ts";
 
 export const answerValues = {
 	first: { id: "first", text: "One" },
@@ -9,7 +9,7 @@ export const answerValues = {
 };
 
 export function makeAnswerForm() {
-	return make(Schema.Struct({ answers: Schema.Array(Schema.Struct({ id: Schema.String, text: Schema.NonEmptyString })) }), {
+	return form(Schema.Struct({ answers: Schema.Array(Schema.Struct({ id: Schema.String, text: Schema.NonEmptyString })) }), {
 		arrayKeys: { answers: (answer) => answer.id },
 		initialValues: { answers: Object.values(answerValues) },
 		onSubmit: (values, submitter) =>
