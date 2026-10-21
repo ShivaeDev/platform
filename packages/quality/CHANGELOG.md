@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.33.1 - 2026-10-21
+
+### Changed
+
+- The Biome preset lets numbered migration files in `src/server/migrations/`, including in nested apps, default-export their migration Effect, so applications drop their `noDefaultExport` exception for Effect's migration loader. Other files still may not default-export.
+
 ## 0.33.0 - 2026-10-21
 
 ### Breaking

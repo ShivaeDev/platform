@@ -12,8 +12,8 @@
 	"@shivaedev/effect-test-sql": "0.8.2",
 	"@shivaedev/effect-trpc": "0.8.2",
 	"@shivaedev/local-postgres": "0.6.0",
-	"@shivaedev/platform": "0.23.1",
-	"@shivaedev/quality": "0.33.0",
-	"@shivaedev/test-story": "0.17.0",
+	"@shivaedev/platform": "0.24.0",
+	"@shivaedev/quality": "0.33.1",
+	"@shivaedev/test-story": "0.18.0",
 	"@shivaedev/types": "0.2.1"
 }
