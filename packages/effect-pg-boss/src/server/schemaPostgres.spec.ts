@@ -76,12 +76,17 @@ schemaIt(
 	},
 );
 
-schemaIt("reports installation failures through the typed error channel and leaves the connection usable", [], function* ({ installSchema, query }) {
-	expect(yield* installSchema({ schema: "invalid.schema" }).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
-	yield* query("CREATE SCHEMA broken");
-	yield* query("CREATE TABLE broken.version (version int)");
-	yield* query("INSERT INTO broken.version VALUES (44)");
-	expect(yield* installSchema({ schema: "broken" }).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
-	yield* installSchema();
-	expect(yield* query("SELECT version FROM pgboss.version")).toEqual([{ version: 46 }]);
-});
+schemaIt(
+	"reports installation failures through the typed error channel and leaves the connection usable",
+	[],
+	function* ({ installSchema, query, schemaVersion }) {
+		expect(yield* installSchema({ schema: "invalid.schema" }).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
+		yield* query("CREATE SCHEMA broken");
+		yield* query("CREATE TABLE broken.version (version int)");
+		yield* query("INSERT INTO broken.version VALUES (44)");
+		expect(yield* installSchema({ schema: "broken" }).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
+		yield* installSchema();
+		const installedVersion = 46;
+		expect(yield* schemaVersion("pgboss")).toBe(installedVersion);
+	},
+);

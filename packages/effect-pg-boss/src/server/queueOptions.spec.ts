@@ -2,6 +2,7 @@ import { Effect, Redacted, Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
 import { boss } from "#test/boss.ts";
+import { deadlock } from "#test/deadlock.ts";
 import { queueResult } from "#test/queueResult.ts";
 
 boss.it("reconciles schedules, preserves unspecified settings and avoids unchanged updates", [], function* ({ boot, client }) {
@@ -32,10 +33,6 @@ boss.it("releases the acquired client and application error callback when immuta
 	}
 	expect(reported).toEqual([]);
 });
-
-function deadlock() {
-	return Object.assign(new Error("deadlock detected"), { code: "40P01" });
-}
 
 boss.it("creates a queue again after PostgreSQL rolls its creation back as a deadlock victim", [], function* ({ boot, client }) {
 	client.createQueueFailures.push(deadlock(), deadlock());

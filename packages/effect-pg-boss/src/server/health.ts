@@ -26,7 +26,9 @@ export interface JobsHealth {
 	readonly readyTotal: number;
 }
 
-export const deadLetterQueueName = (queueName: string): string => `${queueName}-dlq`;
+export function deadLetterQueueName(queueName: string): string {
+	return `${queueName}-dlq`;
+}
 
 export interface ListedJob<TData> {
 	readonly attempt: number;

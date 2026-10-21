@@ -6,8 +6,8 @@ import type { PgBossError, PgBossPayloadError, PgBossQueueOptionsError } from "#
 import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#health.ts";
 import { logClientError, subscribeClientErrors } from "#internal/clientErrors.ts";
 import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
+import { makeService } from "#internal/makeService.ts";
 import { registerJobs, registrationName } from "#internal/register.ts";
-import { makeService } from "#internal/service.ts";
 
 export interface PgBossService {
 	readonly counts: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<QueueCounts, PgBossError>;
@@ -51,16 +51,16 @@ export interface PgBossDefinition<TIdentifier extends string = string> extends C
 	>;
 }
 
-export const makePgBoss = <const TIdentifier extends string>(identifier: TIdentifier): PgBossDefinition<TIdentifier> => {
+export function makePgBoss<const TIdentifier extends string>(identifier: TIdentifier): PgBossDefinition<TIdentifier> {
 	const Service = Context.Service<TIdentifier, PgBossService>(identifier);
 
-	const layer = <const TRegistrations extends readonly JobRegistration[], TErrorRequirements = never>(
+	function layer<const TRegistrations extends readonly JobRegistration[], TErrorRequirements = never>(
 		options: PgBossLayerOptions<TRegistrations, TErrorRequirements>,
 	): Layer.Layer<
 		TIdentifier,
 		PgBossError | PgBossQueueOptionsError,
 		Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements
-	> => {
+	> {
 		type Requirements = Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements;
 		const names = options.jobs.map(registrationName);
 		const { clientFactory, clientCacheKey, jobs, onError, stop, ...constructorOptions } = options;
@@ -76,9 +76,9 @@ export const makePgBoss = <const TIdentifier extends string>(identifier: TIdenti
 				const service = makeService(acquired.client, names, constructorOptions.schema);
 				const context = Context.add(dependencies, Service, service);
 				const reportError: (error: Error) => Effect.Effect<unknown, never, Requirements | TIdentifier> = onError ?? logClientError;
-				const errorListener = (error: Error) => {
+				function errorListener(error: Error): void {
 					void Effect.runPromise(Effect.exit(Effect.provide(reportError(error), context)));
-				};
+				}
 				const unsubscribe = subscribeClientErrors(acquired.client, errorListener);
 				const registration = registerJobs(acquired.client, jobs, context, acquired.reused, constructorOptions.schema);
 				return yield* registration.pipe(
@@ -93,7 +93,7 @@ export const makePgBoss = <const TIdentifier extends string>(identifier: TIdenti
 			Service,
 			Effect.map(acquire, ({ service }) => service),
 		);
-	};
+	}
 
 	return Object.assign(Service, { layer });
-};
+}

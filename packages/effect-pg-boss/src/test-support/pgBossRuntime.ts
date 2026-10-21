@@ -2,12 +2,11 @@ import { Context, Effect, Exit, Layer, Logger, References, Scope } from "effect"
 import type { Job, JobInsert } from "pg-boss";
 import { type ConstructorOptions, PgBoss } from "pg-boss";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition } from "#definition.ts";
-import { logClientError, observeClientErrors } from "#internal/clientErrors.ts";
-import { expireAttempt } from "#internal/expireAttempt.ts";
 import { makePgBoss, type PgBossLayerOptions } from "#service.ts";
 import type { clientEngine } from "#test/clientEngine.ts";
 import { dispatch } from "#test/dispatch.ts";
 import { constructorOptions } from "#test/fakeClient.ts";
+import { waitingVerbs } from "#test/waitingVerbs.ts";
 
 export const Jobs = makePgBoss("@test/PgBossStory");
 
@@ -19,15 +18,8 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 	function native(options?: ConstructorOptions) {
 		return new PgBoss({ ...constructorOptions, connectionString: state.connectionString, ...options });
 	}
-	function start(client: PgBoss) {
-		return Effect.acquireRelease(
-			Effect.promise(async () => {
-				observeClientErrors(client, (error) => Effect.runFork(logged(logClientError(error))));
-				await client.start();
-				return client;
-			}),
-			(started) => Effect.promise(() => started.stop()),
-		);
+	function start(client: PgBoss, options?: ConstructorOptions) {
+		return logged(Layer.build(Jobs.layer({ ...constructorOptions, ...options, clientFactory: () => client, jobs: [] }))).pipe(Effect.as(client));
 	}
 	function layer<const T extends readonly JobRegistration[], R = never>(jobs: T, options?: Partial<PgBossLayerOptions<T, R>>) {
 		return Jobs.layer({
@@ -62,13 +54,22 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 		});
 	}
 	return {
-		admin: (options?: ConstructorOptions) => start(native(options)),
+		admin: (options?: ConstructorOptions) => start(native(options), options),
 		boot,
 		client: state.client,
 		dispatch: (name: string, jobs: readonly Job<unknown>[]) => dispatch(state.client, name, jobs),
 		events: state.events,
 		expireClaim: (client: PgBoss, job: Job<unknown>, cause: "expiry" | "heartbeat") =>
-			Effect.promise(() => expireAttempt(client, constructorOptions.schema ?? "pgboss", job, cause)),
+			waitingVerbs()
+				.until(
+					Effect.promise(async () => {
+						await client.supervise(job.name);
+						return client.getJobById(job.name, job.id);
+					}),
+					(current) => current?.state === "retry",
+					(cause === "expiry" ? job.expireInSeconds : (job.heartbeatSeconds ?? 10)) * 1000 + 5000,
+				)
+				.pipe(Effect.asVoid),
 		layer,
 		logs: state.logs,
 		native,

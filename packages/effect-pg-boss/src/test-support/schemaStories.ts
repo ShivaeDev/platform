@@ -4,7 +4,6 @@ import { getRollbackPlans } from "pg-boss";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { runSchemaPlan } from "#internal/runSchemaPlan.ts";
 import { installPgBossSchema, type PgBossSchemaOptions } from "#schema.ts";
 import { clientEngine } from "#test/clientEngine.ts";
 import { holdIndexBuild } from "#test/holdIndexBuild.ts";
@@ -40,10 +39,15 @@ export const schemaStories = storyKit({
 			rollbackSchema: (schema: string, version: number) =>
 				Effect.scoped(
 					Effect.gen(function* () {
-						const connection = yield* sql.reserve;
-						yield* Effect.promise(() => runSchemaPlan(connection, getRollbackPlans(schema, version), Effect.runPromise));
+						const client = yield* runtime.admin({ migrate: false, schema, supervise: false });
+						yield* Effect.promise(() => client.getDb().executeSql(getRollbackPlans(schema, version)));
 					}),
 				),
+			schemaVersion: (schema: string) =>
+				Effect.gen(function* () {
+					const client = yield* runtime.admin({ migrate: false, schema });
+					return yield* Effect.promise(() => client.schemaVersion());
+				}),
 		};
 	},
 });
