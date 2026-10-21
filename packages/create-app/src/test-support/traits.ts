@@ -16,6 +16,10 @@ export const realSetup = application.trait("installation", "setup installs the a
 	engine.options = { ...engine.options, realSetup: true };
 });
 
+export const installedPackageManager = application.trait("workspace", "only the installed package manager is available", (engine) => {
+	engine.environment.push("PNPM_CONFIG_PM_ON_FAIL=error");
+});
+
 export const failingQualityGate = application.trait("installation", "the Quality typecheck gate fails", (engine) => {
 	engine.options = { ...engine.options, realSetup: true, typecheckExit: 7 };
 });

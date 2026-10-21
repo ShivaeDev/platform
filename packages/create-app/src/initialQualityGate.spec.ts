@@ -1,10 +1,10 @@
 import { expect } from "vitest";
 import { application } from "#test/application.ts";
-import { enclosingRepository, failingQualityGate, realSetup } from "#test/traits.ts";
+import { enclosingRepository, failingQualityGate, installedPackageManager, realSetup } from "#test/traits.ts";
 
 application.it(
 	"installs the active Quality gate after Git initialization and before the initial commit",
-	[realSetup],
+	[realSetup, installedPackageManager],
 	function* ({ cli, read, git }) {
 		const result = yield* cli(["my-app"]);
 		expect(result.status, result.stdout + result.stderr).toBe(0);
@@ -18,18 +18,22 @@ application.it(
 	},
 );
 
-application.it("blocks the initial commit when the installed Quality gate fails", [failingQualityGate], function* ({ cli, exists, git }) {
-	const result = yield* cli(["my-app"]);
-	expect(result.status, result.stdout + result.stderr).toBe(1);
-	expect(exists(".git/hooks/pre-commit")).toBe(true);
-	expect(exists(".git/initial-gate.json")).toBe(true);
-	expect(result.stderr).toContain("commit -m Initialize a generated app failed");
-	expect(git("rev-parse", "--verify", "HEAD").status).not.toBe(0);
-});
+application.it(
+	"blocks the initial commit when the installed Quality gate fails",
+	[failingQualityGate, installedPackageManager],
+	function* ({ cli, exists, git }) {
+		const result = yield* cli(["my-app"]);
+		expect(result.status, result.stdout + result.stderr).toBe(1);
+		expect(exists(".git/hooks/pre-commit")).toBe(true);
+		expect(exists(".git/initial-gate.json")).toBe(true);
+		expect(result.stderr).toContain("commit -m Initialize a generated app failed");
+		expect(git("rev-parse", "--verify", "HEAD").status).not.toBe(0);
+	},
+);
 
 application.it(
 	"runs setup without a hook when a repository encloses the app",
-	[realSetup, enclosingRepository],
+	[realSetup, installedPackageManager, enclosingRepository],
 	function* ({ cli, exists, workspaceExists }) {
 		const result = yield* cli(["my-app"]);
 		expect(result.status, result.stdout + result.stderr).toBe(0);

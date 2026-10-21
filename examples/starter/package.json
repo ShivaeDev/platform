@@ -69,7 +69,7 @@
 		"vite": "catalog:",
 		"vitest": "catalog:"
 	},
-	"packageManager": "pnpm@12.8.1",
+	"packageManager": "pnpm@12.13.0",
 	"engines": {
 		"node": ">=24"
 	}
