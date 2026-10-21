@@ -1,26 +1,26 @@
 {
-	"date": "2026-10-20",
+	"date": "2026-10-21",
 	"plan": {
 		"changesets": [
 			{
-				"name": "fleet-advisory-review.md",
-				"text": "---\n\"@shivaedev/work-fleet\": minor\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Fleet supports advisory reviews with the worker’s product context. Completed reviews are saved as linked Board result documents, and their TL;DR appears in ready-to-merge decisions and the Board’s ready list without sending reviewer findings back to the worker.\n\n### Breaking\n\n- `@shivaedev/work-fleet`’s `Review.verdict` also allows `\"unavailable\"` for an advisory reply without a parseable verdict. Consumers that exhaustively handle verdicts must handle this value and read the retained document for the original reply.\n"
+				"name": "pg-boss-schema-46.md",
+				"text": "---\n\"@shivaedev/effect-pg-boss\": patch\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Require pg-boss 12.38.0 and generate applications with the matching @pg-boss/dashboard 1.12.0.\n\n### Fixed\n\n- Support schema 46 in the PostgreSQL expiry test controls, preserving native supervision and dead lettering.\n"
 			}
 		],
 		"releases": [
 			{
-				"bump": "minor",
-				"directory": "packages/work-board",
-				"from": "0.28.0",
-				"name": "@shivaedev/work-board",
-				"to": "0.29.0"
+				"bump": "patch",
+				"directory": "packages/create-app",
+				"from": "0.11.17",
+				"name": "@shivaedev/create-app",
+				"to": "0.11.18"
 			},
 			{
-				"bump": "minor",
-				"directory": "packages/work-fleet",
-				"from": "0.15.4",
-				"name": "@shivaedev/work-fleet",
-				"to": "0.16.0"
+				"bump": "patch",
+				"directory": "packages/effect-pg-boss",
+				"from": "0.15.1",
+				"name": "@shivaedev/effect-pg-boss",
+				"to": "0.15.2"
 			}
 		]
 	}
