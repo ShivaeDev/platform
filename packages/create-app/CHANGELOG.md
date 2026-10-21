@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.20 - 2026-10-21
+
+### Fixed
+
+- Generate apps with the pnpm version used to validate the starter, so setup installs the Quality gate and reaches the initial commit without first provisioning an older pnpm binary.
+
 ## 0.11.19 - 2026-10-21
 
 ### Changed
