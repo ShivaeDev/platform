@@ -34,8 +34,3 @@ export const emails = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	return yield* sql`select contact_id, address from emails order by contact_id`;
 });
-
-export const expectedEmails = [
-	{ address: "alice@example.test", "contact_id": 1 },
-	{ address: "bob@example.test", "contact_id": 2 },
-];

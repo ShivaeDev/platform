@@ -1,21 +1,25 @@
-import { expect } from "vitest";
 import { timeoutApp } from "./timeoutApp.ts";
+
+declare module "vitest" {
+	interface TaskMeta {
+		isolation?: { closedBeforeSetup: readonly string[]; databases: readonly string[]; name: string };
+		items?: readonly { value: string }[];
+	}
+}
 
 timeoutApp.it(
 	"times out with a running worker",
 	[],
-	function* ({ writeItem, sleep, readItems }) {
+	function* ({ writeItem, sleep, readItems }, context) {
 		yield* writeItem("before timeout");
-		expect(yield* readItems()).toEqual([{ value: "seed" }, { value: "before timeout" }]);
+		context.task.meta.items = yield* readItems();
 		yield* sleep();
 	},
 	10_000,
 );
 
-timeoutApp.it("writes in the next isolated database", [], function* ({ writeItem, readItems, readIsolation }) {
-	const isolation = readIsolation();
+timeoutApp.it("writes in the next isolated database", [], function* ({ writeItem, readItems, readIsolation }, context) {
 	yield* writeItem("after timeout");
-	expect(yield* readItems()).toEqual([{ value: "seed" }, { value: "after timeout" }]);
-	expect(isolation.closedBeforeSetup).toEqual([isolation.databases[0]]);
-	expect(isolation.name).not.toBe(isolation.databases[0]);
+	context.task.meta.items = yield* readItems();
+	context.task.meta.isolation = readIsolation();
 });

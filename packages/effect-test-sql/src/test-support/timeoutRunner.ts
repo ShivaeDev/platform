@@ -38,6 +38,7 @@ export const timeoutRunner = storyKit({
 					stories: testModules.flatMap((module) =>
 						[...module.children.allTests()].map((test) => ({
 							errors: (test.result().errors ?? []).map((error) => error.message),
+							meta: test.meta(),
 							name: test.name,
 							state: test.result().state,
 						})),

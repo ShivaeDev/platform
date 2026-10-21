@@ -1,6 +1,10 @@
+import { expect } from "vitest";
 import { app, existingContacts, oldSchema } from "#test/migrationStory.ts";
 
-app.it("preserves existing email addresses in a new table", [existingContacts, oldSchema], function* ({ backfill, emailsArePreserved }) {
+app.it("preserves existing email addresses in a new table", [existingContacts, oldSchema], function* ({ backfill, readEmails }) {
 	yield* backfill();
-	yield* emailsArePreserved();
+	expect(yield* readEmails()).toEqual([
+		{ address: "alice@example.test", "contact_id": 1 },
+		{ address: "bob@example.test", "contact_id": 2 },
+	]);
 });
