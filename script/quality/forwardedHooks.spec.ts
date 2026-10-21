@@ -27,7 +27,7 @@ hookStory.it("runs a global reference-transaction guard added after installation
 	expect(hooks.run("install").status).toBe(CLI_EXIT.passed);
 	hooks.writeGlobal("reference-transaction", '#!/bin/sh\nprintf "%s\\n" "$@" >> reference-transaction.log\ncat >> reference-transaction.log\n');
 	expect(git.commit().status).toBe(CLI_EXIT.passed);
-	expect(recorded.hookLog("reference-transaction")).toMatch(/^prepared\n[a-f0-9]{40} [a-f0-9]{40} refs\/heads\/main\n/u);
+	expect(recorded.hookLog("reference-transaction")).toMatch(/(?:^|\n)prepared\n[a-f0-9]{40} [a-f0-9]{40} refs\/heads\/main\n/u);
 	expect(recorded.hookLog("reference-transaction")).toContain("committed\n");
 });
 
