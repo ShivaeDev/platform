@@ -73,6 +73,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+      - name: Test generated app setup and its initial Quality gate
+        run: pnpm --filter @shivaedev/create-app test src/initialQualityGate.spec.ts
       - name: Test real filesystem delivery to live clients
         run: >-
           pnpm --filter @shivaedev/work-board test
