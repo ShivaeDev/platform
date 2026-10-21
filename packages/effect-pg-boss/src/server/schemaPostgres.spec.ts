@@ -68,7 +68,7 @@ schemaIt(
 		yield* rollbackSchema("jobs_test", 45);
 		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 44 }]);
 		yield* installSchema({ schema: "jobs_test" });
-		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 45 }]);
+		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 46 }]);
 		expect(yield* query("SELECT indexname FROM pg_indexes WHERE schemaname = 'jobs_test' AND indexname LIKE '%i13' ORDER BY indexname")).toHaveLength(
 			2,
 		);
@@ -83,5 +83,5 @@ schemaIt("reports installation failures through the typed error channel and leav
 	yield* query("INSERT INTO broken.version VALUES (44)");
 	expect(yield* installSchema({ schema: "broken" }).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
 	yield* installSchema();
-	expect(yield* query("SELECT version FROM pgboss.version")).toEqual([{ version: 45 }]);
+	expect(yield* query("SELECT version FROM pgboss.version")).toEqual([{ version: 46 }]);
 });

@@ -17,7 +17,7 @@ schemaIt(
 		yield* held.cancel;
 		expect(yield* Fiber.join(upgrade).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
 		yield* held.release;
-		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 45 }]);
+		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 46 }]);
 		expect(
 			yield* query(
 				"SELECT indexrelid::regclass::text AS name, indisvalid AS valid FROM pg_index WHERE indexrelid = to_regclass('jobs_test.job_common_i13')",
