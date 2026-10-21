@@ -1,42 +1,24 @@
-import assert from "node:assert/strict";
-import { test as it } from "node:test";
+import { expect } from "vitest";
 import { measuredMain } from "#ci/test-support/measuredMain.ts";
-import { mainShardPlan } from "./mainShardPlan.ts";
+import { planning } from "#ci/test-support/planning.ts";
 
-it("pins independent main counts and snapshots, skipping invalid provenance and keeping at least four test shards", () => {
-	assert.deepEqual(mainShardPlan("owner/repo", measuredMain), {
+planning.it("pins independent snapshots, skips invalid provenance and keeps four test shards", [measuredMain()], ({ planMain }) => {
+	expect(planMain()).toEqual({
 		consumers: { artifactId: "4300", count: 5, runId: "43" },
 		tests: { artifactId: "4200", count: 4, runId: "42" },
 	});
 });
 
-function denied(): string {
-	throw new Error("denied");
-}
-
-it("falls back to eight shards of each kind without access", () => {
-	assert.deepEqual(mainShardPlan("owner/repo", denied), {
-		consumers: { artifactId: "", count: 8, runId: "" },
-		tests: { artifactId: "", count: 8, runId: "" },
-	});
+planning.it("falls back to eight shards without access", [measuredMain("denied")], ({ planMain }) => {
+	expect(planMain()).toEqual({ consumers: { artifactId: "", count: 8, runId: "" }, tests: { artifactId: "", count: 8, runId: "" } });
 });
 
-it("a missing consumer snapshot does not discard the independent test plan", () => {
-	const plan = mainShardPlan("owner/repo", (args) =>
-		args[0] === "api" && args[1]?.includes("name=consumer-balancing") ? JSON.stringify({ artifacts: [] }) : measuredMain(args),
-	);
-	assert.deepEqual(plan, { consumers: { artifactId: "", count: 8, runId: "" }, tests: { artifactId: "4200", count: 4, runId: "42" } });
+planning.it("keeps the independent test plan when consumer timings are missing", [measuredMain("missing consumers")], ({ planMain }) => {
+	expect(planMain()).toEqual({ consumers: { artifactId: "", count: 8, runId: "" }, tests: { artifactId: "4200", count: 4, runId: "42" } });
 });
 
-it("rejects an artifact replaced while selecting its count", () => {
-	let identity = 0;
-	const plan = mainShardPlan("owner/repo", (args) => {
-		if (args[0] === "api" && args[1]?.includes("/artifacts?")) {
-			identity += 1;
-			return JSON.stringify({ artifacts: [{ expired: false, id: identity, name: args[1].split("name=")[1] }] });
-		}
-		return measuredMain(args);
-	});
-	assert.equal(plan.tests.runId, "");
-	assert.equal(plan.consumers.runId, "");
+planning.it("rejects artifacts replaced while selecting their counts", [measuredMain("replaced")], ({ planMain }) => {
+	const plan = planMain();
+	expect(plan.tests.runId).toBe("");
+	expect(plan.consumers.runId).toBe("");
 });
